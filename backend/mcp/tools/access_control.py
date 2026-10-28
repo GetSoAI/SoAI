@@ -13,7 +13,7 @@ from mcp.tools.error import MCPToolError
 from mcp.tools.internal_protocols import MCPUtilityToolsProtocol
 from mcp.tools.user_permission_records import resolve_tool_user_is_admin
 
-__all__ = ("require_tool_action",)
+__all__ = ("require_tool_action", "tool_user_has_action")
 
 
 async def _resolve_current_user_actions(
@@ -30,6 +30,27 @@ async def _resolve_current_user_actions(
     return policy.get(access_state, frozenset())
 
 
+async def _resolve_allowed_actions(
+    utility_tools: MCPUtilityToolsProtocol,
+    *,
+    user_id: int,
+) -> frozenset[AccessAction]:
+    request_context = utility_tools.active_request_context.get(None)
+    if request_context is not None and request_context.access_actions:
+        return request_context.access_actions
+    return await _resolve_current_user_actions(utility_tools, user_id=user_id)
+
+
+async def tool_user_has_action(
+    utility_tools: MCPUtilityToolsProtocol,
+    *,
+    action: AccessAction,
+) -> bool:
+    user_id = utility_tools.runtime_sessions.current_user_id()
+    allowed_actions = await _resolve_allowed_actions(utility_tools, user_id=user_id)
+    return action in allowed_actions
+
+
 async def require_tool_action(
     utility_tools: MCPUtilityToolsProtocol,
     *,
@@ -41,11 +62,7 @@ async def require_tool_action(
         tool_name=tool_name,
         message=f"User authentication required for {tool_name}.",
     )
-    request_context = utility_tools.active_request_context.get(None)
-    if request_context is not None and request_context.access_actions:
-        allowed_actions = request_context.access_actions
-    else:
-        allowed_actions = await _resolve_current_user_actions(utility_tools, user_id=user_id)
+    allowed_actions = await _resolve_allowed_actions(utility_tools, user_id=user_id)
     required_actions = frozenset({AccessAction.MCP_USE, action})
     missing_actions = required_actions.difference(allowed_actions)
     if missing_actions:

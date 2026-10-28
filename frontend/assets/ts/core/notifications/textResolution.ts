@@ -90,6 +90,10 @@ const resolveNotificationText = (value: NotificationText): string => {
             return i18n.t('notifications.security.loginThrottle.title');
         case 'security_login_throttle_message':
             return i18n.t('notifications.security.loginThrottle.message', { attemptCount: value.parameters.attemptCount, windowMinutes: value.parameters.windowMinutes });
+        case 'plugin_backend_update_title':
+            return i18n.t('plugins.notifications.backendUpdateTitle');
+        case 'plugin_backend_update_message':
+            return i18n.t('plugins.notifications.backendUpdateMessage', { pluginName: value.parameters.pluginName });
         case 'plugin_circuit_breaker_tripped_title':
             return i18n.t('plugins.notifications.circuitBreakerTrippedTitle');
         case 'plugin_circuit_breaker_tripped_message':

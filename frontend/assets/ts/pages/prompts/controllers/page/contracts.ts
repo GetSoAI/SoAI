@@ -10,6 +10,7 @@ import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/Pa
 import type { PageServicesOwnerHost } from '@core/routing/pages/basepagecore/PageServices.ts';
 import type { PageUiOwnerHost } from '@core/routing/pages/basepagecore/PageUi.ts';
 import type { PageLayoutOwnerHost } from '@core/routing/pages/basepagelayout/PageLayout.ts';
+import type { ReapplyCollectionOptions } from '@core/routing/pages/pagetypes/public.ts';
 import type { PageStreamingOwnerHost } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
 import type { PageLifecycleOwnerHost } from '@core/routing/pages/basepage/PageLifecycle.ts';
 import type { CollectionPageLifecycle } from '@core/routing/pages/collections/pagelifecyclemanager/public.ts';
@@ -65,7 +66,7 @@ interface PromptsRuntimeOperations {
     renderItems(): void;
     updateStats(): void;
     updateFilters(): void;
-    reapplyCollection(options?: { shouldRender?: boolean; updateStats?: boolean; updateFilters?: boolean; resetScroll?: boolean }): void;
+    reapplyCollection(options?: ReapplyCollectionOptions): void;
     downloadTextFile(content: string, filename: string, mimeType?: string): void;
     copyPromptContent(content: string | null | undefined): Promise<void>;
     removeItemById(id: string): void;

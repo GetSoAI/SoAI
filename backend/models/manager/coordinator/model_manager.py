@@ -15,6 +15,7 @@ from core.events.types_models_model_commands import (
     DeleteModelAliasCommand,
     DeleteModelParametersCommand,
     ModelDeleteCommand,
+    ReplaceModelOpenAICapabilityOverridesCommand,
     ResetModelOpenAICapabilityOverridesCommand,
     TriggerModelDiscoveryCommand,
     UpdateModelAliasCommand,
@@ -218,6 +219,9 @@ class ModelManager(Shutdownable):
             DeleteModelAliasCommand: self._command_handlers.handle_alias_command,
             UpdateModelEnabledCommand: self._command_handlers.handle_enabled_command,
             UpdateModelOpenAICapabilityOverrideCommand: (
+                self._command_handlers.handle_openai_capabilities_override_command
+            ),
+            ReplaceModelOpenAICapabilityOverridesCommand: (
                 self._command_handlers.handle_openai_capabilities_override_command
             ),
             ResetModelOpenAICapabilityOverridesCommand: (

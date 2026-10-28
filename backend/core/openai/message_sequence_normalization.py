@@ -8,6 +8,8 @@ from collections.abc import Iterable
 from core.errors.exceptions import ValidationError
 from core.openai.chat_messages_contracts import extract_expected_tool_call_ids
 from core.openai.content_text_coercion import coerce_openai_content_text
+from core.openai.reasoning_text import REASONING_FIELD_NAMES
+from core.openai.stream_transcript.payload_segments import extract_reasoning_text_from_source
 from core.serialization.json import serialize_json_compact_stable_strict
 from core.types.json import JSONDict, JSONValue
 from core.types.json_value import require_json_dict
@@ -141,6 +143,13 @@ def merge_adjacent_dialogue_turns_for_strict_templates(
                     message.get("content"),
                 )
                 if role == "assistant":
+                    reasoning_text = extract_reasoning_text_from_source(
+                        previous
+                    ) + extract_reasoning_text_from_source(message)
+                    for field_name in REASONING_FIELD_NAMES:
+                        previous.pop(field_name, None)
+                    if reasoning_text:
+                        previous["reasoning_content"] = reasoning_text
                     merged_tool_calls = _merge_tool_calls(
                         previous.get("tool_calls"),
                         message.get("tool_calls"),

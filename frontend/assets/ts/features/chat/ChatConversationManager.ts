@@ -40,6 +40,7 @@ class ChatConversationManager {
     #chatApi: ChatPageApi['webui']['chat'];
     #persistedConversationIds: Set<string> = new Set();
     #persistingConversationById: Map<string, Promise<void>> = new Map();
+    #creatingConversationIds: Set<string> = new Set();
     #deletedWhilePersistingConversationIds: Set<string> = new Set();
     #mutationSequencer: ConversationMutationSequencer = new ConversationMutationSequencer();
     #settingsUpdateQueue: ConversationSettingsUpdateQueue = new ConversationSettingsUpdateQueue();
@@ -53,6 +54,9 @@ class ChatConversationManager {
     }
     isConversationPersisted(conversationId: string): boolean {
         return this.#persistedConversationIds.has(conversationId);
+    }
+    isConversationCreationPending(conversationId: string): boolean {
+        return this.#creatingConversationIds.has(conversationId);
     }
     markConversationPersisted(conversationId: string): void {
         if (this.#persistedConversationIds.has(conversationId)) {
@@ -105,9 +109,15 @@ class ChatConversationManager {
     async createNewConversation(): Promise<Conversation> {
         const id = requireConversationId(this.#dependencies.createConversationId(), 'Conversation');
         const title = i18n.t('chat.conversation.newTitle');
-        const createPayload = buildConversationCreatePayload({ id, title });
-        const created = await this.#chatApi.create(createPayload, {});
-        const conversation = await parseCreatedConversationWithCleanup(this.#chatApi, created, id, String(createPayload['title']));
+        const createPayload = buildConversationCreatePayload({ id, title, titleAutoUpdateAllowed: true });
+        this.#creatingConversationIds.add(id);
+        let conversation: Conversation;
+        try {
+            const created = await this.#chatApi.create(createPayload, {});
+            conversation = await parseCreatedConversationWithCleanup(this.#chatApi, created, id, String(createPayload['title']));
+        } finally {
+            this.#creatingConversationIds.delete(id);
+        }
         this.#state.conversations.set(conversation.id, conversation);
         this.#persistedConversationIds.add(conversation.id);
         this.#dependencies.onConversationPersisted?.(conversation.id);

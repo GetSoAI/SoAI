@@ -10,6 +10,7 @@ import aiosqlite
 
 from core.errors.exceptions import StateError
 from database.core.query_execution import query_one_to_dict, query_to_dicts
+from database.repositories.users.agent_prompt_replay_reads import read_agent_prompt_replay_snapshot
 from database.repositories.users.agent_turn_abandonment import (
     sync_abandon_running_turn_if_current,
 )
@@ -24,6 +25,8 @@ from database.repositories.users.agent_turn_transactions import (
 )
 
 if TYPE_CHECKING:
+    from core.agent.prompt_replay import AgentTurnPromptReplaySnapshot
+    from core.conversations.assistant_turn_variant_identity import AssistantTurnVariantIdentity
     from core.database.requests import (
         ClaimAgentTurnStateRequest,
         WriteAgentTurnStateRequest,
@@ -37,6 +40,24 @@ __all__ = ("DatabaseAgentTurns",)
 class DatabaseAgentTurns:
     def __init__(self, deps: DatabaseRepositoryDependencies) -> None:
         self.core = deps.core
+
+    async def get_prompt_replay_snapshot(
+        self,
+        *,
+        conv_id: str,
+        user_id: int,
+        turn_id: str,
+        input_id: str,
+        identity: AssistantTurnVariantIdentity,
+    ) -> AgentTurnPromptReplaySnapshot:
+        return await self.core.reader.execute_read(
+            read_agent_prompt_replay_snapshot,
+            conv_id=conv_id,
+            user_id=user_id,
+            turn_id=turn_id,
+            input_id=input_id,
+            identity=identity,
+        )
 
     async def write_turn_state(self, request: WriteAgentTurnStateRequest) -> JSONDict:
         record = await self.core.writer.queue_write_operation(

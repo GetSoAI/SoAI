@@ -11,6 +11,7 @@ import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
 import { isAttachmentSummarySegment } from '@features/chat/message/messageview/attachmentSummaryCards.ts';
 
 type AttachmentOverflowRecord = {
+    missingCapabilities?: string[];
     id: string;
     type: 'attachment' | 'knowledge' | 'soaiLink' | 'knowledgeItem';
     title: string;

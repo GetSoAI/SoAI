@@ -3,23 +3,45 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
+import copy
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Literal
 
-from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import ValidationError
+from core.errors.exception_logging import log_handled_exception
+from core.errors.exceptions import ProcessError, StateError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.hardware.gpu_physical_identity import (
+    GPUPhysicalBindingState,
+    gpu_physical_device_observations,
+)
+from core.hardware.gpu_physical_observations import (
+    read_gpu_pci_observations,
+    read_gpu_uuid_observations,
+)
 from core.logging.trace import get_logger
-from core.serialization.json_parsing import parse_json_value
-from core.types.json_value import filter_json_dict_list
-from core.validation.strings import coerce_optional_trimmed_str
+from core.types.json import JSONDict, JSONValue
+from hardware.gpu_inventory.display_name import select_gpu_display_name
+from hardware.gpu_inventory.identity import uuid_from_device_id
+from hardware.gpu_inventory.memory_metrics import bytes_to_mebibytes
+from hardware.gpu_inventory.physical_binding import (
+    mark_gpu_inventory_bindings,
+    match_gpu_inventory_sources,
+    match_gpu_physical_identity,
+    resolve_gpu_physical_binding,
+    retain_gpu_native_aliases,
+)
 from hardware.gpu_inventory.windows_adapters import (
-    WINDOWS_VIDEO_CONTROLLER_QUERY,
     build_windows_gpu_entry,
     classify_windows_display_adapter,
     coerce_windows_gpu_name,
     detect_windows_adapter_vendor,
 )
+from hardware.gpu_inventory.windows_physical_acquisition import (
+    WindowsPhysicalAcquisition,
+    read_windows_physical_acquisition,
+)
+from hardware.vendors.amd.adl_memory import acquire_adl_memory
+from hardware.vendors.amd.adl_session import AdlRuntime
 from hardware.vendors.intel.gpu_info import query_intel_gpus
 from hardware.vendors.nvidia.query import resolve_query_nvidia_gpus
 from hardware.vendors.vendor_types import (
@@ -28,7 +50,6 @@ from hardware.vendors.vendor_types import (
     NVIDIA_VENDOR,
     UNKNOWN_VENDOR,
 )
-from hardware.windows_commands import build_windows_powershell_command
 
 if TYPE_CHECKING:
     from core.hardware.protocols import (
@@ -36,15 +57,22 @@ if TYPE_CHECKING:
         NvmlGateProtocol,
     )
     from core.system.protocols import CommandExecutorProtocol
-    from core.types.json import JSONDict, JSONValue
+
+LOGGER_NAME = "SoAI.hardware.gpu_inventory.windows_inventory"
+OPERATION_HARDWARE_WINDOWS_INVENTORY_NVIDIA = "hardware.windows_inventory.nvidia"
+
+
+WINDOWS_NATIVE_QUERY_FAILURES: tuple[type[Exception], ...] = (
+    *RECOVERABLE_EXCEPTIONS,
+    OSError,
+    StateError,
+    ProcessError,
+)
 
 __all__ = (
     "WindowsGpuInventory",
     "collect_windows_gpu_inventory",
 )
-
-LOGGER_NAME = "SoAI.hardware.gpu_inventory.windows_inventory"
-OPERATION = "hardware.gpu_inventory.windows_inventory"
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,6 +80,8 @@ class WindowsGpuInventory:
     gpus: list[JSONDict]
     compute_drivers: JSONDict
     display_adapters: list[JSONDict]
+    acquisition: WindowsPhysicalAcquisition
+    source_states: JSONDict = field(default_factory=dict[str, JSONValue])
 
 
 def collect_windows_gpu_inventory(
@@ -61,47 +91,47 @@ def collect_windows_gpu_inventory(
     vendor_hints: set[str],
     nvidia_nvml_gate: NvmlGateProtocol,
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
+    adl_runtime: AdlRuntime | None = None,
 ) -> WindowsGpuInventory:
+    acquisition = read_windows_physical_acquisition(executor)
+    records = acquisition.records
+    source_states: JSONDict = {
+        "cim": {"state": acquisition.state.value, "reason_code": acquisition.reason_code},
+        "nvidia": {"state": "unknown", "reason_code": "native_observation_missing"},
+    }
+
+    def observe_nvidia(status: Literal["complete", "partial", "failed"]) -> None:
+        source_states["nvidia"] = {
+            "state": (
+                "observed"
+                if status == "complete"
+                else "invalid_response" if status == "partial" else "query_failed"
+            ),
+            "reason_code": (
+                None
+                if status == "complete"
+                else "native_inventory_incomplete" if status == "partial" else "native_query_failed"
+            ),
+        }
+
     try:
-        result = executor.execute(
-            build_windows_powershell_command(WINDOWS_VIDEO_CONTROLLER_QUERY),
-            timeout=30,
-            shell=False,
-            use_sudo=False,
+        query_nvidia_gpus = resolve_query_nvidia_gpus()
+        nvidia_gpus, nvidia_drivers = query_nvidia_gpus(
+            detailed,
+            nvml_gate=nvidia_nvml_gate,
+            capabilities_cache_service=nvidia_capabilities_cache_service,
+            on_inventory_observed=observe_nvidia,
         )
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except WINDOWS_NATIVE_QUERY_FAILURES as exception:
+        observe_nvidia("failed")
         log_handled_exception(
             get_logger(LOGGER_NAME),
             exception,
-            message="Windows GPU inventory query failed.",
-            operation=OPERATION,
+            message="Independent NVIDIA inventory unavailable.",
+            operation=OPERATION_HARDWARE_WINDOWS_INVENTORY_NVIDIA,
             level="warning",
         )
-        return WindowsGpuInventory(gpus=[], compute_drivers={}, display_adapters=[])
-    if result.return_code != 0 or not result.stdout:
-        get_logger(LOGGER_NAME).warning(
-            "PowerShell command failed to get GPU info. RC: %s, Error: %s",
-            result.return_code,
-            result.stderr,
-        )
-        return WindowsGpuInventory(gpus=[], compute_drivers={}, display_adapters=[])
-    try:
-        parsed = parse_json_value(result.stdout, field="Win32_VideoController output")
-    except ValidationError as exception:
-        log_exception(
-            get_logger(LOGGER_NAME),
-            exception,
-            message="Failed to parse GPU info JSON",
-            operation=OPERATION,
-        )
-        return WindowsGpuInventory(gpus=[], compute_drivers={}, display_adapters=[])
-    records = filter_json_dict_list(parsed if isinstance(parsed, list) else [parsed])
-    nvidia_gpus, nvidia_drivers = _query_nvidia_details(
-        detailed,
-        vendor_hints,
-        nvidia_nvml_gate,
-        nvidia_capabilities_cache_service,
-    )
+        nvidia_gpus, nvidia_drivers = [], {}
     intel_gpus, intel_drivers = _query_intel_details(executor, detailed, vendor_hints)
     drivers: JSONDict = {}
     drivers.update(nvidia_drivers)
@@ -109,7 +139,6 @@ def collect_windows_gpu_inventory(
     gpus: list[JSONDict] = []
     display_adapters: list[JSONDict] = []
     vendor_counts: dict[str, int] = {}
-    detail_indexes = {NVIDIA_VENDOR: 0, INTEL_VENDOR: 0}
     for record in records:
         name = coerce_windows_gpu_name(record.get("Name"))
         vendor = detect_windows_adapter_vendor(record, name)
@@ -139,30 +168,81 @@ def collect_windows_gpu_inventory(
             vendor_id=vendor_id,
             name=name,
         )
-        _apply_driver_version(drivers, vendor, record.get("DriverVersion"))
-        if vendor == NVIDIA_VENDOR:
-            _merge_vendor_details(gpu_data, nvidia_gpus, detail_indexes, NVIDIA_VENDOR)
-        elif vendor == INTEL_VENDOR:
-            _merge_vendor_details(gpu_data, intel_gpus, detail_indexes, INTEL_VENDOR)
+        gpu_data["telemetry_available"] = False
+        gpu_data["telemetry_unavailable_reason"] = "native_identity_unavailable"
         gpus.append(gpu_data)
+    native_gpus = nvidia_gpus + intel_gpus
+    joins = match_gpu_inventory_sources(gpus, native_gpus)
+    matched_native: set[int] = set()
+    for baseline_index, native_index in joins.pairs:
+        _merge_vendor_details(gpus[baseline_index], native_gpus[native_index])
+        matched_native.add(native_index)
+    for index, binding in enumerate(joins.baseline_results):
+        if binding.state in (
+            GPUPhysicalBindingState.IDENTITY_CONFLICT,
+            GPUPhysicalBindingState.INVALID_RESPONSE,
+        ):
+            gpus[index]["control_binding_state"] = binding.state.value
+            gpus[index]["control_binding_reason"] = binding.reason_code
+    for index, native_gpu in enumerate(native_gpus):
+        if index in matched_native:
+            continue
+        entry = copy.deepcopy(native_gpu)
+        entry["index"] = len(gpus)
+        binding = joins.native_results[index]
+        if binding.state in (
+            GPUPhysicalBindingState.IDENTITY_CONFLICT,
+            GPUPhysicalBindingState.INVALID_RESPONSE,
+        ):
+            entry["control_binding_state"] = binding.state.value
+            entry["control_binding_reason"] = binding.reason_code
+        gpus.append(entry)
+    if any(gpu.get("type") == AMD_VENDOR for gpu in gpus):
+        memory = acquire_adl_memory(adl_runtime, executor)
+        candidates = [gpu_physical_device_observations(row.device) for row in memory.observations]
+        for gpu in gpus:
+            if gpu.get("type") != AMD_VENDOR:
+                continue
+            gpu["memory_total_status"] = "unavailable"
+            gpu["telemetry_available"] = False
+            gpu["telemetry_unavailable_reason"] = memory.reason_code
+            binding = resolve_gpu_physical_binding(gpu, candidates)
+            matches = [
+                row
+                for row in memory.observations
+                if binding.device is not None and row.device.device_id == binding.device.device_id
+            ]
+            memory_row = matches[0] if len(matches) == 1 else None
+            if memory_row is None:
+                gpu["telemetry_unavailable_reason"] = memory.reason_code or binding.reason_code
+            if binding.state == GPUPhysicalBindingState.BOUND and memory_row is not None:
+                gpu["telemetry_available"] = memory_row.telemetry is not None
+                gpu["telemetry_unavailable_reason"] = memory_row.telemetry_reason_code
+                if memory_row.telemetry is not None:
+                    gpu.update(memory_row.telemetry)
+            if (
+                binding.state == GPUPhysicalBindingState.BOUND
+                and memory_row is not None
+                and memory_row.capacity_bytes is not None
+            ):
+                gpu["memory_total_mb"] = bytes_to_mebibytes(memory_row.capacity_bytes)
+                gpu["memory_total_bytes"] = memory_row.capacity_bytes
+                gpu["memory_total_source"] = "adl.ADL2_Adapter_MemoryInfo2_Get"
+                gpu["memory_total_unit"] = "bytes"
+                gpu["memory_total_reported_value"] = memory_row.capacity_bytes
+                gpu.pop("memory_total_unavailable_reason", None)
+                gpu["memory_total_status"] = "available"
+            else:
+                gpu["memory_total_unavailable_reason"] = (
+                    memory_row.reason_code if memory_row is not None else memory.reason_code
+                ) or binding.reason_code
+    mark_gpu_inventory_bindings(gpus)
     return WindowsGpuInventory(
-        gpus=gpus, compute_drivers=drivers, display_adapters=display_adapters
-    )
-
-
-def _query_nvidia_details(
-    detailed: bool,
-    vendor_hints: set[str],
-    nvidia_nvml_gate: NvmlGateProtocol,
-    nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
-) -> tuple[list[JSONDict], JSONDict]:
-    if NVIDIA_VENDOR not in vendor_hints:
-        return ([], {})
-    query_nvidia_gpus = resolve_query_nvidia_gpus()
-    return query_nvidia_gpus(
-        detailed,
-        nvml_gate=nvidia_nvml_gate,
-        capabilities_cache_service=nvidia_capabilities_cache_service,
+        gpus=gpus,
+        compute_drivers=drivers,
+        display_adapters=display_adapters,
+        acquisition=acquisition,
+        source_states=source_states,
     )
 
 
@@ -187,30 +267,57 @@ def _next_vendor_id(vendor_counts: dict[str, int], vendor: str) -> int:
 
 def _merge_vendor_details(
     gpu_data: JSONDict,
-    details: list[JSONDict],
-    detail_indexes: dict[str, int],
-    vendor: str,
+    detail: JSONDict,
 ) -> None:
-    detail_index = detail_indexes.get(vendor, 0)
-    if detail_index >= len(details):
-        return
-    detail = details[detail_index]
+    if match_gpu_physical_identity(gpu_data, detail) != GPUPhysicalBindingState.BOUND:
+        raise ValidationError("Windows GPU enrichment requires a proved physical relation.")
+    observations = read_gpu_pci_observations(gpu_data)
+    observations.extend(
+        value for value in read_gpu_pci_observations(detail) if value not in observations
+    )
+    uuid_observations = read_gpu_uuid_observations(gpu_data)
+    uuid_observations.extend(
+        value for value in read_gpu_uuid_observations(detail) if value not in uuid_observations
+    )
+    native_id = detail.get("device_id")
+    native_uuid = uuid_from_device_id(native_id) if isinstance(native_id, str) else None
+    if native_uuid is not None and any(
+        native_uuid.casefold() == observation.casefold() for observation in uuid_observations
+    ):
+        durable_identity = copy.deepcopy(detail)
+        retain_gpu_native_aliases(durable_identity, gpu_data)
+        gpu_data["device_id"] = native_id
+        gpu_data["device_id_aliases"] = durable_identity.get("device_id_aliases", [])
+    else:
+        retain_gpu_native_aliases(gpu_data, detail)
+    native_capacity_available = detail.get("memory_total_mb") is not None
     for detail_key, detail_value in detail.items():
-        if detail_key not in {"type", "vendor_id", "name"}:
-            gpu_data[detail_key] = detail_value
-    detail_indexes[vendor] = detail_index + 1
-
-
-def _apply_driver_version(drivers: JSONDict, vendor: str, value: JSONValue) -> None:
-    driver_version = coerce_optional_trimmed_str(value)
-    if driver_version is None:
-        return
-    if vendor == UNKNOWN_VENDOR:
-        return
-    driver_key = f"{vendor.upper()}_Driver"
-    if driver_key in drivers:
-        return
-    drivers[driver_key] = {
-        "version": driver_version,
-        "driver_version": driver_version,
-    }
+        if not native_capacity_available and detail_key in {
+            "memory_total_mb",
+            "memory_total_bytes",
+            "memory_total_source",
+            "memory_total_unit",
+            "memory_total_reported_value",
+        }:
+            continue
+        if detail_key in {"device_id", "index", "type", "name", "device_id_aliases"}:
+            continue
+        if (
+            detail_key
+            in {
+                "gpu_uuid",
+                "gpu_uuid_observations",
+                "uuid",
+                "pci_bdf_full",
+                "pci_bdf_observations",
+                "windows_pnp_instance_id",
+            }
+            and detail_key in gpu_data
+        ):
+            continue
+        gpu_data[detail_key] = copy.deepcopy(detail_value)
+    gpu_data["pci_bdf_observations"] = observations
+    gpu_data["gpu_uuid_observations"] = uuid_observations
+    gpu_data["name"] = select_gpu_display_name(gpu_data.get("name"), detail.get("name"))
+    gpu_data["telemetry_available"] = detail.get("telemetry_available") is not False
+    gpu_data["telemetry_unavailable_reason"] = detail.get("telemetry_unavailable_reason")

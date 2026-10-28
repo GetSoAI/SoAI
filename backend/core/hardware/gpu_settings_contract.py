@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
+    "AMD_NATIVE_PERFORMANCE_MODES",
     "GPU_CLOCK_SETTING_FIELDS",
     "GPU_DIRECT_SETTING_FIELDS",
     "GPU_RANGED_SETTING_FIELDS",
@@ -25,6 +26,17 @@ __all__ = (
     "GPU_SETTING_POWER_LIMIT_FIELD",
     "extract_direct_gpu_settings",
     "validate_gpu_reset_clock_conflict",
+)
+
+AMD_NATIVE_PERFORMANCE_MODES: tuple[str, ...] = (
+    "auto",
+    "manual",
+    "low",
+    "high",
+    "profile_standard",
+    "profile_min_sclk",
+    "profile_min_mclk",
+    "profile_peak",
 )
 
 GPU_SETTING_POWER_LIMIT_FIELD = "power_limit"

@@ -1,11 +1,13 @@
 /* SoAI - Shared page outlet overlay controller [frontend/assets/ts/core/pageoutlet/overlayController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { resolve } from '@core/dom/dom.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { applyPageOutletErrorState } from '@core/pageoutlet/actions.ts';
 import { createOverlayElements, setPageOutletState } from '@core/pageoutlet/dom.ts';
 import type { PageOutletOverlayElements, PageOutletRetryHandler, PageOutletStateOptions } from '@core/pageoutlet/types.ts';
-import { isFunction } from '@core/typeGuards.ts';
+import { isFunction, isHTMLElement } from '@core/typeGuards.ts';
+import { SpinnerTrailRenderer } from '@core/pageoutlet/spinner/SpinnerTrailRenderer.ts';
 
 class PageOutletOverlayController {
     #resources: ResourceTracker;
@@ -14,10 +16,13 @@ class PageOutletOverlayController {
     #retryHandler: PageOutletRetryHandler | null = null;
     #state: string = 'idle';
     #clearSkeleton: () => void;
+    #spinnerWorkerUrl: string | undefined;
+    #spinnerRenderer: SpinnerTrailRenderer | null = null;
 
-    constructor(options: { resources: ResourceTracker; clearSkeleton: () => void }) {
+    constructor(options: { resources: ResourceTracker; clearSkeleton: () => void; spinnerWorkerUrl?: string | undefined }) {
         this.#resources = options.resources;
         this.#clearSkeleton = options.clearSkeleton;
+        this.#spinnerWorkerUrl = options.spinnerWorkerUrl;
     }
 
     setRetryHandler(handler: PageOutletRetryHandler | null): void {
@@ -55,6 +60,7 @@ class PageOutletOverlayController {
         if (resolvedOverlay) {
             this.#overlayElements = resolvedOverlay;
         }
+        this.#spinnerRenderer?.setLoading(state === 'loading');
     }
 
     #ensureOverlay(): PageOutletOverlayElements {
@@ -71,6 +77,16 @@ class PageOutletOverlayController {
                 }
             });
         });
+        if (this.#spinnerRenderer) {
+            this.#spinnerRenderer.dispose();
+            this.#resources.untrack(this.#spinnerRenderer);
+            this.#spinnerRenderer = null;
+        }
+        if (this.#spinnerWorkerUrl) {
+            const spinner = resolve('.page-outlet-overlay-spinner', overlayElements.overlay);
+            if (!isHTMLElement(spinner)) throw new Error('Page outlet loading spinner is required');
+            this.#spinnerRenderer = this.#resources.track(new SpinnerTrailRenderer(spinner, this.#spinnerWorkerUrl));
+        }
         this.#overlayElements = overlayElements;
         return overlayElements;
     }

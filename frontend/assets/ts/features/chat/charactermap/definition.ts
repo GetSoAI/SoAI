@@ -27,7 +27,7 @@ const renderFontLabel = (fontId: CharacterMapFontId): string => {
 };
 
 const renderFontOptions = (): TrustedHtml => {
-    const options = CHARACTER_MAP_FONTS.map((font) => (font.id === CHARACTER_MAP_DEFAULT_FONT_ID ? uiHtml`<option value="${uiAttr(font.id)}" selected>${uiText(renderFontLabel(font.id))}</option>` : uiHtml`<option value="${uiAttr(font.id)}">${uiText(renderFontLabel(font.id))}</option>`));
+    const options = CHARACTER_MAP_FONTS.map((font) => (font.id === CHARACTER_MAP_DEFAULT_FONT_ID ? uiHtml`<option value="${uiAttr(font.id)}" selected data-modal-localize="text">${uiText(renderFontLabel(font.id))}</option>` : uiHtml`<option value="${uiAttr(font.id)}" data-modal-localize="text">${uiText(renderFontLabel(font.id))}</option>`));
     return toTrustedUiHtml(options.map((option) => option.html).join(''));
 };
 
@@ -41,16 +41,16 @@ const renderSearch = (modalId: string): TrustedHtml => {
     const label = i18n.t('chat.characterMap.search');
     return uiHtml`
         <div class="form-group chat-character-map-search">
-            <label for="${uiAttr(searchId)}">${uiText(label)}</label>
+            <label for="${uiAttr(searchId)}" data-modal-localize="text">${uiText(label)}</label>
             <div class="form-row-split form-row-split--search ui-collection-search-row">
                 <div class="form-col-main ui-collection-search-row__field">
                     <div class="searchbar-container searchbar-container--collection">
-                        <input type="text" id="${uiAttr(searchId)}" class="form-input searchbar-input" placeholder="${uiAttr(i18n.t('chat.characterMap.searchPlaceholder'))}" autocomplete="off" spellcheck="false">
+                        <input type="text" id="${uiAttr(searchId)}" class="form-input searchbar-input" placeholder="${uiAttr(i18n.t('chat.characterMap.searchPlaceholder'))}" autocomplete="off" spellcheck="false" data-modal-localize="placeholder">
                         ${renderSearchFieldActions()}
                     </div>
                 </div>
                 <div class="form-col-secondary form-col-action ui-collection-search-row__action">
-                    <button type="button" class="ui-button" data-action="${uiAttr(CHARACTER_MAP_ACTIONS.SEARCH)}" ${renderLabelAttributes(label)} disabled>${uiText(label)}</button>
+                    <button type="button" class="ui-button" data-action="${uiAttr(CHARACTER_MAP_ACTIONS.SEARCH)}" ${renderLabelAttributes(label)} disabled data-modal-localize="text">${uiText(label)}</button>
                 </div>
             </div>
         </div>
@@ -63,15 +63,18 @@ const renderControls = (modalId: string): TrustedHtml => {
     return uiHtml`
         <section class="chat-character-map-controls">
             <div class="form-group chat-character-map-select-field">
-                <label for="${uiAttr(fontId)}">${uiText(i18n.t('chat.characterMap.font'))}</label>
+                <label for="${uiAttr(fontId)}" data-modal-localize="text">${uiText(i18n.t('chat.characterMap.font'))}</label>
                 ${renderSelectControl(fontId, 'form-input chat-character-map-font-select', renderFontOptions())}
             </div>
             <div class="form-group chat-character-map-select-field">
-                <label for="${uiAttr(subsetId)}">${uiText(i18n.t('chat.characterMap.subset'))}</label>
+                <label for="${uiAttr(subsetId)}" data-modal-localize="text">${uiText(i18n.t('chat.characterMap.subset'))}</label>
                 ${renderSelectControl(subsetId, 'form-input chat-character-map-subset-select', EMPTY_UI_HTML)}
             </div>
+            <div class="form-group chat-character-map-staging">
+                <label for="${uiAttr(modalUiId(modalId, 'staging'))}" data-modal-localize="text">${uiText(i18n.t('chat.characterMap.staging'))}</label>
+                <input type="text" id="${uiAttr(modalUiId(modalId, 'staging'))}" class="form-input" autocomplete="off" autocapitalize="off" spellcheck="false">
+            </div>
             ${renderSearch(modalId)}
-            <p class="form-help chat-character-map-font-hint">${uiText(i18n.t('chat.characterMap.fontHint'))}</p>
         </section>
     `;
 };
@@ -82,25 +85,21 @@ const renderWorkbench = (modalId: string): TrustedHtml => {
         <div class="chat-character-map-workbench" data-character-map-workbench>
             ${renderControls(modalId)}
             <div id="${uiAttr(modalUiId(modalId, 'status'))}" class="chat-character-map-status" aria-live="polite"></div>
-            <div class="chat-character-map-results-surface">
+            <div class="chat-character-map-results-surface" data-modal-localize="text">
                 ${renderModalLoadingState({ id: modalUiId(modalId, 'loading'), text: i18n.t('common.loading') })}
                 <div id="${uiAttr(modalUiId(modalId, 'error'))}" class="chat-character-map-error u-hidden">
-                    <p>${uiText(i18n.t('chat.characterMap.loadFailure'))}</p>
-                    <button type="button" class="ui-button ui-variant-neutral" data-action="${uiAttr(CHARACTER_MAP_ACTIONS.RETRY)}" ${renderLabelAttributes(retryLabel)}>${uiText(retryLabel)}</button>
+                    <p data-modal-localize="text">${uiText(i18n.t('chat.characterMap.loadFailure'))}</p>
+                    <button type="button" class="ui-button ui-variant-neutral" data-action="${uiAttr(CHARACTER_MAP_ACTIONS.RETRY)}" ${renderLabelAttributes(retryLabel)} data-modal-localize="text">${uiText(retryLabel)}</button>
                 </div>
-                <div id="${uiAttr(modalUiId(modalId, 'empty'))}" class="chat-character-map-empty u-hidden">${renderEmptyState({ title: i18n.t('chat.characterMap.noResults') })}</div>
-                <div id="${uiAttr(modalUiId(modalId, 'grid'))}" class="chat-character-map-grid u-hidden" role="region" aria-label="${uiAttr(i18n.t('chat.characterMap.title'))}" aria-busy="false"></div>
+                <div id="${uiAttr(modalUiId(modalId, 'empty'))}" class="chat-character-map-empty u-hidden" data-modal-localize="text">${renderEmptyState({ title: i18n.t('chat.characterMap.noResults') })}</div>
+                <div id="${uiAttr(modalUiId(modalId, 'grid'))}" class="chat-character-map-grid u-hidden" role="region" aria-label="${uiAttr(i18n.t('chat.characterMap.title'))}" aria-busy="false" data-modal-localize="aria-label"><div class="chat-character-map-cells"></div></div>
             </div>
             <div class="chat-character-map-details surface-card card--flat">
                 <div class="chat-character-map-details__metadata">
                     <div id="${uiAttr(modalUiId(modalId, 'code-points'))}" class="chat-character-map-code-points"></div>
                     <div id="${uiAttr(modalUiId(modalId, 'name'))}" class="chat-character-map-name"></div>
                 </div>
-                <button type="button" id="${uiAttr(modalUiId(modalId, 'select'))}" class="ui-button ui-variant-neutral" data-action="${uiAttr(CHARACTER_MAP_ACTIONS.SELECT)}" ${renderLabelAttributes(i18n.t('chat.characterMap.select'))} disabled>${uiText(i18n.t('chat.characterMap.select'))}</button>
-            </div>
-            <div class="form-group chat-character-map-staging">
-                <label for="${uiAttr(modalUiId(modalId, 'staging'))}">${uiText(i18n.t('chat.characterMap.staging'))}</label>
-                <input type="text" id="${uiAttr(modalUiId(modalId, 'staging'))}" class="form-input" autocomplete="off" autocapitalize="off" spellcheck="false">
+                <button type="button" id="${uiAttr(modalUiId(modalId, 'select'))}" class="ui-button ui-variant-neutral" data-action="${uiAttr(CHARACTER_MAP_ACTIONS.SELECT)}" ${renderLabelAttributes(i18n.t('chat.characterMap.select'))} disabled data-modal-localize="text">${uiText(i18n.t('chat.characterMap.select'))}</button>
             </div>
         </div>
     `;

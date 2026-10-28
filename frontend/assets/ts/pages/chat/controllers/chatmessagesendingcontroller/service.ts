@@ -1,7 +1,7 @@
 /* SoAI - Canonical durable Chat input admission [frontend/assets/ts/pages/chat/controllers/chatmessagesendingcontroller/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { isAbortError, throwIfAborted } from '@core/errors/abort.ts';
+import { isAbortError, runWithAbortSignalScope, throwIfAborted } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { ChatExecutionModelPreflightBlockedError, applyChatExecutionModelStateToConversation, captureConversationMutationSnapshot, captureSoaiLinkWorkspaceSnapshot, isChatConversationSettingsWritable, matchesSoaiLinkWorkspaceSnapshot, mountOptimisticInputUserMessage, resolveOptimisticInputOrderingAnchor, restoreConversationMutationSnapshot, showChatExecutionModelPreflightBlockedError } from '@features/chat/public.ts';
 import { capturePayloadAttachmentSnapshot, matchesPayloadAttachmentSnapshot } from '@pages/chat/controllers/chatmessagesendingcontroller/chatAttachmentPayloadRevisionController.ts';
@@ -15,7 +15,9 @@ import { resolveComposerSoaiLinks, resolvePayloadSoaiLinks } from '@pages/chat/c
 import { QUEUED_SEND_ABORTED, QUEUED_SEND_SENT, blockQueuedSend } from '@pages/chat/controllers/chatmessagesendingcontroller/constants.ts';
 import { runQueuedSendGuard } from '@pages/chat/controllers/chatmessagesendingcontroller/sendFlowGuardController.ts';
 import { blockSendForConversationMismatch, isWorkspaceScopeChangedError, recoverFailedSendSurface } from '@pages/chat/controllers/chatmessagesendingcontroller/sendFlowRecoveryController.ts';
-import type { MessageSendingHost, QueuedSendGuard, QueuedSendOutcome, SendMessageOptions } from '@pages/chat/controllers/chatmessagesendingcontroller/types.ts';
+import type { AcceptedConversationInput, Conversation, MessageSendingHost, QueuedSendGuard, QueuedSendOutcome, SendMessageOptions } from '@pages/chat/controllers/chatmessagesendingcontroller/types.ts';
+
+import type { ConversationActivationSnapshot } from '@pages/chat/controllers/page/concurrency/ChatConcurrencyController.ts';
 
 type PostAdmissionHook = (conversationId: string) => void;
 type ConversationInputIntent = 'prompt' | 'steer';
@@ -28,18 +30,53 @@ const runPostAdmissionHook = (host: MessageSendingHost, conversationId: string, 
     }
 };
 
-const canAdmitSteer = async (host: MessageSendingHost, conversationId: string, signal?: AbortSignal | null): Promise<boolean> => {
-    const admission = await host.services.getChatStreamingController().resolveSyncedTurnAdmission(conversationId, signal ?? null);
-    return admission.canSteerPrompt;
+const presentAcceptedSend = async (inputArguments: { host: MessageSendingHost; runtimeSignal: AbortSignal | null; activation: ConversationActivationSnapshot; conversation: Conversation; payload: ComposerPayload; enqueuedInput: AcceptedConversationInput; optimisticInputOrderingAnchor: number; composerTextForClearing: string; applyComposerSideEffects: boolean; scrollToBottomOnSend: boolean; onEffectiveSendCommitted?: (() => void) | undefined; afterAdmission?: PostAdmissionHook | null | undefined }): Promise<void> => {
+    const { host, runtimeSignal, conversation, payload, enqueuedInput } = inputArguments;
+    try {
+        if (inputArguments.applyComposerSideEffects) host.services.getAttachmentManager().checkoutAttachments(payload.attachments);
+        throwIfAborted(runtimeSignal, 'Accepted chat send presentation was aborted.');
+        if (enqueuedInput.isDispatchableHead) {
+            mountOptimisticInputUserMessage({
+                conversation,
+                inputId: enqueuedInput.inputId,
+                acceptedAtMs: enqueuedInput.acceptedAtMs,
+                orderingAnchorTimestamp: inputArguments.optimisticInputOrderingAnchor,
+                text: payload.messageText || null,
+                attachmentContent: payload.attachmentContent
+            });
+        }
+        if (host.conversation.isConversationActivationCurrent(inputArguments.activation, conversation.id)) {
+            const hasAttachmentSurface = payload.attachments.length > 0 || payload.attachmentContent.length > 0;
+            await runWithAbortSignalScope([runtimeSignal, inputArguments.activation.signal], (signal) =>
+                commitEffectiveSendVisualState(host, {
+                    scrollToBottomOnSend: inputArguments.scrollToBottomOnSend && enqueuedInput.inputType === 'prompt' && enqueuedInput.isDispatchableHead,
+                    composerTextForClearing: inputArguments.applyComposerSideEffects ? inputArguments.composerTextForClearing : null,
+                    abortSignal: signal,
+                    renderCurrentConversation: () => host.presentation.renderCurrentConversation(),
+                    prepareComposerSurfaceForEffectiveSend: inputArguments.applyComposerSideEffects && hasAttachmentSurface ? (): void => host.presentation.renderAttachedFilesPreview() : undefined
+                })
+            );
+            if (!runtimeSignal?.aborted && host.conversation.isConversationActivationCurrent(inputArguments.activation, conversation.id)) inputArguments.onEffectiveSendCommitted?.();
+        }
+        throwIfAborted(runtimeSignal);
+        await refreshConversationListAfterSharedSync(host);
+        throwIfAborted(runtimeSignal);
+        refreshComposerState(host);
+    } catch (error) {
+        const runtimeError = ensureError(error);
+        if (!isAbortError(runtimeError)) host.platform.handleError(runtimeError, getChatSyncErrorTitle(), { notify: true });
+    } finally {
+        runPostAdmissionHook(host, conversation.id, inputArguments.afterAdmission);
+    }
 };
 
-const sendMessageWithResolvedPayload = async (inputArguments: { host: MessageSendingHost; lockLease: SendLockLease; initialSendLockKey: string; payload: ComposerPayload; applyComposerSideEffects: boolean; inputIntent?: ConversationInputIntent; beforeSend?: QueuedSendGuard | null | undefined; onAdmissionStarted?: (() => void) | undefined; afterAdmission?: PostAdmissionHook | null; abortSignal?: AbortSignal | null } & SendMessageOptions): Promise<QueuedSendOutcome> => {
+const sendMessageWithResolvedPayload = async (inputArguments: { host: MessageSendingHost; lockLease: SendLockLease; initialSendLockKey: string; payload: ComposerPayload; applyComposerSideEffects: boolean; scrollToBottomOnSend?: boolean; inputIntent?: ConversationInputIntent; beforeSend?: QueuedSendGuard | null | undefined; onAdmissionStarted?: (() => void) | undefined; afterAdmission?: PostAdmissionHook | null; abortSignal?: AbortSignal | null } & SendMessageOptions): Promise<QueuedSendOutcome> => {
     const host = inputArguments.host;
     const inputIntent = inputArguments.inputIntent ?? 'prompt';
     let payload = inputArguments.payload;
     const composerTextForClearing = payload.messageText;
     const attachmentManager = host.services.getAttachmentManager();
-    if (inputArguments.lockLease.keys[0] !== inputArguments.initialSendLockKey) return blockQueuedSend('stale');
+    if (resolveSendLockKey(host.conversation.getCurrentConversation()?.id) !== inputArguments.initialSendLockKey) return blockQueuedSend('conversation-mismatch');
     throwIfAborted(inputArguments.abortSignal, 'Queued chat send was aborted.');
     const currentConversation = host.conversation.getCurrentConversation();
     const selectedModelId = host.model.getCurrentModel();
@@ -51,7 +88,6 @@ const sendMessageWithResolvedPayload = async (inputArguments: { host: MessageSen
     const conversation = currentConversationResolution.conversation;
     const conversationId = conversation.id;
     if (!inputArguments.lockLease.addKey(resolveSendLockKey(conversationId))) return blockQueuedSend('stale');
-    if (inputIntent === 'steer' && !(await canAdmitSteer(host, conversationId, inputArguments.abortSignal ?? null))) return blockQueuedSend('streaming');
     const workspaceSnapshot = captureSoaiLinkWorkspaceSnapshot(conversation);
     const isFirstMessage = (conversation.history?.totalCount ?? conversation.messageCount ?? conversation.messages.length) === 0;
     const runSendGuard = (): QueuedSendOutcome =>
@@ -83,8 +119,6 @@ const sendMessageWithResolvedPayload = async (inputArguments: { host: MessageSen
     if (!host.conversation.getConversationById(conversationId)) return blockQueuedSend('conversation-mismatch');
     const mutationSnapshot = captureConversationMutationSnapshot(conversation);
     let didPersistConversation = false;
-    let didPrepareComposerSurface = false;
-    let didClearComposerInput = false;
     try {
         if (isChatConversationSettingsWritable(conversation)) {
             applyChatExecutionModelStateToConversation(conversation, {
@@ -148,61 +182,42 @@ const sendMessageWithResolvedPayload = async (inputArguments: { host: MessageSen
         inputArguments.onAdmissionStarted?.();
         attachmentManager.markDraftCommitStarted();
         const optimisticInputOrderingAnchor = resolveOptimisticInputOrderingAnchor(conversation);
+        const runtimeSignal = host.platform.getRuntimeAbortSignal();
+        const activation = host.conversation.captureConversationActivation();
         const enqueuedInput = await host.services.getConversationInputsManager().enqueue(conversationId, {
             intent: inputIntent === 'steer' ? 'steer' : 'queued',
             text: payload.messageText || null,
             sourceText: payload.sourceText || null,
             attachmentContent: payload.attachmentContent
         });
-        if (enqueuedInput.isDispatchableHead) {
-            mountOptimisticInputUserMessage({
-                conversation,
-                inputId: enqueuedInput.inputId,
-                acceptedAtMs: enqueuedInput.acceptedAtMs,
-                orderingAnchorTimestamp: optimisticInputOrderingAnchor,
-                text: payload.messageText || null,
-                attachmentContent: payload.attachmentContent
-            });
-        }
-        try {
-            const isCurrent = host.conversation.getCurrentConversation()?.id === conversationId;
-            if (isCurrent) {
-                const hasAttachmentSurface = payload.attachments.length > 0 || payload.attachmentContent.length > 0;
-                await commitEffectiveSendVisualState(host, {
-                    composerTextForClearing: inputArguments.applyComposerSideEffects ? composerTextForClearing : null,
-                    abortSignal: null,
-                    renderCurrentConversation: () => host.presentation.renderCurrentConversation(),
-                    prepareComposerSurfaceForEffectiveSend: inputArguments.applyComposerSideEffects && hasAttachmentSurface ? (): void => host.presentation.hideAttachedFilesPreview() : undefined,
-                    onComposerSurfacePrepared: () => {
-                        didPrepareComposerSurface = true;
-                    },
-                    onComposerCleared: () => {
-                        didClearComposerInput = true;
-                    }
-                });
-                inputArguments.onEffectiveSendCommitted?.();
-            }
-            if (inputArguments.applyComposerSideEffects) attachmentManager.checkoutAttachments(payload.attachments);
-            runPostAdmissionHook(host, conversationId, inputArguments.afterAdmission);
-            await refreshConversationListAfterSharedSync(host);
-            refreshComposerState(host);
-        } catch (error) {
-            host.platform.handleError(ensureError(error), getChatSyncErrorTitle(), { notify: true });
-        }
+        await presentAcceptedSend({
+            host,
+            runtimeSignal,
+            activation,
+            conversation,
+            payload,
+            enqueuedInput,
+            optimisticInputOrderingAnchor,
+            composerTextForClearing,
+            applyComposerSideEffects: inputArguments.applyComposerSideEffects,
+            scrollToBottomOnSend: inputArguments.scrollToBottomOnSend === true,
+            onEffectiveSendCommitted: inputArguments.onEffectiveSendCommitted,
+            afterAdmission: inputArguments.afterAdmission
+        });
         return QUEUED_SEND_SENT;
     } catch (error) {
         const coercedError = ensureError(error);
         if (isAbortError(coercedError)) {
-            await recoverFailedSendSurface({ host, conversation, conversationId, mutationSnapshot, restoreConversation: !didPersistConversation, composerTextForClearing, didPrepareComposerSurface, didClearComposerInput, didPersistConversation });
+            await recoverFailedSendSurface({ host, conversation, conversationId, mutationSnapshot, restoreConversation: !didPersistConversation });
             return QUEUED_SEND_ABORTED;
         }
         if (coercedError instanceof ChatExecutionModelPreflightBlockedError) {
             showChatExecutionModelPreflightBlockedError(coercedError.reason);
-            await recoverFailedSendSurface({ host, conversation, conversationId, mutationSnapshot, restoreConversation: !didPersistConversation, composerTextForClearing, didPrepareComposerSurface, didClearComposerInput, didPersistConversation });
+            await recoverFailedSendSurface({ host, conversation, conversationId, mutationSnapshot, restoreConversation: !didPersistConversation });
             return blockQueuedSend('stale');
         }
         if (isWorkspaceScopeChangedError(coercedError)) return blockSendForConversationMismatch({ host, conversation, mutationSnapshot, restoreConversation: !didPersistConversation, workspaceCurrent: false });
-        await recoverFailedSendSurface({ host, conversation, conversationId, mutationSnapshot, restoreConversation: !didPersistConversation, composerTextForClearing, didPrepareComposerSurface, didClearComposerInput, didPersistConversation });
+        await recoverFailedSendSurface({ host, conversation, conversationId, mutationSnapshot, restoreConversation: !didPersistConversation });
         throw coercedError;
     }
 };

@@ -10,6 +10,7 @@ from core.errors.exceptions import StateError
 from core.prompts.colors import validate_prompt_color
 from core.timing.epoch import epoch_ms
 from database.core.query_execution import sync_fetch_one_as_dict
+from database.core.row_fields import require_row_bool, require_row_non_empty_str
 from database.repositories.users.conversation_query_projection import (
     conversation_query_joins_sql,
     conversation_query_select_sql,
@@ -44,26 +45,43 @@ def sync_get_conversation(conn: sqlite3.Connection, conv_id: str, user_id: int) 
     return format_conversation_row(sync_fetch_one_as_dict(cursor))
 
 
+def _read_conversation_title_authority(
+    conn: sqlite3.Connection,
+    conv_id: str,
+    user_id: int,
+) -> tuple[str, bool] | None:
+    row = conn.execute(
+        "SELECT title, title_auto_update_allowed FROM webui_conversations WHERE id = ? AND user_id = ?",
+        (conv_id, user_id),
+    ).fetchone()
+    if row is None:
+        return None
+    return (
+        require_row_non_empty_str(row[0], label="Conversation title", build_error=StateError),
+        require_row_bool(
+            row[1],
+            label="Conversation title_auto_update_allowed",
+            build_error=StateError,
+        ),
+    )
+
+
 def sync_update_conversation_title(
     conn: sqlite3.Connection,
     conv_id: str,
     user_id: int,
     new_title: str,
 ) -> JSONDict | None:
-    existing_cursor = conn.execute(
-        "SELECT title FROM webui_conversations WHERE id = ? AND user_id = ?",
-        (conv_id, user_id),
-    )
-    existing_row = existing_cursor.fetchone()
-    if not existing_row:
+    current = _read_conversation_title_authority(conn, conv_id, user_id)
+    if current is None:
         return None
-    current_title = existing_row[0]
-    if isinstance(current_title, str) and current_title == new_title:
+    current_title, title_auto_update_allowed = current
+    if current_title == new_title and not title_auto_update_allowed:
         return sync_get_conversation(conn, conv_id, user_id)
     update_time = epoch_ms()
     if (
         conn.execute(
-            f"UPDATE webui_conversations SET title = ?, last_modified_at_ms = {NEXT_LAST_MODIFIED_SQL} WHERE id = ? AND user_id = ?",
+            f"UPDATE webui_conversations SET title = ?, title_auto_update_allowed = 0, last_modified_at_ms = {NEXT_LAST_MODIFIED_SQL} WHERE id = ? AND user_id = ?",
             (new_title, update_time, update_time, conv_id, user_id),
         ).rowcount
         > 0
@@ -78,24 +96,32 @@ def sync_update_conversation_title_if_matches(
     user_id: int,
     expected_title: str,
     new_title: str,
+    *,
+    require_title_auto_update_allowed: bool = False,
 ) -> JSONDict | None:
-    existing_cursor = conn.execute(
-        "SELECT title FROM webui_conversations WHERE id = ? AND user_id = ?",
-        (conv_id, user_id),
-    )
-    existing_row = existing_cursor.fetchone()
-    if not existing_row:
+    current = _read_conversation_title_authority(conn, conv_id, user_id)
+    if current is None:
         return None
-    current_title = existing_row[0]
-    if not isinstance(current_title, str) or current_title != expected_title:
+    current_title, title_auto_update_allowed = current
+    if current_title != expected_title:
+        return None
+    if require_title_auto_update_allowed and not title_auto_update_allowed:
         return None
     if current_title == new_title:
         return sync_get_conversation(conn, conv_id, user_id)
     update_time = epoch_ms()
     if (
         conn.execute(
-            f"UPDATE webui_conversations SET title = ?, last_modified_at_ms = {NEXT_LAST_MODIFIED_SQL} WHERE id = ? AND user_id = ? AND title = ?",
-            (new_title, update_time, update_time, conv_id, user_id, expected_title),
+            f"UPDATE webui_conversations SET title = ?, last_modified_at_ms = {NEXT_LAST_MODIFIED_SQL} WHERE id = ? AND user_id = ? AND title = ? AND (? = 0 OR title_auto_update_allowed = 1)",
+            (
+                new_title,
+                update_time,
+                update_time,
+                conv_id,
+                user_id,
+                expected_title,
+                int(require_title_auto_update_allowed),
+            ),
         ).rowcount
         > 0
     ):

@@ -19,6 +19,7 @@
         flex-shrink: 0;
         font-variant-numeric: tabular-nums;
         transition:
+            opacity var(--duration-400) var(--ease-emphasized),
             color var(--duration-400) var(--ease-emphasized),
             transform var(--duration-400) var(--ease-emphasized);
         transform-origin: calc(100% - var(--inline-start-percent)) center;

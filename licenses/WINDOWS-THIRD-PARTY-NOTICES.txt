@@ -15,14 +15,17 @@ for the SDK files and runtime deployment are provided in:
 Managed Python runtime
 ----------------------
 
-The Windows distribution includes the pinned Python 3.13 NuGet runtime package and installs it into the SoAI managed
-runtime only when needed. That package includes Python, OpenSSL, libffi, and Microsoft Visual C++ runtime components
-and retains its own upstream license file. Additional copies and notices shipped with SoAI are provided in:
+The Windows distribution includes a pinned Python 3.13 archive from Astral's Python Build Standalone project and
+installs it into the SoAI managed runtime when needed. The archive retains its upstream LICENSE.txt, including
+the terms for Python and its bundled dependencies such as OpenSSL, libffi, SQLite, Tcl/Tk, and compression libraries.
+Microsoft Visual C++ runtime components are also included. Additional copies and notices shipped with SoAI are provided in:
 
   licenses/Python-3.13-LICENSE.txt
   licenses/OpenSSL-NOTICE.txt
   licenses/libffi-NOTICE.txt
   licenses/MSVC-RUNTIME-NOTICE.txt
+
+Runtime distribution: https://github.com/astral-sh/python-build-standalone
 
 NSIS installer
 --------------

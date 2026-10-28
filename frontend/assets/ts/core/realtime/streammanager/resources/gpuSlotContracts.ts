@@ -1,7 +1,7 @@
 /* SoAI - GPU slot realtime V1 contracts [frontend/assets/ts/core/realtime/streammanager/resources/gpuSlotContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { GpuSlotBootState, GpuSlotCurrentSetting, GpuSlotDevice, GpuSlotFieldModes, GpuSlotLiveState, GpuSlotSavedState, GpuSlotSettings } from '@core/types/streamTypes.ts';
+import type { GpuRecoveredProfile, GpuSlotReconciliation, GpuSlotBootState, GpuSlotCurrentSetting, GpuSlotDevice, GpuSlotFieldModes, GpuSlotLiveState, GpuSlotSavedState, GpuSlotSettings, GpuSlotWarning } from '@core/types/streamTypes.ts';
 import { hasOwn, isBoolean, isNonNegativeInteger, isString } from '@core/typeGuards.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 
@@ -151,7 +151,60 @@ const decodeGpuSlotDevice = (deviceId: string, value: JsonValue, label: string):
     const decoded: GpuSlotDevice = { deviceId, name: isString(name) ? name : null, gpuIndex: isNonNegativeInteger(gpuIndex) ? gpuIndex : null, slots: decodeSlots(record['slots'], `${label}.slots`), boot: decodeBoot(record['boot'], `${label}.boot`), live: decodeLive(record['live'], `${label}.live`) };
     if (hasOwn(record, 'field_modes')) decoded.fieldModes = decodeFieldModes(record['field_modes'], `${label}.field_modes`);
     if (hasOwn(record, 'applied_settings')) decoded.appliedSettings = decodeSettings(record['applied_settings'], `${label}.applied_settings`);
+    if (hasOwn(record, 'reconciliation')) decoded.reconciliation = decodeReconciliation(record['reconciliation'], `${label}.reconciliation`);
     return decoded;
 };
 
-export { decodeBoot, decodeGpuSlotDevice, decodeLive, decodeSlots };
+const decodeReconciliation = (value: JsonValue | undefined, label: string): GpuSlotReconciliation => {
+    const record = requireRecord(value, label);
+    const bootConflict = record['boot_conflict'];
+    const profiles = record['recovered_profiles'];
+    if (!isBoolean(bootConflict) || !Array.isArray(profiles)) throw new TypeError(`${label} requires boot conflict status and recovered profiles`);
+    const identifiers = new Set<string>();
+    const recoveredProfiles: GpuRecoveredProfile[] = profiles.map((value, index) => {
+        const entryLabel = `${label}.recovered_profiles[${String(index)}]`;
+        const entry = requireRecord(value, entryLabel);
+        const id = optionalString(entry, 'id', entryLabel);
+        const sourceDeviceId = optionalString(entry, 'source_device_id', entryLabel);
+        const sourceSlot = optionalString(entry, 'source_slot', entryLabel);
+        if (!id || !sourceDeviceId || !sourceSlot || identifiers.has(id) || !hasOwn(entry, 'original') || !hasOwn(entry, 'profile')) throw new TypeError(`${entryLabel} requires a unique identity and its preserved profile`);
+        identifiers.add(id);
+        const profileValue = entry['profile'];
+        const original = entry['original'];
+        if (profileValue === undefined || original === undefined) throw new TypeError(`${entryLabel} requires its preserved profile`);
+        const profile = profileValue === null ? null : decodeRecoveredProfile(profileValue, `${entryLabel}.profile`);
+        return { id, sourceDeviceId, sourceSlot, profile, original };
+    });
+    return { bootConflict, recoveredProfiles };
+};
+
+const decodeRecoveredProfile = (value: JsonValue, label: string): GpuSlotSavedState => {
+    const record = requireRecord(value, label);
+    const profile: GpuSlotSavedState = { settings: decodeSettings(record['settings'], `${label}.settings`), fieldModes: decodeFieldModes(record['field_modes'] ?? {}, `${label}.field_modes`) };
+    const savedAt = optionalString(record, 'saved_at', label);
+    const lastAppliedAt = optionalString(record, 'last_applied_at', label);
+    const signature = optionalString(record, 'signature', label);
+    if (savedAt) profile.savedAt = requireIsoTimestamp(savedAt, `${label}.saved_at`);
+    if (lastAppliedAt) profile.lastAppliedAt = requireIsoTimestamp(lastAppliedAt, `${label}.last_applied_at`);
+    if (signature) profile.signature = signature;
+    return profile;
+};
+
+const decodeGpuSlotWarning = (value: JsonValue | undefined): GpuSlotWarning | null => {
+    if (value === null) return null;
+    const record = requireRecord(value, 'GPU slot warning');
+    const type = record['type'];
+    const message = record['message'];
+    const deviceIds = record['device_ids'];
+    if (!isString(type) || !type.trim() || !isString(message) || !message.trim() || !Array.isArray(deviceIds)) {
+        throw new TypeError('GPU slot warning requires its type, message and affected devices');
+    }
+    const affected: string[] = [];
+    for (const deviceId of deviceIds) {
+        if (!isString(deviceId) || !deviceId.trim()) throw new TypeError('GPU slot warning device ID is invalid');
+        affected.push(deviceId);
+    }
+    return { type, message, deviceIds: affected };
+};
+
+export { decodeBoot, decodeGpuSlotDevice, decodeGpuSlotWarning, decodeLive, decodeSlots };

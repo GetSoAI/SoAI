@@ -1,23 +1,23 @@
 /* SoAI - Hardware feature metric values [frontend/assets/ts/features/hardware/widgets/metricValues.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { HardwareMemorySnapshot } from '@core/api/contracts/hardwareContractTypes.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
 import { readPayloadDottedPathValue } from '@core/types/payloadPathReader.ts';
-import type { MemoryRaw } from '@features/hardware/models/types.ts';
 
 const MB_IN_BYTES = 1024 * 1024;
 
 interface MemoryValues {
-    usedMb: number;
-    totalMb: number;
+    usedMb?: number | undefined;
+    totalMb?: number | undefined;
 }
 
 const resolveNumericMetric = (source: JsonObject | null | undefined, paths: readonly string[]): number | null => {
     if (!Array.isArray(paths)) return null;
     for (const path of paths) {
         const value = readPayloadDottedPathValue(source, path);
-        if (value === undefined) {
+        if (value === undefined || value === null || typeof value === 'boolean' || (typeof value === 'string' && !value.trim())) {
             continue;
         }
         if (isFiniteNumber(value)) return value;
@@ -27,14 +27,9 @@ const resolveNumericMetric = (source: JsonObject | null | undefined, paths: read
     return null;
 };
 
-const resolveMemoryValuesMb = (source: MemoryRaw | null | undefined): MemoryValues => {
-    if (!source) {
-        return { usedMb: 0, totalMb: 0 };
-    }
-    const usedBytes = Number(source.usedBytes);
-    const totalBytes = Number(source.totalBytes);
-    const usedMb = isFiniteNumber(usedBytes) && usedBytes >= 0 ? usedBytes / MB_IN_BYTES : 0;
-    const totalMb = isFiniteNumber(totalBytes) && totalBytes > 0 ? totalBytes / MB_IN_BYTES : 0;
+const resolveMemoryValuesMb = (source: HardwareMemorySnapshot | null | undefined): MemoryValues => {
+    const usedMb = isFiniteNumber(source?.usedBytes) && source.usedBytes >= 0 ? source.usedBytes / MB_IN_BYTES : isFiniteNumber(source?.usedGb) && source.usedGb >= 0 ? source.usedGb * 1024 : undefined;
+    const totalMb = isFiniteNumber(source?.totalBytes) && source.totalBytes >= 0 ? source.totalBytes / MB_IN_BYTES : isFiniteNumber(source?.totalGb) && source.totalGb >= 0 ? source.totalGb * 1024 : undefined;
     return { usedMb, totalMb };
 };
 

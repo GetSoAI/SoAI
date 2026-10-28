@@ -9,6 +9,7 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.bootstrap.filename_layout import resolve_release_filename
 from core.errors.exceptions import NotFoundError, ValidationError
 from core.files.managed_file_opening import open_managed_file_descriptor
 from core.files.managed_storage_errors import FileStorageSecurityError
@@ -245,7 +246,9 @@ def _repository_path(value: JSONValue) -> str:
 
 
 def _read_bounded_document(project_root: str, relative_path: str) -> bytes:
-    document_path = os.path.join(project_root, relative_path)
+    document_path = os.path.join(
+        project_root, resolve_release_filename(project_root, relative_path)
+    )
     try:
         opened = open_managed_file_descriptor(project_root, document_path)
     except FileStorageSecurityError as exception:

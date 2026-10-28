@@ -148,6 +148,7 @@ async def create_pre_restore_snapshot(
                 snapshot_item.destination_path,
                 snapshot_item_path,
                 task_name="backup-restore-snapshot-directory-copy",
+                retain_resources_until_complete=True,
             )
         else:
             await run_joined_thread_call(
@@ -155,11 +156,13 @@ async def create_pre_restore_snapshot(
                 snapshot_item.destination_path,
                 snapshot_item_path,
                 task_name="backup-restore-snapshot-file-copy",
+                retain_resources_until_complete=True,
             )
     await run_joined_thread_call(
         _sync_fsync_snapshot,
         snapshot_path,
         task_name="backup-restore-snapshot-sync",
+        retain_resources_until_complete=True,
     )
     prepared_state = await transition_restore_journal(
         project_root,
@@ -192,6 +195,7 @@ async def rollback_from_snapshot(
                 _sync_remove_path_durably,
                 destination_path,
                 task_name="backup-restore-rollback-new-item-remove",
+                retain_resources_until_complete=True,
             )
             if removed:
                 rollback_count += 1
@@ -211,6 +215,7 @@ async def rollback_from_snapshot(
                 sync_remove_tree_no_symlinks,
                 destination_path,
                 task_name="backup-restore-rollback-destination-remove",
+                retain_resources_until_complete=True,
             )
         await run_joined_thread_call(
             partial(os.makedirs, destination_parent, mode=0o700, exist_ok=True),
@@ -222,11 +227,13 @@ async def rollback_from_snapshot(
                 snapshot_item_path,
                 destination_path,
                 task_name="backup-restore-rollback-directory-copy",
+                retain_resources_until_complete=True,
             )
             await run_joined_thread_call(
                 sync_fsync_directory_tree,
                 destination_path,
                 task_name="backup-restore-rollback-directory-sync",
+                retain_resources_until_complete=True,
             )
         else:
             await run_joined_thread_call(
@@ -234,6 +241,7 @@ async def rollback_from_snapshot(
                 snapshot_item_path,
                 destination_path,
                 task_name="backup-restore-rollback-file-copy",
+                retain_resources_until_complete=True,
             )
         await run_joined_thread_call(
             partial(fsync_directory, destination_parent, strict=True),

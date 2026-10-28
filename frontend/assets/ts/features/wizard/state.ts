@@ -19,6 +19,7 @@ interface WizardState {
     completedSummary: WizardCompletedSummary | null;
     isSessionActivationRequired: boolean;
     isBusy: boolean;
+    accountSubmissionPending: boolean;
     status: WizardStatusResponse | null;
     steps: readonly WizardStepId[];
     requiresProductAccess: boolean;
@@ -42,6 +43,7 @@ const createInitialWizardState = (): WizardState => {
         completedSummary: null,
         isSessionActivationRequired: false,
         isBusy: false,
+        accountSubmissionPending: false,
         status: null,
         steps: ['welcome', 'license', 'use', 'account', 'ai_sources', 'ai_connect', 'ai_models', 'ai_progress', 'complete'],
         requiresProductAccess: false,

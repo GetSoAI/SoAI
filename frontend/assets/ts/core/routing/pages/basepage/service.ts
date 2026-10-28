@@ -1,7 +1,9 @@
 /* SoAI - Shared routing basepage service [frontend/assets/ts/core/routing/pages/basepage/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { getPerformance, getRequestAnimationFrame } from '@core/environment/public.ts';
+import { getPerformance } from '@core/environment/public.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
 import { signalAborted } from '@core/lifecycle/abortSignals.ts';
 import { revealMountedPageSection } from '@core/pageTransitions.ts';
 import { replaceContentPreservingPageOutletSlots } from '@core/pageoutlet/slots.ts';
@@ -73,8 +75,13 @@ const initializeBasePageLifecycle = async (host: BasePageInitializeHost, paramet
         host.pageDom.flush();
         host.layout.applyHeaderStats(container);
         host.pageDom.flush();
-        const frame = getRequestAnimationFrame();
-        await new Promise<void>((resolve) => frame(() => frame(() => resolve())));
+        try {
+            await awaitPresentationFrame(signal, 'Page initialization presentation aborted.');
+            await awaitPresentationFrame(signal, 'Page initialization presentation aborted.');
+        } catch (error) {
+            if (isAbortError(error)) return;
+            throw error;
+        }
         if (shouldAbort()) return;
         await host.initialize(parameters ?? null, signal ? { signal } : {});
     } else if (isReload) {

@@ -17,17 +17,17 @@
       "version": "2.7.1"
     },
     {
-      "bom-ref": "pkg:pypi/aiohttp@3.14.3",
+      "bom-ref": "pkg:pypi/aiohttp@3.14.5",
       "licenses": [
         {
           "expression": "Apache-2.0 AND MIT"
         }
       ],
       "name": "aiohttp",
-      "purl": "pkg:pypi/aiohttp@3.14.3",
+      "purl": "pkg:pypi/aiohttp@3.14.5",
       "scope": "required",
       "type": "library",
-      "version": "3.14.3"
+      "version": "3.14.5"
     },
     {
       "bom-ref": "pkg:pypi/aiosignal@1.4.0",
@@ -165,6 +165,21 @@
       "version": "2.2.1"
     },
     {
+      "bom-ref": "pkg:pypi/backports-zstd@1.8.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "PSF-2.0"
+          }
+        }
+      ],
+      "name": "backports-zstd",
+      "purl": "pkg:pypi/backports-zstd@1.8.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.8.0"
+    },
+    {
       "bom-ref": "pkg:pypi/bcrypt@5.0.0",
       "licenses": [
         {
@@ -195,7 +210,7 @@
       "version": "4.15.0"
     },
     {
-      "bom-ref": "pkg:pypi/brotli@1.2.0",
+      "bom-ref": "pkg:pypi/brotli@1.2.1",
       "licenses": [
         {
           "license": {
@@ -204,10 +219,10 @@
         }
       ],
       "name": "brotli",
-      "purl": "pkg:pypi/brotli@1.2.0",
+      "purl": "pkg:pypi/brotli@1.2.1",
       "scope": "required",
       "type": "library",
-      "version": "1.2.0"
+      "version": "1.2.1"
     },
     {
       "bom-ref": "pkg:pypi/build@1.5.0",
@@ -240,7 +255,7 @@
       "version": "7.1.7"
     },
     {
-      "bom-ref": "pkg:pypi/certifi@2026.7.22",
+      "bom-ref": "pkg:pypi/certifi@2026.10.19",
       "licenses": [
         {
           "license": {
@@ -249,10 +264,10 @@
         }
       ],
       "name": "certifi",
-      "purl": "pkg:pypi/certifi@2026.7.22",
+      "purl": "pkg:pypi/certifi@2026.10.19",
       "scope": "required",
       "type": "library",
-      "version": "2026.7.22"
+      "version": "2026.10.19"
     },
     {
       "bom-ref": "pkg:pypi/cffi@2.1.1",
@@ -285,7 +300,7 @@
       "version": "3.4.9"
     },
     {
-      "bom-ref": "pkg:pypi/chromadb@1.5.9",
+      "bom-ref": "pkg:pypi/chromadb@1.5.9+soai.1",
       "licenses": [
         {
           "license": {
@@ -294,10 +309,10 @@
         }
       ],
       "name": "chromadb",
-      "purl": "pkg:pypi/chromadb@1.5.9",
+      "purl": "pkg:pypi/chromadb@1.5.9+soai.1",
       "scope": "required",
       "type": "library",
-      "version": "1.5.9"
+      "version": "1.5.9+soai.1"
     },
     {
       "bom-ref": "pkg:pypi/click@8.4.2",
@@ -315,17 +330,17 @@
       "version": "8.4.2"
     },
     {
-      "bom-ref": "pkg:pypi/cryptography@50.0.0",
+      "bom-ref": "pkg:pypi/cryptography@50.0.2",
       "licenses": [
         {
           "expression": "Apache-2.0 OR BSD-3-Clause"
         }
       ],
       "name": "cryptography",
-      "purl": "pkg:pypi/cryptography@50.0.0",
+      "purl": "pkg:pypi/cryptography@50.0.2",
       "scope": "required",
       "type": "library",
-      "version": "50.0.0"
+      "version": "50.0.2"
     },
     {
       "bom-ref": "pkg:pypi/ddgs@9.14.4",
@@ -373,7 +388,7 @@
       "version": "1.9.0"
     },
     {
-      "bom-ref": "pkg:pypi/dnspython@2.8.0",
+      "bom-ref": "pkg:pypi/dnspython@2.9.0",
       "licenses": [
         {
           "license": {
@@ -382,10 +397,10 @@
         }
       ],
       "name": "dnspython",
-      "purl": "pkg:pypi/dnspython@2.8.0",
+      "purl": "pkg:pypi/dnspython@2.9.0",
       "scope": "required",
       "type": "library",
-      "version": "2.8.0"
+      "version": "2.9.0"
     },
     {
       "bom-ref": "pkg:pypi/durationpy@0.10",
@@ -433,7 +448,7 @@
       "version": "0.141.1"
     },
     {
-      "bom-ref": "pkg:pypi/filelock@3.32.2",
+      "bom-ref": "pkg:pypi/filelock@4.2.4",
       "licenses": [
         {
           "license": {
@@ -442,10 +457,10 @@
         }
       ],
       "name": "filelock",
-      "purl": "pkg:pypi/filelock@3.32.2",
+      "purl": "pkg:pypi/filelock@4.2.4",
       "scope": "required",
       "type": "library",
-      "version": "3.32.2"
+      "version": "4.2.4"
     },
     {
       "bom-ref": "pkg:pypi/flatbuffers@25.12.19",
@@ -611,7 +626,7 @@
       "version": "4.2.0"
     },
     {
-      "bom-ref": "pkg:pypi/httpcore2@2.10.0",
+      "bom-ref": "pkg:pypi/httpcore2@2.16.0",
       "licenses": [
         {
           "license": {
@@ -620,10 +635,10 @@
         }
       ],
       "name": "httpcore2",
-      "purl": "pkg:pypi/httpcore2@2.10.0",
+      "purl": "pkg:pypi/httpcore2@2.16.0",
       "scope": "required",
       "type": "library",
-      "version": "2.10.0"
+      "version": "2.16.0"
     },
     {
       "bom-ref": "pkg:pypi/httpcore@1.0.9",
@@ -656,7 +671,7 @@
       "version": "0.8.0"
     },
     {
-      "bom-ref": "pkg:pypi/httpx2@2.10.0",
+      "bom-ref": "pkg:pypi/httpx2@2.16.0",
       "licenses": [
         {
           "license": {
@@ -665,10 +680,10 @@
         }
       ],
       "name": "httpx2",
-      "purl": "pkg:pypi/httpx2@2.10.0",
+      "purl": "pkg:pypi/httpx2@2.16.0",
       "scope": "required",
       "type": "library",
-      "version": "2.10.0"
+      "version": "2.16.0"
     },
     {
       "bom-ref": "pkg:pypi/httpx@0.28.1",
@@ -836,19 +851,6 @@
       "version": "36.0.3"
     },
     {
-      "bom-ref": "pkg:pypi/llvmlite@0.49.0",
-      "licenses": [
-        {
-          "expression": "BSD-2-Clause AND Apache-2.0 WITH LLVM-exception"
-        }
-      ],
-      "name": "llvmlite",
-      "purl": "pkg:pypi/llvmlite@0.49.0",
-      "scope": "required",
-      "type": "library",
-      "version": "0.49.0"
-    },
-    {
       "bom-ref": "pkg:pypi/lxml@6.1.1",
       "licenses": [
         {
@@ -924,21 +926,6 @@
       "version": "5.2.1"
     },
     {
-      "bom-ref": "pkg:pypi/more-itertools@11.1.0",
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "more-itertools",
-      "purl": "pkg:pypi/more-itertools@11.1.0",
-      "scope": "required",
-      "type": "library",
-      "version": "11.1.0"
-    },
-    {
       "bom-ref": "pkg:pypi/mpmath@1.3.0",
       "licenses": [
         {
@@ -954,7 +941,7 @@
       "version": "1.3.0"
     },
     {
-      "bom-ref": "pkg:pypi/multidict@6.7.1",
+      "bom-ref": "pkg:pypi/multidict@7.1.0",
       "licenses": [
         {
           "license": {
@@ -963,40 +950,10 @@
         }
       ],
       "name": "multidict",
-      "purl": "pkg:pypi/multidict@6.7.1",
+      "purl": "pkg:pypi/multidict@7.1.0",
       "scope": "required",
       "type": "library",
-      "version": "6.7.1"
-    },
-    {
-      "bom-ref": "pkg:pypi/networkx@3.6.1",
-      "licenses": [
-        {
-          "license": {
-            "id": "BSD-3-Clause"
-          }
-        }
-      ],
-      "name": "networkx",
-      "purl": "pkg:pypi/networkx@3.6.1",
-      "scope": "required",
-      "type": "library",
-      "version": "3.6.1"
-    },
-    {
-      "bom-ref": "pkg:pypi/numba@0.67.0",
-      "licenses": [
-        {
-          "license": {
-            "name": "BSD"
-          }
-        }
-      ],
-      "name": "numba",
-      "purl": "pkg:pypi/numba@0.67.0",
-      "scope": "required",
-      "type": "library",
-      "version": "0.67.0"
+      "version": "7.1.0"
     },
     {
       "bom-ref": "pkg:pypi/numpy@2.5.2",
@@ -1027,7 +984,7 @@
       "version": "13.610.43"
     },
     {
-      "bom-ref": "pkg:pypi/oauthlib@3.3.1",
+      "bom-ref": "pkg:pypi/oauthlib@4.0.0",
       "licenses": [
         {
           "license": {
@@ -1036,10 +993,10 @@
         }
       ],
       "name": "oauthlib",
-      "purl": "pkg:pypi/oauthlib@3.3.1",
+      "purl": "pkg:pypi/oauthlib@4.0.0",
       "scope": "required",
       "type": "library",
-      "version": "3.3.1"
+      "version": "4.0.0"
     },
     {
       "bom-ref": "pkg:pypi/onnxruntime@1.28.0",
@@ -1057,21 +1014,6 @@
       "version": "1.28.0"
     },
     {
-      "bom-ref": "pkg:pypi/openai-whisper@20250625",
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "openai-whisper",
-      "purl": "pkg:pypi/openai-whisper@20250625",
-      "scope": "required",
-      "type": "library",
-      "version": "20250625"
-    },
-    {
       "bom-ref": "pkg:pypi/opencv-python@5.0.0.93",
       "licenses": [
         {
@@ -1087,7 +1029,7 @@
       "version": "5.0.0.93"
     },
     {
-      "bom-ref": "pkg:pypi/opentelemetry-api@1.44.0",
+      "bom-ref": "pkg:pypi/opentelemetry-api@1.45.1",
       "licenses": [
         {
           "license": {
@@ -1096,13 +1038,28 @@
         }
       ],
       "name": "opentelemetry-api",
-      "purl": "pkg:pypi/opentelemetry-api@1.44.0",
+      "purl": "pkg:pypi/opentelemetry-api@1.45.1",
       "scope": "required",
       "type": "library",
-      "version": "1.44.0"
+      "version": "1.45.1"
     },
     {
-      "bom-ref": "pkg:pypi/opentelemetry-exporter-otlp-proto-common@1.44.0",
+      "bom-ref": "pkg:pypi/opentelemetry-exporter-otlp-common@0.66b1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "opentelemetry-exporter-otlp-common",
+      "purl": "pkg:pypi/opentelemetry-exporter-otlp-common@0.66b1",
+      "scope": "required",
+      "type": "library",
+      "version": "0.66b1"
+    },
+    {
+      "bom-ref": "pkg:pypi/opentelemetry-exporter-otlp-proto-common@1.45.1",
       "licenses": [
         {
           "license": {
@@ -1111,13 +1068,13 @@
         }
       ],
       "name": "opentelemetry-exporter-otlp-proto-common",
-      "purl": "pkg:pypi/opentelemetry-exporter-otlp-proto-common@1.44.0",
+      "purl": "pkg:pypi/opentelemetry-exporter-otlp-proto-common@1.45.1",
       "scope": "required",
       "type": "library",
-      "version": "1.44.0"
+      "version": "1.45.1"
     },
     {
-      "bom-ref": "pkg:pypi/opentelemetry-exporter-otlp-proto-grpc@1.44.0",
+      "bom-ref": "pkg:pypi/opentelemetry-exporter-otlp-proto-grpc@1.45.1",
       "licenses": [
         {
           "license": {
@@ -1126,13 +1083,13 @@
         }
       ],
       "name": "opentelemetry-exporter-otlp-proto-grpc",
-      "purl": "pkg:pypi/opentelemetry-exporter-otlp-proto-grpc@1.44.0",
+      "purl": "pkg:pypi/opentelemetry-exporter-otlp-proto-grpc@1.45.1",
       "scope": "required",
       "type": "library",
-      "version": "1.44.0"
+      "version": "1.45.1"
     },
     {
-      "bom-ref": "pkg:pypi/opentelemetry-proto@1.44.0",
+      "bom-ref": "pkg:pypi/opentelemetry-proto@1.45.1",
       "licenses": [
         {
           "license": {
@@ -1141,13 +1098,13 @@
         }
       ],
       "name": "opentelemetry-proto",
-      "purl": "pkg:pypi/opentelemetry-proto@1.44.0",
+      "purl": "pkg:pypi/opentelemetry-proto@1.45.1",
       "scope": "required",
       "type": "library",
-      "version": "1.44.0"
+      "version": "1.45.1"
     },
     {
-      "bom-ref": "pkg:pypi/opentelemetry-sdk@1.44.0",
+      "bom-ref": "pkg:pypi/opentelemetry-sdk@1.45.1",
       "licenses": [
         {
           "license": {
@@ -1156,13 +1113,13 @@
         }
       ],
       "name": "opentelemetry-sdk",
-      "purl": "pkg:pypi/opentelemetry-sdk@1.44.0",
+      "purl": "pkg:pypi/opentelemetry-sdk@1.45.1",
       "scope": "required",
       "type": "library",
-      "version": "1.44.0"
+      "version": "1.45.1"
     },
     {
-      "bom-ref": "pkg:pypi/opentelemetry-semantic-conventions@0.65b0",
+      "bom-ref": "pkg:pypi/opentelemetry-semantic-conventions@0.66b1",
       "licenses": [
         {
           "license": {
@@ -1171,10 +1128,10 @@
         }
       ],
       "name": "opentelemetry-semantic-conventions",
-      "purl": "pkg:pypi/opentelemetry-semantic-conventions@0.65b0",
+      "purl": "pkg:pypi/opentelemetry-semantic-conventions@0.66b1",
       "scope": "required",
       "type": "library",
-      "version": "0.65b0"
+      "version": "0.66b1"
     },
     {
       "bom-ref": "pkg:pypi/orjson@3.11.9",
@@ -1233,7 +1190,7 @@
       "version": "1.4.0"
     },
     {
-      "bom-ref": "pkg:pypi/pillow@12.3.0",
+      "bom-ref": "pkg:pypi/pillow@13.0.0",
       "licenses": [
         {
           "license": {
@@ -1242,13 +1199,13 @@
         }
       ],
       "name": "pillow",
-      "purl": "pkg:pypi/pillow@12.3.0",
+      "purl": "pkg:pypi/pillow@13.0.0",
       "scope": "required",
       "type": "library",
-      "version": "12.3.0"
+      "version": "13.0.0"
     },
     {
-      "bom-ref": "pkg:pypi/playwright@1.62.0",
+      "bom-ref": "pkg:pypi/playwright@1.64.1",
       "licenses": [
         {
           "license": {
@@ -1257,10 +1214,10 @@
         }
       ],
       "name": "playwright",
-      "purl": "pkg:pypi/playwright@1.62.0",
+      "purl": "pkg:pypi/playwright@1.64.1",
       "scope": "required",
       "type": "library",
-      "version": "1.62.0"
+      "version": "1.64.1"
     },
     {
       "bom-ref": "pkg:pypi/posthog@7.38.4",
@@ -1488,7 +1445,7 @@
       "version": "2.20.0"
     },
     {
-      "bom-ref": "pkg:pypi/pyjwt@2.13.0",
+      "bom-ref": "pkg:pypi/pyjwt@2.15.1",
       "licenses": [
         {
           "license": {
@@ -1497,13 +1454,13 @@
         }
       ],
       "name": "pyjwt",
-      "purl": "pkg:pypi/pyjwt@2.13.0",
+      "purl": "pkg:pypi/pyjwt@2.15.1",
       "scope": "required",
       "type": "library",
-      "version": "2.13.0"
+      "version": "2.15.1"
     },
     {
-      "bom-ref": "pkg:pypi/pypdfium2@5.12.1",
+      "bom-ref": "pkg:pypi/pypdfium2@5.14.0+soai.1",
       "licenses": [
         {
           "license": {
@@ -1512,10 +1469,10 @@
         }
       ],
       "name": "pypdfium2",
-      "purl": "pkg:pypi/pypdfium2@5.12.1",
+      "purl": "pkg:pypi/pypdfium2@5.14.0+soai.1",
       "scope": "required",
       "type": "library",
-      "version": "5.12.1"
+      "version": "5.14.0+soai.1"
     },
     {
       "bom-ref": "pkg:pypi/pypika@0.51.1",
@@ -1806,7 +1763,7 @@
       "version": "0.19.1"
     },
     {
-      "bom-ref": "pkg:pypi/setuptools@84.0.0",
+      "bom-ref": "pkg:pypi/setuptools@84.2.1",
       "licenses": [
         {
           "license": {
@@ -1815,10 +1772,10 @@
         }
       ],
       "name": "setuptools",
-      "purl": "pkg:pypi/setuptools@84.0.0",
+      "purl": "pkg:pypi/setuptools@84.2.1",
       "scope": "required",
       "type": "library",
-      "version": "84.0.0"
+      "version": "84.2.1"
     },
     {
       "bom-ref": "pkg:pypi/shapely@2.1.2",
@@ -2001,19 +1958,6 @@
       "version": "0.23.1"
     },
     {
-      "bom-ref": "pkg:pypi/torch@2.13.0+cpu",
-      "licenses": [
-        {
-          "expression": "Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND MIT"
-        }
-      ],
-      "name": "torch",
-      "purl": "pkg:pypi/torch@2.13.0+cpu",
-      "scope": "required",
-      "type": "library",
-      "version": "2.13.0+cpu"
-    },
-    {
       "bom-ref": "pkg:pypi/tqdm@4.70.1",
       "licenses": [
         {
@@ -2025,21 +1969,6 @@
       "scope": "required",
       "type": "library",
       "version": "4.70.1"
-    },
-    {
-      "bom-ref": "pkg:pypi/triton@3.7.1",
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ],
-      "name": "triton",
-      "purl": "pkg:pypi/triton@3.7.1",
-      "scope": "required",
-      "type": "library",
-      "version": "3.7.1"
     },
     {
       "bom-ref": "pkg:pypi/truststore@0.10.4",
@@ -2117,7 +2046,7 @@
       "version": "2026.3"
     },
     {
-      "bom-ref": "pkg:pypi/urllib3@2.7.0",
+      "bom-ref": "pkg:pypi/urllib3@2.8.0",
       "licenses": [
         {
           "license": {
@@ -2126,10 +2055,10 @@
         }
       ],
       "name": "urllib3",
-      "purl": "pkg:pypi/urllib3@2.7.0",
+      "purl": "pkg:pypi/urllib3@2.8.0",
       "scope": "required",
       "type": "library",
-      "version": "2.7.0"
+      "version": "2.8.0"
     },
     {
       "bom-ref": "pkg:pypi/uvicorn@0.52.1",
@@ -2212,7 +2141,7 @@
       "version": "17.0.1"
     },
     {
-      "bom-ref": "pkg:pypi/yarl@1.24.5",
+      "bom-ref": "pkg:pypi/yarl@1.25.1",
       "licenses": [
         {
           "license": {
@@ -2221,10 +2150,10 @@
         }
       ],
       "name": "yarl",
-      "purl": "pkg:pypi/yarl@1.24.5",
+      "purl": "pkg:pypi/yarl@1.25.1",
       "scope": "required",
       "type": "library",
-      "version": "1.24.5"
+      "version": "1.25.1"
     },
     {
       "bom-ref": "pkg:pypi/zipp@4.1.0",
@@ -2261,7 +2190,7 @@
     {
       "dependsOn": [
         "pkg:pypi/aiohappyeyeballs@2.7.1",
-        "pkg:pypi/aiohttp@3.14.3",
+        "pkg:pypi/aiohttp@3.14.5",
         "pkg:pypi/aiosignal@1.4.0",
         "pkg:pypi/aiosqlite@0.22.1",
         "pkg:pypi/annotated-doc@0.0.5",
@@ -2271,25 +2200,26 @@
         "pkg:pypi/argon2-cffi@25.1.0",
         "pkg:pypi/attrs@26.1.0",
         "pkg:pypi/backoff@2.2.1",
+        "pkg:pypi/backports-zstd@1.8.0",
         "pkg:pypi/bcrypt@5.0.0",
         "pkg:pypi/beautifulsoup4@4.15.0",
-        "pkg:pypi/brotli@1.2.0",
+        "pkg:pypi/brotli@1.2.1",
         "pkg:pypi/build@1.5.0",
         "pkg:pypi/cachetools@7.1.7",
-        "pkg:pypi/certifi@2026.7.22",
+        "pkg:pypi/certifi@2026.10.19",
         "pkg:pypi/cffi@2.1.1",
         "pkg:pypi/charset-normalizer@3.4.9",
-        "pkg:pypi/chromadb@1.5.9",
+        "pkg:pypi/chromadb@1.5.9+soai.1",
         "pkg:pypi/click@8.4.2",
-        "pkg:pypi/cryptography@50.0.0",
+        "pkg:pypi/cryptography@50.0.2",
         "pkg:pypi/ddgs@9.14.4",
         "pkg:pypi/defusedxml@0.7.1",
         "pkg:pypi/distro@1.9.0",
-        "pkg:pypi/dnspython@2.8.0",
+        "pkg:pypi/dnspython@2.9.0",
         "pkg:pypi/durationpy@0.10",
         "pkg:pypi/fake-useragent@2.2.0",
         "pkg:pypi/fastapi@0.141.1",
-        "pkg:pypi/filelock@3.32.2",
+        "pkg:pypi/filelock@4.2.4",
         "pkg:pypi/flatbuffers@25.12.19",
         "pkg:pypi/frozenlist@1.8.0",
         "pkg:pypi/fsspec@2026.7.0",
@@ -2301,10 +2231,10 @@
         "pkg:pypi/h2@4.4.1",
         "pkg:pypi/hf-xet@1.6.0",
         "pkg:pypi/hpack@4.2.0",
-        "pkg:pypi/httpcore2@2.10.0",
+        "pkg:pypi/httpcore2@2.16.0",
         "pkg:pypi/httpcore@1.0.9",
         "pkg:pypi/httptools@0.8.0",
-        "pkg:pypi/httpx2@2.10.0",
+        "pkg:pypi/httpx2@2.16.0",
         "pkg:pypi/httpx@0.28.1",
         "pkg:pypi/huggingface-hub@1.27.0",
         "pkg:pypi/hyperframe@6.1.0",
@@ -2316,35 +2246,31 @@
         "pkg:pypi/jsonschema-specifications@2025.9.1",
         "pkg:pypi/jsonschema@4.26.0",
         "pkg:pypi/kubernetes@36.0.3",
-        "pkg:pypi/llvmlite@0.49.0",
         "pkg:pypi/lxml@6.1.1",
         "pkg:pypi/markdown-it-py@4.2.0",
         "pkg:pypi/markupsafe@3.0.3",
         "pkg:pypi/mdurl@0.1.2",
         "pkg:pypi/mmh3@5.2.1",
-        "pkg:pypi/more-itertools@11.1.0",
         "pkg:pypi/mpmath@1.3.0",
-        "pkg:pypi/multidict@6.7.1",
-        "pkg:pypi/networkx@3.6.1",
-        "pkg:pypi/numba@0.67.0",
+        "pkg:pypi/multidict@7.1.0",
         "pkg:pypi/numpy@2.5.2",
         "pkg:pypi/nvidia-ml-py@13.610.43",
-        "pkg:pypi/oauthlib@3.3.1",
+        "pkg:pypi/oauthlib@4.0.0",
         "pkg:pypi/onnxruntime@1.28.0",
-        "pkg:pypi/openai-whisper@20250625",
         "pkg:pypi/opencv-python@5.0.0.93",
-        "pkg:pypi/opentelemetry-api@1.44.0",
-        "pkg:pypi/opentelemetry-exporter-otlp-proto-common@1.44.0",
-        "pkg:pypi/opentelemetry-exporter-otlp-proto-grpc@1.44.0",
-        "pkg:pypi/opentelemetry-proto@1.44.0",
-        "pkg:pypi/opentelemetry-sdk@1.44.0",
-        "pkg:pypi/opentelemetry-semantic-conventions@0.65b0",
+        "pkg:pypi/opentelemetry-api@1.45.1",
+        "pkg:pypi/opentelemetry-exporter-otlp-common@0.66b1",
+        "pkg:pypi/opentelemetry-exporter-otlp-proto-common@1.45.1",
+        "pkg:pypi/opentelemetry-exporter-otlp-proto-grpc@1.45.1",
+        "pkg:pypi/opentelemetry-proto@1.45.1",
+        "pkg:pypi/opentelemetry-sdk@1.45.1",
+        "pkg:pypi/opentelemetry-semantic-conventions@0.66b1",
         "pkg:pypi/orjson@3.11.9",
         "pkg:pypi/overrides@7.7.0",
         "pkg:pypi/packaging@26.3",
         "pkg:pypi/pi-heif@1.4.0",
-        "pkg:pypi/pillow@12.3.0",
-        "pkg:pypi/playwright@1.62.0",
+        "pkg:pypi/pillow@13.0.0",
+        "pkg:pypi/playwright@1.64.1",
         "pkg:pypi/posthog@7.38.4",
         "pkg:pypi/primp@1.3.1",
         "pkg:pypi/propcache@0.5.2",
@@ -2360,8 +2286,8 @@
         "pkg:pypi/pydantic@2.13.4",
         "pkg:pypi/pyee@13.0.1",
         "pkg:pypi/pygments@2.20.0",
-        "pkg:pypi/pyjwt@2.13.0",
-        "pkg:pypi/pypdfium2@5.12.1",
+        "pkg:pypi/pyjwt@2.15.1",
+        "pkg:pypi/pypdfium2@5.14.0+soai.1",
         "pkg:pypi/pypika@0.51.1",
         "pkg:pypi/pyproject-hooks@1.2.0",
         "pkg:pypi/pytesseract@0.3.13",
@@ -2381,7 +2307,7 @@
         "pkg:pypi/rsa@4.9.1",
         "pkg:pypi/ruamel-yaml-clib@0.2.15",
         "pkg:pypi/ruamel-yaml@0.19.1",
-        "pkg:pypi/setuptools@84.0.0",
+        "pkg:pypi/setuptools@84.2.1",
         "pkg:pypi/shapely@2.1.2",
         "pkg:pypi/shellingham@1.5.4",
         "pkg:pypi/six@1.17.0",
@@ -2394,25 +2320,23 @@
         "pkg:pypi/tiktoken@0.13.0",
         "pkg:pypi/tinytag@2.3.2",
         "pkg:pypi/tokenizers@0.23.1",
-        "pkg:pypi/torch@2.13.0+cpu",
         "pkg:pypi/tqdm@4.70.1",
-        "pkg:pypi/triton@3.7.1",
         "pkg:pypi/truststore@0.10.4",
         "pkg:pypi/typer@0.27.1",
         "pkg:pypi/typing-extensions@4.16.0",
         "pkg:pypi/typing-inspection@0.4.3",
         "pkg:pypi/tzdata@2026.3",
-        "pkg:pypi/urllib3@2.7.0",
+        "pkg:pypi/urllib3@2.8.0",
         "pkg:pypi/uvicorn@0.52.1",
         "pkg:pypi/uvloop@0.22.1",
         "pkg:pypi/watchfiles@1.2.0",
         "pkg:pypi/websocket-client@1.9.0",
         "pkg:pypi/websockets@17.0.1",
-        "pkg:pypi/yarl@1.24.5",
+        "pkg:pypi/yarl@1.25.1",
         "pkg:pypi/zipp@4.1.0",
         "pkg:pypi/zstandard@0.25.0"
       ],
-      "ref": "pkg:generic/soai@1.3.1"
+      "ref": "pkg:generic/soai@1.4.0"
     },
     {
       "dependsOn": [],
@@ -2420,7 +2344,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/aiohttp@3.14.3"
+      "ref": "pkg:pypi/aiohttp@3.14.5"
     },
     {
       "dependsOn": [],
@@ -2460,6 +2384,10 @@
     },
     {
       "dependsOn": [],
+      "ref": "pkg:pypi/backports-zstd@1.8.0"
+    },
+    {
+      "dependsOn": [],
       "ref": "pkg:pypi/bcrypt@5.0.0"
     },
     {
@@ -2468,7 +2396,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/brotli@1.2.0"
+      "ref": "pkg:pypi/brotli@1.2.1"
     },
     {
       "dependsOn": [],
@@ -2480,7 +2408,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/certifi@2026.7.22"
+      "ref": "pkg:pypi/certifi@2026.10.19"
     },
     {
       "dependsOn": [],
@@ -2492,7 +2420,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/chromadb@1.5.9"
+      "ref": "pkg:pypi/chromadb@1.5.9+soai.1"
     },
     {
       "dependsOn": [],
@@ -2500,7 +2428,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/cryptography@50.0.0"
+      "ref": "pkg:pypi/cryptography@50.0.2"
     },
     {
       "dependsOn": [],
@@ -2516,7 +2444,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/dnspython@2.8.0"
+      "ref": "pkg:pypi/dnspython@2.9.0"
     },
     {
       "dependsOn": [],
@@ -2532,7 +2460,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/filelock@3.32.2"
+      "ref": "pkg:pypi/filelock@4.2.4"
     },
     {
       "dependsOn": [],
@@ -2580,7 +2508,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/httpcore2@2.10.0"
+      "ref": "pkg:pypi/httpcore2@2.16.0"
     },
     {
       "dependsOn": [],
@@ -2592,7 +2520,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/httpx2@2.10.0"
+      "ref": "pkg:pypi/httpx2@2.16.0"
     },
     {
       "dependsOn": [],
@@ -2640,10 +2568,6 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/llvmlite@0.49.0"
-    },
-    {
-      "dependsOn": [],
       "ref": "pkg:pypi/lxml@6.1.1"
     },
     {
@@ -2664,23 +2588,11 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/more-itertools@11.1.0"
-    },
-    {
-      "dependsOn": [],
       "ref": "pkg:pypi/mpmath@1.3.0"
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/multidict@6.7.1"
-    },
-    {
-      "dependsOn": [],
-      "ref": "pkg:pypi/networkx@3.6.1"
-    },
-    {
-      "dependsOn": [],
-      "ref": "pkg:pypi/numba@0.67.0"
+      "ref": "pkg:pypi/multidict@7.1.0"
     },
     {
       "dependsOn": [],
@@ -2692,7 +2604,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/oauthlib@3.3.1"
+      "ref": "pkg:pypi/oauthlib@4.0.0"
     },
     {
       "dependsOn": [],
@@ -2700,35 +2612,35 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/openai-whisper@20250625"
-    },
-    {
-      "dependsOn": [],
       "ref": "pkg:pypi/opencv-python@5.0.0.93"
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/opentelemetry-api@1.44.0"
+      "ref": "pkg:pypi/opentelemetry-api@1.45.1"
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/opentelemetry-exporter-otlp-proto-common@1.44.0"
+      "ref": "pkg:pypi/opentelemetry-exporter-otlp-common@0.66b1"
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/opentelemetry-exporter-otlp-proto-grpc@1.44.0"
+      "ref": "pkg:pypi/opentelemetry-exporter-otlp-proto-common@1.45.1"
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/opentelemetry-proto@1.44.0"
+      "ref": "pkg:pypi/opentelemetry-exporter-otlp-proto-grpc@1.45.1"
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/opentelemetry-sdk@1.44.0"
+      "ref": "pkg:pypi/opentelemetry-proto@1.45.1"
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/opentelemetry-semantic-conventions@0.65b0"
+      "ref": "pkg:pypi/opentelemetry-sdk@1.45.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:pypi/opentelemetry-semantic-conventions@0.66b1"
     },
     {
       "dependsOn": [],
@@ -2748,11 +2660,11 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/pillow@12.3.0"
+      "ref": "pkg:pypi/pillow@13.0.0"
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/playwright@1.62.0"
+      "ref": "pkg:pypi/playwright@1.64.1"
     },
     {
       "dependsOn": [],
@@ -2816,11 +2728,11 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/pyjwt@2.13.0"
+      "ref": "pkg:pypi/pyjwt@2.15.1"
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/pypdfium2@5.12.1"
+      "ref": "pkg:pypi/pypdfium2@5.14.0+soai.1"
     },
     {
       "dependsOn": [],
@@ -2900,7 +2812,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/setuptools@84.0.0"
+      "ref": "pkg:pypi/setuptools@84.2.1"
     },
     {
       "dependsOn": [],
@@ -2952,15 +2864,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/torch@2.13.0+cpu"
-    },
-    {
-      "dependsOn": [],
       "ref": "pkg:pypi/tqdm@4.70.1"
-    },
-    {
-      "dependsOn": [],
-      "ref": "pkg:pypi/triton@3.7.1"
     },
     {
       "dependsOn": [],
@@ -2984,7 +2888,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/urllib3@2.7.0"
+      "ref": "pkg:pypi/urllib3@2.8.0"
     },
     {
       "dependsOn": [],
@@ -3008,7 +2912,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/yarl@1.24.5"
+      "ref": "pkg:pypi/yarl@1.25.1"
     },
     {
       "dependsOn": [],
@@ -3021,7 +2925,7 @@
   ],
   "metadata": {
     "component": {
-      "bom-ref": "pkg:generic/soai@1.3.1",
+      "bom-ref": "pkg:generic/soai@1.4.0",
       "description": "Smart Orchestrator for Artificial Intelligence",
       "licenses": [
         {
@@ -3031,9 +2935,9 @@
         }
       ],
       "name": "SoAI",
-      "purl": "pkg:generic/soai@1.3.1",
+      "purl": "pkg:generic/soai@1.4.0",
       "type": "application",
-      "version": "1.3.1"
+      "version": "1.4.0"
     },
     "properties": [
       {
@@ -3056,7 +2960,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:e289a7dd-51c6-57e0-85ed-5f843bd90c03",
+  "serialNumber": "urn:uuid:d72c8f85-455c-581f-96c4-bf85740c328a",
   "specVersion": "1.6",
   "version": 1
 }

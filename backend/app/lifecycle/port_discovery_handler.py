@@ -45,6 +45,13 @@ class PortDiscoveryHandler(BaseHTTPRequestHandler):
     raw_requestline: bytes = b""
 
     @override
+    def handle(self) -> None:
+        try:
+            super().handle()
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            self.close_connection = True
+
+    @override
     def version_string(self) -> str:
         return "SoAI"
 
@@ -81,10 +88,7 @@ class PortDiscoveryHandler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", cors_origin)
             self.send_header("Vary", "Origin")
         self.end_headers()
-        try:
-            self.wfile.write(response_bytes)
-        except (BrokenPipeError, ConnectionResetError):
-            self.close_connection = True
+        self.wfile.write(response_bytes)
         self.close_connection = True
 
     @override

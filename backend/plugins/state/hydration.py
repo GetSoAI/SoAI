@@ -77,6 +77,7 @@ def format_plugin_details(
     plugin_stats: Mapping[str, Mapping[str, JSONValue]],
     builtin_plugins: set[str],
     breaker_snapshot: JSONDict | None = None,
+    backend_update: JSONDict | None = None,
 ) -> JSONDict:
     logger = get_logger(LOGGER_NAME)
     plugin_name_value = p_data.get("plugin_name")
@@ -203,7 +204,7 @@ def format_plugin_details(
     if not isinstance(core_compat_value, str) or not core_compat_value.strip():
         raise ValidationError("Plugin record is missing required core_compat field.")
     dependencies = dependency_snapshot_from_record(p_data)
-    return {
+    payload: JSONDict = {
         "name": plugin_name,
         "logo_revision": p_data.get("file_hash"),
         "display_name": display_name_value.strip(),
@@ -254,3 +255,6 @@ def format_plugin_details(
         "circuit_breaker": breaker_info,
         "user_enabled_once": user_enabled_once,
     }
+    if backend_update is not None:
+        payload["backend_update"] = backend_update
+    return payload

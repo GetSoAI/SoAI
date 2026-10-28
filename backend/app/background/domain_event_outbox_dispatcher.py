@@ -20,7 +20,7 @@ from core.config.protocols import ConfigProtocol
 from core.database.protocols import DatabaseCoreProtocol
 from core.di.validation import require_dependencies
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import StateError
+from core.errors.exceptions import DurableDeliveryDeferredError, StateError
 from core.errors.messages import resolve_exception_error_message
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.events.protocols import DurableEventDeliveryProtocol, EventBusProtocol
@@ -35,7 +35,10 @@ from core.tasks.protocols import (
 )
 from core.tasks.supervised_task_spawner import spawn_supervised_tracked_task
 from core.timing.epoch import epoch_ms
-from database.repositories.event_outbox.sync_ops import sync_claim_pending_domain_events
+from database.repositories.event_outbox.sync_ops import (
+    query_pending_domain_event_candidate,
+    sync_claim_pending_domain_events,
+)
 
 __all__ = (
     "DomainEventOutboxDispatcher",
@@ -102,15 +105,24 @@ class DomainEventOutboxDispatcher:
         batch_limit: int,
         processing_timeout_ms: int,
     ) -> None:
-        quarantine_delay_ms = load_domain_event_outbox_quarantine_delay_ms(self._deps.config)
+        quarantine_delay_ms: int | None = None
         delivery_timeout_sec = max(0.1, float(processing_timeout_ms) / 1000.0 - 0.25)
         while not self._shutdown_event.is_set():
             now_ms = epoch_ms()
-            await self._transition_controller.flush_pending_terminal_transitions(
-                now_ms=now_ms,
-                quarantine_delay_ms=quarantine_delay_ms,
-            )
+            if self._transition_controller.has_due_terminal_transitions(now_ms=now_ms):
+                if quarantine_delay_ms is None:
+                    quarantine_delay_ms = load_domain_event_outbox_quarantine_delay_ms(
+                        self._deps.config
+                    )
+                await self._transition_controller.flush_pending_terminal_transitions(
+                    now_ms=now_ms,
+                    quarantine_delay_ms=quarantine_delay_ms,
+                )
             try:
+                if not await self._deps.database_core.reader.execute_read(
+                    query_pending_domain_event_candidate, now_ms, processing_timeout_ms
+                ):
+                    return
                 claimed = await self._deps.database_core.writer.queue_write_operation(
                     sync_claim_pending_domain_events,
                     now_ms,
@@ -128,6 +140,10 @@ class DomainEventOutboxDispatcher:
                 return
             if not claimed:
                 return
+            if quarantine_delay_ms is None:
+                quarantine_delay_ms = load_domain_event_outbox_quarantine_delay_ms(
+                    self._deps.config
+                )
             for row in claimed:
                 outbox_id_value = row.get("id")
                 if not isinstance(outbox_id_value, int):
@@ -170,6 +186,15 @@ class DomainEventOutboxDispatcher:
                         event,
                         timeout_sec=delivery_timeout_sec,
                     )
+                except DurableDeliveryDeferredError as exception:
+                    await self._transition_controller.handle_delivery_failure(
+                        outbox_id=outbox_id,
+                        attempts=attempts,
+                        event_type=str(event_type_value),
+                        error_message=resolve_exception_error_message(exception),
+                        now_ms=now_ms,
+                    )
+                    continue
                 except RECOVERABLE_EXCEPTIONS as exception:
                     await self._transition_controller.handle_delivery_failure(
                         outbox_id=outbox_id,
@@ -269,27 +294,28 @@ class DomainEventOutboxDispatcher:
         task = self._task
         self._task = None
         shutdown_message = "Domain outbox dispatcher failed during shutdown (non-critical)."
-        await await_background_task_shutdown(
-            task,
-            logger=self._logger,
-            operation="domain_event_outbox_dispatcher.shutdown",
-            message=shutdown_message,
-            level="debug",
-        )
-        if not self._subscribed:
-            return
         try:
-            self._deps.event_bus.unsubscribe(
-                DomainEventOutboxDispatchRequestedEvent,
-                self._dispatch_requested_handler,
+            await await_background_task_shutdown(
+                task,
+                logger=self._logger,
+                operation="domain_event_outbox_dispatcher.shutdown",
+                message=shutdown_message,
+                level="debug",
             )
-        except RECOVERABLE_EXCEPTIONS as exception:
-            log_handled_exception(
-                self._logger,
-                exception,
-                message="Failed to unsubscribe domain outbox dispatcher event handler (non-critical).",
-                operation=OPERATION_DOMAIN_EVENT_OUTBOX_DISPATCHER_SHUTDOWN,
-                level="warning",
-            )
-            return
-        self._subscribed = False
+        finally:
+            if self._subscribed:
+                try:
+                    self._deps.event_bus.unsubscribe(
+                        DomainEventOutboxDispatchRequestedEvent,
+                        self._dispatch_requested_handler,
+                    )
+                except RECOVERABLE_EXCEPTIONS as exception:
+                    log_handled_exception(
+                        self._logger,
+                        exception,
+                        message="Failed to unsubscribe domain outbox dispatcher event handler (non-critical).",
+                        operation=OPERATION_DOMAIN_EVENT_OUTBOX_DISPATCHER_SHUTDOWN,
+                        level="warning",
+                    )
+                else:
+                    self._subscribed = False

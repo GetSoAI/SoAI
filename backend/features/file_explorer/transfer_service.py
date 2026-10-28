@@ -6,8 +6,10 @@ from __future__ import annotations
 import asyncio
 import os
 import stat
+from functools import partial
 from typing import TYPE_CHECKING
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exceptions import ValidationError
 from core.events.types_file_explorer import (
     FileExplorerOperation,
@@ -92,14 +94,25 @@ async def move_entry(
                     "Destination path already exists and is a directory.",
                     operation="file_explorer.move",
                 )
-            await asyncio.to_thread(secure_ops.remove_file, destination_real)
+            await run_joined_thread_call(
+                secure_ops.remove_file,
+                destination_real,
+                task_name="file-explorer-move-overwrite",
+                retain_resources_until_complete=True,
+            )
         if is_dir:
             if is_path_inside_directory(source_real, destination_real):
                 raise ValidationError(
                     "Cannot move a directory into itself.",
                     operation="file_explorer.move",
                 )
-        await asyncio.to_thread(secure_ops.move_entry, source_real, destination_real)
+        await run_joined_thread_call(
+            secure_ops.move_entry,
+            source_real,
+            destination_real,
+            task_name="file-explorer-move",
+            retain_resources_until_complete=True,
+        )
         event = FileSystemChangedEvent(
             operation=FileExplorerOperation.MOVE,
             virtual_path=source_virtual_path,
@@ -157,7 +170,12 @@ async def copy_entry(
                     "Destination path already exists and is a directory.",
                     operation="file_explorer.copy",
                 )
-            await asyncio.to_thread(secure_ops.remove_file, destination_real)
+            await run_joined_thread_call(
+                secure_ops.remove_file,
+                destination_real,
+                task_name="file-explorer-copy-overwrite",
+                retain_resources_until_complete=True,
+            )
         if is_dir:
             if is_path_inside_directory(source_real, destination_real):
                 raise ValidationError(
@@ -176,11 +194,15 @@ async def copy_entry(
                     "required_bytes": required_bytes,
                 },
             ) as reservation:
-                await asyncio.to_thread(
-                    secure_ops.copy_directory,
-                    source_real,
-                    destination_real,
-                    write_reservation=reservation,
+                await run_joined_thread_call(
+                    partial(
+                        secure_ops.copy_directory,
+                        source_real,
+                        destination_real,
+                        write_reservation=reservation,
+                    ),
+                    task_name="file-explorer-copy-directory",
+                    retain_resources_until_complete=True,
                 )
         else:
             required_bytes = int(st.st_size)
@@ -195,11 +217,15 @@ async def copy_entry(
                     "required_bytes": required_bytes,
                 },
             ) as reservation:
-                await asyncio.to_thread(
-                    secure_ops.copy_file,
-                    source_real,
-                    destination_real,
-                    write_reservation=reservation,
+                await run_joined_thread_call(
+                    partial(
+                        secure_ops.copy_file,
+                        source_real,
+                        destination_real,
+                        write_reservation=reservation,
+                    ),
+                    task_name="file-explorer-copy-file",
+                    retain_resources_until_complete=True,
                 )
         event = FileSystemChangedEvent(
             operation=FileExplorerOperation.COPY,

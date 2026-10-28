@@ -3,6 +3,7 @@
 
 import type { JsonArray, JsonValue } from '@core/types/jsonValues.ts';
 import { deepClone } from '@core/primitives/clone.ts';
+import { deepEqual } from '@core/primitives/equality.ts';
 import { hasOwn, isArray, isBoolean, isNullOrUndefined, isNumber, isObject, isString } from '@core/typeGuards.ts';
 import type { Parameter, ParameterValue } from '@pages/modeldetail/contracts/parameterTypes.ts';
 
@@ -14,6 +15,12 @@ interface SanitizeOptions {
 const filterEmpty = (arr: readonly JsonValue[]): JsonValue[] => arr.filter((item) => item !== '' && !isNullOrUndefined(item));
 
 const numericStringPattern = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
+
+const toComparableBoolean = (value: JsonValue | undefined): boolean | null => {
+    if (value === true || value === 'true') return true;
+    if (value === false || value === 'false') return false;
+    return null;
+};
 
 const toComparableNumber = (value: JsonValue | null | undefined): number | null => {
     if (isNumber(value)) {
@@ -37,7 +44,8 @@ const areValuesEqual = (firstValue: JsonValue | null | undefined, secondValue: J
     if (firstValue === secondValue) return true;
     if (isNullOrUndefined(firstValue) && isNullOrUndefined(secondValue)) return true;
     if (isBoolean(firstValue) || isBoolean(secondValue)) {
-        return (firstValue === true || firstValue === 'true') === (secondValue === true || secondValue === 'true');
+        const booleanValue = toComparableBoolean(firstValue);
+        return booleanValue !== null && booleanValue === toComparableBoolean(secondValue);
     }
     if (isArray(firstValue)) {
         if (isArray(secondValue)) {
@@ -51,17 +59,15 @@ const areValuesEqual = (firstValue: JsonValue | null | undefined, secondValue: J
         return filterEmpty(secondValue).length === 0 && isNullOrUndefined(firstValue);
     }
     if (!isNullOrUndefined(firstValue) && !isNullOrUndefined(secondValue) && isObject(firstValue) && isObject(secondValue)) {
-        const keysA = Object.keys(firstValue);
-        const keysB = Object.keys(secondValue);
-        return keysA.length === keysB.length && keysA.every((key) => keysB.includes(key) && areValuesEqual(firstValue[key], secondValue[key]));
+        return deepEqual(firstValue, secondValue);
     }
     if (isNullOrUndefined(firstValue) || isNullOrUndefined(secondValue)) return false;
     const numberA = toComparableNumber(firstValue);
     const numberB = toComparableNumber(secondValue);
-    if (numberA !== null && numberB !== null) {
+    if ((isNumber(firstValue) || isNumber(secondValue)) && numberA !== null && numberB !== null) {
         return numberA === numberB;
     }
-    return String(firstValue) === String(secondValue);
+    return false;
 };
 
 const isParameterValue = (value: JsonValue | null | undefined): value is ParameterValue => {

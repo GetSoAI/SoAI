@@ -62,5 +62,6 @@ def prepare_optional_compaction_summarizer(
         owner_id=owner_id,
         prompt_token_counter=api_context.dependencies.prompt_token_counter,
         max_prompt_tokens=summarizer_budget,
+        max_output_tokens=compaction_context_window_tokens - summarizer_budget,
         on_text_delta=None,
     )

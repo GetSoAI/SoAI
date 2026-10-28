@@ -5,6 +5,8 @@ import { terminateHandledPromise } from '@core/primitives/terminateHandledPromis
 import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { setModalFooterButtonLabel } from '@core/modals/footerButtons.ts';
+import { MODAL_HEADER_CLOSE_SELECTOR } from '@core/modals/headerButtons.ts';
 import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
 import { attachPendingOperationCloseGuard } from '@core/modals/closeGuard.ts';
 import { runModalSession } from '@core/modals/modalSession.ts';
@@ -14,6 +16,11 @@ import { getIconFromStringSync } from '@core/ui/icons/iconservice/public.ts';
 import { DeferredButtonLoading } from '@core/ui/loadingbuttons/deferredLoadingButton.ts';
 import { resolveConfirmationDom } from '@core/ui/modals/dialogs/confirmationDom.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
+
+interface NoticeSection {
+    heading: string;
+    items: readonly { label: string; detail: string }[];
+}
 
 type ConfirmationActionButton = {
     text: string;
@@ -27,6 +34,11 @@ type ConfirmationActionButton = {
 type ConfirmationActionButtons = Readonly<{ first: ConfirmationActionButton | null; second: ConfirmationActionButton | null }>;
 
 type ConfirmationDomConfig = {
+    closeCompletes?: boolean;
+    sections?: readonly NoticeSection[] | undefined;
+    advisory?: { text: string; variant: 'info' | 'warning' } | undefined;
+    fields?: HTMLElement | undefined;
+    actionErrorText?: string | undefined;
     signal?: AbortSignal | undefined;
     title: string;
     typeTokens: readonly string[];
@@ -101,10 +113,45 @@ const createConfirmationFlow = (dependencies: { modalId: string }): Confirmation
                     dom.setText(descriptionElement, '');
                 }
 
+                const advisory = dom.create('div', { className: 'confirmation-advisory form-disclaimer u-hidden' });
+                const actionError = dom.create('div', { className: 'confirmation-advisory form-disclaimer form-disclaimer-error u-hidden', role: 'alert' });
+                const sections = dom.create('div', { className: 'notice-sections u-hidden' });
+                descriptionElement.after(...(config.fields ? [config.fields] : []), advisory, sections, actionError);
+                if (config.sections?.length) {
+                    sections.classList.remove('u-hidden');
+                    sections.setAttribute('tabindex', '0');
+                    for (const section of config.sections) {
+                        const group = dom.create('section', { className: 'notice-section' });
+                        const heading = dom.create('h3', { className: 'notice-section-heading' });
+                        dom.setText(heading, section.heading);
+                        const count = dom.create('span', { className: 'notice-section-count' });
+                        dom.setText(count, String(section.items.length));
+                        heading.append(count);
+                        const list = dom.create('ul', { className: 'notice-section-list' });
+                        for (const item of section.items) {
+                            const row = dom.create('li', { className: 'notice-section-row' });
+                            const label = dom.create('bdi', { className: 'notice-section-label' });
+                            dom.setText(label, item.label);
+                            row.append(label);
+                            if (item.detail) {
+                                const detail = dom.create('bdi', { className: 'notice-section-detail' });
+                                dom.setText(detail, item.detail);
+                                row.append(detail);
+                            }
+                            list.append(row);
+                        }
+                        group.append(heading, list);
+                        sections.append(group);
+                    }
+                }
+                if (config.advisory) {
+                    dom.setText(advisory, config.advisory.text);
+                    advisory.classList.remove('u-hidden');
+                    advisory.classList.toggle('form-disclaimer-info', config.advisory.variant === 'info');
+                }
+
                 cancelButton.disabled = false;
-                dom.setText(cancelButton, config.cancelText);
-                cancelButton.setAttribute('aria-label', config.cancelText);
-                setTooltipText(cancelButton, config.cancelText);
+                setModalFooterButtonLabel(cancelButton, config.cancelText);
 
                 const configureActionButton = (element: HTMLButtonElement, button: ConfirmationActionButton | null): void => {
                     if (!button) {
@@ -120,9 +167,7 @@ const createConfirmationFlow = (dependencies: { modalId: string }): Confirmation
                     element.classList.remove('u-hidden');
                     element.removeAttribute('aria-hidden');
                     element.disabled = button.disabled;
-                    setTooltipText(element, button.title);
-                    dom.setText(element, button.text);
-                    element.setAttribute('aria-label', button.text);
+                    setModalFooterButtonLabel(element, button.text, { tooltip: button.title });
                     element.className = `ui-button ${button.variantClassName}`.trim();
                 };
 
@@ -138,14 +183,25 @@ const createConfirmationFlow = (dependencies: { modalId: string }): Confirmation
                     event.preventDefault();
                     event.stopPropagation();
                     if (actionPending) return;
+                    if (config.closeCompletes === true) setResult(true);
                     close('cancel');
                 };
                 cancelButton.addEventListener('click', cancel, { signal });
+                if (config.closeCompletes === true) {
+                    modal.addEventListener(
+                        'click',
+                        (event) => {
+                            if (event.target instanceof Element && event.target.closest(MODAL_HEADER_CLOSE_SELECTOR)) cancel(event);
+                        },
+                        { signal }
+                    );
+                }
 
                 const runAction = async (action: ConfirmationActionButton | null, button: HTMLButtonElement, reason: string): Promise<void> => {
                     if (!action || action.disabled || actionPending) {
                         return;
                     }
+                    actionError.classList.add('u-hidden');
                     actionPending = true;
                     cancelButton.disabled = true;
                     action1Button.disabled = true;
@@ -162,6 +218,10 @@ const createConfirmationFlow = (dependencies: { modalId: string }): Confirmation
                     } catch (error) {
                         const runtimeError = ensureError(error);
                         errorHandler.warn('Dialogs', 'Confirmation action failed', runtimeError);
+                        if (!signal.aborted && config.actionErrorText) {
+                            dom.setText(actionError, config.actionErrorText);
+                            actionError.classList.remove('u-hidden');
+                        }
                     } finally {
                         deferredLoading.settle();
                         actionPending = false;
@@ -169,6 +229,7 @@ const createConfirmationFlow = (dependencies: { modalId: string }): Confirmation
                             cancelButton.disabled = false;
                             action1Button.disabled = action1?.disabled ?? true;
                             action2Button.disabled = action2?.disabled ?? true;
+                            if (!modal.contains(dom.getActiveElement())) button.focus({ preventScroll: true });
                         }
                     }
                 };
@@ -188,6 +249,10 @@ const createConfirmationFlow = (dependencies: { modalId: string }): Confirmation
 
                 return {
                     dispose: () => {
+                        config.fields?.remove();
+                        advisory.remove();
+                        sections.remove();
+                        actionError.remove();
                         detachCloseGuard();
                         deferredLoading.settle();
                     }
@@ -200,4 +265,4 @@ const createConfirmationFlow = (dependencies: { modalId: string }): Confirmation
 };
 
 export { createConfirmationFlow };
-export type { ConfirmationActionButton, ConfirmationActionButtons, ConfirmationDomConfig, ConfirmationFlowApi, TrustedHtml };
+export type { ConfirmationActionButton, ConfirmationActionButtons, ConfirmationDomConfig, ConfirmationFlowApi, NoticeSection, TrustedHtml };

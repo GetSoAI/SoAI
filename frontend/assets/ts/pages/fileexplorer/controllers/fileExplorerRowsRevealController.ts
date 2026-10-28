@@ -4,7 +4,6 @@
 import { getCancelAnimationFrame, getRequestAnimationFrame } from '@core/environment/public.ts';
 import { areCollectionCardRevealAnimationsDisabled, armCollectionCardRevealTargetsAtIndex, clearCollectionCardRevealHydrating, markCollectionCardRevealHydrating, releaseCollectionCardReveal, stageCollectionCardReveal } from '@core/collectionpage/cardReveal.ts';
 
-const FILE_EXPLORER_ROW_ENTERING_CLASS = 'entering';
 const FILE_EXPLORER_ICON_REVEAL_STEP_MS = 8;
 
 class FileExplorerRowsRevealController {
@@ -34,8 +33,6 @@ class FileExplorerRowsRevealController {
                     if (!(child instanceof HTMLElement)) {
                         continue;
                     }
-                    child.classList.remove(FILE_EXPLORER_ROW_ENTERING_CLASS);
-                    child.style.removeProperty('--collection-enter-delay');
                     this.#armRevealTarget(child, index);
                     index += 1;
                 }
@@ -92,12 +89,11 @@ class FileExplorerRowsRevealController {
     }
 
     #armRevealTarget(child: HTMLElement, index: number): void {
-        if (this.#root.dataset['viewMode'] !== 'icons') {
-            armCollectionCardRevealTargetsAtIndex(child, index);
+        if (this.#root.dataset['viewMode'] === 'icons') {
+            armCollectionCardRevealTargetsAtIndex(child, index, FILE_EXPLORER_ICON_REVEAL_STEP_MS);
             return;
         }
         armCollectionCardRevealTargetsAtIndex(child, index);
-        child.style.setProperty('--collection-enter-delay', `${index * FILE_EXPLORER_ICON_REVEAL_STEP_MS}ms`);
     }
 }
 

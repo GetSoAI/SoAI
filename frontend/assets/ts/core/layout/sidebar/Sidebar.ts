@@ -73,6 +73,7 @@ class LayoutSidebar extends LifecycleModel {
         });
         this.#renderer = new SidebarRenderer(rendererHost, dom);
         const auxControllers = createSidebarAuxControllers({
+            canManagePlugins: () => !this.#state.permissionsUnavailable && this.#state.grantedActions.has('PLUGIN_ADMIN') && this.#state.grantedActions.has('PLUGIN_READ'),
             getPluginsLink: () => getSidebarPluginsLink(this.#domRefs),
             getChatLink: () => getSidebarChatLink(this.#domRefs),
             getModelsLink: () => getSidebarPageLink(this.#domRefs, 'models'),
@@ -212,6 +213,10 @@ class LayoutSidebar extends LifecycleModel {
         await super.cleanupResources();
     }
 
+    setPluginBackendUpdateAvailable(available: boolean): void {
+        this.#pluginIndicator.setUpdateAvailable(available);
+    }
+
     isExpanded(): boolean {
         return isSidebarExpanded(this.#state);
     }
@@ -224,7 +229,9 @@ class LayoutSidebar extends LifecycleModel {
     }
 
     async toggle(): Promise<void> {
-        toggleSidebarState(this.#state);
+        const sidebar = getSidebarDomRef(this.#domRefs, 'sidebar');
+        const hoverPeekOpening = this.#state.peeking && sidebar !== null && sidebar.getAnimations().some((animation) => animation instanceof CSSTransition && animation.transitionProperty === 'width' && animation.playState === 'running');
+        toggleSidebarState(this.#state, hoverPeekOpening);
         this.#updateStateUi();
     }
 

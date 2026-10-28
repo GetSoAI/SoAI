@@ -7,6 +7,7 @@ import os
 import sys
 from typing import TYPE_CHECKING
 
+from core.filesystem.descriptor_io import open_descriptor
 from core.logging.log_path_resolution import resolve_log_directory
 from core.platform.os import is_windows
 from core.system.process_launcher import DEVNULL_STREAM, spawn_handoff_process
@@ -34,6 +35,7 @@ def build_updater_command(
 ) -> list[str]:
     return [
         sys.executable,
+        "-B",
         "-m",
         cli_module,
         "--update-software",
@@ -63,7 +65,7 @@ def spawn_detached_updater(
     )
     log_directory = resolve_log_directory(config)
     os.makedirs(log_directory, exist_ok=True)
-    stderr_descriptor = os.open(
+    stderr_descriptor = open_descriptor(
         os.path.join(log_directory, UPDATER_STDERR_LOG_FILENAME),
         os.O_WRONLY | os.O_CREAT | os.O_APPEND,
         0o600,

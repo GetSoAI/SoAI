@@ -7,14 +7,20 @@ import asyncio
 import uuid
 from collections.abc import Awaitable, Callable
 
+from core.concurrency.cancellation_cleanup import run_idempotent_current_task_operation
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.concurrency.task_groups import cancel_and_await
+from core.errors.backend_lifecycle import IpcCancellationCleanupError
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import SoAIError, ValidationError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from core.errors.unexpected_exceptions import UNEXPECTED_RUNTIME_EXCEPTIONS
-from core.ipc.error_payload import build_ipc_error_payload
+from core.errors.exceptions import (
+    InsufficientDiskSpaceError,
+    SoAIError,
+    SystemMemoryExhaustedError,
+    ValidationError,
+)
+from core.errors.memory_exhaustion import SYSTEM_MEMORY_EXHAUSTED_MESSAGE
+from core.ipc.error_payload import build_ipc_error_payload, decode_ipc_error_payload
 from core.ipc.ndjson import IpcStreamClosedError
 from core.ipc.settings import build_ndjson_codec_from_env
 from core.logging.trace import get_logger
@@ -28,16 +34,15 @@ from core.openai.chat_template_role_rejection import (
 from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
 from core.types.json import JSONDict
 from core.validation.record_fields import require_json_object
+from plugins.worker.cancellation_settlement import (
+    BACKEND_LIFECYCLE_WORKER_METHODS,
+    CANCELLATION_SETTLED_WORKER_METHODS,
+)
 
 __all__ = ("PluginWorkerIpcClient",)
 
 LOGGER_NAME = "SoAI.plugins.worker.ipc_client"
 OPERATION_IPC_CLIENT_REQUEST = "plugins.worker.ipc_client.request"
-WORKER_IPC_CALL_EXCEPTIONS: tuple[type[Exception], ...] = (
-    *RECOVERABLE_EXCEPTIONS,
-    SoAIError,
-    *UNEXPECTED_RUNTIME_EXCEPTIONS,
-)
 
 
 class PluginWorkerIpcClient:
@@ -57,6 +62,7 @@ class PluginWorkerIpcClient:
         self._write_lock = asyncio.Lock()
         self._pending: dict[str, asyncio.Future[JSONDict]] = {}
         self._active_calls: dict[str, asyncio.Task[None]] = {}
+        self._active_lifecycle_calls: set[str] = set()
 
     async def run(self) -> None:
         try:
@@ -79,12 +85,16 @@ class PluginWorkerIpcClient:
                         name=f"plugin-worker-call-{request_id}",
                     )
                     self._active_calls[request_id] = task
+                    method = message.get("method")
+                    if isinstance(method, str) and method in BACKEND_LIFECYCLE_WORKER_METHODS:
+                        self._active_lifecycle_calls.add(request_id)
 
                     def remove_active_call(
                         _task: asyncio.Task[None],
                         key: str = request_id,
                     ) -> None:
                         self._active_calls.pop(key, None)
+                        self._active_lifecycle_calls.discard(key)
 
                     task.add_done_callback(remove_active_call)
                     continue
@@ -115,7 +125,13 @@ class PluginWorkerIpcClient:
             if not isinstance(ok_value, bool):
                 raise ValidationError("Host response ok flag must be a boolean.")
             if not ok_value:
-                raise ValidationError(str(payload_value))
+                remote_error = decode_ipc_error_payload(
+                    payload_value, operation="plugins.worker.ipc_client.host_response"
+                )
+                if not isinstance(payload_value, dict) or "http_status" not in payload_value:
+                    remote_error.code = ValidationError.code
+                    remote_error.http_status = ValidationError.http_status
+                raise remote_error
             return require_json_object(
                 payload_value,
                 label="Host response payload",
@@ -153,39 +169,71 @@ class PluginWorkerIpcClient:
             )
             return
         payload = dict(payload_value)
-        if method == "worker.cancel_call":
-            await self._cancel_call(payload)
-            await self._write_response(request_id, {"cancelled": True}, ok=True)
-            return
         try:
-            result = await self._request_handler(request_id, method, payload)
-            await self._write_response(request_id, result, ok=True)
-        except WORKER_IPC_CALL_EXCEPTIONS as exception:
-            error_details: JSONDict = {"method": method}
-            rejection_status = extract_chat_template_role_rejection_http_status(exception)
-            if rejection_status is not None:
-                error_details[CHAT_TEMPLATE_ROLE_REJECTION_CATEGORY_KEY] = (
-                    CHAT_TEMPLATE_ROLE_REJECTION_CATEGORY
+            try:
+                if method == "worker.cancel_call":
+                    await self._cancel_call(payload)
+                    result: JSONDict = {"cancelled": True}
+                else:
+                    result = await self._request_handler(request_id, method, payload)
+            except asyncio.CancelledError:
+                if method in CANCELLATION_SETTLED_WORKER_METHODS:
+                    await self._write_terminal_response(
+                        request_id, method, {"cancelled": True}, ok=True
+                    )
+                raise
+            except Exception as exception:
+                error_details: JSONDict = {"method": method}
+                rejection_status = extract_chat_template_role_rejection_http_status(exception)
+                if rejection_status is not None:
+                    error_details[CHAT_TEMPLATE_ROLE_REJECTION_CATEGORY_KEY] = (
+                        CHAT_TEMPLATE_ROLE_REJECTION_CATEGORY
+                    )
+                    error_details["upstream_http_status"] = rejection_status
+                error = coerce_to_soai_error(
+                    (
+                        SystemMemoryExhaustedError(SYSTEM_MEMORY_EXHAUSTED_MESSAGE, cause=exception)
+                        if isinstance(exception, MemoryError)
+                        else exception
+                    ),
+                    operation=OPERATION_IPC_CLIENT_REQUEST,
+                    details=error_details,
                 )
-                error_details["upstream_http_status"] = rejection_status
-            error = coerce_to_soai_error(
-                exception,
-                operation=OPERATION_IPC_CLIENT_REQUEST,
-                details=error_details,
+                if (
+                    method != "call.download_model"
+                    and method not in BACKEND_LIFECYCLE_WORKER_METHODS
+                    and error.code != InsufficientDiskSpaceError.code
+                ):
+                    log_exception(
+                        get_logger(LOGGER_NAME),
+                        error,
+                        message="Plugin worker IPC call failed.",
+                        operation=OPERATION_IPC_CLIENT_REQUEST,
+                        details={"request_id": request_id, **error_details},
+                        level="warning",
+                    )
+                if error is exception:
+                    raise
+                raise error from exception
+        except SoAIError as exception:
+            await self._write_terminal_response(
+                request_id, method, build_ipc_error_payload(exception), ok=False
             )
-            log_exception(
-                get_logger(LOGGER_NAME),
-                error,
-                message="Plugin worker IPC call failed.",
-                operation=OPERATION_IPC_CLIENT_REQUEST,
-                details={"request_id": request_id, "method": method},
-                level="warning",
-            )
-            await self._write_response(
-                request_id,
-                build_ipc_error_payload(error),
-                ok=False,
-            )
+            return
+        await self._write_terminal_response(request_id, method, result, ok=True)
+
+    async def _write_terminal_response(
+        self, request_id: str, method: str, payload: JSONDict, *, ok: bool
+    ) -> None:
+        if method not in CANCELLATION_SETTLED_WORKER_METHODS:
+            await self._write_response(request_id, payload, ok=ok)
+            return
+        write = create_ephemeral_task(
+            self._write_response(request_id, payload, ok=ok),
+            name=f"plugin-worker-terminal-response-{request_id}",
+            log_exceptions=False,
+        )
+        await run_idempotent_current_task_operation(lambda: asyncio.shield(write))
 
     async def _cancel_call(self, payload: JSONDict) -> None:
         target_value = payload.get("request_id")
@@ -194,13 +242,16 @@ class PluginWorkerIpcClient:
             await self._cancel_handler(target)
         task = self._active_calls.get(target)
         if task is not None:
-            task.cancel()
+            if not task.cancelling():
+                task.cancel()
+            if target in self._active_lifecycle_calls:
+                return
             try:
-                await asyncio.wait_for(task, timeout=LOCAL_IO_TIMEOUT_SEC)
+                await asyncio.wait_for(asyncio.shield(task), timeout=LOCAL_IO_TIMEOUT_SEC)
             except asyncio.CancelledError:
                 return
             except TimeoutError as exception:
-                raise ValidationError(
+                raise IpcCancellationCleanupError(
                     f"Worker call '{target}' did not cancel within timeout.",
                 ) from exception
 

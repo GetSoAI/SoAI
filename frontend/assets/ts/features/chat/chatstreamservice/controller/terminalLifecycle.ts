@@ -106,6 +106,9 @@ export const scheduleRequestTerminalization = async (context: ChatStreamingContr
             });
         const recoverTerminalizationFailure = (error: DeferredRejectionReason): Error => {
             const runtimeError = ensureError(error);
+            if (!isCurrentTerminalization()) {
+                return runtimeError;
+            }
             const canonicalAssistant = findCanonicalAssistantMessage(context.dependencies.conversations.get(inputArguments.conversationId), assistantMessage);
             if (canonicalAssistant !== null) {
                 if (settleTerminalAssistantActivities(canonicalAssistant, inputArguments.status, serverEpochMs())) {

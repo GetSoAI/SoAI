@@ -39,6 +39,8 @@ class PhaseAwareProgressMapper:
 
     def process_callback(self, data: JSONDict) -> int:
         data_type = data.get("type")
+        if data_type == "phase":
+            return self._current_percent
         raw_percent = data.get("percent")
         if data_type == "progress" and self._current_phase == "setup":
             self._current_phase = "download"

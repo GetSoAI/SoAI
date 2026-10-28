@@ -7,7 +7,9 @@ import sqlite3
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import DatabaseError
+from core.files.extraction_summary import EXTRACTION_SUMMARY_METADATA_KEY
 from core.rag.job_operations import rag_job_lease_lost_details
+from core.serialization.json import serialize_json_compact_stable_strict
 from core.timing.epoch import epoch_ms
 from database.core.sql_builders import build_update_statement
 from database.repositories.files.rag_linked_document_refresh import (
@@ -93,6 +95,30 @@ def _build_updates(
     return updates
 
 
+def _apply_extraction_summary(
+    conn: sqlite3.Connection,
+    *,
+    doc_id: str,
+    summary: JSONDict | None,
+) -> None:
+    if summary is None:
+        return
+    if summary:
+        conn.execute(
+            "UPDATE rag_documents SET metadata = json_set(COALESCE(metadata, '{}'), ?, json(?)) WHERE id = ?",
+            (
+                f"$.{EXTRACTION_SUMMARY_METADATA_KEY}",
+                serialize_json_compact_stable_strict(summary),
+                doc_id,
+            ),
+        )
+        return
+    conn.execute(
+        "UPDATE rag_documents SET metadata = json_remove(metadata, ?) WHERE id = ? AND metadata IS NOT NULL",
+        (f"$.{EXTRACTION_SUMMARY_METADATA_KEY}", doc_id),
+    )
+
+
 def _apply_side_effects(
     conn: sqlite3.Connection,
     *,
@@ -140,7 +166,7 @@ def _build_updates_from_request(
     *,
     now: int,
 ) -> dict[str, SQLiteValue]:
-    return _build_updates(
+    updates = _build_updates(
         status=request.status,
         now=now,
         status_details=request.status_details,
@@ -152,6 +178,13 @@ def _build_updates_from_request(
         embedding_dimensions=request.embedding_dimensions,
         error_message=request.error_message,
     )
+    if (
+        request.status == "completed"
+        and request.extraction_summary == {}
+        and request.status_details is None
+    ):
+        updates["status_details"] = None
+    return updates
 
 
 def sync_update_rag_document_status(
@@ -168,6 +201,11 @@ def sync_update_rag_document_status(
         where_clause=where_clause,
         where_params=status_where_params,
     ):
+        _apply_extraction_summary(
+            conn,
+            doc_id=request.doc_id,
+            summary=request.extraction_summary,
+        )
         return _apply_side_effects(
             conn,
             doc_id=request.doc_id,
@@ -208,6 +246,11 @@ def sync_update_rag_document_status_for_job(
         where_clause=where_clause,
         where_params=where_params,
     ):
+        _apply_extraction_summary(
+            conn,
+            doc_id=status_update.doc_id,
+            summary=status_update.extraction_summary,
+        )
         return _apply_side_effects(
             conn,
             doc_id=status_update.doc_id,

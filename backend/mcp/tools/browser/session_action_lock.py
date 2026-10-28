@@ -7,8 +7,6 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-from playwright.async_api import Error
-
 from core.browser.playwright_driver_errors import (
     PlaywrightDriverConnectionClosedError,
     classify_playwright_driver_connection_closed_exception,
@@ -16,6 +14,7 @@ from core.browser.playwright_driver_errors import (
 from core.errors.cancellation import raise_cancelled_error
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import SoAIError
 from core.logging.trace import get_logger
 from mcp.tools.browser.security_policy import require_browser_page_output_allowed
 from mcp.tools.browser.session_access import require_current_page
@@ -63,14 +62,15 @@ async def browser_action_lock(
         except asyncio.CancelledError as exception:
             raise_cancelled_error(exception)
         except Exception as exception:
-            if not isinstance(exception, Error | PlaywrightDriverConnectionClosedError):
-                raise
             driver_error = classify_playwright_driver_connection_closed_exception(
                 exception,
                 operation=OPERATION_SESSION_ACTION,
                 details={"owner_key": state.owner_key},
             )
-            if driver_error is None:
+            if driver_error is None or (
+                isinstance(exception, MCPToolError | SoAIError)
+                and not isinstance(exception, PlaywrightDriverConnectionClosedError)
+            ):
                 raise
             log_exception(
                 get_logger(LOGGER_NAME),

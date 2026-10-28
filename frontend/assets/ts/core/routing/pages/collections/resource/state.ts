@@ -1,7 +1,7 @@
 /* SoAI - Shared routing resource state [frontend/assets/ts/core/routing/pages/collections/resource/state.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { getRequestAnimationFrame } from '@core/environment/public.ts';
+import { observeMutationsUntil } from '@core/dom/domObserver.ts';
 import { normalizeCollectionHeader } from '@core/routing/pages/collections/collectionHeaderNormalization.ts';
 import { isArray, isFiniteNumber, isFunction, isNullOrUndefined, isObject, isPlainObject, isString } from '@core/typeGuards.ts';
 import { FRAME_BUDGET_MS } from '@core/routing/pages/collections/resource/constants.ts';
@@ -150,40 +150,31 @@ const assertActiveLayout = (pageId: string, host: HostInterface, signal: AbortSi
     }
 };
 
-const awaitLayoutFrame = async (pageId: string, host: HostInterface, signal: AbortSignal | null): Promise<void> => {
-    const requestAnimationFrame = getRequestAnimationFrame();
-    await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => {
-            resolve();
-        });
-    });
-    assertActiveLayout(pageId, host, signal, 'animation frame');
-};
-
 const waitForLayoutElement = async (pageId: string, host: HostInterface, resolver: () => HTMLElement | null, identifier: string | null, options: WaitBudget): Promise<HTMLElement> => {
     if (!isFunction(resolver)) {
         throw new TypeError('CollectionResource requires a resolver function when waiting for layout elements');
     }
     const signal = options.signal;
     const timeoutMs = isFiniteNumber(options.timeoutMs) ? Math.max(0, options.timeoutMs) : 0;
-    const deadline = timeoutMs === 0 ? performance.now() : performance.now() + timeoutMs;
-    assertActiveLayout(pageId, host, signal, identifier);
-
-    let target = resolver();
-    while (!target && performance.now() <= deadline) {
-        await awaitLayoutFrame(pageId, host, signal);
-        target = resolver();
+    const label = identifier || 'target element';
+    const resolveActive = (): HTMLElement | null => {
+        assertActiveLayout(pageId, host, signal, identifier);
+        return resolver();
+    };
+    const target = resolveActive();
+    if (target !== null) return target;
+    if (timeoutMs === 0) throw new Error(`${pageId} requires ${label} before continuing (unavailable)`);
+    try {
+        return await observeMutationsUntil(resolveActive, {
+            signal,
+            timeout: timeoutMs,
+            includeAttributes: true,
+            rejectionMessage: `${pageId} requires ${label} before continuing (timeout)`
+        });
+    } catch (error) {
+        assertActiveLayout(pageId, host, signal, identifier);
+        throw error;
     }
-
-    if (!target) {
-        const label = identifier || 'target element';
-        if (signal?.aborted) {
-            throw createLayoutAbortError(pageId, label, 'aborted');
-        }
-        const reason = timeoutMs === 0 ? 'unavailable' : 'timeout';
-        throw new Error(`${pageId} requires ${label} before continuing (${reason})`);
-    }
-    return target;
 };
 
 export { assertActiveLayout, captureHostLayoutFactory, createCollectionLayoutState, resolveCollectionConfig, resolveCollectionLayout, resolveWaitBudget, waitForLayoutElement };

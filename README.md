@@ -11,14 +11,14 @@
 SoAI is a feature-rich agent platform that unifies local inference engines and remote providers behind one resilient orchestration layer. It provides OpenAI-compatible and Anthropic-compatible client APIs and a complete WebUI with chat, tools, automations, file management, hardware control, and a RAG knowledge base.
 
 <p align="center">
-<a href="https://soai.to"><img src="media/readme/download-soai.svg" alt="Download SoAI" height="36"></a>
-<a href="https://soai.to/documentation/"><img src="media/readme/documentation.svg" alt="Documentation" height="36"></a>
+<a href="https://soai.to/#download"><img src="media/readme/download-soai.svg" alt="Download SoAI" height="38"></a>
+<a href="https://soai.to/documentation/"><img src="media/readme/documentation.svg" alt="Documentation" height="38"></a>
 </p>
 <p align="center">
-<a href="https://github.com/GetSoAI/SoAI"><img src="https://img.shields.io/github/v/release/GetSoAI/SoAI?label=release&amp;color=153e75&amp;labelColor=153e75&amp;style=for-the-badge" alt="Latest published SoAI release" height="28"></a>
-<img src="media/readme/supported-platforms.svg" alt="Linux, Windows and macOS" height="28">
-<img src="media/readme/supported-languages.svg" alt="22 UI languages" height="28">
-<a href="LICENSE.md"><img src="media/readme/source-available-license.svg" alt="Source-available license" height="28"></a>
+<a href="https://github.com/GetSoAI/SoAI"><img src="https://img.shields.io/github/v/release/GetSoAI/SoAI?label=RELEASE&amp;color=153e75&amp;labelColor=153e75&amp;style=flat" alt="Latest published SoAI release" height="20"></a>
+<img src="media/readme/supported-platforms.svg" alt="Linux, Windows and macOS (experimental)" height="20">
+<img src="media/readme/supported-languages.svg" alt="22 UI languages" height="20">
+<a href="LICENSE.md"><img src="media/readme/source-available-license.svg" alt="Source-available license" height="20"></a>
 </p>
 
 ![SoAI dashboard](media/readme/soai-dashboard.webp)
@@ -39,7 +39,7 @@ The UI ships in 22 languages:
 
 ## Install SoAI
 
-The Linux and macOS archives support x64 and ARM64 hosts, and Windows provides an x64 installer and an x64 compressed archive with the compiled native launcher. Your models and inference plugins determine the hardware requirements, and each plugin and model sets its own platform, GPU, memory, storage, and driver requirements.
+The Linux and macOS (experimental) archives support x64 and ARM64 hosts, and Windows provides an x64 installer and an x64 compressed archive with the compiled native launcher. Your models and inference plugins determine the hardware requirements, and each plugin and model sets its own platform, GPU, memory, storage, and driver requirements.
 
 ### Linux
 
@@ -85,13 +85,15 @@ The Windows release is also available as `SoAI-<version>-windows-x64-setup.exe` 
 
 </details>
 
-### macOS
+### macOS (experimental)
 
 ```bash
 curl -fsSL https://soai.to/install/mac | bash
 ```
 
-The same installer can be run as `./install-soai-macos.command` from a complete local source tree or extracted macOS release.
+Run `./install_soai_macos.command` from a complete local source tree, or `./install-soai-macos.command` from an extracted macOS release.
+
+Source trees use underscore filenames, including `install_soai_from_release.sh` and `install_soai_from_release.bat`. Complete release archives retain the hyphenated installer names. Installation and successful updates normalize the installed filenames to underscores.
 
 ### First run
 
@@ -226,11 +228,11 @@ Messaging accounts connect Telegram, WhatsApp, or Discord to SoAI. A provider th
 The Hardware page monitors the whole host machine in real time: CPU activity, memory and swap use, storage volumes, network traffic, running processes, and every detected GPU, with readings that can include core and VRAM use, temperature, power draw and limit, core and memory clocks, and active processes. History for CPU, GPU, disk, and network metrics supports selectable devices, measurements, time ranges, chart styles, aggregation intervals, and CSV export.
 
 <details>
-<summary><strong>GPU tuning controls and SoAIBench</strong></summary>
+<summary><strong>GPU tuning controls and SoAI Bench</strong></summary>
 
 GPU controls are based on the capabilities SoAI detects for each device. Supported GPUs can expose power, core and memory clock, fan, and reset controls. What is available depends on the card, platform, drivers, permissions, and administrator policy. Three settings slots per GPU let you save and restore a known preset. After an unsafe shutdown, SoAI returns supported tuning controls to their defaults.
 
-SoAIBench tests the GPU itself for inference readiness. Standard and stress runs exercise compute, matrix operations, memory bandwidth, dispatch latency, and sustained mixed workloads while tracking utilization, power, temperature, stability, and score variance. SoAI reports progress as the test runs and keeps per-GPU history to review or export.
+SoAI Bench tests the GPU itself for inference readiness. Standard and stress runs exercise compute, matrix operations, memory bandwidth, dispatch latency, and sustained mixed workloads while tracking utilization, power, temperature, stability, and score variance. SoAI reports progress as the test runs and keeps per-GPU history to review or export.
 
 </details>
 
@@ -384,11 +386,11 @@ Download these Core files from the Releases section of the [SoAI project](https:
 - Any commercial use and any organizational use outside the listed exceptions requires a commercial license
 - Each covered release also becomes available under the MIT License on its Change Date, exactly four years after its first public distribution
 
-[CHANGE-DATES.md](CHANGE-DATES.md) records the Change Date for each release, and [LICENSE.md](LICENSE.md) reserves the SoAI name and branding. The MIT License covers the bundled plugins and SoAI Connect app, and the SoAI OS image contains its separate terms.
+[CHANGE_DATES.md](CHANGE_DATES.md) records the Change Date for each release, and [LICENSE.md](LICENSE.md) reserves the SoAI name and branding. The MIT License covers the bundled plugins and SoAI Connect app, and the SoAI OS image contains its separate terms.
 
 ### Current availability
 
-Core Personal Use is available now and free of charge. Commercial licenses, organization evaluations, and SoAI OS are temporarily unavailable; purchases, licenses, appliance media, and credentials are not being issued. This operational restriction does not amend the licenses or change any license grant. Organizations can write to [info@soai.to](mailto:info@soai.to) for licensing information or to join the waitlist for future availability, and [COMMERCIAL-LICENSING-AVAILABILITY.md](COMMERCIAL-LICENSING-AVAILABILITY.md) records the current status.
+Core Personal Use is available now and free of charge. Commercial licenses, organization evaluations, and SoAI OS are temporarily unavailable; purchases, licenses, appliance media, and credentials are not being issued. This operational restriction does not amend the licenses or change any license grant. Organizations can write to [info@soai.to](mailto:info@soai.to) for licensing information or to join the waitlist for future availability, and [COMMERCIAL_LICENSING_AVAILABILITY.md](COMMERCIAL_LICENSING_AVAILABILITY.md) records the current status.
 
 ### Privacy
 

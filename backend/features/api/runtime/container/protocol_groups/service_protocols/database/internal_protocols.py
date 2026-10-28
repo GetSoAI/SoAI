@@ -82,6 +82,7 @@ if TYPE_CHECKING:
     from core.plugins.protocols_database import DatabasePluginsProtocol
     from core.prompts.protocols_database import DatabasePromptsProtocol
     from core.rag.protocols import DatabaseKnowledgePromptStateProtocol
+    from core.skills.protocols import SkillRepositoryProtocol
     from core.tool_calls.protocols import DatabaseToolCallsProtocol
     from core.users.protocols_database import DatabaseUsersProtocol
     from core.users.protocols_identity_mutations import DatabaseUserMutationsProtocol
@@ -226,6 +227,9 @@ class DatabaseServicesProtocol(Protocol):
 
     @property
     def chat_presets(self) -> ChatPresetRepositoryProtocol: ...
+
+    @property
+    def skills(self) -> SkillRepositoryProtocol: ...
 
     @property
     def hardware(self) -> DatabaseHardwareProtocol: ...

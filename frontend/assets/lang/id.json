@@ -68,6 +68,15 @@
                     }
                 },
                 "initFailed": "Gagal Menginisialisasi SoAI WebUI",
+                "reference": "Referensi: {reference}",
+                "stages": {
+                    "entrypoint": "WebUI tidak dapat memuat sumber daya awalnya. Muat ulang halaman untuk mencoba lagi.",
+                    "criticalServices": "WebUI tidak dapat memulai layanan yang dibutuhkannya. Pastikan backend SoAI sedang berjalan, lalu muat ulang halaman.",
+                    "authentication": "WebUI tidak dapat memeriksa status penyiapan dan masuk. Muat ulang halaman untuk mencoba lagi.",
+                    "session": "WebUI tidak dapat menyiapkan sesi masuk Anda. Muat ulang halaman untuk mencoba lagi.",
+                    "routeRendering": "WebUI tidak dapat menampilkan halaman yang diminta. Muat ulang halaman untuk mencoba lagi.",
+                    "background": "WebUI tidak dapat menyelesaikan langkah awal terakhirnya. Muat ulang halaman untuk mencoba lagi."
+                },
                 "routeNotReady": "Halaman tidak selesai dimuat tepat waktu. Muat ulang halaman.",
                 "unknown": "Terjadi kesalahan yang tidak diketahui."
             },
@@ -610,13 +619,17 @@
                 "notSupported": "Perekaman suara memerlukan koneksi aman (HTTPS) atau localhost",
                 "permissionDenied": "Akses mikrofon ditolak. Izinkan akses mikrofon di pengaturan browser Anda.",
                 "recordingFailed": "Perekaman gagal",
-                "transcriptionFailed": "Transkripsi suara gagal."
+                "transcriptionFailed": "Transkripsi suara gagal.",
+                "transcriptionDeadlineExceeded": "Transkripsi terlalu lama dan dibatalkan. Coba rekaman yang lebih pendek atau model transkripsi yang lebih cepat.",
+                "transcriptionCancellationUnconfirmed": "Transkripsi terlalu lama, dan pembatalannya tidak dapat dikonfirmasi. Tunggu sebentar sebelum mencoba lagi.",
+                "transcriptionCancellationUnconfirmedReference": "Transkripsi terlalu lama, dan pembatalannya tidak dapat dikonfirmasi. Tunggu sebentar sebelum mencoba lagi. Referensi: {reference}"
             },
             "audioPreview": {
                 "cancel": "Batalkan perekaman",
                 "errorTitle": "Perekaman suara",
                 "processingStatus": "Mengirim audio untuk transkripsi",
                 "processingTitle": "Mentranskripsikan suara",
+                "transcriptionSettling": "Batas waktu tercapai. Menghentikan transkripsi…",
                 "recordingStatus": "Merekam {elapsed}",
                 "recordingTitle": "Perekaman suara",
                 "requestingStatus": "Menunggu izin browser",
@@ -742,8 +755,8 @@
                     "title": "Pengaturan pengetahuan"
                 },
                 "memory": {
-                    "description": "Memori persisten membantu SoAI memahami preferensi, tujuan, dan konteks berulang Anda tanpa memerlukan prompt khusus setiap kali.",
-                    "empty": "Belum ada memori yang tersimpan.",
+                    "description": "Memori persisten membantu SoAI memahami preferensi, tujuan, dan konteks berulang Anda tanpa memerlukan prompt khusus setiap kali",
+                    "empty": "Belum ada memori yang tersimpan",
                     "openProfile": "Buka formulir profil",
                     "refresh": "Segarkan memori",
                     "title": "Pengaturan memori",
@@ -794,7 +807,7 @@
                     "knowledgeManagedToolsEnabledHint": "Alat tetap diaktifkan secara otomatis selama pengetahuan terindeks aktif untuk percakapan ini. Hal ini tidak mengubah nilai default Anda untuk chat baru",
                     "noServers": "Tidak ada server MCP yang tersedia.",
                     "noTools": "Tidak ada alat MCP yang tersedia.",
-                    "resetToolsDescription": "Reset alat {mode} ke default SoAI.",
+                    "resetToolsDescription": "Reset alat {mode} ke default SoAI",
                     "resetToolsLabel": "Reset",
                     "resetToolsTitle": "Reset alat default",
                     "servers": "Server",
@@ -880,7 +893,9 @@
                         "parsing": "Mengurai",
                         "queued": "Dalam antrean",
                         "unreadable": "Tidak dapat dibaca",
-                        "unknown": "Tidak diketahui"
+                        "unknown": "Tidak diketahui",
+                        "noTranscript": "Tanpa transkrip",
+                        "partial": "Diekstrak sebagian"
                     },
                     "title": "Pengaturan RAG",
                     "topK": "Top K"
@@ -955,8 +970,8 @@
                     "newAction": "Preset baru",
                     "noMatches": "Tidak ada preset yang cocok dengan pencarian ini.",
                     "noChanges": "Preset tidak mengubah konfigurasi sementara.",
-                    "notApplicable": "Tidak ada pengaturan tersimpan dari preset ini yang tersedia pada versi saat ini. Anda tetap dapat mengganti, mengganti nama, atau menghapusnya.",
-                    "omittedSettings": "{count} pengaturan tersimpan yang tidak didukung atau tidak valid diabaikan.",
+                    "notApplicable": "Tidak ada pengaturan tersimpan dari preset ini yang tersedia pada versi saat ini. Anda tetap dapat mengganti, mengganti nama, atau menghapusnya",
+                    "omittedSettings": "{count} pengaturan tersimpan yang tidak didukung atau tidak valid diabaikan",
                     "replaceAction": "Ganti",
                     "renameAction": "Ganti nama",
                     "retryAction": "Coba lagi",
@@ -1005,7 +1020,7 @@
                         "replaceDescription": "Ganti preset ini dengan snapshot baru dari nilai sementara saat ini.",
                         "replaceTitle": "Ganti preset",
                         "reviewAction": "Tinjau revisi terbaru",
-                        "revisionChanged": "Preset ini diubah di tempat lain. Tinjau revisi terbaru sebelum melanjutkan.",
+                        "revisionChanged": "Preset ini diubah di tempat lain. Tinjau revisi terbaru sebelum melanjutkan",
                         "prunedValues": "{count} pengaturan dinamis yang tidak tersedia diabaikan dari snapshot ini.",
                         "selectedCount": "{count} bagian dipilih",
                         "sectionDescriptions": {
@@ -1019,7 +1034,7 @@
                         },
                         "sectionUnavailable": "Bagian ini tidak tersedia untuk percakapan saat ini.",
                         "sectionsLabel": "Bagian konfigurasi",
-                        "targetUnavailable": "Preset ini sudah tidak ada. Batalkan pengeditan ini atau buat preset baru."
+                        "targetUnavailable": "Preset ini sudah tidak ada. Batalkan pengeditan ini atau buat preset baru"
                     }
                 },
                 "saveDegradedDetail": "Tersimpan {completed}. Proyeksi tindak lanjut yang telah dikonfirmasi memerlukan perhatian; coba lagi dari bagian yang terdampak.",
@@ -1076,7 +1091,58 @@
                     "title": "Pengaturan pencarian web"
                 },
                 "widescreen_mode": "Mode layar lebar",
-                "widescreenModeHint": "Perbesar ruang yang tersedia untuk chat pada layar yang lebih besar"
+                "widescreenModeHint": "Perbesar ruang yang tersedia untuk chat pada layar yang lebih besar",
+                "skills": {
+                    "title": "Keterampilan",
+                    "description": "Keterampilan memberi asisten instruksi yang dapat digunakan kembali untuk tugas tertentu. Aktifkan untuk chat ini, lalu simpan. Perubahan berlaku untuk permintaan baru; pekerjaan yang sudah diterima tetap memakai keterampilan yang tercatat.",
+                    "add": "Tambah keterampilan",
+                    "empty": "Tambahkan berkas SKILL.md atau koleksi keterampilan ZIP untuk memulai",
+                    "immediate": "Impor dan penghapusan dari pustaka langsung berlaku. Keterampilan baru awalnya dinonaktifkan",
+                    "unavailable": "Simpan chat biasa sebelum memilih keterampilan. Pilihan tidak tersedia untuk percakapan terkelola",
+                    "automatic": "Pemanggilan otomatis atau langsung",
+                    "explicit": "Hanya pemanggilan langsung",
+                    "automaticOnly": "Hanya pemanggilan otomatis",
+                    "disabledReason": "Keterampilan ini tidak mengizinkan pemanggilan otomatis maupun langsung",
+                    "removeConfirm": "Hapus keterampilan ini dari pustaka dan pilihan mendatang di chat Anda? Pekerjaan yang sudah diterima tetap menyimpan paketnya. Berkas ruang kerja dan riwayat percakapan tetap ada.",
+                    "conflict": "Pilihan berubah di tempat lain. Tinjau pilihan saat ini sebelum menyimpan draf",
+                    "keepDraft": "Pertahankan pilihan saya",
+                    "stale": "Keterampilan belum mutakhir. Sambungkan kembali atau coba lagi sebelum menyimpan",
+                    "search": "Cari keterampilan...",
+                    "emptyTitle": "Tambahkan keterampilan pertama Anda",
+                    "noMatchesTitle": "Tidak ada keterampilan yang cocok",
+                    "errors": {
+                        "invalidPackage": "Impor berkas SKILL.md yang valid atau koleksi keterampilan dalam ZIP. Periksa format berkas dan batas ukurannya.",
+                        "uploadConflict": "Unggahan ini sudah digunakan untuk berkas lain. Pilih kembali berkas untuk memulai impor baru.",
+                        "nameConflict": "Keterampilan dengan nama ini sudah terpasang. Hapus sebelum mengimpor penggantinya.",
+                        "libraryFull": "Pustaka keterampilan penuh. Hapus keterampilan yang tidak digunakan dan tunggu pekerjaan yang memakai keterampilan terhapus selesai.",
+                        "invocationUnavailable": "Keterampilan yang diminta tidak diaktifkan atau tidak mengizinkan pemanggilan langsung. Periksa keterampilan yang dipilih untuk percakapan ini.",
+                        "importBusy": "Impor keterampilan sedang sibuk. Coba lagi unggahan yang sama sebentar lagi.",
+                        "notFound": "Keterampilan atau sumber daya tidak tersedia. Segarkan pustaka keterampilan Anda.",
+                        "wrapperNameMismatch": "Nama direktori pembungkus ZIP harus sesuai dengan nama keterampilan di SKILL.md.",
+                        "restrictionUnsupported": "Keterampilan ini memakai pembatasan alat yang tidak didukung. Gunakan nama alat SoAI yang eksplisit sebelum mengaktifkannya.",
+                        "toolRestricted": "Keterampilan aktif melarang alat ini. Ikuti alur kerja yang diizinkan atau mulai eksekusi baru.",
+                        "argumentConflict": "Argumen keterampilan yang telah diterima tidak dapat diganti. Mulai pemanggilan baru dengan argumen berbeda.",
+                        "aliasAmbiguous": "Alias ini merujuk ke beberapa keterampilan aktif. Gunakan nama keterampilan yang berkualifikasi.",
+                        "manifestFormat": "SKILL.md memerlukan teks UTF-8 dan YAML sederhana yang valid di antara pembatas ---. Periksa format dan batas ukuran manifesnya.",
+                        "invalidField": "Kolom keterampilan {field} tidak didukung, tidak ada, atau tidak valid. Periksa nama dan tipe nilainya.",
+                        "sourceConflict": "Salinan keterampilan di {first} dan {second} bertentangan. Simpan satu salinan yang konsisten.",
+                        "archiveIntegrity": "Arsip keterampilan rusak atau tidak lengkap. Unduh kembali dan coba lagi dengan berkas lengkap.",
+                        "archiveUnsafe": "Arsip keterampilan berisi jalur tidak aman, tautan, atau entri yang bertentangan. Buat arsip portabel yang berisi berkas biasa.",
+                        "archiveUnsupported": "Arsip keterampilan menggunakan enkripsi atau kompresi yang tidak didukung. Buat ZIP tanpa enkripsi dengan entri tersimpan atau terkompresi Deflate.",
+                        "invalidFilename": "Pilih berkas bernama SKILL.md atau arsip keterampilan ZIP.",
+                        "resourceLimit": "Batas impor keterampilan untuk {field} terlampaui: {measured} > {limit}. Perkecil arsip atau hapus keterampilan yang tidak digunakan, lalu coba lagi.",
+                        "manifestPosition": "YAML tidak valid pada baris {line}, kolom {column}. Perbaiki SKILL.md dan coba lagi."
+                    },
+                    "importUncertain": "Hasil impor belum pasti. Biarkan berkas ini dipilih dan gunakan Segarkan untuk memeriksa tanda terima sebelum mencoba lagi.",
+                    "invalidSelection": "Beberapa keterampilan yang dipilih tidak tersedia atau melebihi batas pustaka. Segarkan, lalu sesuaikan pilihan sebelum menyimpan",
+                    "status": {
+                        "importTitle": "Hasil impor belum pasti",
+                        "conflictTitle": "Pilihan berubah di tempat lain",
+                        "staleTitle": "Daftar keterampilan mungkin sudah tidak mutakhir",
+                        "unavailableTitle": "Pilihan keterampilan tidak tersedia",
+                        "invalidTitle": "Pilihan perlu ditinjau"
+                    }
+                }
             },
             "confirmations": {
                 "externalLink": "Buka tautan eksternal",
@@ -1139,8 +1205,15 @@
                 "conversationLoadFailed": "Gagal memuat percakapan.",
                 "conversationUnavailable": "Percakapan tidak ditemukan. Anda telah dikembalikan ke chat kosong.",
                 "interactionFocusUnavailable": "Tautan interaksi aman ini sudah tidak tersedia. Tinjau prompt Chat saat ini.",
+                "modelToolCallingUnsupported": "Model yang dipilih tidak mendukung pemanggilan alat. Pilih model yang mendukung alat, atau nonaktifkan alat untuk percakapan ini.",
                 "soaiWorkspaceChanged": "Ruang kerja percakapan berubah saat menyiapkan pesan ini. Buka kembali atau tautkan ulang sumber SoAI, lalu kirim lagi.",
-                "syncFailed": "Gagal menyinkronkan percakapan"
+                "syncFailed": "Gagal menyinkronkan percakapan",
+                "contextWindowOverrideInvalid": "Nilai pengganti jendela konteks harus berupa bilangan bulat positif. Masukkan nilai yang valid atau biarkan kosong untuk menggunakan nilai bawaan model.",
+                "contextWindowOverrideConflict": "Nilai pengganti jendela konteks saling bertentangan. Tetapkan satu nilai atau hapus penggantian, lalu coba lagi.",
+                "durableQueueFull": "Antrean penuh. Coba kirim ulang permintaan yang ditolak ini setelah pekerjaan aktif selesai.",
+                "promptBudgetExceeded": "Prompt memerlukan {requested} token; tersedia {available} setelah reservasi keluaran dan margin keamanan. Kurangi prompt atau keluaran yang dicadangkan, ringkas percakapan, atau tambah panjang konteks.",
+                "ragEmbeddingModelUnavailable": "Tidak ada model embedding yang tersedia. Pilih model embedding di pengaturan Chat, atau instal backend embedding dan unduh model, lalu coba lagi.",
+                "ragDocumentsNotIndexed": "Tidak ada pengetahuan terindeks yang dapat diindeks ulang. Unggah dan indeks dokumen terlebih dahulu."
             },
             "export": {
                 "noMessages": "Tidak ada pesan untuk diekspor",
@@ -1340,6 +1413,7 @@
                 "voiceCallStart": "Mulai panggilan suara",
                 "steer": "Arahkan prompt",
                 "queue": "Antrekan prompt",
+                "resumeQueue": "Lanjutkan prompt dalam antrean",
                 "stop": "Hentikan respons",
                 "stopRecording": "Hentikan rekaman",
                 "transcribing": "Mentranskripsikan...",
@@ -1364,7 +1438,8 @@
             "inputQueue": {
                 "badge": {
                     "queued": "Dalam antrean",
-                    "steer": "Arahkan"
+                    "steer": "Arahkan",
+                    "held": "Dijeda"
                 },
                 "state": {
                     "materializing": "Menyiapkan",
@@ -1381,6 +1456,33 @@
                 "reason": "Alasan"
             },
             "memory": {
+                "library": {
+                    "add": "Tambah memori",
+                    "search": "Cari memori",
+                    "noMatches": "Tidak ada memori yang cocok",
+                    "stale": "Data tersimpan sudah usang. Penyegaran terakhir: {time}. Segarkan untuk meninjau data terkini.",
+                    "deleteFact": "Hapus fakta atau hubungan ini?",
+                    "deleteEntry": "Hapus “{title}”, termasuk {facts} fakta dan {relations} hubungan?",
+                    "savedHidden": "Tersimpan. Hapus pencarian untuk melihat memori ini.",
+                    "savedRefreshNeeded": "Tersimpan. Pustaka perlu disegarkan.",
+                    "from": "Dari",
+                    "to": "Ke",
+                    "type": "Jenis hubungan",
+                    "staleTitle": "Daftar memori mungkin sudah tidak mutakhir",
+                    "errorTitle": "Pustaka memori tidak tersedia"
+                },
+                "errors": {
+                    "revisionChanged": "Memori ini telah berubah. Tinjau isinya saat ini sebelum menyimpan.",
+                    "duplicateName": "Memori lain sudah memakai judul ini. Pilih judul lain.",
+                    "duplicateId": "Identitas draf ini sudah ada. Segarkan dan tinjau memori tersimpan.",
+                    "profileRestricted": "Gunakan formulir profil untuk mengelola fakta profil terstruktur.",
+                    "duplicateRelation": "Hubungan ini sudah ada.",
+                    "relationNotIncident": "Pertahankan satu ujung terhubung ke memori ini.",
+                    "invalidText": "Masukkan judul dan teks yang tidak kosong.",
+                    "missing": "Catatan ini tidak tersedia atau tidak lagi menjadi bagian memori ini. Segarkan dan tinjau.",
+                    "unconfirmed": "Hasil tidak dapat dikonfirmasi. Simpan draf dan segarkan untuk meninjau data terkini sebelum mencoba lagi.",
+                    "loadFailed": "Memori tidak dapat dimuat. Segarkan untuk mencoba lagi."
+                },
                 "profile": {
                     "description": "Bagikan detail opsional agar SoAI dapat mengingat cara bekerja dengan Anda di berbagai chat.",
                     "fields": {
@@ -1449,7 +1551,10 @@
                 },
                 "speak": {
                     "failed": "Gagal membacakan pesan.",
-                    "noText": "Tidak ada yang dapat dibacakan."
+                    "noText": "Tidak ada yang dapat dibacakan.",
+                    "invalidVoice": "Suara yang dipilih tidak tersedia untuk model ucapan ini. Pilih suara lain di pengaturan ucapan.",
+                    "invalidResponseFormat": "Model ucapan ini tidak dapat menghasilkan format audio yang diminta.",
+                    "invalidSpeed": "Kecepatan ucapan berada di luar rentang yang didukung model ini. Sesuaikan kecepatan di pengaturan ucapan."
                 },
                 "assistant": "Asisten",
                 "assistantWithModel": "{assistant} ({model})",
@@ -1479,6 +1584,13 @@
                     "tokensTitle": "Penggunaan token",
                     "toolActivity": "Aktivitas alat",
                     "totalTokens": "Total token"
+                },
+                "outputNotices": {
+                    "reasoningOnly": "Model mengembalikan penalaran tetapi tidak memberikan jawaban akhir. Coba lagi, atau coba model atau pengaturan penalaran lain.",
+                    "steered": "Dilanjutkan di bawah dengan pesan baru Anda.",
+                    "stopped": "Anda menghentikan respons ini.",
+                    "tokenLimit": "Respons berhenti karena mencapai batas token keluaran. Naikkan pengaturan token maksimum untuk mendapatkan jawaban yang lebih panjang.",
+                    "tokenLimitReasoning": "Model menghabiskan seluruh anggaran token keluarannya untuk penalaran sebelum menulis jawaban. Naikkan pengaturan token maksimum atau turunkan upaya penalaran."
                 },
                 "renderFailed": "Gagal merender pesan.",
                 "runningActivitySummary": {
@@ -1549,7 +1661,6 @@
                 "executePrompt": "Implementasikan rencana.",
                 "executeUnavailable": "Percakapan ini tidak dapat beralih ke mode eksekusi",
                 "label": "Rencana",
-                "metrics": "{lines} baris · {characters} karakter",
                 "revision": "Revisi {revision}"
             },
             "processing": {
@@ -1607,7 +1718,6 @@
                 "allUnicode": "Semua Unicode",
                 "description": "Jelajahi karakter Unicode dan emoji, susun rangkaian, lalu salin atau sisipkan ke pesan Anda",
                 "font": "Font",
-                "fontHint": "Font hanya memengaruhi tampilan; setiap karakter yang tercantum tetap dapat dipilih",
                 "fonts": {
                     "emoji": "Emoji platform",
                     "monospace": "Monospace generik",
@@ -1634,19 +1744,6 @@
                 "staging": "Karakter untuk disalin",
                 "subset": "Subset",
                 "title": "Peta karakter"
-            },
-            "promptsPicker": {
-                "editFailed": "Tidak dapat membuka editor prompt.",
-                "empty": "Belum ada prompt tersimpan.",
-                "emptyContent": "Tidak ada konten prompt",
-                "help": "Pilih prompt tersimpan untuk memasukkannya ke kolom penulisan chat",
-                "loadFailed": "Tidak dapat memuat prompt tersimpan.",
-                "loading": "Memuat prompt...",
-                "manage": "Kelola prompt",
-                "manageFailed": "Tidak dapat membuka halaman prompt.",
-                "noMatches": "Tidak ada prompt yang cocok dengan pencarian Anda.",
-                "search": "Cari",
-                "title": "Prompt tersimpan"
             },
             "search": {
                 "placeholder": "Cari chat...",
@@ -1700,9 +1797,32 @@
                     "service_unavailable": "Layanan yang diperlukan untuk respons ini sementara tidak tersedia.",
                     "stream_hydration_failed": "Gagal menyinkronkan ulang stream respons.",
                     "tool_sequence_contract_violation": "Model menghasilkan urutan alat yang tidak valid setelah beberapa percobaan. Coba lagi atau ubah parameter model.",
+                    "invalid_request_error": "Penyedia model menolak permintaan. Periksa model yang dipilih dan parameternya.",
+                    "authentication_error": "Penyedia model menolak kredensial atau izin akses. Periksa kunci API yang dikonfigurasi.",
+                    "payment_required_error": "Penyedia model menolak permintaan karena penagihan, kredit, atau batas pengeluaran akun perlu diperiksa.",
+                    "rate_limit_error": "Penyedia model sedang sibuk atau terkena batas laju. Tunggu sebentar lalu coba lagi.",
+                    "timeout_error": "Penyedia model kehabisan waktu saat membuat respons. Coba lagi nanti.",
+                    "providerExplanation": "Penjelasan penyedia: {explanation}",
                     "withCode": "{message} (kode: {code})",
                     "withReference": "{message} (kode: {code}; referensi: {referenceId})",
-                    "ws_disconnected": "Koneksi terputus saat menerima respons."
+                    "ws_disconnected": "Koneksi terputus saat menerima respons.",
+                    "providerPermission": "Penyedia menolak akses. Periksa izin kunci API, akses akun, dan wilayah yang didukung.",
+                    "providerParameter": "Penyedia menolak {param}. Ubah atau reset parameter model ini, lalu coba lagi.",
+                    "providerMedia": "Penyedia menolak lampiran. Periksa format, ukuran, dan isinya atau unggah kembali.",
+                    "providerContext": "Permintaan melebihi jendela konteks. Ringkas konteks percakapan, kurangi token keluaran, atau pilih model dengan konteks lebih besar.",
+                    "providerContentPolicy": "Penyedia memblokir permintaan berdasarkan kebijakan konten. Ubah susunan pesan atau pilih model lain.",
+                    "providerVision": "Model atau endpoint ini tidak menerima gambar. Hapus gambar atau pilih model yang mendukung gambar.",
+                    "providerAudio": "Model atau endpoint ini tidak menerima audio. Hapus audio atau pilih model audio.",
+                    "providerModelUnavailable": "Penyedia melaporkan bahwa model ini tidak tersedia. Segarkan katalog atau pilih model lain.",
+                    "providerUnavailable": "Penyedia sementara tidak tersedia atau kelebihan beban. Coba nanti atau pilih penyedia lain.",
+                    "providerRetryAfter": "Tunggu setidaknya {seconds} detik sebelum mencoba lagi.",
+                    "providerMediaFormat": "Format lampiran ditolak. Ubah ke format yang didukung dan coba lagi.",
+                    "providerMediaSize": "Periksa ukuran dan dimensi lampiran, lalu coba lagi dengan ukuran yang didukung.",
+                    "providerMediaDecoding": "Lampiran tidak dapat didekode. Unggah berkas yang valid dan coba lagi.",
+                    "providerMediaRetrieval": "Lampiran tidak dapat diambil. Periksa tautannya atau unggah berkas lagi.",
+                    "providerContextUsage": "Permintaan ini membutuhkan {requested} token; konteks yang tersedia adalah {available} token.",
+                    "context_budget_unavailable": "Konteks model terlalu kecil untuk reservasi keluaran yang dikonfigurasi. Tingkatkan panjang konteks model atau kurangi reservasi keluaran pemadatan.",
+                    "contextBudgetUsage": "Konteks model adalah {context} token ({usable} dapat digunakan); reservasi keluaran pemadatan adalah {reserved} token."
                 },
                 "failedToGetResponse": "Gagal mendapatkan respons",
                 "noModelSelected": "Pilih model sebelum mengirim pesan",
@@ -2155,6 +2275,12 @@
                         },
                         "apply_patch": {
                             "1": "Menerapkan perubahan"
+                        },
+                        "skill_read": {
+                            "1": "Membaca instruksi keterampilan"
+                        },
+                        "skill_materialize": {
+                            "1": "Menyalin berkas keterampilan ke ruang kerja"
                         }
                     }
                 }
@@ -2412,12 +2538,15 @@
             "cancellation": {
                 "failed": "Permintaan pembatalan gagal. Operasi masih berjalan; coba lagi.",
                 "userRequested": "Pengguna meminta pembatalan.",
-                "userRequestedViaWebUi": "Pengguna meminta pembatalan melalui WebUI."
+                "userRequestedViaWebUi": "Pengguna meminta pembatalan melalui WebUI.",
+                "cancelling": "Membatalkan",
+                "cancelled": "Dibatalkan"
             },
             "clipboard": {
                 "copied": "Disalin ke clipboard",
                 "copyFailed": "Gagal menyalin ke clipboard",
-                "copyUnavailable": "Clipboard tidak tersedia di lingkungan ini"
+                "copyUnavailable": "Clipboard tidak tersedia di lingkungan ini",
+                "notificationCopied": "Notifikasi disalin ke clipboard"
             },
             "close": "Tutup",
             "filters": {
@@ -2441,7 +2570,6 @@
                 "chatAttachments": "Lampiran yang dirujuk oleh pesan ini",
                 "chatMcpDefaultTools": "Alat MCP default untuk chat baru",
                 "chatMemoryProfile": "Detail pribadi yang diingat SoAI di berbagai chat",
-                "chatPromptsPicker": "Prompt tersimpan yang siap dimasukkan ke chat ini",
                 "voiceCall": "Chat hands-free dengan mikrofon, transkripsi, respons streaming, dan pemutaran suara",
                 "credits": "Kredit dependensi pihak ketiga",
                 "fileExplorerMetadata": "Metadata file",
@@ -2490,12 +2618,24 @@
             "error": "Kesalahan",
             "errors": {
                 "errorWithMessage": "Kesalahan: {message}",
+                "fileAccessDenied": "SoAI ditolak aksesnya ke berkas yang diperlukan. Periksa izin folder, lalu coba lagi.",
+                "fileOperationFailed": "Operasi berkas gagal. Periksa log untuk detailnya, lalu coba lagi.",
                 "insufficientDiskSpace": "Operasi tidak dapat dilanjutkan karena ruang disk tidak mencukupi.",
                 "offlinePolicy": "Operasi tidak tersedia saat mode offline aktif.",
                 "operationFailed": "Operasi gagal. Coba lagi.",
                 "operationFailedWithMessage": "Gagal {operation}: {error}",
+                "runtimeStartupTimeout": "Runtime tidak siap tepat waktu. Berkas runtime yang baru dipasang bisa memerlukan waktu lebih lama saat pertama kali dijalankan. Coba lagi operasinya.",
+                "runtimeVerificationTimeout": "SoAI tidak dapat menyelesaikan pemeriksaan runtime tepat waktu. Berkas runtime yang baru dipasang bisa memerlukan waktu lebih lama saat pertama kali dijalankan. Coba lagi operasinya.",
+                "executionTimeoutResponse": "Plugin tidak mengembalikan respons dalam {budget} detik ({elapsed} detik berlalu).",
+                "executionTimeoutInitialResponse": "Model tidak mulai merespons dalam {budget} detik ({elapsed} detik berlalu).",
+                "executionTimeoutFirstToken": "Model tidak menghasilkan keluaran pertamanya dalam {budget} detik ({elapsed} detik berlalu).",
+                "executionTimeoutBufferedResponse": "Model tidak menyelesaikan responsnya dalam {budget} detik ({elapsed} detik berlalu).",
+                "executionTimeoutRequestLimit": "Permintaan menetapkan batas waktu ini, sehingga plugin tidak ditandai tidak sehat.",
+                "executionTimeoutPluginBudget": "Ini adalah anggaran eksekusi plugin, sehingga plugin mungkin kelebihan beban atau tidak merespons.",
                 "unknown": "Kesalahan tidak diketahui",
-                "unknownError": "Terjadi kesalahan yang tidak diketahui."
+                "unknownError": "Terjadi kesalahan yang tidak diketahui.",
+                "storageHeadroomInsufficient": "Ruang penyimpanan tidak cukup setelah memperhitungkan ruang pengaman dan reservasi yang ada. Kosongkan ruang atau tunggu operasi penyimpanan lain selesai, lalu coba lagi.",
+                "storageHeadroomValues": "Diperlukan termasuk margin keamanan: {required}. Tersedia untuk operasi ini: {available}."
             },
             "export": "Ekspor",
             "exportPreview": {
@@ -2606,6 +2746,10 @@
             "retry": "Coba lagi"
         },
         "contentPreview": {
+            "fields": {
+                "title": "Judul",
+                "text": "Teks"
+            },
             "actions": {
                 "goToPath": "Buka path",
                 "goToUrl": "Buka URL",
@@ -2890,7 +3034,14 @@
                 "renameNameRequired": "Masukkan nama terlebih dahulu.",
                 "renameNameUnchanged": "Masukkan nama yang berbeda.",
                 "selectionChanged": "Pilihan berubah. Pilih kembali entri sebelum mengganti namanya.",
-                "selectionRequired": "Pilih setidaknya satu entri terlebih dahulu."
+                "selectionRequired": "Pilih setidaknya satu entri terlebih dahulu.",
+                "changeRefreshFailed": "Perubahan disimpan, tetapi detail berkas tidak dapat dimuat ulang. Muat ulang halaman Berkas.",
+                "fileInUse": "Berkas ini sedang digunakan oleh aplikasi lain. Tutup aplikasi tersebut dan coba lagi.",
+                "listingExpired": "Daftar folder tidak lagi tersedia. Muat ulang halaman Berkas untuk memuatnya kembali.",
+                "publicationUncertain": "File mungkin telah disimpan, tetapi status akhirnya tidak dapat diverifikasi. Periksa tujuan di File sebelum mengunggahnya lagi.",
+                "cleanupIncomplete": "Pembersihan otomatis tidak dapat diselesaikan. Periksa lokasi tujuan di Berkas sebelum mencoba lagi.",
+                "contentChanged": "File berubah selama operasi. Pilih kembali file tersebut dan coba lagi.",
+                "destinationExists": "File atau folder dengan nama ini sudah ada. Pilih nama atau tujuan lain."
             },
             "labels": {
                 "latestTask": "Tugas terbaru",
@@ -3114,7 +3265,8 @@
                         "withTotal": "{count} {label} • {total}"
                     },
                     "title": "Penyimpanan",
-                    "waiting": "Mendeteksi..."
+                    "waiting": "Mendeteksi...",
+                    "unavailable": "Penyimpanan tidak tersedia"
                 }
             },
             "common": {
@@ -3137,7 +3289,47 @@
                 "network": "Jaringan"
             },
             "errors": {
-                "historyInitFailed": "Gagal menginisialisasi stream riwayat"
+                "historyInitFailed": "Gagal menginisialisasi stream riwayat",
+                "gpuRecoveryIdentityConflict": "Pemulihan GPU tidak dapat memverifikasi perangkat fisik. Perubahan GPU tetap dinonaktifkan. Simpan data pemulihan dan periksa diagnostik perangkat keras.",
+                "gpuSlotAliasConflict": "Alias GPU yang tersimpan berisi pengaturan yang bertentangan atau tidak dikenali. Simpan berkas slot dan periksa profil tersimpan sebelum membuat perubahan.",
+                "opencl_compiler_unavailable": "Runtime OpenCL tidak dapat mengompilasi kernel SoAI Bench. Instal runtime OpenCL GPU yang menyediakan kompiler saat runtime.",
+                "opencl_kernel_execution_unavailable": "Runtime OpenCL tidak dapat menjalankan kernel yang dikompilasi dari kode sumber. Instal runtime OpenCL GPU yang mendukungnya.",
+                "opencl_custom_identity_unproved": "Identitas GPU atau informasi vendor OpenCL tidak dapat diverifikasi. Segarkan deteksi GPU dan perbarui driver GPU.",
+                "opencl_memory_insufficient": "SoAI Bench memerlukan alokasi OpenCL sebesar 256 MiB dan total memori perangkat yang mencukupi. Pilih GPU yang memenuhi persyaratan ini.",
+                "soaibenchPublicationUnsupported": "GPU ini tidak dapat menjalankan uji performa ini. Tidak ada skor untuk dipublikasikan. Pilih GPU yang didukung dan selesaikan uji performa terlebih dahulu.",
+                "gpuInventoryBusy": "Inventaris GPU sedang sibuk atau dipulihkan. Tunggu lalu coba kembali seri riwayat ini.",
+                "soaibenchPublicationCancelled": "Benchmark ini dibatalkan. Selesaikan benchmark yang didukung sebelum publikasi.",
+                "soaibenchPublicationIncomplete": "Benchmark ini tidak memiliki hasil lengkap yang memenuhi syarat. Selesaikan benchmark tersertifikasi yang didukung sebelum publikasi.",
+                "gpuClockCombinationUnsupported": "GPU ini tidak dapat menggabungkan kontrol clock tersebut. Terapkan satu kontrol clock setiap kali.",
+                "gpuClockConversionUnavailable": "Driver tidak dapat menyediakan konversi clock yang diperlukan. Segarkan deteksi perangkat keras dan periksa dukungan driver.",
+                "gpuSettingOutOfRange": "Pengaturan GPU ini berada di luar rentang yang didukung. Pilih nilai yang didukung.",
+                "gpuSettingRange": "{field}: {requested} {unit} berada di luar rentang yang didukung {minimum}–{maximum} {unit}. Pilih nilai yang didukung.",
+                "gpuObservationUnavailable": "Status GPU saat ini tidak dapat dibaca. Perubahan yang disimpan tetap tersimpan. Tunggu pembacaan pulih, lalu segarkan tampilan.",
+                "gpuObservationTimeout": "Pembacaan status GPU saat ini melewati batas waktu. Perubahan yang disimpan tetap tersimpan. Tunggu pembacaan pulih, lalu segarkan tampilan.",
+                "gpuSensorPermissionDenied": "Akses ke sensor GPU ditolak. Berikan akun layanan SoAI akses ke perangkat GPU dan berkas sensor, lalu segarkan.",
+                "vulkanRuntimeUnavailable": "Pengikatan GPU yang dipilih memerlukan pemetaan perangkat Vulkan, tetapi alat Vulkan tidak tersedia atau gagal. Instal alat dan driver Vulkan dari distribusi Anda, atau ikat semua GPU.",
+                "vulkanQueryTimeout": "Pengikatan GPU yang dipilih memerlukan pemetaan perangkat Vulkan, tetapi kueri perangkat Vulkan melewati batas waktu. Periksa driver Vulkan, atau ikat semua GPU.",
+                "vulkanFormatUnsupported": "Pengikatan GPU yang dipilih memerlukan pemetaan perangkat Vulkan, tetapi alat Vulkan mengembalikan format yang tidak didukung. Perbarui alat Vulkan dari distribusi Anda, atau ikat semua GPU.",
+                "vulkanDeviceUnavailable": "GPU yang dipilih tidak ada di antara perangkat Vulkan. Periksa driver Vulkan untuk GPU ini, atau pilih GPU lain.",
+                "vulkanIdentityUnavailable": "GPU yang dipilih tidak memiliki identitas UUID atau PCI yang sama dengan perangkat Vulkan, sehingga tidak dapat diikat dengan aman. Ikat semua GPU sebagai gantinya.",
+                "vulkanIdentityConflict": "GPU yang dipilih memiliki identitas yang bertentangan dalam daftar perangkat Vulkan, sehingga tidak dapat diikat dengan aman. Periksa driver GPU, atau ikat semua GPU.",
+                "vulkanDeviceAmbiguous": "GPU yang dipilih disediakan oleh beberapa driver Vulkan. Hapus driver Vulkan duplikat (ICD), atau ikat semua GPU.",
+                "gpuBindingIdentityConflict": "Identitas fisik GPU yang dipilih muncul lebih dari sekali dalam inventaris perangkat keras. Perbarui informasi perangkat keras dan pilih kembali GPU.",
+                "gpuDiscoveryTimeout": "Deteksi GPU kehabisan waktu. Tunggu kueri perangkat keras selesai, lalu coba lagi.",
+                "gpuDiscoveryBusy": "Kueri perangkat keras masih berjalan. Tunggu deteksi GPU selesai, lalu coba lagi.",
+                "gpuDiscoveryNativeTimeout": "Kueri GPU native kehabisan waktu. Periksa driver grafis, lalu coba lagi.",
+                "gpuDiscoveryQueryFailed": "Kueri GPU native gagal. Periksa driver grafis dan diagnostik sistem, lalu coba lagi.",
+                "gpuDiscoveryEmpty": "Kueri GPU tidak mengembalikan data. Periksa driver grafis, lalu coba lagi.",
+                "gpuDiscoveryInvalid": "Kueri GPU mengembalikan data tidak valid. Periksa driver grafis dan diagnostik sistem, lalu coba lagi.",
+                "gpuDiscoveryRuntimeUnavailable": "Alat deteksi GPU tidak tersedia. Pulihkan alat sistem, lalu coba lagi.",
+                "gpuDiscoveryPermissionDenied": "Akses untuk deteksi GPU ditolak. Periksa izin perangkat keras akun layanan, lalu coba lagi.",
+                "gpuDiscoveryUnavailable": "Deteksi GPU tidak tersedia. Periksa driver grafis dan alat sistem, lalu coba lagi.",
+                "gpuDiscoveryChanged": "Inventaris GPU berubah selama deteksi. Tunggu deteksi perangkat keras selesai, lalu coba lagi.",
+                "opencl_operation_deadline": "{phase} melampaui batas waktu {seconds} detik. Skor tidak dibuat. Pastikan driver grafis merespons, lalu coba lagi.",
+                "opencl_runtime_deadline": "OpenCL tidak selesai sebelum batas waktu. Pastikan driver grafis merespons, lalu coba lagi.",
+                "opencl_child_exited": "Runtime OpenCL berhenti secara tidak terduga. Periksa driver grafis, lalu jalankan ulang SoAI Bench.",
+                "opencl_child_invalid_response": "Runtime OpenCL mengembalikan respons yang tidak valid. Mulai ulang SoAI dan jalankan ulang SoAI Bench.",
+                "opencl_child_disconnected": "Komunikasi dengan runtime OpenCL terputus. Jalankan ulang SoAI Bench."
             },
             "gpu": {
                 "actions": {
@@ -3154,8 +3346,11 @@
                 "controls": {
                     "autoLabel": "Otomatis",
                     "coreClock": "Offset clock inti",
+                    "coreClockFrequency": "Frekuensi clock inti",
                     "fan_speed": "Kecepatan kipas",
                     "memoryClock": "Offset clock memori",
+                    "memoryClockFrequency": "Frekuensi clock memori",
+                    "powerLimitOffset": "Offset batas daya",
                     "power_limit": "Batas daya",
                     "toggleAutomatic": "Kontrol otomatis"
                 },
@@ -3166,19 +3361,19 @@
                     "noManualChange": "Nonaktifkan mode 'Otomatis' sebelum menyimpan.",
                     "noSettings": "Tidak ada pengaturan GPU untuk diterapkan.",
                     "reset": "GPU {index} direset ke nilai default",
-                    "soaibenchNoActiveRun": "GPU {index} tidak memiliki proses SoAIBench yang aktif",
-                    "soaibenchStarted": "GPU {index} SoAIBench {profile} dimulai",
-                    "soaibenchStopRequested": "Permintaan penghentian SoAIBench pada GPU {index} dikirim",
-                    "soaibenchUnsupported": "SoAIBench pada GPU {index} tidak didukung: {reason}",
+                    "soaibenchNoActiveRun": "GPU {index} tidak memiliki proses SoAI Bench yang aktif",
+                    "soaibenchStarted": "GPU {index} SoAI Bench {profile} dimulai",
+                    "soaibenchStopRequested": "Permintaan penghentian SoAI Bench pada GPU {index} dikirim",
+                    "soaibenchUnsupported": "SoAI Bench pada GPU {index} tidak didukung: {reason}",
                     "soaibenchSettingsLocked": "GPU {index} sedang menjalankan benchmark. Hentikan atau tunggu hingga selesai sebelum menyimpan pengaturannya.",
                     "slotApplied": "GPU {index} slot {slot} diterapkan",
                     "slotSaved": "GPU {index} slot {slot} disimpan"
                 },
                 "soaibench": {
-                    "standardTaskName": "SoAIBench standar GPU",
+                    "standardTaskName": "SoAI Bench standar GPU",
                     "stressRunningLabel": "Uji stres - berjalan",
-                    "stopTaskName": "Hentikan SoAIBench GPU",
-                    "stressTaskName": "Uji stres SoAIBench GPU"
+                    "stopTaskName": "Hentikan SoAI Bench GPU",
+                    "stressTaskName": "Uji stres SoAI Bench GPU"
                 },
                 "panelHeader": "GPU {index}: {name}",
                 "panelTitle": "Kontrol GPU",
@@ -3195,6 +3390,28 @@
                     "powerDraw": "Daya",
                     "temperatures": "Suhu",
                     "memoryUtilization": "VRAM"
+                },
+                "errors": {
+                    "invalidGpuId": "Pilih GPU yang valid dan coba lagi.",
+                    "invalidSlot": "Pilih slot GPU yang valid dan coba lagi.",
+                    "invalidPayload": "Periksa pengaturan GPU dan coba lagi.",
+                    "noSettings": "Pilih setidaknya satu pengaturan GPU sebelum menerapkan perubahan.",
+                    "deviceNotFound": "GPU yang dipilih tidak ditemukan. Segarkan daftar perangkat keras dan pilih kembali GPU tersebut.",
+                    "noGpus": "Tidak ada GPU yang tersedia. Periksa deteksi perangkat keras dan coba lagi.",
+                    "slotEmpty": "Slot GPU yang dipilih kosong. Simpan pengaturan di slot ini sebelum menerapkannya.",
+                    "slotUnchanged": "Slot GPU sudah berisi pengaturan ini.",
+                    "bootUnchanged": "Slot GPU sudah memiliki pengaturan boot ini.",
+                    "slotRequiresApply": "Terapkan slot GPU sebelum mengaktifkannya saat boot.",
+                    "applyFailed": "Pengaturan GPU tidak dapat diterapkan dengan aman. Tinjau detail operasi dan coba lagi.",
+                    "deviceUnavailable": "GPU yang dipilih tidak tersedia. Tunggu hingga pulih dan coba lagi.",
+                    "hardwareMutationDisabled": "Perubahan perangkat keras GPU dinonaktifkan untuk instalasi ini.",
+                    "gpuActivityConflict": "GPU sedang sibuk dengan operasi lain. Tunggu hingga selesai dan coba lagi.",
+                    "hardwareUnavailable": "Penyetelan GPU tidak tersedia dalam instalasi ini. Periksa dukungan perangkat keras dan konfigurasi.",
+                    "gpuError": "Operasi pengaturan GPU gagal. Periksa pengaturan dan coba lagi.",
+                    "slotError": "Operasi slot GPU gagal. Segarkan daftar perangkat keras dan coba lagi.",
+                    "recoveryReconciled": "Pengaturan GPU sebelumnya telah dipulihkan. Terapkan pengaturan baru sekali lagi.",
+                    "recoveryUnresolved": "Pengaturan GPU sebelumnya tidak dapat dipulihkan dengan aman. Periksa status GPU sebelum menerapkan pengaturan lagi.",
+                    "controlPreparationFailed": "Persiapan pengaturan GPU gagal sebelum mengakses perangkat keras. Coba lagi dan laporkan ID referensi jika masalah berlanjut."
                 }
             },
             "metrics": {
@@ -3217,41 +3434,41 @@
             "soaibenchPublication": {
                 "deleteLocalHistory": "Hapus riwayat lokal",
                 "deleteLocalConfirm": {
-                    "title": "Hapus proses SoAIBench?",
-                    "message": "Hapus proses SoAIBench ini dari riwayat lokal? Tindakan ini tidak dapat dibatalkan."
+                    "title": "Hapus proses SoAI Bench?",
+                    "message": "Hapus proses SoAI Bench ini dari riwayat lokal? Tindakan ini tidak dapat dibatalkan."
                 },
                 "action": "Bagikan",
                 "openRun": "Buka hasil",
-                "ariaLabel": "Bagikan skor SoAIBench ini",
-                "unavailable": "Tidak ada proses SoAIBench yang dapat dipublikasikan",
+                "ariaLabel": "Bagikan skor SoAI Bench ini",
+                "unavailable": "Tidak ada proses SoAI Bench yang dapat dipublikasikan",
                 "confirm": {
-                    "title": "Bagikan skor SoAIBench?",
-                    "message": "Publikasikan skor {score} dan {passes} lintasan terukurnya ke papan peringkat SoAIBench publik?",
+                    "title": "Bagikan skor SoAI Bench?",
+                    "message": "Publikasikan skor {score} dan {passes} lintasan terukurnya ke papan peringkat SoAI Bench publik?",
                     "description": "Tindakan ini mengirim skor, lima lintasan terukur, informasi GPU dan runtime publik, pengaturan benchmark, serta bukti sensor opsional. Identitas akun, file, konfigurasi, analitik, dan telemetri umum tidak disertakan."
                 },
                 "outcomes": {
-                    "published": "Skor SoAIBench dibagikan secara publik.",
-                    "alreadyPublished": "Skor SoAIBench ini sudah dibagikan.",
-                    "heldForReview": "Hasil SoAIBench ditahan untuk peninjauan identitas atau anomali dan belum dihitung dalam peringkat.",
+                    "published": "Skor SoAI Bench dibagikan secara publik.",
+                    "alreadyPublished": "Skor SoAI Bench ini sudah dibagikan.",
+                    "heldForReview": "Hasil SoAI Bench ditahan untuk peninjauan identitas atau anomali dan belum dihitung dalam peringkat.",
                     "offline": "Skor tidak dapat dibagikan saat SoAI luring.",
-                    "unavailable": "Layanan publikasi SoAIBench tidak tersedia.",
+                    "unavailable": "Layanan publikasi SoAI Bench tidak tersedia.",
                     "timeout": "Waktu berbagi skor habis. Coba lagi untuk merekonsiliasi publikasi yang sama.",
                     "rateLimited": "Terlalu banyak skor dibagikan dari koneksi ini. Coba lagi nanti.",
-                    "capacity": "Papan peringkat SoAIBench sedang mencapai kapasitas.",
-                    "rejected": "Papan peringkat SoAIBench menolak hasil ini.",
+                    "capacity": "Papan peringkat SoAI Bench sedang mencapai kapasitas.",
+                    "rejected": "Papan peringkat SoAI Bench menolak hasil ini.",
                     "conflict": "Publikasi ini bertentangan dengan status papan peringkat yang ada.",
-                    "invalidResponse": "Papan peringkat SoAIBench mengembalikan respons yang tidak valid.",
+                    "invalidResponse": "Papan peringkat SoAI Bench mengembalikan respons yang tidak valid.",
                     "retryAfter": "Coba lagi dalam {seconds} detik."
                 }
             },
             "modals": {
                 "soaibenchHistory": {
                     "ariaLabels": {
-                        "close": "Tutup riwayat SoAIBench",
-                        "copy": "Salin riwayat SoAIBench",
-                        "copyRun": "Salin proses SoAIBench",
-                        "download": "Unduh CSV riwayat SoAIBench",
-                        "downloadRun": "Unduh proses SoAIBench"
+                        "close": "Tutup riwayat SoAI Bench",
+                        "copy": "Salin riwayat SoAI Bench",
+                        "copyRun": "Salin proses SoAI Bench",
+                        "download": "Unduh CSV riwayat SoAI Bench",
+                        "downloadRun": "Unduh proses SoAI Bench"
                     },
                     "close": "Tutup",
                     "copy": "Salin",
@@ -3260,10 +3477,10 @@
                         "runs": "Proses",
                         "table": "Tabel proses"
                     },
-                    "copySuccess": "Riwayat SoAIBench disalin ke clipboard",
-                    "copyUnavailable": "Tidak ada riwayat SoAIBench yang tersedia untuk disalin",
+                    "copySuccess": "Riwayat SoAI Bench disalin ke clipboard",
+                    "copyUnavailable": "Tidak ada riwayat SoAI Bench yang tersedia untuk disalin",
                     "download": "Unduh",
-                    "downloadSuccess": "Pengunduhan CSV riwayat SoAIBench dimulai",
+                    "downloadSuccess": "Pengunduhan CSV riwayat SoAI Bench dimulai",
                     "columns": {
                         "actions": "Tindakan",
                         "certification": "Sertifikasi",
@@ -3287,11 +3504,11 @@
                         "quick": "Cepat",
                         "varianceSuffix": "Varians {variance}%"
                     },
-                    "description": "Proses SoAIBench sebelumnya untuk GPU yang dipilih",
-                    "empty": "Belum ada proses SoAIBench untuk GPU ini.",
+                    "description": "Proses SoAI Bench sebelumnya untuk GPU yang dipilih",
+                    "empty": "Belum ada proses SoAI Bench untuk GPU ini.",
                     "loading": "Memuat riwayat proses...",
-                    "pageEmpty": "Belum ada proses SoAIBench.",
-                    "pageLoadFailed": "Proses SoAIBench tidak dapat dimuat. Coba lagi.",
+                    "pageEmpty": "Belum ada proses SoAI Bench.",
+                    "pageLoadFailed": "Proses SoAI Bench tidak dapat dimuat. Coba lagi.",
                     "matchBases": {
                         "device_id": "ID perangkat",
                         "gpu_model_key": "Kunci model GPU",
@@ -3313,9 +3530,11 @@
                         "stress": "Stres"
                     },
                     "reasons": {
-                        "opencl_numerical_mismatch": "Validasi numerik beban kerja OpenCL gagal."
+                        "opencl_numerical_mismatch": "Validasi numerik beban kerja OpenCL gagal.",
+                        "preflight": "Pemeriksaan awal",
+                        "startup": "Pengaktifan"
                     },
-                    "rowCopyUnavailable": "Tidak ada proses SoAIBench yang tersedia untuk disalin",
+                    "rowCopyUnavailable": "Tidak ada proses SoAI Bench yang tersedia untuk disalin",
                     "staleHardware": "Kecocokan perangkat keras usang",
                     "statuses": {
                         "cancelled": "Dibatalkan",
@@ -3327,28 +3546,28 @@
                         "unstable": "Tidak stabil",
                         "unsupported": "Tidak didukung"
                     },
-                    "title": "Proses SoAIBench sebelumnya"
+                    "title": "Proses SoAI Bench sebelumnya"
                 },
                 "soaibenchRun": {
                     "selectGpu": "Pilih GPU untuk diuji",
                     "noGpus": "Tidak ada GPU yang tersedia untuk pengujian kinerja.",
                     "ariaLabels": {
-                        "close": "Tutup SoAIBench",
-                        "copy": "Salin proses SoAIBench",
-                        "download": "Unduh proses SoAIBench",
-                        "history": "Buka riwayat SoAIBench",
-                        "retry": "Coba lagi SoAIBench tersertifikasi",
-                        "stop": "Hentikan SoAIBench tersertifikasi",
-                        "stopping": "Menghentikan SoAIBench tersertifikasi",
-                        "newBenchmark": "Mulai proses SoAIBench tersertifikasi baru",
-                        "runAgain": "Jalankan lagi SoAIBench tersertifikasi pada GPU ini",
-                        "recover": "Periksa lagi status SoAIBench",
-                        "start": "Mulai SoAIBench tersertifikasi"
+                        "close": "Tutup SoAI Bench",
+                        "copy": "Salin proses SoAI Bench",
+                        "download": "Unduh proses SoAI Bench",
+                        "history": "Buka riwayat SoAI Bench",
+                        "retry": "Coba lagi SoAI Bench tersertifikasi",
+                        "stop": "Hentikan SoAI Bench tersertifikasi",
+                        "stopping": "Menghentikan SoAI Bench tersertifikasi",
+                        "newBenchmark": "Mulai proses SoAI Bench tersertifikasi baru",
+                        "runAgain": "Jalankan lagi SoAI Bench tersertifikasi pada GPU ini",
+                        "recover": "Periksa lagi status SoAI Bench",
+                        "start": "Mulai SoAI Bench tersertifikasi"
                     },
                     "close": "Tutup",
                     "copy": "Salin",
-                    "copySuccess": "Proses SoAIBench disalin ke clipboard",
-                    "copyUnavailable": "Tidak ada proses SoAIBench yang tersedia untuk disalin",
+                    "copySuccess": "Proses SoAI Bench disalin ke clipboard",
+                    "copyUnavailable": "Tidak ada proses SoAI Bench yang tersedia untuk disalin",
                     "description": "Benchmark GPU tersertifikasi untuk kesiapan inferensi SoAI",
                     "download": "Unduh",
                     "export": {
@@ -3360,7 +3579,7 @@
                         "rawRun": "Detail proses mentah",
                         "runId": "ID proses",
                         "status": "Status",
-                        "title": "Detail proses SoAIBench"
+                        "title": "Detail proses SoAI Bench"
                     },
                     "history": "Riwayat",
                     "metrics": {
@@ -3392,16 +3611,16 @@
                         "stability": "Stabilitas"
                     },
                     "progress": {
-                        "activeRunInProgress": "Proses SoAIBench lain sudah aktif pada GPU ini.",
+                        "activeRunInProgress": "Proses SoAI Bench lain sudah aktif pada GPU ini.",
                         "awaitingRun": "Menunggu status proses backend",
                         "measured": "Pass terukur {pass} dari {total}",
                         "measuredDetail": "Terukur {pass}/{total}",
                         "measuredPhase": "Pass terukur {pass} dari {total}: {phase}",
                         "phaseDetail": "{phase} {index}/{total}",
-                        "running": "Menjalankan SoAIBench, harap tunggu...",
-                        "startFailed": "SoAIBench tidak dapat dimulai",
-                        "starting": "Memulai SoAIBench tersertifikasi",
-                        "stopping": "Menghentikan SoAIBench",
+                        "running": "Menjalankan SoAI Bench, harap tunggu...",
+                        "startFailed": "SoAI Bench tidak dapat dimulai",
+                        "starting": "Memulai SoAI Bench tersertifikasi",
+                        "stopping": "Menghentikan SoAI Bench",
                         "warmupDetail": "Pemanasan {pass}/{total}",
                         "warmupPhase": "Pemanasan: {phase}",
                         "warmup": "Pass pemanasan selesai",
@@ -3411,7 +3630,7 @@
                         "startUnconfirmed": "Awal benchmark tidak dapat dikonfirmasi dan tidak ada proses yang aktif pada GPU ini. Periksa riwayat sebelum mencoba lagi."
                     },
                     "retry": "Coba lagi",
-                    "scoreLabel": "Skor SoAIBench",
+                    "scoreLabel": "Skor SoAI Bench",
                     "sections": {
                         "expect": {
                             "items": "GPU akan sibuk|Daya dan kecepatan kipas dapat meningkat|Proses dapat dihentikan|Kasus runtime yang tidak didukung akan dilaporkan secara eksplisit",
@@ -3439,7 +3658,7 @@
                         "unresolved": "Status tidak diketahui",
                         "rejected": "Tidak dimulai"
                     },
-                    "title": "SoAIBench"
+                    "title": "SoAI Bench"
                 },
                 "systemInfo": {
                     "anonymize": "Anonimkan",
@@ -3565,6 +3784,9 @@
                 "slotsRetained": "Pengaturan GPU tersimpan tidak tersedia. Menampilkan data dari {age}.",
                 "capabilitiesUnavailable": "Kontrol GPU tidak tersedia.",
                 "slotsUnavailable": "Pengaturan GPU tersimpan tidak tersedia."
+            },
+            "observations": {
+                "retainedAge": "Pengamatan tersimpan · usia {seconds}d"
             }
         },
         "header": {
@@ -3592,6 +3814,7 @@
                 "about": "Tentang",
                 "logout": "Keluar",
                 "logs": "Log",
+                "power": "Mulai ulang / Matikan",
                 "settings": "Pengaturan",
                 "updates": "Pembaruan"
             },
@@ -3630,7 +3853,7 @@
                     "unavailable": "Notifikasi tidak tersedia. Menghubungkan kembali..."
                 },
                 "confirmations": {
-                    "clearAllMessage": "Hapus semua notifikasi? Tindakan ini tidak dapat dibatalkan."
+                    "clearAllMessage": "Hapus semua notifikasi ({count})? Tindakan ini tidak dapat dibatalkan."
                 }
             }
         },
@@ -4205,17 +4428,22 @@
             "cards": {
                 "capabilities": {
                     "lockedReasons": {
-                        "requiresAudio": "Aktifkan modalitas Audio untuk mengubah opsi ini.",
-                        "requiresImages": "Aktifkan endpoint Images untuk mengubah opsi ini.",
-                        "requiresResponses": "Aktifkan endpoint Responses untuk mengubah opsi ini.",
-                        "requiresVision": "Aktifkan modalitas Vision untuk mengubah opsi ini.",
+                        "requiresAudio": "Memerlukan modalitas audio.",
+                        "requiresImages": "Memerlukan endpoint Images.",
+                        "requiresResponses": "Memerlukan endpoint Responses.",
+                        "requiresVision": "Memerlukan modalitas penglihatan.",
                         "text": "Teks tidak dapat dinonaktifkan.",
-                        "unsupported": "Model ini tidak mendukung kemampuan ini."
+                        "unsupported": "Model tidak menyatakan kemampuan ini."
                     },
                     "manifestLoading": "Memuat taksonomi kapabilitas...",
+                    "modes": {
+                        "autoOff": "Otomatis (nonaktif)",
+                        "autoOn": "Otomatis (aktif)",
+                        "disabled": "Dinonaktifkan",
+                        "enabled": "Diaktifkan"
+                    },
                     "none": "Tidak ada kapabilitas OpenAI yang tersedia untuk model ini.",
                     "pluginCapabilitiesUnavailable": "Profil kapabilitas plugin tidak tersedia.",
-                    "reset": "Reset override",
                     "sections": {
                         "chatFeatures": "Fitur chat",
                         "endpoints": "Endpoint",
@@ -4223,7 +4451,9 @@
                         "modalities": "Modalitas",
                         "responsesFeatures": "Fitur respons"
                     },
-                    "title": "Kapabilitas"
+                    "title": "Kapabilitas",
+                    "unverified": "Belum diverifikasi",
+                    "unverifiedHint": "Penyedia tidak melaporkan kapabilitas ini. SoAI mempertahankan perilaku kompatibilitas sampai Anda memilih Diaktifkan atau Dinonaktifkan"
                 },
                 "constituents": {
                     "hasParameters": "Parameter kustom",
@@ -4235,7 +4465,6 @@
                     "created": "Dibuat",
                     "name": "Nama penyedia",
                     "providerId": "ID penyedia",
-                    "status": "Status",
                     "title": "Penyedia eksternal"
                 },
                 "identity": {
@@ -4270,6 +4499,9 @@
                     "delete": "Hapus",
                     "enabledNote": "Model yang dinonaktifkan tidak dapat menerima permintaan dan disembunyikan dari pemilih model.",
                     "enabledToggleLabel": "Aktifkan model ini",
+                    "inferenceUnverified": "Belum diverifikasi. Penemuan tidak memastikan bahwa permintaan berhasil.",
+                    "inferenceVerification": "Inferensi",
+                    "inferenceVerified": "Terakhir berhasil {date}",
                     "manageAlias": "Ganti nama",
                     "modelStatus": "Status model",
                     "orphaned": "Orphaned",
@@ -4300,12 +4532,6 @@
                 "externalLinkCancel": "Batal",
                 "externalLinkConfirm": "Buka tautan",
                 "externalLinkMessage": "Apakah Anda yakin ingin membuka dokumentasi backend di tab baru?",
-                "resetCapabilities": "Reset override kapabilitas",
-                "resetCapabilitiesConfirm": "Reset",
-                "resetCapabilitiesMessage": "Reset semua override kapabilitas dan gunakan default plugin untuk model ini?",
-                "resetParameters": "Reset parameter",
-                "resetParametersConfirm": "Reset",
-                "resetParametersMessage": "Apakah Anda yakin ingin mereset semua parameter ke nilai default? Ini akan membuang semua perubahan yang belum disimpan.",
                 "stopPlugin": "Hentikan plugin",
                 "stopPluginMessage": "Apakah Anda yakin ingin menghentikan {plugin}?"
             },
@@ -4369,6 +4595,7 @@
                 }
             },
             "notifications": {
+                "capabilitiesConflict": "Kapabilitas diubah di tempat lain. Perubahan Anda dibuang; tinjau nilai terbaru lalu terapkan lagi.",
                 "capabilitiesUpdated": "Kapabilitas berhasil diperbarui",
                 "deletionInProgress": "Penghapusan model sedang berlangsung...",
                 "enabledUpdated": "Status aktif model berhasil diperbarui",
@@ -4424,6 +4651,17 @@
             "tabs": {
                 "overview": "Ringkasan",
                 "parameters": "Parameter"
+            },
+            "parameterAvailability": {
+                "loading": "Memuat parameter...",
+                "refreshing": "Menyegarkan parameter... Terakhir diperbarui: {age}.",
+                "stale": "Koneksi terputus; nilai mungkin sudah usang. Terakhir diperbarui: {age}.",
+                "failed": "Parameter tidak dapat dimuat.",
+                "retained": "Penyimpanan dinonaktifkan sampai parameter tersedia. Terakhir diperbarui: {age}.",
+                "schemaChanged": "Definisi parameter berubah saat Anda sedang mengedit. Buang perubahan yang belum disimpan untuk memuat definisi terbaru.",
+                "discard": "Buang perubahan",
+                "unavailableNotice": "Parameter model tidak tersedia. Penyimpanan dinonaktifkan sampai parameter dapat dimuat.",
+                "saveBlocked": "Parameter tidak dapat disimpan sampai tersedia. Muat ulang parameter terlebih dahulu."
             }
         },
         "models": {
@@ -4463,7 +4701,8 @@
                 "externalLink": "Tautan eksternal",
                 "externalLinkCancel": "Batal",
                 "externalLinkConfirm": "Lanjutkan",
-                "externalLinkMessage": "Yakin ingin membuka repositori model ini di tab baru?"
+                "externalLinkMessage": "Yakin ingin membuka repositori model ini di tab baru?",
+                "deleteLargeModelMessage": "Hapus \"{model}\" ({sizeGb} GB)? Mengunduhnya kembali dapat memerlukan banyak waktu dan kuota data. Tindakan ini tidak dapat dibatalkan."
             },
             "description": "Kelola model AI di berbagai plugin dan penyedia.",
             "searchPlaceholder": "Cari model...",
@@ -4502,7 +4741,7 @@
                     "close": "Tutup",
                     "confirmDownload": "Unduh model",
                     "modelIdLabel": "ID unduhan model",
-                    "pluginHelp": "Pilih plugin yang akan menangani unduhan model",
+                    "pluginHelp": "Plugin yang digunakan untuk mengunduh model",
                     "pluginLabel": "Plugin",
                     "pluginPlaceholder": "Pilih plugin...",
                     "quantHelp": "Masukkan pengenal model dan kuantisasi (format bergantung pada plugin yang dipilih)",
@@ -4587,7 +4826,7 @@
                     "modelsFilterPlaceholder": "mis., free, gpt, claude",
                     "nameHelp": "Nama deskriptif untuk penyedia eksternal ini",
                     "nameLabel": "Nama penyedia",
-                    "pluginHelp": "Pilih plugin yang akan mengelola penyedia eksternal ini",
+                    "pluginHelp": "Plugin yang digunakan untuk mengelola penyedia eksternal",
                     "pluginLabel": "Plugin",
                     "pluginPlaceholder": "Pilih plugin...",
                     "title": "Tambah penyedia"
@@ -4790,7 +5029,42 @@
                 "unknown": "Tidak diketahui",
                 "virtual": "Virtual"
             },
-            "virtualModelLabel": "Model virtual"
+            "virtualModelLabel": "Model virtual",
+            "errors": {
+                "ollamaPullEof": "Ollama mengakhiri unduhan tanpa mengonfirmasi keberhasilan.",
+                "ollamaPullTimeout": "Unduhan Ollama melewati batas waktu.",
+                "ollamaPullDisconnected": "Koneksi ke Ollama terputus.",
+                "ollamaPullRejected": "Ollama menolak unduhan model.",
+                "ollamaPullProtocolInvalid": "Ollama mengembalikan data unduhan yang tidak valid.",
+                "ollamaPullTargetMissing": "Model yang diunduh tidak ada dalam katalog aktif Ollama.",
+                "ollamaPullCacheFailed": "Katalog lokal model yang diunduh tidak dapat disimpan.",
+                "ollamaPullCleanupFailed": "Pembersihan belum selesai. Hentikan layanan Ollama yang dikelola dan selesaikan pembersihan sebelum mencoba kembali.",
+                "ollamaPullPreparationFailed": "Layanan unduhan Ollama tidak dapat disiapkan.",
+                "ollamaPullRecovery": "Periksa diagnostik dan penyimpanan Ollama, lalu coba kembali operasi ini.",
+                "modelNotFound": "Model yang diminta tidak ditemukan. Instal atau daftarkan model, atau gunakan ID model API yang tersedia.",
+                "parameterSchemaBusy": "Parameter model untuk sementara tidak tersedia selama operasi plugin sedang berlangsung. Coba lagi sebentar lagi.",
+                "parameterSchemaUnavailable": "Parameter model tidak tersedia karena backend plugin belum dimuat. Mulai atau perbaiki plugin, lalu coba lagi.",
+                "parametersApplyFailed": "Parameter sudah disimpan, tetapi SoAI tidak dapat menerapkannya ke model yang sedang berjalan. Muat ulang tampilan untuk meninjau nilai yang disimpan dan muat ulang model untuk menerapkannya.",
+                "configurationMissing": "Model GGUF memerlukan konfigurasi model aslinya. Letakkan config.json asli di samping file GGUF atau atur jalur konfigurasi Hugging Face, lalu coba lagi.",
+                "architectureUnsupported": "Backend yang dipilih tidak mendukung arsitektur model ini. Gunakan versi model lain atau backend lain.",
+                "cudaDeviceArchitectureUnsupported": "Backend CUDA yang terpasang tidak dapat berjalan pada arsitektur GPU NVIDIA yang dipilih. Pilih GPU yang didukung, pasang varian backend CUDA yang mendukung GPU ini, atau gunakan backend CPU.",
+                "nativeCpuFeaturesUnsupported": "Prosesor ini tidak memiliki instruksi CPU yang dibutuhkan varian backend yang terpasang. Pasang varian backend yang kompatibel, seperti CPU.",
+                "openvinoTensorShapeIncompatible": "Backend OpenVINO tidak dapat menjalankan model ini karena bentuk tensor grafnya tidak kompatibel. Gunakan varian backend lain untuk model ini, atau atur layer GPU ke nol untuk eksekusi di CPU.",
+                "repositoryUnavailable": "Repositori atau revisi model tidak dapat diakses. Periksa pengenalnya; repositori privat atau terbatas juga memerlukan token repositori yang berwenang dan persetujuan ketentuan akses.",
+                "modelSearchTimeout": "Pencarian model memakan waktu terlalu lama. Katalog mungkin masih disiapkan; coba lagi sebentar lagi."
+            },
+            "phases": {
+                "ollamaServicePreparation": "Menyiapkan layanan Ollama",
+                "ollamaPullStreaming": "Mengunduh model dengan Ollama",
+                "ollamaTerminalConfirmation": "Mengonfirmasi penyelesaian unduhan",
+                "ollamaTargetVerification": "Memeriksa katalog model aktif",
+                "ollamaCachePublication": "Menyimpan katalog model lokal",
+                "ollamaCleanup": "Membersihkan unduhan Ollama",
+                "transferDownloading": "Mengunduh",
+                "transferHashing": "Menghitung hash data unduhan yang disimpan",
+                "transferReplaying": "Membandingkan data unduhan yang disimpan",
+                "transferVerifying": "Memverifikasi unduhan lengkap"
+            }
         },
         "nav": {
             "about": "Tentang",
@@ -5111,7 +5385,31 @@
             },
             "errors": {
                 "changeHandlerFailed": "Handler perubahan plugin gagal",
-                "clickHandlerFailed": "Handler klik plugin gagal"
+                "clickHandlerFailed": "Handler klik plugin gagal",
+                "modelConversionFailed": "Konversi model gagal. Periksa log konverter untuk dependensi yang hilang atau masukan model yang tidak valid, lalu coba lagi.",
+                "backendCancellationCleanupFailed": "Pembersihan setelah pembatalan tidak dapat dikonfirmasi. Biarkan backend ini berhenti dan perbaiki lingkungannya sebelum mencoba lagi.",
+                "melottsContainerCleanupFailed": "MeloTTS telah terpasang, tetapi pembersihan sumber daya sementara belum selesai. Coba lagi operasi backend.",
+                "backendDockerBuilderUnavailable": "Builder Docker Buildx tidak tersedia. Konfigurasikan builder yang berfungsi dan coba lagi.",
+                "backendDockerBuildxUnavailable": "Docker Buildx tidak tersedia bagi akun backend. Instal atau aktifkan Buildx dan coba lagi.",
+                "backendDockerCliMissing": "Docker tidak tersedia bagi akun backend. Instal Docker dan coba lagi.",
+                "backendDockerEngineUnavailable": "Akun backend tidak dapat mengakses mesin Docker. Jalankan Docker dan periksa izin serta dukungan virtualisasi.",
+                "backendDockerStorageUnavailable": "Akun backend tidak dapat menemukan penyimpanan Docker. Jalankan Docker, pastikan akun backend dapat mengakses mesin tersebut, lalu coba lagi.",
+                "backendDockerStorageUnmapped": "Penyimpanan Docker tidak dapat dipetakan ke lokasi host yang terverifikasi. Gunakan mesin Docker lokal yang disk datanya berada di drive lokal, lalu coba lagi.",
+                "backendDockerStorageAccessDenied": "Akun backend tidak dapat memeriksa lokasi penyimpanan Docker. Periksa aksesnya ke lokasi data Docker, lalu coba lagi.",
+                "backendDockerStorageChanged": "Mesin Docker atau penyimpanannya berubah selama instalasi. Jangan ubah pengaturan Docker selama instalasi, lalu coba lagi.",
+                "modelConversionDependencyMissing": "Dependensi konverter CTranslate2 tidak ditemukan. Perbarui atau instal ulang backend, lalu unduh model kembali.",
+                "backendLifecycleLocked": "Operasi backend lain sedang menggunakan plugin ini. Tunggu hingga selesai, lalu coba lagi.",
+                "configurationBusy": "Konfigurasi plugin sedang digunakan oleh operasi lain dan tidak ada yang diubah. Coba lagi sebentar lagi.",
+                "ollamaResponsesSettingsUnsupported": "Ollama Responses lokal tidak dapat menerapkan pengaturan eksekusi yang dikonfigurasi. Gunakan Chat atau /v1/chat/completions dengan model ini untuk menerapkannya.",
+                "backendRuntimeIncompatible": "Runtime ini tidak kompatibel dengan pilihan perangkat keras saat ini. Pilih GPU yang kompatibel atau runtime lain.",
+                "backendRuntimeSelectionChanged": "Pilihan perangkat keras berubah selama instalasi. Periksa GPU dan runtime, lalu coba lagi.",
+                "managedCompilerUnavailable": "Kompiler terkelola tidak dapat diinstal atau tidak dapat mengompilasi runtime CPU. Periksa penyimpanan dan akses jaringan, lalu perbaiki instalasi backend.",
+                "runtimeIllegalInstruction": "Verifikasi runtime berhenti karena instruksi ilegal. Pilih runtime yang kompatibel atau perbaiki backend.",
+                "runtimeVerificationFailed": "Verifikasi runtime gagal. Perbaiki backend dan periksa diagnostik.",
+                "backendCpuInstructionsUnavailable": "Runtime ini memerlukan instruksi CPU yang tidak tersedia. Pilih runtime kompatibel lainnya.",
+                "configurationChanged": "Konfigurasi plugin berubah. Muat ulang dan tinjau perubahan Anda sebelum menyimpan lagi.",
+                "configurationApplyFailed": "Konfigurasi disimpan, tetapi runtime tidak dapat menerapkannya. Periksa status backend dan coba terapkan lagi.",
+                "backendRuntimeUnverified": "Kompatibilitas GPU tidak dapat diverifikasi. Tunggu deteksi selesai, lalu coba lagi atau pilih runtime yang terverifikasi."
             },
             "filters": {
                 "active": "Aktif",
@@ -5266,7 +5564,9 @@
                     "loadFailed": "Varian backend tidak dapat dimuat.",
                     "loading": "Memuat varian backend...",
                     "loadingBackends": "Memuat backend...",
-                    "saveFailed": "Varian backend tidak dapat disimpan."
+                    "saveFailed": "Varian backend tidak dapat disimpan.",
+                    "autoCompatibility": "Auto mengecualikan {variants} untuk pilihan perangkat keras saat ini. Pilih GPU lain atau runtime lain yang tersedia.",
+                    "compatibilityUnknown": "Kompatibilitas belum dapat dipastikan dari pengamatan saat ini. Segarkan informasi perangkat keras atau pilih runtime lain yang tersedia."
                 },
                 "manageBackend": {
                     "author": "Penulis: {author}",
@@ -5327,13 +5627,14 @@
                 "providerManagedReadOnly": "{plugin} mengelola penyedianya sendiri. Gunakan konsol plugin untuk melakukan autentikasi atau mengelola akses.",
                 "providersUnavailable": "{plugin} tidak mengekspos penyedia eksternal.",
                 "restartButton": "Mulai ulang SoAI",
-                "restartFailed": "Gagal memulai ulang SoAI.",
                 "restartRequired": "Mulai ulang SoAI untuk menerapkan batas plugin bersamaan yang baru.",
                 "selectFile": "Pilih file plugin",
                 "stopAllSuccess": "Perintah untuk menghentikan semua plugin telah dikirim.",
                 "stopSuccess": "Plugin {plugin} berhasil dihentikan",
                 "updateCheckFailed": "Gagal memeriksa pembaruan",
-                "uploadFailed": "Gagal mengunggah plugin"
+                "uploadFailed": "Gagal mengunggah plugin",
+                "backendUpdateTitle": "Pembaruan backend tersedia",
+                "backendUpdateMessage": "Pembaruan backend tersedia untuk {pluginName}. Buka Plugin untuk meninjaunya."
             },
             "providerMode": {
                 "badges": {
@@ -5392,88 +5693,71 @@
                 "hibernateSystem": {
                     "buttonLabel": "Hibernasi sistem",
                     "confirmMessage": "Yakin ingin menghibernasikan sistem?",
-                    "confirmMessageWithDelay": "Yakin ingin menghibernasikan sistem? Tindakan dimulai dalam {delay} detik.",
                     "confirmTitle": "Hibernasi sistem",
                     "confirmWarning": "Sesi hanya dilanjutkan setelah mesin dinyalakan kembali",
                     "description": "Simpan memori ke disk dan matikan sebagian besar perangkat keras.",
                     "optionDelay": "Penundaan (detik)",
                     "overlayMessage": "Sistem sedang berhibernasi...",
-                    "successNotification": "Hibernasi sistem dimulai",
-                    "successNotificationWithDelay": "Hibernasi sistem dijadwalkan (penundaan {delay}s)",
                     "title": "Hibernasi sistem"
                 },
                 "rebootSystem": {
                     "buttonLabel": "Mulai ulang sistem",
                     "confirmMessage": "Yakin ingin memulai ulang sistem?",
-                    "confirmMessageWithDelay": "Yakin ingin memulai ulang sistem? Tindakan dimulai dalam {delay} detik.",
                     "confirmTitle": "Mulai ulang sistem",
                     "confirmWarning": "Tindakan ini memulai ulang seluruh mesin",
                     "description": "Mulai ulang seluruh mesin dan muat ulang sistem operasi.",
                     "optionDelay": "Penundaan (detik)",
                     "optionForce": "Paksa mulai ulang",
-                    "successNotification": "Mulai ulang sistem dimulai",
-                    "successNotificationWithDelay": "Mulai ulang sistem dijadwalkan (penundaan {delay}s)",
                     "title": "Mulai ulang sistem"
                 },
                 "restartApplication": {
                     "buttonLabel": "Mulai ulang aplikasi",
-                    "confirmMessage": "Yakin ingin memulai ulang aplikasi?",
-                    "confirmTitle": "Mulai ulang aplikasi",
-                    "confirmWarning": "Semua pengguna akan terputus sebentar saat aplikasi dimulai ulang",
-                    "description": "Mulai ulang aplikasi SoAI dan muat ulang semua layanan.",
+                    "confirmMessage": "Yakin ingin memulai ulang SoAI?",
+                    "confirmTitle": "Mulai ulang SoAI",
+                    "confirmWarning": "Semua pengguna akan terputus sebentar saat SoAI dimulai ulang",
+                    "description": "Mulai ulang SoAI dan muat ulang semua layanan.",
                     "optionDelay": "Penundaan (detik)",
-                    "successNotification": "Mulai ulang aplikasi dimulai",
-                    "title": "Mulai ulang aplikasi"
+                    "title": "Mulai ulang SoAI"
                 },
                 "shutdownApplication": {
                     "buttonLabel": "Matikan aplikasi",
-                    "confirmMessage": "Yakin ingin mematikan aplikasi SoAI?",
-                    "confirmMessageWithDelay": "Yakin ingin mematikan aplikasi SoAI? Tindakan dimulai dalam {delay} detik.",
-                    "confirmTitle": "Matikan aplikasi",
-                    "confirmWarning": "Pengguna akan terputus hingga aplikasi dijalankan kembali",
-                    "description": "Hentikan aplikasi SoAI tanpa mematikan host.",
+                    "confirmMessage": "Yakin ingin mematikan SoAI?",
+                    "confirmTitle": "Matikan SoAI",
+                    "confirmWarning": "Pengguna akan terputus hingga SoAI dijalankan kembali",
+                    "description": "Hentikan SoAI tanpa mematikan host.",
                     "optionDelay": "Penundaan (detik)",
-                    "overlayMessage": "Aplikasi sedang dimatikan...",
-                    "successNotification": "Pematian aplikasi dimulai",
-                    "successNotificationWithDelay": "Pematian aplikasi dijadwalkan (penundaan {delay}s)",
-                    "title": "Matikan aplikasi"
+                    "overlayMessage": "SoAI sedang dimatikan...",
+                    "title": "Matikan SoAI"
                 },
                 "shutdownSystem": {
                     "buttonLabel": "Matikan",
                     "confirmMessage": "Yakin ingin mematikan sistem?",
-                    "confirmMessageWithDelay": "Yakin ingin mematikan sistem? Tindakan dimulai dalam {delay} detik.",
                     "confirmTitle": "Matikan sistem",
                     "confirmWarning": "Tindakan ini menghentikan semua proses dan mematikan mesin sepenuhnya",
                     "description": "Matikan seluruh mesin setelah operasi yang tertunda selesai.",
                     "optionDelay": "Penundaan (detik)",
                     "optionForce": "Paksa matikan",
                     "overlayMessage": "Sistem sedang dimatikan...",
-                    "successNotification": "Pematian sistem dimulai",
-                    "successNotificationWithDelay": "Pematian sistem dijadwalkan (penundaan {delay}s)",
                     "title": "Matikan sistem"
                 },
                 "suspendSystem": {
                     "buttonLabel": "Tangguhkan sistem",
                     "confirmMessage": "Yakin ingin menangguhkan sistem?",
-                    "confirmMessageWithDelay": "Yakin ingin menangguhkan sistem? Tindakan dimulai dalam {delay} detik.",
                     "confirmTitle": "Tangguhkan sistem",
                     "confirmWarning": "Proses dijeda hingga sistem dilanjutkan kembali",
                     "description": "Masukkan sistem ke mode tidur berdaya rendah.",
                     "optionDelay": "Penundaan (detik)",
                     "overlayMessage": "Sistem memasuki mode tidur...",
-                    "successNotification": "Penangguhan sistem dimulai",
-                    "successNotificationWithDelay": "Penangguhan sistem dijadwalkan (penundaan {delay}s)",
                     "title": "Tangguhkan sistem"
                 }
             },
-            "description": "Operasi daya aplikasi dan sistem.",
             "operations": {
                 "failed": "Operasi daya gagal. Tinjau status dan kebijakan daya runtime, lalu coba lagi hanya jika operasi dapat diulang."
             },
             "overlays": {
                 "applicationShutdown": {
-                    "monitoring": "Menghentikan aplikasi SoAI.",
-                    "offline": "Aplikasi sedang offline."
+                    "monitoring": "Menghentikan SoAI.",
+                    "offline": "SoAI sedang offline."
                 },
                 "countdown": {
                     "cancel": "Batal",
@@ -5497,6 +5781,10 @@
             "restartReminder": {
                 "message": "Mulai ulang diperlukan untuk menerapkan perubahan.",
                 "messageWithReason": "Mulai ulang diperlukan: {reason}"
+            },
+            "groups": {
+                "application": "SoAI",
+                "system": "Sistem"
             }
         },
         "prompts": {
@@ -5664,7 +5952,20 @@
             "title": "Prompt",
             "unnamedPrompt": "Prompt tanpa nama",
             "unsavedChanges": "Anda memiliki perubahan yang belum disimpan. Yakin ingin keluar?",
-            "untitled": "Tanpa judul"
+            "untitled": "Tanpa judul",
+            "picker": {
+                "editFailed": "Tidak dapat membuka editor prompt.",
+                "empty": "Belum ada prompt tersimpan.",
+                "emptyContent": "Tidak ada konten prompt",
+                "help": "Pilih prompt tersimpan untuk menggunakan teksnya",
+                "loadFailed": "Tidak dapat memuat prompt tersimpan.",
+                "loading": "Memuat prompt...",
+                "manage": "Kelola prompt",
+                "manageFailed": "Tidak dapat membuka halaman prompt.",
+                "noMatches": "Tidak ada prompt yang cocok dengan pencarian Anda.",
+                "search": "Cari",
+                "title": "Prompt tersimpan"
+            }
         },
         "restartOverlay": {
             "descriptions": {
@@ -5672,7 +5973,7 @@
                 "generic": "SoAI sedang menjalankan suatu operasi.",
                 "rebooting": "Sistem sedang dimulai ulang. Harap tunggu hingga kembali online.",
                 "rebootTimeout": "Tidak dapat mengonfirmasi status sistem setelah 15 menit. Memaksa penyegaran penuh sekarang.",
-                "restarting": "Aplikasi sedang dimulai ulang. Proses ini seharusnya hanya memerlukan beberapa saat.",
+                "restarting": "SoAI sedang dimulai ulang. Proses ini seharusnya hanya memerlukan beberapa saat.",
                 "shutdown": "Sistem sedang dimatikan. Anda dapat menutup jendela browser ini.",
                 "sleep": "Sistem memasuki mode tidur. Bangunkan sistem untuk melanjutkan penggunaan SoAI.",
                 "updateTimeout": "SoAI tidak kembali online setelah pembaruan. Periksa application_updater.log di folder log SoAI, lalu muat ulang halaman ini.",
@@ -5692,7 +5993,16 @@
                 "updateTimeout": "SoAI belum kembali",
                 "updating": "SoAI sedang diperbarui..."
             },
-            "reconnecting": "Mencoba menyambungkan kembali..."
+            "reconnecting": "Mencoba menyambungkan kembali...",
+            "handoff": {
+                "plannedAddress": "Alamat yang direncanakan setelah mulai ulang. Draf Anda tetap di tab ini.",
+                "newAddress": "Koneksi terputus. Buka alamat baru untuk terhubung kembali; server mungkin masih memulai.",
+                "manualHttps": "Server akan menggunakan HTTPS. Buka SoAI di alamat yang dikonfigurasi untuk server atau proksi balik Anda.",
+                "manualHttp": "Server akan menggunakan HTTP. Buka SoAI di alamat yang dikonfigurasi untuk server atau proksi balik Anda.",
+                "open": "Buka alamat baru",
+                "copy": "Salin alamat",
+                "copied": "Alamat disalin"
+            }
         },
         "richText": {
             "footnotes": {
@@ -5961,7 +6271,9 @@
                     "timeout": "Durasi timeout"
                 },
                 "nullPlaceholder": "null",
-                "sectionHeader": "Pengaturan lanjutan (config.yaml)"
+                "sectionHeader": "Pengaturan lanjutan (config.yaml)",
+                "autoUpdateBuiltinLabel": "Perbarui backend bawaan secara otomatis",
+                "autoUpdateBuiltinHelp": "Setelah paket plugin berubah, periksa backend yang terpasang dan perbarui backend bawaan setelah berhenti dengan aman. Pekerjaan yang sedang berjalan tetap dipertahankan. Backend pihak ketiga memerlukan pembaruan manual"
             },
             "advancedMode": "Lanjutan",
             "advancedTitle": "Pengaturan lanjutan",
@@ -6797,7 +7109,6 @@
                     "readVideoAudioExtractionTimeoutSec": "Timeout ekstraksi audio",
                     "readVideoPreviewExtractionTimeoutSec": "Timeout ekstraksi pratinjau",
                     "readVideoLiveProgressMinIntervalMs": "Interval minimum progres live",
-                    "readVideoWhisperModel": "Model Whisper untuk transkrip audio",
                     "hostModeEnabled": "Aktifkan klien mode host",
                     "hostModeAutoConnectOnStartup": "Hubungkan server tersimpan saat startup",
                     "hostModeReconnectDelaySec": "Jeda sebelum percobaan koneksi ulang",
@@ -7719,6 +8030,14 @@
                     "help": "Unggah gambar dari perangkat Anda (PNG, JPG, GIF, WebP, SVG - Maks 25MB)",
                     "label": "Unggah wallpaper"
                 }
+            },
+            "speechToText": {
+                "title": "Speech-to-text",
+                "description": "Mentranskripsikan audio dan video dalam file, Pengetahuan, dan alat.",
+                "model": {
+                    "label": "Model speech-to-text",
+                    "help": "Otomatis menggunakan model lokal pertama yang tersedia. Dikte chat menggunakan pengaturan Suara di setiap chat"
+                }
             }
         },
         "statusCatalog": {
@@ -7934,13 +8253,19 @@
                 "partial": "Sebagian catatan rilis tidak dapat dimuat. Catatan yang tersedia ditampilkan."
             },
             "outcome": {
+                "diagnosticsInstalledOriginalChanged": "File yang terpasang berubah saat pembaruan menyiapkan salinan pemulihannya.",
+                "diagnosticsInterruptedPreparation": "Pembaruan terhenti saat menyiapkan salinan pemulihannya.",
+                "diagnosticsMessage": "Diagnostik untuk percobaan ini disimpan di komputer SoAI pada {location}. {summary} Referensi: {reference}.",
+                "diagnosticsRetainedCopyMismatch": "Salinan pemulihan dari file yang terpasang tidak cocok dengan aslinya.",
+                "diagnosticsSnapshotOperationFailed": "Salinan pemulihan tidak dapat diselesaikan karena operasi file gagal.",
+                "diagnosticsSourceUnverifiable": "File yang terpasang tidak dapat dibaca untuk memverifikasi salinan pemulihan.",
                 "failureMessage": "Pembaruan ke versi {version} tidak selesai. SoAI {previousVersion} masih terpasang. Periksa application_updater.log di folder log SoAI untuk detailnya.",
                 "failureTitle": "Pembaruan tidak selesai",
                 "later": "Nanti",
                 "reloadMessage": "SoAI sekarang menjalankan versi {version}. Muat ulang halaman ini untuk menggunakan antarmuka yang diperbarui.",
                 "reloadTitle": "SoAI telah diperbarui",
-                "successMessage": "SoAI berhasil diperbarui ke versi {version}.",
-                "successTitle": "Pembaruan selesai"
+                "successMessage": "Versi {version} siap.",
+                "successTitle": "SoAI diperbarui"
             },
             "progress": {
                 "downloading": "Mengunduh pembaruan...",
@@ -8015,7 +8340,25 @@
                 "updating": "Memperbarui..."
             },
             "title": "Pembaruan",
-            "unknown": "Tidak diketahui"
+            "unknown": "Tidak diketahui",
+            "backend": {
+                "failedUpdatesHeading": "Pembaruan gagal",
+                "availableHeading": "Pembaruan backend tersedia",
+                "updatingHeading": "Pembaruan berlangsung",
+                "pendingHeading": "Pemeriksaan tertunda",
+                "failedHeading": "Pemeriksaan perlu perhatian",
+                "reviewUpdate": "Tinjau pembaruan",
+                "reviewUpdates": "Tinjau pembaruan",
+                "viewPlugins": "Lihat plugin"
+            },
+            "history": {
+                "lastCheck": "Pemeriksaan terakhir: {date}.",
+                "lastUpdate": "Pembaruan terakhir: {date}.",
+                "savedResults": "Hasil tersimpan dari {date}. Periksa lagi untuk memperbarui.",
+                "restored": "Informasi pembaruan tersimpan. Periksa lagi untuk memperbarui.",
+                "unavailable": "Riwayat pembaruan tidak dapat dimuat atau disimpan. Coba periksa pembaruan lagi.",
+                "saved": "Hasil tersimpan"
+            }
         },
         "wizard": {
             "completion": {
@@ -8252,7 +8595,8 @@
                             "recommended": "Disarankan",
                             "warning": "Peringatan",
                             "unavailable": "Tidak tersedia"
-                        }
+                        },
+                        "automaticRuntime": "Runtime untuk {engine} akan dipilih saat pemasangan. Akselerasi belum dikonfirmasi."
                     }
                 },
                 "models": {
@@ -8321,19 +8665,20 @@
                     "retryInstallation": "Coba instal lagi",
                     "skipItem": "Lewati item ini",
                     "testAgain": "Uji lagi",
-                    "checkAgain": "Periksa lagi",
                     "sendTest": "Kirim pesan uji",
                     "error": {
                         "empty": "Model termuat tetapi tidak membalas. Coba lagi atau pilih model lain.",
-                        "loadError": "Model tidak dapat dimulai di perangkat ini. Coba lagi atau pilih model yang lebih kecil.",
+                        "loadError": "Pengujian model gagal. Periksa dan atasi penyebabnya, lalu coba lagi.",
                         "timeout": "Model terlalu lama membalas. Coba lagi atau pilih model yang lebih kecil.",
                         "disconnected": "Koneksi terputus selama pengujian. Coba lagi.",
                         "downloadFailed": "Unduhan berhenti. Coba lagi.",
                         "installFailed": "Instalasi tidak selesai. Coba lagi.",
-                        "noDiskSpace": "Ruang disk tidak cukup untuk model ini. Kosongkan ruang atau pilih model yang lebih kecil."
+                        "noDiskSpace": "Ruang disk tidak cukup untuk model ini. Kosongkan ruang atau pilih model yang lebih kecil.",
+                        "discoveryFailed": "Unduhan selesai, tetapi model tidak dapat ditambahkan ke katalog. Buka Model untuk memeriksanya, atau selesaikan penyiapan nanti."
                     },
                     "testPrompt": "Balas dengan satu kalimat pendek yang ramah.",
-                    "testCancelled": "Pengujian penyiapan SoAI dibatalkan."
+                    "testCancelled": "Pengujian penyiapan SoAI dibatalkan.",
+                    "useCpuRuntime": "Gunakan runtime CPU"
                 },
                 "completion": {
                     "modelsTitle": "Model AI",
@@ -8362,6 +8707,40 @@
                     "both": "Unduhan model dan instalasi backend akan berlanjut di latar belakang."
                 }
             }
+        },
+        "speechSetup": {
+            "notTranscribed": "Ucapan belum ditranskripsikan",
+            "askAdministrator": "Minta administrator menyiapkan transkripsi ucapan.",
+            "askAdministratorTextToSpeech": "Minta administrator menyiapkan text-to-speech.",
+            "installBackend": "Pasang backend {plugin}",
+            "enablePlugin": "Aktifkan {plugin}",
+            "changeModel": "Ubah model ucapan",
+            "openPlugins": "Buka Plugin",
+            "addAgain": "Transkripsi ucapan kini tersedia. Unggah ulang file untuk mentranskripsikannya.",
+            "checking": "Memeriksa ketersediaan transkripsi ucapan…",
+            "checkingTextToSpeech": "Memeriksa ketersediaan text-to-speech…",
+            "errors": {
+                "noPlugin": "Tidak ada plugin terpasang yang menyediakan transkripsi ucapan lokal.",
+                "noModel": "Belum ada model transkripsi lokal yang terpasang.",
+                "notLocal": "Transkripsi media dilakukan secara lokal. Pilih model transkripsi lokal.",
+                "translationUnsupported": "Tidak ada model ucapan lokal terpasang yang mendukung terjemahan. Pilih model multibahasa.",
+                "unsupportedOption": "{model} tidak dapat memberikan informasi waktu atau bahasa yang diperlukan. Pilih model ucapan lain.",
+                "configuredModelMissing": "Model transkripsi ucapan yang dipilih tidak tersedia.",
+                "mediaDependencyUnavailable": "Pemrosesan media memerlukan FFmpeg dan ffprobe. Instal FFmpeg lalu coba lagi.",
+                "noVoiceModel": "Tidak ada model speech-to-text yang tersedia.",
+                "noTextToSpeechModel": "Tidak ada model text-to-speech yang tersedia.",
+                "backendNotInstalled": "Backend plugin transkripsi ucapan belum terpasang.",
+                "textToSpeechBackendNotInstalled": "Backend plugin text-to-speech belum terpasang.",
+                "pluginDisabled": "Plugin transkripsi ucapan dinonaktifkan.",
+                "textToSpeechPluginDisabled": "Plugin text-to-speech dinonaktifkan.",
+                "modelDisabled": "Model transkripsi ucapan yang terpasang dinonaktifkan atau tidak tersedia.",
+                "textToSpeechModelDisabled": "Model text-to-speech yang terpasang dinonaktifkan atau tidak tersedia.",
+                "unsupportedOptionSelected": "Model ucapan yang dipilih tidak dapat memberikan informasi waktu atau bahasa yang diperlukan permintaan ini. Pilih model ucapan lain."
+            },
+            "notTranscribedNotice": "Ucapan belum ditranskripsikan. Siapkan transkripsi ucapan, lalu unggah ulang file.",
+            "notTranscribedAskAdministrator": "Ucapan belum ditranskripsikan. Minta administrator menyiapkan transkripsi ucapan, lalu unggah ulang file.",
+            "openModels": "Buka Model",
+            "openSettings": "Pengaturan speech-to-text"
         }
     }
 }

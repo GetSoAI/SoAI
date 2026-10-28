@@ -5,6 +5,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { isEpochMsNumber } from '@core/time/epochMs.ts';
 import { isString } from '@core/typeGuards.ts';
 import { resolveChatStreamServerErrorMessage } from '@features/chat/chatstreamservice/streamErrorPresentation.ts';
+import { resolveCancellationCodeNotice } from '@features/chat/message/assistantOutputNotice.ts';
 import type { InlineLoadingActivitySegment } from '@features/chat/message/messageSegments.ts';
 import { compactQueryWhitespace } from '@features/chat/toolactivity/payloadTextParsing.ts';
 import { renderInlineStatusActivityLifecycleKeyAttribute } from '@features/chat/message/inlineStatusActivityIdentity.ts';
@@ -22,14 +23,17 @@ interface RenderInlineLoadingActivityGroupArguments {
     durationStatus?: 'running' | 'completed' | 'cancelled' | 'error';
     toggleEnabled: boolean;
     latestActivityName: string | null;
+    statusText?: string | null;
 }
 
 const renderInlineLoadingPreview = (host: ChatMessageRenderHost, inputArguments: RenderInlineLoadingActivityGroupArguments): string => {
     const segment = inputArguments.segment;
     const technicalReason = isString(segment.reason) ? compactQueryWhitespace(segment.reason) : '';
     const errorType = isString(segment.errorType) ? compactQueryWhitespace(segment.errorType) : '';
-    const reason = errorType ? resolveChatStreamServerErrorMessage(technicalReason, errorType) : technicalReason;
-    const detailText = [reason, errorType].filter((value) => value.length > 0).join(' · ');
+    const showError = inputArguments.displayStatus === 'error';
+    const cancellationNotice = inputArguments.displayStatus === 'cancelled' ? resolveCancellationCodeNotice(errorType) : null;
+    const reason = inputArguments.statusText ?? cancellationNotice ?? (showError && errorType ? resolveChatStreamServerErrorMessage(technicalReason, errorType) : technicalReason);
+    const detailText = [reason, showError ? errorType : ''].filter((value) => value.length > 0).join(' · ');
     const previewText = detailText ? clampInlineLabel(detailText, 120) : (inputArguments.latestActivityName ?? i18n.t('chat.loading.modelPreview'));
     return renderInlineActivityStreamedPreview(host, { status: inputArguments.displayStatus, visible: previewText, latest: previewText });
 };
@@ -42,7 +46,7 @@ const renderInlineLoadingActivityGroup = (host: ChatMessageRenderHost, inputArgu
     const statusIconHtml = renderInlineStatusIcon(host, inputArguments.displayStatus, 'clock');
     const previewHtml = renderInlineLoadingPreview(host, inputArguments);
     const displayMode = host.getActivityDurationDisplayMode();
-    const durationHtml = shouldRenderActivityDuration(displayMode, 'collapsed', durationStatus)
+    const durationHtml = shouldRenderActivityDuration(displayMode, durationStatus)
         ? renderInlineActivityDuration(
               host,
               {

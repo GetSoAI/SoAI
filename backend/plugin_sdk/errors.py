@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from core.errors.backend_lifecycle import BackendPrerequisiteError
 from core.errors.exceptions import (
     AcceleratorMemoryExhaustedError,
     ConfigurationError,
@@ -20,6 +21,7 @@ from core.errors.external_service_exception import ExternalServiceError
 
 __all__ = (
     "ConfigurationError",
+    "BackendPrerequisiteError",
     "AcceleratorMemoryExhaustedError",
     "ExternalServiceError",
     "FeatureDisabledError",

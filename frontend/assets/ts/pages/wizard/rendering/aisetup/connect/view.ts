@@ -1,6 +1,7 @@
 /* SoAI - Wizard AI setup provider and engine view [frontend/assets/ts/pages/wizard/rendering/aisetup/connect/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { renderWizardDisclosure } from '@pages/wizard/widgets/WizardDisclosureWidget.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { renderStandardDropdownSelectControl } from '@core/ui/dropdown/selectControl.ts';
 import { renderRequiredFieldLabelHtml } from '@core/ui/forms/requiredMarker.ts';
@@ -37,7 +38,7 @@ const renderProviderForm = (context: WizardViewContext, view: AiSetupConnectView
     const filterField = renderTextField(context, { id: 'wizard-ai-provider-filter', name: 'models-filter', label: i18n.t('wizard.aiSetup.connect.cloud.modelFilter'), value: draft.modelsFilter, placeholder: i18n.t('models.modal.addProvider.modelsFilterPlaceholder'), required: false });
     const error = view.connection.error;
     const connectLabel = context.sanitizer.html(i18n.t('wizard.aiSetup.connect.cloud.connect'));
-    return `<form id="${AI_PROVIDER_FORM_ID}" class="wizard-form wizard-ai-provider-form" novalidate>${renderPluginField(context, view)}${renderTextField(context, { id: 'wizard-ai-provider-name', name: 'provider-name', label: i18n.t('models.modal.addProvider.nameLabel'), value: draft.name, placeholder: i18n.t('models.modal.addProvider.nameHelp'), required: true })}${renderTextField(context, { id: 'wizard-ai-provider-url', name: 'api-url', label: i18n.t('models.modal.addProvider.apiUrlLabel'), value: draft.apiUrl, placeholder: i18n.t('models.modal.addProvider.apiUrlPlaceholder'), required: true, type: 'url' })}${keyField}<div class="ui-operation-progress-list wizard-ai-connect-progress" data-ai-cloud-progress></div><div class="wizard-error${error === null ? ' u-hidden' : ''}" role="alert" data-ai-cloud-error>${context.sanitizer.html(error?.message ?? '')}</div><div class="wizard-ai-form-actions"><button type="submit" class="ui-button ui-variant-accent" data-ai-connect aria-label="${connectLabel}" data-tooltip="${connectLabel}">${connectLabel}</button></div><details class="wizard-disclosure"><summary>${context.sanitizer.html(i18n.t('wizard.aiSetup.connect.cloud.moreOptions'))}</summary><div class="wizard-disclosure-body">${filterField}</div></details></form>`;
+    return `<form id="${AI_PROVIDER_FORM_ID}" class="wizard-form wizard-ai-provider-form" novalidate>${renderPluginField(context, view)}${renderTextField(context, { id: 'wizard-ai-provider-name', name: 'provider-name', label: i18n.t('models.modal.addProvider.nameLabel'), value: draft.name, placeholder: i18n.t('models.modal.addProvider.nameHelp'), required: true })}${renderTextField(context, { id: 'wizard-ai-provider-url', name: 'api-url', label: i18n.t('models.modal.addProvider.apiUrlLabel'), value: draft.apiUrl, placeholder: i18n.t('models.modal.addProvider.apiUrlPlaceholder'), required: true, type: 'url' })}${keyField}<div class="ui-operation-progress-list wizard-ai-connect-progress" data-ai-cloud-progress></div><div class="wizard-error${error === null ? ' u-hidden' : ''}" role="alert" data-ai-cloud-error>${context.sanitizer.html(error?.message ?? '')}</div><div class="wizard-ai-form-actions"><button type="submit" class="ui-button ui-variant-accent" data-ai-connect aria-label="${connectLabel}" data-tooltip="${connectLabel}">${connectLabel}</button></div>${renderWizardDisclosure('wizard-ai-provider-options', i18n.t('wizard.aiSetup.connect.cloud.moreOptions'), `<div class="wizard-disclosure-body">${filterField}</div>`)}</form>`;
 };
 
 const renderConnectedSummary = (context: WizardViewContext, view: AiSetupConnectView): string => {
@@ -96,8 +97,8 @@ const renderLocalSection = (context: WizardViewContext, view: AiSetupConnectView
         className: 'wizard-ai-engine-card'
     });
     const engines = view.engines.map((engine) => renderEngineCard(context, engine)).join('');
-    const manualOpen = view.engineMode === 'manual' ? ' open' : '';
-    return `<section class="wizard-ai-section" aria-labelledby="wizard-ai-local-title">${renderAiSetupPanelHeading(context, 'wizard-ai-local-title', i18n.t('wizard.aiSetup.connect.local.heading'), i18n.t('wizard.aiSetup.connect.local.description'))}<div class="wizard-ai-stack" role="radiogroup" aria-labelledby="wizard-ai-local-title">${automatic}</div><details class="wizard-disclosure"${manualOpen}><summary>${context.sanitizer.html(i18n.t('wizard.aiSetup.connect.local.chooseManually'))}</summary><div class="wizard-disclosure-body wizard-ai-stack" role="group" aria-label="${context.sanitizer.attribute(i18n.t('wizard.aiSetup.connect.local.chooseManually'))}">${engines}</div></details></section>`;
+    const manual = renderWizardDisclosure('wizard-ai-manual-engines', i18n.t('wizard.aiSetup.connect.local.chooseManually'), `<div class="wizard-disclosure-body wizard-ai-stack" role="group" aria-label="${context.sanitizer.attribute(i18n.t('wizard.aiSetup.connect.local.chooseManually'))}">${engines}</div>`, view.engineMode === 'manual');
+    return `<section class="wizard-ai-section" aria-labelledby="wizard-ai-local-title">${renderAiSetupPanelHeading(context, 'wizard-ai-local-title', i18n.t('wizard.aiSetup.connect.local.heading'), i18n.t('wizard.aiSetup.connect.local.description'))}<div class="wizard-ai-stack" role="radiogroup" aria-labelledby="wizard-ai-local-title">${automatic}</div>${manual}</section>`;
 };
 
 const renderAiConnectStep = (context: WizardViewContext, view: AiSetupConnectView): string => {

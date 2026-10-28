@@ -12,6 +12,7 @@ from core.agent.status_values import (
 )
 from core.errors.error_types import ErrorType
 from core.errors.exceptions import ValidationError
+from core.errors.payload import ErrorPublicPayload
 from core.openai.request_requirement_failures import (
     classify_openai_request_requirement_mismatch,
 )
@@ -43,6 +44,7 @@ class TurnLoopInferenceFailureResolution:
     final_status: str | None
     final_error_message: str | None
     final_error_type: str | None
+    public_error: ErrorPublicPayload | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,6 +95,7 @@ def resolve_turn_loop_inference_failure(
         ),
         final_error_message=inference.error_message or "Agent turn failed.",
         final_error_type=inference.error_type or "server_error",
+        public_error=inference.public_error,
     )
 
 
@@ -195,6 +198,7 @@ def _resolve_failed_inference_terminal_outcome(
         status=failure.final_status,
         error_message=failure.final_error_message,
         error_type=failure.final_error_type,
+        public_error=failure.public_error,
     )
 
 

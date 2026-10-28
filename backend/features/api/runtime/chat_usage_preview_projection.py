@@ -15,6 +15,7 @@ from core.openai.stream_request_preparation import (
 )
 from core.runtime.request_context_cloning import clone_request_context
 from core.runtime.request_sources import REQUEST_SOURCE_WEBUI_WS
+from core.skills.execution import SkillExecutionContext
 from core.timing.epoch import epoch_ms
 from core.tool_calls.context_compaction_boundary_resolution import (
     resolve_context_compaction_boundaries,
@@ -107,6 +108,7 @@ async def prepare_chat_usage_preview_request(
     canonical_history: list[JSONDict],
     draft_user_text: str | None,
     draft_attachment_content: list[JSONValue] | None = None,
+    skill_target_input_id: str | None = None,
     logger: LoggerProtocol,
     trace_id: str | None,
 ) -> PreparedChatUsagePreviewRequest:
@@ -126,6 +128,8 @@ async def prepare_chat_usage_preview_request(
         draft_attachment_content=draft_attachment_content,
     )
     user_id = resolve_request_user_id(request)
+    if user_id is None:
+        raise ValidationError("Skill prompt preview requires an authenticated user.")
 
     project_agentic_prompt_messages = build_webui_attachment_provider_projector(
         dependencies=api_context.dependencies,
@@ -137,6 +141,11 @@ async def prepare_chat_usage_preview_request(
     messages = await project_agentic_prompt_messages(canonical_prompt_messages)
     request_json["messages"] = messages
     token_count_context = clone_request_context(request.state.context)
+    token_count_context.skill_execution_context = SkillExecutionContext(
+        await api_context.dependencies.database_skills.preview(
+            user_id, conv_id, draft_user_text or "", skill_target_input_id
+        )
+    )
     prepared_request = await prepare_mcp_tools_for_request(
         request=request,
         api_context=api_context,

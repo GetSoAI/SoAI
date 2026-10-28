@@ -9,7 +9,6 @@ from core.files.path_policy import ensure_path_within_base
 
 __all__ = (
     "resolve_rooted_candidate_path",
-    "resolve_rooted_existing_dir",
     "resolve_rooted_existing_file",
     "resolve_rooted_path",
 )
@@ -41,24 +40,6 @@ def resolve_rooted_path(
         description=description,
         error_cls=error_cls,
     )
-
-
-def resolve_rooted_existing_dir(
-    path_value: str,
-    *,
-    base_path: str,
-    description: str,
-    error_cls: type[Exception] = ValueError,
-) -> str:
-    resolved = resolve_rooted_path(
-        path_value,
-        base_path=base_path,
-        description=description,
-        error_cls=error_cls,
-    )
-    if not os.path.isdir(resolved):
-        raise error_cls(f"{description} is not a directory: {path_value}")
-    return resolved
 
 
 def resolve_rooted_existing_file(

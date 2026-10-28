@@ -20,7 +20,7 @@ from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.protocols import RuntimeStateStoreProtocol
 
 if TYPE_CHECKING:
-    from core.app.protocols import ApplicationUpdateOutcome
+    from core.app.update_result import ApplicationUpdateResult
     from core.types.json import JSONDict
 
 __all__ = ("ApplicationControlService", "ApplicationControlServiceDependencies")
@@ -51,7 +51,7 @@ class ApplicationControlService:
     def __init__(self, deps: ApplicationControlServiceDependencies) -> None:
         self._deps = deps
 
-    async def update(self) -> tuple[ApplicationUpdateOutcome, str]:
+    async def update(self) -> ApplicationUpdateResult:
         return await self._deps.update_service.update()
 
     async def get_update_preparation_status(self) -> JSONDict:
@@ -64,6 +64,9 @@ class ApplicationControlService:
         return await self._deps.update_service.acknowledge_update_notice(
             user_id=user_id, task_id=task_id
         )
+
+    async def get_update_diagnostics(self, task_id: str) -> JSONDict:
+        return await self._deps.update_service.get_update_diagnostics(task_id)
 
     def restart(self) -> bool:
         result = request_runtime_restart(

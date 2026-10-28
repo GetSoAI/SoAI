@@ -1,6 +1,7 @@
 /* SoAI - Shared routing telemetry middleware [frontend/assets/ts/core/routing/router/middlewares/telemetryMiddleware.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createAbortError, isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import type { NavigationResultType } from '@core/navigationMiddleware.ts';
 import { normalizeMiddlewareOutcome, readErrorMessage } from '@core/routing/router/navigationMiddlewareNormalization.ts';
@@ -29,6 +30,7 @@ const createTelemetryNavigationMiddleware = (emitRouterEvent: (stage: string, da
             return outcome;
         } catch (error) {
             const runtimeError = ensureError(error);
+            if (isAbortError(error) && context.signal.aborted) throw createAbortError();
             emitRouterEvent('navigation:middleware:error', { ...data, message: readErrorMessage(runtimeError) }, 'error');
             throw runtimeError;
         }

@@ -21,7 +21,10 @@ if TYPE_CHECKING:
         ConversationMessageStoragePayload,
     )
 
-__all__ = ("sync_reconcile_overwritten_message_auxiliary_tables",)
+__all__ = (
+    "sync_finalize_rebuilt_assistant_event_timelines",
+    "sync_reconcile_overwritten_message_auxiliary_tables",
+)
 
 
 def _sync_delete_orphaned_assistant_events(
@@ -65,7 +68,7 @@ def _sync_delete_orphaned_assistant_events(
     )
 
 
-def _sync_finalize_rebuilt_assistant_event_timelines(
+def sync_finalize_rebuilt_assistant_event_timelines(
     conn: sqlite3.Connection,
     *,
     conv_id: str,
@@ -120,7 +123,7 @@ def sync_reconcile_overwritten_message_auxiliary_tables(
         validated_messages=validated_messages,
         created_at_ms=finalized_at_ms,
     )
-    _sync_finalize_rebuilt_assistant_event_timelines(
+    sync_finalize_rebuilt_assistant_event_timelines(
         conn,
         conv_id=conv_id,
         assistant_timestamps_to_finalize=assistant_timestamps_to_finalize,

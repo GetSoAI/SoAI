@@ -65,6 +65,7 @@ async def run_parse_stages(
             repository=deps.repository,
             storage_manager=deps.storage_manager,
             transcriber=deps.transcriber,
+            request_context=deps.speech_request_context,
             on_progress=tracker.on_audio,
         )
     tracker.set_stage(_STAGE_PREVIEW)

@@ -18,6 +18,7 @@ from core.models.persisted_parameter_values import resolve_effective_parameter_v
 from core.models.source_identifier import require_source_model_id
 from core.types.json import is_json_dict
 from core.validation.strings import coerce_optional_trimmed_str
+from models.parameters.schema_access import require_parameter_schema_snapshot
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -67,19 +68,17 @@ async def build_formatted_parameters_payload(
             )
         source_model_id = require_source_model_id(model_info)
         (schema, categories), overrides = await asyncio.gather(
-            deps.param_manager.get_parameter_schema_snapshot(plugin_name),
+            require_parameter_schema_snapshot(
+                param_manager=deps.param_manager,
+                plugin_lifecycle=deps.plugin_manager.lifecycle,
+                plugin_name=plugin_name,
+            ),
             deps.database_models.get_model_custom_parameters(universal_id),
             return_exceptions=False,
         )
-    schema_definitions: dict[str, JSONDict] = (
-        {
-            name: definition
-            for name, definition in schema.items()
-            if isinstance(name, str) and is_json_dict(definition)
-        }
-        if isinstance(schema, dict)
-        else {}
-    )
+    schema_definitions: dict[str, JSONDict] = {
+        name: definition for name, definition in schema.items() if is_json_dict(definition)
+    }
     effective_values = resolve_effective_parameter_values(schema, overrides)
     context_parameter_name = resolve_semantic_parameter_name(
         schema_definitions,

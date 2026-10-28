@@ -16,6 +16,7 @@ class AudioRecordingSnapshotController {
     #elapsedTimer: number | null = null;
     #sessionId: number | null = null;
     #intent: AudioRecordingIntent | null = null;
+    #transcriptionSettling = false;
 
     constructor(options: AudioRecordingSnapshotControllerOptions) {
         this.#onSnapshotChange = options.onSnapshotChange;
@@ -25,6 +26,7 @@ class AudioRecordingSnapshotController {
     begin(state: ActiveAudioState, sessionId: number, intent: AudioRecordingIntent): void {
         this.#clearElapsedTimer();
         this.#startedAtMs = performance.now();
+        this.#transcriptionSettling = false;
         this.#state = state;
         this.#sessionId = sessionId;
         this.#intent = intent;
@@ -42,9 +44,16 @@ class AudioRecordingSnapshotController {
         this.emit(null);
     }
 
+    markTranscriptionSettling(): void {
+        if (this.#state !== 'processing') return;
+        this.#transcriptionSettling = true;
+        this.emit(null);
+    }
+
     reset(): void {
         this.#clearElapsedTimer();
         this.#startedAtMs = null;
+        this.#transcriptionSettling = false;
         this.#state = 'idle';
         this.#sessionId = null;
         this.#intent = null;
@@ -54,6 +63,7 @@ class AudioRecordingSnapshotController {
     fail(errorText: string): void {
         this.#clearElapsedTimer();
         this.#startedAtMs = null;
+        this.#transcriptionSettling = false;
         this.#state = 'idle';
         this.emit(errorText);
     }
@@ -69,9 +79,9 @@ class AudioRecordingSnapshotController {
             state: this.#state,
             sessionId: this.#sessionId,
             intent: this.#intent,
-            presentation: 'default',
+            presentation: this.#transcriptionSettling ? 'transcription-settling' : 'default',
             elapsedMs,
-            canCancel: this.#state === 'requesting' || this.#state === 'recording' || this.#state === 'processing',
+            canCancel: !this.#transcriptionSettling && (this.#state === 'requesting' || this.#state === 'recording' || this.#state === 'processing'),
             errorText
         });
     }

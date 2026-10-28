@@ -6,6 +6,7 @@ import { toTrimmedString } from '@core/normalize.ts';
 import { isArray } from '@core/typeGuards.ts';
 import { createChatUploadFileTooLargeMessage, getChatUploadFileSizeLimit } from '@features/chat/attachments/attachmentValidation.ts';
 import { normalizeConversationId, type RagIngestionAttachmentSource, type RagIngestionStatus } from '@features/chat/public.ts';
+import { isRagIngestionTerminal } from '@features/chat/ragingestion/finalization/state.ts';
 
 type RagIngestionStartRequest = {
     conversationId: string;
@@ -27,7 +28,7 @@ type RagIngestionStartInitializeResult = {
 };
 
 const initializeStatusForIngestionStart = (existing: RagIngestionStatus | null, conversationId: string, fileCount: number): RagIngestionStartInitializeResult => {
-    if (!existing || existing.state === 'submitted' || existing.state === 'cancelled') {
+    if (!existing || isRagIngestionTerminal(existing)) {
         return {
             status: {
                 conversationId,

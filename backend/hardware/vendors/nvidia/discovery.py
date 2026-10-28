@@ -14,6 +14,7 @@ from core.imports.availability import module_available
 from core.logging.trace import get_logger
 from core.runtime.platform import get_runtime_platform
 from core.system.commands import run_argv_capture
+from hardware.gpu_inventory.executable_resolution import acquire_gpu_executable
 
 if TYPE_CHECKING:
     from core.runtime.protocols import RuntimePlatformViewProtocol
@@ -39,10 +40,6 @@ if module_available("pynvml"):
     import pynvml
 
     pynvml_module_ref = pynvml
-
-
-def _pynvml_available() -> bool:
-    return pynvml_module_ref is not None
 
 
 class NvidiaGpuClass(Enum):
@@ -133,8 +130,11 @@ def read_nvml_ecc_support(handle: NvmlDeviceHandle) -> bool:
 
 
 def query_nvidia_smi_gpu_name(vendor_id: int) -> str | None:
+    resolution = acquire_gpu_executable("nvidia-smi")
+    if resolution.path is None:
+        return None
     result = run_argv_capture(
-        ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+        [resolution.path, "--query-gpu=name", "--format=csv,noheader"],
         timeout=5,
     )
     if result.return_code != 0:
@@ -146,8 +146,11 @@ def query_nvidia_smi_gpu_name(vendor_id: int) -> str | None:
 
 
 def query_nvidia_smi_ecc_support(vendor_id: int) -> bool | None:
+    resolution = acquire_gpu_executable("nvidia-smi")
+    if resolution.path is None:
+        return None
     result = run_argv_capture(
-        ["nvidia-smi", "--query-gpu=ecc.mode.current", "--format=csv,noheader"],
+        [resolution.path, "--query-gpu=ecc.mode.current", "--format=csv,noheader"],
         timeout=5,
     )
     if result.return_code != 0:

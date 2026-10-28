@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { syncAttributeValue } from '@core/dom/patching.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { createAudioOscilloscope } from '@core/media/audioOscilloscope.ts';
 import { createContentPreviewMediaInfo, formatContentPreviewMediaDuration } from '@core/ui/modals/contentpreview/mediaInfo.ts';
@@ -24,9 +25,13 @@ const setVisualizerUnavailable = (status: HTMLElement): void => {
 };
 
 const hideVisualizerStatus = (status: HTMLElement): void => {
-    status.textContent = '';
-    status.classList.add('u-hidden');
-    status.setAttribute('aria-hidden', 'true');
+    if (status.textContent !== '' || status.childNodes.length !== 0) {
+        status.textContent = '';
+    }
+    if (!status.classList.contains('u-hidden')) {
+        status.classList.add('u-hidden');
+    }
+    syncAttributeValue(status, 'aria-hidden', 'true');
 };
 
 const stopAudioElement = (audio: HTMLAudioElement): void => {

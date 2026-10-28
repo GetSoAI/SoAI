@@ -1,4 +1,86 @@
+
 # SoAI Release Notes
+
+## 1.4.0
+
+SoAI 1.4.0 adds reusable assistant skills, an editable Memory library and automatic backend updates. It includes extensive bug fixes and WebUI improvements, with better model handling, installation and recovery. The calculator tool now supports exact large integers and symbolic mathematics.
+
+### Highlights
+
+- Give the assistant reusable instructions and supporting files with skills. Import a `SKILL.md` file or a skill ZIP from Chat configuration > Skills, enable it for the conversation, and let the assistant select it or invoke it with `$skill-name`.
+- The Memory library lets you search, add, edit and delete remembered information and manage relationships between entries.
+- Automatic updates are on by default for built-in backends and run when stopped and idle. Update badges identify available updates; third-party backends remain manual. To manage updates yourself, turn off Automatically update built-in backends under Settings > Advanced settings.
+- Installing SoAI is faster on Windows and POSIX environments and the command line installer has improved readability while being less verbose.
+- On Windows, opening SoAI starts its background service without an administrator prompt. Application data is now restricted to administrators and the service; previously, a vulnerability caused standard Windows users to be able to read the database and secret key. Each Windows user has a separate desktop sign-in and window settings.
+- The calculator supports exact large integers and symbolic mathematics, including equation solving, algebra, calculus and matrices. Answers retain conditions and distinguish complete solutions from partial results.
+
+### Improvements
+
+- SoAI does less background work while idle, and Chat, Metrics, tables, charts and navigation avoid unnecessary rendering. Controls, loading indicators and page transitions behave more consistently across window sizes. Animations in the WebUI are more consistent.
+- Administrators can open the redesigned Power controls over the current page. Pending restart notices explain the reason and identify the required action.
+- Model settings make unsaved changes clearer and improve saving, resetting and parameter validation. OpenAI capabilities offer Auto, Enabled and Disabled, with the evidence behind automatic choices.
+- Chat configuration adds 64k, 96k, 128k and 256k context-length shortcuts. You can still enter a specific value and save it for the conversation.
+- Agent tool sequences preserve reasoning between steps and approval pauses, while context compaction retains more relevant conversation information. Stopping a response pauses queued prompts until you resume them or another response completes normally.
+- Chat considerably improved error handling and now explains provider rejections, context limits, unavailable speech models and answers exhausted by reasoning or output limits. Failed responses retain their explanation and offer Retry.
+- SoAI Bench and software update preparation appear in the Tasks menu. Expanded tool details in Chat can be resized, and weather results include hourly forecasts for each day.
+- Hardware monitoring adds GPU utilization and temperature for Linux devices with Qualcomm Adreno graphics.
+- Media transcription uses installed speech-to-text plugins and models, including on ARM and Apple silicon. Voice input waits up to 5 minutes for transcription instead of failing after 60 seconds.
+- SoAI disables supported upstream usage reporting and background update checks in its managed components, and explicitly disables telemetry in local OCR.
+- The privacy notice in `PRIVACY.md` now explains local data storage, external connections and software downloads more clearly.
+
+### Fixes
+
+- The setup wizard chooses compatible GPU backends and opens trial chats with tools and the SoAI system prompt disabled, so models without tool support can be tested.
+- Fixed interrupted installation and update recovery, backup restore restarts, Windows HTTPS startup and temporary file-lock failures. Linux fixes address stalled Ubuntu installations, browser launching as root and OpenCL preparation disrupting working NVIDIA drivers.
+- Backups include account workspaces from Files, and unreadable folders stop exports instead of producing incomplete archives.
+- Files no longer becomes inaccessible after repeated reloads or use in several tabs. UTF-8 text is recognized correctly, copy and move navigation works, and upload failures identify destination conflicts and any files already saved.
+- Fixed virtual-model creation and editing, Knowledge reindexing, model parameter loading and plugin discovery blocking settings or Stop.
+- Fixed premature request expiry while processing long prompts or waiting for tools or approvals. Request timeouts and cancellation avoid interrupting unrelated provider work, and plugins can recover after worker failures.
+- Responses API storage no longer duplicates streamed llama.cpp output. Virtual-model replies preserve the requested model name, and MCP prompts use the format required by strict clients. API errors distinguish denied permissions, billing failures and temporary rate limits.
+- GPU binding, tuning and SoAI Bench select the correct physical card on systems with identical GPUs. Benchmark fixes address slow sensors, cancellation, sensor summaries and supported OpenCL devices reported as Custom.
+
+Updating SoAI installs the dependency security corrections below. The listed impacts describe the upstream flaws; exposure through every affected library feature in SoAI is not known.
+
+| Component | Corrected vulnerabilities and impact |
+|---|---|
+| Brotli 1.2.1 | Malicious compressed data causing memory corruption or possible code execution: CVE-2026-111497 / PYSEC-2026-4322; GHSA-9v8h-qqgm-4m35. |
+| aiohttp 3.14.5 | Request parsing, cookie protection and resource exhaustion: CVE-2026-111063 through CVE-2026-111066; CVE-2026-111748 through CVE-2026-111750; GHSA-2g87-pp6c-29x5. |
+| Multidict 7.1.0 | A reference leak in dictionary-view operations causing unbounded memory growth: CVE-2026-104874 / GHSA-54p9-h82j-f925. |
+| Python 3.13.18 | Blocks the compromised eMudhra intermediate certificate keys, updates the XML parser, rejects archive links that replace an extraction destination, and corrects Windows MIME-file lookup: CVE-2026-115557, CVE-2026-77214, CVE-2026-102633, CVE-2026-114583, CVE-2024-3220. |
+| PDFium 158.0.8111.0 through pypdfium2 5.14.0+soai.1 | A buffer overflow that could allow code execution while processing malicious content: CVE-2026-110155. |
+| HTTPX2 2.16.0, including Windows setup and repair | Header injection, ambiguous request framing and decompression memory exhaustion: CVE-2026-84379, CVE-2026-84380, CVE-2026-84382. |
+| urllib3 2.8.0 | HTTPS proxy verification and streamed-response resource exhaustion: CVE-2026-97687 through CVE-2026-97689. |
+| OAuthLib 4.0.0 | JavaScript injection when JSONP token revocation is enabled, and a PKCE timing side channel: CVE-2026-49264 / GHSA-hj66-6f7g-4r5v; CVE-2026-49265. |
+| PyJWT 2.15.1 | Token validation and denial-of-service flaws: CVE-2026-101917 through CVE-2026-101918; CVE-2026-102265 through CVE-2026-102275; CVE-2026-103001; GHSA-pxh4-856f-4h89. |
+| OpenSSL 4.0.3 in Cryptography 50.0.2 wheels, and OpenSSL 3.6.5 or 3.5.9 in managed runtimes | Upstream OpenSSL fixes for memory corruption, denial of service and cryptographic weaknesses: CVE-2026-14456 through CVE-2026-14457; CVE-2026-18798; CVE-2026-35189; CVE-2026-35191; CVE-2026-42772; CVE-2026-54872 through CVE-2026-54876; CVE-2026-63072 through CVE-2026-63076; CVE-2026-72897; CVE-2026-75803 through CVE-2026-75806; CVE-2026-77696; CVE-2026-84782 through CVE-2026-84784. |
+| Pillow 13.0.0 | Image-processing memory corruption, disclosure and resource exhaustion: CVE-2026-96636 through CVE-2026-96644; CVE-2026-96778; CVE-2026-112390 through CVE-2026-112393; CVE-2026-112395 through CVE-2026-112402; CVE-2026-112404 through CVE-2026-112406; CVE-2026-112891 through CVE-2026-112897; CVE-2026-112899 through CVE-2026-112901; CVE-2026-114501; GHSA-78g4-xqwv-q3g8. |
+| DOMPurify 3.4.17 | HTML-filtering bypasses: CVE-2026-109344, CVE-2026-109345; GHSA-c6gr-qvv4-5v3f, GHSA-cg2g-xh64-v4q7, GHSA-mrv2-3pqr-j5jr. |
+| Mermaid math rendering with KaTeX 0.18.11 | Trust restrictions bypassed when prototype pollution already exists: CVE-2026-103923. |
+| ChromaDB 1.5.9+soai.1 | Serialized embedding code execution and authorization flaws: CVE-2026-45829 through CVE-2026-45831; CVE-2026-45833. |
+| Filelock 4.2.4 | Local file-handling attacks and Windows lock denial of service: CVE-2026-112907 / GHSA-567q-5qvw-pf92; CVE-2026-112913 / GHSA-9vhv-jxww-xfm5; CVE-2026-112940 / GHSA-v4x8-3wr5-3wq8. |
+| Setuptools 84.2.1 | Windows legacy wheel-installation path escape: GHSA-xmj3-9gf7-h52w. |
+| OpenTelemetry 1.45.1 | CPU exhaustion from malformed trace headers: CVE-2026-114603 / GHSA-xcq7-p3pf-p88h. |
+
+Certifi 2026.10.19 and pip 26.2.2 refresh certificate trust for the eMudhra/emSign certificate-authority compromise, which allowed forged website certificates (GHSA-6q48-6c7w-9gw2). Installation and dependency repair refresh these trust bundles before downloading other Python packages. Python 3.13.18 also rejects the compromised intermediate certificate keys in its TLS implementation. These updates do not change the operating system's certificate store. The managed browser moves to Chromium 156; the remaining browser and system-trust precautions are below.
+
+### Plugin updates
+
+Updated bundled plugins require SoAI 1.4.0 or later.
+
+- External and Ollama improve provider errors and preserve reasoning during tool use. External uses provider defaults for sampling settings you have not changed. Ollama fixes ROCm installation and rejects explicitly requested settings its Responses endpoint cannot apply, with guidance to use Chat or `/v1/chat/completions`.
+- vLLM supports version 0.30.0 and fixes incomplete Responses streams. vLLM, llama.cpp and Embedding improve runtime compatibility checks and installation recovery; llama.cpp accepts more tool schemas, while llama.cpp and Embedding avoid repeatedly hashing large model files.
+- Whisper improves long recordings, GPU selection and interrupted downloads. MeloTTS fixes voice loading and checks Docker storage before installation, which needs about 47 GB free when Docker and SoAI share a drive. CTranslate2 fixes completion requests, streaming and translation limits without interrupting other translations.
+
+### Upgrade notes
+
+- If the 1.3.1 updater reports `ambiguous installed identity` for an unmodified bundled plugin, wait for recovery to finish, stop SoAI, then run the current verified installer over the same installation and data directories.
+- On Linux and macOS, startup updates an outdated managed Python or OpenSSL runtime before opening SoAI. Allow extra time for required downloads. If offline mode blocks preparation, start once online with offline mode disabled, or prepare the required packages through your approved offline process before starting the updated installation. Application data is retained.
+- Media transcription requires an installed speech-to-text backend and model. Install the backend in Plugins and download the configured speech model through Models > Add model > Download model before using offline mode. Re-ingest files previously marked "Speech not transcribed".
+- On Windows, the first start secures the installation folder and may take longer with large data folders. Each Windows user signs in again once in the desktop window.
+- Make a new backup after updating, and reload open browser tabs before starting a restore. Older backups omit Files workspaces and leave current workspace files unchanged when restored; backups containing workspaces cannot be restored by earlier releases. Returning to an earlier Windows release requires uninstalling with data kept, installing that release and restoring a pre-update backup.
+- Preserved GPU profiles remain available after consolidation. Conflicting startup preferences disable automatic application until you review a saved slot and enable it again.
+- Updates preserve deleted built-in plugins; reinstall them through Plugins > Add plugin. Installation, updates and explicit dependency repair reapply declared backend-version limits, while retaining your selected backend and other settings.
+- Apply operating-system certificate and browser security updates for the eMudhra/emSign compromise. SoAI's Chromium update alone does not verify protection against every affected certificate chain; avoid sensitive browsing through its browser tools until a revocation mitigation is verified.
 
 ## 1.3.1
 

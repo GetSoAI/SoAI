@@ -25,6 +25,7 @@ from core.chat_presets.text_canonicalization import (
 from core.errors.exceptions import PayloadTooLargeError, ValidationError
 from core.rag.parameter_validation import validate_chunking_window
 from core.serialization.json import serialize_json_compact_stable_strict
+from core.skills.selection import canonicalize_skill_selection
 from core.types.json import JSONDict, JSONValue, is_json_value
 from core.validation.integers import is_strict_int
 from core.validation.javascript_integer import JAVASCRIPT_SAFE_INTEGER_MAX
@@ -207,6 +208,8 @@ def canonicalize_chat_preset_field(section: str, field: str, value: JSONValue) -
         return _completion_field(field, value)
     if section == "knowledge":
         return _knowledge_field(field, value)
+    if section == "skills":
+        return list(canonicalize_skill_selection(value))
     if section == "general":
         if field == "model":
             return canonicalize_trimmed_text(value, field=path, nullable=False)

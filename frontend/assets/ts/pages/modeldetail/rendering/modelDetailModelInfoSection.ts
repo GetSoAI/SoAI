@@ -81,6 +81,7 @@ const populateModelDetailModelInfo = (host: ModelDetailModelInfoHost): void => {
         ['modeldetail-plugin-status', effectiveStatus, (value: JsonValue | null | undefined) => (isString(value) ? host.describePluginStatus(value) : null)],
         ['modeldetail-model-status', isBoolean(model.isLoaded) ? (model.isLoaded ? i18n.t('modelDetail.status.loaded') : i18n.t('modelDetail.status.unloaded')) : null],
         ['modeldetail-available', isBoolean(model.isAvailable) ? (model.isAvailable ? i18n.t('modelDetail.status.yes') : i18n.t('modelDetail.status.no')) : null],
+        ['modeldetail-inference-verification', isVirtual ? null : (model.lastUsedAtMs ?? 0), (value: JsonValue | null | undefined) => (isNumber(value) && value > 0 ? i18n.t('modelDetail.cards.status.inferenceVerified', { date: formatDateTimeWithOptions(value, { dateStyle: 'medium' }) }) : isNumber(value) ? i18n.t('modelDetail.cards.status.inferenceUnverified') : null)],
         ['modeldetail-orphaned', model.isOrphaned ? i18n.t('modelDetail.status.yes') : null],
         ['modeldetail-modality-usage', null],
         ['modeldetail-avg-tokens', model.averageTokens, (value: JsonValue | null | undefined) => (isNumber(value) ? i18n.formatNumber(Math.round(value)) : null)],

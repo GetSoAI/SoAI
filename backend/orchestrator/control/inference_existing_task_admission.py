@@ -5,12 +5,16 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import replace
+from typing import TYPE_CHECKING
 
+from core.concurrency.cancellation_cleanup import cancellation_cleanup
 from core.errors.error_types import ErrorType
 from core.errors.exception_coercion import coerce_to_soai_error
-from core.errors.exception_logging import log_exception
-from core.errors.exceptions import ValidationError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.errors.exception_logging import log_exception, log_handled_exception
+from core.errors.exceptions import SoAIError, ValidationError
+from core.errors.http_status_classification import resolve_execution_error_type_for_http_status
+from core.errors.public_projection import project_public_error
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.events.bus_dispatch_logging import resolve_event_trace_id
 from core.events.types_models_requests import InferenceRequestReceived
 from core.licensing.admission import LicensingOperationClass
@@ -18,6 +22,7 @@ from core.licensing.enforcement import LICENSING_RESTRICTED_MESSAGE
 from core.licensing.protocols import LicensingStatusProtocol
 from core.logging.trace import get_logger
 from core.openai.request_fields import require_model_name
+from core.orchestrator.execution_plan import resolve_execution_plan_validation_error
 from core.orchestrator.protocols_scheduler import SchedulerPlanningProtocol
 from core.runtime.shutdown_errors import SERVER_SHUTTING_DOWN_MESSAGE
 from core.tasks.errors import TASK_STATE_PERSISTENCE_FAILED_MESSAGE
@@ -34,6 +39,9 @@ from orchestrator.queueing.execution_plan_context import (
     resolve_execution_plan_routing_key,
 )
 from orchestrator.queueing.internal_protocols import QueueServiceView
+
+if TYPE_CHECKING:
+    from core.types.json import JSONDict
 
 __all__ = ("admit_existing_inference_task_event",)
 
@@ -142,74 +150,78 @@ async def admit_existing_inference_task_event(
             task_id=task_id,
         )
         return
-    request_context = replace(
-        context,
-        priority_assignment=await queue.assign_request_priority(event.payload),
-        event=event,
-        request_payload=dict(event.payload),
-        request_event_type=event.__class__.__name__,
-        request_context_data=serialize_request_context_payload(event.context),
-        required_capabilities=tuple(event.required_capabilities or ()),
-        required_modalities=tuple(event.required_modalities or ()),
-        request_source=request_source_value,
-        delivery_mode=delivery_mode,
+    excluded_universal_ids = (
+        set(context.excluded_universal_ids) if context.excluded_universal_ids else None
     )
-    reservation_committed = False
     try:
-        try:
-            plan = await planner.resolve_execution_plan(
-                task,
-                request_context,
-                set(context.excluded_universal_ids) if context.excluded_universal_ids else None,
-            )
-        except RECOVERABLE_EXCEPTIONS as exception:
-            log_exception(
-                logger,
-                exception,
-                message="Failed to resolve execution plan for pre-created task admission.",
-                operation=OPERATION,
-                details={"task_id": task_id},
-                level="warning",
-            )
-            await queue.execution_reservations.release(request_context.tracking_id)
-            await send_error_event_and_finalize(
-                event.reply_channel,
-                "Failed to plan request.",
-                ErrorType.SERVER_ERROR,
-                registry=registry,
-                task_id=task_id,
-            )
-            return
-        if plan["status"] == "UNAVAILABLE":
-            failure_error_type = plan.get("failure_error_type")
-            failure_reason = plan.get("failure_reason")
-            if (
-                failure_error_type == "invalid_request"
-                and isinstance(failure_reason, str)
-                and failure_reason
-            ):
-                await queue.execution_reservations.release(request_context.tracking_id)
-                await send_error_event_and_finalize(
-                    event.reply_channel,
-                    failure_reason,
-                    ErrorType.INVALID_REQUEST,
-                    registry=registry,
-                    task_id=task_id,
-                )
-                return
-        routing_key = resolve_execution_plan_routing_key(
-            request_context,
-            plan,
-            requested_model_name=model_name,
+        request_context = replace(
+            context,
+            priority_assignment=await queue.assign_request_priority(event.payload),
+            event=event,
+            request_payload=dict(event.payload),
+            request_event_type=event.__class__.__name__,
+            request_context_data=serialize_request_context_payload(event.context),
+            required_capabilities=tuple(event.required_capabilities or ()),
+            required_modalities=tuple(event.required_modalities or ()),
+            request_source=request_source_value,
+            delivery_mode=delivery_mode,
         )
+        plan = await planner.resolve_execution_plan(task, request_context, excluded_universal_ids)
+    except asyncio.CancelledError:
+        await _release_execution_reservation(queue, context.tracking_id)
+        raise
+    except HANDLED_RUNTIME_EXCEPTIONS as exception:
+        await _settle_preparation_failure(
+            queue=queue,
+            event=event,
+            task_id=task_id,
+            tracking_id=context.tracking_id,
+            exception=exception,
+        )
+        return
+    validation_error = resolve_execution_plan_validation_error(plan)
+    if validation_error is not None:
+        await _release_execution_reservation(queue, context.tracking_id)
+        public_error = project_public_error(
+            validation_error,
+            trace_id=event.context.trace_id if event.context is not None else None,
+        )
+        await send_error_event_and_finalize(
+            event.reply_channel,
+            public_error.message,
+            ErrorType.INVALID_REQUEST,
+            registry=registry,
+            task_id=task_id,
+            public_error=public_error,
+        )
+        return
+    try:
         plan_context = await apply_execution_plan_context(
             queue=queue,
             task=task,
             context=request_context,
             plan=plan,
-            routing_key=routing_key,
+            routing_key=resolve_execution_plan_routing_key(
+                request_context,
+                plan,
+                requested_model_name=model_name,
+            ),
         )
-        task = plan_context.task
+    except asyncio.CancelledError:
+        await _release_execution_reservation(queue, context.tracking_id)
+        raise
+    except HANDLED_RUNTIME_EXCEPTIONS as exception:
+        await _settle_preparation_failure(
+            queue=queue,
+            event=event,
+            task_id=task_id,
+            tracking_id=context.tracking_id,
+            exception=exception,
+        )
+        return
+    task = plan_context.task
+    handoff_started = False
+    try:
         persisted, _ = await cache_and_persist_orchestration_state(
             registry,
             task,
@@ -218,7 +230,7 @@ async def admit_existing_inference_task_event(
             trace_id=resolve_event_trace_id(event),
         )
         if not persisted:
-            await queue.execution_reservations.release(request_context.tracking_id)
+            await _release_execution_reservation(queue, context.tracking_id)
             await send_error_event_and_finalize(
                 event.reply_channel,
                 TASK_STATE_PERSISTENCE_FAILED_MESSAGE,
@@ -227,6 +239,7 @@ async def admit_existing_inference_task_event(
                 task_id=task_id,
             )
             return
+        handoff_started = True
         requeued = await durably_requeue_task(
             queue,
             registry,
@@ -236,7 +249,7 @@ async def admit_existing_inference_task_event(
             failure_message="Failed to enqueue pre-created task for orchestration.",
         )
         if not requeued:
-            await queue.execution_reservations.release(request_context.tracking_id)
+            await _release_execution_reservation(queue, context.tracking_id)
             await send_error_event_and_finalize(
                 event.reply_channel,
                 "Failed to enqueue task for orchestration.",
@@ -245,10 +258,9 @@ async def admit_existing_inference_task_event(
                 task_id=task_id,
             )
             return
-        reservation_committed = True
     except asyncio.CancelledError:
-        if not reservation_committed:
-            await queue.execution_reservations.release(request_context.tracking_id)
+        if not handoff_started:
+            await _release_execution_reservation(queue, context.tracking_id)
         raise
     except Exception as exception:
         coerced = coerce_to_soai_error(exception, operation=OPERATION)
@@ -259,9 +271,55 @@ async def admit_existing_inference_task_event(
             operation=OPERATION,
             details={"task_id": task_id},
         )
-        if not reservation_committed:
-            await queue.execution_reservations.release(request_context.tracking_id)
+        if not handoff_started:
+            await _release_execution_reservation(queue, context.tracking_id)
         raise
     refreshed = await registry.get(task.task_id, force_refresh=True)
     if refreshed is not None:
         await registry.update_task_cache(refreshed)
+
+
+async def _release_execution_reservation(queue: QueueServiceView, tracking_id: str) -> None:
+    await cancellation_cleanup(queue.execution_reservations.release(tracking_id))
+
+
+async def _settle_preparation_failure(
+    *,
+    queue: QueueServiceView,
+    event: InferenceRequestReceived,
+    task_id: str,
+    tracking_id: str,
+    exception: Exception,
+) -> None:
+    coerced = coerce_to_soai_error(exception, operation=OPERATION)
+    details: JSONDict = {"task_id": task_id}
+    if isinstance(exception, SoAIError):
+        log_handled_exception(
+            get_logger(LOGGER_NAME),
+            coerced,
+            message="Pre-created inference task admission was rejected during preparation.",
+            operation=OPERATION,
+            details=details,
+            level="debug",
+        )
+    else:
+        log_exception(
+            get_logger(LOGGER_NAME),
+            coerced,
+            message="Failed to prepare pre-created inference task admission.",
+            operation=OPERATION,
+            details=details,
+        )
+    await _release_execution_reservation(queue, tracking_id)
+    public_error = project_public_error(
+        coerced,
+        trace_id=event.context.trace_id if event.context is not None else None,
+    )
+    await send_error_event_and_finalize(
+        event.reply_channel,
+        public_error.message,
+        resolve_execution_error_type_for_http_status(coerced.http_status),
+        registry=queue.task_registry,
+        task_id=task_id,
+        public_error=public_error,
+    )

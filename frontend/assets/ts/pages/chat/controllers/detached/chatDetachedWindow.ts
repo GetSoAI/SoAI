@@ -5,7 +5,7 @@ import { cloneChatParameters } from '@core/chat/parameters/chatParameterDefaults
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { openDetachedRuntimeWindow } from '@core/runtimeenv/public.ts';
+import { getWindowService, openDetachedRuntimeWindow } from '@core/runtimeenv/public.ts';
 import { isJsonValue, type JsonObject } from '@core/types/jsonValues.ts';
 import { isBoolean, isString } from '@core/typeGuards.ts';
 import type { ChatParameters } from '@features/chat/public.ts';
@@ -136,6 +136,7 @@ const applyDetachedBootstrapState = (host: DetachedWindowHost, parameters: JsonO
     host.presentation.updateModelUI();
     host.presentation.updateParameterUi();
     host.presentation.updateInputState();
+    getWindowService().setDetachedParametersSource(() => buildDetachedLaunchParameters(host));
 };
 
 export type { DetachedWindowHost };

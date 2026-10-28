@@ -42,9 +42,12 @@ class FileExplorerDataController {
     #sortDirection: SortDirection = 'asc';
     #isLoading = false;
     #isLoadingMore = false;
+    #errorMessage: string | null = null;
     #query = '';
     #preservedScrollTop: number | null = null;
     #resetRowsScroll = false;
+    #retainRowsDuringReload = false;
+    #sortReloadSequence = 0;
 
     constructor(dependencies: { host: FileExplorerControllerHost; ui: FileExplorerUiRefs; initialSort: FileExplorerSortState; persistSort: (state: FileExplorerSortState) => void; recentUploads: FileExplorerRecentUploadController; selection: FileExplorerSelectionModel; rowsReveal: FileExplorerRowsRevealController; onStateChanged: (currentPath: string, isLoading: boolean) => void; onRowsCommitted?: (() => void) | undefined }) {
         this.#host = dependencies.host;
@@ -81,9 +84,13 @@ class FileExplorerDataController {
     }
 
     destroy(): void {
-        this.#browser.destroy();
+        this.releaseListing();
         this.#rowsRenderer.dispose();
         this.#breadcrumb.dispose();
+    }
+
+    releaseListing(): void {
+        this.#browser.destroy();
     }
 
     getCurrentPath(): string {
@@ -136,7 +143,7 @@ class FileExplorerDataController {
     }
 
     reapplyAfterViewModeChange(): void {
-        this.#renderRows();
+        this.#renderRows(false);
     }
 
     async revealPath(path: string): Promise<boolean> {
@@ -181,14 +188,20 @@ class FileExplorerDataController {
 
     async #renderAfterSortChange(): Promise<void> {
         if (!this.#query) {
-            await this.#browser.setSort(this.#sortColumn, this.#sortDirection);
+            const sequence = ++this.#sortReloadSequence;
+            this.#retainRowsDuringReload = true;
+            try {
+                await this.#browser.setSort(this.#sortColumn, this.#sortDirection);
+            } finally {
+                if (sequence === this.#sortReloadSequence) this.#retainRowsDuringReload = false;
+            }
             return;
         }
         if (this.#isLoading) {
-            this.#renderRows();
+            this.#renderRows(false);
             return;
         }
-        this.#renderRows();
+        this.#renderRows(true);
         this.#emitStateChanged();
     }
 
@@ -196,6 +209,8 @@ class FileExplorerDataController {
         if (state.isLoading) {
             const samePath = toVirtualPath(state.currentPath) === toVirtualPath(this.#currentPath);
             this.#preservedScrollTop = samePath ? this.#ui.rowsBody.scrollTop : null;
+            if (!samePath || state.query !== this.#query) this.#retainRowsDuringReload = false;
+            else if (!this.#isLoading && this.#entries.length > 0) this.#retainRowsDuringReload = true;
             this.#resetRowsScroll = !samePath;
             this.#recentUploads.handleListingLoad(state.currentPath, state.sessionRevision);
         }
@@ -204,9 +219,10 @@ class FileExplorerDataController {
         this.#query = state.query;
         this.#isLoading = state.isLoading;
         this.#isLoadingMore = state.isLoadingMore;
+        this.#errorMessage = state.errorMessage;
         this.#entries = state.isLoading ? [] : [...state.entries];
         if (state.isLoading) {
-            this.#renderRows();
+            if (!this.#retainRowsDuringReload) this.#renderRows(false);
             this.#renderBreadcrumb(state.currentPath);
             this.#ui.resultCount.textContent = i18n.t('common.loading');
             setTooltipText(this.#ui.resultCount, this.#loadingLabel());
@@ -215,7 +231,9 @@ class FileExplorerDataController {
             this.#emitStateChanged();
             return;
         }
-        this.#renderRows();
+        const animateLayout = this.#retainRowsDuringReload;
+        this.#retainRowsDuringReload = false;
+        this.#renderRows(animateLayout);
         this.#renderBreadcrumb(state.currentPath);
         const truncatedSearch = Boolean(state.query) && state.truncated;
         this.#ui.resultCount.textContent = truncatedSearch ? `${this.#entries.length}+` : String(state.total);
@@ -236,15 +254,18 @@ class FileExplorerDataController {
         });
     }
 
-    #renderRows(): void {
+    #renderRows(animateLayout: boolean): void {
         const sorted = this.#query ? sortFileExplorerEntries(this.#entries, this.#sortColumn, this.#sortDirection) : this.#entries;
         this.#rowsRenderer.update({
             entries: this.#isLoading ? [] : sorted,
             currentPath: this.#currentPath,
             isLoading: this.#isLoading,
+            sessionRevision: this.#browser.getState().sessionRevision,
             isLoadingMore: this.#isLoadingMore,
             loadingLabel: this.#loadingLabel(),
-            resetScroll: this.#resetRowsScroll
+            resetScroll: this.#resetRowsScroll,
+            animateLayout,
+            errorMessage: this.#errorMessage
         });
         this.#updateSortIndicators();
     }

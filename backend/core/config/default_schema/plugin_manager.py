@@ -25,6 +25,7 @@ def build_plugin_manager_defaults() -> ConfigDict:
                 "UPLOADS": True,
                 "DOWNLOADS": True,
             },
+            "BACKEND_UPDATES": {"AUTO_UPDATE_BUILTIN": True},
             "SECURITY": {
                 "ALLOW_INSECURE_DOWNLOADS": False,
                 "SAFETY_VALIDATION": True,

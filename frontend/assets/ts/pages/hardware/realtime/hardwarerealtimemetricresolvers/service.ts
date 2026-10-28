@@ -1,6 +1,8 @@
 /* SoAI - Realtime hardware metric resolver service [frontend/assets/ts/pages/hardware/realtime/hardwarerealtimemetricresolvers/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isCurrentHardwareObservationSample, resolveHardwareObservation } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
+import { normalizeIdentifier } from '@features/hardware/public.ts';
 import { clampPercent } from '@core/primitives/clampNumber.ts';
 import { isFiniteNumber, isNullOrUndefined } from '@core/typeGuards.ts';
 import { resolveGpuMetric } from '@pages/hardware/realtime/hardwarerealtimemetricresolvers/actions.ts';
@@ -52,7 +54,20 @@ const resolveCpuMetric = (metricKey: string | undefined, payload: import('@pages
     return null;
 };
 
+const resolveRealtimeMetricTimestamp = ({ metricKey, selectedTarget, payload }: Pick<RealtimeMetricResolverContext, 'metricKey' | 'selectedTarget' | 'payload'>): number | null | undefined => {
+    const component = selectedTarget.type === STR_GPU ? 'gpu' : selectedTarget.type === STR_DISK ? 'disk' : selectedTarget.type === STR_NETWORK ? 'network_speed' : metricKey === 'memory_percent' ? 'memory' : 'cpus';
+    const observation = resolveHardwareObservation(payload, component);
+    if (!isCurrentHardwareObservationSample(observation, payload.timestampMs)) return null;
+    if (selectedTarget.type === STR_DISK) {
+        const row = payload.disk?.find((volume) => typeof volume.deviceId === 'string' && typeof selectedTarget.identifier === 'string' && normalizeIdentifier(STR_DISK, volume.deviceId) === normalizeIdentifier(STR_DISK, selectedTarget.identifier));
+        if (!isCurrentHardwareObservationSample(row?.observationStatus, payload.timestampMs)) return null;
+        return row?.observationStatus?.observedAtMs ?? observation?.observedAtMs ?? payload.timestampMs;
+    }
+    return observation?.observedAtMs ?? payload.timestampMs;
+};
+
 const extractRealtimeMetricValue = ({ metricKey, selectedTarget, payload, networkSpeedSources, chartOhlc }: RealtimeMetricResolverContext): number | null => {
+    if (resolveRealtimeMetricTimestamp({ metricKey, selectedTarget, payload }) === null) return null;
     if (selectedTarget.type === STR_GPU) {
         return resolveGpuMetric(metricKey, payload, selectedTarget, chartOhlc);
     }
@@ -65,4 +80,4 @@ const extractRealtimeMetricValue = ({ metricKey, selectedTarget, payload, networ
     return resolveCpuMetric(metricKey, payload, chartOhlc);
 };
 
-export { extractRealtimeMetricValue };
+export { extractRealtimeMetricValue, resolveRealtimeMetricTimestamp };

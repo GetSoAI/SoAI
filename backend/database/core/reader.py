@@ -13,7 +13,7 @@ from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.sqlite.policy import build_sqlite_read_pragmas
-from core.state.errors import DatabaseUnavailableError
+from core.state.errors import DatabaseReadCleanupError, DatabaseUnavailableError
 from database.core.paths import DatabasePaths
 from database.core.writer import DatabaseWriter
 from database.io.read_pool import ReadConnectionPool
@@ -106,8 +106,12 @@ class DatabaseReader:
             self._handle_read_error(exception)
         except aiosqlite.Error as exception:
             self._handle_read_error(exception)
+        reusable = True
         try:
             return await func(connection, *args, **named_args)
+        except DatabaseReadCleanupError:
+            reusable = False
+            raise
         except (aiosqlite.OperationalError, aiosqlite.DatabaseError) as exception:
             error_message = str(exception).lower()
             if "no such table" in error_message:
@@ -125,7 +129,7 @@ class DatabaseReader:
             self._handle_read_error(exception)
         finally:
             if connection is not None:
-                await self._read_pool.release(connection)
+                await self._read_pool.release(connection, reusable=reusable)
 
     async def shutdown(self) -> None:
         logger = get_logger(LOGGER_NAME)

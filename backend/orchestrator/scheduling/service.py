@@ -161,6 +161,7 @@ class OrchestratorScheduler:
                 dispatch_ready_states=set(DISPATCH_READY_STATES),
                 ensure_plugin_capacity=self._capacity_service.ensure_plugin_capacity,
                 schedule_plugin_dispatch=self.schedule_plugin_dispatch,
+                queue_scheduler_work=self.queue_scheduler_work,
             ),
         )
 

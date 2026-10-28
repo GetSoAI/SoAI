@@ -16,6 +16,7 @@ from hardware.presets.slot_storage import (
     GpuSlotStorageManagerDependencies,
 )
 from hardware.vendor_detection_service import GPUVendorDetectionService
+from hardware.vendors.amd.adl_session import AdlRuntime
 
 __all__ = ("load_gpu_slot_storage",)
 
@@ -30,6 +31,7 @@ def load_gpu_slot_storage(
     gpu_vendor_detection_service: GPUVendorDetectionService,
     nvidia_nvml_gate: NvmlGateProtocol,
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
+    adl_runtime: AdlRuntime | None = None,
 ) -> GpuSlotStorageManager:
     gpu_slot_storage = GpuSlotStorageManager(
         GpuSlotStorageManagerDependencies(
@@ -45,6 +47,7 @@ def load_gpu_slot_storage(
         gpu_vendor_detection_service=gpu_vendor_detection_service,
         nvidia_nvml_gate=nvidia_nvml_gate,
         nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
+        adl_runtime=adl_runtime,
         prune=True,
         allow_create=True,
     )

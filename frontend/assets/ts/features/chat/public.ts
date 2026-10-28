@@ -52,6 +52,7 @@ export type { ComposerDraftFlushOptions, ComposerDraftSurfaceSnapshot } from '@f
 export { createLinkedKnowledgeClientBatchId } from '@features/chat/attachments/linkedKnowledgeClientBatchId.ts';
 export type { LinkedKnowledgeClientBatchSelection } from '@features/chat/attachments/linkedKnowledgeClientBatchId.ts';
 export { knowledgeSummaryMatchesIngestion } from '@features/chat/knowledgeAttachmentPresentation.ts';
+export { isClaimableKnowledgeDraft } from '@features/chat/knowledgeAttachmentReadiness.ts';
 export { isChatAttachmentReadyForSend } from '@features/chat/ChatAttachmentSupport.ts';
 export { isSupportedChatImageFile } from '@features/chat/ChatAttachmentSupport.ts';
 export { cloneSoaiPathDraftRecordContentPart, isSoaiPathDraftRecord, parseSoaiPathDraftRecords, resolveSoaiPathDraftRecordTitle, resolveSoaiPathDraftRecordToken } from '@features/chat/attachments/soaiPathDraftRecords.ts';
@@ -65,12 +66,12 @@ export type { SoaiPathStoragePart } from '@features/chat/attachments/soaiPathCon
 export { captureSoaiLinkWorkspaceSnapshot, matchesSoaiLinkWorkspaceSnapshot } from '@features/chat/attachments/soaiLinkWorkspaceSnapshot.ts';
 export { requireMatchingResolveContentParts, requireMatchingResolveRecords } from '@features/chat/attachments/soaiLinkResolveValidation.ts';
 export type { SoaiPathDraftRecord } from '@features/chat/attachments/soaiPathDraftRecords.ts';
-export { transcribeAudioBlob } from '@features/chat/api/webuiMediaAudio.ts';
+export { resolveTranscriptionFailureText, transcribeAudioBlob } from '@features/chat/api/webuiMediaAudio.ts';
 export { ChatAudioManager } from '@features/chat/ChatAudioManager.ts';
-export { readChatErrorPresentation, resolveChatErrorDetailText, resolveChatRequestErrorNotificationMessage, resolveTokenCounterErrorNotificationMessage } from '@features/chat/chatErrorPresentation.ts';
+export { readChatErrorPresentation, resolveChatErrorDetailText, resolveChatRequestErrorNotificationMessage, resolveContextBudgetErrorMessage, resolveTokenCounterErrorNotificationMessage } from '@features/chat/chatErrorPresentation.ts';
 export type { AudioRecordingIntent, AudioRecordingSnapshot, AudioRecordingStart, AudioRecordingTerminalOutcome, AudioRecordingTimerHost, AudioState } from '@features/chat/ChatAudioManager.ts';
 export { ChatColorToolkit } from '@features/chat/ChatColorToolkit.ts';
-export { CHAT_ACTION_ID_OPEN_MODEL_DETAIL, CHAT_ACTION_ID_SECRET_PROMPT_CANCEL, CHAT_ACTION_ID_SECRET_PROMPT_SUBMIT, CHAT_CHARACTER_MAP_BUTTON_CLASS, CHAT_SKETCH_BUTTON_CLASS, CHAT_EVENT_MODEL_SELECTION_CHANGED, CONVERSATION_TITLE_MAX_LENGTH, CHAT_MOBILE_SIDEBAR_BREAKPOINT_PX, CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX, CHAT_ATTACHMENT_INLINE_LIMIT, CHAT_ICON_SIZE_MD, CHAT_ICON_SIZE_SM, CHAT_ICON_SIZE_XS, CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
+export { CHAT_ACTION_ID_OPEN_MODEL_DETAIL, CHAT_ACTION_ID_SECRET_PROMPT_CANCEL, CHAT_ACTION_ID_SECRET_PROMPT_SUBMIT, CHAT_CHARACTER_MAP_BUTTON_CLASS, CHAT_SKETCH_BUTTON_CLASS, CHAT_EVENT_MODEL_SELECTION_CHANGED, CONVERSATION_TITLE_MAX_LENGTH, CHAT_MOBILE_SIDEBAR_BREAKPOINT_PX, CHAT_ATTACHMENT_INLINE_LIMIT, CHAT_ICON_SIZE_MD, CHAT_ICON_SIZE_SM, CHAT_ICON_SIZE_XS, CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
 export { CHAT_CHARACTER_MAP_MODAL_ID, CHAT_SKETCH_MODAL_ID } from '@features/chat/modals/constants.ts';
 export { CHARACTER_MAP_ACTIONS, isCharacterMapAction } from '@features/chat/charactermap/actions.ts';
 export type { CharacterMapAction } from '@features/chat/charactermap/actions.ts';
@@ -111,7 +112,7 @@ export { CHAT_ATTACH_MODAL_ACTIONS, isChatAttachModalAction } from '@features/ch
 export { createCameraCaptureRuntime } from '@features/chat/composerattachmodal/cameraCapture.ts';
 export type { ChatAttachModalAction } from '@features/chat/composerattachmodal/actions.ts';
 export type { ChatAttachCameraElements, ChatAttachCameraRuntime } from '@features/chat/composerattachmodal/cameraCapture.ts';
-export { CHAT_CONVERSATION_INPUT_MODAL_ID, ARCHIVED_CONVERSATIONS_MODAL_ID, CHAT_ATTACH_MODAL_ID, CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, CHAT_PROMPTS_PICKER_MODAL_ID, CHAT_TOOL_CALL_OUTPUT_MODAL_ID, CHAT_VOICE_CALL_MODAL_ID } from '@features/chat/modals/constants.ts';
+export { CHAT_CONVERSATION_INPUT_MODAL_ID, ARCHIVED_CONVERSATIONS_MODAL_ID, CHAT_ATTACH_MODAL_ID, CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, CHAT_TOOL_CALL_OUTPUT_MODAL_ID, CHAT_VOICE_CALL_MODAL_ID } from '@features/chat/modals/constants.ts';
 export { MESSAGE_INFO_MODAL_ID } from '@features/chat/message/messageinfomodal/constants.ts';
 export { ChatConversationManager } from '@features/chat/ChatConversationManager.ts';
 export { ChatPageEmptyState } from '@features/chat/ChatEmptyState.ts';
@@ -122,6 +123,7 @@ export { setRunningActivityRevealPending } from '@features/chat/message/messageR
 export { hasPersistedMessageId } from '@features/chat/message/persistedMessageIdentity.ts';
 export { applyMarkdownTableSort, isMarkdownTableHeaderLinkTarget, resolveMarkdownTableSortHeader } from '@features/chat/message/markdownTableSorting.ts';
 export { hasTerminalAssistantState } from '@features/chat/message/assistantTerminalState.ts';
+export { resolveSpeechFailureMessage } from '@features/chat/tts/speechFailurePresentation.ts';
 export type { ActiveComparisonRun } from '@features/chat/message/activeStreamingAssistantMessage.ts';
 export { isSoaiFilePreviewType } from '@features/chat/attachments/attachmentPreviewTypes.ts';
 export type { SoaiFilePreviewType } from '@features/chat/attachments/attachmentPreviewTypes.ts';
@@ -169,6 +171,8 @@ export { hasSelectedToolsForActiveMode, isToolsEffectivelyEnabled } from '@featu
 export { renderMcpDefaultToolsModal, renderMcpDefaultToolsSummary, renderMcpServers, renderMcpTools } from '@features/chat/conversationsettings/mcpConversationSettingsUi.ts';
 export { isMcpConversationActionId } from '@features/chat/conversationsettings/mcpconversationsettingscontroller/actionIds.ts';
 export type { McpConversationActionId } from '@features/chat/conversationsettings/mcpconversationsettingscontroller/actionIds.ts';
+export { isSkillAction } from '@features/chat/conversationsettings/skills/actionIds.ts';
+export type { SkillAction } from '@features/chat/conversationsettings/skills/actionIds.ts';
 export type { ConversationWorkspacePathConfig, McpConfig, McpFormValues, McpTool, McpToolMode, RagConfig, RagDocument, RagDocumentsPage } from '@features/chat/conversationsettings/settingsModels.ts';
 export type { ConversationSettingsControllerBundle } from '@features/chat/conversationsettings/controllerRegistry.ts';
 export type { IdentityPromptsSnapshot } from '@features/chat/conversationsettings/identitypromptsconversationsettingscontroller/identityPromptsSnapshot.ts';
@@ -240,6 +244,7 @@ export type { ChatPageApi, ChatPreferencesManager, ChatUiParameters, ModelStream
 export { isChatParameterControlElement, resolveChatParameterControlElement } from '@features/chat/parameters/parameterElementResolution.ts';
 export type { ChatParameterControlElement } from '@features/chat/parameters/parameterElementResolution.ts';
 export { ChatConversationInputsManager } from '@features/chat/conversationinputs/ChatConversationInputsManager.ts';
+export type { ConversationInputEnqueuePayload } from '@features/chat/conversationinputs/conversationInputEnqueueRequest.ts';
 export { mountOptimisticInputUserMessage, resolveOptimisticInputOrderingAnchor } from '@features/chat/conversationinputs/optimisticInputUserMessage.ts';
 export { ChatAttachmentProcessor } from '@features/chat/ChatAttachmentProcessor.ts';
 export { ChatStorageManager } from '@features/chat/storage/service.ts';
@@ -271,7 +276,7 @@ export { applyCollapsedActivityState, readCollapsedActivityState } from '@featur
 export { applyUserSystemPromptToModelSettings, readUserSystemPromptLockState } from '@features/chat/systemPromptLock.ts';
 export { applyBackendChatPreferencesToPageState, buildBackendChatPreferencesPatch, projectBackendConversationDefaults, projectBackendMcpDefaults, projectBackendRagDefaults } from '@features/chat/backendChatPreferences.ts';
 export { AGENT_PLAN_MODAL_ID, CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID } from '@features/chat/modals/constants.ts';
-export { CHAT_MEMORY_PROFILE_MODAL_ID } from '@features/chat/modals/constants.ts';
+export { CHAT_MEMORY_PROFILE_MODAL_ID, CHAT_MEMORY_RECORD_MODAL_ID } from '@features/chat/modals/constants.ts';
 export { CHAT_MEMORY_UPDATED_EVENT } from '@features/chat/modals/chatMemoryProfileModal.ts';
 export { CHAT_MEMORY_PROFILE_FIRST_RUN_REGISTRATION } from '@features/chat/firstRunRegistration.ts';
 export { tryExtractWaitArguments } from '@features/chat/toolactivity/payloadReaders.ts';

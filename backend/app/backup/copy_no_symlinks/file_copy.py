@@ -12,6 +12,7 @@ from app.backup.copy_no_symlinks.deadlines import check_deadline
 from core.config.byte_sizes import MIB_BYTES
 from core.errors.exceptions import SecurityError, StateError, ValidationError
 from core.files.temp_files import create_secure_temp_file_descriptor
+from core.filesystem.descriptor_io import open_descriptor
 from core.filesystem.file_sync import flush_and_fsync_file
 from core.filesystem.path_coercion import normalize_filesystem_path
 from core.hardware.reserved_writes import write_reserved_bytes
@@ -66,7 +67,7 @@ def _sync_copy_file_secure(
     temp_fd: int | None = None
     temp_path: str | None = None
     try:
-        source_fd = os.open(normalize_filesystem_path(source_path), read_flags)
+        source_fd = open_descriptor(normalize_filesystem_path(source_path), read_flags)
         stat_info = os.fstat(source_fd)
         if not stat.S_ISREG(stat_info.st_mode):
             raise ValidationError(f"Expected a regular file at {source_path}.")

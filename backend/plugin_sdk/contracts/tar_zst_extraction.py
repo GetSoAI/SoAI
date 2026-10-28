@@ -10,9 +10,11 @@ from typing import TYPE_CHECKING
 
 import zstandard
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.config.byte_sizes import MIB_BYTES
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import ValidationError
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.files.temp_files import create_secure_temp_file_descriptor
 from core.filesystem.open_files import open_binary
 from core.hardware.reservation_exceptions import (
@@ -20,7 +22,10 @@ from core.hardware.reservation_exceptions import (
     preserve_primary_exception_cleanup_failure,
 )
 from core.logging.trace import get_logger
-from plugin_sdk.contracts.archive_extraction import async_safe_tar_extractall
+from plugin_sdk.contracts.archive_extraction import (
+    async_safe_tar_extractall,
+    check_archive_shutdown,
+)
 from plugin_sdk.contracts.disk_claims import claim_plugin_reserved_write
 
 if TYPE_CHECKING:
@@ -42,6 +47,7 @@ async def async_safe_tar_zst_extractall(
     reservation_provider: PluginStorageRuntimeProtocol,
     temp_dir: str | None = None,
     max_decompressed_bytes: int | None = None,
+    shutdown_event: asyncio.Event | None = None,
 ) -> None:
     logger = get_logger(LOGGER_NAME)
     if not archive_path.strip():
@@ -61,6 +67,8 @@ async def async_safe_tar_zst_extractall(
     os.close(fd)
 
     held_reservations: list[PluginStorageReservationLeaseProtocol] = []
+    event = shutdown_event if shutdown_event is not None else asyncio.Event()
+    primary_exception: BaseException | None = None
     try:
         await _decompress_to_temp_tar(
             archive_path=archive_path,
@@ -68,12 +76,20 @@ async def async_safe_tar_zst_extractall(
             max_decompressed_bytes=max_decompressed_bytes,
             reservation_provider=reservation_provider,
             held_reservations=held_reservations,
+            shutdown_event=event,
         )
         await async_safe_tar_extractall(
             temp_tar_path,
             dest_dir,
             reservation_provider=reservation_provider,
+            shutdown_event=event,
         )
+    except asyncio.CancelledError as exception:
+        primary_exception = exception
+        raise
+    except HANDLED_RUNTIME_EXCEPTIONS as exception:
+        primary_exception = exception
+        raise
     finally:
         try:
             await asyncio.to_thread(os.remove, temp_tar_path)
@@ -87,7 +103,14 @@ async def async_safe_tar_zst_extractall(
                 level="debug",
             )
         finally:
-            await _release_reservations(tuple(held_reservations))
+            try:
+                await _release_reservations(tuple(held_reservations))
+            except DISK_RESERVATION_OPERATION_EXCEPTIONS as release_exception:
+                preserve_primary_exception_cleanup_failure(
+                    primary_exception,
+                    release_exception,
+                    cleanup_action="Plugin tar.zst reservation release",
+                )
 
 
 async def _decompress_to_temp_tar(
@@ -97,6 +120,7 @@ async def _decompress_to_temp_tar(
     max_decompressed_bytes: int | None,
     reservation_provider: PluginStorageRuntimeProtocol,
     held_reservations: list[PluginStorageReservationLeaseProtocol],
+    shutdown_event: asyncio.Event,
 ) -> None:
     declared_reservation: PluginStorageReservationLeaseProtocol | None = None
     if max_decompressed_bytes is not None:
@@ -114,7 +138,14 @@ async def _decompress_to_temp_tar(
             with decompressor.stream_reader(source_handle) as reader:
                 with open_binary(temp_tar_path, mode="wb") as dest_handle:
                     while True:
-                        chunk = await asyncio.to_thread(reader.read, MIB_BYTES)
+                        check_archive_shutdown(shutdown_event)
+                        chunk = await run_joined_thread_call(
+                            reader.read,
+                            MIB_BYTES,
+                            task_name="plugin-zstd-read",
+                            retain_resources_until_complete=True,
+                            on_cancel=shutdown_event.set,
+                        )
                         if not chunk:
                             break
                         decompressed_bytes += len(chunk)
@@ -158,7 +189,12 @@ async def _write_decompressed_chunk(
             size_bytes=len(chunk),
             cleanup_action="Plugin SDK tar.zst declared claim commit after write failure",
         ):
-            await asyncio.to_thread(dest_handle.write, chunk)
+            await run_joined_thread_call(
+                dest_handle.write,
+                chunk,
+                task_name="plugin-zstd-write",
+                retain_resources_until_complete=True,
+            )
         return
     chunk_reservation = await reservation_provider.reserve_disk_space(
         path=temp_tar_path,
@@ -172,7 +208,20 @@ async def _write_decompressed_chunk(
         size_bytes=len(chunk),
         cleanup_action="Plugin SDK tar.zst chunk claim commit after write failure",
     ):
-        await asyncio.to_thread(dest_handle.write, chunk)
+        await run_joined_thread_call(
+            _write_and_flush,
+            dest_handle,
+            chunk,
+            task_name="plugin-zstd-write",
+            retain_resources_until_complete=True,
+        )
+    await chunk_reservation.release()
+    held_reservations.remove(chunk_reservation)
+
+
+def _write_and_flush(dest_handle: io.BufferedWriter, chunk: bytes) -> None:
+    dest_handle.write(chunk)
+    dest_handle.flush()
 
 
 async def _release_reservations(

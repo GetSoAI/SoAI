@@ -43,6 +43,7 @@ const createContentPreviewModalElement = (): HTMLElement => {
     const header = renderStandardModalHeader({
         modalId,
         title: uiHtml``,
+        localizeTitle: false,
         titleId,
         description: '',
         descriptionId,

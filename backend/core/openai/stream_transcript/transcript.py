@@ -43,6 +43,7 @@ class OpenAIStreamTranscript:
         provider_id: str | None = None,
         task_id: str | None = None,
         trace_id: str | None = None,
+        error_origin: Literal["upstream", "local_terminal"] = "upstream",
     ) -> None:
         self._frame_accumulator = OpenAISSEFrameAccumulator()
         self._result_format: Literal["chat", "completions"] = result_format
@@ -53,6 +54,7 @@ class OpenAIStreamTranscript:
         self._provider_id = provider_id
         self._task_id = task_id
         self._trace_id = trace_id
+        self._error_origin: Literal["upstream", "local_terminal"] = error_origin
         self._result_created_at: int | None = None
         self._result_id: str | None = None
         self._finalized = False
@@ -94,6 +96,7 @@ class OpenAIStreamTranscript:
                 provider_id=self._provider_id,
                 task_id=self._task_id,
                 trace_id=self._trace_id,
+                origin=self._error_origin,
             )
         for payload in parse_openai_sse_frame_payloads(frame):
             self._consume_payload(payload)

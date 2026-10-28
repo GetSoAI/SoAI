@@ -17,6 +17,7 @@ from database.repositories.users.conversation_attachment_knowledge_counts import
 from database.repositories.users.conversation_attachment_rows import (
     format_knowledge_attachment_row,
 )
+from database.repositories.users.conversation_knowledge_extraction import KNOWLEDGE_SUMMARY_COLUMNS
 from database.repositories.users.conversation_linked_knowledge_signature import (
     MISSING_SOURCE_REASON,
     linked_state_signature,
@@ -230,8 +231,8 @@ def sync_refresh_linked_knowledge_availability(
         return None
     summary_row = sync_fetch_one_as_dict(
         conn.execute(
-            """
-            SELECT *
+            f"""
+            SELECT {KNOWLEDGE_SUMMARY_COLUMNS}
             FROM webui_conversation_knowledge_attachments
             WHERE id = ?
             """,

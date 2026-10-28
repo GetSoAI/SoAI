@@ -7,6 +7,7 @@ import asyncio
 import inspect
 from collections.abc import Awaitable, Coroutine
 from functools import partial
+from typing import TypeGuard
 
 from core.concurrency.protocols import CancellationTokenProtocol
 
@@ -14,9 +15,16 @@ __all__ = (
     "await_wrapper",
     "close_awaitable_if_cancelled",
     "create_task_with_rejection_cleanup",
+    "is_coroutine",
     "token_is_cancelled",
     "try_close_unawaited",
 )
+
+
+def is_coroutine[TaskResult](
+    value: Coroutine[None, None, TaskResult] | Awaitable[TaskResult],
+) -> TypeGuard[Coroutine[None, None, TaskResult]]:
+    return isinstance(value, Coroutine)
 
 
 async def await_wrapper[TaskResult](awaitable_value: Awaitable[TaskResult]) -> TaskResult:
@@ -38,7 +46,7 @@ def create_task_with_rejection_cleanup[TaskResult](
             if loop is None
             else loop.create_task(wrapper, name=name)
         )
-        if isinstance(awaitable_value, Coroutine):
+        if is_coroutine(awaitable_value):
             task.add_done_callback(
                 partial(close_awaitable_if_cancelled, awaitable_value=awaitable_value),
             )

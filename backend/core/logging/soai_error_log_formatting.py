@@ -35,7 +35,7 @@ def extract_soai_error_payload(record: logging.LogRecord) -> JSONDict | None:
 
 
 def _sanitize_error_message(value: str) -> str:
-    sanitized = value.replace("\n", " ").strip()
+    sanitized = value.replace("\r", " ").replace("\n", " ").strip()
     if len(sanitized) <= _MAX_ERROR_MESSAGE_LENGTH:
         return sanitized
     return f"{sanitized[: _MAX_ERROR_MESSAGE_LENGTH - 3]}..."
@@ -54,6 +54,11 @@ def build_soai_error_log_suffix(payload: Mapping[str, JSONValue] | None) -> str:
     trace_id = payload.get("trace_id")
     if isinstance(trace_id, str) and trace_id:
         parts.append(f"trace_id={trace_id}")
+    error_class = payload.get("error_class")
+    if isinstance(error_class, str):
+        error_class = _sanitize_error_message(error_class)
+        if error_class:
+            parts.append(f"error_class={error_class}")
     error_message = payload.get("error_message")
     if isinstance(error_message, str) and error_message:
         parts.append(f"error={_sanitize_error_message(error_message)}")

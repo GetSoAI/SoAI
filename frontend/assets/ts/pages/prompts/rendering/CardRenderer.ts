@@ -1,7 +1,7 @@
 /* SoAI - Prompts page card renderer [frontend/assets/ts/pages/prompts/rendering/CardRenderer.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { toTrustedUiHtml } from '@core/security/public.ts';
+import { renderLabelAttributes, toTrustedUiHtml } from '@core/security/public.ts';
 import { serializeElementToHtml } from '@core/dom/html.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { BaseCardRenderer, type CardRendererHost } from '@core/ui/BaseCardRenderer.ts';
@@ -81,7 +81,7 @@ class PromptCardRenderer extends BaseCardRenderer<PromptRecord | null | undefine
 
     buildHeader(prompt: PromptRecord, context: RenderContext = {}): string {
         const editing = Boolean(context.editing);
-        const titleContent = editing ? this.renderTitleInput(prompt) : this.renderTitleText(prompt);
+        const titleContent = editing ? this.renderTitleInput(prompt) : this.renderTitleButton(prompt);
         return this.cards.section({
             className: 'prompt-card-header',
             children: this.cards.section({
@@ -117,18 +117,18 @@ class PromptCardRenderer extends BaseCardRenderer<PromptRecord | null | undefine
 
     buildEditingFooter(prompt: PromptRecord): string {
         const cancelBtn = this.cards.button({
-            className: 'ui-button ui-button--sm ui-variant-neutral',
+            className: 'ui-button ui-button--sm ui-variant-neutral prompt-card-cancel-edit',
             dataset: { action: PROMPTS_ACTION_CARD_CANCEL_EDIT },
             content: this.cards.escapeHtml(i18n.t('common.cancel'))
         });
         const saveBtn = this.cards.button({
-            className: 'ui-button ui-button--sm ui-variant-accent',
+            className: 'ui-button ui-button--sm ui-variant-accent prompt-card-save-edit',
             dataset: { action: PROMPTS_ACTION_CARD_SAVE_EDIT },
             content: this.cards.escapeHtml(i18n.t('prompts.actions.save'))
         });
         const colorPicker = this.renderColorPickerMarkup(prompt.color);
         return this.cards.section({
-            className: 'prompt-card-footer prompt-card-save-actions',
+            className: 'prompt-card-footer',
             children: `${cancelBtn}${colorPicker}${saveBtn}`
         });
     }
@@ -171,9 +171,9 @@ class PromptCardRenderer extends BaseCardRenderer<PromptRecord | null | undefine
         return `<input type="text" dir="auto" data-field="name" value="${value}" aria-label="${label}">`;
     }
 
-    renderTitleText(prompt: PromptRecord): string {
+    renderTitleButton(prompt: PromptRecord): string {
         const value = this.cards.escapeHtml(prompt.name);
-        return `<span dir="auto" class="prompt-card-title-text">${value}</span>`;
+        return `<button type="button" class="prompt-card-open" data-action="${PROMPTS_ACTION_CARD_OPEN}"${renderLabelAttributes(prompt.name)}><span dir="auto" class="prompt-card-title-text">${value}</span></button>`;
     }
 
     renderTextarea(prompt: PromptRecord): string {

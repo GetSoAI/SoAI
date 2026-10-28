@@ -4,12 +4,11 @@
 import { resolveInlineArrowStep } from '@core/layout/direction.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import type { CharacterMapQueryResult, CharacterMapResultItem } from '@features/chat/public.ts';
-import { resolveCharacterMapCellId } from '@pages/chat/controllers/modals/charactermap/CharacterMapGridWidget.ts';
+import { resolveCharacterMapCellId, type CharacterMapGridWidget } from '@pages/chat/controllers/modals/charactermap/CharacterMapGridWidget.ts';
 
 interface CharacterMapGridNavigationControllerHost {
     grid: HTMLElement;
-    reveal(identifier: string): Promise<boolean>;
-    resolveCell(identifier: string): HTMLButtonElement | null;
+    cells: Pick<CharacterMapGridWidget, 'reveal' | 'resolveCell' | 'firstCell' | 'columnCount'>;
     isCurrent(): boolean;
     onActive(item: CharacterMapResultItem | null): void;
     onSelect(): void;
@@ -23,6 +22,7 @@ class CharacterMapGridNavigationController {
     #focusToken = 0;
     #queryGeneration = 0;
     #tabStopId: string | null = null;
+    #pendingReveal: AbortController | null = null;
 
     constructor(host: CharacterMapGridNavigationControllerHost) {
         this.#host = host;
@@ -42,12 +42,11 @@ class CharacterMapGridNavigationController {
     }
 
     applyRovingTabIndex(): void {
-        const previousCell = this.#tabStopId === null ? null : this.#host.resolveCell(this.#tabStopId);
+        const previousCell = this.#tabStopId === null ? null : this.#host.cells.resolveCell(this.#tabStopId);
         previousCell?.classList.remove('is-selected');
         if (previousCell !== null) previousCell.tabIndex = -1;
-        const activeCell = this.#activeId === null ? null : this.#host.resolveCell(this.#activeId);
-        const firstCell = this.#host.grid.firstElementChild;
-        const entryCell = activeCell ?? (firstCell instanceof HTMLButtonElement ? firstCell : null);
+        const activeCell = this.#activeId === null ? null : this.#host.cells.resolveCell(this.#activeId);
+        const entryCell = activeCell ?? this.#host.cells.firstCell();
         if (entryCell !== null) entryCell.tabIndex = 0;
         activeCell?.classList.add('is-selected');
         this.#tabStopId = entryCell === null ? null : resolveCharacterMapCellId(entryCell);
@@ -80,11 +79,13 @@ class CharacterMapGridNavigationController {
 
     invalidate(): void {
         this.#focusToken += 1;
+        this.#abortPendingReveal();
     }
 
     #setActive(identifier: string | null, focus: boolean): void {
         if (identifier !== null && !this.#result.lookup.has(identifier)) throw new Error('Unknown character-map result identifier');
         this.#focusToken += 1;
+        this.#abortPendingReveal();
         this.#activeId = identifier;
         this.applyRovingTabIndex();
         this.#host.onActive(identifier === null ? null : (this.#result.lookup.get(identifier) ?? null));
@@ -92,7 +93,8 @@ class CharacterMapGridNavigationController {
     }
 
     #focusIdentifier(identifier: string): void {
-        const mounted = this.#host.resolveCell(identifier);
+        this.#abortPendingReveal();
+        const mounted = this.#host.cells.resolveCell(identifier);
         if (mounted !== null) {
             mounted.tabIndex = 0;
             mounted.focus();
@@ -100,41 +102,53 @@ class CharacterMapGridNavigationController {
         }
         const token = ++this.#focusToken;
         const queryGeneration = this.#queryGeneration;
-        const task = this.#host
-            .reveal(identifier)
+        const reveal = new AbortController();
+        this.#pendingReveal = reveal;
+        const ownerDocument = this.#host.grid.ownerDocument;
+        const abortOnOutsideFocus = (event: FocusEvent): void => {
+            if (event.target instanceof Node && !this.#host.grid.contains(event.target)) reveal.abort();
+        };
+        ownerDocument.addEventListener('focusin', abortOnOutsideFocus);
+        const isCurrentIntent = (): boolean => !reveal.signal.aborted && token === this.#focusToken && queryGeneration === this.#queryGeneration && this.#host.isCurrent();
+        const task = this.#host.cells
+            .reveal(identifier, { focusOwner: 'caller', signal: reveal.signal })
             .then((revealed) => {
-                if (!revealed || token !== this.#focusToken || queryGeneration !== this.#queryGeneration || !this.#host.isCurrent()) return;
+                if (!revealed || !isCurrentIntent()) return;
+                this.#releasePendingReveal(reveal);
                 this.applyRovingTabIndex();
-                this.#host.resolveCell(identifier)?.focus();
+                this.#host.cells.resolveCell(identifier)?.focus();
             })
-            .catch((error: Error) => this.#host.onError(error));
+            .catch((error: Error) => {
+                if (isCurrentIntent()) this.#host.onError(error);
+            })
+            .finally(() => {
+                ownerDocument.removeEventListener('focusin', abortOnOutsideFocus);
+                this.#releasePendingReveal(reveal);
+            });
         terminateHandledPromise(task);
+    }
+
+    #abortPendingReveal(): void {
+        const pending = this.#pendingReveal;
+        this.#pendingReveal = null;
+        pending?.abort();
+    }
+
+    #releasePendingReveal(reveal: AbortController): void {
+        if (this.#pendingReveal === reveal) this.#pendingReveal = null;
     }
 
     #resolveTargetIndex(key: string, currentIndex: number): number | null {
         const lastIndex = this.#result.ids.length - 1;
         const inlineStep = resolveInlineArrowStep(key, this.#host.grid);
         if (inlineStep !== 0) return Math.max(0, Math.min(lastIndex, currentIndex + inlineStep));
-        if (key === 'ArrowUp') return Math.max(0, currentIndex - this.#columnCount());
-        if (key === 'ArrowDown') return Math.min(lastIndex, currentIndex + this.#columnCount());
+        if (key === 'ArrowUp') return Math.max(0, currentIndex - this.#host.cells.columnCount());
+        if (key === 'ArrowDown') return Math.min(lastIndex, currentIndex + this.#host.cells.columnCount());
         if (key === 'Home') return 0;
         if (key === 'End') return lastIndex;
         if (key === 'PageUp') return Math.max(0, currentIndex - 48);
         if (key === 'PageDown') return Math.min(lastIndex, currentIndex + 48);
         return null;
-    }
-
-    #columnCount(): number {
-        const first = this.#host.grid.firstElementChild;
-        if (!(first instanceof HTMLButtonElement)) return 1;
-        const firstTop = first.offsetTop;
-        let columnCount = 0;
-        for (const element of this.#host.grid.children) {
-            if (!(element instanceof HTMLButtonElement)) continue;
-            if (element.offsetTop !== firstTop) break;
-            columnCount += 1;
-        }
-        return Math.max(1, columnCount);
     }
 }
 

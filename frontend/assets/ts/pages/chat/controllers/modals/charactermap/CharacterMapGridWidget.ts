@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { BoundedCollectionRenderer } from '@core/data/boundedcollectionrenderer/service.ts';
-import type { BoundedCollectionCommitContext, CollectionViewportAnchor } from '@core/data/boundedcollectionrenderer/types.ts';
+import type { BoundedCollectionCommitContext, CollectionRevealOptions, CollectionViewportAnchor } from '@core/data/boundedcollectionrenderer/types.ts';
+import { measureGridColumnCount } from '@core/layout/elementGeometry.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { CHARACTER_MAP_ACTIONS, type CharacterMapQueryResult, type CharacterMapResultItem } from '@features/chat/public.ts';
 
@@ -19,20 +20,24 @@ interface CharacterMapGridWidgetHost {
 const resolveCharacterMapCellId = (element: HTMLElement): string | null => element.getAttribute(CHARACTER_MAP_ITEM_ATTRIBUTE);
 
 class CharacterMapGridWidget {
+    readonly #grid: HTMLElement;
     readonly #renderer: BoundedCollectionRenderer<CharacterMapResultItem>;
     readonly #cells = new Map<string, HTMLButtonElement>();
 
     constructor(host: CharacterMapGridWidgetHost) {
+        this.#grid = host.grid;
         this.#renderer = new BoundedCollectionRenderer({
             resolveContainer: () => host.grid,
             resolveEmptyState: () => host.empty,
             loadingLabel: host.loadingLabel,
-            renderAllItems: true,
+            alignRows: true,
+            preserveGridScrollExtent: true,
             resolveItemIdentifier: resolveCharacterMapCellId,
             renderItem: (item, context) => {
                 const button = host.grid.ownerDocument.createElement('button');
                 button.type = 'button';
                 button.className = 'search-item chat-character-map-cell';
+                button.setAttribute('data-presence-visual-only', '');
                 button.setAttribute(CHARACTER_MAP_ITEM_ATTRIBUTE, context.id);
                 button.dataset['action'] = CHARACTER_MAP_ACTIONS.ACTIVATE_RESULT;
                 button.tabIndex = -1;
@@ -62,12 +67,20 @@ class CharacterMapGridWidget {
         this.#renderer.update({ ids: result.ids, lookup: result.lookup, resetScroll, restoreViewportAnchor });
     }
 
-    reveal(identifier: string): Promise<boolean> {
-        return this.#renderer.reveal(identifier);
+    reveal(identifier: string, options: CollectionRevealOptions): Promise<boolean> {
+        return this.#renderer.reveal(identifier, options);
     }
 
     resolveCell(identifier: string): HTMLButtonElement | null {
         return this.#cells.get(identifier) ?? null;
+    }
+
+    firstCell(): HTMLButtonElement | null {
+        return this.#cells.values().next().value ?? null;
+    }
+
+    columnCount(): number {
+        return measureGridColumnCount(this.#grid) ?? 1;
     }
 
     captureViewportAnchor(): CollectionViewportAnchor | null {

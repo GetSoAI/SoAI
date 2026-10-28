@@ -36,10 +36,10 @@ class NotificationCenterActions {
         });
     }
 
-    async clearAll(): Promise<boolean> {
+    async clearAll(notificationCount: number): Promise<boolean> {
         const confirmed = await requireDialogsService().showConfirmation({
             title: i18n.t('header.notificationCenter.actions.clearAll'),
-            message: i18n.t('header.notificationCenter.confirmations.clearAllMessage'),
+            message: i18n.t('header.notificationCenter.confirmations.clearAllMessage', { count: notificationCount }),
             confirmText: i18n.t('header.notificationCenter.actions.clearAll'),
             cancelText: i18n.t('common.cancel')
         });

@@ -6,6 +6,8 @@ from __future__ import annotations
 import threading
 from typing import TYPE_CHECKING, Protocol
 
+from core.concurrency.bounded_blocking import BoundedBlockingPool
+from core.files.commit_receipt import FileCommitReceipt
 from core.files.directory_listing_models import (
     DirectoryListingAdmission,
     DirectoryListingEntryType,
@@ -139,10 +141,18 @@ class FileExplorerCoreProtocol(Protocol):
         root_scope: FileSystemRootScopeProtocol,
         temp_path: str,
         expected_size: int,
+        expected_sha256: str,
+        file_content_pool: BoundedBlockingPool,
         virtual_destination: str,
         token: CancellationTokenProtocol,
         create_missing_parents: bool,
-    ) -> str: ...
+    ) -> FileCommitReceipt: ...
+
+    async def cleanup_upload_commit(
+        self,
+        root_scope: FileSystemRootScopeProtocol,
+        receipt: FileCommitReceipt,
+    ) -> None: ...
 
     async def notify_upload_complete(
         self,

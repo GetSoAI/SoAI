@@ -12,7 +12,6 @@ __all__ = (
     "hours_to_ms",
     "hours_to_seconds",
     "minutes_to_ms",
-    "minutes_to_seconds",
     "ms_to_seconds_ceil",
     "ms_to_seconds_floor",
     "seconds_to_ms",
@@ -41,10 +40,6 @@ def hours_to_ms(hours: int | float) -> int:
 
 def days_to_ms(days: int | float) -> int:
     return int(days * MILLISECONDS_PER_DAY)
-
-
-def minutes_to_seconds(minutes: int | float) -> int:
-    return int(minutes * _SECONDS_PER_MINUTE)
 
 
 def hours_to_seconds(hours: int | float) -> int:

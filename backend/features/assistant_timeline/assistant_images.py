@@ -65,7 +65,6 @@ async def persist_and_publish_assistant_image(
             database_messages=database_messages,
             status=TIMELINE_ACTIVITY_STATUS_COMPLETED,
         )
-        runtime.assistant_visible_output_started = True
         note_visible_activity_locked(runtime)
         await publish_chat_stream_event_locked(
             event_bus,

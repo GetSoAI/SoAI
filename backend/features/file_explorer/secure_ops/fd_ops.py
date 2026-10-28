@@ -7,6 +7,7 @@ import os
 import stat
 
 from core.errors.exceptions import NotFoundError, StateError, ValidationError
+from core.filesystem.descriptor_io import open_descriptor
 
 __all__ = ("open_directory_fd",)
 
@@ -18,7 +19,7 @@ def open_directory_fd(path: str) -> int:
             operation="file_explorer.open_directory",
         )
     try:
-        directory_fd = os.open(path, os.O_RDONLY)
+        directory_fd = open_descriptor(path, os.O_RDONLY)
     except FileNotFoundError as exception:
         raise NotFoundError(
             f"Directory not found: '{os.path.basename(path)}'.",

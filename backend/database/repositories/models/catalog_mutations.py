@@ -22,7 +22,6 @@ if TYPE_CHECKING:
 __all__ = (
     "sync_delete_models_by_universal_ids",
     "sync_purge_models_for_plugin",
-    "sync_set_model_status",
     "sync_set_model_status_for_plugin",
     "sync_update_model_alias",
     "sync_update_model_enabled",
@@ -50,16 +49,6 @@ def sync_purge_models_for_plugin(conn: sqlite3.Connection, plugin_name: str) -> 
 
 def sync_delete_models_by_universal_ids(conn: sqlite3.Connection, universal_ids: list[str]) -> int:
     return sync_delete_by_ids(conn, "models_catalog", "universal_id", universal_ids)
-
-
-def sync_set_model_status(conn: sqlite3.Connection, universal_id: str, status: str) -> bool:
-    return (
-        conn.execute(
-            "UPDATE models_catalog SET status = ? WHERE universal_id = ?",
-            (status, universal_id),
-        ).rowcount
-        > 0
-    )
 
 
 def sync_set_model_status_for_plugin(

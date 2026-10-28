@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
 from core.errors.public_projection import project_public_error
-from core.ipc.ndjson import IpcStreamClosedError
+from core.ipc.ndjson import IpcStreamClosedError, NdjsonCodec
 from core.ipc.settings import build_ndjson_codec_from_env
 from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
 
@@ -72,8 +72,9 @@ async def run_ndjson_rpc_loop(
     idle_timeout_sec: float,
     handle_request: Callable[[NdjsonRpcRequest], Awaitable[NdjsonRpcResponse]],
     response_timeout_sec: float = LOCAL_IO_TIMEOUT_SEC,
+    codec: NdjsonCodec | None = None,
 ) -> None:
-    codec = build_ndjson_codec_from_env()
+    codec = codec if codec is not None else build_ndjson_codec_from_env()
     while True:
         try:
             message = await codec.read_message(reader, timeout_sec=float(idle_timeout_sec))

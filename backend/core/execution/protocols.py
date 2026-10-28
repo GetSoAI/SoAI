@@ -7,23 +7,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
 
-    from core.runtime.request_context import RequestContext
-    from core.tasks.protocols import TaskRegistryLifecycleView, TaskRegistryProtocol
-    from core.tasks.task import Task
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
     "AgentTurnSnapshot",
     "AutomationRunSnapshot",
-    "OwnedExecutionCancellationProtocol",
     "OwnedExecutionCore",
-    "OwnedExecutionFinalizerProtocol",
-    "OwnedExecutionSnapshotLoaderProtocol",
     "OwnedExecutionSnapshotProtocol",
-    "OwnedExecutionTaskCreatorProtocol",
-    "OwnedExecutionWaiterProtocol",
     "SubagentSnapshot",
 )
 
@@ -120,60 +111,3 @@ class OwnedExecutionSnapshotProtocol(Protocol):
 
     @property
     def status(self) -> str: ...
-
-
-class OwnedExecutionTaskCreatorProtocol(Protocol):
-    async def __call__(
-        self,
-        task_registry: TaskRegistryProtocol,
-        *,
-        user_id: int,
-        owner_id: str,
-        owner_type: str,
-        cancellation_id: str,
-        owner_task_id: str | None,
-        initial_status: str,
-        status_message: str,
-        metadata: JSONDict | None,
-    ) -> Task: ...
-
-
-class OwnedExecutionSnapshotLoaderProtocol[SnapshotT](Protocol):
-    async def __call__(self) -> SnapshotT | None: ...
-
-
-class OwnedExecutionWaiterProtocol[SnapshotT](Protocol):
-    async def __call__(
-        self,
-        task_registry: TaskRegistryProtocol,
-        *,
-        snapshot: SnapshotT | None,
-        owner_task_id: str | None,
-        timeout_ms: int | None,
-        can_wait: Callable[[SnapshotT], bool],
-        reload_snapshot: Callable[[], Awaitable[SnapshotT | None]],
-    ) -> SnapshotT | None: ...
-
-
-class OwnedExecutionCancellationProtocol(Protocol):
-    async def __call__(
-        self,
-        registry: TaskRegistryLifecycleView,
-        owner_task_id: str,
-        reason: str,
-        *,
-        context: RequestContext | None,
-    ) -> Task | None: ...
-
-
-class OwnedExecutionFinalizerProtocol(Protocol):
-    async def __call__(
-        self,
-        registry: TaskRegistryLifecycleView,
-        owner_task_id: str,
-        *,
-        final_status: str,
-        status_message: str,
-        error_message: str | None,
-        result: dict[str, JSONValue] | None,
-    ) -> Task | None: ...

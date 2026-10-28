@@ -46,6 +46,8 @@ const setupModelDetailHeaderButtons = (host: ModelDetailHeaderButtonsHost): void
     const resetParametersMarkup = uiHtml`${host.requireIconMarkup('RESET')}<span>${i18n.t('modelDetail.buttons.resetAll')}</span>`;
     host.pageDom.updateHtml(ui.saveParametersHeaderButton, saveParametersMarkup);
     host.pageDom.updateHtml(ui.resetAllParametersHeaderButton, resetParametersMarkup);
+    host.pageDom.updateHtml(ui.resetOverviewHeaderButton, resetParametersMarkup);
+    host.pageDom.updateAttribute(ui.resetOverviewHeaderButton, PRESENCE_ATTRIBUTE, '');
     const testModelMarkup = uiHtml`${host.requireIconMarkup('TEST')}<span>${i18n.t('modelDetail.buttons.test')}</span>`;
     host.pageDom.updateHtml(ui.testModelHeaderButton, testModelMarkup);
     resolveModelDetailParameterActions(ui).forEach((element) => host.pageDom.updateAttribute(element, PRESENCE_ATTRIBUTE, ''));
@@ -58,6 +60,7 @@ const applyModelDetailTabChange = (session: ModelDetailSession, host: ModelDetai
         host.pageDom.toggleClass(content, 'is-active', content.id === `${newTab}-content`);
     });
     const isParametersTab = newTab === 'parameters';
+    host.pageDom.toggleClass(ui.resetOverviewHeaderButton, CSS_CLASSES.HIDDEN, isParametersTab);
     resolveModelDetailParameterActions(ui).forEach((element) => host.pageDom.toggleClass(element, CSS_CLASSES.HIDDEN, !isParametersTab));
     if (isParametersTab) {
         if (!ui.parametersInterface.hasChildNodes()) {

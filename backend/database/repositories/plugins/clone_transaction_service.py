@@ -143,10 +143,13 @@ class DatabasePluginCloneTransactions:
         task_id: str,
         current_phase: str,
         following_phase: str,
+        *,
+        mutation_fencing_token: int | None = None,
     ) -> bool:
         return await self._core.writer.queue_write_operation(
             sync_transition_clone_transaction,
             task_id,
             current_phase,
             following_phase,
+            mutation_fencing_token=mutation_fencing_token,
         )

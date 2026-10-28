@@ -24,7 +24,7 @@ const createLocalFolderOpenModal = (dependencies: { confirmationFlow: Confirmati
             throw new Error('Local folder confirmation requires a path');
         }
         const variant = toTrimmedLower(options.variant || 'info');
-        const icon = options.icon !== false ? options.icon || 'folder' : null;
+        const icon = options.icon !== false ? options.icon || 'folder-modal' : null;
         const resolvedIcon = options.icon === false ? null : icon || resolveVariantIcon(variant);
         const confirmVariant = options.confirmVariant || VARIANT_CLASS_MAP[variant] || 'ui-variant-neutral';
         const actions: ConfirmationActionButtons = Object.freeze({

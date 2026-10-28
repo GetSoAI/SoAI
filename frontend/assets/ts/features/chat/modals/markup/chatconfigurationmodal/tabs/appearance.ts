@@ -16,7 +16,7 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
     const { modalId, strings, sanitizer, uiIdAttr, enabledDisabledLabels, textZoomValueId, textZoomValueIdAttr } = inputArguments;
     return `
   <div class="form-group setting-change-surface chat-config-span-2">
-    <label for="${uiIdAttr('text-zoom-slider')}">
+    <label for="${uiIdAttr('text-zoom-slider')}" data-modal-localize="text">
       ${strings.textZoom}
       <span id="${textZoomValueIdAttr}" class="text-zoom-value">100%</span>
     </label>
@@ -34,7 +34,7 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('widescreen-checkbox')}">${strings.widescreenMode}</label>
+    <label for="${uiIdAttr('widescreen-checkbox')}" data-modal-localize="text">${strings.widescreenMode}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'widescreen-checkbox',
@@ -43,11 +43,11 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'widescreen_mode'
     })}
-    <span class="chat-configuration-hint">${strings.widescreenModeHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.widescreenModeHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('auto-hide-chat-composer-checkbox')}">${strings.autoHideChatComposer}</label>
+    <label for="${uiIdAttr('auto-hide-chat-composer-checkbox')}" data-modal-localize="text">${strings.autoHideChatComposer}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'auto-hide-chat-composer-checkbox',
@@ -56,24 +56,24 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'auto_hide_chat_composer'
     })}
-    <span class="chat-configuration-hint">${strings.autoHideChatComposerHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.autoHideChatComposerHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('auto-hide-chat-header-checkbox')}">${strings.autoHideChatHeader}</label>
+    <label for="${uiIdAttr('auto-hide-chat-header-checkbox')}" data-modal-localize="text">${strings.autoHideChatHeader}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'auto-hide-chat-header-checkbox',
         inputClassName: 'auto-hide-chat-header-checkbox',
-        checked: true,
+        checked: false,
         labels: enabledDisabledLabels,
         dataParameter: 'auto_hide_chat_header'
     })}
-    <span class="chat-configuration-hint">${strings.autoHideChatHeaderHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.autoHideChatHeaderHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('rich-text-checkbox')}">${strings.richTextMode}</label>
+    <label for="${uiIdAttr('rich-text-checkbox')}" data-modal-localize="text">${strings.richTextMode}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'rich-text-checkbox',
@@ -82,11 +82,11 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'rich_text_enabled'
     })}
-    <span class="chat-configuration-hint">${strings.richTextModeHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.richTextModeHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('inline-multimedia-previews-checkbox')}">${strings.inlineMultimediaPreviews}</label>
+    <label for="${uiIdAttr('inline-multimedia-previews-checkbox')}" data-modal-localize="text">${strings.inlineMultimediaPreviews}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'inline-multimedia-previews-checkbox',
@@ -95,11 +95,11 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'inline_multimedia_previews_enabled'
     })}
-    <span class="chat-configuration-hint">${strings.inlineMultimediaPreviewsHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.inlineMultimediaPreviewsHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('auto-title-generation-checkbox')}">${strings.autoTitleGeneration}</label>
+    <label for="${uiIdAttr('auto-title-generation-checkbox')}" data-modal-localize="text">${strings.autoTitleGeneration}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'auto-title-generation-checkbox',
@@ -108,11 +108,11 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'auto_title_generation'
     })}
-    <span class="chat-configuration-hint">${strings.autoTitleGenerationHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.autoTitleGenerationHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('show-activities-checkbox')}">${strings.showActivities}</label>
+    <label for="${uiIdAttr('show-activities-checkbox')}" data-modal-localize="text">${strings.showActivities}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'show-activities-checkbox',
@@ -121,11 +121,11 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'show_activities'
     })}
-    <span class="chat-configuration-hint">${strings.showActivitiesHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.showActivitiesHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('show-activity-elapsed-time-checkbox')}">${strings.showActivityElapsedTime}</label>
+    <label for="${uiIdAttr('show-activity-elapsed-time-checkbox')}" data-modal-localize="text">${strings.showActivityElapsedTime}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'show-activity-elapsed-time-checkbox',
@@ -134,11 +134,11 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'show_activity_elapsed_time'
     })}
-    <span class="chat-configuration-hint">${strings.showActivityElapsedTimeHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.showActivityElapsedTimeHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('hide-automation-runs-checkbox')}">${strings.hideAutomationRuns}</label>
+    <label for="${uiIdAttr('hide-automation-runs-checkbox')}" data-modal-localize="text">${strings.hideAutomationRuns}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'hide-automation-runs-checkbox',
@@ -147,11 +147,11 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'hide_automation_runs'
     })}
-    <span class="chat-configuration-hint">${strings.hideAutomationRunsHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.hideAutomationRunsHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('hide-messaging-conversations-checkbox')}">${strings.hideMessagingConversations}</label>
+    <label for="${uiIdAttr('hide-messaging-conversations-checkbox')}" data-modal-localize="text">${strings.hideMessagingConversations}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'hide-messaging-conversations-checkbox',
@@ -160,11 +160,11 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'hide_messaging_conversations'
     })}
-    <span class="chat-configuration-hint">${strings.hideMessagingConversationsHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.hideMessagingConversationsHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('notify-completion-checkbox')}">${strings.notifyOnCompletion}</label>
+    <label for="${uiIdAttr('notify-completion-checkbox')}" data-modal-localize="text">${strings.notifyOnCompletion}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'notify-completion-checkbox',
@@ -173,11 +173,11 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'notify_on_completion'
     })}
-    <span class="chat-configuration-hint">${strings.notifyOnCompletionHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.notifyOnCompletionHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('notify-error-checkbox')}">${strings.notifyOnError}</label>
+    <label for="${uiIdAttr('notify-error-checkbox')}" data-modal-localize="text">${strings.notifyOnError}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'notify-error-checkbox',
@@ -186,11 +186,11 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'notify_on_error'
     })}
-    <span class="chat-configuration-hint">${strings.notifyOnErrorHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.notifyOnErrorHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('microphone-sound-effects-checkbox')}">${strings.microphoneSoundEffects}</label>
+    <label for="${uiIdAttr('microphone-sound-effects-checkbox')}" data-modal-localize="text">${strings.microphoneSoundEffects}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'microphone-sound-effects-checkbox',
@@ -199,7 +199,7 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'microphone_sound_effects_enabled'
     })}
-    <span class="chat-configuration-hint">${strings.microphoneSoundEffectsHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.microphoneSoundEffectsHint}</span>
   </div>
 
 ${buildAppearanceInputActionsMarkup({ modalId, strings, sanitizer, uiIdAttr, enabledDisabledLabels })}

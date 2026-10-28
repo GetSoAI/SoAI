@@ -6,9 +6,8 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
 
-from core.errors.exceptions import StateError, ValidationError
+from core.errors.exceptions import StateError
 from core.serialization.json import serialize_json_compact_stable
-from core.serialization.json_parsing import parse_json_value
 from core.validation.attachment_content import require_attachment_content_fragment
 
 if TYPE_CHECKING:
@@ -16,7 +15,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "build_expected_user_message_content",
-    "decoded_message_content_fragments",
     "conversation_input_content_signature",
 )
 
@@ -58,31 +56,6 @@ def build_expected_user_message_content(
     if not expected:
         raise StateError("Conversation input content is empty.")
     return expected
-
-
-def _normalize_message_content_fragments(content: JSONValue) -> list[JSONDict]:
-    if isinstance(content, str):
-        return [{"type": "text", "text": content}]
-    if isinstance(content, list):
-        fragments: list[JSONDict] = []
-        for entry in content:
-            fragments.append(
-                _require_fragment_dict(
-                    entry,
-                    label="message content fragment",
-                    build_error=StateError,
-                ),
-            )
-        return fragments
-    raise StateError("Existing user message content must be a JSON array or string.")
-
-
-def decoded_message_content_fragments(content_value: str) -> list[JSONDict]:
-    try:
-        decoded = parse_json_value(content_value)
-    except ValidationError as exception:
-        raise StateError("Existing user message content is invalid JSON.") from exception
-    return _normalize_message_content_fragments(decoded)
 
 
 def _semantic_fragment(fragment: JSONDict) -> JSONDict:

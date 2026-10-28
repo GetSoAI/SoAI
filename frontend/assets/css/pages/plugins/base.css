@@ -178,7 +178,7 @@
         gap: var(--space-1);
     }
 
-    :where([data-section='plugins'], [data-page-scope='plugins']) :is(.plugin-card, .plugins-list-row)[data-operation-active='true'] :is(.status-install-button, .ui-round-button--run-now) {
+    :where([data-section='plugins'], [data-page-scope='plugins']) :is(.plugin-card, .plugins-list-row)[data-operation-active='true'] :is(.status-install-button, .ui-round-button--run-now, .ui-round-button--update) {
         display: var(--hidden-display);
     }
 
@@ -196,10 +196,26 @@
         white-space: nowrap;
     }
 
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-config-fields-section {
+        container-type: inline-size;
+    }
+
     :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-config-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 1fr);
         gap: var(--space-4);
+    }
+
+    @container (width >= 640px) {
+        :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-config-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @container (width >= 960px) {
+        :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-config-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
     }
 
     :where([data-section='plugins'], [data-page-scope='plugins']) .config-field-item--full,

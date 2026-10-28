@@ -7,13 +7,17 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.agent.prompt_replay import AgentInferencePromptReplay
 from core.agent.tool_call_fields import resolve_tool_call_name
+from core.openai.agent_tool_messages import (
+    build_assistant_tool_message,
+    build_post_tool_prompt_messages,
+)
 from core.validation.integers import is_strict_int
 from core.validation.strings import coerce_required_non_empty_str
 from features.agent.runtime.model_output_contract_recovery import (
     payload_hidden_reasoning_contains_tool_call_markup,
 )
-from features.agent.runtime.openai_messages import build_post_tool_prompt_messages
 from features.agent.runtime.openai_payload import (
     remove_length_truncated_assistant_tool_calls,
     remove_rejected_assistant_tool_calls,
@@ -31,7 +35,7 @@ from features.agent.runtime.turn_iteration_policy import decide_post_inference_a
 from features.agent.runtime.turn_iteration_policy_types import (
     FINISH_REASON_INVALID_TOOL_CALL_JSON_CONTRACT_VIOLATION,
 )
-from features.agent.runtime.turn_loop_retry_messages import append_turn_retry_message
+from features.agent.runtime.turn_loop_retry_messages import build_turn_retry_messages
 from features.agent.runtime.turn_loop_tool_sequences import resolve_turn_loop_tool_calls
 
 if TYPE_CHECKING:
@@ -70,6 +74,7 @@ class TurnLoopPostInferenceOutcome:
     tool_calls: list[JSONDict]
     decision: TurnIterationDecision
     next_policy_state: TurnIterationPolicyState
+    reasoning_text: str = ""
 
 
 def _build_orphaned_detected_tool_rejections(
@@ -121,6 +126,7 @@ def _build_orphaned_detected_tool_rejections(
 async def resolve_turn_loop_post_inference(
     *,
     final_payload: JSONDict,
+    reasoning_text: str = "",
     assistant_text: str | None,
     assistant_output_published: bool,
     current_inference_tool_calls: list[JSONDict],
@@ -216,12 +222,6 @@ async def resolve_turn_loop_post_inference(
             database_tool_calls=database_tool_calls,
             request_context=request_context,
         )
-        await turn_state_writer.after_tools(
-            iteration_index=iteration_index,
-            assistant_text=published_assistant_text,
-            tool_calls=violation.prompt_tool_calls,
-            tool_results=violation.prompt_tool_results,
-        )
         decision = decide_tool_call_protocol_action(
             config=iteration_policy_config,
             state=iteration_policy_state,
@@ -233,14 +233,21 @@ async def resolve_turn_loop_post_inference(
             tool_calls=violation.prompt_tool_calls,
             tool_results=violation.prompt_tool_results,
             assistant_text=published_assistant_text,
+            reasoning_content=reasoning_text,
             settings=settings,
             shape_cache=shape_cache,
         )
-        message_history.extend(post_tool_messages)
-        boundary_source_messages.extend(dict(message) for message in post_tool_messages)
         if decision.retry_message is not None:
-            message_history.append(decision.retry_message)
-            boundary_source_messages.append(dict(decision.retry_message))
+            post_tool_messages.append(dict(decision.retry_message))
+        await turn_state_writer.after_tools(
+            iteration_index=iteration_index,
+            assistant_text=published_assistant_text,
+            tool_calls=violation.prompt_tool_calls,
+            tool_results=violation.prompt_tool_results,
+            prompt_replay=AgentInferencePromptReplay.from_messages(messages=post_tool_messages),
+        )
+        message_history.extend(dict(message) for message in post_tool_messages)
+        boundary_source_messages.extend(dict(message) for message in post_tool_messages)
         return TurnLoopPostInferenceOutcome(
             assistant_text=resolved_assistant_text,
             assistant_output_published=assistant_output_published,
@@ -248,11 +255,6 @@ async def resolve_turn_loop_post_inference(
             decision=decision,
             next_policy_state=decision.next_state,
         )
-    await turn_state_writer.after_inference(
-        iteration_index,
-        published_assistant_text,
-        tool_calls,
-    )
     decision = decide_post_inference_action(
         config=iteration_policy_config,
         state=iteration_policy_state,
@@ -263,17 +265,40 @@ async def resolve_turn_loop_post_inference(
         preview_contract_validation=preview_contract_validation,
         current_output_publication_mode=output_publication_mode,
     )
-    if decision.retry_message is not None:
-        append_turn_retry_message(
-            message_history=message_history,
-            boundary_source_messages=boundary_source_messages,
-            assistant_text=published_assistant_text,
-            retry_message=decision.retry_message,
+    retry_messages = (
+        build_turn_retry_messages(
+            assistant_text=published_assistant_text, retry_message=decision.retry_message
         )
+        if decision.retry_message is not None
+        else []
+    )
+    replay_messages = (
+        [
+            build_assistant_tool_message(
+                tool_calls=tool_calls,
+                content=published_assistant_text or "",
+                reasoning_content=reasoning_text,
+            )
+        ]
+        if tool_calls
+        else retry_messages
+    )
+    await turn_state_writer.after_inference(
+        iteration_index,
+        published_assistant_text,
+        tool_calls,
+        reasoning_text=reasoning_text,
+        prompt_replay=AgentInferencePromptReplay.from_messages(
+            messages=replay_messages, pending=bool(tool_calls)
+        ),
+    )
+    message_history.extend(dict(message) for message in retry_messages)
+    boundary_source_messages.extend(dict(message) for message in retry_messages)
     return TurnLoopPostInferenceOutcome(
         assistant_text=resolved_assistant_text,
         assistant_output_published=assistant_output_published,
         tool_calls=tool_calls,
         decision=decision,
         next_policy_state=decision.next_state,
+        reasoning_text=reasoning_text,
     )

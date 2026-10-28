@@ -1,0 +1,96 @@
+{
+  "package_version": "5.14.0+soai.1",
+  "native_version": "158.0.8111.0",
+  "source": {
+    "filename": "pypdfium2-5.14.0.tar.gz",
+    "url": "https://files.pythonhosted.org/packages/95/d0/c81d3a7c2a9af37b817ace1de0acd40cf44d15f12407c5e86b3668364a5c/pypdfium2-5.14.0.tar.gz",
+    "sha256": "c5f009b3157f10e97dceb55963f5910eff92feb00587ba10a76f12b87ce1a4b6"
+  },
+  "platforms": [
+    {
+      "platform": "linux-x64",
+      "binary": "lib/libpdfium.so",
+      "native": {
+        "filename": "pdfium-linux-x64.tgz",
+        "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8111/pdfium-linux-x64.tgz",
+        "sha256": "bdc60126399f39fe768566a18d4be055a7b3681bc9e248e8a6656b4f6cae0aa2"
+      },
+      "wheel": {
+        "filename": "pypdfium2-5.14.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "url": "https://files.pythonhosted.org/packages/4f/a3/c9cc797fc8bdfb8f37b9b0f8b9d02a5fc196b2015f408d53624cab5b0519/pypdfium2-5.14.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "sha256": "11f281613fa22313d9c7ab89947665e84eccf8ebe40e1198a84a88352305648d"
+      }
+    },
+    {
+      "platform": "linux-arm64",
+      "binary": "lib/libpdfium.so",
+      "native": {
+        "filename": "pdfium-linux-arm64.tgz",
+        "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8111/pdfium-linux-arm64.tgz",
+        "sha256": "042de247138f96341534cccf24ed21c2550a7245b936bb4a60d2340120000f05"
+      },
+      "wheel": {
+        "filename": "pypdfium2-5.14.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "url": "https://files.pythonhosted.org/packages/92/b4/0c31aa51887cd6cd032191dfe010a6d01ed43cf03204cfbd2184ebe4b715/pypdfium2-5.14.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+        "sha256": "f1b696e6901e16f114a2ec6332e5e3f8f5033a901614ead28499ab18ca6024f5"
+      }
+    },
+    {
+      "platform": "darwin-x64",
+      "binary": "lib/libpdfium.dylib",
+      "native": {
+        "filename": "pdfium-mac-x64.tgz",
+        "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8111/pdfium-mac-x64.tgz",
+        "sha256": "e7fece4693f65a7e47f84fa38099068d573d4dcbd46b1a3c8d2c26581c308466"
+      },
+      "wheel": {
+        "filename": "pypdfium2-5.14.0-py3-none-macosx_13_0_x86_64.whl",
+        "url": "https://files.pythonhosted.org/packages/a6/11/b720097b01fa0874854f2f6669cbea4e4ea4e075769687714fac64d68964/pypdfium2-5.14.0-py3-none-macosx_13_0_x86_64.whl",
+        "sha256": "e4e203ea9710fd00e5448edb6f1615dc8587035357f75f40b432dde0c33e8da1"
+      }
+    },
+    {
+      "platform": "darwin-arm64",
+      "binary": "lib/libpdfium.dylib",
+      "native": {
+        "filename": "pdfium-mac-arm64.tgz",
+        "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8111/pdfium-mac-arm64.tgz",
+        "sha256": "46c674298c60123f1195c2a03c65ee08c4783c84874ce4f5b3a054abb3ecaf30"
+      },
+      "wheel": {
+        "filename": "pypdfium2-5.14.0-py3-none-macosx_13_0_arm64.whl",
+        "url": "https://files.pythonhosted.org/packages/d1/ea/14673bc9d8b7beeaa1eb46e9951b22543edaf2a4676c586e3b1e032ff6ee/pypdfium2-5.14.0-py3-none-macosx_13_0_arm64.whl",
+        "sha256": "2de384df66ba55fcaab0775f30f28ec1090af3dfa60276a07821efc96d993118"
+      }
+    },
+    {
+      "platform": "windows-x64",
+      "binary": "bin/pdfium.dll",
+      "native": {
+        "filename": "pdfium-win-x64.tgz",
+        "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8111/pdfium-win-x64.tgz",
+        "sha256": "3452d11031050ec65e57f180215b57b9e6d465e3fbedafa8a77ad90885c7d23e"
+      },
+      "wheel": {
+        "filename": "pypdfium2-5.14.0-py3-none-win_amd64.whl",
+        "url": "https://files.pythonhosted.org/packages/00/dc/ca7874924c9cfd701ad53f89529968523790e70473e0b71e834668316148/pypdfium2-5.14.0-py3-none-win_amd64.whl",
+        "sha256": "149fd5c6397b8df8bf7911a93506eff0be874f877afe7ac936cf5d37d21a6a06"
+      }
+    }
+  ],
+  "builder_sha256": "629176845a2a45213256b235905e095785ba2edc37ef0e72a7192f42abdbcf98",
+  "build_tools": {
+    "python": "3.13.17",
+    "wheel": "0.48.0",
+    "gcc": "gcc (Debian 14.2.0-19) 14.2.0",
+    "native_bindings_generator": "matching ctypesgen bundled in the pinned upstream5.14.0sdist",
+    "file_permissions": "Allwheelmembers0644, upstreamwheel0.48.0RECORD0664; directories0755; independentofcallerumask"
+  },
+  "artifacts": {
+    "pypdfium2-5.14.0+soai.1-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl": "e64d6d06d8e26f37342ed8332f65b1aa84d2dfa32c86f6985e9c42a0d026e284",
+    "pypdfium2-5.14.0+soai.1-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl": "bb5129f65b508828f240f69fdf14e244e8db1fa67220ae41f14815929dbe8b4e",
+    "pypdfium2-5.14.0+soai.1-py3-none-macosx_13_0_x86_64.whl": "71f9139124bcb5f4280c8558f00cfc19e6f7af531de1295082182e88dbb7d96d",
+    "pypdfium2-5.14.0+soai.1-py3-none-macosx_13_0_arm64.whl": "e00dbc01026be47378f72e3879ad42ae4a41f5a2d68d6a1b053a00dddceb9199",
+    "pypdfium2-5.14.0+soai.1-py3-none-win_amd64.whl": "0270c72f55987ab1903b30c22e4c654de0cea111232877a5c7b4046fe29698e0"
+  }
+}

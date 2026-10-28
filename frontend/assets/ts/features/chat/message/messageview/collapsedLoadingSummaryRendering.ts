@@ -3,9 +3,11 @@
 
 import type { AssistantThinkingPhase } from '@core/realtime/eventcontracts/assistantTimelineTypes.ts';
 import { resolveLatestLoadingActivityFromMessage, resolveLatestThinkingPhaseById } from '@features/chat/assistanteventtimeline/activityState.ts';
+import { resolveLoadingActivityErrorText } from '@features/chat/assistanteventtimeline/loadingActivityErrorText.ts';
 import { resolveTimelineSegmentKey } from '@features/chat/message/messageTimelineSegmentKeys.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { hasTerminalAssistantState } from '@features/chat/message/assistantTerminalState.ts';
+import { resolveAssistantCancellationReason } from '@features/chat/message/assistantOutputNotice.ts';
 import { resolveLoadingActivityToggleEnabled } from '@features/chat/message/messageview/loadingActivityToggleEnabled.ts';
 import { COLLAPSED_LOADING_CONTENT_WRAPPER_ATTRIBUTE } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
 import { resolveLatestInlineActivityName } from '@features/chat/message/messageview/inlineActivityName.ts';
@@ -208,6 +210,7 @@ const renderCollapsedLoadingSummary = (dependencies: CollapsedLoadingSummaryDepe
     const durationStatus = streamingPhase === null ? loadingSegment.status : displayStatus;
     const displaySegment = applyCollapsedLoadingPresentationTiming(loadingSegment, durationStatus, nowMs);
     const loadingMarkup = dependencies.renderLoadingActivityGroup(displaySegment, {
+        statusText: displayStatus === 'error' ? resolveLoadingActivityErrorText(message) : displayStatus === 'cancelled' ? resolveAssistantCancellationReason(message) : null,
         displayStatus,
         durationStatus,
         toggleEnabled: resolveLoadingActivityToggleEnabled(segments),

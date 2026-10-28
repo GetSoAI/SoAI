@@ -4,12 +4,11 @@
 from __future__ import annotations
 
 import asyncio
-import inspect
 import shutil
 
-from core.concurrency.cancellation_cleanup import uncancel_and_wait
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.error_types import ErrorType
-from core.errors.exception_logging import log_exception, log_handled_exception
+from core.errors.exception_logging import log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.status_mapping import error_type_to_status_code
 from core.events.types_base import Event
@@ -17,6 +16,7 @@ from core.filesystem.async_queries import async_path_exists
 from core.logging.trace import get_logger
 from core.plugins.protocols_instance import PluginInstanceProtocol
 from core.state.state_names import (
+    PLUGIN_STATE_BACKEND_UPDATING,
     PLUGIN_STATE_NOT_DETECTED,
     resolve_plugin_runtime_state_name,
 )
@@ -32,12 +32,6 @@ __all__ = ()
 LOGGER_NAME = "SoAI.plugins.actions.backend_lifecycle_validation"
 OPERATION_PLUGIN_ACTIONS_CLEANUP_PARTIAL_INSTALLATION = (
     "plugin_actions.cleanup_partial_installation"
-)
-OPERATION_PLUGIN_ACTIONS_CLEANUP_PARTIAL_INSTALLATION_PLUGIN_CALLBACK = (
-    "plugin_actions.cleanup_partial_installation.plugin_callback"
-)
-OPERATION_PLUGIN_ACTIONS_CLEANUP_PARTIAL_INSTALLATION_REMOVE_TEMP_PATH = (
-    "plugin_actions.cleanup_partial_installation.remove_temp_path"
 )
 
 
@@ -73,40 +67,17 @@ async def cleanup_partial_installation(
         )
         return
     temp_path = f"{install_path}_temp"
-    cleanup_callback = None
     if plugin_instance is not None:
-        try:
-            cleanup_callback = plugin_instance.cleanup_partial_installation
-        except AttributeError:
-            cleanup_callback = None
-    if callable(cleanup_callback):
-        try:
-            result = cleanup_callback()
-            if inspect.iscoroutine(result):
-                await result
-            logger.debug("Called cleanup_partial_installation for plugin '%s'.", plugin_name)
-        except RECOVERABLE_EXCEPTIONS as exception:
-            log_exception(
-                logger,
-                exception,
-                message="Plugin cleanup_partial_installation failed during lifecycle cleanup.",
-                operation=OPERATION_PLUGIN_ACTIONS_CLEANUP_PARTIAL_INSTALLATION_PLUGIN_CALLBACK,
-                details={"plugin_name": plugin_name, "action": action},
-                level="warning",
-            )
+        await plugin_instance.cleanup_partial_installation()
+        logger.debug("Called cleanup_partial_installation for plugin '%s'.", plugin_name)
     if await async_path_exists(temp_path):
-        try:
-            await uncancel_and_wait(asyncio.to_thread(shutil.rmtree, temp_path))
-            logger.info("Cleaned up temporary installation directory: %s", temp_path)
-        except RECOVERABLE_EXCEPTIONS as exception:
-            log_exception(
-                logger,
-                exception,
-                message="Failed to clean up temporary installation directory.",
-                operation=OPERATION_PLUGIN_ACTIONS_CLEANUP_PARTIAL_INSTALLATION_REMOVE_TEMP_PATH,
-                details={"temp_path": temp_path, "plugin_name": plugin_name},
-                level="warning",
-            )
+        await run_joined_thread_call(
+            shutil.rmtree,
+            temp_path,
+            task_name="plugin-partial-installation-cleanup",
+            retain_resources_until_complete=True,
+        )
+        logger.info("Cleaned up temporary installation directory: %s", temp_path)
 
 
 async def validate_action_for_state_async(
@@ -119,6 +90,7 @@ async def validate_action_for_state_async(
     emit_error_event: bool = True,
     finalize_task: bool = True,
     mutation_fencing_token: int | None = None,
+    recovering_update: bool = False,
 ) -> bool:
     error_type: ErrorType | None = None
     error_message: str | None = None
@@ -152,6 +124,12 @@ async def validate_action_for_state_async(
                     compatibility_check.message or f"Plugin '{plugin_name}' is incompatible."
                 )
             else:
+                if (
+                    recovering_update
+                    and action_name == "update_backend"
+                    and current_state == PLUGIN_STATE_BACKEND_UPDATING
+                ):
+                    return True
                 display_name = plugin_info.get("name", plugin_name)
                 action_str = action_name.replace("_", " ")
                 if current_state in ALL_TRANSIENT_STATES and action_name not in {

@@ -4,6 +4,7 @@
 import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
+import { isItemlessKnowledgeReindex } from '@features/chat/knowledgeAttachmentReadiness.ts';
 
 type KnowledgePresentation = {
     label: string;
@@ -13,6 +14,7 @@ type KnowledgePresentation = {
 type KnowledgeTerminalNotification = {
     message: string;
     type: NotificationType;
+    speechNotTranscribed: boolean;
 };
 
 type KnowledgeIngestionIdentity = {
@@ -29,7 +31,7 @@ const resolveKnowledgeAttachmentPresentation = (summary: KnowledgeAttachmentSumm
         if ((summary.statusCounts['fetching'] ?? 0) > 0) return { label: i18n.t('chat.ingestion.stage.fetching'), showSpinner: true };
         return { label: i18n.t('chat.ingestion.stage.queued'), showSpinner: true };
     }
-    if (summary.processingState === 'ready') return { label: i18n.t('chat.attachments.status.ready'), showSpinner: false };
+    if (summary.processingState === 'ready') return { label: summary.missingCapabilities?.includes('speech_to_text') ? i18n.t('speechSetup.notTranscribed') : i18n.t('chat.attachments.status.ready'), showSpinner: false };
     if (summary.processingState === 'cancelled') return { label: i18n.t('chat.ingestion.terminal.cancelled'), showSpinner: false };
     return { label: i18n.t('chat.attachments.status.error'), showSpinner: false };
 };
@@ -56,13 +58,15 @@ const selectLatestKnowledgeAttachmentSummary = (current: KnowledgeAttachmentSumm
 };
 
 const resolveKnowledgeTerminalNotification = (summary: KnowledgeAttachmentSummary): KnowledgeTerminalNotification | null => {
-    if (summary.processingState === 'cancelled') return { message: i18n.t('chat.ingestion.terminal.cancelled'), type: 'info' };
+    if (summary.processingState === 'cancelled') return { message: i18n.t('chat.ingestion.terminal.cancelled'), type: 'info', speechNotTranscribed: false };
     if (summary.processingState !== 'ready' && summary.processingState !== 'error') return null;
     const completed = summary.statusCounts['completed'] ?? 0;
     const failed = (summary.statusCounts['error'] ?? 0) + (summary.statusCounts['failed'] ?? 0);
-    if (completed > 0 && failed > 0) return { message: i18n.t('chat.ingestion.terminal.mixed'), type: 'warning' };
-    if (completed > 0 && summary.processingState === 'ready') return { message: i18n.t('chat.ingestion.terminal.ready'), type: 'success' };
-    return { message: i18n.t('chat.ingestion.terminal.failed'), type: 'error' };
+    if (completed > 0 && failed > 0) return { message: i18n.t('chat.ingestion.terminal.mixed'), type: 'warning', speechNotTranscribed: false };
+    const hasReadyResult = summary.processingState === 'ready' && (completed > 0 || (isItemlessKnowledgeReindex(summary) && failed === 0));
+    if (hasReadyResult && summary.missingCapabilities?.includes('speech_to_text')) return { message: i18n.t('speechSetup.notTranscribedNotice'), type: 'warning', speechNotTranscribed: true };
+    if (hasReadyResult) return { message: i18n.t('chat.ingestion.terminal.ready'), type: 'success', speechNotTranscribed: false };
+    return { message: i18n.t('chat.ingestion.terminal.failed'), type: 'error', speechNotTranscribed: false };
 };
 
 class KnowledgeTerminalNotificationRegistry {

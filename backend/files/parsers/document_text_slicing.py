@@ -43,6 +43,7 @@ def slice_document_text(
     max_chars: int,
     offset_chars: int,
     extraction_state: ExtractionState,
+    missing_capabilities: tuple[str, ...] = (),
 ) -> DocumentReadResult:
     chunked = slice_chunked_text(
         content=content,
@@ -66,4 +67,5 @@ def slice_document_text(
             if chunked.truncated and extraction_state is ExtractionState.COMPLETE
             else extraction_state
         ),
+        missing_capabilities=missing_capabilities,
     )

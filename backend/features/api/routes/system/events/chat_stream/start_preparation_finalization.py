@@ -97,6 +97,7 @@ async def finalize_preparation_cancelled(
                     duration_ms=max(0, int(monotonic_ms()) - runtime.started_at_monotonic_ms),
                     thinking_tail_duration_ms=0,
                     reason=runtime.cancellation_reason or "Chat stream was cancelled.",
+                    code=runtime.cancellation_code,
                 ),
             )
             finalized = True

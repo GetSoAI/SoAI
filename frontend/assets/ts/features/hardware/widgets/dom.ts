@@ -49,12 +49,12 @@ const createCpuWidget = (cpu: CPUDevice, size: WidgetSize): Promise<CPUWidget> =
         })
     );
 
-const createGpuWidget = (gpu: GPUDevice, size: WidgetSize): Promise<GPUWidget> =>
+const createGpuWidget = (gpu: GPUDevice, size: WidgetSize, widgetId: string): Promise<GPUWidget> =>
     initializeWidget(
         new GPUWidget({
             container: createWidgetElement(),
             config: {
-                id: `gpu-widget-${gpu.index}`,
+                id: widgetId,
                 index: gpu.index,
                 name: gpu.name,
                 data: gpu.data

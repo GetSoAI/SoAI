@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from core.agent_mcp_config import normalize_conversation_mcp_config
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
+from core.conversations.assistant_turn_variant_identity import require_chat_stream_start_identity
 from core.errors.exceptions import StateError, ValidationError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
@@ -26,7 +27,9 @@ from core.openai.stream_request_preparation import (
 from core.runtime.request_context import RequestContext
 from core.runtime.request_context_agent_fields import apply_agent_runtime_context_fields
 from core.runtime.request_sources import REQUEST_SOURCE_WEBUI_WS
+from core.serialization.json_parsing import parse_json_value
 from core.types.json import JSONDict
+from core.types.json_value import require_json_dict_list
 from features.agent.runtime.agentic_execution_policy import (
     normalize_tool_context_for_agent_settings,
 )
@@ -115,11 +118,32 @@ async def prepare_conversation_input_turn(
         requested_model=requested_model,
         turn_scope=None,
     )
-    canonical_history = await api_dependencies.database_messages.get_canonical_agent_history(
-        conv_id,
-        user_id,
-        before_timestamp_exclusive=assistant_turn_at_ms,
-    )
+    canonical_history: list[JSONDict] | None
+    if request_context.conversation_input_resume_phase is not None:
+        if request_context.agent_turn_id is None or request_context.conversation_input_id is None:
+            raise StateError("Conversation resume turn identity is unavailable.")
+        snapshot = await api_dependencies.database_agent_turns.get_prompt_replay_snapshot(
+            conv_id=conv_id,
+            user_id=user_id,
+            turn_id=request_context.agent_turn_id,
+            input_id=request_context.conversation_input_id,
+            identity=require_chat_stream_start_identity(
+                assistant_at_ms=assistant_at_ms,
+                assistant_turn_at_ms=assistant_turn_at_ms,
+                model_variant_index=model_variant_index,
+            ),
+        )
+        request_context.agent_prompt_replay_snapshot = snapshot
+        canonical_history = require_json_dict_list(
+            parse_json_value(snapshot.history_messages_json, field="resumed agent prompt"),
+            label="Resumed agent prompt",
+        )
+    else:
+        canonical_history = await api_dependencies.database_messages.get_canonical_agent_history(
+            conv_id,
+            user_id,
+            before_timestamp_exclusive=assistant_turn_at_ms,
+        )
     if canonical_history is None:
         raise StateError("Conversation input canonical history is unavailable.")
     projector = build_webui_attachment_provider_projector(
@@ -165,6 +189,12 @@ async def prepare_conversation_input_turn(
             conversation=conversation,
         ),
         force_tool_choice_auto=True,
+        request_tool_names=(
+            ("skill_read",)
+            if request_context.skill_execution_context is not None
+            and request_context.skill_execution_context.snapshot.available
+            else ()
+        ),
         supports_tool_calling=build_supports_tool_calling_callable(api_dependencies),
         sources=api_dependencies,
         local_tool_catalog_scope=conversation.local_tool_catalog_scope,
@@ -196,6 +226,11 @@ async def prepare_conversation_input_turn(
             message_source=AgenticRequestMessageSource(
                 canonical_messages=canonical_history,
                 provider_projector=projector,
+                active_turn_identity=(
+                    request_context.agent_prompt_replay_snapshot.identity
+                    if request_context.agent_prompt_replay_snapshot is not None
+                    else None
+                ),
             ),
             user_id=user_id,
             conv_id=conv_id,

@@ -28,4 +28,9 @@
     .ui-corner-badge--danger {
         background: var(--status-red);
     }
+
+    .ui-corner-badge--danger:is(button, [role='button']) {
+        background: var(--control-round-button-danger-bg);
+        color: var(--control-round-button-foreground);
+    }
 }

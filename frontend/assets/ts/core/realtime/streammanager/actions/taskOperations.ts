@@ -1,12 +1,13 @@
 /* SoAI - Shared realtime task operations [frontend/assets/ts/core/realtime/streammanager/actions/taskOperations.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { softwareUpdateTaskProgress } from '@core/tasks/softwareUpdateProgress.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { normalizeProgressCompletedTotal } from '@core/primitives/progress.ts';
 import type { OperationMetadata } from '@core/realtime/streammanager/types.ts';
 import { resolveTaskOperationConversationId } from '@core/tasks/operationPayloads.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
-import { isObject, isString } from '@core/typeGuards.ts';
+import { isFiniteNumber, isObject, isString } from '@core/typeGuards.ts';
 import { resolveEditionTaskOperationType } from '@core/tasks/editionTaskCatalog.ts';
 
 interface TaskOperation {
@@ -15,6 +16,8 @@ interface TaskOperation {
     meta: OperationMetadata;
     progress: number | null;
 }
+
+const applyMeasuredTaskProgress = (metadata: OperationMetadata, progress: JsonValue | undefined): OperationMetadata => (isFiniteNumber(progress) ? { ...metadata, indeterminate: false } : metadata);
 
 const TASK_TYPE_TO_OPERATION_TYPE: Readonly<Record<string, string>> = Object.freeze({
     'chat_completion': 'chat-request',
@@ -41,6 +44,7 @@ const TASK_TYPE_TO_OPERATION_TYPE: Readonly<Record<string, string>> = Object.fre
     'plugin_upload': 'plugin-upload',
     'plugin_download': 'plugin-download',
     'force_cleanup': 'force-cleanup',
+    'hardware_soaibench': 'soaibench',
     'software_update': 'software-update',
     'wallpaper_update': 'wallpaper-update',
     'backup_create': 'backup-create',
@@ -74,6 +78,12 @@ const decodeTaskOperationMetadata = (metadata: JsonObject): JsonObject => ({
     ...(metadata['details'] !== undefined ? { details: metadata['details'] } : {}),
     ...(metadata['quantization'] !== undefined ? { quantization: metadata['quantization'] } : {}),
     ...(metadata['path'] !== undefined ? { path: metadata['path'] } : {}),
+    ...(metadata['run_id'] !== undefined ? { runId: metadata['run_id'] } : {}),
+    ...(metadata['device_id'] !== undefined ? { deviceId: metadata['device_id'] } : {}),
+    ...(metadata['gpu_name'] !== undefined ? { gpuName: metadata['gpu_name'] } : {}),
+    ...(metadata['profile'] !== undefined ? { profile: metadata['profile'] } : {}),
+    ...(metadata['benchmark_mode'] !== undefined ? { benchmarkMode: metadata['benchmark_mode'] } : {}),
+    ...(metadata['edition'] !== undefined ? { edition: metadata['edition'] } : {}),
     ...(metadata['cancelable'] !== undefined ? { cancelable: metadata['cancelable'] } : {})
 });
 
@@ -132,6 +142,7 @@ const buildTrackedTaskOperation = (task: JsonValue | null | undefined): TaskOper
     const meta: OperationMetadata = {
         ...metadata,
         type: operationType,
+        ...(operationType === 'software-update' ? { cancelable: false } : {}),
         id: taskId,
         taskId,
         ...(ownerId ? { ownerId } : {}),
@@ -143,8 +154,16 @@ const buildTrackedTaskOperation = (task: JsonValue | null | undefined): TaskOper
         ...(statusValue ? { taskStatus: statusValue } : {})
     };
 
+    if (operationType === 'software-update') {
+        const data = softwareUpdateTaskProgress(taskId, progressDetailsValue);
+        meta['indeterminate'] = data['indeterminate'] ?? true;
+        meta['statusMessage'] = data['message'] ?? '';
+        meta['details'] = data['details'] ?? '';
+        return { id: taskId, type: operationType, meta, progress: typeof data['progress'] === 'number' ? data['progress'] : null };
+    }
+    meta['indeterminate'] = progress === null;
     return { id: taskId, type: operationType, meta, progress };
 };
 
-export { TASK_TYPE_TO_OPERATION_TYPE, buildTaskOperation, buildTrackedTaskOperation, toOperationType };
+export { TASK_TYPE_TO_OPERATION_TYPE, applyMeasuredTaskProgress, buildTaskOperation, buildTrackedTaskOperation, toOperationType };
 export type { TaskOperation };

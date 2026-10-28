@@ -85,6 +85,8 @@ class ResumableHTTPStreamSync:
                 response = self._stack.enter_context(
                     self._opener(self.cursor.request_headers(), self.cursor.timeout)
                 )
+                if self.cursor.accept_complete_range(response):
+                    return
                 response.raise_for_status()
                 self.cursor.accept(response)
                 self._reader = response.iter_raw(chunk_size=self._chunk_size)
@@ -96,6 +98,9 @@ class ResumableHTTPStreamSync:
 
     def _next_chunk(self) -> bytes | None:
         while True:
+            if self.cursor.range_complete:
+                self.cursor.finish()
+                return None
             try:
                 chunk = self._read_chunk()
             except DownloadReplayRequired as exception:

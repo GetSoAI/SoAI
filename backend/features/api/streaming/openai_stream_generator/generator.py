@@ -17,6 +17,7 @@ from core.openai.sse_frame_accumulator import OpenAISSEFrameAccumulator
 from core.openai.sse_frames import sse_done_chunk
 from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
 from core.openai.streaming_token_budget import build_streaming_token_budget
+from core.openai.streaming_usage import OpenAIPublicUsageProjection
 from core.runtime.request_context import RequestContext
 from core.streaming.protocols import StreamGeneratorStateProtocol
 from features.api.streaming.internal_protocols import (
@@ -60,6 +61,7 @@ async def create_stream_generator(
     quota_prompt_tokens: int | None = None,
     allow_image_events: bool = False,
     collect_tool_calls: bool = True,
+    public_usage_projection: OpenAIPublicUsageProjection | None = None,
 ) -> AsyncGenerator[bytes]:
     logger = get_logger(LOGGER_NAME)
     done_chunk = sse_done_chunk()
@@ -103,6 +105,7 @@ async def create_stream_generator(
         resolved_transcript = OpenAIStreamTranscript(
             model_hint=model,
             collect_tool_calls=resolved_collect_tool_calls,
+            error_origin="local_terminal",
         )
     token_budget = None
     if quota_reservation is not None:
@@ -127,6 +130,7 @@ async def create_stream_generator(
         collect_tool_calls=resolved_collect_tool_calls,
         tool_call_ids_by_index={},
         tool_call_ids_by_ordinal={},
+        public_usage_projection=public_usage_projection,
     )
 
     def schedule_task_cancel(reason: str) -> None:

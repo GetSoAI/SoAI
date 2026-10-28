@@ -16,6 +16,7 @@ const mapRouteData = (definition: RawRouteDefinition): RouteData => {
 const mapRouteSidebar = (definition: RouteSidebarDefinition): RouteSidebar => {
     return Object.freeze({
         include: definition.include !== false,
+        activateOnNavigation: definition.activateOnNavigation !== false,
         getLabel: definition.getLabel ?? null,
         icon: definition.icon ?? null,
         section: definition.section ?? null,

@@ -11,7 +11,7 @@ import { normalizeSearchMatchQuery } from '@core/search/searchQuery.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
 import type { ParameterGroup, ParameterTemplateOptions, ParameterValue, ParameterView } from '@pages/modeldetail/contracts/parameterTypes.ts';
 import { PARAMETER_GROUPS, PARAMETER_REVERT_SELECTOR, PARAMETERS_INTERFACE_ID } from '@pages/modeldetail/controllers/parameterviewmanager/constants.ts';
-import { applyFilters, disposeEventHandlers, refreshElementCache, requireElement, resolveElement, updateParameterUi } from '@pages/modeldetail/controllers/parameterviewmanager/dom.ts';
+import { applyFilters, disposeEventHandlers, refreshElementCache, requireElement, resolveElement, updateParameterUi, validateArrayControls } from '@pages/modeldetail/controllers/parameterviewmanager/dom.ts';
 import { createParameterFieldStateTracker, refreshModificationState, resetParameterValue, syncParameterCustomizedState, updateParameterValue } from '@pages/modeldetail/controllers/parameterviewmanager/effects.ts';
 import { bindParameterControls } from '@pages/modeldetail/controllers/parameterviewmanager/events.ts';
 import { ParameterCategoryRailController } from '@pages/modeldetail/controllers/parameterviewmanager/parameterCategoryRailController.ts';
@@ -19,7 +19,6 @@ import { persistModelDetailParameterGroup, readModelDetailParameterGroup } from 
 import { getArrayValueWithAppend, getArrayValueWithRemoval, parseJsonParameterValue, setArrayItemValue } from '@pages/modeldetail/controllers/parameterviewmanager/state.ts';
 import type { BoundParameterEvents, ParameterElementCache, ParameterViewFilters, ParameterViewHost, ParameterViewManagerOptions } from '@pages/modeldetail/controllers/parameterviewmanager/types.ts';
 import { createTemplateOptions, renderNoParameters, renderParameters, renderVirtualModel } from '@pages/modeldetail/controllers/parameterviewmanager/view.ts';
-import { resolveParameterInputId } from '@pages/modeldetail/widgets/parametertemplates/state.ts';
 import { renderParameterControl } from '@pages/modeldetail/widgets/parametertemplates/view.ts';
 
 class ParameterViewManager {
@@ -177,11 +176,15 @@ class ParameterViewManager {
             parameterKey,
             value
         );
+        this.syncLinkedParameter(parameterKey);
+    }
+    private syncLinkedParameter(parameterKey: string): void {
         const linkedParameterKey = this.state.getLinkedParameterKey(parameterKey);
         if (linkedParameterKey) {
             const linkedParameter = this.state.getParameter(linkedParameterKey);
             if (linkedParameter) {
                 this.updateParameterUI(linkedParameterKey, linkedParameter.currentValue ?? null);
+                this.setParameterValidity(linkedParameterKey, true);
                 this.syncParameterCustomizedState(linkedParameterKey);
                 this.setParameterModifiedState(linkedParameterKey, this.state.isParameterModified(linkedParameterKey));
                 this.handleModificationStateChange();
@@ -197,12 +200,10 @@ class ParameterViewManager {
             },
             () => this.handleModificationStateChange()
         );
-        if (this.filters.view !== 'all') {
-            this.applyFilters();
-        }
     }
     handleModificationStateChange(): void {
         this.updateSummary();
+        if (this.filters.view !== 'all') this.applyFilters();
         this.host.notifySaveChanged();
     }
     private updateSummary(): void {
@@ -231,18 +232,22 @@ class ParameterViewManager {
             parsed = parseJsonParameterValue(json);
         } catch (error) {
             const runtimeError = ensureError(error);
-            errorHandler.debug('ParameterViewManager', 'Invalid JSON parameter input', runtimeError);
+            if (!(runtimeError instanceof SyntaxError || runtimeError instanceof TypeError)) throw runtimeError;
+            if (!this.fieldStateTracker.isInvalid(parameterKey)) errorHandler.debug('ParameterViewManager', 'JSON parameter draft became invalid', { parameterKey });
             this.host.pageDom.updateText(validation, i18n.t('modelDetail.parameters.invalidJson'));
             this.host.pageDom.toggleClass(validation, 'error', true);
+            this.host.pageDom.updateAttribute(textareaId, 'aria-invalid', 'true');
             this.setParameterValidity(parameterKey, false);
             return;
         }
-        this.setParameterValidity(parameterKey, true);
         this.updateParameter(parameterKey, parsed);
+        this.setParameterValidity(parameterKey, true);
+        this.host.pageDom.updateAttribute(textareaId, 'aria-invalid', 'false');
         this.host.pageDom.updateText(validation, '');
         this.host.pageDom.toggleClass(validation, 'error', false);
     }
     addArrayItem(parameterKey: string): void {
+        if (!validateArrayControls(this.host, parameterKey)) return;
         const next = getArrayValueWithAppend(this.state, parameterKey);
         if (!next) {
             return;
@@ -251,6 +256,7 @@ class ParameterViewManager {
         this.rerenderArrayInput(parameterKey);
     }
     removeArrayItem(parameterKey: string, index: number): void {
+        if (!validateArrayControls(this.host, parameterKey)) return;
         const next = getArrayValueWithRemoval(this.state, parameterKey, index);
         if (!next) {
             return;
@@ -265,6 +271,7 @@ class ParameterViewManager {
         }
         this.syncParameterCustomizedState(parameterKey);
         this.setParameterModifiedState(parameterKey, update.isModified);
+        this.syncLinkedParameter(parameterKey);
         this.handleModificationStateChange();
     }
     rerenderArrayInput(parameterKey: string): void {
@@ -291,11 +298,8 @@ class ParameterViewManager {
     }
     resetParameter(parameterKey: string): void {
         this.setParameterValidity(parameterKey, true);
-        const validation = this.host.pageDom.optional(`${resolveParameterInputId(parameterKey)}-validation`);
-        if (validation) {
-            this.host.pageDom.updateText(validation, '');
-            this.host.pageDom.toggleClass(validation, 'error', false);
-        }
+        const linkedParameterKey = this.state.getLinkedParameterKey(parameterKey);
+        if (linkedParameterKey) this.setParameterValidity(linkedParameterKey, true);
         resetParameterValue({
             state: this.state,
             parameterKey,

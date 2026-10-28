@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exceptions import ProcessError, ServiceUnavailableError, SoAITimeoutError
+from core.errors.payload import ErrorPublicPayload
+from core.errors.public_projection import apply_public_error_payload
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.system.async_process_spawning import spawn_async_process
 from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
@@ -62,10 +64,20 @@ async def run_media_process(
             stderr=subprocess.PIPE,
         )
     except FileNotFoundError as exception:
-        raise ServiceUnavailableError(
+        error = ServiceUnavailableError(
             f"Media extraction requires {dependency_name}.",
             cause=exception,
-        ) from exception
+        )
+        apply_public_error_payload(
+            error,
+            ErrorPublicPayload(
+                code="media_dependency_unavailable",
+                message=f"Media processing requires {dependency_name}. Install FFmpeg and try again.",
+                details={"dependency": dependency_name},
+                http_status=503,
+            ),
+        )
+        raise error from exception
     try:
         try:
             stdout_bytes, _stderr_bytes = await asyncio.wait_for(

@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import time
 from typing import TYPE_CHECKING
 
@@ -17,6 +16,7 @@ from core.events.types_models_requests import (
 )
 from core.logging.protocols import TraceLogger
 from core.metrics.protocols import MetricsManagerProtocol
+from core.models.provider_backing import is_provider_backed_model
 from core.openai.request_features import (
     coerce_stream_requested,
     extract_usage_reporting_requested,
@@ -27,12 +27,18 @@ from core.openai.request_requirement_failures import (
 )
 from core.plugins.protocols_instance import PluginInstanceProtocol
 from core.state.protocols import StateAggregatorProtocol
+from core.state.provider_backed_availability import PROVIDER_BACKED_IGNORED_PLUGIN_STATES
 from core.state.state_names import ORCH_STATE_PROCESSING
-from core.tasks.protocols import TaskRegistryProtocol
+from core.tasks.execution_budget import ExecutionBudget, ExecutionLimit, resolve_execution_limit
+from core.tasks.protocols import TaskFinalizerTrackerProtocol, TaskRegistryProtocol
 from core.tasks.streaming_prefill_timeout import resolve_streaming_first_chunk_timeout
 from core.tasks.task import Task
 from core.tasks.type_catalog import TASK_TYPE_TEXT_TO_SPEECH
 from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
+from orchestrator.execution.execution_phase_timeouts import (
+    ExecutionPhase,
+    await_within_execution_budget,
+)
 from orchestrator.execution.internal_protocols import (
     ActiveInferenceRegistryProtocol,
     InferencePayloadPreparerProtocol,
@@ -80,9 +86,12 @@ async def _ensure_processing_state_for_inference(
     plugin_name: str,
     task_id: str,
     universal_id: JSONValue,
+    provider_backed: bool,
     logger: TraceLogger,
 ) -> None:
     current_plugin_status = await state_aggregator.get_plugin_status(plugin_name)
+    if provider_backed and current_plugin_status in PROVIDER_BACKED_IGNORED_PLUGIN_STATES:
+        return
     if current_plugin_status == ORCH_STATE_PROCESSING:
         return
     try:
@@ -118,20 +127,19 @@ def prepare_inference_payload(
     request_timeout: float,
     raw_timeout: JSONValue,
     logger: TraceLogger,
-) -> tuple[JSONDict, float]:
-    next_request_timeout = request_timeout
+) -> tuple[JSONDict, ExecutionLimit]:
+    caller_timeout: float | None = None
     if (
         isinstance(raw_timeout, int | float)
         and (not isinstance(raw_timeout, bool))
         and float(raw_timeout) > 0
     ):
-        coerced_timeout = coerce_positive_float(
+        caller_timeout = coerce_positive_float(
             raw_timeout,
             default=request_timeout,
             label="request.timeout",
             logger=logger,
         )
-        next_request_timeout = min(request_timeout, coerced_timeout)
     messages_value = prepared_payload.get("messages")
     normalized_payload = prepared_payload
     if isinstance(messages_value, list) and not prepared_payload.get("stream", False):
@@ -142,7 +150,7 @@ def prepare_inference_payload(
             **(stream_options if isinstance(stream_options, dict) else {}),
             "include_usage": True,
         }
-    return (normalized_payload, next_request_timeout)
+    return (normalized_payload, resolve_execution_limit(request_timeout, caller_timeout))
 
 
 async def execute_task_within_plugin_slot(
@@ -157,6 +165,7 @@ async def execute_task_within_plugin_slot(
     role_policy_resolver: ChatTemplateRolePolicyResolver,
     *,
     lifecycle: OrchestratorLifecycleCoordinatorProtocol,
+    finalizer_tracker: TaskFinalizerTrackerProtocol,
     requeue_inside_slot_warners: dict[str, RateLimitedLogger],
     admission_registered: bool,
     task: Task,
@@ -200,6 +209,7 @@ async def execute_task_within_plugin_slot(
         plugin_name=plugin_name,
         task_id=task.task_id,
         universal_id=model_info.get("universal_id"),
+        provider_backed=is_provider_backed_model(model_info),
         logger=logger,
     )
     await active_inferences.set_dispatch_time(tracking_id, time.monotonic())
@@ -210,13 +220,16 @@ async def execute_task_within_plugin_slot(
     )
     model_context = build_model_context(task, model_info)
     if isinstance(event, EmbeddingRequestReceived):
-        embedding_result = await asyncio.wait_for(
+        embedding_result = await await_within_execution_budget(
             plugin_instance.handle_embedding_request(
                 event.payload,
                 event.context,
                 model_context,
             ),
-            timeout=request_timeout,
+            budget=ExecutionBudget.start(resolve_execution_limit(request_timeout, None)),
+            phase=ExecutionPhase.RESPONSE,
+            task_registry=task_registry,
+            task=task,
         )
         unary_result = handle_unary_result(
             results,
@@ -250,7 +263,7 @@ async def execute_task_within_plugin_slot(
         )
         return (task, False)
     raw_timeout = event.payload.get("timeout")
-    prepared_payload, request_timeout = prepare_inference_payload(
+    prepared_payload, request_limit = prepare_inference_payload(
         prepared_payload,
         request_timeout=request_timeout,
         raw_timeout=raw_timeout,
@@ -262,35 +275,35 @@ async def execute_task_within_plugin_slot(
         operation="orchestrator.execution.engine.coerce_payload_bool",
         default=False,
     )
-    first_chunk_timeout = resolve_streaming_first_chunk_timeout(
+    first_chunk_limit = resolve_streaming_first_chunk_timeout(
         task=task,
         health_check_config=health_check_config,
     )
-    tracking_timeout = (
-        first_chunk_timeout if prepared_payload.get("stream") is True else request_timeout
-    )
-    await active_inferences.set_request_timeout(tracking_id, tracking_timeout)
     delivery_to_user = requested_stream or task.task_type == TASK_TYPE_TEXT_TO_SPEECH
     try:
-        await execute_plugin_inference_request(
+        return await execute_plugin_inference_request(
             results,
             outcomes,
             metrics=metrics,
             task_registry=task_registry,
+            finalizer_tracker=finalizer_tracker,
             task=task,
             plugin_instance=plugin_instance,
             prepared_payload=prepared_payload,
             model_context=model_context,
-            request_timeout=request_timeout,
-            first_chunk_timeout=first_chunk_timeout,
+            request_limit=request_limit,
+            first_chunk_limit=first_chunk_limit,
             event=event,
             logger=logger,
             delivery_to_user=delivery_to_user,
+            requested_stream=requested_stream,
             max_execution_retries=resolve_max_execution_attempts(),
             model_info=model_info,
             usage_reporting_requested=extract_usage_reporting_requested(event.payload),
             plugin_name=plugin_name,
             role_policy_resolver=role_policy_resolver,
+            health_check_config=health_check_config,
+            active_inferences=active_inferences,
         )
     except ModelOutputContractError as exception:
         await outcomes.fail_task(
@@ -300,4 +313,3 @@ async def execute_task_within_plugin_slot(
             error_type=ErrorType.MODEL_OUTPUT_CONTRACT,
         )
         return (task, False)
-    return (task, True)

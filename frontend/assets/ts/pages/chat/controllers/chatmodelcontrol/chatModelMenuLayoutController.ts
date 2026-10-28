@@ -16,10 +16,18 @@ const openChatModelMenuLayout = (menu: HTMLElement, trigger: HTMLElement, scope:
     const controller = new AbortController();
     const sync = (): void => {
         const triggerRect = measureLayoutBox(trigger);
-        const availableHeight = scope === 'composer' && boundary !== null ? triggerRect.top - MENU_VIEWPORT_GAP_PX - measureLayoutBox(boundary).bottom : (boundary === null ? measureLayoutViewport(menu).height - MENU_VIEWPORT_GAP_PX : measureLayoutBox(boundary).bottom) - triggerRect.bottom - MENU_VIEWPORT_GAP_PX;
-        dom.setStyle(menu, '--chat-model-menu-max-height', `${String(Math.max(0, availableHeight))}px`);
+        const boundaryBottom = boundary === null ? null : measureLayoutBox(boundary).bottom;
+        const availableAbove = triggerRect.top - MENU_VIEWPORT_GAP_PX - (scope === 'composer' && boundaryBottom !== null ? boundaryBottom : MENU_VIEWPORT_GAP_PX);
+        const availableBelow = (boundaryBottom ?? measureLayoutViewport(menu).height - MENU_VIEWPORT_GAP_PX) - triggerRect.bottom - MENU_VIEWPORT_GAP_PX;
+        const header = dom.resolve('.chat-model-menu-header', menu);
+        const option = dom.resolve('.chat-model-menu-option:not(.u-hidden)', menu);
+        const headerHeight = header instanceof HTMLElement ? measureLayoutBox(header).height : 0;
+        const minimumContentHeight = headerHeight + (option instanceof HTMLElement ? measureLayoutBox(option).height : 0);
+        const opensAbove = scope === 'composer' || (scope === 'empty-state' && availableBelow < minimumContentHeight && availableAbove > availableBelow);
+        dom.setStyle(menu, '--chat-model-menu-header-height', `${String(headerHeight)}px`);
+        dom.setStyle(menu, '--chat-model-menu-max-height', `${String(Math.max(0, opensAbove ? availableAbove : availableBelow))}px`);
         dom.flush();
-        syncPageActionsMenuPosition(menu, trigger, scope === 'composer' ? { alignment: 'start', placement: 'above' } : { alignment: 'start' });
+        syncPageActionsMenuPosition(menu, trigger, opensAbove ? { alignment: 'start', placement: 'above' } : { alignment: 'start' });
         dom.flush();
     };
     const observer = new ResizeObserver(sync);

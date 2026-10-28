@@ -95,6 +95,7 @@ if TYPE_CHECKING:
     from core.prompts.protocols_database import DatabasePromptsProtocol
     from core.rag.protocols import DatabaseKnowledgePromptStateProtocol
     from core.read_video.protocols_database import DatabaseReadVideoJobsProtocol
+    from core.skills.protocols import SkillRepositoryProtocol
     from core.system.protocols import PowerOperationRepositoryProtocol
     from core.tasks.protocols_query import DatabaseTaskQueriesProtocol
     from core.tool_calls.protocols import DatabaseToolCallsProtocol
@@ -130,6 +131,7 @@ class DatabaseServices:
     chat_identity_defaults: DatabaseChatIdentityDefaultsProtocol
     chat_model_defaults: DatabaseChatModelDefaultsProtocol
     chat_presets: ChatPresetRepositoryProtocol
+    skills: SkillRepositoryProtocol
     external_accounts: DatabaseExternalAccountsProtocol
     mail: DatabaseMailProtocol
     calendar: DatabaseCalendarProtocol
@@ -191,6 +193,7 @@ class DatabaseServices:
             chat_identity_defaults=self.chat_identity_defaults,
             chat_model_defaults=self.chat_model_defaults,
             chat_presets=self.chat_presets,
+            skills=self.skills,
             external_accounts=self.external_accounts,
             mail=self.mail,
             calendar=self.calendar,

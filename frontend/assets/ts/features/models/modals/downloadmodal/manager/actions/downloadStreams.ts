@@ -1,6 +1,7 @@
 /* SoAI - Models feature download streams [frontend/assets/ts/features/models/modals/downloadmodal/manager/actions/downloadStreams.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { scrollDownloadModalSectionIntoView } from '@features/models/modals/downloadmodal/manager/scrolling.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { MODELS, PLUGINS } from '@core/realtime/streammanager/resources/ids.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
@@ -10,11 +11,6 @@ import type { DownloadModalManagerRuntime } from '@features/models/modals/downlo
 import { runModelDownload } from '@features/models/downloads/modelDownloadRun.ts';
 import { updateDownloadBadge } from '@features/models/modals/downloadmodal/manager/view.ts';
 import { MODEL_DOWNLOAD_OPERATION_TYPE } from '@features/models/modelDownloadOperation.ts';
-
-const scrollOperationProgressToTop = (runtime: DownloadModalManagerRuntime): void => {
-    const modalRoot = runtime.host.session.modals.requireElement(runtime.modalId);
-    runtime.host.session.requireHTMLElement('.download-model-modal-scroll', modalRoot).scrollTop = 0;
-};
 
 const downloadModel = async (runtime: DownloadModalManagerRuntime): Promise<void> => {
     const request = buildDownloadRequest(runtime);
@@ -29,7 +25,7 @@ const downloadModel = async (runtime: DownloadModalManagerRuntime): Promise<void
         }),
         tracker: runtime.host.execution.streams,
         failMessage: i18n.t('models.notifications.downloadFailed'),
-        onAdmitted: () => scrollOperationProgressToTop(runtime),
+        onAdmitted: () => scrollDownloadModalSectionIntoView(runtime, 'operation-progress-list'),
         onStarted: () => {
             runtime.state.acceptedCatalogMutation = true;
             updateDownloadBadge(runtime);

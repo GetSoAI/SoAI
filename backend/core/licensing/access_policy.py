@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from core.errors.exceptions import StateError
 from core.licensing.types import LicensingStatus
 from core.state.access import AccessAction
 from core.state.repair_plane import REPAIR_PLANE_ACTIONS, restrict_to_repair_plane
@@ -39,13 +38,6 @@ ORDINARY_ACTIONS: frozenset[AccessAction] = frozenset(
 )
 
 
-def validate_action_licensing_classification() -> None:
-    if REPAIR_PLANE_ACTIONS & ORDINARY_ACTIONS:
-        raise StateError("Licensing action classes overlap.")
-    if REPAIR_PLANE_ACTIONS | ORDINARY_ACTIONS != frozenset(AccessAction):
-        raise StateError("Licensing action classification is incomplete.")
-
-
 def apply_licensing_action_policy(
     actions: frozenset[AccessAction],
     status: LicensingStatus,
@@ -59,5 +51,4 @@ __all__ = (
     "ORDINARY_ACTIONS",
     "REPAIR_PLANE_ACTIONS",
     "apply_licensing_action_policy",
-    "validate_action_licensing_classification",
 )

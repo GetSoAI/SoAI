@@ -32,6 +32,7 @@ const stablePluginFingerprint = (candidate: JsonValue): string => {
         disabledReason: toTrimmedString(candidate['disabledReason']),
         fileStatus: toTrimmedString(candidate['fileStatus']),
         backendVersion: toTrimmedString(candidate['backendVersion']),
+        backendUpdate: candidate['backendUpdate'] ?? null,
         logoRevision: toTrimmedString(candidate['logoRevision']),
         externalProviderDefaults: providerDefaults,
         modelTypes: modelTypes,

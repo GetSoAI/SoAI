@@ -25,6 +25,8 @@ export interface UpdatesUiRefs {
     pageNoticeIndicator: HTMLElement;
     pageNoticeHeading: HTMLElement;
     pageNoticeDetail: HTMLElement;
+    historyText: HTMLElement;
+    statusSection: HTMLElement;
     statusIcon: HTMLElement;
     statusSpinner: HTMLElement;
     statusHeading: HTMLElement;

@@ -1,29 +1,14 @@
 /* SoAI - Frontend hardware domain model contracts [frontend/assets/ts/features/hardware/models/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { HardwareCapabilitiesResponse, HardwareGpuSnapshot, WindowsNetworkInventoryStatus } from '@core/api/contracts/hardwareContracts.ts';
+import type { HardwareCpuSnapshot, HardwareGpuSnapshot, HardwareMemorySnapshot, HardwareNetworkAddress, HardwareNetworkInterface, HardwareNetworkSpeed, HardwareVolumeSnapshot, HardwareSummary, HardwareUptimeSnapshot } from '@core/api/contracts/hardwareContractTypes.ts';
+import type { HardwareComponentObservation } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
+import type { HardwareCapabilitiesResponse, WindowsNetworkInventoryStatus } from '@core/api/contracts/hardwareContracts.ts';
 
-interface NetworkSpeedEntry {
-    downloadMbps?: number | undefined;
-    uploadMbps?: number | undefined;
-    observedAtMs?: number | undefined;
-}
-type NetworkSpeedSnapshot = Record<string, NetworkSpeedEntry>;
+type NetworkSpeedSnapshot = Record<string, HardwareNetworkSpeed>;
 
-interface VolumeRaw {
-    deviceId?: string | undefined;
-    filesystem?: string | undefined;
-    mount?: string | undefined;
-    fstype?: string | undefined;
-    totalBytes?: number | undefined;
-    usedBytes?: number | undefined;
-    freeBytes?: number | undefined;
-    percentUsed?: number | undefined;
-    storageBackend?: string | undefined;
-    readOnly?: boolean | undefined;
-    readOnlyReason?: string | null | undefined;
-}
 interface VolumeModel {
+    observationStatus?: HardwareComponentObservation | undefined;
     deviceId: string;
     filesystem: string;
     mount: string;
@@ -46,28 +31,16 @@ interface VolumeOptions {
     minCapacityGb?: number | undefined;
 }
 
-interface NetworkAddress {
-    type?: string | undefined;
-    address?: string | undefined;
-    netmask?: string | undefined;
-}
-interface NetworkInterfaceRaw {
-    deviceId?: string | undefined;
-    name?: string | undefined;
-    macAddress?: string | undefined;
-    addresses?: NetworkAddress[] | undefined;
-    linkSpeedMbps?: number | undefined;
-    isUp?: boolean | undefined;
-}
 interface NetworkInterfaceModel {
+    observationStatus?: HardwareComponentObservation | undefined;
     name: string;
     deviceId: string;
-    addresses: NetworkAddress[];
-    primaryAddr: NetworkAddress | null;
-    secondaryAddr: NetworkAddress | null;
+    addresses: HardwareNetworkAddress[];
+    primaryAddr: HardwareNetworkAddress | null;
+    secondaryAddr: HardwareNetworkAddress | null;
     mac: string | null;
-    dlMbps: number;
-    ulMbps: number;
+    dlMbps?: number | undefined;
+    ulMbps?: number | undefined;
     observedAtMs: number;
     linkSpeedMbps: number;
     isUp: boolean | null;
@@ -81,57 +54,31 @@ interface NetworkModelOptions {
     ignorePrefixes?: readonly string[] | undefined;
 }
 
-interface CpuRaw {
-    deviceId?: string | undefined;
-    identifier?: string | undefined;
-    index?: number | undefined;
-    socketId?: number | string | undefined;
-    name?: string | undefined;
-    displayName?: string | undefined;
-    model?: string | undefined;
-    architecture?: string | undefined;
-    physicalCores?: number | undefined;
-    logicalCores?: number | undefined;
-    usagePercent?: number | undefined;
-    temperatureCelsius?: number | undefined;
-    powerDrawWatts?: number | undefined;
-    powerLimitWatts?: number | undefined;
-}
-interface MemoryRaw {
-    totalGb?: number | undefined;
-    usedGb?: number | undefined;
-    freeGb?: number | undefined;
-    percentUsed?: number | undefined;
-    percent?: number | undefined;
-    totalBytes?: number | undefined;
-    usedBytes?: number | undefined;
-    freeBytes?: number | undefined;
-}
 interface HardwareSnapshot {
+    componentStatus?: Record<string, HardwareComponentObservation> | undefined;
     timestampMs?: number | undefined;
-    summary?: { totalSystemRamGb?: number | undefined; totalVramGb?: number | undefined; totalSystemMemoryGb?: number | undefined } | undefined;
+    summary?: HardwareSummary | undefined;
     capabilities?: HardwareCapabilitiesResponse | undefined;
-    disk?: VolumeRaw[] | undefined;
-    cpus?: CpuRaw[] | undefined;
-    cpu?: CpuRaw | undefined;
-    memory?: MemoryRaw | null | undefined;
-    swap?: MemoryRaw | null | undefined;
-    uptime?: { uptimeMs?: number | undefined; bootTimeMs?: number | undefined } | undefined;
+    disk?: HardwareVolumeSnapshot[] | undefined;
+    cpus?: HardwareCpuSnapshot[] | undefined;
+    cpu?: HardwareCpuSnapshot | undefined;
+    memory?: HardwareMemorySnapshot | null | undefined;
+    swap?: HardwareMemorySnapshot | null | undefined;
+    uptime?: HardwareUptimeSnapshot | undefined;
     gpu?: { gpus?: HardwareGpuSnapshot[] | undefined } | undefined;
-    network?: { interfaces?: NetworkInterfaceRaw[] | undefined; byDeviceId?: Record<string, NetworkInterfaceRaw> | undefined; windowsInventoryStatus?: WindowsNetworkInventoryStatus | undefined } | undefined;
+    network?: { interfaces?: HardwareNetworkInterface[] | undefined; byDeviceId?: Record<string, HardwareNetworkInterface> | undefined; windowsInventoryStatus?: WindowsNetworkInventoryStatus | undefined } | undefined;
     networkSpeed?: NetworkSpeedSnapshot | undefined;
 }
 
-type GPURaw = HardwareGpuSnapshot;
 interface HardwareModelsOptions {
     volumes?: VolumeOptions | undefined;
     network?: NetworkModelOptions | undefined;
 }
 interface HardwareModels {
-    cpus: CpuRaw[];
+    cpus: HardwareCpuSnapshot[];
     gpus: HardwareGpuSnapshot[];
     volumes: VolumeModel[];
     networkInterfaces: NetworkInterfaceModel[];
 }
 
-export type { CpuRaw, GPURaw, HardwareModels, HardwareModelsOptions, HardwareSnapshot, MemoryRaw, NetworkAddress, NetworkInterfaceModel, NetworkInterfaceOptions, NetworkInterfaceRaw, NetworkModelOptions, NetworkSpeedEntry, NetworkSpeedSnapshot, VolumeModel, VolumeOptions, VolumeRaw };
+export type { HardwareModels, HardwareModelsOptions, HardwareSnapshot, NetworkInterfaceModel, NetworkInterfaceOptions, NetworkModelOptions, NetworkSpeedSnapshot, VolumeModel, VolumeOptions };

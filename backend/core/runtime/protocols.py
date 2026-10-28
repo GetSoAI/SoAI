@@ -26,7 +26,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "ConnectionProtocol",
-    "ProxyHeadersAppProtocol",
     "ProxyHeadersStateProtocol",
     "RequestContextProtocol",
     "RequestOwnershipContextProtocol",
@@ -88,6 +87,10 @@ class RequestContextProtocol(Protocol):
     user_id: int
     timestamp: float
     task_id: str | None
+    conversation_input_id: str | None
+    conversation_input_claim_generation: int | None
+    conversation_input_claim_owner: str | None
+    conversation_input_server_boot_id: str | None
     mcp_tool_context: MCPToolContext | None
     interactive_tool_approval: bool
     agent_mode: str | None
@@ -153,6 +156,9 @@ class RuntimeHealthViewProtocol(
 
 
 class RuntimeStateStoreProtocol(RuntimeHealthViewProtocol, Protocol):
+    initial_user_activation_task: asyncio.Task[None] | None
+    database_recovery_pending: bool
+
     @property
     def startup_time(self) -> float: ...
 
@@ -165,6 +171,9 @@ class RuntimeStateStoreProtocol(RuntimeHealthViewProtocol, Protocol):
 
     @property
     def startup_ready_event(self) -> asyncio.Event: ...
+
+    @property
+    def startup_transition_complete_event(self) -> asyncio.Event: ...
 
     @property
     def shutdown_event(self) -> asyncio.Event: ...
@@ -280,10 +289,6 @@ class ConnectionProtocol(Protocol):
 class ProxyHeadersStateProtocol(Protocol):
     proxy_headers_enabled: bool
     trusted_proxy_networks: Iterable[ipaddress.IPv4Network | ipaddress.IPv6Network]
-
-
-class ProxyHeadersAppProtocol(Protocol):
-    state: ProxyHeadersStateProtocol
 
 
 class RequestProtocol(Protocol):

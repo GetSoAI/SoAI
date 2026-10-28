@@ -82,7 +82,7 @@ const handleMetricsUpdate = (context: HardwareRenderActionsContext, value: impor
     if (element) context.updateText(element, formatHardwareTotalUptime(value));
 };
 
-const updateGpuTelemetryIndicators = (context: HardwareRenderActionsContext, snapshot: HardwarePageSnapshot): void => {
+const updateGpuTelemetryIndicators = (context: Pick<HardwareRenderActionsContext, 'chartRuntime' | 'gpuController'>, snapshot: HardwarePageSnapshot): void => {
     const devices = getGpuDevices(snapshot);
     if (!devices.length) {
         context.gpuController.setGpuTelemetryByDeviceId({});
@@ -92,7 +92,7 @@ const updateGpuTelemetryIndicators = (context: HardwareRenderActionsContext, sna
     devices.forEach((gpu) => {
         const id = gpu.deviceId;
         if (typeof id !== 'string' || !id) {
-            throw new TypeError('gpu.deviceId is required');
+            return;
         }
         const chartOhlc = context.chartRuntime.getOhlc();
         const temperatureCelsius = resolveGpuMetricFromDevice('temperature', gpu, chartOhlc);

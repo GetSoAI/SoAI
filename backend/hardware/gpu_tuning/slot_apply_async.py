@@ -1,45 +1,38 @@
-"""SoAI - Async GPU slot application orchestration [backend/hardware/gpu_tuning/slot_apply_async.py]"""
+"""SoAI - Saved-slot intent bound to native receipt and atomic final commit [backend/hardware/gpu_tuning/slot_apply_async.py]"""
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
+from functools import partial
 from typing import TYPE_CHECKING
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
+from core.errors.exceptions import ValidationError
 from core.events.protocols import EventBusProtocol
+from core.hardware.gpu_control_operation_types import GPUControlCommitIntent
 from core.logging.trace import get_logger
-from core.tasks.protocols import (
-    TaskCancellationBinderProtocol,
-    TaskFinalizerTrackerProtocol,
-)
-from core.timing.formatting import utc_now_iso
+from core.tasks.protocols import TaskCancellationBinderProtocol, TaskFinalizerTrackerProtocol
 from core.types.json_value import is_json_value
-from core.validation.boolean_coercion import coerce_bool_flag
-from hardware.gpu_tuning.dirty_tracking import touch_dirty_flag_if_apply_changed
-from hardware.gpu_tuning.events import (
-    emit_active_slot_event,
-    emit_mutation_events,
-)
-from hardware.gpu_tuning.gpu_settings import (
-    GpuSettingsApplyDependencies,
-    async_set_gpu_settings,
-)
+from hardware.gpu_capabilities.aggregate_payloads import get_capabilities_for_device
+from hardware.gpu_tuning.control_backend_selection import group_settings_by_control_backend
+from hardware.gpu_tuning.dependencies import GpuSettingsApplyDependencies
+from hardware.gpu_tuning.direct_apply import async_apply_prepared_gpu_settings
+from hardware.gpu_tuning.effective_control_state import build_apply_settings_for_modes
 from hardware.gpu_tuning.result_flags import is_success_result
-from hardware.gpu_tuning.slot_apply import (
-    sync_finalize_slot_apply,
-    sync_prepare_slot_apply,
-)
-from hardware.gpu_tuning.slot_errors import apply_failed_error, slot_unchanged_error
-from hardware.operations import can_emit_events
-from hardware.presets.slot_mutations import touch_dirty_flag
+from hardware.gpu_tuning.setting_modes import normalize_field_modes_for_settings
+from hardware.gpu_tuning.slot_apply import sync_prepare_slot_apply
+from hardware.gpu_tuning.slot_capabilities import async_get_tuning_capabilities
+from hardware.gpu_tuning.slot_errors import apply_failed_error
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
-    "async_execute_slot_apply",
+    "LOGGER_NAME",
     "extract_gpu_result_entry",
+    "async_execute_slot_apply",
 )
 
 LOGGER_NAME = "SoAI.hardware.gpu_tuning.slot_apply_async"
@@ -66,15 +59,28 @@ async def async_execute_slot_apply(
     apply_at_boot: bool | None,
 ) -> JSONDict:
     deps = settings_deps
-    prepared = await asyncio.to_thread(
-        sync_prepare_slot_apply,
-        executor=deps.executor,
-        storage=deps.storage,
-        detailed_gpu_info=deps.detailed_gpu_info,
-        device_id=device_id,
-        slot=slot,
-        apply_at_boot=apply_at_boot,
-        gpu_services=deps.gpu_services,
+    delivery = deps.delivery_dependencies
+    if (
+        dirty_flag_path != deps.native_control_recovery.dependencies.dirty_flag_path
+        or event_bus is not delivery.event_bus
+        or main_loop is not delivery.main_loop
+        or cancellation_binder is not delivery.cancellation_binder
+        or finalizer_tracker is not delivery.finalizer_tracker
+    ):
+        raise ValidationError("GPU slot application must retain its concrete delivery authority.")
+    prepared = await run_joined_thread_call(
+        partial(
+            sync_prepare_slot_apply,
+            executor=deps.executor,
+            storage=deps.storage,
+            detailed_gpu_info=deps.detailed_gpu_info,
+            device_id=device_id,
+            slot=slot,
+            apply_at_boot=apply_at_boot,
+            gpu_services=deps.gpu_services,
+        ),
+        task_name=f"gpu-slot-preparation:{device_id}",
+        retain_resources_until_complete=True,
     )
     if not is_success_result(
         prepared,
@@ -82,109 +88,74 @@ async def async_execute_slot_apply(
         operation="hardware.gpu_tuning.slot_apply_async.is_success_result",
     ):
         return prepared
-    if coerce_bool_flag(
-        prepared.get("unchanged"),
-        logger=deps.logger,
-        operation="hardware.gpu_tuning.slot_apply_async.coerce_bool_flag",
-        default=False,
-        recover_message="Failed to parse boolean flag (non-critical).",
+    slot_id, gpu_index, settings, device_info, signature, expected_digest = (
+        prepared.get("slot_id"),
+        prepared.get("gpu_index"),
+        prepared.get("settings"),
+        prepared.get("device_info"),
+        prepared.get("signature"),
+        prepared.get("expected_control_state_digest"),
+    )
+    if (
+        not isinstance(slot_id, str)
+        or not isinstance(gpu_index, int)
+        or not isinstance(settings, dict)
+        or not settings
     ):
-        slot_id_value = prepared.get("slot_id")
-        slot_id = slot_id_value if isinstance(slot_id_value, str) else ""
-        return slot_unchanged_error(
-            device_id,
-            slot_id,
-            "Selected slot settings are already active.",
-        )
-    slot_id_value = prepared.get("slot_id")
-    if not isinstance(slot_id_value, str) or not slot_id_value:
         return apply_failed_error(device_id)
-    gpu_index_value = prepared.get("gpu_index")
-    if not isinstance(gpu_index_value, int):
-        return apply_failed_error(device_id, slot_id_value)
-    settings_value = prepared.get("settings")
-    if not isinstance(settings_value, dict):
-        return apply_failed_error(device_id, slot_id_value)
-    settings_payload: dict[str, JSONValue] = {
-        key: value for key, value in settings_value.items() if isinstance(key, str)
-    }
-    if not settings_payload:
-        return apply_failed_error(device_id, slot_id_value)
-    field_modes_value = prepared.get("field_modes")
-    field_modes_payload = field_modes_value if isinstance(field_modes_value, dict) else None
-    apply_result = await async_set_gpu_settings(
-        settings_deps,
-        gpu_id=gpu_index_value,
-        settings=settings_payload,
-        field_modes=field_modes_payload,
+    if (
+        not isinstance(device_info, dict)
+        or not isinstance(signature, str)
+        or not signature
+        or not isinstance(expected_digest, str)
+    ):
+        return apply_failed_error(device_id)
+    modes_value = prepared.get("field_modes")
+    modes = normalize_field_modes_for_settings(
+        settings, modes_value if isinstance(modes_value, dict) else None
+    )
+    apply_flag = prepared.get("apply_flag")
+    if apply_flag is not None and not isinstance(apply_flag, bool):
+        raise ValidationError("GPU slot preparation lost its validated boot policy.")
+    capabilities = await async_get_tuning_capabilities(
+        executor=deps.executor, gpu_services=deps.gpu_services, logger=deps.logger
+    )
+    caps = get_capabilities_for_device(capabilities, device_id, gpu_index, selected_gpu=device_info)
+    grouped = group_settings_by_control_backend(
+        build_apply_settings_for_modes(settings, modes), caps
+    )
+    user_fields = tuple(field for bucket in grouped.values() for field in bucket)
+    intent = GPUControlCommitIntent(user_fields, expected_digest, slot_id, signature, apply_flag)
+    result = await async_apply_prepared_gpu_settings(
+        deps,
+        device_id=device_id,
+        gpu_index=gpu_index,
+        device_info=device_info,
+        capabilities=caps or {},
+        settings=settings,
+        field_modes=modes,
+        commit_intent=intent,
     )
     if not is_success_result(
-        apply_result,
-        logger=get_logger(LOGGER_NAME),
-        operation="hardware.gpu_tuning.slot_apply_async.is_success_result",
-    ):
-        await touch_dirty_flag_if_apply_changed(apply_result, dirty_flag_path, deps.logger)
-        return apply_failed_error(device_id, slot_id_value, apply_result)
-    applied_at = utc_now_iso()
-    signature_value = prepared.get("signature")
-    if not isinstance(signature_value, str) or not signature_value:
-        return apply_failed_error(device_id, slot_id_value)
-    signature = signature_value
-    apply_flag_value = prepared.get("apply_flag")
-    apply_flag = apply_flag_value if isinstance(apply_flag_value, bool) else None
-    finalize = await asyncio.to_thread(
-        sync_finalize_slot_apply,
-        executor=deps.executor,
-        storage=deps.storage,
-        detailed_gpu_info=deps.detailed_gpu_info,
+        result,
         logger=deps.logger,
-        device_id=device_id,
-        slot_id=slot_id_value,
-        signature=signature,
-        apply_flag=apply_flag,
-        applied_at=applied_at,
-        gpu_services=deps.gpu_services,
-    )
-    entry_value = finalize.get("entry")
-    entry_snapshot = entry_value if isinstance(entry_value, dict) else None
-    if entry_snapshot and can_emit_events(event_bus, main_loop):
-        emit_mutation_events(
-            executor=deps.executor,
-            event_bus=event_bus,
-            main_loop=main_loop,
-            cancellation_binder=cancellation_binder,
-            finalizer_tracker=finalizer_tracker,
-            logger=deps.logger,
-            result=dict(finalize),
-            emit_boot_on_success=False,
-            gpu_services=deps.gpu_services,
-        )
-        emit_active_slot_event(
-            event_bus=event_bus,
-            main_loop=main_loop,
-            cancellation_binder=cancellation_binder,
-            finalizer_tracker=finalizer_tracker,
-            logger=deps.logger,
-            device_id=device_id,
-            slot_id=slot_id_value,
-            signature=signature,
-            applied_at=applied_at,
-        )
+        operation="hardware.gpu_tuning.slot_apply_async.finalization_result",
+    ):
+        if result.get("code") == "gpu_activity_conflict":
+            return result
+        failed = apply_failed_error(device_id, slot_id, result)
+        if isinstance(result.get("changed"), bool):
+            failed["changed"] = result["changed"]
+        return failed
     payload: JSONDict = {
         "success": True,
         "device_id": device_id,
-        "slot": slot_id_value,
-        "applied_at": applied_at,
-        "changed": True,
-        "result": extract_gpu_result_entry(apply_result, gpu_index_value),
-        "boot": entry_snapshot.get("boot") if entry_snapshot else None,
+        "slot": slot_id,
+        "result": extract_gpu_result_entry(result, gpu_index),
     }
-    warning_value = finalize.get("warning")
-    if isinstance(warning_value, str) and warning_value:
-        payload["warning"] = warning_value
-    await asyncio.to_thread(
-        touch_dirty_flag,
-        dirty_flag_path=dirty_flag_path,
-        logger=deps.logger,
-    )
+    if isinstance(result.get("changed"), bool):
+        payload["changed"] = result["changed"]
+    applied_at = result.get("applied_at")
+    if isinstance(applied_at, str):
+        payload["applied_at"] = applied_at
     return payload

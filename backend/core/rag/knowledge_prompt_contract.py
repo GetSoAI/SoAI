@@ -7,7 +7,6 @@ from typing import Literal
 
 __all__ = (
     "KNOWLEDGE_ACCESS_TOOL_NAMES",
-    "KNOWLEDGE_ALL_TOOL_NAMES",
     "KNOWLEDGE_MANAGEMENT_TOOL_NAMES",
     "KNOWLEDGE_PROMPT_CLAIM_TTL_MS",
     "KNOWLEDGE_PROMPT_ENABLE_TOOLS_GUIDANCE",
@@ -27,10 +26,6 @@ KNOWLEDGE_ACCESS_TOOL_NAMES: tuple[str, ...] = (
 KNOWLEDGE_MANAGEMENT_TOOL_NAMES: tuple[str, ...] = (
     "knowledge_web_fetch",
     "knowledge_reindex",
-)
-KNOWLEDGE_ALL_TOOL_NAMES: tuple[str, ...] = (
-    *KNOWLEDGE_ACCESS_TOOL_NAMES,
-    *KNOWLEDGE_MANAGEMENT_TOOL_NAMES,
 )
 KNOWLEDGE_PROMPT_UPLOAD_GUIDANCE = (
     'Open the chat configuration, go to "Knowledge" tab and upload new files or folders, '

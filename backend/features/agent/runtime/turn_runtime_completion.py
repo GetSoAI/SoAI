@@ -113,6 +113,7 @@ async def finalize_and_build_turn_runtime_execution(
         final_payload=loop_result.final_payload if loop_result is not None else {},
         usage_aggregate=usage_aggregate if include_usage_in_result else None,
         reached_max_iterations=terminal_snapshot.reached_max_iterations,
+        public_error=loop_result.terminal_outcome.public_error if loop_result is not None else None,
     )
     if raised_error is not None:
         raise raised_error
@@ -120,5 +121,6 @@ async def finalize_and_build_turn_runtime_execution(
         result=result,
         usage_aggregate=usage_aggregate,
         stream_id=loop_result.stream_id if loop_result is not None else None,
+        final_status=final_status,
         persisted_terminal_turn_replay=resolved_terminal_turn_replay,
     )

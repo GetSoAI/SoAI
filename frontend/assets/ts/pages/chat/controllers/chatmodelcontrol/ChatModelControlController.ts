@@ -3,6 +3,7 @@
 
 import { hasDataActionElement } from '@core/dom/dataAction.ts';
 import { MODELS_ACTION_DOWNLOAD_MODEL } from '@core/models/pageActions.ts';
+import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { isChatSelectableModel } from '@core/models/chatModelAvailability.ts';
 import type { SanitizerApi } from '@core/pagecontext/public.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -156,6 +157,7 @@ export class ChatModelControlController {
     async #handleAddModel(actionElement: HTMLElement): Promise<void> {
         const host = this.#host;
         if (!host.hasSelectableModels()) {
+            if (windowIdentity.isDetachedContext()) return;
             this.#openMenu = null;
             this.#menuSearchQuery = '';
             this.render();

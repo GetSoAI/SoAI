@@ -89,6 +89,9 @@ def build_read_video_tool_definitions() -> dict[str, JSONDict]:
             "title": "Read Video",
             "description": (
                 "Read frames and optional audio transcript from a local workspace video. "
+                "The transcript uses the local speech-to-text model chosen by the speech model "
+                "setting ('auto', a Whisper size, or an installed model ID), provided by an "
+                "installed plugin. Use include_audio=false to read frames without speech setup. "
                 "The call blocks until the selected range is parsed or cancelled."
             ),
             "icons": [build_tool_icon_entry(ICON_VIDEO)],

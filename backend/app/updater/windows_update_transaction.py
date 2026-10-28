@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from app.core_edition import build_core_edition_composition
 from app.dependencies import build_updater_module_dependencies
 from app.updater.disk_space import require_disk_space_for_update
+from app.updater.plugin_backend_limit_upgrade_ownership import guard_plugin_upgrade_ownership
 from app.updater.service_config_loading import read_updater_config
 from app.updater.software_update.activation_state import (
     activation_commit_lock_path,
@@ -26,7 +27,6 @@ from app.updater.software_update.activation_supervision import (
 )
 from app.updater.software_update.install_transaction_inventory import (
     plan_replacement_roots,
-    prepare_update_rollback,
     require_rollback_inventory,
 )
 from app.updater.software_update.install_transaction_persisted_state import (
@@ -34,6 +34,7 @@ from app.updater.software_update.install_transaction_persisted_state import (
     resolve_update_plugins_path,
     resolve_update_state_files,
 )
+from app.updater.software_update.install_transaction_preparation import prepare_update_rollback
 from app.updater.software_update.install_transaction_state import (
     ACTIVATION_FAILED_MARKER,
     MANAGED_CONFIG_DEFAULT_RELATIVE_COMPONENTS,
@@ -60,6 +61,7 @@ from app.updater.software_update.plugin_reconciliation import (
 )
 from app.updater.target_runtime_preparation import prepare_target_update_runtime
 from app.updater.windows_installer_preparation import PreparedWindowsInstaller
+from core.bootstrap.disk_reservation_provider import create_bootstrap_disk_reservation_provider
 from core.bootstrap.install_payload import managed_root_entries
 from core.bootstrap.install_payload_transaction import (
     copy_install_entry,
@@ -233,7 +235,7 @@ def prepare_windows_update_transaction(
     )
     prepare_update_rollback(
         paths,
-        edition=edition,
+        identity=identity,
         state_files=state_files,
         state_directories=state_directories,
         additional_roots=additional_roots,
@@ -281,21 +283,41 @@ def finish_windows_update_transaction(base_path: str, transaction_path: str, tas
     ):
         raise StateError("Windows update configuration could not be loaded for activation.")
     plugins_path = resolve_update_plugins_path(config)
-    if os.path.normcase(plugins_path) != os.path.normcase(os.path.join(base_path, "plugins")):
-        staged_plugins = os.path.join(
-            paths.transaction_path, CONFIGURED_PLUGIN_STAGE, os.path.basename(plugins_path)
-        )
-        install_persisted_update_directories(
-            paths,
-            inventory.persisted_state,
-            {plugins_path: staged_plugins},
-        )
-    replace_install_entry(
-        os.path.join(paths.staged_new_path, "plugins"),
-        base_path,
-        staging_root=paths.transaction_path,
-    )
     logger = get_logger(LOGGER_NAME)
+    provider = create_bootstrap_disk_reservation_provider(base_path)
+    default_plugins = os.path.join(base_path, "plugins")
+    with guard_plugin_upgrade_ownership(base_path, edition=identity.edition, logger=logger):
+        reconcile_staged_plugins(
+            installed_plugins=default_plugins,
+            staged_plugins=os.path.join(paths.staged_new_path, "plugins"),
+            target_version=identity.to_version,
+            reservation_provider=provider,
+            associated_configurations_only=True,
+        )
+        if os.path.normcase(plugins_path) != os.path.normcase(default_plugins):
+            reconcile_staged_plugins(
+                installed_plugins=plugins_path,
+                staged_plugins=os.path.join(
+                    paths.transaction_path, CONFIGURED_PLUGIN_STAGE, os.path.basename(plugins_path)
+                ),
+                target_version=identity.to_version,
+                reservation_provider=provider,
+                associated_configurations_only=True,
+            )
+        if os.path.normcase(plugins_path) != os.path.normcase(default_plugins):
+            staged_plugins = os.path.join(
+                paths.transaction_path, CONFIGURED_PLUGIN_STAGE, os.path.basename(plugins_path)
+            )
+            install_persisted_update_directories(
+                paths,
+                inventory.persisted_state,
+                {plugins_path: staged_plugins},
+            )
+        replace_install_entry(
+            os.path.join(paths.staged_new_path, "plugins"),
+            base_path,
+            staging_root=paths.transaction_path,
+        )
     if not prepare_target_update_runtime(
         base_path=base_path,
         config_path=identity.config_path,

@@ -52,6 +52,9 @@ async def shutdown_cached_playwright_runtime() -> None:
     state = _get_runtime_state(asyncio.get_running_loop())
     async with state.lock:
         runtime = state.runtime
-        state.runtime = None
-    if runtime is not None:
-        await runtime.shutdown()
+        if runtime is not None:
+            try:
+                await runtime.shutdown()
+            finally:
+                if runtime.resources_closed:
+                    state.runtime = None

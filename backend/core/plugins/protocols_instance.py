@@ -23,7 +23,6 @@ __all__ = (
     "PluginSurfaceMetadataProtocol",
     "PluginStagedUploadProtocol",
     "RemoteModelSearchResultProtocol",
-    "RemoteModelSearchVariantProtocol",
 )
 
 
@@ -53,9 +52,6 @@ class ModelContextProtocol(Protocol):
     model_path: str | None
     parameters: JSONDict
     provider_details: JSONDict | None
-
-
-class RemoteModelSearchVariantProtocol(Protocol): ...
 
 
 class RemoteModelSearchResultProtocol(Protocol): ...
@@ -118,6 +114,14 @@ class PluginInstanceProtocol(PluginSurfaceMetadataProtocol, Protocol):
     async def get_default_configuration(self) -> JSONDict: ...
 
     async def refresh_runtime_configuration(self) -> JSONDict: ...
+
+    async def validate_runtime_configuration(
+        self,
+        current_config: Mapping[str, JSONValue],
+        proposed_config: Mapping[str, JSONValue],
+        capabilities: Mapping[str, JSONValue],
+        gpu_inventory: Mapping[str, JSONValue] | None,
+    ) -> None: ...
 
     async def check_system_dependencies(self) -> tuple[bool, str]: ...
 

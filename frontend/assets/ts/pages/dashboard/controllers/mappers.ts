@@ -1,12 +1,13 @@
 /* SoAI - Dashboard page mappers [frontend/assets/ts/pages/dashboard/controllers/mappers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { dom } from '@core/dom/dom.ts';
 import type { WindowsNetworkInventoryStatus } from '@core/api/contracts/hardwareContracts.ts';
 import { narrowHTMLElement } from '@core/dom/narrowElement.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { isObject } from '@core/typeGuards.ts';
 import { isJsonObjectMapValue } from '@core/types/runtimeCollectionGuards.ts';
-import { buildNetworkEmptyText, buildNetworkInterfaceModels, buildNetworkSummaryText, createNetworkInterfaceRow, DEFAULT_IGNORED_NETWORK_PREFIXES, getWindowsNetworkInventoryStatus, isHardwareSnapshot, type NetworkCardLabelSet, type NetworkInterfaceModel } from '@features/hardware/public.ts';
+import { buildNetworkEmptyText, buildNetworkInterfaceModels, syncNetworkSummaryPresentation, createNetworkInterfaceRow, syncNetworkObservationPresentation, DEFAULT_IGNORED_NETWORK_PREFIXES, getWindowsNetworkInventoryStatus, isHardwareSnapshot, type NetworkCardLabelSet, type NetworkInterfaceModel } from '@features/hardware/public.ts';
 import type { DashboardHardwareSectionsRenderContext } from '@pages/dashboard/controllers/contracts.ts';
 import { syncKeyedList, type KeyedListRow } from '@pages/dashboard/controllers/effects.ts';
 
@@ -21,7 +22,7 @@ const getNetworkLabels = (): NetworkCardLabelSet => ({
 const syncNetworkSummary = (host: DashboardHardwareSectionsRenderContext['host'], rows: readonly NetworkInterfaceModel[], windowsInventoryStatus: WindowsNetworkInventoryStatus | null = null): void => {
     const summary = host.optionalHTMLElement('#dashboardNetworkSummary');
     if (summary) {
-        summary.textContent = buildNetworkSummaryText(rows, windowsInventoryStatus);
+        syncNetworkSummaryPresentation(summary, rows, windowsInventoryStatus);
     }
 };
 
@@ -61,7 +62,7 @@ export const renderNetworkInterfacesSection = ({ host, state, isDestroyed }: Das
 
     const keyedRows: KeyedListRow<NetworkInterfaceModel>[] = rows.map((entry) => ({
         key: entry.deviceId,
-        signature: [entry.name, entry.dlMbps, entry.ulMbps, entry.primaryAddr?.address ?? '', entry.primaryAddr?.netmask ?? '', entry.secondaryAddr?.address ?? '', entry.mac ?? ''].join('|'),
+        signature: [entry.name, entry.dlMbps, entry.ulMbps, entry.primaryAddr?.address ?? '', entry.primaryAddr?.netmask ?? '', entry.secondaryAddr?.address ?? '', entry.mac ?? '', JSON.stringify(entry.observationStatus)].join('|'),
         value: entry
     }));
     const labels = getNetworkLabels();
@@ -72,6 +73,11 @@ export const renderNetworkInterfacesSection = ({ host, state, isDestroyed }: Das
         createList: () => narrowHTMLElement(host.createElement('div', { className: 'hardware-network-list' }), 'network interface list'),
         createRow: (entry, index) => createNetworkInterfaceRow({ host, entry, index, labels })
     });
+    const orderedRows = dom
+        .resolveAll('.hardware-network-row', contentElement)
+        .map((row) => rows.find((entry) => entry.deviceId === (row instanceof HTMLElement ? row.dataset['dashboardRowKey'] : null)))
+        .filter((entry): entry is NetworkInterfaceModel => entry !== undefined);
+    syncNetworkObservationPresentation(contentElement, hardwareSnapshot, orderedRows);
     syncNetworkSummary(host, rows);
     host.flushDOMUpdates();
 };

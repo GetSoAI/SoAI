@@ -235,7 +235,7 @@
 
     :where(.chat-container) .chat-page-suggestion-card:hover {
         background: var(--glass-surface-interactive-hover);
-        border-color: var(--accent-green);
+        border-color: color-mix(in srgb, var(--accent-green) var(--control-button-border-hover-strength), transparent);
     }
 
     :where(.chat-container) .chat-page-suggestion-card-icon {

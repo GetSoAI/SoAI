@@ -37,6 +37,8 @@ class TokenCounterStreamController {
     readonly #onStreamTerminal: () => void;
     readonly #resources = new ResourceTracker();
     #boundIdentity: StreamIdentity | null = null;
+    #observedIdentity: StreamIdentity | null = null;
+    #lastAuthoritativeIdentity: StreamIdentity | null = null;
     #terminalIdentities: StreamIdentity[] = [];
     #renderIntervalId: number | null = null;
     #initialized = false;
@@ -71,6 +73,8 @@ class TokenCounterStreamController {
 
     reset(): void {
         this.#boundIdentity = null;
+        this.#observedIdentity = null;
+        this.#lastAuthoritativeIdentity = null;
         this.#terminalIdentities = [];
         this.#usageTracker.resetStreamTracking();
         this.#stopRenderTicker();
@@ -92,14 +96,22 @@ class TokenCounterStreamController {
         if (activeConversationId === null || updateConversationId !== activeConversationId) {
             return;
         }
+        const updateIdentity = buildUpdateIdentity(update);
+        const authoritativeIdentity = this.#host.getTokenCounterStreamIdentity(activeConversationId);
+        if (authoritativeIdentity !== null) {
+            this.#lastAuthoritativeIdentity = authoritativeIdentity;
+            if (identitiesMatch(authoritativeIdentity, updateIdentity)) {
+                this.#observedIdentity = updateIdentity;
+            } else if (this.#observedIdentity !== null && !identitiesMatch(this.#observedIdentity, authoritativeIdentity)) {
+                this.#observedIdentity = null;
+            }
+        }
         const terminal = isTerminalStreamUpdate(update);
         if (!terminal && (update.status !== 'streaming' || update.countsAsStreaming !== true)) {
             return;
         }
-        const updateIdentity = buildUpdateIdentity(update);
-        const authoritativeIdentity = this.#host.getTokenCounterStreamIdentity(activeConversationId);
-        const matchingBoundTerminal = terminal && authoritativeIdentity === null && identitiesMatch(this.#boundIdentity, updateIdentity);
-        if (!identitiesMatch(authoritativeIdentity, updateIdentity) && !matchingBoundTerminal) {
+        const matchingKnownTerminal = terminal && authoritativeIdentity === null && identitiesMatch(this.#lastAuthoritativeIdentity, updateIdentity) && (identitiesMatch(this.#boundIdentity, updateIdentity) || identitiesMatch(this.#observedIdentity, updateIdentity));
+        if (!identitiesMatch(authoritativeIdentity, updateIdentity) && !matchingKnownTerminal) {
             return;
         }
         if (!this.#canAcceptIdentity(updateIdentity)) {
@@ -116,6 +128,7 @@ class TokenCounterStreamController {
             this.#usageTracker.completeActiveStream();
             this.#terminalIdentities.push(updateIdentity);
             this.#boundIdentity = null;
+            this.#observedIdentity = null;
             this.#stopRenderTicker();
             this.#render('streamTerminal');
             this.#onStreamTerminal();
@@ -134,6 +147,7 @@ class TokenCounterStreamController {
             this.#usageTracker.clearUsage();
         }
         this.#boundIdentity = updateIdentity;
+        this.#observedIdentity = null;
         this.#usageTracker.beginActiveStream();
         this.#onStreamStarted();
         this.#render('streamStarted');

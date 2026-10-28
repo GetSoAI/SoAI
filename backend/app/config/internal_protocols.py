@@ -28,14 +28,14 @@ __all__ = (
     "ConfigCommandTargetProtocol",
     "ConfigDeleteFromCacheCallable",
     "ConfigIOProtocol",
-    "ConfigLoaderProtocol",
     "ConfigManagerLifecycleService",
     "ConfigReconcilerProtocol",
-    "ConfigSaveCoordinatorProtocol",
 )
 
 
 class ConfigIOProtocol(Protocol):
+    async def invalidate_plugin_backend_update(self, config_name: str) -> None: ...
+
     async def read_config_from_disk(self, *, config_name: str) -> CommentedMap | None: ...
 
     async def read_config_baseline_snapshot_unlocked(
@@ -120,26 +120,6 @@ class ConfigManagerLifecycleService(Protocol):
 
 class ConfigDeleteFromCacheCallable(Protocol):
     async def __call__(self, config_name: str) -> None: ...
-
-
-class ConfigSaveCoordinatorProtocol(Protocol):
-    async def save_and_publish(
-        self,
-        *,
-        config_name: str,
-        config_path: str,
-        data: ConfigValue,
-        source: str,
-        changed_keys: frozenset[str] | None = None,
-    ) -> bool: ...
-
-
-class ConfigLoaderProtocol(Protocol):
-    async def load_config(
-        self,
-        config_name: str,
-        force_reload: bool = False,
-    ) -> CommentedMap | None: ...
 
 
 class ConfigCommandTargetProtocol(Protocol):

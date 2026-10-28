@@ -1,6 +1,7 @@
 /* SoAI - Model detail event ownership [frontend/assets/ts/pages/modeldetail/controllers/page/ModelDetailEventController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { setControlDisabledState } from '@core/ui/controls/disabledState.ts';
 import { bindPageActionDispatcher } from '@core/dom/dataActionBinding.ts';
 import type { PageLifecycle } from '@core/routing/pages/basepage/PageLifecycle.ts';
 import type { SaveController } from '@core/save/public.ts';
@@ -53,6 +54,7 @@ class ModelDetailEventController {
             autoNotifyRoot: ui.root,
             onBusyChange: (busy) => {
                 dependencies.saveStatus.update(busy);
+                setControlDisabledState(ui.resetAllParametersHeaderButton, busy);
                 setOpenAICapabilityControlsBusy(ui.root, busy);
             },
             buttonDirtyClassName: 'ui-button-glow'

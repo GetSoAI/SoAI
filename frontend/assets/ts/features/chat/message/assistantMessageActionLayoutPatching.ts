@@ -1,12 +1,15 @@
 /* SoAI - Assistant message action row layout patching [frontend/assets/ts/features/chat/message/assistantMessageActionLayoutPatching.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { FADING_CLASS } from '@features/chat/stream/streamMessageSpinnerStatusRuntimeTransition.ts';
 import { dom } from '@core/dom/dom.ts';
 import { replaceChildrenIfChanged, syncElementShell } from '@core/dom/patching.ts';
 import { patchMessageActionButtonGroup } from '@features/chat/message/assistantMessageActionButtonPatching.ts';
 import { applyChatMessageEnterAnimation, type ChatMessageInsertAnimationOptions } from '@features/chat/message/messageMotion.ts';
 import { RUNNING_ACTIVITY_SUMMARY_ATTRIBUTE } from '@features/chat/message/messageRunningActivitySummaryMarkup.ts';
 import { requireStatusTextBodyElement, requireStatusTextElement } from '@features/chat/stream/streamMessageSpinnerStatusDomPolicy.ts';
+
+const STREAMING_SPINNER_RUNTIME_CLASS_NAMES: ReadonlySet<string> = new Set([FADING_CLASS]);
 
 const MESSAGE_ACTION_BUTTONS_LEFT_CLASS = 'message-action-buttons-left';
 const MESSAGE_ACTION_BUTTONS_RIGHT_CLASS = 'message-action-buttons-right';
@@ -173,7 +176,7 @@ const patchAssistantActionButtons = (existingButtons: HTMLElement, createdButton
             beforeNode: existingChildren.status ?? existingGroups.left.firstChild,
             cloneError: 'Assistant message action patch failed to clone streaming spinner.',
             options,
-            patchNode: patchSimpleActionNode
+            patchNode: (existingNode, createdNode) => syncElementShell({ target: existingNode, source: createdNode, ...(preserveRuntimeStatusText ? { preservedClassNames: STREAMING_SPINNER_RUNTIME_CLASS_NAMES } : {}) })
         })
     ) {
         changed = true;

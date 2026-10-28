@@ -10,6 +10,7 @@ from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import SoAIError
+from core.errors.public_projection import apply_public_error_payload
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.tool_calls.status_values import TOOL_CALL_STATUS_COMPLETED
@@ -46,6 +47,7 @@ from features.api.routes.system.events.websocket_chat_stream.terminal_state impo
 from features.api.runtime.chat_execution.runtime_quota import (
     release_ws_chat_stream_runtime_quota_noncritical,
 )
+from features.api.streaming.stream_generator_state import StreamGeneratorState
 from features.assistant_timeline.agentic_outcome import resolve_agentic_terminal_outcome
 from features.assistant_timeline.assistant_timeline_terminal import (
     finalize_agentic_stream_timeline,
@@ -92,6 +94,7 @@ async def run_ws_chat_stream(
     webui_manager = api_context.dependencies.webui_manager
     registry: TaskRegistryProtocol = api_context.dependencies.task_registry
     context = request_context
+    stream_result_state = StreamGeneratorState()
     session = create_assistant_timeline_session(
         api_dependencies=api_context.dependencies,
         runtime=runtime,
@@ -185,6 +188,7 @@ async def run_ws_chat_stream(
             logger=logger,
             stream_transcript=session.stream_transcript,
             first_iteration_cancellation_id=first_iteration_cancellation_id,
+            stream_result_state=stream_result_state,
         )
         await session.consume_stream(stream_generator)
         if runtime.cancellation_requested:
@@ -211,6 +215,7 @@ async def run_ws_chat_stream(
             session,
             turn_state_loader=resolved_turn_state_loader,
             resolve_terminal_outcome=resolve_agentic_terminal_outcome,
+            public_error=stream_result_state.public_error,
         )
         if terminal_outcome == TOOL_CALL_STATUS_COMPLETED:
             track_auto_title_generation(
@@ -246,6 +251,9 @@ async def run_ws_chat_stream(
             exception,
             operation="api_system.ws_chat_stream.run_ws_chat_stream",
         )
+        if stream_result_state.public_error is not None:
+            public_error = stream_result_state.public_error
+            apply_public_error_payload(coerced, public_error)
         log_exception(
             logger,
             coerced,
@@ -258,8 +266,8 @@ async def run_ws_chat_stream(
                 "request_id": runtime.request_id,
             },
         )
-        message, code = await cleanup_ws_chat_stream_failure_noncritical(
-            exception,
+        public_error = await cleanup_ws_chat_stream_failure_noncritical(
+            coerced,
             api_context=api_context,
             logger=logger,
             context=context,
@@ -273,10 +281,11 @@ async def run_ws_chat_stream(
             logger=logger,
             context=context,
             tool_context=tool_context,
-            error_message=message,
-            error_code=code,
-            turn_error_message=str(coerced),
-            turn_error_type=str(coerced.code),
+            error_message=public_error.message,
+            error_code=str(public_error.code),
+            turn_error_message=public_error.message,
+            turn_error_type=str(public_error.code),
+            public_error=public_error,
         )
     finally:
         await uncancel_then_cleanup(

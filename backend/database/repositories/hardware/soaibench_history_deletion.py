@@ -21,12 +21,12 @@ def sync_delete_soaibench_local_run(
         (run_id, user_id, run_id, user_id),
     ).fetchone()
     if row is None:
-        raise ValidationError("SoAIBench run was not found.")
+        raise ValidationError("SoAI Bench run was not found.")
     status = str(row[0])
     if status in {"running", "indeterminate"}:
-        raise StateError("Stop the active SoAIBench benchmark before deleting local history.")
+        raise StateError("Stop the active SoAI Bench benchmark before deleting local history.")
     if int(row[1]) == 1:
-        raise StateError("Prepared or published SoAIBench history cannot be deleted.")
+        raise StateError("Prepared or published SoAI Bench history cannot be deleted.")
     cursor = connection.execute(
         """DELETE FROM hardware_gpu_soaibench_runs
         WHERE run_id=? AND created_by_user_id=?
@@ -36,4 +36,4 @@ def sync_delete_soaibench_local_run(
         (run_id, user_id, run_id, user_id),
     )
     if cursor.rowcount != 1:
-        raise StateError("SoAIBench history changed before deletion could complete.")
+        raise StateError("SoAI Bench history changed before deletion could complete.")

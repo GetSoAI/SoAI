@@ -4,6 +4,17 @@
 type OpenAICapabilityCategory = 'endpoints' | 'responses_features' | 'image_features' | 'chat_features';
 type OpenAICategory = OpenAICapabilityCategory;
 type OpenAICapabilityOverrideCategory = OpenAICapabilityCategory | 'modalities';
+type OpenAICapabilityOverrideTokens = Partial<Record<OpenAICapabilityOverrideCategory, string[]>>;
+
+interface OpenAICapabilityOverrideSet {
+    disabled: OpenAICapabilityOverrideTokens;
+    enabled: OpenAICapabilityOverrideTokens;
+}
+
+interface OpenAICapabilityOverrideReplaceRequest {
+    overrides: OpenAICapabilityOverrideSet;
+    expected: OpenAICapabilityOverrideSet;
+}
 
 const OPENAI_CAPABILITY_CATEGORIES: readonly OpenAICapabilityCategory[] = Object.freeze(['endpoints', 'responses_features', 'image_features', 'chat_features']);
 const OPENAI_CAPABILITY_OVERRIDE_CATEGORIES: readonly OpenAICapabilityOverrideCategory[] = Object.freeze([...OPENAI_CAPABILITY_CATEGORIES, 'modalities']);
@@ -20,4 +31,4 @@ const isOpenAICapabilityOverrideCategory = (value: string): value is OpenAICapab
 const isSafeOpenAICapabilityToken = (value: string): boolean => /^[a-z0-9_]+$/.test(value);
 
 export { OPENAI_CAPABILITY_CATEGORIES, OPENAI_CAPABILITY_OVERRIDE_CATEGORIES, isOpenAICapabilityOverrideCategory, isSafeOpenAICapabilityToken };
-export type { OpenAICapabilityOverrideCategory, OpenAICategory };
+export type { OpenAICapabilityOverrideCategory, OpenAICapabilityOverrideReplaceRequest, OpenAICapabilityOverrideSet, OpenAICategory };

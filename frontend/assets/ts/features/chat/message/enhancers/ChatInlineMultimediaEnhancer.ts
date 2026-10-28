@@ -5,7 +5,7 @@ import type { JsonApiClient } from '@core/api/jsonRequestGate.ts';
 import { countInlineMediaCards } from '@features/chat/message/enhancers/inlineMultimediaCardQueries.ts';
 import { InlineMultimediaFileExplorerCardResolver } from '@features/chat/message/enhancers/inlineMultimediaFileExplorerCardResolver.ts';
 import { InlineMultimediaAbsolutePathCardResolver } from '@features/chat/message/enhancers/inlineMultimediaAbsolutePathCardResolver.ts';
-import { InlineMultimediaMediaSlotLifecycle } from '@features/chat/message/enhancers/inlineMultimediaMediaSlotLifecycle.ts';
+import { reconcileInlineMediaSlots } from '@features/chat/message/enhancers/inlineMultimediaMediaSlot.ts';
 import type { InlineMultimediaPreviewFeedbackRecorder } from '@features/chat/message/enhancers/inlineMultimediaPreviewFeedback.ts';
 import { InlineMultimediaRemoteLinkCardResolver } from '@features/chat/message/enhancers/inlineMultimediaRemoteLinkCardResolver.ts';
 import { rewriteRemoteImagesToProxy } from '@features/chat/message/enhancers/inlineMultimediaRemoteImageProxyRewriter.ts';
@@ -34,7 +34,6 @@ class ChatInlineMultimediaEnhancer {
     readonly #inFlightStates: Set<InlineMultimediaInFlightState>;
     readonly #absolutePathResolver: InlineMultimediaAbsolutePathCardResolver;
     readonly #fileExplorerResolver: InlineMultimediaFileExplorerCardResolver;
-    readonly #mediaSlotLifecycle: InlineMultimediaMediaSlotLifecycle;
     readonly #remoteLinkResolver: InlineMultimediaRemoteLinkCardResolver;
 
     constructor(dependencies: ChatInlineMultimediaEnhancerDependencies) {
@@ -46,7 +45,6 @@ class ChatInlineMultimediaEnhancer {
             apiClient: dependencies.apiClient,
             maxConcurrentFetches: MAX_CONCURRENT_FETCHES
         });
-        this.#mediaSlotLifecycle = new InlineMultimediaMediaSlotLifecycle();
         this.#remoteLinkResolver = new InlineMultimediaRemoteLinkCardResolver({
             apiClient: dependencies.apiClient,
             maxConcurrentFetches: MAX_CONCURRENT_FETCHES
@@ -63,7 +61,7 @@ class ChatInlineMultimediaEnhancer {
             return false;
         }
         let changed = false;
-        changed = this.#mediaSlotLifecycle.reconcile(container) || changed;
+        changed = reconcileInlineMediaSlots(container) || changed;
         rewriteRemoteImagesToProxy(container, feedbackRecorder);
         const existingCards = countInlineMediaCards(container);
         let remainingBudget = Math.max(0, MAX_CONTENT_PREVIEW_CARDS_PER_CONTAINER - existingCards);
@@ -128,7 +126,7 @@ class ChatInlineMultimediaEnhancer {
                 if (!currentContainer.isConnected) {
                     continue;
                 }
-                this.#mediaSlotLifecycle.reconcile(currentContainer);
+                reconcileInlineMediaSlots(currentContainer);
                 this.#dependencies.notifyDomChanged();
             } while (state.rerunRequested && state.container.isConnected && !signal.aborted);
         } finally {

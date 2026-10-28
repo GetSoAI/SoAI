@@ -46,6 +46,7 @@ async def prepare_mcp_tool_context(
     local_tool_catalog_scope: MCPToolCatalogScope,
     forced_tool_names: tuple[str, ...] = (),
     force_tool_choice_auto: bool = False,
+    request_tool_names: tuple[str, ...] = (),
 ) -> MCPToolContext:
     if is_automation:
         disallowed_unqualified_tools = load_automation_disallowed_unqualified_tools(config)
@@ -67,6 +68,7 @@ async def prepare_mcp_tool_context(
         force_tool_approval_required=force_tool_approval_required,
         forced_tool_names=forced_tool_names,
         force_tool_choice_auto=force_tool_choice_auto,
+        request_tool_names=request_tool_names,
         supports_tool_calling=supports_tool_calling,
         sources=sources,
         local_tool_catalog_scope=local_tool_catalog_scope,

@@ -99,14 +99,15 @@ class KnowledgeAttachmentDraftCache {
         const summaryId = reconciled.knowledgeAttachmentId;
         const summaryRevision = reconciled.attachmentRevision;
         const revisions = this.#revisionsByConversationId.get(conversationId) ?? new Map<string, number>();
+        const removedRevisions = this.#removedRevisionsByConversationId.get(conversationId) ?? new Map<string, number>();
         const currentRevision = revisions.get(summaryId);
-        if (currentRevision !== undefined && summaryRevision < currentRevision) {
+        const removedRevision = removedRevisions.get(summaryId);
+        if ((currentRevision !== undefined && summaryRevision < currentRevision) || (removedRevision !== undefined && summaryRevision <= removedRevision)) {
             return { conversationId, notificationSummary: null };
         }
         const current = this.#itemsByConversationId.get(conversationId) ?? [];
         const withoutSummary = current.filter((item) => item !== matchingCurrent && item.knowledgeAttachmentId !== summaryId);
         this.#itemsByConversationId.set(conversationId, reconciled.state === 'draft' ? [...withoutSummary, reconciled] : withoutSummary);
-        const removedRevisions = this.#removedRevisionsByConversationId.get(conversationId) ?? new Map<string, number>();
         if (reconciled.state === 'draft') {
             revisions.set(summaryId, summaryRevision);
             this.#revisionsByConversationId.set(conversationId, revisions);
@@ -122,7 +123,7 @@ class KnowledgeAttachmentDraftCache {
         if (this.#refreshingConversationIds.has(conversationId)) this.#dirtyWhileRefreshingConversationIds.add(conversationId);
         return {
             conversationId,
-            notificationSummary: summary.attachmentRevision < reconciled.attachmentRevision ? null : reconciled
+            notificationSummary: reconciled.state !== 'draft' || summary.attachmentRevision < reconciled.attachmentRevision ? null : reconciled
         };
     }
 

@@ -15,9 +15,12 @@ interface ModalHostState {
 
     activeStack: string[];
     focusMemory: Map<string, Element>;
+    viewportInertSnapshots: Map<HTMLElement, boolean>;
+    viewportBodyObserver: MutationObserver | null;
     dragState: Map<string, DragState>;
     resizeState: Map<string, ResizeState>;
     fullscreenState: Map<string, FullscreenState>;
+    fullscreenTransitions: WeakMap<HTMLElement, AbortController>;
     layoutOverrides: Map<string, ModalLayoutPreset>;
     desktopOpenHeights: Map<string, number>;
     dockHintElement: HTMLElement | null;
@@ -43,9 +46,12 @@ const createModalHostState = ({ storage, resolveModalElement, ensureModalElement
         ensureModalElement,
         activeStack: [],
         focusMemory: new Map(),
+        viewportInertSnapshots: new Map(),
+        viewportBodyObserver: null,
         dragState: new Map(),
         resizeState: new Map(),
         fullscreenState: new Map(),
+        fullscreenTransitions: new WeakMap(),
         layoutOverrides: new Map(),
         desktopOpenHeights: new Map(),
         dockHintElement: null,

@@ -6,8 +6,8 @@ import { measureScrollEdges } from '@core/dom/scrollGeometry.ts';
 import { scrollElementIntoView } from '@core/scroll.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
-import { disposeAutoScrollLockRuntime, setupAutoScrollLockRuntime, syncAutoScrollLockAttribute, syncAutoScrollStateFromScroll } from '@features/chat/chatuimanager/autoScrollLockRuntime.ts';
-import { cancelActiveConversationScrollRestore, captureCurrentConversationScrollSnapshot, isConversationScrollRestoreActive } from '@features/chat/chatuimanager/conversationScrollRestoration.ts';
+import { disposeAutoScrollLockRuntime, markUserScrollIntent, setupAutoScrollLockRuntime, syncAutoScrollLockAttribute, syncAutoScrollStateFromScroll } from '@features/chat/chatuimanager/autoScrollLockRuntime.ts';
+import { beginConversationScrollRestore, cancelActiveConversationScrollRestore, captureCurrentConversationScrollSnapshot, isConversationScrollRestoreActive } from '@features/chat/chatuimanager/conversationScrollRestoration.ts';
 import { clearTimer } from '@features/chat/chatuimanager/state.ts';
 import { createMobileAvatarFloatingRuntime } from '@features/chat/chatuimanager/mobileAvatarFloatingRuntime.ts';
 import type { ChatUIManagerContext, ElementSelectorKey } from '@features/chat/chatuimanager/types.ts';
@@ -224,8 +224,23 @@ export function scrollToBottom(context: ChatUIManagerContext): void {
     captureCurrentConversationScrollSnapshot(context);
 }
 
-export function forceScrollToBottom(context: ChatUIManagerContext): void {
+export function forceScrollToBottom(context: ChatUIManagerContext, behavior: ScrollBehavior = 'instant'): void {
+    if (behavior === 'smooth') {
+        const messagesArea = getElement(context, 'messagesArea');
+        if (messagesArea instanceof HTMLElement) {
+            beginConversationScrollRestore(
+                context,
+                messagesArea,
+                (cancelled) => {
+                    if (!cancelled) forceScrollToBottom(context);
+                },
+                'bottom'
+            );
+        }
+        return;
+    }
     if (isConversationScrollRestoreActive(context)) return;
+    context.state.failedConversationScrollRestoreConversationId = null;
     context.state.autoScrollEnabled = true;
     syncAutoScrollLockAttribute(context, getElement(context, 'messagesArea'));
     scrollToBottom(context);
@@ -274,11 +289,11 @@ export function revealElementFromUserAction(context: ChatUIManagerContext, targe
         return;
     }
 
+    markUserScrollIntent(context);
     cancelActiveConversationScrollRestore(context, true);
     clearTimer(context, context.state.scrollTimer);
     context.state.scrollTimer = null;
     context.state.autoScrollEnabled = false;
-    context.state.autoScrollUserIntentActive = true;
     syncAutoScrollLockAttribute(context, getElement(context, 'messagesArea'));
     syncInputWrapperScrollState(context);
     scrollElementIntoView(target, options);

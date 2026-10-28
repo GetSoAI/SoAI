@@ -109,6 +109,7 @@ class DatabaseConversationAttachments:
         parse_error: str | None,
         parsed_at_ms: int | None,
         updated_at_ms: int,
+        missing_capabilities: tuple[str, ...] = (),
     ) -> JSONDict | None:
         return await self.core.writer.queue_write_operation(
             sync_update_attachment_parse_state,
@@ -122,6 +123,7 @@ class DatabaseConversationAttachments:
             parse_error,
             parsed_at_ms,
             updated_at_ms,
+            missing_capabilities,
         )
 
     async def mark_unbound_attachment_unused(

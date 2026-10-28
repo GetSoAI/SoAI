@@ -13,11 +13,25 @@ from core.database.mutation_requests import (
     MutationRecoveryRequiredAdmission,
 )
 from core.database.task_requests import CreateUnifiedTaskRequest
+from core.plugins.backend_update_child import BackendUpdateChild
 
 __all__ = ("DatabaseMutationTasksProtocol",)
 
 
 class DatabaseMutationTasksProtocol(Protocol):
+    async def reserve_backend_update_child(
+        self,
+        parent_task_id: str,
+        proposed: BackendUpdateChild,
+    ) -> BackendUpdateChild: ...
+
+    async def has_unsettled_backend_update(
+        self,
+        plugin_name: str | None,
+        *,
+        excluded_task_id: str | None = None,
+    ) -> bool: ...
+
     async def accept_mutation_task(
         self,
         task_request: CreateUnifiedTaskRequest,
@@ -63,6 +77,10 @@ class DatabaseMutationTasksProtocol(Protocol):
         *,
         operation_type: str | None = None,
     ) -> tuple[MutationRecoveryRequiredAdmission, ...]: ...
+
+    async def release_backend_update_recovery(
+        self, request_id: str, plugin_name: str, *, now_ms: int
+    ) -> bool: ...
 
     async def release_mutation_recovery(
         self,

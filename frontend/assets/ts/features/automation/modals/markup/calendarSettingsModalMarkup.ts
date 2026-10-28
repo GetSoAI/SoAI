@@ -29,51 +29,51 @@ const renderAutomationCalendarSettingsModalMarkup = (): TrustedHtml => {
     const header = renderStandardModalHeader({ modalId, title: calendarSettingsTitle, description: i18n.t('common.modalDescriptions.automationCalendar'), closeLabel, titleId });
     const body = renderModalBody(uiHtml`
         <div class="form-group setting-change-surface" data-automation-calendar-field="firstDay">
-            <label for="${modalUiId(modalId, 'first-day-select')}">${firstDayLabel}</label>
+            <label for="${modalUiId(modalId, 'first-day-select')}" data-modal-localize="text">${firstDayLabel}</label>
             ${toTrustedUiHtml(
                 renderStandardDropdownSelectControl(`<select id="${modalUiId(modalId, 'first-day-select')}" class="form-input">
-                <option value="auto">${uiText(i18n.t('automation.calendarSettings.options.firstDay.auto')).html}</option>
-                <option value="sunday">${uiText(i18n.t('automation.calendarSettings.options.firstDay.sunday')).html}</option>
-                <option value="monday">${uiText(i18n.t('automation.calendarSettings.options.firstDay.monday')).html}</option>
+                <option value="auto" data-modal-localize="text">${uiText(i18n.t('automation.calendarSettings.options.firstDay.auto')).html}</option>
+                <option value="sunday" data-modal-localize="text">${uiText(i18n.t('automation.calendarSettings.options.firstDay.sunday')).html}</option>
+                <option value="monday" data-modal-localize="text">${uiText(i18n.t('automation.calendarSettings.options.firstDay.monday')).html}</option>
             </select>`)
             )}
         </div>
         <div class="form-group setting-change-surface" data-automation-calendar-field="weekNumbers">
-            <label for="${modalUiId(modalId, 'week-numbers-toggle')}">${weekNumbersLabel}</label>
+            <label for="${modalUiId(modalId, 'week-numbers-toggle')}" data-modal-localize="text">${weekNumbersLabel}</label>
             <div class="toggle-switch"><input id="${modalUiId(modalId, 'week-numbers-toggle')}" type="checkbox"><label class="slider" for="${modalUiId(modalId, 'week-numbers-toggle')}"></label></div>
         </div>
         <div class="form-group setting-change-surface" data-automation-calendar-field="weekNumbering">
-            <label for="${modalUiId(modalId, 'week-numbering-select')}">${weekNumberingLabel}</label>
+            <label for="${modalUiId(modalId, 'week-numbering-select')}" data-modal-localize="text">${weekNumberingLabel}</label>
             ${toTrustedUiHtml(
                 renderStandardDropdownSelectControl(`<select id="${modalUiId(modalId, 'week-numbering-select')}" class="form-input">
-                <option value="iso">${uiText(i18n.t('automation.calendarSettings.options.weekNumbering.iso')).html}</option>
-                <option value="local">${uiText(i18n.t('automation.calendarSettings.options.weekNumbering.local')).html}</option>
+                <option value="iso" data-modal-localize="text">${uiText(i18n.t('automation.calendarSettings.options.weekNumbering.iso')).html}</option>
+                <option value="local" data-modal-localize="text">${uiText(i18n.t('automation.calendarSettings.options.weekNumbering.local')).html}</option>
             </select>`)
             )}
         </div>
         <div class="form-group setting-change-surface" data-automation-calendar-field="timeFormat">
-            <label for="${modalUiId(modalId, 'time-format-select')}">${timeFormatLabel}</label>
+            <label for="${modalUiId(modalId, 'time-format-select')}" data-modal-localize="text">${timeFormatLabel}</label>
             ${toTrustedUiHtml(
                 renderStandardDropdownSelectControl(`<select id="${modalUiId(modalId, 'time-format-select')}" class="form-input">
-                <option value="locale">${uiText(i18n.t('automation.calendarSettings.options.timeFormat.locale')).html}</option>
-                <option value="12h">${uiText(i18n.t('automation.calendarSettings.options.timeFormat.12h')).html}</option>
-                <option value="24h">${uiText(i18n.t('automation.calendarSettings.options.timeFormat.24h')).html}</option>
+                <option value="locale" data-modal-localize="text">${uiText(i18n.t('automation.calendarSettings.options.timeFormat.locale')).html}</option>
+                <option value="12h" data-modal-localize="text">${uiText(i18n.t('automation.calendarSettings.options.timeFormat.12h')).html}</option>
+                <option value="24h" data-modal-localize="text">${uiText(i18n.t('automation.calendarSettings.options.timeFormat.24h')).html}</option>
             </select>`)
             )}
         </div>
         <div class="form-group setting-change-surface" data-automation-calendar-field="rangeTitleFormat">
-            <label for="${modalUiId(modalId, 'range-title-format-select')}">${rangeTitleFormatLabel}</label>
+            <label for="${modalUiId(modalId, 'range-title-format-select')}" data-modal-localize="text">${rangeTitleFormatLabel}</label>
             ${toTrustedUiHtml(
                 renderStandardDropdownSelectControl(`<select id="${modalUiId(modalId, 'range-title-format-select')}" class="form-input">
-                <option value="locale">${uiText(i18n.t('automation.calendarSettings.options.rangeTitleFormat.locale')).html}</option>
-                <option value="iso">${uiText(i18n.t('automation.calendarSettings.options.rangeTitleFormat.iso')).html}</option>
-                <option value="us">${uiText(i18n.t('automation.calendarSettings.options.rangeTitleFormat.us')).html}</option>
-                <option value="eu">${uiText(i18n.t('automation.calendarSettings.options.rangeTitleFormat.eu')).html}</option>
+                <option value="locale" data-modal-localize="text">${uiText(i18n.t('automation.calendarSettings.options.rangeTitleFormat.locale')).html}</option>
+                <option value="iso" data-modal-localize="text">${uiText(i18n.t('automation.calendarSettings.options.rangeTitleFormat.iso')).html}</option>
+                <option value="us" data-modal-localize="text">${uiText(i18n.t('automation.calendarSettings.options.rangeTitleFormat.us')).html}</option>
+                <option value="eu" data-modal-localize="text">${uiText(i18n.t('automation.calendarSettings.options.rangeTitleFormat.eu')).html}</option>
             </select>`)
             )}
         </div>
         <div class="form-group setting-change-surface" data-automation-calendar-field="rangeTitleWeekday">
-            <label for="${modalUiId(modalId, 'range-title-weekday-toggle')}">${rangeTitleWeekdayLabel}</label>
+            <label for="${modalUiId(modalId, 'range-title-weekday-toggle')}" data-modal-localize="text">${rangeTitleWeekdayLabel}</label>
             <div class="toggle-switch"><input id="${modalUiId(modalId, 'range-title-weekday-toggle')}" type="checkbox" checked><label class="slider" for="${modalUiId(modalId, 'range-title-weekday-toggle')}"></label></div>
         </div>
         <div id="${modalUiId(modalId, 'error')}" class="error-message u-hidden"></div>

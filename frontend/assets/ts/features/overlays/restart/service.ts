@@ -1,6 +1,9 @@
 /* SoAI - Overlays feature restart service [frontend/assets/ts/features/overlays/restart/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { getConnectionState } from '@core/connectionstate/service.ts';
+import { dom } from '@core/dom/dom.ts';
+import { RestartHandoffController } from '@features/overlays/restart/handoff.ts';
 import { LifecycleModel } from '@core/LifecycleModel.ts';
 import { startPollingLoop, type PollingLoopHandle } from '@core/concurrency/pollingLoop.ts';
 import { requireDocument } from '@core/environment/public.ts';
@@ -31,6 +34,14 @@ class RestartOverlay extends LifecycleModel {
     successTimer: number | null;
     elements: OverlayElements;
     maintenanceToken: symbol | null;
+    readonly #handoff = new RestartHandoffController({
+        resolveContent: () => {
+            const content = this.elements.overlay === null ? null : dom.resolve('.restart-content', this.elements.overlay);
+            return content instanceof HTMLElement ? content : null;
+        },
+        resolveApiBaseUrl: () => getConnectionState().getBaseUrl(),
+        updateText: (element, value) => this.lifecycleDom.updateText(element, value)
+    });
     readonly transitionTracker: RestartTransitionTracker;
     readonly sessionRepository: RestartSessionRepository;
     constructor(sessionRepository: RestartSessionRepository = createRestartSessionRepository()) {
@@ -51,7 +62,10 @@ class RestartOverlay extends LifecycleModel {
         this.#resolver = createKernelResolver();
         this.maintenanceToken = null;
         this.transitionTracker = new RestartTransitionTracker({
-            onInterrupted: () => this.#saveSession(),
+            onInterrupted: () => {
+                this.#handoff.markInterrupted();
+                this.#saveSession();
+            },
             onRecoveredConnection: () => this.#checkRecoveredBackend()
         });
     }
@@ -110,6 +124,7 @@ class RestartOverlay extends LifecycleModel {
         this.isVisible = false;
         this.currentType = null;
         this.transitionTracker.stop();
+        this.#handoff.stop();
         this.#releaseMaintenance();
     }
 
@@ -139,6 +154,7 @@ class RestartOverlay extends LifecycleModel {
             updateText: (element, value) => this.lifecycleDom.updateText(element, value)
         });
         if (presented) {
+            this.#handoff.start(type, this.transitionTracker.interruptionObserved);
             if (targetVersion !== null) {
                 announceDesktopLauncherUpdateHandoff(targetVersion);
             }
@@ -156,6 +172,7 @@ class RestartOverlay extends LifecycleModel {
         this.isVisible = false;
         this.currentType = null;
         this.transitionTracker.stop();
+        this.#handoff.stop();
         this.stopPolling();
         if (this.successTimer) {
             this.lifecycleResources.clearTimer(this.successTimer);
@@ -204,6 +221,7 @@ class RestartOverlay extends LifecycleModel {
         });
         this.currentRetry = result.currentRetry;
         this.transitionTracker.restoreInterruption(result.interruptionObserved);
+        if (result.interruptionObserved) this.#handoff.markInterrupted();
         this.#saveSession();
         if (result.isOnline) {
             if (this.successTimer) {
@@ -269,6 +287,7 @@ class RestartOverlay extends LifecycleModel {
     #restoreSession(state: RestartOperationState): void {
         this.show(state.type, { observeTransition: state.observeTransition });
         this.transitionTracker.restoreInterruption(state.interruptionObserved);
+        if (state.interruptionObserved) this.#handoff.markInterrupted();
         this.#saveSession();
     }
 

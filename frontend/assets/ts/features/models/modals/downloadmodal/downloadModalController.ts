@@ -1,6 +1,7 @@
 /* SoAI - Models download modal controller (event binding + orchestration) [frontend/assets/ts/features/models/modals/downloadmodal/downloadModalController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { updateSelectedModelDisplay } from '@features/models/modals/downloadmodal/manager/tabsView.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { createTaskOperationPanel, type TaskOperationPanel } from '@core/tasks/operationpanel/service.ts';
@@ -12,7 +13,7 @@ import type { DownloadModalManagerRuntime } from '@features/models/modals/downlo
 import { handleManualTabClick, handleModelSearch, handleModelSearchInput, handleModelSearchInputKeydown, handleModelSearchResultClick, handleModelSearchResultKeydown, handleRepositoryLinkClick } from '@features/models/modals/downloadmodal/manager/events.ts';
 import { handleManualDiscovery, handleManualOpenFileExplorer, handleManualPathCopy } from '@features/models/modals/downloadmodal/manager/service.ts';
 import { handleVariantCheck } from '@features/models/modals/downloadmodal/manager/variantEvents.ts';
-import { handleDownloadTabClick, handlePluginSelectChange, handleProviderPluginSelectChange, handleProviderTabClick, handleVariantInputChange, hasActiveModelDownloads, openDownloadModelModal, updateDownloadBadge, updateDownloadButtonState, updateSelectedModelDisplay } from '@features/models/modals/downloadmodal/manager/view.ts';
+import { handleDownloadTabClick, handlePluginSelectChange, handleProviderPluginSelectChange, handleProviderTabClick, handleVariantInputChange, hasActiveModelDownloads, openDownloadModelModal, updateDownloadBadge, updateDownloadButtonState } from '@features/models/modals/downloadmodal/manager/view.ts';
 import { MODELS_DOWNLOAD_MODAL_ID } from '@features/models/modals/constants.ts';
 import { MODEL_DOWNLOAD_OPERATION_FILTER } from '@features/models/modelDownloadOperation.ts';
 
@@ -45,7 +46,9 @@ const createDownloadModalController = (dependencies: { host: DownloadModalHost }
         operationPanel?.detach();
         operationPanel = createTaskOperationPanel({
             container: modalUiId(modalId, 'operation-progress-list'),
-            filter: MODEL_DOWNLOAD_OPERATION_FILTER
+            filter: MODEL_DOWNLOAD_OPERATION_FILTER,
+            backgroundButtonId: modalUiId(modalId, 'download-model-background-btn'),
+            onOperationsChanged: () => updateDownloadBadge(runtime())
         });
         operationPanel.attach();
     };

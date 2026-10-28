@@ -127,7 +127,6 @@ class ModelsPageDomain {
         this.pageLifecycleController = new ModelsPageLifecycleController({
             runtime: this.dependencies,
             cardController: managers.cardController,
-            initialActionHost: controllers.initialActionHost,
             viewModeHost: this.bindings.viewModeHost,
             populateProviderFilter: () => controllers.statsController.populateProviderFilter(),
             updateStats: () => controllers.statsController.updateStats(),
@@ -196,6 +195,8 @@ class ModelsPageDomain {
             },
             preparePresentation: (context) => this.bindings.controllerBundle.groupingController.preparePresentation(context.filtered.map((model) => normalizeModelRecordStrict(model, 'ModelsPage.preparePresentation'))),
             onRefresh: (summary) => {
+                this.bindings.managerBundle.cardController.syncIndex([...summary.filtered]);
+                this.bindings.managerBundle.editModelModalManager.reconcileSelectedModel();
                 this.bindings.controllerBundle.statsController.updateStats();
                 handleModelsCollectionRefreshWithReveal({ collections: this.collections, getItemCardId: resolveModelsItemCardId }, this.session.recentItems, summary);
             },

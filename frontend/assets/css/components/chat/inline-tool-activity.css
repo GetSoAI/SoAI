@@ -16,8 +16,8 @@
         --inline-activity-compaction-tint: color-mix(in srgb, var(--status-orange) 10%, transparent);
     }
 
-    :where(.chat-container) .inline-activity.inline-activity-context-compaction > .inline-activity-header[aria-disabled='false'] {
-        background: linear-gradient(0deg, var(--inline-activity-compaction-tint), var(--inline-activity-compaction-tint)), var(--title-bar-background);
+    :where(.chat-container) .inline-activity.inline-activity-context-compaction > .inline-activity-header {
+        --inline-activity-header-tint: var(--inline-activity-compaction-tint);
     }
 
     :where(.chat-container) .inline-activity.inline-activity-context-compaction > .inline-activity-header:is([aria-disabled='true'], [data-toggle-disabled='true']) {

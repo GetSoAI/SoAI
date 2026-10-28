@@ -12,13 +12,14 @@ from app.installation_transaction_admission import (
     TRANSACTION_CLEANUP_PREFIX,
     TRANSACTION_PREFIX,
 )
-from app.updater.config_timeout_default_upgrade_state import timeout_default_upgrade_marker_path
+from app.updater.config_upgrade_state import SavedConfigUpgrade, config_upgrade_marker_path
 from app.updater.software_update.install_transaction_state import (
     MANAGED_CONFIG_DEFAULT_RELATIVE_COMPONENTS,
     MANAGED_INSTALL_METADATA_RELATIVE_COMPONENTS,
     MANAGED_VENDOR_RELATIVE_COMPONENTS,
     UpdateTransactionPaths,
 )
+from core.bootstrap.venv_paths import get_retained_venv_path, get_venv_path
 from core.config.path_resolution import resolve_default_config_schema_path
 from core.errors.exceptions import StateError
 from core.files.path_policy import is_path_within_base
@@ -75,7 +76,7 @@ def resolve_update_state_files(config: ConfigProtocol, config_path: str) -> tupl
     return (
         config_path,
         f"{config_path}.backup",
-        timeout_default_upgrade_marker_path(config_path),
+        *(config_upgrade_marker_path(config_path, upgrade) for upgrade in SavedConfigUpgrade),
         resolve_default_config_schema_path(config_path),
         *(f"{database_path}{suffix}" for suffix in ("", "-wal", "-shm", "-journal")),
         *configuration_files,
@@ -139,6 +140,8 @@ def plan_persisted_update_state(
     replacement_roots: tuple[str, ...],
     state_files: tuple[str, ...],
     state_directories: tuple[str, ...] = (),
+    *,
+    retained_installation_root: str | None = None,
 ) -> PersistedUpdateState:
     managed_files = {
         os.path.normcase(os.path.join(paths.base_path, *components))
@@ -197,7 +200,13 @@ def plan_persisted_update_state(
             raise StateError(
                 "Update directory restoration staging already exists; preserve it for repair."
             )
-        if os.path.lexists(destination):
+        original = (
+            get_retained_venv_path(paths.base_path, retained_installation_root)
+            if retained_installation_root is not None
+            and destination == get_venv_path(paths.base_path)
+            else destination
+        )
+        if os.path.lexists(original):
             original_entries.append(slot)
         parent = os.path.dirname(destination)
         while not os.path.lexists(parent):

@@ -44,7 +44,7 @@ class SpeedTestWritePayload:
 async def get_latest_network_speed_snapshot_query(
     database: aiosqlite.Connection,
 ) -> JSONDict:
-    query = "SELECT h.device_id, h.interface, h.upload_mbps, h.download_mbps, h.observed_at_ms FROM hardware_network_history h JOIN (SELECT device_id, MAX(observed_at_ms) AS ts FROM hardware_network_history GROUP BY device_id) latest ON latest.device_id = h.device_id AND latest.ts = h.observed_at_ms"
+    query = "SELECT h.device_id, h.interface, h.upload_mbps, h.download_mbps, h.observed_at_ms FROM hardware_network_history h JOIN (SELECT device_id, MAX(observed_at_ms) AS ts FROM hardware_network_history WHERE upload_mbps IS NOT NULL OR download_mbps IS NOT NULL GROUP BY device_id) latest ON latest.device_id = h.device_id AND latest.ts = h.observed_at_ms"
     rows = await query_to_dicts(database, query)
     result: JSONDict = {}
     for row in rows:

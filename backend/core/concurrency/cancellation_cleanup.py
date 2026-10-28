@@ -139,7 +139,7 @@ uncancel_then_cleanup = cancellation_cleanup
 
 
 async def wait_for_task_completion[T](
-    task: asyncio.Task[T], *, retain_resources_until_complete: bool = False
+    task: asyncio.Future[T], *, retain_resources_until_complete: bool = False
 ) -> None:
     if task.done():
         return

@@ -40,6 +40,7 @@ from features.api.routes.system.events.websocket_permission_rules import (
     build_websocket_event_permission_rules,
 )
 from features.api.routes.system.events.websocket_runtime import run_websocket_events
+from features.api.routes.system.events.websocket_setup_status import run_setup_status_channel
 from features.api.runtime.app_state_access import require_app_state
 from features.api.runtime.container.api_routers import ApiRouters
 from features.api.runtime.context import resolve_api_context
@@ -129,6 +130,10 @@ async def websocket_events(websocket: WebSocket) -> None:
         await websocket.close(code=1011, reason="Internal error")
         return
     api_context = resolve_api_context(websocket)
+    if websocket.query_params.get("mode") == "setup-status":
+        if await _admit_websocket_rate(request, websocket):
+            await run_setup_status_channel(websocket, api_context)
+        return
     authenticated_session = await authenticate_websocket_session(
         websocket,
         request,
@@ -137,29 +142,7 @@ async def websocket_events(websocket: WebSocket) -> None:
     )
     if authenticated_session is None:
         return
-    try:
-        breach = await evaluate_rate_limit(
-            request,
-            SOAI_SYSTEM_EVENTS_WEBSOCKET_PATH,
-            SOAI_SYSTEM_EVENTS_WEBSOCKET_PATH,
-        )
-    except RECOVERABLE_EXCEPTIONS as rate_limit_error:
-        log_exception(
-            get_logger(LOGGER_NAME),
-            rate_limit_error,
-            message="WebSocket rate limit evaluation failed.",
-            operation=OPERATION_API_SYSTEM_WEBSOCKET_SYSTEM_EVENTS_RATE_LIMIT,
-        )
-        await websocket.close(code=1011, reason="Internal error")
-        return
-    if breach is not None:
-        await notify_rate_limit_breach_noncritical(
-            database_notifications=api_context.dependencies.database_notifications,
-            breach=breach,
-            log=get_logger(LOGGER_NAME),
-            operation=OPERATION_API_SYSTEM_WEBSOCKET_SYSTEM_EVENTS_RATE_LIMIT,
-        )
-        await websocket.close(code=resolve_websocket_close_code(429), reason="Rate limit exceeded")
+    if not await _admit_websocket_rate(request, websocket):
         return
     try:
         await asyncio.wait_for(websocket.accept(), timeout=CONTROL_TIMEOUT_SEC)
@@ -201,6 +184,35 @@ async def websocket_events(websocket: WebSocket) -> None:
             trace_id=authenticated_session.trace_id,
         ),
     )
+
+
+async def _admit_websocket_rate(request: RequestProtocol, websocket: WebSocket) -> bool:
+    api_context = resolve_api_context(websocket)
+    try:
+        breach = await evaluate_rate_limit(
+            request,
+            SOAI_SYSTEM_EVENTS_WEBSOCKET_PATH,
+            SOAI_SYSTEM_EVENTS_WEBSOCKET_PATH,
+        )
+    except RECOVERABLE_EXCEPTIONS as rate_limit_error:
+        log_exception(
+            get_logger(LOGGER_NAME),
+            rate_limit_error,
+            message="WebSocket rate limit evaluation failed.",
+            operation=OPERATION_API_SYSTEM_WEBSOCKET_SYSTEM_EVENTS_RATE_LIMIT,
+        )
+        await websocket.close(code=1011, reason="Internal error")
+        return False
+    if breach is not None:
+        await notify_rate_limit_breach_noncritical(
+            database_notifications=api_context.dependencies.database_notifications,
+            breach=breach,
+            log=get_logger(LOGGER_NAME),
+            operation=OPERATION_API_SYSTEM_WEBSOCKET_SYSTEM_EVENTS_RATE_LIMIT,
+        )
+        await websocket.close(code=resolve_websocket_close_code(429), reason="Rate limit exceeded")
+        return False
+    return True
 
 
 def register_routes(routers: ApiRouters) -> None:

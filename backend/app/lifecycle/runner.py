@@ -7,14 +7,21 @@ import asyncio
 
 from app.lifecycle.entries import LifecycleEntry
 from app.lifecycle.results import LifecycleFailure, LifecycleRunError
+from core.concurrency.cancellation import TaskCancelledError
 from core.concurrency.cancellation_cleanup import current_task_has_pending_cancellation
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import SoAIError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import UNEXPECTED_RUNTIME_EXCEPTIONS
 from core.logging.protocols import LoggerProtocol
 
 __all__ = ("LifecycleRunner",)
+
+LIFECYCLE_OPERATION_EXCEPTIONS: tuple[type[Exception], ...] = (
+    *RECOVERABLE_EXCEPTIONS,
+    SoAIError,
+)
 
 OPERATION_LIFECYCLE_RUN_ENTRY = "app.lifecycle.runner.run_entry"
 
@@ -92,7 +99,14 @@ class LifecycleRunner:
                 critical=entry.critical,
                 message=message,
             )
-        except RECOVERABLE_EXCEPTIONS as exception:
+        except TaskCancelledError as exception:
+            return LifecycleFailure(
+                component_name=entry.component_name,
+                phase=entry.phase,
+                critical=entry.critical,
+                message=f"Lifecycle phase '{entry.phase}' was cancelled for {entry.component_name}: {exception.reason}",
+            )
+        except LIFECYCLE_OPERATION_EXCEPTIONS as exception:
             message = (
                 f"Lifecycle phase '{entry.phase}' failed for {entry.component_name}: "
                 f"{type(exception).__name__}: {exception}"

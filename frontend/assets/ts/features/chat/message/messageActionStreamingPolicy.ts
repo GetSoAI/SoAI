@@ -3,6 +3,8 @@
 
 import { CHAT_ACTIONS } from '@features/chat/chatActionIds.ts';
 
+const STREAMING_ACTION_CONTROLS_CLASS = 'message-action-buttons-left--streaming';
+
 const STREAMING_BLOCKED_MESSAGE_ACTIONS: ReadonlySet<string> = new Set<string>([CHAT_ACTIONS.EDIT, CHAT_ACTIONS.EDIT_SAVE, CHAT_ACTIONS.RESEND, CHAT_ACTIONS.REGENERATE, CHAT_ACTIONS.DELETE, CHAT_ACTIONS.DELETE_NOW, CHAT_ACTIONS.REMOVE_COMPACTION_BOUNDARY]);
 
 const isStreamingBlockedMessageAction = (action: string | null | undefined): boolean => {
@@ -12,4 +14,4 @@ const isStreamingBlockedMessageAction = (action: string | null | undefined): boo
     return STREAMING_BLOCKED_MESSAGE_ACTIONS.has(action);
 };
 
-export { isStreamingBlockedMessageAction };
+export { STREAMING_ACTION_CONTROLS_CLASS, isStreamingBlockedMessageAction };

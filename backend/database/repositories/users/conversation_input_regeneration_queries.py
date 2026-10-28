@@ -9,10 +9,10 @@ import aiosqlite
 
 from database.core.query_execution import query_one_to_dict
 from database.repositories.users.conversation_input_constants import (
-    CONVERSATION_INPUT_DISPATCH_RANK_SQL,
     CONVERSATION_INPUT_PRECEDES_SQL,
     CONVERSATION_INPUT_RUNNING_ROOT_AVAILABLE_SQL,
     CONVERSATION_REGENERATION_HAS_REPLACEMENT_SQL,
+    build_conversation_input_dispatch_rank_sql,
     conversation_regeneration_retryable_sql,
 )
 from database.repositories.users.conversation_input_row_mapping import (
@@ -41,7 +41,7 @@ async def query_conversation_regeneration_attempt(
         database,
         f"""
         WITH ranked_inputs AS (
-            SELECT *, {CONVERSATION_INPUT_DISPATCH_RANK_SQL} AS dispatch_rank
+            SELECT *, {build_conversation_input_dispatch_rank_sql()} AS dispatch_rank
             FROM webui_conversation_inputs
         )
         SELECT input.*,

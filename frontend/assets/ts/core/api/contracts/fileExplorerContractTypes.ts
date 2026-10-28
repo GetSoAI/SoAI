@@ -108,6 +108,7 @@ interface FileExplorerUploadResponse {
 }
 
 interface FileExplorerBatchUploadItemResponse {
+    code?: string;
     path: string;
     success: boolean;
     size?: number;

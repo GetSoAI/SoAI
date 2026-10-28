@@ -43,6 +43,12 @@ def build_subagent_tool_definitions() -> dict[str, JSONDict]:
                 "additionalProperties": False,
                 "properties": {
                     "task": {"type": "string", "description": "Primary task for the subagent."},
+                    "skill_ids": {
+                        "type": "array",
+                        "items": {"type": "string", "pattern": "^skill_[0-9a-f]{32}$"},
+                        "uniqueItems": True,
+                        "description": "Explicit active parent skills whose captured instructions and immutable arguments should be conveyed to this child. Omit for ordinary delegation.",
+                    },
                     "context": {
                         "type": ["string", "null"],
                         "description": "Optional extra context or constraints for the subagent.",

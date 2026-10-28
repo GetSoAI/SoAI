@@ -11,7 +11,10 @@ from features.api.routes.system.events.internal_protocols import (
     WebSocketEventTypes,
     WebSocketMessageTypes,
 )
-from features.api.routes.system.events.websocket_errors import enqueue_websocket_error
+from features.api.routes.system.events.websocket_errors import (
+    enqueue_websocket_error,
+    send_terminal_websocket_error,
+)
 from features.api.routes.system.events.websocket_event_context import (
     WebsocketEventRuntimeContext,
 )
@@ -60,15 +63,12 @@ async def handle_websocket_message(
         not is_strict_int(protocol_version_value)
         or int(protocol_version_value) != WEBSOCKET_PROTOCOL_VERSION
     ):
-        await enqueue_websocket_error(
-            runtime_context.enqueue_warning_tracker,
-            runtime_context.connection.queue,
+        await send_terminal_websocket_error(
+            runtime_context.connection,
+            runtime_context.shutdown_event,
             runtime_context.trace_id,
-            WebSocketEventTypes.INVALID_REQUEST,
             "Unsupported websocket protocol version.",
-            code="invalid_request_error",
         )
-        runtime_context.shutdown_event.set()
         return
     message_type = data.get("type")
     if not isinstance(message_type, str):

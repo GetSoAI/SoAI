@@ -43,6 +43,7 @@ __all__ = (
     "list_input_queue_items",
     "register_endpoints",
     "register_routes",
+    "resume_input_queue",
 )
 
 
@@ -137,6 +138,9 @@ async def enqueue_input_queue_item(
                 prompt_history_text=payload.prompt_history_text,
                 attachment_content=finalized_attachment_content,
                 model_settings=(effective_settings if payload.input_type == "prompt" else None),
+                fallback_model_settings=(
+                    effective_settings if payload.fallback_to_prompt else None
+                ),
                 expected_input_generation=input_generation,
                 client_id=payload.client_id,
                 client_request_id=payload.client_request_id,
@@ -179,12 +183,46 @@ async def delete_input_queue_item(
     return create_no_content_response()
 
 
+async def resume_input_queue(
+    request: Request,
+    conv_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+    api_context: ApiContext = Depends(resolve_api_context),
+) -> Response:
+    conversation_context = await require_conversation_access_context(
+        request,
+        api_context=api_context,
+        conv_id=conv_id,
+        user_id=current_user["id"],
+    )
+
+    async def resume_inputs() -> JSONDict:
+        released = await api_context.dependencies.database_input_queue.resume_held_inputs(
+            conv_id=conversation_context.resolved_conv_id,
+            user_id=current_user["id"],
+        )
+        return {"released": released}
+
+    await _apply_input_queue_change_and_publish(
+        request,
+        api_context=api_context,
+        conv_id=conversation_context.resolved_conv_id,
+        user_id=current_user["id"],
+        operation=resume_inputs,
+    )
+    return create_no_content_response()
+
+
 def register_endpoints(router: APIRouter) -> None:
     router.get("/conversations/{conv_id}/input-queue")(list_input_queue_items)
     router.post(
         "/conversations/{conv_id}/input-queue",
         status_code=201,
     )(enqueue_input_queue_item)
+    router.post(
+        "/conversations/{conv_id}/input-queue/resume",
+        status_code=204,
+    )(resume_input_queue)
     router.delete(
         "/conversations/{conv_id}/input-queue/{item_id}",
         status_code=204,

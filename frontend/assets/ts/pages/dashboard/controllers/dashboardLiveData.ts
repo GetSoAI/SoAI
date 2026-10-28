@@ -1,6 +1,7 @@
 /* SoAI - Dashboard page live data [frontend/assets/ts/pages/dashboard/controllers/dashboardLiveData.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { stableModelFingerprint } from '@core/models/modelFingerprint.ts';
 import { isArray, isObject } from '@core/typeGuards.ts';
 import { isJsonValue, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { isJsonObjectMapValue } from '@core/types/runtimeCollectionGuards.ts';
@@ -74,14 +75,14 @@ const computeDashboardSectionFingerprint = (context: DashboardLiveDataContext, s
             return JSON.stringify(
                 context.state.plugins.map((plugin: JsonValue | null) => {
                     const pluginObject = isObject(plugin) ? plugin : {};
-                    return { name: pluginObject['name'], state: pluginObject['state'], isEnabled: pluginObject['isEnabled'] };
+                    return { name: pluginObject['name'], displayName: pluginObject['displayName'], state: pluginObject['state'], isEnabled: pluginObject['isEnabled'] };
                 })
             );
         case 'models':
             return JSON.stringify(
                 context.state.models.map((model: JsonValue | null) => {
                     const modelObject = isObject(model) ? model : {};
-                    return { id: modelObject['id'], status: modelObject['status'], loaded: modelObject['loaded'] };
+                    return { model: stableModelFingerprint(model), state: modelObject['state'] ?? null };
                 })
             );
         case 'hardwareWidgets':
@@ -97,6 +98,7 @@ const computeDashboardSectionFingerprint = (context: DashboardLiveDataContext, s
                 const interfaces = network?.['interfaces'];
                 const networkSpeed = snapshotObject['networkSpeed'];
                 return JSON.stringify({
+                    componentStatus: snapshotObject['componentStatus'],
                     interfaces: isArray(interfaces) ? interfaces : [],
                     windowsInventoryStatus: network?.['windowsInventoryStatus'] ?? null,
                     speed: isJsonObjectMapValue(networkSpeed) ? networkSpeed : {}
@@ -104,7 +106,7 @@ const computeDashboardSectionFingerprint = (context: DashboardLiveDataContext, s
             }
             if (sectionId === 'storage') {
                 const partitions = snapshotObject['disk'];
-                return isArray(partitions) ? JSON.stringify(partitions) : '';
+                return JSON.stringify({ partitions: isArray(partitions) ? partitions : [], componentStatus: snapshotObject['componentStatus'] });
             }
             const hardware = snapshotObject['gpu'];
             const hardwareObject = isObject(hardware) ? hardware : {};
@@ -114,6 +116,7 @@ const computeDashboardSectionFingerprint = (context: DashboardLiveDataContext, s
             const interfaces = networkObject['interfaces'];
             const networkSpeed = snapshotObject['networkSpeed'];
             return JSON.stringify({
+                componentStatus: snapshotObject['componentStatus'],
                 cpus: isArray(cpus) ? cpus : [],
                 gpus: isArray(hardwareObject['gpus']) ? hardwareObject['gpus'] : [],
                 memory: isObject(snapshotObject['memory']) ? snapshotObject['memory'] : {},

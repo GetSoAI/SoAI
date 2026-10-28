@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { extractUserFacingErrorMessage } from '@core/errors/coerce.ts';
+import { APIError } from '@core/apiError.ts';
+import { resolveOperationCauseMessage } from '@core/errors/operationCausePresentation.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { formatInvariantNumber } from '@core/localization/public.ts';
 import { readCoercedFiniteNumberOrNullValue } from '@core/types/numberCoercionReaders.ts';
@@ -131,6 +133,10 @@ const getMetricScaleBounds = (state: HardwarePageState): { min?: number | undefi
 };
 
 const formatHistoryErrorMessage = (error: Error): string => {
+    if (error instanceof APIError) {
+        const cause = resolveOperationCauseMessage(error.code ?? error.reason ?? null, error);
+        if (cause !== null) return cause;
+    }
     const base = i18n.t('hardware.errors.historyInitFailed');
     const candidate = extractUserFacingErrorMessage(error);
     return candidate && candidate !== base && !base.includes(candidate) ? `${base}: ${candidate}` : candidate || base;

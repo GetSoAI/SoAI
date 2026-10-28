@@ -98,13 +98,17 @@ def iter_stream_bytes_from_chunk_event(
                 )
             if state.stream_transcript is not None:
                 state.stream_transcript.feed(filtered_chunk_text)
-            public_chunk_text: str | None = filtered_chunk_text
-            if include_usage:
+            if state.public_usage_projection is not None:
+                yield state.public_usage_projection.project_frame(
+                    filtered_chunk_text.encode("utf-8"),
+                )
+            elif include_usage:
                 withholding = withhold_openai_chunk_usage(filtered_chunk_text)
                 if withholding.provider_usage is not None:
                     state.withheld_provider_usage = withholding.provider_usage
-                public_chunk_text = withholding.public_frame_text
-            if public_chunk_text is not None:
-                yield public_chunk_text.encode("utf-8")
+                if withholding.public_frame_text is not None:
+                    yield withholding.public_frame_text.encode("utf-8")
+            else:
+                yield filtered_chunk_text.encode("utf-8")
         if frame.done_marker_observed:
             state.done_marker_observed = True

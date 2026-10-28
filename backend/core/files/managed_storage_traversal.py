@@ -7,6 +7,7 @@ import os
 import stat
 import sys
 
+from core.files.commit_receipt import FilePublicationUncertainError
 from core.files.managed_storage_errors import (
     FileDeletionSecurityError,
     FileStorageSecurityError,
@@ -14,6 +15,7 @@ from core.files.managed_storage_errors import (
 from core.files.path_policy import ensure_path_within_base_lexical
 from core.files.secure_open_flags import secure_read_only_open_flags
 from core.files.windows_reparse_points import is_windows_reparse_point
+from core.filesystem.descriptor_io import open_descriptor
 
 __all__ = (
     "close_file_descriptor_stack",
@@ -140,7 +142,7 @@ def open_directory_fd(dir_fd: int | None, segment: str, *, flags: int) -> int:
     if not stat.S_ISDIR(stat_before.st_mode):
         raise FileDeletionSecurityError(f"Storage segment '{segment}' is not a directory.")
     try:
-        descriptor = os.open(segment, flags, dir_fd=dir_fd)
+        descriptor = open_descriptor(segment, flags, dir_fd=dir_fd)
     except OSError as exception:
         raise FileDeletionSecurityError(
             f"Failed to open storage segment '{segment}'.",
@@ -184,25 +186,35 @@ def close_file_descriptor_stack(
     *,
     primary_exception: BaseException | None = None,
 ) -> None:
-    first_close_exception: OSError | None = None
+    close_exceptions: list[OSError] = []
     while file_descriptor_stack:
         file_descriptor = file_descriptor_stack.pop()
         try:
             os.close(file_descriptor)
         except OSError as close_exception:
-            if first_close_exception is None:
-                first_close_exception = close_exception
-    if first_close_exception is None:
+            close_exceptions.append(close_exception)
+    if not close_exceptions:
         return
     active_exception = primary_exception or sys.exception()
     if active_exception is not None:
-        active_exception.add_note(
-            f"Failed to close managed storage descriptor: {first_close_exception}",
-        )
+        if isinstance(active_exception, FilePublicationUncertainError):
+            active_exception.details = {
+                **(active_exception.details or {}),
+                "cleanup_incomplete": True,
+            }
+        for secondary_exception in close_exceptions:
+            active_exception.add_note(
+                f"Failed to close managed storage descriptor: {secondary_exception}",
+            )
         return
-    raise FileDeletionSecurityError(
+    cleanup_exception = FileDeletionSecurityError(
         "Failed to close managed storage descriptor.",
-    ) from first_close_exception
+    )
+    for secondary_exception in close_exceptions[1:]:
+        cleanup_exception.add_note(
+            f"Failed to close managed storage descriptor: {secondary_exception}",
+        )
+    raise cleanup_exception from close_exceptions[0]
 
 
 def open_storage_directory_stack(

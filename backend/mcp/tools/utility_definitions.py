@@ -150,6 +150,7 @@ from mcp.tools.utility_tool_definitions.shell_output import (
 from mcp.tools.utility_tool_definitions.shell_write_stdin import (
     build_shell_write_stdin_tool_definitions,
 )
+from mcp.tools.utility_tool_definitions.skills import build_skill_tool_definitions
 from mcp.tools.utility_tool_definitions.soai_documentation import (
     build_soai_documentation_tool_definitions,
 )
@@ -274,6 +275,7 @@ def build_conversation_utility_tool_definitions() -> dict[str, JSONDict]:
     merged = build_public_utility_tool_definitions()
     merged.update(build_soai_documentation_tool_definitions())
     merged.update(build_stop_conversation_tool_definitions())
+    merged.update(build_skill_tool_definitions())
     return merged
 
 

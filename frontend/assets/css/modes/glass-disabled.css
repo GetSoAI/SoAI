@@ -4,8 +4,10 @@
 @layer overrides {
     :root.glass-disabled,
     body.glass-disabled {
+        --control-menu-item-hover-bg: color-mix(in srgb, var(--glass-surface-interactive) 78%, var(--hover-layer-mix-base) 22%);
         --glass-underlay-page: var(--glass-user-disabled-underlay-page);
         --glass-underlay-surface: var(--glass-user-disabled-underlay-surface);
+        --ui-button-underlay-base: var(--glass-user-disabled-underlay-surface-base);
         --glass-surface-opacity: 90%;
         --glass-surface-strong-base: color-mix(in srgb, var(--glass-disabled-surface-strong-color) 75%, var(--glass-underlay-page));
         --glass-surface-darker-base: color-mix(in srgb, var(--glass-disabled-surface-darker-color) 75%, var(--glass-underlay-page));
@@ -71,10 +73,6 @@
 
     body.glass-disabled :is(.glass-surface, .glass-surface-strong, .glass-surface-medium, .glass-surface-light, .glass-surface-darker, .glass-surface-weak, .glass-surface-interactive, .glass-surface-interactive-strong, .glass-surface-full).setting-change-surface:is(.modified, .is-invalid)::before {
         background-color: color-mix(in srgb, var(--glass-surface-bg) 90%, transparent);
-    }
-
-    body.glass-disabled :is(.dropdown-item, .plugin-item.dropdown-item, .task-item.dropdown-item):is(:hover, :focus-visible) {
-        background-color: color-mix(in srgb, var(--glass-surface-interactive) 78%, var(--hover-layer-mix-base) 22%);
     }
 
     body.glass-disabled .prompt-view-modal[data-prompt-color] {

@@ -33,6 +33,7 @@ async def finalize_and_publish_loading_cancelled(
     duration_ms: int,
     thinking_tail_duration_ms: int,
     reason: str,
+    code: str = "cancelled",
 ) -> None:
     runtime.loading_activity.status = "cancelled"
     runtime.loading_activity.duration_ms = duration_ms
@@ -42,7 +43,7 @@ async def finalize_and_publish_loading_cancelled(
         status="cancelled",
         duration_ms=duration_ms,
         reason=normalized_reason,
-        error_type="cancelled",
+        error_type=code,
     )
     runtime.terminal_finalization_started = True
     await publish_loading_terminal_events(
@@ -54,12 +55,12 @@ async def finalize_and_publish_loading_cancelled(
         terminal_payload={
             "assistant_at_ms": runtime.assistant_at_ms,
             "reason": normalized_reason,
-            "code": "cancelled",
+            "code": code,
         },
         finalization=build_cancelled_assistant_finalization(
             duration_ms=duration_ms,
             thinking_tail_duration_ms=thinking_tail_duration_ms,
             reason=normalized_reason,
-            code="cancelled",
+            code=code,
         ),
     )

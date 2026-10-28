@@ -28,10 +28,10 @@ class NotificationCenterOperationController {
         this.#pendingDeleteIds.clear();
     }
 
-    async clearAll(): Promise<void> {
+    async clearAll(notificationCount: number): Promise<void> {
         const operationGeneration = this.#lifecycleToken.value;
         try {
-            const cleared = await this.#dependencies.actions.clearAll();
+            const cleared = await this.#dependencies.actions.clearAll(notificationCount);
             if (!this.#lifecycleToken.isActive(operationGeneration)) {
                 return;
             }

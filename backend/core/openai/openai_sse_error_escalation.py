@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Literal, NoReturn
 
@@ -14,12 +15,22 @@ from core.openai.chat_template_role_rejection import (
     is_chat_template_role_error_message,
 )
 from core.openai.context_overflow_validation import extract_context_overflow_validation
+from core.openai.openai_error_objects import (
+    build_openai_error_payload,
+    normalize_openai_error_code_subtype,
+)
+from core.openai.provider_error_explanations import (
+    UpstreamFailureType,
+    resolve_upstream_failure_type,
+)
+from core.openai.provider_http_errors import build_openai_provider_http_error
 from core.openai.request_requirement_failures import (
     build_openai_request_requirement_failure_details,
     build_openai_request_requirement_failure_message,
     classify_openai_request_requirement_mismatch,
 )
 from core.openai.stream_error_diagnostics import StreamErrorDiagnostic
+from core.serialization.json import serialize_json_compact_stable_strict
 
 if TYPE_CHECKING:
     from core.types.json import JSONValue
@@ -36,6 +47,7 @@ class OpenAIStreamError(ApiError):
     provider_id: str | None
     operation: str | None
     origin: Literal["upstream", "local_terminal"]
+    trace_id: str | None = None
     details: dict[str, JSONValue] | None = None
 
     def __post_init__(self) -> None:
@@ -46,6 +58,7 @@ class OpenAIStreamError(ApiError):
             http_status=self.http_status,
             details=self.details,
             operation=self.operation,
+            trace_id=self.trace_id,
         )
 
 
@@ -87,6 +100,7 @@ def raise_openai_streaming_error(
     task_id: str | None = None,
     trace_id: str | None = None,
     origin: Literal["upstream", "local_terminal"] = "upstream",
+    request_payload: Mapping[str, JSONValue] | None = None,
 ) -> NoReturn:
     upstream_message, error_type, upstream_param, upstream_code = parsed_error
     if origin == "local_terminal":
@@ -94,7 +108,10 @@ def raise_openai_streaming_error(
         local_error_type = local_error_type or ErrorType.SERVER_ERROR.value
         raise OpenAIStreamError(
             upstream_message,
-            code=local_error_type,
+            code=normalize_openai_error_code_subtype(
+                code=upstream_code, canonical_error_type=local_error_type
+            )
+            or local_error_type,
             http_status=_resolve_openai_sse_error_http_status(local_error_type),
             operation=operation,
             diagnostic=StreamErrorDiagnostic.from_error(
@@ -112,19 +129,43 @@ def raise_openai_streaming_error(
             ),
             provider_id=None,
             origin=origin,
+            trace_id=trace_id,
         )
+    normalized = build_openai_provider_http_error(
+        provider_id,
+        status=0,
+        body_text=serialize_json_compact_stable_strict(
+            build_openai_error_payload(
+                message=upstream_message,
+                error_type=error_type or "",
+                param=upstream_param,
+                code=upstream_code,
+            )
+        ),
+        headers=None,
+        request_payload=request_payload,
+        trace_id=trace_id,
+    )
+    failure_type = resolve_upstream_failure_type(normalized.details or {})
     context_overflow = extract_context_overflow_validation(
         upstream_message,
         None,
         code=upstream_code,
     )
-    if context_overflow is not None:
+    if context_overflow is not None and failure_type is UpstreamFailureType.CONTEXT_LENGTH:
         context_overflow = replace(context_overflow, model=None)
         raise OpenAIStreamError(
             context_overflow.message,
             code=ErrorType.INVALID_REQUEST.value,
             http_status=422,
-            details=context_overflow.to_details(),
+            details={
+                **{
+                    key: value
+                    for key, value in (normalized.details or {}).items()
+                    if key != "model"
+                },
+                **context_overflow.to_details(),
+            },
             operation=operation,
             diagnostic=StreamErrorDiagnostic.from_error(
                 category="invalid_request_error",
@@ -142,14 +183,22 @@ def raise_openai_streaming_error(
             ),
             provider_id=provider_id,
             origin=origin,
+            trace_id=trace_id,
         )
     mismatch = classify_openai_request_requirement_mismatch(message=upstream_message)
-    if mismatch is not None:
+    if mismatch is not None and failure_type in {
+        UpstreamFailureType.INVALID_REQUEST,
+        UpstreamFailureType.UNSUPPORTED_VISION_REQUEST,
+        UpstreamFailureType.UNSUPPORTED_AUDIO_REQUEST,
+    }:
         raise OpenAIStreamError(
             build_openai_request_requirement_failure_message(mismatch),
             code=ErrorType.INVALID_REQUEST.value,
             http_status=422,
-            details=build_openai_request_requirement_failure_details(mismatch),
+            details={
+                **(normalized.details or {}),
+                **build_openai_request_requirement_failure_details(mismatch),
+            },
             operation=operation,
             diagnostic=StreamErrorDiagnostic.from_error(
                 category="invalid_request_error",
@@ -167,14 +216,10 @@ def raise_openai_streaming_error(
             ),
             provider_id=provider_id,
             origin=origin,
+            trace_id=trace_id,
         )
-    normalized_error_type = (error_type or ErrorType.SERVER_ERROR.value).strip()
-    normalized_error_type = normalized_error_type or ErrorType.SERVER_ERROR.value
-    if normalized_error_type == "BadRequestError":
-        normalized_error_type = ErrorType.INVALID_REQUEST.value
-    if normalized_error_type not in {member.value for member in ErrorType}:
-        normalized_error_type = ErrorType.SERVER_ERROR.value
-    status = _resolve_openai_sse_error_http_status(normalized_error_type)
+    normalized_error_type = str(normalized.code)
+    status = normalized.http_status
     diagnostic = StreamErrorDiagnostic.from_error(
         category=normalized_error_type,
         source="sse_error_frame",
@@ -196,6 +241,8 @@ def raise_openai_streaming_error(
             diagnostic=diagnostic,
             provider_id=provider_id,
             origin=origin,
+            details=normalized.details,
+            trace_id=trace_id,
         )
     if status in (422, 500) and is_chat_template_role_error_message(upstream_message):
         raise OpenAIStreamError(
@@ -216,15 +263,13 @@ def raise_openai_streaming_error(
             origin=origin,
         )
     raise OpenAIStreamError(
-        (
-            "Upstream provider rejected the request."
-            if status < 500
-            else "Upstream provider request failed."
-        ),
+        normalized.message,
         code=normalized_error_type,
         http_status=status,
+        details=normalized.details,
         operation=operation,
         diagnostic=diagnostic,
         provider_id=provider_id,
         origin=origin,
+        trace_id=trace_id,
     )

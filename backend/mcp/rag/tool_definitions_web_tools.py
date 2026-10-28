@@ -29,6 +29,17 @@ __all__ = (
 )
 
 
+def _extraction_output_properties() -> JSONDict:
+    return {
+        "extraction_state": {
+            "type": "string",
+            "enum": ["complete", "degraded", "unsupported", "failed", "timed_out"],
+        },
+        "extraction_warnings": {"type": "array", "items": {"type": "string"}},
+        "missing_capabilities": {"type": "array", "items": {"type": "string"}},
+    }
+
+
 def build_web_fetch_tool() -> JSONDict:
     return build_tool(
         title="Web Fetch",
@@ -71,6 +82,7 @@ def build_web_fetch_tool() -> JSONDict:
                 "fetched_at": {"type": "string"},
                 "content": {"type": "string"},
                 "page_count": {"type": ["integer", "null"]},
+                **_extraction_output_properties(),
                 "persisted": {"type": "boolean"},
                 "read_document_hint": {"type": "string"},
                 "read_document_args": {
@@ -177,6 +189,7 @@ def build_knowledge_web_fetch_tool(*, fetch_result_properties: JSONDict) -> JSON
                 "fetched_at": {"type": "string"},
                 "content": {"type": "string"},
                 "page_count": {"type": ["integer", "null"]},
+                **_extraction_output_properties(),
                 "persisted": {"type": "boolean"},
                 "document_id": {"type": "string"},
                 "task_id": {"type": "string"},

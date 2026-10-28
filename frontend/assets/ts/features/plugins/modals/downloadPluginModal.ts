@@ -41,8 +41,8 @@ const createDownloadPluginModalElement = (): HTMLElement => {
                             aria-controls="${modalUiId(modalId, 'url-form')}"
                             aria-label="${uiAttr(i18n.t('plugins.modal.addPlugin.tabUrl'))}"
                             data-tooltip="${uiAttr(i18n.t('plugins.modal.addPlugin.tabUrl'))}"
-                        >
-                            <span class="tabs-tab-label">${i18n.t('plugins.modal.addPlugin.tabUrl')}</span>
+                         data-modal-localize="aria-label data-tooltip">
+                            <span class="tabs-tab-label" data-modal-localize="text">${i18n.t('plugins.modal.addPlugin.tabUrl')}</span>
                         </button>
                         <button
                             class="tabs-tab"
@@ -55,8 +55,8 @@ const createDownloadPluginModalElement = (): HTMLElement => {
                             aria-controls="${modalUiId(modalId, 'file-form')}"
                             aria-label="${uiAttr(i18n.t('plugins.modal.addPlugin.tabFile'))}"
                             data-tooltip="${uiAttr(i18n.t('plugins.modal.addPlugin.tabFile'))}"
-                        >
-                            <span class="tabs-tab-label">${i18n.t('plugins.modal.addPlugin.tabFile')}</span>
+                         data-modal-localize="aria-label data-tooltip">
+                            <span class="tabs-tab-label" data-modal-localize="text">${i18n.t('plugins.modal.addPlugin.tabFile')}</span>
                         </button>
                         <button
                             class="tabs-tab u-hidden"
@@ -71,8 +71,8 @@ const createDownloadPluginModalElement = (): HTMLElement => {
                             tabindex="-1"
                             aria-label="${uiAttr(i18n.t('plugins.modal.addPlugin.tabManual'))}"
                             data-tooltip="${uiAttr(i18n.t('plugins.modal.addPlugin.tabManual'))}"
-                        >
-                            <span class="tabs-tab-label">${i18n.t('plugins.modal.addPlugin.tabManual')}</span>
+                         data-modal-localize="aria-label data-tooltip">
+                            <span class="tabs-tab-label" data-modal-localize="text">${i18n.t('plugins.modal.addPlugin.tabManual')}</span>
                         </button>
                     </nav>
                 </div>
@@ -87,9 +87,9 @@ const createDownloadPluginModalElement = (): HTMLElement => {
             active: true,
             className: 'modal-form-section',
             content: uiHtml`
-                <div class="form-group">
+                <div class="form-group" data-modal-localize="text">
                     ${renderModalTabIntro({ title: i18n.t('plugins.modal.addPlugin.tabUrl'), description: i18n.t('plugins.modal.addPlugin.urlHelp') })}
-                    <label class="visually-hidden" for="${modalUiId(modalId, 'plugin-url')}">
+                    <label class="visually-hidden" for="${modalUiId(modalId, 'plugin-url')}" data-modal-localize="text">
                         ${i18n.t('plugins.modal.addPlugin.urlLabel')}
                         ${renderRequiredFieldMarker()}
                     </label>
@@ -99,9 +99,9 @@ const createDownloadPluginModalElement = (): HTMLElement => {
                         id="${modalUiId(modalId, 'plugin-url')}"
                         class="form-input"
                         placeholder="${uiAttr(i18n.t('plugins.modal.addPlugin.urlPlaceholder'))}"
-                    />
+                    / data-modal-localize="placeholder">
                 </div>
-                <div id="${modalUiId(modalId, 'url-disclaimer')}" class="form-disclaimer u-hidden">${i18n.t('plugins.modal.addPlugin.securityDisclaimer')}</div>
+                <div id="${modalUiId(modalId, 'url-disclaimer')}" class="form-disclaimer u-hidden" data-modal-localize="text">${i18n.t('plugins.modal.addPlugin.securityDisclaimer')}</div>
             `
         })}
         ${renderModalTabPanel({
@@ -109,9 +109,9 @@ const createDownloadPluginModalElement = (): HTMLElement => {
             labelledBy: modalUiId(modalId, 'file-tab'),
             className: 'modal-form-section',
             content: uiHtml`
-                <div class="form-group ui-file-drop-form">
+                <div class="form-group ui-file-drop-form" data-modal-localize="text">
                     ${renderModalTabIntro({ title: i18n.t('plugins.modal.addPlugin.tabFile'), description: i18n.t('plugins.modal.addPlugin.fileHelp') })}
-                    <label class="visually-hidden" for="${modalUiId(modalId, 'plugin-file')}">
+                    <label class="visually-hidden" for="${modalUiId(modalId, 'plugin-file')}" data-modal-localize="text">
                         ${i18n.t('plugins.modal.addPlugin.fileLabel')}
                         ${renderRequiredFieldMarker()}
                     </label>
@@ -141,7 +141,7 @@ const createDownloadPluginModalElement = (): HTMLElement => {
                         })}
                     </div>
                 </div>
-                <div id="${modalUiId(modalId, 'file-disclaimer')}" class="form-disclaimer u-hidden">${i18n.t('plugins.modal.addPlugin.securityDisclaimer')}</div>
+                <div id="${modalUiId(modalId, 'file-disclaimer')}" class="form-disclaimer u-hidden" data-modal-localize="text">${i18n.t('plugins.modal.addPlugin.securityDisclaimer')}</div>
             `
         })}
         ${renderModalTabPanel({
@@ -155,7 +155,7 @@ const createDownloadPluginModalElement = (): HTMLElement => {
                         description: i18n.t('plugins.modal.addPlugin.manualLoading'),
                         descriptionId: modalUiId(modalId, 'manual-description')
                     })}
-                    <label class="visually-hidden" for="${modalUiId(modalId, 'manual-plugins-path')}">${i18n.t('plugins.modal.addPlugin.tabManual')}</label>
+                    <label class="visually-hidden" for="${modalUiId(modalId, 'manual-plugins-path')}" data-modal-localize="text">${i18n.t('plugins.modal.addPlugin.tabManual')}</label>
                     <div class="form-row-split">
                         <div class="form-col-main">
                             <input dir="ltr"
@@ -164,7 +164,7 @@ const createDownloadPluginModalElement = (): HTMLElement => {
                                 class="form-input ui-modal-manual-path-input"
                                 readonly
                                 placeholder="${uiAttr(i18n.t('plugins.modal.addPlugin.manualPathPlaceholder'))}"
-                            />
+                            / data-modal-localize="placeholder">
                         </div>
                     </div>
                 </div>

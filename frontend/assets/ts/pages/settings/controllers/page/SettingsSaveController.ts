@@ -28,7 +28,7 @@ const SettingsSaveController = (page: SettingsRuntimeContext, state: SettingsPag
                 isValid: () => !state.dirtyStateManager?.hasInvalidFields(),
                 save: async () => {
                     try {
-                        await saveSettings(page, state);
+                        return await saveSettings(page, state);
                     } finally {
                         state.preferencesManager?.syncOcrDirtyState();
                     }

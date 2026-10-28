@@ -50,54 +50,84 @@ async def handle_incompatible_plugin(
     plugin_name = error.plugin_name
     compatibility = error.compatibility
     message = compatibility.message or "Plugin marked as incompatible."
-    if plugin_data_override is not None:
-        plugin_data = await build_plugin_record_data(
-            manager,
-            plugin_name,
-            plugin_data_override=plugin_data_override,
-            package_audit=package_audit,
-        )
-    else:
+    if plugin_data_override is None:
         raise StateError(
-            f"Cannot persist incompatibility for '{plugin_name}' without plugin metadata.",
+            f"Cannot persist incompatibility for '{plugin_name}' without plugin metadata."
         )
-    await manager.dependencies.databases.plugins.add_or_update_plugin(
-        plugin_data,
-        state=PLUGIN_STATE_INCOMPATIBLE,
-        incompatibility=compatibility,
-        override=compatibility.is_overridden,
+    expected_instance = manager.state.catalog.loaded_plugin_instances.get(plugin_name)
+    plugin_data = await build_plugin_record_data(
+        manager,
+        plugin_name,
+        plugin_data_override=plugin_data_override,
+        package_audit=package_audit,
     )
-    await clear_loaded_plugin_state(manager, plugin_name)
-    async with manager.state.validation.display_name_cache_lock:
-        manager.state.validation.display_name_cache[plugin_name] = normalize_plugin_display_name(
-            plugin_name,
+    async with manager.state.locks.load_lock:
+        if manager.state.catalog.loaded_plugin_instances.get(plugin_name) is not expected_instance:
+            return
+        await manager.dependencies.databases.plugins.add_or_update_plugin(
             plugin_data,
+            state=PLUGIN_STATE_INCOMPATIBLE,
+            incompatibility=compatibility,
+            override=compatibility.is_overridden,
         )
-    previous_state: PluginRuntimeStateName = PLUGIN_STATE_NOT_DETECTED
-    if manager.dependencies.infrastructure.state_aggregator is not None:
-        try:
-            previous_state = (
-                await manager.dependencies.infrastructure.state_aggregator.get_plugin_status(
+    if expected_instance is not None:
+        await clear_loaded_plugin_state(manager, plugin_name, expected_instance=expected_instance)
+    receipt = None
+    async with manager.state.locks.load_lock:
+        if plugin_name in manager.state.catalog.loaded_plugin_instances:
+            return
+        async with manager.state.validation.display_name_cache_lock:
+            manager.state.validation.display_name_cache[plugin_name] = (
+                normalize_plugin_display_name(
                     plugin_name,
+                    plugin_data,
                 )
             )
-        except RECOVERABLE_EXCEPTIONS as exception:
-            log_exception(
+        previous_state: PluginRuntimeStateName = PLUGIN_STATE_NOT_DETECTED
+        if manager.dependencies.infrastructure.state_aggregator is not None:
+            try:
+                previous_state = (
+                    await manager.dependencies.infrastructure.state_aggregator.get_plugin_status(
+                        plugin_name,
+                    )
+                )
+            except RECOVERABLE_EXCEPTIONS as exception:
+                log_exception(
+                    logger,
+                    exception,
+                    message="Failed to retrieve previous state for plugin",
+                    operation=OPERATION,
+                    details={"plugin_name": plugin_name},
+                    level="warning",
+                )
+            await manager.dependencies.infrastructure.state_aggregator.clear_purged_status(
+                plugin_name
+            )
+        if previous_state != PLUGIN_STATE_INCOMPATIBLE:
+            try:
+                receipt = await manager.transition_plugin_manager_state(
+                    plugin_name,
+                    PLUGIN_STATE_INCOMPATIBLE,
+                    message,
+                )
+            except RECOVERABLE_EXCEPTIONS as exception:
+                log_exception(
+                    logger,
+                    exception,
+                    message="Failed to publish installation state change for incompatible plugin",
+                    operation=OPERATION,
+                    details={"plugin_name": plugin_name},
+                    level="warning",
+                )
+        else:
+            log_skipped_same_state_transition(
                 logger,
-                exception,
-                message="Failed to retrieve previous state for plugin",
-                operation=OPERATION,
-                details={"plugin_name": plugin_name},
-                level="warning",
-            )
-        await manager.dependencies.infrastructure.state_aggregator.clear_purged_status(plugin_name)
-    if previous_state != PLUGIN_STATE_INCOMPATIBLE:
-        try:
-            receipt = await manager.transition_plugin_manager_state(
                 plugin_name,
+                previous_state,
                 PLUGIN_STATE_INCOMPATIBLE,
-                message,
             )
+    if receipt is not None:
+        try:
             await wait_for_plugin_state_publication(receipt)
         except RECOVERABLE_EXCEPTIONS as exception:
             log_exception(
@@ -108,13 +138,6 @@ async def handle_incompatible_plugin(
                 details={"plugin_name": plugin_name},
                 level="warning",
             )
-    else:
-        log_skipped_same_state_transition(
-            logger,
-            plugin_name,
-            previous_state,
-            PLUGIN_STATE_INCOMPATIBLE,
-        )
     await update_alias_map(manager)
     logger.warning("Plugin '%s' is incompatible: %s", plugin_name, message)
 

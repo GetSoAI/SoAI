@@ -24,9 +24,11 @@ if TYPE_CHECKING:
 
 __all__ = (
     "finalize_openai_stream_frames",
-    "iter_public_usage_chunk",
     "iter_stream_bytes_from_end_event",
+    "resolve_public_usage_chunk",
 )
+
+CANONICAL_USAGE_UNAVAILABLE_MESSAGE = "Canonical stream usage is unavailable."
 
 
 def finalize_openai_stream_frames(state: OpenAIStreamRuntimeState) -> None:
@@ -41,21 +43,36 @@ def finalize_openai_stream_frames(state: OpenAIStreamRuntimeState) -> None:
         ) from exception
 
 
-def iter_public_usage_chunk(
+def resolve_public_usage_chunk(
     state: OpenAIStreamRuntimeState,
     *,
     include_usage: bool,
     model: str | None,
     reported_usage: JSONValue,
-) -> Iterator[bytes]:
-    if not include_usage or state.is_done_sent:
-        return
+) -> bytes | None:
+    if state.is_done_sent:
+        return None
+    projection = state.public_usage_projection
+    if projection is not None:
+        if not projection.include_usage:
+            return None
+        usage_chunk = projection.commit_terminal_usage_frame(
+            reported_usage,
+            stream_id_hint=state.stream_id,
+            model_hint=model,
+        )
+        if usage_chunk is None:
+            state.is_stream_successful = False
+            raise OpenAIStreamAbortRequested(CANONICAL_USAGE_UNAVAILABLE_MESSAGE, "server_error")
+        return usage_chunk
+    if not include_usage:
+        return None
     public_usage = extract_public_usage_payload(reported_usage)
     if public_usage is None:
         public_usage = state.withheld_provider_usage
     if public_usage is None:
-        return
-    yield build_openai_usage_chunk_bytes(
+        return None
+    return build_openai_usage_chunk_bytes(
         public_usage=public_usage,
         stream_id=state.stream_id,
         object_type=state.stream_object or "chat.completion.chunk",
@@ -74,6 +91,14 @@ def iter_stream_bytes_from_end_event(
 ) -> Iterator[bytes]:
     done_chunk = sse_done_chunk()
     finalize_openai_stream_frames(state)
+    if stream_result_state is not None and isinstance(end_event.usage, dict):
+        stream_result_state.usage = dict(end_event.usage)
+    usage_chunk = resolve_public_usage_chunk(
+        state,
+        include_usage=include_usage,
+        model=model,
+        reported_usage=end_event.usage,
+    )
     if state.stream_transcript is not None:
         state.stream_transcript.finalize()
         if stream_result_state is not None:
@@ -81,14 +106,8 @@ def iter_stream_bytes_from_end_event(
                 stream_result_state.payload = state.stream_transcript.build_result_payload()
             else:
                 stream_result_state.partial_payload = state.stream_transcript.build_result_payload()
-    if stream_result_state is not None and isinstance(end_event.usage, dict):
-        stream_result_state.usage = dict(end_event.usage)
-    yield from iter_public_usage_chunk(
-        state,
-        include_usage=include_usage,
-        model=model,
-        reported_usage=end_event.usage,
-    )
+    if usage_chunk is not None:
+        yield usage_chunk
     if emit_done_marker and not state.is_done_sent:
         yield done_chunk
         state.is_done_sent = True

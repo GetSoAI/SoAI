@@ -4,7 +4,7 @@
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
-import { renderModalTabIntro, renderModalTabPanel } from '@core/modals/scaffold.ts';
+import { renderModalFooter, renderModalTabIntro, renderModalTabPanel } from '@core/modals/scaffold.ts';
 import { uiAttr, uiHtml, uiText } from '@core/security/uiHtml.ts';
 import { renderDropdownSelectControl } from '@core/ui/dropdown/selectControl.ts';
 import { renderRequiredFieldMarker } from '@core/ui/forms/requiredMarker.ts';
@@ -23,15 +23,15 @@ const buildDownloadModalTabs = (): TrustedHtml => {
         <div class="tabs-container">
             <div class="tabs-nav-wrapper">
                 <nav class="tabs-nav" role="tablist">
-                    <button class="tabs-tab is-active" data-tab="download" id="${modalUiId(modalId, 'download-tab')}" type="button" role="tab" aria-selected="true" aria-controls="${modalUiId(modalId, 'download-form')}" aria-label="${uiAttr(i18n.t('models.modal.addModel.tabDownload'))}" data-tooltip="${uiAttr(i18n.t('models.modal.addModel.tabDownload'))}">
-                        <span class="tabs-tab-label">${i18n.t('models.modal.addModel.tabDownload')}</span>
-                        <span class="tab-notify-badge u-hidden" id="${modalUiId(modalId, 'download-notify')}"></span>
+                    <button class="tabs-tab is-active" data-tab="download" id="${modalUiId(modalId, 'download-tab')}" type="button" role="tab" aria-selected="true" aria-controls="${modalUiId(modalId, 'download-form')}" aria-label="${uiAttr(i18n.t('models.modal.addModel.tabDownload'))}" data-tooltip="${uiAttr(i18n.t('models.modal.addModel.tabDownload'))}" data-modal-localize="aria-label data-tooltip">
+                        <span class="tabs-tab-label" data-modal-localize="text">${i18n.t('models.modal.addModel.tabDownload')}</span>
+                        <span data-presence class="tab-notify-badge u-hidden" id="${modalUiId(modalId, 'download-notify')}"></span>
                     </button>
-                    <button class="tabs-tab" data-tab="provider" id="${modalUiId(modalId, 'provider-tab')}" type="button" role="tab" aria-selected="false" aria-controls="${modalUiId(modalId, 'provider-form')}" aria-label="${uiAttr(i18n.t('models.modal.addModel.tabProvider'))}" data-tooltip="${uiAttr(i18n.t('models.modal.addModel.tabProvider'))}">
-                        <span class="tabs-tab-label">${i18n.t('models.modal.addModel.tabProvider')}</span>
+                    <button class="tabs-tab" data-tab="provider" id="${modalUiId(modalId, 'provider-tab')}" type="button" role="tab" aria-selected="false" aria-controls="${modalUiId(modalId, 'provider-form')}" aria-label="${uiAttr(i18n.t('models.modal.addModel.tabProvider'))}" data-tooltip="${uiAttr(i18n.t('models.modal.addModel.tabProvider'))}" data-modal-localize="aria-label data-tooltip">
+                        <span class="tabs-tab-label" data-modal-localize="text">${i18n.t('models.modal.addModel.tabProvider')}</span>
                     </button>
-                    <button class="tabs-tab u-hidden" data-tab="manual" id="${modalUiId(modalId, 'manual-tab')}" type="button" role="tab" aria-selected="false" aria-controls="${modalUiId(modalId, 'manual-add-panel')}" aria-hidden="true" tabindex="-1" aria-label="${uiAttr(i18n.t('models.modal.addModel.tabManual'))}" data-tooltip="${uiAttr(i18n.t('models.modal.addModel.tabManual'))}">
-                        <span class="tabs-tab-label">${i18n.t('models.modal.addModel.tabManual')}</span>
+                    <button class="tabs-tab u-hidden" data-tab="manual" id="${modalUiId(modalId, 'manual-tab')}" type="button" role="tab" aria-selected="false" aria-controls="${modalUiId(modalId, 'manual-add-panel')}" aria-hidden="true" tabindex="-1" aria-label="${uiAttr(i18n.t('models.modal.addModel.tabManual'))}" data-tooltip="${uiAttr(i18n.t('models.modal.addModel.tabManual'))}" data-modal-localize="aria-label data-tooltip">
+                        <span class="tabs-tab-label" data-modal-localize="text">${i18n.t('models.modal.addModel.tabManual')}</span>
                     </button>
                 </nav>
             </div>
@@ -43,12 +43,12 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
     const apiKeyPlaceholder = uiAttr(i18n.t('models.modal.addProvider.apiKeyPlaceholder'));
     const modalId = MODELS_DOWNLOAD_MODAL_ID;
     const providerApiKeyId = modalUiId(modalId, 'provider-api-key');
-    const providerApiKeyInput = `<input dir="ltr" type="${uiAttr(resolveSecretInputType()).html}" id="${uiAttr(providerApiKeyId).html}" class="form-input secret-input" placeholder="${apiKeyPlaceholder.html}">`;
+    const providerApiKeyInput = `<input dir="ltr" type="${uiAttr(resolveSecretInputType()).html}" id="${uiAttr(providerApiKeyId).html}" class="form-input secret-input" placeholder="${apiKeyPlaceholder.html}" data-modal-localize="placeholder">`;
     const downloadPluginSelectMarkup = renderDropdownSelectControl({
-        selectMarkup: `<select id="${modalUiId(modalId, 'download-plugin-select')}" class="form-input"><option value="">${uiText(i18n.t('models.modal.addModel.pluginPlaceholder')).html}</option></select>`
+        selectMarkup: `<select id="${modalUiId(modalId, 'download-plugin-select')}" class="form-input"><option value="" data-modal-localize="text">${uiText(i18n.t('models.modal.addModel.pluginPlaceholder')).html}</option></select>`
     });
     const providerPluginSelectMarkup = renderDropdownSelectControl({
-        selectMarkup: `<select id="${modalUiId(modalId, 'provider-plugin-select')}" class="form-input"><option value="">${uiText(i18n.t('models.modal.addProvider.pluginPlaceholder')).html}</option></select>`
+        selectMarkup: `<select id="${modalUiId(modalId, 'provider-plugin-select')}" class="form-input"><option value="" data-modal-localize="text">${uiText(i18n.t('models.modal.addProvider.pluginPlaceholder')).html}</option></select>`
     });
 
     return uiHtml`
@@ -60,13 +60,13 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
                 active: true,
                 className: 'modal-form-section',
                 content: uiHtml`
-                <div class="form-group">
+                <div class="form-group" data-modal-localize="text">
                     ${renderModalTabIntro({ title: i18n.t('models.modal.addModel.tabDownload'), description: i18n.t('models.modal.addModel.pluginHelp') })}
-                    <label for="${modalUiId(modalId, 'download-plugin-select')}">${i18n.t('models.modal.addModel.pluginLabel')} ${renderRequiredFieldMarker({ id: modalUiId(modalId, 'download-plugin-required-marker'), hidden: true })}</label>
+                    <label for="${modalUiId(modalId, 'download-plugin-select')}" data-modal-localize="text">${i18n.t('models.modal.addModel.pluginLabel')} ${renderRequiredFieldMarker({ id: modalUiId(modalId, 'download-plugin-required-marker'), hidden: true })}</label>
                     ${toTrustedUiHtml(downloadPluginSelectMarkup)}
                 </div>
                 <div class="form-group u-hidden model-search-group" id="${modalUiId(modalId, 'model-search-group')}">
-                    <label for="${modalUiId(modalId, 'model-search-input')}">${i18n.t('models.modal.addModel.searchLabel')}</label>
+                    <label for="${modalUiId(modalId, 'model-search-input')}" data-modal-localize="text">${i18n.t('models.modal.addModel.searchLabel')}</label>
                     <div class="form-row-split form-row-split--search">
                         <div class="form-col-main">
                             <div class="searchbar-container searchbar-container--collection">
@@ -75,44 +75,43 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
                             </div>
                         </div>
                         <div class="form-col-secondary form-col-action">
-                            <button class="ui-button" id="${modalUiId(modalId, 'model-search-button')}" type="button" aria-label="${uiAttr(i18n.t('models.modal.addModel.searchButton'))}" data-tooltip="${uiAttr(i18n.t('models.modal.addModel.searchButton'))}" disabled>${i18n.t('models.modal.addModel.searchButton')}</button>
+                            <button class="ui-button" id="${modalUiId(modalId, 'model-search-button')}" type="button" aria-label="${uiAttr(i18n.t('models.modal.addModel.searchButton'))}" data-tooltip="${uiAttr(i18n.t('models.modal.addModel.searchButton'))}" disabled data-modal-localize="text aria-label data-tooltip">${i18n.t('models.modal.addModel.searchButton')}</button>
                         </div>
                     </div>
-                    <div class="form-help">${i18n.t('models.modal.addModel.searchHelp')}</div>
+                    <div class="form-help" data-modal-localize="text">${i18n.t('models.modal.addModel.searchHelp')}</div>
                     <div class="u-hidden model-search-results" id="${modalUiId(modalId, 'model-search-results')}"></div>
                 </div>
                 <div id="${modalUiId(modalId, 'download-plugin-warning')}" class="form-disclaimer u-hidden"></div>
                 <div class="form-group u-hidden model-id-group" id="${modalUiId(modalId, 'model-id-group')}">
                     <div class="form-row-split form-row-split--with-action">
                         <div class="form-col-main">
-                            <label for="${modalUiId(modalId, 'model-id')}">${i18n.t('models.modal.addModel.modelIdLabel')} ${renderRequiredFieldMarker()}</label>
+                            <label for="${modalUiId(modalId, 'model-id')}" data-modal-localize="text">${i18n.t('models.modal.addModel.modelIdLabel')} ${renderRequiredFieldMarker()}</label>
                             <input type="text" id="${modalUiId(modalId, 'model-id')}" class="form-input">
                         </div>
                         <div class="form-col-secondary">
-                            <label for="${modalUiId(modalId, 'model-quant')}">${i18n.t('models.modal.addModel.quantLabel')}</label>
+                            <label for="${modalUiId(modalId, 'model-quant')}" data-modal-localize="text">${i18n.t('models.modal.addModel.quantLabel')}</label>
                             <input type="text" id="${modalUiId(modalId, 'model-quant')}" class="form-input">
                         </div>
                         <div class="form-col-secondary form-col-action">
-                            <label>&nbsp;</label>
-                            <button class="ui-button ui-variant-primary" id="${modalUiId(modalId, 'model-variant-check')}" type="button" aria-label="${uiAttr(i18n.t('models.modal.addModel.variantCheck.button'))}" data-tooltip="${uiAttr(i18n.t('models.modal.addModel.variantCheck.button'))}" disabled>${i18n.t('models.modal.addModel.variantCheck.button')}</button>
+                            <button class="ui-button ui-variant-primary" id="${modalUiId(modalId, 'model-variant-check')}" type="button" aria-label="${uiAttr(i18n.t('models.modal.addModel.variantCheck.button'))}" data-tooltip="${uiAttr(i18n.t('models.modal.addModel.variantCheck.button'))}" disabled data-modal-localize="text aria-label data-tooltip">${i18n.t('models.modal.addModel.variantCheck.button')}</button>
                         </div>
                     </div>
                     <div class="form-group u-hidden variant-search-group" id="${modalUiId(modalId, 'variant-search-group')}">
-                        <label for="${modalUiId(modalId, 'variant-search-input')}">${i18n.t('models.modal.addModel.variantSearchLabel')}</label>
+                        <label for="${modalUiId(modalId, 'variant-search-input')}" data-modal-localize="text">${i18n.t('models.modal.addModel.variantSearchLabel')}</label>
                         <div class="form-row-split form-row-split--search">
                             <div class="form-col-main">
                                 <div class="searchbar-container searchbar-container--collection">
-                                    <input type="text" id="${modalUiId(modalId, 'variant-search-input')}" class="form-input searchbar-input" placeholder="${uiAttr(i18n.t('models.modal.addModel.variantSearchPlaceholder'))}" autocomplete="off">
+                                    <input type="text" id="${modalUiId(modalId, 'variant-search-input')}" class="form-input searchbar-input" placeholder="${uiAttr(i18n.t('models.modal.addModel.variantSearchPlaceholder'))}" autocomplete="off" data-modal-localize="placeholder">
                                     ${renderSearchFieldActions()}
                                 </div>
                             </div>
                             <div class="form-col-secondary form-col-action">
-                                <button class="ui-button" id="${modalUiId(modalId, 'variant-search-button')}" type="button" aria-label="${uiAttr(i18n.t('models.modal.addModel.variantSearchButton'))}" data-tooltip="${uiAttr(i18n.t('models.modal.addModel.variantSearchButton'))}" disabled>${i18n.t('models.modal.addModel.variantSearchButton')}</button>
+                                <button class="ui-button" id="${modalUiId(modalId, 'variant-search-button')}" type="button" aria-label="${uiAttr(i18n.t('models.modal.addModel.variantSearchButton'))}" data-tooltip="${uiAttr(i18n.t('models.modal.addModel.variantSearchButton'))}" disabled data-modal-localize="text aria-label data-tooltip">${i18n.t('models.modal.addModel.variantSearchButton')}</button>
                             </div>
                         </div>
-                        <div class="form-help">${i18n.t('models.modal.addModel.variantSearchHelp')}</div>
+                        <div class="form-help" data-modal-localize="text">${i18n.t('models.modal.addModel.variantSearchHelp')}</div>
                     </div>
-                    <div class="form-help">${i18n.t('models.modal.addModel.quantHelp')}</div>
+                    <div class="form-help" data-modal-localize="text">${i18n.t('models.modal.addModel.quantHelp')}</div>
                     <div class="variant-check-status-row">
                         <div class="variant-check-status" id="${modalUiId(modalId, 'model-variant-status')}" aria-live="polite"></div>
                         <div class="variant-check-filter-status" id="${modalUiId(modalId, 'model-variant-filter-status')}" aria-live="polite"></div>
@@ -120,7 +119,7 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
                     <div class="variant-check-results u-hidden" id="${modalUiId(modalId, 'model-variant-results')}"></div>
                 </div>
                 <div class="form-group u-hidden" id="${modalUiId(modalId, 'repository-link-group')}">
-                    <label>${i18n.t('models.modal.addModel.repositoryLabel')}</label>
+                    <label data-modal-localize="text">${i18n.t('models.modal.addModel.repositoryLabel')}</label>
                     <div class="repository-link-display">
                         <a id="${modalUiId(modalId, 'repository-link')}" href="#" target="_blank" rel="noopener noreferrer" class="repository-link">
                             ${page.getIconSync('external-link', { size: 16, strokeWidth: 1.5 })}<span id="${modalUiId(modalId, 'repository-link-text')}"></span>
@@ -135,30 +134,30 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
                 labelledBy: modalUiId(modalId, 'provider-tab'),
                 className: 'modal-form-section',
                 content: uiHtml`
-                <div class="form-group">
+                <div class="form-group" data-modal-localize="text">
                     ${renderModalTabIntro({ title: i18n.t('models.modal.addModel.tabProvider'), description: i18n.t('models.modal.addProvider.pluginHelp') })}
-                    <label for="${modalUiId(modalId, 'provider-plugin-select')}">${i18n.t('models.modal.addProvider.pluginLabel')} ${renderRequiredFieldMarker({ id: modalUiId(modalId, 'provider-plugin-required-marker'), hidden: true })}</label>
+                    <label for="${modalUiId(modalId, 'provider-plugin-select')}" data-modal-localize="text">${i18n.t('models.modal.addProvider.pluginLabel')} ${renderRequiredFieldMarker({ id: modalUiId(modalId, 'provider-plugin-required-marker'), hidden: true })}</label>
                     ${toTrustedUiHtml(providerPluginSelectMarkup)}
                 </div>
                 <div class="form-group u-hidden" id="${modalUiId(modalId, 'provider-details-group')}">
-                    <label for="${modalUiId(modalId, 'provider-name')}">${i18n.t('models.modal.addProvider.nameLabel')} ${renderRequiredFieldMarker()}</label>
+                    <label for="${modalUiId(modalId, 'provider-name')}" data-modal-localize="text">${i18n.t('models.modal.addProvider.nameLabel')} ${renderRequiredFieldMarker()}</label>
                     <input type="text" id="${modalUiId(modalId, 'provider-name')}" class="form-input">
-                    <div class="form-help">${i18n.t('models.modal.addProvider.nameHelp')}</div>
+                    <div class="form-help" data-modal-localize="text">${i18n.t('models.modal.addProvider.nameHelp')}</div>
                 </div>
                 <div class="form-group u-hidden" id="${modalUiId(modalId, 'provider-api-url-group')}">
-                    <label for="${modalUiId(modalId, 'provider-api-url')}">${i18n.t('models.modal.addProvider.apiUrlLabel')}</label>
-                    <input dir="ltr" type="text" id="${modalUiId(modalId, 'provider-api-url')}" class="form-input" placeholder="${uiAttr(i18n.t('models.modal.addProvider.apiUrlPlaceholder'))}">
-                    <div class="form-help">${i18n.t('models.modal.addProvider.apiUrlHelp')}</div>
+                    <label for="${modalUiId(modalId, 'provider-api-url')}" data-modal-localize="text">${i18n.t('models.modal.addProvider.apiUrlLabel')}</label>
+                    <input dir="ltr" type="text" id="${modalUiId(modalId, 'provider-api-url')}" class="form-input" placeholder="${uiAttr(i18n.t('models.modal.addProvider.apiUrlPlaceholder'))}" data-modal-localize="placeholder">
+                    <div class="form-help" data-modal-localize="text">${i18n.t('models.modal.addProvider.apiUrlHelp')}</div>
                 </div>
                 <div class="form-group u-hidden" id="${modalUiId(modalId, 'provider-api-key-group')}">
-                    <label for="${uiAttr(providerApiKeyId).html}">${i18n.t('models.modal.addProvider.apiKeyLabel')}</label>
+                    <label for="${uiAttr(providerApiKeyId).html}" data-modal-localize="text">${i18n.t('models.modal.addProvider.apiKeyLabel')}</label>
                     ${toTrustedUiHtml(renderSecretInputControl({ inputId: providerApiKeyId, inputMarkup: providerApiKeyInput }))}
-                    <div class="form-help">${i18n.t('models.modal.addProvider.apiKeyHelp')}</div>
+                    <div class="form-help" data-modal-localize="text">${i18n.t('models.modal.addProvider.apiKeyHelp')}</div>
                 </div>
                 <div class="form-group u-hidden" id="${modalUiId(modalId, 'provider-models-group')}">
-                    <label for="${modalUiId(modalId, 'provider-models-filter')}">${i18n.t('models.modal.addProvider.modelsFilterLabel')}</label>
-                    <input type="text" id="${modalUiId(modalId, 'provider-models-filter')}" class="form-input" placeholder="${uiAttr(i18n.t('models.modal.addProvider.modelsFilterPlaceholder'))}">
-                    <div class="form-help">${i18n.t('models.modal.addProvider.modelsFilterHelp')}</div>
+                    <label for="${modalUiId(modalId, 'provider-models-filter')}" data-modal-localize="text">${i18n.t('models.modal.addProvider.modelsFilterLabel')}</label>
+                    <input type="text" id="${modalUiId(modalId, 'provider-models-filter')}" class="form-input" placeholder="${uiAttr(i18n.t('models.modal.addProvider.modelsFilterPlaceholder'))}" data-modal-localize="placeholder">
+                    <div class="form-help" data-modal-localize="text">${i18n.t('models.modal.addProvider.modelsFilterHelp')}</div>
                 </div>
                 `
             })}
@@ -173,7 +172,7 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
                         description: i18n.t('models.modal.manualAdd.loading'),
                         descriptionId: modalUiId(modalId, 'manual-discovery-text')
                     })}
-                    <label class="visually-hidden" for="${modalUiId(modalId, 'manual-models-path')}">${i18n.t('models.modal.manualAdd.title')}</label>
+                    <label class="visually-hidden" for="${modalUiId(modalId, 'manual-models-path')}" data-modal-localize="text">${i18n.t('models.modal.manualAdd.title')}</label>
                     <div class="form-row-split">
                         <div class="form-col-main">
                             <input dir="ltr"
@@ -182,22 +181,24 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
                                 class="form-input ui-modal-manual-path-input"
                                 readonly
                                 placeholder="${uiAttr(i18n.t('models.modal.manualAdd.pathPlaceholder'))}"
-                            >
+                             data-modal-localize="placeholder">
                         </div>
                     </div>
                 </div>
                 `
             })}
         </div>
-        <div
-            id="${modalUiId(modalId, 'selected-model-display')}"
-            class="download-model-selected-model-bar u-hidden"
-            aria-hidden="true"
-        >
-            <span class="download-model-selected-model-label">${i18n.t('models.modal.addModel.selectedLabel')}</span>
+        ${renderModalFooter(
+            uiHtml`
+            <span class="download-model-selected-model-label" data-modal-localize="text">${i18n.t('models.modal.addModel.selectedLabel')}</span>
             <span class="download-model-selected-model-id"></span>
             <span class="download-model-selected-model-quant"></span>
-        </div>
+        `,
+            {
+                className: 'download-model-selected-model-bar u-hidden',
+                attributes: { id: modalUiId(modalId, 'selected-model-display'), 'data-presence': true, 'data-presence-atomic': true, 'aria-hidden': 'true' }
+            }
+        )}
     `;
 };
 

@@ -10,7 +10,8 @@ type MemorySwapMode = 'ram' | 'swap';
 type MemorySwapUsage = {
     type: MemorySwapMode;
     label: string;
-    percent: number;
+    percent: number | null;
+    stale?: boolean | undefined;
     usedText: string;
     totalText: string;
     available: boolean;

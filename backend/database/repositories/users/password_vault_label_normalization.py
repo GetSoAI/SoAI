@@ -7,7 +7,6 @@ from core.errors.exceptions import ValidationError
 
 __all__ = (
     "normalize_password_vault_label",
-    "normalize_password_vault_label_lookup",
     "normalize_password_vault_search_query",
 )
 
@@ -17,10 +16,6 @@ def normalize_password_vault_label(label: str) -> str:
     if not normalized_label:
         raise ValidationError("Password vault label must not be empty.")
     return normalized_label
-
-
-def normalize_password_vault_label_lookup(label: str) -> str:
-    return normalize_password_vault_label(label).lower()
 
 
 def normalize_password_vault_search_query(query: str | None) -> str | None:

@@ -28,6 +28,7 @@ interface SoftwareUpdateCheckResponse {
 }
 
 interface SoftwareUpdateAcceptedResponse {
+    taskId?: string | null;
     status: 'accepted';
     message: string;
     platformId: string;
@@ -55,7 +56,23 @@ interface SoftwareUpdateNotice {
     finishedAtMs: number;
 }
 
+type SoftwareUpdateDiagnosticsStatus = 'available' | 'unavailable' | 'not_recorded';
+
+type SoftwareUpdateDiagnosticsClassification = 'retained_copy_mismatch' | 'installed_original_changed' | 'source_unverifiable' | 'snapshot_operation_failed' | 'interrupted_preparation';
+
+interface SoftwareUpdateDiagnostics {
+    taskId: string;
+    status: SoftwareUpdateDiagnosticsStatus;
+    location: string | null;
+    classification: SoftwareUpdateDiagnosticsClassification | null;
+    reference: string | null;
+}
+
 const SOFTWARE_UPDATE_NOTICE_STATUSES: readonly ['completed', 'failed'] = Object.freeze(['completed', 'failed']);
+
+const SOFTWARE_UPDATE_DIAGNOSTICS_STATUSES: readonly ['available', 'unavailable', 'not_recorded'] = Object.freeze(['available', 'unavailable', 'not_recorded']);
+
+const SOFTWARE_UPDATE_DIAGNOSTICS_CLASSIFICATIONS: readonly ['retained_copy_mismatch', 'installed_original_changed', 'source_unverifiable', 'snapshot_operation_failed', 'interrupted_preparation'] = Object.freeze(['retained_copy_mismatch', 'installed_original_changed', 'source_unverifiable', 'snapshot_operation_failed', 'interrupted_preparation']);
 
 const readPreparationPhase = (value: ApiResponsePayload): SoftwareUpdatePreparationPhase => {
     switch (value) {
@@ -167,8 +184,10 @@ const decodeSoftwareUpdateAcceptedResponse = (value: ApiResponsePayload): Softwa
     if (deliveryType === null) {
         throw new TypeError('Software update response.delivery_type cannot be null.');
     }
+    const taskId = readNullableTrimmedStringValue(record['task_id'], 'Software update response.task_id');
     return {
         status,
+        ...(taskId !== null ? { taskId } : {}),
         message: readRequiredTrimmedString(record, 'message', 'Software update response.message'),
         platformId: readRequiredTrimmedString(record, 'platform_id', 'Software update response.platform_id'),
         deliveryType
@@ -192,5 +211,28 @@ const decodeSoftwareUpdateNoticeResponse = (value: ApiResponsePayload): Software
     };
 };
 
-export { decodeSoftwareUpdateAcceptedResponse, decodeSoftwareUpdateCheckResponse, decodeSoftwareUpdateNoticeResponse, decodeSoftwareUpdatePreparationResponse };
-export type { SoftwareReleaseHistoryEntry, SoftwareUpdateAcceptedResponse, SoftwareUpdateCheckResponse, SoftwareUpdateDeliveryType, SoftwareUpdateNotice, SoftwareUpdatePreparationResponse };
+const decodeSoftwareUpdateDiagnosticsResponse = (value: ApiResponsePayload, expectedTaskId: string): SoftwareUpdateDiagnostics => {
+    const record = requireRecord(value, 'Software update diagnostics response');
+    assertExactRecordKeys(record, ['task_id', 'status', 'location', 'classification', 'reference'], 'Software update diagnostics response');
+    const taskId = readRequiredTrimmedString(record, 'task_id', 'Software update diagnostics response.task_id');
+    if (taskId !== expectedTaskId) {
+        throw new TypeError('Software update diagnostics response.task_id does not match the requested task.');
+    }
+    const status = readRequiredEnumValue(record['status'], 'Software update diagnostics response.status', SOFTWARE_UPDATE_DIAGNOSTICS_STATUSES);
+    if (status !== 'available') {
+        if (record['location'] !== null || record['classification'] !== null || record['reference'] !== null) {
+            throw new TypeError('Software update diagnostics response.location, classification and reference must be null unless diagnostics are available.');
+        }
+        return { taskId, status, location: null, classification: null, reference: null };
+    }
+    return {
+        taskId,
+        status,
+        location: readRequiredTrimmedString(record, 'location', 'Software update diagnostics response.location'),
+        classification: readRequiredEnumValue(record['classification'], 'Software update diagnostics response.classification', SOFTWARE_UPDATE_DIAGNOSTICS_CLASSIFICATIONS),
+        reference: readRequiredTrimmedString(record, 'reference', 'Software update diagnostics response.reference')
+    };
+};
+
+export { decodeSoftwareUpdateAcceptedResponse, decodeSoftwareUpdateCheckResponse, decodeSoftwareUpdateDiagnosticsResponse, decodeSoftwareUpdateNoticeResponse, decodeSoftwareUpdatePreparationResponse };
+export type { SoftwareReleaseHistoryEntry, SoftwareUpdateAcceptedResponse, SoftwareUpdateCheckResponse, SoftwareUpdateDeliveryType, SoftwareUpdateDiagnostics, SoftwareUpdateDiagnosticsClassification, SoftwareUpdateDiagnosticsStatus, SoftwareUpdateNotice, SoftwareUpdatePreparationResponse };

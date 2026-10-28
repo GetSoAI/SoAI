@@ -7,6 +7,8 @@ import re
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import StateError
+from core.hardware.gpu_identity_normalization import normalize_windows_pnp_instance_id
+from core.validation.strict_numbers import coerce_optional_non_negative_int_strict
 from core.validation.strings import coerce_optional_trimmed_str
 from hardware.gpu_inventory.display_adapters import (
     BASIC_DISPLAY_TYPE,
@@ -17,7 +19,6 @@ from hardware.gpu_inventory.entries import build_gpu_entry
 from hardware.gpu_inventory.identity import windows_adapter_primary_device_id
 from hardware.gpu_inventory.memory_metrics import (
     bytes_to_mebibytes,
-    coerce_nonnegative_memory_bytes,
 )
 from hardware.operations import create_device_id
 from hardware.vendors.vendor_metadata import detect_vendor_from_name
@@ -45,7 +46,15 @@ WINDOWS_VIDEO_CONTROLLER_QUERY = (
     "Get-CimInstance -ClassName Win32_VideoController | "
     "Select-Object Name,AdapterRAM,DriverVersion,PNPDeviceID,DeviceID,"
     "AdapterCompatibility,VideoProcessor,InstalledDisplayDrivers,Status,"
-    "ConfigManagerErrorCode | ConvertTo-Json -Compress"
+    "ConfigManagerErrorCode,"
+    "@{Name='PciBusNumber';Expression={try {"
+    "(Get-PnpDeviceProperty -InstanceId $_.PNPDeviceID "
+    "-KeyName 'DEVPKEY_Device_BusNumber' -ErrorAction Stop).Data"
+    "} catch {$null}}},"
+    "@{Name='PciAddress';Expression={try {"
+    "(Get-PnpDeviceProperty -InstanceId $_.PNPDeviceID "
+    "-KeyName 'DEVPKEY_Device_Address' -ErrorAction Stop).Data"
+    "} catch {$null}}} | ConvertTo-Json -Compress"
 )
 _WINDOWS_PCI_VENDOR_PATTERN = r"(?:^|\\|&)VEN_([0-9A-Fa-f]{4})(?:&|$)"
 _WINDOWS_PCI_DEVICE_PATTERN = r"(?:^|\\|&)DEV_([0-9A-Fa-f]{4})(?:&|$)"
@@ -121,12 +130,17 @@ def classify_windows_display_adapter(
     name: str,
 ) -> str | None:
     pci_vendor_id = windows_adapter_pci_vendor_id(gpu_info)
-    if _is_real_compute_pci_vendor(pci_vendor_id):
-        return None
     pnp_device_id = _adapter_identifier_text(gpu_info).upper()
     normalized_name = name.strip().lower()
     if any(marker in normalized_name for marker in _BASIC_NAME_MARKERS):
         return BASIC_DISPLAY_TYPE
+    error_code = coerce_optional_non_negative_int_strict(gpu_info.get("ConfigManagerErrorCode"))
+    if error_code == 22:
+        return "disabled"
+    if error_code is not None and error_code != 0:
+        return "unavailable"
+    if _is_real_compute_pci_vendor(pci_vendor_id):
+        return None
     if any(marker in normalized_name for marker in _VIRTUAL_NAME_MARKERS):
         return VIRTUAL_DISPLAY_TYPE
     if any(pnp_device_id.startswith(prefix) for prefix in _NON_PCI_DEVICE_PREFIXES):
@@ -154,7 +168,7 @@ def build_windows_gpu_entry(
         raise StateError(
             f"Windows GPU identifier is required for device identity (index {gpu_index}).",
         )
-    total_memory_bytes = coerce_nonnegative_memory_bytes(gpu_info.get("AdapterRAM"))
+    total_memory_bytes = coerce_optional_non_negative_int_strict(gpu_info.get("AdapterRAM"))
     entry = build_gpu_entry(
         vendor=vendor,
         index=gpu_index,
@@ -162,17 +176,53 @@ def build_windows_gpu_entry(
         device_id=create_device_id("gpu", primary_device_id),
         name=name,
         memory_used_mb=0,
-        memory_total_mb=bytes_to_mebibytes(total_memory_bytes),
+        memory_total_mb=(
+            bytes_to_mebibytes(total_memory_bytes) if total_memory_bytes is not None else 0
+        ),
         percent_used=0.0,
     )
     entry.update(
         {
             "compute_capable": compute_capable,
             "display_adapter_type": display_adapter_type,
-            "telemetry_available": compute_capable,
-            "telemetry_unavailable_reason": None if compute_capable else "display_adapter",
+            "telemetry_available": False,
+            "telemetry_unavailable_reason": (
+                "native_identity_unavailable" if compute_capable else "display_adapter"
+            ),
+            "memory_used_mb": None,
+            "percent_used": None,
+            "memory_total_mb": None,
+            "memory_total_status": "unavailable",
+            "memory_total_source": "win32_video_controller.AdapterRAM",
+            "memory_total_unit": "bytes",
+            "memory_total_reported_value": total_memory_bytes,
+            "display_driver_version": coerce_optional_trimmed_str(gpu_info.get("DriverVersion")),
+            "display_driver_source": "win32_video_controller",
+            "display_adapter_compatibility": coerce_optional_trimmed_str(
+                gpu_info.get("AdapterCompatibility")
+            ),
         },
     )
+    entry["memory_total_unavailable_reason"] = "full_width_native_capacity_required"
+    entry["memory_total_adapter_ram_bytes"] = total_memory_bytes
+    pnp_observation = gpu_info.get("PNPDeviceID")
+    if isinstance(pnp_observation, str):
+        pnp_instance = normalize_windows_pnp_instance_id(pnp_observation)
+        if pnp_instance:
+            entry["windows_pnp_instance_id"] = pnp_instance
+    bus = coerce_optional_non_negative_int_strict(gpu_info.get("PciBusNumber"))
+    address = coerce_optional_non_negative_int_strict(gpu_info.get("PciAddress"))
+    if (
+        isinstance(pnp_observation, str)
+        and pnp_observation.upper().startswith("PCI\\")
+        and bus is not None
+        and address is not None
+        and bus <= 255
+    ):
+        device = address >> 16
+        function = address & 0xFFFF
+        if device <= 31 and function <= 7:
+            entry["pci_bdf_full"] = f"0000:{bus:02x}:{device:02x}.{function}"
     pci_vendor_id = windows_adapter_pci_vendor_id(gpu_info)
     pci_device_id = windows_adapter_pci_device_id(gpu_info)
     if pci_vendor_id:

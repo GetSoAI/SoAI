@@ -9,6 +9,7 @@ interface CollectionGroupResolution {
 interface CollectionGroupingHeadingsInput<TItem> {
     items: readonly TItem[];
     grouped: boolean;
+    presentsHeadings: boolean;
     resolveItemId: (item: TItem) => string;
     resolveGroup: (item: TItem) => CollectionGroupResolution;
     firstHeading?: string | null;
@@ -57,7 +58,7 @@ class CollectionGroupingState<TItem> {
         }
         this.#headings.clear();
         for (const [itemId, heading] of nextHeadings) this.#headings.set(itemId, heading);
-        return changedIds;
+        return input.presentsHeadings ? changedIds : [];
     }
 }
 

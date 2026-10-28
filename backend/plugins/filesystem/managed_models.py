@@ -212,7 +212,7 @@ async def remove_plugin_managed_models(
 ) -> None:
     try:
         async with manager.dependencies.infrastructure.config_manager.plugin_config_mutation_scope(
-            plugin_name
+            plugin_name, operation=OPERATION_REMOVE_MANAGED_MODELS
         ):
             require_plugin_identifier(
                 plugin_name,

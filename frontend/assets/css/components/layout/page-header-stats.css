@@ -3,8 +3,8 @@
 
 @layer components {
     .ui-page-header-stats {
-        --ui-page-header-stats-min-width: 205px;
-        --ui-page-header-stats-value-size: var(--font-size-150);
+        --ui-page-header-stats-min-width: 226px;
+        --ui-page-header-stats-value-size: var(--font-size-125);
         --ui-page-header-stats-label-size: var(--font-size-compact-plus);
         display: grid;
         grid-template-columns: repeat(var(--header-stats-columns), minmax(var(--ui-page-header-stats-min-width), 1fr));
@@ -33,7 +33,7 @@
         border: none;
         border-radius: 0;
         box-shadow: none;
-        padding: var(--space-35);
+        padding: var(--space-2) var(--space-3);
         position: relative;
     }
     .ui-page-header-stats__card + .ui-page-header-stats__card::before {
@@ -56,6 +56,7 @@
         font-size: var(--ui-page-header-stats-value-size);
         font-variant-numeric: tabular-nums;
         line-height: 1;
+        margin-bottom: var(--space-1);
     }
     .ui-page-header-stats__card .ui-adaptive-number {
         display: inline-block;
@@ -68,8 +69,10 @@
         position: relative;
         z-index: var(--z-above-sibling);
         font-size: var(--ui-page-header-stats-label-size);
-        margin-top: var(--space-15);
+        margin-top: var(--space-1);
         opacity: 0.7;
+        letter-spacing: 0;
+        text-transform: none;
     }
     .ui-page-header-stats__card--interactive {
         cursor: default;
@@ -131,6 +134,7 @@
         .page-header-panel.is-floating {
             position: static;
             top: auto;
+            translate: none;
         }
         .page-header {
             flex-direction: row;
@@ -190,7 +194,7 @@
         }
 
         .ui-page-header-stats__card {
-            padding: var(--space-3);
+            padding: var(--space-2) var(--space-25);
         }
     }
 

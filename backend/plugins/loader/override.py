@@ -142,7 +142,6 @@ async def set_incompatibility_override(
     try:
         package_audit = await audit_plugin_package(manager, target_name)
         manifest = read_plugin_manifest_from_disk(
-            manager,
             target_name,
             package_audit=package_audit,
         )

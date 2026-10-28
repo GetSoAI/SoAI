@@ -5,19 +5,22 @@ from __future__ import annotations
 
 import asyncio
 
-from core.events.publication_errors import PublicationFailedError
+from core.events.publication_errors import (
+    AuthoritativePluginStateCompletion,
+    PublicationFailedError,
+)
 
-__all__ = ("AuthoritativePluginStateWaiters",)
+__all__ = ("AuthoritativePluginStateCompletion", "AuthoritativePluginStateWaiters")
 
 
 class AuthoritativePluginStateWaiters:
     def __init__(self) -> None:
-        self._waiters: dict[str, asyncio.Future[None]] = {}
+        self._waiters: dict[str, asyncio.Future[AuthoritativePluginStateCompletion]] = {}
         self._lock = asyncio.Lock()
 
-    async def create(self, event_id: str) -> asyncio.Future[None]:
+    async def create(self, event_id: str) -> asyncio.Future[AuthoritativePluginStateCompletion]:
         loop = asyncio.get_running_loop()
-        waiter: asyncio.Future[None] = loop.create_future()
+        waiter: asyncio.Future[AuthoritativePluginStateCompletion] = loop.create_future()
         async with self._lock:
             existing_waiter = self._waiters.get(event_id)
             if existing_waiter is not None and not existing_waiter.done():
@@ -33,17 +36,16 @@ class AuthoritativePluginStateWaiters:
         waiter = await self._pop(event_id)
         if waiter is None or waiter.done():
             return
-        waiter.set_result(None)
+        waiter.set_result(AuthoritativePluginStateCompletion(event_id))
 
     async def resolve_failure(self, event_id: str, message: str) -> None:
         waiter = await self._pop(event_id)
         if waiter is None or waiter.done():
             return
-        waiter.set_exception(
-            PublicationFailedError(
+        waiter.set_result(
+            AuthoritativePluginStateCompletion(
+                event_id,
                 str(message),
-                operation="authoritative_plugin_state_waiters.resolve_failure",
-                details={"event_id": event_id},
             ),
         )
 
@@ -52,18 +54,20 @@ class AuthoritativePluginStateWaiters:
 
     async def resolve_shutdown(self) -> None:
         async with self._lock:
-            waiters = list(self._waiters.values())
+            waiters = list(self._waiters.items())
             self._waiters.clear()
-        for waiter in waiters:
+        for event_id, waiter in waiters:
             if waiter.done():
                 continue
-            waiter.set_exception(
-                PublicationFailedError(
+            waiter.set_result(
+                AuthoritativePluginStateCompletion(
+                    event_id,
                     "Authoritative plugin state dispatcher shut down before delivery completed.",
-                    operation="authoritative_plugin_state_waiters.resolve_shutdown",
                 ),
             )
 
-    async def _pop(self, event_id: str) -> asyncio.Future[None] | None:
+    async def _pop(
+        self, event_id: str
+    ) -> asyncio.Future[AuthoritativePluginStateCompletion] | None:
         async with self._lock:
             return self._waiters.pop(event_id, None)

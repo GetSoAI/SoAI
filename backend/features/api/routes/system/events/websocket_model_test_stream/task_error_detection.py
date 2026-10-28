@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING
 
 from core.errors.error_types import ErrorType
 from core.errors.exceptions import ApiError
+from core.errors.public_projection import project_public_error
 from core.tasks.enums import TaskStatus
+from core.tasks.task_public_fields import resolve_public_task_terminal_fields
 
 if TYPE_CHECKING:
     from features.api.runtime.context import ApiContext
@@ -26,7 +28,8 @@ async def raise_terminal_model_test_task_error(
         return
     if not task.status.is_terminal():
         return
-    message = (task.error_message or task.status_message or "").strip()
+    terminal_fields = resolve_public_task_terminal_fields(task)
+    message = (terminal_fields.error_message or terminal_fields.status_message or "").strip()
     if task.status == TaskStatus.CANCELLED:
         raise ApiError(
             message or "Model test stream was cancelled.",
@@ -34,9 +37,22 @@ async def raise_terminal_model_test_task_error(
             http_status=503,
             operation=operation,
         )
-    raise ApiError(
+    failure = ApiError(
         message or "Model test stream failed.",
-        code=ErrorType.SERVER_ERROR.value,
-        http_status=500,
+        code=task.error_type or ErrorType.SERVER_ERROR.value,
+        http_status=(
+            task.error_code
+            if task.error_code is not None and 400 <= task.error_code <= 599
+            else 500
+        ),
         operation=operation,
     )
+    failure.public_message = (
+        task.public_error_message
+        or project_public_error(
+            ApiError(
+                "Model test stream failed.", code=failure.code, http_status=failure.http_status
+            )
+        ).message
+    )
+    raise failure

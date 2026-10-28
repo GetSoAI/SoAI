@@ -84,7 +84,7 @@ def build_chat_error_payload_metadata(
             include_usage_preview=include_usage_preview,
         )
     capped_match = re.fullmatch(
-        "Prompt token counting capped after compaction \\(reason=(?P<reason>[^,]+), budget_tokens=(?P<budget_tokens>\\d+)\\)\\.",
+        "Prompt token counting capped after compaction \\(reason=(?P<reason>[^,]+), maximum_tokens=(?P<budget_tokens>\\d+)\\)\\.",
         message,
     )
     if capped_match is not None:

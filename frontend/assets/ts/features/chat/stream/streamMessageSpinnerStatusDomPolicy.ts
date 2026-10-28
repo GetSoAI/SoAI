@@ -1,6 +1,9 @@
 /* SoAI - Direct DOM resolution for the streaming spinner/status area in chat messages [frontend/assets/ts/features/chat/stream/streamMessageSpinnerStatusDomPolicy.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isPresenceExiting } from '@core/animations/presence/public.ts';
+import { STREAMING_ACTION_CONTROLS_CLASS } from '@features/chat/message/messageActionStreamingPolicy.ts';
+import { resolveMaxCssTransitionTotalMs } from '@core/animations/parseMaxCssDurationMs.ts';
 import { isHTMLElement } from '@core/typeGuards.ts';
 import { resolveAssistantMessageParts } from '@features/chat/message/assistantMessageMarkupParts.ts';
 import { normalizeMessageDomId } from '@features/chat/message/messageDomIds.ts';
@@ -52,7 +55,7 @@ const isActiveMessageActionButton = (element: HTMLElement): boolean => {
     if (!element.classList.contains('message-action')) {
         return false;
     }
-    if (element.disabled || element.hidden || element.getAttribute('aria-disabled') === 'true') {
+    if (element.disabled || element.hidden || element.getAttribute('aria-disabled') === 'true' || isPresenceExiting(element) || element.closest(`.${STREAMING_ACTION_CONTROLS_CLASS}`) !== null) {
         return false;
     }
     return !element.classList.contains('u-hidden');
@@ -85,6 +88,13 @@ const resolveMessageActionsElement = (messageRoot: HTMLElement): HTMLElement | n
 
 const readBooleanAttribute = (element: HTMLElement | null, attributeName: string): boolean => {
     return element?.getAttribute(attributeName) === 'true';
+};
+
+const resolveActionButtonsLeftElement = (actionsElement: HTMLElement): HTMLElement => {
+    const buttons = resolveDirectChild(actionsElement, isSettledActionButtonsElement);
+    const left = buttons === null ? null : resolveDirectChild(buttons, isActionButtonsLeftElement);
+    if (left === null) throw new Error('Streaming spinner status is missing actions left group.');
+    return left;
 };
 
 const resolveActionFlowChild = (actionsElement: HTMLElement, predicate: (element: HTMLElement) => boolean): HTMLElement | null => {
@@ -178,4 +188,8 @@ const hasActiveMessageActionButton = (actionsElement: HTMLElement): boolean => {
     return actionButtons instanceof HTMLElement && hasActiveActionButtonDescendant(actionButtons);
 };
 
-export { hasActiveMessageActionButton, hasRunningContextCompactionActivity, hasRunningLoadingActivity, hasRunningWaitActivity, hasSettledActionButtons, hasVisibleSpinnerActivity, requireStatusTextBodyElement, requireStatusTextElement, resolveActionsElement, resolveMessageActionsElement, resolveMessageId, resolveOwningMessageRoot, resolveSpinnerElement, resolveStreamingStatusElement };
+const resolveSpinnerStatusTransitionDurationMs = (textElement: HTMLElement | null, spinnerElement: HTMLElement | null): number => {
+    return Math.max(textElement ? resolveMaxCssTransitionTotalMs(textElement) : 0, spinnerElement ? resolveMaxCssTransitionTotalMs(spinnerElement) : 0);
+};
+
+export { hasActiveMessageActionButton, hasRunningContextCompactionActivity, hasRunningLoadingActivity, hasRunningWaitActivity, hasSettledActionButtons, hasVisibleSpinnerActivity, requireStatusTextBodyElement, requireStatusTextElement, resolveActionButtonsLeftElement, resolveActionsElement, resolveMessageActionsElement, resolveMessageId, resolveOwningMessageRoot, resolveSpinnerElement, resolveSpinnerStatusTransitionDurationMs, resolveStreamingStatusElement };

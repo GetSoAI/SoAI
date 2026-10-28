@@ -40,4 +40,10 @@
         cursor: progress;
         opacity: 0.7;
     }
+
+    :is(.ui-button, .ui-icon-button):is(:disabled, [aria-disabled='true']):is([aria-busy='true'], :where([aria-busy='true'] *)) {
+        --ui-control-opacity: var(--ui-button-busy-opacity);
+        cursor: progress;
+        opacity: var(--ui-control-opacity);
+    }
 }

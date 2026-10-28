@@ -40,10 +40,10 @@ async def finish_direct_cancellation_preserving(
         )
     except asyncio.CancelledError as cleanup_exception:
         primary_exception.add_note(
-            f"SoAIBench cancellation cleanup was cancelled: {cleanup_exception}",
+            f"SoAI Bench cancellation cleanup was cancelled: {cleanup_exception}",
         )
     except HANDLED_RUNTIME_EXCEPTIONS as cleanup_exception:
-        primary_exception.add_note(f"SoAIBench cancellation cleanup failed: {cleanup_exception}")
+        primary_exception.add_note(f"SoAI Bench cancellation cleanup failed: {cleanup_exception}")
         coerced_exception = coerce_to_soai_error(
             cleanup_exception,
             operation=CANCELLATION_CLEANUP_OPERATION,
@@ -51,7 +51,7 @@ async def finish_direct_cancellation_preserving(
         log_exception(
             get_logger(LOGGER_NAME),
             coerced_exception,
-            message="SoAIBench cancellation cleanup failed.",
+            message="SoAI Bench cancellation cleanup failed.",
             operation=CANCELLATION_CLEANUP_OPERATION,
             level="warning",
         )

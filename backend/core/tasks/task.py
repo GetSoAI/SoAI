@@ -88,6 +88,11 @@ class Task:
         return self._snapshot_tracking_id
 
     @property
+    def execution_timeout_pending(self) -> bool:
+        context = self.orchestration_context
+        return context is not None and context.execution_timeout_claim is not None
+
+    @property
     def snapshot_excluded_universal_ids(self) -> frozenset[str] | None:
         return self._snapshot_excluded_universal_ids
 

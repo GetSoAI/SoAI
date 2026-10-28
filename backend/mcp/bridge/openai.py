@@ -19,6 +19,7 @@ from core.mcp.protocols_main import (
     MCPServerProtocol,
 )
 from core.runtime.request_context import RequestContext
+from core.skills.execution_policy import require_skill_tool_permission
 from core.tool_calls.current_tool_call import CurrentToolCallIdentity
 from core.tool_calls.tool_call_location import ToolCallLocation
 from mcp.bridge.executor import (
@@ -64,6 +65,7 @@ async def execute_openai_tool_call_bridge(
 ) -> JSONValue:
     await require_ordinary_licensing(mcp_server.licensing_status)
     request_context = bridge_request.request_context
+    require_skill_tool_permission(request_context.skill_execution_context, tool_name)
     user_id = bridge_request.user_id
     owner_key = build_openai_conversation_owner_key(user_id=user_id, conv_id=bridge_request.conv_id)
     tool_call_identity = CurrentToolCallIdentity(

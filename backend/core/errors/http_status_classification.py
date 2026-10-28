@@ -68,8 +68,10 @@ def resolve_execution_error_type_for_http_status(status_code: int) -> ErrorType:
     match int(status_code):
         case 400 | 415 | 422:
             return ErrorType.INVALID_REQUEST
-        case 401 | 403:
+        case 401:
             return ErrorType.AUTHENTICATION_ERROR
+        case 403:
+            return ErrorType.FORBIDDEN
         case 404:
             return ErrorType.NOT_FOUND
         case 409:
@@ -82,7 +84,7 @@ def resolve_execution_error_type_for_http_status(status_code: int) -> ErrorType:
             return ErrorType.SERVER_ERROR
         case 503:
             return ErrorType.PLUGIN_UNAVAILABLE
-        case 504:
+        case 408 | 504 | 524:
             return ErrorType.TIMEOUT_ERROR
         case _:
             if int(status_code) >= 500:

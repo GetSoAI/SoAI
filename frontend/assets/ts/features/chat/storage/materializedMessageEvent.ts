@@ -7,6 +7,7 @@ import { CONVERSATION_INPUT_MESSAGE_ID_FIELD } from '@features/chat/message/mess
 import { hasPersistedMessageId } from '@features/chat/message/persistedMessageIdentity.ts';
 import { insertMessageByTimestamp } from '@features/chat/message/messageTimestampOrdering.ts';
 import { normalizeMessageTimestamps } from '@features/chat/storage/chatStorageBackendMapping.ts';
+import { isConversationWindowAtTail } from '@features/chat/storage/messageWindowState.ts';
 import type { Conversation } from '@features/chat/storage/storageModels.ts';
 
 const applyMaterializedMessageEvent = (conversation: Conversation, materializedMessage: WebuiConversationMessageResponse | null): boolean => {
@@ -36,6 +37,9 @@ const applyMaterializedMessageEvent = (conversation: Conversation, materializedM
             throw new Error('Message saved event materialization conflicts with existing message identities.');
         }
         matchedIndex = index;
+    }
+    if (matchedIndex === null && !isConversationWindowAtTail(conversation)) {
+        return false;
     }
     if (matchedIndex !== null) {
         conversation.messages.splice(matchedIndex, 1);

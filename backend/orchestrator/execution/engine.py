@@ -22,10 +22,10 @@ from core.logging.rate_limited_logger import RateLimitedLogger
 from core.logging.trace import get_logger
 from core.metrics.protocols import MetricsManagerProtocol
 from core.models.model_info_fields import coerce_plugin_name
-from core.models.provider_backing import is_provider_backed_model
+from core.models.provider_backing import get_model_provider_id, is_provider_backed_model
 from core.plugins.protocols_instance import PluginInstanceProtocol
 from core.state.protocols import StateAggregatorProtocol
-from core.tasks.protocols import TaskRegistryProtocol
+from core.tasks.protocols import TaskFinalizerTrackerProtocol, TaskRegistryProtocol
 from core.tasks.task import Task
 from core.timing.constants import LONG_REQUEST_TIMEOUT_SEC
 from orchestrator.capacity.slot_lease import PluginSlotLease
@@ -86,6 +86,7 @@ class ExecutorEngine:
         self._results: ResultProcessorProtocol = deps.results
         self._outcomes: OutcomeManagerProtocol = deps.outcomes
         self._metrics: MetricsManagerProtocol = deps.metrics
+        self._finalizer_tracker: TaskFinalizerTrackerProtocol = deps.finalizer_tracker
         self._health_check_config: JSONDict = deps.health_check_config
         self._role_policy_resolver: ChatTemplateRolePolicyResolver = deps.role_policy_resolver
         self._licensing_status: LicensingStatusProtocol = deps.licensing_status
@@ -125,6 +126,7 @@ class ExecutorEngine:
                 allow_failover=False,
             )
             return False
+        health_check_config = dict(self._health_check_config)
         request_timeout = float(LONG_REQUEST_TIMEOUT_SEC)
         active_registered = False
         completed = False
@@ -139,8 +141,18 @@ class ExecutorEngine:
                 task.task_id,
                 plugin_name,
             )
+            context = self._queue.require_orchestration_context(task)
+            if task.orchestration_context is None:
+                task = task.with_orchestration_context(context)
+            admitted_budget = context.execution_budget
+            if (
+                admitted_budget is not None
+                and admitted_budget.generation == context.execution_generation
+                and admitted_budget.health_check_config is not None
+            ):
+                health_check_config = dict(admitted_budget.health_check_config)
             request_timeout = coerce_positive_float(
-                self._health_check_config.get(
+                health_check_config.get(
                     "NON_STREAMING_TIMEOUT_SEC",
                     LONG_REQUEST_TIMEOUT_SEC,
                 ),
@@ -149,9 +161,6 @@ class ExecutorEngine:
                 label="MODELS.ROUTING.HEALTH_CHECKS.NON_STREAMING_TIMEOUT_SEC",
                 logger=logger,
             )
-            context = self._queue.require_orchestration_context(task)
-            if task.orchestration_context is None:
-                task = task.with_orchestration_context(context)
             tracking_id = context.tracking_id
             if not tracking_id:
                 await self._outcomes.fail_task(
@@ -191,6 +200,7 @@ class ExecutorEngine:
                     self._metrics,
                     self._role_policy_resolver,
                     lifecycle=self._lifecycle,
+                    finalizer_tracker=self._finalizer_tracker,
                     requeue_inside_slot_warners=self._requeue_inside_slot_warners,
                     admission_registered=active_registered,
                     task=task,
@@ -198,7 +208,7 @@ class ExecutorEngine:
                     plugin_instance=plugin_instance,
                     tracking_id=tracking_id,
                     request_timeout=request_timeout,
-                    health_check_config=self._health_check_config,
+                    health_check_config=health_check_config,
                     model_info=model_info,
                     event=event,
                     logger=logger,
@@ -209,6 +219,19 @@ class ExecutorEngine:
         except asyncio.CancelledError as cancellation_exception:
             cancelled = True
             stored_cancellation = cancellation_exception
+            current_task = await uncancel_then_cleanup(self._task_registry.get(task.task_id))
+            current_context = (
+                current_task.orchestration_context if current_task is not None else None
+            )
+            if current_context is not None and current_context.execution_timeout_claim is not None:
+                task = current_task if current_task is not None else task
+                await uncancel_then_cleanup(
+                    self._outcomes.fail_task(
+                        task,
+                        current_context.execution_timeout_claim.public_error.message,
+                        allow_failover=False,
+                    )
+                )
             if task.orchestration_context is not None:
                 await uncancel_then_cleanup(
                     notify_plugin_task_cancelled(
@@ -240,6 +263,7 @@ class ExecutorEngine:
                 plugin_instance=plugin_instance,
                 plugin_name=plugin_name,
                 exception=exception,
+                provider_id=get_model_provider_id(model_info),
                 request_timeout=request_timeout,
             )
         except HANDLED_RUNTIME_EXCEPTIONS as exception:

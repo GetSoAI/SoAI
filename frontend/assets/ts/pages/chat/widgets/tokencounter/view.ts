@@ -3,7 +3,7 @@
 
 import type { TokenUsageSnapshot } from '@core/api/contracts/tokenUsageContracts.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { resolveTokenCounterErrorNotificationMessage } from '@features/chat/public.ts';
+import { resolveContextBudgetErrorMessage, resolveTokenCounterErrorNotificationMessage } from '@features/chat/public.ts';
 import { resolveTokenCounterViewModel } from '@pages/chat/widgets/tokencounter/tokenCounterViewModel.ts';
 import type { TokenCounterHost, TokenCounterMode } from '@pages/chat/widgets/tokencounter/contracts.ts';
 import type { TokenCounterUsageRateTracker } from '@pages/chat/widgets/tokencounter/tokenCounterUsageRateTracker.ts';
@@ -16,7 +16,7 @@ interface TokenCounterErrorState {
 
 const renderTokenCounter = (inputArguments: { host: TokenCounterHost; enabled: boolean; mode: TokenCounterMode; usageTracker: TokenCounterUsageRateTracker }): void => {
     const buttons = inputArguments.host.requireTokenCounterButtons();
-    const usage = inputArguments.enabled ? inputArguments.usageTracker.getLastTokenUsage() : null;
+    const usage = inputArguments.enabled ? ((inputArguments.mode === 'tokens' ? inputArguments.usageTracker.getSteeringPreview() : null) ?? inputArguments.usageTracker.getLastTokenUsage()) : null;
     const tokensPerSecond = inputArguments.enabled ? inputArguments.usageTracker.resolveTokensPerSecond() : null;
     const viewModel = resolveTokenCounterViewModel({
         enabled: inputArguments.enabled,
@@ -36,7 +36,7 @@ const renderTokenCounter = (inputArguments: { host: TokenCounterHost; enabled: b
 
 const resolveTokenCounterErrorState = (event: ChatTokenCountErrorEvent): TokenCounterErrorState => {
     const promptBudget = event.promptBudget;
-    let message = event.userMessage ?? event.message;
+    let message = resolveContextBudgetErrorMessage(event.code, event.details) ?? event.userMessage ?? event.message;
     if (promptBudget?.type === 'prompt_budget_exceeded' && promptBudget.promptTokens !== null) {
         message = i18n.t('chat.notifications.promptBudgetExceeded', { promptTokens: promptBudget.promptTokens, budgetTokens: promptBudget.budgetTokens });
     } else if (promptBudget?.type === 'prompt_budget_capped') {

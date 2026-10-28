@@ -41,13 +41,13 @@ class FileExplorerDeleteBatchWorker:
             allow_symlinks=self._allow_symlinks,
         )
         virtual_paths = [canonicalize_virtual_path(root_scope, vp) for vp in virtual_paths]
+        if "/" in virtual_paths:
+            raise SecurityError(
+                "Cannot delete the root directory.",
+                operation="file_explorer.delete_batch_item",
+            )
 
         async def _process_item(path: str) -> None:
-            if path == "/":
-                raise SecurityError(
-                    "Cannot delete the root directory.",
-                    operation="file_explorer.delete_batch_item",
-                )
             await self._core.delete_entry(root_scope, path)
 
         await run_batch_task(

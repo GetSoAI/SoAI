@@ -98,6 +98,7 @@ const createModelsControllerBundle = (runtime: ModelsControllerRuntimeDependenci
     const groupingController = createModelsGroupingController({
         grouping: session.grouping,
         getSortBy: () => filters.getSortBy(),
+        presentsHeadings: () => session.viewMode !== 'list',
         getItemCardId: (item) => resolveModelsItemCardId(item),
         getPluginByName: (name) => getPluginByName(session, name),
         statusManager: infrastructure.stateManager.status,

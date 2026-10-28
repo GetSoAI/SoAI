@@ -5,8 +5,10 @@ import { type ClientDataHub, type ResourceOperation, type ResourceSnapshot } fro
 import { requireClientDataHub } from '@core/data/clientdatahub/runtime.ts';
 import { createCollectionRuntime, createCollectionRenderer, resolveCollectionTrackBy, resolveRefreshReason } from '@core/data/collectionview/effects.ts';
 import type { CollectionCriteria, CollectionRuntime, CollectionRuntimeHost, CollectionItem, CollectionViewHost, CollectionViewOptions, FilterFunction, PreparePresentationFunction, PresentationFingerprintFunction, RefreshContext, SortFunction, TrackByFunction } from '@core/data/collectionview/types.ts';
-import { getCancelAnimationFrame, getRequestAnimationFrame } from '@core/environment/public.ts';
+import { scheduleRequiredRender } from '@core/runtime/animationFrames.ts';
 import { isArray, isFunction, isNullOrUndefined, isObject, isString } from '@core/typeGuards.ts';
+
+const VIEW_MODE_REFRESH_REASON = 'view-mode';
 
 class CollectionView implements CollectionRuntimeHost {
     resource: string;
@@ -22,10 +24,8 @@ class CollectionView implements CollectionRuntimeHost {
     presentationFingerprints = new Map<string, string>();
     authoritativeIds: string[] = [];
     orderedIds: string[] = [];
-    refreshHandle: number | null = null;
+    cancelRefresh: (() => void) | null = null;
     pendingRefreshContext: { reason: string } | null = null;
-    animationFrame: (callback: FrameRequestCallback) => number;
-    cancelAnimationFrame: (handle: number) => void;
     onSnapshot: ((snapshot: ResourceSnapshot) => void) | null;
     preparePresentation: PreparePresentationFunction | null;
     onRefresh: ((context: RefreshContext) => void) | null;
@@ -44,8 +44,6 @@ class CollectionView implements CollectionRuntimeHost {
         this.trackBy = resolveCollectionTrackBy(trackBy);
         this.presentationFingerprint = isFunction(presentationFingerprint) ? presentationFingerprint : null;
         this.hub = hub ?? requireClientDataHub();
-        this.animationFrame = getRequestAnimationFrame();
-        this.cancelAnimationFrame = getCancelAnimationFrame();
         this.onSnapshot = isFunction(onSnapshot) ? onSnapshot : null;
         this.preparePresentation = isFunction(preparePresentation) ? preparePresentation : null;
         this.onRefresh = isFunction(onRefresh) ? onRefresh : null;
@@ -61,8 +59,8 @@ class CollectionView implements CollectionRuntimeHost {
     dispose(): void {
         this.unsubscribe();
         this.renderer.dispose();
-        if (this.refreshHandle !== null) this.cancelAnimationFrame(this.refreshHandle);
-        this.refreshHandle = null;
+        this.cancelRefresh?.();
+        this.cancelRefresh = null;
         this.pendingRefreshContext = null;
         this.filterFunctionValue = null;
         this.sortFunctionValue = null;
@@ -103,7 +101,7 @@ class CollectionView implements CollectionRuntimeHost {
         const dirtyIds = this.#consumeDirtyIds();
         this.filteredItems = filtered;
         this.orderedIds = orderedIds;
-        this.renderer.update({ ids: orderedIds, lookup: filteredLookup, dirtyIds, resetScroll: context.resetScroll === true });
+        this.renderer.update({ ids: orderedIds, lookup: filteredLookup, dirtyIds, resetScroll: context.resetScroll === true, animateLayout: reason !== VIEW_MODE_REFRESH_REASON });
         const refreshContext: RefreshContext = Object.freeze({
             filtered: Object.freeze(filtered.slice()),
             orderedIds: Object.freeze(orderedIds.slice()),
@@ -155,7 +153,7 @@ class CollectionView implements CollectionRuntimeHost {
     }
 
     rebuildForViewMode(): void {
-        this.refresh({ reason: 'view-mode' });
+        this.refresh({ reason: VIEW_MODE_REFRESH_REASON });
     }
 
     prepareForViewModeChange(): void {
@@ -163,12 +161,12 @@ class CollectionView implements CollectionRuntimeHost {
     }
 
     flushPendingRefresh(): void {
-        if (this.refreshHandle === null) {
-            if (this.pendingRefreshContext) throw new Error(`CollectionView ${this.resource} pending refresh requires a scheduled frame`);
+        if (this.cancelRefresh === null) {
+            if (this.pendingRefreshContext) throw new Error(`CollectionView ${this.resource} pending refresh requires scheduled rendering`);
             return;
         }
-        this.cancelAnimationFrame(this.refreshHandle);
-        this.refreshHandle = null;
+        this.cancelRefresh();
+        this.cancelRefresh = null;
         this.#runPendingRefresh();
     }
 
@@ -220,7 +218,7 @@ class CollectionView implements CollectionRuntimeHost {
     }
 
     #synchronizeEquivalentSnapshot(): void {
-        if (this.refreshHandle !== null) return;
+        if (this.cancelRefresh !== null) return;
         const filteredLookup = new Map<string, CollectionItem>();
         const filteredItems: CollectionItem[] = [];
         for (const identifier of this.orderedIds) {
@@ -241,9 +239,9 @@ class CollectionView implements CollectionRuntimeHost {
 
     #scheduleRefresh(context: { reason: string }): void {
         this.pendingRefreshContext = context;
-        if (this.refreshHandle !== null) return;
-        this.refreshHandle = this.animationFrame(() => {
-            this.refreshHandle = null;
+        if (this.cancelRefresh !== null) return;
+        this.cancelRefresh = scheduleRequiredRender(() => {
+            this.cancelRefresh = null;
             this.#runPendingRefresh();
         });
     }

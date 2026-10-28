@@ -28,7 +28,7 @@ def build_hardware_benchmark_tool_definitions() -> dict[str, JSONDict]:
         "hardware_benchmark": build_hardware_tool_definition(
             title="Hardware Benchmark",
             description=(
-                "OpenCL GPU benchmark and stress tool. profile=soaibench runs certified SoAIBench "
+                "OpenCL GPU benchmark and stress tool. profile=soaibench runs certified SoAI Bench "
                 "for comparable validation; profile=stress_test runs the stress workload for "
                 "thermal or instability hunting. Requires approval. Poll status until the run is terminal."
             ),
@@ -49,13 +49,13 @@ def build_hardware_benchmark_tool_definitions() -> dict[str, JSONDict]:
                 "run_id": {
                     "type": ["string", "null"],
                     "minLength": 1,
-                    "description": "SoAIBench run_id returned by start, status, or history.",
+                    "description": "SoAI Bench run_id returned by start, status, or history.",
                 },
                 "profile": {
                     "type": ["string", "null"],
                     "enum": ["soaibench", "stress_test", None],
                     "description": (
-                        "soaibench runs certified SoAIBench; stress_test runs the stress workload."
+                        "soaibench runs certified SoAI Bench; stress_test runs the stress workload."
                     ),
                 },
                 "temperature_limit_celsius": {

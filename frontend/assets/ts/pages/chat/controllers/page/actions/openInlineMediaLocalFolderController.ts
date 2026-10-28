@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { toTrimmedString } from '@core/normalize.ts';
+import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 
 interface OpenInlineMediaLocalFolderHost {
@@ -9,6 +10,7 @@ interface OpenInlineMediaLocalFolderHost {
 }
 
 const openInlineMediaLocalFolder = async (host: OpenInlineMediaLocalFolderHost, actionElement: HTMLElement): Promise<void> => {
+    if (windowIdentity.isDetachedContext()) return;
     const folderPath = toTrimmedString(actionElement.dataset['inlineMediaFolderPath'] ?? '');
     if (!folderPath) {
         throw new Error('Inline local folder action requires data-inline-media-folder-path');

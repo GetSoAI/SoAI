@@ -8,7 +8,7 @@ import type { MessageSavedEvent } from '@core/realtime/eventcontracts/conversati
 import { refreshConversationList } from '@features/chat/storage/conversationListRefresh.ts';
 import type { ChatStorageManagerContract } from '@features/chat/storage/managerContracts.ts';
 import { applyMaterializedMessageEvent } from '@features/chat/storage/materializedMessageEvent.ts';
-import { resolveKnownPersistedMessageCount } from '@features/chat/storage/messageWindowState.ts';
+import { isConversationWindowAtTail, resolveKnownPersistedMessageCount } from '@features/chat/storage/messageWindowState.ts';
 import type { Conversation, LoadConversationMessagesOptions } from '@features/chat/storage/storageModels.ts';
 
 type ChatMessageSavedRuntime = Pick<ChatStorageManagerContract, 'api' | 'chatStreamService' | 'clearConversationSelection' | 'consumeMatchingLocalMessageWrite' | 'conversationManager' | 'evictConversationMessages' | 'invalidateChatMarkup' | 'isActive' | 'loadConversationMessages' | 'refreshConversationListUI' | 'refreshConversationsUI' | 'state'>;
@@ -30,10 +30,10 @@ const isCurrentConversationScrolledAwayFromTail = (manager: ChatMessageSavedRunt
         return false;
     }
     const currentConversation = manager.state.getConversations().get(conversationId);
-    if (!currentConversation || currentConversation.history === undefined || currentConversation.messagesHydrated !== true) {
+    if (!currentConversation || currentConversation.messagesHydrated !== true) {
         return false;
     }
-    return currentConversation.history.hasNewer === true;
+    return !isConversationWindowAtTail(currentConversation);
 };
 
 const ensureConversationListEntry = async (manager: ChatMessageSavedRuntime, conversationId: string): Promise<boolean> => {

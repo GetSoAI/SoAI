@@ -19,16 +19,15 @@ from core.media.image_preprocessing import (
 from core.media.ocr_engine import configure_tesseract_runtime
 from core.media.ocr_gateway import OcrGateway, OcrGatewayDependencies
 from core.media.opencv_backend import create_optional_opencv_api
-from core.media.transcription_gateway import (
-    TranscriptionGateway,
-    TranscriptionGatewayDependencies,
+from core.media.speech_transcription_gateway import (
+    SpeechTranscriptionGateway,
+    SpeechTranscriptionGatewayDependencies,
 )
 from core.media.transcription_runtime import (
     TranscriptionRuntime,
     TranscriptionRuntimeDependencies,
 )
 from core.meta.paths import get_repo_root
-from core.runtime.protocols import RuntimeFlagsViewProtocol
 from files.parsers.document import TikaParser, TikaParserDependencies
 from files.parsers.document_ocr import (
     DocumentOcrCoordinator,
@@ -51,8 +50,8 @@ DOCUMENT_OCR_LOGGER_NAME = "SoAI.files.parsers.document_ocr"
 def build_media_parsing_services(
     *,
     config: ConfigProtocol,
-    runtime_flags: RuntimeFlagsViewProtocol,
     storage_manager: StorageManagerProtocol,
+    speech_transcription: SpeechTranscriptionGatewayDependencies,
 ) -> MediaParsingServices:
     repo_root_path = get_repo_root()
     logger = get_logger(LOGGER_NAME)
@@ -66,13 +65,7 @@ def build_media_parsing_services(
     else:
         configure_tesseract_runtime(tesseract_executable, tesseract_data)
     media_config = resolve_media_parsing_config(config)
-    transcription_gateway = TranscriptionGateway(
-        TranscriptionGatewayDependencies(
-            config=config,
-            runtime_flags=runtime_flags,
-            worker_builder=ManagedIpcWorker,
-        ),
-    )
+    transcription_gateway = SpeechTranscriptionGateway(speech_transcription)
     transcription_runtime = TranscriptionRuntime(
         TranscriptionRuntimeDependencies(
             config=config,

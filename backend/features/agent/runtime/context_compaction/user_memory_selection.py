@@ -7,11 +7,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.openai.content_text_rendering import render_openai_content_text
+from features.agent.runtime.context_compaction.history import is_user_history_message
 from features.agent.runtime.context_compaction.token_counting import (
     count_compaction_text_tokens,
-)
-from features.agent.runtime.tool_image_relay_messages import (
-    is_tool_image_relay_message,
 )
 
 if TYPE_CHECKING:
@@ -33,8 +31,8 @@ __all__ = (
 
 USER_MEMORY_HEAD_COUNT: int = 6
 USER_MEMORY_TAIL_COUNT: int = 9
-USER_MEMORY_MAX_HEAD_MESSAGE_TOKENS: int = 512
-USER_MEMORY_MAX_USER_MESSAGE_TOKENS: int = 256
+USER_MEMORY_MAX_HEAD_MESSAGE_TOKENS: int = 2048
+USER_MEMORY_MAX_USER_MESSAGE_TOKENS: int = 1024
 _USER_MEMORY_TRUNCATION_SUFFIX: str = " […]"
 
 
@@ -84,7 +82,7 @@ def truncate_user_message_to_limit(
 def collect_user_message_texts(message_history: list[JSONDict]) -> list[str]:
     texts: list[str] = []
     for message in message_history:
-        if message.get("role") != "user" or is_tool_image_relay_message(message):
+        if not is_user_history_message(message):
             continue
         text = render_openai_content_text(message.get("content")).strip()
         if text:

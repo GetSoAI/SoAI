@@ -56,7 +56,8 @@ class ChatSidebarPeekController {
         const target = event.target;
         const sidebar = this.#sidebar();
         if (!isElementNode(target) || !sidebar || !isMousePointerEvent(event)) return;
-        this.#carryHover(sidebar, false);
+        const hoveringTrigger = target.closest(CHAT_SIDEBAR_PEEK_TRIGGER_SELECTOR) !== null;
+        this.#carryHover(sidebar, this.#isPeeking(sidebar) && hoveringTrigger);
         if (this.#isPeeking(sidebar)) {
             if (this.#isWithinPeekSurface(sidebar, target)) this.#clearCloseTimer();
             return;
@@ -71,6 +72,7 @@ class ChatSidebarPeekController {
         const sidebar = this.#sidebar();
         if (!isElementNode(target) || !sidebar || !isMousePointerEvent(event)) return;
         const related = event instanceof MouseEvent && isElementNode(event.relatedTarget) ? event.relatedTarget : null;
+        if (!related?.closest(`${CHAT_SIDEBAR_PEEK_TRIGGER_SELECTOR}, ${CHAT_SIDEBAR_HEADER_TOGGLE_SELECTOR}`)) this.#carryHover(sidebar, false);
         if (!this.#isPeeking(sidebar)) {
             if (target.closest(CHAT_SIDEBAR_PEEK_TRIGGER_SELECTOR) && !related?.closest(CHAT_SIDEBAR_PEEK_TRIGGER_SELECTOR)) {
                 this.#clearOpenTimer();

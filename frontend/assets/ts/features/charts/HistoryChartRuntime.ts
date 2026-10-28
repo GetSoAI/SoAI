@@ -1,7 +1,7 @@
 /* SoAI - Charts feature history chart runtime [frontend/assets/ts/features/charts/HistoryChartRuntime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { DEFAULT_CHART_PADDING, DEFAULT_PRIMARY_BOTTOM_AXIS_PADDING, HISTORY_CHART_MIN_HEIGHT } from '@core/charts/constants.ts';
+import { DEFAULT_PRIMARY_BOTTOM_AXIS_PADDING, HISTORY_CHART_MIN_HEIGHT } from '@core/charts/constants.ts';
 import { isFunction, isInstanceOf, isString } from '@core/typeGuards.ts';
 import { chartModulesAccess, type ChartModules, type ChartModulesAccess } from '@features/charts/chartModules.ts';
 import { LifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
@@ -139,7 +139,6 @@ class HistoryChartRuntime implements HistoryChartRuntimeContract {
             enableCrosshair: true,
             enableInertialPanning: false,
             minHeight: HISTORY_CHART_MIN_HEIGHT,
-            padding: { ...DEFAULT_CHART_PADDING },
             bottomAxisPadding: DEFAULT_PRIMARY_BOTTOM_AXIS_PADDING,
             chartType,
             ...options

@@ -1,7 +1,9 @@
 /* SoAI - Chart frame scheduling ownership [frontend/assets/ts/features/charts/session/ChartRenderer.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { getCancelAnimationFrame, getRequestAnimationFrame } from '@core/environment/public.ts';
+import { requireDocument } from '@core/environment/public.ts';
+import { ResourceTracker } from '@core/resourcetracker/service.ts';
+import { scheduleRequiredRender, type PresentationFrameOutcome } from '@core/runtime/animationFrames.ts';
 import { monotonicMs } from '@core/time/clock.ts';
 import type { RedrawRequest } from '@features/charts/component/chartComponentTypes.ts';
 import type { ChartRedrawQueue } from '@features/charts/session/ChartRedrawQueue.ts';
@@ -28,9 +30,9 @@ class ChartRenderer {
     readonly #painter: ChartRendererDependencies['painter'];
     readonly #preview: ChartRendererDependencies['preview'];
     readonly #morph: ChartRendererDependencies['morph'];
-    #animationFrame: number | null = null;
-    #animationCallback: (() => void) | null = null;
-    #themeFrame: number | null = null;
+    readonly #resources = new ResourceTracker();
+    #cancelRender: (() => void) | null = null;
+    #cancelTheme: (() => void) | null = null;
     #unsubscribeRedraw: (() => void) | null = null;
     #active = false;
 
@@ -46,8 +48,8 @@ class ChartRenderer {
         signal.throwIfAborted();
         if (this.#active) return;
         this.#active = true;
-        this.#animationCallback = () => this.#runFrame();
         this.#unsubscribeRedraw = this.#redraw.subscribe(() => this.schedule());
+        this.#resources.addEventListener(requireDocument(), 'visibilitychange', () => this.request(ANIMATION_REDRAW));
         this.schedule();
     }
 
@@ -56,14 +58,14 @@ class ChartRenderer {
     }
 
     schedule(): void {
-        if (!this.#active || this.#animationFrame !== null || !this.#animationCallback) return;
-        this.#animationFrame = getRequestAnimationFrame()(this.#animationCallback);
+        if (!this.#active || this.#cancelRender !== null) return;
+        this.#cancelRender = scheduleRequiredRender((outcome) => this.#runFrame(outcome));
     }
 
     scheduleThemeUpdate(callback: () => void): void {
-        if (!this.#active || this.#themeFrame !== null) return;
-        this.#themeFrame = getRequestAnimationFrame()(() => {
-            this.#themeFrame = null;
+        if (!this.#active || this.#cancelTheme !== null) return;
+        this.#cancelTheme = scheduleRequiredRender(() => {
+            this.#cancelTheme = null;
             if (this.#active) callback();
         });
     }
@@ -72,21 +74,21 @@ class ChartRenderer {
         this.#active = false;
         this.#unsubscribeRedraw?.();
         this.#unsubscribeRedraw = null;
-        const cancelAnimationFrame = getCancelAnimationFrame();
-        if (this.#animationFrame !== null) cancelAnimationFrame(this.#animationFrame);
-        if (this.#themeFrame !== null) cancelAnimationFrame(this.#themeFrame);
-        this.#animationFrame = null;
-        this.#themeFrame = null;
-        this.#animationCallback = null;
+        this.#cancelRender?.();
+        this.#cancelTheme?.();
+        this.#cancelRender = null;
+        this.#cancelTheme = null;
+        this.#resources.cleanup();
     }
 
-    #runFrame(): void {
-        this.#animationFrame = null;
+    #runFrame(outcome: PresentationFrameOutcome): void {
+        this.#cancelRender = null;
         if (!this.#active) return;
         const now = monotonicMs();
         this.#viewport.advanceAnimation(now);
         if (this.#morph.advance(now)) this.#redraw.request(PREVIEW_REDRAW);
         if (this.#redraw.hasPending) this.#painter.paint();
+        if (outcome === 'hidden') return;
         if (this.#viewport.status.isAnimating) this.#redraw.request(ANIMATION_REDRAW);
         else if (this.#preview.isAnimating(now)) this.#redraw.request(PREVIEW_REDRAW);
     }

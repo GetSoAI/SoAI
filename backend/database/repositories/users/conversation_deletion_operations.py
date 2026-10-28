@@ -11,6 +11,7 @@ from core.errors.exceptions import StateError
 from core.timing.epoch import epoch_ms
 from database.core.query_execution import sync_fetch_all_as_dicts
 from database.core.sqlite_numbers import coerce_required_nonempty_str_from_sqlite_row
+from database.repositories.skills.retention import sync_reconcile_skill_retention
 from database.repositories.users.conversation_linked_knowledge_delete_refresh import (
     sync_collect_linked_knowledge_targets_for_deleted_sources,
     sync_refresh_deleted_source_linked_knowledge,
@@ -135,6 +136,7 @@ def sync_delete_conversation(
             raise StateError(
                 "Single conversation delete count did not match selected conversation."
             )
+        sync_reconcile_skill_retention(conn, user_id, epoch_ms())
         summaries_by_source = sync_refresh_deleted_source_linked_knowledge(
             conn,
             target_ids_by_source=linked_target_ids_by_source,
@@ -177,6 +179,7 @@ def sync_delete_conversations(
             raise StateError(
                 "Selected conversation delete count did not match selected conversations."
             )
+        sync_reconcile_skill_retention(conn, user_id, epoch_ms())
         summaries_by_source = sync_refresh_deleted_source_linked_knowledge(
             conn,
             target_ids_by_source=linked_target_ids_by_source,
@@ -216,6 +219,7 @@ def sync_delete_all_conversations(
         ).rowcount
         if deleted_count != len(records):
             raise StateError("Bulk conversation delete count did not match selected conversations.")
+        sync_reconcile_skill_retention(conn, user_id, epoch_ms())
         summaries_by_source = sync_refresh_deleted_source_linked_knowledge(
             conn,
             target_ids_by_source=linked_target_ids_by_source,

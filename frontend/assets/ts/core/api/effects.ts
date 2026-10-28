@@ -7,9 +7,10 @@ import { BufferedApiResponse } from '@core/api/bufferedResponse.ts';
 import { shouldAttachCsrfHeader, syncCsrfTokenFromResponse } from '@core/api/csrf.ts';
 import { buildApiErrorFromResponse } from '@core/api/errorResponses.ts';
 import { buildFetchConfig, enrichApiErrorMetadataFromValue, normalizeMethod, normalizeRequestTimeoutMs, normalizeRuntimeErrorValue, parseResponsePayload } from '@core/api/mappers.ts';
-import { isAbortError } from '@core/errors/abort.ts';
+import { createAbortError, isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { isPageTerminating } from '@core/lifecycle/pageTermination.ts';
 import { clampPercent } from '@core/primitives/clampNumber.ts';
 import { parseRequiredJsonText } from '@core/serialization/json.ts';
 import { isAbsoluteHttpUrl } from '@core/security/public.ts';
@@ -125,6 +126,8 @@ const executeApiRequest = async (method: string, endpoint: string, data: ApiRequ
         if (!isAbsoluteEndpoint) {
             await dependencies.whenReady({ allowDiscovery: true, signal: scope.signal });
         }
+
+        if (restOptions.keepalive !== true && isPageTerminating()) throw createAbortError();
 
         const requestUrl = dependencies.buildUrl(endpoint, query);
         const normalizedMethod = normalizeMethod(method);

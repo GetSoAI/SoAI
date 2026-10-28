@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 
+from app.connection_transition_projection import record_accepted_connection_transition
 from app.runtime_config_reload import (
     append_reload_error,
     assess_routing_only_reload,
@@ -18,6 +19,7 @@ from core.config.protocols import CoreConfigReloadCoordinatorProtocol
 from core.config.reload_coordinator import ReloadRejectionReason
 from core.di.validation import require_dependencies
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import ConfigurationError, StateError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.events.subscriptions import publish_config_apply_event
 from core.events.types_base import Event
@@ -46,6 +48,9 @@ OPERATION_APPLICATION_RUNTIME_APPLY_ROUTING_CONFIG_VIA_ORCHESTRATOR = (
 )
 OPERATION_APPLICATION_RUNTIME_APPLY_RUNTIME_FLAGS_RELOAD = (
     "application_runtime.apply_runtime_flags_reload"
+)
+OPERATION_APPLICATION_RUNTIME_APPLY_DURABLE_ACCEPTANCE_POLICY = (
+    "application_runtime.apply_durable_acceptance_policy"
 )
 
 
@@ -100,6 +105,20 @@ class ApplicationRuntimeConfigReloadHandler:
                 operation=OPERATION_APPLICATION_RUNTIME_APPLY_RATE_LIMITING_RELOAD,
             )
             return error_message
+
+    def apply_durable_acceptance_policy(self, config_dict: JSONDict) -> str | None:
+        try:
+            self.deps.coordinator_dependencies.replace_durable_acceptance_policy(config_dict)
+            return None
+        except (ConfigurationError, StateError, ValidationError) as exception:
+            log_exception(
+                self.deps.coordinator_dependencies.logging.logger,
+                exception,
+                message="Durable acceptance policy rejected; the previous policy stays active.",
+                operation=OPERATION_APPLICATION_RUNTIME_APPLY_DURABLE_ACCEPTANCE_POLICY,
+                level="warning",
+            )
+            return f"Failed to apply durable acceptance policy: {exception}"
 
     async def apply_routing_config_via_orchestrator(self, event: ConfigReloadedEvent) -> str | None:
         applicator = self.deps.core_routing_applicator
@@ -179,22 +198,36 @@ class ApplicationRuntimeConfigReloadHandler:
                 await self.publish_core_configuration_result(event, "invalid configuration payload")
             return
         classification = reload_result.classification
+        policy_error = self.apply_durable_acceptance_policy(classification.config_dict)
+        coordinator_dependencies = self.deps.coordinator_dependencies
+        await record_accepted_connection_transition(
+            runtime_state=coordinator_dependencies.runtime_state,
+            resolve_instance_id=coordinator_dependencies.resolve_instance_id,
+            configuration_revision=classification.revision,
+            config_dict=classification.config_dict,
+            logger=coordinator_dependencies.logging.logger,
+        )
         self.deps.coordinator_dependencies.logging.logger.debug(
             "Core configuration reload received: revision=%s changed_keys=%s.",
             classification.revision,
             sorted(classification.changed_keys),
         )
         if not classification.requires_restart:
-            await self._handle_live_reload(event, classification)
+            await self._handle_live_reload(event, classification, policy_error=policy_error)
             return
-        await self._handle_restart_reload(event, classification)
+        await self._handle_restart_reload(event, classification, policy_error=policy_error)
 
     async def _handle_live_reload(
         self,
         event: ConfigReloadedEvent,
         classification: CoreConfigReloadClassification,
+        *,
+        policy_error: str | None,
     ) -> None:
-        apply_error: str | None = await self.apply_runtime_flags_reload(classification)
+        apply_error = policy_error
+        runtime_flags_error = await self.apply_runtime_flags_reload(classification)
+        if runtime_flags_error:
+            apply_error = append_reload_error(apply_error, runtime_flags_error)
         restart_reason: str | None = None
         if classification.has_routing_changes:
             routing_error, routing_restart = assess_routing_only_reload(
@@ -221,8 +254,12 @@ class ApplicationRuntimeConfigReloadHandler:
         self,
         event: ConfigReloadedEvent,
         classification: CoreConfigReloadClassification,
+        *,
+        policy_error: str | None,
     ) -> None:
         restart_error = "core configuration reload requires restart"
+        if policy_error:
+            restart_error = append_reload_error(restart_error, policy_error)
         runtime_flags_error = await self.apply_runtime_flags_reload(classification)
         if runtime_flags_error:
             restart_error = append_reload_error(restart_error, runtime_flags_error)

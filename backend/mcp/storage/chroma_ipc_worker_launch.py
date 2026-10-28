@@ -11,15 +11,16 @@ from core.errors.exceptions import ConfigurationError
 from core.ipc.managed_worker import ManagedIpcWorkerDependencies
 from core.ipc.settings import IPC_MAX_MESSAGE_BYTES_ENV_KEY
 from core.meta.paths import get_repo_root, join_data_abs
+from core.system.native_runtime_probes import RuntimeStartupTimeoutError
 from core.system.subprocess_env import build_minimal_subprocess_env
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from core.ipc.protocols import ManagedIpcWorkerProtocol
+    from core.ipc.protocols import IpcConnectionWaitServerProtocol, ManagedIpcWorkerProtocol
     from core.ipc.server import LocalIpcServer
 
-__all__ = ("build_chroma_shard_worker",)
+__all__ = ("build_chroma_shard_worker", "spawn_chroma_shard_worker")
 
 
 def build_chroma_shard_worker(
@@ -62,3 +63,21 @@ def build_chroma_shard_worker(
         env=build_minimal_subprocess_env(env_overrides),
     )
     return managed_ipc_worker_builder(deps)
+
+
+async def spawn_chroma_shard_worker(
+    worker: ManagedIpcWorkerProtocol,
+    *,
+    server: IpcConnectionWaitServerProtocol,
+    shard_id: int,
+    startup_timeout_sec: float,
+) -> None:
+    try:
+        await worker.spawn(server=server, startup_timeout_sec=startup_timeout_sec)
+    except RuntimeStartupTimeoutError as exception:
+        limit_key = "TOOLS.RAG.CHROMA_IPC_STARTUP_TIMEOUT_SEC"
+        exception.add_note(
+            f"Chroma shard {shard_id} startup reached the configured {limit_key} limit of "
+            + f"{startup_timeout_sec:g} seconds."
+        )
+        raise

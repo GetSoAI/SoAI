@@ -8,7 +8,7 @@ import threading
 from dataclasses import dataclass, field
 from typing import Literal
 
-__all__ = ("DirectoryListingRecord",)
+__all__ = ("DirectoryListingAdmissionOutcome", "DirectoryListingRecord")
 
 
 @dataclass(slots=True)
@@ -25,3 +25,9 @@ class DirectoryListingRecord:
     task_event: asyncio.Event = field(default_factory=asyncio.Event)
     cancellation_event: threading.Event = field(default_factory=threading.Event)
     io_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+
+
+@dataclass(frozen=True, slots=True)
+class DirectoryListingAdmissionOutcome:
+    record: DirectoryListingRecord
+    reclaimed_records: tuple[DirectoryListingRecord, ...]

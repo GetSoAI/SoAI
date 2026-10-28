@@ -3,15 +3,19 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import SoAIError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
+from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
 from core.types.json import is_json_dict
 from features.api.routes.system.events.internal_protocols import WebSocketEventTypes
 from features.api.routes.system.events.websocket_errors import (
     enqueue_websocket_error,
     enqueue_websocket_soai_error,
+    send_terminal_websocket_error,
 )
 from features.api.routes.system.events.websocket_event_context import (
     WebsocketEventRuntimeContext,
@@ -43,22 +47,34 @@ async def run_websocket_receiver(
     while not runtime_context.shutdown_event.is_set():
         run_id: str | None = None
         try:
-            data = await runtime_context.websocket.receive_json()
-            session_valid = await validate_websocket_session(
-                runtime_context.connection,
-                force=True,
-            )
-            if not session_valid:
-                runtime_context.shutdown_event.set()
+            try:
+                data = await runtime_context.websocket.receive_json()
+            except ValueError:
+                await send_terminal_websocket_error(
+                    runtime_context.connection,
+                    runtime_context.shutdown_event,
+                    runtime_context.trace_id,
+                    "WebSocket message must contain valid JSON.",
+                )
                 return
+            async with asyncio.timeout(LOCAL_IO_TIMEOUT_SEC):
+                session_valid = await validate_websocket_session(
+                    runtime_context.connection,
+                    force=True,
+                )
+                if not session_valid:
+                    runtime_context.shutdown_event.set()
+                    return
+                if runtime_context.shutdown_event.is_set():
+                    return
+                await refresh_websocket_event_subscriptions(
+                    event_bus=runtime_context.api_context.dependencies.event_bus,
+                    connection=runtime_context.connection,
+                    event_handler=runtime_context.connection.event_handler,
+                    force=True,
+                )
             if runtime_context.shutdown_event.is_set():
                 return
-            await refresh_websocket_event_subscriptions(
-                event_bus=runtime_context.api_context.dependencies.event_bus,
-                connection=runtime_context.connection,
-                event_handler=runtime_context.connection.event_handler,
-                force=True,
-            )
             if not is_json_dict(data):
                 await enqueue_websocket_error(
                     runtime_context.enqueue_warning_tracker,

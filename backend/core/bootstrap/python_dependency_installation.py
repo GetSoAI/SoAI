@@ -4,10 +4,10 @@
 from __future__ import annotations
 
 import ntpath
+import os
 
 from core.bootstrap.command_streaming import run_bootstrap_command
 from core.bootstrap.install_diagnostics import InstallDiagnostics
-from core.bootstrap.pytorch_wheel_urls import resolve_pytorch_direct_wheel_urls
 from core.bootstrap.venv_paths import get_venv_path
 from core.errors.exceptions import StateError
 from core.filesystem.path_coercion import remove_windows_path_namespace
@@ -24,19 +24,30 @@ def install_python_dependencies(
     diagnostics: InstallDiagnostics | None = None,
 ) -> None:
     install_command = _dependency_install_command(repo_root_path, python_executable)
-    command = [*install_command, "pip", "wheel"]
+    command = [
+        *install_command,
+        "--force-reinstall",
+        "--no-deps",
+        "--only-binary=:all:",
+        "--require-hashes",
+        "-r",
+        os.path.join(
+            repo_root_path, "backend", "core", "bootstrap", "tls_bootstrap_requirements.txt"
+        ),
+    ]
     if diagnostics is None:
         run_bootstrap_command(command, log_prefix="pip: ", cwd=repo_root_path)
     else:
         run_bootstrap_command(
             command, log_prefix="pip: ", cwd=repo_root_path, diagnostics=diagnostics
         )
-    _install_pytorch_hosted_wheels_if_required(
-        repo_root_path=repo_root_path,
-        python_executable=python_executable,
-        requirements_path=requirements_path,
-        diagnostics=diagnostics,
-    )
+    command = [*install_command, "wheel"]
+    if diagnostics is None:
+        run_bootstrap_command(command, log_prefix="pip: ", cwd=repo_root_path)
+    else:
+        run_bootstrap_command(
+            command, log_prefix="pip: ", cwd=repo_root_path, diagnostics=diagnostics
+        )
     command = [*install_command, "--upgrade-strategy", "eager", "-r", requirements_path]
     if diagnostics is None:
         run_bootstrap_command(command, log_prefix="pip: ", cwd=repo_root_path)
@@ -55,26 +66,3 @@ def _dependency_install_command(repo_root_path: str, python_executable: str) -> 
             raise StateError("The managed Python install prefix must be a drive or UNC path.")
         command.extend(("--prefix", prefix))
     return command
-
-
-def _install_pytorch_hosted_wheels_if_required(
-    *,
-    repo_root_path: str,
-    python_executable: str,
-    requirements_path: str,
-    diagnostics: InstallDiagnostics | None = None,
-) -> None:
-    wheel_urls = resolve_pytorch_direct_wheel_urls(requirements_path)
-    if not wheel_urls:
-        return
-    command = [
-        *_dependency_install_command(repo_root_path, python_executable),
-        "--no-deps",
-        *wheel_urls,
-    ]
-    if diagnostics is None:
-        run_bootstrap_command(command, log_prefix="pip: ", cwd=repo_root_path)
-    else:
-        run_bootstrap_command(
-            command, log_prefix="pip: ", cwd=repo_root_path, diagnostics=diagnostics
-        )

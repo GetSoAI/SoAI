@@ -42,11 +42,11 @@
     :where(.chat-container) .conversation-action-btn.conversation-favorite-color-picker {
         --ui-button-border: var(--ui-button-danger-color);
         --ui-button-border-hover: var(--ui-button-danger-color-hover);
-        border-color: var(--ui-button-danger-color);
+        border-color: color-mix(in srgb, var(--ui-button-danger-color) var(--control-button-border-strength), transparent);
     }
 
     :where(.chat-container) .conversation-action-btn.conversation-favorite-color-picker:hover,
     :where(.chat-container) .conversation-action-btn.conversation-favorite-color-picker:focus-visible {
-        border-color: var(--ui-button-danger-color-hover);
+        border-color: color-mix(in srgb, var(--ui-button-danger-color-hover) var(--control-button-border-strength), transparent);
     }
 }

@@ -16,7 +16,9 @@ import { isString } from '@core/typeGuards.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
 import type { TestModalManager } from '@features/modeldetail/public.ts';
 import { composeModelDetailActions, type ModelDetailActionsDependencies, type ModelDetailActionsHost } from '@pages/modeldetail/controllers/page/actionEffects.ts';
-import { composeModelDetailEffects, fetchModelDetailParametersSnapshot, type ModelDetailEffectsHost } from '@pages/modeldetail/controllers/page/effects/service.ts';
+import { applyPendingModelDetailParameters, beginModelDetailParameterSave, finishModelDetailParameterSave, refreshModelDetailParameters } from '@pages/modeldetail/controllers/page/effects/parameterSnapshotRuntime.ts';
+import { composeModelDetailEffects, type ModelDetailEffectsHost } from '@pages/modeldetail/controllers/page/effects/service.ts';
+import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { ModelDetailViewController } from '@pages/modeldetail/controllers/page/ModelDetailViewController.ts';
 import { composeModelDetailOperations } from '@pages/modeldetail/controllers/page/operations/service.ts';
 import type { ModelDetailOperationsDependencies, ModelDetailOperationsHost } from '@pages/modeldetail/controllers/page/operations/types.ts';
@@ -133,6 +135,10 @@ const composeModelDetailDomains = (owners: ModelDetailDomainOwners): ModelDetail
         applyParametersPayload: (payload) => viewController.applyParametersPayload(payload),
         populateModelInfo: () => viewController.populateModelInfo(),
         renderParametersInterface: () => viewController.renderParametersInterface(),
+        parameterAvailability: {
+            renderParameterAvailability: () => viewController.renderParameterAvailability(),
+            notifySaveChanged: () => owners.saveRequests.notify()
+        },
         updateBackendDocButtonVisibility: () => viewController.updateBackendDocButtonVisibility(),
         updateTestPluginStatusDisplay: () => owners.testModalManager.updatePluginStatusDisplay(),
         populateDetailCards: () => viewController.populateDetailCards(),
@@ -155,13 +161,22 @@ const composeModelDetailDomains = (owners: ModelDetailDomainOwners): ModelDetail
             owners.session.model = model;
             owners.capabilityState.rehydrate(model, requireModelId());
         },
-        applyParametersPayload: (payload) => viewController.applyParametersPayload(payload),
         populateDetailCards: () => viewController.populateDetailCards(),
         notifySaveChanged: () => owners.saveRequests.notify(),
-        fetchParametersSnapshot: () => fetchModelDetailParametersSnapshot(effects)
+        parameterSnapshots: {
+            beginParameterSave: () => beginModelDetailParameterSave(effects),
+            finishParameterSave: () => terminateHandledPromise(finishModelDetailParameterSave(effects)),
+            retryParameters: () => terminateHandledPromise(refreshModelDetailParameters(effects)),
+            discardParameterChanges: (): void => {
+                if (!applyPendingModelDetailParameters(effects, { discard: true })) terminateHandledPromise(refreshModelDetailParameters(effects, { force: true }));
+            }
+        }
     });
     const save = createModelDetailSaveController({ actions, getOpenAICapabilityState: getCapabilityState });
-    const unsubscribeSaveRequests = owners.saveRequests.subscribe(() => save.notifyChanged());
+    const unsubscribeSaveRequests = owners.saveRequests.subscribe((): void => {
+        save.notifyChanged();
+        if (owners.session.parameterAuthority.pending !== null) owners.pageResources.setTimeout(() => applyPendingModelDetailParameters(effects), 0);
+    });
     return { actions, effects, operations, save, saveStatus, unsubscribeSaveRequests, view, viewController };
 };
 

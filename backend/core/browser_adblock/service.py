@@ -27,6 +27,18 @@ from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import InsufficientDiskSpaceError, StateError, ValidationError
 from core.errors.external_service_exception import ExternalServiceError
 from core.logging.protocols import LoggerProtocol
+from core.network.transfer_retry import (
+    HTTP_TRANSFER_EXCEPTIONS,
+    HTTPTransferAttempts,
+    build_http_transfer_retry_policy,
+    wait_for_transfer_retry,
+)
+from core.network.urls import redact_url_for_logging
+from core.security.public_text_redaction import (
+    PUBLIC_DIAGNOSTIC_TEXT_MAX_LENGTH,
+    bound_public_text,
+    redact_public_text_fragments,
+)
 from core.timing.epoch import epoch_seconds_float
 
 if TYPE_CHECKING:
@@ -193,31 +205,48 @@ def _compile_matcher(raw_text: str) -> EasyListMatcher:
 
 
 async def _download_easylist(client: httpx2.AsyncClient, list_url: str) -> str:
-    response_bytes = bytearray()
-    try:
-        async with client.stream(
-            "GET",
-            list_url,
-            follow_redirects=True,
-            timeout=httpx2.Timeout(REQUEST_TIMEOUT_SECONDS),
-        ) as response:
-            response.raise_for_status()
-            content_length = response.headers.get("content-length", "").strip()
-            if content_length.isdigit() and int(content_length) > MAX_DOWNLOAD_BYTES:
-                raise ValidationError(
-                    "Configured EasyList download exceeds the maximum allowed size.",
-                )
-            async for chunk in response.aiter_bytes():
-                response_bytes.extend(chunk)
-                if len(response_bytes) > MAX_DOWNLOAD_BYTES:
+    attempts = HTTPTransferAttempts(build_http_transfer_retry_policy("metadata"), url=list_url)
+    while True:
+        attempts.start()
+        response_bytes = bytearray()
+        upstream_status: int | None = None
+        try:
+            async with client.stream(
+                "GET",
+                list_url,
+                follow_redirects=True,
+                timeout=httpx2.Timeout(attempts.policy.bounded_timeout(REQUEST_TIMEOUT_SECONDS)),
+            ) as response:
+                upstream_status = response.status_code
+                response.raise_for_status()
+                content_length = response.headers.get("content-length", "").strip()
+                if content_length.isdigit() and int(content_length) > MAX_DOWNLOAD_BYTES:
                     raise ValidationError(
-                        "Configured EasyList download exceeded the maximum allowed size.",
+                        "Configured EasyList download exceeds the maximum allowed size.",
                     )
-    except httpx2.HTTPError as exception:
-        raise ExternalServiceError(
-            "EasyList download failed.",
-            details={"list_url": list_url},
-            operation=OPERATION_DOWNLOAD_EASYLIST,
-            cause=exception,
-        ) from exception
-    return bytes(response_bytes).decode("utf-8", errors="replace")
+                async for chunk in response.aiter_bytes():
+                    response_bytes.extend(chunk)
+                    if len(response_bytes) > MAX_DOWNLOAD_BYTES:
+                        raise ValidationError(
+                            "Configured EasyList download exceeded the maximum allowed size.",
+                        )
+        except HTTP_TRANSFER_EXCEPTIONS as exception:
+            delay = attempts.retry_delay(exception)
+            if delay is None:
+                raise ExternalServiceError(
+                    "EasyList download failed.",
+                    details={
+                        "list_url": redact_url_for_logging(list_url),
+                        "cause_class": type(exception).__name__,
+                        "cause_message": bound_public_text(
+                            redact_public_text_fragments(str(exception)),
+                            max_length=PUBLIC_DIAGNOSTIC_TEXT_MAX_LENGTH,
+                        ),
+                        "upstream_status": upstream_status,
+                    },
+                    operation=OPERATION_DOWNLOAD_EASYLIST,
+                    cause=exception,
+                ) from exception
+            await wait_for_transfer_retry(delay, interruption=None)
+            continue
+        return bytes(response_bytes).decode("utf-8", errors="replace")

@@ -12,7 +12,12 @@ from database.core.schema_sql import normalize_schema_sql
 from database.current_schema_objects import apply_current_schema_objects
 from database.webui_identity_schema_validation import validate_current_webui_identity_rows
 
-__all__ = ("SchemaObjectKey", "validate_current_database_schema")
+__all__ = (
+    "SchemaObjectKey",
+    "build_expected_schema_objects",
+    "read_schema_objects",
+    "validate_current_database_schema",
+)
 
 
 @dataclass(frozen=True, slots=True, order=True)
@@ -21,7 +26,7 @@ class SchemaObjectKey:
     name: str
 
 
-def _read_schema_objects(conn: sqlite3.Connection) -> dict[SchemaObjectKey, str]:
+def read_schema_objects(conn: sqlite3.Connection) -> dict[SchemaObjectKey, str]:
     rows = conn.execute(
         """
         SELECT type, name, sql
@@ -41,12 +46,12 @@ def _read_schema_objects(conn: sqlite3.Connection) -> dict[SchemaObjectKey, str]
     return objects
 
 
-def _expected_schema_objects(task_catalog: TaskTypeCatalog) -> dict[SchemaObjectKey, str]:
+def build_expected_schema_objects(task_catalog: TaskTypeCatalog) -> dict[SchemaObjectKey, str]:
     expected = sqlite3.connect(":memory:")
     try:
         expected.execute("PRAGMA foreign_keys = ON")
         apply_current_schema_objects(expected, task_catalog)
-        return _read_schema_objects(expected)
+        return read_schema_objects(expected)
     finally:
         expected.close()
 
@@ -75,8 +80,8 @@ def validate_current_database_schema(
     conn: sqlite3.Connection,
     task_catalog: TaskTypeCatalog,
 ) -> None:
-    expected = _expected_schema_objects(task_catalog)
-    actual = _read_schema_objects(conn)
+    expected = build_expected_schema_objects(task_catalog)
+    actual = read_schema_objects(conn)
     expected_keys = set(expected)
     actual_keys = set(actual)
     missing = expected_keys - actual_keys

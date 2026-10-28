@@ -14,6 +14,7 @@ import type { PageFeedback } from '@core/routing/pages/basepagecore/PageFeedback
 import type { PageServices } from '@core/routing/pages/basepagecore/PageServices.ts';
 import type { PageLayout } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { FileExplorerSortState } from '@pages/fileexplorer/controllers/page/fileExplorerPageControlsController.ts';
+import type { JsonObject } from '@core/types/jsonValues.ts';
 
 interface FileExplorerPageRuntimeHost {
     api: {
@@ -30,6 +31,7 @@ interface FileExplorerPageRuntimeHost {
     layout: PageLayout;
     modalPresenter: ModalPresenterApi;
     waitForTask: (taskId: string, signal: AbortSignal) => Promise<void>;
+    waitForDeletionTask: (taskId: string, signal: AbortSignal) => Promise<JsonObject | null>;
 }
 
 interface FileExplorerPageRuntime {

@@ -49,7 +49,7 @@ async def buffer_stream_to_result_payload(
     first_chunk_timeout = resolve_streaming_first_chunk_timeout(
         task=task,
         health_check_config=health_check_config,
-    )
+    ).seconds
     streaming_idle_timeout = coerce_positive_float(
         health_check_config.get(
             "STREAMING_IDLE_TIMEOUT_SEC",

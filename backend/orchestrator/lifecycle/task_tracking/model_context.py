@@ -127,8 +127,11 @@ async def write_task_configuration_log(
         ),
     )
     logger.info("  Tools in request: %s", tool_count)
-    parameter_definitions, all_categories = await param_manager.get_parameter_schema_snapshot(
-        plugin_name,
+    schema_snapshot = await param_manager.get_parameter_schema_snapshot(plugin_name)
+    if schema_snapshot is None:
+        logger.info("  Parameter categories unavailable: plugin schema is not registered.")
+    parameter_definitions, all_categories = (
+        schema_snapshot if schema_snapshot is not None else ({}, {})
     )
 
     def log_section(title: str, params_to_log: Mapping[str, JSONValue]) -> None:

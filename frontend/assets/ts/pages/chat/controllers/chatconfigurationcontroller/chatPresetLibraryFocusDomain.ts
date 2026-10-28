@@ -1,6 +1,7 @@
 /* SoAI - Chat preset library keyboard focus continuity [frontend/assets/ts/pages/chat/controllers/chatconfigurationcontroller/chatPresetLibraryFocusDomain.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isPresenceExiting } from '@core/animations/presence/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { CHAT_ACTIONS } from '@features/chat/public.ts';
 import type { ChatPresetEditorDraft } from '@pages/chat/controllers/chatconfigurationcontroller/contracts.ts';
@@ -15,7 +16,7 @@ const captureChatPresetLibraryFocus = (root: Element): ChatPresetLibraryFocusSna
     const action = active.dataset['action'];
     if (!action) return null;
     const row = active.closest<HTMLElement>('.chat-preset-row');
-    const rows = dom.resolveAll('.chat-preset-row', root).filter((element): element is HTMLElement => element instanceof HTMLElement);
+    const rows = dom.resolveAll('.chat-preset-row', root).filter((element): element is HTMLElement => element instanceof HTMLElement && !isPresenceExiting(element));
     return { type: 'action', action, presetId: row?.dataset['presetId'] ?? null, rowIndex: row ? rows.indexOf(row) : 0 };
 };
 
@@ -29,7 +30,7 @@ const restoreChatPresetLibraryFocus = (root: Element, snapshot: ChatPresetLibrar
         if (snapshot.start !== null && snapshot.end !== null) element.setSelectionRange(snapshot.start, snapshot.end);
         return;
     }
-    const rows = dom.resolveAll('.chat-preset-row', root).filter((element): element is HTMLElement => element instanceof HTMLElement);
+    const rows = dom.resolveAll('.chat-preset-row', root).filter((element): element is HTMLElement => element instanceof HTMLElement && !isPresenceExiting(element));
     const row = rows.find((candidate) => candidate.dataset['presetId'] === snapshot.presetId) ?? rows[Math.min(snapshot.rowIndex, Math.max(rows.length - 1, 0))];
     const action = row ? dom.resolveAll('[data-action]', row).find((candidate): candidate is HTMLElement => candidate instanceof HTMLElement && candidate.dataset['action'] === snapshot.action && !('disabled' in candidate && candidate.disabled)) : null;
     const fallback = dom.resolve(`[data-action="${CHAT_ACTIONS.NEW_PRESET}"]`, root);
@@ -50,7 +51,7 @@ const focusChatPresetEditorTransition = (root: Element, previous: ChatPresetEdit
     }
     if (!previous || current) return false;
     const action = previous.mode === 'create' ? CHAT_ACTIONS.NEW_PRESET : previous.mode === 'rename' ? CHAT_ACTIONS.RENAME_PRESET : CHAT_ACTIONS.REPLACE_PRESET;
-    const candidates = dom.resolveAll(`[data-action="${action}"]`, root).filter((element): element is HTMLElement => element instanceof HTMLElement);
+    const candidates = dom.resolveAll(`[data-action="${action}"]`, root).filter((element): element is HTMLElement => element instanceof HTMLElement && !isPresenceExiting(element));
     const target = candidates.find((element) => previous.targetId === null || element.dataset['presetId'] === previous.targetId) ?? candidates[0];
     const fallback = dom.resolve(`[data-action="${CHAT_ACTIONS.NEW_PRESET}"]`, root);
     (target ?? (fallback instanceof HTMLElement ? fallback : null))?.focus({ preventScroll: true });

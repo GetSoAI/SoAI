@@ -17,14 +17,8 @@ if TYPE_CHECKING:
 
 __all__ = (
     "sync_count_human_admins",
-    "sync_get_account_by_id",
     "sync_get_human_user_by_id",
 )
-
-
-def sync_get_account_by_id(conn: sqlite3.Connection, user_id: int) -> JSONDict | None:
-    cursor = conn.execute("SELECT * FROM webui_users WHERE id = ?", (user_id,))
-    return normalize_user_row(sync_fetch_one_as_dict(cursor))
 
 
 def sync_get_human_user_by_id(conn: sqlite3.Connection, user_id: int) -> JSONDict | None:

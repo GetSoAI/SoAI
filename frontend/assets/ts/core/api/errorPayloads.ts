@@ -32,6 +32,8 @@ const readApiErrorMetadataPath = <T>(value: T, path: readonly string[]): APIErro
     return current;
 };
 
+const readApiErrorDetail = <T>(value: T, field: string): APIErrorMetadataValue => readApiErrorMetadataPath(value, ['payload', 'details', field]) ?? readApiErrorMetadataPath(value, ['payload', 'error', 'details', field]) ?? readApiErrorMetadataPath(value, ['data', 'error', 'details', field]) ?? readApiErrorMetadataPath(value, ['details', field]) ?? readApiErrorMetadataPath(value, ['error', 'details', field]);
+
 const readApiRetryAfterSeconds = <T>(value: T): number | null => {
     const candidates: readonly APIErrorMetadataValue[] = [value instanceof APIError ? value.retryAfterSeconds : null, readApiErrorMetadataPath(value, ['payload', 'error', 'details', 'retry_after_seconds']), readApiErrorMetadataPath(value, ['payload', 'details', 'retry_after_seconds']), readApiErrorMetadataPath(value, ['response', 'data', 'error', 'details', 'retry_after_seconds']), readApiErrorMetadataPath(value, ['data', 'error', 'details', 'retry_after_seconds']), readApiErrorMetadataPath(value, ['retry_after_seconds'])];
     for (const candidate of candidates) {
@@ -55,4 +57,4 @@ const resolveApiErrorMessage = <T>(value: T): string | null => {
     return extractApiErrorMessage(value);
 };
 
-export { readApiRetryAfterSeconds, resolveApiErrorMessage };
+export { readApiErrorDetail, readApiErrorMetadataPath, readApiRetryAfterSeconds, resolveApiErrorMessage };

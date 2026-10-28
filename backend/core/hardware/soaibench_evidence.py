@@ -49,11 +49,11 @@ class StandardMeasurements:
 
 def minimum_measured_duration_ms(phases: tuple[PhaseAccounting, ...]) -> int:
     if not phases:
-        raise SoAIBenchEvidenceError("SoAIBench measured duration requires phase evidence.")
+        raise SoAIBenchEvidenceError("SoAI Bench measured duration requires phase evidence.")
     if any(
         not math.isfinite(phase.elapsed_seconds) or phase.elapsed_seconds <= 0 for phase in phases
     ):
-        raise SoAIBenchEvidenceError("SoAIBench phase elapsed time must be positive and finite.")
+        raise SoAIBenchEvidenceError("SoAI Bench phase elapsed time must be positive and finite.")
     return sum(max(1, round(phase.elapsed_seconds * 1000)) for phase in phases)
 
 
@@ -76,7 +76,7 @@ def standard_measurements(
     latency_us = round(latency.elapsed_seconds * 1_000_000 / latency.dispatches, 6)
     if latency_us <= 0:
         raise SoAIBenchEvidenceError(
-            "SoAIBench latency cannot be represented at measurement precision."
+            "SoAI Bench latency cannot be represented at measurement precision."
         )
     return StandardMeasurements(
         compute_gops=sum(operations)
@@ -120,15 +120,15 @@ def validate_workload_phase(
         or throughput <= 0.0
         or elapsed_seconds < MINIMUM_PHASE_SECONDS
     ):
-        raise SoAIBenchEvidenceError("SoAIBench workload timing evidence is invalid.")
+        raise SoAIBenchEvidenceError("SoAI Bench workload timing evidence is invalid.")
     if (
         not is_strict_int(dispatches)
         or dispatches < spec.batch_dispatches
         or dispatches % spec.batch_dispatches != 0
     ):
-        raise SoAIBenchEvidenceError("SoAIBench workload timing evidence is invalid.")
+        raise SoAIBenchEvidenceError("SoAI Bench workload timing evidence is invalid.")
     if rounds != spec.rounds or not elements_valid:
-        raise SoAIBenchEvidenceError("SoAIBench workload shape evidence is invalid.")
+        raise SoAIBenchEvidenceError("SoAI Bench workload shape evidence is invalid.")
     try:
         expected_operations = counted_operations(
             name,
@@ -155,7 +155,7 @@ def validate_workload_phase(
         or counted_bytes_value != expected_bytes
         or positions != expected_positions
     ):
-        raise SoAIBenchEvidenceError("SoAIBench workload count evidence is inconsistent.")
+        raise SoAIBenchEvidenceError("SoAI Bench workload count evidence is inconsistent.")
     expected_throughput = (
         dispatches / elapsed_seconds
         if name == "latency"
@@ -166,4 +166,4 @@ def validate_workload_phase(
         )
     )
     if round(throughput, 6) != round(expected_throughput, 6):
-        raise SoAIBenchEvidenceError("SoAIBench workload throughput evidence is inconsistent.")
+        raise SoAIBenchEvidenceError("SoAI Bench workload throughput evidence is inconsistent.")

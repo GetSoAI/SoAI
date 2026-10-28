@@ -43,13 +43,16 @@ class WindowsInstallDepsSession:
     lock_dir: str
     owned_lock: InstallDirectoryLock | None
     mutation_scope: ExitStack
+    post_update_hook_module: str = "app.updater.post_update_hook"
 
     def complete(self, python_executable: str) -> None:
         self.emit("managed-runtime", "completed", "SoAI managed runtime is ready.")
         self.emit("runtime-artifacts", "started", "Provisioning SoAI runtime artifacts...")
         self.emit("runtime-artifacts", "completed", "SoAI runtime artifacts are ready.")
         self.emit("migration-hook", "started", "Running SoAI V1 post-install migration hook...")
-        _run_post_update_hook(self.repo_root_path, python_executable)
+        _run_post_update_hook(
+            self.repo_root_path, python_executable, hook_module=self.post_update_hook_module
+        )
         self.emit("migration-hook", "completed", "SoAI V1 post-install migration hook completed.")
         self.emit("complete", "completed", "SoAI dependency installation completed successfully.")
         self.release()
@@ -89,6 +92,9 @@ def begin_windows_install_deps(
     repo_root_path: str,
     parsed_args: ParsedInstallArguments,
     check_transaction_admission: Callable[[str], None],
+    *,
+    expected_edition: str = "soai-core",
+    post_update_hook_module: str = "app.updater.post_update_hook",
 ) -> WindowsInstallDepsSession:
     lock_dir = join_data_abs(repo_root_path, "state", "locks", "soai.install.lock.d")
     mutation_scope = ExitStack()
@@ -137,10 +143,11 @@ def begin_windows_install_deps(
         lock_dir=lock_dir,
         owned_lock=owned_lock,
         mutation_scope=mutation_scope,
+        post_update_hook_module=post_update_hook_module,
     )
     try:
         session.emit("preflight", "started", "Checking SoAI runtime state...")
-        reject_running_windows_target(repo_root_path, expected_edition="soai-core")
+        reject_running_windows_target(repo_root_path, expected_edition=expected_edition)
         session.emit("preflight", "completed", "SoAI is not running.")
         session.emit("managed-runtime", "started", "Preparing SoAI managed runtime...")
     except StateError:
@@ -156,7 +163,12 @@ def begin_windows_install_deps(
     return session
 
 
-def _run_post_update_hook(repo_root_path: str, python_executable: str) -> None:
+def _run_post_update_hook(
+    repo_root_path: str,
+    python_executable: str,
+    *,
+    hook_module: str = "app.updater.post_update_hook",
+) -> None:
     env_python_path = os.environ.get("PYTHONPATH", "")
     backend_path = os.path.join(repo_root_path, "backend")
     if env_python_path:
@@ -166,7 +178,7 @@ def _run_post_update_hook(repo_root_path: str, python_executable: str) -> None:
     env = dict(os.environ)
     env["PYTHONPATH"] = python_path
     result = run_argv_capture(
-        [python_executable, "-m", "app.updater.post_update_hook"],
+        [python_executable, "-P", "-m", hook_module],
         cwd=repo_root_path,
         env=env,
         encoding="utf-8",

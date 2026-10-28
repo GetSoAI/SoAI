@@ -3,26 +3,32 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
-from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import SoAITimeoutError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.hardware.protocols import HardwareManagerProtocol
 from core.logging.trace import get_logger
 from core.models.remote_model_search_payloads import normalize_model_search_payload
 from core.models.remote_model_search_types import RemoteModelSearchResult
 from core.plugins.builtin_names import BUILTIN_PLUGIN_NAMES
+from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 from core.types.json import is_json_dict
 from plugins.manager.backend_installation_drift import (
-    compute_backend_installation_state_overrides,
+    find_backend_installation_drift_candidates,
     request_backend_installation_drift_scan,
+)
+from plugins.manager.backend_update_projection import (
+    project_backend_updates,
+    read_backend_update_catalog,
 )
 from plugins.manager.backend_variant_counts import (
     merge_persisted_backend_variant_counts,
 )
 from plugins.manager.capability_support import supports_plugin_capability_from_instance
+from plugins.manager.catalog_reads import borrow_model_catalog_plugin
 from plugins.protocols_internal.runtime.internal_protocols import (
     PluginManagerRuntimeProtocol,
 )
@@ -49,7 +55,7 @@ OPERATION_PLUGINS_MANAGER_LISTING_LIST_PLUGINS = "plugins.manager.listing.list_p
 
 
 async def list_plugins(self: PluginManagerRuntimeProtocol) -> list[JSONDict]:
-    database_plugins = await self.dependencies.databases.plugins.get_all_listable_plugins()
+    database_plugins, backend_update_records = await read_backend_update_catalog(self)
     builtin_plugins = set(BUILTIN_PLUGIN_NAMES)
     plugin_names: list[str] = [
         plugin_name
@@ -88,9 +94,9 @@ async def list_plugins(self: PluginManagerRuntimeProtocol) -> list[JSONDict]:
                 and plugin_name not in breaker_snapshot_map
             ):
                 breaker_snapshot_map[plugin_name] = snapshot
-    backend_installation_overrides: dict[str, str] = {}
+    backend_installation_candidates: list[str] = []
     try:
-        backend_installation_overrides = compute_backend_installation_state_overrides(
+        backend_installation_candidates = find_backend_installation_drift_candidates(
             self,
             database_plugins,
         )
@@ -102,7 +108,7 @@ async def list_plugins(self: PluginManagerRuntimeProtocol) -> list[JSONDict]:
             operation=OPERATION_PLUGINS_MANAGER_LISTING_BACKEND_INSTALLATION_DRIFT,
             level="debug",
         )
-    if backend_installation_overrides:
+    if backend_installation_candidates:
         await request_backend_installation_drift_scan(
             self,
             reason="plugin_listing_backend_installation_drift",
@@ -111,27 +117,24 @@ async def list_plugins(self: PluginManagerRuntimeProtocol) -> list[JSONDict]:
         self,
         database_plugins,
         plugin_stats,
-        backend_installation_overrides,
     )
+    backend_updates = await project_backend_updates(self, database_plugins, backend_update_records)
     plugin_details_list: list[JSONDict] = []
     for p_data in database_plugins:
         plugin_name_value = p_data.get("plugin_name")
         if not isinstance(plugin_name_value, str) or not plugin_name_value:
             continue
-        effective_p_data = p_data
-        if plugin_name_value in backend_installation_overrides:
-            effective_p_data = dict(p_data)
-            effective_p_data["state"] = backend_installation_overrides[plugin_name_value]
         breaker_snapshot = breaker_snapshot_map.get(plugin_name_value)
         plugin_details_list.append(
             format_plugin_details(
                 self,
-                effective_p_data,
+                p_data,
                 instance=None,
                 status_payload=None,
                 plugin_stats=plugin_stats,
                 builtin_plugins=builtin_plugins,
                 breaker_snapshot=breaker_snapshot,
+                backend_update=backend_updates.get(plugin_name_value),
             ),
         )
     return sorted(
@@ -173,26 +176,33 @@ async def search_remote_models(
     *,
     limit: int = 10,
 ) -> list[JSONDict]:
-    await self.require_ready()
-    self.require_online_mode("remote_model_search")
-    if not (normalized_name := self.normalize_plugin_name(plugin_name)):
-        raise ValidationError(f"Plugin '{plugin_name}' not found.")
-    release_after_search = await self.get_plugin_instance(normalized_name) is None
     try:
-        instance = await self.require_loaded_plugin(normalized_name, plugin_name, auto_load=True)
-        if not supports_plugin_capability_from_instance(instance, "SUPPORTS_MODEL_DOWNLOAD"):
-            raise ValidationError(f"Plugin '{plugin_name}' does not support model downloads.")
-        if not supports_plugin_capability_from_instance(instance, "SUPPORTS_MODEL_SEARCH"):
-            raise ValidationError(f"Plugin '{plugin_name}' does not support remote model search.")
-        search_results = await instance.search_remote_models(query, limit=limit)
-        normalized_items: list[RemoteModelSearchResult | JSONDict] = []
-        for item in search_results:
-            if isinstance(item, RemoteModelSearchResult) or is_json_dict(item):
-                normalized_items.append(item)
-        return normalize_model_search_payload(normalized_items)
-    finally:
-        if release_after_search:
-            await uncancel_then_cleanup(self.release_discovery_plugin_instance(normalized_name))
+        async with asyncio.timeout(INTERACTIVE_TIMEOUT_SEC):
+            await self.require_ready()
+            self.require_online_mode("remote_model_search")
+            if not (normalized_name := self.normalize_plugin_name(plugin_name)):
+                raise ValidationError(f"Plugin '{plugin_name}' not found.")
+            async with borrow_model_catalog_plugin(self, normalized_name) as instance:
+                if not supports_plugin_capability_from_instance(
+                    instance, "SUPPORTS_MODEL_DOWNLOAD"
+                ):
+                    raise ValidationError(
+                        f"Plugin '{plugin_name}' does not support model downloads."
+                    )
+                if not supports_plugin_capability_from_instance(instance, "SUPPORTS_MODEL_SEARCH"):
+                    raise ValidationError(
+                        f"Plugin '{plugin_name}' does not support remote model search."
+                    )
+                search_results = await instance.search_remote_models(query, limit=limit)
+            normalized_items: list[RemoteModelSearchResult | JSONDict] = []
+            for item in search_results:
+                if isinstance(item, RemoteModelSearchResult) or is_json_dict(item):
+                    normalized_items.append(item)
+            return normalize_model_search_payload(normalized_items)
+    except TimeoutError as exception:
+        raise SoAITimeoutError(
+            f"Remote model search for plugin '{plugin_name}' timed out."
+        ) from exception
 
 
 async def describe_model_variants(

@@ -54,13 +54,13 @@ class ConversationCloneAttachmentHistory:
                 id, conv_id, user_id, file_id, client_attachment_id, filename,
                 mime_type, size_bytes, preview_type, provider_mode, provider_text,
                 provider_text_truncated, parse_state, parse_error, parsed_at_ms,
-                state, conversation_input_id, message_created_at_ms,
+                missing_capabilities, state, conversation_input_id, message_created_at_ms,
                 attachment_revision, created_at_ms, updated_at_ms, expires_at_ms
             )
             SELECT ?, ?, user_id, file_id, client_attachment_id, filename,
                    mime_type, size_bytes, preview_type, provider_mode, provider_text,
                    provider_text_truncated, parse_state, parse_error, parsed_at_ms,
-                   state, NULL, message_created_at_ms, attachment_revision,
+                   missing_capabilities, state, NULL, message_created_at_ms, attachment_revision,
                    created_at_ms, updated_at_ms, expires_at_ms
             FROM webui_conversation_attachments
             WHERE id = ? AND conv_id = ? AND user_id = ?

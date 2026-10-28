@@ -21,6 +21,7 @@ __all__ = (
     "CHAT_PRESET_REASONING_EFFORTS",
     "CHAT_PRESET_SECTION_IDS",
     "CHAT_PRESET_SERVICE_TIERS",
+    "CHAT_PRESET_SKILLS_FIELDS",
     "CHAT_PRESET_TOOL_MODES",
     "CHAT_PRESET_TOOLS_FIELDS",
     "CHAT_PRESET_VOICE_FIELDS",
@@ -100,6 +101,7 @@ CHAT_PRESET_COMPLETION_FIELDS = frozenset(
 CHAT_PRESET_VOICE_FIELDS = frozenset({"voice_tts_model", "voice_stt_model"})
 CHAT_PRESET_KNOWLEDGE_FIELDS = RAG_CONFIG_VALUE_FIELDS
 CHAT_PRESET_FILES_FIELDS = frozenset({"workspace_path"})
+CHAT_PRESET_SKILLS_FIELDS = frozenset({"skill_ids"})
 CHAT_PRESET_TOOLS_FIELDS = frozenset(
     {"tools_enabled", "tool_approval_required", "servers", "modes"}
 )
@@ -110,6 +112,7 @@ CHAT_PRESET_SECTION_IDS = (
     "voice",
     "files",
     "knowledge",
+    "skills",
     "tools",
 )
 CHAT_PRESET_TOOL_MODES = frozenset({"default", "plan", "execute"})
@@ -152,6 +155,8 @@ def chat_preset_section_fields(section: str) -> frozenset[str] | None:
         return CHAT_PRESET_FILES_FIELDS
     if section == "knowledge":
         return CHAT_PRESET_KNOWLEDGE_FIELDS
+    if section == "skills":
+        return CHAT_PRESET_SKILLS_FIELDS
     if section == "tools":
         return CHAT_PRESET_TOOLS_FIELDS
     return None

@@ -121,6 +121,8 @@ class OrchestratorHandlers:
         }
         if event.language is not None:
             payload["language"] = event.language
+        if event.decoding_parameters:
+            payload.update(event.decoding_parameters)
         if event.prompt is not None:
             payload["prompt"] = event.prompt
         if event.response_format is not None:
@@ -162,12 +164,18 @@ class OrchestratorHandlers:
             "temp_file_path": event.temp_file_path,
             "original_filename": event.original_filename,
         }
+        if event.language is not None:
+            payload["language"] = event.language
+        if event.decoding_parameters:
+            payload.update(event.decoding_parameters)
         if event.prompt is not None:
             payload["prompt"] = event.prompt
         if event.response_format is not None:
             payload["response_format"] = event.response_format
         if event.temperature is not None:
             payload["temperature"] = event.temperature
+        if event.timestamp_granularities:
+            payload["timestamp_granularities"] = event.timestamp_granularities
         return self._build_inference_request(
             event=event,
             task_id=task_id,

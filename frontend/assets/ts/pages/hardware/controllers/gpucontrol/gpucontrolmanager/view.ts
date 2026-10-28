@@ -1,11 +1,13 @@
 /* SoAI - Hardware page GPU control manager rendering [frontend/assets/ts/pages/hardware/controllers/gpucontrol/gpucontrolmanager/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { reconcileGpuControlPanels, patchGpuControlPanel } from '@pages/hardware/controllers/gpucontrol/gpucontrolmanager/gpuActionReconciliationController.ts';
 import { dom } from '@core/dom/dom.ts';
 import { replaceChildrenFromHtml } from '@core/dom/html.ts';
 import { securityApi } from '@core/security/public.ts';
 import { isArray } from '@core/typeGuards.ts';
 import { GPU_CONTROL_TYPES, GPU_CONTROLS_CONFIG } from '@pages/hardware/controllers/gpucontrol/gpuControlConfig.ts';
+import { readGpuControlFieldMode } from '@pages/hardware/controllers/gpucontrol/gpuControlDomControls.ts';
 import { createElementFromMarkup, getDataAttribute, setDataAttribute } from '@pages/hardware/controllers/gpucontrol/gpucontrolmanager/dom.ts';
 import { hasActionableGpuControls, isControlSupported } from '@pages/hardware/controllers/gpucontrol/gpucontrolmanager/guards.ts';
 import type { GpuControlManagerRendererContext, GpuControlManagerRenderPanelContext, GpuControlManagerViewContext, GpuControlSnapshotEntry, GpuControlViewSnapshot } from '@pages/hardware/controllers/gpucontrol/gpucontrolmanager/internalContracts.ts';
@@ -54,7 +56,7 @@ export const captureGpuControlsState = (context: GpuControlManagerViewContext): 
             }
 
             controls[controlType] = {
-                isAuto: toggle.checked,
+                mode: readGpuControlFieldMode(slider, toggle),
                 value: slider.value,
                 lastManual: getDataAttribute(slider, 'last-manual')
             };
@@ -94,7 +96,7 @@ export const restoreGpuControlsState = (context: GpuControlManagerViewContext, s
         }
 
         entries(gpuSnapshot.controls).forEach(([controlType, controlSnapshot]) => {
-            if (!isControlSupported(context.capabilitiesByIndex, index, controlType)) {
+            if (controlSnapshot.mode === null || !isControlSupported(context.capabilitiesByIndex, index, controlType)) {
                 return;
             }
 
@@ -104,12 +106,12 @@ export const restoreGpuControlsState = (context: GpuControlManagerViewContext, s
             }
 
             setDataAttribute(slider, 'last-manual', controlSnapshot.lastManual ?? '');
-            if (controlSnapshot.isAuto) {
+            if (controlSnapshot.mode === 'auto') {
                 context.setSliderToAuto(index, controlType, getDataAttribute(slider, 'default'), {
                     preserveManual: true
                 });
             } else {
-                context.setSliderToManual(index, controlType, controlSnapshot.value);
+                context.setSliderToManual(index, controlType, controlSnapshot.value, { alignToSupportedValue: false });
             }
         });
     });
@@ -165,7 +167,7 @@ export const renderGpuControls = (context: GpuControlManagerViewContext, { only 
 
         const markup = actionableEntries.map(([index, caps]) => renderGpuControlPanelMarkup({ renderer: toRendererContext(context), index, caps })).join('');
 
-        replaceChildrenFromHtml({ element: container, html: markup, context: container });
+        reconcileGpuControlPanels(container, markup);
         restoreGpuControlsState(context, previousState);
         hydratePreviewStates(context);
         actionableEntries.forEach(([index]) => context.refreshApplyState(index));
@@ -187,8 +189,9 @@ export const renderGpuControls = (context: GpuControlManagerViewContext, { only 
         const next = createElementFromMarkup(document, markup);
         refreshedTargets.push(index);
 
+        if (!(next instanceof HTMLElement)) throw new Error('GPU control panel must be an HTML element');
         if (existing) {
-            existing.replaceWith(next);
+            patchGpuControlPanel(existing, next);
         } else {
             container.appendChild(next);
         }
@@ -208,12 +211,12 @@ export const hydratePreviewStates = (context: GpuControlManagerViewContext, indi
             return;
         }
         const state = context.ensureUiState(str(index));
-        if (!state.previewSlot || !state.previewSettings || state.previewHydrated) {
+        if ((!state.previewSlot && state.previewSource !== 'recovered') || !state.previewSettings || state.previewHydrated) {
             return;
         }
 
         entries(state.previewSettings).forEach(([settingKey, value]) => {
-            if (!isGpuSettingKey(settingKey)) {
+            if (value.mode === null || !isGpuSettingKey(settingKey)) {
                 return;
             }
             const setting = settingKey;

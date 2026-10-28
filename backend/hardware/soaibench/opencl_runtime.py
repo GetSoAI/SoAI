@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ctypes
 import re
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -35,10 +36,15 @@ class OpenCLRuntime(OpenCLDeviceInfo):
 
 
 def build_opencl_runtime(identity: SoAIBenchGpuIdentity) -> OpenCLRuntime:
+    sys.stderr.write("SoAI Bench OpenCL stage: library load\n")
     bindings = OpenCLBindings(load_opencl_library())
-    match = match_opencl_device(identity, enumerate_opencl_gpu_devices_for_bindings(bindings))
+    sys.stderr.write("SoAI Bench OpenCL stage: device enumeration\n")
+    match = match_opencl_device(
+        identity, enumerate_opencl_gpu_devices_for_bindings(bindings, identity)
+    )
     device_array = (ctypes.c_void_p * 1)(ctypes.c_void_p(match.device.device_handle))
     error_code = ctypes.c_int(0)
+    sys.stderr.write("SoAI Bench OpenCL stage: context creation\n")
     context = bindings.library.clCreateContext(
         None,
         1,
@@ -58,6 +64,7 @@ def build_opencl_runtime(identity: SoAIBenchGpuIdentity) -> OpenCLRuntime:
             message="OpenCL returned an empty context handle.",
         )
     try:
+        sys.stderr.write("SoAI Bench OpenCL stage: command queue creation\n")
         queue, queue_api = _create_queue(
             bindings,
             int(context),
@@ -81,6 +88,8 @@ def build_opencl_runtime(identity: SoAIBenchGpuIdentity) -> OpenCLRuntime:
         driver_version=match.device.driver_version,
         global_mem_bytes=match.device.global_mem_bytes,
         max_alloc_bytes=match.device.max_alloc_bytes,
+        capabilities=match.device.capabilities,
+        custom_discovery_warning=match.device.custom_discovery_warning,
         enumeration_warnings=match.device.enumeration_warnings,
     )
 

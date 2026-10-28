@@ -10,6 +10,7 @@ from core.hardware.system_info_keys import (
     SYSTEM_INFO_COMPONENT_KEYS_EXCLUDING_CPU,
     SYSTEM_INFO_ORDERED_KEYS_WITH_META,
 )
+from core.validation.numbers import coerce_float_from_json
 from hardware.operations import sum_vram_gb
 
 if TYPE_CHECKING:
@@ -56,23 +57,38 @@ def build_cached_response(
             first_cpu = cpu_entries[0]
             cached_response["cpu"] = first_cpu if isinstance(first_cpu, dict) else {}
         else:
-            cached_response["cpu"] = {}
+            cached_response.pop("cpu", None)
+    statuses = last_full_info.get("component_status")
+    if isinstance(statuses, dict):
+        cached_response["component_status"] = {
+            key: value
+            for key, value in statuses.items()
+            if key in keys_to_return or (key == "gpu_capabilities" and "gpu" in keys_to_return)
+        }
     return cached_response
 
 
 def build_summary(*, base_snapshot: Mapping[str, JSONValue]) -> JSONDict:
     gpu_snapshot_raw = base_snapshot.get("gpu")
-    gpu_snapshot = gpu_snapshot_raw if isinstance(gpu_snapshot_raw, dict) else None
     memory_info = base_snapshot.get("memory")
     summary: JSONDict = {}
     if isinstance(memory_info, dict):
-        summary["total_system_ram_gb"] = memory_info.get("total_gb", 0)
-    summary["total_vram_gb"] = sum_vram_gb(gpu_snapshot or {})
-    ram_value = summary.get("total_system_ram_gb", 0)
-    vram_value = summary.get("total_vram_gb", 0)
-    ram = float(ram_value) if isinstance(ram_value, int | float) else 0.0
-    vram = float(vram_value) if isinstance(vram_value, int | float) else 0.0
-    summary["total_system_memory_gb"] = round(ram + vram, 2)
+        ram = memory_info.get("total_gb")
+        if isinstance(ram, int | float) and coerce_float_from_json(ram, default=None) is not None:
+            summary["total_system_ram_gb"] = ram
+    if isinstance(gpu_snapshot_raw, dict):
+        gpus = gpu_snapshot_raw.get("gpus")
+        if isinstance(gpus, list) and all(
+            isinstance(gpu, dict)
+            and isinstance(gpu.get("memory_total_mb"), int | float)
+            and coerce_float_from_json(gpu.get("memory_total_mb"), default=None) is not None
+            for gpu in gpus
+        ):
+            summary["total_vram_gb"] = sum_vram_gb(gpu_snapshot_raw)
+    ram = summary.get("total_system_ram_gb")
+    vram = summary.get("total_vram_gb")
+    if isinstance(ram, int | float) and isinstance(vram, int | float):
+        summary["total_system_memory_gb"] = round(ram + vram, 2)
     return summary
 
 
@@ -94,4 +110,7 @@ def build_final_ordered_info(
             continue
         if key in base_snapshot:
             final_ordered_info[key] = base_snapshot[key]
+    statuses = base_snapshot.get("component_status")
+    if isinstance(statuses, dict):
+        final_ordered_info["component_status"] = dict(statuses)
     return final_ordered_info

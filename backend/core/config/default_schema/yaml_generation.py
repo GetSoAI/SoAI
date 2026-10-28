@@ -18,17 +18,7 @@ from core.logging.protocols import LoggerProtocol
 if TYPE_CHECKING:
     from core.config.value_types import ConfigDict
 
-__all__ = (
-    "ensure_default_config_yaml",
-    "render_default_config_yaml_text",
-)
-
-
-def render_default_config_yaml_text(schema: ConfigDict) -> str:
-    yaml_dump = build_roundtrip_yaml()
-    buffer = io.StringIO()
-    yaml_dump.dump(schema, buffer)
-    return buffer.getvalue()
+__all__ = ("ensure_default_config_yaml",)
 
 
 def ensure_default_config_yaml(

@@ -6,6 +6,7 @@ import { toTrimmedString } from '@core/normalize.ts';
 import { isArray, isObject } from '@core/typeGuards.ts';
 import { isChatAttachmentReadyForSend } from '@features/chat/ChatAttachmentSupport.ts';
 import { getElement } from '@features/chat/chatuimanager/dom.ts';
+import { resolveQueuedConversationInputs } from '@features/chat/chatuimanager/inputQueuePreview.ts';
 import type { ChatComposerActionMode, ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 import type { ChatStreamLifecycle, ChatTurnAdmissionSnapshot } from '@features/chat/chatstreamservice/types.ts';
 import { resolveNormalizedComparisonModelIdsFromModelSettings } from '@core/chat/comparisonModels.ts';
@@ -23,6 +24,8 @@ export interface ChatComposerControlState {
     isChatStreaming: boolean;
     streamLifecycle: ChatStreamLifecycle;
     actionMode: ChatComposerActionMode;
+    isDispatchingInput: boolean;
+    canStopHandoff: boolean;
     hasText: boolean;
     canStop: boolean;
     canSend: boolean;
@@ -81,16 +84,23 @@ const resolveHasStreamingComparisonModels = (context: ChatUIManagerContext, conv
     return hasActiveComparisonRun || fromSettings;
 };
 
-const resolveButtonMode = (admission: ChatTurnAdmissionSnapshot, hasText: boolean, hasReadyAttachments: boolean, hasComparisonModels: boolean): ChatComposerActionMode => {
+const resolveIdleComposerMode = (canStop: boolean, hasDispatchingInput: boolean, hasHeldInputs: boolean): ChatComposerActionMode => {
+    if (canStop || hasDispatchingInput) {
+        return 'stop';
+    }
+    return hasHeldInputs ? 'resume' : 'send';
+};
+
+const resolveButtonMode = (admission: ChatTurnAdmissionSnapshot, hasText: boolean, hasReadyAttachments: boolean, hasComparisonModels: boolean, hasHeldInputs: boolean, hasDispatchingInput: boolean): ChatComposerActionMode => {
     const hasPayload = hasText || hasReadyAttachments;
     if (admission.phase === 'inactive') {
-        return 'send';
+        return hasPayload ? 'send' : resolveIdleComposerMode(false, hasDispatchingInput, hasHeldInputs);
     }
     if (admission.phase === 'stopping' || admission.phase === 'stop_failed' || admission.phase === 'terminalizing') {
         return 'stop';
     }
     if (!hasPayload) {
-        return admission.canStop ? 'stop' : 'send';
+        return resolveIdleComposerMode(admission.canStop, hasDispatchingInput, hasHeldInputs);
     }
     if (admission.canSteerPrompt && !hasComparisonModels) {
         return 'steer';
@@ -151,6 +161,18 @@ const resolveComposerReadiness = (context: ChatUIManagerContext, payload: ChatCo
     };
 };
 
+const isHandoffOfUserStop = (context: ChatUIManagerContext, conversationId: string): boolean => context.state.userStoppedTurn?.conversationId === conversationId;
+
+export const settleUserStoppedTurn = (context: ChatUIManagerContext): void => {
+    const stopped = context.state.userStoppedTurn;
+    if (stopped === null) return;
+    const admission = context.dependencies.session.getTurnAdmission(stopped.conversationId);
+    const nextRequestId = admission.activeStreamIdentity?.requestId ?? null;
+    if (admission.canStop && nextRequestId !== null && nextRequestId !== stopped.requestId) {
+        context.state.userStoppedTurn = null;
+    }
+};
+
 export const resolveComposerControlState = (context: ChatUIManagerContext): ChatComposerControlState => {
     const conversationId = toTrimmedString(context.dependencies.session.getCurrentConversationId());
     const isExecuting = resolveConversationExecutionState(context, conversationId);
@@ -162,15 +184,20 @@ export const resolveComposerControlState = (context: ChatUIManagerContext): Chat
     const readiness = resolveComposerReadiness(context, payload, isExecuting, admission);
     const hasReadyPayload = payload.hasReadyAttachments || payload.hasKnowledgeDraft;
     const hasComparisonModels = isTokenStreaming ? resolveHasStreamingComparisonModels(context, conversationId) : false;
-    const actionMode = resolveButtonMode(admission, payload.hasText, hasReadyPayload, hasComparisonModels);
+    const hasHeldInputs = resolveQueuedConversationInputs(context).some((entry) => entry.isHeld);
+    const isDispatchingInput = context.dependencies.drafts.hasDispatchingConversationInput();
+    const actionMode = resolveButtonMode(admission, payload.hasText, hasReadyPayload, hasComparisonModels, hasHeldInputs, isDispatchingInput);
+    const canStopHandoff = (isDispatchingInput || admission.phase === 'terminalizing') && !admission.canStop && admission.phase !== 'stopping' && !isHandoffOfUserStop(context, conversationId);
     return {
         isExecuting,
         isChatStreaming,
         streamLifecycle,
         actionMode,
+        isDispatchingInput,
+        canStopHandoff,
         hasText: payload.hasText,
-        canStop: admission.canStop,
-        canSend: readiness.canSend,
+        canStop: admission.canStop || canStopHandoff,
+        canSend: readiness.canSend || (actionMode === 'resume' && !isExecuting),
         canQueue: readiness.canQueue
     };
 };

@@ -153,6 +153,7 @@ async def handle_queue_decision(
                 reason=reason,
                 allow_failover=decision.allow_failover,
                 error_type=error_type,
+                public_error=decision.public_error,
             )
         else:
             await deps.outcomes.cancel_task(

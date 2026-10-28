@@ -11,6 +11,7 @@ from core.serialization.json import serialize_json_compact_stable
 from core.serialization.json_parsing import parse_json_value
 from core.validation.integers import is_strict_int
 from database.core.query_execution import sync_fetch_one_as_dict
+from database.repositories.skills.snapshots import sync_capture_admitted_skills
 from database.repositories.users.chat_prompt_history import (
     build_chat_prompt_history_fingerprint,
     sync_record_chat_prompt,
@@ -135,6 +136,7 @@ def _resolve_target_input_id(
     conv_id: str,
     user_id: int,
     input_type: str,
+    prompt_fallback_available: bool,
 ) -> str | None:
     if input_type != "steer":
         return None
@@ -150,6 +152,8 @@ def _resolve_target_input_id(
         (conv_id, user_id),
     ).fetchone()
     if row is None or not isinstance(row[0], str) or not row[0].strip():
+        if prompt_fallback_available:
+            return None
         raise ConflictError("Steer input requires an active conversation execution.")
     target_input_id = row[0].strip()
     stored_request_id = row[1]
@@ -164,6 +168,8 @@ def _resolve_target_input_id(
         conv_id,
         active_request_id,
     ):
+        if prompt_fallback_available:
+            return None
         raise ConflictError("Steering is unavailable while cancellation is pending.")
     return target_input_id
 
@@ -178,6 +184,7 @@ def sync_enqueue_conversation_input(
     prompt_history_text: str | None,
     attachment_content_json: str,
     model_settings_json: str | None,
+    fallback_model_settings_json: str | None,
     source_key: str,
     client_id: str | None,
     client_request_id: str | None,
@@ -241,7 +248,13 @@ def sync_enqueue_conversation_input(
         conv_id=conv_id,
         user_id=user_id,
         input_type=input_type,
+        prompt_fallback_available=fallback_model_settings_json is not None,
     )
+    stored_input_type = input_type
+    stored_model_settings_json = model_settings_json
+    if input_type == "steer" and target_input_id is None:
+        stored_input_type = "prompt"
+        stored_model_settings_json = fallback_model_settings_json
     sqlite_conn.execute(
         """
         INSERT INTO webui_conversation_inputs (
@@ -256,11 +269,11 @@ def sync_enqueue_conversation_input(
             input_id,
             conv_id,
             user_id,
-            input_type,
+            stored_input_type,
             transport_origin,
             text,
             attachment_content_json,
-            model_settings_json,
+            stored_model_settings_json,
             source_key,
             content_fingerprint,
             prompt_history_fingerprint,
@@ -275,6 +288,7 @@ def sync_enqueue_conversation_input(
             accepted_at_ms,
         ),
     )
+    sync_capture_admitted_skills(sqlite_conn, user_id, conv_id, input_id)
     canonical_attachment_content = sync_queue_pending_attachment_references(
         sqlite_conn,
         conv_id=conv_id,

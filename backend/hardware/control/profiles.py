@@ -23,7 +23,7 @@ __all__ = (
 )
 
 GPU_SLOT_IDS: tuple[str, ...] = ("1", "2", "3")
-GPU_SLOT_FILE_VERSION = 1
+GPU_SLOT_FILE_VERSION = 2
 
 
 def default_boot_payload() -> JSONDict:

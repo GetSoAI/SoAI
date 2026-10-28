@@ -7,6 +7,7 @@ from fastapi import Depends, Request
 from starlette.responses import JSONResponse, Response
 
 from core.errors.exceptions import ArchivedConversationLimitError, ValidationError
+from core.events.conversation_publication import publish_conversation_title_updated
 from core.prompts.colors import validate_prompt_color
 from features.api.routes.webui.conversation_event_publishing import (
     publish_conversation_update,
@@ -48,14 +49,11 @@ def register_routes(routers: ApiRouters) -> None:
             ),
             message="Conversation not found.",
         )
-        resolved_conv_id = resolve_conversation_access_id(conversation_record, conv_id)
-        await publish_conversation_update(
-            request,
-            api_context,
-            current_user["id"],
-            resolved_conv_id,
-            conversation_record,
-            title=payload.title,
+        await publish_conversation_title_updated(
+            api_context.dependencies.event_bus,
+            user_id=current_user["id"],
+            conv_id=resolve_conversation_access_id(conversation_record, conv_id),
+            conversation_record=conversation_record,
         )
         return JSONResponse(
             content=project_effective_conversation_settings(

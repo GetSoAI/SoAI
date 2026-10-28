@@ -3,6 +3,7 @@
 
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import type { GenerateStandardHeaderOptions } from '@core/routing/pages/pagetypes/public.ts';
 
 import { uiHtml } from '@core/security/uiHtml.ts';
@@ -36,7 +37,7 @@ const renderHardwarePageView = ({ getIconSync, generateStandardHeader }: Hardwar
                 type: 'button',
                 content: uiHtml`${logsIcon}<span>${logsLabel}</span>`,
                 id: 'hardware-logs-btn',
-                attributes: { 'data-action': 'hardware.logs' },
+                attributes: { 'data-action': 'hardware.logs', hidden: windowIdentity.isDetachedContext(), disabled: windowIdentity.isDetachedContext() },
                 ariaLabel: i18n.t('hardware.actions.openLogs')
             },
             {

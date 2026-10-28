@@ -10,7 +10,13 @@ import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 
 type BackendVariantAvailability = 'available' | 'hardware_warning' | 'unavailable';
 
+interface BackendVariantCompatibility {
+    status: 'compatible' | 'incompatible' | 'unknown';
+    reasons: string[];
+}
+
 interface BackendVariantOptionResponse {
+    compatibility?: BackendVariantCompatibility;
     id: string;
     label: string;
     description: string | null;
@@ -25,7 +31,10 @@ interface BackendVariantOptionResponse {
     gpuBindingRuntimeFamily: string | null;
 }
 
+type InstalledBackendVariantResolution = 'resolved' | 'not_installed' | 'unavailable' | 'not_requested';
+
 interface BackendVariantsResponse {
+    installedVariantResolution?: InstalledBackendVariantResolution;
     selectedVariantId: string;
     installedVariantId: string | null;
     options: BackendVariantOptionResponse[];
@@ -45,6 +54,7 @@ interface PluginBackendUpdateError {
 }
 
 interface PluginBackendUpdateStatus {
+    installed?: boolean | null;
     updateAvailable: boolean;
     currentVersion: string | null;
     latestVersion: string | null;
@@ -70,6 +80,7 @@ const decodeBackendVariantOption = (value: JsonValue, index: number): BackendVar
     const label = `Backend variants response.options[${String(index)}]`;
     const record = requireRecord(value, label);
     return {
+        ...(record['compatibility'] === undefined ? {} : { compatibility: decodeBackendVariantCompatibility(record['compatibility'], `${label}.compatibility`) }),
         id: readRequiredTrimmedString(record, 'id', `${label}.id`),
         label: readRequiredTrimmedString(record, 'label', `${label}.label`),
         description: readNullableTrimmedStringValue(record['description'], `${label}.description`),
@@ -85,6 +96,18 @@ const decodeBackendVariantOption = (value: JsonValue, index: number): BackendVar
     };
 };
 
+const decodeBackendVariantCompatibility = (value: JsonValue, label: string): BackendVariantCompatibility => {
+    const record = requireRecord(value, label);
+    const status = record['status'];
+    if (status !== 'compatible' && status !== 'incompatible' && status !== 'unknown') throw new TypeError(`${label}.status is invalid.`);
+    return { status, reasons: decodeStringArray(record['reasons'], `${label}.reasons`) };
+};
+
+const decodeInstalledBackendVariantResolution = (value: JsonValue): InstalledBackendVariantResolution => {
+    if (value !== 'resolved' && value !== 'not_installed' && value !== 'unavailable' && value !== 'not_requested') throw new TypeError('Backend variants response.installed_variant_resolution is invalid.');
+    return value;
+};
+
 const decodeBackendVariantsResponse = (value: ApiResponsePayload): BackendVariantsResponse => {
     const label = 'Backend variants response';
     const record = requireRecord(value, label);
@@ -94,6 +117,7 @@ const decodeBackendVariantsResponse = (value: ApiResponsePayload): BackendVarian
     const selected = readRequiredTrimmedString(record, 'selected_variant_id', `${label}.selected_variant_id`);
     if (!decodedOptions.some((option) => option.id === selected)) throw new TypeError(`${label}.selected_variant_id must identify an option.`);
     return {
+        ...(record['installed_variant_resolution'] === undefined ? {} : { installedVariantResolution: decodeInstalledBackendVariantResolution(record['installed_variant_resolution']) }),
         selectedVariantId: selected,
         installedVariantId: readNullableTrimmedStringValue(record['installed_variant_id'], `${label}.installed_variant_id`),
         options: decodedOptions,
@@ -122,23 +146,28 @@ const decodeUpdateError = (value: JsonValue | undefined, label: string): PluginB
     };
 };
 
+const decodePluginBackendUpdateResponse = (value: ApiResponsePayload): PluginBackendUpdateStatus => {
+    const label = 'Plugin backend update response';
+    const status = requireRecord(value, label);
+    return {
+        updateAvailable: readRequiredBooleanValue(status['update_available'], `${label}.update_available`),
+        currentVersion: readNullableTrimmedStringValue(status['current_version'], `${label}.current_version`),
+        latestVersion: readNullableTrimmedStringValue(status['latest_version'], `${label}.latest_version`),
+        error: decodeUpdateError(status['error'], `${label}.error`),
+        ...(status['installed'] === undefined ? {} : { installed: readRequiredBooleanValue(status['installed'], `${label}.installed`) })
+    };
+};
+
 const decodePluginBackendUpdatesResponse = (value: ApiResponsePayload): PluginBackendUpdatesResponse => {
     const record = requireRecord(value, 'Plugin backend updates response');
     const response: PluginBackendUpdatesResponse = {};
     for (const [pluginName, entry] of Object.entries(record)) {
-        const label = `Plugin backend updates response.${pluginName}`;
-        const status = requireRecord(entry, label);
-        response[pluginName] = {
-            updateAvailable: readRequiredBooleanValue(status['update_available'], `${label}.update_available`),
-            currentVersion: readNullableTrimmedStringValue(status['current_version'], `${label}.current_version`),
-            latestVersion: readNullableTrimmedStringValue(status['latest_version'], `${label}.latest_version`),
-            error: decodeUpdateError(status['error'], `${label}.error`)
-        };
+        response[pluginName] = decodePluginBackendUpdateResponse(entry);
     }
     return response;
 };
 
 const serializeBackendVariantSelectionRequest = (variantId: string): JsonObject => ({ 'backend_variant_id': variantId });
 
-export { decodeBackendVariantsResponse, decodePluginBackendUpdatesResponse, decodePluginCompatibilityOverrideResponse, serializeBackendVariantSelectionRequest };
+export { decodeBackendVariantsResponse, decodePluginBackendUpdateResponse, decodePluginBackendUpdatesResponse, decodePluginCompatibilityOverrideResponse, serializeBackendVariantSelectionRequest };
 export type { BackendVariantOptionResponse, BackendVariantsResponse, PluginBackendUpdateError, PluginBackendUpdatesResponse, PluginBackendUpdateStatus, PluginCompatibilityOverrideResponse };

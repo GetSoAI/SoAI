@@ -52,10 +52,6 @@ def validate_historical_query_params(
         raise ValidationError(
             f"interval_ms must be a positive integer, got: {interval_ms}",
         ) from exception
-    if sanitized_interval > (end_ts_ms - start_ts_ms):
-        raise ValidationError(
-            f"interval_ms ({sanitized_interval}) cannot exceed time range ({end_ts_ms - start_ts_ms} milliseconds)",
-        )
     try:
         sanitized_max_points = max(1, int(max_points or 1))
     except (TypeError, ValueError) as exception:

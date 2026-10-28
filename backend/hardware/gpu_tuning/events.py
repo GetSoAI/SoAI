@@ -9,10 +9,14 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from core.di.validation import require_dependencies
-from core.errors.exception_logging import log_exception
+from core.errors.exception_logging import log_handled_exception
+from core.errors.exceptions import SoAITimeoutError
+from core.errors.public_projection import project_public_error
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.events.id_generation import generate_event_id
 from core.events.protocols import EventBusProtocol
 from core.events.types_system import GPUSavedSettingsChangedEvent
+from core.hardware.gpu_inventory_errors import GPUObservationUnavailableError
 from core.logging.protocols import TraceLogger
 from core.logging.trace import get_logger
 from core.system.protocols import CommandExecutorProtocol
@@ -21,6 +25,7 @@ from core.tasks.protocols import (
     TaskFinalizerTrackerProtocol,
 )
 from core.types.json import JSONDict
+from core.types.json_value import require_json_dict
 from core.validation.boolean_coercion import coerce_bool_flag
 from hardware.gpu_capabilities.aggregate_payloads import get_capabilities_for_device
 from hardware.gpu_inventory.identity import normalize_gpu_index
@@ -71,25 +76,11 @@ class SlotStateEventDependencies:
 
 
 def build_slot_state_event_dependencies_or_none(
-    executor: CommandExecutorProtocol,
-    event_bus: EventBusProtocol | None,
-    main_loop: asyncio.AbstractEventLoop | None,
-    cancellation_binder: TaskCancellationBinderProtocol,
-    finalizer_tracker: TaskFinalizerTrackerProtocol,
-    logger: TraceLogger,
-    gpu_services: GpuServiceDependencies,
+    deps: SlotStateEventDependencies,
 ) -> SlotStateEventDependencies | None:
-    if not can_emit_events(event_bus, main_loop):
+    if not can_emit_events(deps.event_bus, deps.main_loop):
         return None
-    return SlotStateEventDependencies(
-        executor=executor,
-        event_bus=event_bus,
-        main_loop=main_loop,
-        cancellation_binder=cancellation_binder,
-        finalizer_tracker=finalizer_tracker,
-        logger=logger,
-        gpu_services=gpu_services,
-    )
+    return deps
 
 
 def emit_slot_state_event(
@@ -106,6 +97,8 @@ def emit_slot_state_event(
     boot_value = entry.get("boot")
     slots_payload = copy.deepcopy(slots_value) if isinstance(slots_value, dict) else {}
     boot_payload = copy.deepcopy(boot_value) if isinstance(boot_value, dict) else {}
+    event_identifier = generate_event_id()
+    observation_failure = None
     try:
         capabilities = get_tuning_capabilities_for_services(
             executor=deps.executor,
@@ -119,19 +112,37 @@ def emit_slot_state_event(
         )
         live_payload = build_live_state(device_id, entry, cap_entry)
     except RECOVERABLE_EXCEPTIONS as error:
-        log_exception(
-            deps.logger,
-            error,
-            message="Failed to build live GPU slot state",
+        failure = GPUObservationUnavailableError(
+            "GPU slot observation is unavailable after durable mutation.",
             operation=OPERATION,
-            details={"device_id": device_id},
+            cause=error,
+            trace_id=event_identifier,
         )
-        live_payload = {}
+        if isinstance(error, TimeoutError | SoAITimeoutError):
+            failure.public_message = "Live GPU observation timed out. Saved changes remain durable. Wait for observation to recover, then refresh."
+            failure.public_details = {"reason": "timeout"}
+        observation_failure = project_public_error(failure)
+        deps.gpu_services.gpu_info_cache_service.request_refresh()
+        should_emit, suppressed = deps.gpu_services.slot_observation_diagnostics.should_emit()
+        if should_emit:
+            log_handled_exception(
+                deps.logger,
+                error,
+                message="GPU slot observation is unavailable; saved settings remain durable.",
+                operation=OPERATION,
+                trace_id=event_identifier,
+                level="warning",
+                details={"device_id": device_id, "suppressed_repeats": suppressed},
+            )
+        live_payload = None
     event = GPUSavedSettingsChangedEvent(
+        event_id=event_identifier,
+        trace_id=event_identifier if observation_failure is not None else None,
         device_id=device_id,
         slots=slots_payload,
         boot=boot_payload,
         live=copy.deepcopy(live_payload),
+        observation_failure=observation_failure,
     )
     schedule_event_bus_publish(
         deps.event_bus,
@@ -219,17 +230,28 @@ def emit_slot_and_boot_events_and_clear_active(
 
 
 def emit_mutation_events(
+    deps: SlotStateEventDependencies,
     *,
-    executor: CommandExecutorProtocol,
-    event_bus: EventBusProtocol | None,
-    main_loop: asyncio.AbstractEventLoop | None,
-    cancellation_binder: TaskCancellationBinderProtocol,
-    finalizer_tracker: TaskFinalizerTrackerProtocol,
-    logger: TraceLogger,
     result: JSONDict,
     emit_boot_on_success: bool,
-    gpu_services: GpuServiceDependencies,
 ) -> None:
+    if "startup_metadata_snapshots" in result or "committed_state_snapshots" in result:
+        metadata = "startup_metadata_snapshots" in result
+        snapshots = require_json_dict(
+            result["startup_metadata_snapshots" if metadata else "committed_state_snapshots"],
+            label="GPU committed snapshots",
+        )
+        entries = {
+            device_id: require_json_dict(value, label="GPU startup metadata device")
+            for device_id, value in snapshots.items()
+        }
+        slot_state_deps = build_slot_state_event_dependencies_or_none(deps)
+        if metadata:
+            emit_slot_and_boot_events(slot_state_deps, entries_by_device_id=entries)
+        elif slot_state_deps is not None:
+            for device_id, entry in entries.items():
+                emit_slot_state_event(slot_state_deps, device_id=device_id, entry=entry)
+        return
     entry_value = result.get("entry")
     if not (
         is_success_result(
@@ -238,37 +260,31 @@ def emit_mutation_events(
             operation="hardware.gpu_tuning.events.is_success_result",
         )
         and isinstance(entry_value, dict)
-        and can_emit_events(event_bus, main_loop)
+        and can_emit_events(deps.event_bus, deps.main_loop)
     ):
         return
     entry = entry_value
-    device_id = result.get("device_id")
-    if not isinstance(device_id, str) or not device_id:
+    device_id_value = result.get("device_id")
+    if not isinstance(device_id_value, str) or not device_id_value:
         return
-    slot_state_deps = build_slot_state_event_dependencies_or_none(
-        executor=executor,
-        event_bus=event_bus,
-        main_loop=main_loop,
-        cancellation_binder=cancellation_binder,
-        finalizer_tracker=finalizer_tracker,
-        logger=logger,
-        gpu_services=gpu_services,
-    )
+    slot_state_deps = build_slot_state_event_dependencies_or_none(deps)
     if slot_state_deps is None:
         return
     emit_slot_state_event(
         slot_state_deps,
-        device_id=device_id,
+        device_id=device_id_value,
         entry=entry,
     )
     if (
         coerce_bool_flag(
             result.get("boot_changed"),
-            logger=logger,
+            logger=deps.logger,
             operation="hardware.gpu_tuning.events.coerce_bool_flag",
             default=False,
             recover_message="Failed to parse boolean flag (non-critical).",
         )
         or emit_boot_on_success
     ):
-        emit_boot_preference_event_for_entry(slot_state_deps, device_id=device_id, entry=entry)
+        emit_boot_preference_event_for_entry(
+            slot_state_deps, device_id=device_id_value, entry=entry
+        )

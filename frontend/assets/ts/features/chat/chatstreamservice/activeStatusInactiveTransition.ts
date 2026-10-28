@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
-import { applyAssistantMessageSnapshot, sessionMatchesActiveStatus } from '@features/chat/chatstreamservice/activeStatusSessionState.ts';
+import { applyAssistantMessageSnapshot, isChatStreamSessionReplaced, sessionMatchesActiveStatus } from '@features/chat/chatstreamservice/activeStatusSessionState.ts';
+import type { ChatStreamStatusAdmissionState } from '@features/chat/chatstreamservice/activeStatusAdmissionCommit.ts';
 import { deactivateFollowerSession } from '@features/chat/chatstreamservice/activeStatusFollowerDisposal.ts';
 import { activeStatusPrecedesSession, discardOwnerSession } from '@features/chat/chatstreamservice/activeStatusSessionCleanup.ts';
 import type { ChatStreamApiClient } from '@features/chat/chatstreamservice/chatStreamApi.ts';
 import type { StreamRuntime } from '@features/chat/chatstreamservice/contracts.ts';
-import type { ChatStreamStatusSnapshot } from '@features/chat/chatstreamservice/activeStreamStatus.ts';
 import { waitForInactiveTerminalAssistantState } from '@features/chat/chatstreamservice/inactiveTerminalHydration.ts';
 import { finalizeChatStreamHydratedTerminal, finalizeChatStreamProtocolFailure } from '@features/chat/chatstreamservice/streamTerminalizationPolicy.ts';
 import { resolveHydratedTerminalStatus } from '@features/chat/chatstreamservice/streamHydratedTerminalStatus.ts';
@@ -23,6 +23,8 @@ type InactiveTerminalStreamIdentity = {
 };
 
 type InactiveTerminalizationResult = 'not-terminalized' | 'hydrated-terminal' | 'missing-terminal-snapshot' | 'suppressed';
+
+type InactiveSnapshotApplicationResult = HydratedSnapshotApplicationResult | 'superseded';
 
 type ActiveStatusInactiveTransitionRequestDispositions = {
     shouldIgnorePassiveStreamEvent(conversationId: string, requestId: string): boolean;
@@ -47,9 +49,7 @@ type ActiveStatusInactiveTransitionArguments = {
     };
     ownerDispatch: ActiveStatusInactiveTransitionOwnerDispatch;
     requestDispositions: ActiveStatusInactiveTransitionRequestDispositions;
-    admissionState: {
-        update(status: ChatStreamStatusSnapshot): void;
-    };
+    admissionState: ChatStreamStatusAdmissionState;
     isCurrent: () => boolean;
     signal?: AbortSignal | undefined;
 };
@@ -105,8 +105,10 @@ const waitForInactiveTerminalSnapshot = async (inputArguments: ActiveStatusInact
     });
 };
 
-const applyInactiveOwnerSnapshot = async (inputArguments: ActiveStatusInactiveTransitionArguments, session: ChatStreamSession, assistantMessage: ChatStreamSession['assistantMessage']): Promise<HydratedSnapshotApplicationResult> => {
-    const result = await inputArguments.ownerDispatch.applySnapshot(session.conversationId, session.requestId, assistantMessage, false);
+const settleInactiveSnapshotApplication = (inputArguments: ActiveStatusInactiveTransitionArguments, session: ChatStreamSession, assistantMessage: ChatStreamSession['assistantMessage'], result: HydratedSnapshotApplicationResult | null): InactiveSnapshotApplicationResult => {
+    if (!inputArguments.isCurrent() || isChatStreamSessionReplaced(inputArguments.sessions, session)) {
+        return 'superseded';
+    }
     if (result !== null) {
         return result;
     }
@@ -114,13 +116,23 @@ const applyInactiveOwnerSnapshot = async (inputArguments: ActiveStatusInactiveTr
     return 'active';
 };
 
-const applyInactiveFollowerSnapshot = async (inputArguments: ActiveStatusInactiveTransitionArguments, session: ChatStreamSession, assistantMessage: ChatStreamSession['assistantMessage']): Promise<HydratedSnapshotApplicationResult> => {
-    const result = await inputArguments.followerSessions.applyFollowerSnapshot(session.conversationId, session.requestId, assistantMessage, false);
-    if (result !== null) {
-        return result;
+const applyInactiveOwnerSnapshot = async (inputArguments: ActiveStatusInactiveTransitionArguments, session: ChatStreamSession, assistantMessage: ChatStreamSession['assistantMessage']): Promise<InactiveSnapshotApplicationResult> => {
+    return settleInactiveSnapshotApplication(inputArguments, session, assistantMessage, await inputArguments.ownerDispatch.applySnapshot(session.conversationId, session.requestId, assistantMessage, false));
+};
+
+const applyInactiveFollowerSnapshot = async (inputArguments: ActiveStatusInactiveTransitionArguments, session: ChatStreamSession, assistantMessage: ChatStreamSession['assistantMessage']): Promise<InactiveSnapshotApplicationResult> => {
+    return settleInactiveSnapshotApplication(inputArguments, session, assistantMessage, await inputArguments.followerSessions.applyFollowerSnapshot(session.conversationId, session.requestId, assistantMessage, false));
+};
+
+const finalizeInactiveFollowerFromHydratedMessage = async (inputArguments: ActiveStatusInactiveTransitionArguments, session: ChatStreamSession, assistantMessage: ChatStreamSession['assistantMessage']): Promise<InactiveTerminalizationResult> => {
+    const application = await applyInactiveFollowerSnapshot(inputArguments, session, assistantMessage);
+    if (application === 'superseded') {
+        return 'not-terminalized';
     }
-    applyAssistantMessageSnapshot(session, assistantMessage);
-    return 'active';
+    if (application === 'terminal') {
+        return 'hydrated-terminal';
+    }
+    return finalizeInactiveFollowerSession(inputArguments, session);
 };
 
 const terminalizeInactiveFollower = async (inputArguments: ActiveStatusInactiveTransitionArguments, conversationId: string, expectedRequestId: string): Promise<InactiveTerminalizationResult> => {
@@ -157,10 +169,7 @@ const terminalizeInactiveFollower = async (inputArguments: ActiveStatusInactiveT
     if (assistantMessage === null) {
         return finalizeInactiveFollowerSession(inputArguments, session);
     }
-    if ((await applyInactiveFollowerSnapshot(inputArguments, session, assistantMessage)) === 'terminal') {
-        return 'hydrated-terminal';
-    }
-    return finalizeInactiveFollowerSession(inputArguments, session);
+    return await finalizeInactiveFollowerFromHydratedMessage(inputArguments, session, assistantMessage);
 };
 
 const finalizeInactiveOwnerSession = async (inputArguments: ActiveStatusInactiveTransitionArguments, status: InactiveTerminalStreamIdentity & { requestId: string }, session: ChatStreamSession, initialMessage: ChatStreamSession['assistantMessage']): Promise<InactiveTerminalizationResult> => {
@@ -182,7 +191,11 @@ const finalizeInactiveOwnerSession = async (inputArguments: ActiveStatusInactive
         discardOwnerSession(inputArguments, status.conversationId, session);
         return 'missing-terminal-snapshot';
     }
-    if ((await applyInactiveOwnerSnapshot(inputArguments, session, assistantMessage)) === 'terminal') {
+    const application = await applyInactiveOwnerSnapshot(inputArguments, session, assistantMessage);
+    if (application === 'superseded') {
+        return 'not-terminalized';
+    }
+    if (application === 'terminal') {
         return 'hydrated-terminal';
     }
     const terminalStatus = resolveHydratedTerminalStatus(session);
@@ -205,13 +218,6 @@ const finalizeInactiveOwnerSession = async (inputArguments: ActiveStatusInactive
     });
     discardOwnerSession(inputArguments, status.conversationId, session);
     return 'hydrated-terminal';
-};
-
-const finalizeInactiveFollowerFromHydratedMessage = async (inputArguments: ActiveStatusInactiveTransitionArguments, session: ChatStreamSession, assistantMessage: ChatStreamSession['assistantMessage']): Promise<InactiveTerminalizationResult> => {
-    if ((await applyInactiveFollowerSnapshot(inputArguments, session, assistantMessage)) === 'terminal') {
-        return 'hydrated-terminal';
-    }
-    return finalizeInactiveFollowerSession(inputArguments, session);
 };
 
 export { finalizeInactiveFollowerFromHydratedMessage, finalizeInactiveOwnerSession, terminalizeInactiveFollower, waitForInactiveTerminalSnapshot };

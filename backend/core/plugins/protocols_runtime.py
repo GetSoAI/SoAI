@@ -14,6 +14,7 @@ from core.runtime.protocols import RuntimeFlagsViewProtocol
 
 if TYPE_CHECKING:
     from core.events.types_base import Event
+    from core.hardware.disk_reservation_records import DiskSpaceReservationRequest
     from core.plugins.protocols_instance import FilesProtocol
     from core.types.json import JSONDict, JSONValue
 
@@ -148,6 +149,11 @@ class PluginStorageRuntimeProtocol(Protocol):
         required_bytes: int,
         operation: str,
         details: Mapping[str, JSONValue] | None = None,
+    ) -> PluginStorageReservationLeaseProtocol: ...
+    async def reserve_many_disk_spaces(
+        self,
+        *,
+        requests: Sequence[DiskSpaceReservationRequest],
     ) -> PluginStorageReservationLeaseProtocol: ...
 
 

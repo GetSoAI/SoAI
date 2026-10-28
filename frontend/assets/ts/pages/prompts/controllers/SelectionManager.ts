@@ -72,6 +72,12 @@ class SelectionManager {
         this.#selection.clear();
     }
 
+    removeMany(promptIds: readonly string[]): void {
+        this.#selection.removeMany(promptIds);
+        this.#dependencies.refreshPromptCards(promptIds);
+        this.refreshUI();
+    }
+
     toggleMode(): void {
         const ui = this.#ui;
         if (!ui) {

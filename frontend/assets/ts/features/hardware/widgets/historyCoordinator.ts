@@ -6,13 +6,14 @@ import { serverEpochMs } from '@core/time/clock.ts';
 import type { CPUDevice, GPUDevice, HardwareData, HardwareSnapshot, HistoryResponse, NetworkDevice, WidgetHistoryRequest, WidgetHistoryWindow } from '@features/hardware/widgets/internalContracts.ts';
 import type { CPUWidget } from '@features/hardware/widgets/CPUWidget.ts';
 import type { GPUWidget } from '@features/hardware/widgets/GPUWidget.ts';
+import { resolveGpuWidgetKey } from '@features/hardware/widgets/mappers.ts';
 import type { NetworkWidget } from '@features/hardware/widgets/NetworkWidget.ts';
 
 type HardwarePayload = HardwareSnapshot | HardwareData;
 
 interface HardwareHistoryWidgets {
     cpuWidgets: Map<number, CPUWidget>;
-    gpuWidgets: Map<number, GPUWidget>;
+    gpuWidgets: Map<string | number, GPUWidget>;
     networkWidgets: Map<string, NetworkWidget>;
 }
 
@@ -60,12 +61,12 @@ class HardwareWidgetHistoryCoordinator {
         );
     }
 
-    #queueGpuHistoryRequests(requests: Promise<void>[], gpuDevices: GPUDevice[], window: WidgetHistoryWindow, startTsMs: number, endTsMs: number, signal: AbortSignal, gpuWidgets: Map<number, GPUWidget>): void {
+    #queueGpuHistoryRequests(requests: Promise<void>[], gpuDevices: GPUDevice[], window: WidgetHistoryWindow, startTsMs: number, endTsMs: number, signal: AbortSignal, gpuWidgets: Map<string | number, GPUWidget>): void {
         for (const gpu of gpuDevices) {
             requests.push(
                 this.#fetchHistory(this.#buildHistoryRequest('gpu', gpu.index, window, startTsMs, endTsMs, signal)).then((data) => {
-                    const widget = gpuWidgets.get(gpu.index);
-                    if (data && widget && !signal.aborted) {
+                    const widget = gpuWidgets.get(resolveGpuWidgetKey(gpu));
+                    if (data && widget && !signal.aborted && (!gpu.deviceId || !data.metadata.deviceId || data.metadata.deviceId === gpu.deviceId)) {
                         widget.processHistoricalData(data);
                     }
                 })

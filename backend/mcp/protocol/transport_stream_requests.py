@@ -5,23 +5,21 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
+from functools import partial
 from typing import TYPE_CHECKING
 
 import httpx2
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_logging import log_exception
 from core.errors.external_service_exception import ExternalServiceError
 from core.errors.http_recoverable import HTTP_RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from mcp.protocol.connection_request_state import (
     cancel_pending_request,
-    create_pending_request,
+    create_outbound_request,
 )
 from mcp.protocol.connection_state import MCPServerConnection
-from mcp.protocol.jsonrpc import (
-    build_jsonrpc_notification,
-    build_jsonrpc_request,
-)
 from mcp.protocol.streamable_http_response import (
     MCPStreamAuthorizationError,
     MCPStreamInsufficientScopeError,
@@ -54,13 +52,37 @@ async def send_stream_request(
     logger = get_logger(LOGGER_NAME)
     if http_client is None:
         raise ExternalServiceError("HTTP client not configured for MCP requests.")
-    message_id, future = await create_pending_request(connection.request_state)
-    request = build_jsonrpc_request(message_id, method, params)
+    outbound = await create_outbound_request(
+        connection.request_state,
+        method=method,
+        params=params,
+        send_notification=partial(
+            send_stream_message,
+            http_client=http_client,
+            connection=connection,
+            url=url,
+            headers=headers,
+        ),
+    )
+
+    async def cancel_request(reason: str) -> None:
+        try:
+            await outbound.cancel(reason)
+        except HTTP_RECOVERABLE_EXCEPTIONS as notify_exception:
+            log_exception(
+                logger,
+                notify_exception,
+                message="Failed to send cancellation notification (non-critical).",
+                operation=OPERATION_MCP_PROTOCOL_SEND_STREAM_CANCEL,
+                details={"method": method},
+                level="debug",
+            )
+
     try:
         async with http_client.stream(
             "POST",
             url,
-            json=request,
+            json=outbound.message,
             headers={
                 **dict(headers),
                 "Content-Type": "application/json",
@@ -74,46 +96,27 @@ async def send_stream_request(
             await resolve_streamable_http_response_message(
                 response=response,
                 connection=connection,
-                message_id=message_id,
-                future=future,
+                message_id=outbound.message_id,
+                future=outbound.future,
             )
-        return await asyncio.wait_for(future, timeout=connection.config.timeout_sec)
+        return await asyncio.wait_for(outbound.future, timeout=connection.config.timeout_sec)
     except asyncio.CancelledError:
-        await cancel_pending_request(connection.request_state, message_id)
+        await uncancel_then_cleanup(cancel_request("Request cancelled by client"))
         raise
     except (httpx2.TimeoutException, TimeoutError):
-        await cancel_pending_request(connection.request_state, message_id)
-        if method != "initialize":
-            notification = build_jsonrpc_notification(
-                "notifications/cancelled",
-                {"rpcId": message_id, "reason": "Request timed out"},
-            )
-            try:
-                await send_stream_message(
-                    http_client=http_client,
-                    connection=connection,
-                    url=url,
-                    headers=headers,
-                    message=notification,
-                )
-            except HTTP_RECOVERABLE_EXCEPTIONS as notify_exception:
-                log_exception(
-                    logger,
-                    notify_exception,
-                    message="Failed to send cancellation notification",
-                    operation=OPERATION_MCP_PROTOCOL_SEND_STREAM_CANCEL,
-                    details={"method": method},
-                    level="warning",
-                )
+        await uncancel_then_cleanup(
+            cancel_request("Request timed out"),
+            propagate_cancellation=True,
+        )
         return None
     except (MCPStreamAuthorizationError, MCPStreamInsufficientScopeError):
-        await cancel_pending_request(connection.request_state, message_id)
+        await cancel_pending_request(connection.request_state, outbound.message_id)
         raise
     except ExternalServiceError:
-        await cancel_pending_request(connection.request_state, message_id)
+        await cancel_pending_request(connection.request_state, outbound.message_id)
         raise
     except HTTP_RECOVERABLE_EXCEPTIONS as exception:
-        await cancel_pending_request(connection.request_state, message_id)
+        await cancel_pending_request(connection.request_state, outbound.message_id)
         log_exception(
             logger,
             exception,

@@ -63,6 +63,7 @@ async def build_manual_compaction_summary_text(
     source_messages: list[JSONDict],
     compaction_limit: int | None,
     summarizer_budget: int,
+    summary_max_tokens: int,
     raise_if_cancelled: Callable[[], Awaitable[None]],
     on_text_delta: Callable[[str], Awaitable[None]],
 ) -> ManualCompactionSummaryResult:
@@ -98,6 +99,7 @@ async def build_manual_compaction_summary_text(
         owner_id=conv_id,
         prompt_token_counter=api_context.dependencies.prompt_token_counter,
         max_prompt_tokens=summarizer_budget,
+        max_output_tokens=summary_max_tokens,
         on_text_delta=on_text_delta,
     )
     await raise_if_cancelled()

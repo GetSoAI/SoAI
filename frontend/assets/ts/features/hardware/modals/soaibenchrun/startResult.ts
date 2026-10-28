@@ -3,10 +3,15 @@
 
 import { i18n } from '@core/i18n/index.ts';
 import type { GpuOperationResponse } from '@core/api/contracts/hardwareContracts.ts';
+import { resolveSoAIBenchCapabilityReasonLabel } from '@features/hardware/soaibenchLabels.ts';
 
 type SoAIBenchRunStartResult = { acceptedRunId: string; failureReason: null } | { acceptedRunId: null; failureReason: string };
 
 const startFailureReason = (result: GpuOperationResponse): string => {
+    const capabilityReason = resolveSoAIBenchCapabilityReasonLabel(result.unsupportedReason?.trim() || result.failureReason?.trim() || null);
+    if (capabilityReason !== null) {
+        return capabilityReason;
+    }
     if (result.unsupportedReason?.trim()) {
         return result.unsupportedReason.trim();
     }

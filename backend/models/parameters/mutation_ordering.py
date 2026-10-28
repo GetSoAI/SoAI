@@ -18,7 +18,10 @@ from core.errors.exceptions import ValidationError
 from core.types.json import JSONDict
 
 if TYPE_CHECKING:
-    type MutationCallable = Callable[[JSONDict, JSONDict], tuple[JSONDict, bool, str] | None]
+    type MutationCallable = Callable[
+        [str, JSONDict, JSONDict],
+        tuple[JSONDict, bool, str] | None,
+    ]
 else:
     MutationCallable = Callable
 
@@ -30,6 +33,7 @@ class MutationOrderTracker:
     def __init__(self) -> None:
         self._universal_id_order_counters: dict[str, int] = {}
         self._universal_id_expected_orders: dict[str, int] = {}
+        self._universal_id_revoked_orders: dict[str, set[int]] = {}
         self._universal_id_tie_breakers: dict[str, int] = {}
         self._universal_id_order_events: dict[str, asyncio.Event] = {}
         self._universal_id_task_sequences: dict[
@@ -82,9 +86,14 @@ class MutationOrderTracker:
 
     def revoke_expected_order(self, universal_id: str, revoked_base: int) -> None:
         expected = self._universal_id_expected_orders.get(universal_id)
-        if expected is not None and expected == revoked_base:
-            self._universal_id_expected_orders[universal_id] = revoked_base + 1
-            self.notify_order_ready(universal_id)
+        if expected is None or revoked_base < expected:
+            return
+        if revoked_base == expected:
+            self._advance_expected_order(universal_id, revoked_base + 1)
+            return
+        if universal_id not in self._universal_id_revoked_orders:
+            self._universal_id_revoked_orders[universal_id] = set[int]()
+        self._universal_id_revoked_orders[universal_id].add(revoked_base)
 
     def advance_expected_order(
         self,
@@ -95,8 +104,17 @@ class MutationOrderTracker:
     ) -> None:
         expected = self._universal_id_expected_orders.get(universal_id)
         if strict_order and expected is not None and (completed_base == expected):
-            self._universal_id_expected_orders[universal_id] = completed_base + 1
-            self.notify_order_ready(universal_id)
+            self._advance_expected_order(universal_id, completed_base + 1)
+
+    def _advance_expected_order(self, universal_id: str, next_base: int) -> None:
+        revoked_orders = self._universal_id_revoked_orders.get(universal_id)
+        while revoked_orders and next_base in revoked_orders:
+            revoked_orders.discard(next_base)
+            next_base += 1
+        if revoked_orders is not None and not revoked_orders:
+            self._universal_id_revoked_orders.pop(universal_id, None)
+        self._universal_id_expected_orders[universal_id] = next_base
+        self.notify_order_ready(universal_id)
 
     async def wait_for_order(
         self,
@@ -153,16 +171,17 @@ class MutationOrderTracker:
             signature = inspect.signature(mutation)
         except (TypeError, ValueError):
             return mutation
-        if _signature_accepts_exactly_two_positional_parameters(signature):
+        if _signature_accepts_exactly_three_positional_parameters(signature):
             return mutation
         raise ValidationError(
-            "Mutation callable must accept exactly 2 positional args (state, metadata).",
+            "Mutation callable must accept exactly 3 positional args (plugin, schema, values).",
         )
 
     def clear_universal_id(self, universal_id: str) -> None:
         self._universal_id_order_counters.pop(universal_id, None)
         self._universal_id_tie_breakers.pop(universal_id, None)
         self._universal_id_expected_orders.pop(universal_id, None)
+        self._universal_id_revoked_orders.pop(universal_id, None)
         self._universal_id_order_events.pop(universal_id, None)
         task_sequence = self._universal_id_task_sequences.get(universal_id)
         if task_sequence is not None:
@@ -178,7 +197,7 @@ class MutationOrderTracker:
         return counter
 
 
-def _signature_accepts_exactly_two_positional_parameters(
+def _signature_accepts_exactly_three_positional_parameters(
     signature: inspect.Signature,
 ) -> bool:
     positional_parameters = [
@@ -191,4 +210,4 @@ def _signature_accepts_exactly_two_positional_parameters(
         parameter.kind == inspect.Parameter.VAR_POSITIONAL
         for parameter in signature.parameters.values()
     )
-    return len(positional_parameters) == 2 and not has_var_positional
+    return len(positional_parameters) == 3 and not has_var_positional

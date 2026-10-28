@@ -10,12 +10,17 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from importlib.util import find_spec
 
+from core.bootstrap.runtime_directories import ensure_runtime_directory_environment
 from core.errors.exceptions import ValidationError
+from core.meta.paths import get_repo_root
 from core.serialization.json_parsing import parse_json_value
+from core.system.native_image_budget import native_image_allowance
+from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 
 __all__ = (
     "BrowserPruneOutcome",
     "is_expected_chromium_installed",
+    "managed_chromium_launch_timeout_ms",
     "prune_stale_browser_directories",
     "read_expected_browser_directory_names",
 )
@@ -164,6 +169,18 @@ def is_expected_chromium_installed(*, browsers_path: str) -> bool:
     except OSError:
         installed = False
     return installed
+
+
+def managed_chromium_launch_timeout_ms(*, headless: bool) -> float:
+    browsers_path = ensure_runtime_directory_environment(get_repo_root()).playwright_browsers_path
+    launched_browser = "chromium-headless-shell" if headless else "chromium"
+    roots = tuple(
+        os.path.join(browsers_path, directory_name)
+        for browser_name, directory_name in _readiness_expectations()
+        if browser_name == launched_browser
+    )
+    allowance = native_image_allowance(INTERACTIVE_TIMEOUT_SEC, roots=roots)
+    return allowance.seconds * 1000.0
 
 
 def prune_stale_browser_directories(*, browsers_path: str) -> BrowserPruneOutcome:

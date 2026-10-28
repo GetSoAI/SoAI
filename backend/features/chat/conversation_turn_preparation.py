@@ -7,9 +7,11 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.agent.settings_types import AgentSettings
+from core.errors.exceptions import StateError
 from core.orchestrator.types import MCPToolContext
 from core.runtime.request_context import RequestContext
 from core.runtime.request_sources import RequestSource
+from core.skills.execution import propose_skill_activation
 from core.types.json import JSONDict
 from features.agent.runtime.agentic_execution_policy import should_run_agent_turn_engine
 from features.agent.runtime.prepared_request_state import PreparedExecutionRequest
@@ -68,6 +70,18 @@ async def prepare_conversation_turn_request(
             conv_id=conv_id,
             user_id=user_id,
         )
+    skill_context = request_context.skill_execution_context
+    replay = request_context.agent_prompt_replay_snapshot
+    if replay is not None:
+        if replay.skill_activation is not None:
+            if skill_context is None:
+                raise StateError("Resumed skill activation has no admitted snapshot.")
+            skill_context = replay.skill_activation.restore_execution(skill_context.snapshot)
+        elif skill_context is not None and skill_context.snapshot.available:
+            raise StateError("Resumed skill activation checkpoint is missing.")
+    if skill_context is not None:
+        for skill_id in skill_context.snapshot.explicit_skill_ids:
+            skill_context = propose_skill_activation(skill_context, skill_id)
     prepared_assembly = await build_agentic_request_assembly(
         api_dependencies=api_dependencies,
         request_json=request_json,
@@ -87,7 +101,9 @@ async def prepare_conversation_turn_request(
         summarize_messages=None,
         extra_system_messages=extra_system_messages,
         model_settings_snapshot=model_settings_snapshot,
+        skill_context=skill_context,
     )
+    request_context.skill_execution_context = skill_context
     request_context.mcp_tool_context = tool_context
     return PreparedConversationTurnRequest(
         request_json=prepared_assembly.effective_request_json,

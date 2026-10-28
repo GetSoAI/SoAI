@@ -12,12 +12,18 @@ from typing import TYPE_CHECKING
 
 from core.concurrency.deadlines import MonotonicDeadline, deadline_after
 from core.errors.exception_logging import log_handled_exception
+from core.errors.exceptions import ValidationError
 from core.filesystem.open_files import open_text
-from core.system.commands import run_argv_capture
+from core.platform.linux_paths import linux_user_runtime_root
 from core.system.process_launcher import SUBPROCESS_RECOVERABLE_EXCEPTIONS
+from hardware.gpu_inventory.executable_resolution import (
+    GpuExecutableResolution,
+    GpuExecutableState,
+)
 
 if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
+    from hardware.vendors.nvidia.internal_protocols import NvidiaSettingsCaptureProtocol
 
 __all__ = (
     "detect_display_environment",
@@ -27,6 +33,7 @@ __all__ = (
     "display_process_environment",
     "DisplaySearchResult",
     "DisplaySearchStatus",
+    "NvidiaDisplayQuery",
 )
 
 OPERATION_HARDWARE_NVIDIA_DETECT_DISPLAY_ENVIRONMENT = "hardware_nvidia.detect_display_environment"
@@ -50,6 +57,23 @@ class DisplaySearchResult:
     xauthority: str | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class NvidiaDisplayQuery:
+    capture: NvidiaSettingsCaptureProtocol
+    executable: GpuExecutableResolution
+    preferred_display: str | None
+
+    def __post_init__(self) -> None:
+        if not callable(self.capture):
+            raise ValidationError("NVIDIA display command capture is invalid.")
+        if not isinstance(self.executable, GpuExecutableResolution) or (
+            self.executable.executable != "nvidia-settings"
+        ):
+            raise ValidationError("NVIDIA display query requires its exact executable authority.")
+        if self.preferred_display is not None and not isinstance(self.preferred_display, str):
+            raise ValidationError("NVIDIA preferred display must be text.")
+
+
 def display_process_environment(display: str, xauthority: str | None) -> dict[str, str]:
     environment = os.environ.copy()
     environment["DISPLAY"] = display
@@ -62,7 +86,13 @@ def display_process_environment(display: str, xauthority: str | None) -> dict[st
 def detect_display_environment(
     logger: LoggerProtocol,
     deadline: MonotonicDeadline | None = None,
+    *,
+    query: NvidiaDisplayQuery,
 ) -> DisplaySearchResult:
+    if not isinstance(query, NvidiaDisplayQuery):
+        raise ValidationError("NVIDIA display query requires explicit typed command authority.")
+    if query.executable.state != GpuExecutableState.FOUND:
+        return DisplaySearchResult(DisplaySearchStatus.TOOL_UNAVAILABLE)
     discovery_deadline = deadline_after(4.0)
     if deadline is not None:
         discovery_deadline = MonotonicDeadline(
@@ -71,15 +101,19 @@ def detect_display_environment(
     failure = DisplaySearchStatus.NO_DISPLAY
     try:
         enumerated_displays = enumerate_displays()
-        displays = enumerated_displays or (":0",)
+        displays = (
+            (query.preferred_display,)
+            if query.preferred_display
+            else enumerated_displays or (":0",)
+        )
         xauthorities = _candidate_xauthorities(discovery_deadline)
         for display in displays:
             if discovery_deadline.expired():
                 return DisplaySearchResult(DisplaySearchStatus.DEADLINE)
-            if not _display_may_listen(display, discovery_deadline):
+            if not query.preferred_display and not _display_may_listen(display, discovery_deadline):
                 continue
             for xauthority in xauthorities:
-                result = validate_display(display, xauthority, discovery_deadline)
+                result = validate_display(display, xauthority, discovery_deadline, query=query)
                 if result.status in (
                     DisplaySearchStatus.USABLE,
                     DisplaySearchStatus.TOOL_UNAVAILABLE,
@@ -142,12 +176,19 @@ def validate_display(
     display: str,
     xauthority: str | None,
     deadline: MonotonicDeadline,
+    *,
+    query: NvidiaDisplayQuery,
 ) -> DisplaySearchResult:
+    if not isinstance(query, NvidiaDisplayQuery):
+        raise ValidationError("NVIDIA display query requires explicit typed command authority.")
     timeout = int(min(2.0, deadline.remaining_seconds()))
     if timeout < 1:
         return DisplaySearchResult(DisplaySearchStatus.DEADLINE)
-    result = run_argv_capture(
-        ["nvidia-settings", "-c", display, "-q", "gpus"],
+    executable = query.executable.path
+    if query.executable.state != GpuExecutableState.FOUND or executable is None:
+        return DisplaySearchResult(DisplaySearchStatus.TOOL_UNAVAILABLE)
+    result = query.capture(
+        [executable, "-c", display, "-q", "gpus"],
         env=display_process_environment(display, xauthority),
         timeout=timeout,
     )
@@ -259,7 +300,7 @@ def _runtime_search_roots() -> tuple[str, ...]:
     candidates: list[str] = []
     if runtime_parent:
         candidates.append(runtime_parent)
-    candidates.append(os.path.join(os.sep, "run", "user"))
+    candidates.append(linux_user_runtime_root())
     roots: list[str] = []
     for candidate in candidates:
         if candidate and os.path.isdir(candidate) and candidate not in roots:

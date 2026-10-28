@@ -5,6 +5,7 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { createAbortError } from '@core/errors/abort.ts';
 import { deepClone } from '@core/primitives/clone.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
+import type { SyntaxHighlighter } from '@core/syntaxhighlighter/public.ts';
 import { buildInlineActivityDetailsRequestKey, resolveInlineActivityDetailsSignatureFromMessage, type InlineActivityDetailsCancelRequest, type InlineActivityDetailsRenderRequest, type InlineActivityDetailsSignatureCheckRequest } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
 import { inlineActivityDetailsIdentitiesMatch, readInlineActivityDetailsSignature, resolveInlineActivityDetailsIdentity } from '@features/chat/message/inlineActivityDetailsLifecycle.ts';
 import { clearInlineActivityDetailsPendingState } from '@features/chat/message/inlineActivityDetailsPendingState.ts';
@@ -19,6 +20,7 @@ import type { ChatActivityDurationDisplayMode } from '@features/chat/message/mes
 
 interface ChatMessageInlineActivityDetailsRendererDependencies {
     client: ChatMessageRenderWorkerClient;
+    syntaxHighlighter: SyntaxHighlighter;
     isRichTextEnabled: () => boolean;
     isCodeRecognitionEnabled: () => boolean;
     isThinkingFeatureEnabled: () => boolean;
@@ -259,6 +261,7 @@ class ChatMessageInlineActivityDetailsRenderer {
                     item: inputArguments.item,
                     signature,
                     html: result.html,
+                    syntaxHighlighter: this.#dependencies.syntaxHighlighter,
                     postRenderEffects: this.#dependencies.postRenderEffects
                 });
                 this.#clearAbortController(requestKey, controller);

@@ -10,21 +10,27 @@ from typing import TYPE_CHECKING
 from core.attachments.attachment_constants import WEBUI_CHAT_ATTACHMENT_PURPOSE
 from core.attachments.attachment_event_payloads import conversation_attachment_changed_event
 from core.attachments.attachment_parse_classification import (
+    ATTACHMENT_PARSE_CONTEXT_REASON,
     classify_attachment_descriptor_for_provider,
 )
 from core.attachments.attachment_parse_failure import mark_attachment_parse_failed
 from core.attachments.attachment_parse_persistence import persist_attachment_parse_outcome
+from core.concurrency.bounded_blocking import BoundedBlockingPool
+from core.concurrency.deadlines import deadline_after
 from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.di.validation import require_dependencies
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ValidationError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
-from core.files.content_hashing import hash_descriptor_content
+from core.files.content_errors import FileContentChangedError
+from core.files.content_verification import verify_descriptor_content
 from core.files.managed_file_opening import ManagedFileDescriptor, open_managed_file_descriptor
 from core.files.managed_storage_errors import FileStorageSecurityError
 from core.files.storage_root_resolution import resolve_managed_files_storage_root
 from core.logging.trace import get_logger
 from core.media.config import resolve_media_parse_timeout
+from core.runtime.request_context import create_system_context
+from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 from core.timing.epoch import epoch_ms
 from core.users.ocr_preferences import resolve_user_ocr_language
 from core.validation.strict_numbers import require_non_negative_int_strict
@@ -73,6 +79,7 @@ class DirectAttachmentParseDependencies:
     document_reader: DocumentReaderProtocol
     parser_registry_factory: FileParserRegistryFactoryProtocol
     event_bus: EventBusProtocol
+    file_content_pool: BoundedBlockingPool
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -85,6 +92,7 @@ class DirectAttachmentParseDependencies:
             document_reader=self.document_reader,
             parser_registry_factory=self.parser_registry_factory,
             event_bus=self.event_bus,
+            file_content_pool=self.file_content_pool,
         )
 
 
@@ -122,31 +130,33 @@ async def _open_verified_attachment_descriptor(
         raise FileStorageSecurityError("Attachment file catalog row is missing.")
     if record["purpose"] != WEBUI_CHAT_ATTACHMENT_PURPOSE or record["api_key_id"] is not None:
         raise FileStorageSecurityError("Attachment file catalog row is invalid.")
+    deadline = deadline_after(float(INTERACTIVE_TIMEOUT_SEC))
     managed = await run_joined_thread_call(
         open_managed_file_descriptor,
         resolve_managed_files_storage_root(deps.config, deps.files),
         record["file_path"],
         task_name="direct-attachment-managed-open",
+        pool=deps.file_content_pool,
+        admission_deadline=deadline,
+        retain_resources_until_complete=True,
         cancelled_result_cleanup=_close_managed_file_descriptor,
     )
     completed = False
     try:
+        if managed.size_bytes != record["size_bytes"]:
+            raise FileStorageSecurityError("Attachment file size changed before parsing.")
         try:
-            content_hash = await run_joined_thread_call(
-                hash_descriptor_content,
+            await verify_descriptor_content(
                 managed.descriptor,
-                task_name="direct-attachment-content-hash",
+                expected_size=record["size_bytes"],
+                expected_sha256=record["content_sha256"],
+                pool=deps.file_content_pool,
+                deadline=deadline,
             )
-        except ValidationError as exception:
+        except (ValidationError, FileContentChangedError) as exception:
             raise FileStorageSecurityError(
                 "Attachment file content could not be verified before parsing.",
             ) from exception
-        if (
-            content_hash.size_bytes != record["size_bytes"]
-            or content_hash.sha256_hex != record["content_sha256"]
-            or managed.size_bytes != record["size_bytes"]
-        ):
-            raise FileStorageSecurityError("Attachment file content changed before parsing.")
         completed = True
         return managed.descriptor
     finally:
@@ -186,6 +196,11 @@ async def parse_direct_attachment(
         try:
             outcome = await classify_attachment_descriptor_for_provider(
                 ocr_language=ocr_language,
+                file_content_pool=deps.file_content_pool,
+                request_context=create_system_context(
+                    ATTACHMENT_PARSE_CONTEXT_REASON,
+                    user_id=user_id,
+                ),
                 document_reader=deps.document_reader,
                 parser_registry_factory=deps.parser_registry_factory,
                 descriptor=descriptor,

@@ -14,6 +14,7 @@
         margin: 0;
         position: sticky;
         top: 0;
+        translate: 0 var(--page-header-fold-offset);
         border-inline-end: none;
         border-inline-start: none;
     }
@@ -118,7 +119,7 @@
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .process-close-btn:focus-visible {
-        border: var(--border-width-1) solid var(--accent-green);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--ui-button-neutral-color-hover) var(--control-button-border-hover-strength), transparent);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .process-close-btn span {

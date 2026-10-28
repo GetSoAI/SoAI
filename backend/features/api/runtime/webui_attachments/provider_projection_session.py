@@ -7,7 +7,13 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
-from core.attachments.attachment_parse_classification import AttachmentParseOutcome
+from core.attachments.attachment_parse_classification import (
+    ATTACHMENT_PARSE_CONTEXT_REASON,
+    AttachmentParseOutcome,
+    classify_attachment_descriptor_for_provider,
+)
+from core.runtime.request_context import create_system_context
+from core.users.ocr_preferences import resolve_user_ocr_language
 from features.agent.runtime.model_tool_calling import model_supports_vision_input
 from features.api.runtime.webui_attachments.provider_video_projection import (
     ProviderVideoProjection,
@@ -60,6 +66,29 @@ class ProviderAttachmentProjectionSession:
             )
             self._vision_supported = supported
             return supported
+
+    async def classify_descriptor(
+        self,
+        *,
+        user_id: int,
+        descriptor: int,
+        filename: str,
+        mime_type: str,
+        max_chars: int,
+        parse_timeout_sec: float,
+    ) -> AttachmentParseOutcome:
+        return await classify_attachment_descriptor_for_provider(
+            ocr_language=await resolve_user_ocr_language(self.dependencies.database_users, user_id),
+            request_context=create_system_context(ATTACHMENT_PARSE_CONTEXT_REASON, user_id=user_id),
+            document_reader=self.dependencies.document_reader,
+            parser_registry_factory=self.dependencies.parser_registry_factory,
+            descriptor=descriptor,
+            file_content_pool=self.dependencies.file_content_pool,
+            filename=filename,
+            mime_type=mime_type,
+            max_chars=max_chars,
+            parse_timeout_sec=parse_timeout_sec,
+        )
 
     async def project_video(
         self,

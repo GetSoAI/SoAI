@@ -62,6 +62,8 @@ def _to_detail_key(variant: str) -> str:
 
 def tool_preview_key_variants_plain() -> dict[str, tuple[str, ...]]:
     return {
+        "skill_read": ("chat.stream.preview.tools.skill_read.1",),
+        "skill_materialize": ("chat.stream.preview.tools.skill_materialize.1",),
         "read_file": (
             "chat.stream.preview.tools.read_file.1",
             "chat.stream.preview.tools.read_file.2",

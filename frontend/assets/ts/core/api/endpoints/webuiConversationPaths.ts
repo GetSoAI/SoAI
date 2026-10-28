@@ -63,6 +63,7 @@ interface WebuiConversationPaths {
     agentPlan(id: string): string;
     inputQueue(id: string): string;
     inputQueuePrompt(id: string, promptId: string): string;
+    inputQueueResume(id: string): string;
     draft(id: string): string;
     ragConfig(id: string): string;
     ragDocuments(id: string): string;
@@ -142,6 +143,7 @@ const createWebuiConversationPaths = (api: ApiClientContext): WebuiConversationP
         agentPlan: (id): string => `${base(id)}/agent/plan`,
         inputQueue: (id): string => `${base(id)}/input-queue`,
         inputQueuePrompt: (id, promptId): string => `${base(id)}/input-queue/${encode(promptId)}`,
+        inputQueueResume: (id): string => `${base(id)}/input-queue/resume`,
         draft: (id): string => `${base(id)}/draft`,
         ragConfig: (id): string => `${base(id)}/rag/config`,
         ragDocuments: (id): string => `${base(id)}/rag/documents`,

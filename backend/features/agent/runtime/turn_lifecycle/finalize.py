@@ -10,7 +10,10 @@ from core.agent.turn_record_fields import read_turn_int, read_turn_optional_text
 from core.agent.turn_state_record_rewrites import (
     build_terminal_turn_state_request_from_record,
 )
-from core.agent.turn_write_conflicts import AgentTurnStaleProgressError
+from core.agent.turn_write_conflicts import (
+    AgentTurnFinalizedWriteConflictError,
+    AgentTurnStaleProgressError,
+)
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
@@ -159,6 +162,8 @@ async def finalize_running_turn_noncritical(
                 return
             except AgentTurnStaleProgressError:
                 attempt += 1
+            except AgentTurnFinalizedWriteConflictError:
+                return
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
         coerced = coerce_to_soai_error(exception, operation=request.operation)
         log_exception(

@@ -88,6 +88,7 @@ const buildFolderSettingsAction = (dependencies: FileExplorerHeaderWidgetDepende
         type: 'button',
         content: uiHtml`${dependencies.getIconSync('folder', { size: 24, strokeWidth: 1.5 })}<span>${folderSettingsLabel}</span>`,
         variant: 'ui-variant-neutral',
+        class: 'file-explorer-folder-settings',
         attributes: { 'data-action': FILE_EXPLORER_ACTION_OPEN_FOLDER_SETTINGS, id: 'file-explorer-folder-settings' },
         ariaLabel: folderSettingsLabel
     };
@@ -116,7 +117,7 @@ const renderFileExplorerHeaderWidget = (dependencies: FileExplorerHeaderWidgetDe
         description: i18n.t('pages.fileExplorer.description'),
         floating: true,
         contentAreaClass: 'file-explorer-content',
-        actions: [buildSortAction(initialViewMode, dependencies.sortState), ...buildFileExplorerCommandActions(dependencies), buildViewModeAction(dependencies, initialViewMode), buildFolderSettingsAction(dependencies), buildNewEntryAction(dependencies)],
+        actions: [buildSortAction(initialViewMode, dependencies.sortState), ...buildFileExplorerCommandActions(dependencies), buildFolderSettingsAction(dependencies), buildViewModeAction(dependencies, initialViewMode), buildNewEntryAction(dependencies)],
         toolbars: {
             id: 'file-explorer-chrome',
             ariaLabel: i18n.t('fileExplorer.aria.chrome'),

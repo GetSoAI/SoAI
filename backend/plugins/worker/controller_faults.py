@@ -8,6 +8,7 @@ import asyncio
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
+from core.plugins.protocols_instance import PluginInstanceProtocol
 from core.state.state_names import (
     ORCH_STATE_ERROR,
     PLUGIN_STATE_BACKEND_NOT_INSTALLED,
@@ -51,12 +52,15 @@ async def mark_worker_crashed(
     *,
     plugin_name: str,
     returncode: int | None,
+    expected_instance: PluginInstanceProtocol | None = None,
 ) -> bool:
     logger = get_logger(LOGGER_NAME)
     transition_exception: BaseException | None = None
     transitioned = False
     try:
-        transitioned = await _transition_crashed_plugin(manager, plugin_name, returncode)
+        transitioned = await _transition_crashed_plugin(
+            manager, plugin_name, returncode, expected_instance
+        )
     except RECOVERABLE_EXCEPTIONS as exception:
         log_handled_exception(
             logger,
@@ -70,7 +74,6 @@ async def mark_worker_crashed(
             level="warning",
         )
         transition_exception = exception
-    await _detach_crashed_plugin_log_streaming(manager, plugin_name)
     await _update_aliases_after_crash(manager, plugin_name)
     if transition_exception is not None:
         raise transition_exception
@@ -146,18 +149,28 @@ async def _transition_crashed_plugin(
     manager: PluginManagerRuntimeProtocol,
     plugin_name: str,
     returncode: int | None,
+    expected_instance: PluginInstanceProtocol | None,
 ) -> bool:
     logger = get_logger(LOGGER_NAME)
-    if manager.dependencies.infrastructure.lifecycle.shutdown_event.is_set():
-        return False
-    if not await _crash_transition_is_allowed(manager, plugin_name):
-        return False
     try:
-        receipt = await manager.transition_plugin_manager_state(
-            plugin_name,
-            ORCH_STATE_ERROR,
-            "Plugin worker exited unexpectedly.",
-        )
+        async with manager.state.locks.load_lock:
+            current_instance = manager.state.catalog.loaded_plugin_instances.get(plugin_name)
+            if (
+                expected_instance is not None
+                and current_instance is not None
+                and current_instance is not expected_instance
+            ):
+                return False
+            try:
+                if manager.dependencies.infrastructure.lifecycle.shutdown_event.is_set():
+                    return False
+                if not await _crash_transition_is_allowed(manager, plugin_name):
+                    return False
+                receipt = await manager.transition_plugin_manager_state(
+                    plugin_name, ORCH_STATE_ERROR, "Plugin worker exited unexpectedly."
+                )
+            finally:
+                await _detach_crashed_plugin_log_streaming(manager, plugin_name)
         await wait_for_plugin_state_publication(receipt)
     except RECOVERABLE_EXCEPTIONS as exception:
         if not await _crash_transition_is_allowed(manager, plugin_name):

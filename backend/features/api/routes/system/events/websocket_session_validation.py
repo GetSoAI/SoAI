@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import time
 
+from core.concurrency.deadlines import deadline_after
+from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
 from core.timing.epoch import epoch_ms
 from core.users.user_id import require_strict_user_id
 from features.api.streaming.websocket import WebsocketConnection
@@ -36,12 +38,16 @@ async def validate_websocket_session(
     now_monotonic = time.monotonic()
     if not force and now_monotonic < connection.session_revalidation_deadline:
         return True
+    deadline = deadline_after(LOCAL_IO_TIMEOUT_SEC)
     username_value = connection.user.get("username")
     username = username_value if isinstance(username_value, str) else None
-    state = await connection.api_context.dependencies.webui_manager.database_tokens.read_token_auth_state(
-        jti=connection.jti,
-        user_id=require_strict_user_id(connection.user.get("id")),
-        username=username,
+    state = await connection.authorization.resolve(
+        lambda: connection.api_context.dependencies.webui_manager.database_tokens.read_token_auth_state(
+            jti=connection.jti,
+            user_id=require_strict_user_id(connection.user.get("id")),
+            username=username,
+        ),
+        deadline=deadline,
     )
     if state.status != "active" or state.user is None:
         set_websocket_session_closure(
@@ -49,9 +55,12 @@ async def validate_websocket_session(
             rotated=state.status == "session_rotated",
         )
         return False
-    await connection.api_context.dependencies.webui_manager.database_tokens.touch_session(
-        jti=connection.jti,
-        observed_at_ms=epoch_ms(),
+    await connection.authorization.resolve(
+        lambda: connection.api_context.dependencies.webui_manager.database_tokens.touch_session(
+            jti=connection.jti,
+            observed_at_ms=epoch_ms(),
+        ),
+        deadline=deadline,
     )
     connection.session_revalidation_deadline = now_monotonic + _REVALIDATION_INTERVAL_SECONDS
     return True

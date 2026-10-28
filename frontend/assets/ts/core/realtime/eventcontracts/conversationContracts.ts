@@ -19,6 +19,7 @@ interface ConversationEventBase {
 }
 interface ConversationCreatedEvent extends ConversationEventBase {
     title: string;
+    titleAutoUpdateAllowed?: boolean;
     createdAtMs: number;
     lastModifiedAtMs: number;
     isFavorite: boolean;
@@ -34,6 +35,7 @@ interface ConversationCreatedEvent extends ConversationEventBase {
 interface ConversationUpdatedEvent extends ConversationEventBase {
     lastModifiedAtMs: number;
     title?: string;
+    titleAutoUpdateAllowed?: boolean;
     isFavorite?: boolean;
     color?: string | null;
     modelSettings?: OpaqueJsonObject;
@@ -61,6 +63,7 @@ const decodeCreated = (payload: JsonValue): ConversationCreatedEvent => {
     return {
         ...decodeBase(payload),
         title: readRequiredTrimmedStringValue(record['title'], 'Conversation created event.title'),
+        ...(hasOwn(record, 'title_auto_update_allowed') ? { titleAutoUpdateAllowed: readRequiredBooleanValue(record['title_auto_update_allowed'], 'Conversation created event.title_auto_update_allowed') } : {}),
         createdAtMs: readRequiredPositiveIntegerValue(record['created_at_ms'], 'Conversation created event.created_at_ms'),
         lastModifiedAtMs: readRequiredPositiveIntegerValue(record['last_modified_at_ms'], 'Conversation created event.last_modified_at_ms'),
         isFavorite: readRequiredBooleanValue(record['is_favorite'], 'Conversation created event.is_favorite'),
@@ -79,6 +82,7 @@ const decodeUpdated = (payload: JsonValue): ConversationUpdatedEvent => {
     const record = requireRecord(payload, 'Conversation updated event');
     const decoded: ConversationUpdatedEvent = { ...decodeBase(payload), lastModifiedAtMs: readRequiredPositiveIntegerValue(record['last_modified_at_ms'], 'Conversation updated event.last_modified_at_ms'), settingsAuthorityChanged: readRequiredBooleanValue(record['settings_authority_changed'], 'Conversation updated event.settings_authority_changed') };
     if (record['title'] !== null && record['title'] !== undefined) decoded.title = readRequiredTrimmedStringValue(record['title'], 'Conversation updated event.title');
+    if (hasOwn(record, 'title_auto_update_allowed')) decoded.titleAutoUpdateAllowed = readRequiredBooleanValue(record['title_auto_update_allowed'], 'Conversation updated event.title_auto_update_allowed');
     if (isBoolean(record['is_favorite'])) decoded.isFavorite = record['is_favorite'];
     if (record['color_present'] === true) {
         const color = record['color'];

@@ -33,6 +33,7 @@ from plugins.manager.configuration import (
     refresh_plugin_runtime_configuration,
     set_plugin_configuration,
 )
+from plugins.manager.configuration_admission import patch_plugin_configuration
 from plugins.manager.display_names import (
     resolve_plugin_display_name,
     resolve_plugin_display_names,
@@ -109,6 +110,12 @@ class PluginManagerOperations(PluginManagerTransferOperations):
             config_data,
             apply_runtime=apply_runtime,
         )
+
+    async def patch_plugin_configuration(
+        self: PluginManagerRuntimeProtocol, plugin_name: str, changes: JSONDict
+    ) -> None:
+        normalized_plugin_name = normalize_required_plugin_name(self, plugin_name)
+        await patch_plugin_configuration(self, normalized_plugin_name, changes)
 
     async def refresh_plugin_runtime_configuration(
         self: PluginManagerRuntimeProtocol,
@@ -250,6 +257,8 @@ class PluginManagerOperations(PluginManagerTransferOperations):
     async def release_discovery_plugin_instance(
         self: PluginManagerRuntimeProtocol,
         plugin_name: str,
+        *,
+        expected_instance: PluginInstanceProtocol | None = None,
     ) -> None:
         normalized_plugin_name = normalize_required_plugin_name(self, plugin_name)
         plugin_record = await self.dependencies.databases.plugins.get_plugin_by_name(
@@ -265,10 +274,14 @@ class PluginManagerOperations(PluginManagerTransferOperations):
         )
         if current_state in ACTIVE_RESOURCE_STATES:
             return
-        await clear_loaded_plugin_state(self, normalized_plugin_name)
-        await self.dependencies.databases.plugins.update_plugin_runtime_loaded(
-            normalized_plugin_name,
-            False,
+        if expected_instance is None:
+            await clear_loaded_plugin_state(self, normalized_plugin_name)
+            await self.dependencies.databases.plugins.update_plugin_runtime_loaded(
+                normalized_plugin_name, False
+            )
+            return
+        await clear_loaded_plugin_state(
+            self, normalized_plugin_name, expected_instance=expected_instance
         )
 
     async def ensure_plugin_compatible(

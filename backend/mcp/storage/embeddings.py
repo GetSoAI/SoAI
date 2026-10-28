@@ -176,8 +176,10 @@ async def generate_embeddings(
             )
         response: Event | None = None
         for attempt in range(embedding_retry_attempts):
-            context = create_system_context(f"rag_embed_{conv_id}")
-            context.user_id = 0 if isinstance(user_id, bool) else int(user_id or 0)
+            context = create_system_context(
+                f"rag_embed_{conv_id}",
+                user_id=0 if isinstance(user_id, bool) else int(user_id or 0),
+            )
             reply_channel = await _create_embedding_task_and_publish(
                 self,
                 payload={"model": resolved_request_model, "input": batch},

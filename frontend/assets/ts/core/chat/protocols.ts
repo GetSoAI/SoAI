@@ -11,10 +11,19 @@ const CHAT_TOOL_ICON_SERVICE_ID = 'features.chat.toolIconService';
 const CHAT_RAG_INGESTION_SERVICE_ID = 'features.chat.ragIngestion';
 const AUTO_EMBEDDING_MODEL_SELECTOR = '__soai_auto_embedding__';
 const MAX_CHAT_COMPOSER_TEXT_LENGTH = 32768;
+const CHAT_STREAM_STEER_INTERRUPTED_CODE = 'steer_interrupted';
+const CHAT_STREAM_USER_STOPPED_CODE = 'user_stopped';
 
 type ChatStreamStatus = 'streaming' | 'complete' | 'error' | 'cancelled';
 type ChatConversationTerminalIndicator = 'complete' | 'error';
 type ConversationExecutionRunResult = { status: 'completed' } | { status: 'busy' };
+type ConversationInputActiveState = 'pending' | 'materializing' | 'running' | 'input_required';
+type ConversationInputTerminalState = 'completed' | 'failed' | 'cancelled' | 'effect_unknown';
+type ConversationInputLifecycleState = ConversationInputActiveState | ConversationInputTerminalState;
+
+const CONVERSATION_INPUT_ACTIVE_STATES: readonly ConversationInputActiveState[] = ['pending', 'materializing', 'running', 'input_required'];
+const CONVERSATION_INPUT_TERMINAL_STATES: readonly ConversationInputTerminalState[] = ['completed', 'failed', 'cancelled', 'effect_unknown'];
+const CONVERSATION_INPUT_LIFECYCLE_STATES: readonly ConversationInputLifecycleState[] = [...CONVERSATION_INPUT_ACTIVE_STATES, ...CONVERSATION_INPUT_TERMINAL_STATES];
 
 type ChatStreamServiceLifecycleContract = {
     initialize: () => void;
@@ -35,7 +44,7 @@ type ChatRagIngestionStartArguments = {
 type ChatRagIngestionStatus = {
     conversationId: string;
     clientBatchId: string | null;
-    state: 'running' | 'paused' | 'submitted' | 'cancelled';
+    state: 'running' | 'paused' | 'submitted' | 'cancelled' | 'failed';
     total: number;
     queued: number;
     inFlight: number;
@@ -50,6 +59,7 @@ type ChatRagIngestionServiceContract = {
     getStatusForConversation(conversationId: string): ChatRagIngestionStatus | null;
     start(inputArguments: ChatRagIngestionStartArguments): Promise<void>;
     cancel(conversationId: string): Promise<void>;
+    reconcileKnowledgeAttachment(summary: KnowledgeAttachmentSummary): void;
     subscribe(handler: () => void): () => void;
 };
 
@@ -75,5 +85,5 @@ type ChatUiStorage = {
     setUserAvatar(value: string | null): void;
 };
 
-export { AUTO_EMBEDDING_MODEL_SELECTOR, CHAT_CONVERSATION_ATTENTION_SERVICE_ID, CHAT_PAGE_PRESENCE_SERVICE_ID, CHAT_RAG_INGESTION_SERVICE_ID, CHAT_STREAM_SERVICE_ID, CHAT_TOOL_ICON_SERVICE_ID, MAX_CHAT_COMPOSER_TEXT_LENGTH };
-export type { ChatConversationTerminalIndicator, ChatRagIngestionServiceContract, ChatRagIngestionStartArguments, ChatRagIngestionStatus, ChatStreamServiceLifecycleContract, ChatStreamStatus, ChatToolIconServiceContract, ChatUiStorage, ConversationExecutionRunResult };
+export { AUTO_EMBEDDING_MODEL_SELECTOR, CHAT_CONVERSATION_ATTENTION_SERVICE_ID, CHAT_PAGE_PRESENCE_SERVICE_ID, CHAT_RAG_INGESTION_SERVICE_ID, CHAT_STREAM_SERVICE_ID, CHAT_STREAM_STEER_INTERRUPTED_CODE, CHAT_STREAM_USER_STOPPED_CODE, CHAT_TOOL_ICON_SERVICE_ID, CONVERSATION_INPUT_ACTIVE_STATES, CONVERSATION_INPUT_LIFECYCLE_STATES, CONVERSATION_INPUT_TERMINAL_STATES, MAX_CHAT_COMPOSER_TEXT_LENGTH };
+export type { ChatConversationTerminalIndicator, ChatRagIngestionServiceContract, ChatRagIngestionStartArguments, ChatRagIngestionStatus, ChatStreamServiceLifecycleContract, ChatStreamStatus, ChatToolIconServiceContract, ChatUiStorage, ConversationExecutionRunResult, ConversationInputActiveState, ConversationInputLifecycleState, ConversationInputTerminalState };

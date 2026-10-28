@@ -1,7 +1,7 @@
 /* SoAI - Chat feature input queue preview [frontend/assets/ts/features/chat/chatuimanager/inputQueuePreview.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { ConversationInputState } from '@core/api/contracts/chatQueueDraftContracts.ts';
+import type { ConversationInputActiveState } from '@core/chat/protocols.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { isArray, isObject, isString } from '@core/typeGuards.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -13,7 +13,7 @@ import { reconcileAttachmentPreview } from '@features/chat/chatuimanager/attachm
 import { CHAT_ACTIONS } from '@features/chat/chatActionIds.ts';
 import type { ConversationInputPreview, ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 
-type ConversationInputPreviewState = ConversationInputState | 'regeneration_failed';
+type ConversationInputPreviewState = ConversationInputActiveState | 'regeneration_failed';
 
 const resolveConversationInputStateLabel = (state: ConversationInputPreviewState): string => {
     if (state === 'materializing') {
@@ -76,8 +76,8 @@ export function updateInputQueuePreview(context: ChatUIManagerContext, validProm
     const rows = validPrompts.map((entry) => {
         const inputType = entry.inputType === 'steer' ? 'steer' : 'prompt';
         const isRegenerationRetry = entry.state === 'regeneration_failed';
-        const badgeText = isRegenerationRetry ? i18n.t('chat.message.actions.regenerate') : inputType === 'steer' ? i18n.t('chat.inputQueue.badge.steer') : i18n.t('chat.inputQueue.badge.queued');
-        const badgeClass = isRegenerationRetry ? 'input-queue-badge' : inputType === 'steer' ? 'input-queue-badge input-queue-badge--steer' : 'input-queue-badge input-queue-badge--queued';
+        const badgeText = isRegenerationRetry ? i18n.t('chat.message.actions.regenerate') : inputType === 'steer' ? i18n.t('chat.inputQueue.badge.steer') : entry.isHeld ? i18n.t('chat.inputQueue.badge.held') : i18n.t('chat.inputQueue.badge.queued');
+        const badgeClass = isRegenerationRetry ? 'input-queue-badge' : inputType === 'steer' ? 'input-queue-badge input-queue-badge--steer' : entry.isHeld ? 'input-queue-badge input-queue-badge--held' : 'input-queue-badge input-queue-badge--queued';
 
         const conversationInputLabel = i18n.t('chat.attachments.conversationInputQueue');
         const normalized = isString(entry.text) ? entry.text.replace(/\s+/g, ' ').trim() : '';

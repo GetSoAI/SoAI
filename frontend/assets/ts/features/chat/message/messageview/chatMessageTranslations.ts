@@ -5,6 +5,7 @@ import type { JsonValue } from '@core/types/jsonValues.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { buildSyntaxHighlighterLanguageTranslations } from '@core/syntaxhighlighter/service.ts';
 import type { ChatMessageTranslationKey, ChatMessageWorkerTranslationKey } from '@features/chat/message/messageview/types.ts';
+import { buildChatStreamErrorTranslations } from '@features/chat/chatstreamservice/streamErrorPresentation.ts';
 
 const translateChatMessage = (key: ChatMessageTranslationKey, parameters?: Record<string, JsonValue>): string => {
     switch (key) {
@@ -64,8 +65,6 @@ const translateChatMessage = (key: ChatMessageTranslationKey, parameters?: Recor
             return i18n.t('chat.planWidget.execute', parameters);
         case 'chat.planWidget.label':
             return i18n.t('chat.planWidget.label', parameters);
-        case 'chat.planWidget.metrics':
-            return i18n.t('chat.planWidget.metrics', parameters);
         case 'chat.planWidget.revision':
             return i18n.t('chat.planWidget.revision', parameters);
         case 'chat.weather.clouds':
@@ -214,7 +213,6 @@ const buildChatMessageWorkerTranslations = (): Record<ChatMessageWorkerTranslati
         'chat.agent.plan.viewPlan': i18n.t('chat.agent.plan.viewPlan'),
         'chat.planWidget.execute': i18n.t('chat.planWidget.execute'),
         'chat.planWidget.label': i18n.t('chat.planWidget.label'),
-        'chat.planWidget.metrics': i18n.t('chat.planWidget.metrics', { lines: '{lines}', characters: '{characters}' }),
         'chat.planWidget.revision': i18n.t('chat.planWidget.revision', { revision: '{revision}' }),
         'chat.weather.clouds': i18n.t('chat.weather.clouds'),
         'chat.weather.compass.e': i18n.t('chat.weather.compass.e'),
@@ -275,7 +273,25 @@ const buildChatMessageWorkerTranslations = (): Record<ChatMessageWorkerTranslati
         'common.view': i18n.t('common.view'),
         'contentPreview.actions.openSource': i18n.t('contentPreview.actions.openSource'),
         'richText.footnotes.backToReference': i18n.t('richText.footnotes.backToReference'),
-        ...buildSyntaxHighlighterLanguageTranslations()
+        'speechSetup.errors.backendNotInstalled': i18n.t('speechSetup.errors.backendNotInstalled'),
+        'speechSetup.errors.configuredModelMissing': i18n.t('speechSetup.errors.configuredModelMissing'),
+        'speechSetup.errors.modelDisabled': i18n.t('speechSetup.errors.modelDisabled'),
+        'speechSetup.errors.noModel': i18n.t('speechSetup.errors.noModel'),
+        'speechSetup.errors.noPlugin': i18n.t('speechSetup.errors.noPlugin'),
+        'speechSetup.errors.noTextToSpeechModel': i18n.t('speechSetup.errors.noTextToSpeechModel'),
+        'speechSetup.errors.noVoiceModel': i18n.t('speechSetup.errors.noVoiceModel'),
+        'speechSetup.errors.notLocal': i18n.t('speechSetup.errors.notLocal'),
+        'speechSetup.errors.pluginDisabled': i18n.t('speechSetup.errors.pluginDisabled'),
+        'speechSetup.errors.textToSpeechBackendNotInstalled': i18n.t('speechSetup.errors.textToSpeechBackendNotInstalled'),
+        'speechSetup.errors.textToSpeechModelDisabled': i18n.t('speechSetup.errors.textToSpeechModelDisabled'),
+        'speechSetup.errors.textToSpeechPluginDisabled': i18n.t('speechSetup.errors.textToSpeechPluginDisabled'),
+        'speechSetup.errors.translationUnsupported': i18n.t('speechSetup.errors.translationUnsupported'),
+        'speechSetup.errors.unsupportedOptionSelected': i18n.t('speechSetup.errors.unsupportedOptionSelected'),
+        'speechSetup.notTranscribed': i18n.t('speechSetup.notTranscribed'),
+        'speechSetup.errors.unsupportedOption': i18n.t('speechSetup.errors.unsupportedOption', { model: '{model}' }),
+        ...buildSyntaxHighlighterLanguageTranslations(),
+        ...buildChatStreamErrorTranslations(),
+        'common.retry': i18n.t('common.retry')
     };
 };
 

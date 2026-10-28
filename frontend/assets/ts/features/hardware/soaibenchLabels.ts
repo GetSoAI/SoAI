@@ -6,6 +6,28 @@ import { formatSentenceLabelFromId } from '@core/primitives/text.ts';
 
 const notAvailable = (): string => i18n.t('common.notAvailableShort');
 
+interface SoAIBenchDeadline {
+    failedPhase: string | null;
+    deadlineSeconds: number | null;
+}
+
+const resolveSoAIBenchPhaseLabel = (phase: string | null): string | null => {
+    if (phase === 'compute') return i18n.t('hardware.modals.soaibenchRun.phases.compute');
+    if (phase === 'alu') return i18n.t('hardware.modals.soaibenchRun.phases.alu');
+    if (phase === 'matrix') return i18n.t('hardware.modals.soaibenchRun.phases.matrix');
+    if (phase === 'latency') return i18n.t('hardware.modals.soaibenchRun.phases.latency');
+    if (phase === 'memory') return i18n.t('hardware.modals.soaibenchRun.phases.memory');
+    if (phase === 'mixed' || phase === 'stability') return i18n.t('hardware.modals.soaibenchRun.phases.stability');
+    return null;
+};
+
+const resolveDeadlineReason = (failureReason: string | null, deadline: SoAIBenchDeadline | null): string | null => {
+    if (failureReason !== 'opencl_phase_deadline' && failureReason !== 'opencl_preflight_deadline' && failureReason !== 'opencl_startup_deadline' && failureReason !== 'opencl_runtime_deadline') return null;
+    const seconds = deadline?.deadlineSeconds;
+    const phase = failureReason === 'opencl_preflight_deadline' ? i18n.t('hardware.modals.soaibenchHistory.reasons.preflight') : failureReason === 'opencl_startup_deadline' ? i18n.t('hardware.modals.soaibenchHistory.reasons.startup') : resolveSoAIBenchPhaseLabel(deadline?.failedPhase ?? null);
+    return phase !== null && seconds !== null && seconds !== undefined && Number.isFinite(seconds) && seconds > 0 ? i18n.t('hardware.errors.opencl_operation_deadline', { phase, seconds }) : i18n.t('hardware.errors.opencl_runtime_deadline');
+};
+
 const formatUnexpectedSoAIBenchIdentifierLabel = (value: string | null): string => {
     if (!value) {
         return notAvailable();
@@ -80,18 +102,44 @@ const resolveSoAIBenchMatchBasisLabel = (value: string | null): string => {
     }
 };
 
-const resolveSoAIBenchReasonLabel = (reasonMessage: string | null, failureReason: string | null, unsupportedReason: string | null, staleHardware: boolean): string | null => {
-    const rawReason = failureReason || unsupportedReason;
-    if (rawReason === 'opencl_numerical_mismatch') {
-        return i18n.t('hardware.modals.soaibenchHistory.reasons.opencl_numerical_mismatch');
+const resolveSoAIBenchCapabilityReasonLabel = (reason: string | null): string | null => {
+    switch (reason) {
+        case 'opencl_compiler_unavailable':
+            return i18n.t('hardware.errors.opencl_compiler_unavailable');
+        case 'opencl_kernel_execution_unavailable':
+            return i18n.t('hardware.errors.opencl_kernel_execution_unavailable');
+        case 'opencl_custom_identity_unproved':
+            return i18n.t('hardware.errors.opencl_custom_identity_unproved');
+        case 'opencl_memory_insufficient':
+            return i18n.t('hardware.errors.opencl_memory_insufficient');
+        default:
+            return null;
     }
-    if (reasonMessage) {
-        return reasonMessage;
-    }
-    if (rawReason) {
-        return formatUnexpectedSoAIBenchIdentifierLabel(rawReason);
-    }
-    return staleHardware ? i18n.t('hardware.modals.soaibenchHistory.staleHardware') : null;
 };
 
-export { formatUnexpectedSoAIBenchIdentifierLabel, resolveSoAIBenchMatchBasisLabel, resolveSoAIBenchProfileLabel, resolveSoAIBenchReasonLabel, resolveSoAIBenchStatusLabel };
+const resolveSoAIBenchReasonLabel = (reasonMessage: string | null, failureReason: string | null, unsupportedReason: string | null, staleHardware: boolean, guidanceMessage: string | null = null, deadline: SoAIBenchDeadline | null = null): string | null => {
+    const rawReason = failureReason || unsupportedReason;
+    if (rawReason === 'opencl_child_exited') return i18n.t('hardware.errors.opencl_child_exited');
+    if (rawReason === 'opencl_child_invalid_response') return i18n.t('hardware.errors.opencl_child_invalid_response');
+    if (rawReason === 'opencl_child_disconnected') return i18n.t('hardware.errors.opencl_child_disconnected');
+    const deadlineReason = resolveDeadlineReason(rawReason, deadline);
+    if (deadlineReason !== null) return deadlineReason;
+    const capabilityReason = resolveSoAIBenchCapabilityReasonLabel(rawReason);
+    if (capabilityReason !== null) {
+        return capabilityReason;
+    }
+    let reason: string | null;
+    if (rawReason === 'opencl_numerical_mismatch') {
+        reason = i18n.t('hardware.modals.soaibenchHistory.reasons.opencl_numerical_mismatch');
+    } else if (reasonMessage) {
+        reason = reasonMessage.replace(/(?<![A-Za-z0-9_.-])SoAIBench(?![A-Za-z0-9_])/g, i18n.t('hardware.modals.soaibenchRun.title'));
+    } else if (rawReason) {
+        reason = formatUnexpectedSoAIBenchIdentifierLabel(rawReason);
+    } else {
+        reason = staleHardware ? i18n.t('hardware.modals.soaibenchHistory.staleHardware') : null;
+    }
+    return reason && guidanceMessage ? `${reason} — ${guidanceMessage}` : reason;
+};
+
+export { formatUnexpectedSoAIBenchIdentifierLabel, resolveSoAIBenchCapabilityReasonLabel, resolveSoAIBenchMatchBasisLabel, resolveSoAIBenchPhaseLabel, resolveSoAIBenchProfileLabel, resolveSoAIBenchReasonLabel, resolveSoAIBenchStatusLabel };
+export type { SoAIBenchDeadline };

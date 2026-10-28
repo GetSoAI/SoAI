@@ -10,6 +10,7 @@ from core.plugins.protocols_instance import PluginInstanceProtocol
 from core.runtime.startup_status import StartupPhaseResult
 from core.types.json import JSONDict
 from plugins.action_response import PluginActionResponse
+from plugins.protocols_internal.state.catalog_reads import PluginCatalogReadState
 
 if TYPE_CHECKING:
     from core.concurrency.lock_registry import TTLAsyncLockRegistry
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "PluginAliasHydratorProtocol",
+    "PluginBackendUpdateStateProtocol",
     "PluginCatalogStateProtocol",
     "PluginConfigurationStateProtocol",
     "PluginDownloadAgentProtocol",
@@ -94,9 +96,16 @@ class PluginLifecycleStateProtocol(
     startup_recovery_stop_sweep: set[str]
 
 
-class PluginCatalogStateProtocol(Protocol):
+class PluginBackendUpdateStateProtocol(Protocol):
+    backend_update_wake: asyncio.Event
+    backend_update_publication_pending: bool
+    backend_update_degraded: bool
+
+
+class PluginCatalogStateProtocol(PluginBackendUpdateStateProtocol, Protocol):
     loaded_plugin_surfaces: dict[str, tuple[JSONDict, str]]
     loaded_plugin_instances: dict[str, PluginInstanceProtocol]
+    model_catalog_reads: dict[int, PluginCatalogReadState]
     alias_map: dict[str, str]
     known_plugins: set[str]
     backend_variant_count_locks: TTLAsyncLockRegistry[str]

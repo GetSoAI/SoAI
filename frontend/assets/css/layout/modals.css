@@ -16,15 +16,16 @@
         z-index: calc(var(--z-notification) + 1);
     }
 
-    .restart-overlay::before {
+    .restart-overlay::before,
+    .power-overlay::before {
         content: '';
         position: absolute;
         inset: 0;
         z-index: var(--z-layer-background);
         pointer-events: none;
-        background: var(--glass-surface-interactive);
-        -webkit-backdrop-filter: var(--glass-blur-base);
-        backdrop-filter: var(--glass-blur-base);
+        background: var(--modal-monochrome-overlay-surface);
+        -webkit-backdrop-filter: var(--modal-monochrome-backdrop-filter);
+        backdrop-filter: var(--modal-monochrome-backdrop-filter);
     }
 
     .restart-content {
@@ -32,6 +33,25 @@
         z-index: var(--z-base);
         contain: layout style;
         text-align: center;
+    }
+
+    .restart-handoff {
+        max-inline-size: calc(90 * var(--ui-viewport-width-unit));
+        margin-block-start: var(--space-4);
+        padding-inline: var(--space-4);
+    }
+
+    .restart-handoff-address {
+        display: block;
+        overflow-wrap: anywhere;
+        margin-block: var(--space-4);
+    }
+
+    .restart-handoff-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--space-3);
     }
 
     .restart-reload-button {
@@ -86,17 +106,6 @@
         opacity: 0;
         pointer-events: none;
         transition: opacity var(--transition-modal);
-    }
-
-    .power-overlay::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        z-index: var(--z-layer-background);
-        pointer-events: none;
-        background: var(--glass-surface-interactive);
-        -webkit-backdrop-filter: var(--glass-blur-base);
-        backdrop-filter: var(--glass-blur-base);
     }
 
     .power-overlay.is-visible {

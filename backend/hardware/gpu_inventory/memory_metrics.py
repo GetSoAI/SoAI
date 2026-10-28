@@ -10,13 +10,18 @@ from core.validation.coercion import coerce_non_negative_int_from_numberish
 from core.validation.text_numbers import coerce_float_from_text
 
 if TYPE_CHECKING:
-    from core.types.json import JSONValue
+    from core.types.json import JSONDict, JSONValue
 
 __all__ = (
     "bytes_to_mebibytes",
     "coerce_nonnegative_memory_bytes",
     "memory_percent_used",
+    "gpu_capacity_is_current",
 )
+
+
+def gpu_capacity_is_current(entry: JSONDict) -> bool:
+    return entry.get("memory_total_status") != "stale"
 
 
 def coerce_nonnegative_memory_bytes(value: JSONValue) -> int:

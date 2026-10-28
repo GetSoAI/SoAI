@@ -7,9 +7,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from core.openai.thinking_preface_boundaries import (
-    resolve_incomplete_thinking_preface_end_index,
     resolve_limited_thinking_preface_bounds,
-    resolve_thinking_preface_bounds,
 )
 from core.openai.thinking_preface_display import (
     is_inline_safe_thinking_preface,
@@ -28,7 +26,6 @@ __all__ = (
     "ThinkingPrefaceResolution",
     "resolve_committed_thinking_preface_rendering",
     "resolve_thinking_preface_rendering",
-    "split_thinking_preface_and_body",
 )
 
 
@@ -79,39 +76,6 @@ def _resolve_limited_preface_parts(text: str) -> _ThinkingPrefaceParts | None:
         body_text=normalized[body_start_index:].lstrip(),
         preface_complete=preface_complete,
     )
-
-
-def _split_thinking_preface(text: str) -> _ThinkingPrefaceParts | None:
-    normalized = text.replace("\r\n", "\n").strip()
-    if not normalized:
-        return None
-    bounds = resolve_thinking_preface_bounds(normalized)
-    if bounds is None:
-        end_index = resolve_incomplete_thinking_preface_end_index(normalized)
-        body_start_index = end_index
-        preface_complete = False
-    else:
-        end_index, body_start_index = bounds
-        preface_complete = True
-    preface_end_index = max(0, min(len(normalized), end_index))
-    bounded_preface = normalized[:preface_end_index]
-    preface_text = normalize_thinking_preface_sentence(bounded_preface)
-    if not preface_text:
-        return None
-    resolved_body_start_index = max(0, min(len(normalized), body_start_index))
-    body_text = normalized[resolved_body_start_index:].lstrip()
-    return _ThinkingPrefaceParts(
-        preface_text=preface_text,
-        body_text=body_text,
-        preface_complete=preface_complete,
-    )
-
-
-def split_thinking_preface_and_body(text: str) -> tuple[str, str] | None:
-    parts = _split_thinking_preface(text)
-    if parts is None:
-        return None
-    return parts.preface_text, parts.body_text
 
 
 def resolve_thinking_preface_rendering(

@@ -24,15 +24,15 @@ const buildConstituentPickerMarkup = ({ modalId, token }: ConstituentPickerMarku
             <div class="form-row-split form-row-split--search">
                 <div class="form-col-main">
                     <div class="searchbar-container searchbar-container--collection">
-                        <input type="text" id="${searchInputId}" class="form-input searchbar-input" placeholder="${placeholder}" autocomplete="off">
+                        <input type="text" id="${searchInputId}" class="form-input searchbar-input" data-modal-localize="placeholder" placeholder="${placeholder}" autocomplete="off">
                         ${renderSearchFieldActions()}
                     </div>
                 </div>
                 <div class="form-col-secondary form-col-action">
-                    <button class="ui-button" id="${searchButtonId}" type="button" aria-label="${searchLabel}" data-tooltip="${searchLabel}">${i18n.t('models.modal.virtualModels.searchButton')}</button>
+                    <button class="ui-button" data-modal-localize="text aria-label data-tooltip" id="${searchButtonId}" type="button" aria-label="${searchLabel}" data-tooltip="${searchLabel}">${i18n.t('models.modal.virtualModels.searchButton')}</button>
                 </div>
             </div>
-            <div class="form-help">${i18n.t('models.modal.virtualModels.selectModels')}</div>
+            <div class="form-help" data-modal-localize="text">${i18n.t('models.modal.virtualModels.selectModels')}</div>
             <div class="constituent-results" id="${resultsId}"></div>
             <select id="${storeId}" class="constituent-store" multiple hidden></select>
         </div>

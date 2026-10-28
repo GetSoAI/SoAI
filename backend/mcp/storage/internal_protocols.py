@@ -26,7 +26,6 @@ if TYPE_CHECKING:
     from core.types.json import JSONValue
 
 __all__ = (
-    "ChromaClientOwnerProtocol",
     "ChromaClientProtocol",
     "ChromaCollectionProtocol",
     "ChromaGatewayProtocol",
@@ -173,7 +172,3 @@ class ChromaClientProtocol(Protocol):
         name: str,
         metadata: Mapping[str, JSONValue],
     ) -> ChromaCollectionProtocol: ...
-
-
-class ChromaClientOwnerProtocol(Protocol):
-    chroma_client: ChromaClientProtocol | None

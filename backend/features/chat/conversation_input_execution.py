@@ -10,6 +10,7 @@ from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.conversations.interaction_checkpoint import ConversationInputSuspended
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import ConflictError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.types.json import JSONDict
@@ -110,19 +111,26 @@ async def execute_claimed_conversation_input(
         )
     finally:
         if not suspended:
-            await uncancel_then_cleanup(
-                api_dependencies.database_input_execution.terminalize_input(
-                    input_id=input_id,
-                    claim_generation=claim_generation,
-                    claim_owner=claim_owner,
-                    server_boot_id=server_boot_id,
-                    terminal_state=terminal_state,
-                    terminal_code=terminal_code,
-                    terminal_args={},
-                ),
+            try:
+                await uncancel_then_cleanup(
+                    api_dependencies.database_input_execution.terminalize_input(
+                        input_id=input_id,
+                        claim_generation=claim_generation,
+                        claim_owner=claim_owner,
+                        server_boot_id=server_boot_id,
+                        terminal_state=terminal_state,
+                        terminal_code=terminal_code,
+                        terminal_args={},
+                    ),
+                )
+            except ConflictError:
+                api_dependencies.metrics_manager.increment_counter(
+                    "chat", "conversation_input", "terminalization_fence_changed"
+                )
+        await uncancel_then_cleanup(
+            publish_current_input_queue_changed(
+                api_dependencies=api_dependencies,
+                user_id=user_id,
+                conv_id=conv_id,
             )
-        await publish_current_input_queue_changed(
-            api_dependencies=api_dependencies,
-            user_id=user_id,
-            conv_id=conv_id,
         )

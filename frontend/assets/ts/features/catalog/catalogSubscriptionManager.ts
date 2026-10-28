@@ -8,6 +8,7 @@ import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { OptimisticOperation } from '@core/data/clientdatahub/types.ts';
 
 interface CatalogStore {
+    isFresh(): boolean;
     subscribe: (callback: (plugins: ReadonlyArray<PluginRecord>) => void, options?: { emitInitial?: boolean }) => () => void;
     subscribeCapabilityManifest: (callback: (manifest: JsonObject | null) => void, options?: { emitCurrent?: boolean }) => () => void;
     ensureLoaded: (options?: { force?: boolean }) => Promise<ReadonlyArray<PluginRecord>>;

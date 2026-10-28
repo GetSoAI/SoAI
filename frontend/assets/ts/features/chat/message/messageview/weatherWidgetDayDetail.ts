@@ -33,8 +33,7 @@ const renderDayPanel = (host: ChatMessageRenderHost, payload: ToolResultWeatherP
     const highLow = `${formatWeatherTemperature(entry.temperatureMax, payload.unitSystem)} / ${formatWeatherTemperature(entry.temperatureMin, payload.unitSystem)}`;
     const current = isToday ? renderCurrentBlock(host, locationHtml, payload.current.conditionType, payload.current.isDay, payload.current.temperature, payload.current.conditionText, payload.unitSystem, highLow) : renderCurrentBlock(host, locationHtml, entry.conditionType, true, entry.temperatureMax, entry.conditionText, payload.unitSystem, highLow);
     const metrics = isToday ? renderTodayMetrics(host, payload.current, payload.unitSystem) : renderForecastMetrics(host, entry, payload.unitSystem);
-    const hourly = isToday ? hourlyHtml : '';
-    return [radio, '<div class="assistant-weather-widget__detail-panel">', current, hourly, `<div class="assistant-weather-widget__metrics">${metrics}</div>`, '</div>'].join('');
+    return [radio, '<div class="assistant-weather-widget__detail-panel">', current, hourlyHtml, `<div class="assistant-weather-widget__metrics">${metrics}</div>`, '</div>'].join('');
 };
 
 export { renderDayPanel };

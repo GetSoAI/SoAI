@@ -2,37 +2,71 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    :where(.chat-container) .chat-input-actions :is(.chat-input-action-inline, .chat-mobile-auxiliary-action, .chat-token-counter-inline, .chat-model-control-primary, .chat-model-slot, .chat-action-btn),
+    :where(.chat-container) .chat-input-actions > :not(.chat-input-actions-inline, .chat-composer-skeleton-actions),
+    :where(.chat-container) .chat-input-actions > :is(.chat-input-actions-inline, .chat-composer-skeleton-actions) > * {
+        transition:
+            --chat-composer-control-opacity var(--transition-fast),
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            filter var(--transition-fast),
+            var(--chat-composer-fold-transition);
+    }
+
     :where(.chat-container) .chat-input-wrapper--auto-hidden {
+        --chat-composer-fold-progress: 0;
         --chat-composer-fold-visibility-delay: var(--header-fold-duration);
+        --chat-agent-mode-popup-resting-offset: -100%;
         pointer-events: none;
+    }
+
+    :where(.chat-container) .chat-input-wrapper::before,
+    :where(.chat-container) .chat-input-wrapper > .chat-input {
+        opacity: var(--chat-composer-fold-progress);
+        translate: 0 var(--chat-composer-fold-offset);
+    }
+
+    :where(.chat-container) .chat-input-wrapper > .chat-input-actions > :not(.chat-input-actions-inline, .chat-composer-skeleton-actions, .chat-action-btn.is-stop-mode),
+    :where(.chat-container) .chat-input-wrapper > .chat-input-actions > :is(.chat-input-actions-inline, .chat-composer-skeleton-actions) > * {
+        --chat-composer-control-opacity: var(--ui-control-opacity);
+        --chat-composer-control-rendered-opacity: calc(var(--chat-composer-fold-progress) * var(--chat-composer-control-opacity));
+        opacity: var(--chat-composer-control-rendered-opacity);
+        translate: 0 var(--chat-composer-fold-offset);
+    }
+
+    :where(.chat-container) .chat-input-wrapper--auto-hidden > .agent-mode-popup {
+        --chat-agent-mode-popup-focus-opacity: 1;
+        visibility: hidden;
+        transition: var(--chat-composer-fold-transition);
     }
 
     :where(.chat-container) .chat-input-wrapper--auto-hidden::before,
     :where(.chat-container) .chat-input-wrapper--auto-hidden > .chat-input,
     :where(.chat-container) .chat-input-wrapper--auto-hidden > .chat-input-actions > :not(.chat-input-actions-inline, .chat-composer-skeleton-actions, .chat-action-btn.is-stop-mode),
     :where(.chat-container) .chat-input-wrapper--auto-hidden > .chat-input-actions > :is(.chat-input-actions-inline, .chat-composer-skeleton-actions) > * {
-        opacity: 0;
         visibility: hidden;
-        translate: 0 var(--chat-composer-resting-height);
         transition: var(--chat-composer-fold-transition);
     }
 
     :where(.chat-container) .chat-input-wrapper--auto-hidden.chat-input-wrapper--floating-stop > .chat-input-actions > .chat-action-btn {
         translate: none;
+        transition:
+            opacity var(--header-fold-duration) var(--header-fold-easing),
+            var(--chat-composer-fold-transition);
     }
 
     :where(.chat-container) .chat-input-wrapper--auto-hidden > .chat-input-actions > .chat-action-btn.is-stop-mode {
         pointer-events: auto;
     }
 
+    :where(.chat-container) .chat-input-wrapper--auto-hidden.chat-input-wrapper--floating-stop > .chat-input-actions > .chat-action-btn:not(.is-stop-mode) {
+        opacity: 0;
+    }
+
     :where(.chat-container) .chat-input-wrapper--floating-stop > .chat-input-actions > .chat-action-btn::before {
         opacity: 0;
         transition: opacity var(--header-fold-duration) var(--header-fold-easing);
-    }
-
-    :where(.chat-container .chat-input-actions > :not(.chat-input-actions-inline, .chat-composer-skeleton-actions), .chat-container .chat-input-actions > :is(.chat-input-actions-inline, .chat-composer-skeleton-actions) > *) {
-        transition:
-            opacity var(--transition-fast),
-            translate var(--header-fold-duration) var(--header-fold-easing);
     }
 }

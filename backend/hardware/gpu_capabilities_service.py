@@ -18,6 +18,7 @@ from core.errors.exceptions import SoAIError
 from core.validation.runtime import is_success_payload
 from hardware.gpu_capabilities.aggregate_payloads import build_probe_error_payload
 from hardware.probe import sync_get_raw_capabilities
+from hardware.vendors.amd.adl_session import AdlRuntime
 from hardware.vendors.nvidia.smi import NvidiaSettingsController
 
 if TYPE_CHECKING:
@@ -52,6 +53,7 @@ class GpuCapabilitiesServiceDependencies:
     thread_name: str
     logger: TraceLogger
     probe_timeout_seconds: float = 15.0
+    adl_runtime: AdlRuntime | None = None
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -69,6 +71,13 @@ class GpuCapabilitiesServiceDependencies:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class GPUCapabilitiesObservation:
+    payload: JSONDict
+    gpu_info_revision: int
+    nvidia_revision: int
+
+
 class GpuCapabilitiesService:
 
     def __init__(self, deps: GpuCapabilitiesServiceDependencies) -> None:
@@ -83,11 +92,12 @@ class GpuCapabilitiesService:
             deps.nvidia_capabilities_cache_service
         )
         self._nvidia_settings_controller = deps.nvidia_settings_controller
+        self._adl_runtime = deps.adl_runtime
         self._operation = deps.operation
         self._thread_name = deps.thread_name
         self._logger: TraceLogger = deps.logger
         self._probe_timeout_seconds = float(deps.probe_timeout_seconds)
-        self._singleflight: AsyncSingleflight[str, JSONDict] = AsyncSingleflight()
+        self._singleflight: AsyncSingleflight[str, GPUCapabilitiesObservation] = AsyncSingleflight()
         self._cache_lock = asyncio.Lock()
         self._cache: JSONDict | None = None
         self._cache_monotonic: float = 0.0
@@ -101,39 +111,48 @@ class GpuCapabilitiesService:
         *,
         cache_revision: int,
         gpu_info_revision: int,
+        nvidia_revision: int,
+        nvidia_expiry: int,
     ) -> bool:
         return (
             cache_revision == gpu_info_revision
-            and self._cache_nvidia_revision == self._nvidia_capabilities_cache_service.revision()
-            and self._cache_nvidia_expiry
-            == self._nvidia_capabilities_cache_service.expiry_sequence()
+            and self._cache_nvidia_revision == nvidia_revision
+            and self._cache_nvidia_expiry == nvidia_expiry
         )
 
     async def get_capabilities(self, enrich_fn: Callable[[JSONDict], JSONDict]) -> JSONDict:
-        gpu_info_revision = self._gpu_info_cache_service.revision()
         async with self._cache_lock:
-            cached = copy.deepcopy(self._cache) if self._cache is not None else None
-            cached_age = time.monotonic() - self._cache_monotonic if cached is not None else None
-            cache_revision = self._cache_gpu_info_revision
-        if (
-            cached is not None
-            and cached_age is not None
-            and cached_age < self._cache_ttl_seconds
-            and self._cached_sources_are_current(
-                cache_revision=cache_revision,
-                gpu_info_revision=gpu_info_revision,
-            )
-        ):
-            return cached
+            with (
+                self._gpu_info_cache_service.lock,
+                self._nvidia_capabilities_cache_service.publication_snapshot() as nvidia_snapshot,
+            ):
+                if (
+                    self._cache is not None
+                    and time.monotonic() - self._cache_monotonic < self._cache_ttl_seconds
+                    and self._cached_sources_are_current(
+                        cache_revision=self._cache_gpu_info_revision,
+                        gpu_info_revision=self._gpu_info_cache_service.revision(),
+                        nvidia_revision=nvidia_snapshot[0],
+                        nvidia_expiry=nvidia_snapshot[1],
+                    )
+                ):
+                    return copy.deepcopy(self._cache)
 
-        async def compute() -> JSONDict:
+        async def compute() -> GPUCapabilitiesObservation:
+            with (
+                self._gpu_info_cache_service.lock,
+                self._nvidia_capabilities_cache_service.publication_snapshot() as nvidia_snapshot,
+            ):
+                probe_revision = self._gpu_info_cache_service.revision()
+                nvidia_revision, nvidia_expiry = nvidia_snapshot
             if self._worker_active.is_set():
-                return build_probe_error_payload(
-                    "timeout", "GPU capability recovery is still running."
+                return GPUCapabilitiesObservation(
+                    build_probe_error_payload(
+                        "timeout", "GPU capability recovery is still running."
+                    ),
+                    probe_revision,
+                    nvidia_revision,
                 )
-            probe_revision = self._gpu_info_cache_service.revision()
-            nvidia_revision = self._nvidia_capabilities_cache_service.revision()
-            nvidia_expiry = self._nvidia_capabilities_cache_service.expiry_sequence()
 
             def sync_compute() -> JSONDict:
                 self._worker_active.set()
@@ -146,8 +165,22 @@ class GpuCapabilitiesService:
                         nvidia_capabilities_cache_service=self._nvidia_capabilities_cache_service,
                         logger=self._logger,
                         nvidia_settings_controller=self._nvidia_settings_controller,
+                        adl_runtime=self._adl_runtime,
                     )
                     return enrich_fn(raw)
+                except TimeoutError:
+                    with (
+                        self._gpu_info_cache_service.lock,
+                        self._nvidia_capabilities_cache_service.publication_snapshot() as snapshot,
+                    ):
+                        if (
+                            self._gpu_info_cache_service.revision() != probe_revision
+                            or snapshot[0] != nvidia_revision
+                        ):
+                            return build_probe_error_payload(
+                                "stale_probe", "GPU inventory changed while probing capabilities."
+                            )
+                    raise
                 finally:
                     self._worker_active.clear()
 
@@ -160,50 +193,77 @@ class GpuCapabilitiesService:
                     operation=self._operation,
                 )
             except TimeoutError:
-                return build_probe_error_payload(
-                    "timeout",
-                    "Timed out while probing GPU capabilities.",
+                return GPUCapabilitiesObservation(
+                    build_probe_error_payload(
+                        "timeout", "Timed out while probing GPU capabilities."
+                    ),
+                    probe_revision,
+                    nvidia_revision,
                 )
             except SoAIError:
-                return build_probe_error_payload("gpu_error", "GPU capability discovery failed.")
-            current_revision = self._gpu_info_cache_service.revision()
-            if (
-                current_revision != probe_revision
-                or nvidia_revision != self._nvidia_capabilities_cache_service.revision()
-            ):
-                return build_probe_error_payload(
-                    "stale_probe",
-                    "GPU inventory changed while probing capabilities.",
+                return GPUCapabilitiesObservation(
+                    build_probe_error_payload("gpu_error", "GPU capability discovery failed."),
+                    probe_revision,
+                    nvidia_revision,
                 )
-            if (
+            cacheable_payload = (
                 isinstance(payload, dict)
-                and nvidia_expiry == self._nvidia_capabilities_cache_service.expiry_sequence()
                 and not isinstance(payload.get("error"), dict)
                 and is_success_payload(
                     payload,
                     self._logger,
                     operation="hardware.gpu_capabilities_service.is_success_payload",
                 )
-            ):
-                async with self._cache_lock:
-                    self._cache = copy.deepcopy(payload)
-                    self._cache_monotonic = time.monotonic()
-                    self._cache_gpu_info_revision = current_revision
-                    self._cache_nvidia_revision = nvidia_revision
-                    self._cache_nvidia_expiry = nvidia_expiry
-            return payload
+            )
+            async with self._cache_lock:
+                with (
+                    self._gpu_info_cache_service.lock,
+                    self._nvidia_capabilities_cache_service.publication_snapshot() as nvidia_snapshot,
+                ):
+                    if (
+                        self._gpu_info_cache_service.revision() != probe_revision
+                        or nvidia_snapshot[0] != nvidia_revision
+                    ):
+                        return GPUCapabilitiesObservation(
+                            build_probe_error_payload(
+                                "stale_probe", "GPU inventory changed while probing capabilities."
+                            ),
+                            probe_revision,
+                            nvidia_revision,
+                        )
+                    if cacheable_payload and nvidia_snapshot[1] == nvidia_expiry:
+                        self._cache = copy.deepcopy(payload)
+                        self._cache_monotonic = time.monotonic()
+                        self._cache_gpu_info_revision = probe_revision
+                        self._cache_nvidia_revision = nvidia_revision
+                        self._cache_nvidia_expiry = nvidia_expiry
+                    return GPUCapabilitiesObservation(payload, probe_revision, nvidia_revision)
 
-        return await self._singleflight.execute_or_wait("gpu_capabilities", compute)
+        observation = await self._singleflight.execute_or_wait("gpu_capabilities", compute)
+        with (
+            self._gpu_info_cache_service.lock,
+            self._nvidia_capabilities_cache_service.publication_snapshot() as nvidia_snapshot,
+        ):
+            if observation.payload.get("success") is True and (
+                observation.gpu_info_revision != self._gpu_info_cache_service.revision()
+                or observation.nvidia_revision != nvidia_snapshot[0]
+            ):
+                return build_probe_error_payload(
+                    "stale_probe", "GPU inventory changed while probing capabilities."
+                )
+            return copy.deepcopy(observation.payload)
 
     async def get_cached_capabilities(self) -> JSONDict | None:
-        gpu_info_revision = self._gpu_info_cache_service.revision()
         async with self._cache_lock:
-            if (
-                self._cache is None
-                or self._cache_gpu_info_revision != gpu_info_revision
-                or self._cache_nvidia_revision != self._nvidia_capabilities_cache_service.revision()
-                or self._cache_nvidia_expiry
-                != self._nvidia_capabilities_cache_service.expiry_sequence()
+            with (
+                self._gpu_info_cache_service.lock,
+                self._nvidia_capabilities_cache_service.publication_snapshot() as nvidia_snapshot,
             ):
-                return None
-            return copy.deepcopy(self._cache)
+                if self._cache is None or not self._cached_sources_are_current(
+                    cache_revision=self._cache_gpu_info_revision,
+                    gpu_info_revision=self._gpu_info_cache_service.revision(),
+                    nvidia_revision=nvidia_snapshot[0],
+                    nvidia_expiry=nvidia_snapshot[1],
+                ):
+                    return None
+                return copy.deepcopy(self._cache)

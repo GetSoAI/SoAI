@@ -13,9 +13,12 @@ from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import ValidationError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.files.extraction_state import ExtractionState
+from core.files.extraction_summary import build_extraction_summary
 from core.files.types import ParseExecutionContext
 from core.logging.trace import get_logger
 from core.media.config import resolve_media_parse_timeout
+from core.runtime.request_context import create_system_context
+from core.runtime.request_context_cloning import clone_request_context
 from core.timing.constants import LONG_IDLE_TIMEOUT_SEC
 from core.users.ocr_preferences import resolve_user_ocr_language
 from core.validation.strict_numbers import require_non_negative_int_strict
@@ -33,6 +36,7 @@ __all__ = ("UploadedDocumentProcessingResult", "process_uploaded_document")
 
 LOGGER_NAME = "SoAI.mcp.worker.document"
 OPERATION_PARSE = "mcp.worker.document.parse"
+DOCUMENT_INGESTION_CONTEXT_REASON = "document_ingestion"
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +44,7 @@ class UploadedDocumentProcessingResult:
     chunks_created: int
     status_details: str | None
     warnings: tuple[str, ...]
+    missing_capabilities: tuple[str, ...] = ()
 
 
 async def process_uploaded_document(
@@ -117,6 +122,10 @@ async def process_uploaded_document(
                 progress_callback=report_parse_progress,
                 display_name=filename,
                 extraction_deadline=time.monotonic() + parse_timeout,
+                request_context=clone_request_context(
+                    create_system_context(DOCUMENT_INGESTION_CONTEXT_REASON, user_id=user_id),
+                    task_id=task_id,
+                ),
             ),
         )
     except TaskCancelledError:
@@ -176,9 +185,11 @@ async def process_uploaded_document(
         job_id=job_id or None,
         lease_token=lease_token or None,
         status_details=status_details,
+        extraction_summary=build_extraction_summary(parsed.missing_capabilities),
     )
     return UploadedDocumentProcessingResult(
         chunks_created=chunks_created,
         status_details=status_details,
         warnings=parsed.warnings,
+        missing_capabilities=parsed.missing_capabilities,
     )

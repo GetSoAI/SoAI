@@ -17,6 +17,7 @@ from mcp.tools.browser.playwright_launch import (
     require_chromium_ready_for_launch,
 )
 from mcp.tools.browser.playwright_policy import (
+    resolve_chromium_launch_timeout_ms,
     resolve_playwright_launch_args,
     should_retry_playwright_auto_install_after_launch_error,
 )
@@ -64,12 +65,16 @@ async def _launch_chromium_persistent_context(
     logger: LoggerProtocol,
     details: Mapping[str, JSONValue],
 ) -> BrowserContext:
+    launch_timeout_ms = await resolve_chromium_launch_timeout_ms(
+        headless=runtime_options.headless, channel=runtime_options.channel
+    )
     return await await_playwright_driver_call(
         playwright.chromium.launch_persistent_context(
             launch_options.user_data_dir,
             headless=runtime_options.headless,
             channel=runtime_options.channel,
             args=launch_args,
+            timeout=launch_timeout_ms,
             accept_downloads=True,
             service_workers=_BROWSER_SERVICE_WORKERS_POLICY,
             http_credentials=launch_options.http_credentials,

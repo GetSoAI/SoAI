@@ -10,7 +10,6 @@ import { sanitizeAbsoluteHttpUrl, sanitizeImageSource, sanitizeUrl } from '@core
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import type { AssistantTimelineIndexState } from '@features/chat/assistanteventtimeline/timelineIndexState.ts';
-import { resolveLoadingActivityErrorText } from '@features/chat/assistanteventtimeline/loadingActivityErrorText.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { buildIconKey, type RenderAssistantBodyFromMessageInput, type RenderInlineDetailsFromMessageInput, type WorkerResources } from '@features/chat/messagerenderworker/protocol.ts';
 import { findInlineActivitySegment } from '@features/chat/message/inlineActivitySegmentLookup.ts';
@@ -20,7 +19,7 @@ import { isThinkingRenderSegment } from '@features/chat/message/messageSegmentTy
 import { renderAssistantActivityWidgets } from '@features/chat/message/messageview/assistantActivityWidgets.ts';
 import type { ChatActivityDurationDisplayMode } from '@features/chat/message/messageview/activityDurationDisplay.ts';
 import { renderInlineActivityDetails, renderTimelineMarkup } from '@features/chat/message/messageview/effects.ts';
-import { renderMessageError } from '@features/chat/message/messageview/renderCallDetails.ts';
+import { renderMessageFeedback } from '@features/chat/message/messageview/renderMessageFeedback.ts';
 import type { ChatMessageRenderHost } from '@features/chat/message/messageview/types.ts';
 
 type AssistantBodyRenderArguments = Omit<RenderAssistantBodyFromMessageInput, 'context' | 'signal'> & { timelineIndexState: AssistantTimelineIndexState };
@@ -118,10 +117,8 @@ class ChatMessageWorkerRenderer {
         const host = this.#createRenderHost(inputArguments);
         const segments = resolveRenderableSegments(inputArguments);
         const contentHtml = renderTimelineMarkup(host, segments, { sortableTextTables: true });
-        const errorText = resolveLoadingActivityErrorText(inputArguments.message);
         const widgetsHtml = inputArguments.suppressAssistantActivityWidgets ? '' : renderAssistantActivityWidgets(host, segments);
-        const errorHtml = errorText ? renderMessageError(host, errorText) : '';
-        return `${contentHtml}${widgetsHtml}${errorHtml}`;
+        return `${contentHtml}${widgetsHtml}${renderMessageFeedback(host, inputArguments.message)}`;
     }
 }
 

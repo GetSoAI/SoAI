@@ -29,6 +29,7 @@ from mcp.worker.rag_document_status_flow import update_worker_rag_document_statu
 
 if TYPE_CHECKING:
     from core.concurrency.protocols import CancellationTokenProtocol
+    from core.types.json import JSONDict
     from mcp.worker.internal_protocols import MCPWorkerProtocol
 
 __all__ = ("process_chunk_embed_store",)
@@ -52,6 +53,7 @@ async def process_chunk_embed_store(
     job_id: str | None = None,
     lease_token: str | None = None,
     status_details: str | None = None,
+    extraction_summary: JSONDict | None = None,
 ) -> int:
     logger = get_logger(LOGGER_NAME)
     content_hash = compute_document_content_hash(content)
@@ -82,6 +84,7 @@ async def process_chunk_embed_store(
             job_id=job_id,
             lease_token=lease_token,
             status_details=status_details,
+            extraction_summary=extraction_summary,
         )
         if reused is not None:
             return reused
@@ -198,6 +201,7 @@ async def process_chunk_embed_store(
         job_id=job_id,
         lease_token=lease_token,
         status_details=status_details,
+        extraction_summary=extraction_summary,
     )
     await rebuild_sparse_index(self.storage, conv_id)
     return len(chunks)
@@ -217,6 +221,7 @@ async def _update_document_status(
     effective_embedding_model: str | None = None,
     embedding_dimensions: int | None = None,
     status_details: str | None = None,
+    extraction_summary: JSONDict | None = None,
 ) -> None:
     await update_worker_rag_document_status(
         worker,
@@ -231,4 +236,5 @@ async def _update_document_status(
         effective_embedding_model=effective_embedding_model,
         embedding_dimensions=embedding_dimensions,
         status_details=status_details,
+        extraction_summary=extraction_summary,
     )

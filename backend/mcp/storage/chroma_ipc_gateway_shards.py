@@ -25,7 +25,10 @@ from core.ipc.server import LocalIpcServer
 from core.ipc.settings import resolve_ipc_max_message_bytes
 from core.logging.trace import get_logger
 from mcp.storage.chroma_ipc_gateway_manifest import ensure_shard_manifest
-from mcp.storage.chroma_ipc_worker_launch import build_chroma_shard_worker
+from mcp.storage.chroma_ipc_worker_launch import (
+    build_chroma_shard_worker,
+    spawn_chroma_shard_worker,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -160,8 +163,10 @@ class ChromaIpcShardPool:
                         "TOOLS.RAG.CHROMA_IPC_STARTUP_TIMEOUT_SEC must be at least 1.",
                     )
                 for runtime in self._shards.values():
-                    await runtime.worker.spawn(
+                    await spawn_chroma_shard_worker(
+                        runtime.worker,
                         server=self._server,
+                        shard_id=runtime.shard_id,
                         startup_timeout_sec=startup_timeout,
                     )
             except asyncio.CancelledError:

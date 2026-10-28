@@ -14,7 +14,7 @@ from core.tool_calls.context_compaction_markers import CONTEXT_COMPACTION_TOOL_N
 from core.tool_calls.context_compaction_metrics import (
     resolve_context_compaction_metric_tokens_saved,
 )
-from database.core.query_execution import query_one_to_dict, sync_fetch_one_as_dict
+from database.core.query_execution import query_one_to_dict
 from database.core.row_fields import (
     coerce_row_optional_non_negative_int,
     require_row_epoch_ms,
@@ -29,8 +29,6 @@ if TYPE_CHECKING:
 __all__ = (
     "get_context_compaction_metric_totals_query",
     "sync_delete_context_compaction_metric_events_for_assistant_turn",
-    "sync_delete_context_compaction_metric_events_for_conversation",
-    "sync_get_context_compaction_metric_totals",
     "sync_reconcile_context_compaction_metric_events",
     "sync_record_context_compaction_metric_event",
 )
@@ -165,16 +163,6 @@ def sync_record_context_compaction_metric_event(
     )
 
 
-def sync_delete_context_compaction_metric_events_for_conversation(
-    conn: sqlite3.Connection,
-    conv_id: str,
-) -> None:
-    conn.execute(
-        "DELETE FROM webui_context_compaction_metric_events WHERE conv_id = ?",
-        (conv_id,),
-    )
-
-
 def sync_delete_context_compaction_metric_events_for_assistant_turn(
     conn: sqlite3.Connection,
     *,
@@ -250,11 +238,6 @@ def _format_context_compaction_metric_totals(row: SQLiteRowDict | None) -> JSOND
             build_error=StateError,
         ),
     }
-
-
-def sync_get_context_compaction_metric_totals(conn: sqlite3.Connection) -> JSONDict:
-    row = sync_fetch_one_as_dict(conn.execute(_TOTALS_SQL))
-    return _format_context_compaction_metric_totals(row)
 
 
 async def get_context_compaction_metric_totals_query(

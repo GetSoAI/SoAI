@@ -104,6 +104,9 @@ async def _execute_download_within_scope(
     task_id: str | None,
 ) -> None:
     logger = get_logger(LOGGER_NAME)
+    mutation_fencing_token = (
+        command.context.mutation_fencing_token if command.context is not None else None
+    )
     phase_mapper = PhaseAwareProgressMapper(
         phase_ranges={"setup": (0, 10), "download": (10, 95), "finalize": (95, 100)},
     )
@@ -128,7 +131,9 @@ async def _execute_download_within_scope(
     per_task_shutdown_event = asyncio.Event()
     cancel_watcher: asyncio.Task[None] | None = None
     try:
-        if await check_offline_mode_blocks_download(reply_channel, task_id, manager):
+        if await check_offline_mode_blocks_download(
+            reply_channel, task_id, manager, mutation_fencing_token
+        ):
             return
         validated = await validate_plugin_for_download(
             manager,
@@ -136,6 +141,7 @@ async def _execute_download_within_scope(
             display_name,
             reply_channel,
             task_id,
+            mutation_fencing_token,
         )
         if not validated:
             return
@@ -187,6 +193,7 @@ async def _execute_download_within_scope(
             success=success,
             message=completion_message,
             result=completion_result,
+            mutation_fencing_token=mutation_fencing_token,
             task_registry=manager.dependencies.infrastructure.task_registry,
             send_task_complete_event_callable=manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
         )
@@ -227,6 +234,7 @@ async def _execute_download_within_scope(
             message=str(exception.message),
             error_code=507,
             error_message=str(exception.message),
+            mutation_fencing_token=mutation_fencing_token,
             task_registry=manager.dependencies.infrastructure.task_registry,
             send_task_complete_event_callable=manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
         )
@@ -249,6 +257,7 @@ async def _execute_download_within_scope(
             reply_channel,
             task_id,
             exception,
+            mutation_fencing_token=mutation_fencing_token,
         )
     finally:
         await cleanup_cancel_watcher(
@@ -288,4 +297,7 @@ async def _handle_download_cancellation(
         task_id,
         manager.dependencies.infrastructure.task_registry,
         manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
+        mutation_fencing_token=(
+            command.context.mutation_fencing_token if command.context is not None else None
+        ),
     )

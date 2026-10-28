@@ -1,6 +1,7 @@
 /* SoAI - Wizard AI setup progress item derivation [frontend/assets/ts/pages/wizard/services/aisetup/progress/mappers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ModelDownloadOutcome } from '@features/models/public.ts';
 import type { OperationProgressData } from '@core/operationprogress/types.ts';
 import type { AiSetupBackend, AiSetupModel, AiSetupState, AiSetupTestOutcome } from '@core/storage/aisetup/aiSetupTypes.ts';
 import type { ModelData } from '@core/types/modelTypes.ts';
@@ -8,15 +9,15 @@ import { findItemModel, readConfigurationFingerprint, readModelLabel } from '@pa
 import { isEngineInstalled, readEngineName, type AiSetupFacts } from '@pages/wizard/services/aisetup/facts/service.ts';
 import { findModelCatalogEntry } from '@pages/wizard/services/aisetup/catalog/constants.ts';
 
-type TaskObservation = { status: 'checking'; taskId: string | null } | { status: 'running'; taskId: string | null; progress: OperationProgressData | null } | { status: 'succeeded' } | { status: 'failed'; insufficientDiskSpace: boolean };
+type TaskObservation = { status: 'cancelling'; taskId: string | null } | { status: 'cancelled' } | { status: 'checking'; taskId: string | null } | { status: 'running'; taskId: string | null; progress: OperationProgressData | null } | { status: 'succeeded' } | { status: 'failed'; insufficientDiskSpace: boolean };
 
 type ReadinessPhase = 'configuring' | 'testing';
 
-type AiSetupRowPhase = 'checking' | 'installing' | 'installed' | 'waiting' | 'blocked' | 'starting' | 'downloading' | 'discovering' | 'configuring' | 'testing' | 'ready' | 'stale' | 'failed';
+type AiSetupRowPhase = 'checking' | 'installing' | 'installed' | 'waiting' | 'blocked' | 'starting' | 'downloading' | 'discovering' | 'cancelling' | 'cancelled' | 'configuring' | 'testing' | 'ready' | 'stale' | 'failed';
 
-type AiSetupRowFailure = 'install_failed' | 'download_failed' | 'no_disk_space' | Exclude<AiSetupTestOutcome, 'passed'>;
+type AiSetupRowFailure = 'install_failed' | 'download_failed' | 'no_disk_space' | 'discovery_failed' | Exclude<AiSetupTestOutcome, 'passed'>;
 
-type AiSetupRowAction = 'retry' | 'retry_installation' | 'skip' | 'test_again' | 'check_again' | 'send_test';
+type AiSetupRowAction = 'repair_runtime' | 'retry' | 'retry_installation' | 'skip' | 'test_again' | 'send_test';
 
 interface AiSetupRow {
     key: string;
@@ -28,6 +29,7 @@ interface AiSetupRow {
     engineLabel: string;
     phase: AiSetupRowPhase;
     failure: AiSetupRowFailure | null;
+    failureMetadata?: AiSetupModel['test']['failure'];
     progress: OperationProgressData | null;
     actions: AiSetupRowAction[];
     ready: boolean;
@@ -65,15 +67,16 @@ const resolveEngineState = (inputs: Pick<AiSetupRowInputs, 'setup' | 'facts' | '
     const observation = inputs.observations.get(backendRowKey(pluginName));
     if (observation?.status === 'succeeded') return 'ready';
     if (observation?.status === 'running') return 'installing';
-    if (observation?.status === 'failed') return 'failed';
+    if (observation?.status === 'failed' || observation?.status === 'cancelled') return 'failed';
     if (observation?.status === 'checking') return 'checking';
     return activeBackend(inputs.setup, pluginName) === null ? 'missing' : 'checking';
 };
 
-const createRow = (fields: AiSetupRowIdentity, phase: AiSetupRowPhase, extra: Partial<Pick<AiSetupRow, 'failure' | 'progress' | 'actions'>> = {}): AiSetupRow => ({
+const createRow = (fields: AiSetupRowIdentity, phase: AiSetupRowPhase, extra: Partial<Pick<AiSetupRow, 'failure' | 'failureMetadata' | 'progress' | 'actions'>> = {}): AiSetupRow => ({
     ...fields,
     phase,
     failure: extra.failure ?? null,
+    failureMetadata: extra.failureMetadata ?? null,
     progress: extra.progress ?? null,
     actions: extra.actions ?? [],
     ready: phase === 'ready'
@@ -85,6 +88,7 @@ const deriveBackendRow = (inputs: AiSetupRowInputs, backend: AiSetupBackend): Ai
     const label = readEngineName(inputs.facts, backend.pluginName);
     const fields: AiSetupRowIdentity = { key, kind: 'backend', itemId: null, source: null, pluginName: backend.pluginName, label, engineLabel: label };
     if (observation === undefined && backend.taskId === null && inputs.facts !== null && isEngineInstalled(inputs.facts, backend.pluginName)) return null;
+    if (observation?.status === 'cancelling' || observation?.status === 'cancelled') return createRow(fields, observation.status, { actions: observation.status === 'cancelled' ? ['retry_installation', 'skip'] : [] });
     if (observation?.status === 'running') return createRow(fields, 'installing', { progress: observation.progress });
     if (observation?.status === 'failed') return createRow(fields, 'failed', { failure: 'install_failed', actions: ['retry_installation', 'skip'] });
     if (resolveEngineState(inputs, backend.pluginName) === 'ready') return createRow(fields, 'installed');
@@ -96,7 +100,7 @@ const readItemLabel = (item: AiSetupModel, model: ModelData | null): string => f
 const deriveTestedRow = (inputs: AiSetupRowInputs, item: AiSetupModel, model: ModelData, fields: AiSetupRowIdentity): AiSetupRow => {
     const runtimePhase = inputs.readiness.get(item.itemId);
     if (runtimePhase !== undefined) return createRow(fields, runtimePhase);
-    if (item.test.status === 'failed' && item.test.outcome !== null && item.test.outcome !== 'passed') return createRow(fields, 'failed', { failure: item.test.outcome, actions: ['retry', 'skip'] });
+    if (item.test.status === 'failed' && item.test.outcome !== null && item.test.outcome !== 'passed') return createRow(fields, 'failed', { failure: item.test.outcome, failureMetadata: item.test.failure, actions: item.test.failure?.code === 'openvino_tensor_shape_incompatible' ? ['repair_runtime', 'retry', 'skip'] : ['retry', 'skip'] });
     if (item.source === 'cloud') return createRow(fields, 'ready', { actions: item.test.status === 'not_run' ? ['send_test'] : [] });
     if (item.test.status === 'passed' || item.test.status === 'stale') {
         const fingerprint = readConfigurationFingerprint(model);
@@ -107,12 +111,13 @@ const deriveTestedRow = (inputs: AiSetupRowInputs, item: AiSetupModel, model: Mo
 };
 
 const deriveUndiscoveredRow = (inputs: AiSetupRowInputs, item: AiSetupModel, fields: AiSetupRowIdentity): AiSetupRow => {
-    const stalledActions: AiSetupRowAction[] = inputs.stalledDiscovery.has(item.itemId) ? ['check_again'] : [];
-    if (item.source === 'cloud') return createRow(fields, 'discovering', { actions: stalledActions });
+    if (inputs.stalledDiscovery.has(item.itemId)) return createRow(fields, 'failed', { failure: 'discovery_failed', actions: ['skip'] });
+    if (item.source === 'cloud') return createRow(fields, 'discovering', {});
     const observation = inputs.observations.get(item.itemId);
+    if (observation?.status === 'cancelling' || observation?.status === 'cancelled') return createRow(fields, observation.status, { actions: observation.status === 'cancelled' ? ['retry', 'skip'] : [] });
     if (observation?.status === 'running') return createRow(fields, 'downloading', { progress: observation.progress });
     if (observation?.status === 'failed') return createRow(fields, 'failed', { failure: observation.insufficientDiskSpace ? 'no_disk_space' : 'download_failed', actions: ['retry', 'skip'] });
-    if (observation?.status === 'succeeded') return createRow(fields, 'discovering', { actions: stalledActions });
+    if (observation?.status === 'succeeded' || item.modelId !== null) return createRow(fields, 'discovering', {});
     if (observation?.status === 'checking' || item.downloadTaskId !== null) return createRow(fields, 'checking');
     const engine = resolveEngineState(inputs, item.pluginName);
     if (engine === 'ready') return createRow(fields, 'starting');
@@ -142,3 +147,19 @@ const isRowReady = (summary: AiSetupProgressSummary, itemId: string): boolean =>
 
 export { backendRowKey, deriveAiSetupProgress, isRowReady, readBackendRowPlugin, resolveEngineState };
 export type { AiSetupProgressSummary, AiSetupRow, AiSetupRowAction, AiSetupRowFailure, AiSetupRowInputs, AiSetupRowPhase, EngineState, ReadinessPhase, TaskObservation };
+
+type SettledTaskResult = 'cancelled' | 'succeeded' | 'failed' | 'failed_disk' | 'detached';
+
+const readDownloadResult = (outcome: Exclude<ModelDownloadOutcome, { status: 'rejected' }>): SettledTaskResult => {
+    if (outcome.status === 'finished') return 'succeeded';
+    if (outcome.status === 'detached') return 'detached';
+    if (outcome.status === 'cancelled') return 'cancelled';
+    return outcome.status === 'failed' && outcome.insufficientDiskSpace ? 'failed_disk' : 'failed';
+};
+
+export { readDownloadResult };
+export type { SettledTaskResult };
+
+const isLocalDownloadComplete = (setup: AiSetupState, observations: ReadonlyMap<string, TaskObservation>): boolean => setup.models.some((item) => item.source === 'local' && !item.excluded && (item.modelId !== null || observations.get(item.itemId)?.status === 'succeeded'));
+
+export { isLocalDownloadComplete };

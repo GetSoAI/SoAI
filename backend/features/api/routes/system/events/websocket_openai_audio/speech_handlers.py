@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import SoAIError
+from core.errors.public_projection import project_public_error
 from core.events.types_models_requests import TextToSpeechRequestReceived
 from core.logging.trace import get_logger
 from core.orchestrator.protocols_lifecycle import InferenceAdmissionRequest
@@ -133,7 +134,7 @@ async def handle_openai_audio_speech_start(
             connection.queue,
             build_openai_audio_speech_error(
                 run_id=run_id,
-                message=str(coerced),
+                message=project_public_error(coerced).message,
                 code=str(coerced.code),
             ),
             "OpenAI audio speech error",

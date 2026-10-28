@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 
 from core.types.json import JSONDict, JSONValue
-from mcp.protocol.types import MCPJSONRPCError
+from mcp.shared.exception_boundary import build_jsonrpc_error_from_mcp_error
 from mcp.tools.argument_fields import reject_unexpected_parameters
 from mcp.tools.ask_user import tool_ask_user
 from mcp.tools.automation_tools import (
@@ -63,6 +63,8 @@ from mcp.tools.rss import tool_rss_read
 from mcp.tools.shell import tool_shell
 from mcp.tools.shell_output_tools import tool_shell_output_read, tool_shell_output_search
 from mcp.tools.shell_write_stdin import tool_shell_write_stdin
+from mcp.tools.skill_materialize import tool_skill_materialize
+from mcp.tools.skill_read import tool_skill_read
 from mcp.tools.soai_documentation import tool_soai_documentation
 from mcp.tools.stop_conversation import tool_stop_conversation
 from mcp.tools.subagent_tools import (
@@ -85,10 +87,7 @@ from mcp.tools.vault_secret_request import tool_vault_secret_request
 from mcp.tools.wait import tool_wait
 from mcp.tools.weather import tool_weather
 
-__all__ = (
-    "build_internal_utility_tool_handlers",
-    "build_public_utility_tool_handlers",
-)
+__all__ = ("build_internal_utility_tool_handlers",)
 
 
 def _build_utility_tool_handlers(
@@ -116,11 +115,7 @@ def _build_utility_tool_handlers(
                 operation = f"mcp.tools.{tool_name}"
                 return await guarded_tool_call(operation, tool_name, tool_func(arguments))
             except MCPToolError as exception:
-                raise MCPJSONRPCError(
-                    exception.rpc_code,
-                    exception.message,
-                    exception.data,
-                ) from exception
+                raise build_jsonrpc_error_from_mcp_error(exception) from exception
 
         return handler
 
@@ -227,6 +222,10 @@ def _build_utility_tool_handlers(
         ),
     }
     if include_internal:
+        handlers["skill_read"] = build_handler("skill_read", bind_tool(tool_skill_read))
+        handlers["skill_materialize"] = build_handler(
+            "skill_materialize", bind_tool(tool_skill_materialize)
+        )
         handlers["soai_documentation"] = build_handler(
             "soai_documentation",
             bind_tool(tool_soai_documentation),
@@ -248,12 +247,6 @@ def _build_utility_tool_handlers(
         handlers=handlers,
     )
     return handlers
-
-
-def build_public_utility_tool_handlers(
-    utility_tools: MCPUtilityToolsProtocol,
-) -> dict[str, Callable[[JSONDict], Awaitable[JSONValue]]]:
-    return _build_utility_tool_handlers(utility_tools, include_internal=False)
 
 
 def build_internal_utility_tool_handlers(

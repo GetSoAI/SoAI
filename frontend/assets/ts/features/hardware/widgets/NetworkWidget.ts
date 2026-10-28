@@ -8,7 +8,7 @@ import { isFiniteNumber } from '@core/typeGuards.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
 import { formatSpeedValue } from '@features/hardware/Formatters.ts';
 import { BaseHardwareWidget } from '@features/hardware/widgets/BaseHardwareWidget.ts';
-import type { HardwareWidgetDataPoint, HardwareWidgetHistoryData, WidgetConfig, WidgetOptions } from '@features/hardware/widgets/contracts.ts';
+import type { HardwareWidgetDataPoint, HardwareWidgetHistoryData, MetricChartNormalizer, WidgetConfig, WidgetOptions } from '@features/hardware/widgets/contracts.ts';
 import { NETWORK_METRICS } from '@features/hardware/widgets/constants.ts';
 import type { NetworkDeviceData } from '@features/hardware/widgets/internalContracts.ts';
 import { resolveNumericMetric } from '@features/hardware/widgets/metricValues.ts';
@@ -35,9 +35,9 @@ const NETWORK_METRICS_MAP: MetricsConfigMap = {
 };
 
 const normalizeNetworkWidgetData = (source: NetworkDeviceData | null | undefined): NetworkData => ({
-    downloadMbps: isFiniteNumber(source?.downloadMbps) ? source.downloadMbps : 0,
-    uploadMbps: isFiniteNumber(source?.uploadMbps) ? source.uploadMbps : 0,
-    linkSpeedMbps: isFiniteNumber(source?.linkSpeedMbps) ? source.linkSpeedMbps : 0
+    downloadMbps: isFiniteNumber(source?.downloadMbps) ? source.downloadMbps : undefined,
+    uploadMbps: isFiniteNumber(source?.uploadMbps) ? source.uploadMbps : undefined,
+    linkSpeedMbps: isFiniteNumber(source?.linkSpeedMbps) ? source.linkSpeedMbps : undefined
 });
 
 class NetworkWidget extends BaseHardwareWidget<NetworkDeviceData> {
@@ -83,8 +83,8 @@ class NetworkWidget extends BaseHardwareWidget<NetworkDeviceData> {
     override createDataPoint(dataInput: NetworkDeviceData): NetworkDataPoint {
         const data = normalizeNetworkWidgetData(dataInput);
         return {
-            download: data.downloadMbps ?? 0,
-            upload: data.uploadMbps ?? 0,
+            download: data.downloadMbps,
+            upload: data.uploadMbps,
             timestamp: serverEpochMs()
         };
     }
@@ -101,8 +101,8 @@ class NetworkWidget extends BaseHardwareWidget<NetworkDeviceData> {
                 continue;
             }
             points.push({
-                download: resolveNumericMetric(row, ['download_mbps']) ?? 0,
-                upload: resolveNumericMetric(row, ['upload_mbps']) ?? 0,
+                download: resolveNumericMetric(row, ['download_mbps']) ?? undefined,
+                upload: resolveNumericMetric(row, ['upload_mbps']) ?? undefined,
                 timestamp
             });
         }
@@ -113,25 +113,37 @@ class NetworkWidget extends BaseHardwareWidget<NetworkDeviceData> {
         const data = normalizeNetworkWidgetData(this.config.data);
         const downloadElement = this.metricValueElements['download'];
         if (downloadElement) {
-            dom.setText(downloadElement, formatSpeedValue(data.downloadMbps ?? 0));
+            dom.setText(downloadElement, isFiniteNumber(data.downloadMbps) ? formatSpeedValue(data.downloadMbps) : i18n.t('common.notAvailableShort'));
         }
         const uploadElement = this.metricValueElements['upload'];
         if (uploadElement) {
-            dom.setText(uploadElement, formatSpeedValue(data.uploadMbps ?? 0));
+            dom.setText(uploadElement, isFiniteNumber(data.uploadMbps) ? formatSpeedValue(data.uploadMbps) : i18n.t('common.notAvailableShort'));
         }
     }
 
+    protected override createChartMetricNormalizer(): MetricChartNormalizer {
+        let denominator: number | null = null;
+        return (value, metric) => {
+            denominator ??= this.#resolveChartDenominator(metric);
+            return denominator > 0 ? clampPercent((value / denominator) * 100) : 0;
+        };
+    }
+
     override normalizeChartMetricValue(value: number, metric: string): number {
+        const denominator = this.#resolveChartDenominator(metric);
+        return denominator > 0 ? clampPercent((value / denominator) * 100) : 0;
+    }
+
+    #resolveChartDenominator(metric: string): number {
         const data = normalizeNetworkWidgetData(this.config.data);
         const linkSpeed = data.linkSpeedMbps ?? 0;
         if (linkSpeed > 0) {
-            return clampPercent((value / linkSpeed) * 100);
+            return linkSpeed;
         }
-        const peak = this.dataPoints.reduce((max, point) => {
+        return this.dataPoints.reduce((max, point) => {
             const metricValue = point[metric];
             return isFiniteNumber(metricValue) ? Math.max(max, metricValue) : max;
         }, 0);
-        return peak > 0 ? clampPercent((value / peak) * 100) : 0;
     }
 }
 

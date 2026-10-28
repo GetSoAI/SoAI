@@ -10,10 +10,8 @@ __all__ = (
 
 
 def resolve_error_message(message: str, *, default_message: str) -> str:
-    resolved_message = message.strip()
-    if resolved_message:
-        return resolved_message
-    return default_message
+    resolved_message = message.strip() or default_message
+    return resolved_message.encode("utf-8", errors="backslashreplace").decode("utf-8")
 
 
 def resolve_exception_error_message(exception: BaseException) -> str:

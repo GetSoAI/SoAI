@@ -256,6 +256,7 @@ def sync_admit_messaging_event(
         None,
         "[]",
         serialize_json_compact_stable(model_settings),
+        None,
         ingress_id,
         None,
         None,

@@ -12,7 +12,7 @@ This folder contains the first-party code and manifests used to build the SoAI l
 
 ## Runtime Behavior
 
-The installer copies the SoAI payload, installs Microsoft Edge WebView2 Evergreen Runtime when missing, downloads the configured Python 3.13 NuGet runtime package into the SoAI install directory without adding it to PATH, creating file associations, or registering a system Python install, prepares the managed venv, installs Python dependencies, provisions runtime artifacts, runs the post-update hook, and writes Start Menu, Desktop, and uninstall entries.
+The installer copies the SoAI payload, installs Microsoft Edge WebView2 Evergreen Runtime when missing, installs the pinned Python 3.13 runtime without adding it to PATH, creating file associations, or registering a system Python install, prepares the managed venv, installs Python dependencies, provisions runtime artifacts, runs the post-update hook, and writes Start Menu, Desktop, and uninstall entries. Current releases use a SHA-256-pinned Python Build Standalone archive from Astral; the runtime installer also accepts the existing NuGet package layout. It validates a staged replacement before removing the previous runtime and requires both the base interpreter and managed venv to report the declared version before recording installation success.
 
 After installation, `soai.exe install-deps` remains the supported dependency repair/update path. The launcher starts that command from the bundled app-local Python runtime, then SoAI relaunches into the managed venv to update requirements, runtime artifacts, and migration hooks.
 

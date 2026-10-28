@@ -16,6 +16,7 @@ import { createAgentEndpoints, type WebuiAgentEndpoints } from '@core/api/endpoi
 import { createDraftEndpoints, type WebuiChatDraftEndpoints } from '@core/api/endpoints/webuiChatDraftEndpoints.ts';
 import { createInputQueueEndpoints, type WebuiInputQueueEndpoints } from '@core/api/endpoints/webuiChatInputQueueEndpoints.ts';
 import { createChatPromptHistoryEndpoints, type WebuiChatPromptHistoryEndpoints } from '@core/api/endpoints/webuiChatPromptHistoryEndpoints.ts';
+import { createWebuiSkillEndpoints, type WebuiSkillEndpoints } from '@core/api/endpoints/webuiSkillEndpoints.ts';
 import { createWebuiChatPresetEndpoints, type WebuiChatPresetEndpoints } from '@core/api/endpoints/webuiChatPresetEndpoints.ts';
 import { createRagEndpoints, type WebuiRagEndpoints } from '@core/api/endpoints/webuiChatRagEndpoints.ts';
 import { decodeFileExplorerBrowseResponse } from '@core/api/contracts/fileExplorerContracts.ts';
@@ -99,6 +100,7 @@ interface WebuiChatEndpoints {
         inputQueue: WebuiInputQueueEndpoints;
         promptHistory: WebuiChatPromptHistoryEndpoints;
         presets: WebuiChatPresetEndpoints;
+        skills: WebuiSkillEndpoints;
         draft: WebuiChatDraftEndpoints;
         rag: WebuiRagEndpoints;
         search: WebuiSearchEndpoints;
@@ -262,6 +264,7 @@ const createWebuiChatEndpoints = (api: ApiClientContext): WebuiChatEndpoints => 
             inputQueue: createInputQueueEndpoints(api, paths),
             promptHistory: createChatPromptHistoryEndpoints(api),
             presets: createWebuiChatPresetEndpoints(api),
+            skills: createWebuiSkillEndpoints(api),
             draft: createDraftEndpoints(api, paths),
             rag: createRagEndpoints(api, paths),
             search: {

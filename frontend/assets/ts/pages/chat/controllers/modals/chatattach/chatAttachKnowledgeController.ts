@@ -1,7 +1,7 @@
 /* SoAI - Chat attach modal linked knowledge controller [frontend/assets/ts/pages/chat/controllers/modals/chatattach/chatAttachKnowledgeController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { isAbortError } from '@core/errors/abort.ts';
+import { createAbortSignalScope, isAbortError } from '@core/errors/abort.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -19,10 +19,14 @@ import { ChatAttachKnowledgeProgressController } from '@pages/chat/controllers/m
 import { loadChatAttachKnowledgeRefreshState } from '@pages/chat/controllers/modals/chatattach/chatAttachKnowledgeRefreshController.ts';
 import type { ChatAttachKnowledgeElements } from '@pages/chat/controllers/modals/chatattach/types.ts';
 import { knowledgeDocumentsSignature, renderKnowledgeDocuments, renderKnowledgeNoConversation, selectFinalizedRagDocuments, syncKnowledgeActions } from '@pages/chat/controllers/modals/chatattach/view.ts';
+import { mountSpeechSetup } from '@core/speechsetup/view.ts';
+import { createSpeechMediaSelectionView } from '@core/speechsetup/selectionView.ts';
 
 const POLL_DELAY_MS = 2000;
 
 class ChatAttachKnowledgeController {
+    #speechSetupController: AbortController | null = null;
+    readonly #speechSelection: (mimeTypes: readonly string[], persisted?: boolean) => void;
     readonly #host: ChatAttachKnowledgeHost;
     readonly #elements: ChatAttachKnowledgeElements;
     readonly #signal: AbortSignal;
@@ -40,6 +44,7 @@ class ChatAttachKnowledgeController {
         this.#host = host;
         this.#elements = elements;
         this.#signal = signal;
+        this.#speechSelection = createSpeechMediaSelectionView(elements.summary, signal);
         this.#refreshLifecycle = new ChatAttachKnowledgeRefreshLifecycleController(host, signal);
         this.#operations = new ChatAttachKnowledgeOperations(host);
         this.#mutations = new ChatAttachKnowledgeMutationController({
@@ -171,10 +176,12 @@ class ChatAttachKnowledgeController {
     };
 
     async #handleInput(input: HTMLInputElement, source: KnowledgeSource): Promise<void> {
+        this.#speechSelection(Array.from(input.files ?? []).map((file) => file.type));
         await this.#mutations.handleInput(input, source);
     }
 
     async #uploadDroppedFiles(files: File[], source: KnowledgeSource): Promise<void> {
+        this.#speechSelection(files.map((file) => file.type));
         await this.#mutations.uploadDroppedFiles(files, source);
     }
 
@@ -210,6 +217,13 @@ class ChatAttachKnowledgeController {
         const rebuildList = signature !== this.#lastListSignature;
         this.#lastListSignature = signature;
         renderKnowledgeDocuments(this.#elements, this.#page, rebuildList, finalizedDocuments);
+        if (rebuildList) {
+            this.#speechSetupController?.abort();
+            const controller = new AbortController();
+            this.#speechSetupController = controller;
+            const speechScope = createAbortSignalScope([this.#signal, controller.signal]);
+            mountSpeechSetup(this.#elements.list, speechScope.signal);
+        }
         this.#syncActions();
         this.#syncProgress();
         this.#refreshLifecycle.syncPoll(this.#active, this.#page, POLL_DELAY_MS, () => {

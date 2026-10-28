@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from typing import TYPE_CHECKING
 
-from core.errors.exception_logging import log_exception
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exceptions import (
     NotFoundError,
     ProcessError,
@@ -20,6 +21,7 @@ from core.plugins.errors import PluginIncompatibleError
 from core.state.compatibility import CompatibilityInfo
 from core.state.state_names import PluginRuntimeStateName
 from core.types.json import JSONDict, is_json_dict
+from plugins.load_cleanup import preserve_plugin_load_failure
 from plugins.loader.announcement import announce_loaded_plugin
 from plugins.loader.configured_worker_load import load_plugin_worker_with_config
 from plugins.loader.incompatibility import handle_incompatible_plugin
@@ -50,7 +52,6 @@ if TYPE_CHECKING:
 __all__ = ("PLUGIN_LOAD_FAILURE_EXCEPTIONS", "load_and_announce_plugin")
 
 LOGGER_NAME = "SoAI.plugins.loader.loading"
-OPERATION_PLUGIN_LOADER_LOAD_PLUGIN_REGISTER_SCHEMA = "plugin_loader.load_plugin.register_schema"
 OPERATION_PLUGIN_MANIFEST_EXTRACTION = "plugins.loader.loading.extract_plugin_manifest"
 PLUGIN_LOAD_FAILURE_EXCEPTIONS: tuple[type[Exception], ...] = (
     *RECOVERABLE_EXCEPTIONS,
@@ -78,6 +79,8 @@ async def load_and_announce_plugin(
     logger = get_logger(LOGGER_NAME)
     if plugin_name in manager.state.catalog.loaded_plugin_instances and (not force_reload):
         return await build_existing_plugin_load_outcome(manager, plugin_name)
+    acquired_instance: PluginInstanceProtocol | None = None
+    cleanup_instance = manager.state.catalog.loaded_plugin_instances.get(plugin_name)
     parameter_schema_registered = False
     compatibility: CompatibilityInfo | None = None
     existing_record: JSONDict | None = None
@@ -124,6 +127,8 @@ async def load_and_announce_plugin(
             preflight_result=preflight_result,
             initial_config=initial_config,
         )
+        acquired_instance = configured_load.instance
+        cleanup_instance = configured_load.instance
         final_instance: PluginInstanceProtocol = configured_load.instance
         default_configuration = configured_load.default_configuration
         parameter_schema = configured_load.parameter_schema
@@ -134,20 +139,28 @@ async def load_and_announce_plugin(
                 parameter_schema=parameter_schema,
             ),
         )
-        await manager.dependencies.databases.plugins.add_or_update_plugin(
-            plugin_data,
-            state=resolved_policy.catalog_state,
-            incompatibility=(
-                compatibility if compatibility is not None and compatibility.reason else None
-            ),
-            override=compatibility.is_overridden if compatibility is not None else False,
-        )
-        initial_state, reason = await compute_initial_state(
-            manager,
-            plugin_name,
-            final_instance,
-            existing_record,
-        )
+        async with manager.state.locks.load_lock:
+            if force_reload or plugin_name not in manager.state.catalog.loaded_plugin_instances:
+                await manager.dependencies.databases.plugins.add_or_update_plugin(
+                    plugin_data,
+                    state=resolved_policy.catalog_state,
+                    incompatibility=(
+                        compatibility
+                        if compatibility is not None and compatibility.reason
+                        else None
+                    ),
+                    override=compatibility.is_overridden if compatibility is not None else False,
+                )
+        if resolved_policy.initial_state is None:
+            initial_state, reason = await compute_initial_state(
+                manager,
+                plugin_name,
+                final_instance,
+                existing_record,
+            )
+        else:
+            initial_state = resolved_policy.initial_state
+            reason = "Plugin loaded for installation status discovery."
         final_instance, initial_state, reason = await register_loaded_plugin(
             manager,
             PluginLoadRegistration(
@@ -165,44 +178,26 @@ async def load_and_announce_plugin(
             ),
         )
         if final_instance is not configured_load.instance:
-            parameter_schema = await final_instance.get_parameter_schema()
-        try:
+            await clear_loaded_plugin_state(
+                manager, plugin_name, expected_instance=configured_load.instance
+            )
+            acquired_instance = None
+            return await build_existing_plugin_load_outcome(manager, plugin_name)
+        async with manager.state.locks.load_lock:
+            if manager.state.catalog.loaded_plugin_instances.get(plugin_name) is not final_instance:
+                raise StateError(
+                    "Plugin parameter registration was superseded by another instance."
+                )
             schema = parameter_schema
             await manager.dependencies.models.parameter_manager.register_plugin_parameters(
                 plugin_name,
                 schema,
             )
+            parameter_schema_registered = True
             await manager.dependencies.databases.plugins.update_plugin_catalog_metadata(
                 plugin_name,
                 parameter_schema=schema,
             )
-            parameter_schema_registered = True
-        except PluginIncompatibleError:
-            raise
-        except PLUGIN_LOAD_FAILURE_EXCEPTIONS as exception:
-            try:
-                await manager.dependencies.models.parameter_manager.unregister_plugin_parameters(
-                    plugin_name,
-                )
-            except RECOVERABLE_EXCEPTIONS as unregister_exception:
-                log_exception(
-                    logger,
-                    unregister_exception,
-                    message=(
-                        f"Failed to unregister partial parameter schema for plugin '{plugin_name}'"
-                    ),
-                    operation=OPERATION_PLUGIN_LOADER_LOAD_PLUGIN_REGISTER_SCHEMA,
-                    details={"plugin": plugin_name},
-                    level="warning",
-                )
-            log_exception(
-                logger,
-                exception,
-                message=f"Failed to register parameter schema for plugin '{plugin_name}'",
-                operation=OPERATION_PLUGIN_LOADER_LOAD_PLUGIN_REGISTER_SCHEMA,
-                details={"plugin": plugin_name},
-            )
-            raise
         if manager.dependencies.core.log_manager is not None:
             await asyncio.to_thread(
                 manager.dependencies.core.log_manager.attach_streaming_handler_to_plugin,
@@ -230,16 +225,26 @@ async def load_and_announce_plugin(
                 initial_state=initial_state,
                 reason=reason,
             )
-        return PluginLoadOutcome(
+        load_outcome = PluginLoadOutcome(
             instance=final_instance,
             plugin_data=plugin_data,
             previous_state=previous_state,
             initial_state=initial_state,
             reason=reason,
             welcome_message=welcome_message,
+            acquired_instance=acquired_instance,
         )
+        acquired_instance = None
+        return load_outcome
     except PluginIncompatibleError as exception:
-        await clear_loaded_plugin_state(manager, plugin_name)
+        acquired_instance = None
+        try:
+            if cleanup_instance is not None:
+                await clear_loaded_plugin_state(
+                    manager, plugin_name, expected_instance=cleanup_instance
+                )
+        finally:
+            preserve_plugin_load_failure(exception, sys.exception())
         if not resolved_policy.publish_failure_state:
             raise
         plugin_data_override: JSONDict | None = None
@@ -250,6 +255,10 @@ async def load_and_announce_plugin(
                 operation=OPERATION_PLUGIN_MANIFEST_EXTRACTION,
                 error_message="Plugin loading: manifest could not be read (non-critical).",
             )
+        async with manager.state.locks.load_lock:
+            current_instance = manager.state.catalog.loaded_plugin_instances.get(plugin_name)
+            if current_instance is not None and current_instance is not cleanup_instance:
+                raise
         await handle_incompatible_plugin(
             manager,
             exception,
@@ -257,6 +266,7 @@ async def load_and_announce_plugin(
         )
         raise
     except PLUGIN_LOAD_FAILURE_EXCEPTIONS as exception:
+        acquired_instance = None
         await handle_plugin_load_failure(
             manager=manager,
             plugin_name=plugin_name,
@@ -264,4 +274,16 @@ async def load_and_announce_plugin(
             parameter_schema_registered=parameter_schema_registered,
             publish_failure_state=resolved_policy.publish_failure_state,
             logger=logger,
+            expected_instance=cleanup_instance,
         )
+    finally:
+        primary_exception = sys.exception()
+        if acquired_instance is not None:
+            try:
+                await uncancel_then_cleanup(
+                    clear_loaded_plugin_state(
+                        manager, plugin_name, expected_instance=acquired_instance
+                    )
+                )
+            finally:
+                preserve_plugin_load_failure(primary_exception, sys.exception())

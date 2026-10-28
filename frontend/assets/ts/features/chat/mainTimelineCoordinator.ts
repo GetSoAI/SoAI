@@ -1,10 +1,13 @@
 /* SoAI - Shared main timeline observation and animation-frame coordination [frontend/assets/ts/features/chat/mainTimelineCoordinator.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isMainTimelineKeyboardScrollEvent } from '@features/chat/mainTimelineScroll.ts';
+
 type TimelineFrameWrite = () => void;
 type TimelineFrameMeasure = () => TimelineFrameWrite | null;
 type TimelineResizeListener = (entries: readonly ResizeObserverEntry[]) => void;
 type TimelineMutationListener = (records: readonly MutationRecord[]) => void;
+type NativeGesturePhase = 'idle' | 'touching' | 'settling';
 
 type MainTimelineCoordinator = {
     scheduleFrame: (key: string, measure: TimelineFrameMeasure) => void;
@@ -12,9 +15,9 @@ type MainTimelineCoordinator = {
     observeResize: (element: Element) => () => void;
     subscribeResize: (listener: TimelineResizeListener) => () => void;
     subscribeMutations: (listener: TimelineMutationListener) => () => void;
-    subscribeTouchSettled: (listener: () => void) => () => void;
+    subscribeNativeGestureSettled: (listener: () => void) => () => void;
     getCachedElementHeight: (element: Element) => number | null;
-    isDirectTouchActive: () => boolean;
+    isNativeGestureActive: () => boolean;
     release: () => void;
 };
 
@@ -24,24 +27,25 @@ type MainTimelineCoordinatorState = {
     retain: () => void;
 };
 
-const TOUCH_SETTLE_DELAY_MS = 100;
+const NATIVE_GESTURE_SETTLE_DELAY_MS = 100;
 const coordinatorByArea = new WeakMap<HTMLElement, MainTimelineCoordinatorState>();
 
-const createMainTimelineCoordinatorState = (messagesArea: HTMLElement, messagesRoot: HTMLElement, win: Window & typeof globalThis): MainTimelineCoordinatorState => {
+const createMainTimelineCoordinatorState = (messagesArea: HTMLElement, messagesRoot: HTMLElement, windowRef: Window & typeof globalThis): MainTimelineCoordinatorState => {
     const resizeListeners = new Set<TimelineResizeListener>();
     const mutationListeners = new Set<TimelineMutationListener>();
-    const touchSettledListeners = new Set<() => void>();
+    const nativeGestureSettledListeners = new Set<() => void>();
     const resizeObservationCounts = new Map<Element, number>();
     const cachedHeightByElement = new WeakMap<Element, number>();
     const pendingFrameMeasures = new Map<string, TimelineFrameMeasure>();
     let referenceCount = 0;
     let frameId: number | null = null;
-    let touchSettleTimerId: number | null = null;
-    let directTouchActive = false;
+    let nativeGestureSettleTimerId: number | null = null;
+    let nativeGesturePhase: NativeGesturePhase = 'idle';
     let disposed = false;
 
-    const ResizeObserverCtor = win.ResizeObserver;
-    const MutationObserverCtor = win.MutationObserver;
+    const ResizeObserverCtor = windowRef.ResizeObserver;
+    const MutationObserverCtor = windowRef.MutationObserver;
+    const TouchEventCtor = windowRef.TouchEvent;
     const resizeObserver = new ResizeObserverCtor((entries: ResizeObserverEntry[]) => {
         for (const entry of entries) {
             cachedHeightByElement.set(entry.target, entry.contentRect.height);
@@ -87,7 +91,7 @@ const createMainTimelineCoordinatorState = (messagesArea: HTMLElement, messagesR
             write();
         }
         if (pendingFrameMeasures.size > 0 && frameId === null) {
-            frameId = win.requestAnimationFrame(flushFrame);
+            frameId = windowRef.requestAnimationFrame(flushFrame);
         }
     };
 
@@ -100,13 +104,13 @@ const createMainTimelineCoordinatorState = (messagesArea: HTMLElement, messagesR
         }
         pendingFrameMeasures.set(key, measure);
         if (frameId === null) {
-            frameId = win.requestAnimationFrame(flushFrame);
+            frameId = windowRef.requestAnimationFrame(flushFrame);
         }
     };
     const cancelFrame = (key: string): void => {
         pendingFrameMeasures.delete(key);
         if (pendingFrameMeasures.size === 0 && frameId !== null) {
-            win.cancelAnimationFrame(frameId);
+            windowRef.cancelAnimationFrame(frameId);
             frameId = null;
         }
     };
@@ -136,33 +140,46 @@ const createMainTimelineCoordinatorState = (messagesArea: HTMLElement, messagesR
         };
     };
 
-    const scheduleTouchSettled = (): void => {
-        if (touchSettleTimerId !== null) {
-            win.clearTimeout(touchSettleTimerId);
+    const scheduleNativeGestureSettled = (): void => {
+        if (nativeGestureSettleTimerId !== null) {
+            windowRef.clearTimeout(nativeGestureSettleTimerId);
         }
-        touchSettleTimerId = win.setTimeout(() => {
-            touchSettleTimerId = null;
-            directTouchActive = false;
-            for (const listener of touchSettledListeners) {
+        nativeGestureSettleTimerId = windowRef.setTimeout(() => {
+            nativeGestureSettleTimerId = null;
+            nativeGesturePhase = 'idle';
+            for (const listener of nativeGestureSettledListeners) {
                 listener();
             }
-        }, TOUCH_SETTLE_DELAY_MS);
+        }, NATIVE_GESTURE_SETTLE_DELAY_MS);
     };
     const handleTouchStart = (): void => {
-        directTouchActive = true;
-        if (touchSettleTimerId !== null) {
-            win.clearTimeout(touchSettleTimerId);
-            touchSettleTimerId = null;
+        nativeGesturePhase = 'touching';
+        if (nativeGestureSettleTimerId !== null) {
+            windowRef.clearTimeout(nativeGestureSettleTimerId);
+            nativeGestureSettleTimerId = null;
         }
     };
-    const handleTouchEnd = (): void => {
-        scheduleTouchSettled();
+    const handleTouchEnd = (event: Event): void => {
+        if (typeof TouchEventCtor === 'function' && event instanceof TouchEventCtor && Array.from(event.touches).some((contact) => contact.target instanceof windowRef.Node && messagesArea.contains(contact.target))) return;
+        nativeGesturePhase = 'settling';
+        scheduleNativeGestureSettled();
     };
     const handleScroll = (): void => {
-        if (directTouchActive) {
-            scheduleTouchSettled();
+        if (nativeGesturePhase === 'settling') {
+            scheduleNativeGestureSettled();
         }
     };
+    const handleWheel = (): void => {
+        if (nativeGesturePhase === 'touching') return;
+        nativeGesturePhase = 'settling';
+        scheduleNativeGestureSettled();
+    };
+    const handleKeyboardScroll = (event: Event): void => {
+        const target = event.target;
+        if (isMainTimelineKeyboardScrollEvent(event) && !event.defaultPrevented && (target === messagesArea.ownerDocument.body || (target instanceof Node && messagesArea.contains(target)))) handleWheel();
+    };
+    messagesArea.ownerDocument.addEventListener('keydown', handleKeyboardScroll, { passive: true });
+    messagesArea.addEventListener('wheel', handleWheel, { passive: true });
     messagesArea.addEventListener('touchstart', handleTouchStart, { passive: true });
     messagesArea.addEventListener('touchend', handleTouchEnd, { passive: true });
     messagesArea.addEventListener('touchcancel', handleTouchEnd, { passive: true });
@@ -188,20 +205,22 @@ const createMainTimelineCoordinatorState = (messagesArea: HTMLElement, messagesR
         resizeObserver.disconnect();
         resizeListeners.clear();
         mutationListeners.clear();
-        touchSettledListeners.clear();
+        nativeGestureSettledListeners.clear();
         resizeObservationCounts.clear();
         pendingFrameMeasures.clear();
+        messagesArea.ownerDocument.removeEventListener('keydown', handleKeyboardScroll);
+        messagesArea.removeEventListener('wheel', handleWheel);
         messagesArea.removeEventListener('touchstart', handleTouchStart);
         messagesArea.removeEventListener('touchend', handleTouchEnd);
         messagesArea.removeEventListener('touchcancel', handleTouchEnd);
         messagesArea.removeEventListener('scroll', handleScroll);
         if (frameId !== null) {
-            win.cancelAnimationFrame(frameId);
+            windowRef.cancelAnimationFrame(frameId);
             frameId = null;
         }
-        if (touchSettleTimerId !== null) {
-            win.clearTimeout(touchSettleTimerId);
-            touchSettleTimerId = null;
+        if (nativeGestureSettleTimerId !== null) {
+            windowRef.clearTimeout(nativeGestureSettleTimerId);
+            nativeGestureSettleTimerId = null;
         }
     };
 
@@ -226,20 +245,20 @@ const createMainTimelineCoordinatorState = (messagesArea: HTMLElement, messagesR
         observeResize,
         subscribeResize: (listener) => subscribe(resizeListeners, listener),
         subscribeMutations: (listener) => subscribe(mutationListeners, listener),
-        subscribeTouchSettled: (listener) => subscribe(touchSettledListeners, listener),
+        subscribeNativeGestureSettled: (listener) => subscribe(nativeGestureSettledListeners, listener),
         getCachedElementHeight: (element) => cachedHeightByElement.get(element) ?? null,
-        isDirectTouchActive: () => directTouchActive,
+        isNativeGestureActive: () => nativeGesturePhase !== 'idle',
         release
     };
     return { coordinator, messagesRoot, retain };
 };
 
 const acquireMainTimelineCoordinator = (messagesArea: HTMLElement, messagesRoot: HTMLElement): MainTimelineCoordinator => {
-    const win = messagesArea.ownerDocument.defaultView;
-    if (!win || typeof win.ResizeObserver !== 'function' || typeof win.MutationObserver !== 'function') {
+    const windowRef = messagesArea.ownerDocument.defaultView;
+    if (!windowRef || typeof windowRef.ResizeObserver !== 'function' || typeof windowRef.MutationObserver !== 'function') {
         throw new Error('ResizeObserver and MutationObserver are required for main timeline coordination');
     }
-    if (typeof win.requestAnimationFrame !== 'function' || typeof win.cancelAnimationFrame !== 'function') {
+    if (typeof windowRef.requestAnimationFrame !== 'function' || typeof windowRef.cancelAnimationFrame !== 'function') {
         throw new Error('requestAnimationFrame is required for main timeline coordination');
     }
     const existing = coordinatorByArea.get(messagesArea) ?? null;
@@ -250,7 +269,7 @@ const acquireMainTimelineCoordinator = (messagesArea: HTMLElement, messagesRoot:
         existing.retain();
         return existing.coordinator;
     }
-    const created = createMainTimelineCoordinatorState(messagesArea, messagesRoot, win);
+    const created = createMainTimelineCoordinatorState(messagesArea, messagesRoot, windowRef);
     coordinatorByArea.set(messagesArea, created);
     created.retain();
     return created.coordinator;

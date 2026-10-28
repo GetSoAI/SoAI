@@ -17,6 +17,7 @@ OPENAI_MESSAGE_FIELDS_COMMON: frozenset[str] = frozenset(
         "tool_call_id",
         "refusal",
         "audio",
+        "reasoning_content",
     ),
 )
 OPENAI_MESSAGE_FIELDS_REQUEST: frozenset[str] = frozenset(

@@ -18,6 +18,7 @@ from core.network.http_download_metadata import (
 )
 from core.network.outbound_http_profiles import merge_outbound_headers
 from core.network.transfer_retry import HTTPTransferAttempts, HTTPTransferRetryPolicy
+from core.serialization.sha256_hexdigest import require_canonical_sha256_hexdigest
 from core.validation.strict_numbers import require_non_negative_int_strict
 
 __all__ = ("DownloadStreamState", "DownloadReplayRequired")
@@ -38,9 +39,23 @@ class DownloadStreamState:
         prefix_length: int = 0,
         prefix_sha256: str | None = None,
         metadata_reader: Callable[[Mapping[str, str]], HTTPDownloadResponseMetadata] | None = None,
+        expected_sha256: str | None = None,
+        expected_size: int | None = None,
     ) -> None:
         if max_bytes is not None:
             require_non_negative_int_strict(max_bytes, error_message="Invalid maximum size.")
+        if expected_sha256 is not None:
+            require_canonical_sha256_hexdigest(expected_sha256, label="Trusted artifact checksum")
+        if expected_size is not None:
+            require_non_negative_int_strict(
+                expected_size, error_message="Invalid trusted artifact size."
+            )
+            if max_bytes is not None and expected_size > max_bytes:
+                raise HTTPDownloadSizeLimitError("Trusted artifact size exceeds maximum size.")
+        self.expected_sha256 = expected_sha256
+        self.expected_size = expected_size
+        self.range_complete = False
+        self.replayed_bytes = 0
         self.base_headers = merge_outbound_headers(headers or {}, {"Accept-Encoding": "identity"})
         if any(name.lower() in {"range", "if-range"} for name in self.base_headers):
             raise ValidationError("Range and If-Range are owned by the artifact stream.")
@@ -53,11 +68,12 @@ class DownloadStreamState:
         self.metadata_reader = metadata_reader
         self.position = 0
         self.resumed_bytes = 0
-        self.total_length: int | None = None
+        self.total_length: int | None = expected_size
         self.content_type: str | None = None
         self.final_url = ""
         self._etag: str | None = None
         self._digest = hashlib.sha256()
+        self._retained_hashed_bytes = 0
         self._prefix_sha256: str | None = None
         self._persisted_unverified = False
         self._force_full = False
@@ -81,11 +97,29 @@ class DownloadStreamState:
             raise ValidationError("Retained download exceeds maximum size.")
         if length and (sha256 is None or re.fullmatch(r"[0-9a-f]{64}", sha256) is None):
             raise ValidationError("A retained download requires its SHA-256 digest.")
+        if (
+            length
+            and self.expected_sha256 is not None
+            and (self._retained_hashed_bytes != length or self._digest.hexdigest() != sha256)
+        ):
+            raise ValidationError(
+                "Trusted continuation requires the inspected retained digest state."
+            )
         self.position = length
         self.resumed_bytes = length
         self._prefix_sha256 = sha256
-        self._persisted_unverified = length > 0
-        self._force_full = length > 0
+        self._persisted_unverified = length > 0 and self.expected_sha256 is None
+        self._force_full = length > 0 and self.expected_sha256 is None
+        if self.expected_size is not None and length > self.expected_size:
+            raise ValidationError("Retained download exceeds trusted artifact size.")
+
+    def hash_retained_chunk(self, chunk: bytes) -> None:
+        if self._entered:
+            raise ValidationError(
+                "Retained digest state must be supplied before opening the stream."
+            )
+        self._digest.update(chunk)
+        self._retained_hashed_bytes += len(chunk)
 
     def begin_iteration(self) -> None:
         if not self._entered or self.closed or self._iterated:
@@ -96,20 +130,47 @@ class DownloadStreamState:
     def replay_pending(self) -> bool:
         return self._replay_remaining > 0
 
+    @property
+    def trusted_prefix_complete(self) -> bool:
+        return (
+            self.expected_sha256 is not None
+            and self.expected_size is not None
+            and self._prefix_sha256 == self.expected_sha256
+            and self.position == self.expected_size
+        )
+
     def request_headers(self) -> dict[str, str]:
         self._requested_offset = 0
+        representation_can_continue = (
+            self.total_length is None
+            or self.position < self.total_length
+            or self.trusted_prefix_complete
+        )
         if (
             self.position > 0
-            and self._etag is not None
+            and (self._etag is not None or self.expected_sha256 is not None)
             and not self._force_full
-            and (self.total_length is None or self.position < self.total_length)
+            and representation_can_continue
         ):
             self._requested_offset = self.position
-            return merge_outbound_headers(
-                self.base_headers,
-                {"Range": f"bytes={self.position}-", "If-Range": self._etag},
-            )
+            continuation_headers = {"Range": f"bytes={self.position}-"}
+            if self._etag is not None:
+                continuation_headers["If-Range"] = self._etag
+            return merge_outbound_headers(self.base_headers, continuation_headers)
         return dict(self.base_headers)
+
+    def accept_complete_range(self, response: httpx2.Response) -> bool:
+        if (
+            response.status_code != 416
+            or not self.trusted_prefix_complete
+            or response.headers.get("Content-Range") != f"bytes */{self.expected_size}"
+        ):
+            return False
+        self.range_complete = True
+        self._response_length = 0
+        self._response_received = 0
+        self._replay_remaining = 0
+        return True
 
     def accept(self, response: httpx2.Response) -> None:
         headers = response.headers
@@ -134,8 +195,10 @@ class DownloadStreamState:
         same_resource = final_url == self.final_url
         if same_resource and self._etag is not None and etag is not None and etag != self._etag:
             raise ValidationError("Artifact validator changed during the download.")
-        if response.status_code == 206 and (
-            not same_resource or strong_etag is None or strong_etag != self._etag
+        if (
+            response.status_code == 206
+            and self.expected_sha256 is None
+            and (not same_resource or strong_etag is None or strong_etag != self._etag)
         ):
             self._force_full = True
             raise DownloadReplayRequired("The artifact continuation requires a full prefix replay.")
@@ -171,6 +234,7 @@ class DownloadStreamState:
                 raise ValidationError("Artifact range has no total length.")
             self._response_length = total_length - response_range.offset
         self._response_received = 0
+        self.replayed_bytes = 0
         self._replay_remaining = self.position if response.status_code == 200 else 0
         self._replay_digest = hashlib.sha256()
         self._force_full = self._replay_remaining > 0
@@ -187,6 +251,7 @@ class DownloadStreamState:
         self._response_received = received
         if self._replay_remaining:
             prefix_count = min(len(chunk), self._replay_remaining)
+            self.replayed_bytes += prefix_count
             self._replay_digest.update(chunk[:prefix_count])
             self._replay_remaining -= prefix_count
             chunk = chunk[prefix_count:]
@@ -220,11 +285,13 @@ class DownloadStreamState:
             or (self.total_length is not None and self.position != self.total_length)
         ):
             raise httpx2.RemoteProtocolError("Artifact response ended before the declared size.")
+        if self.expected_sha256 is not None and self._digest.hexdigest() != self.expected_sha256:
+            raise ValidationError("Artifact does not match its trusted SHA-256 checksum.")
 
     def _restart_persisted_prefix(self) -> None:
         self.position = 0
         self.resumed_bytes = 0
-        self.total_length = None
+        self.total_length = self.expected_size
         self.content_type = None
         self.final_url = ""
         self._etag = None

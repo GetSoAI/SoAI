@@ -42,6 +42,7 @@ import type { ChatConfigurationShowActivitiesTranslationKey } from '@core/i18n/t
 import type { ChatConfigurationShowActivitiesHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__showActivitiesHint.generated.ts';
 import type { ChatConfigurationShowActivityElapsedTimeTranslationKey } from '@core/i18n/translationkeys/chat/configuration__showActivityElapsedTime.generated.ts';
 import type { ChatConfigurationShowActivityElapsedTimeHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__showActivityElapsedTimeHint.generated.ts';
+import type { ChatConfigurationSkillsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__skills.generated.ts';
 import type { ChatConfigurationSoaiSystemPromptTranslationKey } from '@core/i18n/translationkeys/chat/configuration__soaiSystemPrompt.generated.ts';
 import type { ChatConfigurationSoaiSystemPromptHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__soaiSystemPromptHint.generated.ts';
 import type { ChatConfigurationStopSequencesTranslationKey } from '@core/i18n/translationkeys/chat/configuration__stopSequences.generated.ts';
@@ -60,7 +61,6 @@ import type { ChatConfigurationTemperatureCreativeTranslationKey } from '@core/i
 import type { ChatConfigurationTemperatureFocusedTranslationKey } from '@core/i18n/translationkeys/chat/configuration__temperatureFocused.generated.ts';
 import type { ChatConfigurationTemperatureHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__temperatureHint.generated.ts';
 import type { ChatConfigurationTextZoomTranslationKey } from '@core/i18n/translationkeys/chat/configuration__text_zoom.generated.ts';
-import type { ChatConfigurationTextZoomLargeTranslationKey } from '@core/i18n/translationkeys/chat/configuration__textZoomLarge.generated.ts';
 
 export type ChatSection02TranslationKey =
     | ChatConfigurationModelSettingsTranslationKey
@@ -104,6 +104,7 @@ export type ChatSection02TranslationKey =
     | ChatConfigurationShowActivitiesHintTranslationKey
     | ChatConfigurationShowActivityElapsedTimeTranslationKey
     | ChatConfigurationShowActivityElapsedTimeHintTranslationKey
+    | ChatConfigurationSkillsTranslationKey
     | ChatConfigurationSoaiSystemPromptTranslationKey
     | ChatConfigurationSoaiSystemPromptHintTranslationKey
     | ChatConfigurationStopSequencesTranslationKey
@@ -121,5 +122,4 @@ export type ChatSection02TranslationKey =
     | ChatConfigurationTemperatureCreativeTranslationKey
     | ChatConfigurationTemperatureFocusedTranslationKey
     | ChatConfigurationTemperatureHintTranslationKey
-    | ChatConfigurationTextZoomTranslationKey
-    | ChatConfigurationTextZoomLargeTranslationKey;
+    | ChatConfigurationTextZoomTranslationKey;

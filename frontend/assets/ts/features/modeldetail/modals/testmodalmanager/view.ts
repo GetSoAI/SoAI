@@ -1,6 +1,7 @@
 /* SoAI - Model test modal rendering [frontend/assets/ts/features/modeldetail/modals/testmodalmanager/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { scrollElementTo } from '@core/scroll.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
@@ -11,6 +12,13 @@ import type { TestModalRuntimeContext } from '@features/modeldetail/modals/testm
 import { clearPendingLogFlush, flushPendingLogEntries, formatLogEntry, requireLogsContainer, schedulePendingLogFlush } from '@features/modeldetail/modals/testmodalmanager/logRendering.ts';
 
 const LOGS_PLACEHOLDER_CLASS = 'model-test-logs-placeholder';
+
+const clearLogsScrollTimer = (context: TestModalRuntimeContext): void => {
+    if (context.state.logsScrollTimerId !== null) {
+        context.host.view.clearTimer(context.state.logsScrollTimerId);
+        context.state.logsScrollTimerId = null;
+    }
+};
 
 export const resolveModelPluginName = (context: TestModalRuntimeContext): string => {
     const model = context.host.model.getModel();
@@ -64,6 +72,7 @@ export const updateCopyLogsButtonState = (context: TestModalRuntimeContext): voi
 };
 
 export const clearLogs = (context: TestModalRuntimeContext): void => {
+    clearLogsScrollTimer(context);
     clearPendingLogFlush(context);
     context.state.logEntries = [];
     context.state.pendingLogEntries = [];
@@ -85,6 +94,7 @@ export const setLogsVisible = (context: TestModalRuntimeContext, setupLogsCollap
 };
 
 export const hideLogs = (context: TestModalRuntimeContext): void => {
+    clearLogsScrollTimer(context);
     context.host.view.toggleClassName(context.host.view.optionalUI(modalUiSelector(context.modalId, 'logs-card'), context.modalRoot), 'u-hidden', true);
     updateToggleLogsButton(context);
 };
@@ -134,15 +144,17 @@ export const toggleLogsCollapse = (context: TestModalRuntimeContext): void => {
         return;
     }
 
+    clearLogsScrollTimer(context);
     const wasCollapsed = controller.isCollapsed();
     controller.toggle();
     updateToggleLogsButton(context);
 
     if (wasCollapsed) {
-        context.host.view.setTimer((): void => {
+        context.state.logsScrollTimerId = context.host.view.setTimer((): void => {
+            context.state.logsScrollTimerId = null;
             const modalBody = context.host.view.optionalUI('.modal-body', context.modalRoot);
-            if (modalBody) {
-                modalBody.scrollTop = modalBody.scrollHeight;
+            if (modalBody instanceof HTMLElement && modalBody.isConnected && context.host.model.modalPresenter.isOpen(context.modalId) && context.state.logsCollapseController === controller && !controller.isCollapsed()) {
+                scrollElementTo(modalBody, { top: modalBody.scrollHeight });
             }
         }, 350);
     }

@@ -5,7 +5,6 @@ import { dom } from '@core/dom/dom.ts';
 import { normalizeModalId, validateModalRootContract } from '@core/modals/guards.ts';
 import { renderModalBody, renderModalFooter, renderModalScaffoldMarkup, renderStandardModalHeader, type HtmlAttributeValue, type ModalScaffoldConfig, type ModalScaffoldContent } from '@core/modals/scaffold.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
-import { isHTMLElement } from '@core/typeGuards.ts';
 
 interface CreateStandardModalElementOptions {
     title: ModalScaffoldContent;
@@ -22,37 +21,25 @@ interface CreateStandardModalElementOptions {
     rootAttributes?: Readonly<Record<string, HtmlAttributeValue>> | undefined;
 }
 
-const appendModalMarkupAndResolve = ({ bodyElement, modalId, markup }: { bodyElement: HTMLElement; modalId: string; markup: TrustedHtml }): HTMLElement => {
+const parseModalMarkup = (modalId: string, markup: TrustedHtml): HTMLElement => {
     const fragment = dom.createFragment(markup);
-    dom.appendChild(bodyElement, fragment);
-    dom.flush();
-
-    const resolved = dom.resolve(`#${modalId}`);
-    if (!(resolved instanceof HTMLElement)) {
-        throw new Error('Failed to resolve created modal element');
+    const resolved = fragment.firstElementChild;
+    if (!(resolved instanceof HTMLElement) || fragment.childElementCount !== 1 || resolved.id !== modalId) {
+        throw new Error(`Modal markup must contain exactly one root with id="${modalId}"`);
     }
     validateModalRootContract(resolved, modalId);
     return resolved;
 };
 
 const createModalElement = (config: ModalScaffoldConfig): HTMLElement => {
-    const bodyElement = dom.resolve('body');
-    if (!isHTMLElement(bodyElement)) {
-        throw new Error('Document body is unavailable');
-    }
-
     const modalId = normalizeModalId(config.id);
     const markup = renderModalScaffoldMarkup(config);
-    return appendModalMarkupAndResolve({ bodyElement, modalId, markup });
+    return parseModalMarkup(modalId, markup);
 };
 
 const createModalElementFromMarkup = (id: string, markup: TrustedHtml): HTMLElement => {
-    const bodyElement = dom.resolve('body');
-    if (!isHTMLElement(bodyElement)) {
-        throw new Error('Document body is unavailable');
-    }
     const modalId = normalizeModalId(id);
-    return appendModalMarkupAndResolve({ bodyElement, modalId, markup });
+    return parseModalMarkup(modalId, markup);
 };
 
 const createStandardModalElement = (id: string, options: CreateStandardModalElementOptions): HTMLElement => {

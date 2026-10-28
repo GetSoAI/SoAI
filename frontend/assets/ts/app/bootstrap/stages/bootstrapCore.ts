@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { registerAllServices } from '@app/bootstrap/registerServices.ts';
+import { MODAL_PRESENTER_SERVICE_ID, requireModalPresenter } from '@core/modals/modalPresenter.ts';
+import { runCleanup } from '@core/lifecycle/cleanup.ts';
+import { errorHandler } from '@core/errorHandler.ts';
 import { AppLifecycle } from '@app/bootstrap/stages/applifecycle/AppLifecycle.ts';
 import { resetInitializeCoreServices } from '@app/bootstrap/stages/initializeCoreServices.ts';
 import { setBootstrapPhase } from '@app/bootstrap/stages/phases.ts';
@@ -119,6 +122,11 @@ const resetBootstrapCoreState = (): void => {
 };
 
 const rollbackBootstrapCore = (): void => {
+    if (getServiceContainer().has(MODAL_PRESENTER_SERVICE_ID))
+        runCleanup(
+            () => requireModalPresenter().dispose(),
+            (error) => errorHandler.warn('Bootstrap', 'Modal cleanup failed during rollback', error)
+        );
     appLifecycleInstance?.releaseAuthHandlers();
     destroyWebSocketClient();
     const serviceContainer = getServiceContainer();

@@ -5,7 +5,7 @@ import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { McpConnection, McpDataBundle, McpInteractionEntry, McpPromptEntry, McpResourceEntry, McpRootEntry, McpSearchKeyEntry, McpServer, McpStatus, McpToolEntry } from '@core/mcp/contracts.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import { McpManager, MessagingManager } from '@features/settings/public.ts';
-import { canManageInstanceIdentity, hasSettingsAction } from '@pages/settings/controllers/page/settingsAccessController.ts';
+import { canManageInstanceIdentity, canManageSpeechModel, hasSettingsAction } from '@pages/settings/controllers/page/settingsAccessController.ts';
 import type { SettingsManagerCallbacks, SettingsRuntimeContext } from '@pages/settings/controllers/page/contracts.ts';
 import { createConnectManager } from '@pages/settings/controllers/page/connectManager.ts';
 import { createExternalAccountsManager } from '@pages/settings/controllers/page/externalAccountsManager.ts';
@@ -18,6 +18,10 @@ import { ThemeManager } from '@pages/settings/controllers/thememanager/ThemeMana
 import { UsersManager } from '@pages/settings/controllers/UsersManager.ts';
 import { resolveWorkspaceBrowserAccess } from '@core/fileexplorerbrowser/workspaceBrowserAccess.ts';
 import { InstanceIdentityManager } from '@pages/settings/controllers/instanceidentity/InstanceIdentityManager.ts';
+import { SpeechModelSettingsManager } from '@pages/settings/controllers/speechmodel/SpeechModelSettingsManager.ts';
+import { SPEECH_MODEL_SETTING_PATH } from '@core/speechsetup/presentation.ts';
+import { readJsonObjectDottedPathValue } from '@core/types/payloadPathReader.ts';
+import { isString } from '@core/typeGuards.ts';
 
 const createCoreSettingsManagers = (page: SettingsRuntimeContext, state: SettingsPageState, callbacks: SettingsManagerCallbacks): void => {
     if (canManageInstanceIdentity(page, state)) {
@@ -35,6 +39,15 @@ const createCoreSettingsManagers = (page: SettingsRuntimeContext, state: Setting
             },
             instanceId: state.instanceIdentity.instanceId,
             instanceName: state.instanceIdentity.instanceName
+        });
+    }
+    if (canManageSpeechModel(state)) {
+        state.speechModelSettingsManager = new SpeechModelSettingsManager({
+            host: { pageDom: page.owners.pageDom },
+            readSavedSelector: (): string => {
+                const value = readJsonObjectDottedPathValue(state.coreConfig, SPEECH_MODEL_SETTING_PATH);
+                return isString(value) ? value : '';
+            }
         });
     }
     state.preferencesManager = new PreferencesManager({

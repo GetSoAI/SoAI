@@ -14,6 +14,7 @@ from core.openai.response_terminal_policy import (
 from core.validation.strict_numbers import coerce_optional_positive_int_strict
 
 if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
@@ -113,6 +114,7 @@ def build_failed_response_event(
     code: str,
     model: str,
     created_at: int,
+    public_error: ErrorPublicPayload | None = None,
 ) -> JSONDict:
     return {
         "type": "response.failed",
@@ -122,6 +124,7 @@ def build_failed_response_event(
             code=code,
             model=model,
             created_at=created_at,
+            public_error=public_error,
         ),
     }
 
@@ -133,6 +136,7 @@ def build_failed_response_json(
     code: str,
     model: str,
     created_at: int,
+    public_error: ErrorPublicPayload | None = None,
 ) -> JSONDict:
     return {
         "id": response_id,
@@ -142,8 +146,13 @@ def build_failed_response_json(
         "model": model,
         "output": [],
         "error": {
-            "code": code,
-            "message": message,
+            "code": public_error.code if public_error is not None else code,
+            "message": public_error.message if public_error is not None else message,
+            **(
+                {"param": public_error.param}
+                if public_error is not None and public_error.param is not None
+                else {}
+            ),
         },
     }
 

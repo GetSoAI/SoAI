@@ -19,7 +19,7 @@ import { metricsLogger } from '@pages/metrics/contracts/MetricsPageSupport.ts';
 import { loadMetricsCapabilities } from '@pages/metrics/controllers/page/capabilities.ts';
 import type { MetricsRuntimeContext } from '@pages/metrics/controllers/page/contracts.ts';
 import { initializeMetricsFrontendTelemetryCard, initializeMetricsMainChart, reloadMetricsChartData, syncMetricsChartControls } from '@pages/metrics/controllers/page/effects.ts';
-import { processMetricsUpdate } from '@pages/metrics/controllers/page/metricsUpdateProcessing.ts';
+import { processMetricsUpdate, updateMetricsDisplays } from '@pages/metrics/controllers/page/metricsUpdateProcessing.ts';
 import { initializeMetricsStream } from '@pages/metrics/realtime/metricsPageRealtime.ts';
 import type { MetricsData } from '@pages/metrics/types.ts';
 import { updateApiKeyUsageFromSnapshot } from '@pages/metrics/widgets/apiKeyUsageTableWidget.ts';
@@ -259,7 +259,10 @@ class MetricsDeferredController {
                 requestAnimationFrame: (callback) => this.host.operations.requestAnimationFrame(callback),
                 cancelAnimationFrame: (frameId) => this.host.operations.cancelAnimationFrame(frameId),
                 isActive: () => this.#lifecycleSequence === lifecycleSequence && !signal.aborted,
-                processMetricsUpdate: (data: MetricsData) => processMetricsUpdate(this.host, data),
+                processMetricsUpdate: (data: MetricsData) => processMetricsUpdate(this.host, data, { renderDisplays: false }),
+                refreshMetricsDisplays: () => {
+                    if (this.host.presentation.requestRefresh()) updateMetricsDisplays(this.host, { skipChart: true });
+                },
                 processPluginsUpdate: (data: readonly JsonValue[]) => {
                     this.host.state.currentPlugins = data;
                     if (this.host.presentation.requestRefresh()) {

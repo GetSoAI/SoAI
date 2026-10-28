@@ -17,10 +17,10 @@ export { buildNetworkInterfaceModels } from '@features/hardware/models/effects.t
 export { buildVolumeModels, getCpuDevices, getGpuDevices, getGpuOptionId, isHardwareSnapshot } from '@features/hardware/models/mappers.ts';
 export { resolveNetworkSpeedEntry } from '@features/hardware/models/networkSpeed.ts';
 export { getWindowsNetworkInventoryStatus } from '@features/hardware/models/networkVisibility.ts';
-export type { HardwareSnapshot, NetworkInterfaceModel, NetworkSpeedEntry, NetworkSpeedSnapshot, VolumeModel } from '@features/hardware/models/types.ts';
-export { buildNetworkEmptyText, buildNetworkSummaryText, createNetworkInterfaceRow } from '@features/hardware/networkCardView.ts';
+export type { HardwareSnapshot, NetworkInterfaceModel, NetworkSpeedSnapshot, VolumeModel } from '@features/hardware/models/types.ts';
+export { buildNetworkEmptyText, buildNetworkSummaryText, createNetworkInterfaceRow, syncNetworkObservationPresentation, syncNetworkSummaryPresentation } from '@features/hardware/networkCardView.ts';
 export type { NetworkCardLabelSet, NetworkCardViewHost } from '@features/hardware/networkCardView.ts';
-export { buildStorageSummaryText, createStorageInterfaceRow } from '@features/hardware/storageCardView.ts';
+export { buildStorageSummaryText, createStorageInterfaceRow, syncStorageObservationPresentation, isStorageUnavailable } from '@features/hardware/storageCardView.ts';
 export type { StorageCardLabelSet, StorageCardViewHost } from '@features/hardware/storageCardView.ts';
 export { anonymizeSystemInfoText } from '@features/hardware/privacyAnonymization.ts';
 export type { HardwarePageStorage } from '@features/hardware/pageStorage.ts';

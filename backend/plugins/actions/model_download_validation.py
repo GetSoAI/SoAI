@@ -32,6 +32,7 @@ async def check_offline_mode_blocks_download(
     reply_channel: asyncio.Queue[Event],
     task_id: str | None,
     manager: PluginManagerRuntimeProtocol,
+    mutation_fencing_token: int | None = None,
 ) -> bool:
     if not is_offline_mode_enabled(manager.dependencies.infrastructure.runtime_flags):
         return False
@@ -39,6 +40,7 @@ async def check_offline_mode_blocks_download(
         manager,
         reply_channel,
         task_id,
+        mutation_fencing_token=mutation_fencing_token,
         success=False,
         message="Model downloads are disabled because SYSTEM.RUNTIME.STAY_OFFLINE is enabled.",
     )
@@ -51,6 +53,7 @@ async def validate_plugin_for_download(
     display_name: str,
     reply_channel: asyncio.Queue[Event],
     task_id: str | None,
+    mutation_fencing_token: int | None = None,
 ) -> ValidatedDownloadContext | None:
     if not await validate_action_for_state_async(
         manager,
@@ -58,6 +61,7 @@ async def validate_plugin_for_download(
         "download_model",
         reply_channel,
         task_id,
+        mutation_fencing_token=mutation_fencing_token,
     ):
         return None
     plugin_instance_obj = await manager.require_loaded_plugin(

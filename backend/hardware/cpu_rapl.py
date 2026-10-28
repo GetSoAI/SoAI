@@ -1,4 +1,4 @@
-"""SoAI - Intel RAPL CPU energy and power sampling [backend/hardware/cpu_rapl.py]"""
+"""SoAI - Linux powercap RAPL CPU energy and power sampling [backend/hardware/cpu_rapl.py]"""
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 from __future__ import annotations
@@ -9,10 +9,10 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_handled_exception
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.filesystem.open_files import open_text
 from core.logging.trace import get_logger
 from core.timing.epoch import epoch_seconds_float
+from core.validation.numbers import coerce_int_from_json
 
 if TYPE_CHECKING:
     from core.logging.protocols import TraceLogger
@@ -108,7 +108,7 @@ def _discover_package_domains() -> list[tuple[int, str]]:
         domain_path = os.path.join(RAPL_BASE, entry)
         if not os.path.isdir(domain_path):
             continue
-        domain_name = _read_text(os.path.join(domain_path, "name"), logger)
+        domain_name = _read_text(os.path.join(domain_path, "name"), OPERATION_RAPL_TEXT, logger)
         if domain_name is not None and domain_name.startswith(PACKAGE_DOMAIN_PREFIX):
             domains.append((socket_index, domain_path))
     domains.sort(key=lambda item: item[0])
@@ -122,7 +122,7 @@ def _sample_domain_watts(
     logger: TraceLogger,
 ) -> float | None:
     energy_path = os.path.join(domain_path, "energy_uj")
-    energy_uj = _read_energy(energy_path, logger)
+    energy_uj = _read_int(energy_path, OPERATION_RAPL_ENERGY, logger)
     if energy_uj is None:
         return None
     with rapl_energy_cache.lock:
@@ -136,7 +136,9 @@ def _sample_domain_watts(
         return None
     delta_energy = energy_uj - prev_energy
     if delta_energy < 0:
-        max_range = _read_int(os.path.join(domain_path, "max_energy_range_uj"), logger)
+        max_range = _read_int(
+            os.path.join(domain_path, "max_energy_range_uj"), OPERATION_RAPL_ENERGY, logger
+        )
         if max_range is None or max_range <= 0:
             return None
         delta_energy += max_range
@@ -147,61 +149,37 @@ def _sample_domain_watts(
 
 def _read_package_power_limit(domain_path: str, logger: TraceLogger) -> float | None:
     limit_path = os.path.join(domain_path, "constraint_0_power_limit_uw")
-    try:
-        with open_text(limit_path, encoding="utf-8") as file_handle:
-            power_limit_uw = int(file_handle.read().strip())
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_handled_exception(
-            logger,
-            exception,
-            message="Failed to read RAPL power limit (non-critical).",
-            operation=OPERATION_RAPL_POWER_LIMIT,
-            details={"power_limit_file": limit_path},
-            level="trace",
-        )
-        return None
-    if power_limit_uw <= 0:
+    power_limit_uw = _read_int(limit_path, OPERATION_RAPL_POWER_LIMIT, logger)
+    if power_limit_uw is None or power_limit_uw <= 0:
         return None
     return power_limit_uw / MICRO_UNITS_PER_UNIT
 
 
-def _read_energy(energy_path: str, logger: TraceLogger) -> int | None:
+def _read_text(path: str, operation: str, logger: TraceLogger) -> str | None:
     try:
-        with open_text(energy_path, encoding="utf-8") as file_handle:
-            return int(file_handle.read().strip())
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_handled_exception(
-            logger,
-            exception,
-            message="Failed to read RAPL energy file (non-critical).",
-            operation=OPERATION_RAPL_ENERGY,
-            details={"power_file": energy_path},
-            level="trace",
-        )
-        return None
-
-
-def _read_text(path: str, logger: TraceLogger) -> str | None:
-    try:
-        with open_text(path, encoding="utf-8") as file_handle:
+        with open_text(path, encoding="utf-8", errors="replace") as file_handle:
             return file_handle.read().strip()
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except OSError as exception:
         log_handled_exception(
             logger,
             exception,
-            message="Failed to read RAPL text file (non-critical).",
-            operation=OPERATION_RAPL_TEXT,
+            message="RAPL powercap attribute unavailable (non-critical).",
+            operation=operation,
             details={"path": path},
             level="trace",
         )
         return None
 
 
-def _read_int(path: str, logger: TraceLogger) -> int | None:
-    text = _read_text(path, logger)
+def _read_int(path: str, operation: str, logger: TraceLogger) -> int | None:
+    text = _read_text(path, operation, logger)
     if text is None:
         return None
-    try:
-        return int(text)
-    except ValueError:
-        return None
+    value = coerce_int_from_json(text, default=None)
+    if value is None:
+        logger.trace(
+            "RAPL powercap attribute is not an integer (non-critical): operation=%s path=%s",
+            operation,
+            path,
+        )
+    return value

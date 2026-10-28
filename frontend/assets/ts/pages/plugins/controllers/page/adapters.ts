@@ -6,7 +6,7 @@ import { getWindow } from '@core/environment/public.ts';
 import { resolveHttpsWebsiteUrl, securityApi } from '@core/security/public.ts';
 import type { EscapeSanitizerApi } from '@core/security/protocols.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
-import type { BackendVariantsResponse, PluginBackendUpdatesResponse, PluginBackendUpdateStatus } from '@core/api/contracts/pluginManagementContracts.ts';
+import type { BackendVariantsResponse, PluginBackendUpdateStatus } from '@core/api/contracts/pluginManagementContracts.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
@@ -49,7 +49,7 @@ const normalizeJsonRecord = (options: Record<string, JsonValue | null | undefine
 
 const createPluginsPageModalRuntime = (dependencies: CreatePluginsPageModalRuntimeDependencies): PluginsPageModalRuntime => {
     const { resolvers, coreControllers, progressController, showNotification } = dependencies;
-    const { infrastructure, collection, pageDependencies, session } = dependencies.dependencies;
+    const { infrastructure, collection, session } = dependencies.dependencies;
     const sanitizerAdapter: EscapeSanitizerApi = {
         escapeHtml: securityApi.escapeHtml,
         escapeAttribute: securityApi.escapeAttribute,
@@ -96,8 +96,8 @@ const createPluginsPageModalRuntime = (dependencies: CreatePluginsPageModalRunti
     });
 
     const pluginsApi = infrastructure.api.plugins;
-    if (!pluginsApi.checkUpdates) {
-        throw new Error('Plugins API checkUpdates is unavailable');
+    if (!pluginsApi.checkBackendUpdate) {
+        throw new Error('Plugins API checkBackendUpdate is unavailable');
     }
     const modalManagers = createPluginsModalManagers({
         foundation: {
@@ -112,7 +112,6 @@ const createPluginsPageModalRuntime = (dependencies: CreatePluginsPageModalRunti
             api: infrastructure.api
         },
         concurrency: {
-            getRestartOverlay: () => pageDependencies.restartOverlay,
             getMaxConcurrentPlugins: (): number | null => session.maxConcurrentPlugins,
             setMaxConcurrentPlugins: (value: number | null): void => {
                 session.maxConcurrentPlugins = value;
@@ -163,6 +162,9 @@ const createPluginsPageModalRuntime = (dependencies: CreatePluginsPageModalRunti
             formatPluginName: (name: string): string => coreControllers.dataController.formatPluginName(name)
         },
         state: {
+            catalog: session.catalogStore,
+            backendUpdateAccess: (plugin) => session.backendUpdateAccess(plugin),
+            subscribeBackendUpdateAccess: (listener) => session.subscribeBackendUpdateAccess(listener),
             subscribeModalLedUpdates: (): void => progressController.subscribeModalLedUpdates(),
             unsubscribeModalLedUpdates: (): void => progressController.unsubscribeModalLedUpdates(),
             setCurrentManagingPlugin: (plugin: PluginRecord | null): void => {
@@ -174,8 +176,8 @@ const createPluginsPageModalRuntime = (dependencies: CreatePluginsPageModalRunti
         },
         updates: {
             normalizeVersion: (value: JsonValue | null | undefined) => coreControllers.dataController.normalizeVersion(value),
-            checkUpdates: async (): Promise<PluginBackendUpdatesResponse> => pluginsApi.checkUpdates(),
-            getBackendVariants: async (pluginName: string): Promise<BackendVariantsResponse> => pluginsApi.getBackendVariants(pluginName),
+            checkBackendUpdate: async (pluginName: string, options?: { signal?: AbortSignal }): Promise<PluginBackendUpdateStatus> => pluginsApi.checkBackendUpdate(pluginName, options),
+            getBackendVariants: async (pluginName: string, options?: { signal?: AbortSignal }): Promise<BackendVariantsResponse> => pluginsApi.getBackendVariants(pluginName, options),
             saveBackendVariantSelection: async (pluginName: string, variantId: string): Promise<BackendVariantsResponse> => pluginsApi.saveBackendVariantSelection(pluginName, variantId)
         },
         progress: {

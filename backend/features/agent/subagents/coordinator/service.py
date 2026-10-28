@@ -87,6 +87,7 @@ class AgentSubagentService:
             workspace_path=request.workspace_path,
             max_iterations=request.max_iterations,
             tools=request.tools,
+            skill_ids=request.skill_ids,
         )
 
     async def get_subagent(self, *, subagent_id: str) -> SubagentSnapshot | None:

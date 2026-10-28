@@ -17,6 +17,41 @@ __all__ = (
 
 
 class DatabaseMemoryProtocol(Protocol):
+    async def read_library(self, user_id: int) -> JSONDict: ...
+    async def read_entry(self, user_id: int, entry_id: str) -> JSONDict: ...
+    async def create_entry(
+        self, user_id: int, entry_id: str, name: str, content: str
+    ) -> JSONDict: ...
+    async def update_entry(
+        self,
+        user_id: int,
+        entry_id: str,
+        expected_revision: str,
+        name: str | None,
+        observation: JSONDict | None,
+    ) -> JSONDict: ...
+    async def delete_entry(
+        self, user_id: int, entry_id: str, expected_revision: str
+    ) -> JSONDict: ...
+    async def delete_observation(
+        self, user_id: int, entry_id: str, observation_id: str, expected_revision: str
+    ) -> JSONDict: ...
+    async def update_relation(
+        self,
+        user_id: int,
+        entry_id: str,
+        relation_id: str,
+        expected_revision: str,
+        from_entity_id: str,
+        to_entity_id: str,
+        relation_type: str,
+    ) -> JSONDict: ...
+    async def delete_relation(
+        self, user_id: int, entry_id: str, relation_id: str, expected_revision: str
+    ) -> JSONDict: ...
+    async def save_profile(
+        self, user_id: int, payload: JSONDict, expected_revision: str | None = None
+    ) -> JSONDict: ...
     async def list_entities(self, user_id: int) -> list[JSONDict]: ...
     async def search_entities(
         self,

@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
+from core.concurrency.cancellation_cleanup import cancellation_cleanup, uncancel_then_cleanup
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
@@ -16,8 +16,17 @@ from core.plugins.backend_variants import (
     require_known_backend_variant_id,
 )
 from core.plugins.persistent_runtime_truth import get_plugin_status_payload
-from core.state.state_names import PLUGIN_STATE_BACKEND_NOT_INSTALLED
+from core.state.state_names import (
+    PLUGIN_STATE_BACKEND_INSTALLING,
+    PLUGIN_STATE_BACKEND_NOT_INSTALLED,
+    PLUGIN_STATE_BACKEND_UPDATING,
+    PLUGIN_STATE_DELETING,
+    PLUGIN_STATE_REMOVING_BACKEND,
+)
+from core.timing.constants import RESPONSIVE_TIMEOUT_SEC
 from core.types.json import JSONDict, JSONValue
+from plugins.lifecycle_advisory_lock import plugin_lifecycle_advisory_lock
+from plugins.manager.backend_variant_compatibility import load_backend_variant_compatibility
 from plugins.manager.backend_variant_counts import persist_backend_variant_count
 from plugins.manager.backend_variant_option_loading import load_backend_variant_options
 from plugins.manager.load_serialization import serialized_plugin_load_scope
@@ -63,7 +72,22 @@ async def resolve_installed_backend_variant(
     plugin_name: str,
     durable_state: str | None = None,
 ) -> JSONDict:
-    async with serialized_plugin_load_scope(manager, plugin_name):
+    unavailable: JSONDict = {
+        "installed_variant_id": None,
+        "installed_variant_resolution": INSTALLED_VARIANT_RESOLUTION_UNAVAILABLE,
+    }
+    if durable_state in (
+        PLUGIN_STATE_BACKEND_INSTALLING,
+        PLUGIN_STATE_BACKEND_UPDATING,
+        PLUGIN_STATE_REMOVING_BACKEND,
+        PLUGIN_STATE_DELETING,
+    ):
+        return unavailable
+    async with manager.dependencies.infrastructure.lifecycle.bounded_plugin_lock_scope(
+        plugin_name, timeout_seconds=RESPONSIVE_TIMEOUT_SEC
+    ) as admission:
+        if not admission.acquired:
+            return unavailable
         instance = await manager.get_plugin_instance(plugin_name)
         if instance is None and durable_state == PLUGIN_STATE_BACKEND_NOT_INSTALLED:
             return {
@@ -79,10 +103,7 @@ async def resolve_installed_backend_variant(
                     already_serialized=True,
                 )
             except StateError:
-                return {
-                    "installed_variant_id": None,
-                    "installed_variant_resolution": INSTALLED_VARIANT_RESOLUTION_UNAVAILABLE,
-                }
+                return unavailable
         try:
             try:
                 status_payload = await get_plugin_status_payload(
@@ -102,10 +123,7 @@ async def resolve_installed_backend_variant(
                     operation=OPERATION_RESOLVE_INSTALLED_BACKEND_VARIANT,
                     details={"plugin": plugin_name},
                 )
-                return {
-                    "installed_variant_id": None,
-                    "installed_variant_resolution": INSTALLED_VARIANT_RESOLUTION_UNAVAILABLE,
-                }
+                return unavailable
             return {
                 "installed_variant_id": read_installed_backend_variant_id(status_payload),
                 "installed_variant_resolution": INSTALLED_VARIANT_RESOLUTION_RESOLVED,
@@ -145,7 +163,7 @@ async def get_backend_variants(
         }
     result: JSONDict = {
         "selected_variant_id": selected_variant_id,
-        "options": options,
+        "options": await load_backend_variant_compatibility(manager, plugin_name, options),
         "available_count": count_available_backend_variant_options(options),
         **installed_variant_resolution,
     }
@@ -171,13 +189,22 @@ async def save_backend_variant_selection(
     )
     if durable_state is not None:
         await persist_backend_variant_count(manager, plugin_name, durable_state, options)
-    await manager.dependencies.databases.plugins.set_backend_variant_id(
-        plugin_name,
-        selected_variant_id,
-    )
+    async with plugin_lifecycle_advisory_lock(manager, plugin_name):
+        async with serialized_plugin_load_scope(manager, plugin_name):
+            options = await load_backend_variant_options(manager, plugin_name)
+            selected_variant_id = require_known_backend_variant_id(variant_id, options)
+            try:
+                await cancellation_cleanup(
+                    manager.dependencies.databases.plugins.set_backend_variant_id(
+                        plugin_name, selected_variant_id
+                    )
+                )
+            finally:
+                manager.state.catalog.backend_update_publication_pending = True
+                manager.state.catalog.backend_update_wake.set()
     return {
         "selected_variant_id": selected_variant_id,
-        "options": options,
+        "options": await load_backend_variant_compatibility(manager, plugin_name, options),
         "available_count": count_available_backend_variant_options(options),
         **installed_variant_resolution,
     }

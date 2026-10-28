@@ -8,6 +8,9 @@ from core.plugins.sdk_public_exports import (
     ERROR_EXPORTS,
     HF_SEARCH_EXPORTS,
     MODEL_ARTIFACT_EXPORTS,
+    NATIVE_COMPATIBILITY_ASSESSMENT_EXPORTS,
+    NATIVE_COMPATIBILITY_EXPORTS,
+    NATIVE_RUNTIME_PROBE_EXPORTS,
     OPENAI_AUDIO_UPLOAD_RESPONSE_EXPORTS,
     OPENAI_EXPORTS,
     OPENAI_PROVIDER_TRANSPORT_EXPORTS,
@@ -16,16 +19,15 @@ from core.plugins.sdk_public_exports import (
     PROCESS_SESSION_EXPORTS,
     PROGRESS_EXPORTS,
     REPOSITORY_ARTIFACT_EXPORTS,
+    RUNTIME_NETWORK_EXPORTS,
     TRANSFER_FORMAT_EXPORTS,
 )
 
 __all__ = ()
 
 LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    (
-        "core.plugins.logo_contract",
-        PLUGIN_LOGO_EXPORTS,
-    ),
+    ("plugin_sdk.contracts.backend_variant_resources", ("load_backend_variant_options",)),
+    ("core.plugins.logo_contract", PLUGIN_LOGO_EXPORTS),
     ("core.plugins.logo_images", ("sanitize_plugin_logo",)),
     ("core.archives.errors", ("ArchiveLinkTargetNotFoundError",)),
     (
@@ -33,6 +35,15 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
         ("async_safe_tar_extractall", "async_safe_zip_extractall"),
     ),
     ("core.config.protocols", ("ConfigProtocol",)),
+    (
+        "core.errors.backend_lifecycle",
+        ("IpcCancellationCleanupError", "NativeProbeTerminationError"),
+    ),
+    ("core.filesystem.operation_errors", ("build_filesystem_operation_error",)),
+    (
+        "plugin_sdk.contracts.native_runtime_probe",
+        ("NativeRuntimeProbeResult", "run_native_runtime_probe", "classify_llama_server_probe"),
+    ),
     ("core.errors.exception_coercion", ("coerce_to_soai_error",)),
     (
         "core.errors.memory_exhaustion",
@@ -43,6 +54,7 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
         ("log_exception", "log_handled_exception"),
     ),
     ("core.events.protocols", ("EventBusProtocol",)),
+    ("core.security.public_text_redaction", ("sanitize_public_diagnostic_text",)),
     (
         "core.filesystem.async_queries",
         (
@@ -58,14 +70,17 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
         "core.filesystem.hashing",
         ("calculate_directory_hash", "calculate_file_hash", "calculate_file_hash_sync"),
     ),
+    ("core.files.windows_reparse_points", ("is_windows_reparse_point",)),
     ("core.files.locking", ("guarded_file_lock",)),
     ("core.files.temp_files", ("create_persistent_staging_directory",)),
     (
         "core.concurrency.cancellation_cleanup",
         ("run_idempotent_current_task_operation",),
     ),
+    ("core.concurrency.deadlines", ("MonotonicDeadline", "deadline_after")),
     ("core.concurrency.joined_thread_call", ("run_joined_thread_call",)),
     ("core.filesystem.size_calculation", ("get_path_size",)),
+    ("core.hardware.disk_reservation_records", ("DiskSpaceReservationRequest",)),
     (
         "core.openai.embedding",
         (
@@ -76,6 +91,16 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
     ("core.models.remote_model_search_payloads", ("normalize_model_search_payload",)),
     ("core.system.commands", ("run_argv_capture",)),
+    ("core.system.native_image_budget", ("NativeImageAllowance", "native_image_allowance")),
+    (
+        "core.system.native_runtime_probes",
+        NATIVE_RUNTIME_PROBE_EXPORTS,
+    ),
+    ("core.system.docker_storage.location", ("DockerStorageLocation",)),
+    (
+        "core.system.docker_storage.resolver",
+        ("resolve_docker_storage", "revalidate_docker_storage"),
+    ),
     ("core.system.subprocess_env", ("build_minimal_subprocess_env",)),
     (
         "core.openai.model_output_contract_errors",
@@ -95,6 +120,8 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
         "core.openai.provider_transport",
         OPENAI_PROVIDER_TRANSPORT_EXPORTS,
     ),
+    ("core.openai.provider_http_errors", ("build_openai_provider_http_error",)),
+    ("core.openai.capability_evidence", ("build_openai_model_capability_profile",)),
     (
         "core.openai.audio_upload_responses",
         OPENAI_AUDIO_UPLOAD_RESPONSE_EXPORTS,
@@ -102,6 +129,7 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("core.plugins.protocols_instance", ("FilesProtocol",)),
     ("core.tasks.periodic", ("run_periodic_task",)),
     ("core.types.json", ("JSONDict", "JSONValue")),
+    ("core.types.dict", ("freeze_json_dict",)),
     ("core.types.protocols", ("HttpClientProtocol",)),
     ("plugin_sdk.config", ("Config", "ConfigError")),
     (
@@ -170,7 +198,7 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
     (
         "plugin_sdk.contracts.process_diagnostics",
-        ("read_recent_process_log",),
+        ("read_recent_process_log", "wait_for_process_output_drained"),
     ),
     (
         "plugin_sdk.contracts.process_lifecycle",
@@ -203,6 +231,14 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
     ("plugin_sdk.protocols", ("AcceleratorInventoryProviderProtocol",)),
     ("plugin_sdk.contracts.accelerator_inventory", ("snapshot_accelerator_inventory",)),
+    ("core.config.gpu_binding", ("gpu_binding_selected_device_ids",)),
+    ("core.hardware.native_compatibility", NATIVE_COMPATIBILITY_EXPORTS),
+    ("core.hardware.native_execution_devices", ("native_execution_devices_unchanged",)),
+    ("core.hardware.gpu_inventory_errors", ("require_gpu_discovery_capabilities",)),
+    (
+        "core.hardware.native_compatibility_assessment",
+        NATIVE_COMPATIBILITY_ASSESSMENT_EXPORTS,
+    ),
     ("plugin_sdk.contracts.quantization_tokens", ("extract_quantization_token",)),
     (
         "plugin_sdk.contracts.prompt_token_counting",
@@ -285,18 +321,7 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
     (
         "plugin_sdk.runtime_network",
-        (
-            "OfflineModeError",
-            "create_guarded_async_http_client",
-            "enforce_offline_policy",
-            "guard_outbound_http_request",
-            "is_block_private_network_egress_enabled",
-            "is_loopback_host",
-            "is_offline_mode_enabled",
-            "require_online_mode",
-            "validate_local_only_url",
-            "validate_runtime_host_port",
-        ),
+        RUNTIME_NETWORK_EXPORTS,
     ),
     (
         "plugin_sdk.contracts.chat_template_role_policy",

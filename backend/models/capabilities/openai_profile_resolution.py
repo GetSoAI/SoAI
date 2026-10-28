@@ -8,8 +8,13 @@ from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
 from core.openai.capabilities import normalize_openai_capabilities
+from core.openai.capability_checks import is_openai_capability_enabled
 from core.openai.compatibility import normalize_openai_modalities_strict
-from core.openai.effective_profile import compute_effective_openai_model_profile
+from core.openai.effective_profile import (
+    OPENAI_MODALITY_CHAT_FEATURE_LINKS,
+    compute_effective_openai_model_profile,
+    parse_openai_capability_enabled_overrides,
+)
 from core.validation.boolean_coercion import coerce_bool_with_default
 
 if TYPE_CHECKING:
@@ -21,32 +26,81 @@ __all__ = (
     "resolve_effective_openai_profile",
 )
 
+_MODALITIES_CATEGORY = "modalities"
+_CHAT_FEATURES_CATEGORY = "chat_features"
+
 
 def compose_model_openai_base_profile(
     *,
     plugin_profile: JSONDict,
     model_data: JSONDict,
+    include_enabled_overrides: bool = True,
 ) -> JSONDict:
     base_profile: JSONDict = {}
+    enabled = (
+        _link_enabled_overrides(
+            parse_openai_capability_enabled_overrides(
+                model_data.get("openai_capabilities_overrides")
+            )
+        )
+        if include_enabled_overrides
+        else {}
+    )
     model_modalities = model_data.get("modalities")
     plugin_modalities = plugin_profile.get("modalities")
-    composed_modalities = _compose_modalities(plugin_modalities, model_modalities)
+    composed_modalities = _compose_modalities(
+        plugin_modalities,
+        model_modalities,
+        enabled.get(_MODALITIES_CATEGORY) or set(),
+    )
     if composed_modalities:
         base_profile["modalities"] = composed_modalities
-    plugin_openai_capabilities = plugin_profile.get("openai_capabilities")
+    plugin_openai_capabilities = normalize_openai_capabilities(
+        plugin_profile.get("openai_capabilities")
+    )
     model_openai_capabilities = model_data.get("openai_capabilities")
     composed_openai_capabilities = _compose_openai_capabilities(
         plugin_openai_capabilities,
         model_openai_capabilities,
     )
+    for category, tokens in enabled.items():
+        if category == _MODALITIES_CATEGORY:
+            continue
+        for token in tokens:
+            if is_openai_capability_enabled(plugin_openai_capabilities, category, token):
+                _enable_capability(composed_openai_capabilities, category, token)
     if composed_openai_capabilities:
         base_profile["openai_capabilities"] = composed_openai_capabilities
     return base_profile
 
 
+def _link_enabled_overrides(enabled: dict[str, set[str]]) -> dict[str, set[str]]:
+    linked = {category: set(tokens) for category, tokens in enabled.items()}
+    modalities = linked.get(_MODALITIES_CATEGORY) or set()
+    features = linked.get(_CHAT_FEATURES_CATEGORY) or set()
+    for modality, feature in OPENAI_MODALITY_CHAT_FEATURE_LINKS:
+        if modality in modalities or feature in features:
+            modalities.add(modality)
+            features.add(feature)
+    if modalities:
+        linked[_MODALITIES_CATEGORY] = modalities
+    if features:
+        linked[_CHAT_FEATURES_CATEGORY] = features
+    return linked
+
+
+def _enable_capability(openai_caps: JSONDict, category: str, token: str) -> None:
+    openai_caps[token] = True
+    section_value = openai_caps.get(category)
+    section: JSONDict = dict(section_value) if isinstance(section_value, Mapping) else {}
+    section[token] = True
+    openai_caps[category] = section
+
+
 def _compose_modalities(
     plugin_modalities: JSONValue,
     model_modalities: JSONValue,
+    enabled_modalities: set[str],
 ) -> list[str]:
     if not isinstance(plugin_modalities, list):
         return []
@@ -71,25 +125,22 @@ def _compose_modalities(
     narrowed_modalities = [
         modality
         for modality in normalized_plugin_modalities
-        if modality in set(normalized_model_modalities)
+        if modality in set(normalized_model_modalities) or modality in enabled_modalities
     ]
     return narrowed_modalities
 
 
 def _compose_openai_capabilities(
-    plugin_openai_capabilities: JSONValue,
+    plugin_openai_capabilities: JSONDict,
     model_openai_capabilities: JSONValue,
 ) -> JSONDict:
-    normalized_plugin_openai_capabilities = normalize_openai_capabilities(
-        plugin_openai_capabilities
-    )
     if not isinstance(model_openai_capabilities, Mapping):
-        return normalized_plugin_openai_capabilities
+        return dict(plugin_openai_capabilities)
     normalized_model_openai_capabilities = normalize_openai_capabilities(
         dict(model_openai_capabilities)
     )
     return _narrow_openai_capabilities(
-        normalized_plugin_openai_capabilities,
+        plugin_openai_capabilities,
         normalized_model_openai_capabilities,
     )
 

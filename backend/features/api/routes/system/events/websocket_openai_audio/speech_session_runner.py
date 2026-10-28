@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.public_projection import project_public_error
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from features.api.routes.system.events.websocket_openai_audio.payloads import (
@@ -100,7 +101,7 @@ async def run_openai_audio_speech_session(
             queue=connection.queue,
             event=build_openai_audio_speech_session_error(
                 run_id=runtime.run_id,
-                message=str(coerced),
+                message=project_public_error(coerced).message,
                 code=str(coerced.code),
                 task_id=runtime.active_task_id,
             ),

@@ -7,12 +7,16 @@ import os
 from typing import TYPE_CHECKING
 
 from core.attachments.attachment_constants import WEBUI_CHAT_ATTACHMENT_PURPOSE
+from core.concurrency.bounded_blocking import BoundedBlockingPool
+from core.concurrency.deadlines import deadline_after
 from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exceptions import ValidationError
-from core.files.content_hashing import hash_descriptor_content
+from core.files.content_errors import FileContentChangedError
+from core.files.content_verification import verify_descriptor_content
 from core.files.managed_file_opening import open_managed_file_descriptor
 from core.files.managed_storage_errors import FileStorageSecurityError
 from core.serialization.sha256_hexdigest import is_canonical_sha256_hexdigest
+from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 from core.validation.integers import is_non_negative_strict_int, is_strict_int
 
 if TYPE_CHECKING:
@@ -136,6 +140,7 @@ def _close_managed_file_descriptor(managed: ManagedFileDescriptor) -> None:
 async def open_verified_soai_file_descriptor(
     storage_root: str,
     *,
+    file_content_pool: BoundedBlockingPool,
     record: FileCatalogRecordWithPath,
     attachment: JSONDict,
 ) -> ManagedFileDescriptor:
@@ -150,11 +155,15 @@ async def open_verified_soai_file_descriptor(
         file_id=file_id,
         user_id=owner_user_id,
     )
+    deadline = deadline_after(float(INTERACTIVE_TIMEOUT_SEC))
     managed = await run_joined_thread_call(
         open_managed_file_descriptor,
         storage_root,
         record["file_path"],
         task_name="webui-attachment-file-open",
+        pool=file_content_pool,
+        admission_deadline=deadline,
+        retain_resources_until_complete=True,
         cancelled_result_cleanup=_close_managed_file_descriptor,
     )
     completed = False
@@ -164,20 +173,17 @@ async def open_verified_soai_file_descriptor(
         ):
             raise FileStorageSecurityError("SoAI file size changed.")
         try:
-            content_hash = await run_joined_thread_call(
-                hash_descriptor_content,
+            await verify_descriptor_content(
                 managed.descriptor,
-                task_name="webui-attachment-file-hash",
+                expected_size=record["size_bytes"],
+                expected_sha256=record["content_sha256"],
+                pool=file_content_pool,
+                deadline=deadline,
             )
-        except ValidationError as exception:
+        except (ValidationError, FileContentChangedError) as exception:
             raise FileStorageSecurityError(
                 "SoAI file content could not be verified.",
             ) from exception
-        if (
-            content_hash.size_bytes != record["size_bytes"]
-            or content_hash.sha256_hex != record["content_sha256"]
-        ):
-            raise FileStorageSecurityError("SoAI file content changed.")
         completed = True
         return managed
     finally:

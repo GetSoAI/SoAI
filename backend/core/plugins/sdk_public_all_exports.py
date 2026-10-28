@@ -4,9 +4,35 @@
 from __future__ import annotations
 
 __all__ = (
+    "NATIVE_COMPATIBILITY_ASSESSMENT_EXPORTS",
+    "NATIVE_COMPATIBILITY_EXPORTS",
+    "NATIVE_RUNTIME_PROBE_EXPORTS",
     "OUTBOUND_HEADER_EXPORTS",
     "PLUGIN_LOGO_EXPORTS",
     "PUBLIC_PLUGIN_SDK_EXPORTS",
+)
+
+NATIVE_RUNTIME_PROBE_EXPORTS: tuple[str, ...] = (
+    "RuntimeVerificationTimeoutError",
+    "interpreter_probe_budget",
+    "run_native_probe",
+    "capture_native_probe",
+    "runtime_timeout_error",
+    "runtime_probe_failure_error",
+    "RuntimeVerificationFailedError",
+    "NativeProbeBudget",
+)
+
+NATIVE_COMPATIBILITY_ASSESSMENT_EXPORTS: tuple[str, ...] = (
+    "has_native_runtime_evidence",
+    "NativeCompatibilityAssessment",
+    "assess_native_compatibility",
+    "require_native_compatibility",
+)
+
+NATIVE_COMPATIBILITY_EXPORTS: tuple[str, ...] = (
+    "require_cpu_instruction_features",
+    "require_cuda_13_device_support",
 )
 
 PLUGIN_LOGO_EXPORTS: tuple[str, ...] = (
@@ -26,10 +52,12 @@ OUTBOUND_HEADER_EXPORTS: tuple[str, ...] = (
 )
 
 PUBLIC_PLUGIN_SDK_EXPORTS: tuple[str, ...] = (
+    "load_backend_variant_options",
     *PLUGIN_LOGO_EXPORTS,
     "sanitize_plugin_logo",
     "ArchiveLinkTargetNotFoundError",
     "AcceleratorMemoryExhaustedError",
+    "BackendPrerequisiteError",
     "AUTO_BACKEND_VARIANT_ID",
     "BasePlugin",
     "ClonableField",
@@ -43,6 +71,7 @@ PUBLIC_PLUGIN_SDK_EXPORTS: tuple[str, ...] = (
     "coerce_to_soai_error",
     "log_exception",
     "log_handled_exception",
+    "sanitize_public_diagnostic_text",
     "ProgressPayload",
     "SpeedCalculator",
     "format_progress_bar",
@@ -55,6 +84,7 @@ PUBLIC_PLUGIN_SDK_EXPORTS: tuple[str, ...] = (
     "FilesProtocol",
     "JSONDict",
     "JSONValue",
+    "freeze_json_dict",
     "ModelContext",
     "OfflineModeError",
     "ModelMetadataStore",
@@ -92,6 +122,8 @@ PUBLIC_PLUGIN_SDK_EXPORTS: tuple[str, ...] = (
     "build_unsupported_prompt_token_count_result",
     "build_context_overflow_validation_error",
     "build_openai_upstream_error_details",
+    "build_openai_provider_http_error",
+    "build_openai_model_capability_profile",
     "compose_openai_provider_url",
     "extract_context_overflow_validation",
     "normalize_openai_provider_query_params",
@@ -186,11 +218,18 @@ PUBLIC_PLUGIN_SDK_EXPORTS: tuple[str, ...] = (
     "merge_embedding_batch_responses",
     "normalize_hf_model_input",
     "normalize_backend_variant_id",
+    "DiskSpaceReservationRequest",
     "resolve_cuda_backend_availability",
+    "gpu_binding_selected_device_ids",
+    "native_execution_devices_unchanged",
+    "require_gpu_discovery_capabilities",
+    *NATIVE_COMPATIBILITY_EXPORTS,
+    *NATIVE_COMPATIBILITY_ASSESSMENT_EXPORTS,
     "normalize_variant_name",
     "prepare_embedding_batches",
     "read_metadata",
     "read_recent_process_log",
+    "wait_for_process_output_drained",
     "classify_memory_exhaustion",
     "raise_for_memory_exhaustion",
     "require_online_mode",
@@ -199,6 +238,16 @@ PUBLIC_PLUGIN_SDK_EXPORTS: tuple[str, ...] = (
     "resolve_embedding_batch_limit",
     "run_periodic_task",
     "run_argv_capture",
+    "NativeImageAllowance",
+    "native_image_allowance",
+    *NATIVE_RUNTIME_PROBE_EXPORTS,
+    "DockerStorageLocation",
+    "is_windows_reparse_point",
+    "MonotonicDeadline",
+    "deadline_after",
+    "IpcCancellationCleanupError",
+    "resolve_docker_storage",
+    "revalidate_docker_storage",
     "build_minimal_subprocess_env",
     "runtime_flags",
     "safe_config_float",
@@ -224,4 +273,9 @@ PUBLIC_PLUGIN_SDK_EXPORTS: tuple[str, ...] = (
     "strip_soai_internal_chat_template_parameters",
     "build_openai_upstream_request_body_payload",
     "resolve_openai_upstream_custom_request_field_names",
+    "NativeProbeTerminationError",
+    "NativeRuntimeProbeResult",
+    "run_native_runtime_probe",
+    "classify_llama_server_probe",
+    "build_filesystem_operation_error",
 )

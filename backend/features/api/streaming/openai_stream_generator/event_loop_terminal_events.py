@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from core.errors.http_status_classification import (
     resolve_openai_error_type_for_http_status,
 )
+from core.errors.payload import ErrorPublicPayload
 from core.errors.status_mapping import error_type_to_status_code
 from core.events.types_plugins import ErrorEvent
 from core.events.types_tasks import TaskCompleteEvent
@@ -22,7 +23,7 @@ from core.streaming.protocols import StreamGeneratorStateProtocol
 from core.tasks.enums import TaskStatus
 from features.api.streaming.openai_stream_generator.end_event_processing import (
     finalize_openai_stream_frames,
-    iter_public_usage_chunk,
+    resolve_public_usage_chunk,
 )
 from features.api.streaming.openai_stream_generator.stream_abort import (
     OpenAIStreamAbortRequested,
@@ -58,6 +59,16 @@ async def iter_termination_chunks(
     if classified.reason == StreamTerminationReason.CLOSED:
         try:
             finalize_openai_stream_frames(state)
+            usage_chunk = (
+                resolve_public_usage_chunk(
+                    state,
+                    include_usage=include_usage,
+                    model=model,
+                    reported_usage=None,
+                )
+                if state.done_marker_observed
+                else None
+            )
         except OpenAIStreamAbortRequested as exception:
             async for chunk in send_error(exception.message, exception.error_type):
                 yield chunk
@@ -67,12 +78,7 @@ async def iter_termination_chunks(
                 state.stream_transcript.finalize()
                 if stream_result_state is not None:
                     stream_result_state.payload = state.stream_transcript.build_result_payload()
-            for usage_chunk in iter_public_usage_chunk(
-                state,
-                include_usage=include_usage,
-                model=model,
-                reported_usage=None,
-            ):
+            if usage_chunk is not None:
                 yield usage_chunk
             if emit_done_marker and not state.is_done_sent:
                 yield done_chunk
@@ -101,6 +107,30 @@ async def iter_task_complete_chunks(
 ) -> AsyncGenerator[bytes]:
     done_chunk = sse_done_chunk()
     if not event.success:
+        public_error = stream_result_state.public_error if stream_result_state is not None else None
+        if (
+            public_error is None
+            and event.error_type is not None
+            and event.status != TaskStatus.CANCELLED.value
+        ):
+            public_error = ErrorPublicPayload(
+                http_status=event.error_code or 500,
+                code=event.error_type,
+                message=event.error_message or event.message or "Streaming task failed.",
+                trace_id=event.trace_id,
+            )
+        if public_error is not None and event.status != TaskStatus.CANCELLED.value:
+            async for chunk in iter_error_event_chunks(
+                ErrorEvent(
+                    trace_id=event.trace_id, message=public_error.message, public_error=public_error
+                ),
+                state,
+                send_error=send_error,
+                emit_done_marker=emit_done_marker,
+                stream_result_state=stream_result_state,
+            ):
+                yield chunk
+            return
         state.is_stream_successful = False
         if event.status == TaskStatus.CANCELLED.value:
             message = "Request cancelled."
@@ -117,6 +147,12 @@ async def iter_task_complete_chunks(
     if event.success and state.is_stream_successful:
         try:
             finalize_openai_stream_frames(state)
+            usage_chunk = resolve_public_usage_chunk(
+                state,
+                include_usage=include_usage,
+                model=model,
+                reported_usage=None,
+            )
         except OpenAIStreamAbortRequested as exception:
             async for chunk in send_error(exception.message, exception.error_type):
                 yield chunk
@@ -125,12 +161,7 @@ async def iter_task_complete_chunks(
                 state.stream_transcript.finalize()
                 if stream_result_state is not None:
                     stream_result_state.payload = state.stream_transcript.build_result_payload()
-            for usage_chunk in iter_public_usage_chunk(
-                state,
-                include_usage=include_usage,
-                model=model,
-                reported_usage=None,
-            ):
+            if usage_chunk is not None:
                 yield usage_chunk
     if emit_done_marker and not state.is_done_sent:
         yield done_chunk
@@ -143,10 +174,13 @@ async def iter_error_event_chunks(
     *,
     send_error: Callable[[str, str], AsyncGenerator[bytes]],
     emit_done_marker: bool = True,
+    stream_result_state: StreamGeneratorStateProtocol | None = None,
 ) -> AsyncGenerator[bytes]:
     state.is_stream_successful = False
     public_error = event.public_error
     if public_error is not None:
+        if stream_result_state is not None:
+            stream_result_state.public_error = public_error
         status_code = public_error.http_status or error_type_to_status_code(event.error_type)
         canonical_error_type = resolve_openai_error_type_for_http_status(status_code)
         yield format_openai_sse_bytes(

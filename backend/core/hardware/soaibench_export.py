@@ -93,7 +93,7 @@ async def _iter_soaibench_history_csv_rows(runs: list[JSONDict]) -> AsyncIterato
 def _csv_scalar(value: JSONValue, *, field: str) -> JSONPrimitive:
     if value is None or isinstance(value, str | int | float | bool):
         return value
-    raise ValidationError(f"SoAIBench history export scalar field is not scalar: {field}")
+    raise ValidationError(f"SoAI Bench history export scalar field is not scalar: {field}")
 
 
 def _json_detail(value: JSONValue) -> str:

@@ -3,6 +3,7 @@
 
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { speedTest } from '@core/speedTest.ts';
 import { buildModelSearchEmptyMarkup, buildModelSearchEntry, buildModelSearchErrorMarkup, buildModelSearchLoadingMarkup, buildVariantAdvisoryMarkup, buildVariantCheckEntry, buildVariantErrorMarkup, buildVariantLoadingMarkup, formatVariantDecimal } from '@features/models/public.ts';
 import type { ModelSearchState } from '@pages/wizard/services/aisetup/AiSetupModelSearchController.ts';
 import type { WizardViewContext } from '@pages/wizard/types.ts';
@@ -23,7 +24,7 @@ const renderAiSearchVariants = (context: WizardViewContext, search: ModelSearchS
     if (search.variantStatus === 'loading') return buildVariantLoadingMarkup(i18n.t('models.modal.addModel.variantCheck.checking')).html;
     if (search.variantStatus === 'error') return buildVariantErrorMarkup(search.variantError).html;
     if (search.variants.length === 0) return buildVariantAdvisoryMarkup(i18n.t('models.modal.addModel.variantCheck.noVariants')).html;
-    const renderContext = { host: { getIconSync }, sanitizer: context.sanitizer, selectedIndex: null, action: AI_SEARCH_VARIANT_ACTION, formatDecimal: formatVariantDecimal };
+    const renderContext = { host: { getIconSync }, sanitizer: context.sanitizer, speedTest, selectedIndex: context.aiSetup?.models?.selectedVariantIndex ?? null, action: AI_SEARCH_VARIANT_ACTION, formatDecimal: formatVariantDecimal };
     return `<div class="variant-check-results">${search.variants.map((variant, index) => buildVariantCheckEntry(variant, index, renderContext)).join('')}</div>`;
 };
 

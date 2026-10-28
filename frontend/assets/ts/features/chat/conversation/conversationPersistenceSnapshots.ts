@@ -1,6 +1,8 @@
 /* SoAI - Chat feature conversation persistence snapshots [frontend/assets/ts/features/chat/conversation/conversationPersistenceSnapshots.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isJsonObject } from '@core/types/jsonValues.ts';
+import { resolveMessageTitle } from '@features/chat/messageBuilding.ts';
 import { isPlainObject } from '@core/typeGuards.ts';
 import { compareParameterValues } from '@features/chat/conversationsettings/valueComparison.ts';
 import { parseBackendConversationRecord, requireConversationBoolean, requireConversationColor, requireConversationModelSettings, requireConversationTitle } from '@features/chat/storage/conversationPayloadParsing.ts';
@@ -13,6 +15,7 @@ import type { ConversationCreateRequest } from '@core/api/contracts/webuiConvers
 type ConversationPersistenceSnapshot = {
     id: string;
     title: string;
+    titleAutoUpdateAllowed?: boolean;
     modelSettings: Conversation['modelSettings'];
     color: string | null;
     isFavorite: boolean;
@@ -25,16 +28,18 @@ const requireConversationPersistenceSnapshot = (conversation: Conversation): Con
     return {
         id: requireConversationId(conversation.id, 'Conversation'),
         title: requireConversationTitle(conversation.title, 'Conversation'),
+        ...(conversation.titleAutoUpdateAllowed === undefined ? {} : { titleAutoUpdateAllowed: requireConversationBoolean(conversation.titleAutoUpdateAllowed, 'title_auto_update_allowed', 'Conversation') }),
         modelSettings: requireConversationModelSettings(conversation.modelSettings, 'Conversation'),
         color: requireConversationColor(conversation.color, 'Conversation'),
         isFavorite: requireConversationBoolean(conversation.isFavorite, 'is_favorite', 'Conversation')
     };
 };
 
-const buildConversationCreatePayload = (conversation: { id: string; title: string }): ConversationCreateRequest => {
+const buildConversationCreatePayload = (conversation: { id: string; title: string; titleAutoUpdateAllowed?: boolean }): ConversationCreateRequest => {
     return {
         id: conversation.id,
-        title: conversation.title
+        title: conversation.title,
+        ...(conversation.titleAutoUpdateAllowed === undefined ? {} : { titleAutoUpdateAllowed: conversation.titleAutoUpdateAllowed })
     };
 };
 
@@ -65,13 +70,47 @@ const parseCreatedConversationRecord = (value: WebuiConversationResponse, reques
     return conversation;
 };
 
+type ConversationTitleMetadataPatch = { updatedAt: number; title?: string; titleAutoUpdateAllowed?: boolean };
+
+const applyConversationTitleMetadata = (target: Conversation, patch: ConversationTitleMetadataPatch): boolean => {
+    if (patch.title === undefined && patch.titleAutoUpdateAllowed === undefined) return false;
+    const observed = target.committedTitleMetadata;
+    const observedAt = observed?.updatedAt ?? target.updatedAt;
+    const observedTitle = observed?.title ?? target.title;
+    const observedAuthority = observed?.autoUpdateAllowed ?? target.titleAutoUpdateAllowed;
+    if (patch.updatedAt < observedAt) {
+        if (observedAuthority !== undefined || patch.titleAutoUpdateAllowed !== undefined || patch.title === undefined) return false;
+        const firstUserMessage = target.messages.find((message) => isJsonObject(message) && message['role'] === 'user');
+        const defaultTitle = firstUserMessage ? resolveMessageTitle(firstUserMessage) : null;
+        if (observedTitle !== patch.title && (defaultTitle === null || observedTitle !== defaultTitle)) return false;
+    }
+    if (observed && patch.updatedAt === observedAt && ((patch.title !== undefined && patch.title !== observedTitle) || (patch.titleAutoUpdateAllowed !== undefined && observedAuthority !== undefined && patch.titleAutoUpdateAllowed !== observedAuthority))) {
+        throw new Error('Conflicting conversation title metadata at the same committed timestamp');
+    }
+    const title = patch.title ?? observedTitle;
+    const autoUpdateAllowed = patch.titleAutoUpdateAllowed ?? observedAuthority;
+    target.title = title;
+    if (autoUpdateAllowed !== undefined) target.titleAutoUpdateAllowed = autoUpdateAllowed;
+    target.committedTitleMetadata = { title, updatedAt: patch.updatedAt, ...(autoUpdateAllowed === undefined ? {} : { autoUpdateAllowed }) };
+    target.updatedAt = Math.max(target.updatedAt, patch.updatedAt);
+    return true;
+};
+
+const applyConversationSnapshotTitleMetadata = (target: Conversation, snapshot: Conversation): boolean =>
+    applyConversationTitleMetadata(target, {
+        title: snapshot.title,
+        updatedAt: snapshot.committedTitleMetadata?.updatedAt ?? snapshot.updatedAt,
+        ...(snapshot.titleAutoUpdateAllowed === undefined ? {} : { titleAutoUpdateAllowed: snapshot.titleAutoUpdateAllowed })
+    });
+
 const applyConversationMetadataSnapshot = (target: Conversation, snapshot: Conversation): boolean => {
-    if (snapshot.updatedAt < target.updatedAt) {
+    const previousUpdatedAt = target.updatedAt;
+    applyConversationSnapshotTitleMetadata(target, snapshot);
+    if (snapshot.updatedAt < previousUpdatedAt) {
         return false;
     }
     target.createdAt = snapshot.createdAt;
     target.updatedAt = snapshot.updatedAt;
-    target.title = snapshot.title;
     target.color = snapshot.color;
     target.isFavorite = snapshot.isFavorite;
     target.isAutomation = snapshot.isAutomation === true;
@@ -92,7 +131,7 @@ const applyConversationSettingsSnapshot = (target: Conversation, snapshot: Conve
 };
 
 const reconcilePersistedConversationSnapshot = (target: Conversation, snapshot: ConversationPersistenceSnapshot, persisted: Conversation): void => {
-    const shouldApplyTitle = target.title === snapshot.title;
+    const shouldApplyTitle = target.title === snapshot.title && target.titleAutoUpdateAllowed === snapshot.titleAutoUpdateAllowed;
     const shouldApplyColor = target.color === snapshot.color;
     const shouldApplyFavorite = target.isFavorite === snapshot.isFavorite;
     const shouldApplyModelSettings = compareParameterValues(serializeConversationModelSettings(target.modelSettings), serializeConversationModelSettings(snapshot.modelSettings));
@@ -106,7 +145,7 @@ const reconcilePersistedConversationSnapshot = (target: Conversation, snapshot: 
     else delete target.settingsAuthority;
     target.isArchived = persisted.isArchived === true;
     if (shouldApplyTitle) {
-        target.title = persisted.title;
+        applyConversationSnapshotTitleMetadata(target, persisted);
     }
     if (shouldApplyColor) {
         target.color = persisted.color;
@@ -122,5 +161,5 @@ const reconcilePersistedConversationSnapshot = (target: Conversation, snapshot: 
     }
 };
 
-export { applyConversationMetadataSnapshot, applyConversationSettingsSnapshot, buildConversationCreatePayload, parseConversationRecordForId, parseCreatedConversationRecord, reconcilePersistedConversationSnapshot, requireConversationPersistenceSnapshot, requireConversationStateEntry };
+export { applyConversationTitleMetadata, applyConversationSnapshotTitleMetadata, applyConversationMetadataSnapshot, applyConversationSettingsSnapshot, buildConversationCreatePayload, parseConversationRecordForId, parseCreatedConversationRecord, reconcilePersistedConversationSnapshot, requireConversationPersistenceSnapshot, requireConversationStateEntry };
 export type { ConversationPersistenceSnapshot };

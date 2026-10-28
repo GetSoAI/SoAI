@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { decodeOcrLanguages, type OcrLanguage } from '@core/api/contracts/ocrLanguageContracts.ts';
+import { encodeSegment } from '@core/identifiers.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import { decodeNoContentResponse } from '@core/api/contracts/noContentContract.ts';
 import type { OpaqueJsonObject } from '@core/api/contracts/opaquePayload.ts';
@@ -13,7 +14,7 @@ import { decodeMessageResponse, decodeOpaquePreferencesResponse, decodePasswordV
 import type { ApiQueryParameters } from '@core/api/types/request.ts';
 import { decodeFileExplorerListResponse, decodeFileExplorerSearchResponse } from '@core/api/contracts/fileExplorerContracts.ts';
 import type { FileExplorerListResponse, FileExplorerSearchResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
-import { decodeChatMemorySnapshot, serializeChatMemoryProfileUpdate, type ChatMemoryProfileUpdateRequest, type ChatMemorySnapshot } from '@core/api/contracts/webuiMemoryContracts.ts';
+import { serializeMemoryEntryCreate, serializeMemoryEntryUpdate, serializeMemoryRelationUpdate, serializeMemoryRevisionQuery, decodeMemoryDeletionResponse, decodeChatMemorySnapshot, decodeManagedMemoryEntry, decodeMemoryLibrary, serializeChatMemoryProfileUpdate, type ManagedMemoryEntry, type MemoryLibrary, type MemoryEntryUpdate, type MemoryRelationUpdate, type ChatMemoryProfileUpdateRequest, type ChatMemorySnapshot } from '@core/api/contracts/webuiMemoryContracts.ts';
 import { decodeIdentityMutationStatus, decodeIdentityMutationSuccess, decodeSessionRotationRecovery, type IdentityMutationStatus, type IdentityMutationSuccess, type SessionRotationRecovery } from '@core/api/contracts/webuiIdentityMutationContracts.ts';
 import { createWizardLicensingEndpoints, type WizardLicensingEndpoints } from '@core/api/endpoints/wizardLicensingEndpoints.ts';
 import { decodeHostFilesystemLocateResponse, decodeHostFilesystemRootsResponse, serializeHostFilesystemLocateRequest, type HostFilesystemLocateResponse, type HostFilesystemRootsResponse } from '@core/api/contracts/hostFilesystemBrowserContracts.ts';
@@ -61,6 +62,14 @@ interface WebuiUserEndpoints {
         resetToolApprovalPermissions(): Promise<MessageResponse>;
     };
     memory: {
+        list(options?: SignalOptions): Promise<MemoryLibrary>;
+        read(entryId: string, options?: SignalOptions): Promise<ManagedMemoryEntry>;
+        create(id: string, name: string, content: string): Promise<ManagedMemoryEntry>;
+        update(entryId: string, payload: MemoryEntryUpdate): Promise<ManagedMemoryEntry>;
+        delete(entryId: string, expectedRevision: string): Promise<void>;
+        deleteObservation(entryId: string, observationId: string, expectedRevision: string): Promise<void>;
+        updateRelation(entryId: string, relationId: string, payload: MemoryRelationUpdate): Promise<ManagedMemoryEntry>;
+        deleteRelation(entryId: string, relationId: string, expectedRevision: string): Promise<void>;
         get(): Promise<ChatMemorySnapshot>;
         saveChatProfile(request: ChatMemoryProfileUpdateRequest): Promise<ChatMemorySnapshot>;
     };
@@ -162,6 +171,14 @@ const createWebuiUserEndpoints = (api: ApiClientContext): WebuiUserEndpoints => 
         resetToolApprovalPermissions: async (): Promise<MessageResponse> => decodeMessageResponse(await api.post('/api/v1/webui/users/me/tool-approval-permissions/reset'), 'Tool approval reset response')
     },
     memory: {
+        list: async (options) => decodeMemoryLibrary(await api.get('/api/v1/webui/users/me/memory/entries', buildSignalRequestOptions(options))),
+        read: async (entryId, options) => decodeManagedMemoryEntry(await api.get(`/api/v1/webui/users/me/memory/entries/${encodeSegment(entryId)}`, buildSignalRequestOptions(options))),
+        create: async (id, name, content) => decodeManagedMemoryEntry(await api.post('/api/v1/webui/users/me/memory/entries', serializeMemoryEntryCreate(id, name, content))),
+        update: async (entryId, payload) => decodeManagedMemoryEntry(await api.patch(`/api/v1/webui/users/me/memory/entries/${encodeSegment(entryId)}`, serializeMemoryEntryUpdate(payload))),
+        delete: async (entryId, expectedRevision) => decodeMemoryDeletionResponse(await api.delete(`/api/v1/webui/users/me/memory/entries/${encodeSegment(entryId)}`, buildQueryRequestOptions(serializeMemoryRevisionQuery(expectedRevision)))),
+        deleteObservation: async (entryId, observationId, expectedRevision) => decodeMemoryDeletionResponse(await api.delete(`/api/v1/webui/users/me/memory/entries/${encodeSegment(entryId)}/observations/${encodeSegment(observationId)}`, buildQueryRequestOptions(serializeMemoryRevisionQuery(expectedRevision)))),
+        updateRelation: async (entryId, relationId, payload) => decodeManagedMemoryEntry(await api.patch(`/api/v1/webui/users/me/memory/entries/${encodeSegment(entryId)}/relations/${encodeSegment(relationId)}`, serializeMemoryRelationUpdate(payload))),
+        deleteRelation: async (entryId, relationId, expectedRevision) => decodeMemoryDeletionResponse(await api.delete(`/api/v1/webui/users/me/memory/entries/${encodeSegment(entryId)}/relations/${encodeSegment(relationId)}`, buildQueryRequestOptions(serializeMemoryRevisionQuery(expectedRevision)))),
         get: async (): Promise<ChatMemorySnapshot> => decodeChatMemorySnapshot(await api.get('/api/v1/webui/users/me/memory')),
         saveChatProfile: async (request): Promise<ChatMemorySnapshot> => decodeChatMemorySnapshot(await api.put('/api/v1/webui/users/me/memory/chat-profile', serializeChatMemoryProfileUpdate(request)))
     },

@@ -10,24 +10,20 @@ from core.mcp.argument_numbers import (
     parse_optional_clamped_int_value,
     parse_optional_int_strict_value,
     parse_optional_number_strict_value,
-    parse_timeout_ms_value,
 )
 from core.mcp.argument_validation import parse_optional_bool_strict_value
 from mcp.tools.error import build_invalid_params_error
 
 if TYPE_CHECKING:
-    from core.types.json import JSONDict, JSONValue
+    from core.types.json import JSONValue
 
 __all__ = (
-    "get_first_present_argument",
     "parse_bool_strict_default",
     "parse_clamped_int",
     "parse_int",
     "parse_optional_bool_strict",
     "parse_optional_int_strict",
     "parse_optional_number_strict",
-    "require_non_negative_timeout_ms",
-    "require_positive_timeout_ms",
 )
 
 
@@ -39,17 +35,6 @@ def parse_int(value: JSONValue, *, default: int, min_value: int, max_value: int)
         minimum=min_value,
         maximum=max_value,
     )
-
-
-def get_first_present_argument(
-    arguments: JSONDict,
-    *,
-    keys: tuple[str, ...],
-) -> tuple[JSONValue | None, str | None]:
-    for key in keys:
-        if key in arguments:
-            return (arguments[key], key)
-    return (None, None)
 
 
 def parse_optional_bool_strict(
@@ -130,24 +115,3 @@ def parse_clamped_int(
         min_value=min_value,
         max_value=max_value,
     )
-
-
-def _require_timeout_ms(value: JSONValue | None, *, allow_zero: bool) -> int:
-    parsed = parse_timeout_ms_value(
-        value,
-        field_name="timeout_ms",
-        build_error=build_invalid_params_error,
-        allow_none=True,
-        allow_zero=allow_zero,
-    )
-    if parsed is None:
-        return 60_000
-    return int(parsed)
-
-
-def require_non_negative_timeout_ms(value: JSONValue | None) -> int:
-    return _require_timeout_ms(value, allow_zero=True)
-
-
-def require_positive_timeout_ms(value: JSONValue | None) -> int:
-    return _require_timeout_ms(value, allow_zero=False)

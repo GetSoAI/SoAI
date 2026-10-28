@@ -63,7 +63,7 @@ class ChatMessageManager {
             isConversationStreaming: (conversationId) => this.#dependencies.runtime.isChatStreamingConversation(conversationId),
             getActiveComparisonRun: (conversationId) => this.#dependencies.session.getActiveComparisonRun(conversationId),
             getActiveStreamIdentity: (conversationId) => this.#dependencies.session.getActiveStreamIdentity(conversationId),
-            isTerminalRenderPending: (conversationId, message) => this.#dependencies.session.isTerminalRenderPending(conversationId, message),
+            resolveTerminalRenderState: (conversationId, message) => this.#dependencies.session.resolveTerminalRenderState(conversationId, message),
             isMessagePendingDeletion: (conversation, messageDomId) => this.#deleteUndoController.isPendingForConversation(conversation, messageDomId)
         });
         this.#modalCoordinator = new ChatMessageModalCoordinator({
@@ -96,6 +96,7 @@ class ChatMessageManager {
             getCurrentRunningActivitySnapshot: () => this.#dependencies.session.getCurrentRunningActivitySnapshot(),
             getMessageSenderLabel: (source, defaultRole) => this.#dependencies.presentation.getMessageSenderLabel(source, defaultRole),
             resolveMessageContentSegments: (message) => this.#state.resolveMessageContentSegments(message),
+            resolveAssistantResponseDuration: (message, nowMs) => this.#state.resolveAssistantResponseDuration(message, nowMs),
             resolveRunningActivitySummaryForMarkup: (message, nowMs) => this.#state.resolveRunningActivitySummaryForMarkup(message, nowMs),
             getPreRenderedAssistantBodyHtml: (message) => this.#state.getPreRenderedAssistantBodyHtml(message, this.#dependencies.rendering.getWorkerRenderEpoch()),
             getLoadingActivityCollapsedState: (message) => this.#state.getLoadingActivityCollapsedState(message),
@@ -197,7 +198,7 @@ class ChatMessageManager {
     resolveRunningActivityRefreshDelayMs(message: ChatMessage, nowMs: number): number | null {
         const summary = this.resolveRunningActivitySummary(message, nowMs);
         const summaryDelayMs = summary.nextVisibleAtMs === null ? null : Math.max(0, summary.nextVisibleAtMs - nowMs);
-        return resolveRunningActivityRefreshDelayMs(message, () => this.resolveMessageContentSegments(message), nowMs, summaryDelayMs, this.#dependencies.presentation.getActivityDurationDisplayMode());
+        return resolveRunningActivityRefreshDelayMs(message, () => this.resolveMessageContentSegments(message), nowMs, summaryDelayMs, this.#dependencies.presentation.getActivityDurationDisplayMode(), this.#state.resolveAssistantResponseDuration(message, nowMs));
     }
 
     resolveMessageReference(conversation: ConversationContract | null, messageId: string): ResolvedMessageReference {

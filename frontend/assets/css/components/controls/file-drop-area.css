@@ -21,9 +21,9 @@
         width: 100%;
         min-height: 8.5rem;
         padding: var(--space-7) var(--space-4);
-        border: var(--border-width-150) dashed var(--glass-border-strong);
+        border: var(--border-width-150) dashed color-mix(in srgb, var(--ui-button-neutral-color) var(--control-button-border-strength), transparent);
         border-radius: var(--border-radius);
-        background: var(--glass-surface-light);
+        background: var(--ui-button-neutral-bg);
         color: var(--text-primary);
         text-align: center;
         cursor: pointer;
@@ -36,8 +36,8 @@
 
     .ui-file-drop-area:is(:hover, :focus-visible),
     .ui-file-drop-area.is-dragover {
-        border-color: var(--accent-green);
-        background: var(--glass-surface-interactive);
+        border-color: color-mix(in srgb, var(--accent-green) var(--control-button-border-hover-strength), transparent);
+        background: var(--ui-button-neutral-bg-hover);
     }
 
     .ui-file-drop-area[hidden] {
@@ -107,22 +107,22 @@
     @keyframes ui-file-drop-area-accepted {
         0% {
             transform: scale(1);
-            border-color: var(--accent-green);
-            background: var(--glass-surface-interactive);
+            border-color: color-mix(in srgb, var(--accent-green) var(--control-button-border-hover-strength), transparent);
+            background: var(--ui-button-neutral-bg-hover);
             box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-green) 24%, transparent);
         }
 
         45% {
             transform: scale(0.992);
-            border-color: var(--accent-green);
+            border-color: color-mix(in srgb, var(--accent-green) var(--control-button-border-hover-strength), transparent);
             background: color-mix(in srgb, var(--glass-surface-interactive) 78%, var(--accent-green));
             box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent-green) 0%, transparent);
         }
 
         100% {
             transform: scale(1);
-            border-color: var(--glass-border-strong);
-            background: var(--glass-surface-light);
+            border-color: color-mix(in srgb, var(--ui-button-neutral-color) var(--control-button-border-strength), transparent);
+            background: var(--ui-button-neutral-bg);
             box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-green) 0%, transparent);
         }
     }

@@ -25,6 +25,7 @@ from core.types.json_value import coerce_json_dict
 from features.api.routes.openai.chat.stored_payloads import (
     prepare_stored_chat_completion_payload,
 )
+from features.api.streaming.stream_generator_state import StreamGeneratorState
 
 __all__ = ("ChatCompletionStorageContext", "wrap_stream_for_chat_completion_storage")
 
@@ -45,8 +46,11 @@ async def wrap_stream_for_chat_completion_storage(
     generator: AsyncGenerator[bytes],
     *,
     storage: ChatCompletionStorageContext,
+    stream_result_state: StreamGeneratorState,
 ) -> AsyncGenerator[bytes]:
-    transcript = OpenAIStreamTranscript(model_hint=None, result_format="chat")
+    transcript = OpenAIStreamTranscript(
+        model_hint=None, result_format="chat", error_origin="local_terminal"
+    )
     transcript_failed = False
     stream_error_seen = False
     async for chunk in generator:
@@ -85,7 +89,11 @@ async def wrap_stream_for_chat_completion_storage(
         yield _storage_error_chunk("Stored chat completion stream could not be parsed.")
         yield sse_done_chunk()
         return
-    persisted = await _persist_streamed_chat_completion(transcript, storage=storage)
+    persisted = await _persist_streamed_chat_completion(
+        transcript,
+        storage=storage,
+        usage=_resolve_stored_usage(stream_result_state),
+    )
     if not persisted:
         yield _storage_error_chunk("Chat completion was generated but could not be stored.")
         yield sse_done_chunk()
@@ -97,9 +105,11 @@ async def _persist_streamed_chat_completion(
     transcript: OpenAIStreamTranscript,
     *,
     storage: ChatCompletionStorageContext,
+    usage: JSONDict | None,
 ) -> bool:
     try:
-        completion_json = transcript.finalize()
+        transcript.finalize()
+        completion_json = transcript.build_result_payload(usage=usage)
     except RECOVERABLE_EXCEPTIONS as exception:
         log_exception(
             get_logger(LOGGER_NAME),
@@ -140,6 +150,13 @@ async def _persist_streamed_chat_completion(
         )
         return False
     return True
+
+
+def _resolve_stored_usage(stream_result_state: StreamGeneratorState) -> JSONDict | None:
+    if stream_result_state.usage is not None:
+        return stream_result_state.usage
+    payload = stream_result_state.payload
+    return coerce_json_dict(payload.get("usage")) if payload is not None else None
 
 
 def _storage_error_chunk(message: str) -> bytes:

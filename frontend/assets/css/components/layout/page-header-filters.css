@@ -56,16 +56,11 @@
         color: var(--filter-control-color);
         width: auto;
         min-width: fit-content;
-        transition:
-            background-color var(--transition-fast),
-            border-color var(--transition-fast),
-            color var(--transition-fast);
+        transition: var(--text-field-transition);
         box-shadow: var(--glass-shadow-base);
     }
 
     :where(.page-header-filter-select:not([data-chat-model-control='true']), .page-header-filter-input):not(select):hover:not(:focus) {
-        background-color: var(--text-field-bg-hover);
-        border-color: var(--text-field-border-hover);
         color: color-mix(in srgb, var(--filter-control-color) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
     }
 

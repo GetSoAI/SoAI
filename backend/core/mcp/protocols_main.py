@@ -41,6 +41,9 @@ if TYPE_CHECKING:
     from core.licensing.protocols import LicensingStatusProtocol
     from core.mail.protocols import MailServiceProtocol
     from core.mcp.protocols_rag import FetchedContentProtocol, MCPRAGProtocol
+    from core.media.speech_selection import ResolvedSpeechModel
+    from core.media.speech_setup import SpeechTask
+    from core.media.transcription_contracts import SpeechTranscriptionOptions
     from core.runtime.protocols import RuntimeFlagsViewProtocol
     from core.types.json import JSONDict, JSONValue
 
@@ -63,14 +66,20 @@ __all__ = (
 
 
 class ReadAudioGatewayProtocol(Protocol):
+    async def resolve_speech_model(
+        self,
+        *,
+        selector: str | None,
+        task: SpeechTask,
+    ) -> ResolvedSpeechModel: ...
+
     async def read_audio(
         self,
         *,
         file_path: str,
-        model_name: str,
-        language: str | None,
-        task: str,
-        include_word_timestamps: bool,
+        selector: str | None,
+        options: SpeechTranscriptionOptions,
+        request_context: RequestContext,
     ) -> JSONDict: ...
 
 

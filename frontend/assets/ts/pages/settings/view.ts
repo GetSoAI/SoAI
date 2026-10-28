@@ -11,10 +11,10 @@ import { UI_IDS } from '@features/settings/public.ts';
 import type { SettingsViewDependencies } from '@pages/settings/types.ts';
 
 const buildAdvancedToggle = (dependencies: SettingsViewDependencies): TrustedHtml => {
-    const label = dependencies.advancedMode ? i18n.t('settings.basicMode') : i18n.t('settings.advancedMode');
+    const label = dependencies.advancedMode ? i18n.t('settings.advancedMode') : i18n.t('settings.basicMode');
     const advancedIcon = dependencies.getIconSync('settings', { size: 24, strokeWidth: 1.5 });
     return uiHtml`<div class="advanced-toggle-container">
-        <button type="button" id="${uiAttr(UI_IDS.ADVANCED_TOGGLE_BTN)}" data-action="${uiAttr(SETTINGS_ACTION_TOGGLE_ADVANCED_MODE)}" class="advanced-toggle-btn ui-button ui-variant-neutral" aria-label="${uiAttr(label)}" data-tooltip="${uiAttr(label)}">${advancedIcon}<span>${label}</span></button>
+        <button type="button" id="${uiAttr(UI_IDS.ADVANCED_TOGGLE_BTN)}" data-action="${uiAttr(SETTINGS_ACTION_TOGGLE_ADVANCED_MODE)}" class="advanced-toggle-btn ui-button ${uiAttr(dependencies.advancedMode ? 'ui-variant-warning' : 'ui-variant-neutral')}" aria-pressed="${uiAttr(String(dependencies.advancedMode))}" data-presence-morph aria-label="${uiAttr(label)}" data-tooltip="${uiAttr(label)}">${advancedIcon}<span>${label}</span></button>
     </div>`;
 };
 

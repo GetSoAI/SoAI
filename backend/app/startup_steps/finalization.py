@@ -5,17 +5,25 @@ from __future__ import annotations
 
 import asyncio
 import os
-import platform
 import time
 import webbrowser
 from dataclasses import dataclass
 
 from app.background.chat_stream_registry_reaper import run_chat_stream_registry_reaper
+from app.installation_transaction_admission import list_update_transaction_storage
 from app.startup_beep import emit_startup_beep_if_enabled
+from app.startup_steps.browser_launch import (
+    BROWSER_LAUNCH_RECOVERABLE_EXCEPTIONS,
+    resolve_browser_controller,
+)
 from app.startup_steps.dependencies import StartupStepDependencies
 from app.types_application import ApplicationContext
 from app.updater.software_update.activation import commit_ready_update_activation
 from app.updater.software_update.activation_state import find_pending_update_activation
+from app.updater.software_update.committed_transaction_disposal import (
+    dispose_committed_update_storage,
+)
+from core.bootstrap.filename_normalization import has_pending_filename_cleanup
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
@@ -40,28 +48,6 @@ OPERATION_APPLICATION_STARTUP_STARTUP = "application_startup.startup"
 @dataclass(frozen=True, slots=True)
 class StartupFinalizationStep:
     deps: StartupStepDependencies
-
-    def resolve_browser_controller(
-        self,
-    ) -> tuple[webbrowser.BaseBrowser | None, str | None]:
-        if platform.system() == "Linux" and (
-            not (os.environ.get("DISPLAY", "") or os.environ.get("WAYLAND_DISPLAY", ""))
-        ):
-            return (None, "no graphical display detected")
-        try:
-            controller = webbrowser.get()
-        except webbrowser.Error:
-            return (None, "no default browser configured")
-        try:
-            browser_name = controller.name
-        except AttributeError:
-            browser_name = ""
-        if not browser_name:
-            browser_name = controller.__class__.__name__
-        normalized_name = browser_name.lower()
-        if normalized_name in {"lynx", "links", "elinks", "w3m"}:
-            return (None, f"text-mode browser '{browser_name}'")
-        return (controller, None)
 
     async def finalize_startup(self, application_context: ApplicationContext) -> None:
         transition_scheduled_ms = monotonic_ms()
@@ -106,7 +92,7 @@ class StartupFinalizationStep:
         )
         browser_open: tuple[webbrowser.BaseBrowser, str] | None = None
         if auto_open_requested and servers_present:
-            controller, skip_reason = self.resolve_browser_controller()
+            controller, skip_reason = resolve_browser_controller()
             if controller:
                 runtime_api_endpoint = application_context.runtime.runtime_api_endpoint
                 if runtime_api_endpoint is None:
@@ -189,6 +175,24 @@ class StartupFinalizationStep:
                     application_context.services.tasks.task_registry,
                     base_path=application_context.paths.base_dir,
                 )
+            transaction_storage = await asyncio.to_thread(
+                list_update_transaction_storage, application_context.paths.base_dir
+            )
+            if bool(transaction_storage) or await asyncio.to_thread(
+                has_pending_filename_cleanup, application_context.paths.base_dir
+            ):
+                disposal = dispose_committed_update_storage(
+                    application_context.paths.base_dir,
+                    application_context.logging.logger,
+                    application_context.runtime.shutdown_event,
+                )
+                if (
+                    self.deps.runtime_coordinator.schedule_background_task(
+                        disposal, name="committed-update-storage-disposal"
+                    )
+                    is None
+                ):
+                    disposal.close()
             if (
                 application_context.runtime.shutdown_event.is_set()
                 or application_context.runtime.system_stop_event.is_set()
@@ -229,6 +233,11 @@ class StartupFinalizationStep:
             transitioned_state = await state_aggregator.recalculate_and_set_main_state(
                 "post_startup_transition",
             )
+            if not (
+                application_context.runtime.shutdown_event.is_set()
+                or application_context.runtime.system_stop_event.is_set()
+            ):
+                application_context.runtime.startup_transition_complete_event.set()
             self.deps.startup_timings.record_since_ms(
                 "startup.transition_recalculate_state_ms",
                 recalc_started_ms,
@@ -293,7 +302,7 @@ class StartupFinalizationStep:
                         await asyncio.to_thread(controller.open_new_tab, url)
                 except asyncio.CancelledError:
                     return
-                except RECOVERABLE_EXCEPTIONS as exception:
+                except BROWSER_LAUNCH_RECOVERABLE_EXCEPTIONS as exception:
                     log_exception(
                         application_context.logging.logger,
                         exception,

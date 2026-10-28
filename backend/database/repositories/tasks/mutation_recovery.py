@@ -18,10 +18,33 @@ from core.validation.strict_numbers import (
 from database.core.savepoints import SQLiteSavepoint
 
 __all__ = (
+    "sync_has_unsettled_backend_update",
+    "sync_release_backend_update_recovery",
     "sync_quarantine_exhausted_mutations",
     "sync_query_expired_mutation_recovery_candidates",
     "sync_query_recovery_required_admissions",
 )
+
+
+def sync_has_unsettled_backend_update(
+    connection: sqlite3.Connection,
+    plugin_name: str | None,
+    excluded_task_id: str | None,
+) -> bool:
+    return (
+        connection.execute(
+            """SELECT 1 FROM mutation_admissions
+        WHERE operation_type = 'plugin_backend_update'
+            AND lifecycle_status IN ('running', 'recovery_required')
+            AND (? IS NULL OR target_identity = ?)
+            AND (? IS NULL OR accepted_task_id != ?)
+            AND (lifecycle_status = 'recovery_required'
+                OR execution_phase NOT IN ('accepted', 'verified', 'contained_failure'))
+        LIMIT 1""",
+            (plugin_name, plugin_name, excluded_task_id, excluded_task_id),
+        ).fetchone()
+        is not None
+    )
 
 
 def sync_quarantine_exhausted_mutations(
@@ -33,6 +56,21 @@ def sync_quarantine_exhausted_mutations(
         error_message="Mutation recovery requires a valid server time.",
     )
     with SQLiteSavepoint(connection, "mutation_recovery_quarantine"):
+        skill_rows = connection.execute(
+            """UPDATE unified_tasks
+            SET status='input_required', updated_at_ms=?,
+                status_message='Skill publication requires recovery; its outcome is unverified.',
+                result=json_object('materialized', NULL, 'recovery_required', json('true'))
+            WHERE task_id IN (
+                SELECT accepted_task_id FROM mutation_admissions
+                WHERE operation_type='skill_materialize' AND attempt_count >= ? AND (
+                    lifecycle_status='accepted'
+                    OR (lifecycle_status='running' AND lease_expires_at_ms <= ?)
+                )
+            ) AND status NOT IN ('completed', 'failed', 'cancelled')
+            RETURNING task_id""",
+            (now_ms, MUTATION_MAX_ATTEMPTS, now_ms),
+        ).fetchall()
         task_rows = connection.execute(
             """UPDATE unified_tasks
             SET status = 'failed', updated_at_ms = ?, completed_at_ms = ?,
@@ -45,7 +83,7 @@ def sync_quarantine_exhausted_mutations(
                 END
             WHERE task_id IN (
                 SELECT accepted_task_id FROM mutation_admissions
-                WHERE attempt_count >= ? AND (
+                WHERE operation_type != 'skill_materialize' AND attempt_count >= ? AND (
                     lifecycle_status = 'accepted'
                     OR (lifecycle_status = 'running' AND lease_expires_at_ms <= ?)
                 )
@@ -63,7 +101,7 @@ def sync_quarantine_exhausted_mutations(
             )""",
             (now_ms, MUTATION_MAX_ATTEMPTS, now_ms),
         )
-        return tuple(sorted(row["task_id"] for row in task_rows))
+        return tuple(sorted(row["task_id"] for row in (*skill_rows, *task_rows)))
 
 
 def sync_query_recovery_required_admissions(
@@ -159,3 +197,29 @@ def sync_query_expired_mutation_recovery_candidates(
             )
         )
     return tuple(candidates)
+
+
+def sync_release_backend_update_recovery(
+    connection: sqlite3.Connection, request_id: str, plugin_name: str, now_ms: int
+) -> bool:
+    require_non_negative_int_strict(now_ms, error_message="Recovery requires a valid server time.")
+    with SQLiteSavepoint(connection, "backend_update_recovery_release"):
+        row = connection.execute(
+            """UPDATE mutation_admissions SET lifecycle_status='failed',
+                execution_phase='contained_failure', completed_at_ms=?,
+                recovery_payload_encrypted=NULL
+            WHERE request_id=? AND target_identity=?
+                AND operation_type='plugin_backend_update'
+                AND lifecycle_status='recovery_required'
+                AND execution_phase IN ('accepted', 'execution_started', 'callback_succeeded',
+                    'verified', 'contained_failure', 'recovery_required')
+                AND EXISTS (SELECT 1 FROM unified_tasks
+                    WHERE task_id=mutation_admissions.accepted_task_id
+                    AND status IN ('failed', 'cancelled'))
+            RETURNING request_id""",
+            (now_ms, request_id, plugin_name),
+        ).fetchone()
+        if row is None:
+            return False
+        connection.execute("DELETE FROM mutation_conflict_keys WHERE request_id=?", (request_id,))
+        return True

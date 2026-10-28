@@ -4,7 +4,7 @@
 import { i18n, type TranslationKey } from '@core/i18n/index.ts';
 import type { ChatConfigurationTabId } from '@features/chat/conversationsettings/chatConfigurationTabs.ts';
 
-type ChatPresetSectionId = 'general' | 'appearance' | 'completion' | 'voice' | 'files' | 'knowledge' | 'tools';
+type ChatPresetSectionId = 'general' | 'appearance' | 'completion' | 'voice' | 'files' | 'knowledge' | 'skills' | 'tools';
 
 interface ChatPresetSectionDefinition {
     id: ChatPresetSectionId;
@@ -20,7 +20,8 @@ const CHAT_PRESET_SECTION_DEFINITIONS: ReadonlyArray<ChatPresetSectionDefinition
     { id: 'voice', tabId: 'voice', translationKey: 'chat.configuration.tabs.voice', displayOrder: 3 },
     { id: 'files', tabId: 'files', translationKey: 'chat.configuration.tabs.files', displayOrder: 4 },
     { id: 'knowledge', tabId: 'knowledge', translationKey: 'chat.configuration.tabs.knowledge', displayOrder: 5 },
-    { id: 'tools', tabId: 'mcp', translationKey: 'chat.configuration.mcp.tools', displayOrder: 6 }
+    { id: 'skills', tabId: 'skills', translationKey: 'chat.configuration.skills.title', displayOrder: 6 },
+    { id: 'tools', tabId: 'mcp', translationKey: 'chat.configuration.mcp.tools', displayOrder: 7 }
 ]);
 
 const isChatPresetSectionId = (value: string): value is ChatPresetSectionId => CHAT_PRESET_SECTION_DEFINITIONS.some((section) => section.id === value);
@@ -32,6 +33,7 @@ const translateChatPresetSection = (sectionId: ChatPresetSectionId): string => {
     if (sectionId === 'voice') return i18n.t('chat.configuration.tabs.voice');
     if (sectionId === 'files') return i18n.t('chat.configuration.tabs.files');
     if (sectionId === 'knowledge') return i18n.t('chat.configuration.tabs.knowledge');
+    if (sectionId === 'skills') return i18n.t('chat.configuration.skills.title');
     return i18n.t('chat.configuration.mcp.tools');
 };
 

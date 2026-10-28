@@ -6,8 +6,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import NotFoundError, SecurityError, ValidationError
+from core.errors.public_projection import project_public_exception
+from core.files.move_errors import DestinationExistsError
 from features.api.runtime.errors import raise_not_found
-from features.api.runtime.task_api_errors import raise_invalid_request_error_with_task
+from features.api.runtime.task_api_errors import (
+    raise_api_error_with_task,
+    raise_invalid_request_error_with_task,
+)
 from features.file_explorer.path_resolution import (
     resolve_single_upload_virtual_destination,
 )
@@ -66,6 +71,15 @@ def resolve_single_destination(
         )
     except NotFoundError as exception:
         raise_not_found(request, exception.message, extra={"task_id": task_id})
+    except DestinationExistsError as exception:
+        public_error = project_public_exception(exception)
+        raise_api_error_with_task(
+            request,
+            422,
+            str(public_error.code),
+            public_error.message,
+            task_id=task_id,
+        )
     except ValidationError as exception:
         raise_invalid_request_error_with_task(
             request,

@@ -3,6 +3,7 @@
 
 import { resolveChatAttachmentDraftSource, resolveDraftAttachmentIconName, resolvePhysicalAttachmentPreviewUrl, type ChatAttachment, type ChatAttachmentDraftSource } from '@features/chat/public.ts';
 import { securityApi } from '@core/security/public.ts';
+import { createSpeechMediaSelectionView } from '@core/speechsetup/selectionView.ts';
 import type { ChatAttachDraftListHost } from '@pages/chat/controllers/modals/chatattach/contracts.ts';
 import { renderDraftAttachmentListState } from '@pages/chat/controllers/modals/chatattach/chatAttachDraftAttachmentListStateWidget.ts';
 import type { ChatAttachDraftAttachmentListElements, ChatAttachDraftAttachmentListEntry } from '@pages/chat/controllers/modals/chatattach/types.ts';
@@ -15,12 +16,14 @@ class ChatAttachDraftAttachmentListController {
     readonly #signal: AbortSignal;
     readonly #source: ChatAttachmentDraftSource;
     #unsubscribeDrafts: (() => void) | null = null;
+    readonly #speechSelection: (mimeTypes: readonly string[], persisted?: boolean) => void;
 
     constructor(host: ChatAttachDraftListHost, elements: ChatAttachDraftAttachmentListElements, signal: AbortSignal, source: ChatAttachmentDraftSource) {
         this.#host = host;
         this.#elements = elements;
         this.#signal = signal;
         this.#source = source;
+        this.#speechSelection = createSpeechMediaSelectionView(elements.summary, signal);
         this.#bind();
         this.#render();
     }
@@ -76,6 +79,10 @@ class ChatAttachDraftAttachmentListController {
             }
         }
         renderDraftAttachmentListState(this.#elements, entries, processingCount, readyCount);
+        this.#speechSelection(
+            entries.map((entry) => entry.attachment.mimeType ?? entry.attachment.type),
+            entries.some((entry) => entry.attachment.missingCapabilities?.includes('speech_to_text'))
+        );
     }
 
     #toEntry(attachment: ChatAttachment, conversationId: string | null): ChatAttachDraftAttachmentListEntry {

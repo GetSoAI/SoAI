@@ -1,6 +1,7 @@
 /* SoAI - Dashboard page logs rendering [frontend/assets/ts/pages/dashboard/widgets/logs/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { scrollElementTo } from '@core/scroll.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
@@ -141,10 +142,10 @@ class DashboardLogsView {
         }
     }
 
-    scrollToEnd(): void {
+    scrollToEnd(behavior: ScrollBehavior = 'instant'): void {
         const output = this.getOutputNode();
         if (output) {
-            this.#host.updateProperty(output, 'scrollTop', output.scrollHeight);
+            scrollElementTo(output, { top: output.scrollHeight, behavior });
         }
     }
 

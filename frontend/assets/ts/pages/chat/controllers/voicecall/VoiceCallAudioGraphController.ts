@@ -3,8 +3,8 @@
 
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import { i18n } from '@core/i18n/index.ts';
-import { resolveAudioContextConstructor, resolveGetUserMediaError } from '@core/media/audioCaptureSupport.ts';
+import { resolveAudioContextConstructor } from '@core/media/audioCaptureSupport.ts';
+import { AudioCaptureFailure, toAudioCaptureFailure } from '@core/media/mediaCaptureErrors.ts';
 import { closeAudioContextSafe, stopMediaStreamTracks } from '@core/media/mediaCleanup.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import { VoiceCallCaptureWorkletController } from '@pages/chat/controllers/voicecall/VoiceCallCaptureWorkletController.ts';
@@ -28,15 +28,14 @@ class VoiceCallAudioGraphController {
     async start(onFrame: (frame: VoiceCallAudioFrame) => void, onError: (error: Error) => void): Promise<void> {
         this.#stopped = false;
         if (!isFunction(navigator?.mediaDevices?.getUserMedia)) {
-            throw new Error(i18n.t('chat.audio.notSupported'));
+            throw new AudioCaptureFailure('capture_unsupported');
         }
-        const AudioContextConstructor = resolveAudioContextConstructor();
-        let stream: MediaStream | null = null;
-        let audioContext: AudioContext | null = null;
+        const AudioContextConstructor = this.#resolveAudioContextConstructor();
+        let stream: MediaStream;
         try {
             stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
         } catch (error) {
-            throw new Error(resolveGetUserMediaError(ensureError(error)));
+            throw toAudioCaptureFailure(ensureError(error));
         }
         this.#stream = stream;
         if (this.#stopped) {
@@ -44,10 +43,13 @@ class VoiceCallAudioGraphController {
             return;
         }
         try {
-            audioContext = new AudioContextConstructor();
-            this.#audioContext = audioContext;
-            if (audioContext.state === 'suspended') {
-                await audioContext.resume();
+            let audioContext: AudioContext;
+            try {
+                audioContext = new AudioContextConstructor();
+                this.#audioContext = audioContext;
+                if (audioContext.state === 'suspended') await audioContext.resume();
+            } catch (error) {
+                throw new AudioCaptureFailure('audio_context_unavailable', ensureError(error));
             }
             if (this.#stopped) {
                 await this.stop();
@@ -55,8 +57,9 @@ class VoiceCallAudioGraphController {
             }
             await this.#connect(stream, audioContext, onFrame, onError);
         } catch (error) {
-            await this.stop();
-            throw error;
+            const failure = toAudioCaptureFailure(ensureError(error));
+            await this.#stopAfterStartFailure();
+            throw failure;
         }
     }
 
@@ -85,9 +88,27 @@ class VoiceCallAudioGraphController {
         await closeAudioContextSafe(audioContext, 'voice call graph stop');
     }
 
+    #resolveAudioContextConstructor(): typeof AudioContext {
+        try {
+            return resolveAudioContextConstructor();
+        } catch (error) {
+            throw new AudioCaptureFailure('audio_context_unavailable', ensureError(error));
+        }
+    }
+
+    async #stopAfterStartFailure(): Promise<void> {
+        try {
+            await this.stop();
+        } catch (cleanupError) {
+            errorHandler.warn('VoiceCallAudioGraphController', 'Voice call audio graph cleanup after start failure failed', ensureError(cleanupError));
+        }
+    }
+
     async #connect(stream: MediaStream, audioContext: AudioContext, onFrame: (frame: VoiceCallAudioFrame) => void, onError: (error: Error) => void): Promise<void> {
         const source = audioContext.createMediaStreamSource(stream);
+        this.#source = source;
         const analyser = audioContext.createAnalyser();
+        this.#analyser = analyser;
         analyser.fftSize = ANALYSER_FFT_SIZE;
         analyser.smoothingTimeConstant = 0;
         const frequencyData = new Uint8Array(analyser.frequencyBinCount);
@@ -103,8 +124,6 @@ class VoiceCallAudioGraphController {
             bridge.stop();
             return;
         }
-        this.#source = source;
-        this.#analyser = analyser;
         this.#bridge = bridge;
         source.connect(analyser);
         bridge.connect(source);

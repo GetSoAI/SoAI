@@ -4,6 +4,7 @@
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { getBackgroundTasks } from '@core/backgroundtasks/service.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import type { SaveUnitResult } from '@core/save/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { toJsonCompatibleValue } from '@core/primitives/clone.ts';
 import { normalizeProgressPercent } from '@core/primitives/progress.ts';
@@ -20,7 +21,6 @@ import { updateSecurityTabNotifyBadge } from '@pages/settings/controllers/page/s
 import type { SettingsPageState } from '@pages/settings/controllers/page/state.ts';
 import { commitUiPreferences } from '@pages/settings/controllers/page/uiPreferences.ts';
 import { showSettingsRestartNotification } from '@pages/settings/controllers/settingsRestartNotification.ts';
-import type { OperationType } from '@features/overlays/public.ts';
 
 const scheduleWallpaperRefresh = (page: SettingsRuntimeContext, state: SettingsPageState): void => {
     if (state.wallpaperRefreshPending) {
@@ -162,17 +162,6 @@ const clearAllModifiedStates = (state: SettingsPageState): void => {
     state.dirtyStateManager?.refreshRenderedFields();
 };
 
-const showRestartNotification = async (page: SettingsRuntimeContext, state: SettingsPageState): Promise<void> => {
-    await showSettingsRestartNotification({
-        restartApplication: async (): Promise<void> => {
-            await page.owners.api.system.power.restartApplication();
-        },
-        showRestartOverlay: (value: OperationType): void => {
-            state.restartOverlay.show(value);
-        }
-    });
-};
-
 const reloadSecurityAuditAfterConfigSave = async (page: SettingsRuntimeContext, state: SettingsPageState): Promise<void> => {
     if (!isSettingsNormalTabVisibleById(page, state, 'security')) {
         return;
@@ -184,8 +173,8 @@ const reloadSecurityAuditAfterConfigSave = async (page: SettingsRuntimeContext, 
     updateSecurityTabNotifyBadge(page, state);
 };
 
-const saveSettings = async (page: SettingsRuntimeContext, state: SettingsPageState): Promise<void> => {
-    await page.owners.pageLifecycle.run('settings:saveSettings', async () => {
+const saveSettings = async (page: SettingsRuntimeContext, state: SettingsPageState): Promise<SaveUnitResult> => {
+    return await page.owners.pageLifecycle.run('settings:saveSettings', async (): Promise<SaveUnitResult> => {
         if (!hasUnsavedChanges(state)) {
             return;
         }
@@ -202,13 +191,14 @@ const saveSettings = async (page: SettingsRuntimeContext, state: SettingsPageSta
             state.coreConfig = state.configManager.currentData;
         }
 
-        await commitUiPreferences(page, state);
+        const result = await commitUiPreferences(page, state);
+        if (result?.type === 'stop') return result;
         clearAllModifiedStates(state);
         if (hadConfigChanges) {
             await reloadSecurityAuditAfterConfigSave(page, state);
         }
         if (hadConfigChanges) {
-            await showRestartNotification(page, state);
+            await showSettingsRestartNotification();
         }
     });
 };
@@ -229,4 +219,4 @@ const applyWallpaperOverlay = (page: SettingsRuntimeContext, value: string): voi
     page.owners.dom.setStyle(page.owners.dom.getBody(), '--wallpaper-overlay-opacity', String(clamped));
 };
 
-export { applyWallpaperOverlay, clearAllModifiedStates, confirmAndExecute, hasUnsavedChanges, refreshWallpaperPreview, saveSettings, scheduleWallpaperRefresh, showRestartNotification, updatePreferenceToggleLabel, warnAndFocus, withButtonDisabled };
+export { applyWallpaperOverlay, clearAllModifiedStates, confirmAndExecute, hasUnsavedChanges, refreshWallpaperPreview, saveSettings, scheduleWallpaperRefresh, updatePreferenceToggleLabel, warnAndFocus, withButtonDisabled };

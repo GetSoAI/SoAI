@@ -22,6 +22,7 @@ from core.files.types import DocumentReadResult
 if TYPE_CHECKING:
     from core.concurrency.protocols import CancellationTokenProtocol
     from core.files.types import ParseProgressCallback
+    from core.runtime.request_context import RequestContext
 
 __all__ = (
     "DatabaseFilesProtocol",
@@ -54,6 +55,7 @@ class DocumentReaderProtocol(Protocol):
         max_chars: int,
         offset_chars: int,
         display_name: str | None = None,
+        request_context: RequestContext,
         cancellation_token: CancellationTokenProtocol | None = None,
         progress_callback: ParseProgressCallback | None = None,
     ) -> DocumentReadResult: ...

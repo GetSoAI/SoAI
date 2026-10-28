@@ -90,7 +90,7 @@ const createExternalLinkModal = (dependencies: { confirmationFlow: ConfirmationF
             cancelText: i18n.t('common.cancel'),
             copyText: i18n.t('common.copy'),
             variant: 'info',
-            icon: 'external-link',
+            icon: 'external-link-modal',
             url: ''
         });
         return await showExternalLinkModalInternal({ confirmationFlow: dependencies.confirmationFlow }, options, defaults, {
@@ -108,7 +108,7 @@ const createExternalLinkModal = (dependencies: { confirmationFlow: ConfirmationF
             cancelText: i18n.t('chat.confirmations.externalLinkCancel'),
             copyText: i18n.t('common.copy'),
             variant: 'info',
-            icon: 'external-link',
+            icon: 'external-link-modal',
             url: ''
         });
         return await showExternalLinkModalInternal({ confirmationFlow: dependencies.confirmationFlow }, options, defaults, {

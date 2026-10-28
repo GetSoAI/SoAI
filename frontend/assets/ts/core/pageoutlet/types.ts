@@ -59,6 +59,7 @@ interface PageOutletErrorState {
 }
 
 interface PageOutletConstructorOptions {
+    spinnerWorkerUrl?: string | undefined;
     emitEvent?: PageOutletEventEmitter | null | undefined;
     onPreservedPageFailure?: (() => void) | null | undefined;
     onRetry?: PageOutletRetryHandler | null | undefined;

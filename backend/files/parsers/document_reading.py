@@ -33,6 +33,7 @@ from files.parsers.document_text_slicing import slice_document_text
 
 if TYPE_CHECKING:
     from core.files.types import ParseProgressCallback
+    from core.runtime.request_context import RequestContext
     from files.internal_protocols import DocumentOcrCoordinatorProtocol
 
 __all__ = (
@@ -77,6 +78,7 @@ class DocumentReadingPipeline(DocumentReaderProtocol):
         max_chars: int,
         offset_chars: int,
         display_name: str | None = None,
+        request_context: RequestContext,
         cancellation_token: CancellationTokenProtocol | None = None,
         progress_callback: ParseProgressCallback | None = None,
     ) -> DocumentReadResult:
@@ -106,6 +108,7 @@ class DocumentReadingPipeline(DocumentReaderProtocol):
             progress_callback=progress_callback,
             display_name=display_name,
             extraction_deadline=extraction_deadline,
+            request_context=request_context,
         )
         parsed = await _try_parse(
             self._logger,
@@ -179,6 +182,7 @@ class DocumentReadingPipeline(DocumentReaderProtocol):
             max_chars=max_chars_normalized,
             offset_chars=offset_chars_normalized,
             extraction_state=extraction_state,
+            missing_capabilities=parsed.document.missing_capabilities,
         )
 
 

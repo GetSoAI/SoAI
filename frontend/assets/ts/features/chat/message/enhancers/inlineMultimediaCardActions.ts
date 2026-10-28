@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
+import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { dom } from '@core/dom/dom.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
@@ -133,7 +134,7 @@ const resolveInlineMediaCopyValue = (options: InlineMediaCopyValueOptions): stri
 const appendInlineMediaSourceActions = (doc: Document, actions: HTMLElement, options: InlineMediaCopyValueOptions): void => {
     const openSourceHref = options.sourceHref ? options.sourceHref.trim() : options.referenceHref ? options.referenceHref.trim() : '';
     const copyValue = resolveInlineMediaCopyValue(options);
-    if (openSourceHref) {
+    if (openSourceHref && (!options.localFolderAction || !windowIdentity.isDetachedContext())) {
         const openAction = options.localFolderAction ? createOpenLocalFolderAction(doc, options.localFolderAction) : createOpenSourceAction(doc, openSourceHref);
         actions.appendChild(openAction);
     }

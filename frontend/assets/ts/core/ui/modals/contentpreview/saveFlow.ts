@@ -1,6 +1,7 @@
 /* SoAI - Content preview text save flow [frontend/assets/ts/core/ui/modals/contentpreview/saveFlow.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { SaveUnitResult } from '@core/save/public.ts';
 import { setModalHeaderDescription } from '@core/modals/headerDescription.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { applyBusyState, applyEditingUiState, applyTextEmptyDisableState } from '@core/ui/modals/contentpreview/modalButtons.ts';
@@ -40,9 +41,9 @@ const normalizeSaveResult = (saveResult: ContentPreviewTextSaveResult): ContentP
     return Object.freeze(normalized);
 };
 
-const requestContentPreviewTextSave = async ({ modalRoot, request, textController, getCurrentTextRequest, getSessionState, setSessionState, notifyPotentialChange }: ContentPreviewTextSaveFlowArguments): Promise<void> => {
-    if (!textController.isEditing() || !request.editable || !request.onRequestSave) {
-        return;
+const requestContentPreviewTextSave = async ({ modalRoot, request, textController, getCurrentTextRequest, getSessionState, setSessionState, notifyPotentialChange }: ContentPreviewTextSaveFlowArguments): Promise<SaveUnitResult> => {
+    if (getSessionState().mode === 'busySave' || getCurrentTextRequest() !== request || !textController.isEditing() || !request.editable || !request.onRequestSave) {
+        return { type: 'stop' };
     }
 
     const draft = textController.getDraftSnapshot(modalRoot);
@@ -50,16 +51,20 @@ const requestContentPreviewTextSave = async ({ modalRoot, request, textControlle
         throw new Error('Content preview draft snapshot is missing');
     }
 
+    if (request.validateDraft && !request.validateDraft(draft)) {
+        return { type: 'stop' };
+    }
+    const restoreSubmittedControls = textController.disableSubmittedControls(modalRoot);
     setSessionState(beginContentPreviewTextSave(getSessionState()));
-    applyBusyState(modalRoot, true);
     let busyCleared = false;
     try {
+        applyBusyState(modalRoot, true);
         const saveResult = await request.onRequestSave(draft);
         if (getCurrentTextRequest() !== request) {
-            return;
+            return { type: 'stop' };
         }
         if (!saveResult) {
-            return;
+            return { type: 'stop' };
         }
         const normalizedResult = normalizeSaveResult(saveResult);
         const committedRequest = Object.freeze({
@@ -94,6 +99,7 @@ const requestContentPreviewTextSave = async ({ modalRoot, request, textControlle
         notifyPotentialChange();
         request.onSaveComplete?.();
     } finally {
+        restoreSubmittedControls();
         if (!busyCleared && getCurrentTextRequest() === request) {
             setSessionState(finishContentPreviewTextSave(getSessionState(), null));
             applyBusyState(modalRoot, false);

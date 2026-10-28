@@ -14,6 +14,7 @@ from database.repositories.users.conversation_attachment_references import (
 from database.repositories.users.conversation_attachment_rows import (
     format_knowledge_attachment_row,
 )
+from database.repositories.users.conversation_knowledge_extraction import KNOWLEDGE_SUMMARY_COLUMNS
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -105,7 +106,7 @@ def _load_knowledge_summaries(
     placeholders = ",".join("?" for _ in knowledge_attachment_ids)
     rows = conn.execute(
         f"""
-        SELECT *
+        SELECT {KNOWLEDGE_SUMMARY_COLUMNS}
         FROM webui_conversation_knowledge_attachments
         WHERE conv_id = ?
           AND user_id = ?

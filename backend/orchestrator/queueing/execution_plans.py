@@ -5,7 +5,9 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from core.errors.error_types import ErrorType
 from core.errors.exceptions import StateError
+from core.errors.public_projection import project_public_error
 from core.events.bus_dispatch_logging import resolve_event_trace_id
 from core.logging.trace import get_logger
 from core.orchestrator.execution_plan import (
@@ -14,6 +16,7 @@ from core.orchestrator.execution_plan import (
     EXECUTION_PLAN_STATUS_UNAVAILABLE,
     ExecutionPlan,
     resolve_execution_plan_failure_reason,
+    resolve_execution_plan_validation_error,
 )
 from core.orchestrator.queue_decisions import (
     QueueDecision,
@@ -67,11 +70,18 @@ async def apply_execution_plan(
             plan,
             default_reason=DEFAULT_NO_VALID_MODELS_REASON,
         )
+        validation_error = resolve_execution_plan_validation_error(plan)
         decisions.append(
             build_fail_task_decision(
                 task=task,
                 reason=reason,
                 allow_failover=False,
+                error_type=ErrorType.INVALID_REQUEST if validation_error is not None else None,
+                public_error=(
+                    project_public_error(validation_error, trace_id=resolve_event_trace_id(event))
+                    if validation_error is not None
+                    else None
+                ),
             ),
         )
         return decisions

@@ -3,10 +3,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
 
-from core.bootstrap.playwright_browser_state import is_expected_chromium_installed
+from core.bootstrap.playwright_browser_state import (
+    is_expected_chromium_installed,
+    managed_chromium_launch_timeout_ms,
+)
 from core.bootstrap.runtime_directories import ensure_runtime_directory_environment
 from core.browser.playwright_installation import (
     install_chromium_async,
@@ -29,6 +33,7 @@ __all__ = (
     "is_playwright_auto_install_enabled",
     "is_playwright_stay_offline",
     "require_playwright_chromium_ready",
+    "resolve_chromium_launch_timeout_ms",
     "resolve_playwright_auto_install_timeout_sec",
     "resolve_playwright_launch_args",
     "should_retry_playwright_auto_install_after_launch_error",
@@ -40,6 +45,14 @@ OPERATION = "mcp.browser.playwright_policy.launch_args"
 
 def ensure_playwright_browsers_path() -> None:
     ensure_runtime_directory_environment(get_repo_root())
+
+
+async def resolve_chromium_launch_timeout_ms(
+    *, headless: bool, channel: str | None
+) -> float | None:
+    if channel is not None:
+        return None
+    return await asyncio.to_thread(managed_chromium_launch_timeout_ms, headless=headless)
 
 
 def resolve_playwright_launch_args() -> list[str]:

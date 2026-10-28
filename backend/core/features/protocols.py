@@ -17,21 +17,7 @@ if TYPE_CHECKING:
 
     from core.types.json import JSONValue
 
-__all__ = (
-    "CommandDispatcherProtocol",
-    "ResponseBuilderProtocol",
-)
-
-
-class ResponseBuilderProtocol(Protocol):
-    def create_no_content_response(self) -> Response: ...
-
-    def json_response_with_task_id(
-        self,
-        content: JSONValue,
-        task_id: str,
-        status_code: int = 200,
-    ) -> JSONResponse: ...
+__all__ = ("CommandDispatcherProtocol",)
 
 
 class CommandDispatcherProtocol[TCommand: Event](Protocol):

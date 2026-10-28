@@ -10,6 +10,7 @@ from core.concurrency.locks import AsyncRWLock
 
 if TYPE_CHECKING:
     from core.config.protocols import ConfigProtocol
+    from core.files.extraction_state import ExtractionState
     from core.types.json import JSONDict
 
 __all__ = (
@@ -30,6 +31,15 @@ class MCPRAGWorkerProtocol(Protocol):
 
 
 class FetchedContentProtocol(Protocol):
+    @property
+    def extraction_state(self) -> ExtractionState: ...
+
+    @property
+    def warnings(self) -> tuple[str, ...]: ...
+
+    @property
+    def missing_capabilities(self) -> tuple[str, ...]: ...
+
     @property
     def content(self) -> str: ...
 

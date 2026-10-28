@@ -16,93 +16,12 @@ from database.repositories.users.automation_run_row_formatter import (
 )
 from database.repositories.users.automation_sql_support import fetch_run_row_by_id
 
-__all__ = (
-    "sync_complete_run_abandoned",
-    "sync_complete_run_cancelled",
-    "sync_complete_run_completed",
-    "sync_complete_run_error",
-    "sync_complete_run_terminal",
-)
+__all__ = ("sync_complete_run_terminal",)
 
 if TYPE_CHECKING:
     from typing import Literal
 
     type AutomationRunTerminalStatus = Literal["completed", "cancelled", "abandoned", "error"]
-
-
-def sync_complete_run_completed(
-    conn: sqlite3.Connection,
-    run_id: str,
-    user_id: int,
-    finished_at_ms: int,
-    result_excerpt: str | None,
-) -> JSONDict | None:
-    return sync_complete_run_terminal(
-        conn,
-        run_id=run_id,
-        user_id=user_id,
-        finished_at_ms=finished_at_ms,
-        final_status="completed",
-        status_message=None,
-        result_excerpt=result_excerpt,
-    )
-
-
-def sync_complete_run_cancelled(
-    conn: sqlite3.Connection,
-    run_id: str,
-    user_id: int,
-    finished_at_ms: int,
-    status_message: str,
-    result_excerpt: str | None = None,
-) -> JSONDict | None:
-    return sync_complete_run_terminal(
-        conn,
-        run_id=run_id,
-        user_id=user_id,
-        finished_at_ms=finished_at_ms,
-        final_status="cancelled",
-        status_message=status_message,
-        result_excerpt=result_excerpt,
-    )
-
-
-def sync_complete_run_error(
-    conn: sqlite3.Connection,
-    run_id: str,
-    user_id: int,
-    finished_at_ms: int,
-    status_message: str,
-    result_excerpt: str | None = None,
-) -> JSONDict | None:
-    return sync_complete_run_terminal(
-        conn,
-        run_id=run_id,
-        user_id=user_id,
-        finished_at_ms=finished_at_ms,
-        final_status="error",
-        status_message=status_message,
-        result_excerpt=result_excerpt,
-    )
-
-
-def sync_complete_run_abandoned(
-    conn: sqlite3.Connection,
-    run_id: str,
-    user_id: int,
-    finished_at_ms: int,
-    status_message: str,
-    result_excerpt: str | None = None,
-) -> JSONDict | None:
-    return sync_complete_run_terminal(
-        conn,
-        run_id=run_id,
-        user_id=user_id,
-        finished_at_ms=finished_at_ms,
-        final_status="abandoned",
-        status_message=status_message,
-        result_excerpt=result_excerpt,
-    )
 
 
 def sync_complete_run_terminal(

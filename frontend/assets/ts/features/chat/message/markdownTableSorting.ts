@@ -1,18 +1,15 @@
 /* SoAI - Assistant Markdown table sorting interaction [frontend/assets/ts/features/chat/message/markdownTableSorting.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
+import { captureReorderMotion } from '@core/animations/reorderMotion.ts';
 import { requireNonNegativeIntegerAttribute } from '@core/dom/attributes.ts';
-import { getComputedStyleStrict } from '@core/environment/public.ts';
 import { getCurrentLocale } from '@core/languageservice/service.ts';
 import { getCollator } from '@core/localization/intlCache.ts';
-import { isFiniteNumber } from '@core/typeGuards.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
 import { normalizeSortDirection, requireSortableHeaders, resolveNextSortState, updateSortableTableIndicators, type SortableHeaderRef, type SortDirection, type SortState } from '@core/ui/tables/sortableTable.ts';
 
 const MARKDOWN_TABLE_HEADER_SELECTOR = 'th.markdown-table-sortable-header';
 const MARKDOWN_TABLE_SELECTOR = 'table.markdown-table.markdown-table-sortable';
-const MARKDOWN_TABLE_INDICATOR_OVERLAY_CLASS = 'is-space-overlay';
 const MARKDOWN_TABLE_INDICATOR_SIZE_PX = 14;
 const MARKDOWN_TABLE_INDICATOR_STROKE_WIDTH = 2.5;
 
@@ -104,29 +101,6 @@ const sortRows = (rows: readonly SortableMarkdownRow[], columnIndex: number, dir
         .map((entry) => entry.row);
 };
 
-const canOverlayIndicatorWithinExistingSpace = (header: HTMLElement, indicator: HTMLElement): boolean => {
-    if (indicator.childNodes.length > 0) {
-        return indicator.classList.contains(MARKDOWN_TABLE_INDICATOR_OVERLAY_CLASS);
-    }
-    const headerRect = measureLayoutBox(header);
-    if (headerRect.width <= 0) {
-        return false;
-    }
-    const headerStyles = getComputedStyleStrict(header);
-    const rootStyles = getComputedStyleStrict(header.ownerDocument.documentElement);
-    const paddingRight = Number.parseFloat(headerStyles.paddingRight);
-    const rootFontSize = Number.parseFloat(rootStyles.fontSize);
-    if (!isFiniteNumber(paddingRight) || !isFiniteNumber(rootFontSize)) {
-        throw new Error('Assistant Markdown table sorting requires measurable header spacing');
-    }
-    const labelRange = header.ownerDocument.createRange();
-    labelRange.setStart(header, 0);
-    labelRange.setEndBefore(indicator);
-    const labelRect = measureLayoutBox(labelRange);
-    const availableSpace = headerRect.right - paddingRight - labelRect.right;
-    return availableSpace >= MARKDOWN_TABLE_INDICATOR_SIZE_PX + rootFontSize * 0.25;
-};
-
 const applyMarkdownTableSort = (header: HTMLElement): void => {
     const table = requireSortableMarkdownTable(header);
     const context = requireSortableMarkdownTableContext(table);
@@ -142,7 +116,6 @@ const applyMarkdownTableSort = (header: HTMLElement): void => {
     const nextState = resolveNextSortState(resolveCurrentSortState(table), requestedColumn, 'asc');
     const orderedRows = sortRows(context.rows, columnIndex, nextState.direction);
     const iconName = nextState.direction === 'asc' ? 'chevron-up' : 'chevron-down';
-    const overlayIndicator = canOverlayIndicatorWithinExistingSpace(header, activeHeader.indicator);
     const iconHtml = getIconSync(iconName, { size: MARKDOWN_TABLE_INDICATOR_SIZE_PX, strokeWidth: MARKDOWN_TABLE_INDICATOR_STROKE_WIDTH });
     const indicatorHost = {
         getIconSync: (requestedIconName: Parameters<typeof getIconSync>[0], requestedOptions?: Parameters<typeof getIconSync>[1]): typeof iconHtml => {
@@ -153,13 +126,12 @@ const applyMarkdownTableSort = (header: HTMLElement): void => {
         }
     };
 
+    const motion = captureReorderMotion(context.body);
     context.body.replaceChildren(...orderedRows);
     table.dataset['sortColumn'] = nextState.column;
     table.dataset['sortDirection'] = nextState.direction;
     updateSortableTableIndicators({ headers: context.headers, activeColumn: nextState.column, activeDirection: nextState.direction, host: indicatorHost });
-    for (const sortableHeader of context.headers) {
-        sortableHeader.indicator.classList.toggle(MARKDOWN_TABLE_INDICATOR_OVERLAY_CLASS, sortableHeader.header === header && overlayIndicator);
-    }
+    motion.play();
 };
 
 const resolveMarkdownTableSortHeader = (target: EventTarget | null): HTMLElement | null => {
@@ -203,4 +175,4 @@ const resolveMarkdownTableSourceSignature = (table: HTMLTableElement): string =>
     return JSON.stringify({ headers, rows });
 };
 
-export { applyMarkdownTableSort, isMarkdownTableHeaderLinkTarget, MARKDOWN_TABLE_HEADER_SELECTOR, MARKDOWN_TABLE_INDICATOR_OVERLAY_CLASS, MARKDOWN_TABLE_SELECTOR, resolveMarkdownTableSortHeader, resolveMarkdownTableSourceSignature, restoreMarkdownTableRows, restoreMarkdownTableSourceOrder };
+export { applyMarkdownTableSort, isMarkdownTableHeaderLinkTarget, MARKDOWN_TABLE_HEADER_SELECTOR, MARKDOWN_TABLE_SELECTOR, resolveMarkdownTableSortHeader, resolveMarkdownTableSourceSignature, restoreMarkdownTableRows, restoreMarkdownTableSourceOrder };

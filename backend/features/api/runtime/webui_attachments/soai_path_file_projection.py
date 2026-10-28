@@ -8,14 +8,11 @@ import os
 from functools import partial
 from typing import TYPE_CHECKING
 
-from core.attachments.attachment_parse_classification import (
-    classify_attachment_descriptor_for_provider,
-)
+from core.concurrency.deadlines import MonotonicDeadline, deadline_after
 from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exceptions import ValidationError
 from core.files.document_type_detection import extract_extension, is_image_type
-from core.timing.constants import YIELD_CONTROL_SEC
-from core.users.ocr_preferences import resolve_user_ocr_language
+from core.timing.constants import INTERACTIVE_TIMEOUT_SEC, YIELD_CONTROL_SEC
 from core.validation.integers import is_strict_int
 from core.workspaces.soai_path_part_fields import target_fingerprint_value
 from features.api.runtime.webui_attachments.provider_descriptor_snapshot import (
@@ -45,6 +42,7 @@ from features.api.runtime.webui_attachments.soai_path_snapshot import (
 
 if TYPE_CHECKING:
     from core.attachments.attachment_parse_classification import AttachmentParseOutcome
+    from core.concurrency.bounded_blocking import BoundedBlockingPool
     from core.types.json import JSONDict
     from features.api.runtime.webui_attachments.projection_context import (
         WebuiAttachmentProjectionContext,
@@ -58,18 +56,20 @@ __all__ = ("project_soai_path_file_for_provider",)
 READ_TIMEOUT_SEC_KEY = "SERVER.WEBUI.SOAI_LINKS.PROJECTION_READ_TIMEOUT_SEC"
 
 
-def _close_cancelled_snapshot(snapshot: ProviderDescriptorSnapshot | None) -> None:
-    if snapshot is not None:
-        close_provider_descriptor_snapshot(snapshot)
+def _close_cancelled_descriptor(descriptor: int | None) -> None:
+    if descriptor is not None:
+        os.close(descriptor)
 
 
-def _unavailable_part(canonical: JSONDict) -> list[JSONDict]:
+def _unavailable_part(
+    canonical: JSONDict, *, note: str = "Live target changed since attachment."
+) -> list[JSONDict]:
     return [
         {
             "type": "text",
             "text": build_soai_path_unavailable_text(
                 title=resolve_optional_soai_path_title(canonical),
-                note="Live target changed since attachment.",
+                note=note,
             ),
         },
     ]
@@ -82,19 +82,33 @@ def _video_note(reason: str | None) -> list[JSONDict]:
 async def _snapshot_descriptor(
     *,
     canonical: JSONDict,
+    file_content_pool: BoundedBlockingPool,
     effective_root: str,
     title: str,
     size_bytes: int,
+    verification_deadline: MonotonicDeadline | None = None,
 ) -> ProviderDescriptorSnapshot | None:
-    source_descriptor = open_verified_soai_path_file_descriptor(
-        effective_root=effective_root,
-        canonical=canonical,
+    deadline = verification_deadline or deadline_after(float(INTERACTIVE_TIMEOUT_SEC))
+    source_descriptor = await run_joined_thread_call(
+        partial(
+            open_verified_soai_path_file_descriptor,
+            effective_root=effective_root,
+            canonical=canonical,
+            deadline=deadline,
+        ),
+        admission_deadline=deadline,
+        task_name="webui-soai-path-provider-open",
+        pool=file_content_pool,
+        retain_resources_until_complete=True,
+        cancelled_result_cleanup=_close_cancelled_descriptor,
     )
     if source_descriptor is None:
         return None
     try:
+        deadline = deadline_after(float(INTERACTIVE_TIMEOUT_SEC))
         snapshot_loader = partial(
             load_provider_descriptor_snapshot,
+            deadline=deadline,
             source_descriptor=source_descriptor,
             filename=title,
             expected_size_bytes=size_bytes,
@@ -102,8 +116,11 @@ async def _snapshot_descriptor(
         )
         return await run_joined_thread_call(
             snapshot_loader,
+            admission_deadline=deadline,
             task_name="webui-soai-path-provider-snapshot",
-            cancelled_result_cleanup=_close_cancelled_snapshot,
+            pool=file_content_pool,
+            retain_resources_until_complete=True,
+            cancelled_result_cleanup=close_provider_descriptor_snapshot,
         )
     finally:
         os.close(source_descriptor)
@@ -114,6 +131,7 @@ async def project_soai_path_file_for_provider(
     *,
     canonical: JSONDict,
     effective_root: str,
+    verification_deadline: MonotonicDeadline | None = None,
 ) -> list[JSONDict]:
     mime_type = require_soai_path_projection_str(canonical.get("mime_type"), field="mime_type")
     title = require_soai_path_projection_str(canonical.get("title"), field="title")
@@ -122,12 +140,20 @@ async def project_soai_path_file_for_provider(
         raise ValidationError("WebUI SoAI path projection field 'size_bytes' must be an integer.")
     image = is_image_type(mime_type, extract_extension(title))
     video = canonical.get("preview_type") == "video"
-    snapshot = await _snapshot_descriptor(
-        canonical=canonical,
-        effective_root=effective_root,
-        title=title,
-        size_bytes=size_bytes,
-    )
+    try:
+        snapshot = await _snapshot_descriptor(
+            file_content_pool=context.dependencies.file_content_pool,
+            canonical=canonical,
+            effective_root=effective_root,
+            title=title,
+            size_bytes=size_bytes,
+            verification_deadline=verification_deadline,
+        )
+    except TimeoutError:
+        return _unavailable_part(
+            canonical,
+            note="File verification is temporarily unavailable. Retry this attachment read.",
+        )
     if snapshot is None:
         return _unavailable_part(canonical)
     image_shape_failure_reason: str | None = None
@@ -147,6 +173,8 @@ async def project_soai_path_file_for_provider(
             shaped = await run_joined_thread_call(
                 image_shaper,
                 task_name="webui-soai-path-provider-image-shape",
+                pool=context.dependencies.file_content_pool,
+                retain_resources_until_complete=True,
             )
             if shaped.part is not None:
                 return [shaped.part]
@@ -171,12 +199,8 @@ async def project_soai_path_file_for_provider(
                 video_reason = video_projection.reason
 
         async def classify_file() -> AttachmentParseOutcome:
-            return await classify_attachment_descriptor_for_provider(
-                ocr_language=await resolve_user_ocr_language(
-                    context.dependencies.database_users, context.user_id
-                ),
-                document_reader=context.dependencies.document_reader,
-                parser_registry_factory=context.dependencies.parser_registry_factory,
+            return await context.video_session.classify_descriptor(
+                user_id=context.user_id,
                 descriptor=snapshot.descriptor,
                 filename=title,
                 mime_type=mime_type,

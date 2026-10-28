@@ -1,7 +1,6 @@
 /* SoAI - Settings page WebUI sessions controller [frontend/assets/ts/pages/settings/controllers/usersmanager/WebuiSessionsController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { toTrustedUiHtml } from '@core/security/public.ts';
 import { requireTrimmedDataAttribute } from '@core/dom/attributes.ts';
 import { bindDataActionListener } from '@core/dom/dataActionBinding.ts';
 import { narrowButton } from '@core/dom/narrowElement.ts';
@@ -66,7 +65,7 @@ class WebuiSessionsController {
             return false;
         }
         const list = this.#host.view.pageDom.requireHTMLElement('webui-sessions-list');
-        this.#host.view.pageDom.updateHtml(list, toTrustedUiHtml(renderSessionsContent(sessions)));
+        this.#host.view.pageDom.updateHtml(list, renderSessionsContent(sessions));
         this.#host.filterSettings();
         return true;
     }

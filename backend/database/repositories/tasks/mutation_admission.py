@@ -24,6 +24,10 @@ from core.mutations.identity_window import (
 from core.mutations.protocols import MutationAdmissionHookProtocol
 from core.serialization.json_parsing import parse_json_dict
 from database.core.savepoints import SQLiteSavepoint
+from database.repositories.skills.materialization import (
+    sync_insert_materialization,
+    sync_materialization_replay,
+)
 from database.repositories.tasks import crud
 from database.repositories.tasks.clone_mutation_admission import (
     reserve_clone_target_for_admission,
@@ -38,6 +42,9 @@ from database.repositories.tasks.mutation_conflict_claims import (
 )
 from database.repositories.tasks.mutation_lifecycle import (
     sync_cleanup_expired_mutation_admissions,
+)
+from database.repositories.tasks.wizard_download_admission import (
+    sync_check_wizard_download_admission,
 )
 
 __all__ = (
@@ -60,6 +67,11 @@ def sync_accept_mutation_task(
         or admission_request.request_id != admission_request.accepted_task_id
     ):
         raise ValidationError("Mutation admission task identities do not match.")
+    if admission_request.operation_type == "skill_materialize":
+        _validate_request(admission_request)
+        replay_task_id = sync_materialization_replay(connection, admission_request)
+        if replay_task_id is not None:
+            return MutationAdmissionOutcome(outcome="replay", task_id=replay_task_id)
     existing = connection.execute(
         "SELECT 1 FROM mutation_admissions WHERE request_id = ?",
         (admission_request.request_id,),
@@ -82,6 +94,8 @@ def sync_accept_mutation_task(
         )
         if outcome.outcome == "conflict":
             savepoint.rollback()
+        elif admission_request.operation_type == "skill_materialize":
+            sync_insert_materialization(connection, admission_request)
         return outcome
 
 
@@ -157,6 +171,10 @@ def sync_admit_mutation(
     ).fetchone()
     if existing is not None:
         return _replay_outcome(existing, request)
+    if request.operation_type == "wizard_model_download":
+        wizard_conflict = sync_check_wizard_download_admission(connection, request)
+        if wizard_conflict is not None:
+            return wizard_conflict
     validate_mutation_identity_window(request.request_id, server_time_watermark_ms)
     try:
         with SQLiteSavepoint(connection, "mutation_admission_insert") as savepoint:

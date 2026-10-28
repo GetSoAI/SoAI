@@ -33,15 +33,10 @@
         line-height: 1.4;
         overflow-y: auto;
         resize: none;
-        transition:
-            border-color var(--transition-fast),
-            background var(--transition-fast),
-            box-shadow var(--transition-fast);
     }
 
-    .chat-attach-modal-soai-link-input:is(:hover, :focus-visible) {
+    .chat-attach-modal-soai-link-input:focus-visible {
         border-color: var(--accent-green);
-        background: var(--glass-surface-interactive);
         outline: none;
     }
 

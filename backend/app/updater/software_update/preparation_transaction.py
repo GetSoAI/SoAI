@@ -1,0 +1,294 @@
+"""SoAI - Prepared updater handoff transaction [backend/app/updater/software_update/preparation_transaction.py]"""
+# SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+from __future__ import annotations
+
+import asyncio
+import os
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Literal
+
+from app.application_update_dependencies import ApplicationUpdateServiceDependencies
+from app.backup.restore_journal import require_no_pending_restore
+from app.updater.software_update.admission import (
+    UPDATE_IN_PROGRESS_MESSAGE,
+    UPDATE_PLATFORM_UNAVAILABLE_MESSAGE,
+    UPDATE_RESTORE_PENDING_MESSAGE,
+    UPDATE_UNAVAILABLE_MESSAGE,
+    is_update_platform_supported,
+    resolve_update_rejection_message,
+)
+from app.updater.software_update.handoff import (
+    UPDATE_HANDOFF_EXCEPTIONS,
+    abort_unaccepted_updater,
+    accept_prepared_updater,
+    wait_for_prepared_updater,
+)
+from app.updater.software_update.preparation_progress import (
+    write_preparation_progress,
+)
+from app.updater.software_update.preparation_status import UpdatePreparationStatus
+from app.updater.software_update.preparation_task_progress import observe_preparation_task_progress
+from app.updater.software_update.updater_launch import (
+    build_updater_command,
+    spawn_detached_updater,
+)
+from core.app.update_result import ApplicationUpdateResult
+from core.concurrency.cancellation_cleanup import (
+    cancellation_cleanup,
+    current_task_has_pending_cancellation,
+)
+from core.concurrency.ephemeral_tasks import create_ephemeral_task
+from core.concurrency.task_groups import cancel_and_await
+from core.di.validation import require_dependencies
+from core.errors.exception_logging import log_exception
+from core.errors.exceptions import ConflictError, StateError
+from core.files.path_policy import safe_join_relative_under_base_lexical
+from core.filesystem.async_queries import async_path_exists
+from core.tasks.enums import TaskStatus
+from core.tasks.finalization import finalize
+from core.tasks.software_update_result import (
+    create_software_update_task,
+    create_software_update_task_id,
+)
+from core.tasks.status_transitions import update_status
+
+if TYPE_CHECKING:
+    from core.app.update_result import ApplicationUpdateOutcome
+
+__all__ = ("UpdatePreparationTransaction", "UpdatePreparationTransactionDependencies")
+
+OPERATION = "application_update_service.update"
+UPDATE_LAUNCH_FAILED_MESSAGE = "Failed to launch the software updater."
+
+
+@dataclass(frozen=True, slots=True)
+class UpdatePreparationTransactionDependencies:
+    application: ApplicationUpdateServiceDependencies
+    preparation_status: UpdatePreparationStatus
+
+    def __post_init__(self) -> None:
+        require_dependencies(
+            owner="UpdatePreparationTransactionDependencies",
+            application=self.application,
+            preparation_status=self.preparation_status,
+        )
+
+
+class UpdatePreparationTransaction:
+    def __init__(self, deps: UpdatePreparationTransactionDependencies) -> None:
+        self._deps = deps.application
+        self._preparation_status = deps.preparation_status
+
+    async def run(self) -> ApplicationUpdateResult:
+        runtime_flags = self._deps.services.configuration.runtime_flags
+        if not is_update_platform_supported(self._deps.updater.edition):
+            self._deps.logging.logger.warning(UPDATE_PLATFORM_UNAVAILABLE_MESSAGE)
+            return ApplicationUpdateResult("unavailable", UPDATE_PLATFORM_UNAVAILABLE_MESSAGE)
+        rejection_message = resolve_update_rejection_message(self._deps.runtime, runtime_flags)
+        if rejection_message is not None:
+            self._deps.logging.logger.warning(rejection_message)
+            outcome: ApplicationUpdateOutcome = (
+                "conflict" if rejection_message == UPDATE_IN_PROGRESS_MESSAGE else "unavailable"
+            )
+            return ApplicationUpdateResult(outcome, rejection_message)
+        updater_path = safe_join_relative_under_base_lexical(
+            base_path=self._deps.paths.base_dir,
+            relative_path=self._deps.updater.cli_relative_path,
+            description="Updater entrypoint",
+        )
+        task_id: str | None = None
+        process_handle = None
+        handoff_accepted = False
+        progress_observer: asyncio.Task[Literal["terminal", "superseded", "degraded"]] | None = None
+        try:
+            try:
+                await asyncio.to_thread(require_no_pending_restore, self._deps.paths.base_dir)
+            except ConflictError:
+                return ApplicationUpdateResult("conflict", UPDATE_RESTORE_PENDING_MESSAGE)
+            if not await async_path_exists(updater_path):
+                self._deps.logging.logger.error(
+                    "Updater entrypoint is missing: %s",
+                    updater_path,
+                )
+                return ApplicationUpdateResult("unavailable", UPDATE_UNAVAILABLE_MESSAGE)
+            rejection_message = resolve_update_rejection_message(
+                self._deps.runtime,
+                runtime_flags,
+            )
+            if rejection_message is not None:
+                self._deps.logging.logger.warning(rejection_message)
+                outcome = (
+                    "conflict" if rejection_message == UPDATE_IN_PROGRESS_MESSAGE else "unavailable"
+                )
+                return ApplicationUpdateResult(outcome, rejection_message)
+            pending_task_id = create_software_update_task_id()
+            await cancellation_cleanup(
+                create_software_update_task(
+                    self._deps.services.tasks.task_registry,
+                    task_id=pending_task_id,
+                    metadata={"edition": self._deps.updater.edition, "phase": "preparing"},
+                )
+            )
+            task_id = pending_task_id
+            self._preparation_status.begin(task_id)
+            await asyncio.to_thread(
+                write_preparation_progress,
+                self._deps.paths.base_dir,
+                task_id,
+                "preparing",
+            )
+            progress_observer = create_ephemeral_task(
+                observe_preparation_task_progress(
+                    self._preparation_status,
+                    self._deps.services.tasks.task_registry,
+                    task_id,
+                    self._deps.logging.logger,
+                ),
+                name=f"update-preparation-{task_id}",
+                log_exceptions=False,
+            )
+            if current_task_has_pending_cancellation():
+                raise asyncio.CancelledError()
+            rejection_message = resolve_update_rejection_message(self._deps.runtime, runtime_flags)
+            if rejection_message is not None:
+                terminal_task = await finalize(
+                    self._deps.services.tasks.task_registry,
+                    task_id,
+                    TaskStatus.CANCELLED,
+                    status_message=rejection_message,
+                )
+                if terminal_task is None or terminal_task.status != TaskStatus.CANCELLED:
+                    raise StateError("Superseded update could not finalize its durable task.")
+                outcome = (
+                    "conflict" if rejection_message == UPDATE_IN_PROGRESS_MESSAGE else "unavailable"
+                )
+                return ApplicationUpdateResult(outcome, rejection_message)
+            command = build_updater_command(
+                cli_module=self._deps.updater.cli_module,
+                config_path=self._deps.paths.config_path,
+                task_id=task_id,
+                wait_for_pid=os.getpid(),
+            )
+            banner_system = self._deps.runtime_coordinator.ensure_banner_system()
+            banner_system.emit("update")
+            self._deps.logging.logger.info(
+                "Launching detached updater process: %s",
+                " ".join(command),
+            )
+            process_handle = spawn_detached_updater(
+                base_dir=self._deps.paths.base_dir,
+                config=self._deps.services.configuration.config,
+                command=command,
+            )
+            prepared = await wait_for_prepared_updater(
+                base_path=self._deps.paths.base_dir,
+                task_id=task_id,
+                edition=self._deps.updater.edition,
+                process_handle=process_handle,
+            )
+            if not prepared:
+                await cancellation_cleanup(
+                    asyncio.to_thread(
+                        abort_unaccepted_updater,
+                        process_handle,
+                        self._deps.paths.base_dir,
+                        task_id,
+                        self._deps.logging.logger,
+                    )
+                )
+                terminal_task = await finalize(
+                    self._deps.services.tasks.task_registry,
+                    task_id,
+                    TaskStatus.CANCELLED,
+                    status_message="The installation is already up-to-date.",
+                )
+                if terminal_task is None or terminal_task.status != TaskStatus.CANCELLED:
+                    raise StateError("No-update operation could not finalize its durable task.")
+                return ApplicationUpdateResult(
+                    "unavailable", "The installation is already up-to-date.", task_id
+                )
+            rejection_message = resolve_update_rejection_message(self._deps.runtime, runtime_flags)
+            if rejection_message is not None:
+                raise StateError(rejection_message)
+            working_task = await update_status(
+                self._deps.services.tasks.task_registry,
+                task_id,
+                TaskStatus.WORKING,
+                status_message="Updater preparation acknowledged.",
+            )
+            if working_task is None or working_task.status != TaskStatus.WORKING:
+                raise StateError("Updater preparation could not persist its durable task.")
+            rejection_message = resolve_update_rejection_message(self._deps.runtime, runtime_flags)
+            if rejection_message is not None or process_handle.poll() is not None:
+                raise StateError("Updater handoff was superseded before acknowledgement.")
+            accept_prepared_updater(self._deps.paths.base_dir, task_id)
+            handoff_accepted = True
+            self._deps.services.tasks.task_registry.transfer_task_ownership(task_id)
+            self._deps.runtime.transfer_process_ownership(process_handle)
+            message = (
+                "Updater process launched. The application will now shut down to allow "
+                "the update to proceed."
+            )
+            self._deps.logging.logger.info(message)
+            self._deps.runtime.set_system_stop()
+            return ApplicationUpdateResult("accepted", message, task_id)
+        except UPDATE_HANDOFF_EXCEPTIONS as exception:
+            failure = exception
+            if process_handle is not None and not handoff_accepted:
+                try:
+                    await cancellation_cleanup(
+                        asyncio.to_thread(
+                            abort_unaccepted_updater,
+                            process_handle,
+                            self._deps.paths.base_dir,
+                            task_id,
+                            self._deps.logging.logger,
+                        )
+                    )
+                except UPDATE_HANDOFF_EXCEPTIONS as cleanup_exception:
+                    failure = cleanup_exception
+            if task_id is not None and not handoff_accepted:
+                terminal_status = (
+                    TaskStatus.CANCELLED
+                    if isinstance(failure, asyncio.CancelledError)
+                    else TaskStatus.FAILED
+                )
+                terminal_task = await cancellation_cleanup(
+                    finalize(
+                        self._deps.services.tasks.task_registry,
+                        task_id,
+                        terminal_status,
+                        error_code=500 if terminal_status == TaskStatus.FAILED else None,
+                        error_message=(
+                            UPDATE_LAUNCH_FAILED_MESSAGE
+                            if terminal_status == TaskStatus.FAILED
+                            else None
+                        ),
+                    )
+                )
+                if terminal_task is None or terminal_task.status != terminal_status:
+                    raise StateError(
+                        "Updater launch failure could not finalize its durable task."
+                    ) from failure
+            if isinstance(failure, asyncio.CancelledError):
+                raise
+            log_exception(
+                self._deps.logging.logger,
+                failure,
+                message="Failed to launch updater process",
+                operation=OPERATION,
+            )
+            return ApplicationUpdateResult("failed", UPDATE_LAUNCH_FAILED_MESSAGE, task_id)
+        finally:
+            if progress_observer is not None:
+                await cancellation_cleanup(
+                    cancel_and_await((progress_observer,), task_label="update preparation observer")
+                )
+                if not progress_observer.cancelled():
+                    observer_result = progress_observer.result()
+                    if observer_result == "degraded":
+                        self._deps.logging.logger.warning(
+                            "Software update task progress observer completed in degraded state.",
+                            extra={"task_id": task_id},
+                        )

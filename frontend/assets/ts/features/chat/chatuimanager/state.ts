@@ -23,6 +23,8 @@ function createElementSelectors(): Record<ElementSelectorKey, string> {
 
 function createChatUIManagerState(): ChatUIManagerState {
     return {
+        speechSetupAbortController: null,
+        speechSetupSelection: null,
         autoScrollEnabled: true,
         autoScrollUserIntentActive: false,
         autoScrollIntentDisposers: [],
@@ -37,6 +39,8 @@ function createChatUIManagerState(): ChatUIManagerState {
         conversationScrollSnapshotPersistTimer: null,
         conversationScrollSnapshotPersistenceDisposer: null,
         pendingConversationScrollRestoreConversationId: null,
+        userStoppedTurn: null,
+        failedConversationScrollRestoreConversationId: null,
         activeConversationScrollRestore: null,
         conversationScrollRestoreGeneration: 0,
         attachedFilesPreviewLayoutDisposer: null,

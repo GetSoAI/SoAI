@@ -1,9 +1,9 @@
 /* SoAI - Hardware page network card renderer [frontend/assets/ts/pages/hardware/rendering/cards/NetworkCardRenderer.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { buildFragment } from '@core/dom/renderCache.ts';
+import { reconcileHardwareRows } from '@pages/hardware/rendering/cards/effects.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { buildNetworkEmptyText, buildNetworkInterfaceModels, buildNetworkSummaryText, createNetworkInterfaceRow, DEFAULT_IGNORED_NETWORK_PREFIXES, getWindowsNetworkInventoryStatus, type NetworkCardLabelSet } from '@features/hardware/public.ts';
+import { buildNetworkEmptyText, buildNetworkInterfaceModels, buildNetworkSummaryText, syncNetworkSummaryPresentation, createNetworkInterfaceRow, syncNetworkObservationPresentation, DEFAULT_IGNORED_NETWORK_PREFIXES, getWindowsNetworkInventoryStatus, type NetworkCardLabelSet } from '@features/hardware/public.ts';
 import { BaseHardwareCardRenderer, type BaseHardwareCardRendererHost } from '@pages/hardware/rendering/cards/BaseHardwareCardRenderer.ts';
 import type { HardwarePageSnapshot } from '@pages/hardware/types.ts';
 
@@ -47,7 +47,7 @@ class NetworkCardRenderer extends BaseHardwareCardRenderer<NetworkCardRendererHo
             });
             const summaryText = i18n.t('hardware.cards.network.summary.none');
             if (summaryText !== this.summaryText) {
-                host.updateText(summary, summaryText);
+                syncNetworkSummaryPresentation(summary, []);
                 this.summaryText = summaryText;
             }
             return;
@@ -70,23 +70,23 @@ class NetworkCardRenderer extends BaseHardwareCardRenderer<NetworkCardRendererHo
             });
             const summaryText = buildNetworkSummaryText(rows, windowsInventoryStatus);
             if (summaryText !== this.summaryText) {
-                host.updateText(summary, summaryText);
+                syncNetworkSummaryPresentation(summary, [], windowsInventoryStatus);
                 this.summaryText = summaryText;
             }
             return;
         }
         const labels = getNetworkLabels();
-        const cacheKey = rows.map((networkInterface) => [networkInterface.deviceId, networkInterface.name, networkInterface.dlMbps, networkInterface.ulMbps, networkInterface.primaryAddr?.address, networkInterface.primaryAddr?.netmask, networkInterface.secondaryAddr?.address, networkInterface.mac].join('|')).join(';');
-        host.renderCachedContent(container, `network::${cacheKey}`, () =>
-            buildFragment(
-                rows.map((row, index) => {
-                    return createNetworkInterfaceRow({ host, entry: row, index: index, labels });
-                })
-            )
+        reconcileHardwareRows(
+            container,
+            '.hardware-network-row',
+            rows,
+            (row) => row.deviceId,
+            (row, index) => createNetworkInterfaceRow({ host, entry: row, index, labels })
         );
+        syncNetworkObservationPresentation(container, snapshot, rows);
         const summaryText = buildNetworkSummaryText(rows);
         if (summaryText !== this.summaryText) {
-            host.updateText(summary, summaryText);
+            syncNetworkSummaryPresentation(summary, rows);
             this.summaryText = summaryText;
         }
     }

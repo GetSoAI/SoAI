@@ -3,11 +3,15 @@
 
 @layer components {
     .searchbar-container {
-        --searchbar-border: var(--text-field-border);
-        --searchbar-border-focus: color-mix(in srgb, var(--status-grey) 72%, var(--text-field-border));
-        --searchbar-color: var(--text-primary);
-        --searchbar-shadow: var(--glass-shadow-base);
-        --searchbar-shadow-focus: var(--glass-shadow-base), 0 0 0 var(--control-focus-ring-width) color-mix(in srgb, var(--status-grey) 24%, transparent);
+        --searchbar-border: var(--text-field-border-base);
+        --searchbar-border-focus: var(--text-field-border-focus-base);
+        --searchbar-color: var(--ui-button-neutral-color);
+        --searchbar-current-border: var(--searchbar-border);
+        --searchbar-stroke-strength: var(--control-button-border-strength);
+        --searchbar-stroke-color: color-mix(in srgb, var(--searchbar-current-border) var(--searchbar-stroke-strength), transparent);
+        --searchbar-icon-color: var(--searchbar-color);
+        --searchbar-shadow: none;
+        --searchbar-shadow-focus: var(--searchbar-shadow);
         --searchbar-backdrop: var(--glass-blur-base);
         --searchbar-bg: var(--text-field-bg);
         --searchbar-bg-focus: var(--searchbar-bg);
@@ -17,12 +21,23 @@
         --searchbar-padding-block: var(--control-padding-block-lg);
         --searchbar-padding-inline: var(--space-35);
         --searchbar-padding-inline-end: var(--space-12);
-        --searchbar-bg-hover: var(--text-field-bg-hover);
-        --searchbar-border-hover: var(--text-field-border-hover);
+        --searchbar-bg-hover: var(--searchbar-bg);
+        --searchbar-border-hover: var(--searchbar-border-focus);
         position: relative;
         display: flex;
         align-items: center;
         width: 100%;
+    }
+
+    .searchbar-container:is(:focus-within, .is-focused) {
+        --searchbar-current-border: var(--searchbar-border-focus);
+        --searchbar-color: var(--ui-button-neutral-color-hover);
+        --searchbar-stroke-strength: var(--control-button-border-hover-strength);
+    }
+
+    .searchbar-container:hover:not(:has(.searchbar-input:is(:disabled, [aria-disabled='true']))) {
+        --searchbar-current-border: var(--searchbar-border-hover);
+        --searchbar-color: var(--ui-button-neutral-color-hover);
     }
 
     .searchbar-container.compact {
@@ -45,7 +60,7 @@
         position: relative;
 
         --searchbar-shadow: none;
-        --searchbar-shadow-focus: 0 0 0 var(--control-focus-ring-width) color-mix(in srgb, var(--status-grey) 20%, transparent);
+        --searchbar-shadow-focus: var(--searchbar-shadow);
     }
 
     .searchbar-container.header-search .header-search__bar {

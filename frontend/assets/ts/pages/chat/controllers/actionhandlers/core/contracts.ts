@@ -74,6 +74,7 @@ interface ChatComposerActionPort {
     openConversationInput(conversationId: string, inputId: string): Promise<void>;
     canRemoveConversationInput(conversationId: string, inputId: string): boolean;
     cancelConversationInput(conversationId: string, inputId: string): Promise<void>;
+    resumeConversationInputs(conversationId: string): Promise<void>;
     retryConversationRegeneration(conversationId: string, inputId: string): Promise<void>;
     resolveAskUser(conversationId: string, taskId: string, action: 'submit' | 'cancel'): Promise<void>;
     resolveSecret(conversationId: string, taskId: string, request: SecretPromptInteractionResolutionRequest): Promise<void>;
@@ -85,6 +86,8 @@ interface ChatComposerActionPort {
     applyInputActionVisibility(): void;
     updateInputQueuePreview(): void;
     resolvePrimaryActionMode(): import('@features/chat/public.ts').ChatComposerActionMode;
+    canStopHandoff(): boolean;
+    noteUserStop(conversationId: string, requestId: string | null): void;
 }
 
 interface ChatAttachDraftCounts {
@@ -127,6 +130,7 @@ interface ChatConfigurationActionPort {
     openTab(tabId: string): void;
     openMemoryProfile(): void;
     refreshMemory(): Promise<void>;
+    memoryAction(element: HTMLElement): void;
     handleModelAction(actionElement: HTMLElement): void;
     refreshPresets(): void;
     resetPresets(): void;

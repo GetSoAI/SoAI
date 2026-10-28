@@ -7,11 +7,13 @@ import asyncio
 
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import ConflictError
 from core.logging.trace import get_logger
 from features.api.runtime.context import ApiContext
 from features.assistant_timeline.assistant_text import (
     flush_assistant_visible_chronology,
 )
+from features.assistant_timeline.models import AssistantTimelineRuntime
 from features.assistant_timeline.publish import ensure_chat_stream_publish_lock
 
 __all__ = ("flush_matching_chat_stream_state_runtime",)
@@ -22,6 +24,22 @@ OPERATION_FORCE_FLUSH = "conversation_stream_state_freshness.force_flush"
 
 async def _await_force_flush_future(future: asyncio.Future[bool]) -> None:
     await future
+
+
+def _is_turn_closing(runtime: AssistantTimelineRuntime) -> bool:
+    return runtime.cancellation_requested or runtime.terminal_outcome_claim is not None
+
+
+async def _abandon_force_flush(
+    runtime: AssistantTimelineRuntime,
+    publish_lock: asyncio.Lock,
+    flush_future: asyncio.Future[bool],
+) -> None:
+    if not flush_future.done():
+        flush_future.set_result(False)
+    async with publish_lock:
+        if runtime.stream_state_force_flush_future is flush_future:
+            runtime.stream_state_force_flush_future = None
 
 
 async def flush_matching_chat_stream_state_runtime(
@@ -76,13 +94,12 @@ async def flush_matching_chat_stream_state_runtime(
         )
         did_flush = True
     except asyncio.CancelledError:
-        if not flush_future.done():
-            flush_future.set_result(False)
-        async with publish_lock:
-            if runtime.stream_state_force_flush_future is flush_future:
-                runtime.stream_state_force_flush_future = None
+        await _abandon_force_flush(runtime, publish_lock, flush_future)
         raise
     except Exception as exception:
+        await _abandon_force_flush(runtime, publish_lock, flush_future)
+        if isinstance(exception, ConflictError) and _is_turn_closing(runtime):
+            return
         coerce_to_soai_error(exception)
         log_exception(
             logger,
@@ -90,11 +107,6 @@ async def flush_matching_chat_stream_state_runtime(
             message="Failed to flush matching chat stream runtime state.",
             operation=OPERATION_FORCE_FLUSH,
         )
-        if not flush_future.done():
-            flush_future.set_result(False)
-        async with publish_lock:
-            if runtime.stream_state_force_flush_future is flush_future:
-                runtime.stream_state_force_flush_future = None
         raise
     if not flush_future.done():
         flush_future.set_result(did_flush)

@@ -112,6 +112,9 @@ type GpuSoAIBenchSummary = JsonObject &
         scoreConfidence?: number | null;
         message?: string | null;
         guidance?: string | null;
+        failedOperation?: string | null;
+        failedPhase?: string | null;
+        deadlineSeconds?: number | null;
     };
 
 interface GpuSoAIBenchRun {

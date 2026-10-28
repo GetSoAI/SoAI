@@ -17,6 +17,10 @@
         object-fit: cover;
     }
 
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-imagecard-wrapper:has(> .dashboard-imagecard-upload) {
+        padding: var(--space-3);
+    }
+
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-imagecard-upload {
         flex: 1;
         display: flex;

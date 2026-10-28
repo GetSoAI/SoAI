@@ -13,7 +13,6 @@ from core.files.workspace_descriptor import (
 __all__ = (
     "conversation_virtual_path_from_real_path",
     "conversation_virtual_path_from_user_virtual_path",
-    "real_path_from_workspace_virtual_path",
     "user_virtual_path_from_conversation_virtual_path",
 )
 
@@ -70,21 +69,6 @@ def conversation_virtual_path_from_user_virtual_path(
     conversation_virtual_path = f"/{'/'.join(parts)}"
     stat_workspace_entry(effective_root_abs, conversation_virtual_path, error_cls=error_cls)
     return conversation_virtual_path
-
-
-def real_path_from_workspace_virtual_path(
-    workspace_root: str,
-    conversation_virtual_path: str,
-    *,
-    error_cls: type[Exception] = ValueError,
-) -> str:
-    parts = normalize_workspace_virtual_path_parts(
-        workspace_root,
-        conversation_virtual_path,
-        error_cls=error_cls,
-    )
-    stat_workspace_entry(workspace_root, conversation_virtual_path, error_cls=error_cls)
-    return os.path.join(os.path.realpath(os.path.abspath(workspace_root)), *parts)
 
 
 def user_virtual_path_from_conversation_virtual_path(

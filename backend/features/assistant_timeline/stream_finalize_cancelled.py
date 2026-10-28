@@ -90,7 +90,7 @@ async def _finalize_claimed_chat_stream_cancelled(
         context=context,
         status=TIMELINE_ACTIVITY_STATUS_CANCELLED,
         reason=normalized_reason,
-        error_type=TIMELINE_ACTIVITY_STATUS_CANCELLED,
+        error_type=cancel_code,
     )
     duration_ms = max(0, monotonic_ms() - context.runtime.started_at_monotonic_ms)
     await flush_pending_visible_text_deltas(
@@ -112,7 +112,7 @@ async def _finalize_claimed_chat_stream_cancelled(
             status=TIMELINE_ACTIVITY_STATUS_CANCELLED,
             duration_ms=duration_ms,
             reason=normalized_reason,
-            error_type=TIMELINE_ACTIVITY_STATUS_CANCELLED,
+            error_type=cancel_code,
         )
     if loading_was_running and loading_cancelled is not None:
         await publish_chat_stream_event(

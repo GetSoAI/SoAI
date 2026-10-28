@@ -7,15 +7,12 @@ import re
 from dataclasses import dataclass
 
 from core.errors.exceptions import ValidationError
-from core.licensing.legal_documents import load_legal_catalog
-from core.licensing.policy import EditionLicensingPolicy
 from core.types.json import JSONValue
 from core.validation.object_fields import require_exact_json_fields
 
 __all__ = (
     "GoverningDocument",
     "parse_governing_documents",
-    "require_cataloged_governing_documents",
 )
 
 _FIELDS = frozenset(("document_id", "fingerprint", "version"))
@@ -36,25 +33,6 @@ def parse_governing_documents(value: JSONValue) -> tuple[GoverningDocument, ...]
     if identities != tuple(sorted(set(identities))):
         raise ValidationError("Licensing governing documents must be sorted and unique.")
     return records
-
-
-def require_cataloged_governing_documents(
-    project_root: str,
-    policy: EditionLicensingPolicy,
-    documents: tuple[GoverningDocument, ...],
-) -> None:
-    catalog = {
-        record.document_id: record
-        for record in load_legal_catalog(project_root, policy.legal_catalog_relative_paths)
-    }
-    for document in documents:
-        cataloged = catalog.get(document.document_id)
-        if (
-            cataloged is None
-            or document.fingerprint != f"sha256:{cataloged.sha256}"
-            or document.version != cataloged.version
-        ):
-            raise ValidationError("Licensing governing document is not current.")
 
 
 def _parse_record(value: JSONValue) -> GoverningDocument:

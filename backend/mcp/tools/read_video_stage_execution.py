@@ -10,6 +10,10 @@ from core.concurrency.task_groups import cancel_and_await
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.logging.trace import get_logger
+from core.media.speech_errors import (
+    TRANSCRIPTION_MODEL_UNAVAILABLE_CODE,
+    SpeechToTextUnavailableError,
+)
 from core.read_video.enums import ReadVideoJobStatus
 from mcp.tools.error import MCPToolError
 from mcp.tools.read_video_engine_lease import finalize_with_lease
@@ -64,6 +68,19 @@ async def _execute_stages(
         status = await _cancelled_parse_status(job, deps)
         await asyncio.shield(
             finalize_with_lease(deps.repository, job.job_id, token, status, deps.clock()),
+        )
+        raise
+    except SpeechToTextUnavailableError as exception:
+        await asyncio.shield(
+            finalize_with_lease(
+                deps.repository,
+                job.job_id,
+                token,
+                ReadVideoJobStatus.FAILED,
+                deps.clock(),
+                error_code=TRANSCRIPTION_MODEL_UNAVAILABLE_CODE,
+                error_message=exception.message,
+            ),
         )
         raise
     except MCPToolError as exception:

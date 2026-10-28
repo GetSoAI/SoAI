@@ -53,6 +53,7 @@ const setupManagersEventListeners = (page: SettingsRuntimeContext, state: Settin
     }
     state.preferencesManager.setupEventListeners();
     state.instanceIdentityManager?.setupEventListeners();
+    state.speechModelSettingsManager?.setupEventListeners();
     state.themeManager.setupEventListeners();
     if (!state.externalAccountsManager) {
         throw new Error('ExternalAccountsManager not initialized');
@@ -144,10 +145,12 @@ const disposeManagers = (state: SettingsPageState): void => {
     state.themeManager?.dispose();
     state.preferencesManager?.dispose();
     state.instanceIdentityManager?.dispose();
+    state.speechModelSettingsManager?.dispose();
     state.systemManager?.dispose();
     state.usersManager?.dispose();
     state.preferencesManager = null;
     state.instanceIdentityManager = null;
+    state.speechModelSettingsManager = null;
     state.themeManager = null;
     state.usersManager = null;
     state.aclManager = null;

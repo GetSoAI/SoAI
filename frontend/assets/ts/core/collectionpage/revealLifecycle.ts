@@ -21,7 +21,8 @@ const prepareCollectionReveal = async (dependencies: CollectionRevealDependencie
     view.flushPendingRefresh();
     const grid = dependencies.layout.ensureGridElement();
     const committed = await view.awaitInitialCommit(signal);
-    if (committed === false || signalAborted(signal) || dependencies.isDestroyed() || !grid.isConnected) return;
+    if (signalAborted(signal) || dependencies.isDestroyed() || !grid.isConnected) return;
+    if (!committed) throw new Error(`${dependencies.pageId}: initial collection commit was cancelled`);
 };
 
 const releasePreparedCollection = (section: HTMLElement | null, signal: AbortSignal | null): void => {

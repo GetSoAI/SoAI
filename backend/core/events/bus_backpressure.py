@@ -3,12 +3,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from core.concurrency.queue_ops import QueueDropTracker, log_queue_drop_with_tracker
 from core.events.types_base import Event
 from core.logging.protocols import LoggerProtocol
 from core.metrics.keyspace_base import EVENT_BUS_COUNTER_EVENTS_DROPPED
 from core.metrics.keyspace_paths_event_streaming import EVENT_BUS_GAUGE_QUEUE_DEPTH
 from core.metrics.protocols import MetricsManagerProtocol
+
+if TYPE_CHECKING:
+    from core.events.bus_partitions import EventBusQueuePressure
 
 __all__ = ("EventBusBackpressureTracker",)
 
@@ -49,26 +54,22 @@ class EventBusBackpressureTracker:
         *,
         event: Event,
         reason: str,
-        queue_depth: int,
+        pressure: EventBusQueuePressure,
         metrics_recorder: MetricsManagerProtocol | None,
         logger: LoggerProtocol,
     ) -> None:
         event_type_name = type(event).__name__
-        queue_size = self._queue_size or "unbounded"
         drop_report = self._publish_drop_tracker.record_drop()
         if metrics_recorder:
             metrics_recorder.increment_counter(
                 *EVENT_BUS_COUNTER_EVENTS_DROPPED,
                 value=drop_report.dropped_count,
             )
-            metrics_recorder.set_gauge(*EVENT_BUS_GAUGE_QUEUE_DEPTH, value=queue_depth)
+            metrics_recorder.set_gauge(*EVENT_BUS_GAUGE_QUEUE_DEPTH, value=pressure.aggregate_depth)
         log_queue_drop_with_tracker(
             logger,
             self._publish_drop_tracker,
             1,
-            (
-                f"Dropped event publish for {event_type_name} ({reason}) "
-                f"queue_depth={queue_depth} max={queue_size}"
-            ),
+            f"Dropped event publish for {event_type_name} ({reason}) {pressure.describe()}",
             drop_report=drop_report,
         )

@@ -1,19 +1,20 @@
 /* SoAI - Chat feature auto scroll lock runtime [frontend/assets/ts/features/chat/chatuimanager/autoScrollLockRuntime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { isNamedFormField } from '@core/dom/formFields.ts';
+import { isBoundedVerticalResizeGesture } from '@core/dom/boundedVerticalResize.ts';
 import { measureViewportTouchPoint } from '@core/layout/elementGeometry.ts';
 import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 import { acquireMainTimelineCoordinator } from '@features/chat/mainTimelineCoordinator.ts';
-import { MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE } from '@features/chat/mainTimelineScroll.ts';
+import { MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, isMainTimelineKeyboardScrollEvent } from '@features/chat/mainTimelineScroll.ts';
+import { hasPresenceAnimationInSubtree } from '@core/animations/presence/public.ts';
 
-const USER_SCROLL_KEYS: ReadonlySet<string> = new Set<string>(['ArrowDown', 'ArrowUp', 'End', 'Home', 'PageDown', 'PageUp', ' ']);
 const USER_SCROLL_LOCK_RELEASE_KEYS: ReadonlySet<string> = new Set<string>(['ArrowUp', 'Home', 'PageUp']);
 const SCROLL_RELEVANT_TRANSITION_PROPERTIES: ReadonlySet<string> = new Set<string>(['all', 'height', 'margin', 'margin-bottom', 'margin-top', 'max-height', 'min-height', 'padding', 'padding-bottom', 'padding-top', 'transform']);
 
 const markUserScrollIntent = (context: ChatUIManagerContext): void => {
     context.state.autoScrollUserIntentActive = true;
+    context.state.failedConversationScrollRestoreConversationId = null;
 };
 
 const releaseAutoScrollLockFromUserIntent = (context: ChatUIManagerContext, messagesArea: HTMLElement): void => {
@@ -25,24 +26,14 @@ const releaseAutoScrollLockFromUserIntent = (context: ChatUIManagerContext, mess
     syncAutoScrollLockAttribute(context, messagesArea);
 };
 
-const isEditableKeyTarget = (target: EventTarget | null): boolean => {
-    if (!(target instanceof Element)) {
-        return false;
-    }
-    if (isNamedFormField(target)) {
-        return true;
-    }
-    return target.closest('[contenteditable]') !== null;
-};
-
 const isMainTimelineUserScrollIntent = (event: Event, messagesArea: HTMLElement): boolean => {
     if (event.type === 'wheel' || event.type === 'touchstart') return true;
-    if (event.type === 'pointerdown') return event.target === messagesArea;
-    return event instanceof KeyboardEvent && USER_SCROLL_KEYS.has(event.key) && !isEditableKeyTarget(event.target);
+    if (event.type === 'pointerdown') return event.target === messagesArea || isBoundedVerticalResizeGesture(event);
+    return isMainTimelineKeyboardScrollEvent(event);
 };
 
 const handleScrollIntentKey = (context: ChatUIManagerContext, messagesArea: HTMLElement, event: Event): void => {
-    if (!(event instanceof KeyboardEvent) || !USER_SCROLL_KEYS.has(event.key) || isEditableKeyTarget(event.target)) {
+    if (!isMainTimelineKeyboardScrollEvent(event)) {
         return;
     }
     markUserScrollIntent(context);
@@ -52,7 +43,7 @@ const handleScrollIntentKey = (context: ChatUIManagerContext, messagesArea: HTML
 };
 
 const handleScrollbarPointerIntent = (context: ChatUIManagerContext, messagesArea: HTMLElement, event: Event): void => {
-    if (event instanceof PointerEvent && event.target === messagesArea) {
+    if (event instanceof PointerEvent && isMainTimelineUserScrollIntent(event, messagesArea)) {
         releaseAutoScrollLockFromUserIntent(context, messagesArea);
     }
 };
@@ -80,9 +71,10 @@ const disposeAutoScrollIntentListeners = (context: ChatUIManagerContext): void =
 const setupAutoScrollIntentListeners = (context: ChatUIManagerContext, messagesArea: HTMLElement): void => {
     disposeAutoScrollIntentListeners(context);
     const documentRef = context.dependencies.dom.getDocument();
+    const touchConstructor = typeof TouchEvent === 'function' ? TouchEvent : null;
     let lastTouchClientY: number | null = null;
     const handleTouchStart = (event: Event): void => {
-        if (!(event instanceof TouchEvent) || event.touches.length === 0) {
+        if (touchConstructor === null || !(event instanceof touchConstructor) || event.touches.length === 0) {
             lastTouchClientY = null;
             markUserScrollIntent(context);
             return;
@@ -92,7 +84,7 @@ const setupAutoScrollIntentListeners = (context: ChatUIManagerContext, messagesA
         markUserScrollIntent(context);
     };
     const handleTouchMove = (event: Event): void => {
-        if (!(event instanceof TouchEvent) || event.touches.length === 0) {
+        if (touchConstructor === null || !(event instanceof touchConstructor) || event.touches.length === 0) {
             markUserScrollIntent(context);
             return;
         }
@@ -121,7 +113,7 @@ const disposeAutoScrollLockRuntime = (context: ChatUIManagerContext): void => {
 
 const syncAutoScrollLockAttribute = (context: ChatUIManagerContext, messagesArea: HTMLElement | null): void => {
     if (messagesArea instanceof HTMLElement) {
-        context.dependencies.updateAttribute(messagesArea, MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, context.state.autoScrollEnabled ? 'true' : null);
+        context.dependencies.updateAttribute(messagesArea, MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, context.state.activeConversationScrollRestore !== null ? 'restoring' : context.state.autoScrollEnabled ? 'true' : null);
     }
 };
 
@@ -145,9 +137,9 @@ const setupAutoScrollLockRuntime = (context: ChatUIManagerContext, messagesArea:
             }
         }
     };
-    const hasActiveTransition = (): boolean => {
+    const hasActiveLayoutMotion = (): boolean => {
         pruneInactiveTransitions();
-        return activeTransitionPropertiesByElement.size > 0;
+        return activeTransitionPropertiesByElement.size > 0 || hasPresenceAnimationInSubtree(messagesContainer);
     };
     const clearTransitionProperty = (event: Event): void => {
         if (!(event instanceof TransitionEvent) || !(event.target instanceof Element)) {
@@ -175,7 +167,7 @@ const setupAutoScrollLockRuntime = (context: ChatUIManagerContext, messagesArea:
             }
             return () => {
                 syncLockedScrollPosition();
-                if (context.state.autoScrollEnabled && hasActiveTransition()) {
+                if (context.state.autoScrollEnabled && hasActiveLayoutMotion()) {
                     scheduleLockedScrollPositionSync();
                 }
             };
@@ -197,7 +189,7 @@ const setupAutoScrollLockRuntime = (context: ChatUIManagerContext, messagesArea:
     };
     const resizeDisposer = coordinator.subscribeResize(() => {
         if (context.state.autoScrollEnabled) {
-            scheduleLockedScrollPositionSync();
+            syncLockedScrollPosition();
         }
     });
     const messagesAreaResizeDisposer = coordinator.observeResize(messagesArea);
@@ -240,4 +232,4 @@ const syncAutoScrollStateFromScroll = (context: ChatUIManagerContext, messagesAr
     syncAutoScrollLockAttribute(context, messagesArea);
 };
 
-export { disposeAutoScrollLockRuntime, isEditableKeyTarget, isMainTimelineUserScrollIntent, setupAutoScrollLockRuntime, syncAutoScrollLockAttribute, syncAutoScrollStateFromScroll };
+export { disposeAutoScrollLockRuntime, isMainTimelineUserScrollIntent, markUserScrollIntent, setupAutoScrollLockRuntime, syncAutoScrollLockAttribute, syncAutoScrollStateFromScroll };

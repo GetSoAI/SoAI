@@ -29,6 +29,7 @@ from features.api.runtime.conversation_mcp_state import (
 )
 from features.api.runtime.conversation_mcp_state_merge import (
     merge_conversation_mcp_config_update,
+    resolve_effective_conversation_mcp_config,
 )
 from features.api.runtime.conversation_model_settings import (
     update_conversation_model_settings,
@@ -101,21 +102,27 @@ async def update_mcp_config(
             else set[str]()
         )
         settings = dict(state.settings)
+        disallowed_unqualified_tools = load_automation_disallowed_unqualified_tools(
+            api_context.dependencies.config,
+        )
         mcp_config = merge_conversation_mcp_config_update(
             request=request,
             state=state,
             payload=payload,
             tool_map=tool_map,
             server_ids=server_ids,
-            disallowed_unqualified_tools=load_automation_disallowed_unqualified_tools(
-                api_context.dependencies.config,
-            ),
+            disallowed_unqualified_tools=disallowed_unqualified_tools,
         )
         settings["mcp"] = mcp_config
         validate_enabled_tools_for_agent_mode(
             request=request,
             settings=settings,
-            merged_config=mcp_config,
+            merged_config=resolve_effective_conversation_mcp_config(
+                request,
+                mcp_config,
+                state=state,
+                disallowed_unqualified_tools=disallowed_unqualified_tools,
+            ),
         )
         updated_record = await update_conversation_model_settings(
             request,

@@ -114,7 +114,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
         actions: ['SYSTEM_POWER'],
         data: { streams: [] },
         search: resolveRouteSearchMetadata('power'),
-        sidebar: { include: true, getLabel: () => i18n.t('nav.power'), icon: 'power', section: 'system', order: 115, adminOnly: true }
+        sidebar: { include: true, activateOnNavigation: false, getLabel: () => i18n.t('nav.power'), icon: 'power', section: 'system', order: 115, adminOnly: true }
     },
     {
         id: 'terminal',

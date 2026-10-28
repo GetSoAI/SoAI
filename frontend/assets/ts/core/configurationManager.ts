@@ -168,10 +168,10 @@ class ConfigurationManager {
         return this;
     }
 
-    commitChanges(): this {
+    commitChanges(snapshot?: JsonObject): this {
         const current = this.#requireCurrentData();
-        this.#originalData = cloneJsonObject(current);
-        this.#hasChanges = false;
+        this.#originalData = cloneJsonObject(snapshot ?? current);
+        this.#hasChanges = !areValuesEqual(current, this.#originalData);
         return this;
     }
 

@@ -29,11 +29,6 @@
         border-color: var(--accent-green);
     }
 
-    :where(.chat-container) .message-edit-input:hover:not(:focus) {
-        background: var(--text-field-bg-hover);
-        border-color: var(--text-field-border-hover);
-    }
-
     :where(.chat-container) .chat-message.user .edit-message-save-btn,
     :where(.chat-container) .chat-message.user .edit-message-cancel-btn {
         display: none;

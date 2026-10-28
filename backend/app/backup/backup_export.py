@@ -8,6 +8,7 @@ import logging
 import os
 
 from core.archives.reservations import open_write_claim
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exceptions import NotFoundError, SecurityError, StateError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.files.operations import async_remove_if_exists
@@ -128,11 +129,13 @@ def reserve_export_disk_space(
 
 
 async def write_export_archive(backup_path: str, archive_path: str, backup_id: str) -> None:
-    await asyncio.to_thread(
+    await run_joined_thread_call(
         sync_write_backup_export_archive,
         backup_path,
         archive_path,
         backup_id,
+        task_name="backup-export-archive-write",
+        retain_resources_until_complete=True,
     )
 
 

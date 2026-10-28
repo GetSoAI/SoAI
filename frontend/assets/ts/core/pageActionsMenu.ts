@@ -1,6 +1,7 @@
 /* SoAI - Shared frontend page actions menu [frontend/assets/ts/core/pageActionsMenu.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { exitWithPresence, isPresenceExiting, prepareEnterWithPresence } from '@core/animations/presence/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { getComputedStyleStrict, getDocument, getWindow } from '@core/environment/public.ts';
 import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
@@ -86,6 +87,7 @@ export class PageActionsMenuManager {
         this.#wrapper = wrapper;
         this.#trigger = trigger;
         this.#menu = menu;
+        menu.setAttribute('data-presence-visual-only', '');
         const resolvedMenu = menu;
         const documentTarget = getDocument();
 
@@ -208,8 +210,14 @@ export class PageActionsMenuManager {
         if (shouldShowDropdown) {
             dom.addClass(wrapper, CLASS_DROPDOWN);
         } else {
+            if (this.#menu) prepareEnterWithPresence(this.#menu, false)();
             dom.removeClass(wrapper, CLASS_DROPDOWN);
             if (this.#isOpen) this.hide();
+            if (this.#menu) {
+                dom.removeClass(this.#menu, CLASS_OPEN);
+                this.#menu.removeAttribute('data-presence-atomic');
+                this.#clearMenuPosition();
+            }
         }
         if (this.#collapsed === shouldShowDropdown) return;
         this.#collapsed = shouldShowDropdown;
@@ -218,6 +226,8 @@ export class PageActionsMenuManager {
 
     show(): void {
         if (!this.#menu || !this.#trigger) return;
+        prepareEnterWithPresence(this.#menu, isPresenceExiting(this.#menu), true)();
+        this.#menu.removeAttribute('data-presence-atomic');
         dom.addClass(this.#menu, CLASS_OPEN);
         dom.setAttribute(this.#trigger, 'aria-expanded', 'true');
         this.#isOpen = true;
@@ -226,10 +236,18 @@ export class PageActionsMenuManager {
     }
 
     hide(): void {
-        if (!this.#menu || !this.#trigger) return;
-        dom.removeClass(this.#menu, CLASS_OPEN);
+        if (!this.#menu || !this.#trigger || !this.#isOpen) return;
+        const menu = this.#menu;
+        const complete = (): void => {
+            dom.removeClass(menu, CLASS_OPEN);
+            menu.removeAttribute('data-presence-atomic');
+            clearPageActionsMenuPosition(menu);
+        };
+        if (this.#wrapper?.classList.contains(CLASS_DROPDOWN)) {
+            menu.setAttribute('data-presence-atomic', '');
+            exitWithPresence(menu, null, complete);
+        } else complete();
         dom.setAttribute(this.#trigger, 'aria-expanded', 'false');
-        this.#clearMenuPosition();
         this.#unbindPositionUpdates();
         this.#isOpen = false;
     }
@@ -257,7 +275,9 @@ export class PageActionsMenuManager {
             dom.removeClass(this.#wrapper, CLASS_DROPDOWN);
         }
         if (this.#menu) {
+            prepareEnterWithPresence(this.#menu, false)();
             dom.removeClass(this.#menu, CLASS_OPEN);
+            this.#menu.removeAttribute('data-presence-atomic');
         }
         if (this.#trigger) {
             dom.setAttribute(this.#trigger, 'aria-expanded', 'false');

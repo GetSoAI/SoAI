@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
@@ -17,8 +16,6 @@ __all__ = (
     "create_default_plugin_state",
     "create_immutable_plugin_states_snapshot",
     "get_or_create_plugin_state",
-    "shallow_copy_iterable_optional",
-    "shallow_copy_mapping_optional",
 )
 
 
@@ -31,20 +28,6 @@ def create_default_plugin_state() -> JSONDict:
         "reason": "",
         "details": {},
     }
-
-
-def shallow_copy_mapping_optional[CloneT](
-    data: Mapping[str, CloneT] | None,
-) -> dict[str, CloneT] | None:
-    if data is None:
-        return None
-    return dict(data)
-
-
-def shallow_copy_iterable_optional[CloneT](data: Iterable[CloneT] | None) -> list[CloneT] | None:
-    if data is None:
-        return None
-    return list(data)
 
 
 def _freeze_plugin_state(state: JSONDict) -> ImmutablePluginState:

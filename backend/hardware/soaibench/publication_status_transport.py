@@ -18,7 +18,7 @@ async def read_soaibench_publication_status(
     http_client: httpx2.AsyncClient, submission_id: str
 ) -> str:
     if re.fullmatch(r"sb_[A-Za-z0-9_-]{22}", submission_id) is None:
-        raise ValidationError("SoAIBench submission ID is invalid.")
+        raise ValidationError("SoAI Bench submission ID is invalid.")
     request = http_client.build_request(
         "GET",
         f"{PUBLICATION_URL}/{submission_id}/status",
@@ -30,11 +30,11 @@ async def read_soaibench_publication_status(
     )
     try:
         document = parse_json_dict(
-            raw, field="SoAIBench publication status", reject_duplicate_keys=True
+            raw, field="SoAI Bench publication status", reject_duplicate_keys=True
         )
     except SoAIError as exception:
         raise ApiError(
-            "SoAIBench publication status is invalid.",
+            "SoAI Bench publication status is invalid.",
             code="soaibench_publication_invalid_response",
             http_status=502,
             details=details,
@@ -47,7 +47,7 @@ async def read_soaibench_publication_status(
         or state not in {"validated", "flagged", "removed"}
     ):
         raise ApiError(
-            "SoAIBench publication status is inconsistent.",
+            "SoAI Bench publication status is inconsistent.",
             code="soaibench_publication_invalid_response",
             http_status=502,
             details=details,

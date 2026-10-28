@@ -1,7 +1,7 @@
 /* SoAI - Charts feature time viewport animation [frontend/assets/ts/features/charts/viewport/viewportAnimation.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { easeOutCubic } from '@features/charts/viewport/easing.ts';
+import { easeOutCubic } from '@core/animations/chartMotion.ts';
 import type { TimeViewportState } from '@features/charts/viewport/timeViewport.ts';
 
 interface ViewportAnimationState {
@@ -45,7 +45,7 @@ const startViewportAnimation = (animation: ViewportAnimationState, time: TimeVie
 
 const stepViewportAnimation = (animation: ViewportAnimationState, time: TimeViewportState, now: number): boolean => {
     if (!animation.active) return false;
-    const progress = Math.min(1, Math.max(0, (now - animation.startTime) / animation.durationMs));
+    const progress = now >= animation.startTime + animation.durationMs ? 1 : Math.max(0, (now - animation.startTime) / animation.durationMs);
     applyAnimationFrame(animation, time, progress);
     animation.active = progress < 1;
     return animation.active;

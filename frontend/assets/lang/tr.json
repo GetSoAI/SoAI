@@ -68,6 +68,15 @@
                     }
                 },
                 "initFailed": "SoAI WebUI başlatılamadı",
+                "reference": "Referans: {reference}",
+                "stages": {
+                    "entrypoint": "WebUI başlangıç kaynaklarını yükleyemedi. Yeniden denemek için sayfayı yenileyin.",
+                    "criticalServices": "WebUI ihtiyaç duyduğu hizmetleri başlatamadı. SoAI arka ucunun çalıştığını denetleyin, ardından sayfayı yenileyin.",
+                    "authentication": "WebUI kurulum ve oturum açma durumunu denetleyemedi. Yeniden denemek için sayfayı yenileyin.",
+                    "session": "WebUI oturum açılmış oturumunuzu hazırlayamadı. Yeniden denemek için sayfayı yenileyin.",
+                    "routeRendering": "WebUI istenen sayfayı görüntüleyemedi. Yeniden denemek için sayfayı yenileyin.",
+                    "background": "WebUI son başlangıç adımlarını tamamlayamadı. Yeniden denemek için sayfayı yenileyin."
+                },
                 "routeNotReady": "Sayfa zamanında yüklenemedi. Lütfen sayfayı yeniden yükleyin.",
                 "unknown": "Bilinmeyen bir hata oluştu."
             },
@@ -610,13 +619,17 @@
                 "notSupported": "Ses kaydı için güvenli bir bağlantı (HTTPS) veya localhost gerekir",
                 "permissionDenied": "Mikrofon erişimi reddedildi. Lütfen tarayıcı ayarlarınızdan mikrofon erişimine izin verin.",
                 "recordingFailed": "Kayıt başarısız",
-                "transcriptionFailed": "Ses transkripsiyonu başarısız."
+                "transcriptionFailed": "Ses transkripsiyonu başarısız.",
+                "transcriptionDeadlineExceeded": "Ses dökümü çok uzun sürdü ve iptal edildi. Daha kısa bir kayıt veya daha hızlı bir döküm modeli deneyin.",
+                "transcriptionCancellationUnconfirmed": "Ses dökümü çok uzun sürdü ve iptali doğrulanamadı. Yeniden denemeden önce biraz bekleyin.",
+                "transcriptionCancellationUnconfirmedReference": "Ses dökümü çok uzun sürdü ve iptali doğrulanamadı. Yeniden denemeden önce biraz bekleyin. Başvuru: {reference}"
             },
             "audioPreview": {
                 "cancel": "Kaydı iptal et",
                 "errorTitle": "Ses kaydı",
                 "processingStatus": "Ses transkripsiyona gönderiliyor",
                 "processingTitle": "Ses metne dönüştürülüyor",
+                "transcriptionSettling": "Süre sınırına ulaşıldı. Ses dökümü durduruluyor…",
                 "recordingStatus": "Kayıt: {elapsed}",
                 "recordingTitle": "Ses kaydı",
                 "requestingStatus": "Tarayıcı izni bekleniyor",
@@ -742,8 +755,8 @@
                     "title": "Bilgi ayarları"
                 },
                 "memory": {
-                    "description": "Kalıcı bellek, her seferinde özel bir istem gerektirmeden SoAI'nin tercihlerinizi, hedeflerinizi ve yinelenen bağlamınızı anlamasına yardımcı olur.",
-                    "empty": "Henüz bellekte kayıt yok.",
+                    "description": "Kalıcı bellek, her seferinde özel bir istem gerektirmeden SoAI'nin tercihlerinizi, hedeflerinizi ve yinelenen bağlamınızı anlamasına yardımcı olur",
+                    "empty": "Henüz bellekte kayıt yok",
                     "openProfile": "Profil formunu aç",
                     "refresh": "Belleği yenile",
                     "title": "Bellek ayarları",
@@ -794,7 +807,7 @@
                     "knowledgeManagedToolsEnabledHint": "Bu sohbet için dizine eklenmiş bilgi etkinken araçlar otomatik olarak etkin kalır. Bu, yeni sohbetler için varsayılan değerinizi değiştirmez",
                     "noServers": "Kullanılabilir MCP sunucusu yok.",
                     "noTools": "Kullanılabilir MCP aracı yok.",
-                    "resetToolsDescription": "{mode} araçlarını SoAI varsayılanlarına sıfırla.",
+                    "resetToolsDescription": "{mode} araçlarını SoAI varsayılanlarına sıfırla",
                     "resetToolsLabel": "Sıfırla",
                     "resetToolsTitle": "Varsayılan araçları sıfırla",
                     "servers": "Sunucular",
@@ -880,7 +893,9 @@
                         "parsing": "Ayrıştırılıyor",
                         "queued": "Kuyrukta",
                         "unreadable": "Okunamıyor",
-                        "unknown": "Bilinmiyor"
+                        "unknown": "Bilinmiyor",
+                        "noTranscript": "Döküm yok",
+                        "partial": "Kısmen çıkarıldı"
                     },
                     "title": "RAG ayarları",
                     "topK": "Top K"
@@ -955,8 +970,8 @@
                     "newAction": "Yeni ön ayar",
                     "noMatches": "Bu aramayla eşleşen ön ayar yok.",
                     "noChanges": "Ön ayar, bekleyen yapılandırmayı değiştirmedi.",
-                    "notApplicable": "Bu ön ayarın kaydedilmiş ayarlarından hiçbiri mevcut sürümde kullanılamıyor. Yine de ön ayarı değiştirebilir, yeniden adlandırabilir veya silebilirsiniz.",
-                    "omittedSettings": "Desteklenmeyen veya geçersiz kaydedilmiş {count} ayar atlandı.",
+                    "notApplicable": "Bu ön ayarın kaydedilmiş ayarlarından hiçbiri mevcut sürümde kullanılamıyor. Yine de ön ayarı değiştirebilir, yeniden adlandırabilir veya silebilirsiniz",
+                    "omittedSettings": "Desteklenmeyen veya geçersiz kaydedilmiş {count} ayar atlandı",
                     "replaceAction": "Değiştir",
                     "renameAction": "Yeniden adlandır",
                     "retryAction": "Yeniden dene",
@@ -1005,7 +1020,7 @@
                         "replaceDescription": "Bu ön ayarı, şu anda bekleyen değerlerin yeni bir anlık görüntüsüyle değiştirin.",
                         "replaceTitle": "Ön ayarı değiştir",
                         "reviewAction": "En son revizyonu incele",
-                        "revisionChanged": "Bu ön ayar başka bir yerde değiştirildi. Devam etmeden önce en son revizyonu inceleyin.",
+                        "revisionChanged": "Bu ön ayar başka bir yerde değiştirildi. Devam etmeden önce en son revizyonu inceleyin",
                         "prunedValues": "Bu anlık görüntüden kullanılamayan {count} dinamik ayar çıkarıldı.",
                         "selectedCount": "{count} bölüm seçildi",
                         "sectionDescriptions": {
@@ -1019,7 +1034,7 @@
                         },
                         "sectionUnavailable": "Bu bölüm mevcut sohbet için kullanılamıyor.",
                         "sectionsLabel": "Yapılandırma bölümleri",
-                        "targetUnavailable": "Bu ön ayar artık mevcut değil. Bu düzenlemeyi iptal edin veya yeni bir ön ayar oluşturun."
+                        "targetUnavailable": "Bu ön ayar artık mevcut değil. Bu düzenlemeyi iptal edin veya yeni bir ön ayar oluşturun"
                     }
                 },
                 "saveDegradedDetail": "Kaydedildi: {completed}. Onaylanmış bir takip yansıtması dikkat gerektiriyor; etkilenen bölümden yeniden deneyin.",
@@ -1076,7 +1091,58 @@
                     "title": "Web araması ayarları"
                 },
                 "widescreen_mode": "Geniş ekran modu",
-                "widescreenModeHint": "Daha büyük ekranlarda sohbet için kullanılabilir alanı artırın"
+                "widescreenModeHint": "Daha büyük ekranlarda sohbet için kullanılabilir alanı artırın",
+                "skills": {
+                    "title": "Beceriler",
+                    "description": "Beceriler, asistana belirli görevler için yeniden kullanılabilir talimatlar sağlar. Bu sohbet için etkinleştirip kaydedin. Değişiklikler yeni isteklere uygulanır; kabul edilmiş işler kaydedilen becerilerini korur.",
+                    "add": "Beceri ekle",
+                    "empty": "Başlamak için bir SKILL.md dosyası veya ZIP beceri koleksiyonu ekleyin",
+                    "immediate": "İçe aktarma ve kitaplıktan kaldırma hemen uygulanır. Yeni beceriler başlangıçta devre dışıdır",
+                    "unavailable": "Becerileri seçmeden önce normal bir sohbeti kaydedin. Yönetilen konuşmalarda seçim kullanılamaz",
+                    "automatic": "Otomatik veya doğrudan çağırma",
+                    "explicit": "Yalnızca doğrudan çağırma",
+                    "automaticOnly": "Yalnızca otomatik çağırma",
+                    "disabledReason": "Bu beceri otomatik veya doğrudan çağırmaya izin vermiyor",
+                    "removeConfirm": "Bu beceri kitaplığınızdan ve sohbetlerinizdeki gelecekteki seçimlerden kaldırılsın mı? Kabul edilmiş işler paketi korur. Çalışma alanı dosyaları ve konuşma geçmişi kalır.",
+                    "conflict": "Seçim başka bir yerde değiştirildi. Taslağınızı kaydetmeden önce güncel seçimi inceleyin",
+                    "keepDraft": "Seçimimi koru",
+                    "stale": "Beceriler güncel değil. Kaydetmeden önce yeniden bağlanın veya tekrar deneyin",
+                    "search": "Beceri ara...",
+                    "emptyTitle": "İlk becerinizi ekleyin",
+                    "noMatchesTitle": "Eşleşen beceri yok",
+                    "errors": {
+                        "invalidPackage": "Geçerli bir SKILL.md dosyası veya ZIP beceri koleksiyonu içe aktarın. Dosya biçimini ve boyut sınırlarını kontrol edin.",
+                        "uploadConflict": "Bu yükleme başka bir dosya için zaten kullanılmış. Yeni bir içe aktarma başlatmak için dosyayı yeniden seçin.",
+                        "nameConflict": "Bu ada sahip bir beceri zaten yüklü. Yerine yenisini içe aktarmadan önce mevcut beceriyi kaldırın.",
+                        "libraryFull": "Beceri kitaplığı dolu. Kullanılmayan becerileri kaldırın ve kaldırılan becerileri kullanan işlerin bitmesini bekleyin.",
+                        "invocationUnavailable": "İstenen beceri etkin değil veya doğrudan çağrıya izin vermiyor. Bu sohbet için seçilen becerileri kontrol edin.",
+                        "importBusy": "Beceri içe aktarma işlemi meşgul. Aynı yüklemeyi kısa süre sonra yeniden deneyin.",
+                        "notFound": "Beceri veya kaynak kullanılamıyor. Beceri kitaplığınızı yenileyin.",
+                        "wrapperNameMismatch": "ZIP'in dış klasörünün adı, SKILL.md içindeki beceri adıyla eşleşmelidir.",
+                        "restrictionUnsupported": "Bu beceri desteklenmeyen araç kısıtlamaları kullanıyor. Etkinleştirmeden önce açık SoAI araç adları kullanın.",
+                        "toolRestricted": "Etkin bir beceri bu aracı yasaklıyor. İzin verilen iş akışını izleyin veya yeni bir yürütme başlatın.",
+                        "argumentConflict": "Kabul edilen beceri bağımsız değişkenleri değiştirilemez. Farklı bağımsız değişkenlerle yeni bir çağrı başlatın.",
+                        "aliasAmbiguous": "Bu takma ad birden fazla etkin beceriyi belirtiyor. Nitelikli bir beceri adı kullanın.",
+                        "manifestFormat": "SKILL.md, UTF-8 metin ve --- ayraçları arasında geçerli düz YAML gerektirir. Biçimi ve bildirim boyutu sınırını kontrol edin.",
+                        "invalidField": "Beceri alanı {field} desteklenmiyor, eksik veya geçersiz. Adını ve değer türünü kontrol edin.",
+                        "sourceConflict": "{first} ve {second} konumlarındaki beceri kopyaları çakışıyor. Tek bir tutarlı kopya tutun.",
+                        "archiveIntegrity": "Beceri arşivi bozuk veya eksik. Yeniden indirin ve tam dosyayla tekrar deneyin.",
+                        "archiveUnsafe": "Beceri arşivi güvenli olmayan yollar, bağlantılar veya çakışan girdiler içeriyor. Normal dosyalar içeren taşınabilir bir arşiv oluşturun.",
+                        "archiveUnsupported": "Beceri arşivi desteklenmeyen şifreleme veya sıkıştırma kullanıyor. Depolanmış veya Deflate ile sıkıştırılmış girdiler içeren şifresiz bir ZIP oluşturun.",
+                        "invalidFilename": "SKILL.md adlı bir dosya veya ZIP beceri arşivi seçin.",
+                        "resourceLimit": "{field} için beceri içe aktarma sınırı aşıldı: {measured} > {limit}. Arşivi küçültün veya kullanılmayan becerileri kaldırıp tekrar deneyin.",
+                        "manifestPosition": "{line}. satır, {column}. sütunda geçersiz YAML. SKILL.md dosyasını düzeltip yeniden deneyin."
+                    },
+                    "importUncertain": "İçe aktarma sonucu belirsiz. Bu dosyayı seçili tutun ve yeniden denemeden önce kaydı denetlemek için Yenile düğmesini kullanın.",
+                    "invalidSelection": "Seçilen becerilerden bazıları kullanılamıyor veya kitaplık sınırını aşıyor. Yenileyin, ardından kaydetmeden önce seçimi düzenleyin",
+                    "status": {
+                        "importTitle": "İçe aktarma sonucu belirsiz",
+                        "conflictTitle": "Seçim başka bir yerde değiştirildi",
+                        "staleTitle": "Beceri listesi güncel olmayabilir",
+                        "unavailableTitle": "Beceri seçimi kullanılamıyor",
+                        "invalidTitle": "Seçimin incelenmesi gerekiyor"
+                    }
+                }
             },
             "confirmations": {
                 "externalLink": "Harici bağlantıyı aç",
@@ -1139,8 +1205,15 @@
                 "conversationLoadFailed": "Sohbet yüklenemedi.",
                 "conversationUnavailable": "Sohbet bulunamadı. Boş bir sohbete döndürüldünüz.",
                 "interactionFocusUnavailable": "Bu güvenli etkileşim bağlantısı artık kullanılamıyor. Mevcut sohbet istemini inceleyin.",
+                "modelToolCallingUnsupported": "Seçili model araç çağırmayı desteklemiyor. Araçları destekleyen bir model seçin veya bu sohbet için araçları devre dışı bırakın.",
                 "soaiWorkspaceChanged": "Bu ileti hazırlanırken sohbet çalışma alanı değişti. SoAI kaynaklarını yeniden açın veya yeniden bağlayın ve tekrar gönderin.",
-                "syncFailed": "Sohbet eşitlenemedi"
+                "syncFailed": "Sohbet eşitlenemedi",
+                "contextWindowOverrideInvalid": "Bağlam penceresi geçersiz kılma değeri pozitif bir tam sayı olmalıdır. Geçerli bir değer girin veya model varsayılanını kullanmak için boş bırakın.",
+                "contextWindowOverrideConflict": "Bağlam penceresi geçersiz kılma değerleri çakışıyor. Tek bir değer belirleyin veya geçersiz kılmayı temizleyip yeniden deneyin.",
+                "durableQueueFull": "Kuyruk dolu. Etkin işler tamamlandıktan sonra reddedilen bu isteği yeniden gönderin.",
+                "promptBudgetExceeded": "İstem {requested} belirteç gerektiriyor; çıktı rezervi ve güvenlik payından sonra {available} kullanılabilir. İstemi veya ayrılan çıktıyı azaltın, konuşmayı sıkıştırın ya da bağlamı büyütün.",
+                "ragEmbeddingModelUnavailable": "Kullanılabilir bir gömme modeli yok. Sohbet ayarlarından bir gömme modeli seçin veya bir gömme arka ucu kurup model indirin, ardından yeniden deneyin.",
+                "ragDocumentsNotIndexed": "Yeniden dizine alınabilecek dizinlenmiş bilgi yok. Önce bir belge yükleyip dizine alın."
             },
             "export": {
                 "noMessages": "Dışa aktarılacak ileti yok",
@@ -1340,6 +1413,7 @@
                 "voiceCallStart": "Sesli aramayı başlat",
                 "steer": "İstemi yönlendir",
                 "queue": "İstemi kuyruğa al",
+                "resumeQueue": "Kuyruktaki istemlere devam et",
                 "stop": "Yanıtı durdur",
                 "stopRecording": "Kaydı durdur",
                 "transcribing": "Metne dönüştürülüyor...",
@@ -1364,7 +1438,8 @@
             "inputQueue": {
                 "badge": {
                     "queued": "Kuyrukta",
-                    "steer": "Yönlendir"
+                    "steer": "Yönlendir",
+                    "held": "Duraklatıldı"
                 },
                 "state": {
                     "materializing": "Hazırlanıyor",
@@ -1381,6 +1456,33 @@
                 "reason": "Neden"
             },
             "memory": {
+                "library": {
+                    "add": "Anı ekle",
+                    "search": "Anılarda ara",
+                    "noMatches": "Eşleşen anı yok",
+                    "stale": "Kaydedilen veriler güncel değil. Son yenileme: {time}. Güncel verileri incelemek için yenileyin.",
+                    "deleteFact": "Bu bilgi veya ilişki silinsin mi?",
+                    "deleteEntry": "“{title}”, {facts} bilgi ve {relations} ilişki dahil silinsin mi?",
+                    "savedHidden": "Kaydedildi. Bu anıyı görmek için aramayı temizleyin.",
+                    "savedRefreshNeeded": "Kaydedildi. Kitaplığın yenilenmesi gerekiyor.",
+                    "from": "Kaynak",
+                    "to": "Hedef",
+                    "type": "İlişki türü",
+                    "staleTitle": "Anı listesi güncel olmayabilir",
+                    "errorTitle": "Bellek kitaplığı kullanılamıyor"
+                },
+                "errors": {
+                    "revisionChanged": "Bu anı değişti. Kaydetmeden önce güncel içeriği inceleyin.",
+                    "duplicateName": "Bu başlığı kullanan bir anı zaten var. Başka bir başlık seçin.",
+                    "duplicateId": "Bu taslak kimliği zaten var. Kaydedilen anıyı yenileyip inceleyin.",
+                    "profileRestricted": "Yapılandırılmış profil bilgilerini yönetmek için profil formunu kullanın.",
+                    "duplicateRelation": "Bu ilişki zaten var.",
+                    "relationNotIncident": "Bir uç noktayı bu anıya bağlı tutun.",
+                    "invalidText": "Boş olmayan bir başlık ve metin girin.",
+                    "missing": "Bu kayıt kullanılamıyor veya artık bu anıya ait değil. Yenileyip inceleyin.",
+                    "unconfirmed": "Sonuç doğrulanamadı. Tekrar denemeden önce taslağınızı koruyup güncel verileri incelemek için yenileyin.",
+                    "loadFailed": "Anılar yüklenemedi. Tekrar denemek için yenileyin."
+                },
                 "profile": {
                     "description": "SoAI'nin sohbetler arasında sizinle nasıl çalışacağını hatırlayabilmesi için isteğe bağlı ayrıntılar paylaşın.",
                     "fields": {
@@ -1449,7 +1551,10 @@
                 },
                 "speak": {
                     "failed": "İleti seslendirilemedi.",
-                    "noText": "Seslendirilecek bir şey yok."
+                    "noText": "Seslendirilecek bir şey yok.",
+                    "invalidVoice": "Seçilen ses bu konuşma modeli için kullanılamıyor. Konuşma ayarlarından başka bir ses seçin.",
+                    "invalidResponseFormat": "Bu konuşma modeli istenen ses biçimini üretemiyor.",
+                    "invalidSpeed": "Konuşma hızı bu modelin desteklediği aralığın dışında. Hızı konuşma ayarlarından düzenleyin."
                 },
                 "assistant": "Asistan",
                 "assistantWithModel": "{assistant} ({model})",
@@ -1479,6 +1584,13 @@
                     "tokensTitle": "Token Kullanımı",
                     "toolActivity": "Araç Etkinliği",
                     "totalTokens": "Toplam token"
+                },
+                "outputNotices": {
+                    "reasoningOnly": "Model akıl yürütme döndürdü ancak nihai bir yanıt vermedi. Yeniden deneyin ya da başka bir model veya akıl yürütme ayarı deneyin.",
+                    "steered": "Yeni mesajınızla aşağıda devam edildi.",
+                    "stopped": "Bu yanıtı durdurdunuz.",
+                    "tokenLimit": "Yanıt, çıktı token sınırına ulaştığı için durdu. Daha uzun bir yanıt almak için en fazla token ayarını artırın.",
+                    "tokenLimitReasoning": "Model, yanıt yazmadan önce tüm çıktı token bütçesini akıl yürütmeye harcadı. En fazla token ayarını artırın veya akıl yürütme düzeyini düşürün."
                 },
                 "renderFailed": "İleti görüntülenemedi.",
                 "runningActivitySummary": {
@@ -1549,7 +1661,6 @@
                 "executePrompt": "Planı uygula.",
                 "executeUnavailable": "Bu konuşma yürütme moduna geçemez",
                 "label": "Plan",
-                "metrics": "{lines} satır · {characters} karakter",
                 "revision": "Revizyon {revision}"
             },
             "processing": {
@@ -1607,7 +1718,6 @@
                 "allUnicode": "Tüm Unicode",
                 "description": "Unicode karakterlerine ve emojilere göz atın, bir dizi oluşturun, ardından kopyalayın veya iletinize ekleyin",
                 "font": "Yazı tipi",
-                "fontHint": "Yazı tipleri yalnızca görünümü etkiler; listelenen her karakter seçilebilir kalır",
                 "fonts": {
                     "emoji": "Platform emojisi",
                     "monospace": "Genel eş aralıklı",
@@ -1634,19 +1744,6 @@
                 "staging": "Kopyalanacak karakterler",
                 "subset": "Alt küme",
                 "title": "Karakter eşlem"
-            },
-            "promptsPicker": {
-                "editFailed": "İstem düzenleyicisi açılamadı.",
-                "empty": "Henüz kayıtlı istem yok.",
-                "emptyContent": "İstem içeriği yok",
-                "help": "Sohbet düzenleyicisine eklemek için kayıtlı bir istem seçin",
-                "loadFailed": "Kayıtlı istemler yüklenemedi.",
-                "loading": "İstemler yükleniyor...",
-                "manage": "İstemleri yönet",
-                "manageFailed": "İstemler sayfası açılamadı.",
-                "noMatches": "Aramanızla eşleşen istem yok.",
-                "search": "Ara",
-                "title": "Kaydedilmiş istemler"
             },
             "search": {
                 "placeholder": "Sohbetlerde ara...",
@@ -1700,9 +1797,32 @@
                     "service_unavailable": "Bu yanıt için gereken bir hizmet geçici olarak kullanılamıyor.",
                     "stream_hydration_failed": "Yanıt akışı yeniden senkronize edilemedi.",
                     "tool_sequence_contract_violation": "Model, yeniden denemelerin ardından geçersiz bir araç dizisi üretti. Yeniden deneyin veya model parametrelerini değiştirin.",
+                    "invalid_request_error": "Model sağlayıcısı isteği reddetti. Seçilen modeli ve parametrelerini kontrol edin.",
+                    "authentication_error": "Model sağlayıcısı kimlik bilgilerini veya erişim izinlerini reddetti. Yapılandırılan API anahtarını kontrol edin.",
+                    "payment_required_error": "Model sağlayıcısı, hesabın faturalandırması, kredileri veya harcama limiti ilgilenilmesi gerektiğinden isteği reddetti.",
+                    "rate_limit_error": "Model sağlayıcısı meşgul veya hız sınırına ulaşıldı. Biraz bekleyip yeniden deneyin.",
+                    "timeout_error": "Yanıt oluşturulurken model sağlayıcısında zaman aşımı oluştu. Daha sonra yeniden deneyin.",
+                    "providerExplanation": "Sağlayıcı açıklaması: {explanation}",
                     "withCode": "{message} (kod: {code})",
                     "withReference": "{message} (kod: {code}; referans: {referenceId})",
-                    "ws_disconnected": "Yanıt alınırken bağlantı kesildi."
+                    "ws_disconnected": "Yanıt alınırken bağlantı kesildi.",
+                    "providerPermission": "Sağlayıcı erişimi reddetti. API anahtarı izinlerini, hesap erişimini ve desteklenen bölgeleri kontrol edin.",
+                    "providerParameter": "Sağlayıcı {param} parametresini reddetti. Bu model parametresini değiştirin veya sıfırlayın, ardından yeniden deneyin.",
+                    "providerMedia": "Sağlayıcı bir eki reddetti. Biçimini, boyutunu ve içeriğini kontrol edin veya yeniden yükleyin.",
+                    "providerContext": "İstek bağlam penceresini aşıyor. Konuşma bağlamını kısaltın, çıktı belirteçlerini azaltın veya daha büyük bağlamlı bir model seçin.",
+                    "providerContentPolicy": "Sağlayıcı isteği içerik politikası nedeniyle engelledi. Mesajı yeniden ifade edin veya başka bir model seçin.",
+                    "providerVision": "Bu model veya uç nokta görüntü kabul etmiyor. Görüntüyü kaldırın veya görüntü destekleyen bir model seçin.",
+                    "providerAudio": "Bu model veya uç nokta ses kabul etmiyor. Sesi kaldırın veya bir ses modeli seçin.",
+                    "providerModelUnavailable": "Sağlayıcı bu modelin kullanılamadığını bildirdi. Kataloğu yenileyin veya başka bir model seçin.",
+                    "providerUnavailable": "Sağlayıcı geçici olarak kullanılamıyor veya aşırı yüklü. Daha sonra yeniden deneyin veya başka bir sağlayıcı seçin.",
+                    "providerRetryAfter": "Yeniden denemeden önce en az {seconds} saniye bekleyin.",
+                    "providerMediaFormat": "Ek biçimi reddedildi. Desteklenen bir biçime dönüştürüp yeniden deneyin.",
+                    "providerMediaSize": "Ekin boyutunu ve ölçülerini kontrol edip desteklenen bir boyutla yeniden deneyin.",
+                    "providerMediaDecoding": "Ekin kodu çözülemedi. Geçerli bir dosya yükleyip yeniden deneyin.",
+                    "providerMediaRetrieval": "Ek alınamadı. Bağlantısını kontrol edin veya dosyayı yeniden yükleyin.",
+                    "providerContextUsage": "Bu istek {requested} belirteç gerektiriyor; kullanılabilir bağlam {available} belirteçtir.",
+                    "context_budget_unavailable": "Model bağlamı, yapılandırılmış çıktı rezervi için çok küçük. Modelin bağlam uzunluğunu artırın veya sıkıştırma çıktı rezervini azaltın.",
+                    "contextBudgetUsage": "Model bağlamı {context} belirteç ({usable} kullanılabilir); sıkıştırma çıktı rezervi {reserved} belirteçtir."
                 },
                 "failedToGetResponse": "Yanıt alınamadı",
                 "noModelSelected": "İleti göndermeden önce lütfen bir model seçin",
@@ -2155,6 +2275,12 @@
                         },
                         "apply_patch": {
                             "1": "Değişiklikler uygulanıyor"
+                        },
+                        "skill_read": {
+                            "1": "Beceri yönergeleri okunuyor"
+                        },
+                        "skill_materialize": {
+                            "1": "Beceri dosyaları çalışma alanına kopyalanıyor"
                         }
                     }
                 }
@@ -2412,12 +2538,15 @@
             "cancellation": {
                 "failed": "İptal isteği başarısız oldu. İşlem hâlâ çalışıyor; yeniden deneyin.",
                 "userRequested": "Kullanıcı iptal talep etti.",
-                "userRequestedViaWebUi": "Kullanıcı WebUI üzerinden iptal talep etti."
+                "userRequestedViaWebUi": "Kullanıcı WebUI üzerinden iptal talep etti.",
+                "cancelling": "İptal ediliyor",
+                "cancelled": "İptal edildi"
             },
             "clipboard": {
                 "copied": "Panoya kopyalandı",
                 "copyFailed": "Panoya kopyalanamadı",
-                "copyUnavailable": "Pano bu ortamda kullanılamıyor"
+                "copyUnavailable": "Pano bu ortamda kullanılamıyor",
+                "notificationCopied": "Bildirim panoya kopyalandı"
             },
             "close": "Kapat",
             "filters": {
@@ -2441,7 +2570,6 @@
                 "chatAttachments": "Bu iletinin başvurduğu ekler",
                 "chatMcpDefaultTools": "Yeni sohbetler için varsayılan MCP araçları",
                 "chatMemoryProfile": "SoAI'nin sohbetler arasında hatırladığı kişisel ayrıntılar",
-                "chatPromptsPicker": "Bu sohbete eklenmeye hazır kayıtlı istemler",
                 "voiceCall": "Mikrofon, transkripsiyon, akış yanıtları ve sesli oynatma ile eller serbest sohbet",
                 "credits": "Üçüncü taraf bağımlılık katkıları",
                 "fileExplorerMetadata": "Dosya meta verileri",
@@ -2490,12 +2618,24 @@
             "error": "Hata",
             "errors": {
                 "errorWithMessage": "Hata: {message}",
+                "fileAccessDenied": "SoAI'nin ihtiyaç duyduğu bir dosyaya erişimi reddedildi. Klasör izinlerini kontrol edip yeniden deneyin.",
+                "fileOperationFailed": "Bir dosya işlemi başarısız oldu. Ayrıntılar için günlüğü kontrol edip yeniden deneyin.",
                 "insufficientDiskSpace": "Yeterli disk alanı olmadığı için işlem devam edemedi.",
                 "offlinePolicy": "Çevrimdışı mod etkinken bu işlem kullanılamaz.",
                 "operationFailed": "İşlem başarısız oldu. Yeniden deneyin.",
                 "operationFailedWithMessage": "{operation} işlemi başarısız oldu: {error}",
+                "runtimeStartupTimeout": "Bir çalışma zamanı zamanında hazır olmadı. Yeni yüklenen çalışma zamanı dosyalarının ilk başlatılması daha uzun sürebilir. İşlemi yeniden deneyin.",
+                "runtimeVerificationTimeout": "SoAI bir çalışma zamanını denetlemeyi zamanında tamamlayamadı. Yeni yüklenen çalışma zamanı dosyalarının ilk başlatılması daha uzun sürebilir. İşlemi yeniden deneyin.",
+                "executionTimeoutResponse": "Eklenti {budget} saniye içinde yanıt döndürmedi ({elapsed} saniye geçti).",
+                "executionTimeoutInitialResponse": "Model {budget} saniye içinde yanıt vermeye başlamadı ({elapsed} saniye geçti).",
+                "executionTimeoutFirstToken": "Model {budget} saniye içinde ilk çıktısını üretmedi ({elapsed} saniye geçti).",
+                "executionTimeoutBufferedResponse": "Model yanıtını {budget} saniye içinde tamamlamadı ({elapsed} saniye geçti).",
+                "executionTimeoutRequestLimit": "Bu süre sınırını istek belirlediği için eklenti sağlıksız olarak işaretlenmedi.",
+                "executionTimeoutPluginBudget": "Bu, eklentinin yürütme bütçesiydi; bu nedenle eklenti aşırı yüklenmiş olabilir veya yanıt vermiyor olabilir.",
                 "unknown": "Bilinmeyen hata",
-                "unknownError": "Bilinmeyen bir hata oluştu."
+                "unknownError": "Bilinmeyen bir hata oluştu.",
+                "storageHeadroomInsufficient": "Güvenlik payı ve mevcut rezervasyonlar hesaba katıldığında yeterli depolama alanı yok. Yer açın veya diğer depolama işlemlerinin bitmesini bekleyip yeniden deneyin.",
+                "storageHeadroomValues": "Güvenlik payı dahil gereken: {required}. Bu işlem için kullanılabilir: {available}."
             },
             "export": "Dışa aktar",
             "exportPreview": {
@@ -2606,6 +2746,10 @@
             "retry": "Yeniden dene"
         },
         "contentPreview": {
+            "fields": {
+                "title": "Başlık",
+                "text": "Metin"
+            },
             "actions": {
                 "goToPath": "Yola git",
                 "goToUrl": "URL'ye git",
@@ -2890,7 +3034,14 @@
                 "renameNameRequired": "Önce bir ad girin.",
                 "renameNameUnchanged": "Farklı bir ad girin.",
                 "selectionChanged": "Seçim değişti. Yeniden adlandırmadan önce öğeyi tekrar seçin.",
-                "selectionRequired": "Önce en az bir öğe seçin."
+                "selectionRequired": "Önce en az bir öğe seçin.",
+                "changeRefreshFailed": "Değişiklik kaydedildi, ancak dosya ayrıntıları yenilenemedi. Dosyalar sayfasını yenileyin.",
+                "fileInUse": "Bu dosya başka bir uygulama tarafından kullanılıyor. O uygulamayı kapatıp yeniden deneyin.",
+                "listingExpired": "Klasör listesi artık kullanılamıyor. Yeniden yüklemek için Dosyalar sayfasını yenileyin.",
+                "publicationUncertain": "Dosya kaydedilmiş olabilir, ancak son durumu doğrulanamadı. Yeniden yüklemeden önce Dosyalar bölümünde hedefi kontrol edin.",
+                "cleanupIncomplete": "Otomatik temizleme tamamlanamadı. Yeniden denemeden önce Dosyalar bölümündeki hedefi kontrol edin.",
+                "contentChanged": "İşlem sırasında dosya değişti. Dosyayı yeniden seçip tekrar deneyin.",
+                "destinationExists": "Bu adda bir dosya veya klasör zaten var. Başka bir ad veya hedef seçin."
             },
             "labels": {
                 "latestTask": "Son görev",
@@ -3114,7 +3265,8 @@
                         "withTotal": "{count} {label} • {total}"
                     },
                     "title": "Depolama",
-                    "waiting": "Algılanıyor..."
+                    "waiting": "Algılanıyor...",
+                    "unavailable": "Depolama kullanılamıyor"
                 }
             },
             "common": {
@@ -3137,7 +3289,47 @@
                 "network": "Ağ"
             },
             "errors": {
-                "historyInitFailed": "Geçmiş akışı başlatılamadı"
+                "historyInitFailed": "Geçmiş akışı başlatılamadı",
+                "gpuRecoveryIdentityConflict": "GPU kurtarma işlemi fiziksel aygıtı doğrulayamadı. GPU değişiklikleri devre dışı kalıyor. Kurtarma verilerini koruyun ve donanım tanılarını inceleyin.",
+                "gpuSlotAliasConflict": "Kaydedilmiş GPU takma adlarında çakışan veya tanınmayan ayarlar var. Yuva dosyasını koruyun ve değişiklik yapmadan önce kayıtlı profilleri inceleyin.",
+                "opencl_compiler_unavailable": "OpenCL çalışma zamanı SoAI Bench çekirdeklerini derleyemiyor. Çalışma sırasında derleme yapabilen bir GPU OpenCL çalışma zamanı yükleyin.",
+                "opencl_kernel_execution_unavailable": "OpenCL çalışma zamanı kaynak koddan derlenmiş çekirdekleri çalıştıramıyor. Bunları destekleyen bir GPU OpenCL çalışma zamanı yükleyin.",
+                "opencl_custom_identity_unproved": "OpenCL GPU kimliği veya üretici bilgileri doğrulanamadı. GPU algılamasını yenileyin ve GPU sürücüsünü güncelleyin.",
+                "opencl_memory_insufficient": "SoAI Bench, 256 MiB OpenCL bellek ayırma kapasitesi ve yeterli toplam aygıt belleği gerektirir. Bu koşulları karşılayan bir GPU seçin.",
+                "soaibenchPublicationUnsupported": "Bu GPU bu performans testini çalıştıramaz. Yayımlanacak puan yok. Desteklenen bir GPU seçip önce bir performans testini tamamlayın.",
+                "gpuInventoryBusy": "GPU envanteri meşgul veya kurtarılıyor. Bekleyip bu geçmiş serisini yeniden deneyin.",
+                "soaibenchPublicationCancelled": "Bu kıyaslama iptal edildi. Yayımlamadan önce desteklenen bir kıyaslamayı tamamlayın.",
+                "soaibenchPublicationIncomplete": "Bu kıyaslamanın uygun ve tam bir sonucu yok. Yayımlamadan önce desteklenen sertifikalı bir kıyaslamayı tamamlayın.",
+                "gpuClockCombinationUnsupported": "Bu GPU bu saat denetimlerini birleştiremez. Her seferinde tek bir saat denetimi uygulayın.",
+                "gpuClockConversionUnavailable": "Sürücü gerekli saat dönüşümünü sağlayamıyor. Donanım algılamasını yenileyin ve sürücü desteğini kontrol edin.",
+                "gpuSettingOutOfRange": "Bu GPU ayarı desteklenen aralığın dışında. Desteklenen bir değer seçin.",
+                "gpuSettingRange": "{field}: {requested} {unit}, desteklenen {minimum}–{maximum} {unit} aralığının dışında. Desteklenen bir değer seçin.",
+                "gpuObservationUnavailable": "GPU’nun güncel durumu okunamadı. Kaydedilen değişiklikler korunur. Okumanın düzelmesini bekleyin, ardından görünümü yenileyin.",
+                "gpuObservationTimeout": "GPU’nun güncel durumunu okuma süresi doldu. Kaydedilen değişiklikler korunur. Okumanın düzelmesini bekleyin, ardından görünümü yenileyin.",
+                "gpuSensorPermissionDenied": "GPU sensörlerine erişim reddedildi. SoAI hizmet hesabına GPU aygıtına ve sensör dosyalarına erişim izni verin, ardından yenileyin.",
+                "vulkanRuntimeUnavailable": "Seçilen GPU bağlaması Vulkan aygıt eşlemesi gerektiriyor, ancak Vulkan araçları kullanılamıyor veya başarısız oldu. Dağıtımınızın Vulkan araçlarını ve sürücüsünü yükleyin ya da tüm GPU’ları bağlayın.",
+                "vulkanQueryTimeout": "Seçilen GPU bağlaması Vulkan aygıt eşlemesi gerektiriyor, ancak Vulkan aygıt sorgusu zaman aşımına uğradı. Vulkan sürücüsünü denetleyin ya da tüm GPU’ları bağlayın.",
+                "vulkanFormatUnsupported": "Seçilen GPU bağlaması Vulkan aygıt eşlemesi gerektiriyor, ancak Vulkan araçları desteklenmeyen bir biçim döndürdü. Dağıtımınızın Vulkan araçlarını güncelleyin ya da tüm GPU’ları bağlayın.",
+                "vulkanDeviceUnavailable": "Seçilen GPU, Vulkan aygıtları arasında değil. Bu GPU’nun Vulkan sürücüsünü denetleyin ya da başka bir GPU seçin.",
+                "vulkanIdentityUnavailable": "Seçilen GPU, Vulkan aygıtlarıyla ortak bir UUID veya PCI kimliği paylaşmıyor, bu yüzden güvenli şekilde bağlanamaz. Bunun yerine tüm GPU’ları bağlayın.",
+                "vulkanIdentityConflict": "Seçilen GPU’nun Vulkan aygıt listesinde çelişen bir kimliği var, bu yüzden güvenli şekilde bağlanamaz. GPU sürücülerini denetleyin ya da tüm GPU’ları bağlayın.",
+                "vulkanDeviceAmbiguous": "Seçilen GPU birden fazla Vulkan sürücüsü tarafından sunuluyor. Yinelenen Vulkan sürücüsünü (ICD) kaldırın ya da tüm GPU’ları bağlayın.",
+                "gpuBindingIdentityConflict": "Seçilen GPU’nun fiziksel kimliği donanım envanterinde birden fazla kez görünüyor. Donanım bilgilerini yenileyin ve GPU’yu yeniden seçin.",
+                "gpuDiscoveryTimeout": "GPU keşfi zaman aşımına uğradı. Donanım sorgusunun bitmesini bekleyip yeniden deneyin.",
+                "gpuDiscoveryBusy": "Bir donanım sorgusu hâlâ çalışıyor. GPU keşfinin tamamlanmasını bekleyip yeniden deneyin.",
+                "gpuDiscoveryNativeTimeout": "Yerel GPU sorgusu zaman aşımına uğradı. Grafik sürücüsünü kontrol edip yeniden deneyin.",
+                "gpuDiscoveryQueryFailed": "Yerel GPU sorgusu başarısız oldu. Grafik sürücüsünü ve sistem tanılamalarını kontrol edip yeniden deneyin.",
+                "gpuDiscoveryEmpty": "GPU sorgusu veri döndürmedi. Grafik sürücüsünü kontrol edip yeniden deneyin.",
+                "gpuDiscoveryInvalid": "GPU sorgusu geçersiz veri döndürdü. Grafik sürücüsünü ve sistem tanılamalarını kontrol edip yeniden deneyin.",
+                "gpuDiscoveryRuntimeUnavailable": "GPU keşif araçları kullanılamıyor. Sistem araçlarını geri yükleyip yeniden deneyin.",
+                "gpuDiscoveryPermissionDenied": "GPU keşfi için erişim reddedildi. Hizmet hesabının donanım izinlerini kontrol edip yeniden deneyin.",
+                "gpuDiscoveryUnavailable": "GPU keşfi kullanılamıyor. Grafik sürücüsünü ve sistem araçlarını kontrol edip yeniden deneyin.",
+                "gpuDiscoveryChanged": "GPU envanteri keşif sırasında değişti. Donanım keşfinin tamamlanmasını bekleyip yeniden deneyin.",
+                "opencl_operation_deadline": "{phase}, {seconds} saniyelik süre sınırını aştı. Puan oluşturulmadı. Grafik sürücüsünün yanıt verdiğini kontrol edip yeniden deneyin.",
+                "opencl_runtime_deadline": "OpenCL süre sınırı içinde tamamlanmadı. Grafik sürücüsünün yanıt verdiğini kontrol edip yeniden deneyin.",
+                "opencl_child_exited": "OpenCL çalışma zamanı beklenmedik biçimde durdu. Grafik sürücüsünü kontrol edip SoAI Bench’i yeniden deneyin.",
+                "opencl_child_invalid_response": "OpenCL çalışma zamanı geçersiz bir yanıt döndürdü. SoAI’ı yeniden başlatıp SoAI Bench’i yeniden deneyin.",
+                "opencl_child_disconnected": "OpenCL çalışma zamanı ile iletişim kesildi. SoAI Bench’i yeniden deneyin."
             },
             "gpu": {
                 "actions": {
@@ -3154,8 +3346,11 @@
                 "controls": {
                     "autoLabel": "Otomatik",
                     "coreClock": "Çekirdek saat hızı ofseti",
+                    "coreClockFrequency": "Çekirdek saat frekansı",
                     "fan_speed": "Fan hızı",
                     "memoryClock": "Bellek saat hızı ofseti",
+                    "memoryClockFrequency": "Bellek saat frekansı",
+                    "powerLimitOffset": "Güç sınırı ofseti",
                     "power_limit": "Güç sınırı",
                     "toggleAutomatic": "Otomatik denetim"
                 },
@@ -3166,19 +3361,19 @@
                     "noManualChange": "Kaydetmeden önce 'Otomatik' modunu devre dışı bırakın.",
                     "noSettings": "Uygulanacak GPU ayarı yok.",
                     "reset": "GPU {index} varsayılanlara sıfırlandı",
-                    "soaibenchNoActiveRun": "GPU {index} üzerinde etkin bir SoAIBench çalıştırması yok",
-                    "soaibenchStarted": "GPU {index} SoAIBench {profile} başlatıldı",
-                    "soaibenchStopRequested": "GPU {index} SoAIBench durdurma isteği gönderildi",
-                    "soaibenchUnsupported": "GPU {index} SoAIBench desteklenmiyor: {reason}",
+                    "soaibenchNoActiveRun": "GPU {index} üzerinde etkin bir SoAI Bench çalıştırması yok",
+                    "soaibenchStarted": "GPU {index} SoAI Bench {profile} başlatıldı",
+                    "soaibenchStopRequested": "GPU {index} SoAI Bench durdurma isteği gönderildi",
+                    "soaibenchUnsupported": "GPU {index} SoAI Bench desteklenmiyor: {reason}",
                     "soaibenchSettingsLocked": "GPU {index} bir karşılaştırma testi çalıştırıyor. Ayarlarını kaydetmeden önce testi durdurun veya bitmesini bekleyin.",
                     "slotApplied": "GPU {index} yuva {slot} uygulandı",
                     "slotSaved": "GPU {index} yuva {slot} kaydedildi"
                 },
                 "soaibench": {
-                    "standardTaskName": "GPU SoAIBench standart",
+                    "standardTaskName": "GPU SoAI Bench standart",
                     "stressRunningLabel": "Stres testi - çalışıyor",
-                    "stopTaskName": "GPU SoAIBench durdurma",
-                    "stressTaskName": "GPU SoAIBench stres"
+                    "stopTaskName": "GPU SoAI Bench durdurma",
+                    "stressTaskName": "GPU SoAI Bench stres"
                 },
                 "panelHeader": "GPU {index}: {name}",
                 "panelTitle": "GPU denetimleri",
@@ -3195,6 +3390,28 @@
                     "powerDraw": "Güç",
                     "temperatures": "Sıcaklıklar",
                     "memoryUtilization": "VRAM"
+                },
+                "errors": {
+                    "invalidGpuId": "Geçerli bir GPU seçin ve yeniden deneyin.",
+                    "invalidSlot": "Geçerli bir GPU yuvası seçin ve yeniden deneyin.",
+                    "invalidPayload": "GPU ayarlarını kontrol edin ve yeniden deneyin.",
+                    "noSettings": "Değişiklikleri uygulamadan önce en az bir GPU ayarı seçin.",
+                    "deviceNotFound": "Seçilen GPU bulunamadı. Donanım listesini yenileyin ve yeniden seçin.",
+                    "noGpus": "Kullanılabilir GPU yok. Donanım algılamasını kontrol edin ve yeniden deneyin.",
+                    "slotEmpty": "Seçilen GPU yuvası boş. Uygulamadan önce bu yuvaya ayarları kaydedin.",
+                    "slotUnchanged": "GPU yuvası zaten bu ayarları içeriyor.",
+                    "bootUnchanged": "GPU yuvası zaten bu başlangıç ayarına sahip.",
+                    "slotRequiresApply": "GPU yuvasını başlangıçta etkinleştirmeden önce uygulayın.",
+                    "applyFailed": "GPU ayarları güvenli biçimde uygulanamadı. İşlem ayrıntılarını inceleyip yeniden deneyin.",
+                    "deviceUnavailable": "Seçilen GPU kullanılamıyor. Yeniden kullanılabilir olmasını bekleyin ve yeniden deneyin.",
+                    "hardwareMutationDisabled": "Bu kurulum için GPU donanım değişiklikleri devre dışı bırakılmıştır.",
+                    "gpuActivityConflict": "GPU başka bir işlemle meşgul. İşlemin tamamlanmasını bekleyin ve yeniden deneyin.",
+                    "hardwareUnavailable": "Bu kurulumda GPU ayarlaması kullanılamıyor. Donanım desteğini ve yapılandırmayı kontrol edin.",
+                    "gpuError": "GPU ayar işlemi başarısız oldu. Ayarları kontrol edin ve yeniden deneyin.",
+                    "slotError": "GPU yuvası işlemi başarısız oldu. Donanım listesini yenileyin ve yeniden deneyin.",
+                    "recoveryReconciled": "Önceki GPU ayarları geri yüklendi. Yeni ayarları yeniden uygulayın.",
+                    "recoveryUnresolved": "Önceki GPU ayarları güvenli şekilde geri yüklenemedi. Ayarları yeniden uygulamadan önce GPU durumunu denetleyin.",
+                    "controlPreparationFailed": "Donanıma erişilmeden önce GPU ayarları hazırlanamadı. Yeniden deneyin ve sorun sürerse referans kimliğini bildirin."
                 }
             },
             "metrics": {
@@ -3217,41 +3434,41 @@
             "soaibenchPublication": {
                 "deleteLocalHistory": "Yerel geçmişi sil",
                 "deleteLocalConfirm": {
-                    "title": "SoAIBench çalıştırması silinsin mi?",
-                    "message": "Bu SoAIBench çalıştırması yerel geçmişten silinsin mi? Bu işlem geri alınamaz."
+                    "title": "SoAI Bench çalıştırması silinsin mi?",
+                    "message": "Bu SoAI Bench çalıştırması yerel geçmişten silinsin mi? Bu işlem geri alınamaz."
                 },
                 "action": "Paylaş",
                 "openRun": "Sonucu aç",
-                "ariaLabel": "Bu SoAIBench puanını paylaş",
-                "unavailable": "Yayınlanabilir bir SoAIBench çalışması yok",
+                "ariaLabel": "Bu SoAI Bench puanını paylaş",
+                "unavailable": "Yayınlanabilir bir SoAI Bench çalışması yok",
                 "confirm": {
-                    "title": "SoAIBench puanı paylaşılsın mı?",
-                    "message": "{score} puanı ve {passes} ölçülen geçişi herkese açık SoAIBench sıralamasında yayınlansın mı?",
+                    "title": "SoAI Bench puanı paylaşılsın mı?",
+                    "message": "{score} puanı ve {passes} ölçülen geçişi herkese açık SoAI Bench sıralamasında yayınlansın mı?",
                     "description": "Puan, beş ölçülen geçiş, herkese açık GPU ve çalışma zamanı bilgileri, kıyaslama ayarları ve isteğe bağlı sensör kanıtları gönderilir. Hesap kimliği, dosyalar, yapılandırma, analizler ve genel telemetri hariç tutulur."
                 },
                 "outcomes": {
-                    "published": "SoAIBench puanı herkese açık olarak paylaşıldı.",
-                    "alreadyPublished": "Bu SoAIBench puanı zaten paylaşılmıştı.",
-                    "heldForReview": "SoAIBench sonucu kimlik veya anormallik incelemesi için bekletiliyor ve henüz sıralamaya dahil edilmiyor.",
+                    "published": "SoAI Bench puanı herkese açık olarak paylaşıldı.",
+                    "alreadyPublished": "Bu SoAI Bench puanı zaten paylaşılmıştı.",
+                    "heldForReview": "SoAI Bench sonucu kimlik veya anormallik incelemesi için bekletiliyor ve henüz sıralamaya dahil edilmiyor.",
                     "offline": "SoAI çevrimdışıyken puan paylaşılamadı.",
-                    "unavailable": "SoAIBench yayınlama hizmeti kullanılamıyor.",
+                    "unavailable": "SoAI Bench yayınlama hizmeti kullanılamıyor.",
                     "timeout": "Puan paylaşımı zaman aşımına uğradı. Aynı yayını uzlaştırmak için yeniden deneyin.",
                     "rateLimited": "Bu bağlantıdan çok fazla puan paylaşıldı. Daha sonra yeniden deneyin.",
-                    "capacity": "SoAIBench sıralaması şu anda kapasite sınırında.",
-                    "rejected": "SoAIBench sıralaması bu sonucu reddetti.",
+                    "capacity": "SoAI Bench sıralaması şu anda kapasite sınırında.",
+                    "rejected": "SoAI Bench sıralaması bu sonucu reddetti.",
                     "conflict": "Bu yayın mevcut sıralama durumuyla çakışıyor.",
-                    "invalidResponse": "SoAIBench sıralaması geçersiz bir yanıt döndürdü.",
+                    "invalidResponse": "SoAI Bench sıralaması geçersiz bir yanıt döndürdü.",
                     "retryAfter": "{seconds} saniye sonra yeniden deneyin."
                 }
             },
             "modals": {
                 "soaibenchHistory": {
                     "ariaLabels": {
-                        "close": "SoAIBench geçmişini kapat",
-                        "copy": "SoAIBench geçmişini kopyala",
-                        "copyRun": "SoAIBench çalıştırmasını kopyala",
-                        "download": "SoAIBench geçmiş CSV'sini indir",
-                        "downloadRun": "SoAIBench çalıştırmasını indir"
+                        "close": "SoAI Bench geçmişini kapat",
+                        "copy": "SoAI Bench geçmişini kopyala",
+                        "copyRun": "SoAI Bench çalıştırmasını kopyala",
+                        "download": "SoAI Bench geçmiş CSV'sini indir",
+                        "downloadRun": "SoAI Bench çalıştırmasını indir"
                     },
                     "close": "Kapat",
                     "copy": "Kopyala",
@@ -3260,10 +3477,10 @@
                         "runs": "Çalıştırmalar",
                         "table": "Çalıştırmalar tablosu"
                     },
-                    "copySuccess": "SoAIBench geçmişi panoya kopyalandı",
-                    "copyUnavailable": "Kopyalanabilecek SoAIBench geçmişi yok",
+                    "copySuccess": "SoAI Bench geçmişi panoya kopyalandı",
+                    "copyUnavailable": "Kopyalanabilecek SoAI Bench geçmişi yok",
                     "download": "İndir",
-                    "downloadSuccess": "SoAIBench geçmiş CSV'si indirilmeye başlandı",
+                    "downloadSuccess": "SoAI Bench geçmiş CSV'si indirilmeye başlandı",
                     "columns": {
                         "actions": "Eylemler",
                         "certification": "Sertifikasyon",
@@ -3287,11 +3504,11 @@
                         "quick": "Hızlı",
                         "varianceSuffix": "{variance}% varyans"
                     },
-                    "description": "Seçili GPU için önceki SoAIBench çalıştırmaları",
-                    "empty": "Bu GPU için henüz SoAIBench çalıştırması yok.",
+                    "description": "Seçili GPU için önceki SoAI Bench çalıştırmaları",
+                    "empty": "Bu GPU için henüz SoAI Bench çalıştırması yok.",
                     "loading": "Çalıştırma geçmişi yükleniyor...",
-                    "pageEmpty": "Henüz SoAIBench çalıştırması yok.",
-                    "pageLoadFailed": "SoAIBench çalıştırmaları yüklenemedi. Yeniden deneyin.",
+                    "pageEmpty": "Henüz SoAI Bench çalıştırması yok.",
+                    "pageLoadFailed": "SoAI Bench çalıştırmaları yüklenemedi. Yeniden deneyin.",
                     "matchBases": {
                         "device_id": "Aygıt kimliği",
                         "gpu_model_key": "GPU model anahtarı",
@@ -3313,9 +3530,11 @@
                         "stress": "Stres"
                     },
                     "reasons": {
-                        "opencl_numerical_mismatch": "OpenCL iş yükünün sayısal doğrulaması başarısız oldu."
+                        "opencl_numerical_mismatch": "OpenCL iş yükünün sayısal doğrulaması başarısız oldu.",
+                        "preflight": "Ön kontrol",
+                        "startup": "Başlatma"
                     },
-                    "rowCopyUnavailable": "Kopyalanabilecek SoAIBench çalıştırması yok",
+                    "rowCopyUnavailable": "Kopyalanabilecek SoAI Bench çalıştırması yok",
                     "staleHardware": "Güncelliğini yitirmiş donanım eşleşmesi",
                     "statuses": {
                         "cancelled": "İptal edildi",
@@ -3327,28 +3546,28 @@
                         "unstable": "Kararsız",
                         "unsupported": "Desteklenmiyor"
                     },
-                    "title": "Önceki SoAIBench çalıştırmaları"
+                    "title": "Önceki SoAI Bench çalıştırmaları"
                 },
                 "soaibenchRun": {
                     "selectGpu": "Karşılaştırma testi için bir GPU seçin",
                     "noGpus": "Karşılaştırma testi için kullanılabilir GPU yok.",
                     "ariaLabels": {
-                        "close": "SoAIBench'i kapat",
-                        "copy": "SoAIBench çalıştırmasını kopyala",
-                        "download": "SoAIBench çalıştırmasını indir",
-                        "history": "SoAIBench geçmişini aç",
-                        "retry": "Sertifikalı SoAIBench'i yeniden dene",
-                        "stop": "Sertifikalı SoAIBench'i durdur",
-                        "stopping": "Sertifikalı SoAIBench durduruluyor",
-                        "newBenchmark": "Yeni bir sertifikalı SoAIBench çalıştırması başlat",
-                        "runAgain": "Bu GPU üzerinde sertifikalı SoAIBench testini yeniden çalıştır",
-                        "recover": "SoAIBench durumunu yeniden kontrol et",
-                        "start": "Sertifikalı SoAIBench'i başlat"
+                        "close": "SoAI Bench'i kapat",
+                        "copy": "SoAI Bench çalıştırmasını kopyala",
+                        "download": "SoAI Bench çalıştırmasını indir",
+                        "history": "SoAI Bench geçmişini aç",
+                        "retry": "Sertifikalı SoAI Bench'i yeniden dene",
+                        "stop": "Sertifikalı SoAI Bench'i durdur",
+                        "stopping": "Sertifikalı SoAI Bench durduruluyor",
+                        "newBenchmark": "Yeni bir sertifikalı SoAI Bench çalıştırması başlat",
+                        "runAgain": "Bu GPU üzerinde sertifikalı SoAI Bench testini yeniden çalıştır",
+                        "recover": "SoAI Bench durumunu yeniden kontrol et",
+                        "start": "Sertifikalı SoAI Bench'i başlat"
                     },
                     "close": "Kapat",
                     "copy": "Kopyala",
-                    "copySuccess": "SoAIBench çalıştırması panoya kopyalandı",
-                    "copyUnavailable": "Kopyalanabilecek SoAIBench çalıştırması yok",
+                    "copySuccess": "SoAI Bench çalıştırması panoya kopyalandı",
+                    "copyUnavailable": "Kopyalanabilecek SoAI Bench çalıştırması yok",
                     "description": "SoAI çıkarımına hazır olma durumunu ölçen sertifikalı GPU kıyaslama testi",
                     "download": "İndir",
                     "export": {
@@ -3360,7 +3579,7 @@
                         "rawRun": "Ham çalıştırma ayrıntıları",
                         "runId": "Çalıştırma kimliği",
                         "status": "Durum",
-                        "title": "SoAIBench çalıştırma ayrıntıları"
+                        "title": "SoAI Bench çalıştırma ayrıntıları"
                     },
                     "history": "Geçmiş",
                     "metrics": {
@@ -3392,16 +3611,16 @@
                         "stability": "Kararlılık"
                     },
                     "progress": {
-                        "activeRunInProgress": "Bu GPU üzerinde başka bir SoAIBench çalıştırması zaten etkin.",
+                        "activeRunInProgress": "Bu GPU üzerinde başka bir SoAI Bench çalıştırması zaten etkin.",
                         "awaitingRun": "Arka uç çalıştırma durumu bekleniyor",
                         "measured": "Ölçüm turu {pass}/{total}",
                         "measuredDetail": "Ölçüldü: {pass}/{total}",
                         "measuredPhase": "Ölçüm turu {pass}/{total}: {phase}",
                         "phaseDetail": "{phase} {index}/{total}",
-                        "running": "SoAIBench çalışıyor, lütfen bekleyin...",
-                        "startFailed": "SoAIBench başlatılamadı",
-                        "starting": "Sertifikalı SoAIBench başlatılıyor",
-                        "stopping": "SoAIBench durduruluyor",
+                        "running": "SoAI Bench çalışıyor, lütfen bekleyin...",
+                        "startFailed": "SoAI Bench başlatılamadı",
+                        "starting": "Sertifikalı SoAI Bench başlatılıyor",
+                        "stopping": "SoAI Bench durduruluyor",
                         "warmupDetail": "Isınma {pass}/{total}",
                         "warmupPhase": "Isınma: {phase}",
                         "warmup": "Isınma turu tamamlandı",
@@ -3411,7 +3630,7 @@
                         "startUnconfirmed": "Karşılaştırma testinin başladığı doğrulanamadı ve bu GPU üzerinde etkin bir çalıştırma yok. Yeniden denemeden önce geçmişi kontrol edin."
                     },
                     "retry": "Yeniden dene",
-                    "scoreLabel": "SoAIBench puanı",
+                    "scoreLabel": "SoAI Bench puanı",
                     "sections": {
                         "expect": {
                             "items": "GPU yoğun çalışacak|Güç tüketimi ve fan hızları artabilir|Çalıştırma durdurulabilir|Desteklenmeyen çalışma zamanı durumları açıkça bildirilir",
@@ -3439,7 +3658,7 @@
                         "unresolved": "Durum bilinmiyor",
                         "rejected": "Başlatılmadı"
                     },
-                    "title": "SoAIBench"
+                    "title": "SoAI Bench"
                 },
                 "systemInfo": {
                     "anonymize": "Anonimleştir",
@@ -3565,6 +3784,9 @@
                 "slotsRetained": "Kayıtlı GPU ayarları kullanılamıyor. {age} alınan veriler gösteriliyor.",
                 "capabilitiesUnavailable": "GPU denetimleri kullanılamıyor.",
                 "slotsUnavailable": "Kaydedilen GPU ayarları kullanılamıyor."
+            },
+            "observations": {
+                "retainedAge": "Korunan gözlem · yaş {seconds}sn"
             }
         },
         "header": {
@@ -3592,6 +3814,7 @@
                 "about": "Hakkında",
                 "logout": "Çıkış yap",
                 "logs": "Günlükler",
+                "power": "Yeniden başlat / Kapat",
                 "settings": "Ayarlar",
                 "updates": "Güncellemeler"
             },
@@ -3630,7 +3853,7 @@
                     "unavailable": "Bildirimler kullanılamıyor. Yeniden bağlanılıyor..."
                 },
                 "confirmations": {
-                    "clearAllMessage": "Tüm bildirimler temizlensin mi? Bu işlem geri alınamaz."
+                    "clearAllMessage": "Tüm bildirimler ({count}) temizlensin mi? Bu işlem geri alınamaz."
                 }
             }
         },
@@ -4205,17 +4428,22 @@
             "cards": {
                 "capabilities": {
                     "lockedReasons": {
-                        "requiresAudio": "Bunu değiştirmek için Ses modalitesini etkinleştirin.",
-                        "requiresImages": "Bunu değiştirmek için Görüntüler uç noktasını etkinleştirin.",
-                        "requiresResponses": "Bunu değiştirmek için Yanıtlar uç noktasını etkinleştirin.",
-                        "requiresVision": "Bunu değiştirmek için Görsel modalitesini etkinleştirin.",
+                        "requiresAudio": "Ses modalitesi gereklidir.",
+                        "requiresImages": "Images uç noktası gereklidir.",
+                        "requiresResponses": "Responses uç noktası gereklidir.",
+                        "requiresVision": "Görme modalitesi gereklidir.",
                         "text": "Metin devre dışı bırakılamaz.",
-                        "unsupported": "Bu model bu yeteneği desteklemiyor."
+                        "unsupported": "Model bu yeteneği bildirmiyor."
                     },
                     "manifestLoading": "Yetenek sınıflandırması yükleniyor...",
+                    "modes": {
+                        "autoOff": "Otomatik (kapalı)",
+                        "autoOn": "Otomatik (açık)",
+                        "disabled": "Devre dışı",
+                        "enabled": "Etkin"
+                    },
                     "none": "Bu model için kullanılabilir OpenAI yeteneği yok.",
                     "pluginCapabilitiesUnavailable": "Eklenti yetenek profili kullanılamıyor.",
-                    "reset": "Geçersiz kılmaları sıfırla",
                     "sections": {
                         "chatFeatures": "Sohbet özellikleri",
                         "endpoints": "Uç noktalar",
@@ -4223,7 +4451,9 @@
                         "modalities": "Modaliteler",
                         "responsesFeatures": "Yanıt özellikleri"
                     },
-                    "title": "Yetenekler"
+                    "title": "Yetenekler",
+                    "unverified": "Doğrulanmadı",
+                    "unverifiedHint": "Sağlayıcı bu yeteneği bildirmedi. Etkin veya Devre dışı seçeneğini belirleyene kadar SoAI uyumluluk davranışını korur"
                 },
                 "constituents": {
                     "hasParameters": "Özel parametreler",
@@ -4235,7 +4465,6 @@
                     "created": "Oluşturulma",
                     "name": "Sağlayıcı adı",
                     "providerId": "Sağlayıcı kimliği",
-                    "status": "Durum",
                     "title": "Harici sağlayıcı"
                 },
                 "identity": {
@@ -4270,6 +4499,9 @@
                     "delete": "Kaldır",
                     "enabledNote": "Devre dışı modeller istek kabul edemez ve model seçicilerde gizlenir.",
                     "enabledToggleLabel": "Bu modeli etkinleştir",
+                    "inferenceUnverified": "Henüz doğrulanmadı. Keşif, isteklerin başarılı olduğunu doğrulamaz.",
+                    "inferenceVerification": "Çıkarım",
+                    "inferenceVerified": "Son başarı: {date}",
                     "manageAlias": "Yeniden adlandır",
                     "modelStatus": "Model durumu",
                     "orphaned": "Yetim",
@@ -4300,12 +4532,6 @@
                 "externalLinkCancel": "İptal",
                 "externalLinkConfirm": "Bağlantıyı aç",
                 "externalLinkMessage": "Arka uç belgelerini yeni bir sekmede açmak istediğinizden emin misiniz?",
-                "resetCapabilities": "Yetenek geçersiz kılmalarını sıfırla",
-                "resetCapabilitiesConfirm": "Sıfırla",
-                "resetCapabilitiesMessage": "Tüm yetenek geçersiz kılmalarını sıfırlayıp bu model için eklenti varsayılanlarını devralmak istiyor musunuz?",
-                "resetParameters": "Parametreleri sıfırla",
-                "resetParametersConfirm": "Sıfırla",
-                "resetParametersMessage": "Tüm parametreleri varsayılan değerlerine sıfırlamak istediğinizden emin misiniz? Bu işlem kaydedilmemiş tüm değişiklikleri atar.",
                 "stopPlugin": "Eklentiyi durdur",
                 "stopPluginMessage": "{plugin} eklentisini durdurmak istediğinizden emin misiniz?"
             },
@@ -4369,6 +4595,7 @@
                 }
             },
             "notifications": {
+                "capabilitiesConflict": "Yetenekler başka bir yerde değiştirildi. Düzenlemeleriniz atıldı; en son değerleri gözden geçirip yeniden uygulayın.",
                 "capabilitiesUpdated": "Yetenekler başarıyla güncellendi",
                 "deletionInProgress": "Model silme işlemi sürüyor...",
                 "enabledUpdated": "Modelin etkinlik durumu başarıyla güncellendi",
@@ -4424,6 +4651,17 @@
             "tabs": {
                 "overview": "Genel bakış",
                 "parameters": "Parametreler"
+            },
+            "parameterAvailability": {
+                "loading": "Parametreler yükleniyor...",
+                "refreshing": "Parametreler yenileniyor... Son güncelleme: {age}.",
+                "stale": "Bağlantı kesildi; değerler güncel olmayabilir. Son güncelleme: {age}.",
+                "failed": "Parametreler yüklenemedi.",
+                "retained": "Parametreler kullanılabilir olana kadar kaydetme devre dışı. Son güncelleme: {age}.",
+                "schemaChanged": "Siz düzenlerken parametre tanımları değişti. Güncel tanımları yüklemek için kaydedilmemiş değişikliklerinizi atın.",
+                "discard": "Değişiklikleri at",
+                "unavailableNotice": "Model parametreleri kullanılamıyor. Yüklenebilene kadar kaydetme devre dışı.",
+                "saveBlocked": "Parametreler kullanılabilir olana kadar kaydedilemez. Önce onları yeniden yükleyin."
             }
         },
         "models": {
@@ -4463,7 +4701,8 @@
                 "externalLink": "Harici bağlantı",
                 "externalLinkCancel": "İptal",
                 "externalLinkConfirm": "Devam et",
-                "externalLinkMessage": "Bu modelin deposunu yeni bir sekmede açmak istediğinizden emin misiniz?"
+                "externalLinkMessage": "Bu modelin deposunu yeni bir sekmede açmak istediğinizden emin misiniz?",
+                "deleteLargeModelMessage": "\"{model}\" ({sizeGb} GB) silinsin mi? Yeniden indirmek önemli ölçüde zaman ve internet verisi gerektirebilir. Bu işlem geri alınamaz."
             },
             "description": "Eklentiler ve sağlayıcılardaki yapay zekâ modellerini yönetin.",
             "searchPlaceholder": "Modellerde ara...",
@@ -4502,7 +4741,7 @@
                     "close": "Kapat",
                     "confirmDownload": "Modeli indir",
                     "modelIdLabel": "Model indirme kimliği",
-                    "pluginHelp": "Model indirmesini hangi eklentinin yöneteceğini seçin",
+                    "pluginHelp": "Modeli indirmek için kullanılan eklenti",
                     "pluginLabel": "Eklenti",
                     "pluginPlaceholder": "Bir eklenti seçin...",
                     "quantHelp": "Model tanımlayıcısını ve kuantizasyonu girin (biçim seçilen eklentiye bağlıdır)",
@@ -4587,7 +4826,7 @@
                     "modelsFilterPlaceholder": "örn., free, gpt, claude",
                     "nameHelp": "Bu harici sağlayıcı için açıklayıcı bir ad",
                     "nameLabel": "Sağlayıcı adı",
-                    "pluginHelp": "Bu harici sağlayıcıyı hangi eklentinin yöneteceğini seçin",
+                    "pluginHelp": "Harici sağlayıcıyı yönetmek için kullanılan eklenti",
                     "pluginLabel": "Eklenti",
                     "pluginPlaceholder": "Bir eklenti seçin...",
                     "title": "Sağlayıcı ekle"
@@ -4790,7 +5029,42 @@
                 "unknown": "Bilinmiyor",
                 "virtual": "Sanal"
             },
-            "virtualModelLabel": "Sanal model"
+            "virtualModelLabel": "Sanal model",
+            "errors": {
+                "ollamaPullEof": "Ollama başarıyı doğrulamadan indirmeyi sonlandırdı.",
+                "ollamaPullTimeout": "Ollama indirmesi zaman aşımına uğradı.",
+                "ollamaPullDisconnected": "Ollama bağlantısı kesildi.",
+                "ollamaPullRejected": "Ollama model indirmesini reddetti.",
+                "ollamaPullProtocolInvalid": "Ollama geçersiz indirme verisi döndürdü.",
+                "ollamaPullTargetMissing": "İndirilen model Ollama’nın güncel kataloğunda yok.",
+                "ollamaPullCacheFailed": "İndirilen modelin yerel kataloğu kaydedilemedi.",
+                "ollamaPullCleanupFailed": "Temizleme tamamlanmadı. Yönetilen Ollama hizmetini durdurup yeniden denemeden önce temizleme sorununu çözün.",
+                "ollamaPullPreparationFailed": "Ollama indirme hizmeti hazırlanamadı.",
+                "ollamaPullRecovery": "Ollama tanılama bilgilerini ve depolamayı kontrol edip işlemi yeniden deneyin.",
+                "modelNotFound": "İstenen model bulunamadı. Modeli yükleyin veya kaydedin ya da kullanılabilir bir API model kimliği kullanın.",
+                "parameterSchemaBusy": "Bir eklenti işlemi sürerken model parametreleri geçici olarak kullanılamıyor. Birazdan yeniden deneyin.",
+                "parameterSchemaUnavailable": "Eklenti arka ucu yüklenmediği için model parametreleri kullanılamıyor. Eklentiyi başlatın veya onarın, ardından yeniden deneyin.",
+                "parametersApplyFailed": "Parametreler kaydedildi ancak SoAI bunları çalışan modele uygulayamadı. Kaydedilen değerleri incelemek için yenileyin ve uygulamak için modeli yeniden yükleyin.",
+                "configurationMissing": "GGUF modelinin özgün model yapılandırmasına ihtiyacı var. Özgün config.json dosyasını GGUF dosyasının yanına koyun veya Hugging Face yapılandırma yolunu ayarlayın, ardından yeniden deneyin.",
+                "architectureUnsupported": "Seçilen arka uç bu model mimarisini desteklemiyor. Modelin başka bir sürümünü veya başka bir arka uç kullanın.",
+                "cudaDeviceArchitectureUnsupported": "Yüklü CUDA arka ucu, seçilen NVIDIA GPU mimarisinde çalışamaz. Desteklenen bir GPU seçin, bu GPU’yu destekleyen bir CUDA arka uç varyantı yükleyin veya CPU arka ucu kullanın.",
+                "nativeCpuFeaturesUnsupported": "Bu işlemcide, yüklü arka uç varyantının gerektirdiği CPU komutları yok. CPU gibi uyumlu bir arka uç varyantı yükleyin.",
+                "openvinoTensorShapeIncompatible": "OpenVINO arka ucu, grafiğindeki tensör şekilleri uyumsuz olduğu için bu modeli çalıştıramadı. Bu model için başka bir arka uç varyantı kullanın veya CPU üzerinde çalıştırmak için GPU katmanlarını sıfıra ayarlayın.",
+                "repositoryUnavailable": "Model deposuna veya revizyonuna erişilemedi. Tanımlayıcısını kontrol edin; özel veya erişimi kısıtlı bir depo ayrıca yetkili bir depo belirteci ve kabul edilmiş erişim koşulları gerektirir.",
+                "modelSearchTimeout": "Model araması çok uzun sürdü. Katalog hâlâ hazırlanıyor olabilir; biraz sonra tekrar deneyin."
+            },
+            "phases": {
+                "ollamaServicePreparation": "Ollama hizmeti hazırlanıyor",
+                "ollamaPullStreaming": "Model Ollama ile indiriliyor",
+                "ollamaTerminalConfirmation": "İndirmenin tamamlanması doğrulanıyor",
+                "ollamaTargetVerification": "Güncel model kataloğu doğrulanıyor",
+                "ollamaCachePublication": "Yerel model kataloğu kaydediliyor",
+                "ollamaCleanup": "Ollama indirmesi temizleniyor",
+                "transferDownloading": "İndiriliyor",
+                "transferHashing": "Saklanan indirme verilerinin özeti hesaplanıyor",
+                "transferReplaying": "Saklanan indirme verileri karşılaştırılıyor",
+                "transferVerifying": "İndirilen dosyanın tamamı doğrulanıyor"
+            }
         },
         "nav": {
             "about": "Hakkında",
@@ -5111,7 +5385,31 @@
             },
             "errors": {
                 "changeHandlerFailed": "Eklenti değişiklik işleyicisi başarısız oldu",
-                "clickHandlerFailed": "Eklenti tıklama işleyicisi başarısız oldu"
+                "clickHandlerFailed": "Eklenti tıklama işleyicisi başarısız oldu",
+                "modelConversionFailed": "Model dönüştürme başarısız oldu. Eksik bağımlılıklar veya geçersiz model girdileri için dönüştürücü günlüğünü inceleyip yeniden deneyin.",
+                "backendCancellationCleanupFailed": "İptal sonrası temizliğin tamamlandığı doğrulanamadı. Bu arka ucu durdurulmuş durumda tutun ve tekrar denemeden önce ortamını onarın.",
+                "melottsContainerCleanupFailed": "MeloTTS kuruldu ancak geçici kaynakların temizliği tamamlanmadı. Arka uç işlemini yeniden deneyin.",
+                "backendDockerBuilderUnavailable": "Docker Buildx oluşturucusu kullanılamıyor. Çalışan bir oluşturucu yapılandırın ve tekrar deneyin.",
+                "backendDockerBuildxUnavailable": "Docker Buildx arka uç hesabı tarafından kullanılamıyor. Buildx’i kurun veya etkinleştirin ve tekrar deneyin.",
+                "backendDockerCliMissing": "Docker arka uç hesabı tarafından kullanılamıyor. Docker’ı kurun ve tekrar deneyin.",
+                "backendDockerEngineUnavailable": "Arka uç hesabı Docker motoruna erişemiyor. Docker’ı başlatın, izinleri ve sanallaştırma desteğini kontrol edin.",
+                "backendDockerStorageUnavailable": "Arka uç hesabı Docker depolamasını bulamadı. Docker'ı başlatın, arka uç hesabının motoru sorgulayabildiğini doğrulayın ve yeniden deneyin.",
+                "backendDockerStorageUnmapped": "Docker depolaması doğrulanmış bir ana makine konumuyla eşleştirilemiyor. Veri diski yerel bir sürücüde bulunan yerel bir Docker motoru kullanın ve yeniden deneyin.",
+                "backendDockerStorageAccessDenied": "Arka uç hesabı Docker depolama konumunu inceleyemiyor. Docker veri konumuna erişimini kontrol edin ve yeniden deneyin.",
+                "backendDockerStorageChanged": "Kurulum sırasında Docker motoru veya depolaması değişti. Kurulum sırasında Docker ayarlarını değiştirmeyin ve yeniden deneyin.",
+                "modelConversionDependencyMissing": "CTranslate2 dönüştürücüsünün bir bağımlılığı eksik. Arka ucu güncelleyin veya yeniden kurun, ardından modeli tekrar indirin.",
+                "backendLifecycleLocked": "Başka bir arka uç işlemi bu eklentiyi kullanıyor. Bitmesini bekleyip yeniden deneyin.",
+                "configurationBusy": "Eklenti yapılandırması başka bir işlemle meşgul ve hiçbir şey değiştirilmedi. Birazdan yeniden deneyin.",
+                "ollamaResponsesSettingsUnsupported": "Yerel Ollama Responses, yapılandırılmış yürütme ayarlarını uygulayamıyor. Bu ayarları uygulamak için bu modelle Chat veya /v1/chat/completions kullanın.",
+                "backendRuntimeIncompatible": "Bu çalışma ortamı mevcut donanım seçimiyle uyumlu değil. Uyumlu GPU'lar veya başka bir çalışma ortamı seçin.",
+                "backendRuntimeSelectionChanged": "Kurulum sırasında donanım seçimi değişti. GPU'ları ve çalışma ortamını kontrol edip yeniden deneyin.",
+                "managedCompilerUnavailable": "Yönetilen derleyici kurulamadı veya CPU çalışma ortamını derleyemedi. Depolama alanını ve ağ erişimini kontrol edip arka uç kurulumunu onarın.",
+                "runtimeIllegalInstruction": "Çalışma ortamı doğrulaması geçersiz bir komutta durdu. Uyumlu bir ortam seçin veya arka ucu onarın.",
+                "runtimeVerificationFailed": "Çalışma ortamı doğrulaması başarısız oldu. Arka ucu onarın ve tanılama bilgilerini inceleyin.",
+                "backendCpuInstructionsUnavailable": "Bu çalışma ortamı kullanılamayan CPU komutları gerektiriyor. Uyumlu başka bir ortam seçin.",
+                "configurationChanged": "Eklenti yapılandırması değişti. Yenileyin ve yeniden kaydetmeden önce değişikliklerinizi gözden geçirin.",
+                "configurationApplyFailed": "Yapılandırma kaydedildi ancak çalışma zamanı bunu uygulayamadı. Arka uç durumunu kontrol edin ve yeniden uygulamayı deneyin.",
+                "backendRuntimeUnverified": "GPU uyumluluğu doğrulanamadı. Keşfin tamamlanmasını bekleyip yeniden deneyin veya doğrulanmış bir çalışma zamanı seçin."
             },
             "filters": {
                 "active": "Etkin",
@@ -5266,7 +5564,9 @@
                     "loadFailed": "Arka uç varyantları yüklenemedi.",
                     "loading": "Arka uç varyantları yükleniyor...",
                     "loadingBackends": "Arka uçlar yükleniyor...",
-                    "saveFailed": "Arka uç varyantı kaydedilemedi."
+                    "saveFailed": "Arka uç varyantı kaydedilemedi.",
+                    "autoCompatibility": "Otomatik seçim, mevcut donanım seçimi için {variants} seçeneklerini dışlar. Farklı GPU'lar veya kullanılabilir başka bir çalışma ortamı seçin.",
+                    "compatibilityUnknown": "Mevcut gözlemlerle uyumluluk doğrulanamadı. Donanım bilgilerini yenileyin veya kullanılabilir başka bir çalışma ortamı seçin."
                 },
                 "manageBackend": {
                     "author": "Yazar: {author}",
@@ -5327,13 +5627,14 @@
                 "providerManagedReadOnly": "{plugin} kendi sağlayıcılarını yönetir. Kimlik doğrulamak veya erişimi yönetmek için eklenti konsolunu kullanın.",
                 "providersUnavailable": "{plugin} harici sağlayıcı sunmuyor.",
                 "restartButton": "SoAI'yi yeniden başlat",
-                "restartFailed": "SoAI yeniden başlatılamadı.",
                 "restartRequired": "Yeni eşzamanlı eklenti sınırını uygulamak için SoAI'yi yeniden başlatın.",
                 "selectFile": "Lütfen bir eklenti dosyası seçin",
                 "stopAllSuccess": "Tüm eklentileri durdurma komutu gönderildi.",
                 "stopSuccess": "{plugin} eklentisi başarıyla durduruldu",
                 "updateCheckFailed": "Güncellemeler denetlenemedi",
-                "uploadFailed": "Eklenti yüklenemedi"
+                "uploadFailed": "Eklenti yüklenemedi",
+                "backendUpdateTitle": "Arka uç güncellemesi mevcut",
+                "backendUpdateMessage": "{pluginName} için bir arka uç güncellemesi mevcut. İncelemek için Eklentiler’i açın."
             },
             "providerMode": {
                 "badges": {
@@ -5392,88 +5693,71 @@
                 "hibernateSystem": {
                     "buttonLabel": "Sistemi hazırda beklet",
                     "confirmMessage": "Sistemi hazırda bekletmek istediğinizden emin misiniz?",
-                    "confirmMessageWithDelay": "Sistemi hazırda bekletmek istediğinizden emin misiniz? İşlem {delay} saniye içinde başlar.",
                     "confirmTitle": "Sistemi hazırda beklet",
                     "confirmWarning": "Oturumlar yalnızca makine yeniden açıldıktan sonra devam eder",
                     "description": "Belleği diske kaydedin ve donanımın büyük bölümünü kapatın.",
                     "optionDelay": "Gecikme (saniye)",
                     "overlayMessage": "Sistem hazırda bekletiliyor...",
-                    "successNotification": "Sistemi hazırda bekletme başlatıldı",
-                    "successNotificationWithDelay": "Sistemi hazırda bekletme zamanlandı ({delay} sn gecikme)",
                     "title": "Sistemi hazırda beklet"
                 },
                 "rebootSystem": {
                     "buttonLabel": "Sistemi yeniden başlat",
                     "confirmMessage": "Sistemi yeniden başlatmak istediğinizden emin misiniz?",
-                    "confirmMessageWithDelay": "Sistemi yeniden başlatmak istediğinizden emin misiniz? İşlem {delay} saniye içinde başlar.",
                     "confirmTitle": "Sistemi yeniden başlat",
                     "confirmWarning": "Bu işlem tüm makineyi yeniden başlatır",
                     "description": "Tüm makineyi yeniden başlatın ve işletim sistemini yeniden yükleyin.",
                     "optionDelay": "Gecikme (saniye)",
                     "optionForce": "Yeniden başlatmaya zorla",
-                    "successNotification": "Sistemi yeniden başlatma başlatıldı",
-                    "successNotificationWithDelay": "Sistemi yeniden başlatma zamanlandı ({delay} sn gecikme)",
                     "title": "Sistemi yeniden başlat"
                 },
                 "restartApplication": {
                     "buttonLabel": "Uygulamayı yeniden başlat",
-                    "confirmMessage": "Uygulamayı yeniden başlatmak istediğinizden emin misiniz?",
-                    "confirmTitle": "Uygulamayı yeniden başlat",
-                    "confirmWarning": "Uygulama yeniden başlatılırken tüm kullanıcıların bağlantısı kısa süreliğine kesilir",
-                    "description": "SoAI uygulamasını yeniden başlatın ve tüm hizmetleri yeniden yükleyin.",
+                    "confirmMessage": "SoAI'yi yeniden başlatmak istediğinizden emin misiniz?",
+                    "confirmTitle": "SoAI'yi yeniden başlat",
+                    "confirmWarning": "SoAI yeniden başlatılırken tüm kullanıcıların bağlantısı kısa süreliğine kesilir",
+                    "description": "SoAI'yi yeniden başlatın ve tüm hizmetleri yeniden yükleyin.",
                     "optionDelay": "Gecikme (saniye)",
-                    "successNotification": "Uygulamayı yeniden başlatma başlatıldı",
-                    "title": "Uygulamayı yeniden başlat"
+                    "title": "SoAI'yi yeniden başlat"
                 },
                 "shutdownApplication": {
                     "buttonLabel": "Uygulamayı kapat",
-                    "confirmMessage": "SoAI uygulamasını kapatmak istediğinizden emin misiniz?",
-                    "confirmMessageWithDelay": "SoAI uygulamasını kapatmak istediğinizden emin misiniz? İşlem {delay} saniye içinde başlar.",
-                    "confirmTitle": "Uygulamayı kapat",
-                    "confirmWarning": "Uygulama yeniden başlatılana kadar kullanıcıların bağlantısı kesilecektir",
-                    "description": "Ana makineyi kullanılabilir durumda tutarken SoAI uygulamasını durdurun.",
+                    "confirmMessage": "SoAI'yi kapatmak istediğinizden emin misiniz?",
+                    "confirmTitle": "SoAI'yi kapat",
+                    "confirmWarning": "SoAI yeniden başlatılana kadar kullanıcıların bağlantısı kesilecektir",
+                    "description": "Ana makineyi kullanılabilir durumda tutarken SoAI'yi durdurun.",
                     "optionDelay": "Gecikme (saniye)",
-                    "overlayMessage": "Uygulama kapatılıyor...",
-                    "successNotification": "Uygulamayı kapatma başlatıldı",
-                    "successNotificationWithDelay": "Uygulamayı kapatma zamanlandı ({delay} sn gecikme)",
-                    "title": "Uygulamayı kapat"
+                    "overlayMessage": "SoAI kapatılıyor...",
+                    "title": "SoAI'yi kapat"
                 },
                 "shutdownSystem": {
                     "buttonLabel": "Kapat",
                     "confirmMessage": "Sistemi kapatmak istediğinizden emin misiniz?",
-                    "confirmMessageWithDelay": "Sistemi kapatmak istediğinizden emin misiniz? İşlem {delay} saniye içinde başlar.",
                     "confirmTitle": "Sistemi kapat",
                     "confirmWarning": "Bu işlem tüm süreçleri durdurur ve makinenin gücünü tamamen keser",
                     "description": "Bekleyen işlemler tamamlandıktan sonra tüm makinenin gücünü kapatın.",
                     "optionDelay": "Gecikme (saniye)",
                     "optionForce": "Kapanmaya zorla",
                     "overlayMessage": "Sistem kapatılıyor...",
-                    "successNotification": "Sistemi kapatma başlatıldı",
-                    "successNotificationWithDelay": "Sistemi kapatma zamanlandı ({delay} sn gecikme)",
                     "title": "Sistemi kapat"
                 },
                 "suspendSystem": {
                     "buttonLabel": "Sistemi askıya al",
                     "confirmMessage": "Sistemi askıya almak istediğinizden emin misiniz?",
-                    "confirmMessageWithDelay": "Sistemi askıya almak istediğinizden emin misiniz? İşlem {delay} saniye içinde başlar.",
                     "confirmTitle": "Sistemi askıya al",
                     "confirmWarning": "Sistem devam ettirilene kadar süreçler duraklatılır",
                     "description": "Sistemi düşük güç tüketen uyku durumuna alın.",
                     "optionDelay": "Gecikme (saniye)",
                     "overlayMessage": "Sistem uyku moduna giriyor...",
-                    "successNotification": "Sistemi askıya alma başlatıldı",
-                    "successNotificationWithDelay": "Sistemi askıya alma zamanlandı ({delay} sn gecikme)",
                     "title": "Sistemi askıya al"
                 }
             },
-            "description": "Uygulama ve sistem güç işlemleri.",
             "operations": {
                 "failed": "Güç işlemi başarısız oldu. Durumunu ve çalışma zamanı güç politikasını inceleyin, ardından yalnızca işlem yeniden denenebiliyorsa tekrar deneyin."
             },
             "overlays": {
                 "applicationShutdown": {
-                    "monitoring": "SoAI uygulaması durduruluyor.",
-                    "offline": "Uygulama çevrimdışı."
+                    "monitoring": "SoAI durduruluyor.",
+                    "offline": "SoAI çevrimdışı."
                 },
                 "countdown": {
                     "cancel": "İptal",
@@ -5497,6 +5781,10 @@
             "restartReminder": {
                 "message": "Değişiklikleri uygulamak için yeniden başlatma gerekiyor.",
                 "messageWithReason": "Yeniden başlatma gerekiyor: {reason}"
+            },
+            "groups": {
+                "application": "SoAI",
+                "system": "Sistem"
             }
         },
         "prompts": {
@@ -5664,7 +5952,20 @@
             "title": "İstemler",
             "unnamedPrompt": "Adsız istem",
             "unsavedChanges": "Kaydedilmemiş değişiklikleriniz var. Ayrılmak istediğinizden emin misiniz?",
-            "untitled": "Başlıksız"
+            "untitled": "Başlıksız",
+            "picker": {
+                "editFailed": "İstem düzenleyicisi açılamadı.",
+                "empty": "Henüz kayıtlı istem yok.",
+                "emptyContent": "İstem içeriği yok",
+                "help": "Metnini kullanmak için kayıtlı bir istem seçin",
+                "loadFailed": "Kayıtlı istemler yüklenemedi.",
+                "loading": "İstemler yükleniyor...",
+                "manage": "İstemleri yönet",
+                "manageFailed": "İstemler sayfası açılamadı.",
+                "noMatches": "Aramanızla eşleşen istem yok.",
+                "search": "Ara",
+                "title": "Kaydedilmiş istemler"
+            }
         },
         "restartOverlay": {
             "descriptions": {
@@ -5672,7 +5973,7 @@
                 "generic": "SoAI bir işlem gerçekleştiriyor.",
                 "rebooting": "Sistem yeniden başlatılıyor. Yeniden çevrimiçi olana kadar lütfen bekleyin.",
                 "rebootTimeout": "15 dakika sonra sistem durumu doğrulanamadı. Şimdi tam yenileme zorlanıyor.",
-                "restarting": "Uygulama yeniden başlatılıyor. Bu işlem yalnızca birkaç dakika sürmelidir.",
+                "restarting": "SoAI yeniden başlatılıyor. Bu işlem yalnızca birkaç dakika sürmelidir.",
                 "shutdown": "Sistem kapatılıyor. Bu tarayıcı penceresini kapatabilirsiniz.",
                 "sleep": "Sistem uyku moduna geçiyor. SoAI'yi kullanmaya devam etmek için sistemi uyandırın.",
                 "updateTimeout": "SoAI güncellemeden sonra tekrar çevrimiçi olmadı. SoAI günlük klasöründeki application_updater.log dosyasını kontrol edin, ardından bu sayfayı yeniden yükleyin.",
@@ -5692,7 +5993,16 @@
                 "updateTimeout": "SoAI henüz geri gelmedi",
                 "updating": "SoAI güncelleniyor..."
             },
-            "reconnecting": "Yeniden bağlanmaya çalışılıyor..."
+            "reconnecting": "Yeniden bağlanmaya çalışılıyor...",
+            "handoff": {
+                "plannedAddress": "Yeniden başlatma sonrasında planlanan adres. Taslaklarınız bu sekmede kalır.",
+                "newAddress": "Bağlantı kesildi. Yeniden bağlanmak için yeni adresi açın; sunucu hâlâ başlatılıyor olabilir.",
+                "manualHttps": "Sunucu HTTPS kullanacak. SoAI uygulamasını sunucunuz veya ters vekiliniz için yapılandırılmış adreste açın.",
+                "manualHttp": "Sunucu HTTP kullanacak. SoAI uygulamasını sunucunuz veya ters vekiliniz için yapılandırılmış adreste açın.",
+                "open": "Yeni adresi aç",
+                "copy": "Adresi kopyala",
+                "copied": "Adres kopyalandı"
+            }
         },
         "richText": {
             "footnotes": {
@@ -5961,7 +6271,9 @@
                     "timeout": "Zaman aşımı süresi"
                 },
                 "nullPlaceholder": "null",
-                "sectionHeader": "Gelişmiş ayarlar (config.yaml)"
+                "sectionHeader": "Gelişmiş ayarlar (config.yaml)",
+                "autoUpdateBuiltinLabel": "Yerleşik arka uçları otomatik güncelle",
+                "autoUpdateBuiltinHelp": "Eklenti paketleri değiştiğinde yüklü arka uçları denetler ve yerleşik arka uçları güvenli biçimde durduktan sonra günceller. Devam eden işler korunur. Üçüncü taraf arka uçlar elle güncellenmelidir"
             },
             "advancedMode": "Gelişmiş",
             "advancedTitle": "Gelişmiş ayarlar",
@@ -6797,7 +7109,6 @@
                     "readVideoAudioExtractionTimeoutSec": "Ses çıkarma zaman aşımı",
                     "readVideoPreviewExtractionTimeoutSec": "Önizleme çıkarma zaman aşımı",
                     "readVideoLiveProgressMinIntervalMs": "Minimum canlı ilerleme aralığı",
-                    "readVideoWhisperModel": "Ses transkriptleri için Whisper modeli",
                     "hostModeEnabled": "Ana makine modu istemcilerini etkinleştirin",
                     "hostModeAutoConnectOnStartup": "Başlangıçta kaydedilmiş sunuculara bağlanın",
                     "hostModeReconnectDelaySec": "Yeniden bağlanma denemelerinden önceki gecikme",
@@ -7719,6 +8030,14 @@
                     "help": "Cihazınızdan bir görsel yükleyin (PNG, JPG, GIF, WebP, SVG - Maks. 25MB)",
                     "label": "Duvar kâğıdı yükle"
                 }
+            },
+            "speechToText": {
+                "title": "Konuşmadan metne",
+                "description": "Dosyalardaki, Bilgi'deki ve araçlardaki ses ve videoları yazıya döker.",
+                "model": {
+                    "label": "Konuşmadan metne modeli",
+                    "help": "Otomatik, kullanılabilir ilk yerel modeli kullanır. Sohbet dikte özelliği her sohbetin Ses ayarını kullanır"
+                }
             }
         },
         "statusCatalog": {
@@ -7934,13 +8253,19 @@
                 "partial": "Bazı sürüm notları yüklenemedi. Mevcut notlar gösteriliyor."
             },
             "outcome": {
+                "diagnosticsInstalledOriginalChanged": "Güncelleme geri alma kopyasını hazırlarken yüklü dosyalar değişti.",
+                "diagnosticsInterruptedPreparation": "Güncelleme, geri alma kopyasını hazırlarken kesintiye uğradı.",
+                "diagnosticsMessage": "Bu denemenin tanılama verileri SoAI bilgisayarında {location} konumuna kaydedildi. {summary} Başvuru numarası: {reference}.",
+                "diagnosticsRetainedCopyMismatch": "Yüklü dosyaların geri alma kopyası orijinallerle eşleşmedi.",
+                "diagnosticsSnapshotOperationFailed": "Bir dosya işlemi başarısız olduğu için geri alma kopyası tamamlanamadı.",
+                "diagnosticsSourceUnverifiable": "Geri alma kopyasını doğrulamak için yüklü dosyalar okunamadı.",
                 "failureMessage": "{version} sürümüne güncelleme tamamlanmadı. SoAI {previousVersion} hâlâ yüklü. Ayrıntılar için SoAI günlük klasöründeki application_updater.log dosyasını kontrol edin.",
                 "failureTitle": "Güncelleme tamamlanmadı",
                 "later": "Daha sonra",
                 "reloadMessage": "SoAI artık {version} sürümünü çalıştırıyor. Güncellenmiş arayüzü kullanmak için bu sayfayı yeniden yükleyin.",
                 "reloadTitle": "SoAI güncellendi",
-                "successMessage": "SoAI başarıyla {version} sürümüne güncellendi.",
-                "successTitle": "Güncelleme tamamlandı"
+                "successMessage": "{version} sürümü hazır.",
+                "successTitle": "SoAI güncellendi"
             },
             "progress": {
                 "downloading": "Güncelleme indiriliyor...",
@@ -8015,7 +8340,25 @@
                 "updating": "Güncelleniyor..."
             },
             "title": "Güncellemeler",
-            "unknown": "Bilinmiyor"
+            "unknown": "Bilinmiyor",
+            "backend": {
+                "failedUpdatesHeading": "Başarısız güncellemeler",
+                "availableHeading": "Arka uç güncellemeleri mevcut",
+                "updatingHeading": "Güncellemeler sürüyor",
+                "pendingHeading": "Bekleyen kontroller",
+                "failedHeading": "İlgilenilmesi gereken kontroller",
+                "reviewUpdate": "Güncellemeyi incele",
+                "reviewUpdates": "Güncellemeleri incele",
+                "viewPlugins": "Eklentileri görüntüle"
+            },
+            "history": {
+                "lastCheck": "Son kontrol: {date}.",
+                "lastUpdate": "Son güncelleme: {date}.",
+                "savedResults": "{date} tarihinden kaydedilmiş sonuçlar. Yenilemek için tekrar kontrol edin.",
+                "restored": "Kaydedilmiş güncelleme bilgileri. Yenilemek için tekrar kontrol edin.",
+                "unavailable": "Güncelleme geçmişi yüklenemedi veya kaydedilemedi. Güncellemeleri tekrar kontrol edin.",
+                "saved": "Kaydedilmiş sonuç"
+            }
         },
         "wizard": {
             "completion": {
@@ -8252,7 +8595,8 @@
                             "recommended": "Önerilen",
                             "warning": "Uyarı",
                             "unavailable": "Kullanılamıyor"
-                        }
+                        },
+                        "automaticRuntime": "{engine} için çalışma zamanı kurulum sırasında seçilecek. Hızlandırma henüz doğrulanmadı."
                     }
                 },
                 "models": {
@@ -8321,19 +8665,20 @@
                     "retryInstallation": "Yüklemeyi tekrar dene",
                     "skipItem": "Bu öğeyi atla",
                     "testAgain": "Yeniden test et",
-                    "checkAgain": "Yeniden denetle",
                     "sendTest": "Test mesajı gönder",
                     "error": {
                         "empty": "Model yüklendi ancak yanıt vermedi. Tekrar deneyin veya başka bir model seçin.",
-                        "loadError": "Model bu cihazda başlatılamadı. Tekrar deneyin veya daha küçük bir model seçin.",
+                        "loadError": "Model testi başarısız oldu. Nedeni inceleyip giderin ve yeniden deneyin.",
                         "timeout": "Modelin yanıt vermesi çok uzun sürdü. Tekrar deneyin veya daha küçük bir model seçin.",
                         "disconnected": "Test sırasında bağlantı kesildi. Tekrar deneyin.",
                         "downloadFailed": "İndirme durdu. Tekrar deneyin.",
                         "installFailed": "Yükleme tamamlanmadı. Tekrar deneyin.",
-                        "noDiskSpace": "Bu model için yeterli disk alanı yok. Yer açın veya daha küçük bir model seçin."
+                        "noDiskSpace": "Bu model için yeterli disk alanı yok. Yer açın veya daha küçük bir model seçin.",
+                        "discoveryFailed": "İndirme tamamlandı ancak model kataloğa eklenemedi. İncelemek için Modeller bölümünü açın veya kurulumu daha sonra tamamlayın."
                     },
                     "testPrompt": "Kısa ve samimi tek bir cümleyle yanıt ver.",
-                    "testCancelled": "SoAI kurulum testi iptal edildi."
+                    "testCancelled": "SoAI kurulum testi iptal edildi.",
+                    "useCpuRuntime": "CPU çalışma ortamını kullan"
                 },
                 "completion": {
                     "modelsTitle": "Yapay zekâ modelleri",
@@ -8362,6 +8707,40 @@
                     "both": "Model indirmeleri ve arka uç yüklemeleri arka planda devam edecek."
                 }
             }
+        },
+        "speechSetup": {
+            "notTranscribed": "Konuşma yazıya dökülmedi",
+            "askAdministrator": "Konuşmayı metne dönüştürmeyi kurması için bir yöneticiye başvurun.",
+            "askAdministratorTextToSpeech": "Metinden konuşmaya dönüştürmeyi kurması için bir yöneticiye başvurun.",
+            "installBackend": "{plugin} arka ucunu kur",
+            "enablePlugin": "{plugin} eklentisini etkinleştir",
+            "changeModel": "Konuşma modelini değiştir",
+            "openPlugins": "Eklentileri aç",
+            "addAgain": "Konuşma tanıma artık kullanılabilir. Yazıya dökmek için dosyayı yeniden yükleyin.",
+            "checking": "Konuşmayı metne dönüştürme kullanılabilirliği denetleniyor…",
+            "checkingTextToSpeech": "Metinden konuşmaya dönüştürme kullanılabilirliği denetleniyor…",
+            "errors": {
+                "noPlugin": "Kurulu hiçbir eklenti yerel konuşma tanıma sağlamıyor.",
+                "noModel": "Kurulu yerel konuşma tanıma modeli yok.",
+                "notLocal": "Medya yazıya yerel olarak dökülür. Yerel bir konuşma tanıma modeli seçin.",
+                "translationUnsupported": "Kurulu yerel konuşma modelleri çeviriyi desteklemiyor. Çok dilli bir model seçin.",
+                "unsupportedOption": "{model}, bu istek için gerekli zaman bilgilerini veya dili sağlayamıyor. Başka bir konuşma modeli seçin.",
+                "configuredModelMissing": "Seçili konuşma tanıma modeli kullanılamıyor.",
+                "mediaDependencyUnavailable": "Medya işleme için FFmpeg ve ffprobe gerekir. FFmpeg’i yükleyip yeniden deneyin.",
+                "noVoiceModel": "Kullanılabilir konuşmadan metne modeli yok.",
+                "noTextToSpeechModel": "Kullanılabilir metinden konuşmaya modeli yok.",
+                "backendNotInstalled": "Konuşma tanıma eklentisinin arka ucu kurulu değil.",
+                "textToSpeechBackendNotInstalled": "Metinden konuşmaya eklentisinin arka ucu kurulu değil.",
+                "pluginDisabled": "Konuşma tanıma eklentisi devre dışı.",
+                "textToSpeechPluginDisabled": "Metinden konuşmaya eklentisi devre dışı.",
+                "modelDisabled": "Kurulu konuşma tanıma modelleri devre dışı veya kullanılamıyor.",
+                "textToSpeechModelDisabled": "Kurulu metinden konuşmaya modelleri devre dışı veya kullanılamıyor.",
+                "unsupportedOptionSelected": "Seçili konuşma modeli bu istek için gerekli zaman bilgilerini veya dili sağlayamıyor. Başka bir konuşma modeli seçin."
+            },
+            "notTranscribedNotice": "Konuşma yazıya dökülmedi. Konuşma tanımayı kurun, ardından dosyayı yeniden yükleyin.",
+            "notTranscribedAskAdministrator": "Konuşma yazıya dökülmedi. Konuşmayı metne dönüştürmeyi kurması için bir yöneticiye başvurun, ardından dosyayı yeniden yükleyin.",
+            "openModels": "Modelleri aç",
+            "openSettings": "Konuşmadan metne ayarları"
         }
     }
 }

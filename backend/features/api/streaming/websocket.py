@@ -16,10 +16,15 @@ from core.events.types_base import Event
 from core.logging.protocols import LoggerProtocol
 from core.runtime.protocols import RequestProtocol
 from core.runtime.proxy_headers import resolve_client_ip_from_chain
+from core.runtime.soai_identifiers import create_system_id
 from core.state.access import AccessAction
 from features.api.middleware.security.networks import is_ip_network_tuple
+from features.api.routes.system.events.websocket_transport_lifecycle import (
+    WebsocketTerminalErrorDelivery,
+)
 from features.api.runtime.app_state_access import require_app_state
 from features.api.runtime.context import ApiContext
+from features.api.streaming.websocket_authorization import WebsocketAuthorization
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -92,7 +97,6 @@ def resolve_websocket_client_host(websocket: WebSocket) -> str:
 class WebSocketRequestAdapter:
 
     def __init__(self, websocket: WebSocket) -> None:
-        self._websocket = websocket
         self.url = websocket.url
         self.scope = websocket.scope
         self.method = "GET"
@@ -125,6 +129,16 @@ class WebsocketConnection:
         jti: str,
         trace_id: str | None = None,
     ) -> None:
+        self.authorization = WebsocketAuthorization(
+            logger=logger,
+            cancellation_binder=api_context.dependencies.task_cancellation_binder,
+            finalizer_tracker=api_context.dependencies.task_finalizer_tracker,
+            cancellation_id=create_system_id(
+                subsystem="ws_authorization",
+                owner=trace_id or "unknown",
+                include_random_suffix=True,
+            ),
+        )
         self.websocket = websocket
         self.request = request
         self.api_context = api_context
@@ -145,6 +159,7 @@ class WebsocketConnection:
         self.openai_audio_speech_sessions: dict[str, OpenAiAudioSpeechSessionRuntime] = {}
         self.openai_image_generations: dict[str, OpenAiImageGenerationRuntime] = {}
         self.queue: asyncio.Queue[JSONDict] = asyncio.Queue(maxsize=5000)
+        self.terminal_error = WebsocketTerminalErrorDelivery()
         self.subscribed_types: set[type[Event]] = set()
         self.resource_interests: set[str] = set()
         self.resource_interest_event_types: set[type[Event]] = set()

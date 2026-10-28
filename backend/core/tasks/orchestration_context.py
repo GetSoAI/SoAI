@@ -9,12 +9,14 @@ import uuid
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from core.errors.payload import ErrorPublicPayload
 from core.orchestrator.request_priority import (
     RequestPriorityAssignment,
     build_default_priority_assignment,
 )
 from core.runtime.request_sources import RequestSource
 from core.serialization.json import serialize_json_compact_stable
+from core.tasks.execution_budget import ExecutionBudget
 from core.tasks.orchestration_context_persistence import (
     deserialize_orchestration_context,
     serialize_orchestration_context,
@@ -30,6 +32,13 @@ __all__ = (
     "build_startup_param_fingerprint",
     "with_parameter_snapshot_state",
 )
+
+
+@dataclass(frozen=True, slots=True)
+class ExecutionTimeoutClaim:
+    public_error: ErrorPublicPayload
+    delivery_version: int
+    delivery_started: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +83,9 @@ class OrchestrationContext:
     delivery_in_progress: bool = False
     delivery_version: int = 0
     streaming_started: bool = False
+    execution_generation: int = 0
+    execution_budget: ExecutionBudget | None = None
+    execution_timeout_claim: ExecutionTimeoutClaim | None = None
     prompt_slot_active: bool = False
     prompt_slot_generation: int | None = None
 

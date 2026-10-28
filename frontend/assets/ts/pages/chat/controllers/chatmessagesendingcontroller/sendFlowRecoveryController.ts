@@ -5,25 +5,12 @@ import { i18n } from '@core/i18n/index.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { restoreConversationMutationSnapshot, type ConversationMutationSnapshot } from '@features/chat/public.ts';
 import { blockQueuedSend } from '@pages/chat/controllers/chatmessagesendingcontroller/constants.ts';
-import { refreshComposerState, restoreComposerInput } from '@pages/chat/controllers/chatmessagesendingcontroller/effects.ts';
+import { refreshComposerState } from '@pages/chat/controllers/chatmessagesendingcontroller/effects.ts';
 import type { Conversation, MessageSendingHost, QueuedSendOutcome } from '@pages/chat/controllers/chatmessagesendingcontroller/types.ts';
 
 const isWorkspaceScopeChangedError = (error: Error): boolean => {
     const normalized = error.message.trim().toLowerCase();
     return normalized.includes('workspace scope changed') || normalized.includes('conversation workspace path') || normalized.includes('conversation folder override');
-};
-
-const restoreComposerForUnpersistedPayload = (inputArguments: { host: MessageSendingHost; conversationId: string; composerTextForClearing: string; didPrepareComposerSurface: boolean; didClearComposerInput: boolean; didPersistConversation: boolean }): void => {
-    if (inputArguments.didPersistConversation || inputArguments.host.conversation.getCurrentConversation()?.id !== inputArguments.conversationId) {
-        return;
-    }
-    if (inputArguments.didClearComposerInput) {
-        restoreComposerInput(inputArguments.host, inputArguments.composerTextForClearing);
-    }
-    if (inputArguments.didPrepareComposerSurface) {
-        inputArguments.host.presentation.renderAttachedFilesPreview();
-    }
-    refreshComposerState(inputArguments.host);
 };
 
 const blockSendForConversationMismatch = (inputArguments: { host: MessageSendingHost; conversation: Conversation; mutationSnapshot: ConversationMutationSnapshot; restoreConversation: boolean; workspaceCurrent: boolean }): QueuedSendOutcome => {
@@ -37,15 +24,7 @@ const blockSendForConversationMismatch = (inputArguments: { host: MessageSending
     return blockQueuedSend('conversation-mismatch');
 };
 
-const recoverFailedSendSurface = async (inputArguments: { host: MessageSendingHost; conversation: Conversation; conversationId: string; mutationSnapshot: ConversationMutationSnapshot; restoreConversation: boolean; composerTextForClearing: string; didPrepareComposerSurface: boolean; didClearComposerInput: boolean; didPersistConversation: boolean }): Promise<void> => {
-    restoreComposerForUnpersistedPayload({
-        host: inputArguments.host,
-        conversationId: inputArguments.conversationId,
-        composerTextForClearing: inputArguments.composerTextForClearing,
-        didPrepareComposerSurface: inputArguments.didPrepareComposerSurface,
-        didClearComposerInput: inputArguments.didClearComposerInput,
-        didPersistConversation: inputArguments.didPersistConversation
-    });
+const recoverFailedSendSurface = async (inputArguments: { host: MessageSendingHost; conversation: Conversation; conversationId: string; mutationSnapshot: ConversationMutationSnapshot; restoreConversation: boolean }): Promise<void> => {
     if (inputArguments.restoreConversation) {
         restoreConversationMutationSnapshot(inputArguments.conversation, inputArguments.mutationSnapshot);
     }
@@ -61,4 +40,4 @@ const recoverFailedSendSurface = async (inputArguments: { host: MessageSendingHo
     }
 };
 
-export { blockSendForConversationMismatch, isWorkspaceScopeChangedError, recoverFailedSendSurface, restoreComposerForUnpersistedPayload };
+export { blockSendForConversationMismatch, isWorkspaceScopeChangedError, recoverFailedSendSurface };

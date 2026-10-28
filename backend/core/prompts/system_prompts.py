@@ -27,24 +27,13 @@ __all__ = (
     "get_agent_compaction_summary_system_text_v1",
     "get_agent_mode_template_v1",
     "get_compaction_summary_system_text_v1",
-    "get_required_tool_call_system_text_v1",
     "get_required_visible_output_system_text_v1",
     "get_soai_policy_template_v1",
-    "get_soai_system_prompt_marker_v1",
-    "get_soai_system_prompt_template_v1",
     "get_text_prompt_v1",
     "load_system_prompts_catalog",
     "render_soai_system_prompt_v1",
     "render_text_prompt_template_v1",
 )
-
-
-def get_soai_system_prompt_template_v1() -> str:
-    return load_system_prompts_catalog().soai_system_prompt_v1.template
-
-
-def get_soai_system_prompt_marker_v1() -> str:
-    return load_system_prompts_catalog().soai_system_prompt_v1.marker
 
 
 def render_soai_system_prompt_v1(
@@ -86,10 +75,6 @@ def get_compaction_summary_system_text_v1() -> str:
 
 def get_agent_compaction_summary_system_text_v1() -> str:
     return load_system_prompts_catalog().agent_compaction_summary_system_text_v1
-
-
-def get_required_tool_call_system_text_v1() -> str:
-    return load_system_prompts_catalog().required_tool_call_system_text_v1
 
 
 def get_required_visible_output_system_text_v1() -> str:

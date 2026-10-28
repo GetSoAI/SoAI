@@ -7,6 +7,8 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 from core.agent.protocols import AgentSubagentServiceProtocol
+from core.concurrency.bounded_blocking import shutdown_bounded_pool_executor
+from core.math.symbolic_process import SymbolicMathRunner
 from core.mcp.protocols_main import ShellBackgroundServiceProtocol
 from mcp.tools.generate_image_horde_rate_limit import AnonymousHordeRateGate
 from mcp.tools.handlers import build_internal_utility_tool_handlers
@@ -27,6 +29,7 @@ __all__ = (
 class MCPUtilityTools:
     def __init__(self, deps: MCPUtilityToolsDependencies) -> None:
         self.config = deps.config
+        self.numeric_math_pool = deps.numeric_math_pool
         self.storage_manager = deps.storage_manager
         self.hardware_manager = deps.hardware_manager
         self.hardware_control = deps.hardware_control
@@ -36,6 +39,7 @@ class MCPUtilityTools:
         self.web_fetcher = deps.web_fetcher
         self.read_audio_gateway = deps.read_audio_gateway
         self.generate_image_horde_rate_gate = AnonymousHordeRateGate()
+        self.symbolic_math_runner = SymbolicMathRunner()
         self.news_provider_control = NewsProviderAccessController()
         self.news_article_list_search = NewsArticleListSearch()
         self.news_cache = NewsResponseCache()
@@ -61,6 +65,7 @@ class MCPUtilityTools:
         self.database_automation_runs = deps.database_automation_runs
         self.database_tool_calls = deps.database_tool_calls
         self.database_read_video = deps.database_read_video
+        self.database_skills = deps.database_skills
         self.task_registry = deps.task_registry
         self.task_cancellation_binder = deps.task_cancellation_binder
         self.model_resolution_service = deps.model_resolution_service
@@ -89,6 +94,7 @@ class MCPUtilityTools:
         self.shell_background_service = service
 
     async def shutdown(self) -> None:
+        shutdown_bounded_pool_executor(self.numeric_math_pool)
         if self.shell_background_service is not None:
             await self.shell_background_service.shutdown()
         await self.browser_sessions.shutdown()

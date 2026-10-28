@@ -1,12 +1,12 @@
 /* SoAI - Plugins feature manage backend modal rendering [frontend/assets/ts/features/plugins/modals/backend/managebackendmodal/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { canCheckPluginBackend, canUpdatePluginBackend } from '@core/plugins/backendUpdates.ts';
 import { toTrustedUiHtml } from '@core/security/public.ts';
-import { renderInlineLoadingStatus } from '@core/ui/loadingStatus.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
 import { getPluginSystemRequirementMessages } from '@core/plugins/systemRequirements.ts';
-import { PLUGIN_STATUS_BACKEND_INSTALLING, PLUGIN_STATUS_BACKEND_NOT_INSTALLED, PLUGIN_STATUS_BACKEND_UPDATING, PLUGIN_STATUS_INSTALL_ERROR } from '@core/state/pluginStatus.ts';
+import { PLUGIN_STATUS_BACKEND_INSTALLING, PLUGIN_STATUS_BACKEND_NOT_INSTALLED, PLUGIN_STATUS_BACKEND_UPDATING, PLUGIN_STATUS_INSTALL_ERROR, PLUGIN_STATUS_REMOVING_BACKEND } from '@core/state/pluginStatus.ts';
 import type { BackendVariantsResponse, PluginBackendUpdateStatus } from '@core/api/contracts/pluginManagementContracts.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import { setElementDisabledState } from '@features/plugins/contracts/pluginPageSupport.ts';
@@ -15,9 +15,11 @@ import { bindBackendWebsiteLinkClick } from '@features/plugins/modals/backend/ba
 import { buildBackendWebsiteLink, getBackendWebsiteUrl } from '@features/plugins/modals/backend/backendWebsiteLink.ts';
 import { normalizeBackendVariantOptions } from '@features/plugins/modals/backend/backendVariantOptions.ts';
 import { setBackendVariantSelectorDisabled } from '@features/plugins/modals/backend/backendVariantSelector.ts';
+import { renderManageBackendInfoStatus } from '@features/plugins/modals/backend/managebackendmodal/backendInfo.ts';
 import type { ManageBackendManagerHost, ManageClassNames, ManageState } from '@features/plugins/modals/backend/managebackendmodal/types.ts';
 
 interface ManageInfoViewDependencies {
+    classNames: ManageClassNames;
     host: ManageBackendManagerHost;
     security: BackendManagerSecurity;
 }
@@ -39,46 +41,8 @@ interface ManageUpdateViewDependencies extends ManageButtonsViewDependencies {
     security: BackendManagerSecurity;
 }
 
-type ManageBackendBadgeState = 'loading' | 'ready' | 'installing' | 'uninstalling';
-const BACKEND_REMOVING_STATUS = 'REMOVING_BACKEND';
-
-const renderManageBackendBadge = (badge: HTMLElement, pluginStatus: string, state: ManageBackendBadgeState): void => {
-    let badgeState: 'loading' | 'needs-install' | 'installing' | 'uninstalling' | null = state === 'ready' ? null : state;
-    if (state === 'ready') {
-        if (pluginStatus === PLUGIN_STATUS_BACKEND_NOT_INSTALLED || pluginStatus === PLUGIN_STATUS_INSTALL_ERROR) {
-            badgeState = 'needs-install';
-        } else if (pluginStatus === PLUGIN_STATUS_BACKEND_INSTALLING) {
-            badgeState = 'installing';
-        } else if (pluginStatus === BACKEND_REMOVING_STATUS) {
-            badgeState = 'uninstalling';
-        }
-    }
-    let text = '';
-    if (badgeState === 'loading') {
-        text = i18n.t('plugins.modal.backendVariants.loadingBackends');
-    } else if (badgeState === 'installing') {
-        text = `${i18n.t('plugins.loading.installingBackend')}...`;
-    } else if (badgeState === 'uninstalling') {
-        text = `${i18n.t('plugins.loading.uninstallingBackend')}...`;
-    } else if (badgeState === 'needs-install') {
-        text = i18n.t('plugins.modal.installBackend.needsInstall');
-    }
-    const localBackendOperation = state === 'installing' || state === 'uninstalling';
-    const badgeStateMatches = (badge.dataset['state'] ?? null) === badgeState;
-    const operationStateMatches = badge.hasAttribute('data-local-backend-operation') === localBackendOperation;
-    if (state === 'ready' && badgeStateMatches && operationStateMatches) {
-        return;
-    }
-    if (badgeState) {
-        badge.dataset['state'] = badgeState;
-    } else {
-        delete badge.dataset['state'];
-    }
-    badge.toggleAttribute('data-local-backend-operation', localBackendOperation);
-    renderInlineLoadingStatus(badge, { text, loading: badgeState === 'loading' || badgeState === 'installing' || badgeState === 'uninstalling' });
-};
-
 const renderManageBackendInfo = (dependencies: ManageInfoViewDependencies, modalId: string, modalRoot: HTMLElement, plugin: PluginRecord, loadingVariants: boolean): void => {
+    dependencies.host.view.addClassName(dependencies.host.view.requireHTMLElement(modalUiSelector(modalId, 'retry-variants'), modalRoot), dependencies.classNames.hidden);
     const info = dependencies.host.view.requireHTMLElement(modalUiSelector(modalId, 'plugin-info'), modalRoot);
     const unknown = i18n.t('common.unknown');
     const name = String(plugin.displayName ?? '').trim() || dependencies.host.operations.formatPluginName(String(plugin.name)) || unknown;
@@ -99,7 +63,7 @@ const renderManageBackendInfo = (dependencies: ManageInfoViewDependencies, modal
         <span id="${ledId}" class="status-indicator plugin-info-led"></span>
         <span data-tooltip="${esc(name)}">${esc(name)} ${i18n.t('plugins.modal.manageBackend.pluginSuffix')}</span>
         </div>
-        ${backendVersion ? `<div class="plugin-info-details"><span class="plugin-info-version plugin-backend-version">${i18n.t('plugins.modal.manageBackend.backend_version', { version: esc(backendVersion) })}</span></div>` : ''}
+        <div class="plugin-info-details"><span class="plugin-info-version plugin-backend-version">${i18n.t('plugins.modal.manageBackend.backend_version', { version: esc(backendVersion || unknown) })}</span></div>
         <div class="plugin-info-details"><span class="plugin-info-version">${i18n.t('plugins.modal.manageBackend.pluginVersion', { version: esc(pluginVersion) })}</span><span class="plugin-info-author">${i18n.t('plugins.modal.manageBackend.author', { author: esc(author) })}</span></div>
         <div class="plugin-info-details"><span class="plugin-info-status">${i18n.t('plugins.modal.manageBackend.backendStatus', { status: esc(backendStatus) })}</span></div>
         <div id="${modalUiId(modalId, 'installed-variant')}" class="plugin-info-details plugin-backend-variant" hidden></div>
@@ -108,17 +72,11 @@ const renderManageBackendInfo = (dependencies: ManageInfoViewDependencies, modal
         <div class="plugin-install-badge inline-loading-status u-hidden" role="status" aria-live="polite"></div>
         </div>`);
     dependencies.host.view.updateHTML(info, infoMarkup, { escape: false });
-    const badge = dependencies.host.view.requireHTMLElement('.plugin-install-badge', modalRoot);
-    renderManageBackendBadge(badge, dependencies.host.status.getPluginStatus(plugin), loadingVariants ? 'loading' : 'ready');
+    renderManageBackendInfoStatus(dependencies.host.view, dependencies.host.status, plugin, modalRoot, dependencies.host.status.getStatusManager(), loadingVariants ? 'loading' : 'ready', dependencies.host.catalog.isFresh());
 
     const linkElement = dependencies.host.view.optionalHTMLElement(modalUiSelector(modalId, 'website-link'), info);
     if (linkElement) {
         bindBackendWebsiteLinkClick(dependencies.host, linkElement);
-    }
-    const led = dependencies.host.view.optionalHTMLElement(modalUiSelector(modalId, 'info-led'), info);
-    const statusManager = dependencies.host.status.getStatusManager();
-    if (led && statusManager) {
-        statusManager.updateIndicator(led, dependencies.host.status.getPluginStatus(plugin));
     }
 };
 
@@ -160,7 +118,7 @@ const resetManageBackendButtons = (dependencies: ManageButtonsViewDependencies, 
 
 const canManageBackend = (dependencies: ManageButtonsViewDependencies, plugin: PluginRecord): boolean => {
     const status = dependencies.host.status.getPluginStatus(plugin);
-    return status !== PLUGIN_STATUS_BACKEND_NOT_INSTALLED && status !== PLUGIN_STATUS_INSTALL_ERROR && status !== PLUGIN_STATUS_BACKEND_INSTALLING && status !== PLUGIN_STATUS_BACKEND_UPDATING && status !== BACKEND_REMOVING_STATUS;
+    return status !== PLUGIN_STATUS_BACKEND_NOT_INSTALLED && status !== PLUGIN_STATUS_INSTALL_ERROR && status !== PLUGIN_STATUS_BACKEND_INSTALLING && status !== PLUGIN_STATUS_BACKEND_UPDATING && status !== PLUGIN_STATUS_REMOVING_BACKEND;
 };
 
 const canInstallBackend = (dependencies: ManageButtonsViewDependencies, plugin: PluginRecord): boolean => {
@@ -209,15 +167,15 @@ const renderManageBackendUpdateInfo = (dependencies: ManageUpdateViewDependencie
         const latest = dependencies.host.status.normalizeVersion(info?.latestVersion);
         const updateMarkup = toTrustedUiHtml(`<div class="form-group"><label>${i18n.t('plugins.modal.manageBackend.update_available')}</label>
                 <div class="version-comparison">
-                <div class="version-item"><span class="version-label">${i18n.t('plugins.modal.manageBackend.current_version')}</span><span class="version-value">${dependencies.security.escapeHtml(current.safe)}</span></div>
+                <div class="version-item"><span class="version-label">${i18n.t('plugins.modal.manageBackend.current_version')}</span><span class="version-value">${dependencies.security.escapeHtml(current.raw ?? i18n.t('common.unknown'))}</span></div>
                 <div class="version-arrow">→</div>
-                <div class="version-item"><span class="version-label">${i18n.t('plugins.modal.manageBackend.newVersion')}</span><span class="version-value version-new">${dependencies.security.escapeHtml(latest.safe)}</span></div>
+                <div class="version-item"><span class="version-label">${i18n.t('plugins.modal.manageBackend.newVersion')}</span><span class="version-value version-new">${dependencies.security.escapeHtml(latest.raw ?? i18n.t('common.unknown'))}</span></div>
                 </div></div>`);
         dependencies.host.view.updateHTML(versionInfo, updateMarkup, { escape: false });
     } else {
         const currentVersionMarkup = toTrustedUiHtml(`<div class="form-group"><label>${i18n.t('plugins.modal.manageBackend.upToDate')}</label>
                 <div class="version-comparison">
-                <div class="version-item"><span class="version-label">${i18n.t('plugins.modal.manageBackend.currentVersionLabel')}</span><span class="version-value">${dependencies.security.escapeHtml(current.safe)}</span></div>
+                <div class="version-item"><span class="version-label">${i18n.t('plugins.modal.manageBackend.currentVersionLabel')}</span><span class="version-value">${dependencies.security.escapeHtml(current.raw ?? i18n.t('common.unknown'))}</span></div>
                 </div></div>`);
         dependencies.host.view.updateHTML(versionInfo, currentVersionMarkup, { escape: false });
     }
@@ -229,8 +187,9 @@ const showManageBackendUpdateAvailable = (dependencies: ManageUpdateViewDependen
     renderManageBackendUpdateInfo(dependencies, modalId, modalRoot, info, true);
     const checkBtn = dependencies.host.view.requireHTMLElement(modalUiSelector(modalId, 'check-update'), modalRoot);
     dependencies.host.view.updateText(checkBtn, i18n.t('plugins.modal.manageBackend.update'));
-    checkBtn.className = 'ui-button ui-variant-accent';
+    checkBtn.className = 'ui-button ui-variant-primary backend-check-button';
     dependencies.host.view.setDataAttribute(checkBtn, 'mode', 'update');
+    setManageBackendButtonsDisabled(dependencies, modalId, modalRoot, !dependencies.state.backendVariantsReady || dependencies.state.operationActive);
 };
 
 const showManageBackendNoUpdateAvailable = (dependencies: ManageUpdateViewDependencies, modalId: string, modalRoot: HTMLElement): void => {
@@ -256,7 +215,12 @@ const setManageBackendButtonsDisabled = (dependencies: ManageButtonsViewDependen
     const checkBtn = dependencies.host.view.requireHTMLElement(modalUiSelector(modalId, 'check-update'), modalRoot);
     const uninstallBtn = dependencies.host.view.requireHTMLElement(modalUiSelector(modalId, 'uninstall'), modalRoot);
     const startBtn = dependencies.host.view.requireHTMLElement(modalUiSelector(modalId, 'start-install'), modalRoot);
-    setElementDisabledState(dependencies.host.view, checkBtn, disabled, dependencies.classNames.disabled);
+    const plugin = dependencies.host.catalog.getPlugin(dependencies.host.view.dom.getData(modalRoot, 'pluginName') ?? '');
+    const access = plugin ? dependencies.host.policy.backendUpdateAccess(plugin) : null;
+    const updateMode = dependencies.host.view.dom.getData(checkBtn, 'mode') === 'update';
+    const checkAllowed = plugin && access && (updateMode ? canUpdatePluginBackend(plugin, access) : canCheckPluginBackend(access));
+    setElementDisabledState(dependencies.host.view, dependencies.host.view.requireHTMLElement(modalUiSelector(modalId, 'retry-variants'), modalRoot), !access || !canCheckPluginBackend(access) || dependencies.host.view.optionalHTMLElement('.plugin-install-badge', modalRoot)?.hasAttribute('data-local-backend-operation') === true, dependencies.classNames.disabled);
+    setElementDisabledState(dependencies.host.view, checkBtn, disabled || !checkAllowed, dependencies.classNames.disabled);
     setElementDisabledState(dependencies.host.view, uninstallBtn, disabled, dependencies.classNames.disabled);
     setElementDisabledState(dependencies.host.view, startBtn, disabled, dependencies.classNames.disabled);
     setBackendVariantSelectorDisabled(dependencies.host, modalId, modalRoot, disabled);
@@ -283,4 +247,4 @@ const clearManageBackendModalView = (dependencies: ManageButtonsViewDependencies
     }
 };
 
-export { clearManageBackendModalView, hideManageBackendUpdateControls, renderManageBackendBadge, renderManageBackendInfo, renderManageBackendVariantInfo, renderManageBackendWarning, resetManageBackendButtons, setManageBackendButtonsDisabled, showManageBackendNoUpdateAvailable, showManageBackendUpdateAvailable, syncManageBackendFooterActions };
+export { clearManageBackendModalView, hideManageBackendUpdateControls, renderManageBackendInfo, renderManageBackendVariantInfo, renderManageBackendWarning, resetManageBackendButtons, setManageBackendButtonsDisabled, showManageBackendNoUpdateAvailable, showManageBackendUpdateAvailable, syncManageBackendFooterActions };

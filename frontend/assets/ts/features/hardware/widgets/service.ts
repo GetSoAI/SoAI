@@ -1,6 +1,7 @@
 /* SoAI - Hardware feature widgets service [frontend/assets/ts/features/hardware/widgets/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { resolveHardwareObservation } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { isFiniteNumber, isHTMLElement } from '@core/typeGuards.ts';
 import { WIDGET_SIZE, type WidgetSize } from '@features/hardware/widgets/constants.ts';
@@ -11,7 +12,7 @@ import { HardwareWidgetHistoryCoordinator } from '@features/hardware/widgets/his
 import type { CPUDevice, GPUDevice, HardwareData, HardwareSnapshot, NetworkDevice } from '@features/hardware/widgets/internalContracts.ts';
 import type { NetworkWidget } from '@features/hardware/widgets/NetworkWidget.ts';
 import type { HardwareWidgetManagerOptions } from '@features/hardware/widgets/types.ts';
-import { extractCpuDevices, extractGpuDevices, extractNetworkDevices } from '@features/hardware/widgets/mappers.ts';
+import { extractCpuDevices, extractGpuDevices, extractNetworkDevices, resolveGpuWidgetKey } from '@features/hardware/widgets/mappers.ts';
 
 type HardwarePayload = HardwareSnapshot | HardwareData;
 
@@ -32,13 +33,20 @@ const extractWidgetDevices = (hardware: HardwarePayload): HardwareWidgetDevices 
     network: extractNetworkDevices(hardware)
 });
 
-const serializeTopologyKeys = <TKey>(keys: Iterable<TKey>): string => JSON.stringify([...new Set(keys)]);
+const serializeTopologyKeys = <TKey>(keys: Iterable<TKey>): string =>
+    JSON.stringify(
+        [...new Set(keys)].sort((first, second) => {
+            const firstKey = String(first);
+            const secondKey = String(second);
+            return firstKey < secondKey ? -1 : firstKey > secondKey ? 1 : 0;
+        })
+    );
 
 class HardwareWidgetManager {
     readonly #container: HTMLElement;
     readonly #size: WidgetSize;
     #cpuWidgets: Map<number, CPUWidget> = new Map();
-    #gpuWidgets: Map<number, GPUWidget> = new Map();
+    #gpuWidgets: Map<string | number, GPUWidget> = new Map();
     #networkWidgets: Map<string, NetworkWidget> = new Map();
     readonly #historyCoordinator = new HardwareWidgetHistoryCoordinator();
     #initialized = false;
@@ -46,6 +54,7 @@ class HardwareWidgetManager {
     #pendingSnapshot: HardwarePayload | null = null;
     #lifecycleVersion = 0;
     #networkWidgetSequence = 0;
+    #gpuWidgetSequence = 0;
 
     constructor(options: HardwareWidgetManagerOptions) {
         if (!isHTMLElement(options.container)) {
@@ -77,7 +86,7 @@ class HardwareWidgetManager {
             await this.#runExclusive(snapshot, (lifecycleVersion) => this.#reconcileWidgets(snapshot, lifecycleVersion));
             return;
         }
-        this.#applyDevices(devices, new Set());
+        this.#applyDevices(devices, snapshot);
     }
 
     destroy(): void {
@@ -140,7 +149,7 @@ class HardwareWidgetManager {
         const devices = extractWidgetDevices(snapshot);
         const created = new Set<ManagedHardwareWidget>();
         let cpuWidgets: Map<number, CPUWidget>;
-        let gpuWidgets: Map<number, GPUWidget>;
+        let gpuWidgets: Map<string | number, GPUWidget>;
         let networkWidgets: Map<string, NetworkWidget>;
         try {
             cpuWidgets = await this.#collectWidgets(
@@ -150,13 +159,7 @@ class HardwareWidgetManager {
                 (cpu) => createCpuWidget(cpu, this.#size),
                 created
             );
-            gpuWidgets = await this.#collectWidgets(
-                devices.gpu,
-                (gpu) => gpu.index,
-                this.#gpuWidgets,
-                (gpu) => createGpuWidget(gpu, this.#size),
-                created
-            );
+            gpuWidgets = await this.#collectWidgets(devices.gpu, resolveGpuWidgetKey, this.#gpuWidgets, (gpu) => createGpuWidget(gpu, this.#size, this.#nextGpuWidgetId()), created);
             networkWidgets = await this.#collectWidgets(
                 devices.network,
                 (network) => network.deviceId,
@@ -183,7 +186,7 @@ class HardwareWidgetManager {
             this.#container,
             [...cpuWidgets.values(), ...gpuWidgets.values(), ...networkWidgets.values()].map((widget) => widget.container)
         );
-        this.#applyDevices(devices, created);
+        this.#applyDevices(devices, snapshot);
         this.#initialized = true;
         await this.#historyCoordinator.fetchHistoricalData(devices.cpu, devices.gpu, devices.network, snapshot, {
             cpuWidgets: this.#cpuWidgets,
@@ -193,15 +196,11 @@ class HardwareWidgetManager {
     }
 
     async #collectWidgets<TKey, TDevice, TWidget extends ManagedHardwareWidget>(devices: ReadonlyArray<TDevice>, resolveKey: (device: TDevice) => TKey, current: ReadonlyMap<TKey, TWidget>, create: (device: TDevice) => Promise<TWidget>, created: Set<ManagedHardwareWidget>): Promise<Map<TKey, TWidget>> {
-        const next = new Map<TKey, TWidget>();
+        const active = new Set(devices.map(resolveKey));
+        const next = new Map([...current].filter(([key]) => active.has(key)));
         for (const device of devices) {
             const key = resolveKey(device);
             if (next.has(key)) {
-                continue;
-            }
-            const existing = current.get(key);
-            if (existing) {
-                next.set(key, existing);
                 continue;
             }
             const widget = await create(device);
@@ -220,25 +219,36 @@ class HardwareWidgetManager {
         }
     }
 
-    #applyDevices(devices: HardwareWidgetDevices, skip: ReadonlySet<ManagedHardwareWidget>): void {
+    #applyDevices(devices: HardwareWidgetDevices, snapshot: HardwarePayload): void {
         for (const cpu of devices.cpu) {
             const widget = this.#cpuWidgets.get(cpu.socketIndex);
-            if (widget && !skip.has(widget)) {
+            if (widget) {
+                const observation = resolveHardwareObservation(snapshot, 'cpus') ?? resolveHardwareObservation(snapshot, 'cpu');
+                widget.updateMonitoring({ core: observation, power: observation, temperature: observation, ram: resolveHardwareObservation(snapshot, 'memory') }, snapshot.timestampMs, snapshot.capabilities?.monitoringIntervalMs ?? 1000);
                 widget.updateConfig({ name: cpu.name, sockets: cpu.sockets, cores: cpu.cores, threads: cpu.threads });
                 widget.updateData(cpu.data);
             }
         }
         for (const gpu of devices.gpu) {
-            const widget = this.#gpuWidgets.get(gpu.index);
-            if (widget && !skip.has(widget)) {
-                widget.updateConfig({ name: gpu.name });
+            const widget = this.#gpuWidgets.get(resolveGpuWidgetKey(gpu));
+            if (widget) {
+                const observation = resolveHardwareObservation(snapshot, 'gpu', gpu.data.telemetryObservation);
+                widget.updateMonitoring({ core: observation, power: observation, temperature: observation, vram: resolveHardwareObservation(snapshot, 'gpu', gpu.data.memoryTotalObservation) }, snapshot.timestampMs, snapshot.capabilities?.monitoringIntervalMs ?? 1000);
+                widget.updateConfig({ index: gpu.index, name: gpu.name });
                 widget.updateData(gpu.data);
             }
         }
+        if (devices.network.length === 0) return;
+        const networkIndices = new Map<string, number>();
+        for (const deviceId of this.#networkWidgets.keys()) {
+            networkIndices.set(deviceId, networkIndices.size);
+        }
         for (const network of devices.network) {
             const widget = this.#networkWidgets.get(network.deviceId);
-            if (widget && !skip.has(widget)) {
-                widget.updateConfig({ index: network.index, name: network.name });
+            if (widget) {
+                const observation = resolveHardwareObservation(snapshot, 'network_speed');
+                widget.updateMonitoring({ download: observation, upload: observation }, snapshot.timestampMs, snapshot.capabilities?.monitoringIntervalMs ?? 1000);
+                widget.updateConfig({ index: networkIndices.get(network.deviceId), name: network.name });
                 widget.updateData(network.data);
             }
         }
@@ -263,7 +273,12 @@ class HardwareWidgetManager {
     }
 
     #hasTopologyChanged(devices: HardwareWidgetDevices): boolean {
-        return serializeTopologyKeys(devices.cpu.map((cpu) => cpu.socketIndex)) !== serializeTopologyKeys(this.#cpuWidgets.keys()) || serializeTopologyKeys(devices.gpu.map((gpu) => gpu.index)) !== serializeTopologyKeys(this.#gpuWidgets.keys()) || serializeTopologyKeys(devices.network.map((network) => network.deviceId)) !== serializeTopologyKeys(this.#networkWidgets.keys());
+        return serializeTopologyKeys(devices.cpu.map((cpu) => cpu.socketIndex)) !== serializeTopologyKeys(this.#cpuWidgets.keys()) || serializeTopologyKeys(devices.gpu.map(resolveGpuWidgetKey)) !== serializeTopologyKeys(this.#gpuWidgets.keys()) || serializeTopologyKeys(devices.network.map((network) => network.deviceId)) !== serializeTopologyKeys(this.#networkWidgets.keys());
+    }
+
+    #nextGpuWidgetId(): string {
+        this.#gpuWidgetSequence += 1;
+        return `gpu-widget-${this.#gpuWidgetSequence}`;
     }
 
     #nextNetworkWidgetId(): string {

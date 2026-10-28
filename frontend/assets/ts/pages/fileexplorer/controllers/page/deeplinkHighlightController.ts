@@ -1,6 +1,7 @@
 /* SoAI - File explorer page control layer deeplink highlight controller [frontend/assets/ts/pages/fileexplorer/controllers/page/deeplinkHighlightController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { scrollElementIntoView } from '@core/scroll.ts';
 import { dom } from '@core/dom/dom.ts';
 import { getWindow } from '@core/environment/globalScope.ts';
 import { toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
@@ -76,7 +77,7 @@ const createFileExplorerDeeplinkHighlightController = (dependencies: FileExplore
         clearHighlightClasses();
         row.classList.add(HIGHLIGHT_ROW_CLASS);
         if (highlightScrolledSequence !== highlightSequence) {
-            row.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+            scrollElementIntoView(row, { block: 'center', inline: 'nearest' });
             highlightScrolledSequence = highlightSequence;
         }
         if (highlightTimeoutId === null) {

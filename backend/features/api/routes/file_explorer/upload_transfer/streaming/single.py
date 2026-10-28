@@ -8,14 +8,13 @@ from fastapi.responses import JSONResponse
 
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_logging import log_handled_exception
-from core.errors.public_projection import build_error_payload
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.files.commit_receipt import FileCommitReceipt, FilePublicationUncertainError
 from core.files.move_with_cancellation import MoveFileCommittedAfterCancellationError
 from core.files.protocols_explorer import (
     FileExplorerCoreProtocol,
     FileSystemRootScopeProtocol,
 )
-from core.files.upload_staging import cleanup_temp_file
 from core.logging.trace import get_logger
 from core.tasks.cancellation_token_scope import cancellation_token_scope
 from core.tasks.enums import TaskStatus
@@ -25,9 +24,7 @@ from features.api.routes.file_explorer.upload_transfer.streaming.single_error_ha
 from features.api.routes.file_explorer.upload_transfer.streaming.single_staging import (
     prepare_single_staged_upload,
 )
-from features.api.routes.file_explorer.upload_transfer_cleanup import (
-    cleanup_cancelled_upload_destination,
-)
+from features.api.routes.file_explorer.upload_transfer_cleanup import settle_upload_resources
 from features.api.routes.file_explorer.upload_transfer_route_setup import (
     build_upload_progress_pump,
     setup_file_explorer_streaming_upload_route,
@@ -68,9 +65,8 @@ async def handle_streaming_file_upload(
         api_context=api_context,
         label="file",
     )
-    staged_path: str | None = None
-    moved_destination = False
-    real_destination: str | None = None
+    staged_paths: list[str] = []
+    receipt: FileCommitReceipt | None = None
     virtual_destination: str | None = None
     staged_size: int | None = None
     safe_filename: str | None = None
@@ -84,8 +80,8 @@ async def handle_streaming_file_upload(
         file_explorer_core=file_explorer_core,
     )
 
-    try:
-        async with error_guard:
+    async with error_guard:
+        async with settle_upload_resources(progress, staged_paths):
             progress.start()
             async with cancellation_token_scope(
                 api_context.dependencies.token_collection,
@@ -107,67 +103,35 @@ async def handle_streaming_file_upload(
                     progress=progress,
                 )
                 staged_path = staged_upload.staged_path
+                staged_paths.append(staged_path)
                 staged_size = staged_upload.staged_size
                 safe_filename = staged_upload.safe_filename
                 virtual_destination = staged_upload.virtual_destination
-                real_destination = staged_upload.real_destination
                 error_guard.set_upload_state(safe_filename=safe_filename)
                 error_guard.set_upload_state(
                     virtual_destination=virtual_destination,
-                    real_destination=real_destination,
                 )
                 token.raise_if_cancelled()
                 try:
-                    real_destination = await file_explorer_core.move_staged_upload(
+                    receipt = await file_explorer_core.move_staged_upload(
                         root_scope=root_scope,
                         temp_path=staged_path,
                         expected_size=staged_size,
+                        expected_sha256=staged_upload.content_sha256,
+                        file_content_pool=api_context.dependencies.file_content_pool,
                         virtual_destination=virtual_destination,
                         token=token,
                         create_missing_parents=False,
                     )
                 except MoveFileCommittedAfterCancellationError as exception:
-                    real_destination = exception.destination_path
-                    moved_destination = True
-                    staged_path = None
-                    error_guard.set_upload_state(
-                        moved_destination=moved_destination,
-                        real_destination=real_destination,
-                        virtual_destination=virtual_destination,
-                    )
-                    await cleanup_cancelled_upload_destination(
-                        root_scope=root_scope,
-                        file_explorer_core=file_explorer_core,
-                        virtual_path=virtual_destination,
-                        real_path=real_destination,
-                        logger=get_logger(LOGGER_NAME),
-                        operation="file_explorer.upload.cancel_cleanup_after_commit",
-                    )
-                    await finalize_task_safely(
-                        registry=registry,
-                        task_id=task_context.task_id,
-                        status=TaskStatus.CANCELLED,
-                        trace_id=task_context.trace_id,
-                        operation="file_explorer.upload.single.finalize_cancelled_after_commit",
-                        error_message=str(exception),
-                        status_message=str(exception),
-                    )
-                    return create_json_response_with_task_id(
-                        build_error_payload(
-                            "File explorer upload was cancelled.",
-                            code="cancelled",
-                            details={"task_id": task_context.task_id},
-                            trace_id=task_context.trace_id,
-                        ),
-                        task_context.task_id,
-                        499,
-                    )
-                moved_destination = True
-                staged_path = None
-                error_guard.set_upload_state(
-                    moved_destination=moved_destination,
-                    real_destination=real_destination,
-                )
+                    if exception.receipt is None:
+                        raise FilePublicationUncertainError(
+                            "The upload worker supplied no verified publication receipt."
+                        ) from exception
+                    receipt = exception.receipt
+                    error_guard.set_upload_state(receipt=receipt)
+                    raise
+                error_guard.set_upload_state(receipt=receipt)
                 token.raise_if_cancelled()
                 try:
                     await file_explorer_core.notify_upload_complete(
@@ -184,7 +148,8 @@ async def handle_streaming_file_upload(
                         level="debug",
                     )
                 token.raise_if_cancelled()
-            await finalize_task_safely(
+        await uncancel_then_cleanup(
+            finalize_task_safely(
                 registry=registry,
                 task_id=task_context.task_id,
                 status=TaskStatus.COMPLETED,
@@ -197,22 +162,17 @@ async def handle_streaming_file_upload(
                 },
                 status_message=f"Uploaded {safe_filename}" if safe_filename else "Upload complete",
             )
-            response = create_json_response_with_task_id(
-                {
-                    "status": "ok",
-                    "path": virtual_destination or base_path,
-                    "size": staged_size or 0,
-                    "task_id": task_context.task_id,
-                },
-                task_context.task_id,
-                status.HTTP_201_CREATED,
-            )
-    finally:
-        try:
-            await uncancel_then_cleanup(progress.close(final_bytes_done=staged_size))
-        finally:
-            if staged_path:
-                await uncancel_then_cleanup(cleanup_temp_file(staged_path))
+        )
+        response = create_json_response_with_task_id(
+            {
+                "status": "ok",
+                "path": virtual_destination or base_path,
+                "size": staged_size or 0,
+                "task_id": task_context.task_id,
+            },
+            task_context.task_id,
+            status.HTTP_201_CREATED,
+        )
     if response is None:
         raise_server_error(request, "File explorer upload failed to build a response.")
     return response

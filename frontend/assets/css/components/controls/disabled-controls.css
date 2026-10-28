@@ -2,28 +2,31 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
-    :is(button, input, textarea, select):disabled:not([aria-busy='true']) {
-        cursor: no-drop;
-        opacity: 0.55;
-    }
-
+    :is(button, input, textarea, select):disabled:not([aria-busy='true']),
     :is(button, a, input, textarea, select)[aria-disabled='true']:not([aria-busy='true']) {
+        --ui-control-opacity: 0.55;
         cursor: no-drop;
-        opacity: 0.55;
-        pointer-events: none;
+        opacity: var(--ui-control-opacity);
     }
 
-    :is(.ui-button, .ui-icon-button):is(:disabled, [aria-disabled='true']):not([aria-busy='true']) {
-        cursor: no-drop;
-        opacity: 0.55;
-        pointer-events: none;
+    :is(.ui-button, .ui-icon-button):is(:disabled, [aria-disabled='true'], [data-toggle-disabled='true']):not([aria-busy='true'], :where([aria-busy='true'] *)) {
+        --ui-control-opacity: var(--ui-button-disabled-opacity);
+        --ui-button-color-hover: var(--ui-button-color);
+        --ui-button-border-hover: var(--ui-button-border);
+        --ui-button-bg-hover: var(--ui-button-bg);
+        opacity: var(--ui-control-opacity);
     }
 
     :is(button, input, textarea, select):is(:disabled, [aria-disabled='true']) {
         box-shadow: none;
     }
 
-    :is(.ui-button, .ui-icon-button):is(:disabled, [aria-disabled='true']) {
+    :is(.ui-button, .ui-icon-button):is(:disabled, [aria-disabled='true'], [data-toggle-disabled='true']) {
         box-shadow: none;
+    }
+
+    :is(.ui-button, .ui-icon-button)[aria-disabled='true']:focus-visible {
+        outline: var(--control-focus-ring-width) solid var(--control-focus-ring-color);
+        outline-offset: var(--control-focus-ring-offset);
     }
 }

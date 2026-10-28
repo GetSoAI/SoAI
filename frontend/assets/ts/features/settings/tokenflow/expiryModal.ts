@@ -21,7 +21,7 @@ const createSettingsTokenExpiryModalElement = (config: SettingsTokenExpiryModalC
             modalId: config.modalId,
             title: config.title
         }),
-        body: renderModalBody(uiHtml`<div class="confirmation-body"><div class="confirmation-icon" aria-hidden="true">${getIconSync('clock', { size: 22, strokeWidth: 1.7 })}</div><div class="confirmation-message">${config.help}</div><div class="confirmation-description">${config.description}</div></div>`, { className: 'prompt-modal-content' }),
+        body: renderModalBody(uiHtml`<div class="confirmation-body"><div class="confirmation-icon" aria-hidden="true">${getIconSync('clock-modal', { size: 28 })}</div><div class="confirmation-message" data-modal-localize="text">${config.help}</div><div class="confirmation-description" data-modal-localize="text">${config.description}</div></div>`, { className: 'prompt-modal-content' }),
         footer: renderSplitModalFooter({
             left: toTrustedUiHtml(
                 renderModalFooterActionButton({

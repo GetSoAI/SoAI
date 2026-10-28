@@ -16,10 +16,10 @@ import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import { AiSetupStepUiController, type AiSetupStepUiControllerHost } from '@pages/wizard/controllers/AiSetupStepUiController.ts';
 import { AiSetupController, type AiSetupStorage } from '@pages/wizard/services/aisetup/AiSetupController.ts';
 import { AiSetupInteractionsController } from '@pages/wizard/services/aisetup/AiSetupInteractionsController.ts';
-import { isEngineInstalled, resolveRecommendations, resolveSearchPluginName } from '@pages/wizard/services/aisetup/facts/service.ts';
+import { isAiSetupDiscoveryReady, isEngineInstalled, resolveRecommendations, resolveSearchPluginName } from '@pages/wizard/services/aisetup/facts/service.ts';
 import { backendRowKey, isRowReady } from '@pages/wizard/services/aisetup/progress/mappers.ts';
 import { BACKEND_INSTALL_OPERATION_TYPE } from '@pages/wizard/services/aisetup/AiSetupOperationsManager.ts';
-import { activeProvider, resolveHandoffItemId, selectedModels, withDisposition, withEngineChoice, withHandoff, withLocalSelection, withStepReached } from '@pages/wizard/services/aisetup/state.ts';
+import { activeProvider, resolveHandoffItemId, selectedModels, withDisposition, withEngineChoice, withHandoff, withLocalSelection, withLocalDownloadCommitted, withStepReached } from '@pages/wizard/services/aisetup/state.ts';
 import { buildCompletionView, buildConnectView, buildModelsView, buildSourcesView } from '@pages/wizard/services/aisetup/mappers.ts';
 
 interface AiSetupFlowControllerHost {
@@ -30,6 +30,7 @@ interface AiSetupFlowControllerHost {
     syncSteps(): void;
     syncNavigation(): void;
     goToStep(stepId: AiSetupWizardStepId): void;
+    skip(): void;
     notify(message: string, type: NotificationType): void;
 }
 
@@ -61,11 +62,11 @@ class AiSetupFlowController {
             controller: this.controller,
             flow: this,
             goToStep: (stepId) => host.goToStep(stepId),
+            skip: () => host.skip(),
             syncSteps: () => host.syncSteps(),
             syncNavigation: () => host.syncNavigation(),
             focusCloudError: () => this.stepUi.focusCloudError(),
             openModelSearch: () => this.stepUi.openModelSearch(),
-            revealSearchVariants: () => this.stepUi.revealSearchVariants(),
             requireContent: () => host.requireContent()
         });
     }
@@ -79,7 +80,7 @@ class AiSetupFlowController {
         this.#loadFailed = !(await this.#activate());
         const setup = controller.ensureSetup();
         const arrivingForward = AI_SETUP_STEPS.indexOf(setup.step) < AI_SETUP_STEPS.indexOf(stepId);
-        if (arrivingForward) controller.updateSetup((current) => withStepReached(current, stepId));
+        if (arrivingForward && !this.#loadFailed) controller.updateSetup((current) => withStepReached(current, stepId));
         if (stepId === 'ai_models' && !this.#loadFailed) {
             if (arrivingForward) this.#preselectTopRecommendation();
             controller.search.bindEngine(resolveSearchPluginName(controller.requireFacts(), controller.requireSetup()));
@@ -89,8 +90,7 @@ class AiSetupFlowController {
 
     async #activate(): Promise<boolean> {
         try {
-            await this.controller.activate();
-            return true;
+            return isAiSetupDiscoveryReady(await this.controller.activate());
         } catch (error) {
             const runtimeError = ensureError(error);
             if (isAbortError(runtimeError)) throw runtimeError;
@@ -110,7 +110,7 @@ class AiSetupFlowController {
 
     buildViewModel(stepId: AiSetupWizardStepId | 'complete'): AiSetupViewModel | null {
         if (this.controller.setup === null) return null;
-        if (this.#loadFailed) return { loadFailed: stepId !== 'complete', sources: null, connect: null, models: null, progress: null, completion: null };
+        if (!this.#hasCompleteFacts()) return { loadFailed: stepId !== 'complete', sources: null, connect: null, models: null, progress: null, completion: null };
         const snapshot = this.controller.snapshot();
         return {
             loadFailed: false,
@@ -144,10 +144,10 @@ class AiSetupFlowController {
     canContinue(stepId: AiSetupWizardStepId): boolean {
         const controller = this.controller;
         const setup = controller.setup;
-        if (setup === null || controller.facts === null) return false;
+        if (setup === null || !this.#hasCompleteFacts()) return false;
         if (stepId === 'ai_sources') return setup.sources.local || setup.sources.cloud;
         if (stepId === 'ai_connect') return (!setup.sources.cloud || activeProvider(setup) !== null) && (!setup.sources.local || hasLocalChoice(setup, controller)) && !controller.cloud.state.connecting;
-        if (stepId === 'ai_models') return selectedModels(setup).length > 0;
+        if (stepId === 'ai_models') return selectedModels(setup).length > 0 && selectedModels(setup).filter((model) => model.source === 'local').length <= 1;
         return this.hasReadyModel();
     }
 
@@ -176,7 +176,7 @@ class AiSetupFlowController {
             return;
         }
         if (stepId === 'ai_models') {
-            controller.updateSetup((setup) => withStepReached(setup, 'ai_progress'));
+            controller.updateSetup((setup) => withLocalDownloadCommitted(setup));
             controller.operations.startPendingDownloads();
             controller.readiness.schedule();
         }
@@ -216,11 +216,20 @@ class AiSetupFlowController {
     #syncStepUi(): void {
         const controller = this.controller;
         const stepId = this.stepUi.stepId;
-        if (stepId === null || controller.setup === null || controller.facts === null) return;
+        if (stepId === null || controller.setup === null) return;
+        if (!this.#hasCompleteFacts()) {
+            this.stepUi.syncLoadFailed();
+            return;
+        }
         const snapshot = controller.snapshot();
         if (stepId === 'ai_connect') this.stepUi.syncConnect(buildConnectView(snapshot));
         if (stepId === 'ai_models') this.stepUi.syncModels(buildModelsView(snapshot));
         if (stepId === 'ai_progress') this.stepUi.syncProgress(snapshot.progress);
+    }
+
+    #hasCompleteFacts(): boolean {
+        const facts = this.controller.facts;
+        return !this.#loadFailed && facts !== null && isAiSetupDiscoveryReady(facts);
     }
 
     #readBackgroundNotice(setup: AiSetupState): string | null {

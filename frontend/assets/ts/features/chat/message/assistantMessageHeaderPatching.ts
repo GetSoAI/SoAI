@@ -18,6 +18,9 @@ const syncHiddenState = (target: HTMLElement, source: HTMLElement): void => {
 };
 
 const mergeAssistantHeaderActivityRealtimeState = (existingActivity: HTMLElement, createdActivity: HTMLElement): void => {
+    if (existingActivity.getAttribute('data-model-id') !== createdActivity.getAttribute('data-model-id')) {
+        return;
+    }
     if (!assistantHeaderActivityHasResponseLifecycleStatus(createdActivity)) {
         for (const statusClass of ASSISTANT_HEADER_ACTIVITY_STATUS_CLASSES) {
             createdActivity.classList.toggle(statusClass, existingActivity.classList.contains(statusClass));
@@ -35,10 +38,13 @@ const mergeAssistantHeaderActivityRealtimeState = (existingActivity: HTMLElement
 
     const existingPreview = existingHeaderChildren.preview;
     const createdPreview = createdHeaderChildren.preview;
+    const createdPreviewText = createdPreview === null ? null : resolveInlineActivityPreviewText(createdPreview);
+    if (createdPreviewText?.textContent?.trim()) {
+        return;
+    }
     if (existingPreview && createdPreview) {
         syncHiddenState(createdPreview, existingPreview);
         const existingPreviewText = resolveInlineActivityPreviewText(existingPreview);
-        const createdPreviewText = resolveInlineActivityPreviewText(createdPreview);
         if (existingPreviewText && createdPreviewText) {
             createdPreviewText.textContent = existingPreviewText.textContent;
         }

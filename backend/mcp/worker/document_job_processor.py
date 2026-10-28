@@ -205,12 +205,14 @@ async def process_document_job(
         chunks_created = 0
         status_details: str | None = None
         extraction_warnings: tuple[str, ...] = ()
+        missing_capabilities: tuple[str, ...] = ()
         fetch_result_payload: JSONDict | None = None
         if job_type == DOCUMENT_UPLOAD_JOB_TYPE:
             upload_result = await process_uploaded_document(worker, job, task_id, token=token)
             chunks_created = upload_result.chunks_created
             status_details = upload_result.status_details
             extraction_warnings = upload_result.warnings
+            missing_capabilities = upload_result.missing_capabilities
         elif job_type == WEB_FETCH_INGEST_JOB_TYPE:
             fetch_result_payload = await process_web_fetch_ingest(worker, job, task_id, token=token)
             if fetch_result_payload is not None:
@@ -228,6 +230,8 @@ async def process_document_job(
         if status_details is not None:
             task_result["status_details"] = status_details
             task_result["extraction_warnings"] = list(extraction_warnings)
+        if missing_capabilities:
+            task_result["missing_capabilities"] = list(missing_capabilities)
         if fetch_result_payload is not None:
             task_result.update(fetch_result_payload)
         job_id, lease_token = lease_identity_from_job_payload(job)

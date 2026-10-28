@@ -7,6 +7,7 @@ from types import ModuleType
 
 from hardware.vendors.nvidia.internal_protocols import (
     NvmlDeviceGetPowerManagementDefaultLimitProtocol,
+    NvmlDeviceGetPowerManagementLimitProtocol,
     NvmlDeviceSetPowerManagementLimitProtocol,
 )
 
@@ -39,3 +40,13 @@ def resolve_nvml_power_limit_functions(
         else None
     )
     return power_default_limit_function, power_set_limit_function
+
+
+def resolve_nvml_power_readback_function(
+    pynvml_module: ModuleType,
+) -> NvmlDeviceGetPowerManagementLimitProtocol | None:
+    try:
+        value = pynvml_module.nvmlDeviceGetPowerManagementLimit
+    except AttributeError:
+        return None
+    return value if isinstance(value, NvmlDeviceGetPowerManagementLimitProtocol) else None

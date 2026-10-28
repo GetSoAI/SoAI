@@ -6,12 +6,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from core.files.upload_staging import cleanup_temp_file
 from core.runtime.protocols import RequestProtocol
 from features.api.routes.system.events.websocket_openai_audio.payloads import (
     build_openai_audio_transcription_error,
 )
 from features.api.routes.system.events.websocket_openai_audio.runtime import (
+    discard_transcription_upload,
+    fail_transcription_upload,
     guard_openai_audio_transcription_run_start,
     with_locked_active_transcription_runtime,
 )
@@ -35,18 +36,6 @@ if TYPE_CHECKING:
     )
 
 __all__ = ("handle_openai_audio_transcription_commit",)
-
-
-async def _discard_unscheduled_transcription(
-    *,
-    run_id: str,
-    runtime: OpenAiAudioTranscriptionRuntime,
-    transcriptions: dict[str, OpenAiAudioTranscriptionRuntime],
-) -> None:
-    runtime.state = "failed"
-    await cleanup_temp_file(runtime.temp_path)
-    if transcriptions.get(run_id) is runtime:
-        transcriptions.pop(run_id, None)
 
 
 async def handle_openai_audio_transcription_commit(
@@ -105,27 +94,21 @@ async def handle_openai_audio_transcription_commit(
                 name=f"ws_openai_audio_transcription:{run_id}",
             )
         except RECOVERABLE_EXCEPTIONS:
-            await _discard_unscheduled_transcription(
+            await discard_transcription_upload(
                 run_id=run_id,
                 runtime=runtime,
                 transcriptions=transcriptions,
+                state="failed",
             )
             raise
         if runner_task is None:
-            await _discard_unscheduled_transcription(
-                run_id=run_id,
+            await fail_transcription_upload(
                 runtime=runtime,
-                transcriptions=transcriptions,
-            )
-            enqueue_event_or_warn(
-                enqueue_warning_tracker,
-                connection.queue,
-                build_openai_audio_transcription_error(
-                    run_id=run_id,
-                    message="Transcription runner could not be scheduled.",
-                    code="server_error",
-                ),
-                "OpenAI audio transcription error",
+                connection=connection,
+                enqueue_warning_tracker=enqueue_warning_tracker,
+                state="failed",
+                message="Transcription runner could not be scheduled.",
+                code="server_error",
             )
             return
         runtime.runner_task = runner_task

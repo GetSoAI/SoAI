@@ -1,12 +1,13 @@
 /* SoAI - Models feature dispose [frontend/assets/ts/features/models/modals/downloadmodal/manager/actions/dispose.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { updateSelectedModelDisplay } from '@features/models/modals/downloadmodal/manager/tabsView.ts';
 import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { updateRepositoryLink } from '@features/models/modals/downloadmodal/effects.ts';
 import type { DownloadModalManagerRuntime } from '@features/models/modals/downloadmodal/manager/contracts.ts';
 import { getManualDiscoveryState, getModelSearchState, resetManualDiscoveryState } from '@features/models/modals/downloadmodal/manager/state.ts';
-import { cancelModelSearchRequest, hasActiveModelDownloads, updateDownloadModalUI, updatePluginRequiredMarkers, updateSelectedModelDisplay } from '@features/models/modals/downloadmodal/manager/view.ts';
+import { cancelModelSearchRequest, hasActiveModelDownloads, updateDownloadModalUI, updatePluginRequiredMarkers } from '@features/models/modals/downloadmodal/manager/view.ts';
 
 const disposeDownloadModal = (runtime: DownloadModalManagerRuntime, { clearActiveDownloads = false }: { clearActiveDownloads?: boolean } = {}): void => {
     runtime.state.providerDiscoveryAbort?.abort();

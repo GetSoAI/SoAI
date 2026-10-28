@@ -14,6 +14,7 @@ from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.runtime.request_context import RequestContext
 from core.runtime.shutdown_errors import (
+    SERVER_SHUTDOWN_MESSAGE,
     build_shutdown_task_cancelled_error,
     is_shutdown_service_unavailable,
 )
@@ -66,6 +67,7 @@ async def _finalize_claimed_turn_cancelled(
     user_id: int,
     operation: str,
     cancelled_log_message: str,
+    shutdown_event: asyncio.Event | None,
 ) -> None:
     await _cancel_root_subagents_before_terminal_turn(
         deps=deps,
@@ -85,6 +87,11 @@ async def _finalize_claimed_turn_cancelled(
                 execution_token=context.agent_turn_execution_token,
                 operation=operation,
                 log_message=cancelled_log_message,
+                error_message=(
+                    SERVER_SHUTDOWN_MESSAGE
+                    if shutdown_event is not None and shutdown_event.is_set()
+                    else None
+                ),
             ),
         ),
     )
@@ -125,7 +132,7 @@ async def execute_claimed_stream(
             if claimed_awaitable is not None:
                 await claimed_awaitable
         await execute_stream()
-    except asyncio.CancelledError:
+    except (asyncio.CancelledError, TaskCancelledError):
         if claimed_turn:
             await _finalize_claimed_turn_cancelled(
                 deps=deps,
@@ -135,18 +142,7 @@ async def execute_claimed_stream(
                 user_id=user_id,
                 operation=operation,
                 cancelled_log_message=cancelled_log_message,
-            )
-        raise
-    except TaskCancelledError:
-        if claimed_turn:
-            await _finalize_claimed_turn_cancelled(
-                deps=deps,
-                database_agent_turns=database_agent_turns,
-                context=context,
-                conv_id=conv_id,
-                user_id=user_id,
-                operation=operation,
-                cancelled_log_message=cancelled_log_message,
+                shutdown_event=shutdown_event,
             )
         raise
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
@@ -162,6 +158,7 @@ async def execute_claimed_stream(
                 user_id=user_id,
                 operation=operation,
                 cancelled_log_message=cancelled_log_message,
+                shutdown_event=shutdown_event,
             )
         raise build_shutdown_task_cancelled_error(
             initial_active_inference_cancellation_id or context.cancellation_id,

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
 from core.openai.responses_events import build_failed_response_event
@@ -22,6 +23,9 @@ from features.api.routes.openai.responses.streaming_generator.persistence import
     build_failed_event_bytes,
 )
 from features.api.runtime.context import ApiContext
+
+if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
 
 __all__ = ("ResponsesPassthroughPersistence",)
 
@@ -77,7 +81,9 @@ class ResponsesPassthroughPersistence:
             else DEFAULT_RESPONSES_PERSIST_MAX_PENDING_EVENTS
         )
 
-    async def emit_failure(self, *, code: str, message: str) -> bytes:
+    async def emit_failure(
+        self, *, code: str, message: str, public_error: ErrorPublicPayload | None = None
+    ) -> bytes:
         if self.store:
             await self.flush_if_needed(force=True)
             failed_event = build_failed_response_event(
@@ -86,10 +92,12 @@ class ResponsesPassthroughPersistence:
                 code=code,
                 model=self.storage_target.model,
                 created_at=int(self.storage_target.created_at),
+                public_error=public_error,
             )
             event_bytes, _terminal = self.emit_response_event(
                 payload=failed_event,
                 default_status="failed",
+                public_error=public_error,
             )
             await self.flush_if_needed(force=True)
             return event_bytes
@@ -99,6 +107,7 @@ class ResponsesPassthroughPersistence:
             code=code,
             model=self.storage_target.model,
             created_at=ms_to_seconds_floor(epoch_ms()),
+            public_error=public_error,
         )
 
     def emit_response_event(
@@ -106,6 +115,7 @@ class ResponsesPassthroughPersistence:
         *,
         payload: JSONDict,
         default_status: str = "in_progress",
+        public_error: ErrorPublicPayload | None = None,
     ) -> tuple[bytes, bool]:
         sequence = int(self.response_event_sequence)
         normalized_event = normalize_stored_response_event(
@@ -113,6 +123,7 @@ class ResponsesPassthroughPersistence:
             payload=dict(payload),
             sequence_number=sequence,
             default_status=default_status,
+            public_error=public_error,
         )
         if self.store:
             self._buffer_stored_event(sequence=sequence, event=normalized_event)

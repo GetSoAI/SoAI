@@ -31,10 +31,11 @@ const applyDashboardLogsAction = (actionId: DashboardActionId, target: HTMLEleme
             button.setAttribute('aria-pressed', String(autoScroll));
             button.setAttribute('aria-label', label);
             setTooltipText(button, label);
-            button.textContent = label;
+            button.classList.toggle('ui-variant-accent', autoScroll);
+            button.classList.toggle('ui-variant-neutral', !autoScroll);
         }
         if (autoScroll) {
-            dependencies.view.scrollToEnd();
+            dependencies.view.scrollToEnd('smooth');
         }
     }
 };

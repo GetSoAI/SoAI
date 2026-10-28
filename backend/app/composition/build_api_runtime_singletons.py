@@ -8,7 +8,9 @@ import os
 from collections.abc import Awaitable
 
 from core.concurrency.bounded_blocking import (
+    BoundedBlockingPool,
     BoundedThreadPoolConfig,
+    create_bounded_thread_pool,
     create_bounded_thread_pool_from_env,
     shutdown_bounded_pool_executor,
 )
@@ -112,7 +114,21 @@ def build_api_runtime_singletons(
         ),
     )
     runtime_singletons: ApiRuntimeSingletons | None = None
+    skill_import_pool: BoundedBlockingPool | None = None
+    file_content_pool: BoundedBlockingPool | None = None
     try:
+        skill_import_pool = create_bounded_thread_pool(
+            label="skills-import",
+            thread_name_prefix="soai-skills-import",
+            max_workers=1,
+            max_in_flight=1,
+        )
+        file_content_pool = create_bounded_thread_pool(
+            label="file-content",
+            thread_name_prefix="soai-file-content",
+            max_workers=2,
+            max_in_flight=4,
+        )
         runtime_singletons = ApiRuntimeSingletons(
             mcp_tool_catalog_cache=MCPToolCatalogCache(),
             access_policy_cache=AccessPolicyCache(),
@@ -126,6 +142,8 @@ def build_api_runtime_singletons(
                 ),
             ),
             login_password_pool=login_password_pool,
+            skill_import_pool=skill_import_pool,
+            file_content_pool=file_content_pool,
             login_password_service=PasswordService(
                 PasswordServiceDependencies(
                     pool=login_password_pool,
@@ -155,6 +173,7 @@ def build_api_runtime_singletons(
             ),
             enqueue_warning_tracker=EnqueueWarningTracker(),
             multipart_parser_semaphore=asyncio.Semaphore(multipart_parser_limit),
+            setup_status_connection_semaphore=asyncio.Semaphore(32),
             provider_video_projection_semaphore=asyncio.Semaphore(
                 provider_video_settings.max_concurrent_projections,
             ),
@@ -173,6 +192,10 @@ def build_api_runtime_singletons(
         )
     finally:
         if runtime_singletons is None:
+            if file_content_pool is not None:
+                shutdown_bounded_pool_executor(file_content_pool)
+            if skill_import_pool is not None:
+                shutdown_bounded_pool_executor(skill_import_pool)
             shutdown_bounded_pool_executor(login_password_pool)
     if runtime_singletons is None:
         raise StateError("API runtime singleton construction completed without a result.")

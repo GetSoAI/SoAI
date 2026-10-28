@@ -5,11 +5,17 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
+from core.concurrency.bounded_blocking import admit_bounded_blocking_call
 from core.concurrency.cancellation_cleanup import wait_for_task_completion
 from core.errors.exception_logging import log_exception
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
+
+if TYPE_CHECKING:
+    from core.concurrency.bounded_blocking import BoundedBlockingPool
+    from core.concurrency.deadlines import MonotonicDeadline
 
 __all__ = ("run_joined_thread_call",)
 
@@ -24,10 +30,15 @@ async def run_joined_thread_call[*Arguments, Result, CleanupResult](
     cancelled_result_cleanup: Callable[[Result], CleanupResult] | None = None,
     retain_resources_until_complete: bool = False,
     on_cancel: Callable[[], None] | None = None,
+    pool: BoundedBlockingPool | None = None,
+    admission_deadline: MonotonicDeadline | None = None,
 ) -> Result:
-    thread_task = asyncio.create_task(
-        asyncio.to_thread(function, *arguments),
-        name=task_name,
+    thread_task: asyncio.Future[Result] = (
+        asyncio.create_task(asyncio.to_thread(function, *arguments), name=task_name)
+        if pool is None
+        else await admit_bounded_blocking_call(
+            pool, function, *arguments, deadline=admission_deadline
+        )
     )
     try:
         return await asyncio.shield(thread_task)

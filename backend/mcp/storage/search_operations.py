@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from core.errors.exceptions import StateError
 from core.serialization.json import normalize_for_json
 from core.types.json_value import require_json_dict
-from core.validation.requirements import require_float, require_nonempty_str
+from core.validation.requirements import require_nonempty_str
 from mcp.storage.internal_protocols import MCPStorageProtocol
 from mcp.storage.search_result_parsing import (
     SearchResultBatch,
@@ -34,7 +34,6 @@ __all__ = (
     "distance_to_similarity",
     "extract_query_results",
     "filter_chroma_query_result_by_sqlite_truth",
-    "filter_similarity_results",
     "filter_similarity_results_by_sqlite_truth",
     "mmr_search",
     "query_chroma_similarity_results",
@@ -47,35 +46,6 @@ class SearchCandidate:
     similarity: float
     embedding: list[float] | None
     metadata: JSONDict
-
-
-def filter_similarity_results(
-    *,
-    documents: list[JSONValue],
-    metadatas: list[JSONValue],
-    distances: list[JSONValue],
-    similarity_threshold: float,
-    length_mismatch_error: type[Exception],
-) -> list[JSONDict]:
-    document_count = len(documents)
-    if len(distances) < document_count:
-        raise length_mismatch_error("Chroma query distances length mismatch.")
-    if len(metadatas) < document_count:
-        raise length_mismatch_error("Chroma query metadatas length mismatch.")
-    filtered: list[JSONDict] = []
-    for index, document in enumerate(documents):
-        similarity = distance_to_similarity(require_float(distances[index], field="distance"))
-        if similarity < similarity_threshold:
-            continue
-        metadata = require_json_dict(metadatas[index], label="metadata")
-        filtered.append(
-            {
-                "content": require_nonempty_str(document, field="document"),
-                "similarity": similarity,
-                **chunk_metadata_fields(metadata),
-            },
-        )
-    return filtered
 
 
 async def query_chroma_similarity_results(

@@ -4,6 +4,7 @@
 @layer pages {
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) {
         --file-explorer-select-col-width: 44px;
+        --file-explorer-entry-icon-size: 16px;
         --file-explorer-deeplink-highlight-surface: color-mix(in srgb, var(--accent-green) 12%, var(--glass-surface-strong));
         --file-explorer-deeplink-highlight-border: color-mix(in srgb, var(--accent-green) 65%, var(--glass-border-strong));
     }
@@ -64,6 +65,7 @@
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table {
+        --table-cell-padding-inline: var(--space-3);
         display: flex;
         flex-direction: column;
         flex: 1;
@@ -88,26 +90,19 @@
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table td {
         border-bottom: var(--border-width-1) solid var(--glass-border-strong);
         min-width: 0;
-        padding: var(--space-2) var(--space-3);
+        padding: var(--space-2) var(--table-cell-padding-inline);
         text-align: start;
         vertical-align: middle;
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table thead {
         flex-shrink: 0;
-        box-shadow: var(--surface-card-shadow);
-    }
-
-    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table thead th {
+        overflow-y: hidden;
+        scrollbar-gutter: stable;
         background: var(--glass-surface-darker);
-    }
-
-    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table thead th:first-child {
         border-start-start-radius: var(--border-radius);
-    }
-
-    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table thead th:last-child {
         border-start-end-radius: var(--border-radius);
+        box-shadow: var(--surface-card-shadow);
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table tbody {

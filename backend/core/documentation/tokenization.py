@@ -20,6 +20,7 @@ _TOKEN_PATTERN = r"[a-z0-9][a-z0-9_.\-]*"
 _TRAILING_SEPARATORS = "._-"
 _MAX_QUERY_CHARACTERS = 4096
 _MAX_QUERY_TERMS = 32
+_QUERY_STOPWORDS = frozenset((*BM25_EN_STOPWORDS, "how", "do"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,7 +78,7 @@ def build_query_groups(query: str) -> tuple[DocumentationQueryGroup, ...]:
         raise ValidationError("query must contain an English word or exact identifier")
     if len(surfaces) > _MAX_QUERY_TERMS:
         raise ValidationError("query must contain no more than 32 distinct searchable terms")
-    filtered = tuple(surface for surface in surfaces if surface not in BM25_EN_STOPWORDS)
+    filtered = tuple(surface for surface in surfaces if surface not in _QUERY_STOPWORDS)
     selected = filtered or surfaces
     return tuple(
         DocumentationQueryGroup(surface=surface, variants=_variants(surface))

@@ -74,7 +74,7 @@
 
     .header-search__dropdown {
         position: absolute;
-        top: calc(100% + 4px);
+        top: calc(50% + var(--header-height) / 2 + var(--header-menu-gap));
         inset-inline-end: 0;
         inset-inline-start: auto;
         width: clamp(250px, calc(17 * var(--ui-viewport-width-unit)), 420px);

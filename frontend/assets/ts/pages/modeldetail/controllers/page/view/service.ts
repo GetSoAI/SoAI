@@ -77,8 +77,7 @@ const handleModelDetailBackendDocumentationClick = async (host: ModelDetailViewH
         url: host.state.backendDocumentationUrl,
         confirmText: i18n.t('modelDetail.confirmations.externalLinkConfirm'),
         cancelText: i18n.t('modelDetail.confirmations.externalLinkCancel'),
-        variant: 'info',
-        icon: 'external-link'
+        variant: 'info'
     });
     if (confirmed) {
         getWindowOpen()(host.state.backendDocumentationUrl, '_blank', 'noopener,noreferrer');

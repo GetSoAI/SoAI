@@ -1,6 +1,8 @@
 /* SoAI - Chat chrome auto-hide presentation runtime [frontend/assets/ts/features/chat/chatuimanager/chatChromeVisibilityRuntime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { measureViewportPoint } from '@core/layout/elementGeometry.ts';
+
 import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { setupChatComposerChromeSurface } from '@features/chat/chatuimanager/chatComposerChromeSurface.ts';
 import { setupChatConversationHeaderChromeSurface } from '@features/chat/chatuimanager/chatConversationHeaderChromeSurface.ts';
@@ -22,6 +24,7 @@ export const setupChatChromeVisibilityRuntime = (context: ChatUIManagerContext):
     const dependencies = context.dependencies;
     const documentRef = dependencies.dom.getDocument();
     let lastScrollTop: number | null = null;
+    let lastMousePointerPoint: { x: number; y: number } | null = null;
 
     const isGlobalPinned = (): boolean => context.state.activeConversationTransitionId !== null || isAnyElementShown(context, ATTENTION_PREVIEW_KEYS);
 
@@ -54,11 +57,18 @@ export const setupChatChromeVisibilityRuntime = (context: ChatUIManagerContext):
         documentRef,
         'pointermove',
         (event) => {
-            if (isAdvancedScrollPreviewEngaged(context, event.target)) return;
-            for (const surface of surfaces) surface.handlePointerMove(event);
+            if (!(event instanceof PointerEvent) || event.pointerType !== 'mouse') return;
+            const point = measureViewportPoint(event);
+            const pointerMoved = lastMousePointerPoint === null || point.x !== lastMousePointerPoint.x || point.y !== lastMousePointerPoint.y;
+            lastMousePointerPoint = point;
+            const allowReveal = pointerMoved && !isAdvancedScrollPreviewEngaged(context, event.target);
+            for (const surface of surfaces) surface.handlePointerMove(event, allowReveal);
         },
         { passive: true }
     );
+    const disposePointerLeave = dependencies.runtime.on(documentRef, 'pointerleave', (event) => {
+        if (event instanceof PointerEvent && event.pointerType === 'mouse') lastMousePointerPoint = null;
+    });
 
     sync();
 
@@ -71,6 +81,7 @@ export const setupChatChromeVisibilityRuntime = (context: ChatUIManagerContext):
         },
         dispose: () => {
             disposePointerMove();
+            disposePointerLeave();
             for (const surface of surfaces) surface.dispose();
         }
     };

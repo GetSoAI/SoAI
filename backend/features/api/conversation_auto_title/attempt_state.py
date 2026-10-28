@@ -10,8 +10,6 @@ from core.chat.conversation_defaults import read_chat_auto_title_generation_enab
 from core.conversations.default_title_resolution import (
     resolve_default_title_from_user_message,
 )
-from core.errors.exceptions import StateError
-from core.validation.integers import is_strict_int
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -20,8 +18,8 @@ if TYPE_CHECKING:
 __all__ = (
     "AutoTitleAttemptState",
     "conversation_title_matches_default",
+    "is_automatic_title_committed",
     "load_auto_title_attempt_state",
-    "require_last_modified_at_ms",
 )
 
 
@@ -47,6 +45,8 @@ async def load_auto_title_attempt_state(
     if conversation is None:
         return None
     if conversation.get("is_automation") is True:
+        return None
+    if conversation.get("title_auto_update_allowed") is not True:
         return None
     seed_messages = await api_dependencies.database_messages.get_auto_title_seed_messages(
         conv_id,
@@ -77,8 +77,9 @@ def conversation_title_matches_default(
     return isinstance(title_value, str) and title_value == default_title
 
 
-def require_last_modified_at_ms(record: JSONDict) -> int:
-    value = record.get("last_modified_at_ms")
-    if is_strict_int(value) and value > 0:
-        return value
-    raise StateError("Conversation last_modified_at_ms is invalid after auto-title update.")
+def is_automatic_title_committed(conversation: JSONDict | None, generated_title: str) -> bool:
+    return (
+        conversation is not None
+        and conversation.get("title") == generated_title
+        and conversation.get("title_auto_update_allowed") is True
+    )

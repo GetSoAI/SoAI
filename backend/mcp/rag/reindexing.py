@@ -10,6 +10,7 @@ from core.errors.exceptions import SoAIError, StateError, ValidationError
 from core.logging.protocols import LoggerProtocol
 from core.logging.trace import get_logger
 from core.metrics.keyspace_paths_mcp_rag import MCP_RAG_GAUGE_PROCESSING_QUEUE_SIZE
+from core.rag.availability_errors import require_indexed_document_count
 from core.tasks.enums import TaskStatus
 from core.tasks.task_cancellation import cancel
 from core.tasks.type_catalog import TASK_TYPE_RAG_REINDEX
@@ -70,14 +71,6 @@ async def reindex_conversation(
     normalized_model_id = coerce_optional_trimmed_str(model_id)
     if normalized_model_id is None:
         raise ValidationError("model_id must be a non-empty string")
-    validated_model, embedding_dimensions = await validate_and_resolve_embedding_model(
-        self.storage,
-        normalized_model_id,
-    )
-    if embedding_dimensions <= 0:
-        raise ValidationError(
-            f"Invalid embedding dimensions detected for model {validated_model!r}: {embedding_dimensions}",
-        )
     lock_acquired = await self.worker.reindex_locks.acquire(conv_id)
     if not lock_acquired:
         raise ValidationError(f"Reindex already in progress for conversation {conv_id}")
@@ -87,10 +80,15 @@ async def reindex_conversation(
     updated_summary: JSONDict | None = None
     try:
         counts = await self.database_files.get_rag_counts_for_conversation(conv_id)
-        completed_count_value = counts.get("completed") if isinstance(counts, dict) else 0
-        completed_count = completed_count_value if isinstance(completed_count_value, int) else 0
-        if completed_count <= 0:
-            raise ValidationError(f"No RAG documents found for conversation {conv_id}")
+        completed_count = require_indexed_document_count(counts)
+        validated_model, embedding_dimensions = await validate_and_resolve_embedding_model(
+            self.storage,
+            normalized_model_id,
+        )
+        if embedding_dimensions <= 0:
+            raise ValidationError(
+                f"Invalid embedding dimensions detected for model {validated_model!r}: {embedding_dimensions}",
+            )
         sample_documents = await self.database_files.get_rag_documents_for_conversation(
             conv_id,
             limit=20,

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from core.timing.epoch import epoch_ms
 from core.validation.strings import coerce_required_non_empty_str
 from database.repositories.users.messaging_delivery_claims import (
+    query_messaging_delivery_candidate,
     sync_claim_next_messaging_delivery_attempt,
 )
 from database.repositories.users.messaging_delivery_control_projection import (
@@ -95,17 +96,27 @@ class DatabaseMessagingDeliveries:
             epoch_ms(),
         )
 
+    async def has_due_delivery(self) -> bool:
+        return await self.core.reader.execute_read(query_messaging_delivery_candidate, epoch_ms())
+
     async def claim_next_delivery_attempt(
         self,
         *,
         claim_owner: str,
         server_boot_id: str,
     ) -> MessagingDeliveryAttempt | None:
+        normalized_owner = coerce_required_non_empty_str(claim_owner, label="claim_owner")
+        normalized_boot_id = coerce_required_non_empty_str(server_boot_id, label="server_boot_id")
+        claimed_at_ms = epoch_ms()
+        if not await self.core.reader.execute_read(
+            query_messaging_delivery_candidate, claimed_at_ms
+        ):
+            return None
         return await self.core.writer.queue_write_operation(
             sync_claim_next_messaging_delivery_attempt,
-            coerce_required_non_empty_str(claim_owner, label="claim_owner"),
-            coerce_required_non_empty_str(server_boot_id, label="server_boot_id"),
-            epoch_ms(),
+            normalized_owner,
+            normalized_boot_id,
+            claimed_at_ms,
         )
 
     async def settle_worker_failure(

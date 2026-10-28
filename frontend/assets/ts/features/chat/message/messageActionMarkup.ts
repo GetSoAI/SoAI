@@ -1,26 +1,30 @@
 /* SoAI - Chat feature message action markup [frontend/assets/ts/features/chat/message/messageActionMarkup.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { STREAMING_ACTION_CONTROLS_CLASS } from '@features/chat/message/messageActionStreamingPolicy.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { formatWholeDurationFromMs } from '@core/primitives/duration.ts';
-import { resolveLocalCalendarBucket } from '@core/time/localCalendar.ts';
+import { isSameDay, resolveLocalCalendarBucket } from '@core/time/localCalendar.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
 import { resolveStatusPreviewDomStateFromMessage } from '@features/chat/assistanteventtimeline/statusPreviewState.ts';
+import { resolveStreamingSpinnerActivityFlags } from '@features/chat/stream/streamMessageSpinnerStatusActivityFlags.ts';
+import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
-import { resolveAssistantSettledResponseDisplayDurationMs } from '@features/chat/message/assistantResponseDuration.ts';
 import { renderMessageActionButton, renderMessageActionButtons, renderMessageIcon, resolveAssistantActionDefinitions, resolveCompactionBoundaryActionDefinitions, resolveUserActionDefinitions } from '@features/chat/message/messageActionButtons.ts';
 import type { MessageActionMarkupContext } from '@features/chat/message/messageActionMarkupTypes.ts';
 import type { ChatMessageRenderPresentation } from '@features/chat/message/messageRenderPresentation.ts';
 import { renderRunningActivitySummary } from '@features/chat/message/messageRunningActivitySummaryMarkup.ts';
-import { STREAM_SPINNER_HAS_LOADING_ACTIVITY_ATTRIBUTE, STREAM_SPINNER_HAS_PREVIEW_ATTRIBUTE, STREAM_SPINNER_HAS_RUNNING_CONTEXT_COMPACTION_ACTIVITY_ATTRIBUTE, STREAM_SPINNER_HAS_RUNNING_LOADING_ACTIVITY_ATTRIBUTE, STREAM_SPINNER_HAS_RUNNING_WAIT_ACTIVITY_ATTRIBUTE, STREAM_SPINNER_PREVIEW_COOLDOWN_MS_ATTRIBUTE, STREAM_SPINNER_PREVIEW_TEXT_ATTRIBUTE, STREAM_SPINNER_TRIGGER_USER_AT_MS_ATTRIBUTE, STREAM_SPINNER_VISIBLE_ATTRIBUTE } from '@features/chat/stream/streamMessageSpinnerStatusAttributes.ts';
+import { STREAM_SPINNER_HAS_PREVIEW_ATTRIBUTE, STREAM_SPINNER_PREVIEW_COOLDOWN_MS_ATTRIBUTE, STREAM_SPINNER_PREVIEW_TEXT_ATTRIBUTE, STREAM_SPINNER_TRIGGER_USER_AT_MS_ATTRIBUTE, STREAM_SPINNER_VISIBLE_ATTRIBUTE } from '@features/chat/stream/streamMessageSpinnerStatusAttributes.ts';
 
-const formatMessageTimestamp = (timestamp: number): { label: string; title: string } => {
+type MessageTimestamp = { label: string; title: string; compactLabel: string; timeLabel: string };
+
+const formatMessageTimestamp = (timestamp: number): MessageTimestamp => {
     if (!isFiniteNumber(timestamp)) {
         throw new Error('Chat message is missing timestamp');
     }
     const date = new Date(timestamp);
-    const bucket = resolveLocalCalendarBucket(date, new Date(serverEpochMs()), { futureAsToday: true });
+    const bucket = resolveLocalCalendarBucket(date, new Date(serverEpochMs()));
     const timeFormat = i18n.formatDate(date, {
         hour: '2-digit',
         minute: '2-digit'
@@ -49,15 +53,17 @@ const formatMessageTimestamp = (timestamp: number): { label: string; title: stri
         minute: '2-digit',
         second: '2-digit'
     });
-    return { label, title };
+    return { label, title, compactLabel: i18n.formatDate(date, { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }), timeLabel: timeFormat };
 };
 
-const formatMessageTimestampRange = (startTimestamp: number, durationMs: number): { label: string; title: string } => {
+const formatMessageTimestampRange = (startTimestamp: number, durationMs: number): MessageTimestamp => {
     const start = formatMessageTimestamp(startTimestamp);
     const end = formatMessageTimestamp(startTimestamp + durationMs);
     return {
-        label: i18n.t('chat.message.timestampRange', { start: start.label, end: end.label }),
-        title: i18n.t('chat.message.timestampRange', { start: start.title, end: end.title })
+        label: i18n.t('chat.message.timestampRange', { start: start.label, end: isSameDay(new Date(startTimestamp), new Date(startTimestamp + durationMs)) ? end.timeLabel : end.label }),
+        title: i18n.t('chat.message.timestampRange', { start: start.title, end: end.title }),
+        compactLabel: end.compactLabel,
+        timeLabel: end.timeLabel
     };
 };
 
@@ -66,64 +72,41 @@ const renderStreamSpinnerStatus = (): string => {
     return spinnerHtml + '<span class="message-streaming-status" data-stream-spinner-status="true">' + '<span class="inline-activity-preview-text message-streaming-status-label" data-stream-spinner-text="true">' + '<span class="message-streaming-status-label-text" data-stream-spinner-text-body="true" data-stream-spinner-text-value=""><span class="message-streaming-status-label-text-body" data-stream-spinner-text-body-content="true"></span></span>' + '</span>' + '</span>';
 };
 
-const renderAssistantActionButtons = (leftButtonsHtml: string, isStreamingMessage: boolean): string => {
-    if (isStreamingMessage) {
-        return '';
-    }
-    return leftButtonsHtml;
+const renderAssistantActionLayout = (leftHtml: string, rightHtml: string, streaming: boolean): string => {
+    const presenceAttributes = streaming ? '' : ' data-presence-atomic data-presence-visual-only';
+    const streamingClass = streaming ? ` ${STREAMING_ACTION_CONTROLS_CLASS}` : '';
+    return `<div class="message-action-buttons message-action-buttons--assistant"><div class="message-action-buttons-left${streamingClass}"${presenceAttributes}>${leftHtml}</div><div class="message-action-buttons-right">${rightHtml}</div></div>`;
 };
 
-const renderAssistantActionLayout = (leftHtml: string, rightHtml: string): string => {
-    return `<div class="message-action-buttons message-action-buttons--assistant"><div class="message-action-buttons-left">${leftHtml}</div><div class="message-action-buttons-right">${rightHtml}</div></div>`;
-};
-
-const renderAssistantActionsContainer = (context: MessageActionMarkupContext, message: ChatMessage, inputArguments: { leftButtonsHtml: string; previewText: string; previewCooldownMs: string; triggerUserTimestamp: string; hasPreview: 'true' | 'false'; isStreamingMessage: boolean }): string => {
+const renderAssistantActionsContainer = (context: MessageActionMarkupContext, message: ChatMessage, inputArguments: { leftButtonsHtml: string; previewText: string; previewCooldownMs: string; triggerUserTimestamp: string; hasPreview: 'true' | 'false'; isStreamingMessage: boolean; segments: readonly MessageSegment[] }): string => {
+    const activityAttributes = Object.entries(resolveStreamingSpinnerActivityFlags(inputArguments.segments))
+        .map(([name, enabled]) => `${name}="${enabled ? 'true' : 'false'}"`)
+        .join(' ');
     const streamSpinnerStatusHtml = renderStreamSpinnerStatus();
     const summaryHtml = renderRunningActivitySummary(context, message);
-    const leftHtml = streamSpinnerStatusHtml + renderAssistantActionButtons(inputArguments.leftButtonsHtml, inputArguments.isStreamingMessage) + summaryHtml;
+    const leftHtml = streamSpinnerStatusHtml + inputArguments.leftButtonsHtml + summaryHtml;
     const actionsStateAttribute = inputArguments.isStreamingMessage ? 'true' : 'false';
-    return `<div class="message-actions" data-message-streaming="${actionsStateAttribute}" ${STREAM_SPINNER_VISIBLE_ATTRIBUTE}="false" ${STREAM_SPINNER_HAS_PREVIEW_ATTRIBUTE}="${inputArguments.hasPreview}" ${STREAM_SPINNER_PREVIEW_TEXT_ATTRIBUTE}="${inputArguments.previewText}" ${STREAM_SPINNER_PREVIEW_COOLDOWN_MS_ATTRIBUTE}="${inputArguments.previewCooldownMs}" ${STREAM_SPINNER_TRIGGER_USER_AT_MS_ATTRIBUTE}="${inputArguments.triggerUserTimestamp}" ${STREAM_SPINNER_HAS_LOADING_ACTIVITY_ATTRIBUTE}="false" ${STREAM_SPINNER_HAS_RUNNING_LOADING_ACTIVITY_ATTRIBUTE}="false" ${STREAM_SPINNER_HAS_RUNNING_WAIT_ACTIVITY_ATTRIBUTE}="false" ${STREAM_SPINNER_HAS_RUNNING_CONTEXT_COMPACTION_ACTIVITY_ATTRIBUTE}="false">` + `${renderAssistantActionLayout(leftHtml, '')}` + `</div>`;
-};
-
-const renderStreamingAssistantActionsContainer = (context: MessageActionMarkupContext, message: ChatMessage, inputArguments: { previewText: string; previewCooldownMs: string; triggerUserTimestamp: string; hasPreview: 'true' | 'false' }): string => {
-    return renderAssistantActionsContainer(context, message, {
-        leftButtonsHtml: '',
-        previewText: inputArguments.previewText,
-        previewCooldownMs: inputArguments.previewCooldownMs,
-        triggerUserTimestamp: inputArguments.triggerUserTimestamp,
-        hasPreview: inputArguments.hasPreview,
-        isStreamingMessage: true
-    });
-};
-
-const resolveMessageDurationMs = (message: ChatMessage, normalizedRole: string): number | null => {
-    if (normalizedRole === 'assistant') {
-        return resolveAssistantSettledResponseDisplayDurationMs(message, serverEpochMs());
-    }
-    return null;
+    return `<div class="message-actions" data-message-streaming="${actionsStateAttribute}" ${STREAM_SPINNER_VISIBLE_ATTRIBUTE}="false" ${STREAM_SPINNER_HAS_PREVIEW_ATTRIBUTE}="${inputArguments.hasPreview}" ${STREAM_SPINNER_PREVIEW_TEXT_ATTRIBUTE}="${inputArguments.previewText}" ${STREAM_SPINNER_PREVIEW_COOLDOWN_MS_ATTRIBUTE}="${inputArguments.previewCooldownMs}" ${STREAM_SPINNER_TRIGGER_USER_AT_MS_ATTRIBUTE}="${inputArguments.triggerUserTimestamp}" ${activityAttributes}>` + `${renderAssistantActionLayout(leftHtml, '', inputArguments.isStreamingMessage)}` + `</div>`;
 };
 
 const renderMessageActionLayout = (leftButtonsHtml: string): string => {
     return `<div class="message-action-buttons"><div class="message-action-buttons-left">${leftButtonsHtml}</div><div class="message-action-buttons-right"></div></div>`;
 };
 
-const renderTimestampButton = (context: MessageActionMarkupContext, message: ChatMessage, normalizedRole: string, timestamp: { label: string; title: string }): string => {
+const renderTimestampButton = (context: MessageActionMarkupContext, message: ChatMessage, normalizedRole: string, timestamp: MessageTimestamp): string => {
     const copyTimestampLabel = i18n.t('chat.message.actions.copyTimestamp');
     const copyTimestampLabelAttr = context.escapeAttribute(copyTimestampLabel);
-    const durationMs = resolveMessageDurationMs(message, normalizedRole);
-    if (durationMs === null || !isFiniteNumber(message.timestamp)) {
-        return `<button type="button" class="message-action message-timestamp-btn" data-action="copy-timestamp" data-timestamp="${context.escapeAttribute(timestamp.title)}" aria-label="${copyTimestampLabelAttr}" data-tooltip="${copyTimestampLabelAttr}">${context.escapeHtml(timestamp.label)}</button>`;
-    }
-    const timestampRange = formatMessageTimestampRange(message.timestamp, durationMs);
-    const durationLabel = formatWholeDurationFromMs(durationMs);
-    const clockIcon = renderMessageIcon(context, 'clock', { size: 14, strokeWidth: 1.7 });
-    const buttonContent = `<span class="message-timestamp-btn-content"><span class="message-timestamp-duration" aria-hidden="true">${clockIcon}<span class="message-timestamp-duration-text">${context.escapeHtml(durationLabel)}</span></span><span class="message-timestamp-divider" aria-hidden="true">•</span><span class="message-timestamp-text">${context.escapeHtml(timestampRange.label)}</span></span>`;
-    return `<button type="button" class="message-action message-timestamp-btn" data-action="copy-timestamp" data-timestamp="${context.escapeAttribute(timestampRange.title)}" aria-label="${copyTimestampLabelAttr}" data-tooltip="${copyTimestampLabelAttr}">${buttonContent}</button>`;
+    const timing = normalizedRole === 'assistant' ? context.resolveAssistantResponseDuration(message, serverEpochMs()) : null;
+    const durationMs = timing?.isSettled === true ? timing.durationFloorMs : null;
+    const display = timing?.isSettled === true && timing.completedAtMs !== null ? formatMessageTimestampRange(timing.assistantStartedAtMs, timing.completedAtMs - timing.assistantStartedAtMs) : timestamp;
+    const durationHtml = durationMs === null ? '' : `<span class="message-timestamp-duration" aria-hidden="true">${renderMessageIcon(context, 'clock', { size: 14, strokeWidth: 1.7 })}<span class="message-timestamp-duration-text">${context.escapeHtml(formatWholeDurationFromMs(durationMs))}</span></span><span class="message-timestamp-divider" aria-hidden="true">•</span>`;
+    const buttonContent = `<span class="message-timestamp-btn-content">${durationHtml}<span class="message-timestamp-text">${context.escapeHtml(display.label)}</span><span class="message-timestamp-text-compact">${context.escapeHtml(display.compactLabel)}</span></span>`;
+    return `<button type="button" class="message-action message-timestamp-btn" data-action="copy-timestamp" data-timestamp="${context.escapeAttribute(display.title)}" aria-label="${copyTimestampLabelAttr}" data-tooltip="${context.escapeAttribute(`${copyTimestampLabel} · ${display.title}`)}">${buttonContent}</button>`;
 };
 
 type MessageActionRenderPolicy = 'default' | 'invalid_comparison_turn' | 'compaction_boundary';
 
-const renderMessageActions = (context: MessageActionMarkupContext, message: ChatMessage, timestamp: { label: string; title: string }, presentation: ChatMessageRenderPresentation, policy: MessageActionRenderPolicy = 'default', options?: { forceSettledAssistantActions?: boolean }): string => {
+const renderMessageActions = (context: MessageActionMarkupContext, message: ChatMessage, timestamp: MessageTimestamp, presentation: ChatMessageRenderPresentation, policy: MessageActionRenderPolicy = 'default', options?: { forceSettledAssistantActions?: boolean }, segments: readonly MessageSegment[] = []): string => {
     const currentConversationId = context.getCurrentConversationId();
     const isCurrentConversationExecuting = options?.forceSettledAssistantActions === true ? false : currentConversationId !== null && context.isConversationExecuting(currentConversationId);
     const role = presentation.normalizedRole;
@@ -171,9 +154,6 @@ const renderMessageActions = (context: MessageActionMarkupContext, message: Chat
                   }
               ).isActiveStreamingAssistant;
     if (policy === 'compaction_boundary') {
-        if (isStreamingMessage) {
-            return renderStreamingAssistantActionsContainer(context, message, { previewText, previewCooldownMs, triggerUserTimestamp, hasPreview });
-        }
         const leftButtonsHtml =
             renderMessageActionButtons(
                 context,
@@ -183,12 +163,10 @@ const renderMessageActions = (context: MessageActionMarkupContext, message: Chat
             ) +
             deleteBtn +
             timestampBtn;
-        return `<div class="message-actions message-actions--compaction-boundary">${renderMessageActionLayout(leftButtonsHtml)}</div>`;
+        if (isStreamingMessage) return renderAssistantActionsContainer(context, message, { leftButtonsHtml, previewText, previewCooldownMs, triggerUserTimestamp, hasPreview, isStreamingMessage, segments });
+        return `<div class="message-actions message-actions--compaction-boundary">${renderAssistantActionLayout(leftButtonsHtml, '', false)}</div>`;
     }
 
-    if (isStreamingMessage) {
-        return renderStreamingAssistantActionsContainer(context, message, { previewText, previewCooldownMs, triggerUserTimestamp, hasPreview });
-    }
     const totalTokens = message.totalTokens;
     const infoLabel = i18n.t('chat.message.actions.info');
     const copyLabel = i18n.t('chat.message.actions.copy');
@@ -217,7 +195,8 @@ const renderMessageActions = (context: MessageActionMarkupContext, message: Chat
         previewCooldownMs,
         triggerUserTimestamp,
         hasPreview,
-        isStreamingMessage: false
+        isStreamingMessage,
+        segments: segments
     });
 };
 

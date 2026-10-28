@@ -3,6 +3,10 @@
 
 import { scaleAnimationDurationMs } from '@core/animations/speed.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
+import { waitForElementAnimations } from '@core/pageTransitions.ts';
+import { errorHandler } from '@core/errorHandler.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 
 const CONTENT_FADE_TRANSITION_DURATION_MS = 240;
 const contentTransitionSequences = new WeakMap<HTMLElement, number>();
@@ -43,8 +47,19 @@ const clearContentOpacity = (elements: readonly HTMLElement[]): void => {
     });
 };
 
-const finishContentFadeIn = (elements: readonly HTMLElement[], sequence: number, animations: readonly Animation[]): void => {
-    cancelAnimationGroup(animations);
+const waitForContentAnimations = async (elements: readonly HTMLElement[], animations: readonly Animation[]): Promise<void> => {
+    const element = elements[0];
+    if (!element) throw new Error('Content fade requires an animation owner');
+    try {
+        await waitForElementAnimations(element, { ensureStarted: false, animations });
+    } catch (error) {
+        if (!isAbortError(error)) errorHandler.warn('ContentFadeTransition', 'Content animation did not complete', ensureError(error));
+    } finally {
+        cancelAnimationGroup(animations);
+    }
+};
+
+const finishContentFadeIn = (elements: readonly HTMLElement[], sequence: number): void => {
     if (!isContentTransitionCurrent(elements, sequence)) {
         return;
     }
@@ -63,8 +78,7 @@ const createContentFadeInAnimations = (elements: readonly HTMLElement[]): Animat
     );
 };
 
-const finishContentFadeOut = (options: ContentFadeTransitionOptions, sequence: number, animations: readonly Animation[]): void => {
-    cancelAnimationGroup(animations);
+const finishContentFadeOut = (options: ContentFadeTransitionOptions, sequence: number): void => {
     if (!isContentTransitionCurrent(options.elements, sequence)) {
         return;
     }
@@ -72,8 +86,17 @@ const finishContentFadeOut = (options: ContentFadeTransitionOptions, sequence: n
         element.style.opacity = '0';
     });
     options.render();
+    for (const element of options.elements) {
+        for (const animation of element.getAnimations({ subtree: true })) {
+            if (animation instanceof CSSTransition) animation.finish();
+        }
+    }
+    if (options.elements.some((element) => element.ownerDocument.visibilityState === 'hidden')) {
+        clearContentOpacity(options.elements);
+        return;
+    }
     const fadeInAnimations = createContentFadeInAnimations(options.elements);
-    terminateHandledPromise(Promise.allSettled(fadeInAnimations.map((animation) => animation.finished)).then(() => finishContentFadeIn(options.elements, sequence, fadeInAnimations)));
+    terminateHandledPromise(waitForContentAnimations(options.elements, fadeInAnimations).then(() => finishContentFadeIn(options.elements, sequence)));
 };
 
 const createContentFadeOutAnimations = (elements: readonly HTMLElement[]): Animation[] => {
@@ -98,13 +121,13 @@ const transitionContentElements = (options: ContentFadeTransitionOptions): void 
     const elements = options.elements.filter((element) => element.isConnected);
     const sequence = nextContentTransitionSequence(elements);
     cancelContentAnimations(elements, { preserveOpacity: true });
-    if (!elements.length || !elements.some((element) => element.hasChildNodes())) {
+    if (!elements.length || !elements.some((element) => element.hasChildNodes()) || elements.some((element) => element.ownerDocument.visibilityState === 'hidden')) {
         options.render();
         clearContentOpacity(elements);
         return;
     }
     const fadeOutAnimations = createContentFadeOutAnimations(elements);
-    terminateHandledPromise(Promise.allSettled(fadeOutAnimations.map((animation) => animation.finished)).then(() => finishContentFadeOut({ elements, render: options.render }, sequence, fadeOutAnimations)));
+    terminateHandledPromise(waitForContentAnimations(elements, fadeOutAnimations).then(() => finishContentFadeOut({ elements, render: options.render }, sequence)));
 };
 
 export { renderContentImmediately, transitionContentElements };

@@ -1,11 +1,15 @@
 /* SoAI - Chat feature inline activity details pending state [frontend/assets/ts/features/chat/message/inlineActivityDetailsPendingState.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { syncAttributeValue } from '@core/dom/patching.ts';
 import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { getTooltipText, setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { buildInlineActivityDetailsDomKey } from '@features/chat/message/inlineActivityDetailsLifecycle.ts';
 import { INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE, resolveDirectInlineActivityDetailsRoot } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
+import { cancelInlineActivityDetailsMotion, openInlineActivityDetailsWithMotion } from '@features/chat/message/inlineActivityDetailsMotion.ts';
+import { patchInlineActivityLayoutWithMotion } from '@features/chat/message/messageview/inlineActivityLayoutMotion.ts';
+import { followInlineActivityDetailsOpeningBottom } from '@features/chat/message/inlineActivityDetailsOpeningScroll.ts';
 
 const INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE = 'data-details-open-pending';
 const INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE = 'data-details-loading';
@@ -78,22 +82,11 @@ const restoreCloseButton = (activity: HTMLElement, state: PendingInlineActivityD
         return;
     }
     dom.resolve(`:scope > .${INLINE_ACTIVITY_DETAILS_LOADING_SPINNER_CLASS}.loading-spinner`, button)?.remove();
-    if (!state.closeButtonAttributesCaptured) {
-        const closeLabel = i18n.t('common.close');
-        button.setAttribute('aria-label', closeLabel);
-        setTooltipText(button, closeLabel);
-        return;
-    }
-    if (state.closeButtonAriaLabel === null) {
-        button.removeAttribute('aria-label');
-    } else {
-        button.setAttribute('aria-label', state.closeButtonAriaLabel);
-    }
-    if (state.closeButtonTooltip === null) {
-        setTooltipText(button, '');
-    } else {
-        setTooltipText(button, state.closeButtonTooltip);
-    }
+    const closeLabel = i18n.t('common.close');
+    const ariaLabel = state.closeButtonAttributesCaptured ? state.closeButtonAriaLabel : closeLabel;
+    const tooltip = state.closeButtonAttributesCaptured ? state.closeButtonTooltip : closeLabel;
+    syncAttributeValue(button, 'aria-label', ariaLabel);
+    if (getTooltipText(button) !== tooltip) setTooltipText(button, tooltip);
     state.closeButtonAriaLabel = null;
     state.closeButtonTooltip = null;
     state.closeButtonAttributesCaptured = false;
@@ -123,9 +116,9 @@ const showInlineActivityDetailsLoading = (activity: HTMLElement): void => {
         captureCloseButtonState(button, state);
     }
     const loadingLabel = i18n.t('common.loading');
-    button.setAttribute('aria-label', loadingLabel);
-    setTooltipText(button, loadingLabel);
-    activity.setAttribute(INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE, 'true');
+    syncAttributeValue(button, 'aria-label', loadingLabel);
+    if (getTooltipText(button) !== loadingLabel) setTooltipText(button, loadingLabel);
+    syncAttributeValue(activity, INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE, 'true');
     renderLoadingSpinner(button);
 };
 
@@ -134,12 +127,12 @@ const beginInlineActivityDetailsPendingState = (activity: HTMLElement): void => 
     const state = resolvePendingState(activity);
     clearLoadingFrame(activity, state);
     state.activity = activity;
-    if (activity.getAttribute('data-collapsed') === 'true') {
-        activity.setAttribute('data-collapsing', 'true');
-    }
-    activity.setAttribute(INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE, 'true');
-    activity.removeAttribute(INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE);
-    restoreCloseButton(activity, state);
+    patchInlineActivityLayoutWithMotion(activity, () => {
+        const changed = syncAttributeValue(activity, INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE, 'true');
+        activity.removeAttribute(INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE);
+        restoreCloseButton(activity, state);
+        return changed;
+    });
     const view = activity.ownerDocument.defaultView;
     if (view === null || typeof view.requestAnimationFrame !== 'function') {
         showInlineActivityDetailsLoading(activity);
@@ -182,8 +175,12 @@ const clearInlineActivityDetailsPendingState = (activity: HTMLElement): void => 
     const key = resolvePendingStateKey(activity);
     const registeredState = key === null ? null : (pendingStateByActivityKey.get(key) ?? null);
     const state = registeredState ?? createPendingState();
-    activity.removeAttribute(INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE);
-    activity.removeAttribute(INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE);
+    patchInlineActivityLayoutWithMotion(activity, () => {
+        const changed = activity.hasAttribute(INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE);
+        activity.removeAttribute(INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE);
+        activity.removeAttribute(INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE);
+        return changed;
+    });
     if (registeredState === null || state.activity === activity) {
         clearLoadingFrame(activity, state);
         restoreCloseButton(activity, state);
@@ -194,37 +191,31 @@ const clearInlineActivityDetailsPendingState = (activity: HTMLElement): void => 
     }
 };
 
-const stabilizeInlineActivityDetailsOpeningLayout = (activity: HTMLElement): void => {
-    if (activity.getAttribute('data-collapsed') !== 'true') {
-        return;
-    }
-    const detailsRoot = resolveDirectInlineActivityDetailsRoot(activity);
-    if (!(detailsRoot instanceof HTMLElement)) {
-        return;
-    }
-    activity.setAttribute('data-collapsing', 'true');
-    void detailsRoot.offsetHeight;
-};
-
 const completeInlineActivityDetailsOpenState = (activity: HTMLElement): void => {
-    const resetScrollPosition = activity.getAttribute('data-collapsed') === 'true';
     activity.removeAttribute(INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE);
-    stabilizeInlineActivityDetailsOpeningLayout(activity);
-    activity.setAttribute('data-collapsed', 'false');
-    activity.removeAttribute('data-collapsing');
-    clearInlineActivityDetailsPendingState(activity);
-    if (resetScrollPosition) {
-        const detailsRoot = resolveDirectInlineActivityDetailsRoot(activity);
-        if (detailsRoot instanceof HTMLElement) {
-            detailsRoot.scrollTop = 0;
+    openInlineActivityDetailsWithMotion(
+        activity,
+        () => {
+            syncAttributeValue(activity, 'data-collapsed', 'false');
+            activity.removeAttribute('data-collapsing');
+            clearInlineActivityDetailsPendingState(activity);
+        },
+        () => {
+            const detailsRoot = resolveDirectInlineActivityDetailsRoot(activity);
+            if (detailsRoot instanceof HTMLElement) {
+                const followsRunningThinking = activity.classList.contains('inline-activity-type-thinking') && activity.classList.contains('inline-activity-status-running');
+                if (followsRunningThinking) followInlineActivityDetailsOpeningBottom(detailsRoot);
+                else detailsRoot.scrollTop = 0;
+            }
         }
-    }
+    );
 };
 
 const resetInlineActivityDetailsClosedState = (activity: HTMLElement): void => {
     activity.removeAttribute(INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE);
     activity.removeAttribute('data-collapsing');
-    activity.setAttribute('data-collapsed', 'true');
+    syncAttributeValue(activity, 'data-collapsed', 'true');
+    cancelInlineActivityDetailsMotion(activity);
     clearInlineActivityDetailsPendingState(activity);
 };
 

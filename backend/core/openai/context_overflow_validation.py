@@ -6,10 +6,14 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from core.errors.exceptions import ValidationError
-from core.validation.integers import coerce_positive_exact_int_or_none
+from core.validation.integers import (
+    coerce_positive_exact_int_or_none,
+    is_non_negative_strict_int,
+    is_positive_strict_int,
+)
 from core.validation.strings import coerce_optional_trimmed_str
 
 if TYPE_CHECKING:
@@ -26,6 +30,7 @@ __all__ = (
 
 CONTEXT_OVERFLOW_VALIDATION_TYPE = "context_window_exceeded"
 CONTEXT_OVERFLOW_CONFIGURATION_GUIDANCE = "Increase num_ctx/context_window_tokens, compact the conversation, or select a model with a larger context."
+PROMPT_BUDGET_CONFIGURATION_GUIDANCE = "Reduce the prompt or reserved output, compact the conversation, or increase the context length."
 _TOKEN_COUNT_PATTERN = r"[0-9][0-9,._]*"
 
 
@@ -35,6 +40,9 @@ class ContextOverflowValidation:
     available_tokens: int
     model: str | None
     configuration_guidance: str = CONTEXT_OVERFLOW_CONFIGURATION_GUIDANCE
+    token_scope: Literal["context", "prompt"] = "context"
+    usable_context_tokens: int | None = None
+    reserved_output_tokens: int | None = None
 
     @property
     def message(self) -> str:
@@ -43,6 +51,7 @@ class ContextOverflowValidation:
             available_tokens=self.available_tokens,
             model=self.model,
             configuration_guidance=self.configuration_guidance,
+            token_scope=self.token_scope,
         )
 
     def to_details(self) -> JSONDict:
@@ -50,10 +59,24 @@ class ContextOverflowValidation:
             "type": CONTEXT_OVERFLOW_VALIDATION_TYPE,
             "requested_tokens": int(self.requested_tokens),
             "available_tokens": int(self.available_tokens),
-            "configuration_guidance": self.configuration_guidance,
+            "configuration_guidance": (
+                PROMPT_BUDGET_CONFIGURATION_GUIDANCE
+                if self.token_scope == "prompt"
+                else self.configuration_guidance
+            ),
         }
         if self.model is not None:
             details["model"] = self.model
+        if self.token_scope == "prompt":
+            details["token_scope"] = "prompt"
+            if (
+                is_positive_strict_int(self.usable_context_tokens)
+                and is_non_negative_strict_int(self.reserved_output_tokens)
+                and self.usable_context_tokens
+                == self.available_tokens + self.reserved_output_tokens
+            ):
+                details["usable_context_tokens"] = self.usable_context_tokens
+                details["reserved_output_tokens"] = self.reserved_output_tokens
         return details
 
 
@@ -63,7 +86,14 @@ def build_context_overflow_validation_message(
     available_tokens: int,
     model: str | None,
     configuration_guidance: str = CONTEXT_OVERFLOW_CONFIGURATION_GUIDANCE,
+    token_scope: Literal["context", "prompt"] = "context",
 ) -> str:
+    if token_scope == "prompt":
+        return (
+            f"This request needs {requested_tokens:,} prompt tokens, but the available prompt "
+            f"budget is {available_tokens:,} tokens after output reservation and any safety margin. "
+            f"{PROMPT_BUDGET_CONFIGURATION_GUIDANCE}"
+        )
     model_text = ""
     normalized_model = coerce_optional_trimmed_str(model)
     if normalized_model is not None:
@@ -142,6 +172,8 @@ def _extract_from_structured_details(
     validation_type = coerce_optional_trimmed_str(details.get("validation_type"))
     if CONTEXT_OVERFLOW_VALIDATION_TYPE not in (details_type, validation_type):
         return None
+    if details.get("token_scope") not in (None, "context", "prompt"):
+        return None
     requested_tokens = coerce_positive_exact_int_or_none(details.get("requested_tokens"))
     available_tokens = coerce_positive_exact_int_or_none(details.get("available_tokens"))
     if requested_tokens is None or available_tokens is None or requested_tokens <= available_tokens:
@@ -156,6 +188,15 @@ def _extract_from_structured_details(
         available_tokens=available_tokens,
         model=configured_model,
         configuration_guidance=guidance,
+        token_scope="prompt" if details.get("token_scope") == "prompt" else "context",
+        usable_context_tokens=(
+            value if is_positive_strict_int(value := details.get("usable_context_tokens")) else None
+        ),
+        reserved_output_tokens=(
+            value
+            if is_non_negative_strict_int(value := details.get("reserved_output_tokens"))
+            else None
+        ),
     )
 
 

@@ -5,6 +5,7 @@ import { requestPresenceEnter } from '@core/animations/presence/public.ts';
 import { resolveMaxCssAnimationTotalMs } from '@core/animations/parseMaxCssDurationMs.ts';
 
 const chatMessageEnterAnimationClass = 'fade-slide-in';
+const CHAT_MESSAGE_ENTER_PRESERVED_CLASS_NAMES: ReadonlySet<string> = new Set([chatMessageEnterAnimationClass]);
 const chatMessageDeletedExitAnimationClass = 'chat-message-deleted-exit';
 const chatMessageAnimationCleanupBufferMs = 50;
 
@@ -16,11 +17,16 @@ const applySelfCleaningAnimationClass = (element: HTMLElement, className: string
     element.classList.add(className);
     const view = element.ownerDocument.defaultView;
     let timeoutId: number | null = null;
+    let frameId: number | null = null;
     const cleanup = (): void => {
         element.removeEventListener('animationend', onEnd);
         if (timeoutId !== null) {
             view?.clearTimeout(timeoutId);
             timeoutId = null;
+        }
+        if (frameId !== null) {
+            view?.cancelAnimationFrame(frameId);
+            frameId = null;
         }
         element.classList.remove(className);
     };
@@ -31,7 +37,10 @@ const applySelfCleaningAnimationClass = (element: HTMLElement, className: string
     };
     element.addEventListener('animationend', onEnd);
     if (view) {
-        timeoutId = view.setTimeout(cleanup, resolveMaxCssAnimationTotalMs(element) + chatMessageAnimationCleanupBufferMs);
+        frameId = view.requestAnimationFrame(() => {
+            frameId = null;
+            timeoutId = view.setTimeout(cleanup, resolveMaxCssAnimationTotalMs(element) + chatMessageAnimationCleanupBufferMs);
+        });
     }
 };
 
@@ -69,5 +78,5 @@ const applyChatMessageDeletedExitAnimation = (element: HTMLElement, onAnimationE
     return true;
 };
 
-export { applyChatMessageDeletedExitAnimation, applyChatMessageEnterAnimation, prefersReducedMotion };
+export { applyChatMessageDeletedExitAnimation, applyChatMessageEnterAnimation, CHAT_MESSAGE_ENTER_PRESERVED_CLASS_NAMES, prefersReducedMotion };
 export type { ChatMessageInsertAnimationOptions };

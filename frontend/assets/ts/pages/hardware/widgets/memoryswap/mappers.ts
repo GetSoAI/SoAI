@@ -33,18 +33,18 @@ const buildMemorySwapRenderModel = (input: MemorySwapPanelInput): MemorySwapRend
 };
 
 const buildUsage = (type: MemorySwapMode, raw: MemorySwapUsageSource): MemorySwapUsage => {
-    const totalGb = readFinite(raw?.totalGb ?? null);
-    const usedGb = readFinite(raw?.usedGb ?? null);
+    const totalGb = readFinite(raw?.totalGb ?? null) ?? (isFiniteNumber(raw?.totalBytes) ? raw.totalBytes / 1024 ** 3 : null);
+    const usedGb = readFinite(raw?.usedGb ?? null) ?? (isFiniteNumber(raw?.usedBytes) ? raw.usedBytes / 1024 ** 3 : null);
     const percentSource = readFinite(raw?.percentUsed ?? null) ?? readFinite(raw?.percent ?? null);
     const percent = percentSource === null && totalGb !== null && usedGb !== null && totalGb > 0 ? (usedGb / totalGb) * 100 : percentSource;
-    const available = totalGb !== null && totalGb > 0;
+    const available = percent !== null;
     const label = type === 'ram' ? i18n.t('hardware.cards.memorySwap.labels.ram') : i18n.t('hardware.cards.memorySwap.labels.swap');
     return {
         type,
         label,
-        percent: clampPercent(percent ?? 0),
-        usedText: usedGb !== null ? formatMemoryGigabytes(usedGb) : i18n.t('hardware.cards.memorySwap.unavailableShort'),
-        totalText: totalGb !== null ? formatMemoryGigabytes(totalGb) : i18n.t('hardware.cards.memorySwap.unavailableShort'),
+        percent: percent === null ? null : clampPercent(percent),
+        usedText: usedGb !== null ? formatMemoryGigabytes(usedGb) : i18n.t('common.notAvailableShort'),
+        totalText: totalGb !== null ? formatMemoryGigabytes(totalGb) : i18n.t('common.notAvailableShort'),
         available
     };
 };
@@ -55,7 +55,7 @@ const formatMemoryGigabytes = (gigabytes: number): string => {
 
 const formatMemoryCapacity = (gigabytes: number | null): string => {
     if (gigabytes === null) {
-        return i18n.t('hardware.cards.memorySwap.unavailableShort');
+        return i18n.t('common.notAvailableShort');
     }
     return formatMemoryGigabytes(gigabytes);
 };

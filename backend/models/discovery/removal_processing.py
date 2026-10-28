@@ -9,10 +9,12 @@ from core.errors.exceptions import StateError
 from core.logging.trace import get_logger
 from core.metrics.protocols import MetricsManagerProtocol
 from core.models.protocols_database import DatabaseModelsProtocol
-from models.discovery.provider_bounded_execution import PluginCheckUnchanged
+from core.models.provider_backing import is_provider_backed_model
+from models.discovery.provider_bounded_execution import ProviderCatalogDiscovery
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
+    from models.discovery.provider_bounded_execution import PluginDiscoveryResult
 
 __all__ = (
     "identify_and_log_removed_models",
@@ -23,10 +25,7 @@ LOGGER_NAME = "SoAI.models.discovery.removal_processing"
 
 
 def identify_and_log_removed_models(
-    discovered_data: dict[
-        str,
-        dict[str, JSONDict] | Exception | PluginCheckUnchanged | None,
-    ],
+    discovered_data: dict[str, PluginDiscoveryResult],
     existing_models_by_plugin: dict[str, dict[str, JSONDict]],
     all_discovered_universal_ids_by_plugin: dict[str, set[str]],
     startup_discovery_complete: bool,
@@ -34,7 +33,13 @@ def identify_and_log_removed_models(
     removed_universal_ids: list[str] = []
     if startup_discovery_complete and not all_discovered_universal_ids_by_plugin:
         return removed_universal_ids
-    for plugin_name, models in discovered_data.items():
+    for plugin_name, discovery_result in discovered_data.items():
+        provider_catalog_only = isinstance(discovery_result, ProviderCatalogDiscovery)
+        models = (
+            discovery_result.models
+            if isinstance(discovery_result, ProviderCatalogDiscovery)
+            else discovery_result
+        )
         if not isinstance(models, dict):
             continue
         if (
@@ -48,6 +53,7 @@ def identify_and_log_removed_models(
                 universal_id
                 for model_record in existing_models_by_plugin.get(plugin_name, {}).values()
                 if isinstance((universal_id := model_record.get("universal_id")), str)
+                and (not provider_catalog_only or is_provider_backed_model(model_record))
             }
             - all_discovered_universal_ids_by_plugin.get(plugin_name, set()),
         )

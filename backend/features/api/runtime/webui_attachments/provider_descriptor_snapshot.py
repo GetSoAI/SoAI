@@ -6,13 +6,15 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-from core.attachments.attachment_parse_temp_copy import (
-    copy_attachment_descriptor_to_temp_path,
-)
+from core.concurrency.deadlines import MonotonicDeadline, deadline_after
 from core.errors.exception_logging import log_handled_exception
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import PayloadTooLargeError, PreconditionError, ValidationError
 from core.files.content_hashing import hash_descriptor_content
+from core.files.content_snapshot import capture_file_snapshot
+from core.files.temp_files import system_temp_directory
+from core.filesystem.descriptor_io import open_descriptor
 from core.logging.trace import get_logger
+from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 
 __all__ = (
     "ProviderDescriptorSnapshot",
@@ -58,7 +60,9 @@ def _close_descriptor(descriptor: int, *, temp_path: str) -> None:
         )
 
 
-def close_provider_descriptor_snapshot(snapshot: ProviderDescriptorSnapshot) -> None:
+def close_provider_descriptor_snapshot(snapshot: ProviderDescriptorSnapshot | None) -> None:
+    if snapshot is None:
+        return
     _close_descriptor(snapshot.descriptor, temp_path=snapshot.temp_path)
     _remove_temp_path(snapshot.temp_path)
 
@@ -69,31 +73,44 @@ def load_provider_descriptor_snapshot(
     filename: str,
     expected_size_bytes: int,
     expected_sha256: str,
+    deadline: MonotonicDeadline | None = None,
 ) -> ProviderDescriptorSnapshot | None:
+    deadline = deadline or deadline_after(float(INTERACTIVE_TIMEOUT_SEC))
     try:
-        temp_path = copy_attachment_descriptor_to_temp_path(
+        snapshot = capture_file_snapshot(
             descriptor=source_descriptor,
-            filename=filename,
+            directory=system_temp_directory(),
+            suffix=os.path.splitext(filename)[1],
+            maximum_bytes=expected_size_bytes,
+            expected_size=expected_size_bytes,
+            expected_sha256=expected_sha256,
+            deadline=deadline,
         )
-    except OSError:
+        temp_path = snapshot.content.file_path
+    except TimeoutError:
+        raise
+    except (OSError, ValidationError, PreconditionError, PayloadTooLargeError):
         return None
+    snapshot_descriptor = -1
+    completed = False
     try:
-        snapshot_descriptor = os.open(temp_path, os.O_RDONLY)
-        try:
-            content_hash = hash_descriptor_content(snapshot_descriptor)
-        except ValidationError:
-            _close_descriptor(snapshot_descriptor, temp_path=temp_path)
-            _remove_temp_path(temp_path)
+        snapshot_descriptor = open_descriptor(temp_path, os.O_RDONLY)
+        content_hash = hash_descriptor_content(
+            snapshot_descriptor, maximum_bytes=expected_size_bytes, deadline=deadline
+        )
+        if (
+            content_hash.size_bytes != expected_size_bytes
+            or content_hash.sha256_hex != expected_sha256
+        ):
             return None
-        if content_hash.size_bytes != expected_size_bytes:
-            _close_descriptor(snapshot_descriptor, temp_path=temp_path)
-            _remove_temp_path(temp_path)
-            return None
-        if content_hash.sha256_hex != expected_sha256:
-            _close_descriptor(snapshot_descriptor, temp_path=temp_path)
-            _remove_temp_path(temp_path)
-            return None
+        completed = True
         return ProviderDescriptorSnapshot(descriptor=snapshot_descriptor, temp_path=temp_path)
-    except OSError:
-        _remove_temp_path(temp_path)
+    except TimeoutError:
+        raise
+    except (OSError, ValidationError):
         return None
+    finally:
+        if not completed:
+            if snapshot_descriptor >= 0:
+                _close_descriptor(snapshot_descriptor, temp_path=temp_path)
+            _remove_temp_path(temp_path)

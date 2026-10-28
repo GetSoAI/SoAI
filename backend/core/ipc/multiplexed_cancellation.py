@@ -6,17 +6,22 @@ from __future__ import annotations
 import asyncio
 from enum import StrEnum
 
+from core.errors.exceptions import IpcRemoteRequestError
 from core.ipc.multiplexed_support import MultiplexedConnection
 from core.ipc.ndjson import NdjsonCodec
 from core.types.json import JSONDict
 
-__all__ = ("WorkerCancellationOutcome", "cancel_worker_call")
+__all__ = ("WorkerCancellationOutcome", "build_cancel_request_id", "cancel_worker_call")
 
 
 class WorkerCancellationOutcome(StrEnum):
     ACKNOWLEDGED = "acknowledged"
     NOT_ACKNOWLEDGED = "not_acknowledged"
     REJECTED = "rejected"
+
+
+def build_cancel_request_id(target_request_id: str) -> str:
+    return f"{target_request_id}.cancel"
 
 
 async def cancel_worker_call(
@@ -26,7 +31,7 @@ async def cancel_worker_call(
     target_request_id: str,
     timeout_sec: float,
 ) -> WorkerCancellationOutcome:
-    cancel_request_id = f"{target_request_id}.cancel"
+    cancel_request_id = build_cancel_request_id(target_request_id)
     loop = asyncio.get_running_loop()
     future: asyncio.Future[JSONDict] = loop.create_future()
     connection.pending[cancel_request_id] = future
@@ -43,6 +48,8 @@ async def cancel_worker_call(
             response = await asyncio.wait_for(future, timeout=max(0.1, timeout_sec))
         except TimeoutError:
             return WorkerCancellationOutcome.NOT_ACKNOWLEDGED
+        except IpcRemoteRequestError:
+            return WorkerCancellationOutcome.REJECTED
         if response.get("ok") is True:
             return WorkerCancellationOutcome.ACKNOWLEDGED
         return WorkerCancellationOutcome.REJECTED

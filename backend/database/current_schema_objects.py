@@ -59,6 +59,7 @@ from database.schema_scripts.plugin_catalog_schema import apply_plugin_catalog_s
 from database.schema_scripts.plugin_clone_transactions import apply_plugin_clone_schema
 from database.schema_scripts.rag_storage import apply_rag_storage_schema
 from database.schema_scripts.read_video import apply_read_video_schema
+from database.schema_scripts.skills import apply_skills_schema
 from database.schema_scripts.system_operations import apply_system_operations_schema
 from database.schema_scripts.task_interaction_secrets import (
     apply_task_interaction_secrets_schema,
@@ -141,3 +142,4 @@ def apply_current_schema_objects(
     apply_memory_schema(conn)
     apply_read_video_schema(conn)
     apply_system_operations_schema(conn)
+    apply_skills_schema(conn)

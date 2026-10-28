@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
 from app.composition.hardware_gpu_tuning_composition import (
@@ -48,10 +49,8 @@ from hardware.gpu_capabilities_service import (
     GpuCapabilitiesService,
     GpuCapabilitiesServiceDependencies,
 )
-from hardware.gpu_info_cache_service import (
-    GPUInfoCacheService,
-    GPUInfoCacheServiceDependencies,
-)
+from hardware.gpu_info_cache_service import GPUInfoCacheService
+from hardware.gpu_observation import GPUInfoCacheServiceDependencies
 from hardware.gpu_tuning.null_service import NullHardwareGpuTuningService
 from hardware.gpu_tuning.service import HardwareGpuTuningService
 from hardware.manager.settings_factory import resolve_hardware_manager_settings
@@ -59,6 +58,7 @@ from hardware.vendor_detection_service import (
     GPUVendorDetectionService,
     GPUVendorDetectionServiceDependencies,
 )
+from hardware.vendors.amd.adl_session import AdlRuntime, AdlRuntimeDependencies
 from hardware.vendors.nvidia.nvml_preflight import probe_nvml_runtime
 
 if TYPE_CHECKING:
@@ -106,7 +106,14 @@ def build_hardware_services(
             command_executor=command_executor,
         ),
     )
-    gpu_info_cache_service = GPUInfoCacheService(GPUInfoCacheServiceDependencies())
+    gpu_info_cache_service = GPUInfoCacheService(
+        GPUInfoCacheServiceDependencies(
+            probe_executor_factory=lambda: ThreadPoolExecutor(
+                max_workers=1, thread_name_prefix="soai-gpu-inventory"
+            )
+        )
+    )
+    adl_runtime = AdlRuntime(AdlRuntimeDependencies())
     nvidia_environment = create_nvidia_nvml_environment(
         nvml_runtime_status=probe_nvml_runtime(),
     )
@@ -128,6 +135,7 @@ def build_hardware_services(
             gpu_vendor_detection_service=gpu_vendor_detection_service,
             nvidia_nvml_gate=nvidia_nvml_gate,
             nvidia_settings_controller=nvidia_settings_controller,
+            adl_runtime=adl_runtime,
             nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
             operation="hardware.get_gpu_capabilities.probe",
             thread_name="soai-gpu-capabilities",
@@ -159,6 +167,7 @@ def build_hardware_services(
         gpu_vendor_detection_service=gpu_vendor_detection_service,
         nvidia_nvml_gate=nvidia_nvml_gate,
         nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
+        adl_runtime=adl_runtime,
     )
     hardware_gpu_tuning = build_gpu_tuning_service(
         cancellation_binder=cancellation_binder,
@@ -178,6 +187,7 @@ def build_hardware_services(
         nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
         gpu_capabilities_service=gpu_capabilities_service,
         nvidia_settings_controller=nvidia_settings_controller,
+        adl_runtime=adl_runtime,
         gpu_operation_lock=gpu_operation_lock,
         activity_registry=activity_registry,
         runtime_flags=runtime_flags,
@@ -199,6 +209,7 @@ def build_hardware_services(
         nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
         gpu_capabilities_service=gpu_capabilities_service,
         nvidia_settings_controller=nvidia_settings_controller,
+        adl_runtime=adl_runtime,
         hardware_manager_settings=hardware_manager_settings,
         command_executor=command_executor,
         hardware_logger=hardware_logger,

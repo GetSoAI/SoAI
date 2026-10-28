@@ -6,8 +6,10 @@ from __future__ import annotations
 import ctypes
 import os
 import platform
+import re
 import shutil
 import sys
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_handled_exception
@@ -15,13 +17,22 @@ from core.errors.exceptions import ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.filesystem.open_files import open_text
 from core.serialization.json_parsing import parse_json_dict
+from hardware.cpu_inventory.linux_topology import read_cpu_mask
 
 if TYPE_CHECKING:
     from core.logging.protocols import TraceLogger
     from core.runtime.platform import RuntimePlatform
     from core.system.protocols import CommandExecutorProtocol
 
-__all__ = ("detect_cpu_instruction_features",)
+__all__ = (
+    "CPU_FEATURE_OBSERVATION_CHANGING",
+    "CPU_FEATURE_OBSERVATION_COMPLETE",
+    "CPU_FEATURE_OBSERVATION_CONFLICTING",
+    "CPU_FEATURE_OBSERVATION_MALFORMED",
+    "CPU_FEATURE_OBSERVATION_UNAVAILABLE",
+    "CpuInstructionFeatures",
+    "detect_cpu_instruction_features",
+)
 
 OPERATION_HARDWARE_CPU_FEATURES_READ_PROC_CPUINFO = "hardware.cpu_features.read_proc_cpuinfo"
 OPERATION_HARDWARE_CPU_FEATURES_RUN_LSCPU = "hardware.cpu_features.run_lscpu"
@@ -33,6 +44,18 @@ _WINDOWS_FEATURE_SSE = 6
 _WINDOWS_FEATURE_SSE2 = 10
 _WINDOWS_FEATURE_AVX = 39
 _WINDOWS_FEATURE_AVX2 = 40
+_RETAINED_FEATURE_TOKENS = frozenset(("fma", "avx512f", "avx512vl"))
+CPU_FEATURE_OBSERVATION_COMPLETE = "complete"
+CPU_FEATURE_OBSERVATION_UNAVAILABLE = "unavailable"
+CPU_FEATURE_OBSERVATION_MALFORMED = "malformed"
+CPU_FEATURE_OBSERVATION_CONFLICTING = "conflicting"
+CPU_FEATURE_OBSERVATION_CHANGING = "changing"
+
+
+@dataclass(frozen=True, slots=True)
+class CpuInstructionFeatures:
+    features: frozenset[str]
+    observation: str
 
 
 def _is_x86_architecture() -> bool:
@@ -49,6 +72,7 @@ def _normalize_feature_tokens(tokens: set[str]) -> set[str]:
         normalized.add("avx")
     if "avx2" in tokens or "avx2.0" in tokens:
         normalized.update({"avx", "avx2"})
+    normalized.update(tokens.intersection(_RETAINED_FEATURE_TOKENS))
     return normalized
 
 
@@ -73,12 +97,12 @@ def _parse_linux_lscpu_flags(stdout: str) -> set[str]:
     return set()
 
 
-def _parse_linux_proc_cpuinfo(*, logger: TraceLogger) -> set[str]:
+def _read_linux_proc_cpuinfo(*, logger: TraceLogger) -> str | None:
     if not os.path.exists("/proc/cpuinfo"):
-        return set()
+        return None
     try:
         with open_text("/proc/cpuinfo", encoding="utf-8") as file_handle:
-            cpuinfo = file_handle.read().lower()
+            return file_handle.read().lower()
     except RECOVERABLE_EXCEPTIONS as exception:
         log_handled_exception(
             logger,
@@ -87,6 +111,12 @@ def _parse_linux_proc_cpuinfo(*, logger: TraceLogger) -> set[str]:
             operation=OPERATION_HARDWARE_CPU_FEATURES_READ_PROC_CPUINFO,
             level="trace",
         )
+        return None
+
+
+def _parse_linux_proc_cpuinfo(*, logger: TraceLogger) -> set[str]:
+    cpuinfo = _read_linux_proc_cpuinfo(logger=logger)
+    if cpuinfo is None:
         return set()
     for prefix in ("flags", "features"):
         for line in cpuinfo.splitlines():
@@ -97,7 +127,58 @@ def _parse_linux_proc_cpuinfo(*, logger: TraceLogger) -> set[str]:
     return set()
 
 
+def _parse_linux_processor_flags(cpuinfo: str) -> dict[int, frozenset[str]] | None:
+    records: dict[int, frozenset[str]] = {}
+    for block in re.split(r"\n[ \t]*\n", cpuinfo.strip()):
+        fields: dict[str, str] = {}
+        for line in block.splitlines():
+            name, separator, value = line.partition(":")
+            if not separator or name.strip() in fields:
+                return None
+            fields[name.strip()] = value.strip()
+        processor = fields.get("processor", "")
+        flags = fields.get("flags")
+        if not processor.isdecimal() or flags is None or int(processor) in records:
+            return None
+        records[int(processor)] = frozenset(flags.split())
+    return records or None
+
+
+def _observe_linux_processor_features(*, logger: TraceLogger) -> CpuInstructionFeatures:
+    online_before = read_cpu_mask("online")
+    cpuinfo = _read_linux_proc_cpuinfo(logger=logger)
+    online_after = read_cpu_mask("online")
+    if online_before.status == "unavailable" or cpuinfo is None:
+        return CpuInstructionFeatures(frozenset(), CPU_FEATURE_OBSERVATION_UNAVAILABLE)
+    records = _parse_linux_processor_flags(cpuinfo)
+    if online_before.identities is None or records is None:
+        return CpuInstructionFeatures(frozenset(), CPU_FEATURE_OBSERVATION_MALFORMED)
+    if online_after != online_before:
+        return CpuInstructionFeatures(frozenset(), CPU_FEATURE_OBSERVATION_CHANGING)
+    if sorted(records) != online_before.identities:
+        return CpuInstructionFeatures(frozenset(), CPU_FEATURE_OBSERVATION_CONFLICTING)
+    shared_flags = frozenset[str].intersection(*records.values())
+    return CpuInstructionFeatures(
+        frozenset(_normalize_feature_tokens(set(shared_flags))),
+        CPU_FEATURE_OBSERVATION_COMPLETE,
+    )
+
+
 def _detect_linux_features(
+    executor: CommandExecutorProtocol,
+    *,
+    logger: TraceLogger,
+) -> CpuInstructionFeatures:
+    per_processor = _observe_linux_processor_features(logger=logger)
+    if per_processor.observation == CPU_FEATURE_OBSERVATION_COMPLETE:
+        return per_processor
+    return CpuInstructionFeatures(
+        frozenset(_detect_linux_representative_features(executor, logger=logger)),
+        per_processor.observation,
+    )
+
+
+def _detect_linux_representative_features(
     executor: CommandExecutorProtocol,
     *,
     logger: TraceLogger,
@@ -190,13 +271,16 @@ def detect_cpu_instruction_features(
     *,
     runtime_platform: RuntimePlatform,
     logger: TraceLogger,
-) -> set[str]:
+) -> CpuInstructionFeatures:
     if not _is_x86_architecture():
-        return set()
+        return CpuInstructionFeatures(frozenset(), CPU_FEATURE_OBSERVATION_UNAVAILABLE)
     if runtime_platform.is_linux:
         return _detect_linux_features(executor, logger=logger)
+    features: set[str]
     if runtime_platform.is_windows:
-        return _detect_windows_features(logger)
-    if runtime_platform.is_macos:
-        return _detect_macos_features(executor, logger=logger)
-    return set()
+        features = _detect_windows_features(logger)
+    elif runtime_platform.is_macos:
+        features = _detect_macos_features(executor, logger=logger)
+    else:
+        features = set()
+    return CpuInstructionFeatures(frozenset(features), CPU_FEATURE_OBSERVATION_UNAVAILABLE)

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { toTrimmedString } from '@core/normalize.ts';
-import { EMPTY_UI_HTML, uiHtml } from '@core/security/uiHtml.ts';
+import { EMPTY_UI_HTML, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 import { securityApi, toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { isFunction, isNullOrUndefined } from '@core/typeGuards.ts';
 import { SEARCH_RESULT_DATASET_ATTRIBUTES, buildSearchResultDataset } from '@core/search/searchResultActivation.ts';
@@ -149,7 +149,7 @@ const createMarkup = (results: ReadonlyArray<SearchItem>, context: RenderContext
     const sections: string[] = [];
     for (const [category, groupItems] of Object.entries(grouped)) {
         const header = getCategoryDisplayName(category);
-        sections.push(uiHtml`<div class="search-category glass-surface-strong"><div class="section-header"><h2 class="section-title">${header}</h2></div><div class="search-category-content">`.html);
+        sections.push(uiHtml`<div class="search-category glass-surface-strong" data-search-category="${uiAttr(category)}"><div class="section-header"><h2 class="section-title">${header}</h2></div><div class="search-category-content">`.html);
         groupItems.forEach((item) => {
             sections.push(
                 buildItemMarkup(item, {

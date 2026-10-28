@@ -57,6 +57,14 @@
         display: none;
     }
 
+    :where(.chat-container) .chat-draft-tray > :is(.input-queue-preview, .attached-files-preview):not(.u-hidden) {
+        display: contents;
+    }
+
+    :where(.chat-container) .chat-draft-tray:not(:has(> :is(.input-queue-preview, .attached-files-preview):not(.u-hidden))) {
+        display: none;
+    }
+
     @container ui-viewport (width >= 1280px) {
         :where(.chat-container) .chat-page-suggestion-row {
             gap: var(--space-4);
@@ -86,7 +94,6 @@
     }
 
     :where(.chat-container) .agent-todo-panel-container[data-agent-todo-panel-visibility='visible'] {
-        overflow: visible;
         max-height: min(calc(var(--chat-conversation-header-height) + var(--chat-conversation-item-height)), calc(100% - var(--chat-conversation-header-height)));
         opacity: 1;
         transform: translateY(0);

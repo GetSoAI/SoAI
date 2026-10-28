@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { identitiesMatchActiveStatus, type ActiveChatStreamStatus, type ChatStreamStatusSnapshot } from '@features/chat/chatstreamservice/activeStreamStatus.ts';
-import { applyAssistantMessageSnapshot, applyStatusPreviewSnapshot, createActiveFollowerSession, fetchFollowerMessageSnapshot, sessionMatchesActiveStatus } from '@features/chat/chatstreamservice/activeStatusSessionState.ts';
-import { fetchCurrentChatStreamStatusSnapshot } from '@features/chat/chatstreamservice/activeStatusAdmissionCommit.ts';
+import { applyAssistantMessageSnapshot, applyStatusPreviewSnapshot, createActiveFollowerSession, fetchFollowerMessageSnapshot, isChatStreamSessionReplaced, sessionMatchesActiveStatus } from '@features/chat/chatstreamservice/activeStatusSessionState.ts';
+import { fetchCurrentChatStreamStatusSnapshot, resolveUncommittedStatusReconciliation } from '@features/chat/chatstreamservice/activeStatusAdmissionCommit.ts';
 import { finalizeInactiveFollowerFromHydratedMessage, finalizeInactiveOwnerSession, terminalizeInactiveFollower, waitForInactiveTerminalSnapshot, type ActiveStatusInactiveTransitionArguments, type InactiveTerminalizationResult } from '@features/chat/chatstreamservice/activeStatusInactiveTransition.ts';
 import { deactivateFollowerSession } from '@features/chat/chatstreamservice/activeStatusFollowerDisposal.ts';
 import { activeStatusPrecedesSession, discardOwnerSession, handleIgnoredActiveStatus, releaseStaleOwnerSession } from '@features/chat/chatstreamservice/activeStatusSessionCleanup.ts';
@@ -32,8 +32,28 @@ const resolveInactiveTerminalizationReconciliation = (result: InactiveTerminaliz
     return null;
 };
 
+const resolveSupersededSessionReconciliation = (inputArguments: ActiveStatusFollowerSyncArguments): ChatStreamMessageSavedReconciliation => {
+    if (!inputArguments.isCurrent()) {
+        return requireCanonicalMessageLoad('stale-generation');
+    }
+    return skipCanonicalMessageLoad('active-stream', 'busy');
+};
+
+const finalizeSynchronizedFollowerTerminal = async (inputArguments: ActiveStatusFollowerSyncArguments, status: ActiveChatStreamStatus, assistantMessage: ChatStreamSession['assistantMessage']): Promise<InactiveTerminalizationResult> => {
+    const currentSession = inputArguments.sessions.get(status.conversationId);
+    if (currentSession?.active === true && activeStatusPrecedesSession(status, currentSession)) {
+        return 'not-terminalized';
+    }
+    const terminalSession = createActiveFollowerSession(status, assistantMessage);
+    inputArguments.sessions.set(status.conversationId, terminalSession);
+    return await finalizeInactiveFollowerFromHydratedMessage(inputArguments, terminalSession, assistantMessage);
+};
+
 const reconcileCurrentSessionForTerminalSnapshot = async (inputArguments: ActiveStatusFollowerSyncArguments, status: ActiveChatStreamStatus, assistantMessage: ChatStreamSession['assistantMessage']): Promise<ChatStreamMessageSavedReconciliation | null> => {
     for (let attempt = 0; attempt < MAX_TERMINAL_RECONCILIATION_ATTEMPTS; attempt += 1) {
+        if (!inputArguments.isCurrent()) {
+            return requireCanonicalMessageLoad('stale-generation');
+        }
         const currentSession = inputArguments.sessions.get(status.conversationId);
         if (!currentSession) {
             return null;
@@ -47,21 +67,32 @@ const reconcileCurrentSessionForTerminalSnapshot = async (inputArguments: Active
         }
         if (currentSession.transportMode === 'owner') {
             if (sessionMatchesActiveStatus(currentSession, status)) {
-                return resolveInactiveTerminalizationReconciliation(await finalizeInactiveOwnerSession(inputArguments, status, currentSession, assistantMessage), 'busy');
+                const reconciliation = resolveInactiveTerminalizationReconciliation(await finalizeInactiveOwnerSession(inputArguments, status, currentSession, assistantMessage), 'busy');
+                if (reconciliation !== null) {
+                    return reconciliation;
+                }
+                continue;
             }
             releaseStaleOwnerSession(inputArguments, status.conversationId, currentSession);
             continue;
         }
         if (sessionMatchesActiveStatus(currentSession, status)) {
-            return resolveInactiveTerminalizationReconciliation(await finalizeInactiveFollowerFromHydratedMessage(inputArguments, currentSession, assistantMessage));
+            const reconciliation = resolveInactiveTerminalizationReconciliation(await finalizeInactiveFollowerFromHydratedMessage(inputArguments, currentSession, assistantMessage));
+            if (reconciliation !== null) {
+                return reconciliation;
+            }
+            continue;
         }
         deactivateFollowerSession(inputArguments, status.conversationId, currentSession);
     }
-    throw new Error('Chat stream terminal reconciliation changed repeatedly.');
+    return requireCanonicalMessageLoad('status-changed', 'unknown');
 };
 
 const reconcileCurrentInactiveSession = async (inputArguments: ActiveStatusFollowerSyncArguments, conversationId: string, startAdmission: ChatStreamStartAdmission = 'inactive'): Promise<ChatStreamMessageSavedReconciliation> => {
     for (let attempt = 0; attempt < MAX_INACTIVE_STATUS_RECONCILIATION_ATTEMPTS; attempt += 1) {
+        if (!inputArguments.isCurrent()) {
+            return requireCanonicalMessageLoad('stale-generation');
+        }
         const currentSession = inputArguments.sessions.get(conversationId);
         if (!currentSession || !currentSession.active) {
             return requireCanonicalMessageLoad('inactive-no-stream-session', startAdmission);
@@ -92,7 +123,7 @@ const reconcileCurrentInactiveSession = async (inputArguments: ActiveStatusFollo
             return reconciliation;
         }
     }
-    throw new Error('Chat stream inactive-status reconciliation changed repeatedly.');
+    return requireCanonicalMessageLoad('status-changed', 'unknown');
 };
 
 const reconcileInactiveStatusSnapshot = async (inputArguments: ActiveStatusFollowerSyncArguments, status: ChatStreamStatusSnapshot): Promise<ChatStreamMessageSavedReconciliation> => {
@@ -124,10 +155,11 @@ const syncActiveFollower = async (inputArguments: ActiveStatusFollowerSyncArgume
             return requireCanonicalMessageLoad('stale-generation');
         }
         if (assistantMessage === null) {
-            const latestStatus = await fetchCurrentChatStreamStatusSnapshot(inputArguments);
-            if (latestStatus === null) {
-                return requireCanonicalMessageLoad('stale-generation');
+            const latestCommit = await fetchCurrentChatStreamStatusSnapshot(inputArguments);
+            if (latestCommit.type !== 'committed') {
+                return resolveUncommittedStatusReconciliation(latestCommit);
             }
+            const latestStatus = latestCommit.status;
             if (latestStatus.active && !identitiesMatchActiveStatus(latestStatus, candidateStatus)) {
                 candidateStatus = latestStatus;
                 continue;
@@ -143,15 +175,16 @@ const syncActiveFollower = async (inputArguments: ActiveStatusFollowerSyncArgume
             if (reconciliation !== null) {
                 return reconciliation;
             }
-            const terminalSession = createActiveFollowerSession(candidateStatus, assistantMessage);
-            inputArguments.sessions.set(candidateStatus.conversationId, terminalSession);
-            await finalizeInactiveFollowerFromHydratedMessage(inputArguments, terminalSession, assistantMessage);
+            if ((await finalizeSynchronizedFollowerTerminal(inputArguments, candidateStatus, assistantMessage)) === 'not-terminalized') {
+                return resolveSupersededSessionReconciliation(inputArguments);
+            }
             return requireCanonicalMessageLoad('terminalized-session', 'busy');
         }
-        const latestStatus = await fetchCurrentChatStreamStatusSnapshot(inputArguments);
-        if (latestStatus === null) {
-            return requireCanonicalMessageLoad('stale-generation');
+        const latestCommit = await fetchCurrentChatStreamStatusSnapshot(inputArguments);
+        if (latestCommit.type !== 'committed') {
+            return resolveUncommittedStatusReconciliation(latestCommit);
         }
+        const latestStatus = latestCommit.status;
         if (latestStatus.active && inputArguments.requestDispositions.shouldIgnorePassiveStreamEvent(latestStatus.conversationId, latestStatus.requestId)) {
             handleIgnoredActiveStatus(inputArguments, latestStatus);
             return requireCanonicalMessageLoad('suppressed-or-superseded-active-status');
@@ -170,6 +203,9 @@ const syncActiveFollower = async (inputArguments: ActiveStatusFollowerSyncArgume
                 current.countsAsStreaming = true;
                 current.model = candidateStatus.modelId;
                 const applicationResult = await inputArguments.ownerDispatch.applySnapshot(candidateStatus.conversationId, candidateStatus.requestId, assistantMessage, true);
+                if (!inputArguments.isCurrent() || isChatStreamSessionReplaced(inputArguments.sessions, current)) {
+                    return resolveSupersededSessionReconciliation(inputArguments);
+                }
                 if (applicationResult === null) {
                     return skipCanonicalMessageLoad('active-stream', 'busy');
                 }
@@ -191,6 +227,9 @@ const syncActiveFollower = async (inputArguments: ActiveStatusFollowerSyncArgume
                 current.countsAsStreaming = true;
                 current.model = candidateStatus.modelId;
                 const applicationResult = await inputArguments.followerSessions.applyFollowerSnapshot(candidateStatus.conversationId, candidateStatus.requestId, assistantMessage, true);
+                if (!inputArguments.isCurrent() || isChatStreamSessionReplaced(inputArguments.sessions, current)) {
+                    return resolveSupersededSessionReconciliation(inputArguments);
+                }
                 if (applicationResult === null) {
                     applyAssistantMessageSnapshot(current, assistantMessage);
                 } else if (applicationResult === 'terminal') {
@@ -211,7 +250,7 @@ const syncActiveFollower = async (inputArguments: ActiveStatusFollowerSyncArgume
         inputArguments.runtime.notify(session, { type: 'replay' });
         return skipCanonicalMessageLoad('active-stream', 'busy');
     }
-    throw new Error('Chat stream status changed repeatedly during synchronization.');
+    return requireCanonicalMessageLoad('status-changed', 'unknown');
 };
 
 const syncInactiveFollowerSnapshot = async (inputArguments: ActiveStatusFollowerSyncArguments, candidateStatus: ActiveChatStreamStatus, latestStatus: ChatStreamStatusSnapshot, assistantMessage: ChatStreamSession['assistantMessage']): Promise<ChatStreamMessageSavedReconciliation> => {
@@ -233,6 +272,9 @@ const syncInactiveFollowerSnapshot = async (inputArguments: ActiveStatusFollower
             discardOwnerSession(inputArguments, candidateStatus.conversationId, currentSession);
         }
     }
+    if (!inputArguments.isCurrent()) {
+        return requireCanonicalMessageLoad('stale-generation');
+    }
     const currentAfterOwner = inputArguments.sessions.get(candidateStatus.conversationId);
     if (currentAfterOwner && currentAfterOwner.active && currentAfterOwner.transportMode === 'follower') {
         if (activeStatusPrecedesSession(candidateStatus, currentAfterOwner)) {
@@ -252,18 +294,13 @@ const syncInactiveFollowerSnapshot = async (inputArguments: ActiveStatusFollower
         return requireCanonicalMessageLoad('stale-generation');
     }
     if (terminalMessage === null) {
-        const terminalSession = createActiveFollowerSession(candidateStatus, assistantMessage);
-        inputArguments.sessions.set(candidateStatus.conversationId, terminalSession);
-        const reconciliation = resolveInactiveTerminalizationReconciliation(await finalizeInactiveFollowerFromHydratedMessage(inputArguments, terminalSession, assistantMessage));
-        return reconciliation ?? requireCanonicalMessageLoad();
+        return resolveInactiveTerminalizationReconciliation(await finalizeSynchronizedFollowerTerminal(inputArguments, candidateStatus, assistantMessage)) ?? resolveSupersededSessionReconciliation(inputArguments);
     }
     const reconciliation = await reconcileCurrentSessionForTerminalSnapshot(inputArguments, candidateStatus, terminalMessage);
     if (reconciliation !== null) {
         return reconciliation;
     }
-    const terminalSession = createActiveFollowerSession(candidateStatus, terminalMessage);
-    inputArguments.sessions.set(candidateStatus.conversationId, terminalSession);
-    return resolveInactiveTerminalizationReconciliation(await finalizeInactiveFollowerFromHydratedMessage(inputArguments, terminalSession, terminalMessage)) ?? requireCanonicalMessageLoad();
+    return resolveInactiveTerminalizationReconciliation(await finalizeSynchronizedFollowerTerminal(inputArguments, candidateStatus, terminalMessage)) ?? resolveSupersededSessionReconciliation(inputArguments);
 };
 
 export { reconcileInactiveStatusSnapshot, syncActiveFollower };

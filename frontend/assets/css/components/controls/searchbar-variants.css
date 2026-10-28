@@ -3,11 +3,8 @@
 
 @layer components {
     .searchbar-container--control {
-        --searchbar-border: var(--text-field-border);
-        --searchbar-color: var(--text-secondary);
-        --searchbar-shadow: none;
+        --searchbar-border: var(--text-field-border-base);
         --searchbar-shadow-focus: none;
-        --searchbar-backdrop: none;
         --searchbar-bg-disabled: var(--searchbar-bg);
         --searchbar-font-size: var(--font-size-sm);
         --searchbar-padding-block: var(--control-padding-block);
@@ -17,9 +14,7 @@
 
     .searchbar-container--collection {
         --searchbar-bg: var(--text-field-bg);
-        --searchbar-border: var(--text-field-border);
-        --searchbar-color: var(--text-primary);
-        --searchbar-shadow: var(--glass-shadow-base);
+        --searchbar-border: var(--text-field-border-base);
         --searchbar-shadow-focus: var(--searchbar-shadow);
         --searchbar-backdrop: var(--glass-blur-base);
         --searchbar-bg-disabled: var(--text-field-bg-disabled);
@@ -31,7 +26,6 @@
     }
 
     :where(.theme-dark) .searchbar-container:where(:not(.searchbar-container--control, .searchbar-container--collection)) {
-        --searchbar-shadow: 0 2px 8px var(--shadow-heavy);
         --searchbar-shadow-focus: var(--searchbar-shadow);
     }
 

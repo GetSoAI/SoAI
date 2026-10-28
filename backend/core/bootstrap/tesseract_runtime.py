@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import shutil
 import uuid
 
 from core.bootstrap.disk_reservation_provider import (
@@ -21,13 +20,14 @@ from core.bootstrap.runtime_directory_publication import (
 )
 from core.errors.exceptions import StateError
 from core.filesystem.open_files import open_text
+from core.filesystem.windows_sharing_conflicts import remove_path_with_sharing_retry
 from core.media.tesseract_data import require_complete_tesseract_data, require_tesseract_model
 from core.meta.paths import join_data_abs
 from core.platform.os import is_windows
 from core.runtime.platform import get_runtime_platform
 from core.serialization.json import serialize_json_pretty_sorted_strict
 from core.serialization.json_parsing import parse_json_dict
-from core.system.commands import run_argv_capture
+from core.system.native_runtime_probes import capture_native_probe, native_probe_budget
 from core.timing.constants import CONTROL_TIMEOUT_SEC
 
 __all__ = (
@@ -37,7 +37,6 @@ __all__ = (
     "TESSERACT_WINDOWS_MANIFEST_NAME",
     "TESSERACT_WINDOWS_VERSION_LINE",
     "ensure_tesseract_runtime_installed",
-    "is_tesseract_runtime_installed",
 )
 
 TESSERACT_RELEASE = "5.5.3"
@@ -45,16 +44,6 @@ TESSERACT_WINDOWS_BUILD = "5.5.3.20260724"
 TESSERACT_WINDOWS_VERSION_LINE = "tesseract v5.5.3.20260724"
 TESSERACT_WINDOWS_ARCHIVE_NAME = "tesseract-5.5.3-windows-x64.zip"
 TESSERACT_WINDOWS_MANIFEST_NAME = "tesseract-5.5.3-windows-x64.json"
-
-
-def is_tesseract_runtime_installed(repo_root_path: str) -> bool:
-    installed = True
-    try:
-        executable, data_directory = _resolve_candidate(repo_root_path)
-        _require_valid_runtime(executable, data_directory)
-    except (OSError, StateError, ValueError):
-        installed = False
-    return installed
 
 
 def ensure_tesseract_runtime_installed(repo_root_path: str) -> tuple[str, str]:
@@ -92,12 +81,6 @@ def ensure_tesseract_runtime_installed(repo_root_path: str) -> tuple[str, str]:
             executable, data_directory = _install_windows_runtime(repo_root_path)
         _publish_environment(executable, data_directory)
         return executable, data_directory
-
-
-def _resolve_candidate(repo_root_path: str) -> tuple[str, str]:
-    if is_windows():
-        return _resolve_windows_installed_candidate(repo_root_path)
-    return _resolve_posix_candidate(repo_root_path)
 
 
 def _resolve_posix_candidate(repo_root_path: str) -> tuple[str, str]:
@@ -195,7 +178,7 @@ def _install_windows_runtime(repo_root_path: str) -> tuple[str, str]:
         )
     finally:
         if os.path.isdir(staging_directory):
-            shutil.rmtree(staging_directory)
+            remove_path_with_sharing_retry(staging_directory)
     return (
         os.path.join(install_directory, "tesseract.exe"),
         os.path.join(install_directory, "tessdata"),
@@ -275,9 +258,16 @@ def _require_valid_runtime(executable: str, data_directory: str) -> None:
     require_tesseract_model(data_directory, "eng")
     environment = dict(os.environ)
     environment["TESSDATA_PREFIX"] = data_directory
-    version_result = run_argv_capture(
+    budget = native_probe_budget(
+        CONTROL_TIMEOUT_SEC,
+        roots=(os.path.dirname(executable),),
+        excluded_names=("tessdata",),
+        probe_count=2,
+    )
+    version_result = capture_native_probe(
         [executable, "--version"],
-        timeout=CONTROL_TIMEOUT_SEC,
+        budget=budget,
+        subject="The managed Tesseract version check",
         env=environment,
     )
     first_line = version_result.stdout.splitlines()[0] if version_result.stdout else ""
@@ -286,9 +276,10 @@ def _require_valid_runtime(executable: str, data_directory: str) -> None:
     )
     if version_result.return_code != 0 or first_line.strip() != expected_version_line:
         raise StateError("Managed Tesseract version validation failed.")
-    languages_result = run_argv_capture(
+    languages_result = capture_native_probe(
         [executable, "--list-langs"],
-        timeout=CONTROL_TIMEOUT_SEC,
+        budget=budget,
+        subject="The managed Tesseract language check",
         env=environment,
     )
     languages = {line.strip() for line in languages_result.stdout.splitlines()}

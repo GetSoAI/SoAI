@@ -8,12 +8,13 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { isAbortError } from '@core/errors/abort.ts';
 import { createHeaderActionController, type HeaderActionController } from '@core/headerActionBus.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { registerDirtyStateGuard } from '@core/navigationGuards.ts';
+import { registerUnsavedChangesGuard } from '@core/navigationGuards.ts';
 import { closeDetachedRuntimeWindowsByPage, openDetachedRuntimeWindow } from '@core/runtimeenv/public.ts';
 import { createModuleLogger } from '@core/runtime/runtimeContext.ts';
 import { securityApi, toTrustedHtml, type TrustedHtml } from '@core/security/public.ts';
 import { StaticBasePage, type RenderContext } from '@core/StaticBasePage.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
+import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import { isPTYTerminalConnectError, PTYTerminalView, TERMINAL_FONT_SIZE } from '@features/terminal/public.ts';
 import { isTerminalActionId, TERMINAL_ACTION_CLEAR, TERMINAL_ACTION_FOCUS, TERMINAL_ACTION_TEXT_DECREASE, TERMINAL_ACTION_TEXT_INCREASE, type TerminalActionId } from '@pages/terminal/actions.ts';
 import { requireTerminalUi } from '@pages/terminal/dom.ts';
@@ -164,14 +165,16 @@ class TerminalPage extends StaticBasePage {
 
     #registerNavigationGuard(): void {
         if (this.#navigationGuardCleanup) return;
-        this.#navigationGuardCleanup = registerDirtyStateGuard(
-            () => {
-                if (!this.#ptyView?.busy) return true;
-                const message = i18n.t('terminal.confirmations.commandRunning');
-                return window.confirm(message);
-            },
-            { id: 'terminal-command-guard' }
-        );
+        this.#navigationGuardCleanup = registerUnsavedChangesGuard({
+            id: 'terminal-command-guard',
+            hasUnsavedChanges: (): boolean => this.#ptyView?.busy === true,
+            getMessage: (): string => i18n.t('terminal.confirmations.commandRunning'),
+            confirmNavigation: async (): Promise<boolean> =>
+                await requireDialogsService().showConfirmation({
+                    message: i18n.t('terminal.confirmations.commandRunning'),
+                    variant: 'warning'
+                })
+        });
     }
 
     #unregisterNavigationGuard(): void {

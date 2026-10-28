@@ -1,10 +1,9 @@
 /* SoAI - Chat page message manager initialization [frontend/assets/ts/pages/chat/controllers/chatpage/construction/initializers/messageManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
 import { resolveModelTypeLabel } from '@core/models/modelTypeLabel.ts';
 import { toTrimmedStringOrNull } from '@core/normalize.ts';
-import { CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX, CHAT_SELECTORS, ChatMessageManager, normalizeConversationId, resolveActivityDurationDisplayMode, type ChatMessageManagerDependencies } from '@features/chat/public.ts';
+import { CHAT_SELECTORS, ChatMessageManager, normalizeConversationId, resolveActivityDurationDisplayMode, type ChatMessageManagerDependencies } from '@features/chat/public.ts';
 import type { ChatControllerInitializationContext } from '@pages/chat/controllers/chatpage/construction/initializers/contracts.ts';
 import { updateConversationRenderCacheEntry } from '@pages/chat/controllers/page/renderer/currentConversationStateController.ts';
 import { isThinkingFeatureEnabled } from '@pages/chat/controllers/page/state.ts';
@@ -48,7 +47,7 @@ const initializeMessageManager = (page: ChatControllerInitializationContext): vo
             isCodeRecognitionEnabled: () => page.state.settings.storage.getCodeRecognitionEnabled(),
             isInlineMultimediaPreviewsEnabled: () => page.state.settings.inlineMultimediaPreviewsEnabled(),
             isShowActivitiesEnabled: () => page.state.settings.showActivitiesEnabled(),
-            getActivityDurationDisplayMode: () => resolveActivityDurationDisplayMode(measureLayoutViewport(page.platform.dom.getDocument()).width, CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX, page.state.settings.showActivityElapsedTimeEnabled()),
+            getActivityDurationDisplayMode: () => resolveActivityDurationDisplayMode(page.state.settings.showActivityElapsedTimeEnabled()),
             dom: { getDocument: () => page.platform.dom.getDocument() },
             getAssistantAvatarUrl: () => page.state.settings.storage.getAssistantAvatar(),
             getUserAvatarUrl: () => page.state.settings.storage.getUserAvatar()
@@ -57,12 +56,12 @@ const initializeMessageManager = (page: ChatControllerInitializationContext): vo
             getCurrentModel: () => toTrimmedStringOrNull(page.state.conversationState.currentModel),
             getModelStreamHasPayload: () => modelAvailability.getModelStreamHasPayload(),
             isModelAvailable: (modelId) => modelAvailability.isModelAvailable(modelId),
-            isTerminalRenderPending: (conversationId, message) => {
+            resolveTerminalRenderState: (conversationId, message) => {
                 const normalizedConversationId = normalizeConversationId(conversationId);
                 if (!normalizedConversationId || !page.runtime.turnRuntime.hasStreaming()) {
-                    return false;
+                    return 'none';
                 }
-                return page.runtime.turnRuntime.requireStreaming().isTerminalRenderPending(normalizedConversationId, message);
+                return page.runtime.turnRuntime.requireStreaming().resolveTerminalRenderState(normalizedConversationId, message);
             },
             isConversationExecuting: (conversationId) => page.sessions.conversationView.isExecuting(conversationId),
             getActiveComparisonRun: (conversationId) => {

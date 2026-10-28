@@ -8,6 +8,7 @@ import { getElementByIdStrict, getEventHub, requireDocument } from '@core/enviro
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { getHeaderActions } from '@core/headeractions/public.ts';
+import { isPageTerminating } from '@core/lifecycle/pageTermination.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import type { StateManager } from '@core/state/public.ts';
@@ -33,7 +34,7 @@ const setupLifecycleEventListeners = ({ tracker, taskManager, state, recoverFres
 
     const documentRef = requireDocument();
     tracker.addEventListener(documentRef, 'visibilitychange', () => {
-        if (documentRef.hidden) taskManager.collapse();
+        if (documentRef.hidden && !isPageTerminating()) taskManager.collapse();
     });
     tracker.addEventListener(documentRef, 'click', (event) => {
         const target = event.target;

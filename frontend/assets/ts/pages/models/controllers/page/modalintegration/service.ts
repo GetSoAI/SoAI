@@ -15,7 +15,7 @@ import { decodeProvidersResource } from '@core/realtime/streammanager/resources/
 import { resolveOpenAIModalityDescriptor, resolveOpenAITokenDescriptor } from '@features/catalog/public.ts';
 import { EditModelModalManager, MODELS_DOWNLOAD_MODAL_ID, MODELS_EDIT_MODEL_MODAL_ID, MODELS_VIRTUAL_MODEL_EDIT_MODAL_ID, MODELS_VIRTUAL_MODELS_MODAL_ID, ProvidersManager, createDownloadModalController, type DownloadModalHost, type VariantProbeManager, waitForModelCatalogChange } from '@features/models/public.ts';
 import type { ModelsModalRuntimeDependencies } from '@pages/models/controllers/page/contracts.ts';
-import type { ModelPropertyInput } from '@pages/models/controllers/modelsModelProperties.ts';
+import { isModelRecord, type ModelPropertyInput } from '@pages/models/controllers/modelsModelProperties.ts';
 import { getPluginByName, isDownloadPluginOperational } from '@pages/models/controllers/page/effects.ts';
 import { navigateToModelDetail } from '@pages/models/controllers/page/clickDispatch.ts';
 import { createEditModelActionBridge } from '@pages/models/controllers/page/modalintegration/editModelActionsController.ts';
@@ -197,6 +197,10 @@ const createModelsModalManagers = (
                 findPluginRecord: (pluginName) => session.catalogStore.getPlugin(pluginName) ?? session.pluginLookup.get(pluginName) ?? null,
                 resolveOpenAICapabilityLabel: (category, token) => (category === 'modalities' ? resolveOpenAIModalityDescriptor(token).label : resolveOpenAITokenDescriptor(category, token).label),
                 api: infrastructure.api.models,
+                findModelRecord: (modelId) => {
+                    const model = runtime.collection.collections.runtime?.find(modelId);
+                    return isModelRecord(model) ? model : null;
+                },
                 refreshModelsCollection: async () => {
                     await infrastructure.streaming.runtime().resources.refresh(MODELS, { allowDiscovery: true, throwOnError: true });
                 }

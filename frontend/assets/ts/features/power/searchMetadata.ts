@@ -1,7 +1,7 @@
 /* SoAI - Frontend power search metadata [frontend/assets/ts/features/power/searchMetadata.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { i18n } from '@core/i18n/index.ts';
+import { buildPowerActionDefinitions } from '@features/power/actionDefinitions.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { PowerActionId } from '@features/power/actions.ts';
 
@@ -13,51 +13,16 @@ interface PowerActionSearchMetadata {
     alias: string;
 }
 
-const buildPowerActionSearchMetadata = (): readonly PowerActionSearchMetadata[] =>
-    Object.freeze([
-        {
-            key: 'restartApplication',
-            title: i18n.t('power.actions.restartApplication.title'),
-            description: i18n.t('power.actions.restartApplication.description'),
-            icon: 'restart-application',
-            alias: 'restart soai application power'
-        },
-        {
-            key: 'shutdownApplication',
-            title: i18n.t('power.actions.shutdownApplication.title'),
-            description: i18n.t('power.actions.shutdownApplication.description'),
-            icon: 'shutdown-application',
-            alias: 'shutdown soai application power'
-        },
-        {
-            key: 'rebootSystem',
-            title: i18n.t('power.actions.rebootSystem.title'),
-            description: i18n.t('power.actions.rebootSystem.description'),
-            icon: 'restart',
-            alias: 'restart reboot system power'
-        },
-        {
-            key: 'shutdownSystem',
-            title: i18n.t('power.actions.shutdownSystem.title'),
-            description: i18n.t('power.actions.shutdownSystem.description'),
-            icon: 'power',
-            alias: 'shutdown system power'
-        },
-        {
-            key: 'suspendSystem',
-            title: i18n.t('power.actions.suspendSystem.title'),
-            description: i18n.t('power.actions.suspendSystem.description'),
-            icon: 'suspend',
-            alias: 'sleep suspend system power'
-        },
-        {
-            key: 'hibernateSystem',
-            title: i18n.t('power.actions.hibernateSystem.title'),
-            description: i18n.t('power.actions.hibernateSystem.description'),
-            icon: 'hibernate',
-            alias: 'hibernate system power'
-        }
-    ]);
+const POWER_SEARCH_ALIASES: Readonly<Record<PowerActionId, string>> = {
+    restartApplication: 'restart soai application power',
+    shutdownApplication: 'shutdown soai application power',
+    rebootSystem: 'restart reboot system power',
+    shutdownSystem: 'shutdown system power',
+    suspendSystem: 'sleep suspend system power',
+    hibernateSystem: 'hibernate system power'
+};
+
+const buildPowerActionSearchMetadata = (): readonly PowerActionSearchMetadata[] => Object.freeze(buildPowerActionDefinitions().map((action) => ({ key: action.key, title: action.title, description: action.description, icon: action.icon, alias: POWER_SEARCH_ALIASES[action.key] })));
 
 export { buildPowerActionSearchMetadata };
 export type { PowerActionSearchMetadata };

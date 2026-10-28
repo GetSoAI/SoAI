@@ -2,12 +2,6 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer foundations {
-    @property --header-measured-height {
-        syntax: '<length>';
-        inherits: true;
-        initial-value: 0;
-    }
-
     @property --page-header-sticky-offset {
         syntax: '<length>';
         inherits: true;
@@ -38,6 +32,9 @@
         --ui-safe-area-inset-bottom: calc(env(safe-area-inset-bottom, 0) / var(--ui-scale));
         --ui-safe-area-inset-left: calc(env(safe-area-inset-left, 0) / var(--ui-scale));
         --header-height: 60px;
+        --header-menu-gap: 3px;
+        --header-menu-inset-inline-start: calc(var(--space-2) + var(--sidebar-collapsed-icon-button-margin-inline-start));
+        --header-menu-inset-block-start: calc((var(--header-height) - var(--border-width-1) - var(--icon-button-size)) / 2);
         --layout-top-offset: var(--header-height);
         --layout-content-height: calc(100 * var(--ui-viewport-height-unit) - var(--layout-top-offset));
         --layout-section-padding: 1.4rem;
@@ -70,7 +67,6 @@
         --sidebar-icon-stroke-width: 1.5;
         --header-fold-duration: 280ms;
         --header-fold-easing: cubic-bezier(0.32, 0, 0.23, 1);
-        --header-measured-height: 0;
         --page-header-sticky-offset: 0;
         --sidebar-viewing-icon-color: var(--text-primary);
         --sidebar-viewing-border-color: var(--ui-button-border-hover);

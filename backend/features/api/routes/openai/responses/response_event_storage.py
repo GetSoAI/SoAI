@@ -14,6 +14,7 @@ from core.openai.responses_events import coerce_response_created_at
 from core.timing.epoch import epoch_ms
 
 if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
     from core.types.json import JSONDict
     from features.api.runtime.context import ApiContext
 
@@ -54,6 +55,7 @@ def normalize_stored_response_event(
     payload: JSONDict,
     sequence_number: int,
     default_status: str,
+    public_error: ErrorPublicPayload | None = None,
 ) -> StoredResponseEvent:
     normalized_payload, response_json, status, terminal = normalize_responses_event_for_storage(
         payload=payload,
@@ -62,6 +64,7 @@ def normalize_stored_response_event(
         default_status=default_status,
         model=target.model,
         created_at=target.created_at,
+        public_error=public_error,
     )
     response_created_at = coerce_response_created_at(
         response_json.get("created_at"),

@@ -80,6 +80,7 @@ async def create_template_admin_alert_if_due_method(
     aggregate_param_name: str | None,
     source: str | None,
     cooldown_seconds: int,
+    once_per_identity: bool = False,
 ) -> int:
     core.features.ensure_feature_enabled(FEATURE_AUTH)
     created_count = await core.writer.queue_write_operation(
@@ -95,6 +96,7 @@ async def create_template_admin_alert_if_due_method(
         int(epoch_ms()),
         max(int(cooldown_seconds), 1) * MS_PER_SECOND,
         read_max_notifications_per_user(config),
+        once_per_identity=once_per_identity,
     )
     notification_count = coerce_notification_count(created_count)
     if notification_count > 0:

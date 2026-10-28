@@ -10,7 +10,7 @@ import type { SoAIBenchHistoryRun } from '@features/hardware/modals/soaibenchhis
 type SoAIBenchHistorySortState = { column: SoAIBenchHistorySortColumn; direction: SortDirection };
 
 const HISTORY_SORT_COLUMNS: readonly SoAIBenchHistorySortColumn[] = Object.freeze(SOAIBENCH_HISTORY_COLUMNS.map((column) => column.key));
-const HISTORY_SORT_DEFAULT_STATE: SoAIBenchHistorySortState = { column: 'started', direction: 'desc' };
+const HISTORY_SORT_DEFAULT_STATE = { column: 'started', direction: 'desc' } satisfies SoAIBenchHistorySortState;
 
 const compareText = (left: string | null, right: string | null): number => {
     const leftText = left ? left.trim() : '';
@@ -59,7 +59,7 @@ const resolveCertificationText = (run: SoAIBenchHistoryRun): string | null => {
     return run.leaderboardEligible ? 'certified' : `ineligible:${run.leaderboardRejectionReason || ''}`;
 };
 
-const compareRuns = (left: SoAIBenchHistoryRun, right: SoAIBenchHistoryRun, column: SoAIBenchHistorySortColumn): number => {
+const compareHistoryRuns = (left: SoAIBenchHistoryRun, right: SoAIBenchHistoryRun, column: SoAIBenchHistorySortColumn): number => {
     switch (column) {
         case 'profile':
             return compareText(left.profile, right.profile);
@@ -101,7 +101,7 @@ const sortHistoryRuns = (runs: readonly SoAIBenchHistoryRun[], sortState: SoAIBe
         .map((run, index) => ({ run, index }))
         .sort((left, right) => {
             const direction = sortState.direction === 'asc' ? 1 : -1;
-            const compare = compareRuns(left.run, right.run, sortState.column);
+            const compare = compareHistoryRuns(left.run, right.run, sortState.column);
             if (compare !== 0) {
                 return compare * direction;
             }
@@ -114,5 +114,5 @@ const resolveNextHistorySortState = (current: SoAIBenchHistorySortState, column:
     return resolveNextSortState(current, column, resolveHistoryColumnDefaultDirection(column));
 };
 
-export { HISTORY_SORT_COLUMNS, HISTORY_SORT_DEFAULT_STATE, resolveNextHistorySortState, sortHistoryRuns };
+export { HISTORY_SORT_COLUMNS, HISTORY_SORT_DEFAULT_STATE, compareHistoryRuns, resolveNextHistorySortState, sortHistoryRuns };
 export type { SoAIBenchHistorySortColumn, SoAIBenchHistorySortState };

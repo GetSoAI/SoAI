@@ -18,13 +18,15 @@ from hardware.gpu_inventory.identity import (
     uuid_from_device_id,
 )
 from hardware.soaibench.types import SoAIBenchGpuIdentity
-from hardware.vendors.vendor_metadata import resolve_driver_version_by_vendor_prefix
+from hardware.vendors.vendor_metadata import resolve_driver_version
 
 if TYPE_CHECKING:
+    from core.hardware.gpu_physical_identity import GPUPhysicalDevice
     from core.types.json import JSONDict
 
 __all__ = (
     "identity_from_payload",
+    "opencl_target_identity",
     "identity_payload",
     "identity_payload_for_history",
     "resolve_gpu_identity",
@@ -47,13 +49,17 @@ def resolve_gpu_identity(snapshot: JSONDict, device_id: str) -> SoAIBenchGpuIden
     vendor = catalog_model.vendor if catalog_model is not None else raw_vendor
     model_key = catalog_model.model_key if catalog_model is not None else raw_model_key
     driver_version = (
-        optional_identity_text(gpu.get("driver_version"))
+        optional_identity_text(gpu.get("native_driver_version"))
+        or optional_identity_text(gpu.get("driver_version"))
         or optional_identity_text(gpu.get("driver"))
         or _driver_version(snapshot, vendor)
+        or optional_identity_text(gpu.get("display_driver_version"))
     )
     device_id_value = optional_identity_text(gpu.get("device_id"))
+    if device_id_value is None:
+        raise ValidationError("GPU inventory canonical identity is unavailable.")
     return SoAIBenchGpuIdentity(
-        device_id=device_id,
+        device_id=device_id_value,
         gpu_name=name,
         gpu_model_key=model_key,
         vendor=vendor,
@@ -63,7 +69,8 @@ def resolve_gpu_identity(snapshot: JSONDict, device_id: str) -> SoAIBenchGpuIden
             or optional_identity_text(gpu.get("gpu_uuid"))
             or uuid_from_device_id(device_id_value)
         ),
-        pci_bdf=optional_identity_text(gpu.get("pci_bdf"))
+        pci_bdf=optional_identity_text(gpu.get("pci_bdf_full"))
+        or optional_identity_text(gpu.get("pci_bdf"))
         or optional_identity_text(gpu.get("pci_bus_id")),
         kernel_driver=optional_identity_text(gpu.get("kernel_driver")),
         operating_system=_operating_system(snapshot, gpu),
@@ -108,10 +115,10 @@ def identity_from_payload(payload: JSONDict) -> SoAIBenchGpuIdentity:
         "raw_gpu_model_key",
         "raw_vendor",
     }:
-        raise ValidationError("SoAIBench GPU identity fields are invalid.")
+        raise ValidationError("SoAI Bench GPU identity fields are invalid.")
     device_id = optional_identity_text(payload.get("device_id"))
     if device_id is None:
-        raise ValidationError("SoAIBench GPU device identity is invalid.")
+        raise ValidationError("SoAI Bench GPU device identity is invalid.")
     return SoAIBenchGpuIdentity(
         device_id=device_id,
         gpu_name=optional_identity_text(payload.get("gpu_name")),
@@ -134,7 +141,7 @@ def _driver_version(snapshot: JSONDict, vendor: str | None) -> str | None:
     drivers = gpu_payload.get("compute_drivers")
     if not isinstance(drivers, dict):
         return None
-    return resolve_driver_version_by_vendor_prefix(drivers, vendor)
+    return resolve_driver_version(drivers, vendor) if vendor is not None else None
 
 
 def _operating_system(snapshot: JSONDict, gpu: JSONDict) -> str | None:
@@ -162,3 +169,18 @@ def _model_key_is_unique_in_snapshot(snapshot: JSONDict, model_key: str | None) 
         if candidate == model_key:
             matches += 1
     return matches == 1
+
+
+def opencl_target_identity(target: GPUPhysicalDevice) -> SoAIBenchGpuIdentity:
+    return SoAIBenchGpuIdentity(
+        target.device_id,
+        None,
+        None,
+        target.vendor,
+        None,
+        target.identity.uuid,
+        target.identity.pci_bdf_full,
+        None,
+        None,
+        None,
+    )

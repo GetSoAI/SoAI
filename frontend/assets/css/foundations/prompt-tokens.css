@@ -3,6 +3,7 @@
 
 @layer foundations {
     :root {
+        --layout-prompt-enhancer-pane-min-height: 140px;
         --prompts-color-red: #ff5d73;
         --prompts-color-yellow: #f7cc4b;
         --prompts-color-purple: #9f7bff;

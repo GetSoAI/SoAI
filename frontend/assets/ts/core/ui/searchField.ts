@@ -19,7 +19,7 @@ const renderSearchFieldActions = (className: string = ''): TrustedHtml => {
     const clearLabel = i18n.t('common.search.clear');
     const searchClass = searchFieldActionClass('searchbar-icon', className);
     const clearClass = searchFieldActionClass('searchbar-clear', className);
-    return uiHtml`<span class="${uiAttr(searchClass)}" aria-hidden="true">${getIconSync('search', { size: 16, strokeWidth: 1.5 })}</span><button type="button" class="${uiAttr(clearClass)}" ${SEARCH_FIELD_CLEAR_ATTRIBUTE} aria-label="${uiAttr(clearLabel)}" data-tooltip="${uiAttr(clearLabel)}">${getIconSync('close', { size: 16, strokeWidth: 1.5 })}</button>`;
+    return uiHtml`<span class="${uiAttr(searchClass)}" aria-hidden="true">${getIconSync('search', { size: 16, strokeWidth: 1.5 })}</span><button type="button" class="${uiAttr(clearClass)}" ${SEARCH_FIELD_CLEAR_ATTRIBUTE} aria-label="${uiAttr(clearLabel)}" data-tooltip="${uiAttr(clearLabel)}" data-modal-localize="aria-label data-tooltip">${getIconSync('close', { size: 16, strokeWidth: 1.5 })}</button>`;
 };
 
 const createSearchFieldActions = (documentRef: Document, className: string = ''): readonly HTMLElement[] => {

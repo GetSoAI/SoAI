@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { RestartOverlayDescriptionsTranslationKey } from '@core/i18n/translationkeys/restartoverlay/descriptions.generated.ts';
+import type { RestartOverlayHandoffTranslationKey } from '@core/i18n/translationkeys/restartoverlay/handoff.generated.ts';
 import type { RestartOverlayMessagesTranslationKey } from '@core/i18n/translationkeys/restartoverlay/messages.generated.ts';
 import type { RestartOverlayReconnectingTranslationKey } from '@core/i18n/translationkeys/restartoverlay/reconnecting.generated.ts';
 
-export type RestartOverlayTranslationKey = RestartOverlayDescriptionsTranslationKey | RestartOverlayMessagesTranslationKey | RestartOverlayReconnectingTranslationKey;
+export type RestartOverlayTranslationKey = RestartOverlayDescriptionsTranslationKey | RestartOverlayHandoffTranslationKey | RestartOverlayMessagesTranslationKey | RestartOverlayReconnectingTranslationKey;

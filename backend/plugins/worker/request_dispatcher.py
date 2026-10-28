@@ -6,8 +6,10 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterable
 
+from core.concurrency.cancellation import TaskCancelledError
 from core.plugins.base_plugin import BasePlugin
 from core.serialization.json import normalize_for_json
+from core.types.dict import freeze_json_dict
 from core.types.json import JSONDict
 from plugins.worker.ipc_client import PluginWorkerIpcClient
 from plugins.worker.payload_fields import (
@@ -72,24 +74,33 @@ class PluginWorkerRequestDispatcher:
             return {"value": await plugin.get_default_configuration()}
         if method == "call.refresh_runtime_configuration":
             return {"value": await plugin.refresh_runtime_configuration()}
+        if method == "call.validate_runtime_configuration":
+            inventory = (
+                freeze_json_dict(
+                    read_dict_field(payload, "gpu_inventory", label=WORKER_FIELD_LABEL)
+                )
+                if payload.get("gpu_inventory") is not None
+                else None
+            )
+            await plugin.validate_runtime_configuration(
+                freeze_json_dict(
+                    read_dict_field(payload, "current_config", label=WORKER_FIELD_LABEL)
+                ),
+                freeze_json_dict(
+                    read_dict_field(payload, "proposed_config", label=WORKER_FIELD_LABEL)
+                ),
+                freeze_json_dict(
+                    read_dict_field(payload, "capabilities", label=WORKER_FIELD_LABEL)
+                ),
+                inventory,
+            )
+            return {"value": None}
         if method == "call.get_parameter_schema":
             return {"value": await plugin.get_parameter_schema()}
         if method == "call.check_system_dependencies":
             return {"value": await plugin.check_system_dependencies()}
-        if method == "call.install_backend":
-            return {
-                "value": await plugin.install_backend(
-                    build_text_callback(self._ipc_client, request_id),
-                    read_worker_request_str_field(payload, "backend_variant_id"),
-                ),
-            }
-        if method == "call.update_backend":
-            return {
-                "value": await plugin.update_backend(
-                    build_text_callback(self._ipc_client, request_id),
-                    read_worker_request_str_field(payload, "backend_variant_id"),
-                ),
-            }
+        if method in {"call.install_backend", "call.update_backend"}:
+            return await self._backend_lifecycle(plugin, request_id, method, payload)
         if method == "call.remove_backend":
             return {
                 "value": await plugin.remove_backend(
@@ -106,6 +117,25 @@ class PluginWorkerRequestDispatcher:
         if method == "call.handle_request":
             return await self._handle_inference(plugin, request_id=request_id, payload=payload)
         return await dispatch_simple_plugin_call(plugin, method=method, payload=payload)
+
+    async def _backend_lifecycle(
+        self, plugin: BasePlugin, request_id: str, method: str, payload: JSONDict
+    ) -> JSONDict:
+        shutdown_event = asyncio.Event()
+        self._shutdown_events[request_id] = shutdown_event
+        try:
+            with plugin.backend_lifecycle_cancellation_scope(shutdown_event):
+                callback = build_text_callback(self._ipc_client, request_id)
+                variant = read_worker_request_str_field(payload, "backend_variant_id")
+                if method == "call.install_backend":
+                    result = await plugin.install_backend(callback, variant)
+                else:
+                    result = await plugin.update_backend(callback, variant)
+                return {"value": result}
+        except TaskCancelledError as exception:
+            raise asyncio.CancelledError() from exception
+        finally:
+            self._shutdown_events.pop(request_id, None)
 
     async def _surface(self, plugin: BasePlugin) -> JSONDict:
         plugin_class = type(plugin)

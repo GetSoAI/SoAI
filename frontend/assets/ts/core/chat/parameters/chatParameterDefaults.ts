@@ -34,7 +34,7 @@ const getDefaultChatParameters = (): ChatParameters => {
         logprobsSendEnabled: false,
         widescreenMode: false,
         autoHideChatComposer: true,
-        autoHideChatHeader: true,
+        autoHideChatHeader: false,
         richTextEnabled: true,
         inlineMultimediaPreviewsEnabled: true,
         textZoom: 1,

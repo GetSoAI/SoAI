@@ -43,10 +43,12 @@ async def update_cache_with_incoming_task(
             should_return_early = True
         if not should_return_early:
             if resolved.status.is_terminal():
-                resolved_task_without_queue, _ = resolved.without_reply_queue()
+                terminal_task = resolved
+                if not resolved.execution_timeout_pending:
+                    terminal_task, _ = resolved.without_reply_queue()
                 registry.tasks.pop(task_id, None)
-                registry.terminal_cache[task_id] = (resolved_task_without_queue, now)
-                resolved = resolved_task_without_queue
+                registry.terminal_cache[task_id] = (terminal_task, now)
+                resolved = terminal_task
             else:
                 registry.terminal_cache.pop(task_id, None)
                 registry.tasks[task_id] = resolved
@@ -89,7 +91,9 @@ def prune_terminal_cache_entries(
         entry = registry.terminal_cache.get(task_id)
         if entry is None:
             continue
-        _task, cached_at = entry
+        task, cached_at = entry
+        if task.execution_timeout_pending:
+            continue
         if now - cached_at >= registry.terminal_cache_ttl:
             del registry.terminal_cache[task_id]
             removed_ids.append(task_id)

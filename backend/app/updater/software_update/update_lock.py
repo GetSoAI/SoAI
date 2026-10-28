@@ -5,17 +5,17 @@ from __future__ import annotations
 
 import os
 from collections.abc import Generator
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 
 from app.installation_transaction_admission import INSTALLATION_TRANSACTION_LOCK_FILENAME
-from core.bootstrap.lock import acquire_interprocess_lock
+from core.bootstrap.install_locks import inherited_install_lock_is_valid, read_lock_pid
+from core.bootstrap.lock import acquire_interprocess_lock, require_no_foreign_install_lock
 from core.concurrency.deadlines import deadline_after
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.filesystem.atomic_write_names import atomic_text_write_temporary_paths
 from core.filesystem.atomic_writes import atomic_write_text_content
-from core.filesystem.open_files import open_text
 from core.logging.protocols import LoggerProtocol
 from core.meta.paths import join_data_abs
 from core.runtime.instance_record import (
@@ -55,7 +55,7 @@ def _read_lock_identity(
     lock_dir: str, *, require_matching_pid: bool = True
 ) -> RuntimeInstanceRecord | None:
     record_path = os.path.join(lock_dir, "process.json")
-    owner_pid = _read_lock_pid(lock_dir)
+    owner_pid = read_lock_pid(lock_dir)
     if os.path.lexists(_pid_path(lock_dir)) and owner_pid is None:
         raise StateError("Update PID ownership evidence is invalid; preserve it for repair.")
     if not os.path.lexists(record_path):
@@ -110,23 +110,6 @@ def _owner_is_running(lock_dir: str, owner_pid: int) -> bool:
     )
 
 
-def _read_lock_pid(lock_dir: str) -> int | None:
-    pid_file = _pid_path(lock_dir)
-    if not os.path.isfile(pid_file):
-        return None
-    try:
-        with open_text(pid_file, encoding="utf-8", errors="replace") as file_handle:
-            raw_value = file_handle.read().strip()
-    except OSError:
-        return None
-    if not raw_value.isdigit():
-        return None
-    pid_value = int(raw_value)
-    if pid_value <= 0:
-        return None
-    return pid_value
-
-
 def _lock_without_pid_is_stale(lock_dir: str) -> bool:
     try:
         lock_age_seconds = epoch_seconds_float() - os.path.getmtime(lock_dir)
@@ -179,6 +162,9 @@ def _publish_lock_owner(lock_dir: str, identity: RuntimeInstanceRecord) -> None:
 def _try_acquire_lock(
     lock_dir: str, *, logger: LoggerProtocol, base_path: str, edition: str
 ) -> bool:
+    require_no_foreign_install_lock(
+        base_path, inherited_install_lock_validator=inherited_install_lock_is_valid
+    )
     try:
         os.mkdir(lock_dir, 0o700)
         try:
@@ -200,7 +186,7 @@ def _try_acquire_lock(
                 "Update ownership storage is invalid; preserve it for repair."
             ) from exception
         record = _read_lock_identity(lock_dir, require_matching_pid=False)
-        pid_value = _read_lock_pid(lock_dir)
+        pid_value = read_lock_pid(lock_dir)
         if record is not None:
             if _owner_is_running(lock_dir, record.pid):
                 return False
@@ -220,7 +206,7 @@ def _release_lock(lock_dir: str, logger: LoggerProtocol) -> None:
         pid_file = _pid_path(lock_dir)
         record = _read_lock_identity(lock_dir, require_matching_pid=False)
         if record is not None or os.path.isfile(pid_file):
-            owner_pid = record.pid if record is not None else _read_lock_pid(lock_dir)
+            owner_pid = record.pid if record is not None else read_lock_pid(lock_dir)
             if owner_pid is None or owner_pid != os.getpid():
                 return
             if not _owner_is_running(lock_dir, owner_pid):
@@ -250,7 +236,7 @@ def transfer_software_update_lock(lock_dir: str, new_owner_pid: int) -> None:
         os.path.join(os.path.dirname(lock_dir), INSTALLATION_TRANSACTION_LOCK_FILENAME),
         timeout_sec=CONTROL_TIMEOUT_SEC,
     ):
-        if _read_lock_pid(lock_dir) != os.getpid():
+        if read_lock_pid(lock_dir) != os.getpid():
             raise StateError("Software update lock ownership changed before installer handoff.")
         record = _read_lock_identity(lock_dir)
         if record is None or not _owner_is_running(lock_dir, os.getpid()):
@@ -299,11 +285,25 @@ def guarded_software_update_lock(
 
 
 @contextmanager
-def guarded_software_update_recovery(base_path: str) -> Generator[None]:
-    with acquire_interprocess_lock(
-        join_data_abs(base_path, "locks", INSTALLATION_TRANSACTION_LOCK_FILENAME),
-        timeout_sec=CONTROL_TIMEOUT_SEC,
-    ):
+def guarded_software_update_recovery(
+    base_path: str, *, installation_lock_held: bool = False
+) -> Generator[None]:
+    require_no_foreign_install_lock(
+        base_path, inherited_install_lock_validator=inherited_install_lock_is_valid
+    )
+    with ExitStack() as ownership:
+        if not installation_lock_held and not inherited_install_lock_is_valid(
+            join_data_abs(base_path, "state", "locks", "soai.install.lock.d")
+        ):
+            ownership.enter_context(
+                acquire_interprocess_lock(
+                    join_data_abs(base_path, "locks", INSTALLATION_TRANSACTION_LOCK_FILENAME),
+                    timeout_sec=CONTROL_TIMEOUT_SEC,
+                )
+            )
+        require_no_foreign_install_lock(
+            base_path, inherited_install_lock_validator=inherited_install_lock_is_valid
+        )
         lock_dir = resolve_software_update_lock_dir(base_path)
         if os.path.lexists(lock_dir):
             if (
@@ -312,7 +312,7 @@ def guarded_software_update_recovery(base_path: str) -> Generator[None]:
                 or os.path.islink(_pid_path(lock_dir))
             ):
                 raise StateError("Update ownership storage is invalid; preserve it for repair.")
-            owner_pid = _read_lock_pid(lock_dir)
+            owner_pid = read_lock_pid(lock_dir)
             record = _read_lock_identity(lock_dir, require_matching_pid=False)
             if record is not None:
                 if owner_pid not in (None, record.pid, os.getpid()) and pid_is_running(owner_pid):

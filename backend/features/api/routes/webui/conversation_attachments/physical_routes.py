@@ -102,6 +102,7 @@ def register_physical_attachment_routes(routers: ApiRouters) -> None:
             if staged.get("parse_state") != "pending":
                 return JSONResponse(content=serialize_physical_attachment(staged))
             parse_dependencies = DirectAttachmentParseDependencies(
+                file_content_pool=api_context.dependencies.file_content_pool,
                 config=api_context.dependencies.config,
                 files=api_context.dependencies.files,
                 database_users=api_context.dependencies.database_users,

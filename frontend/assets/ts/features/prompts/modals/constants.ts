@@ -3,4 +3,6 @@
 
 const PROMPTS_ENHANCER_MODAL_ID = 'prompt-enhancer-modal';
 
-export { PROMPTS_ENHANCER_MODAL_ID };
+const PROMPTS_PICKER_MODAL_ID = 'prompts-picker-modal';
+
+export { PROMPTS_ENHANCER_MODAL_ID, PROMPTS_PICKER_MODAL_ID };

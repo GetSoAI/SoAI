@@ -8,7 +8,7 @@ import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { uiText } from '@core/security/uiHtml.ts';
 import { formatHardwareNumber } from '@features/hardware/Formatters.ts';
 import { formatSoAIBenchDuration, formatSoAIBenchMetric, formatSoAIBenchPercentValue, formatSoAIBenchPowerPair, formatSoAIBenchScore, formatSoAIBenchTemperature, formatSoAIBenchThroughputValue, getSoAIBenchNotAvailableLabel } from '@features/hardware/soaibenchMetricFormatting.ts';
-import { formatUnexpectedSoAIBenchIdentifierLabel, resolveSoAIBenchReasonLabel, resolveSoAIBenchStatusLabel } from '@features/hardware/soaibenchLabels.ts';
+import { formatUnexpectedSoAIBenchIdentifierLabel, resolveSoAIBenchPhaseLabel, resolveSoAIBenchReasonLabel, resolveSoAIBenchStatusLabel } from '@features/hardware/soaibenchLabels.ts';
 import { resolveTemperatureSeverity } from '@features/hardware/thermalSeverity.ts';
 import { buildSoAIBenchPhaseDiagnosticDisplays } from '@features/hardware/soaibenchPhaseDiagnostics.ts';
 import type { SoAIBenchRunOpenRequest, SoAIBenchRunRecord } from '@features/hardware/modals/soaibenchrun/types.ts';
@@ -26,28 +26,6 @@ const temperatureMetricClass = (value: number | null): string => {
     if (severity === 'critical') return 'hardware-soaibench-report-metric--temperature-error';
     if (severity === 'warning') return 'hardware-soaibench-report-metric--temperature-warning';
     return '';
-};
-
-const phaseLabel = (phase: string | null): string | null => {
-    if (phase === 'compute') {
-        return i18n.t('hardware.modals.soaibenchRun.phases.compute');
-    }
-    if (phase === 'alu') {
-        return i18n.t('hardware.modals.soaibenchRun.phases.alu');
-    }
-    if (phase === 'matrix') {
-        return i18n.t('hardware.modals.soaibenchRun.phases.matrix');
-    }
-    if (phase === 'latency') {
-        return i18n.t('hardware.modals.soaibenchRun.phases.latency');
-    }
-    if (phase === 'memory') {
-        return i18n.t('hardware.modals.soaibenchRun.phases.memory');
-    }
-    if (phase === 'mixed' || phase === 'stability') {
-        return i18n.t('hardware.modals.soaibenchRun.phases.stability');
-    }
-    return null;
 };
 
 const summaryBadgeForRun = (run: SoAIBenchRunRecord): SummaryBadge => {
@@ -76,7 +54,7 @@ const scoreTextForRun = (run: SoAIBenchRunRecord): string => {
     return resolveSoAIBenchStatusLabel(run.status);
 };
 
-const currentPhaseLabel = (run: SoAIBenchRunRecord): string | null => phaseLabel(run.metrics.currentPhase);
+const currentPhaseLabel = (run: SoAIBenchRunRecord): string | null => resolveSoAIBenchPhaseLabel(run.metrics.currentPhase);
 
 const statusMetricClass = (status: string): string => {
     if (status === 'completed') {
@@ -95,7 +73,7 @@ const statusMetricClass = (status: string): string => {
 };
 
 const reasonForRun = (run: SoAIBenchRunRecord): string | null => {
-    const terminalReason = resolveSoAIBenchReasonLabel(run.reasonMessage, run.failureReason, run.unsupportedReason, false);
+    const terminalReason = resolveSoAIBenchReasonLabel(run.reasonMessage, run.failureReason, run.unsupportedReason, false, null, run.deadline);
     return terminalReason ?? (run.leaderboardRejectionReason ? formatUnexpectedSoAIBenchIdentifierLabel(run.leaderboardRejectionReason) : null);
 };
 
@@ -110,19 +88,19 @@ const renderIntroSection = (title: string, itemsText: string): string => {
         .split('|')
         .map((item) => item.trim())
         .filter((item) => item.length > 0);
-    const list = items.map((item) => `<li>${uiText(item).html}</li>`).join('');
-    return `<section class="hardware-soaibench-run-section"><h3>${uiText(title).html}</h3><ul>${list}</ul></section>`;
+    const list = items.map((item) => `<li data-modal-localize="text">${uiText(item).html}</li>`).join('');
+    return `<section class="hardware-soaibench-run-section"><h3 data-modal-localize="text">${uiText(title).html}</h3><ul>${list}</ul></section>`;
 };
 
 const renderRunIntro = (request: SoAIBenchRunOpenRequest): TrustedHtml => {
-    const summary = `<div class="hardware-soaibench-run-summary"><div class="hardware-soaibench-run-gpu">${uiText(renderGpuLabel(request)).html}</div><span class="ui-status-badge status-green">${uiText(i18n.t('hardware.modals.soaibenchRun.standardRun')).html}</span></div>`;
+    const summary = `<div class="hardware-soaibench-run-summary"><div class="hardware-soaibench-run-gpu" data-modal-localize="text">${uiText(renderGpuLabel(request)).html}</div><span class="ui-status-badge status-green" data-modal-localize="text">${uiText(i18n.t('hardware.modals.soaibenchRun.standardRun')).html}</span></div>`;
     return toTrustedUiHtml(`${summary}<div class="hardware-soaibench-run-grid">` + renderIntroSection(i18n.t('hardware.modals.soaibenchRun.sections.measures.title'), i18n.t('hardware.modals.soaibenchRun.sections.measures.items')) + renderIntroSection(i18n.t('hardware.modals.soaibenchRun.sections.runs.title'), i18n.t('hardware.modals.soaibenchRun.sections.runs.items')) + renderIntroSection(i18n.t('hardware.modals.soaibenchRun.sections.expect.title'), i18n.t('hardware.modals.soaibenchRun.sections.expect.items')) + `</div>`);
 };
 
 const renderMetricItem = (label: string, value: string, index: number, severityClass: string): string => {
     const checkerboardClass = resolveCheckerboardClass(index, { columns: REPORT_GRID_COLUMNS, start: 'checkerboard-dark' });
     const classes = severityClass ? `hardware-soaibench-report-metric ${checkerboardClass} ${severityClass}` : `hardware-soaibench-report-metric ${checkerboardClass}`;
-    return `<div class="${classes}"><span>${uiText(label).html}</span><strong>${uiText(value).html}</strong></div>`;
+    return `<div class="${classes}"><span data-modal-localize="text">${uiText(label).html}</span><strong data-modal-localize="text">${uiText(value).html}</strong></div>`;
 };
 
 const renderReportMetrics = (run: SoAIBenchRunRecord): string => {
@@ -157,13 +135,13 @@ const renderReportMetrics = (run: SoAIBenchRunRecord): string => {
 const renderRunReportBody = (run: SoAIBenchRunRecord | null, terminalReason: string | null): TrustedHtml => {
     const scoreLabel = uiText(i18n.t('hardware.modals.soaibenchRun.scoreLabel')).html;
     if (!run) {
-        const reasonPanel = terminalReason ? `<div class="hardware-soaibench-run-reason" data-tone="warning">${uiText(terminalReason).html}</div>` : '';
+        const reasonPanel = terminalReason ? `<div class="hardware-soaibench-run-reason" data-tone="warning" data-modal-localize="text">${uiText(terminalReason).html}</div>` : '';
         const statusText = terminalReason ? i18n.t('hardware.modals.soaibenchRun.progress.startFailed') : getSoAIBenchNotAvailableLabel();
-        return toTrustedUiHtml(`<div class="hardware-soaibench-report"><div class="hardware-soaibench-report-band"><span>${scoreLabel}</span><strong>${uiText(statusText).html}</strong></div>${reasonPanel}</div>`);
+        return toTrustedUiHtml(`<div class="hardware-soaibench-report"><div class="hardware-soaibench-report-band"><span data-modal-localize="text">${scoreLabel}</span><strong data-modal-localize="text">${uiText(statusText).html}</strong></div>${reasonPanel}</div>`);
     }
     const reason = reasonForRun(run);
-    const reasonPanel = reason && shouldShowReasonPanel(run) ? `<div class="hardware-soaibench-run-reason" data-tone="warning">${uiText(reason).html}</div>` : '';
-    return toTrustedUiHtml(`<div class="hardware-soaibench-report"><div class="hardware-soaibench-report-band"><span>${scoreLabel}</span><strong>${uiText(scoreTextForRun(run)).html}</strong></div><div class="hardware-soaibench-report-grid">${renderReportMetrics(run)}</div>${reasonPanel}</div>`);
+    const reasonPanel = reason && shouldShowReasonPanel(run) ? `<div class="hardware-soaibench-run-reason" data-tone="warning" data-modal-localize="text">${uiText(reason).html}</div>` : '';
+    return toTrustedUiHtml(`<div class="hardware-soaibench-report"><div class="hardware-soaibench-report-band"><span data-modal-localize="text">${scoreLabel}</span><strong data-modal-localize="text">${uiText(scoreTextForRun(run)).html}</strong></div><div class="hardware-soaibench-report-grid">${renderReportMetrics(run)}</div>${reasonPanel}</div>`);
 };
 
 const progressMessageForRun = (run: SoAIBenchRunRecord | null, cancelRequested: boolean): string => {

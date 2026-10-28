@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { buildSignalRequestOptions } from '@core/api/requestOptions.ts';
+import { getEventHub } from '@core/environment/public.ts';
+import { isPersistedPageHideEvent } from '@core/lifecycle/pageTermination.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
@@ -95,6 +97,11 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
         },
         onRowsCommitted: () => deeplinkHighlight.apply()
     });
+    const eventHub = getEventHub();
+    const releaseListingOnPageHide = (event: Event): void => {
+        if (!isPersistedPageHideEvent(event)) dataController.releaseListing();
+    };
+    eventHub.addEventListener('pagehide', releaseListingOnPageHide, { passive: true });
     const viewModeController = new FileExplorerViewModeController({
         root: ui.root,
         button: ui.viewModeToggleButton,
@@ -148,11 +155,14 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
         host: controllerHost,
         ui,
         selection,
+        selectionModel,
         recentUploads: recentUploadController
     });
     const batchController = new FileExplorerBatchController({
         host: controllerHost,
-        selection
+        selection,
+        selectionModel,
+        waitForDeletionTask: host.waitForDeletionTask
     });
     const contentPreviewModalController = new FileExplorerContentPreviewModalController({
         requireHTMLElement: (selector, context) => host.pageDom.requireHTMLElement(selector, context),
@@ -282,6 +292,7 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
         clearDeeplinkHighlight: deeplinkHighlight.clear,
         destroy: () => {
             disposed = true;
+            eventHub.removeEventListener('pagehide', releaseListingOnPageHide);
             uiTaskScheduler.dispose();
             interactionController.destroy();
             navigationHistory.destroy();

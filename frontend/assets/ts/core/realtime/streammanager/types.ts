@@ -176,6 +176,7 @@ export type TaskTerminalEvent = JsonObject & {
     success: boolean;
     message: string;
     errorCode?: number | null;
+    errorType?: string | null;
     errorMessage?: string | null;
     meta?: OperationMetadata;
 };

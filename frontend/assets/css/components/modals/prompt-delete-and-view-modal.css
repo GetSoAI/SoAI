@@ -32,17 +32,18 @@
         overflow-wrap: break-word;
     }
 
+    .prompt-view-modal .modal-header .modal-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
     .prompt-view-modal :is(.prompt-modal-title-input, .prompt-modal-content-textarea) {
         width: 100%;
         background: var(--text-field-bg);
         border: var(--border-width-1) solid var(--text-field-border);
         color: var(--text-primary);
         font-family: inherit;
-    }
-
-    .prompt-view-modal :is(.prompt-modal-title-input, .prompt-modal-content-textarea):hover:not(:focus) {
-        background: var(--text-field-bg-hover);
-        border-color: var(--text-field-border-hover);
     }
 
     .prompt-view-modal .prompt-modal-title-input {
@@ -146,7 +147,7 @@
         padding: var(--space-3) var(--space-6);
     }
 
-    .content-preview-modal .modal-footer-section--right {
+    .prompt-view-modal .modal-footer-section--right {
         flex-wrap: wrap;
         align-items: center;
     }

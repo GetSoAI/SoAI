@@ -33,7 +33,7 @@ const renderParameterSendToggleMarkup = (inputArguments: { modalId: string; toke
 };
 
 const renderParameterFieldHeader = (inputArguments: { modalId: string; labelFor: string; label: string; token: string; flag: string; checked: boolean; strings: ParameterSendToggleStrings }): string => {
-    return `<div class="chat-config-field-header"><label for="${uiAttr(modalUiId(inputArguments.modalId, inputArguments.labelFor)).html}">${inputArguments.label}</label>${renderParameterSendToggleMarkup(inputArguments)}</div>`;
+    return `<div class="chat-config-field-header"><label data-modal-localize="text" for="${uiAttr(modalUiId(inputArguments.modalId, inputArguments.labelFor)).html}">${inputArguments.label}</label>${renderParameterSendToggleMarkup(inputArguments)}</div>`;
 };
 
 export { renderParameterFieldHeader, renderParameterSendToggleMarkup };

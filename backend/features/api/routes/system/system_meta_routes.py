@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from starlette.responses import Response
 
 from core.config.byte_sizes import MIB_BYTES
+from core.config.remote_storage import find_remote_storage_settings
 from core.config.upload_limits import UploadLimitType, resolve_upload_limit_bytes
 from core.database.vacuum_result import DatabaseVacuumStartupResult
 from core.errors.exceptions import ValidationError
@@ -105,6 +106,12 @@ def register_routes(routers: ApiRouters) -> None:
                 else "degraded"
             ),
         }
+        remote_storage_settings = find_remote_storage_settings(api_context.dependencies.config)
+        if remote_storage_settings:
+            payload["network_paths"] = {
+                "status": "degraded",
+                "settings": list(remote_storage_settings),
+            }
         identity_payload = filter_json_mapping_strict(
             build_instance_identity_payload(identity),
             error_message="Instance identity payload must be JSON-compatible.",

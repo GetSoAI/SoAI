@@ -6,6 +6,7 @@ import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { resolveSpeechFailureMessage } from '@features/chat/public.ts';
 import { VoiceCallSpeechSessionEventsController } from '@pages/chat/controllers/voicecall/VoiceCallSpeechSessionEventsController.ts';
 import { VoiceCallSpeechSessionConnectionController } from '@pages/chat/controllers/voicecall/VoiceCallSpeechSessionConnectionController.ts';
 import type { VoiceCallSpeechPlaybackHost, VoiceCallSpeechSegment, VoiceCallTtsSettings } from '@pages/chat/controllers/voicecall/voiceCallTypes.ts';
@@ -241,7 +242,7 @@ class VoiceCallSpeechPlaybackController {
         if (!this.#generation.isActive(generation)) {
             return;
         }
-        this.#host.feedback.show(i18n.t('chat.voiceCall.ttsFailed'), 'error');
+        this.#host.feedback.show(resolveSpeechFailureMessage(error, i18n.t('chat.voiceCall.ttsFailed')), 'error');
         this.#host.onPlaybackFailure(error);
         this.#cancelPlayback({ clearSettings: false });
     }

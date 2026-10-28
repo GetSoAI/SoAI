@@ -124,7 +124,7 @@ const handleResourceWebSocketEvent = (options: HandleResourceWebSocketEventOptio
     if (isGpuSlotEventType(eventType)) {
         const hasSnapshotPayload = isObject(payload['devices']);
         const slotResource = getResource(HARDWARE_GPU_SLOTS);
-        if (hasSnapshotPayload || slotResource?.value != null) {
+        if (hasSnapshotPayload || payload['success'] === false || slotResource?.value != null) {
             applyPushedResource({ name: HARDWARE_GPU_SLOTS, payload, raw: payload, updatedResources, updateResource, marksEventHandled: hasSnapshotPayload });
         }
     }

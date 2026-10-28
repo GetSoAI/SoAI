@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import posixpath
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
 __all__ = (
     "UserWorkspaceUpdate",
     "default_user_workspace_path",
-    "materialize_workspace_directory",
+    "managed_user_workspace_root",
     "normalize_workspace_path_update",
     "require_authenticated_user_workspace_path",
     "require_default_workspace_path",
@@ -41,15 +42,19 @@ class UserWorkspaceUpdate:
     workspace_real_path: str
 
 
+def managed_user_workspace_root() -> str:
+    return join_data_relative("user_files")
+
+
 def default_user_workspace_path(user_id: int) -> str:
     normalized_user_id = require_strict_user_id(user_id)
-    return join_data_relative("user_files", "accounts", str(normalized_user_id))
+    return posixpath.join(managed_user_workspace_root(), "accounts", str(normalized_user_id))
 
 
 def require_default_workspace_path(value: str, *, owner_user_id: int | None = None) -> str:
     if not isinstance(value, str) or not 1 <= len(value) <= 1024:
         raise ValidationError("Default workspace path has an invalid length.")
-    default_workspace_prefix = f"{join_data_relative('user_files')}/"
+    default_workspace_prefix = f"{managed_user_workspace_root()}/"
     if not value.startswith(default_workspace_prefix):
         raise ValidationError("Default workspace path has an invalid prefix.")
     if "\x00" in value or "\\" in value or ":" in value:
@@ -105,15 +110,6 @@ def require_authenticated_user_workspace_path(value: JSONValue) -> str:
         if workspace_path:
             return workspace_path
     raise StateError("Authenticated user is missing workspace_path.")
-
-
-def materialize_workspace_directory(
-    files: FilesPathResolverProtocol,
-    workspace_path: str,
-) -> str:
-    workspace_real_path = resolve_workspace_real_path(files, workspace_path)
-    create_workspace_directory(workspace_real_path)
-    return workspace_real_path
 
 
 def resolve_user_workspace_access(

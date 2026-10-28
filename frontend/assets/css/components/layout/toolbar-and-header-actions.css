@@ -172,7 +172,7 @@
     :where(.chat-container) .header-favorite-btn.is-active:hover,
     :where(.chat-container) .header-favorite-btn.is-active:focus-visible {
         background-color: var(--ui-button-bg-hover);
-        border-color: var(--ui-button-border-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
         color: var(--ui-button-color-hover);
     }
 
@@ -182,12 +182,12 @@
     }
 
     .agent-mode-cycle-btn[data-agent-mode='chat'] {
-        border-color: var(--ui-button-border);
+        border-color: color-mix(in srgb, var(--ui-button-border) var(--control-button-border-strength), transparent);
         background-color: var(--ui-button-bg);
     }
 
     .agent-mode-cycle-btn[data-agent-mode='chat']:is(:hover, :focus-visible) {
-        border-color: var(--ui-button-border-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
         background-color: var(--ui-button-bg-hover);
     }
 
@@ -232,20 +232,6 @@
 
     :where(.chat-container) .chat-header-overflow.page-actions--dropdown {
         margin-inline-start: 0;
-    }
-
-    :where(.chat-container) .chat-header-action.ui-button,
-    :where(.chat-container) .chat-header-action.ui-icon-button {
-        display: inline-flex;
-        align-items: center;
-        width: var(--icon-button-size);
-        height: var(--icon-button-size);
-        min-width: var(--icon-button-size);
-        min-height: var(--icon-button-size);
-        border-radius: var(--border-radius);
-        padding: 0;
-        justify-content: center;
-        text-align: center;
     }
 
     :where(.chat-container) .chat-header-action .chat-action-icon {

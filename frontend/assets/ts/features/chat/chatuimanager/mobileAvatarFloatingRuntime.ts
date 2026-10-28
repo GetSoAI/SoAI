@@ -25,6 +25,7 @@ type MobileAvatarFloatingRuntime = {
 const AVATAR_FLOATING_CLASS = 'is-floating';
 const AVATAR_SELECTOR = '.chat-message > .message-avatar';
 const FRAME_KEY = 'mobile-avatar-floating';
+const FLOATING_POSITION_TOLERANCE_PX = 1;
 
 const classMutationChangesSelectorMembership = (mutation: MutationRecord): boolean => {
     if (mutation.type !== 'attributes' || mutation.attributeName !== 'class' || !(mutation.target instanceof HTMLElement)) {
@@ -78,15 +79,19 @@ const createMobileAvatarFloatingRuntime = (messagesArea: HTMLElement, messagesRo
     };
 
     const measure = (): readonly AvatarFloatingMeasurement[] | null => {
-        if (isDisposed || measureLayoutViewport(messagesArea).width > CHAT_MOBILE_SIDEBAR_BREAKPOINT_PX || !messagesArea.isConnected) {
+        if (isDisposed || !messagesArea.isConnected) {
             return null;
         }
-        const containerTop = measureLayoutBox(messagesArea).top;
+        if (measureLayoutViewport(messagesArea).width > CHAT_MOBILE_SIDEBAR_BREAKPOINT_PX) {
+            return cachedPairs?.map(({ avatar }) => ({ avatar, floating: false })) ?? null;
+        }
+        const containerRect = measureLayoutBox(messagesArea);
         return resolvePairs().map(({ avatar, message }) => {
             const messageRect = measureLayoutBox(message);
+            const avatarRect = measureLayoutBox(avatar);
             return {
                 avatar,
-                floating: messageRect.top < containerTop && messageRect.bottom > containerTop
+                floating: avatarRect.top > messageRect.top + FLOATING_POSITION_TOLERANCE_PX && avatarRect.bottom > containerRect.top && avatarRect.top < containerRect.bottom
             };
         });
     };
@@ -101,7 +106,8 @@ const createMobileAvatarFloatingRuntime = (messagesArea: HTMLElement, messagesRo
     };
 
     const schedule = (): void => {
-        if (isDisposed || measureLayoutViewport(messagesArea).width > CHAT_MOBILE_SIDEBAR_BREAKPOINT_PX) {
+        const hasNoDesktopAvatarsToClear = cachedPairs === null && measureLayoutViewport(messagesArea).width > CHAT_MOBILE_SIDEBAR_BREAKPOINT_PX;
+        if (isDisposed || hasNoDesktopAvatarsToClear) {
             return;
         }
         coordinator.scheduleFrame(FRAME_KEY, () => {
@@ -113,7 +119,15 @@ const createMobileAvatarFloatingRuntime = (messagesArea: HTMLElement, messagesRo
     const mutationDisposer = coordinator.subscribeMutations((mutations) => {
         if (cachedPairs !== null && mutations.some(mutationChangesAvatarStructure)) {
             cachedPairs = null;
+            schedule();
+        } else if (mutations.some((mutation) => mutation.target === messagesArea)) {
+            schedule();
         }
+    });
+    const resizeTargets = new Set<Element>([messagesArea, messagesRoot]);
+    const resizeDisposers = Array.from(resizeTargets, (target) => coordinator.observeResize(target));
+    const resizeDisposer = coordinator.subscribeResize((entries) => {
+        if (entries.some((entry) => resizeTargets.has(entry.target))) schedule();
     });
 
     return {
@@ -126,6 +140,9 @@ const createMobileAvatarFloatingRuntime = (messagesArea: HTMLElement, messagesRo
             isDisposed = true;
             coordinator.cancelFrame(FRAME_KEY);
             mutationDisposer();
+            resizeDisposer();
+            for (const disposeResize of resizeDisposers) disposeResize();
+            for (const { avatar } of cachedPairs ?? []) avatar.classList.remove(AVATAR_FLOATING_CLASS);
             cachedPairs = null;
             coordinator.release();
         }

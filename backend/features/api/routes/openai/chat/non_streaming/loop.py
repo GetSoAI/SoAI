@@ -225,6 +225,7 @@ async def _handle_error_event(event: ErrorEvent) -> JSONResponse:
             soai_error_type=public_error.code,
             details=public_error.details,
             trace_id=public_error.trace_id or event.trace_id,
+            public_error=public_error,
         )
     status_code = error_type_to_status_code(event.error_type)
     return build_openai_error_json_response(

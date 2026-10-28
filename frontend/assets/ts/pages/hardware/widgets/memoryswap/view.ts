@@ -1,7 +1,9 @@
 /* SoAI - Hardware page memory and swap rendering [frontend/assets/ts/pages/hardware/widgets/memoryswap/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
 import { buildFragment } from '@core/dom/renderCache.ts';
+import { createRingGauge, updateRingGauge } from '@core/ui/icons/ringGauge.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { formatPercent } from '@core/primitives/percent.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
@@ -19,25 +21,25 @@ const createMemorySwapPanel = (host: MemorySwapPanelHost, container: HTMLElement
 const renderMemorySwapPanel = (host: MemorySwapPanelHost, surfaces: MemorySwapPanelSurfaces, model: MemorySwapRenderModel): void => {
     surfaces.shell.classList.toggle('hardware-memory-swap-shell--ram', model.mode === 'ram');
     surfaces.shell.classList.toggle('hardware-memory-swap-shell--swap', model.mode === 'swap');
-    surfaces.gauges.replaceChildren(createGauge(host, model.ramUsage, model.mode), createGauge(host, model.swapUsage, model.mode));
+    reconcileChildNodes(surfaces.gauges, [createGauge(host, model.ramUsage, model.mode), createGauge(host, model.swapUsage, model.mode)]);
     renderProcessSection(host, surfaces.processes, model);
 };
 
 const createGauge = (host: MemorySwapPanelHost, usage: MemorySwapUsage, mode: MemorySwapMode): HTMLElement => {
     const activeClass = usage.type === mode ? ' is-active' : '';
     const gauge = host.createElement('div', {
-        className: `hardware-memory-swap-gauge hardware-memory-swap-gauge--${usage.type}${usage.available ? '' : ' is-unavailable'}${activeClass}`
+        className: `hardware-memory-swap-gauge hardware-memory-swap-gauge--${usage.type}${usage.available ? '' : ' is-unavailable'}${activeClass}${usage.stale ? ' hardware-observation-stale' : ''}`
     });
     const ringShell = host.createElement('div', { className: 'hardware-memory-swap-ring-shell' });
     const ring = host.createElement('div', { className: 'hardware-memory-swap-ring' });
-    host.setStyle(ring, '--memory-swap-arc', usage.available ? formatPercent(usage.percent * 0.75, 3) : '0%');
-    const arc = host.createElement('span', { className: 'hardware-memory-swap-ring-arc' });
+    const arc = createRingGauge({ className: 'hardware-memory-swap-ring-arc', strokeWidth: 14.5, startAngle: 45 });
+    updateRingGauge(arc, usage.percent !== null ? usage.percent * 0.75 : 0);
     const face = host.createElement('span', { className: 'hardware-memory-swap-ring-face' });
     const center = host.createElement('div', { className: 'hardware-memory-swap-gauge-center' });
     const label = host.createElement('span', { className: 'hardware-memory-swap-gauge-label' });
     const value = host.createElement('span', { className: 'hardware-memory-swap-gauge-value' });
     host.updateText(label, usage.label);
-    host.updateText(value, usage.available ? formatPercent(usage.percent) : i18n.t('hardware.cards.memorySwap.unavailableShort'));
+    host.updateText(value, usage.percent !== null ? formatPercent(usage.percent) : i18n.t('hardware.cards.memorySwap.unavailableShort'));
     center.append(label, value);
     ring.append(arc, face, center);
     ringShell.append(ring);

@@ -15,6 +15,7 @@ type CollectionSupportService = {
 };
 
 interface SoAIServiceRegistry {
+    'core.speechSetup': import('../../assets/ts/core/speechsetup/protocols.ts').SpeechSetupProtocol;
     'core.apiClient': import('../../assets/ts/core/api/service.ts').ApiClient;
     'core.appLifecycle': import('../../assets/ts/app/bootstrap/stages/applifecycle/AppLifecycle.ts').AppLifecycle;
     'core.auth': BootstrapAuthManager;
@@ -51,6 +52,8 @@ interface SoAIServiceRegistry {
     'core.pageHost': typeof import('../../assets/ts/core/pagehost/service.ts').PageHost;
     'core.pageOutlet': typeof import('../../assets/ts/core/pageoutlet/public.ts').PageOutlet;
     'core.pageRegistry': import('../../assets/ts/core/pageRegistry.ts').PageRegistry;
+    'core.disabledInteraction': ReturnType<typeof import('../../assets/ts/core/ui/controls/disabledInteraction.ts').createDisabledInteractionService>;
+    'core.pointerFocus': ReturnType<typeof import('../../assets/ts/core/ui/controls/pointerFocus.ts').createPointerFocusService>;
     'core.presenceMotion': import('../../assets/ts/core/animations/presence/public.ts').PresenceRuntimeService;
     'core.realtime': import('../../assets/ts/core/realtime/public.ts').RealtimeService;
     'core.resourceTracker': typeof import('../../assets/ts/core/resourcetracker/service.ts').ResourceTracker;
@@ -72,6 +75,7 @@ interface SoAIServiceRegistry {
     'core.syntaxHighlighter': import('../../assets/ts/core/syntaxhighlighter/public.ts').SyntaxHighlighter;
     'core.systemLimitsService': ReturnType<typeof import('../../assets/ts/core/api/systemLimitsService.ts').createSystemLimitsService>;
     'core.tabsOverflow': import('../../assets/ts/core/ui/controls/tabs/overflowRuntime.ts').TabsOverflowRuntimeService;
+    'core.toggleSwitchDrag': ReturnType<typeof import('../../assets/ts/core/ui/controls/toggleswitch/dragRuntime.ts').createToggleSwitchDragRuntime>;
     'core.tooltipService': BootstrapTooltipService;
     'core.uiPrimitives': typeof import('../../assets/ts/core/uiprimitives/public.ts').primitives;
     'features.automation.runActivity': import('../../assets/ts/features/automation/runactivity/service.ts').AutomationRunActivityService;

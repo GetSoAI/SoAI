@@ -99,7 +99,7 @@ const renderCollapsedLoadingMessageContent = (inputArguments: RenderStreamingMes
     const renderedContent = inputArguments.messageManager.renderActiveStreamMessageTextContent(inputArguments.message);
     const contentHtml = renderedContent.html;
     if (inputArguments.cached.lastCollapsedLoadingHtml === contentHtml && inputArguments.cached.renderMode === 'collapsedLoading') {
-        const passiveStateUpdated = syncStreamingMessagePassiveState({ message: inputArguments.message, target, messageManager: inputArguments.messageManager, cached: inputArguments.cached });
+        const passiveStateUpdated = syncStreamingMessagePassiveState({ message: inputArguments.message, target, messageManager: inputArguments.messageManager, cached: inputArguments.cached, segments: renderedContent.resolvedSegments });
         return {
             handled: true,
             invalidatedCache: false,
@@ -146,7 +146,7 @@ const renderCollapsedLoadingMessageContent = (inputArguments: RenderStreamingMes
     } else if (patchResult.changed && patchResult.summary !== null) {
         inputArguments.messageManager.postRenderRequest(patchResult.summary, 'streamingTimeline');
     }
-    const passiveStateUpdated = syncStreamingMessagePassiveState({ message: inputArguments.message, target, messageManager: inputArguments.messageManager, cached: inputArguments.cached });
+    const passiveStateUpdated = syncStreamingMessagePassiveState({ message: inputArguments.message, target, messageManager: inputArguments.messageManager, cached: inputArguments.cached, segments: renderedContent.resolvedSegments });
     return {
         handled: true,
         invalidatedCache: false,

@@ -58,6 +58,9 @@ class ChatUIManager {
     }
 
     dispose(): void {
+        this.#context.state.speechSetupAbortController?.abort();
+        this.#context.state.speechSetupAbortController = null;
+        this.#context.state.speechSetupSelection = null;
         closeConversationInputModal(this.#context, 'page-dispose', false);
         this.#context.state.chatChromeVisibilityRuntime?.dispose();
         this.#context.state.chatChromeVisibilityRuntime = null;
@@ -85,6 +88,15 @@ class ChatUIManager {
         return resolveComposerControlState(this.#context).actionMode;
     }
 
+    canStopComposerHandoff(): boolean {
+        return resolveComposerControlState(this.#context).canStopHandoff;
+    }
+
+    noteUserStop(conversationId: string, requestId: string | null): void {
+        this.#context.state.userStoppedTurn = { conversationId, requestId };
+        this.applyExecutionControls();
+    }
+
     updateInputState(): void {
         updateInputState(this.#context);
         this.syncChatChromeVisibility();
@@ -102,6 +114,7 @@ class ChatUIManager {
         const entries = resolveQueuedConversationInputs(this.#context);
         updateInputQueuePreview(this.#context, entries);
         syncConversationInputModal(this.#context, entries);
+        this.applyExecutionControls();
     }
 
     openConversationInput(conversationId: string, inputId: string): Promise<void> {
@@ -171,12 +184,12 @@ class ChatUIManager {
     restoreConversationScrollPosition(): void {
         const messagesArea = this.#context.dependencies.optionalUI(CHAT_SELECTORS.MESSAGES_AREA);
         if (!(messagesArea instanceof HTMLElement)) return;
-        beginConversationScrollRestore(this.#context, messagesArea, () => {
+        beginConversationScrollRestore(this.#context, messagesArea, (cancelled) => {
             const settledMessagesArea = this.#context.dependencies.optionalUI(CHAT_SELECTORS.MESSAGES_AREA);
             if (!(settledMessagesArea instanceof HTMLElement)) return;
             const atBottom = isMainTimelineMeasurementAtBottom({ clientHeight: settledMessagesArea.clientHeight, scrollHeight: settledMessagesArea.scrollHeight, scrollTop: settledMessagesArea.scrollTop });
             this.setAutoScrollEnabled(atBottom);
-            captureCurrentConversationScrollSnapshot(this.#context);
+            if (!cancelled) captureCurrentConversationScrollSnapshot(this.#context);
             this.requestOlderMessagesIfAtTop();
         });
     }
@@ -185,8 +198,8 @@ class ChatUIManager {
         forgetConversationScrollSnapshot(this.#context, conversationId);
     }
 
-    forceScrollToBottom(): void {
-        forceScrollToBottom(this.#context);
+    forceScrollToBottom(behavior: ScrollBehavior = 'instant'): void {
+        forceScrollToBottom(this.#context, behavior);
     }
 
     setAutoScrollEnabled(enabled: boolean): void {

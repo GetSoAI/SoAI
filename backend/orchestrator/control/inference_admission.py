@@ -16,10 +16,7 @@ from core.openai.chat_messages_contracts import (
     validate_internal_chat_messages_contracts_for_sources,
 )
 from core.openai.request_fields import require_model_name
-from core.openai.request_requirement_failures import (
-    build_openai_request_requirement_failure_details,
-    classify_openai_request_requirement_mismatch,
-)
+from core.orchestrator.execution_plan import resolve_execution_plan_validation_error
 from core.orchestrator.protocols_lifecycle import (
     InferenceAdmissionReceipt,
     InferenceAdmissionRequest,
@@ -164,19 +161,9 @@ async def _enrich_orchestration_context(
     if event is None:
         return context
     plan = await control.scheduler.planner.resolve_execution_plan(task, context, None)
-    if plan["status"] == "UNAVAILABLE" and plan.get("failure_error_type") == "invalid_request":
-        failure_reason = plan.get("failure_reason")
-        if isinstance(failure_reason, str) and failure_reason:
-            mismatch = classify_openai_request_requirement_mismatch(message=failure_reason)
-            if mismatch is not None:
-                raise ValidationError(
-                    failure_reason,
-                    details={
-                        **build_openai_request_requirement_failure_details(mismatch),
-                        "param": "model",
-                    },
-                )
-            raise ValidationError(failure_reason, details={"param": "model"})
+    validation_error = resolve_execution_plan_validation_error(plan)
+    if validation_error is not None:
+        raise validation_error
     plan_context = await apply_execution_plan_context(
         queue=control.queue,
         task=task,

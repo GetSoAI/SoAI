@@ -4,7 +4,7 @@
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import { i18n } from '@core/i18n/index.ts';
+import { AudioCaptureFailure, toAudioCaptureFailure } from '@core/media/mediaCaptureErrors.ts';
 import { VOICE_CALL_CAPTURE_PROCESSOR_NAME } from '@core/media/voiceCallCaptureWorkletConstants.ts';
 import { isVoiceCallCaptureWorkletFrameMessage } from '@core/media/voiceCallCaptureWorkletProtocol.ts';
 import { isFunction } from '@core/typeGuards.ts';
@@ -39,18 +39,27 @@ class VoiceCallCaptureWorkletController {
 
     static async create(inputArguments: VoiceCallCaptureWorkletControllerArguments): Promise<VoiceCallCaptureWorkletController> {
         if (!inputArguments.audioContext.audioWorklet || !isFunction(inputArguments.audioContext.audioWorklet.addModule)) {
-            throw new Error(i18n.t('chat.voiceCall.recordingUnavailable'));
+            throw new AudioCaptureFailure('recording_unavailable');
         }
-        await inputArguments.audioContext.audioWorklet.addModule(inputArguments.workletUrl);
+        try {
+            await inputArguments.audioContext.audioWorklet.addModule(inputArguments.workletUrl);
+        } catch (error) {
+            throw toAudioCaptureFailure(ensureError(error), 'recording_unavailable');
+        }
         const bridge = new VoiceCallCaptureWorkletController(inputArguments);
-        bridge.#initialize();
-        return bridge;
+        try {
+            bridge.#initialize();
+            return bridge;
+        } catch (error) {
+            bridge.stop();
+            throw toAudioCaptureFailure(ensureError(error), 'recording_unavailable');
+        }
     }
 
     connect(source: MediaStreamAudioSourceNode): void {
         const node = this.#node;
         if (!node) {
-            throw new Error(i18n.t('chat.voiceCall.recordingUnavailable'));
+            throw new AudioCaptureFailure('recording_unavailable', new Error('Voice call capture worklet is not initialized'));
         }
         source.connect(node);
     }
@@ -74,14 +83,14 @@ class VoiceCallCaptureWorkletController {
 
     #initialize(): void {
         const node = new AudioWorkletNode(this.#audioContext, VOICE_CALL_CAPTURE_PROCESSOR_NAME, { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+        this.#node = node;
         const gain = this.#audioContext.createGain();
+        this.#gain = gain;
         gain.gain.value = 0;
         node.port.onmessage = (event: MessageEvent): void => this.#handleMessage(event.data);
         node.onprocessorerror = (): void => this.#handleProcessorError();
         node.connect(gain);
         gain.connect(this.#audioContext.destination);
-        this.#node = node;
-        this.#gain = gain;
     }
 
     #handleMessage(value: JsonValue): void {
@@ -90,7 +99,7 @@ class VoiceCallCaptureWorkletController {
         }
         const message = typeof value === 'object' ? value : null;
         if (!isVoiceCallCaptureWorkletFrameMessage(message)) {
-            this.#stopAfterFatalError(new Error(i18n.t('chat.voiceCall.recordingUnavailable')));
+            this.#stopAfterFatalError(new AudioCaptureFailure('recording_unavailable', new Error('Voice call capture worklet sent an invalid frame')));
             return;
         }
         this.#analyser.getByteFrequencyData(this.#frequencyData);
@@ -104,7 +113,7 @@ class VoiceCallCaptureWorkletController {
 
     #handleProcessorError(): void {
         if (!this.#stopped) {
-            this.#stopAfterFatalError(new Error(i18n.t('chat.voiceCall.recordingUnavailable')));
+            this.#stopAfterFatalError(new AudioCaptureFailure('recording_unavailable', new Error('Voice call capture worklet processor failed')));
         }
     }
 

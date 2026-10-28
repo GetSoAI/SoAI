@@ -19,4 +19,7 @@ def require_exact_json_fields(
 ) -> None:
     unexpected_fields = sorted(str(field) for field in payload if field not in allowed_fields)
     if unexpected_fields:
-        raise ValidationError(f"{label} contains unexpected field '{unexpected_fields[0]}'.")
+        raise ValidationError(
+            f"{label} contains unexpected field '{unexpected_fields[0]}'.",
+            details={"field": unexpected_fields[0]},
+        )

@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
     from ruamel.yaml.comments import CommentedMap
 
+    from core.concurrency.deadlines import MonotonicDeadline
     from core.hardware.protocols_storage import DiskSpaceReservationLeaseProtocol
     from core.types.json import JSONDict, JSONValue
 
@@ -98,6 +99,9 @@ class ConfigManagerProtocol(Protocol):
     def plugin_config_mutation_scope(
         self,
         config_name: str,
+        *,
+        operation: str,
+        deadline: MonotonicDeadline | None = None,
     ) -> AbstractAsyncContextManager[None]: ...
 
     async def establish_baseline(self) -> None: ...

@@ -1,9 +1,11 @@
 /* SoAI - Shared realtime actions effects [frontend/assets/ts/core/realtime/streammanager/actions/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { beginTaskSnapshot } from '@core/realtime/streammanager/actions/taskSnapshotTransactions.ts';
+import { softwareUpdateTaskProgress } from '@core/tasks/softwareUpdateProgress.ts';
 import { buildTerminalTaskPayload, finalizeTrackedTask } from '@core/realtime/streammanager/actions/completion.ts';
 import { buildDetachedTaskPayload } from '@core/realtime/streammanager/actions/detachedTaskPayload.ts';
-import { buildTrackedTaskOperation } from '@core/realtime/streammanager/actions/taskOperations.ts';
+import { applyMeasuredTaskProgress, buildTrackedTaskOperation } from '@core/realtime/streammanager/actions/taskOperations.ts';
 import { normalizeWebSocketPayload } from '@core/realtime/streammanager/transport/normalizeWebSocketPayload.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import type { StreamTaskRuntimeState } from '@core/realtime/streammanager/actions/internalContracts.ts';
@@ -13,6 +15,8 @@ import { type JsonObject, isJsonArray } from '@core/types/jsonValues.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { sleepMs } from '@core/primitives/sleepMs.ts';
 import { resolveTaskSnapshotRetryDelayMs, shouldReportTaskSnapshotFailure, TASK_SNAPSHOT_POLL_INTERVAL_MS } from '@core/realtime/streammanager/actions/taskSupervisionPolicy.ts';
+
+const TASK_RECOVERY_SNAPSHOT_ATTEMPTS = 3;
 
 interface TaskCompletionPayloadOptions {
     taskId: string;
@@ -98,11 +102,20 @@ const recoverTaskFromSnapshot = async (options: TaskRecoveryOptions): Promise<vo
     }
 
     options.state.taskRecoveryInFlight.set(normalizedTaskId, recoveryGeneration);
+    const changedTasks = beginTaskSnapshot(options.state);
     try {
         const ws = options.getWebSocket();
         if (!ws) return;
-        const snapshot = await ws.requestSnapshot('tasks.by_id', { 'task_id': normalizedTaskId });
-        if (options.state.generation !== recoveryGeneration) return;
+        let snapshot = await ws.requestSnapshot('tasks.by_id', { 'task_id': normalizedTaskId });
+        let attempts = 1;
+        while (changedTasks.has(normalizedTaskId)) {
+            if (options.state.generation !== recoveryGeneration || options.state.terminalTaskIds.has(normalizedTaskId) || options.state.trackedTasks.has(normalizedTaskId)) return;
+            if (attempts >= TASK_RECOVERY_SNAPSHOT_ATTEMPTS) throw new Error(`Task recovery snapshot was repeatedly superseded for ${normalizedTaskId}`);
+            changedTasks.clear();
+            attempts += 1;
+            snapshot = await ws.requestSnapshot('tasks.by_id', { 'task_id': normalizedTaskId });
+        }
+        if (options.state.generation !== recoveryGeneration || options.state.terminalTaskIds.has(normalizedTaskId)) return;
         const normalizedSnapshot = normalizeWebSocketPayload(snapshot?.data);
         if (!normalizedSnapshot) return;
         const operation = buildTrackedTaskOperation(normalizedSnapshot);
@@ -110,7 +123,8 @@ const recoverTaskFromSnapshot = async (options: TaskRecoveryOptions): Promise<vo
         if (operation.id !== normalizedTaskId) throw new Error(`Recovered task snapshot identity mismatch for ${normalizedTaskId}`);
 
         const existing = options.state.trackedTasks.get(operation.id);
-        const mergedMeta = existing ? { ...existing, ...operation.meta, type: operation.type, id: operation.id } : operation.meta;
+        const snapshotMeta = existing ? { ...existing, ...operation.meta, type: operation.type, id: operation.id } : operation.meta;
+        const mergedMeta = operation.type !== 'software-update' && attempts === 1 ? applyMeasuredTaskProgress(snapshotMeta, options.payload['progress']) : snapshotMeta;
         const status = toTrimmedString(normalizedSnapshot['status']);
         if (!status) throw new Error(`Recovered task snapshot status is missing for ${normalizedTaskId}`);
         const terminalPayload = buildTerminalTaskPayload(operation.id, normalizedSnapshot);
@@ -134,12 +148,14 @@ const recoverTaskFromSnapshot = async (options: TaskRecoveryOptions): Promise<vo
             options.emitOperation(operation.id, operation.type, 'start', mergedMeta, operation.progress !== null ? { progress: operation.progress } : {});
         }
         if (operation.type !== 'unknown') {
-            options.emitOperation(operation.id, operation.type, 'progress', mergedMeta, { ...normalizedSnapshot, ...options.payload });
+            const data = operation.type === 'software-update' ? softwareUpdateTaskProgress(operation.id, toTrimmedString(normalizedSnapshot['progress_details'])) : { ...normalizedSnapshot, ...(attempts === 1 ? options.payload : {}) };
+            options.emitOperation(operation.id, operation.type, 'progress', mergedMeta, data);
         }
     } catch (error) {
         const normalizedError = ensureError(error);
         options.logDebug(options.module, 'Task recovery from progress snapshot failed', normalizedError);
     } finally {
+        options.state.pendingTaskSnapshots.delete(changedTasks);
         if (options.state.taskRecoveryInFlight.get(normalizedTaskId) === recoveryGeneration) {
             options.state.taskRecoveryInFlight.delete(normalizedTaskId);
         }
@@ -170,14 +186,22 @@ const checkTaskSnapshot = async (
                 if (!currentWebSocket) {
                     throw new Error('Task snapshot transport is unavailable');
                 }
-                const snapshot = await currentWebSocket.requestSnapshot('tasks.by_id', { 'task_id': options.taskId });
+                const changedTasks = beginTaskSnapshot(options.state);
+                let snapshot;
+                let superseded = false;
+                try {
+                    snapshot = await currentWebSocket.requestSnapshot('tasks.by_id', { 'task_id': options.taskId });
+                    superseded = changedTasks.has(options.taskId);
+                } finally {
+                    options.state.pendingTaskSnapshots.delete(changedTasks);
+                }
                 if (options.state.generation !== snapshotCheckGeneration) return;
                 if (!snapshot) throw new Error(`Task snapshot response is unavailable for ${options.taskId}`);
-                if (snapshot.data === null) {
+                if (!superseded && snapshot.data === null) {
                     settleMissingTask(options, options.taskId);
                     return;
                 }
-                if (settleTaskFromSnapshot(options, normalizeWebSocketPayload(snapshot.data))) return;
+                if (!superseded && settleTaskFromSnapshot(options, normalizeWebSocketPayload(snapshot.data))) return;
                 consecutiveFailureCount = 0;
             } catch (error) {
                 if (options.state.generation !== snapshotCheckGeneration) return;
@@ -203,66 +227,73 @@ const reconcileOperationsFromSnapshots = async (options: TaskRestoreOptions): Pr
     const reconciliationGeneration = options.state.generation;
     const ws = options.getWebSocket();
     if (!ws) return;
-    const snapshot = await ws.requestSnapshot('tasks.active');
-    if (options.state.generation !== reconciliationGeneration) return;
-    const normalized = normalizeWebSocketPayload(snapshot?.data);
-    if (!normalized || !isJsonArray(normalized['tasks'])) throw new Error('Active task snapshot must include a tasks array');
+    const changedTasks = beginTaskSnapshot(options.state);
+    try {
+        const snapshot = await ws.requestSnapshot('tasks.active');
+        if (options.state.generation !== reconciliationGeneration) return;
+        const normalized = normalizeWebSocketPayload(snapshot?.data);
+        if (!normalized || !isJsonArray(normalized['tasks'])) throw new Error('Active task snapshot must include a tasks array');
 
-    const active = new Map<string, { type: string; meta: OperationMetadata; progress: number | null }>();
-    for (const task of normalized['tasks']) {
-        const operation = buildTrackedTaskOperation(task);
-        if (!operation) throw new Error('Active task snapshot contains a malformed task');
-        if (active.has(operation.id)) throw new Error(`Active task snapshot contains duplicate task ${operation.id}`);
-        active.set(operation.id, { type: operation.type, meta: operation.meta, progress: operation.progress });
-    }
-
-    for (const [taskId, operation] of active.entries()) {
-        const existing = options.state.trackedTasks.get(taskId);
-        const mergedMeta = existing ? { ...existing, ...operation.meta, type: operation.type, id: taskId } : operation.meta;
-        options.state.trackedTasks.set(taskId, mergedMeta);
-        if (operation.type === 'unknown') continue;
-        if (!existing) {
-            options.emitOperation(taskId, operation.type, 'start', mergedMeta, operation.progress !== null ? { progress: operation.progress } : {});
-        } else if (operation.progress !== null) {
-            options.emitOperation(taskId, operation.type, 'progress', mergedMeta, { progress: operation.progress });
+        const active = new Map<string, { type: string; meta: OperationMetadata; progress: number | null }>();
+        for (const task of normalized['tasks']) {
+            const operation = buildTrackedTaskOperation(task);
+            if (!operation) throw new Error('Active task snapshot contains a malformed task');
+            if (active.has(operation.id)) throw new Error(`Active task snapshot contains duplicate task ${operation.id}`);
+            active.set(operation.id, { type: operation.type, meta: operation.meta, progress: operation.progress });
         }
-    }
 
-    const endedTaskIds = Array.from(options.state.trackedTasks.keys()).filter((taskId) => !active.has(taskId));
-    const snapshotResults = await Promise.all(
-        endedTaskIds.map(async (taskId) => {
-            const snapshotResponse = await ws.requestSnapshot('tasks.by_id', { 'task_id': taskId });
-            if (!snapshotResponse) throw new Error(`Task snapshot response is unavailable for ${taskId}`);
-            if (snapshotResponse.data === null) return { taskId, payload: null, isMissing: true };
-            const taskSnapshot = normalizeWebSocketPayload(snapshotResponse.data);
-            if (!taskSnapshot) throw new Error(`Task snapshot is unavailable for ${taskId}`);
-            if (toTrimmedString(taskSnapshot['task_id']) !== taskId) throw new Error(`Task snapshot identity mismatch for ${taskId}`);
-            const status = toTrimmedString(taskSnapshot['status']);
-            if (!status) throw new Error(`Task snapshot status is missing for ${taskId}`);
-            const payload = buildTerminalTaskPayload(taskId, taskSnapshot);
-            return { taskId, payload, isMissing: false };
-        })
-    );
-    if (options.state.generation !== reconciliationGeneration) return;
-
-    for (const result of snapshotResults) {
-        if (result.isMissing) {
-            settleMissingTask(options, result.taskId);
-            continue;
+        for (const [taskId, operation] of active.entries()) {
+            if (changedTasks.has(taskId) || options.state.terminalTaskIds.has(taskId)) continue;
+            const existing = options.state.trackedTasks.get(taskId);
+            const mergedMeta = existing ? { ...existing, ...operation.meta, type: operation.type, id: taskId } : operation.meta;
+            options.state.trackedTasks.set(taskId, mergedMeta);
+            if (operation.type === 'unknown') continue;
+            if (!existing) {
+                options.emitOperation(taskId, operation.type, 'start', mergedMeta, operation.progress !== null ? { progress: operation.progress } : {});
+            } else {
+                options.emitOperation(taskId, operation.type, 'progress', mergedMeta, operation.progress !== null ? { progress: operation.progress } : {});
+            }
         }
-        if (!result.payload) continue;
-        const meta = options.state.trackedTasks.get(result.taskId);
-        if (!meta) continue;
-        finalizeTrackedTask({
-            taskId: result.taskId,
-            payload: result.payload,
-            trackedTasks: options.state.trackedTasks,
-            hasTaskWatchers: (taskId: string) => options.state.taskWatchers.has(taskId),
-            emitOperation: options.emitOperation,
-            emitTerminalTask: options.emitTerminalTask,
-            finalizeTaskWatchers: options.finalizeTaskWatchers,
-            meta
-        });
+
+        const endedTaskIds = Array.from(options.state.trackedTasks.keys()).filter((taskId) => !active.has(taskId) && !changedTasks.has(taskId));
+        const snapshotResults = await Promise.all(
+            endedTaskIds.map(async (taskId) => {
+                const snapshotResponse = await ws.requestSnapshot('tasks.by_id', { 'task_id': taskId });
+                if (!snapshotResponse) throw new Error(`Task snapshot response is unavailable for ${taskId}`);
+                if (snapshotResponse.data === null) return { taskId, payload: null, isMissing: true };
+                const taskSnapshot = normalizeWebSocketPayload(snapshotResponse.data);
+                if (!taskSnapshot) throw new Error(`Task snapshot is unavailable for ${taskId}`);
+                if (toTrimmedString(taskSnapshot['task_id']) !== taskId) throw new Error(`Task snapshot identity mismatch for ${taskId}`);
+                const status = toTrimmedString(taskSnapshot['status']);
+                if (!status) throw new Error(`Task snapshot status is missing for ${taskId}`);
+                const payload = buildTerminalTaskPayload(taskId, taskSnapshot);
+                return { taskId, payload, isMissing: false };
+            })
+        );
+        if (options.state.generation !== reconciliationGeneration) return;
+
+        for (const result of snapshotResults) {
+            if (changedTasks.has(result.taskId) || options.state.terminalTaskIds.has(result.taskId)) continue;
+            if (result.isMissing) {
+                settleMissingTask(options, result.taskId);
+                continue;
+            }
+            if (!result.payload) continue;
+            const meta = options.state.trackedTasks.get(result.taskId);
+            if (!meta) continue;
+            finalizeTrackedTask({
+                taskId: result.taskId,
+                payload: result.payload,
+                trackedTasks: options.state.trackedTasks,
+                hasTaskWatchers: (taskId: string) => options.state.taskWatchers.has(taskId),
+                emitOperation: options.emitOperation,
+                emitTerminalTask: options.emitTerminalTask,
+                finalizeTaskWatchers: options.finalizeTaskWatchers,
+                meta
+            });
+        }
+    } finally {
+        options.state.pendingTaskSnapshots.delete(changedTasks);
     }
 };
 

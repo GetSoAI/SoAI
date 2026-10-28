@@ -1,6 +1,8 @@
 /* SoAI - Chat page composer primary action controller [frontend/assets/ts/pages/chat/controllers/actionhandlers/core/composerPrimaryActionController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { sleepMsAbortable } from '@core/primitives/sleepMsAbortable.ts';
+import { monotonicMs } from '@core/time/clock.ts';
 import { beginLoadingButtonWithClear } from '@core/ui/loadingbuttons/service.ts';
 import { normalizeConversationId, type ChatComposerActionMode, type ChatTurnAdmissionSnapshot } from '@features/chat/public.ts';
 import { collapseSidebarIfNarrowViewport, isCurrentConversationExecuting, runCollapsedUiTask } from '@pages/chat/controllers/actionhandlers/core/effects.ts';
@@ -12,7 +14,11 @@ interface ChatComposerPrimaryActionHost {
     execution: ChatExecutionActionPort;
 }
 
-type ComposerExecutionIntent = 'send' | 'stop' | 'queue' | 'steer' | 'blocked';
+type ComposerExecutionIntent = 'send' | 'stop' | 'queue' | 'steer' | 'resume' | 'blocked';
+
+const HANDOFF_STOP_WAIT_MS = 10_000;
+const HANDOFF_STOP_POLL_MS = 50;
+const handoffStopConversationIds = new Set<string>();
 
 const resolveComposerPrimaryIntent = (inputArguments: { admission: ChatTurnAdmissionSnapshot | null; isStreaming: boolean; actionMode: ChatComposerActionMode }): ComposerExecutionIntent => {
     if (inputArguments.actionMode === 'stop') {
@@ -20,6 +26,9 @@ const resolveComposerPrimaryIntent = (inputArguments: { admission: ChatTurnAdmis
     }
     if (inputArguments.actionMode === 'queue') {
         return inputArguments.admission?.canQueuePrompt === true ? 'queue' : 'send';
+    }
+    if (inputArguments.actionMode === 'resume') {
+        return inputArguments.isStreaming ? 'blocked' : 'resume';
     }
     if (inputArguments.actionMode === 'steer' && inputArguments.admission?.canSteerPrompt === true) {
         return 'steer';
@@ -57,10 +66,33 @@ const sendMessageClearingOnCommit = async (host: ChatComposerPrimaryActionHost, 
 
 const stopStreamingForAdmission = (host: ChatComposerPrimaryActionHost, admission: ChatTurnAdmissionSnapshot): void => {
     const requestId = admission.activeStreamIdentity?.requestId;
+    host.composer.noteUserStop(admission.conversationId, requestId ?? null);
     host.execution.stop({
         ...(requestId === undefined ? {} : { expectedRequestId: requestId }),
         forcePendingSteers: true
     });
+};
+
+const stopNextTurnAfterHandoff = async (host: ChatComposerPrimaryActionHost, conversationId: string): Promise<void> => {
+    if (handoffStopConversationIds.has(conversationId)) return;
+    handoffStopConversationIds.add(conversationId);
+    const pollController = new AbortController();
+    try {
+        const deadline = monotonicMs() + HANDOFF_STOP_WAIT_MS;
+        while (monotonicMs() < deadline) {
+            if (normalizeConversationId(host.conversation.currentId()) !== conversationId || host.composer.resolvePrimaryActionMode() !== 'stop') return;
+            const admission = host.execution.admission(conversationId);
+            if (admission.canStop) {
+                stopStreamingForAdmission(host, admission);
+                return;
+            }
+            if (admission.phase === 'stopping') return;
+            await sleepMsAbortable(pollController.signal, HANDOFF_STOP_POLL_MS);
+        }
+    } finally {
+        pollController.abort();
+        handoffStopConversationIds.delete(conversationId);
+    }
 };
 
 const executeSyncedComposerPrimaryAction = async (host: ChatComposerPrimaryActionHost, conversationId: string, actionMode: ChatComposerActionMode, clearLoading: (() => void) | null): Promise<void> => {
@@ -81,6 +113,10 @@ const executeSyncedComposerPrimaryAction = async (host: ChatComposerPrimaryActio
         stopStreamingForAdmission(host, admission);
         return;
     }
+    if (intent === 'resume') {
+        await host.composer.resumeConversationInputs(conversationId);
+        return;
+    }
     if (intent === 'queue') {
         const outcome = await host.execution.queue('queued');
         if (outcome === 'not-admitted') {
@@ -89,10 +125,7 @@ const executeSyncedComposerPrimaryAction = async (host: ChatComposerPrimaryActio
         return;
     }
     if (intent === 'steer') {
-        const outcome = await host.execution.steer();
-        if (outcome === 'not-admitted') {
-            await sendMessageClearingOnCommit(host, clearLoading);
-        }
+        await host.execution.steer();
         return;
     }
     await sendMessageClearingOnCommit(host, clearLoading);
@@ -103,7 +136,12 @@ const executeComposerPrimaryAction = (host: ChatComposerPrimaryActionHost, actio
     const actionMode = forceStop ? 'stop' : host.composer.resolvePrimaryActionMode();
     const cachedAdmission = conversationId ? host.execution.admission(conversationId) : null;
     if (conversationId && actionMode === 'stop') {
-        if (cachedAdmission?.canStop !== true) return;
+        if (cachedAdmission?.canStop !== true) {
+            if (host.composer.canStopHandoff()) {
+                host.execution.run(`chat:stopStreaming:${conversationId}:handoff`, () => stopNextTurnAfterHandoff(host, conversationId));
+            }
+            return;
+        }
         const requestId = cachedAdmission.activeStreamIdentity?.requestId ?? 'pending';
         host.execution.run(`chat:stopStreaming:${conversationId}:${requestId}`, () => {
             stopStreamingForAdmission(host, cachedAdmission);
@@ -122,7 +160,7 @@ const executeComposerPrimaryAction = (host: ChatComposerPrimaryActionHost, actio
         });
         return;
     }
-    const operationId = actionMode === 'stop' ? 'chat:stopStreaming' : actionMode === 'queue' ? 'chat:queueConversationInput' : actionMode === 'steer' ? 'chat:steerActiveStream' : resolveSendMessageOperationId(host);
+    const operationId = actionMode === 'stop' ? 'chat:stopStreaming' : actionMode === 'queue' ? 'chat:queueConversationInput' : actionMode === 'steer' ? 'chat:steerActiveStream' : actionMode === 'resume' ? 'chat:resumeConversationInputs' : resolveSendMessageOperationId(host);
     runCollapsedUiTask(host, operationId, async () => {
         try {
             await executeSyncedComposerPrimaryAction(host, conversationId, actionMode, clearLoading);

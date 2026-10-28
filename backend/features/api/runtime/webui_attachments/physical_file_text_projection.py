@@ -6,12 +6,9 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
-from core.attachments.attachment_parse_classification import (
-    classify_attachment_descriptor_for_provider,
-)
 from core.files.managed_storage_errors import FileStorageSecurityError
 from core.text.chunked_reads import slice_chunked_text
-from core.users.ocr_preferences import resolve_user_ocr_language
+from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 from features.api.runtime.webui_attachments.physical_file_snapshot import (
     open_verified_soai_file_descriptor,
 )
@@ -80,6 +77,7 @@ async def pending_file_text_part(
 ) -> JSONDict:
     snapshot = await load_verified_provider_descriptor_snapshot(
         context.storage_root,
+        file_content_pool=context.dependencies.file_content_pool,
         record=record,
         attachment=attachment,
     )
@@ -92,16 +90,13 @@ async def pending_file_text_part(
             ),
         }
     try:
-        outcome = await classify_attachment_descriptor_for_provider(
-            ocr_language=await resolve_user_ocr_language(
-                context.dependencies.database_users, context.user_id
-            ),
-            document_reader=context.dependencies.document_reader,
-            parser_registry_factory=context.dependencies.parser_registry_factory,
+        outcome = await context.video_session.classify_descriptor(
+            user_id=context.user_id,
             descriptor=snapshot.descriptor,
             filename=str(attachment.get("filename") or ""),
             mime_type=str(attachment.get("mime_type") or ""),
             max_chars=context.provider_text_char_budget,
+            parse_timeout_sec=float(INTERACTIVE_TIMEOUT_SEC),
         )
     finally:
         close_provider_descriptor_snapshot(snapshot)
@@ -137,6 +132,7 @@ async def file_identity_available(
     try:
         managed = await open_verified_soai_file_descriptor(
             context.storage_root,
+            file_content_pool=context.dependencies.file_content_pool,
             record=record,
             attachment=attachment,
         )

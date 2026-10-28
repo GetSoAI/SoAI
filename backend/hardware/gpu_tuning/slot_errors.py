@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_exception
-from core.hardware.gpu_operation_results import build_gpu_operation_error
+from core.hardware.gpu_operation_results import GPU_CLOCK_REJECTION_CODES, build_gpu_operation_error
+from core.hardware.gpu_slot_failures import translate_gpu_slot_failure
 from core.hardware.protocols import GpuSlotStorageManagerProtocol
 from core.logging.protocols import TraceLogger
 from hardware.control.profiles import default_boot_payload, normalize_slot_identifier
@@ -17,6 +18,10 @@ from hardware.gpu_tuning.slot_capabilities import snapshot_tuning_inventory
 from hardware.gpu_tuning.slot_payload import (
     SlotPayloadDependencies,
     build_slot_payload_dependencies,
+)
+from hardware.presets.slot_alias_authority import (
+    require_slot_alias_authority,
+    require_slot_mutation_authority,
 )
 from hardware.presets.slot_payload_loading import load_gpu_slots_payload_unlocked
 from hardware.vendors.vendor_types import unobserved_vendors
@@ -33,10 +38,7 @@ __all__ = (
     "devices",
     "empty_device_entry",
     "gpu_index_error",
-    "load_locked_slot_operation_context_for_device",
     "load_slot_operation_context",
-    "load_slot_operation_context_for_device",
-    "load_slot_operation_context_or_error",
     "resolve_slot_identifier_or_error",
     "resolve_slot_payload_dependencies_and_identifier_or_error",
     "slot_empty_error",
@@ -144,6 +146,11 @@ def apply_failed_error(
     details: JSONValue = None,
 ) -> JSONDict:
     details_payload = details if isinstance(details, dict) else None
+    if details_payload is not None and details_payload.get("code") in GPU_CLOCK_REJECTION_CODES:
+        _, code, message, _ = translate_gpu_slot_failure(details_payload)
+        return build_gpu_operation_error(
+            code, message, device_id=device_id, slot=slot_id, details=details_payload, changed=False
+        )
     return build_gpu_operation_error(
         "apply_failed",
         ("Failed to apply GPU slot settings." if slot_id else "Failed to apply GPU settings."),
@@ -209,73 +216,25 @@ def load_slot_operation_context(
             entry=None,
             error=device_missing_error(device_id),
         )
-    payload = load_gpu_slots_payload_unlocked(
-        storage,
-        inventory=inventory,
-        prune=True,
-        allow_create=False,
-        retained_vendors=unobserved_vendors(
-            nvidia_inventory_available=(
-                gpu_services.nvidia_capabilities_cache_service.inventory_available()
-            )
-        ),
-    )
-    entry_raw = devices(payload).get(device_id)
-    entry = entry_raw if isinstance(entry_raw, dict) else None
-    return SlotOperationContext(
-        inventory=inventory,
-        payload=payload,
-        entry=entry,
-        error=None,
-    )
-
-
-def load_slot_operation_context_for_device(
-    executor: CommandExecutorProtocol,
-    storage: GpuSlotStorageManagerProtocol,
-    detailed_gpu_info: bool,
-    device_id: str,
-    gpu_services: GpuServiceDependencies,
-) -> SlotOperationContext:
-    return load_slot_operation_context(
-        executor=executor,
-        storage=storage,
-        detailed_gpu_info=detailed_gpu_info,
-        device_id=device_id,
-        gpu_services=gpu_services,
-    )
-
-
-def load_locked_slot_operation_context_for_device(
-    executor: CommandExecutorProtocol,
-    storage: GpuSlotStorageManagerProtocol,
-    detailed_gpu_info: bool,
-    device_id: str,
-    gpu_services: GpuServiceDependencies,
-) -> SlotOperationContext:
     with storage.lock:
-        return load_slot_operation_context_for_device(
-            executor,
+        payload = load_gpu_slots_payload_unlocked(
             storage,
-            detailed_gpu_info,
-            device_id,
-            gpu_services,
+            inventory=inventory,
+            prune=True,
+            allow_create=False,
+            retained_vendors=unobserved_vendors(
+                nvidia_inventory_available=(
+                    gpu_services.nvidia_capabilities_cache_service.inventory_available()
+                )
+            ),
         )
-
-
-def load_slot_operation_context_or_error(
-    *,
-    executor: CommandExecutorProtocol,
-    storage: GpuSlotStorageManagerProtocol,
-    detailed_gpu_info: bool,
-    device_id: str,
-    gpu_services: GpuServiceDependencies,
-) -> tuple[SlotOperationContext, JSONDict | None]:
-    context = load_slot_operation_context(
-        executor=executor,
-        storage=storage,
-        detailed_gpu_info=detailed_gpu_info,
-        device_id=device_id,
-        gpu_services=gpu_services,
-    )
-    return (context, context.error)
+        reconciliation = require_slot_alias_authority(payload, inventory, device_id)
+        require_slot_mutation_authority(reconciliation, device_id)
+        entry_raw = devices(payload).get(device_id)
+        entry = entry_raw if isinstance(entry_raw, dict) else None
+        return SlotOperationContext(
+            inventory=inventory,
+            payload=payload,
+            entry=entry,
+            error=None,
+        )

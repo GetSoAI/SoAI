@@ -28,12 +28,13 @@ import type { PageLifecycleOwnerHost } from '@core/routing/pages/basepage/PageLi
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
+import type { ChatUiTaskScopeHost } from '@pages/chat/controllers/chatpage/runtime/ChatUiTaskScopeManager.ts';
 
 interface ChatMessageConversationPort extends ChatConversationViewHost, ChatConversationStateHost, ChatComposerHost, ChatSettingsStateHost, ChatModelSessionHost, ChatPagePresentationHost {}
 
 interface ChatMessageRuntimePort extends ChatComposerSurfaceRuntimeOwner, ChatConversationRuntimeOwner, ChatTurnRuntimeOwner, ChatPageElementsHost, ChatRuntimeServicesHost, PageUiOwnerHost {}
 
-interface ChatMessagePlatformPort extends PageLifecycleOwnerHost, PageDomOwnerHost, PageResourcesOwnerHost, PageFeedbackOwnerHost {}
+interface ChatMessagePlatformPort extends PageLifecycleOwnerHost, PageDomOwnerHost, PageResourcesOwnerHost, PageFeedbackOwnerHost, ChatUiTaskScopeHost {}
 
 interface ChatMessageSendingDependencies extends ChatMessageConversationPort, ChatMessageRuntimePort, ChatMessagePlatformPort {
     pageContext: { sanitizer: SanitizerApi };
@@ -100,12 +101,13 @@ const createChatMessageSendingController = (page: ChatMessageSendingDependencies
             renderCurrentConversation: () => page.conversationView.renderCurrent(),
             flushDOMUpdates: () => page.pageDom.flush(),
             renderAttachedFilesPreview: () => page.composerSurface.requireUi().updateAttachmentsPreview(),
-            hideAttachedFilesPreview: () => page.composerSurface.requireUi().clearAttachedFiles(),
             updateExportButtonVisibility: () => page.presentation.updateExportButtonVisibility(),
             shouldAutoScrollAfterContentUpdate: () => page.composerSurface.requireUi().shouldAutoScrollAfterContentUpdate(),
-            forceTimelineScrollToBottom: () => page.composerSurface.requireUi().forceScrollToBottom()
+            forceTimelineScrollToBottom: (behavior) => page.composerSurface.requireUi().forceScrollToBottom(behavior)
         },
         conversation: {
+            captureConversationActivation: () => page.taskScope.captureConversationActivation(),
+            isConversationActivationCurrent: (activation, conversationId) => page.taskScope.isConversationActivationCurrent(activation, conversationId),
             getCurrentConversation: () => page.conversationView.current(),
             getConversationById: (conversationId) => {
                 const conversation = page.conversationState.conversations.get(conversationId);

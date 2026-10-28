@@ -1,7 +1,6 @@
 /* SoAI - Durable conversation input preview state [frontend/assets/ts/features/chat/conversationinputs/ConversationInputStateStore.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { getCurrentLocale } from '@core/languageservice/service.ts';
 import type { ConversationInput } from '@features/chat/conversationinputs/ConversationInputTypes.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 
@@ -18,6 +17,8 @@ class ConversationInputStateStore {
     readonly #settlementObservationsByConversationId = new Map<string, Map<string, SettlementObservation>>();
     readonly #syncVersionByConversationId = new Map<string, number>();
     readonly #headInputIdByConversationId = new Map<string, string>();
+    readonly #unconfirmedHeadConversationIds = new Set<string>();
+    readonly #steerFollowsConversationIds = new Set<string>();
     readonly #pendingAdmissionsByConversationId = new Map<string, number>();
     #lastRenderedConversationId: string | null = null;
 
@@ -27,46 +28,49 @@ class ConversationInputStateStore {
         this.#settlementObservationsByConversationId.clear();
         this.#syncVersionByConversationId.clear();
         this.#headInputIdByConversationId.clear();
+        this.#unconfirmedHeadConversationIds.clear();
+        this.#steerFollowsConversationIds.clear();
         this.#pendingAdmissionsByConversationId.clear();
         this.#lastRenderedConversationId = null;
     }
 
     getQueuedInputs(conversationId: string): ConversationInput[] {
         const stored = this.#inputsByConversationId.get(conversationId);
-        const headInputId = this.#headInputIdByConversationId.get(conversationId);
+        const headInputId = this.#unconfirmedHeadConversationIds.has(conversationId) ? undefined : this.#headInputIdByConversationId.get(conversationId);
         return stored ? stored.filter((input) => input.inputId !== headInputId && !input.isRegeneration) : [];
+    }
+
+    getSteeringTargetInputId(conversationId: string): string | null {
+        return this.#inputsByConversationId.get(normalizeConversationId(conversationId))?.find((input) => (input.inputType === 'prompt' || input.inputType === 'steer') && (input.state === 'materializing' || input.state === 'running'))?.inputId ?? null;
+    }
+
+    hasDispatchableHead(conversationId: string): boolean {
+        const normalizedConversationId = normalizeConversationId(conversationId);
+        return this.#headInputIdByConversationId.has(normalizedConversationId) || this.#steerFollowsConversationIds.has(normalizedConversationId);
     }
 
     hasActiveInputs(conversationId: string): boolean {
         return (this.#activeInputIdsByConversationId.get(normalizeConversationId(conversationId))?.size ?? 0) > 0;
     }
 
-    upsertAdmittedInput(conversationId: string, input: ConversationInput, isDispatchableHead: boolean): void {
-        const normalizedConversationId = normalizeConversationId(conversationId);
-        const normalizedInputId = input.inputId.trim();
-        if (!normalizedConversationId || !normalizedInputId) {
-            return;
+    upsertAdmittedInput(conversationId: string, input: ConversationInput, isDispatchableHead: boolean): boolean {
+        const identity = this.#normalizeIdentity(conversationId, input.inputId);
+        if (!identity || this.#settlementObservationsByConversationId.get(identity.conversationId)?.has(identity.inputId)) {
+            return false;
         }
-        if (this.#settlementObservationsByConversationId.get(normalizedConversationId)?.has(normalizedInputId)) {
-            return;
-        }
-        this.#invalidateSync(normalizedConversationId);
-        const activeInputIds = this.#activeInputIdsByConversationId.get(normalizedConversationId) ?? new Set<string>();
-        activeInputIds.add(normalizedInputId);
-        this.#activeInputIdsByConversationId.set(normalizedConversationId, activeInputIds);
-        if (isDispatchableHead) {
-            this.#headInputIdByConversationId.set(normalizedConversationId, normalizedInputId);
-        }
-        const stored = this.#inputsByConversationId.get(normalizedConversationId) ?? [];
-        const next = stored.filter((entry) => entry.inputId !== normalizedInputId);
-        next.push(input);
-        next.sort((left, right) => {
-            if (left.acceptedAtMs !== right.acceptedAtMs) {
-                return left.acceptedAtMs - right.acceptedAtMs;
+        const stored = this.#inputsByConversationId.get(identity.conversationId) ?? [];
+        if (!stored.some((entry) => entry.inputId === identity.inputId)) {
+            this.#invalidateSync(identity.conversationId);
+            const activeInputIds = this.#activeInputIdsByConversationId.get(identity.conversationId) ?? new Set<string>();
+            activeInputIds.add(identity.inputId);
+            this.#activeInputIdsByConversationId.set(identity.conversationId, activeInputIds);
+            this.#inputsByConversationId.set(identity.conversationId, [...stored, input]);
+            if (isDispatchableHead && !input.isHeld && !this.#headInputIdByConversationId.has(identity.conversationId)) {
+                this.#headInputIdByConversationId.set(identity.conversationId, identity.inputId);
+                this.#unconfirmedHeadConversationIds.delete(identity.conversationId);
             }
-            return left.inputId.localeCompare(right.inputId, getCurrentLocale());
-        });
-        this.#inputsByConversationId.set(normalizedConversationId, next);
+        }
+        return this.#headInputIdByConversationId.get(identity.conversationId) === identity.inputId;
     }
 
     beginAdmission(conversationId: string): void {
@@ -100,22 +104,25 @@ class ConversationInputStateStore {
         this.#removeCompletedObservation(identity.conversationId, identity.inputId);
     }
 
-    recordTerminalInput(conversationId: string, inputId: string): void {
+    recordTerminalInput(conversationId: string, inputId: string, options: { cancelled?: boolean; steerFollows?: boolean } = {}): void {
         const identity = this.#normalizeIdentity(conversationId, inputId);
         if (!identity) {
             return;
         }
+        const previousHeadInputId = this.#headInputIdByConversationId.get(identity.conversationId);
         this.#invalidateSync(identity.conversationId);
         const observations = this.#settlementObservationsByConversationId.get(identity.conversationId);
         const existing = observations?.get(identity.inputId);
         const observation = this.#observeSettlement(identity.conversationId, identity.inputId, 'event');
         if (!existing) observation.pending = true;
         this.#removeActiveInput(identity.conversationId, identity.inputId);
-        const nextHead = this.#inputsByConversationId.get(identity.conversationId)?.[0];
-        if (nextHead) {
-            this.#headInputIdByConversationId.set(identity.conversationId, nextHead.inputId);
-        } else {
-            this.#headInputIdByConversationId.delete(identity.conversationId);
+        this.#assignDispatchableHead(identity.conversationId);
+        const nextHeadInputId = this.#headInputIdByConversationId.get(identity.conversationId);
+        if (options.cancelled === true && previousHeadInputId === identity.inputId && nextHeadInputId !== undefined) {
+            this.#unconfirmedHeadConversationIds.add(identity.conversationId);
+        }
+        if (options.steerFollows === true) {
+            this.#steerFollowsConversationIds.add(identity.conversationId);
         }
         this.#removeCompletedObservation(identity.conversationId, identity.inputId);
     }
@@ -142,12 +149,17 @@ class ConversationInputStateStore {
         }
         this.#removeVisibleInput(conversationId, inputId);
         if (this.#headInputIdByConversationId.get(conversationId) === inputId) {
-            const nextHead = this.#inputsByConversationId.get(conversationId)?.[0];
-            if (nextHead) {
-                this.#headInputIdByConversationId.set(conversationId, nextHead.inputId);
-            } else {
-                this.#headInputIdByConversationId.delete(conversationId);
-            }
+            this.#assignDispatchableHead(conversationId);
+        }
+    }
+
+    #assignDispatchableHead(conversationId: string): void {
+        const nextHead = this.#inputsByConversationId.get(conversationId)?.find((input) => !input.isHeld);
+        if (nextHead) {
+            this.#headInputIdByConversationId.set(conversationId, nextHead.inputId);
+        } else {
+            this.#headInputIdByConversationId.delete(conversationId);
+            this.#unconfirmedHeadConversationIds.delete(conversationId);
         }
     }
 
@@ -175,6 +187,8 @@ class ConversationInputStateStore {
     }
 
     applySyncResult(conversationId: string, inputs: ConversationInput[]): void {
+        this.#unconfirmedHeadConversationIds.delete(conversationId);
+        this.#steerFollowsConversationIds.delete(conversationId);
         const incomingActiveInputIds = new Set(inputs.map((input) => input.inputId.trim()).filter(Boolean));
         const previousActiveInputIds = this.#activeInputIdsByConversationId.get(conversationId);
         if (previousActiveInputIds) {
@@ -205,12 +219,8 @@ class ConversationInputStateStore {
             this.#headInputIdByConversationId.delete(conversationId);
             return;
         }
-        const headInput = activeInputs[0];
-        if (!headInput) {
-            throw new Error('Active conversation inputs require an execution head.');
-        }
         this.#inputsByConversationId.set(conversationId, activeInputs);
-        this.#headInputIdByConversationId.set(conversationId, headInput.inputId);
+        this.#assignDispatchableHead(conversationId);
     }
 
     takePendingSettlements(conversationId: string): string[] {

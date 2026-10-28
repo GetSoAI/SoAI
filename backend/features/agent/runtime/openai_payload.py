@@ -22,7 +22,7 @@ __all__ = (
     "coerce_usage_dict",
     "complete_assistant_tool_calls_as_stopped",
     "extract_assistant_content_raw",
-    "extract_assistant_content_visible",
+    "extract_assistant_text_channels",
     "extract_finish_reason",
     "extract_usage",
     "remove_length_truncated_assistant_tool_calls",
@@ -55,11 +55,11 @@ def extract_assistant_content_raw(payload: JSONDict) -> str:
     return ""
 
 
-def extract_assistant_content_visible(payload: JSONDict) -> str:
+def extract_assistant_text_channels(payload: JSONDict) -> tuple[str, str]:
     classifier = OpenAIStreamTextClassifier()
     choices = payload.get("choices") if isinstance(payload, dict) else None
     if not isinstance(choices, list):
-        return ""
+        return "", ""
     for choice in choices:
         if not isinstance(choice, dict):
             continue
@@ -72,7 +72,7 @@ def extract_assistant_content_visible(payload: JSONDict) -> str:
         if isinstance(text_value, str) and text_value:
             classifier.consume_content_text(text_value)
     classifier.finalize()
-    return classifier.get_visible_text()
+    return classifier.get_visible_text(), classifier.get_thinking_text()
 
 
 def replace_assistant_content_visible(payload: JSONDict, assistant_text: str) -> None:

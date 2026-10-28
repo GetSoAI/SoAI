@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
+from core.errors.payload import ErrorPublicPayload
 from core.openai.usage.serialization import (
     extract_public_usage_payload,
     is_aggregate_usage_source,
@@ -73,11 +74,13 @@ async def finalize_assistant_timeline_non_agentic(
     *,
     task: Task,
     task_lookup: Callable[[str], Awaitable[Task | None]],
+    public_error: ErrorPublicPayload | None = None,
 ) -> None:
     if session.runtime.cancellation_requested:
         await finalize_assistant_timeline_cancelled(
             session,
             session.runtime.cancellation_reason or "Chat stream was cancelled.",
+            code=session.runtime.cancellation_code,
         )
         return
     refreshed_task = await wait_for_task_terminal_state(
@@ -98,6 +101,7 @@ async def finalize_assistant_timeline_non_agentic(
             or refreshed_task.error_message
             or refreshed_task.status_message
             or "Chat stream was cancelled.",
+            code=session.runtime.cancellation_code,
         )
         return
     if refreshed_task.status == TaskStatus.COMPLETED:
@@ -137,6 +141,7 @@ async def finalize_assistant_timeline_non_agentic(
             or refreshed_task.status_message
             or "Chat stream failed.",
             code=refreshed_task.error_type or "server_error",
+            public_error=public_error,
         )
         return
     await finalize_assistant_timeline_error(
@@ -153,6 +158,7 @@ async def finalize_assistant_timeline_agentic(
     *,
     turn_state: JSONDict | None,
     resolve_terminal_outcome: Callable[[JSONDict | None], tuple[str, str | None, str | None]],
+    public_error: ErrorPublicPayload | None = None,
 ) -> None:
     terminal_outcome, terminal_message, terminal_code = resolve_terminal_outcome(turn_state)
     if isinstance(turn_state, dict):
@@ -167,7 +173,7 @@ async def finalize_assistant_timeline_agentic(
         await finalize_assistant_timeline_cancelled(
             session,
             session.runtime.cancellation_reason or terminal_message or "Chat stream was cancelled.",
-            code="cancelled",
+            code=session.runtime.cancellation_code,
         )
         return
     if terminal_outcome == TOOL_CALL_STATUS_COMPLETED:
@@ -198,6 +204,7 @@ async def finalize_assistant_timeline_agentic(
         session,
         message=terminal_message or "Chat stream failed.",
         code=terminal_code or "server_error",
+        public_error=public_error,
     )
 
 
@@ -230,6 +237,7 @@ async def finalize_assistant_timeline_error(
     *,
     message: str,
     code: str,
+    public_error: ErrorPublicPayload | None = None,
 ) -> None:
     finalized = await finalize_chat_stream_error(
         build_chat_stream_finalize_context(
@@ -245,6 +253,7 @@ async def finalize_assistant_timeline_error(
         message=message,
         code=code,
         flush_deferred_visible_text=True,
+        public_error=public_error,
     )
     if finalized:
         await publish_assistant_timeline_message_events(session)
@@ -255,6 +264,7 @@ async def finalize_agentic_stream_timeline(
     *,
     turn_state_loader: Callable[[], Awaitable[JSONDict | None]],
     resolve_terminal_outcome: Callable[[JSONDict | None], tuple[str, str | None, str | None]],
+    public_error: ErrorPublicPayload | None = None,
 ) -> str:
     turn_state = await turn_state_loader()
     terminal_outcome, terminal_message, terminal_code = resolve_terminal_outcome(turn_state)
@@ -267,5 +277,6 @@ async def finalize_agentic_stream_timeline(
             terminal_message,
             terminal_code,
         ),
+        public_error=public_error,
     )
     return terminal_outcome

@@ -5,15 +5,24 @@
     :where(.chat-container) .message-actions {
         --chat-stream-spinner-fade-duration: 150ms;
         --chat-stream-spinner-inline-size: 13px;
+        --chat-streaming-status-text-inset: calc(var(--chat-stream-spinner-inline-size) + var(--chat-activity-header-gap));
+        --chat-streaming-status-line-size: calc(var(--font-size-sm) * var(--chat-text-scale) * 1.25);
+        --chat-message-action-row-size: max(var(--icon-button-size-small), var(--chat-streaming-status-line-size));
         --chat-message-action-flow-gap: var(--space-2);
+    }
+
+    :where(.chat-container) .message-action-buttons {
+        container: chat-message-actions / inline-size;
+        font-size: calc(var(--font-size-base) * var(--chat-text-scale));
+        display: flex;
+        gap: var(--space-3);
+        flex: 1 1 auto;
+        justify-content: space-between;
+        align-items: center;
     }
 
     :where(.chat-container) .message-actions[data-stream-spinner-first-reveal='true'] {
         --chat-stream-spinner-fade-duration: 300ms;
-    }
-
-    :where(.chat-container) :where(.chat-message.assistant:hover, .chat-message.user > .message-content--with-header.message-content:hover, .chat-message.is-editing) .message-action-buttons {
-        opacity: 1;
     }
 
     :where(.chat-container) .message-actions[data-user-input-required='true'] .message-action-buttons {
@@ -28,12 +37,28 @@
         justify-content: flex-end;
     }
 
+    :where(.chat-container) .message-action-buttons-left[data-presence-atomic] {
+        --presence-scale-from: 1;
+        --presence-blur-from: 0;
+    }
+
     :where(.chat-container) .message-action-buttons-left > .message-action {
-        opacity: 0.25;
+        --ui-control-opacity: var(--ui-button-subdued-opacity);
+        opacity: var(--ui-control-opacity);
+        transition:
+            var(--transition-interactive-full),
+            opacity var(--transition-fast);
+    }
+
+    .modeldetail-copy-button {
+        --ui-control-opacity: var(--ui-button-subdued-opacity);
+        opacity: var(--ui-control-opacity);
         transition: opacity var(--transition-fast);
     }
 
-    :where(.chat-container) :where(.chat-message.assistant:hover, .chat-message.user > .message-content--with-header.message-content:hover, .chat-message.is-editing) .message-action-buttons-left > .message-action {
+    :where(.chat-container) :where(.chat-message.assistant:hover, .chat-message.user > .message-content--with-header.message-content:hover, .chat-message.is-editing, .chat-message:focus-within) .message-action-buttons-left > .message-action:not(:disabled, [aria-disabled='true'], [data-toggle-disabled='true']),
+    .modeldetail-spec-row:is(:hover, :focus-within) .modeldetail-copy-button:not(:disabled, [aria-disabled='true'], [data-toggle-disabled='true']) {
+        --ui-control-opacity: 1;
         opacity: 1;
     }
 
@@ -41,9 +66,11 @@
         display: none;
     }
 
-    :where(.chat-container) .chat-messages-area[data-chat-executing='true'] .message-action-buttons-left > :is(.edit-message-btn, .edit-message-save-btn, .regenerate-message-btn, .delete-message-btn) {
+    :where(.chat-container) .chat-messages-area[data-chat-executing='true'] .message-action-buttons-left > :is(.edit-message-btn, .edit-message-save-btn, .regenerate-message-btn, .delete-message-btn):not([aria-busy='true'], :where([aria-busy='true'] *)) {
         cursor: no-drop;
-        opacity: 0.55;
+
+        --ui-control-opacity: var(--ui-button-disabled-opacity);
+        opacity: var(--ui-control-opacity);
         box-shadow: none;
     }
 
@@ -52,17 +79,38 @@
     }
 
     :where(.chat-container) .chat-message.assistant .message-action-buttons--assistant {
-        opacity: 1;
         flex-wrap: wrap;
         row-gap: var(--space-1);
     }
 
     :where(.chat-container) .chat-message.assistant .message-action-buttons--assistant > .message-action-buttons-left {
+        min-block-size: var(--chat-message-action-row-size);
         flex: 1 0 100%;
         justify-content: flex-start;
         flex-wrap: wrap;
 
         --chat-message-action-flow-gap: var(--space-2);
+    }
+
+    :where(.chat-container) .message-action-buttons-left--streaming {
+        position: relative;
+    }
+
+    :where(.chat-container) .message-action-buttons-left--streaming > .message-action:not([data-presence-state='exiting']) {
+        visibility: hidden;
+    }
+
+    :where(.chat-container) .message-action-buttons-left--streaming > .message-streaming-spinner-indicator {
+        position: absolute;
+        inset-inline-start: 0;
+        inset-block-start: calc((var(--chat-message-action-row-size) - var(--chat-stream-spinner-inline-size)) / 2);
+    }
+
+    :where(.chat-container) .message-action-buttons-left--streaming > .message-streaming-status {
+        position: absolute;
+        inset-inline-start: var(--chat-streaming-status-text-inset);
+        inset-block-start: calc((var(--chat-message-action-row-size) - var(--chat-streaming-status-line-size)) / 2);
+        max-inline-size: calc(100% - var(--chat-streaming-status-text-inset));
     }
 
     :where(.chat-container) .chat-message.assistant .message-action-buttons--assistant > .message-action-buttons-right {
@@ -91,26 +139,25 @@
         box-shadow: var(--glass-shadow-base);
     }
 
+    :where(.chat-container) .message-code-block,
+    :where(.chat-container) .chat-inline-media-card__actions {
+        --icon-button-size-small: var(--chat-round-action-button-size);
+    }
+
+    :where(.chat-container) .message-code-block .code-copy-btn.ui-icon-button.ui-icon-button-small,
+    :where(.chat-container) .chat-inline-media-card__action--icon.ui-icon-button,
     :where(.chat-container) .message-action-buttons-left > .message-action.ui-icon-button.ui-icon-button-small,
     :where(.chat-container) .conversation-item-actions > .conversation-action-btn.ui-icon-button.ui-icon-button-small,
-    .archived-conversation-actions > .archived-conversation-action.ui-icon-button.ui-icon-button-small {
+    .archived-conversation-actions > .archived-conversation-action.ui-icon-button.ui-icon-button-small,
+    .modeldetail-copy-button.ui-icon-button.ui-icon-button-small {
         width: var(--icon-button-size-small);
         height: var(--icon-button-size-small);
         min-width: var(--icon-button-size-small);
         min-height: var(--icon-button-size-small);
+        flex-basis: var(--icon-button-size-small);
         border-radius: var(--border-radius-small-button);
 
         --icon-size: var(--chat-message-action-icon-size);
-    }
-
-    :where(.chat-container) .message-code-block .code-copy-btn.ui-icon-button.ui-icon-button-small,
-    :where(.chat-container) .chat-inline-media-card__action--icon.ui-icon-button {
-        width: var(--chat-round-action-button-size);
-        height: var(--chat-round-action-button-size);
-        min-width: var(--chat-round-action-button-size);
-        min-height: var(--chat-round-action-button-size);
-        flex-basis: var(--chat-round-action-button-size);
-        border-radius: var(--border-radius);
     }
 
     :where(.chat-container) :is(.code-copy-btn, .message-code-block .code-copy-btn, .chat-inline-media-card__copy.code-copy-btn) {
@@ -140,7 +187,8 @@
     }
 
     :where(.chat-container) .message-action-buttons-left > .message-action.ui-icon-button,
-    :where(.chat-container) .message-action-buttons-right > .message-action.ui-icon-button {
+    :where(.chat-container) .message-action-buttons-right > .message-action.ui-icon-button,
+    .modeldetail-copy-button.ui-icon-button {
         --ui-button-bg: transparent;
         --ui-button-bg-hover: var(--ui-button-surface-hover-strong);
         --ui-button-border: transparent;
@@ -163,10 +211,11 @@
         --icon-size: var(--chat-message-action-icon-size);
     }
 
-    :where(.chat-container) .message-action-buttons-left > .message-action.ui-icon-button:is(:hover, :focus-visible),
-    :where(.chat-container) .message-action-buttons-right > .message-action.ui-icon-button:is(:hover, :focus-visible) {
+    :where(.chat-container) .message-action-buttons-left > .message-action.ui-icon-button:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true']),
+    :where(.chat-container) .message-action-buttons-right > .message-action.ui-icon-button:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true']),
+    .modeldetail-copy-button.ui-icon-button:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true']) {
         background-color: var(--ui-button-bg-hover);
-        border-color: var(--ui-button-border-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
         color: var(--ui-button-color-hover);
     }
 

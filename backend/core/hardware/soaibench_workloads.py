@@ -151,7 +151,7 @@ def workload_spec(name: str, *, stress: bool = False) -> SoAIBenchWorkloadSpec:
                 True,
             )
         case _:
-            raise ValueError("SoAIBench workload name is invalid.")
+            raise ValueError("SoAI Bench workload name is invalid.")
 
 
 def counted_operations(
@@ -164,11 +164,11 @@ def counted_operations(
 ) -> int:
     spec = workload_spec(name, stress=stress)
     if any(not is_strict_int(value) or value < 1 for value in (element_count, rounds, dispatches)):
-        raise ValueError("SoAIBench completed-work counts must be positive.")
+        raise ValueError("SoAI Bench completed-work counts must be positive.")
     if dispatches > MAX_COMPLETED_DISPATCHES:
-        raise ValueError("SoAIBench completed-work count exceeds its evaluation bound.")
+        raise ValueError("SoAI Bench completed-work count exceeds its evaluation bound.")
     if rounds != spec.rounds:
-        raise ValueError("SoAIBench workload rounds are invalid.")
+        raise ValueError("SoAI Bench workload rounds are invalid.")
     return element_count * rounds * dispatches * spec.operation_factor
 
 
@@ -181,15 +181,15 @@ def counted_bytes(
 ) -> int:
     spec = workload_spec(name, stress=stress)
     if any(not is_strict_int(value) or value < 1 for value in (element_count, dispatches)):
-        raise ValueError("SoAIBench completed-work counts must be positive.")
+        raise ValueError("SoAI Bench completed-work counts must be positive.")
     if dispatches > MAX_COMPLETED_DISPATCHES:
-        raise ValueError("SoAIBench completed-work count exceeds its evaluation bound.")
+        raise ValueError("SoAI Bench completed-work count exceeds its evaluation bound.")
     return element_count * dispatches * spec.bytes_per_dispatch
 
 
 def sample_positions(element_count: int) -> tuple[int, ...]:
     if not is_strict_int(element_count) or element_count < SAMPLE_COUNT:
-        raise ValueError("SoAIBench sample element count cannot provide 64 positions.")
+        raise ValueError("SoAI Bench sample element count cannot provide 64 positions.")
     return tuple(
         (index * (element_count - 1)) // (SAMPLE_COUNT - 1) for index in range(SAMPLE_COUNT)
     )
@@ -197,7 +197,7 @@ def sample_positions(element_count: int) -> tuple[int, ...]:
 
 def throughput_diagnostics(values: tuple[float, ...]) -> tuple[float, float]:
     if not values or any(not math.isfinite(value) or value <= 0.0 for value in values):
-        raise ValueError("SoAIBench throughput diagnostics require positive finite values.")
+        raise ValueError("SoAI Bench throughput diagnostics require positive finite values.")
     average = sum(values) / len(values)
     variance = sum((value - average) ** 2 for value in values) / len(values)
     variation_percent = round(math.sqrt(variance) / average * 100.0, 4)

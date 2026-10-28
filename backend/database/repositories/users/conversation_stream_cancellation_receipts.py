@@ -10,6 +10,9 @@ from core.errors.exceptions import ConflictError, StateError
 from core.events.domain_event_payload import build_domain_event_payload
 from core.timing.epoch import epoch_ms
 from database.repositories.event_outbox.sync_ops import sync_enqueue_domain_event_payload
+from database.repositories.users.conversation_input_dispatch_holds import (
+    sync_hold_pending_conversation_prompts,
+)
 from database.repositories.users.conversation_input_force_steering import (
     sync_force_pending_conversation_steers,
 )
@@ -182,6 +185,7 @@ def sync_accept_chat_stream_cancellation(
             None,
         )
         forced_input_created = forced.get("created") is True
+    inputs_held = sync_hold_pending_conversation_prompts(conn, conv_id, user_id) > 0
     accepted_at_ms = epoch_ms()
     payload = build_domain_event_payload(
         event_id=build_chat_stream_cancellation_event_id(
@@ -212,6 +216,7 @@ def sync_accept_chat_stream_cancellation(
         "created": True,
         "force_pending_steers": force_pending_steers,
         "forced_input_created": forced_input_created,
+        "inputs_held": inputs_held,
         "terminal_completed": terminal_completed,
     }
 

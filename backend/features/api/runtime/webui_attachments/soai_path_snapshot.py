@@ -22,6 +22,7 @@ from core.workspaces.soai_path_part_fields import (
 )
 
 if TYPE_CHECKING:
+    from core.concurrency.deadlines import MonotonicDeadline
     from core.types.json import JSONDict
 
 __all__ = (
@@ -34,7 +35,10 @@ def open_verified_soai_path_file_descriptor(
     *,
     effective_root: str,
     canonical: JSONDict,
+    deadline: MonotonicDeadline | None = None,
 ) -> int | None:
+    if deadline is not None and deadline.expired():
+        raise TimeoutError("Linked file verification exceeded its operation deadline.")
     opened = open_workspace_file_descriptor(
         effective_root,
         source_reference_value(canonical),
@@ -42,7 +46,7 @@ def open_verified_soai_path_file_descriptor(
     )
     completed = False
     try:
-        content_hash = hash_descriptor_content(opened.descriptor)
+        content_hash = hash_descriptor_content(opened.descriptor, deadline=deadline)
         size_bytes = canonical.get("size_bytes")
         if (
             not isinstance(size_bytes, int)

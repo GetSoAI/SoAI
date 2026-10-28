@@ -3,6 +3,8 @@
 
 import { projectBackendConversationDefaults, projectBackendMcpDefaults, projectBackendRagDefaults, type ConversationWorkspacePathConfig, type McpConfig } from '@features/chat/public.ts';
 import { loadBackendChatPreferences, persistBackendChatPreferencePatch, persistBackendChatPreferences } from '@pages/chat/controllers/chatpage/lifecycle/backendChatPreferencesManager.ts';
+import { cloneChatParameters, resolveStoredParameters } from '@core/chat/parameters/chatParameterDefaults.ts';
+import { LOCAL_ONLY_CHAT_PARAMETER_KEYS } from '@core/chat/parameters/chatParameterKeySets.ts';
 import { isJsonObject, type JsonObject } from '@core/types/jsonValues.ts';
 import { applyConversationMcpConfig, applyConversationWorkspacePathConfig, validateChatPageTextZoomValue } from '@pages/chat/controllers/chatpage/lifecycle/chatPageConfigurationController.ts';
 import type { ChatConfigurationRuntimeOwner } from '@pages/chat/controllers/chatpage/runtime/ChatConfigurationRuntime.ts';
@@ -95,6 +97,12 @@ class ChatPreferencesManager {
         try {
             const detail = event instanceof CustomEvent ? event.detail : null;
             if (!isJsonObject(detail)) throw new Error('Authoritative chat preferences event is invalid.');
+            const stored = this.#page.settings.storage.getChatPreferences();
+            if (!isJsonObject(stored)) throw new Error('Reconciled chat preferences are invalid.');
+            const reconciled = resolveStoredParameters(stored);
+            const parameters = cloneChatParameters(this.#page.settings.parameters);
+            for (const key of LOCAL_ONLY_CHAT_PARAMETER_KEYS) parameters[key] = reconciled[key];
+            this.#page.settings.applyAuthoritativeParameters(parameters, this.#page.settings.parametersGeneration);
             this.#page.settings.applyAuthoritativeBackendPreferences(structuredClone(detail));
         } catch (error) {
             this.#page.settings.backendPreferencesStale = true;

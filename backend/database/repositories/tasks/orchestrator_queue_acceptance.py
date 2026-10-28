@@ -11,6 +11,8 @@ from core.errors.exceptions import (
     ServiceUnavailableError,
     TaskConcurrencyLimitError,
 )
+from core.errors.payload import ErrorPublicPayload
+from core.errors.public_projection import apply_public_error_payload
 from core.hardware.disk_usage import read_disk_usage_with_parent_fallback
 from core.tasks.errors import TaskIDCollisionError
 from core.tasks.status_policy import (
@@ -173,10 +175,20 @@ def _enforce_durable_queue_hard_limit(conn: sqlite3.Connection, hard_limit_tasks
     )
     queue_depth = coerce_required_int_from_sqlite_row(row, "count") if row else 0
     if queue_depth >= hard_limit_tasks:
-        raise ServiceUnavailableError(
+        error = ServiceUnavailableError(
             f"Durable inference queue hard limit reached ({hard_limit_tasks} tasks).",
             details={"queue_depth": queue_depth, "hard_limit_tasks": hard_limit_tasks},
         )
+        apply_public_error_payload(
+            error,
+            ErrorPublicPayload(
+                code=error.code,
+                message="The queue is full. Retry this rejected request after active work finishes.",
+                details={"reason": "durable_queue_full"},
+                http_status=error.http_status,
+            ),
+        )
+        raise error
 
 
 def _enforce_min_free_disk_bytes(

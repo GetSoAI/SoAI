@@ -32,13 +32,13 @@
 
     :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .model-selector--composer .chat-model-slot--placeholder.ui-icon-button:not(:hover, :focus-visible, :active, :disabled, [aria-disabled='true']) {
         background-color: color-mix(in srgb, var(--ui-button-neutral-bg) var(--chat-composer-hover-emphasis), var(--glass-surface-light));
-        border-color: color-mix(in srgb, var(--ui-button-neutral-color) var(--chat-composer-hover-emphasis), var(--chat-input-border-color));
+        border-color: color-mix(in srgb, color-mix(in srgb, var(--ui-button-neutral-color) var(--chat-composer-hover-emphasis), var(--chat-input-border-color)) var(--control-button-border-strength), transparent);
         color: color-mix(in srgb, var(--ui-button-neutral-color) var(--chat-composer-hover-emphasis), var(--text-tertiary));
     }
 
     :where(.chat-container) .chat-input-wrapper:has(.chat-input:focus) .model-selector--composer .chat-model-slot--placeholder.ui-icon-button:not(:hover, :focus-visible, :active, :disabled, [aria-disabled='true']) {
         background-color: var(--ui-button-bg);
-        border-color: var(--ui-button-border);
+        border-color: color-mix(in srgb, var(--ui-button-border) var(--control-button-border-strength), transparent);
         color: var(--ui-button-color);
         opacity: 1;
     }

@@ -6,6 +6,7 @@ import type { KnowledgeAttachmentItem, KnowledgeAttachmentItemsResponse } from '
 import type { KnowledgeStatusFilter } from '@features/chat/message/attachmentoverflowmodal/filters.ts';
 import type { AttachmentOverflowRecord } from '@features/chat/message/attachmentoverflowmodal/records.ts';
 import { resolveFileEntryIconName } from '@core/fileexplorerbrowser/entryIconResolution.ts';
+import { i18n } from '@core/i18n/index.ts';
 
 type KnowledgeCursor = {
     itemIndex: number;
@@ -37,6 +38,7 @@ const parseKnowledgeCursor = (value: KnowledgeAttachmentItemsResponse['nextCurso
 
 const parseKnowledgeItemRecord = (value: KnowledgeAttachmentItem, knowledgeAttachmentId: string): AttachmentOverflowRecord => {
     const statusParts: string[] = [value.operationType];
+    if (value.missingCapabilities?.includes('speech_to_text')) statusParts.push(i18n.t('speechSetup.notTranscribed'));
     if (value.ragStatus !== null) {
         statusParts.push(value.ragStatus);
     }
@@ -49,6 +51,7 @@ const parseKnowledgeItemRecord = (value: KnowledgeAttachmentItem, knowledgeAttac
     const unavailableReason = value.errorMessage ?? (value.ragStatus !== null && value.ragStatus !== 'completed' ? value.ragStatus : null);
     return {
         id: `knowledge-item:${String(value.id)}`,
+        missingCapabilities: value.missingCapabilities ?? [],
         type: 'knowledgeItem',
         title: value.filename,
         status: statusParts.join(' - '),

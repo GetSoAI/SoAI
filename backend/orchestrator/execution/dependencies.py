@@ -141,6 +141,7 @@ class OutcomeManagerDependencies:
 
 @dataclass(frozen=True, slots=True)
 class ExecutorEngineDependencies:
+    finalizer_tracker: TaskFinalizerTrackerProtocol
     queue: QueueServiceView
     lifecycle: OrchestratorLifecycleCoordinatorProtocol
     capacity: OrchestratorCapacityProtocol
@@ -158,6 +159,7 @@ class ExecutorEngineDependencies:
     def __post_init__(self) -> None:
         require_dependencies(
             owner="ExecutorEngineDependencies",
+            finalizer_tracker=self.finalizer_tracker,
             active_inferences=self.active_inferences,
             capacity=self.capacity,
             health_check_config=self.health_check_config,

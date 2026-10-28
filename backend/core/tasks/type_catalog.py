@@ -17,6 +17,7 @@ __all__ = (
     "is_orchestrated_inference_task_type",
     "orchestrated_inference_task_type_values",
     "require_task_type_id",
+    "requires_owner_terminal_settlement",
 )
 
 
@@ -73,6 +74,12 @@ TASK_TYPE_TEXT_TO_SPEECH = "text_to_speech"
 TASK_TYPE_WALLPAPER_UPDATE = "wallpaper_update"
 TASK_TYPE_WEB_FETCH = "web_fetch"
 TASK_TYPE_WEB_SEARCH = "web_search"
+
+TASK_OWNER_FILE_EXPLORER_COPY_BATCH = "file_explorer_copy:batch"
+TASK_OWNER_FILE_EXPLORER_DELETE_BATCH = "file_explorer_delete:batch"
+TASK_OWNER_FILE_EXPLORER_MOVE_BATCH = "file_explorer_move:batch"
+TASK_OWNER_FILE_EXPLORER_UPLOAD_SINGLE = "file_explorer_upload:single"
+TASK_OWNER_FILE_EXPLORER_UPLOAD_BATCH = "file_explorer_upload:batch"
 
 
 @dataclass(frozen=True, slots=True)
@@ -164,3 +171,25 @@ def is_orchestrated_inference_task_type(task_type: TaskTypeId) -> bool:
 
 def orchestrated_inference_task_type_values() -> tuple[str, ...]:
     return tuple(sorted(ORCHESTRATED_INFERENCE_TASK_TYPES))
+
+
+def requires_owner_terminal_settlement(task_type: TaskTypeId, *, owner_id: str | None) -> bool:
+    return (
+        is_orchestrated_inference_task_type(task_type)
+        or task_type
+        in (
+            TASK_TYPE_HARDWARE_SOAIBENCH,
+            TASK_TYPE_SOFTWARE_UPDATE,
+        )
+        or (
+            task_type == TASK_TYPE_FILE_EXPLORER_OP
+            and owner_id
+            in (
+                TASK_OWNER_FILE_EXPLORER_COPY_BATCH,
+                TASK_OWNER_FILE_EXPLORER_DELETE_BATCH,
+                TASK_OWNER_FILE_EXPLORER_MOVE_BATCH,
+                TASK_OWNER_FILE_EXPLORER_UPLOAD_SINGLE,
+                TASK_OWNER_FILE_EXPLORER_UPLOAD_BATCH,
+            )
+        )
+    )

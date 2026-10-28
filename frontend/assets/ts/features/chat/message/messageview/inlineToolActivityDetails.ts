@@ -1,7 +1,9 @@
 /* SoAI - Inline tool activity detail rendering [frontend/assets/ts/features/chat/message/messageview/inlineToolActivityDetails.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { ensureError } from '@core/errors/coerce.ts';
+import { ensureError, extractErrorCode } from '@core/errors/coerce.ts';
+import { resolveSkillErrorMessage } from '@core/skills/errorPresentation.ts';
+import { readSpeechSetupFailure } from '@core/speechsetup/failure.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { formatCompactDurationFromMs } from '@core/primitives/duration.ts';
@@ -160,11 +162,12 @@ const renderInlineToolDetails = (host: ChatMessageRenderHost, segment: InlineToo
 
     let resultHtml = '';
     const isCompletedOrRunning = segment.status === 'completed' || segment.status === 'running';
-    if (!suppressResult && !codeDiffsHtml && segment.result !== undefined && (isCompletedOrRunning || isSubagentSpawn)) {
+    const canRenderResult = isCompletedOrRunning || (segment.status === 'error' && readSpeechSetupFailure(resolvePayloadRecord(segment.result)) !== null);
+    if (!suppressResult && !codeDiffsHtml && segment.result !== undefined && (canRenderResult || isSubagentSpawn)) {
         const resultPayload = isPlanWrite ? truncatePlanWriteResultPayload(segment.result) : segment.result;
         if (toolLeafName === CONTEXT_COMPACTION_TOOL_LEAF && isCompletedOrRunning) {
             resultHtml = renderContextCompactionToolResult(host, callId, resultPayload) ?? renderToolActivityResult(host, callId, resultPayload, { toolLeafName, requestPayload: segment.inputArguments });
-        } else if (!isSubagentSpawn && isCompletedOrRunning) {
+        } else if (!isSubagentSpawn && canRenderResult) {
             resultHtml = renderToolActivityResult(host, callId, resultPayload, { toolLeafName, requestPayload: segment.inputArguments });
         } else if (isSubagentSpawn) {
             const trimmedCallId = callId.trim();
@@ -215,7 +218,9 @@ const renderInlineToolDetails = (host: ChatMessageRenderHost, segment: InlineToo
     let errorHtml = '';
     if (segment.status === 'error' && segment.error) {
         const errorLabel = i18n.t('chat.toolActivity.error');
-        errorHtml = renderInlineToolSection(host, 'inline-tool-error', errorLabel, ` ${host.escapeHtml(segment.error)}`);
+        const result = resolvePayloadRecord(segment.result);
+        const localizedError = resolveSkillErrorMessage(extractErrorCode(result)) ?? resolveSkillErrorMessage(extractErrorCode(result?.['data']));
+        errorHtml = renderInlineToolSection(host, 'inline-tool-error', errorLabel, ` ${host.escapeHtml(localizedError ?? segment.error)}`);
     }
     const statusSummaryHtml = argumentsHtml || codeDiffsHtml || truncationHtml || resultHtml || boundaryActionHtml || stopShellActionHtml || errorHtml ? '' : renderInlineToolStatusSummary(host, segment);
 

@@ -6,9 +6,11 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator, Awaitable, Callable
 
-from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
+from core.concurrency.async_iterators import close_async_iterator_after_read
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
+from core.concurrency.wait_race import wait_for_first_completed_tasks
 from core.events.types_base import Event
+from core.tasks.protocols import TaskFinalizerTrackerProtocol
 from features.api.streaming.stream_iteration import StreamEvent, StreamTermination
 
 __all__ = ("iter_openai_classified_items_with_flush_timer",)
@@ -21,6 +23,7 @@ NEXT_ITEM_TASK_NAME = (
 async def iter_openai_classified_items_with_flush_timer(
     stream: AsyncGenerator[bytes | StreamEvent[Event] | StreamTermination],
     *,
+    finalizer_tracker: TaskFinalizerTrackerProtocol,
     should_flush: Callable[[], bool],
     flush_interval_ms: int,
     flush: Callable[[], Awaitable[None]],
@@ -49,19 +52,15 @@ async def iter_openai_classified_items_with_flush_timer(
                     continue
             if next_item_task is None:
                 break
+            await wait_for_first_completed_tasks({next_item_task}, cancel_pending=False)
             try:
-                item = await next_item_task
+                item = next_item_task.result()
             except StopAsyncIteration:
                 break
-            next_item_task = None
+            finally:
+                next_item_task = None
             yield item
     finally:
-        try:
-            if next_item_task is not None and not next_item_task.done():
-                next_item_task.cancel()
-                try:
-                    await uncancel_then_cleanup(next_item_task)
-                except asyncio.CancelledError:
-                    next_item_task = None
-        finally:
-            await uncancel_then_cleanup(stream.aclose())
+        await close_async_iterator_after_read(
+            stream, next_item_task, finalizer_tracker=finalizer_tracker
+        )

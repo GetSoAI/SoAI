@@ -67,6 +67,8 @@ async def upsert_intermediate_thinking_phase(
         now_ms = monotonic_ms()
         emitted_chars = max(0, thinking_state.active_last_emitted_chars)
         available_chars = max(0, len(phase_text) - emitted_chars)
+        if available_chars == 0:
+            return
         if emitted_chars > 0:
             elapsed_ms = now_ms - thinking_state.last_emit_ms if thinking_state.last_emit_ms else 0
             if (

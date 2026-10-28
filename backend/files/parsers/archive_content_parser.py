@@ -29,6 +29,7 @@ class ArchiveContentParseResult:
     content_parts: tuple[str, ...]
     extraction_state: ExtractionState
     warnings: tuple[str, ...]
+    missing_capabilities: tuple[str, ...] = ()
 
 
 async def parse_extracted_archive_contents(
@@ -54,6 +55,8 @@ async def parse_extracted_archive_contents(
         listing_lines.append(f"- ... ({len(extracted_files) - max_listed} more)")
     content_parts.append("\n".join(listing_lines))
     incomplete_members = 0
+    missing_capabilities: set[str] = set()
+    capability_warnings: dict[str, None] = {}
     for relative_path, extracted_path in extracted_files:
         raise_if_parse_cancelled(parent_context)
         file_extension = relative_path.rsplit(".", 1)[-1].lower() if "." in relative_path else ""
@@ -84,17 +87,21 @@ async def parse_extracted_archive_contents(
             continue
         if parsed.extraction_state is not ExtractionState.COMPLETE:
             incomplete_members += 1
+        if parsed.missing_capabilities:
+            missing_capabilities.update(parsed.missing_capabilities)
+            capability_warnings.update(dict.fromkeys(parsed.warnings))
         if parsed.content.strip():
             content_parts.append(f"## File: {relative_path}\n\n{parsed.content}")
     warnings = (
         (f"Archive member extraction was incomplete for {incomplete_members} entries.",)
         if incomplete_members
         else ()
-    )
+    ) + tuple(capability_warnings)
     return ArchiveContentParseResult(
         content_parts=tuple(content_parts),
         extraction_state=(
             ExtractionState.DEGRADED if incomplete_members else ExtractionState.COMPLETE
         ),
         warnings=warnings,
+        missing_capabilities=tuple(sorted(missing_capabilities)),
     )

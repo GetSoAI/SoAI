@@ -128,11 +128,14 @@ class ParameterManager:
         async with self.lock:
             return copy_json_dict(self.parameter_schema["backends"].get(plugin_name, {}))
 
-    async def get_parameter_schema_snapshot(self, plugin_name: str) -> tuple[JSONDict, JSONDict]:
+    async def get_parameter_schema_snapshot(
+        self,
+        plugin_name: str,
+    ) -> tuple[JSONDict, JSONDict] | None:
         async with self.lock:
             schema = self.parameter_schema["backends"].get(plugin_name)
-            if not schema:
-                return ({}, {})
+            if schema is None:
+                return None
             schema_copy = copy_json_dict(schema)
             plugin_categories = self.parameter_schema["parameter_categories_by_plugin"].get(
                 plugin_name,

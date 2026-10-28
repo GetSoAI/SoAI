@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
+import { subscribeRestartState } from '@core/restartStateService.ts';
+import { projectSettingsRestartNotification, showSettingsRestartNotification } from '@pages/settings/controllers/settingsRestartNotification.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { downloadAuthenticatedResponse } from '@core/api/authenticatedDownload.ts';
 import type { ApiKeyCreateRequest } from '@core/api/contracts/apiKeyContracts.ts';
@@ -20,13 +22,19 @@ import { BackupManager } from '@pages/settings/controllers/backupmanager/BackupM
 import type { SettingsManagerCallbacks, SettingsRuntimeContext } from '@pages/settings/controllers/page/contracts.ts';
 import { buildAdminHostBindings, buildBaseHostBindings } from '@pages/settings/controllers/page/hostBindings.ts';
 import type { SettingsPageState } from '@pages/settings/controllers/page/state.ts';
-import { showRestartNotification } from '@pages/settings/controllers/page/pageActions.ts';
 import { LicensingManager } from '@pages/settings/controllers/LicensingManager.ts';
 
 const createAdminSettingsManagers = (page: SettingsRuntimeContext, state: SettingsPageState, callbacks: SettingsManagerCallbacks): void => {
     if (!page.owners.auth.isAdmin()) {
         return;
     }
+    let restartRequired: boolean | null = null;
+    const unsubscribeRestart = subscribeRestartState((restartState) => {
+        if (restartRequired === restartState.required) return;
+        restartRequired = restartState.required;
+        projectSettingsRestartNotification(restartState);
+    });
+    page.owners.pageResources.track(unsubscribeRestart, unsubscribeRestart);
     const adminBindings = buildAdminHostBindings(page, callbacks);
     state.aclManager = new AclManager({
         availability: {
@@ -151,7 +159,7 @@ const createAdminSettingsManagers = (page: SettingsRuntimeContext, state: Settin
             importOffline: (revision, file, options) => page.owners.api.webui.licensing.importOfflineCertificate(revision, file, options),
             changeDeclaration: async (revision, declaration, attestation, options) => {
                 const status = await page.owners.api.webui.licensing.changeDeclaration(revision, declaration, attestation, options);
-                await showRestartNotification(page, state);
+                await showSettingsRestartNotification();
                 return status;
             }
         },
@@ -188,7 +196,6 @@ const createAdminSettingsManagers = (page: SettingsRuntimeContext, state: Settin
                 verifyBackup: (backupId: string) => page.owners.api.webui.admin.backups.verify(backupId),
                 deleteBackup: (backupId: string) => page.owners.api.webui.admin.backups.remove(backupId),
                 exportBackup: (backupId: string) => page.owners.api.webui.admin.backups.export(backupId),
-                restartApplication: () => page.owners.api.system.power.restartApplication(),
                 showRestartOverlay: (value: OperationType): void => state.restartOverlay.show(value),
                 sanitizeHtml: (value: SanitizerInput): string => page.owners.pageContext.sanitizer.html(value),
                 sanitizeAttribute: (value: SanitizerInput): string => page.owners.pageContext.sanitizer.attribute(value)

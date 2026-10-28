@@ -9,6 +9,7 @@ from contextlib import contextmanager
 
 from core.errors.exceptions import StateError
 from core.files.secure_open_flags import secure_read_only_open_flags
+from core.filesystem.descriptor_io import open_descriptor
 
 __all__ = ("open_secure_directory_descriptor",)
 
@@ -21,7 +22,7 @@ def open_secure_directory_descriptor(
 ) -> Generator[int]:
     if os.name == "nt":
         raise StateError(unsupported_message)
-    descriptor = os.open(path, secure_read_only_open_flags(directory=True))
+    descriptor = open_descriptor(path, secure_read_only_open_flags(directory=True))
     try:
         yield descriptor
     finally:

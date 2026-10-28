@@ -69,11 +69,21 @@ class ArchivePlanningBudget:
         if normalized_metadata > self._limits.max_entry_metadata_bytes:
             raise ValidationError(
                 f"Archive member metadata exceeds the limit of {self._limits.max_entry_metadata_bytes} bytes: {name}",
+                details={
+                    "archive_resource": "entry_metadata_bytes",
+                    "measured": normalized_metadata,
+                    "limit": self._limits.max_entry_metadata_bytes,
+                },
             )
         next_members = self._members + 1
         if next_members > self._limits.max_members:
             raise ValidationError(
                 f"Archive exceeds the member limit of {self._limits.max_members}.",
+                details={
+                    "archive_resource": "archive_entries",
+                    "measured": next_members,
+                    "limit": self._limits.max_members,
+                },
             )
         self._members = next_members
         self._add_metadata(normalized_metadata, name)
@@ -83,11 +93,21 @@ class ArchivePlanningBudget:
         if normalized_metadata > self._limits.max_entry_metadata_bytes:
             raise ValidationError(
                 f"Archive materialized entry metadata exceeds the limit of {self._limits.max_entry_metadata_bytes} bytes: {name}",
+                details={
+                    "archive_resource": "entry_metadata_bytes",
+                    "measured": normalized_metadata,
+                    "limit": self._limits.max_entry_metadata_bytes,
+                },
             )
         next_entries = self._materialized_entries + 1
         if next_entries > self._limits.max_materialized_entries:
             raise ValidationError(
                 f"Archive exceeds the materialized entry limit of {self._limits.max_materialized_entries}.",
+                details={
+                    "archive_resource": "materialized_entries",
+                    "measured": next_entries,
+                    "limit": self._limits.max_materialized_entries,
+                },
             )
         self._materialized_entries = next_entries
         if normalized_metadata:
@@ -99,14 +119,37 @@ class ArchivePlanningBudget:
         if next_total > self._limits.max_expanded_bytes:
             raise ValidationError(
                 f"Archive expanded data exceeds the limit of {self._limits.max_expanded_bytes} bytes: {name}",
+                details={
+                    "archive_resource": "expanded_bytes",
+                    "measured": next_total,
+                    "limit": self._limits.max_expanded_bytes,
+                },
             )
         self._expanded_bytes = next_total
+
+    def add_local_metadata(self, additional_bytes: int, name: str) -> None:
+        normalized = self._require_size(additional_bytes, name)
+        if normalized > self._limits.max_entry_metadata_bytes:
+            raise ValidationError(
+                "Archive local metadata exceeds its per-entry limit.",
+                details={
+                    "archive_resource": "entry_metadata_bytes",
+                    "measured": normalized,
+                    "limit": self._limits.max_entry_metadata_bytes,
+                },
+            )
+        self._add_metadata(normalized, name)
 
     def _add_metadata(self, additional_bytes: int, name: str) -> None:
         next_total = self._metadata_bytes + additional_bytes
         if next_total > self._limits.max_aggregate_metadata_bytes:
             raise ValidationError(
                 f"Archive metadata exceeds the limit of {self._limits.max_aggregate_metadata_bytes} bytes: {name}",
+                details={
+                    "archive_resource": "metadata_bytes",
+                    "measured": next_total,
+                    "limit": self._limits.max_aggregate_metadata_bytes,
+                },
             )
         self._metadata_bytes = next_total
 

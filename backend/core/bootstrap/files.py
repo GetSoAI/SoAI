@@ -8,6 +8,8 @@ import os
 import uuid
 from functools import partial
 
+from core.filesystem.descriptor_io import open_descriptor
+
 __all__ = (
     "compute_sha3_256",
     "compute_sha256",
@@ -88,7 +90,7 @@ def write_text_file_atomic(
         os.makedirs(parent, exist_ok=True)
     temp_path = f"{resolved_path}.tmp.{os.getpid()}.{uuid.uuid4().hex}"
     try:
-        descriptor = os.open(
+        descriptor = open_descriptor(
             temp_path,
             os.O_WRONLY | os.O_CREAT | os.O_EXCL,
             file_mode if file_mode is not None else 0o666,

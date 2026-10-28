@@ -6,6 +6,7 @@ import { toJsonCompatibleObject } from '@core/primitives/clone.ts';
 import { hasOwn, isBoolean, isFiniteNumber, isString } from '@core/typeGuards.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
+import { readRequiredBooleanValue } from '@core/types/payloadValueReaders.ts';
 
 type GpuCapabilityError = JsonObject & {
     code: string;
@@ -28,6 +29,8 @@ type GpuCurrentSettings = JsonObject & {
 
 type GpuCapabilityControlInfo = JsonObject & {
     supported?: boolean;
+    numericSupported?: boolean;
+    autoSupported?: boolean;
     min?: number;
     max?: number;
     step?: number;
@@ -46,6 +49,7 @@ type GpuCapabilityControlInfo = JsonObject & {
 };
 
 type GpuClockCapabilityInfo = GpuCapabilityControlInfo & {
+    clockControlType?: string | null;
     levels?: Array<JsonObject & { level: number; mhz: number }>;
     allowedValues?: number[];
     offsetMin?: number;
@@ -174,12 +178,14 @@ const assignCapabilityNumbers = (record: JsonObject, capability: GpuCapabilityCo
 const decodeControlCapability = (value: JsonValue | undefined, label: string): GpuCapabilityControlInfo | undefined => {
     if (value === undefined || value === null) return undefined;
     const record = requireRecord(value, label);
-    if (hasOwn(record, 'controlBackend') || hasOwn(record, 'requiresAdmin') || hasOwn(record, 'unsupportedReason')) throw new TypeError(`${label} must use canonical V1 wire fields`);
+    if (hasOwn(record, 'controlBackend') || hasOwn(record, 'requiresAdmin') || hasOwn(record, 'unsupportedReason') || hasOwn(record, 'numericSupported') || hasOwn(record, 'autoSupported')) throw new TypeError(`${label} must use canonical V1 wire fields`);
     const capability: GpuCapabilityControlInfo = {};
     if (record['supported'] !== undefined) {
         if (!isBoolean(record['supported'])) throw new TypeError(`${label}.supported must be a boolean`);
         capability.supported = record['supported'];
     }
+    if (hasOwn(record, 'numeric_supported')) capability.numericSupported = readRequiredBooleanValue(record['numeric_supported'], `${label}.numeric_supported`);
+    if (hasOwn(record, 'auto_supported')) capability.autoSupported = readRequiredBooleanValue(record['auto_supported'], `${label}.auto_supported`);
     assignCapabilityNumbers(record, capability, label);
     const unit = optionalText(record, 'unit', label);
     if (unit !== undefined && unit !== null) capability.unit = unit;
@@ -206,6 +212,8 @@ const decodeClockCapability = (value: JsonValue | undefined, label: string): Gpu
     if (!capability || value === undefined || value === null) return capability;
     const clock: GpuClockCapabilityInfo = capability;
     const record = requireRecord(value, label);
+    const clockControlType = optionalText(record, 'clock_control_type', label);
+    if (clockControlType !== undefined) clock.clockControlType = clockControlType;
     const offsetMin = optionalNumber(record, 'offset_min', label);
     const offsetMax = optionalNumber(record, 'offset_max', label);
     if (offsetMin !== undefined) clock.offsetMin = offsetMin;

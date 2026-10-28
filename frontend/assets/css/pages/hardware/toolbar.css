@@ -95,12 +95,17 @@
         border-bottom: none;
         box-shadow: none;
         flex-shrink: 0;
+        flex-wrap: nowrap;
         gap: var(--space-2);
         justify-content: flex-start;
         padding-inline-start: var(--space-2);
         padding-inline-end: calc(var(--control-round-button-size) + var(--space-4));
         -webkit-backdrop-filter: none;
         backdrop-filter: none;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-header > .gpu-soaibench-state {
+        max-inline-size: 50%;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-action-bar {
@@ -166,7 +171,7 @@
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-label {
         align-items: center;
-        margin-bottom: var(--space-15);
+        margin-bottom: var(--space-1);
         font-size: var(--font-size-compact);
         color: var(--text-secondary);
         gap: var(--space-2);
@@ -184,11 +189,15 @@
         transform-origin: calc(100% - var(--inline-start-percent)) center;
     }
 
+    :where([data-section='hardware'], [data-page-scope='hardware']) :is(.gpu-slider-auto-toggle, .gpu-boot-toggle-container) > label.toggle-switch {
+        margin-block: 0;
+    }
+
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-auto-toggle .toggle-label {
         font-size: var(--font-size-xs);
         font-weight: 600;
         letter-spacing: var(--tracking-04px);
-        text-transform: lowercase;
+        text-transform: none;
         color: var(--text-primary);
         min-width: 4rem;
         text-align: end;
@@ -199,7 +208,7 @@
         --toggle-width: 24px;
         --toggle-height: 13px;
         --toggle-handle-size: 9px;
-        --toggle-handle-offset: 0;
+        --toggle-handle-offset: 1px;
         --toggle-handle-translate: 11px;
     }
 
@@ -208,7 +217,7 @@
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider {
-        --range-track-height: 5px;
+        --range-track-height: var(--control-progress-height);
         --range-thumb-size: 13px;
 
         width: 100%;
@@ -220,17 +229,7 @@
         box-sizing: content-box;
     }
 
-    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider::-webkit-slider-runnable-track {
-        background: var(--surface-card-border);
-        border-radius: var(--border-radius);
-    }
-
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider::-webkit-slider-thumb {
-        border-radius: var(--border-radius);
-    }
-
-    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider::-moz-range-track {
-        background: var(--surface-card-border);
         border-radius: var(--border-radius);
     }
 
@@ -244,5 +243,46 @@
         margin-top: var(--space-1);
         font-size: var(--font-size-compact-sm);
         color: var(--text-tertiary);
+    }
+
+    @container ui-viewport (width <= 280px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-sliders {
+            gap: var(--space-1);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-container {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 0 var(--space-2);
+            padding-block: 0;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-header {
+            display: contents;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-label {
+            grid-column: 1 / -1;
+            margin-bottom: 0;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-auto {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-body {
+            grid-column: 1;
+            grid-row: 2;
+            display: flex;
+            align-items: center;
+            align-self: stretch;
+            min-width: 0;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider {
+            margin-block: 0;
+        }
     }
 }

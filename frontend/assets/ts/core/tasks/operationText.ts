@@ -72,6 +72,8 @@ const resolveTaskOperationTypeLabelText = (source: string): string => {
             return i18n.t('taskManager.badges.ragSearch');
         case 'rag-url-fetch':
             return i18n.t('taskManager.badges.ragUrlFetch');
+        case 'soaibench':
+            return i18n.t('hardware.modals.soaibenchRun.title');
         case 'software-update':
             return i18n.t('taskManager.badges.softwareUpdate');
         case 'text-to-speech':
@@ -92,20 +94,37 @@ const resolveTaskOperationTypeLabelText = (source: string): string => {
 
 const resolveTaskOperationLabelText = (operation: TaskOperationEntry): string => {
     const meta = resolveTaskOperationMeta(operation);
+    if (operation.type === 'soaibench') {
+        const gpu = toTrimmedString(meta['gpuName']) || toTrimmedString(meta['deviceId']);
+        const mode = meta['benchmarkMode'] === 'certified' ? i18n.t('hardware.modals.soaibenchHistory.certification.certified') : meta['benchmarkMode'] === 'quick' ? i18n.t('hardware.modals.soaibenchHistory.certification.quick') : '';
+        const profile = meta['profile'] === 'stress' ? i18n.t('hardware.modals.soaibenchHistory.profiles.stress') : meta['profile'] === 'standard' ? i18n.t('hardware.modals.soaibenchHistory.profiles.standard') : '';
+        return [resolveTaskOperationTypeLabelText(operation.type), gpu, mode, profile].filter(Boolean).join(' · ');
+    }
     const displayName = toTrimmedString(meta['displayName']);
     if (displayName) {
         return displayName;
+    }
+    if (operation.type === 'model-download') {
+        const modelId = toTrimmedString(meta['modelId']);
+        if (modelId) {
+            return [modelId, toTrimmedString(meta['quantization'])].filter(Boolean).join(' · ');
+        }
     }
     return resolveTaskOperationTypeLabelText(operation.type);
 };
 
 const resolveTaskOperationDetailText = (operation: TaskOperationEntry): string => {
     const meta = resolveTaskOperationMeta(operation);
+    if (operation.type === 'software-update') {
+        const message = toTrimmedString(meta['statusMessage']);
+        const details = toTrimmedString(meta['details']);
+        if (message || details) return [message, details].filter(Boolean).join(' · ');
+    }
     const fields: readonly string[] = ['details', 'statusMessage', 'conversationTitle', 'model', 'universalId', 'url', 'taskId'];
     for (const field of fields) {
         const value = toTrimmedString(meta[field]);
         if (value) {
-            return value;
+            return resolveTaskPhaseText(value);
         }
     }
     const pluginName = toTrimmedString(operation.pluginName);
@@ -113,6 +132,35 @@ const resolveTaskOperationDetailText = (operation: TaskOperationEntry): string =
         return pluginName;
     }
     return resolveTaskOperationLabelText(operation);
+};
+
+const resolveTaskPhaseText = (message: string): string => {
+    switch (message) {
+        case 'transfer.phase.hashing':
+            return i18n.t('models.phases.transferHashing');
+        case 'transfer.phase.replaying':
+            return i18n.t('models.phases.transferReplaying');
+        case 'transfer.phase.downloading':
+            return i18n.t('models.phases.transferDownloading');
+        case 'transfer.phase.verifying':
+            return i18n.t('models.phases.transferVerifying');
+        case 'ollama.phase.service_preparation':
+            return i18n.t('models.phases.ollamaServicePreparation');
+        case 'ollama.phase.pull_streaming':
+            return i18n.t('models.phases.ollamaPullStreaming');
+        case 'ollama.phase.terminal_confirmation':
+            return i18n.t('models.phases.ollamaTerminalConfirmation');
+        case 'ollama.phase.target_verification':
+            return i18n.t('models.phases.ollamaTargetVerification');
+        case 'ollama.phase.cache_publication':
+            return i18n.t('models.phases.ollamaCachePublication');
+        case 'ollama.phase.cleanup_failed':
+            return i18n.t('models.errors.ollamaPullCleanupFailed');
+        case 'ollama.phase.cleanup':
+            return i18n.t('models.phases.ollamaCleanup');
+        default:
+            return message;
+    }
 };
 
 const resolveTaskOperationFailureText = (operation: 'pluginTask' | 'pluginStop'): string => {
@@ -124,4 +172,4 @@ const resolveTaskOperationFailureText = (operation: 'pluginTask' | 'pluginStop')
     }
 };
 
-export { resolveTaskOperationDetailText, resolveTaskOperationFailureText, resolveTaskOperationLabelText, resolveTaskOperationMeta, resolveTaskOperationTypeLabelText };
+export { resolveTaskPhaseText, resolveTaskOperationDetailText, resolveTaskOperationFailureText, resolveTaskOperationLabelText, resolveTaskOperationMeta, resolveTaskOperationTypeLabelText };

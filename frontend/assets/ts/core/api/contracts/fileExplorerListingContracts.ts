@@ -11,6 +11,8 @@ import { requireRecord } from '@core/types/payloadRecordReaders.ts';
 import { readRequiredPresentStringValue, readRequiredTrimmedString } from '@core/types/payloadValueReaders.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 
+const FILE_EXPLORER_LISTING_EXPIRED_ERROR_CODE = 'directory_listing_expired';
+
 const serializeFileExplorerListingStartRequest = (listingId: string, path: string): JsonObject => ({
     'listing_id': listingId,
     path
@@ -87,4 +89,4 @@ const decodeFileExplorerListingReleasedResponse = (value: ApiResponsePayload): F
     };
 };
 
-export { decodeFileExplorerListingAcceptedResponse, decodeFileExplorerListingLocateResponse, decodeFileExplorerListingPageResponse, decodeFileExplorerListingReleasedResponse, serializeFileExplorerListingLocateQuery, serializeFileExplorerListingPageQuery, serializeFileExplorerListingStartRequest };
+export { FILE_EXPLORER_LISTING_EXPIRED_ERROR_CODE, decodeFileExplorerListingAcceptedResponse, decodeFileExplorerListingLocateResponse, decodeFileExplorerListingPageResponse, decodeFileExplorerListingReleasedResponse, serializeFileExplorerListingLocateQuery, serializeFileExplorerListingPageQuery, serializeFileExplorerListingStartRequest };

@@ -11,6 +11,7 @@ import sys
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+from core.filesystem.descriptor_io import open_descriptor
 from core.system.process_launcher import spawn_managed_process
 
 if TYPE_CHECKING:
@@ -65,7 +66,7 @@ def _output_channel_has_reader(descriptor: int) -> bool:
 
 def _redirect_descriptor_to_devnull(descriptor: int) -> None:
     flags = os.O_RDONLY if descriptor == _STANDARD_INPUT_DESCRIPTOR else os.O_WRONLY
-    devnull_descriptor = os.open(os.devnull, flags)
+    devnull_descriptor = open_descriptor(os.devnull, flags)
     if devnull_descriptor == descriptor:
         os.set_inheritable(descriptor, True)
         return

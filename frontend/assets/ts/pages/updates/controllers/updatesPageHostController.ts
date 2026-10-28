@@ -7,12 +7,14 @@ import type { UpdatesSystemControllerHost } from '@pages/updates/controllers/Upd
 
 interface UpdatesPageControllerHostDependencies {
     systemSurface: UpdatesControllerSystemSurface;
+    storage: UpdatesSystemControllerHost['storage'];
     checkUpdates(): Promise<SoftwareUpdateCheckResponse>;
     updateSoAI(): Promise<SoftwareUpdateAcceptedResponse>;
     onApplicationInstallStarted(): number;
 }
 
 const createUpdatesSystemControllerHost = (dependencies: UpdatesPageControllerHostDependencies): UpdatesSystemControllerHost => ({
+    storage: dependencies.storage,
     api: {
         checkUpdates: dependencies.checkUpdates,
         updateSoAI: dependencies.updateSoAI

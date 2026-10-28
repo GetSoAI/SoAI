@@ -14,7 +14,6 @@ from core.serialization.json import normalize_for_json
 from core.serialization.json_parsing import parse_json_value
 from core.tool_calls.context_compaction_prompt_message import (
     extract_context_compaction_prompt_message_from_result_payload,
-    normalize_context_compaction_prompt_message,
 )
 from core.tool_calls.status_values import (
     TOOL_CALL_STATUS_CANCELLED,
@@ -35,8 +34,6 @@ __all__ = (
     "extract_context_compaction_marker_from_assistant_timeline",
     "extract_context_compaction_marker_from_message",
     "extract_context_compaction_markers_from_assistant_timeline",
-    "extract_context_compaction_output_text_from_message",
-    "extract_context_compaction_prompt_message_from_message",
     "is_context_compaction_active_completed_marker",
     "is_context_compaction_completed_marker",
     "is_context_compaction_removed_marker",
@@ -231,30 +228,6 @@ def extract_context_compaction_marker_from_message(
     if not isinstance(timeline_value, list):
         return None
     return extract_context_compaction_marker_from_assistant_timeline(timeline_value)
-
-
-def extract_context_compaction_output_text_from_message(
-    message: Mapping[str, JSONValue],
-) -> str | None:
-    marker = extract_context_compaction_marker_from_message(message)
-    if marker is None:
-        return None
-    output_value = marker.get("output")
-    if not isinstance(output_value, str):
-        return None
-    output_text = output_value.strip()
-    if not output_text:
-        return None
-    return output_text
-
-
-def extract_context_compaction_prompt_message_from_message(
-    message: Mapping[str, JSONValue],
-) -> JSONDict | None:
-    marker = extract_context_compaction_marker_from_message(message)
-    if marker is None:
-        return None
-    return normalize_context_compaction_prompt_message(marker.get("prompt_message"))
 
 
 def is_context_compaction_completed_marker(marker: JSONDict | None) -> bool:

@@ -32,6 +32,70 @@
         "Intel(R) Corporation"
       ],
       "pci_vendor_id": "8086"
+    },
+    {
+      "vendor_key": "apple",
+      "canonical_vendor": "Apple",
+      "aliases": [
+        "Apple",
+        "Apple Inc.",
+        "Apple Computer"
+      ],
+      "pci_vendor_id": "106b"
+    },
+    {
+      "vendor_key": "qualcomm",
+      "canonical_vendor": "Qualcomm",
+      "aliases": [
+        "Qualcomm",
+        "Qualcomm Inc.",
+        "Qualcomm Incorporated",
+        "Qualcomm Technologies",
+        "Qualcomm Technologies, Inc.",
+        "QCOM"
+      ],
+      "pci_vendor_id": "5143"
+    },
+    {
+      "vendor_key": "arm",
+      "canonical_vendor": "Arm",
+      "aliases": [
+        "Arm",
+        "Arm Limited",
+        "ARM Ltd"
+      ],
+      "pci_vendor_id": "13b5"
+    },
+    {
+      "vendor_key": "broadcom",
+      "canonical_vendor": "Broadcom",
+      "aliases": [
+        "Broadcom",
+        "Broadcom Inc.",
+        "Broadcom Corporation"
+      ],
+      "pci_vendor_id": "14e4"
+    },
+    {
+      "vendor_key": "imagination",
+      "canonical_vendor": "Imagination",
+      "aliases": [
+        "Imagination",
+        "Imagination Technologies",
+        "Imagination Technologies Ltd",
+        "PowerVR"
+      ],
+      "pci_vendor_id": "1010"
+    },
+    {
+      "vendor_key": "samsung",
+      "canonical_vendor": "Samsung",
+      "aliases": [
+        "Samsung",
+        "Samsung Electronics",
+        "Samsung Electronics Co., Ltd."
+      ],
+      "pci_vendor_id": "144d"
     }
   ],
   "models": [
@@ -58,7 +122,8 @@
       "name": "NVIDIA A100 80GB PCIe",
       "vendor": "NVIDIA",
       "aliases": [
-        "A100 80GB PCIe"
+        "A100 80GB PCIe",
+        "A100 PCIe 80GB"
       ]
     },
     {
@@ -133,7 +198,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "NVIDIA A30",
-        "A30"
+        "A30",
+        "A30 PCIe"
       ]
     },
     {
@@ -150,7 +216,8 @@
       "name": "NVIDIA A800 40GB Active",
       "vendor": "NVIDIA",
       "aliases": [
-        "A800 40GB Active"
+        "A800 40GB Active",
+        "A800 40GB PCIe"
       ]
     },
     {
@@ -216,7 +283,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "NVIDIA B200",
-        "B200"
+        "B200",
+        "HGX B200 168GB"
       ]
     },
     {
@@ -305,7 +373,8 @@
       "name": "NVIDIA GB200",
       "vendor": "NVIDIA",
       "aliases": [
-        "GB200"
+        "GB200",
+        "HGX GB200"
       ]
     },
     {
@@ -849,7 +918,8 @@
       "name": "NVIDIA GeForce 7300 GT",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce 7300 GT"
+        "GeForce 7300 GT",
+        "GeForce 7300 GT AGP"
       ]
     },
     {
@@ -905,7 +975,8 @@
       "name": "NVIDIA GeForce 7600 GS",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce 7600 GS"
+        "GeForce 7600 GS",
+        "GeForce 7600 GS AGP"
       ]
     },
     {
@@ -913,7 +984,8 @@
       "name": "NVIDIA GeForce 7600 GT",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce 7600 GT"
+        "GeForce 7600 GT",
+        "GeForce 7600 GT AGP"
       ]
     },
     {
@@ -937,7 +1009,8 @@
       "name": "NVIDIA GeForce 7800 GS",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce 7800 GS"
+        "GeForce 7800 GS",
+        "GeForce 7800 GS AGP"
       ]
     },
     {
@@ -969,7 +1042,8 @@
       "name": "NVIDIA GeForce 7900 GS",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce 7900 GS"
+        "GeForce 7900 GS",
+        "GeForce 7900 GS AGP"
       ]
     },
     {
@@ -1009,7 +1083,8 @@
       "name": "NVIDIA GeForce 7950 GT",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce 7950 GT"
+        "GeForce 7950 GT",
+        "GeForce 7950 GT AGP"
       ]
     },
     {
@@ -1161,7 +1236,9 @@
       "name": "NVIDIA GeForce 8400 GS",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce 8400 GS"
+        "GeForce 8400 GS",
+        "GeForce 8400 GS Rev. 2",
+        "GeForce 8400 GS Rev. 3"
       ]
     },
     {
@@ -1433,7 +1510,8 @@
       "name": "NVIDIA GeForce 9300 GS",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce 9300 GS"
+        "GeForce 9300 GS",
+        "GeForce 9300 GS Rev. 2"
       ]
     },
     {
@@ -1625,7 +1703,8 @@
       "name": "NVIDIA GeForce 9600 GT",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce 9600 GT"
+        "GeForce 9600 GT",
+        "GeForce 9600 GT Green Edition"
       ]
     },
     {
@@ -2201,7 +2280,8 @@
       "name": "NVIDIA GeForce GT 120",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GT 120"
+        "GeForce GT 120",
+        "GeForce GT 120 Mac Edition"
       ]
     },
     {
@@ -2552,7 +2632,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GT 630",
-        "GT 630"
+        "GT 630",
+        "GeForce GT 630 Rev. 2"
       ]
     },
     {
@@ -2585,7 +2666,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GT 640",
-        "GT 640"
+        "GT 640",
+        "GeForce GT 640 Rev. 2"
       ]
     },
     {
@@ -2593,7 +2675,8 @@
       "name": "NVIDIA GeForce GT 640M",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GT 640M"
+        "GeForce GT 640M",
+        "GeForce GT 640M Mac Edition"
       ]
     },
     {
@@ -2625,7 +2708,8 @@
       "name": "NVIDIA GeForce GT 650M",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GT 650M"
+        "GeForce GT 650M",
+        "GeForce GT 650M Mac Edition"
       ]
     },
     {
@@ -2757,7 +2841,8 @@
       "name": "NVIDIA GeForce GT 750M",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GT 750M"
+        "GeForce GT 750M",
+        "GeForce GT 750M Mac Edition"
       ]
     },
     {
@@ -2765,7 +2850,8 @@
       "name": "NVIDIA GeForce GT 755M",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GT 755M"
+        "GeForce GT 755M",
+        "GeForce GT 755M Mac Edition"
       ]
     },
     {
@@ -2845,7 +2931,9 @@
       "name": "NVIDIA GeForce GTS 450",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GTS 450"
+        "GeForce GTS 450",
+        "GeForce GTS 450 Rev. 2",
+        "GeForce GTS 450 Rev. 3"
       ]
     },
     {
@@ -2854,7 +2942,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 1050",
-        "GTX 1050"
+        "GTX 1050",
+        "GeForce GTX 1050 Mobile"
       ]
     },
     {
@@ -2863,7 +2952,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 1050 Ti",
-        "GTX 1050 Ti"
+        "GTX 1050 Ti",
+        "GeForce GTX 1050 Ti Mobile"
       ]
     },
     {
@@ -2871,7 +2961,8 @@
       "name": "NVIDIA GeForce GTX 1050 Ti with Max-Q Design",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GTX 1050 Ti with Max-Q Design"
+        "GeForce GTX 1050 Ti with Max-Q Design",
+        "GeForce GTX 1050 Ti Max-Q"
       ]
     },
     {
@@ -2888,7 +2979,10 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 1060",
-        "GTX 1060"
+        "GTX 1060",
+        "GeForce GTX 1060 Mobile",
+        "GeForce GTX 1060 Mobile Rev. 2",
+        "GeForce GTX 1060 Mobile 6GB"
       ]
     },
     {
@@ -2912,7 +3006,8 @@
       "name": "NVIDIA GeForce GTX 1060 6GB",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GTX 1060 6GB"
+        "GeForce GTX 1060 6GB",
+        "GeForce GTX 1060 6GB Rev. 2"
       ]
     },
     {
@@ -2929,7 +3024,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 1070",
-        "GTX 1070"
+        "GTX 1070",
+        "GeForce GTX 1070 Mobile"
       ]
     },
     {
@@ -2965,7 +3061,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 1080",
-        "GTX 1080"
+        "GTX 1080",
+        "GeForce GTX 1080 Mobile"
       ]
     },
     {
@@ -2999,7 +3096,10 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 1650",
-        "GTX 1650"
+        "GTX 1650",
+        "GeForce GTX 1650 Mobile / Max-Q",
+        "GeForce GTX 1650 Mobile",
+        "GeForce GTX 1650 Mobile Refresh"
       ]
     },
     {
@@ -3015,7 +3115,8 @@
       "name": "NVIDIA GeForce GTX 1650 Ti",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GTX 1650 Ti"
+        "GeForce GTX 1650 Ti",
+        "GeForce GTX 1650 Ti Mobile"
       ]
     },
     {
@@ -3058,7 +3159,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 1660 Ti",
-        "GTX 1660 Ti"
+        "GTX 1660 Ti",
+        "GeForce GTX 1660 Ti Mobile"
       ]
     },
     {
@@ -3315,7 +3417,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 570",
-        "GTX 570"
+        "GTX 570",
+        "GeForce GTX 570 Rev. 2"
       ]
     },
     {
@@ -3332,7 +3435,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 580",
-        "GTX 580"
+        "GTX 580",
+        "GeForce GTX 580 Rev. 2"
       ]
     },
     {
@@ -3392,7 +3496,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 660",
-        "GTX 660"
+        "GTX 660",
+        "GeForce GTX 660 Rev. 2"
       ]
     },
     {
@@ -3409,7 +3514,8 @@
       "name": "NVIDIA GeForce GTX 660M",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GTX 660M"
+        "GeForce GTX 660M",
+        "GeForce GTX 660M Mac Edition"
       ]
     },
     {
@@ -3450,7 +3556,8 @@
       "name": "NVIDIA GeForce GTX 675MX",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GTX 675MX"
+        "GeForce GTX 675MX",
+        "GeForce GTX 675MX Mac Edition"
       ]
     },
     {
@@ -3519,7 +3626,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 760",
-        "GTX 760"
+        "GTX 760",
+        "GeForce GTX 760 Rev. 2"
       ]
     },
     {
@@ -3584,7 +3692,8 @@
       "name": "NVIDIA GeForce GTX 775M",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GTX 775M"
+        "GeForce GTX 775M",
+        "GeForce GTX 775M Mac Edition"
       ]
     },
     {
@@ -3593,7 +3702,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 780",
-        "GTX 780"
+        "GTX 780",
+        "GeForce GTX 780 Rev. 2"
       ]
     },
     {
@@ -3610,7 +3720,8 @@
       "name": "NVIDIA GeForce GTX 780M",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce GTX 780M"
+        "GeForce GTX 780M",
+        "GeForce GTX 780M Mac Edition"
       ]
     },
     {
@@ -3738,7 +3849,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce GTX 980",
-        "GTX 980"
+        "GTX 980",
+        "GeForce GTX 980 Mobile"
       ]
     },
     {
@@ -3974,7 +4086,9 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 2060",
-        "RTX 2060"
+        "RTX 2060",
+        "GeForce RTX 2060 Rev. A",
+        "GeForce RTX 2060 Mobile"
       ]
     },
     {
@@ -3991,7 +4105,8 @@
       "name": "NVIDIA GeForce RTX 2060 with Max-Q Design",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce RTX 2060 with Max-Q Design"
+        "GeForce RTX 2060 with Max-Q Design",
+        "GeForce RTX 2060 Max-Q"
       ]
     },
     {
@@ -4000,7 +4115,11 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 2070",
-        "RTX 2070"
+        "RTX 2070",
+        "GeForce RTX 2070 Rev. A",
+        "GeForce RTX 2070 Mobile",
+        "GeForce RTX 2070 Mobile / Max-Q Refresh",
+        "GeForce RTX 2070 Mobile / Max-Q"
       ]
     },
     {
@@ -4009,7 +4128,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 2070 SUPER",
-        "RTX 2070 Super"
+        "RTX 2070 Super",
+        "GeForce RTX 2070 SUPER Mobile / Max-Q"
       ]
     },
     {
@@ -4034,7 +4154,9 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 2080",
-        "RTX 2080"
+        "RTX 2080",
+        "GeForce RTX 2080 Rev. A",
+        "GeForce RTX 2080 Mobile"
       ]
     },
     {
@@ -4043,7 +4165,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 2080 SUPER",
-        "RTX 2080 Super"
+        "RTX 2080 Super",
+        "GeForce RTX 2080 SUPER Mobile / Max-Q"
       ]
     },
     {
@@ -4060,7 +4183,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 2080 Ti",
-        "RTX 2080 Ti"
+        "RTX 2080 Ti",
+        "GeForce RTX 2080 Ti Rev. A"
       ]
     },
     {
@@ -4151,7 +4275,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 3050 Laptop GPU",
-        "RTX 3050 Laptop GPU"
+        "RTX 3050 Laptop GPU",
+        "GeForce RTX 3050 Mobile"
       ]
     },
     {
@@ -4167,7 +4292,9 @@
       "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce RTX 3050 Ti Laptop GPU"
+        "GeForce RTX 3050 Ti Laptop GPU",
+        "GeForce RTX 3050 Ti Mobile / Max-Q",
+        "GeForce RTX 3050 Ti Mobile"
       ]
     },
     {
@@ -4176,7 +4303,9 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 3060",
-        "RTX 3060"
+        "RTX 3060",
+        "GeForce RTX 3060 Lite Hash Rate",
+        "GeForce RTX 3060 12GB Rev. 2"
       ]
     },
     {
@@ -4205,7 +4334,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 3060 Laptop GPU",
-        "RTX 3060 Laptop GPU"
+        "RTX 3060 Laptop GPU",
+        "GeForce RTX 3060 Mobile / Max-Q"
       ]
     },
     {
@@ -4214,7 +4344,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 3060 Ti",
-        "RTX 3060 Ti"
+        "RTX 3060 Ti",
+        "GeForce RTX 3060 Ti Lite Hash Rate"
       ]
     },
     {
@@ -4223,7 +4354,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 3070",
-        "RTX 3070"
+        "RTX 3070",
+        "GeForce RTX 3070 Lite Hash Rate"
       ]
     },
     {
@@ -4242,7 +4374,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 3070 Laptop GPU",
-        "RTX 3070 Laptop GPU"
+        "RTX 3070 Laptop GPU",
+        "GeForce RTX 3070 Mobile / Max-Q"
       ]
     },
     {
@@ -4269,7 +4402,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 3080",
-        "RTX 3080"
+        "RTX 3080",
+        "GeForce RTX 3080 Lite Hash Rate"
       ]
     },
     {
@@ -4288,7 +4422,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 3080 Laptop GPU",
-        "RTX 3080 Laptop GPU"
+        "RTX 3080 Laptop GPU",
+        "GeForce RTX 3080 Mobile / Max-Q 8GB/16GB"
       ]
     },
     {
@@ -4306,7 +4441,8 @@
       "vendor": "NVIDIA",
       "aliases": [
         "GeForce RTX 3080 Ti Laptop GPU",
-        "RTX 3080 Ti Laptop GPU"
+        "RTX 3080 Ti Laptop GPU",
+        "GeForce RTX 3080 Ti Mobile"
       ]
     },
     {
@@ -4374,7 +4510,8 @@
         "NVIDIA GeForce RTX 4050 Mobile",
         "GeForce RTX 4050 Mobile",
         "NVIDIA GeForce RTX 4050 Max-Q",
-        "GeForce RTX 4050 Max-Q"
+        "GeForce RTX 4050 Max-Q",
+        "GeForce RTX 4050 Max-Q / Mobile"
       ]
     },
     {
@@ -4404,7 +4541,8 @@
         "NVIDIA GeForce RTX 4060 Mobile",
         "GeForce RTX 4060 Mobile",
         "NVIDIA GeForce RTX 4060 Max-Q",
-        "GeForce RTX 4060 Max-Q"
+        "GeForce RTX 4060 Max-Q",
+        "GeForce RTX 4060 Max-Q / Mobile"
       ]
     },
     {
@@ -4480,7 +4618,8 @@
         "NVIDIA GeForce RTX 4070 Mobile",
         "GeForce RTX 4070 Mobile",
         "NVIDIA GeForce RTX 4070 Max-Q",
-        "GeForce RTX 4070 Max-Q"
+        "GeForce RTX 4070 Max-Q",
+        "GeForce RTX 4070 Max-Q / Mobile"
       ]
     },
     {
@@ -4538,7 +4677,8 @@
         "NVIDIA GeForce RTX 4080 Mobile",
         "GeForce RTX 4080 Mobile",
         "NVIDIA GeForce RTX 4080 Max-Q",
-        "GeForce RTX 4080 Max-Q"
+        "GeForce RTX 4080 Max-Q",
+        "GeForce RTX 4080 Max-Q / Mobile"
       ]
     },
     {
@@ -4615,7 +4755,8 @@
         "NVIDIA GeForce RTX 5050 Laptop",
         "GeForce RTX 5050 Laptop",
         "NVIDIA GeForce RTX 5050 Mobile",
-        "GeForce RTX 5050 Mobile"
+        "GeForce RTX 5050 Mobile",
+        "GeForce RTX 5050 Max-Q / Mobile"
       ]
     },
     {
@@ -4636,7 +4777,8 @@
         "NVIDIA GeForce RTX 5060 Laptop",
         "GeForce RTX 5060 Laptop",
         "NVIDIA GeForce RTX 5060 Mobile",
-        "GeForce RTX 5060 Mobile"
+        "GeForce RTX 5060 Mobile",
+        "GeForce RTX 5060 Max-Q / Mobile"
       ]
     },
     {
@@ -4684,7 +4826,8 @@
         "RTX 5070 Laptop GPU",
         "NVIDIA GeForce RTX 5070 Laptop",
         "GeForce RTX 5070 Laptop",
-        "GeForce RTX 5070 Mobile"
+        "GeForce RTX 5070 Mobile",
+        "GeForce RTX 5070 Max-Q / Mobile"
       ]
     },
     {
@@ -4743,7 +4886,8 @@
         "RTX 5080 Laptop GPU",
         "NVIDIA GeForce RTX 5080 Laptop",
         "GeForce RTX 5080 Laptop",
-        "GeForce RTX 5080 Mobile"
+        "GeForce RTX 5080 Mobile",
+        "GeForce RTX 5080 Max-Q / Mobile"
       ]
     },
     {
@@ -4798,7 +4942,8 @@
         "RTX 5090 Laptop GPU",
         "NVIDIA GeForce RTX 5090 Laptop",
         "GeForce RTX 5090 Laptop",
-        "GeForce RTX 5090 Mobile"
+        "GeForce RTX 5090 Mobile",
+        "GeForce RTX 5090 Max-Q / Mobile"
       ]
     },
     {
@@ -4926,7 +5071,8 @@
       "name": "NVIDIA GeForce4 MX 420",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce4 MX 420"
+        "GeForce4 MX 420",
+        "GeForce4 MX 420 AGP 8x"
       ]
     },
     {
@@ -4942,7 +5088,8 @@
       "name": "NVIDIA GeForce4 MX 440",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce4 MX 440"
+        "GeForce4 MX 440",
+        "GeForce4 MX 440 AGP 8x"
       ]
     },
     {
@@ -4950,7 +5097,8 @@
       "name": "NVIDIA GeForce4 MX 440-SE",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce4 MX 440-SE"
+        "GeForce4 MX 440-SE",
+        "GeForce4 MX 440SE AGP 8x"
       ]
     },
     {
@@ -4990,7 +5138,8 @@
       "name": "NVIDIA GeForce4 Ti 4200",
       "vendor": "NVIDIA",
       "aliases": [
-        "GeForce4 Ti 4200"
+        "GeForce4 Ti 4200",
+        "GeForce4 Ti 4200 AGP 8x"
       ]
     },
     {
@@ -5111,7 +5260,8 @@
       "name": "NVIDIA H100 80GB HBM3",
       "vendor": "NVIDIA",
       "aliases": [
-        "H100 80GB HBM3"
+        "H100 80GB HBM3",
+        "H100 SXM5 80GB"
       ]
     },
     {
@@ -5354,7 +5504,8 @@
       "name": "NVIDIA Jetson T5000",
       "vendor": "NVIDIA",
       "aliases": [
-        "Jetson T5000"
+        "Jetson T5000",
+        "Jetson AGX Thor"
       ]
     },
     {
@@ -6548,7 +6699,8 @@
       "name": "NVIDIA Quadro M1200",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro M1200"
+        "Quadro M1200",
+        "Quadro M1200 Mobile"
       ]
     },
     {
@@ -6572,7 +6724,8 @@
       "name": "NVIDIA Quadro M2200",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro M2200"
+        "Quadro M2200",
+        "Quadro M2200 Mobile"
       ]
     },
     {
@@ -6644,7 +6797,8 @@
       "name": "NVIDIA Quadro M520",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro M520"
+        "Quadro M520",
+        "Quadro M520 Mobile"
       ]
     },
     {
@@ -6684,7 +6838,8 @@
       "name": "NVIDIA Quadro M620",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro M620"
+        "Quadro M620",
+        "Quadro M620 Mobile"
       ]
     },
     {
@@ -6836,7 +6991,8 @@
       "name": "NVIDIA Quadro P1000",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro P1000"
+        "Quadro P1000",
+        "Quadro P1000 Mobile"
       ]
     },
     {
@@ -6844,7 +7000,8 @@
       "name": "NVIDIA Quadro P2000",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro P2000"
+        "Quadro P2000",
+        "Quadro P2000 Mobile"
       ]
     },
     {
@@ -6868,7 +7025,8 @@
       "name": "NVIDIA Quadro P3000",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro P3000"
+        "Quadro P3000",
+        "Quadro P3000 Mobile"
       ]
     },
     {
@@ -6876,7 +7034,8 @@
       "name": "NVIDIA Quadro P3200",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro P3200"
+        "Quadro P3200",
+        "Quadro P3200 Mobile"
       ]
     },
     {
@@ -6900,7 +7059,8 @@
       "name": "NVIDIA Quadro P4000",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro P4000"
+        "Quadro P4000",
+        "Quadro P4000 Mobile"
       ]
     },
     {
@@ -6916,7 +7076,8 @@
       "name": "NVIDIA Quadro P4200",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro P4200"
+        "Quadro P4200",
+        "Quadro P4200 Mobile"
       ]
     },
     {
@@ -6932,7 +7093,8 @@
       "name": "NVIDIA Quadro P500",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro P500"
+        "Quadro P500",
+        "Quadro P500 Mobile"
       ]
     },
     {
@@ -6940,7 +7102,8 @@
       "name": "NVIDIA Quadro P5000",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro P5000"
+        "Quadro P5000",
+        "Quadro P5000 Mobile"
       ]
     },
     {
@@ -6956,7 +7119,8 @@
       "name": "NVIDIA Quadro P5200",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro P5200"
+        "Quadro P5200",
+        "Quadro P5200 Mobile"
       ]
     },
     {
@@ -6972,7 +7136,8 @@
       "name": "NVIDIA Quadro P600",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro P600"
+        "Quadro P600",
+        "Quadro P600 Mobile"
       ]
     },
     {
@@ -7004,7 +7169,9 @@
       "name": "NVIDIA Quadro RTX 3000",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro RTX 3000"
+        "Quadro RTX 3000",
+        "Quadro RTX 3000 Mobile / Max-Q",
+        "Quadro RTX 3000 Mobile Refresh"
       ]
     },
     {
@@ -7020,7 +7187,8 @@
       "name": "NVIDIA Quadro RTX 4000",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro RTX 4000"
+        "Quadro RTX 4000",
+        "Quadro RTX 4000 Mobile / Max-Q"
       ]
     },
     {
@@ -7036,7 +7204,9 @@
       "name": "NVIDIA Quadro RTX 5000",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro RTX 5000"
+        "Quadro RTX 5000",
+        "Quadro RTX 5000 Mobile / Max-Q",
+        "Quadro RTX 5000 Mobile Refresh"
       ]
     },
     {
@@ -7068,7 +7238,8 @@
       "name": "NVIDIA Quadro T1000",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro T1000"
+        "Quadro T1000",
+        "Quadro T1000 Mobile"
       ]
     },
     {
@@ -7084,7 +7255,8 @@
       "name": "NVIDIA Quadro T2000",
       "vendor": "NVIDIA",
       "aliases": [
-        "Quadro T2000"
+        "Quadro T2000",
+        "Quadro T2000 Mobile / Max-Q"
       ]
     },
     {
@@ -7482,7 +7654,8 @@
       "name": "NVIDIA RTX A2000 Laptop GPU",
       "vendor": "NVIDIA",
       "aliases": [
-        "RTX A2000 Laptop GPU"
+        "RTX A2000 Laptop GPU",
+        "RTX A2000 Mobile"
       ]
     },
     {
@@ -7498,7 +7671,8 @@
       "name": "NVIDIA RTX A3000 Laptop GPU",
       "vendor": "NVIDIA",
       "aliases": [
-        "RTX A3000 Laptop GPU"
+        "RTX A3000 Laptop GPU",
+        "RTX A3000 Mobile"
       ]
     },
     {
@@ -7523,7 +7697,8 @@
       "name": "NVIDIA RTX A4000 Laptop GPU",
       "vendor": "NVIDIA",
       "aliases": [
-        "RTX A4000 Laptop GPU"
+        "RTX A4000 Laptop GPU",
+        "RTX A4000 Mobile"
       ]
     },
     {
@@ -7587,7 +7762,8 @@
       "name": "NVIDIA RTX A5000 Laptop GPU",
       "vendor": "NVIDIA",
       "aliases": [
-        "RTX A5000 Laptop GPU"
+        "RTX A5000 Laptop GPU",
+        "RTX A5000 Mobile"
       ]
     },
     {
@@ -7969,7 +8145,8 @@
       "name": "NVIDIA T600 Laptop GPU",
       "vendor": "NVIDIA",
       "aliases": [
-        "T600 Laptop GPU"
+        "T600 Laptop GPU",
+        "T600 Mobile"
       ]
     },
     {
@@ -8455,6 +8632,774 @@
         "NVIDIA V100",
         "Tesla V100",
         "V100"
+      ]
+    },
+    {
+      "model_key": "nvidia-orin",
+      "name": "NVIDIA Orin",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Orin",
+        "Jetson Orin"
+      ]
+    },
+    {
+      "model_key": "nvidia-thor",
+      "name": "NVIDIA Thor",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Thor",
+        "Jetson Thor"
+      ]
+    },
+    {
+      "model_key": "nvidia-xavier",
+      "name": "NVIDIA Xavier",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Xavier",
+        "Jetson Xavier"
+      ]
+    },
+    {
+      "model_key": "nvidia-tegra-x1",
+      "name": "NVIDIA Tegra X1",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Tegra X1"
+      ]
+    },
+    {
+      "model_key": "nvidia-tegra-x2",
+      "name": "NVIDIA Tegra X2",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Tegra X2"
+      ]
+    },
+    {
+      "model_key": "nvidia-cmp-170hx",
+      "name": "NVIDIA CMP 170HX",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "CMP 170HX"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-256-sdr",
+      "name": "NVIDIA GeForce 256 SDR",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce 256 SDR"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-256-ddr",
+      "name": "NVIDIA GeForce 256 DDR",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce 256 DDR"
+      ]
+    },
+    {
+      "model_key": "nvidia-quadro",
+      "name": "NVIDIA Quadro",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Quadro"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce2-mx200",
+      "name": "NVIDIA GeForce2 MX200",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce2 MX200"
+      ]
+    },
+    {
+      "model_key": "nvidia-quadro-nvs",
+      "name": "NVIDIA Quadro NVS",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Quadro NVS"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce4-mx",
+      "name": "NVIDIA GeForce4 MX",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce4 MX"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce4-448-go",
+      "name": "NVIDIA GeForce4 448 Go",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce4 448 Go"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce4-488-go",
+      "name": "NVIDIA GeForce4 488 Go",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce4 488 Go"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce2-mx",
+      "name": "NVIDIA GeForce2 MX",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce2 MX"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-go-7450",
+      "name": "NVIDIA GeForce Go 7450",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce Go 7450"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce4-mx-igp",
+      "name": "NVIDIA GeForce4 MX IGP",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce4 MX IGP"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce4-ti",
+      "name": "NVIDIA GeForce4 Ti",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce4 Ti"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce4-ti-4200-go",
+      "name": "NVIDIA GeForce4 Ti 4200 Go",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce4 Ti 4200 Go",
+        "GeForce4 Ti 4200 Go AGP 8x"
+      ]
+    },
+    {
+      "model_key": "nvidia-quadro4-go700",
+      "name": "NVIDIA Quadro4 Go700",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Quadro4 Go700"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-fx",
+      "name": "NVIDIA GeForce FX",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce FX"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-fx-go5200-64m",
+      "name": "NVIDIA GeForce FX Go5200 64M",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce FX Go5200 64M"
+      ]
+    },
+    {
+      "model_key": "nvidia-quadro-nvs-280",
+      "name": "NVIDIA Quadro NVS 280",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Quadro NVS 280",
+        "Quadro NVS 280 PCI"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-go-7900-se",
+      "name": "NVIDIA GeForce Go 7900 SE",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce Go 7900 SE"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gt-330-oem",
+      "name": "NVIDIA GeForce GT 330 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GT 330 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gt-230-oem",
+      "name": "NVIDIA GeForce GT 230 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GT 230 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-9800-s",
+      "name": "NVIDIA GeForce 9800 S",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce 9800 S"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-9600-ge",
+      "name": "NVIDIA GeForce 9600 GE",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce 9600 GE"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-505",
+      "name": "NVIDIA GeForce 505",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce 505"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gts-450-oem",
+      "name": "NVIDIA GeForce GTS 450 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTS 450 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-460-oem",
+      "name": "NVIDIA GeForce GTX 460 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 460 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gt-640-oem",
+      "name": "NVIDIA GeForce GT 640 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GT 640 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gt-630-oem",
+      "name": "NVIDIA GeForce GT 630 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GT 630 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-nvs-1000",
+      "name": "NVIDIA NVS 1000",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "NVS 1000"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-titan-le",
+      "name": "NVIDIA GeForce GTX Titan LE",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX Titan LE"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-780-ti-6gb",
+      "name": "NVIDIA GeForce GTX 780 Ti 6GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 780 Ti 6GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-tesla-k40d",
+      "name": "NVIDIA Tesla K40d",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Tesla K40d"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gt-620-oem",
+      "name": "NVIDIA GeForce GT 620 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GT 620 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-quadro-nvs-4200m",
+      "name": "NVIDIA Quadro NVS 4200M",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Quadro NVS 4200M"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-560-ti-oem",
+      "name": "NVIDIA GeForce GTX 560 Ti OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 560 Ti OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-560-oem",
+      "name": "NVIDIA GeForce GTX 560 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 560 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-560-ti-448-cores",
+      "name": "NVIDIA GeForce GTX 560 Ti 448 Cores",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 560 Ti 448 Cores"
+      ]
+    },
+    {
+      "model_key": "nvidia-tesla-c2090",
+      "name": "NVIDIA Tesla C2090",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Tesla C2090"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-760-ti",
+      "name": "NVIDIA GeForce GTX 760 Ti",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 760 Ti"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-660-oem",
+      "name": "NVIDIA GeForce GTX 660 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 660 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-760-oem",
+      "name": "NVIDIA GeForce GTX 760 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 760 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-quadro-4100",
+      "name": "NVIDIA Quadro 4100",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Quadro 4100"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-650-ti-oem",
+      "name": "NVIDIA GeForce GTX 650 Ti OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 650 Ti OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-645-oem",
+      "name": "NVIDIA GeForce GTX 645 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 645 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-650-oem",
+      "name": "NVIDIA GeForce GTX 650 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 650 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gt-645-oem",
+      "name": "NVIDIA GeForce GT 645 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GT 645 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gt-545-oem",
+      "name": "NVIDIA GeForce GT 545 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GT 545 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gt-560m",
+      "name": "NVIDIA GeForce GT 560M",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GT 560M"
+      ]
+    },
+    {
+      "model_key": "nvidia-grid-m30",
+      "name": "NVIDIA GRID M30",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GRID M30"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-960-oem",
+      "name": "NVIDIA GeForce GTX 960 OEM",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 960 OEM"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-750-v2",
+      "name": "NVIDIA GeForce GTX 750 v2",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 750 v2"
+      ]
+    },
+    {
+      "model_key": "nvidia-cmp-100-100",
+      "name": "NVIDIA CMP 100-100",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "CMP 100-100"
+      ]
+    },
+    {
+      "model_key": "nvidia-tesla-p100-dgxs-16gb",
+      "name": "NVIDIA Tesla P100-DGXS-16GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Tesla P100-DGXS-16GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-grid-m3-3020",
+      "name": "NVIDIA GRID M3-3020",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GRID M3-3020"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-1080-ti-10gb",
+      "name": "NVIDIA GeForce GTX 1080 Ti 10GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 1080 Ti 10GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-tesla-p10",
+      "name": "NVIDIA Tesla P10",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Tesla P10"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-gtx-1050-3gb",
+      "name": "NVIDIA GeForce GTX 1050 3GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce GTX 1050 3GB",
+        "GeForce GTX 1050 3 GB Max-Q"
+      ]
+    },
+    {
+      "model_key": "nvidia-cmp-100-200",
+      "name": "NVIDIA CMP 100-200",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "CMP 100-200"
+      ]
+    },
+    {
+      "model_key": "nvidia-cmp-100-210",
+      "name": "NVIDIA CMP 100-210",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "CMP 100-210"
+      ]
+    },
+    {
+      "model_key": "nvidia-tesla-v100-dgxs-16gb",
+      "name": "NVIDIA Tesla V100 DGXS 16GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Tesla V100 DGXS 16GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-tesla-gv100-dgx1-v",
+      "name": "NVIDIA Tesla GV100 DGX1-V",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Tesla GV100 DGX1-V"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-rtx-2080-ti-12gb",
+      "name": "NVIDIA GeForce RTX 2080 Ti 12GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce RTX 2080 Ti 12GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-tesla-t10",
+      "name": "NVIDIA Tesla T10",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Tesla T10"
+      ]
+    },
+    {
+      "model_key": "nvidia-tesla-t40-24gb",
+      "name": "NVIDIA Tesla T40 24GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Tesla T40 24GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-rtx-2060-12gb",
+      "name": "NVIDIA GeForce RTX 2060 12GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce RTX 2060 12GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-quadro-t400",
+      "name": "NVIDIA Quadro T400",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Quadro T400",
+        "Quadro T400 Mobile"
+      ]
+    },
+    {
+      "model_key": "nvidia-quadro-t500",
+      "name": "NVIDIA Quadro T500",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "Quadro T500",
+        "Quadro T500 Mobile"
+      ]
+    },
+    {
+      "model_key": "nvidia-a100x",
+      "name": "NVIDIA A100X",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "A100X"
+      ]
+    },
+    {
+      "model_key": "nvidia-a30x",
+      "name": "NVIDIA A30X",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "A30X"
+      ]
+    },
+    {
+      "model_key": "nvidia-grid-a100a",
+      "name": "NVIDIA GRID A100A",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GRID A100A"
+      ]
+    },
+    {
+      "model_key": "nvidia-grid-a100b",
+      "name": "NVIDIA GRID A100B",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GRID A100B"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-rtx-3080-ti-20gb",
+      "name": "NVIDIA GeForce RTX 3080 Ti 20GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce RTX 3080 Ti 20GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-rtx-3080-12gb",
+      "name": "NVIDIA GeForce RTX 3080 12GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce RTX 3080 12GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-h100l-94gb",
+      "name": "NVIDIA H100L 94GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "H100L 94GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-h20b",
+      "name": "NVIDIA H20B",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "H20B"
+      ]
+    },
+    {
+      "model_key": "nvidia-h20-hbm3e",
+      "name": "NVIDIA H20 HBM3e",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "H20 HBM3e"
+      ]
+    },
+    {
+      "model_key": "nvidia-h800l-94gb",
+      "name": "NVIDIA H800L 94GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "H800L 94GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-h100-gh3",
+      "name": "NVIDIA H100 GH3",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "H100 GH3"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-rtx-3060-8gb",
+      "name": "NVIDIA GeForce RTX 3060 8GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce RTX 3060 8GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-rtx-3070-gddr6x",
+      "name": "NVIDIA GeForce RTX 3070 GDDR6X",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce RTX 3070 GDDR6X"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-rtx-3060-ti-gddr6x",
+      "name": "NVIDIA GeForce RTX 3060 Ti GDDR6X",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce RTX 3060 Ti GDDR6X"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-rtx-3050-8gb",
+      "name": "NVIDIA GeForce RTX 3050 8GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce RTX 3050 8GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-geforce-rtx-3050-4gb",
+      "name": "NVIDIA GeForce RTX 3050 4GB",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "GeForce RTX 3050 4GB"
+      ]
+    },
+    {
+      "model_key": "nvidia-rtx-titan-ada",
+      "name": "NVIDIA RTX TITAN Ada",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "RTX TITAN Ada"
+      ]
+    },
+    {
+      "model_key": "nvidia-l40g",
+      "name": "NVIDIA L40G",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "L40G"
+      ]
+    },
+    {
+      "model_key": "nvidia-l30",
+      "name": "NVIDIA L30",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "L30"
+      ]
+    },
+    {
+      "model_key": "nvidia-l40-cnx",
+      "name": "NVIDIA L40 CNX",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "L40 CNX"
+      ]
+    },
+    {
+      "model_key": "nvidia-l16",
+      "name": "NVIDIA L16",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "L16"
+      ]
+    },
+    {
+      "model_key": "nvidia-rtx-4000-ada-generation-embedded-gpu",
+      "name": "NVIDIA RTX 4000 Ada Generation Embedded GPU",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "RTX 4000 Ada Generation Embedded GPU"
+      ]
+    },
+    {
+      "model_key": "nvidia-rtx-3000-ada-generation-embedded-gpu",
+      "name": "NVIDIA RTX 3000 Ada Generation Embedded GPU",
+      "vendor": "NVIDIA",
+      "aliases": [
+        "RTX 3000 Ada Generation Embedded GPU"
       ]
     },
     {
@@ -9050,7 +9995,9 @@
         "Instinct MI300X",
         "MI300X",
         "AMD Instinct(TM) MI300X",
-        "Radeon Instinct MI300X"
+        "Radeon Instinct MI300X",
+        "Instinct MI300X VF",
+        "Instinct MI300X HF"
       ]
     },
     {
@@ -9071,7 +10018,8 @@
         "Instinct MI325X",
         "MI325X",
         "AMD Instinct(TM) MI325X",
-        "Radeon Instinct MI325X"
+        "Radeon Instinct MI325X",
+        "Instinct MI325X VF"
       ]
     },
     {
@@ -9263,7 +10211,8 @@
       "vendor": "AMD",
       "aliases": [
         "Radeon 610M",
-        "AMD Radeon(TM) 610M"
+        "AMD Radeon(TM) 610M",
+        "AMD Radeon 610M Graphics"
       ]
     },
     {
@@ -9299,7 +10248,8 @@
       "vendor": "AMD",
       "aliases": [
         "Radeon 660M",
-        "AMD Radeon(TM) 660M"
+        "AMD Radeon(TM) 660M",
+        "AMD Radeon 660M Graphics"
       ]
     },
     {
@@ -9308,7 +10258,8 @@
       "vendor": "AMD",
       "aliases": [
         "Radeon 680M",
-        "AMD Radeon(TM) 680M"
+        "AMD Radeon(TM) 680M",
+        "AMD Radeon 680M Graphics"
       ]
     },
     {
@@ -9393,7 +10344,8 @@
       "vendor": "AMD",
       "aliases": [
         "Radeon 820M",
-        "AMD Radeon(TM) 820M"
+        "AMD Radeon(TM) 820M",
+        "AMD Radeon 820M Graphics"
       ]
     },
     {
@@ -9426,7 +10378,8 @@
       "vendor": "AMD",
       "aliases": [
         "Radeon 880M",
-        "AMD Radeon(TM) 880M"
+        "AMD Radeon(TM) 880M",
+        "AMD Radeon 880M Graphics"
       ]
     },
     {
@@ -9435,7 +10388,8 @@
       "vendor": "AMD",
       "aliases": [
         "Radeon 890M",
-        "AMD Radeon(TM) 890M"
+        "AMD Radeon(TM) 890M",
+        "AMD Radeon 890M Graphics"
       ]
     },
     {
@@ -12457,7 +13411,8 @@
       "aliases": [
         "Radeon RX 460",
         "RX 460",
-        "Radeon(TM) RX 460"
+        "Radeon(TM) RX 460",
+        "Radeon RX 460 Graphics"
       ]
     },
     {
@@ -12467,7 +13422,8 @@
       "aliases": [
         "Radeon RX 470",
         "RX 470",
-        "Radeon(TM) RX 470"
+        "Radeon(TM) RX 470",
+        "Radeon RX 470 Graphics"
       ]
     },
     {
@@ -12485,7 +13441,8 @@
       "aliases": [
         "Radeon RX 480",
         "RX 480",
-        "AMD Radeon(TM) RX 480"
+        "AMD Radeon(TM) RX 480",
+        "Radeon RX 480 Graphics"
       ]
     },
     {
@@ -12533,7 +13490,8 @@
       "aliases": [
         "Radeon RX 550",
         "RX 550",
-        "Radeon(TM) RX 550"
+        "Radeon(TM) RX 550",
+        "Radeon RX 550 Series"
       ]
     },
     {
@@ -12597,7 +13555,8 @@
       "aliases": [
         "Radeon RX 560",
         "RX 560",
-        "Radeon(TM) RX 560"
+        "Radeon(TM) RX 560",
+        "Radeon RX 560 Series"
       ]
     },
     {
@@ -12669,7 +13628,8 @@
       "aliases": [
         "Radeon RX 570",
         "RX 570",
-        "Radeon(TM) RX 570"
+        "Radeon(TM) RX 570",
+        "Radeon RX 570 Series"
       ]
     },
     {
@@ -12735,7 +13695,8 @@
       "aliases": [
         "Radeon RX 580",
         "RX 580",
-        "Radeon(TM) RX 580"
+        "Radeon(TM) RX 580",
+        "Radeon RX 580 Series"
       ]
     },
     {
@@ -13781,7 +14742,8 @@
       "name": "ATI FireMV 2200",
       "vendor": "AMD",
       "aliases": [
-        "FireMV 2200"
+        "FireMV 2200",
+        "FireMV 2200 PCI"
       ]
     },
     {
@@ -14103,7 +15065,8 @@
       "name": "ATI Mobility Radeon 9200",
       "vendor": "AMD",
       "aliases": [
-        "Mobility Radeon 9200"
+        "Mobility Radeon 9200",
+        "Mobility Radeon 9200 AGP"
       ]
     },
     {
@@ -14767,7 +15730,8 @@
       "name": "ATI Radeon 9200 SE",
       "vendor": "AMD",
       "aliases": [
-        "Radeon 9200 SE"
+        "Radeon 9200 SE",
+        "Radeon 9200 SE PCI"
       ]
     },
     {
@@ -14911,7 +15875,9 @@
       "name": "ATI Radeon HD 2400 PRO",
       "vendor": "AMD",
       "aliases": [
-        "Radeon HD 2400 PRO"
+        "Radeon HD 2400 PRO",
+        "Radeon HD 2400 PRO AGP",
+        "Radeon HD 2400 PRO PCI"
       ]
     },
     {
@@ -14927,7 +15893,8 @@
       "name": "ATI Radeon HD 2600 PRO",
       "vendor": "AMD",
       "aliases": [
-        "Radeon HD 2600 PRO"
+        "Radeon HD 2600 PRO",
+        "Radeon HD 2600 PRO AGP"
       ]
     },
     {
@@ -14935,7 +15902,8 @@
       "name": "ATI Radeon HD 2600 XT",
       "vendor": "AMD",
       "aliases": [
-        "Radeon HD 2600 XT"
+        "Radeon HD 2600 XT",
+        "Radeon HD 2600 XT AGP"
       ]
     },
     {
@@ -14991,7 +15959,9 @@
       "name": "ATI Radeon HD 3450",
       "vendor": "AMD",
       "aliases": [
-        "Radeon HD 3450"
+        "Radeon HD 3450",
+        "Radeon HD 3450 AGP",
+        "Radeon HD 3450 PCI"
       ]
     },
     {
@@ -15031,7 +16001,8 @@
       "name": "ATI Radeon HD 3650",
       "vendor": "AMD",
       "aliases": [
-        "Radeon HD 3650"
+        "Radeon HD 3650",
+        "Radeon HD 3650 AGP"
       ]
     },
     {
@@ -15063,7 +16034,8 @@
       "name": "ATI Radeon HD 3850",
       "vendor": "AMD",
       "aliases": [
-        "Radeon HD 3850"
+        "Radeon HD 3850",
+        "Radeon HD 3850 AGP"
       ]
     },
     {
@@ -15655,7 +16627,8 @@
       "name": "ATI Radeon X800 GT",
       "vendor": "AMD",
       "aliases": [
-        "Radeon X800 GT"
+        "Radeon X800 GT",
+        "Radeon X800 GT AGP"
       ]
     },
     {
@@ -15687,7 +16660,8 @@
       "name": "ATI Radeon X800 XT",
       "vendor": "AMD",
       "aliases": [
-        "Radeon X800 XT"
+        "Radeon X800 XT",
+        "Radeon X800 XT AGP"
       ]
     },
     {
@@ -15695,7 +16669,8 @@
       "name": "ATI Radeon X800 XT Platinum Edition",
       "vendor": "AMD",
       "aliases": [
-        "Radeon X800 XT Platinum Edition"
+        "Radeon X800 XT Platinum Edition",
+        "Radeon X800 XT Platinum Edition AGP"
       ]
     },
     {
@@ -15703,7 +16678,8 @@
       "name": "ATI Radeon X850 XT",
       "vendor": "AMD",
       "aliases": [
-        "Radeon X850 XT"
+        "Radeon X850 XT",
+        "Radeon X850 XT AGP"
       ]
     },
     {
@@ -15711,7 +16687,8 @@
       "name": "ATI Radeon X850 XT Platinum Edition",
       "vendor": "AMD",
       "aliases": [
-        "Radeon X850 XT Platinum Edition"
+        "Radeon X850 XT Platinum Edition",
+        "Radeon X850 XT Platinum Edition AGP"
       ]
     },
     {
@@ -15744,6 +16721,613 @@
       "vendor": "AMD",
       "aliases": [
         "Radeon Xpress X1250"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-graphics",
+      "name": "AMD Radeon Graphics",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon Graphics"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-vega-7-graphics",
+      "name": "AMD Radeon Vega 7 Graphics",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon Vega 7 Graphics",
+        "Radeon Vega 7"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-rx-6500",
+      "name": "AMD Radeon RX 6500",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon RX 6500",
+        "RX 6500"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-rx-350",
+      "name": "AMD Radeon RX 350",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon RX 350"
+      ]
+    },
+    {
+      "model_key": "ati-mobility-igp-320m",
+      "name": "ATI Mobility IGP 320M",
+      "vendor": "AMD",
+      "aliases": [
+        "Mobility IGP 320M"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-igp-340",
+      "name": "ATI Radeon IGP 340",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon IGP 340"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-9700-pro",
+      "name": "ATI Radeon 9700 PRO",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon 9700 PRO"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-9500-pro",
+      "name": "ATI Radeon 9500 PRO",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon 9500 PRO"
+      ]
+    },
+    {
+      "model_key": "ati-all-in-wonder-radeon-8500-dv",
+      "name": "ATI All-In-Wonder Radeon 8500 DV",
+      "vendor": "AMD",
+      "aliases": [
+        "All-In-Wonder Radeon 8500 DV"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-igp-320m",
+      "name": "ATI Radeon IGP 320M",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon IGP 320M"
+      ]
+    },
+    {
+      "model_key": "ati-mobility-radeon-7000-igp",
+      "name": "ATI Mobility Radeon 7000 IGP",
+      "vendor": "AMD",
+      "aliases": [
+        "Mobility Radeon 7000 IGP"
+      ]
+    },
+    {
+      "model_key": "ati-3d-rage-pro",
+      "name": "ATI 3D Rage PRO",
+      "vendor": "AMD",
+      "aliases": [
+        "3D Rage PRO",
+        "3D Rage PRO AGP 2X",
+        "3D Rage PRO AGP 1X"
+      ]
+    },
+    {
+      "model_key": "ati-rage-xl",
+      "name": "ATI Rage XL",
+      "vendor": "AMD",
+      "aliases": [
+        "Rage XL",
+        "Rage XL PCI"
+      ]
+    },
+    {
+      "model_key": "ati-3d-rage-ii-dvd",
+      "name": "ATI 3D Rage II+ DVD",
+      "vendor": "AMD",
+      "aliases": [
+        "3D Rage II+ DVD"
+      ]
+    },
+    {
+      "model_key": "ati-3d-rage-iic",
+      "name": "ATI 3D Rage IIC",
+      "vendor": "AMD",
+      "aliases": [
+        "3D Rage IIC",
+        "3D Rage IIC PCI",
+        "3D Rage IIC AGP"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-x850",
+      "name": "ATI Radeon X850",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon X850",
+        "Radeon X850 AGP"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-x800-ve",
+      "name": "ATI Radeon X800 VE",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon X800 VE",
+        "Radeon X800 VE AGP"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-x850-pro",
+      "name": "ATI Radeon X850 PRO",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon X850 PRO",
+        "Radeon X850 PRO AGP"
+      ]
+    },
+    {
+      "model_key": "ati-3d-rage-lt-pro",
+      "name": "ATI 3D Rage LT PRO",
+      "vendor": "AMD",
+      "aliases": [
+        "3D Rage LT PRO",
+        "3D Rage LT PRO AGP",
+        "3D Rage LT PRO PCI"
+      ]
+    },
+    {
+      "model_key": "ati-rage-mobility-m1",
+      "name": "ATI Rage Mobility-M1",
+      "vendor": "AMD",
+      "aliases": [
+        "Rage Mobility-M1",
+        "Rage Mobility-M1 PCI"
+      ]
+    },
+    {
+      "model_key": "ati-firegl-x2",
+      "name": "ATI FireGL X2",
+      "vendor": "AMD",
+      "aliases": [
+        "FireGL X2",
+        "FireGL X2 AGP Pro"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-9800-pro",
+      "name": "ATI Radeon 9800 PRO",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon 9800 PRO"
+      ]
+    },
+    {
+      "model_key": "ati-rage-128-pro",
+      "name": "ATI Rage 128 PRO",
+      "vendor": "AMD",
+      "aliases": [
+        "Rage 128 PRO",
+        "Rage 128 PRO AGP 4X"
+      ]
+    },
+    {
+      "model_key": "ati-mobility-radeon-x600-se",
+      "name": "ATI Mobility Radeon X600 SE",
+      "vendor": "AMD",
+      "aliases": [
+        "Mobility Radeon X600 SE"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-x800-pro",
+      "name": "ATI Radeon X800 PRO",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon X800 PRO"
+      ]
+    },
+    {
+      "model_key": "ati-mobility-radeon-x700-xl",
+      "name": "ATI Mobility Radeon X700 XL",
+      "vendor": "AMD",
+      "aliases": [
+        "Mobility Radeon X700 XL"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-9100-igp",
+      "name": "ATI Radeon 9100 IGP",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon 9100 IGP"
+      ]
+    },
+    {
+      "model_key": "ati-mobility-radeon-9100-igp",
+      "name": "ATI Mobility Radeon 9100 IGP",
+      "vendor": "AMD",
+      "aliases": [
+        "Mobility Radeon 9100 IGP"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-9200-pro",
+      "name": "ATI Radeon 9200 PRO",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon 9200 PRO"
+      ]
+    },
+    {
+      "model_key": "ati-mobility-radeon-xpress-200",
+      "name": "ATI Mobility Radeon Xpress 200",
+      "vendor": "AMD",
+      "aliases": [
+        "Mobility Radeon Xpress 200"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-xpress-200",
+      "name": "ATI Radeon Xpress 200",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon Xpress 200"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-xpress-200m",
+      "name": "ATI Radeon Xpress 200M",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon Xpress 200M"
+      ]
+    },
+    {
+      "model_key": "ati-mobility-radeon-xpress-200m",
+      "name": "ATI Mobility Radeon Xpress 200M",
+      "vendor": "AMD",
+      "aliases": [
+        "Mobility Radeon Xpress 200M"
+      ]
+    },
+    {
+      "model_key": "ati-mobility-firegl-v5100",
+      "name": "ATI Mobility FireGL V5100",
+      "vendor": "AMD",
+      "aliases": [
+        "Mobility FireGL V5100"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-x850-se",
+      "name": "ATI Radeon X850 SE",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon X850 SE"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-x700-pro",
+      "name": "ATI Radeon X700 PRO",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon X700 PRO"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-hd-8930m",
+      "name": "AMD Radeon HD 8930M",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon HD 8930M"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-hd-7450a",
+      "name": "AMD Radeon HD 7450A",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon HD 7450A"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-pro-v5300x",
+      "name": "AMD Radeon Pro V5300X",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon Pro V5300X"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-r9-255-oem",
+      "name": "AMD Radeon R9 255 OEM",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon R9 255 OEM"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-v7800",
+      "name": "AMD FirePro V7800",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro V7800"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-v5800",
+      "name": "AMD FirePro V5800",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro V5800"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-hd-5670-640sp-edition",
+      "name": "AMD Radeon HD 5670 640SP Edition",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon HD 5670 640SP Edition"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-v4800",
+      "name": "AMD FirePro V4800",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro V4800"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-v3800",
+      "name": "AMD FirePro V3800",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro V3800"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-s7150v",
+      "name": "AMD FirePro S7150V",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro S7150V"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-r9-380-4gb",
+      "name": "AMD Radeon R9 380 4GB",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon R9 380 4GB"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-rx-vega-m-gh",
+      "name": "AMD Radeon RX Vega M GH",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon RX Vega M GH"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-rx-vega-m-gl",
+      "name": "AMD Radeon RX Vega M GL",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon RX Vega M GL"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-pro-wx-vega-m-gl",
+      "name": "AMD Radeon Pro WX Vega M GL",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon Pro WX Vega M GL"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-x1550-64-bit",
+      "name": "ATI Radeon X1550 64-bit",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon X1550 64-bit"
+      ]
+    },
+    {
+      "model_key": "ati-firemv-2250",
+      "name": "ATI FireMV 2250",
+      "vendor": "AMD",
+      "aliases": [
+        "FireMV 2250"
+      ]
+    },
+    {
+      "model_key": "ati-mobility-radeon-x2300-hd",
+      "name": "ATI Mobility Radeon X2300 HD",
+      "vendor": "AMD",
+      "aliases": [
+        "Mobility Radeon X2300 HD"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-pro-w5300m",
+      "name": "AMD Radeon Pro W5300M",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon Pro W5300M"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-rx-7500",
+      "name": "AMD Radeon RX 7500",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon RX 7500"
+      ]
+    },
+    {
+      "model_key": "ati-mobility-radeon-9000-igp",
+      "name": "ATI Mobility Radeon 9000 IGP",
+      "vendor": "AMD",
+      "aliases": [
+        "Mobility Radeon 9000 IGP"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-x1200",
+      "name": "ATI Radeon X1200",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon X1200"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-xpress-1250",
+      "name": "ATI Radeon Xpress 1250",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon Xpress 1250"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-2100",
+      "name": "ATI Radeon 2100",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon 2100"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-v8750",
+      "name": "AMD FirePro V8750",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro V8750"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-v7760",
+      "name": "AMD FirePro V7760",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro V7760"
+      ]
+    },
+    {
+      "model_key": "ati-mobility-radeon-hd-4850-x2",
+      "name": "ATI Mobility Radeon HD 4850 X2",
+      "vendor": "AMD",
+      "aliases": [
+        "Mobility Radeon HD 4850 X2"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-hd-4710",
+      "name": "ATI Radeon HD 4710",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon HD 4710"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-m7750",
+      "name": "AMD FirePro M7750",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro M7750"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-v7750",
+      "name": "AMD FirePro V7750",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro V7750"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-v5700",
+      "name": "AMD FirePro V5700",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro V5700"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-v3750",
+      "name": "AMD FirePro V3750",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro V3750"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-hd-2400-le",
+      "name": "ATI Radeon HD 2400 LE",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon HD 2400 LE"
+      ]
+    },
+    {
+      "model_key": "ati-radeon-hd-2600-x2",
+      "name": "ATI Radeon HD 2600 X2",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon HD 2600 X2"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-v3700",
+      "name": "AMD FirePro V3700",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro V3700"
+      ]
+    },
+    {
+      "model_key": "amd-firepro-2260",
+      "name": "AMD FirePro 2260",
+      "vendor": "AMD",
+      "aliases": [
+        "FirePro 2260"
+      ]
+    },
+    {
+      "model_key": "ati-mobility-radeon-hd-4100",
+      "name": "ATI Mobility Radeon HD 4100",
+      "vendor": "AMD",
+      "aliases": [
+        "Mobility Radeon HD 4100"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-hd-8310e",
+      "name": "AMD Radeon HD 8310E",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon HD 8310E"
+      ]
+    },
+    {
+      "model_key": "amd-radeon-r3e-graphics",
+      "name": "AMD Radeon R3E Graphics",
+      "vendor": "AMD",
+      "aliases": [
+        "Radeon R3E Graphics"
       ]
     },
     {
@@ -15796,7 +17380,9 @@
         "A310",
         "Intel Arc A310 Graphics",
         "Arc A310 Graphics",
-        "Intel(R) Arc(TM) A310 Graphics"
+        "Intel(R) Arc(TM) A310 Graphics",
+        "Intel Arc A310 LP Graphics",
+        "Arc A310 LP Graphics"
       ]
     },
     {
@@ -15827,7 +17413,8 @@
       "vendor": "Intel",
       "aliases": [
         "Arc A350M Graphics",
-        "Intel(R) Arc(TM) A350M Graphics"
+        "Intel(R) Arc(TM) A350M Graphics",
+        "Arc A350M"
       ]
     },
     {
@@ -15847,7 +17434,8 @@
       "vendor": "Intel",
       "aliases": [
         "Arc A370M Graphics",
-        "Intel(R) Arc(TM) A370M Graphics"
+        "Intel(R) Arc(TM) A370M Graphics",
+        "Arc A370M"
       ]
     },
     {
@@ -15991,7 +17579,8 @@
       "aliases": [
         "Arc B370 GPU",
         "Intel(R) Arc(TM) B370 GPU",
-        "Intel Arc B370 10 Xe3 Panther Lake iGPU"
+        "Intel Arc B370 10 Xe3 Panther Lake iGPU",
+        "Arc B370"
       ]
     },
     {
@@ -16001,7 +17590,8 @@
       "aliases": [
         "Arc B390 GPU",
         "Intel(R) Arc(TM) B390 GPU",
-        "Intel Arc B390 12 Xe3 Panther Lake iGPU"
+        "Intel Arc B390 12 Xe3 Panther Lake iGPU",
+        "Arc B390"
       ]
     },
     {
@@ -16993,7 +18583,8 @@
       "vendor": "Intel",
       "aliases": [
         "Iris Xe MAX 100 Graphics",
-        "Intel(R) Iris(R) Xe MAX 100 Graphics"
+        "Intel(R) Iris(R) Xe MAX 100 Graphics",
+        "Iris Xe MAX 100"
       ]
     },
     {
@@ -17151,6 +18742,1437 @@
       "aliases": [
         "UHD Graphics P750",
         "Intel(R) UHD Graphics P750"
+      ]
+    },
+    {
+      "model_key": "intel-arc-pro-130t-gpu",
+      "name": "Intel Arc Pro 130T GPU",
+      "vendor": "Intel",
+      "aliases": [
+        "Arc Pro 130T GPU",
+        "Intel Arc Pro 130T",
+        "Arc Pro 130T"
+      ]
+    },
+    {
+      "model_key": "intel-arc-pro-140t-gpu",
+      "name": "Intel Arc Pro 140T GPU",
+      "vendor": "Intel",
+      "aliases": [
+        "Arc Pro 140T GPU",
+        "Intel Arc Pro 140T",
+        "Arc Pro 140T"
+      ]
+    },
+    {
+      "model_key": "intel-graphics",
+      "name": "Intel Graphics",
+      "vendor": "Intel",
+      "aliases": [
+        "Intel Graphics"
+      ]
+    },
+    {
+      "model_key": "intel-data-center-gpu-max-1450",
+      "name": "Intel Data Center GPU Max 1450",
+      "vendor": "Intel",
+      "aliases": [
+        "Data Center GPU Max 1450"
+      ]
+    },
+    {
+      "model_key": "intel-data-center-gpu-max-1100c",
+      "name": "Intel Data Center GPU Max 1100C",
+      "vendor": "Intel",
+      "aliases": [
+        "Data Center GPU Max 1100C"
+      ]
+    },
+    {
+      "model_key": "intel-data-center-gpu-max-1550vg",
+      "name": "Intel Data Center GPU Max 1550VG",
+      "vendor": "Intel",
+      "aliases": [
+        "Data Center GPU Max 1550VG"
+      ]
+    },
+    {
+      "model_key": "intel-uhd-graphics-gen11-16eu",
+      "name": "Intel UHD Graphics Gen11 16EU",
+      "vendor": "Intel",
+      "aliases": [
+        "UHD Graphics Gen11 16EU"
+      ]
+    },
+    {
+      "model_key": "intel-uhd-graphics-gen11-32eu",
+      "name": "Intel UHD Graphics Gen11 32EU",
+      "vendor": "Intel",
+      "aliases": [
+        "UHD Graphics Gen11 32EU"
+      ]
+    },
+    {
+      "model_key": "intel-arc-a750e",
+      "name": "Intel Arc A750E",
+      "vendor": "Intel",
+      "aliases": [
+        "Arc A750E"
+      ]
+    },
+    {
+      "model_key": "intel-arc-a580e",
+      "name": "Intel Arc A580E",
+      "vendor": "Intel",
+      "aliases": [
+        "Arc A580E"
+      ]
+    },
+    {
+      "model_key": "intel-uhd-graphics-g1",
+      "name": "Intel UHD Graphics G1",
+      "vendor": "Intel",
+      "aliases": [
+        "UHD Graphics G1"
+      ]
+    },
+    {
+      "model_key": "intel-uhd-graphics-g4",
+      "name": "Intel UHD Graphics G4",
+      "vendor": "Intel",
+      "aliases": [
+        "UHD Graphics G4"
+      ]
+    },
+    {
+      "model_key": "apple-m1",
+      "name": "Apple M1",
+      "vendor": "Apple",
+      "aliases": [
+        "M1",
+        "M1 GPU",
+        "Apple M1 GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m1-pro",
+      "name": "Apple M1 Pro",
+      "vendor": "Apple",
+      "aliases": [
+        "M1 Pro",
+        "M1 Pro GPU",
+        "Apple M1 Pro GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m1-max",
+      "name": "Apple M1 Max",
+      "vendor": "Apple",
+      "aliases": [
+        "M1 Max",
+        "M1 Max GPU",
+        "Apple M1 Max GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m1-ultra",
+      "name": "Apple M1 Ultra",
+      "vendor": "Apple",
+      "aliases": [
+        "M1 Ultra",
+        "M1 Ultra GPU",
+        "Apple M1 Ultra GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m2",
+      "name": "Apple M2",
+      "vendor": "Apple",
+      "aliases": [
+        "M2",
+        "M2 GPU",
+        "Apple M2 GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m2-pro",
+      "name": "Apple M2 Pro",
+      "vendor": "Apple",
+      "aliases": [
+        "M2 Pro",
+        "M2 Pro GPU",
+        "Apple M2 Pro GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m2-max",
+      "name": "Apple M2 Max",
+      "vendor": "Apple",
+      "aliases": [
+        "M2 Max",
+        "M2 Max GPU",
+        "Apple M2 Max GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m2-ultra",
+      "name": "Apple M2 Ultra",
+      "vendor": "Apple",
+      "aliases": [
+        "M2 Ultra",
+        "M2 Ultra GPU",
+        "Apple M2 Ultra GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m3",
+      "name": "Apple M3",
+      "vendor": "Apple",
+      "aliases": [
+        "M3",
+        "M3 GPU",
+        "Apple M3 GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m3-pro",
+      "name": "Apple M3 Pro",
+      "vendor": "Apple",
+      "aliases": [
+        "M3 Pro",
+        "M3 Pro GPU",
+        "Apple M3 Pro GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m3-max",
+      "name": "Apple M3 Max",
+      "vendor": "Apple",
+      "aliases": [
+        "M3 Max",
+        "M3 Max GPU",
+        "Apple M3 Max GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m3-ultra",
+      "name": "Apple M3 Ultra",
+      "vendor": "Apple",
+      "aliases": [
+        "M3 Ultra",
+        "M3 Ultra GPU",
+        "Apple M3 Ultra GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m4",
+      "name": "Apple M4",
+      "vendor": "Apple",
+      "aliases": [
+        "M4",
+        "M4 GPU",
+        "Apple M4 GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m4-pro",
+      "name": "Apple M4 Pro",
+      "vendor": "Apple",
+      "aliases": [
+        "M4 Pro",
+        "M4 Pro GPU",
+        "Apple M4 Pro GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m4-max",
+      "name": "Apple M4 Max",
+      "vendor": "Apple",
+      "aliases": [
+        "M4 Max",
+        "M4 Max GPU",
+        "Apple M4 Max GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m5",
+      "name": "Apple M5",
+      "vendor": "Apple",
+      "aliases": [
+        "M5",
+        "M5 GPU",
+        "Apple M5 GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m5-pro",
+      "name": "Apple M5 Pro",
+      "vendor": "Apple",
+      "aliases": [
+        "M5 Pro",
+        "M5 Pro GPU",
+        "Apple M5 Pro GPU"
+      ]
+    },
+    {
+      "model_key": "apple-m5-max",
+      "name": "Apple M5 Max",
+      "vendor": "Apple",
+      "aliases": [
+        "M5 Max",
+        "M5 Max GPU",
+        "Apple M5 Max GPU"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-305",
+      "name": "Qualcomm Adreno 305",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 305",
+        "Adreno 305 GPU",
+        "Turnip Adreno 305",
+        "FD305"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-306",
+      "name": "Qualcomm Adreno 306",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 306",
+        "Adreno 306 GPU",
+        "Turnip Adreno 306",
+        "FD306"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-308",
+      "name": "Qualcomm Adreno 308",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 308",
+        "Adreno 308 GPU",
+        "Turnip Adreno 308",
+        "FD308"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-320",
+      "name": "Qualcomm Adreno 320",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 320",
+        "Adreno 320 GPU",
+        "Turnip Adreno 320",
+        "FD320"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-330",
+      "name": "Qualcomm Adreno 330",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 330",
+        "Adreno 330 GPU",
+        "Turnip Adreno 330",
+        "FD330"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-405",
+      "name": "Qualcomm Adreno 405",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 405",
+        "Adreno 405 GPU",
+        "Turnip Adreno 405",
+        "FD405"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-418",
+      "name": "Qualcomm Adreno 418",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 418",
+        "Adreno 418 GPU",
+        "Turnip Adreno 418",
+        "FD418"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-420",
+      "name": "Qualcomm Adreno 420",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 420",
+        "Adreno 420 GPU",
+        "Turnip Adreno 420",
+        "FD420"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-430",
+      "name": "Qualcomm Adreno 430",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 430",
+        "Adreno 430 GPU",
+        "Turnip Adreno 430",
+        "FD430"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-505",
+      "name": "Qualcomm Adreno 505",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 505",
+        "Adreno 505 GPU",
+        "Turnip Adreno 505",
+        "FD505"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-506",
+      "name": "Qualcomm Adreno 506",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 506",
+        "Adreno 506 GPU",
+        "Turnip Adreno 506",
+        "FD506"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-508",
+      "name": "Qualcomm Adreno 508",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 508",
+        "Adreno 508 GPU",
+        "Turnip Adreno 508",
+        "FD508"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-509",
+      "name": "Qualcomm Adreno 509",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 509",
+        "Adreno 509 GPU",
+        "Turnip Adreno 509",
+        "FD509"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-510",
+      "name": "Qualcomm Adreno 510",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 510",
+        "Adreno 510 GPU",
+        "Turnip Adreno 510",
+        "FD510"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-512",
+      "name": "Qualcomm Adreno 512",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 512",
+        "Adreno 512 GPU",
+        "Turnip Adreno 512",
+        "FD512"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-530",
+      "name": "Qualcomm Adreno 530",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 530",
+        "Adreno 530 GPU",
+        "Turnip Adreno 530",
+        "FD530"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-540",
+      "name": "Qualcomm Adreno 540",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 540",
+        "Adreno 540 GPU",
+        "Turnip Adreno 540",
+        "FD540"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-610",
+      "name": "Qualcomm Adreno 610",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 610",
+        "Adreno 610 GPU",
+        "Turnip Adreno 610",
+        "FD610"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-612",
+      "name": "Qualcomm Adreno 612",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 612",
+        "Adreno 612 GPU",
+        "Turnip Adreno 612",
+        "FD612"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-613",
+      "name": "Qualcomm Adreno 613",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 613",
+        "Adreno 613 GPU",
+        "Turnip Adreno 613",
+        "FD613"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-615",
+      "name": "Qualcomm Adreno 615",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 615",
+        "Adreno 615 GPU",
+        "Turnip Adreno 615",
+        "FD615"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-616",
+      "name": "Qualcomm Adreno 616",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 616",
+        "Adreno 616 GPU",
+        "Turnip Adreno 616",
+        "FD616"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-618",
+      "name": "Qualcomm Adreno 618",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 618",
+        "Adreno 618 GPU",
+        "Turnip Adreno 618",
+        "FD618"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-619",
+      "name": "Qualcomm Adreno 619",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 619",
+        "Adreno 619 GPU",
+        "Turnip Adreno 619",
+        "FD619"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-620",
+      "name": "Qualcomm Adreno 620",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 620",
+        "Adreno 620 GPU",
+        "Turnip Adreno 620",
+        "FD620"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-630",
+      "name": "Qualcomm Adreno 630",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 630",
+        "Adreno 630 GPU",
+        "Turnip Adreno 630",
+        "FD630"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-640",
+      "name": "Qualcomm Adreno 640",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 640",
+        "Adreno 640 GPU",
+        "Turnip Adreno 640",
+        "FD640"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-642",
+      "name": "Qualcomm Adreno 642",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 642",
+        "Adreno 642 GPU",
+        "Turnip Adreno 642",
+        "FD642"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-642l",
+      "name": "Qualcomm Adreno 642L",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 642L",
+        "Adreno 642L GPU",
+        "Turnip Adreno 642L",
+        "FD642L"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-643",
+      "name": "Qualcomm Adreno 643",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 643",
+        "Adreno 643 GPU",
+        "Turnip Adreno 643",
+        "FD643"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-644",
+      "name": "Qualcomm Adreno 644",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 644",
+        "Adreno 644 GPU",
+        "Turnip Adreno 644",
+        "FD644"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-650",
+      "name": "Qualcomm Adreno 650",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 650",
+        "Adreno 650 GPU",
+        "Turnip Adreno 650",
+        "FD650"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-660",
+      "name": "Qualcomm Adreno 660",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 660",
+        "Adreno 660 GPU",
+        "Turnip Adreno 660",
+        "FD660",
+        "Adreno660v2"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-680",
+      "name": "Qualcomm Adreno 680",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 680",
+        "Adreno 680 GPU",
+        "Turnip Adreno 680",
+        "FD680"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-685",
+      "name": "Qualcomm Adreno 685",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 685",
+        "Adreno 685 GPU",
+        "Turnip Adreno 685",
+        "FD685"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-690",
+      "name": "Qualcomm Adreno 690",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 690",
+        "Adreno 690 GPU",
+        "Turnip Adreno 690",
+        "FD690"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-702",
+      "name": "Qualcomm Adreno 702",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 702",
+        "Adreno 702 GPU",
+        "Turnip Adreno 702",
+        "FD702"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-710",
+      "name": "Qualcomm Adreno 710",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 710",
+        "Adreno 710 GPU",
+        "Turnip Adreno 710",
+        "FD710"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-720",
+      "name": "Qualcomm Adreno 720",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 720",
+        "Adreno 720 GPU",
+        "Turnip Adreno 720",
+        "FD720"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-722",
+      "name": "Qualcomm Adreno 722",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 722",
+        "Adreno 722 GPU",
+        "Turnip Adreno 722",
+        "FD722"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-725",
+      "name": "Qualcomm Adreno 725",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 725",
+        "Adreno 725 GPU",
+        "Turnip Adreno 725",
+        "FD725"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-730",
+      "name": "Qualcomm Adreno 730",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 730",
+        "Adreno 730 GPU",
+        "Turnip Adreno 730",
+        "FD730"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-732",
+      "name": "Qualcomm Adreno 732",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 732",
+        "Adreno 732 GPU",
+        "Turnip Adreno 732",
+        "FD732"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-735",
+      "name": "Qualcomm Adreno 735",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 735",
+        "Adreno 735 GPU",
+        "Turnip Adreno 735",
+        "FD735"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-740",
+      "name": "Qualcomm Adreno 740",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 740",
+        "Adreno 740 GPU",
+        "Turnip Adreno 740",
+        "FD740"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-750",
+      "name": "Qualcomm Adreno 750",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 750",
+        "Adreno 750 GPU",
+        "Turnip Adreno 750",
+        "FD750"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-810",
+      "name": "Qualcomm Adreno 810",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 810",
+        "Adreno 810 GPU",
+        "Turnip Adreno 810",
+        "FD810"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-825",
+      "name": "Qualcomm Adreno 825",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 825",
+        "Adreno 825 GPU",
+        "Turnip Adreno 825",
+        "FD825"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-830",
+      "name": "Qualcomm Adreno 830",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 830",
+        "Adreno 830 GPU",
+        "Turnip Adreno 830",
+        "FD830"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-840",
+      "name": "Qualcomm Adreno 840",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 840",
+        "Adreno 840 GPU",
+        "Turnip Adreno 840",
+        "FD840"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-x1-45",
+      "name": "Qualcomm Adreno X1-45",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno X1-45",
+        "Adreno X1-45 GPU",
+        "Turnip Adreno X1-45",
+        "FD X1-45"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-x1-85",
+      "name": "Qualcomm Adreno X1-85",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno X1-85",
+        "Adreno X1-85 GPU",
+        "Turnip Adreno X1-85",
+        "FD X1-85"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-x2-45",
+      "name": "Qualcomm Adreno X2-45",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno X2-45",
+        "Adreno X2-45 GPU",
+        "Turnip Adreno X2-45",
+        "FD X2-45"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-x2-85",
+      "name": "Qualcomm Adreno X2-85",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno X2-85",
+        "Adreno X2-85 GPU",
+        "Turnip Adreno X2-85",
+        "FD X2-85"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-x2-90",
+      "name": "Qualcomm Adreno X2-90",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno X2-90",
+        "Adreno X2-90 GPU",
+        "Turnip Adreno X2-90",
+        "FD X2-90"
+      ]
+    },
+    {
+      "model_key": "qualcomm-adreno-8cx-gen-3",
+      "name": "Qualcomm Adreno 8cx Gen 3",
+      "vendor": "Qualcomm",
+      "aliases": [
+        "Adreno 8cx Gen 3",
+        "Adreno 8cx Gen 3 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-400",
+      "name": "Arm Mali-400",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-400",
+        "Mali-400 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-450",
+      "name": "Arm Mali-450",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-450",
+        "Mali-450 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-470",
+      "name": "Arm Mali-470",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-470",
+        "Mali-470 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-t604",
+      "name": "Arm Mali-T604",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-T604",
+        "Mali-T604 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-t624",
+      "name": "Arm Mali-T624",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-T624",
+        "Mali-T624 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-t628",
+      "name": "Arm Mali-T628",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-T628",
+        "Mali-T628 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-t720",
+      "name": "Arm Mali-T720",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-T720",
+        "Mali-T720 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-t760",
+      "name": "Arm Mali-T760",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-T760",
+        "Mali-T760 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-t820",
+      "name": "Arm Mali-T820",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-T820",
+        "Mali-T820 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-t830",
+      "name": "Arm Mali-T830",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-T830",
+        "Mali-T830 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-t860",
+      "name": "Arm Mali-T860",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-T860",
+        "Mali-T860 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-t880",
+      "name": "Arm Mali-T880",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-T880",
+        "Mali-T880 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g31",
+      "name": "Arm Mali-G31",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G31",
+        "Mali-G31 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g51",
+      "name": "Arm Mali-G51",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G51",
+        "Mali-G51 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g52",
+      "name": "Arm Mali-G52",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G52",
+        "Mali-G52 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g57",
+      "name": "Arm Mali-G57",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G57",
+        "Mali-G57 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g68",
+      "name": "Arm Mali-G68",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G68",
+        "Mali-G68 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g71",
+      "name": "Arm Mali-G71",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G71",
+        "Mali-G71 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g72",
+      "name": "Arm Mali-G72",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G72",
+        "Mali-G72 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g76",
+      "name": "Arm Mali-G76",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G76",
+        "Mali-G76 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g77",
+      "name": "Arm Mali-G77",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G77",
+        "Mali-G77 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g78",
+      "name": "Arm Mali-G78",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G78",
+        "Mali-G78 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g78ae",
+      "name": "Arm Mali-G78AE",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G78AE",
+        "Mali-G78AE GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g310",
+      "name": "Arm Mali-G310",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G310",
+        "Mali-G310 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g510",
+      "name": "Arm Mali-G510",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G510",
+        "Mali-G510 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g610",
+      "name": "Arm Mali-G610",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G610",
+        "Mali-G610 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g615",
+      "name": "Arm Mali-G615",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G615",
+        "Mali-G615 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g620",
+      "name": "Arm Mali-G620",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G620",
+        "Mali-G620 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g625",
+      "name": "Arm Mali-G625",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G625",
+        "Mali-G625 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g710",
+      "name": "Arm Mali-G710",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G710",
+        "Mali-G710 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g715",
+      "name": "Arm Mali-G715",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G715",
+        "Mali-G715 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g720",
+      "name": "Arm Mali-G720",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G720",
+        "Mali-G720 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g725",
+      "name": "Arm Mali-G725",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G725",
+        "Mali-G725 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-immortalis-g715",
+      "name": "Arm Immortalis-G715",
+      "vendor": "Arm",
+      "aliases": [
+        "Immortalis-G715",
+        "Immortalis-G715 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-immortalis-g720",
+      "name": "Arm Immortalis-G720",
+      "vendor": "Arm",
+      "aliases": [
+        "Immortalis-G720",
+        "Immortalis-G720 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-immortalis-g925",
+      "name": "Arm Immortalis-G925",
+      "vendor": "Arm",
+      "aliases": [
+        "Immortalis-G925",
+        "Immortalis-G925 GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g1-pro",
+      "name": "Arm Mali-G1-Pro",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G1-Pro",
+        "Mali-G1-Pro GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g1-premium",
+      "name": "Arm Mali-G1-Premium",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G1-Premium",
+        "Mali-G1-Premium GPU"
+      ]
+    },
+    {
+      "model_key": "arm-mali-g1-ultra",
+      "name": "Arm Mali-G1-Ultra",
+      "vendor": "Arm",
+      "aliases": [
+        "Mali-G1-Ultra",
+        "Mali-G1-Ultra GPU"
+      ]
+    },
+    {
+      "model_key": "broadcom-videocore-iv",
+      "name": "Broadcom VideoCore IV",
+      "vendor": "Broadcom",
+      "aliases": [
+        "VideoCore IV",
+        "VideoCore 4",
+        "VC4 V3D 2.1"
+      ]
+    },
+    {
+      "model_key": "broadcom-videocore-vi",
+      "name": "Broadcom VideoCore VI",
+      "vendor": "Broadcom",
+      "aliases": [
+        "VideoCore VI",
+        "VideoCore 6",
+        "V3D 4.2"
+      ]
+    },
+    {
+      "model_key": "broadcom-videocore-vii",
+      "name": "Broadcom VideoCore VII",
+      "vendor": "Broadcom",
+      "aliases": [
+        "VideoCore VII",
+        "VideoCore 7",
+        "V3D 7.1"
+      ]
+    },
+    {
+      "model_key": "imagination-powervr-ge8100",
+      "name": "Imagination PowerVR GE8100",
+      "vendor": "Imagination",
+      "aliases": [
+        "PowerVR GE8100",
+        "PowerVR Rogue GE8100",
+        "GE8100"
+      ]
+    },
+    {
+      "model_key": "imagination-powervr-ge8300",
+      "name": "Imagination PowerVR GE8300",
+      "vendor": "Imagination",
+      "aliases": [
+        "PowerVR GE8300",
+        "PowerVR Rogue GE8300",
+        "GE8300"
+      ]
+    },
+    {
+      "model_key": "imagination-powervr-ge8320",
+      "name": "Imagination PowerVR GE8320",
+      "vendor": "Imagination",
+      "aliases": [
+        "PowerVR GE8320",
+        "PowerVR Rogue GE8320",
+        "GE8320"
+      ]
+    },
+    {
+      "model_key": "imagination-powervr-ge8322",
+      "name": "Imagination PowerVR GE8322",
+      "vendor": "Imagination",
+      "aliases": [
+        "PowerVR GE8322",
+        "PowerVR Rogue GE8322",
+        "GE8322"
+      ]
+    },
+    {
+      "model_key": "imagination-powervr-gm9446",
+      "name": "Imagination PowerVR GM9446",
+      "vendor": "Imagination",
+      "aliases": [
+        "PowerVR GM9446",
+        "PowerVR Rogue GM9446",
+        "GM9446"
+      ]
+    },
+    {
+      "model_key": "imagination-powervr-gx6250",
+      "name": "Imagination PowerVR GX6250",
+      "vendor": "Imagination",
+      "aliases": [
+        "PowerVR GX6250",
+        "PowerVR Rogue GX6250",
+        "GX6250"
+      ]
+    },
+    {
+      "model_key": "imagination-powervr-g6430",
+      "name": "Imagination PowerVR G6430",
+      "vendor": "Imagination",
+      "aliases": [
+        "PowerVR G6430",
+        "PowerVR Rogue G6430",
+        "G6430"
+      ]
+    },
+    {
+      "model_key": "imagination-powervr-bxe-4-32",
+      "name": "Imagination PowerVR BXE-4-32",
+      "vendor": "Imagination",
+      "aliases": [
+        "PowerVR BXE-4-32",
+        "PowerVR B-Series BXE-4-32",
+        "BXE-4-32"
+      ]
+    },
+    {
+      "model_key": "imagination-powervr-bxm-4-64",
+      "name": "Imagination PowerVR BXM-4-64",
+      "vendor": "Imagination",
+      "aliases": [
+        "PowerVR BXM-4-64",
+        "PowerVR B-Series BXM-4-64",
+        "BXM-4-64"
+      ]
+    },
+    {
+      "model_key": "imagination-powervr-bxm-8-256",
+      "name": "Imagination PowerVR BXM-8-256",
+      "vendor": "Imagination",
+      "aliases": [
+        "PowerVR BXM-8-256",
+        "PowerVR B-Series BXM-8-256",
+        "BXM-8-256"
+      ]
+    },
+    {
+      "model_key": "imagination-powervr-dxt-48-1536",
+      "name": "Imagination PowerVR DXT-48-1536",
+      "vendor": "Imagination",
+      "aliases": [
+        "PowerVR DXT-48-1536",
+        "PowerVR D-Series DXT-48-1536",
+        "DXT-48-1536"
+      ]
+    },
+    {
+      "model_key": "samsung-xclipse-530",
+      "name": "Samsung Xclipse 530",
+      "vendor": "Samsung",
+      "aliases": [
+        "Xclipse 530",
+        "Xclipse 530 GPU"
+      ]
+    },
+    {
+      "model_key": "samsung-xclipse-920",
+      "name": "Samsung Xclipse 920",
+      "vendor": "Samsung",
+      "aliases": [
+        "Xclipse 920",
+        "Xclipse 920 GPU"
+      ]
+    },
+    {
+      "model_key": "samsung-xclipse-940",
+      "name": "Samsung Xclipse 940",
+      "vendor": "Samsung",
+      "aliases": [
+        "Xclipse 940",
+        "Xclipse 940 GPU"
+      ]
+    },
+    {
+      "model_key": "samsung-xclipse-950",
+      "name": "Samsung Xclipse 950",
+      "vendor": "Samsung",
+      "aliases": [
+        "Xclipse 950",
+        "Xclipse 950 GPU"
+      ]
+    },
+    {
+      "model_key": "samsung-xclipse-960",
+      "name": "Samsung Xclipse 960",
+      "vendor": "Samsung",
+      "aliases": [
+        "Xclipse 960",
+        "Xclipse 960 GPU"
       ]
     }
   ]

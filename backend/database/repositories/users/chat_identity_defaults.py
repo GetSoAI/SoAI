@@ -23,6 +23,22 @@ if TYPE_CHECKING:
 __all__ = ("DatabaseChatIdentityDefaults",)
 
 
+def sync_upsert_user_display_name(
+    conn: sqlite3.Connection,
+    user_id: int,
+    user_display_name: str | None,
+) -> None:
+    now = epoch_ms()
+    conn.execute(
+        """
+        INSERT INTO webui_chat_identity_defaults (user_id, user_display_name, updated_at_ms)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET user_display_name = excluded.user_display_name, updated_at_ms = excluded.updated_at_ms
+        """,
+        (user_id, user_display_name, now),
+    )
+
+
 class DatabaseChatIdentityDefaults:
     def __init__(self, deps: DatabaseRepositoryDependencies) -> None:
         self.core = deps.core
@@ -44,27 +60,11 @@ class DatabaseChatIdentityDefaults:
             "updated_at_ms": int(updated_at_ms),
         }
 
-    def _sync_upsert_user_display_name(
-        self,
-        conn: sqlite3.Connection,
-        user_id: int,
-        user_display_name: str | None,
-    ) -> None:
-        now = epoch_ms()
-        conn.execute(
-            """
-            INSERT INTO webui_chat_identity_defaults (user_id, user_display_name, updated_at_ms)
-            VALUES (?, ?, ?)
-            ON CONFLICT(user_id) DO UPDATE SET user_display_name = excluded.user_display_name, updated_at_ms = excluded.updated_at_ms
-            """,
-            (user_id, user_display_name, now),
-        )
-
     async def upsert_user_display_name(self, user_id: int, user_display_name: str | None) -> None:
         self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)
         normalized = user_display_name.strip() if isinstance(user_display_name, str) else None
         await self.core.writer.queue_write_operation(
-            self._sync_upsert_user_display_name,
+            sync_upsert_user_display_name,
             user_id,
             normalized or None,
         )

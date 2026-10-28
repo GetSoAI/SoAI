@@ -11,6 +11,7 @@ from core.errors.exceptions import ValidationError
 from core.plugins.backend_variant_availability import (
     backend_variant_availability_type_is_valid,
 )
+from core.plugins.backend_variant_compatibility import copy_variant_compatibility_requirements
 from core.plugins.backend_variant_ids import (
     AUTO_BACKEND_VARIANT_ID,
     require_backend_variant_id,
@@ -105,6 +106,7 @@ def _require_available(option: Mapping[str, JSONValue], index: int, field_name: 
 
 
 def _copy_optional_fields(normalized: JSONDict, option: Mapping[str, JSONValue]) -> None:
+    copy_variant_compatibility_requirements(normalized, option)
     for key in ("description", "unavailable_reason", "platform_label", "availability_type"):
         value = coerce_optional_trimmed_str(option.get(key))
         if value is not None:

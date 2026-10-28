@@ -143,8 +143,8 @@ const syncDownloadConfirmButtonState = (host: DownloadManagerHost, modalId: stri
     const enabled = resolveConfirmButtonEnabled(host, modalId, classNames, modalRoot);
     const downloadBusy = getBusyDisabledToken(downloadButton) !== null;
     const uploadBusy = getBusyDisabledToken(uploadButton) !== null;
-    host.view.updateProperty(downloadButton, 'disabled', downloadBusy || !urlTab.classList.contains(classNames.active) || !enabled);
-    host.view.updateProperty(uploadButton, 'disabled', uploadBusy || !fileTab.classList.contains(classNames.active) || !enabled);
+    setControlDisabledState(downloadButton, downloadBusy || !urlTab.classList.contains(classNames.active) || !enabled);
+    setControlDisabledState(uploadButton, uploadBusy || !fileTab.classList.contains(classNames.active) || !enabled);
 };
 
 const applyDownloadModalMode = (host: DownloadManagerHost, modalId: string, classNames: RequiredClassNames, mode: DownloadModalMode, modalRoot: HTMLElement): void => {

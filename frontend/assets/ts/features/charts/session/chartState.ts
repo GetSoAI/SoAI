@@ -17,6 +17,7 @@ import { createViewportAnimationState, type ViewportAnimationState } from '@feat
 interface ChartConfigurationState {
     options: ChartOptions;
     padding: ChartPadding;
+    rightPaddingOverride: number | null;
     themeColorFlags: ThemeColorFlags;
     timestampFormatConfig: TimestampFormatConfig;
 }
@@ -91,7 +92,7 @@ const createRenderBuffers = (requestedCapacity: number): RenderBuffers => {
     return { capacity, x: new Float64Array(capacity), y: new Float64Array(capacity), value: new Float64Array(capacity), valid: new Uint8Array(capacity), index: new Uint32Array(capacity) };
 };
 
-const createChartOptions = (element: HTMLElement, input: Partial<ChartOptions>): { options: ChartOptions; padding: ChartPadding; themeColorFlags: ThemeColorFlags; timestampFormatConfig: TimestampFormatConfig } => {
+const createChartOptions = (element: HTMLElement, input: Partial<ChartOptions>): { options: ChartOptions; padding: ChartPadding; rightPaddingOverride: number | null; themeColorFlags: ThemeColorFlags; timestampFormatConfig: TimestampFormatConfig } => {
     const defaults: ChartOptions = {
         chartType: 'precision-line',
         colors: { ...DEFAULT_CHART_COLORS },
@@ -146,7 +147,9 @@ const createChartOptions = (element: HTMLElement, input: Partial<ChartOptions>):
     options.padding = { ...padding };
     const yAxisMinRange = 1e-6;
     options.scaleBounds = normalizeScaleBounds({ yAxisMinRange }, options.scaleBounds, options.scaleType);
-    return { options, padding, themeColorFlags: sanitizeThemeFlags(resolvedColors.flags), timestampFormatConfig: normalizeTimestampFormat(options.timestampFormat) };
+    const requestedRightPadding = typeof input.padding === 'number' ? input.padding : input.padding?.right;
+    const rightPaddingOverride = typeof requestedRightPadding === 'number' && Number.isFinite(requestedRightPadding) && requestedRightPadding >= 0 ? requestedRightPadding : null;
+    return { options, padding, rightPaddingOverride, themeColorFlags: sanitizeThemeFlags(resolvedColors.flags), timestampFormatConfig: normalizeTimestampFormat(options.timestampFormat) };
 };
 
 const createChartState = (element: HTMLElement, input: Partial<ChartOptions> = {}): ChartState => {

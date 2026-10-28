@@ -5,20 +5,18 @@ from __future__ import annotations
 
 import asyncio
 import os
-import time
 from dataclasses import dataclass
-from http.client import HTTPConnection, HTTPException
 from io import RawIOBase
 
-import psutil
 from tika import tika
 
 from core.bootstrap.java_runtime import ensure_java_runtime_installed
+from core.bootstrap.tika_runtime_assets import TIKA_EXPECTED_VERSION, TIKA_SERVER_CONFIG_NAME
 from core.bootstrap.tika_server_jar import ensure_tika_server_jar_installed
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.di.validation import require_dependencies
-from core.errors.exceptions import StateError
+from core.errors.exceptions import ProcessGroupCleanupError, StateError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.filesystem.open_files import open_binary
 from core.logging.protocols import StandardLogger
@@ -28,23 +26,31 @@ from core.process.termination import terminate_subprocess_gracefully
 from core.runtime.loopback_listener_identity import (
     LoopbackListenerIdentity,
     resolve_verified_loopback_listener_identity,
-    resolve_verified_loopback_listener_process_identity,
 )
 from core.runtime.process_identity_termination import (
     terminate_process_matching_identity,
 )
+from core.system.async_command_streams import close_managed_process_pipes
 from core.system.async_process_spawning import (
+    ManagedAsyncProcess,
+    retain_managed_process_cleanup,
     spawn_async_process,
+    spawn_managed_async_process,
     wait_for_async_process_exit,
 )
 from core.system.subprocess_env import build_minimal_subprocess_env
 from core.system.subprocess_platform import windows_no_window_creationflags
-from core.timing.constants import LONG_REQUEST_TIMEOUT_SEC, RESPONSIVE_TIMEOUT_SEC
+from core.timing.constants import RESPONSIVE_TIMEOUT_SEC
+from files.parsers.tika_server_probe import (
+    probe_tika_server_version,
+    tika_server_is_ready,
+    tika_startup_allowance,
+    wait_until_tika_server_ready,
+)
 
 __all__ = ("TikaRuntime", "TikaRuntimeDependencies")
 
 TIKA_ENDPOINT = "http://127.0.0.1:9997"
-TIKA_EXPECTED_VERSION = "Apache Tika 3.3.2"
 _TIKA_HOST = "127.0.0.1"
 _TIKA_PORT = 9997
 _TIKA_MAIN_CLASS = "org.apache.tika.server.core.TikaServerCli"
@@ -70,7 +76,7 @@ class TikaRuntime:
         self._repo_root_path = os.path.abspath(deps.repo_root_path)
         self._logger = deps.logger
         self._lock = asyncio.Lock()
-        self._process: asyncio.subprocess.Process | None = None
+        self._process: asyncio.subprocess.Process | ManagedAsyncProcess | None = None
         self._identity: LoopbackListenerIdentity | None = None
         self._owns_identity = False
         self._log_handle: RawIOBase | None = None
@@ -81,7 +87,13 @@ class TikaRuntime:
 
     async def start(self) -> None:
         async with self._lock:
-            if await self._server_is_ready():
+            if await tika_server_is_ready(
+                self._identity,
+                self._process,
+                host=_TIKA_HOST,
+                port=_TIKA_PORT,
+                expected_version=TIKA_EXPECTED_VERSION,
+            ):
                 return
             await self._stop_locked()
             await self._start_locked()
@@ -96,12 +108,21 @@ class TikaRuntime:
             await self._stop_locked()
 
     async def _start_locked(self) -> None:
-        java_home, java_binary = ensure_java_runtime_installed(self._repo_root_path)
-        jar_path, _jar_digest = ensure_tika_server_jar_installed(self._repo_root_path)
+        java_home, java_binary = await run_joined_thread_call(
+            ensure_java_runtime_installed,
+            self._repo_root_path,
+            task_name="tika-java-bootstrap",
+        )
+        jar_path, _jar_digest = await run_joined_thread_call(
+            ensure_tika_server_jar_installed,
+            self._repo_root_path,
+            task_name="tika-distribution-bootstrap",
+        )
         expected_parts = self._expected_command_parts(java_binary, jar_path)
         if not is_macos() and await self._attach_or_remove_verified_listener(expected_parts):
             self._configure_tika_client()
             return
+        startup_allowance = await asyncio.to_thread(tika_startup_allowance, java_binary)
         log_path = join_data_abs(self._repo_root_path, "state", "tika", "logs", "server.log")
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
         log_handle = await run_joined_thread_call(
@@ -116,7 +137,8 @@ class TikaRuntime:
             "-cp",
             jar_path,
             _TIKA_MAIN_CLASS,
-            "--noFork",
+            "--config",
+            os.path.join(os.path.dirname(os.path.dirname(jar_path)), TIKA_SERVER_CONFIG_NAME),
             "--host",
             _TIKA_HOST,
             "--port",
@@ -125,25 +147,49 @@ class TikaRuntime:
         environment = build_minimal_subprocess_env(
             {
                 "JAVA_HOME": java_home,
-                "PATH": os.path.dirname(java_binary),
+                "PATH": os.pathsep.join((os.path.dirname(java_binary), os.environ.get("PATH", ""))),
             },
         )
+        process: asyncio.subprocess.Process | ManagedAsyncProcess
         try:
-            process = await spawn_async_process(
-                argv,
-                stdin=asyncio.subprocess.DEVNULL,
-                stdout=log_handle,
-                stderr=log_handle,
-                env=environment,
-                cwd=self._repo_root_path,
-                start_new_session=is_posix(),
-                creationflags=windows_no_window_creationflags(),
-            )
+            if is_posix():
+                process = await spawn_managed_async_process(
+                    argv,
+                    stdin=asyncio.subprocess.DEVNULL,
+                    stdout=log_handle,
+                    stderr=log_handle,
+                    env=environment,
+                    cwd=self._repo_root_path,
+                    creationflags=windows_no_window_creationflags(),
+                )
+            else:
+                process = await spawn_async_process(
+                    argv,
+                    stdin=asyncio.subprocess.DEVNULL,
+                    stdout=log_handle,
+                    stderr=log_handle,
+                    env=environment,
+                    cwd=self._repo_root_path,
+                    start_new_session=False,
+                    creationflags=windows_no_window_creationflags(),
+                )
             self._process = process
             self._owns_identity = True
             self._log_handle = log_handle
-            await self._wait_until_ready(process, expected_parts)
+            self._identity = await wait_until_tika_server_ready(
+                process,
+                expected_parts,
+                host=_TIKA_HOST,
+                port=_TIKA_PORT,
+                expected_version=TIKA_EXPECTED_VERSION,
+                startup_allowance=startup_allowance,
+            )
             self._configure_tika_client()
+        except ProcessGroupCleanupError as exception:
+            self._process = retain_managed_process_cleanup(exception)
+            self._log_handle = log_handle
+            self._owns_identity = True
+            raise
         except asyncio.CancelledError:
             if self._log_handle is None:
                 log_handle.close()
@@ -154,58 +200,6 @@ class TikaRuntime:
                 log_handle.close()
             await uncancel_then_cleanup(self._stop_locked())
             raise
-
-    async def _wait_until_ready(
-        self,
-        process: asyncio.subprocess.Process,
-        expected_parts: tuple[str, ...],
-    ) -> None:
-        deadline = time.monotonic() + LONG_REQUEST_TIMEOUT_SEC
-        while time.monotonic() < deadline:
-            if process.returncode is not None:
-                raise StateError(
-                    f"Managed Apache Tika server exited with code {process.returncode}.",
-                )
-            version = await self._probe_version()
-            if version == TIKA_EXPECTED_VERSION:
-                resolution = resolve_verified_loopback_listener_process_identity(
-                    pid=process.pid,
-                    host=_TIKA_HOST,
-                    port=_TIKA_PORT,
-                    expected_command_parts=expected_parts,
-                )
-                if resolution.ownership_verified and resolution.identity is not None:
-                    self._identity = resolution.identity
-                    return
-                if resolution.listener_found:
-                    raise StateError("Managed Apache Tika listener identity could not be verified.")
-            if version:
-                raise StateError(f"Unexpected Apache Tika server version: {version}")
-            await asyncio.sleep(RESPONSIVE_TIMEOUT_SEC)
-        raise TimeoutError("Managed Apache Tika server startup timed out.")
-
-    async def _probe_version(self) -> str:
-        try:
-            return await run_joined_thread_call(
-                _read_tika_version,
-                task_name="tika-version-probe",
-            )
-        except (HTTPException, OSError):
-            return ""
-
-    async def _server_is_ready(self) -> bool:
-        identity = self._identity
-        process = self._process
-        if identity is None or (process is not None and process.returncode is not None):
-            return False
-        try:
-            current = psutil.Process(identity.pid)
-            create_time_ms = int(current.create_time() * 1000.0)
-        except (psutil.Error, OSError):
-            return False
-        if create_time_ms != identity.create_time_ms:
-            return False
-        return await self._probe_version() == TIKA_EXPECTED_VERSION
 
     async def _attach_or_remove_verified_listener(
         self,
@@ -221,7 +215,10 @@ class TikaRuntime:
             return False
         if not resolution.ownership_verified or resolution.identity is None:
             raise StateError(f"Port {_TIKA_PORT} is occupied by an unverified listener.")
-        if await self._probe_version() == TIKA_EXPECTED_VERSION:
+        if (
+            await probe_tika_server_version(host=_TIKA_HOST, port=_TIKA_PORT)
+            == TIKA_EXPECTED_VERSION
+        ):
             self._identity = resolution.identity
             self._owns_identity = True
             return True
@@ -241,34 +238,46 @@ class TikaRuntime:
         identity = self._identity
         process = self._process
         owns_identity = self._owns_identity
-        try:
-            if identity is not None and owns_identity:
-                terminated = await terminate_process_matching_identity(
-                    identity.pid,
-                    identity.create_time_ms,
-                    "managed Apache Tika server",
-                    self._logger,
-                    graceful_timeout_sec=RESPONSIVE_TIMEOUT_SEC,
-                    force_timeout_sec=RESPONSIVE_TIMEOUT_SEC,
-                )
-                if not terminated.terminated:
-                    raise StateError("Failed to terminate the managed Apache Tika server.")
-                if process is not None:
-                    await wait_for_async_process_exit(
-                        process,
-                        timeout_sec=RESPONSIVE_TIMEOUT_SEC,
-                        kill_on_timeout=True,
-                    )
-            elif process is not None and process.returncode is None:
+        if isinstance(process, ManagedAsyncProcess):
+            if process.process.returncode is None:
                 await terminate_subprocess_gracefully(
-                    process,
+                    process.process,
                     graceful_timeout_sec=RESPONSIVE_TIMEOUT_SEC,
                     logger=self._logger,
                     operation="files.parsers.tika_runtime.shutdown",
-                    process_group=is_posix(),
+                    process_group=True,
                 )
-        finally:
-            self._close_log_handle()
+            await close_managed_process_pipes(
+                process.process,
+                process.connections,
+                stdin_writer=process.stdin_writer,
+            )
+        elif identity is not None and owns_identity:
+            terminated = await terminate_process_matching_identity(
+                identity.pid,
+                identity.create_time_ms,
+                "managed Apache Tika server",
+                self._logger,
+                graceful_timeout_sec=RESPONSIVE_TIMEOUT_SEC,
+                force_timeout_sec=RESPONSIVE_TIMEOUT_SEC,
+            )
+            if not terminated.terminated:
+                raise StateError("Failed to terminate the managed Apache Tika server.")
+            if process is not None:
+                await wait_for_async_process_exit(
+                    process,
+                    timeout_sec=RESPONSIVE_TIMEOUT_SEC,
+                    kill_on_timeout=True,
+                )
+        elif process is not None and process.returncode is None:
+            await terminate_subprocess_gracefully(
+                process,
+                graceful_timeout_sec=RESPONSIVE_TIMEOUT_SEC,
+                logger=self._logger,
+                operation="files.parsers.tika_runtime.shutdown",
+                process_group=False,
+            )
+        self._close_log_handle()
         self._identity = None
         self._process = None
         self._owns_identity = False
@@ -289,26 +298,11 @@ class TikaRuntime:
             java_binary,
             jar_path,
             _TIKA_MAIN_CLASS,
-            "--noFork",
+            "--config",
+            os.path.join(os.path.dirname(os.path.dirname(jar_path)), TIKA_SERVER_CONFIG_NAME),
             _TIKA_HOST,
             str(_TIKA_PORT),
         )
-
-
-def _read_tika_version() -> str:
-    connection = HTTPConnection(
-        _TIKA_HOST,
-        _TIKA_PORT,
-        timeout=RESPONSIVE_TIMEOUT_SEC,
-    )
-    try:
-        connection.request("GET", "/version")
-        response = connection.getresponse()
-        if response.status != 200:
-            return ""
-        return response.read(256).decode("utf-8", errors="strict").strip()
-    finally:
-        connection.close()
 
 
 def _open_tika_log(path: str) -> RawIOBase:

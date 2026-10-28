@@ -1,6 +1,8 @@
 /* SoAI - Shared UI text controller [frontend/assets/ts/core/ui/modals/contentpreview/textController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { i18n } from '@core/i18n/index.ts';
+import { createBusyDisabledToken, setBusyDisabledState } from '@core/ui/controls/busyDisabledState.ts';
 import { dom } from '@core/dom/dom.ts';
 import { requireModalPresenter, type ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
@@ -31,6 +33,7 @@ type ContentPreviewTextController = {
     renderViewMode: (modalRoot: HTMLElement, request: ContentPreviewTextRequest) => void;
     hasDraftChanges: () => boolean;
     getDraftSnapshot: (modalRoot: HTMLElement) => ContentPreviewTextDraftSnapshot | null;
+    disableSubmittedControls: (modalRoot: HTMLElement) => () => void;
     setSelectedColor: (modalRoot: HTMLElement, color: string | null) => void;
     applySavedBaseline: (modalRoot: HTMLElement, request: ContentPreviewTextRequest, nextBaseline: ContentPreviewTextBaseline) => ContentPreviewTextBaseline;
 };
@@ -143,6 +146,8 @@ const createContentPreviewTextController = (resources: ResourceTracker): Content
         titleHost.textContent = '';
         const titleInput = dom.getDocument().createElement('input');
         titleInput.type = 'text';
+        titleInput.setAttribute('aria-label', i18n.t('contentPreview.fields.title'));
+        titleInput.placeholder = i18n.t('contentPreview.fields.title');
         titleInput.className = 'prompt-modal-title-input';
         titleInput.value = baseline.title;
         titleHost.appendChild(titleInput);
@@ -154,6 +159,7 @@ const createContentPreviewTextController = (resources: ResourceTracker): Content
         const textarea = dom.getDocument().createElement('textarea');
         textarea.className = 'prompt-modal-content-textarea prompt-modal-content-text prompt-view-text prompt-view-text--editing';
         textarea.value = baseline.content;
+        textarea.setAttribute('aria-label', i18n.t('contentPreview.fields.text'));
         textHost.appendChild(textarea);
         resources.addEventListener(textarea, 'input', () => adjustTextareaHeight(modalRoot), { passive: true });
 
@@ -163,10 +169,8 @@ const createContentPreviewTextController = (resources: ResourceTracker): Content
             selectedColor: modalRoot.dataset['selectedColor'] ? String(modalRoot.dataset['selectedColor']) : baseline.promptColor
         });
 
-        resources.setTimeout(() => {
-            titleInput.focus();
-            adjustTextareaHeight(modalRoot);
-        }, 50);
+        titleInput.focus({ preventScroll: true });
+        adjustTextareaHeight(modalRoot);
     };
 
     const applyBaselineToModal = (modalRoot: HTMLElement, request: ContentPreviewTextRequest, nextBaseline: ContentPreviewTextBaseline): void => {
@@ -237,6 +241,25 @@ const createContentPreviewTextController = (resources: ResourceTracker): Content
                 updateDraftFromInputs(modalRoot);
             }
             return Object.freeze({ ...resolveEffectiveDraft() });
+        },
+        disableSubmittedControls(modalRoot: HTMLElement): () => void {
+            const inputs = resolveEditInputs(modalRoot, { required: true });
+            if (!inputs) {
+                throw new Error('Content preview modal edit inputs are missing');
+            }
+            const focusedControl = modalRoot.ownerDocument.activeElement;
+            const controls = [inputs.titleInput, inputs.textarea].map((control) => ({
+                control,
+                token: setBusyDisabledState(control, { isBusy: true, createToken: createBusyDisabledToken, spinner: 'none' })
+            }));
+            return (): void => {
+                for (const { control, token } of controls) {
+                    setBusyDisabledState(control, { isBusy: false, token });
+                }
+                if ((focusedControl instanceof HTMLInputElement || focusedControl instanceof HTMLTextAreaElement) && (focusedControl === inputs.titleInput || focusedControl === inputs.textarea) && focusedControl.isConnected && !focusedControl.disabled) {
+                    focusedControl.focus({ preventScroll: true });
+                }
+            };
         },
         setSelectedColor(modalRoot: HTMLElement, color: string | null): void {
             modalRoot.dataset['selectedColor'] = color ?? '';

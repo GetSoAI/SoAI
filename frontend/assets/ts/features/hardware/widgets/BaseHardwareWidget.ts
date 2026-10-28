@@ -1,20 +1,25 @@
 /* SoAI - Base hardware widget [frontend/assets/ts/features/hardware/widgets/BaseHardwareWidget.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isCurrentHardwareObservationSample, isHardwareObservationFresh, shouldDimHardwareObservation, type HardwareComponentObservation } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
 import { dom } from '@core/dom/dom.ts';
+import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
+import { resolveOperationCauseMessage } from '@core/errors/operationCausePresentation.ts';
 import { getWindow } from '@core/environment/public.ts';
 import { LOCALIZATION_CHANGED_EVENT } from '@core/localization/public.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
 import { isPlainObject, isHTMLElement } from '@core/typeGuards.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
+import { i18n } from '@core/i18n/index.ts';
 import { WIDGET_SIZE, type WidgetSize } from '@features/hardware/widgets/constants.ts';
-import { appendLiveDataPoint, buildWidgetChartPathValues, trimHistoricalDataPoints } from '@features/hardware/widgets/basehardwarewidget/effects.ts';
+import { appendLiveDataPoint, trimHistoricalDataPoints } from '@features/hardware/widgets/basehardwarewidget/effects.ts';
+import { HardwareWidgetChartMotion } from '@features/hardware/widgets/basehardwarewidget/chartMotion.ts';
 import { transitionHardwareWidgetChartMetric } from '@features/hardware/widgets/basehardwarewidget/chartTransition.ts';
 import { applyHardwareWidgetChartColor, selectHardwareWidgetMetric, switchHardwareWidgetUnit, syncHardwareWidgetDefaultUnits, updateHardwareWidgetIdentityPresentation } from '@features/hardware/widgets/basehardwarewidget/service.ts';
 import { bindHardwareWidgetInteractions } from '@features/hardware/widgets/events.ts';
 import { applyWidgetManufacturerClass, applyWidgetSize, createWidgetStructure } from '@features/hardware/widgets/view.ts';
-import type { DataPoint, DeviceNameParts, MetricConfig, HardwareWidgetHistoryData, UnitConfig, WidgetConfig, WidgetElements, WidgetOptions } from '@features/hardware/widgets/contracts.ts';
+import type { DataPoint, DeviceNameParts, MetricChartNormalizer, MetricConfig, HardwareWidgetHistoryData, UnitConfig, WidgetConfig, WidgetElements, WidgetOptions } from '@features/hardware/widgets/contracts.ts';
 
 interface HardwareWidgetDefaults {
     metric: string;
@@ -31,9 +36,14 @@ class BaseHardwareWidget<TData = JsonObject> {
     #elements: WidgetElements = {};
     #size: WidgetSize;
     #resources: ResourceTracker = new ResourceTracker();
+    #chartMotion = new HardwareWidgetChartMotion(this.#resources);
     #chartTransitionSequence = 0;
     #chartTransitioning = false;
     #unitOverrides: Set<string> = new Set();
+    #observations: Record<string, HardwareComponentObservation | undefined> = {};
+    #staleCounts: Record<string, number> = {};
+    #observationTimestamp: number | undefined;
+    #observationTimer: number | null = null;
 
     constructor({ container, config, size = null }: WidgetOptions<TData>, defaults: HardwareWidgetDefaults) {
         if (!isHTMLElement(container)) {
@@ -78,11 +88,8 @@ class BaseHardwareWidget<TData = JsonObject> {
         this.#updateChartColor();
 
         const initialData = this.#config.data;
-        if (initialData) {
-            this.updateData(initialData);
-        } else {
-            this.updateDisplayValues();
-        }
+        if (initialData) this.#config.data = { ...initialData };
+        this.updateDisplayValues();
     }
 
     #createStructure(): void {
@@ -158,10 +165,10 @@ class BaseHardwareWidget<TData = JsonObject> {
             return;
         }
 
-        const nameChanged = newConfig.name && newConfig.name !== this.#config.name;
+        const identityChanged = (newConfig.name && newConfig.name !== this.#config.name) || (newConfig.index !== undefined && newConfig.index !== this.#config.index);
         Object.assign(this.#config, newConfig);
 
-        if (nameChanged) {
+        if (identityChanged) {
             applyWidgetManufacturerClass(this.#container, this.#config.name);
             updateHardwareWidgetIdentityPresentation(
                 this.#elements,
@@ -173,11 +180,50 @@ class BaseHardwareWidget<TData = JsonObject> {
 
     updateData(data: TData): void {
         this.#config.data = { ...data };
-        const nextPoint = this.createDataPoint(data);
-        this.#dataPoints = appendLiveDataPoint(this.#dataPoints, nextPoint, serverEpochMs());
+        const nativePoint = this.createDataPoint(data);
+        const aggregateTimestamp = this.#observationTimestamp ?? nativePoint.timestamp;
+        const samples = new Map<number, DataPoint>();
+        for (const [metric, value] of Object.entries(nativePoint)) {
+            const observation = this.#observations[metric];
+            if (metric === 'timestamp' || value === undefined || !isCurrentHardwareObservationSample(observation, aggregateTimestamp)) continue;
+            const timestamp = observation?.observedAtMs ?? aggregateTimestamp;
+            const point = samples.get(timestamp) ?? { ...this.#dataPoints.find((existing) => existing.timestamp === timestamp), timestamp };
+            point[metric] = value;
+            samples.set(timestamp, point);
+        }
+        for (const point of [...samples.values()].sort((left, right) => left.timestamp - right.timestamp)) this.#dataPoints = appendLiveDataPoint(this.#dataPoints, point, serverEpochMs()).sort((left, right) => left.timestamp - right.timestamp);
 
         this.updateDisplayValues();
         this.updateChart();
+    }
+
+    updateMonitoring(observations: Record<string, HardwareComponentObservation | undefined>, timestamp: number | undefined, intervalMs: number): void {
+        this.#observations = observations;
+        this.#observationTimestamp = timestamp;
+        if (this.#observationTimer !== null) this.#resources.clearInterval(this.#observationTimer);
+        for (const [metric, observation] of Object.entries(observations)) this.#staleCounts[metric] = isHardwareObservationFresh(observation) ? 0 : (this.#staleCounts[metric] ?? 0) + 1;
+        const apply = (): void => {
+            for (const [metric, observation] of Object.entries(this.#observations)) {
+                const element = this.metricValueElements[metric];
+                if (element) {
+                    const cause = resolveOperationCauseMessage(observation?.errorCode ?? null);
+                    if (observation?.status === 'stale' && observation.observedAtMs !== null) setTooltipText(element, [cause, i18n.t('hardware.observations.retainedAge', { seconds: Math.max(0, Math.floor((serverEpochMs() - observation.observedAtMs) / 1000)) })].filter(Boolean).join(' '));
+                    else setTooltipText(element, cause);
+                }
+                const dim = shouldDimHardwareObservation(observation, this.#staleCounts[metric] ?? 0, serverEpochMs(), intervalMs);
+                this.metricValueElements[metric]?.classList.toggle('hardware-observation-stale', dim);
+                if (metric === this.#currentMetric) {
+                    this.#elements.chartLine?.classList.toggle('hardware-observation-stale', dim);
+                    this.#elements.chartPath?.classList.toggle('hardware-observation-stale', dim);
+                }
+            }
+        };
+        apply();
+        if (Object.values(observations).some((observation) => !isHardwareObservationFresh(observation)))
+            this.#observationTimer = this.#resources.setInterval(() => {
+                apply();
+                this.updateChart();
+            }, intervalMs);
     }
 
     processHistoricalData(historyData: HardwareWidgetHistoryData): void {
@@ -199,18 +245,12 @@ class BaseHardwareWidget<TData = JsonObject> {
     }
 
     #renderCurrentChart(): void {
-        const chartPath = this.#elements.chartPath;
-        const chartLine = this.#elements.chartLine;
-        if (!chartPath || !chartLine) {
-            return;
-        }
-
-        const paths = buildWidgetChartPathValues(this.#dataPoints, this.#currentMetric, serverEpochMs(), (value, metric) => this.normalizeChartMetricValue(value, metric));
-        chartPath.setAttribute('d', paths.areaPath);
-        chartLine.setAttribute('d', paths.linePath);
+        const dim = this.metricValueElements[this.#currentMetric]?.classList.contains('hardware-observation-stale') ?? false;
+        this.#chartMotion.update(this.#elements, this.#dataPoints, this.#currentMetric, serverEpochMs(), this.createChartMetricNormalizer(), dim);
     }
 
     #transitionChartMetric(): void {
+        this.#chartMotion.stop();
         const sequence = this.#chartTransitionSequence + 1;
         this.#chartTransitionSequence = sequence;
         this.#chartTransitioning = true;
@@ -229,6 +269,7 @@ class BaseHardwareWidget<TData = JsonObject> {
     }
 
     destroy(): void {
+        this.#chartMotion.destroy();
         this.#chartTransitionSequence += 1;
         this.#chartTransitioning = false;
         this.#resources.cleanup();
@@ -276,6 +317,10 @@ class BaseHardwareWidget<TData = JsonObject> {
 
     getAvailableMetrics(): string[] {
         throw new Error('getAvailableMetrics must be implemented by subclass');
+    }
+
+    protected createChartMetricNormalizer(): MetricChartNormalizer {
+        return (value, metric) => this.normalizeChartMetricValue(value, metric);
     }
 
     normalizeChartMetricValue(value: number, _metric: string): number {

@@ -1,6 +1,7 @@
 /* SoAI - Frontend WebUI RAG response contracts [frontend/assets/ts/core/api/contracts/webuiRagContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { readTrimmedStringArrayOrEmptyValue } from '@core/types/payloadArrayReaders.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { decodeSummary, type KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
@@ -40,6 +41,7 @@ interface RagDocumentResponse {
     processedChunks: number | null;
     createdAtMs: number | null;
     errorMessage: string | null;
+    missingCapabilities?: string[];
 }
 interface RagDocumentStatusCounts {
     queued: number;
@@ -124,7 +126,7 @@ const serializeRagConfigUpdateRequest = (request: RagConfigUpdateRequest): JsonO
 };
 const decodeRagDocument = (value: JsonValue, label: string): RagDocumentResponse => {
     const record = requireRecord(value, label);
-    return { id: requiredString(record, 'id', label), filename: requiredString(record, 'filename', label), fileSizeBytes: nullableCount(record, 'file_size_bytes', label), status: requiredString(record, 'status', label), statusDetails: nullableString(record, 'status_details', label), totalChunks: nullableCount(record, 'total_chunks', label), processedChunks: nullableCount(record, 'processed_chunks', label), createdAtMs: record['created_at_ms'] === null || record['created_at_ms'] === undefined ? null : readRequiredEpochMsValue(record['created_at_ms'], `${label}.created_at_ms`), errorMessage: nullableString(record, 'error_message', label) };
+    return { id: requiredString(record, 'id', label), filename: requiredString(record, 'filename', label), fileSizeBytes: nullableCount(record, 'file_size_bytes', label), status: requiredString(record, 'status', label), statusDetails: nullableString(record, 'status_details', label), totalChunks: nullableCount(record, 'total_chunks', label), processedChunks: nullableCount(record, 'processed_chunks', label), createdAtMs: record['created_at_ms'] === null || record['created_at_ms'] === undefined ? null : readRequiredEpochMsValue(record['created_at_ms'], `${label}.created_at_ms`), missingCapabilities: readTrimmedStringArrayOrEmptyValue(record['missing_capabilities'], `${label}.missing_capabilities`), errorMessage: nullableString(record, 'error_message', label) };
 };
 const decodeRagDocuments = (value: ApiResponsePayload): RagDocumentsResponse => {
     const record = requireRecord(value, 'RAG documents response');

@@ -1,7 +1,7 @@
 /* SoAI - Manages the first-reveal attribute lifecycle for streaming spinner/status fade timing [frontend/assets/ts/features/chat/stream/streamMessageSpinnerStatusFirstReveal.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { resolveMaxCssTransitionTotalMs } from '@core/animations/parseMaxCssDurationMs.ts';
+import { resolveSpinnerStatusTransitionDurationMs } from '@features/chat/stream/streamMessageSpinnerStatusDomPolicy.ts';
 import { getRuntimeStateByMessageId, type SpinnerStatusState } from '@features/chat/stream/streamMessageSpinnerStatusState.ts';
 
 const FIRST_REVEAL_ATTRIBUTE = 'data-stream-spinner-first-reveal';
@@ -15,44 +15,20 @@ const scheduleFirstRevealCleanup = (documentRef: Document, state: SpinnerStatusS
         actionsElement.removeAttribute(FIRST_REVEAL_ATTRIBUTE);
         return;
     }
-    const durationMs = resolveMaxCssTransitionTotalMs(textElement);
+    const durationMs = resolveSpinnerStatusTransitionDurationMs(textElement, state.spinnerElement);
     if (durationMs <= 0) {
         actionsElement.removeAttribute(FIRST_REVEAL_ATTRIBUTE);
         return;
     }
-    let finished = false;
-    const finish = (): void => {
-        textElement.removeEventListener('transitionend', onEnd);
-        const refreshed = getRuntimeStateByMessageId(documentRef, state.messageId) ?? null;
-        if (refreshed !== state) {
+    const sequence = state.visibilityTransitionSequence;
+    state.firstRevealCleanupTimer = view.setTimeout(() => {
+        const refreshed = getRuntimeStateByMessageId(documentRef, state.messageId);
+        if (refreshed !== state || refreshed.visibilityTransitionSequence !== sequence || refreshed.actionsElement !== actionsElement) {
             return;
         }
         refreshed.firstRevealCleanupTimer = null;
-        if (actionsElement.isConnected) {
-            actionsElement.removeAttribute(FIRST_REVEAL_ATTRIBUTE);
-        }
-    };
-    const onEnd = (event: TransitionEvent): void => {
-        if (event.target !== textElement || event.propertyName !== 'opacity') {
-            return;
-        }
-        if (finished) {
-            return;
-        }
-        finished = true;
-        finish();
-    };
-    textElement.addEventListener('transitionend', onEnd);
-    state.firstRevealCleanupTimer = view.setTimeout(
-        () => {
-            if (finished) {
-                return;
-            }
-            finished = true;
-            finish();
-        },
-        Math.max(0, durationMs)
-    );
+        actionsElement.removeAttribute(FIRST_REVEAL_ATTRIBUTE);
+    }, durationMs);
 };
 
 export { FIRST_REVEAL_ATTRIBUTE, scheduleFirstRevealCleanup };

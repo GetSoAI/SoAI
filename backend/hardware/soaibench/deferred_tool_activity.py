@@ -81,7 +81,7 @@ async def finalize_soaibench_deferred_tool_activity_preserving(
         log_exception(
             activity.streamer_deps.logger,
             coerced,
-            message="SoAIBench deferred tool activity finalization failed.",
+            message="SoAI Bench deferred tool activity finalization failed.",
             operation=_OPERATION,
             level="warning",
             details={"run_id": run_id, "task_id": task_id},
@@ -119,10 +119,10 @@ async def _finalize_soaibench_deferred_tool_activity(
         run_id=run_id,
     )
     if run is None:
-        raise StateError("SoAIBench deferred tool activity run was not found.")
+        raise StateError("SoAI Bench deferred tool activity run was not found.")
     status_value = str(run.get("status") or "").strip()
     if status_value == SoAIBenchRunStatus.RUNNING.value:
-        raise StateError("SoAIBench deferred tool activity cannot finalize a running run.")
+        raise StateError("SoAI Bench deferred tool activity cannot finalize a running run.")
     await finalize_soaibench_deferred_tool_activity(
         activity,
         run=run,

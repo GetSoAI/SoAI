@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from core.types.json_value import copy_json_dict_list
 
 if TYPE_CHECKING:
+    from core.conversations.assistant_turn_variant_identity import AssistantTurnVariantIdentity
     from core.types.json import JSONDict
 
 __all__ = ("AgenticRequestMessageSource",)
@@ -18,6 +19,7 @@ __all__ = ("AgenticRequestMessageSource",)
 @dataclass(frozen=True, slots=True)
 class AgenticRequestMessageSource:
     canonical_messages: list[JSONDict]
+    active_turn_identity: AssistantTurnVariantIdentity | None = None
     provider_projector: Callable[[list[JSONDict]], Awaitable[list[JSONDict]]] | None = None
 
     async def build_provider_messages(

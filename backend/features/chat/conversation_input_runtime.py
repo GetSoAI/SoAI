@@ -16,6 +16,7 @@ from core.errors.exceptions import ConflictError, StateError
 from core.runtime.cancellation_ids import build_chat_stream_task_cancellation_id
 from core.runtime.request_context import RequestContext
 from core.runtime.soai_identifiers import create_system_id
+from core.skills.execution import SkillExecutionContext
 from core.types.json import JSONDict
 from core.validation.integers import is_non_negative_strict_int, is_strict_int
 from features.assistant_timeline.models import AssistantTimelineRuntime
@@ -113,6 +114,7 @@ async def create_conversation_input_runtime(
     suspension_generation_value = input_record.get("suspension_generation")
     agent_turn_id_value = input_record.get("agent_turn_id")
     suspension_iteration_value = input_record.get("suspension_iteration")
+    skill_snapshot = await api_dependencies.database_skills.snapshot(user_id, conv_id, input_id)
     request_context = RequestContext(
         trace_id=context_cancellation_id,
         client_ip="internal",
@@ -120,6 +122,7 @@ async def create_conversation_input_runtime(
         task_id=input_id,
         cancellation_id=context_cancellation_id,
         interactive_tool_approval=True,
+        skill_execution_context=SkillExecutionContext(skill_snapshot),
         conversation_input_id=input_id,
         conversation_input_claim_generation=claim_generation,
         conversation_input_claim_owner=claim_owner,

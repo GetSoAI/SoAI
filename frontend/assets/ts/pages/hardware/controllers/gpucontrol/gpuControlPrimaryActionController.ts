@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 interface GpuPrimaryActionState {
+    saveMode: boolean;
     canStoreAppliedSettings: boolean;
     canSaveCurrentSettings: boolean;
     applyCapability: { canApply: boolean } | null;
@@ -10,7 +11,7 @@ interface GpuPrimaryActionState {
 type GpuPrimaryAction = 'apply' | 'save';
 
 const resolveGpuPrimaryAction = (state: GpuPrimaryActionState): GpuPrimaryAction => {
-    if (state.canStoreAppliedSettings) {
+    if (state.saveMode || state.canStoreAppliedSettings) {
         return 'save';
     }
     if (state.applyCapability?.canApply) {
@@ -20,7 +21,7 @@ const resolveGpuPrimaryAction = (state: GpuPrimaryActionState): GpuPrimaryAction
 };
 
 const hasPendingGpuApplyAction = (state: GpuPrimaryActionState): boolean => {
-    return resolveGpuPrimaryAction(state) === 'apply' && !!state.applyCapability?.canApply;
+    return !state.canStoreAppliedSettings && !!state.applyCapability?.canApply;
 };
 
 export { hasPendingGpuApplyAction, resolveGpuPrimaryAction };

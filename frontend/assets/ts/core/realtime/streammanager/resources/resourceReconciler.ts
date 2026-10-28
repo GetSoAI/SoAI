@@ -40,6 +40,10 @@ export class ResourceReconciler {
         return this.#transitions.snapshot;
     }
 
+    get completionTimeoutMs(): number {
+        return this.#policy.deadlineMs + this.#policy.abortCleanupDeadlineMs;
+    }
+
     get reconciling(): boolean {
         return this.#activeAttempt !== null || this.#attemptRetirement.hasOrphan || this.#attemptQueue.hasStartingAttempt || this.#attemptQueue.current !== null || this.#recovery.scheduled;
     }

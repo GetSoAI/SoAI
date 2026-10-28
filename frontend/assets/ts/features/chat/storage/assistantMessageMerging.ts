@@ -67,7 +67,7 @@ const shouldPreserveStreamingAssistantMessage = (existing: ConversationMessage, 
     if (hasTerminalThinkingActivityStatusRegression(existing, incoming)) {
         return true;
     }
-    if (!hasPersistedMessageId(existing) && hasPersistedMessageId(incoming)) {
+    if (!hasPersistedMessageId(existing) && hasPersistedMessageId(incoming) && !isActiveNonTerminalAssistantMessage(existing, activeAssistantMessage)) {
         return false;
     }
     const incomingTerminalState = resolveDurableAssistantTerminalState(incoming);
@@ -131,8 +131,8 @@ const resolveLocalMessagesForAssistantMerge = (currentMessages: ConversationMess
     return [...currentMessages, activeAssistantMessage];
 };
 
-const mergeStreamingAssistantMessages = (currentMessages: ConversationMessage[], backendMessages: ChatStorageMessageRecord[], activeAssistantMessage: ChatMessage | null = null): ConversationMessage[] => {
-    const localMessages = resolveLocalMessagesForAssistantMerge(currentMessages, activeAssistantMessage);
+const mergeStreamingAssistantMessages = (currentMessages: ConversationMessage[], backendMessages: ChatStorageMessageRecord[], activeAssistantMessage: ChatMessage | null = null, windowReachesTail = true): ConversationMessage[] => {
+    const localMessages = windowReachesTail ? resolveLocalMessagesForAssistantMerge(currentMessages, activeAssistantMessage) : currentMessages;
     const existingByVariantIdentity = new Map<string, ConversationMessage>();
     const existingByToolCallId = new Map<string, ConversationMessage>();
     for (const message of localMessages) {
@@ -165,12 +165,19 @@ const mergeStreamingAssistantMessages = (currentMessages: ConversationMessage[],
             return backendMessage;
         }
         if (shouldPreserveStreamingAssistantMessage(existing, backendMessage, activeAssistantMessage)) {
+            if (!hasPersistedMessageId(existing) && hasPersistedMessageId(backendMessage)) {
+                const persistedIdentity = backendMessage.id;
+                return { ...backendMessage, ...existing, ...(persistedIdentity === undefined ? {} : { id: persistedIdentity }) };
+            }
             return existing;
         }
         preserveAssistantCollapsedOverrideRecords(existing, backendMessage);
         return backendMessage;
     });
 
+    if (!windowReachesTail) {
+        return merged;
+    }
     for (const existing of localMessages) {
         if (existing.role !== 'assistant') {
             continue;

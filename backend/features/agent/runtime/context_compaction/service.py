@@ -53,35 +53,12 @@ if TYPE_CHECKING:
 
 __all__ = (
     "build_summary_message",
-    "compact_message_history_if_needed",
     "compact_message_history_with_outcome_if_needed",
     "extract_context_summary",
 )
 
 LOGGER_NAME = "SoAI.features.agent.context_compaction_service"
 OPERATION = "agent.runtime.context_compaction.summary"
-
-
-async def compact_message_history_if_needed(
-    *,
-    message_history: list[JSONDict],
-    base_request_payload: JSONDict,
-    prompt_token_counter: PromptTokenCounter,
-    max_prompt_tokens: int,
-    maximum_prompt_tokens: int,
-    summarize_messages: Callable[[list[JSONDict]], Awaitable[str]] | None,
-    token_estimation_profile: TokenEstimationProfile | None = None,
-) -> list[JSONDict]:
-    outcome = await compact_message_history_with_outcome_if_needed(
-        message_history=message_history,
-        base_request_payload=base_request_payload,
-        prompt_token_counter=prompt_token_counter,
-        max_prompt_tokens=max_prompt_tokens,
-        maximum_prompt_tokens=maximum_prompt_tokens,
-        summarize_messages=summarize_messages,
-        token_estimation_profile=token_estimation_profile,
-    )
-    return outcome.compacted_messages
 
 
 async def compact_message_history_with_outcome_if_needed(

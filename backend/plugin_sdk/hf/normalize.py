@@ -10,9 +10,7 @@ from plugin_sdk.hf.types import HuggingFaceReference
 
 __all__ = (
     "HuggingFaceReference",
-    "describe_hf_reference",
     "normalize_hf_model_input",
-    "parse_hf_url_segments",
 )
 
 
@@ -52,17 +50,3 @@ def normalize_hf_model_input(value: str) -> tuple[str, str | None]:
         return (repo_id, None)
     file_path = "/".join(remainder)
     return (repo_id, file_path)
-
-
-def parse_hf_url_segments(value: str) -> tuple[str, str | None, tuple[str, ...]]:
-    repo_id, file_path = normalize_hf_model_input(value)
-    segments: tuple[str, ...] = tuple(file_path.split("/")) if file_path else ()
-    return (repo_id, file_path, segments)
-
-
-def describe_hf_reference(value: str) -> HuggingFaceReference | None:
-    repo_id, file_path = normalize_hf_model_input(value)
-    if not repo_id:
-        return None
-    segments: tuple[str, ...] = tuple(file_path.split("/")) if file_path else ()
-    return HuggingFaceReference(repo_id=repo_id, file_path=file_path, segments=segments)

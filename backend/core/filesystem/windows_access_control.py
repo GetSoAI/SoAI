@@ -1,17 +1,19 @@
-"""SoAI - Preserve Windows entry access controls during installation copies [backend/core/filesystem/windows_access_control.py]"""
+"""SoAI - Windows filesystem access controls [backend/core/filesystem/windows_access_control.py]"""
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 from __future__ import annotations
 
 import ctypes
 import sys
+from collections.abc import Generator
+from contextlib import contextmanager
 from ctypes import wintypes
 
 from core.errors.exceptions import StateError
 from core.filesystem.path_coercion import normalize_filesystem_path
-from core.system.windows_ctypes import last_windows_error, load_kernel32
+from core.system.windows_ctypes import last_windows_error, load_kernel32, load_windows_library
 
-__all__ = ("copy_windows_discretionary_acl",)
+__all__ = ("copy_windows_discretionary_acl", "private_windows_security_descriptor")
 
 _FILE_OBJECT = 1
 _DACL_SECURITY_INFORMATION = 4
@@ -71,3 +73,34 @@ def copy_windows_discretionary_acl(source: str, destination: str) -> None:
                 primary_exception.add_note(str(release_error))
             else:
                 raise release_error
+
+
+@contextmanager
+def private_windows_security_descriptor() -> Generator[ctypes.c_void_p]:
+    library = load_windows_library("advapi32")
+    convert = library.ConvertStringSecurityDescriptorToSecurityDescriptorW
+    convert.argtypes = (
+        ctypes.c_wchar_p,
+        ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_void_p),
+        ctypes.c_void_p,
+    )
+    convert.restype = ctypes.c_int32
+    descriptor = ctypes.c_void_p()
+    if not convert("D:P(A;OICI;FA;;;OW)(A;OICI;FA;;;SY)", 1, ctypes.byref(descriptor), None):
+        raise OSError(last_windows_error(), "Private staging security could not be created.")
+    try:
+        yield descriptor
+    finally:
+        library = load_kernel32()
+        free = library.LocalFree
+        free.argtypes = (ctypes.c_void_p,)
+        free.restype = ctypes.c_void_p
+        if free(descriptor):
+            exception = OSError(
+                last_windows_error(), "Private staging security could not be released."
+            )
+            primary = sys.exception()
+            if primary is None:
+                raise exception
+            primary.add_note(str(exception))

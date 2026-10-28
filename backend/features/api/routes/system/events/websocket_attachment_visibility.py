@@ -34,8 +34,8 @@ async def attachment_event_visible_to_connection(
     conv_id = event.conv_id.strip()
     if not conv_id:
         return False
-    conversation = (
-        await connection.api_context.dependencies.database_conversations.get_conversation(
+    conversation = await connection.authorization.resolve(
+        lambda: connection.api_context.dependencies.database_conversations.get_conversation(
             conv_id,
             user_id,
         )

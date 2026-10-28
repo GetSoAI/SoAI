@@ -1,9 +1,10 @@
 /* SoAI - Hardware snapshot V1 boundary decoding [frontend/assets/ts/core/api/contracts/hardwareSnapshotContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { decodeHardwareComponentObservation, decodeHardwareComponentStatuses } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { decodeHardwareNumberArray, decodeHardwareStringArray, readOptionalHardwareNumber, readOptionalHardwareString } from '@core/api/contracts/hardwareContractReaders.ts';
-import { decodeHardwareSnapshotGpu } from '@core/api/contracts/hardwareSnapshotGpuContract.ts';
+import { decodeHardwareGpuInventorySources, decodeHardwareSnapshotGpu } from '@core/api/contracts/hardwareSnapshotGpuContract.ts';
 import { decodeHardwareOperatingSystemSnapshot } from '@core/api/contracts/hardwareSnapshotSystemContract.ts';
 import { isEpochMsNumber } from '@core/time/epochMs.ts';
 import { readRequiredNonNegativeIntegerValue } from '@core/types/payloadNumberReaders.ts';
@@ -127,6 +128,7 @@ const decodeMemory = (record: JsonObject, label: string): HardwareMemorySnapshot
 const decodeVolume = (record: JsonObject): HardwareVolumeSnapshot => {
     const decoded: HardwareVolumeSnapshot = {};
     const label = 'Hardware volume';
+    if (record['observation_status'] !== undefined) decoded.observationStatus = decodeHardwareComponentObservation(record['observation_status'], `${label}.observation_status`);
     const deviceId = readOptionalHardwareString(record, 'device_id', label);
     const filesystem = readOptionalHardwareString(record, 'filesystem', label);
     const mount = readOptionalHardwareString(record, 'mount', label);
@@ -220,6 +222,8 @@ const decodeHardwareSnapshot = (value: ApiResponsePayload): HardwareSnapshotResp
         summary: decodeSummary(requireRecord(record['summary'], 'Hardware snapshot.summary')),
         capabilities: decodeHardwareCapabilities(record['capabilities'])
     };
+    const componentStatus = decodeHardwareComponentStatuses(record['component_status']);
+    if (componentStatus !== undefined) snapshot.componentStatus = componentStatus;
     const cpus = record['cpus'];
     if (cpus !== undefined && cpus !== null) snapshot.cpus = decodeObjectArray(cpus, 'Hardware snapshot.cpus').map((entry, index) => decodeCpu(entry, `Hardware snapshot.cpus[${String(index)}]`));
     const cpu = record['cpu'];
@@ -238,6 +242,7 @@ const decodeHardwareSnapshot = (value: ApiResponsePayload): HardwareSnapshotResp
     if (gpu !== undefined && gpu !== null) {
         const gpuRecord = requireRecord(gpu, 'Hardware snapshot.gpu');
         snapshot.gpu = { gpus: decodeObjectArray(gpuRecord['gpus'], 'Hardware snapshot.gpu.gpus').map((entry, index) => decodeHardwareSnapshotGpu(entry, `Hardware snapshot.gpu.gpus[${String(index)}]`)) };
+        if (gpuRecord['inventory_sources'] !== undefined) snapshot.gpu.inventorySources = decodeHardwareGpuInventorySources(gpuRecord['inventory_sources']);
         const binding = gpuRecord['binding'];
         if (binding !== undefined && binding !== null) snapshot.gpu.binding = { devices: decodeObjectArray(requireRecord(binding, 'Hardware snapshot.gpu.binding')['devices'], 'Hardware snapshot.gpu.binding.devices').map((entry, index) => decodeHardwareSnapshotGpu(entry, `Hardware snapshot.gpu.binding.devices[${String(index)}]`)) };
     }

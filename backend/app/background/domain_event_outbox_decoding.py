@@ -27,6 +27,7 @@ from core.events.types_plugins import (
     ProviderDiscoveryRequestedEvent,
     ProviderStatusUpdatedEvent,
 )
+from core.events.types_skills import ConversationSkillsChangedEvent, SkillLibraryChangedEvent
 from core.events.types_system import TriggerConfigReconciliationCommand
 from core.events.types_tasks import TaskCompleteEvent
 from core.events.types_webui import (
@@ -43,6 +44,7 @@ from core.events.types_webui import (
     UserSessionInvalidatedEvent,
     UserUsernameChangedEvent,
 )
+from core.skills.selection import require_skill_revision
 from core.validation.object_fields import require_exact_json_fields
 
 if TYPE_CHECKING:
@@ -108,6 +110,25 @@ def decode_outbox_event(event_type: str, payload_json: str) -> Event:
         decoded.get("timestamp"),
         error_message="timestamp must be a positive number.",
     )
+    if event_type in {"SkillLibraryChangedEvent", "ConversationSkillsChangedEvent"}:
+        user_id = coerce_outbox_int(decoded.get("user_id"), label="user_id")
+        if user_id <= 0:
+            raise ValidationError("Skill event owner must be positive.")
+        revision = require_skill_revision(decoded.get("revision"))
+        if event_type == "SkillLibraryChangedEvent":
+            return SkillLibraryChangedEvent(
+                event_id=event_id,
+                timestamp=timestamp,
+                user_id=user_id,
+                revision=revision,
+            )
+        return ConversationSkillsChangedEvent(
+            event_id=event_id,
+            timestamp=timestamp,
+            user_id=user_id,
+            revision=revision,
+            conv_id=coerce_outbox_str(decoded.get("conv_id"), label="conv_id"),
+        )
     if event_type.startswith("Conversation"):
         return decode_conversation_outbox_event(
             decoded=decoded,

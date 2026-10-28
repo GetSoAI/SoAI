@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import io
 import os
-import shutil
 import zipfile
 from collections.abc import Callable, Sequence
 from contextlib import ExitStack
@@ -19,7 +18,7 @@ from core.archives.constants import (
     UNIX_MODE_TYPE_MASK,
 )
 from core.archives.errors import ArchivePathTraversalError
-from core.archives.extraction_move import move_extracted_items
+from core.archives.extraction_move import staged_archive_extraction
 from core.archives.reservations import (
     DiskReservationRequest,
     open_disk_reservation,
@@ -41,7 +40,6 @@ from core.archives.zip_plan_extraction import (
 )
 from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.files.path_policy import ensure_path_within_base_lexical
-from core.files.temp_files import create_persistent_staging_directory
 from core.filesystem.open_files import open_binary
 from core.hardware.protocols_storage import DiskSpaceReservationProviderProtocol
 
@@ -77,6 +75,7 @@ def safe_zip_extractall(
     destination: str,
     *,
     reservation_provider: DiskSpaceReservationProviderProtocol,
+    progress_check: Callable[[], None] | None = None,
 ) -> list[str]:
     real_destination = os.path.realpath(destination)
     destination_parent = os.path.dirname(real_destination) or real_destination
@@ -100,17 +99,14 @@ def safe_zip_extractall(
             details={"archive_path": archive_label, "destination": real_destination},
         ) as reservation:
             with open_write_claim(reservation, size_bytes=total_size) as claim:
-                os.makedirs(destination, exist_ok=True)
-                temp_dir = create_persistent_staging_directory(
+                with staged_archive_extraction(
                     prefix=".soai_zip_extract.",
-                    directory=destination_parent,
-                )
-                try:
-                    extracted = extract_validated_zip_plan(zip_file, plan, temp_dir)
-                    move_extracted_items(temp_dir=temp_dir, destination=real_destination)
-                finally:
-                    if os.path.lexists(temp_dir):
-                        shutil.rmtree(temp_dir)
+                    destination=real_destination,
+                    progress_check=progress_check,
+                ) as temp_dir:
+                    extracted = extract_validated_zip_plan(
+                        zip_file, plan, temp_dir, progress_check=progress_check
+                    )
                 if claim is not None:
                     claim.commit()
 
@@ -189,12 +185,11 @@ def safe_zip_extract_with_options(
             details={"destination": base_path_abs},
         ) as reservation:
             with open_write_claim(reservation, size_bytes=total_size) as claim:
-                os.makedirs(destination, exist_ok=True)
-                temp_dir = create_persistent_staging_directory(
+                with staged_archive_extraction(
                     prefix=".soai_zip_extract.",
-                    directory=destination_parent,
-                )
-                try:
+                    destination=base_path_abs,
+                    progress_check=None,
+                ) as temp_dir:
                     extract_validated_zip_members(
                         zip_file,
                         tuple(extraction_members),
@@ -206,10 +201,6 @@ def safe_zip_extract_with_options(
                         if not member.is_directory
                     )
 
-                    move_extracted_items(temp_dir=temp_dir, destination=base_path_abs)
-                finally:
-                    if os.path.lexists(temp_dir):
-                        shutil.rmtree(temp_dir)
                 if claim is not None:
                     claim.commit()
 

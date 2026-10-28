@@ -67,7 +67,9 @@ class TextToSpeechRequestFields(SoAIV1StrictModel):
     @field_validator("speed", mode="before")
     @classmethod
     def reject_boolean_speed(cls, value: JSONValue) -> JSONValue:
-        return reject_boolean_numeric_value(value, message="speed must be numeric, not boolean.")
+        return reject_boolean_numeric_value(
+            value, message="speed must be numeric, not boolean.", param="speed"
+        )
 
     @field_validator("voice", mode="before", check_fields=False)
     @classmethod

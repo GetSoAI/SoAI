@@ -1,6 +1,7 @@
 /* SoAI - Shared frontend navigation middleware [frontend/assets/ts/core/navigationMiddleware.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isAbortError, throwIfAborted } from '@core/errors/abort.ts';
 import { getPerformance } from '@core/environment/public.ts';
 import { ErrorBoundary } from '@core/ErrorBoundary.ts';
 import { telemetry } from '@core/telemetry/service.ts';
@@ -150,6 +151,7 @@ const createNavigationMiddlewareController = (): NavigationMiddlewareController 
     };
     const run = async (context: NavigationContext): Promise<NavigationResultType> => {
         const execute = async (index: number): Promise<NavigationResultType> => {
+            throwIfAborted(context.signal);
             if (index >= stack.length) {
                 return navigationResult.continue();
             }
@@ -169,6 +171,7 @@ const createNavigationMiddlewareController = (): NavigationMiddlewareController 
                     emitEvent('middleware:complete', { name: entry.name, index, durationMs: Math.round(duration) });
                     return result;
                 } catch (error) {
+                    if (isAbortError(error) && context.signal.aborted) throw error;
                     const duration = getTimestamp() - startedAt;
                     emitEvent(
                         'middleware:error',

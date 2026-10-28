@@ -13,10 +13,7 @@ if TYPE_CHECKING:
     from core.config.protocols import ConfigProtocol
     from core.types.json import JSONDict
 
-__all__ = (
-    "resolve_timeout_ms",
-    "timeout_ms_to_seconds",
-)
+__all__ = ("resolve_timeout_ms",)
 
 
 def resolve_timeout_ms(
@@ -39,9 +36,3 @@ def resolve_timeout_ms(
         config.get(config_key),
         default=default_timeout_ms,
     )
-
-
-def timeout_ms_to_seconds(timeout_ms: int | None) -> float | None:
-    if timeout_ms is None:
-        return None
-    return max(0.0, float(int(timeout_ms))) / 1000.0

@@ -35,11 +35,14 @@
         margin-bottom: var(--space-6);
     }
 
-    @container ui-viewport (width <= 480px) {
-        .prompts-container:where([data-section='prompts'], [data-page-scope='prompts']) {
-            --prompt-card-size: 100%;
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card {
+            aspect-ratio: auto;
+            height: var(--prompt-card-size);
         }
+    }
 
+    @container ui-viewport (width <= 480px) {
         :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-grid {
             grid-template-columns: minmax(0, 1fr);
         }

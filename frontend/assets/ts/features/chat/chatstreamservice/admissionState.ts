@@ -22,50 +22,62 @@ const INACTIVE_ADMISSION: ChatStreamAdmissionStatus = {
     activeToolCallCount: 0
 };
 
+type ChatStreamAdmissionSnapshot = Readonly<{
+    admission: ChatStreamAdmissionStatus;
+    identity: ChatStreamAdmissionIdentity | null;
+}>;
+
 class ChatStreamAdmissionState {
-    readonly #admissionByConversationId = new Map<string, ChatStreamAdmissionStatus>();
-    readonly #identityByConversationId = new Map<string, ChatStreamAdmissionIdentity>();
+    readonly #snapshotByConversationId = new Map<string, ChatStreamAdmissionSnapshot>();
+
+    #store(normalizedConversationId: string, admission: ChatStreamAdmissionStatus, identity: ChatStreamAdmissionIdentity | null): void {
+        this.#snapshotByConversationId.set(normalizedConversationId, Object.freeze({ admission, identity }));
+    }
 
     #setLifecycle(identity: ChatStreamAdmissionConversationIdentity, streamLifecycle: ChatStreamLifecycle): void {
         const normalizedConversationId = normalizeConversationId(identity.conversationId);
         if (!normalizedConversationId) {
             return;
         }
-        const current = this.#admissionByConversationId.get(normalizedConversationId) ?? INACTIVE_ADMISSION;
-        const currentIdentity = this.#identityByConversationId.get(normalizedConversationId) ?? null;
+        const snapshot = this.#snapshotByConversationId.get(normalizedConversationId) ?? null;
+        const current = snapshot?.admission ?? INACTIVE_ADMISSION;
+        const currentIdentity = snapshot?.identity ?? null;
         if (streamLifecycle === 'terminalizing' && current.streamLifecycle === 'inactive' && currentIdentity === null) {
             return;
         }
-        if (currentIdentity !== null && compareChatStreamMessageOrderIdentities(identity, currentIdentity) < 0) {
-            return;
-        }
-        if (current.streamLifecycle === 'terminalizing' && streamLifecycle === 'streaming' && currentIdentity !== null && compareChatStreamMessageOrderIdentities(identity, currentIdentity) === 0) {
-            return;
-        }
-        this.#admissionByConversationId.set(normalizedConversationId, {
-            streamLifecycle,
-            canAcceptConversationInput: streamLifecycle !== 'inactive',
-            canStartNextPrompt: streamLifecycle === 'inactive',
-            canAcceptSteerPrompt: streamLifecycle === 'streaming',
-            activeToolCallCount: streamLifecycle === 'inactive' ? 0 : current.activeToolCallCount
-        });
-        this.#identityByConversationId.set(normalizedConversationId, identity);
-    }
-
-    update(status: ChatStreamStatusSnapshot): void {
-        const current = this.#admissionByConversationId.get(status.conversationId) ?? null;
-        if (current?.streamLifecycle === 'terminalizing' && status.active && status.admission.streamLifecycle === 'streaming') {
-            const currentIdentity = this.#identityByConversationId.get(status.conversationId) ?? null;
-            if (currentIdentity !== null && compareChatStreamMessageOrderIdentities(status, currentIdentity) <= 0) {
+        if (currentIdentity !== null) {
+            const identityOrder = compareChatStreamMessageOrderIdentities(identity, currentIdentity);
+            if (identityOrder < 0) {
+                return;
+            }
+            if (identityOrder === 0 && current.streamLifecycle === 'terminalizing' && streamLifecycle === 'streaming') {
+                return;
+            }
+            if (identityOrder === 0 && current.streamLifecycle === streamLifecycle && identity.requestId === currentIdentity.requestId) {
                 return;
             }
         }
-        this.#admissionByConversationId.set(status.conversationId, status.admission);
-        if (status.active) {
-            this.#identityByConversationId.set(status.conversationId, status);
-        } else {
-            this.#identityByConversationId.delete(status.conversationId);
+        this.#store(
+            normalizedConversationId,
+            {
+                streamLifecycle,
+                canAcceptConversationInput: streamLifecycle !== 'inactive',
+                canStartNextPrompt: streamLifecycle === 'inactive',
+                canAcceptSteerPrompt: streamLifecycle === 'streaming',
+                activeToolCallCount: streamLifecycle === 'inactive' ? 0 : current.activeToolCallCount
+            },
+            identity
+        );
+    }
+
+    update(status: ChatStreamStatusSnapshot): void {
+        const snapshot = this.#snapshotByConversationId.get(status.conversationId) ?? null;
+        if (snapshot?.admission.streamLifecycle === 'terminalizing' && status.active && status.admission.streamLifecycle === 'streaming') {
+            if (snapshot.identity !== null && compareChatStreamMessageOrderIdentities(status, snapshot.identity) <= 0) {
+                return;
+            }
         }
+        this.#store(status.conversationId, status.admission, status.active ? status : null);
     }
 
     markStreaming(identity: ChatStreamAdmissionConversationIdentity): void {
@@ -81,14 +93,17 @@ class ChatStreamAdmissionState {
         if (!normalizedConversationId) {
             return;
         }
-        this.#admissionByConversationId.set(normalizedConversationId, {
-            streamLifecycle: 'inactive',
-            canAcceptConversationInput: true,
-            canStartNextPrompt: false,
-            canAcceptSteerPrompt: false,
-            activeToolCallCount: 0
-        });
-        this.#identityByConversationId.delete(normalizedConversationId);
+        this.#store(
+            normalizedConversationId,
+            {
+                streamLifecycle: 'inactive',
+                canAcceptConversationInput: true,
+                canStartNextPrompt: false,
+                canAcceptSteerPrompt: false,
+                activeToolCallCount: 0
+            },
+            null
+        );
     }
 
     markInactive(conversationId: string): void {
@@ -96,8 +111,24 @@ class ChatStreamAdmissionState {
         if (!normalizedConversationId) {
             return;
         }
-        this.#admissionByConversationId.set(normalizedConversationId, INACTIVE_ADMISSION);
-        this.#identityByConversationId.delete(normalizedConversationId);
+        this.#store(normalizedConversationId, INACTIVE_ADMISSION, null);
+    }
+
+    captureSnapshot(conversationId: string): ChatStreamAdmissionSnapshot {
+        const normalizedConversationId = normalizeConversationId(conversationId);
+        const snapshot = this.#snapshotByConversationId.get(normalizedConversationId) ?? null;
+        if (snapshot !== null) {
+            return snapshot;
+        }
+        const inactiveSnapshot = Object.freeze({ admission: INACTIVE_ADMISSION, identity: null });
+        if (normalizedConversationId) {
+            this.#snapshotByConversationId.set(normalizedConversationId, inactiveSnapshot);
+        }
+        return inactiveSnapshot;
+    }
+
+    isSnapshotCurrent(conversationId: string, snapshot: ChatStreamAdmissionSnapshot): boolean {
+        return this.#snapshotByConversationId.get(normalizeConversationId(conversationId)) === snapshot;
     }
 
     clear(conversationId: string): void {
@@ -105,13 +136,11 @@ class ChatStreamAdmissionState {
         if (!normalizedConversationId) {
             return;
         }
-        this.#admissionByConversationId.delete(normalizedConversationId);
-        this.#identityByConversationId.delete(normalizedConversationId);
+        this.#snapshotByConversationId.delete(normalizedConversationId);
     }
 
     clearAll(): void {
-        this.#admissionByConversationId.clear();
-        this.#identityByConversationId.clear();
+        this.#snapshotByConversationId.clear();
     }
 
     get(conversationId: string | null): ChatStreamAdmissionStatus {
@@ -119,7 +148,7 @@ class ChatStreamAdmissionState {
         if (!normalizedConversationId) {
             return INACTIVE_ADMISSION;
         }
-        return this.#admissionByConversationId.get(normalizedConversationId) ?? INACTIVE_ADMISSION;
+        return this.#snapshotByConversationId.get(normalizedConversationId)?.admission ?? INACTIVE_ADMISSION;
     }
 
     getIdentity(conversationId: string | null): ChatTurnAdmissionStreamIdentity | null {
@@ -127,7 +156,7 @@ class ChatStreamAdmissionState {
         if (!normalizedConversationId) {
             return null;
         }
-        const identity = this.#identityByConversationId.get(normalizedConversationId) ?? null;
+        const identity = this.#snapshotByConversationId.get(normalizedConversationId)?.identity ?? null;
         if (identity === null) {
             return null;
         }
@@ -141,3 +170,4 @@ class ChatStreamAdmissionState {
 }
 
 export { ChatStreamAdmissionState };
+export type { ChatStreamAdmissionSnapshot };

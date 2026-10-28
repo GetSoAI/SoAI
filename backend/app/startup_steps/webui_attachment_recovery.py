@@ -46,6 +46,7 @@ async def _recover_pending_attachment_parses(context: ApplicationContext) -> int
     cursor_created_at_ms: int | None = None
     cursor_attachment_id: str | None = None
     parse_dependencies = DirectAttachmentParseDependencies(
+        file_content_pool=context.api_runtime_singletons.file_content_pool,
         config=context.services.configuration.config,
         files=context.services.configuration.files,
         database_users=context.services.databases.users,

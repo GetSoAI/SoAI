@@ -4,7 +4,7 @@
 @layer pages {
     :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll {
         position: absolute;
-        top: calc(var(--chat-conversation-header-offset) + var(--chat-plan-overlay-height) + var(--space-4));
+        top: calc(var(--chat-conversation-header-offset) + var(--chat-plan-overlay-height) + var(--space-2));
         bottom: var(--chat-advanced-scroll-bottom-offset);
         inset-inline-end: calc(var(--chat-composer-inset-inline) + var(--chat-input-wrapper-padding));
         width: var(--chat-advanced-scroll-width);
@@ -96,6 +96,16 @@
         background: color-mix(in srgb, var(--glass-surface-chat-message) 36%, transparent);
         overflow: hidden;
         contain: strict;
+        transition:
+            top var(--duration-220) var(--header-fold-easing),
+            height var(--duration-220) var(--header-fold-easing),
+            opacity var(--duration-220) var(--ease-default);
+    }
+
+    @starting-style {
+        :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-canvas .chat-advanced-scroll-minimap-message {
+            opacity: 0;
+        }
     }
 
     :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-canvas .chat-advanced-scroll-minimap-message.user {

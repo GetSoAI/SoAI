@@ -46,6 +46,8 @@ export type NotificationTemplateId =
     | 'low_disk_space_title'
     | 'security_login_throttle_title'
     | 'security_login_throttle_message'
+    | 'plugin_backend_update_title'
+    | 'plugin_backend_update_message'
     | 'plugin_circuit_breaker_tripped_title'
     | 'plugin_circuit_breaker_tripped_message';
 
@@ -90,6 +92,8 @@ type NotificationTemplateText =
     | { textType: 'template'; template: 'low_disk_space_title'; parameters: { operationLabel: string } }
     | { textType: 'template'; template: 'security_login_throttle_title' }
     | { textType: 'template'; template: 'security_login_throttle_message'; parameters: { attemptCount: string; windowMinutes: string } }
+    | { textType: 'template'; template: 'plugin_backend_update_title' }
+    | { textType: 'template'; template: 'plugin_backend_update_message'; parameters: { pluginName: string } }
     | { textType: 'template'; template: 'plugin_circuit_breaker_tripped_title' }
     | { textType: 'template'; template: 'plugin_circuit_breaker_tripped_message'; parameters: { pluginName: string } };
 

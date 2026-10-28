@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from hardware.soaibench.runtime import task_id_for_run
+from core.hardware.soaibench_persistence import task_id_for_run
 
 if TYPE_CHECKING:
     from core.tasks.protocols import TaskRegistryProtocol

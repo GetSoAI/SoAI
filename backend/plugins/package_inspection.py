@@ -6,6 +6,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import io
+import os
 import zipfile
 import zlib
 from dataclasses import dataclass
@@ -14,8 +15,10 @@ from typing import TYPE_CHECKING
 from core.archives.constants import CHUNK_READ_SIZE
 from core.archives.zip_plan import ValidatedZipMember, ValidatedZipPlan
 from core.config.byte_sizes import MIB_BYTES
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import StateError, ValidationError
 from core.files.content_hashing import hash_seekable_binary_stream_content
+from core.files.file_identity import FileIdentity
+from core.filesystem.open_files import open_regular_binary_no_symlink
 from core.models.parameter_schema_document import validate_parameter_schema_document
 from core.plugins.logo_contract import (
     LOGO_FILENAMES,
@@ -24,6 +27,7 @@ from core.plugins.logo_contract import (
 )
 from core.serialization.json_parsing import MAX_JSON_NESTING_DEPTH, parse_json_value
 from core.types.json import is_json_dict
+from plugins.manifest.variant_resources import read_static_backend_variant_resource
 from plugins.package_archive import open_validated_plugin_package
 from plugins.package_content import (
     PluginPackageContent,
@@ -38,6 +42,7 @@ if TYPE_CHECKING:
 __all__ = (
     "PluginPackageSnapshot",
     "inspect_plugin_package_stream",
+    "inspect_plugin_package_file",
 )
 
 MAX_PLUGIN_PYTHON_FILES = 512
@@ -53,6 +58,20 @@ class PluginPackageSnapshot:
     content: PluginPackageContent
     parameter_schema: JSONDict | None
     logo_source: PluginLogoSource
+    backend_variant_options: list[JSONDict] | None = None
+
+
+def inspect_plugin_package_file(path: str) -> tuple[PluginPackageSnapshot, FileIdentity]:
+    with open_regular_binary_no_symlink(path) as handle:
+        identity = FileIdentity.from_stat(os.fstat(handle.fileno()))
+        snapshot = inspect_plugin_package_stream(os.path.basename(path), handle)
+        if not identity.matches_descriptor_snapshot(
+            FileIdentity.from_stat(os.fstat(handle.fileno()))
+        ):
+            raise StateError("Plugin package changed during inspection.")
+    if identity != FileIdentity.from_stat(os.stat(path, follow_symlinks=False)):
+        raise StateError("Plugin package identity changed during inspection.")
+    return snapshot, identity
 
 
 def _parse_python_member(
@@ -276,6 +295,12 @@ def inspect_plugin_package_stream(
                 for member in python_plan_members
             )
             parameter_schema = _parse_parameter_schema(plugin_name, parameter_schema_bytes)
+            entrypoint = next(
+                member for member in python_members if member.logical_path == PLUGIN_ENTRYPOINT
+            )
+            backend_variant_options = read_static_backend_variant_resource(
+                entrypoint.parsed_source, zip_file, plan, member_digests
+            )
     except (EOFError, OSError, zipfile.BadZipFile, zipfile.LargeZipFile, zlib.error) as exception:
         raise ValidationError(
             f"Plugin package for '{plugin_name}' must be a valid ZIP archive.",
@@ -298,4 +323,5 @@ def inspect_plugin_package_stream(
         ),
         parameter_schema=parameter_schema,
         logo_source=logo_source,
+        backend_variant_options=backend_variant_options,
     )

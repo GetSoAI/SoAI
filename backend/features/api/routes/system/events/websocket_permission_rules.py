@@ -42,6 +42,7 @@ from core.events.types_plugins import (
     PluginUnloadedEvent,
     ProviderStatusUpdatedEvent,
 )
+from core.events.types_skills import ConversationSkillsChangedEvent, SkillLibraryChangedEvent
 from core.events.types_system import (
     ChatStreamActivityChangedEvent,
     ChatStreamEvent,
@@ -166,6 +167,8 @@ def build_websocket_event_permission_rules() -> tuple[tuple[type[Event], AccessA
         (KnowledgePromptStateChangedEvent, AccessAction.AUTH_COOKIE),
         (ConversationCreatedEvent, AccessAction.AUTH_COOKIE),
         (ConversationUpdatedEvent, AccessAction.AUTH_COOKIE),
+        (SkillLibraryChangedEvent, AccessAction.AUTH_COOKIE),
+        (ConversationSkillsChangedEvent, AccessAction.AUTH_COOKIE),
         (ConversationDeletedEvent, AccessAction.AUTH_COOKIE),
         (ConversationDraftChangedEvent, AccessAction.AUTH_COOKIE),
         (ConversationAttachmentChangedEvent, AccessAction.AUTH_COOKIE),

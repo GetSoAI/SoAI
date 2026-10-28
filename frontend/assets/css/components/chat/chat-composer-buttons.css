@@ -2,27 +2,35 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    :where(.chat-container) .chat-action-btn > .chat-action-icon {
+        grid-area: 1 / 1;
+        transition: opacity var(--transition-fast);
+    }
+
+    :where(.chat-container) .chat-action-btn > .chat-action-icon--stop {
+        opacity: 0;
+    }
+
+    :where(.chat-container) .chat-action-btn.is-stop-mode > .chat-action-icon--send,
+    :where(.chat-container) .chat-input-wrapper--auto-hidden.chat-input-wrapper--floating-stop .chat-action-btn > .chat-action-icon--send {
+        opacity: 0;
+    }
+
+    :where(.chat-container) .chat-action-btn.is-stop-mode > .chat-action-icon--stop,
+    :where(.chat-container) .chat-input-wrapper--auto-hidden.chat-input-wrapper--floating-stop .chat-action-btn > .chat-action-icon--stop {
+        opacity: 1;
+    }
+
     :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .chat-input-actions :is(.chat-input-action-inline, .chat-mobile-auxiliary-action, .chat-model-control-primary, .chat-model-slot):not(:focus-visible, :active, .is-active, .is-open, .is-recording, .is-stop-mode, .is-processing, .is-tools-active, .is-warning, .is-critical, .chat-token-counter-btn, .chat-model-slot--placeholder, [aria-pressed='true'], [aria-expanded='true'], [aria-busy='true'], [data-agent-mode='plan'], [data-agent-mode='execute']):is(:not(:hover), :disabled, [aria-disabled='true']),
     :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .chat-input-actions .chat-token-counter-btn:not(:hover, :focus-visible, :active, .is-warning, .is-critical),
-    :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .chat-input-actions > .chat-action-btn:disabled:not(.is-stop-mode, :focus-visible, :active) {
-        border-color: color-mix(in srgb, var(--ui-button-neutral-color) var(--chat-composer-hover-emphasis), var(--chat-input-border-color));
+    :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus), .chat-input-wrapper--auto-hidden.chat-input-wrapper--floating-stop) .chat-input-actions > .chat-action-btn:disabled:not(.is-stop-mode, :focus-visible, :active) {
+        border-color: color-mix(in srgb, color-mix(in srgb, var(--ui-button-neutral-color) var(--chat-composer-hover-emphasis), var(--chat-input-border-color)) var(--control-button-border-strength), transparent);
         background-color: color-mix(in srgb, var(--ui-button-neutral-bg) var(--chat-composer-hover-emphasis), var(--glass-surface-light));
     }
 
     :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .chat-input-actions :is(.chat-input-action-inline, .chat-mobile-auxiliary-action, .chat-token-counter-inline, .chat-model-control-primary, .chat-model-slot, .chat-action-btn):not(:hover, :focus-visible, :active, .is-open, .chat-model-slot--placeholder) {
         background-image: none;
         box-shadow: none;
-    }
-
-    :where(.chat-container) .chat-input-actions :is(.chat-input-action-inline, .chat-mobile-auxiliary-action, .chat-token-counter-inline, .chat-model-control-primary, .chat-model-slot, .chat-action-btn) {
-        transition:
-            background-color var(--transition-fast),
-            border-color var(--transition-fast),
-            color var(--transition-fast),
-            box-shadow var(--transition-fast),
-            filter var(--transition-fast),
-            opacity var(--transition-fast),
-            translate var(--header-fold-duration) var(--header-fold-easing);
     }
 
     :where(.chat-container) .chat-input-actions .model-selector--composer :is(.ui-icon-button, .ui-button):not(:focus-visible) {
@@ -51,7 +59,8 @@
     }
 
     :where(.chat-container) .microphone-btn.is-processing {
-        opacity: 0.6;
+        --ui-control-opacity: 0.6;
+        opacity: var(--ui-control-opacity);
         pointer-events: none;
     }
 
@@ -61,7 +70,7 @@
         --ptt-microphone-opacity: 1;
         position: relative;
         z-index: var(--z-above-sibling);
-        border-color: color-mix(in srgb, var(--status-red) calc(var(--ptt-cancel-progress) * 100%), var(--border-color));
+        border-color: color-mix(in srgb, color-mix(in srgb, var(--status-red) calc(var(--ptt-cancel-progress) * 100%), var(--border-color)) var(--control-button-border-strength), transparent);
         background-color: color-mix(in srgb, var(--status-red) calc(var(--ptt-cancel-progress) * 18%), var(--button-surface-bg));
 
         /* direction: physical — push-to-talk supplies direction-resolved physical pointer displacement */
@@ -105,60 +114,39 @@
     }
 
     :where(.chat-container) .microphone-btn.is-ptt-cancel-armed {
-        border-color: var(--status-red);
+        border-color: color-mix(in srgb, var(--status-red) var(--control-button-border-strength), transparent);
         background-color: color-mix(in srgb, var(--status-red) 18%, var(--ui-button-inherited-underlay));
         color: var(--status-red);
     }
 
     :where(.chat-container) .square-btn {
-        width: var(--icon-button-size);
-        height: var(--icon-button-size);
-        min-height: var(--icon-button-size);
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: var(--border-width-1) solid var(--border-color);
-        border-radius: var(--border-radius);
-        background-color: var(--button-surface-bg);
         -webkit-backdrop-filter: var(--glass-blur-base);
-
         backdrop-filter: var(--glass-blur-base);
-        box-shadow:
-            0 2px 4px var(--surface-drop-shadow-soft),
-            0 0 0 1px var(--surface-outline-highlight-soft);
         flex-shrink: 0;
     }
 
-    :where(.chat-container) .square-btn:hover:not(:disabled) {
-        background-color: var(--ui-button-surface-hover);
-        -webkit-backdrop-filter: var(--glass-blur-base);
-
-        backdrop-filter: var(--glass-blur-base);
-        color: var(--text-primary);
-    }
-
-    :where(.chat-container) .square-btn.chat-action-btn:not(:disabled, .is-stop-mode) {
-        color: var(--ui-button-dynamic-accent-color);
-        border-color: var(--ui-button-dynamic-accent-color);
-        background-color: var(--ui-button-dynamic-accent-bg);
-    }
-
-    :where(.chat-container) .square-btn.chat-action-btn.is-stop-mode {
+    :where(.chat-container) .square-btn.chat-action-btn.is-stop-mode:not(:disabled),
+    :where(.chat-container) .chat-input-wrapper--auto-hidden.chat-input-wrapper--floating-stop .square-btn.chat-action-btn {
         color: var(--status-red);
-        border-color: var(--status-red);
+        border-color: color-mix(in srgb, var(--status-red) var(--control-button-border-strength), transparent);
         background-color: color-mix(in srgb, var(--status-red) var(--interactive-tint-opacity-idle), var(--ui-button-inherited-underlay));
     }
 
-    :where(.chat-container) .square-btn.chat-action-btn:hover:not(:disabled, .is-stop-mode) {
-        background-color: var(--ui-button-dynamic-accent-bg-hover);
-        border-color: var(--ui-button-dynamic-accent-color-hover);
-        color: var(--ui-button-dynamic-accent-color-hover);
+    :where(.chat-container) .square-btn.chat-action-btn.is-stop-mode:hover:not(:disabled) {
+        background-color: color-mix(in srgb, var(--status-red) 18%, var(--ui-button-inherited-underlay));
+        border-color: color-mix(in srgb, var(--status-red-hover) var(--control-button-border-strength), transparent);
+        color: var(--status-red-hover);
     }
 
-    :where(.chat-container) .square-btn.chat-action-btn.is-stop-mode:hover {
-        background-color: color-mix(in srgb, var(--status-red) 18%, var(--ui-button-inherited-underlay));
-        border-color: var(--status-red-hover);
-        color: var(--status-red-hover);
+    :where(.chat-container) .chat-input-wrapper:not(.chat-input-wrapper--auto-hidden.chat-input-wrapper--floating-stop) .square-btn.chat-action-btn:not(:disabled, .is-stop-mode) {
+        color: var(--ui-button-dynamic-accent-color);
+        border-color: color-mix(in srgb, var(--ui-button-dynamic-accent-color) var(--control-button-border-strength), transparent);
+        background-color: var(--ui-button-dynamic-accent-bg);
+    }
+
+    :where(.chat-container) .chat-input-wrapper:not(.chat-input-wrapper--auto-hidden.chat-input-wrapper--floating-stop) .square-btn.chat-action-btn:hover:not(:disabled, .is-stop-mode) {
+        background-color: var(--ui-button-dynamic-accent-bg-hover);
+        border-color: color-mix(in srgb, var(--ui-button-dynamic-accent-color-hover) var(--control-button-border-strength), transparent);
+        color: var(--ui-button-dynamic-accent-color-hover);
     }
 }

@@ -5,6 +5,7 @@ import { AnimationFrameRenderQueue } from '@core/animations/renderQueue.ts';
 import { toTrustedUiHtml } from '@core/security/public.ts';
 import type { ResourceItem } from '@core/data/ClientDataHub.ts';
 import { dom } from '@core/dom/dom.ts';
+import { captureToggleSwitchContinuity } from '@core/dom/toggleSwitchReconciliation.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { ModelData } from '@core/types/modelTypes.ts';
 import { optionalModelCardMetricsElement, optionalModelCardStatusElement, optionalModelListFactsElement, optionalModelListStatusElement, queryModelPatchTargets } from '@pages/models/dom.ts';
@@ -139,7 +140,9 @@ class ModelsMetricsPatchController {
             return;
         }
         const trustedMarkup = toTrustedUiHtml(markup);
+        const continuity = captureToggleSwitchContinuity(element);
         this.#dependencies.pageDom.updateHtml(element, trustedMarkup, { escape: false });
+        continuity.restore(element);
     }
 
     #normalizeModelData(item: ResourceItem): ModelData {

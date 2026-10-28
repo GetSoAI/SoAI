@@ -5,6 +5,8 @@ import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttach
 
 const completedKnowledgeItemCount = (knowledge: KnowledgeAttachmentSummary): number => knowledge.statusCounts['completed'] ?? 0;
 
+const isItemlessKnowledgeReindex = (knowledge: KnowledgeAttachmentSummary): boolean => knowledge.sourceType === 'reindex' && knowledge.operationType === 'reindexed' && knowledge.totalCount === 0 && knowledge.visibleCount === 0 && knowledge.hiddenCount === 0;
+
 const isClaimableKnowledgeDraft = (knowledge: KnowledgeAttachmentSummary): boolean => knowledge.processingState === 'ready' && completedKnowledgeItemCount(knowledge) > 0;
 
-export { completedKnowledgeItemCount, isClaimableKnowledgeDraft };
+export { completedKnowledgeItemCount, isClaimableKnowledgeDraft, isItemlessKnowledgeReindex };

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from core.concurrency.cancellation import TaskCancelledError
 from core.errors.exceptions import ApiError
+from core.errors.public_projection import apply_public_error_payload
 from core.runtime.request_context import RequestContext
 from core.tasks.task import Task
 from features.agent.runtime.streaming_inference_admission import (
@@ -62,6 +63,9 @@ async def execute_timeline_non_agent_stream(
         await session.consume_stream(stream_bundle.stream_generator)
     except ApiError as exception:
         if exception.code != "cancelled":
+            public_error = stream_bundle.stream_state.public_error
+            if public_error is not None:
+                apply_public_error_payload(exception, public_error)
             raise
         raise TaskCancelledError(
             bundle.task.cancellation_id,
@@ -71,5 +75,6 @@ async def execute_timeline_non_agent_stream(
         session,
         task=bundle.task,
         task_lookup=task_lookup,
+        public_error=stream_bundle.stream_state.public_error,
     )
     return bundle.task.task_id

@@ -7,6 +7,7 @@ import type { WizardStatus } from '@core/auth/public.ts';
 import { isFreshInstallWizardStatus } from '@core/auth/wizardStatus.ts';
 import { getLocation } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { LifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { isAiSetupResumeRequest } from '@core/routing/router/aiSetupRoutes.ts';
@@ -21,7 +22,6 @@ interface ResolveInitialRouteOptions {
     isAuthenticated: boolean;
     needsWizard: boolean;
     router: Router;
-    toggleMainUI: (show: boolean) => void;
     isWizardCompletionPending: () => boolean;
 }
 
@@ -35,8 +35,10 @@ interface WarmupChartsOptions {
 
 interface EnsureRouteRenderedOptions {
     route: LifecycleRoute;
-    router: Router;
+    router: Pick<Router, 'contentContainer' | 'getCurrentRoute' | 'getRouteFromHash' | 'getPageOutlet'>;
 }
+
+type BootstrapRouteRouter = EnsureRouteRenderedOptions['router'] & Pick<Router, 'initialized' | 'getLatestNavigationCompletion'>;
 
 interface RenderedPageState {
     instance?:
@@ -96,12 +98,12 @@ const parseHashRoute = (router: Router, hash: string): ReturnType<Router['parseR
     }
 };
 
-export const resolveInitialRoute = async ({ isAuthenticated, needsWizard, router, toggleMainUI, isWizardCompletionPending }: ResolveInitialRouteOptions): Promise<RouteKey> => {
-    toggleMainUI(isAuthenticated);
+export const resolveInitialRoute = ({ isAuthenticated, needsWizard, router, isWizardCompletionPending }: ResolveInitialRouteOptions): RouteKey => {
     const hash = getLocation().hash.slice(1);
     const parsed = parseHashRoute(router, hash);
 
     if (!isAuthenticated) {
+        if (parsed?.route.auth === true && !needsWizard) return hash;
         if (parsed && parsed.route.auth !== true) {
             const component = parsed.route.component;
             if (isString(component) && component && (component === AUTH_ROUTE_WIZARD || !needsWizard)) {
@@ -167,4 +169,29 @@ export const ensureRouteRendered = async ({ route, router }: EnsureRouteRendered
 
     errorHandler.warn('AppLifecycle', `Route rendering verification failed: ${routeKey}`);
     throw new Error(i18n.t('app.errors.routeNotReady'));
+};
+
+export const ensureBootstrapRouteRendered = async (router: BootstrapRouteRouter): Promise<string> => {
+    while (true) {
+        const completion = router.getLatestNavigationCompletion();
+        if (!completion || !router.initialized) throw new LifecycleCancellationError('Bootstrap navigation is no longer available', 'router-destroyed');
+        let navigationFailure: Error | null = null;
+        try {
+            await completion;
+        } catch (error) {
+            navigationFailure = ensureError(error);
+        }
+        if (completion !== router.getLatestNavigationCompletion()) continue;
+        if (navigationFailure && router.getPageOutlet().getState?.() !== 'ready') throw navigationFailure;
+        try {
+            await ensureRouteRendered({ route: router.getCurrentRoute(), router });
+        } catch (error) {
+            if (completion !== router.getLatestNavigationCompletion()) continue;
+            throw navigationFailure ?? error;
+        }
+        if (completion !== router.getLatestNavigationCompletion()) continue;
+        const route = router.getCurrentRoute();
+        if (!route) throw new Error('Bootstrap navigation completed without an active route');
+        return route;
+    }
 };

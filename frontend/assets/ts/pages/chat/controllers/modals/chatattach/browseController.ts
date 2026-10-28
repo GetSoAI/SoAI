@@ -88,7 +88,7 @@ class ChatAttachBrowseController {
             this.#selectionGeneration += 1;
         }
         this.#selectedKey = nextSelectedKey;
-        this.#renderResults();
+        this.#renderResults(false);
         this.#syncFooter();
     }
 
@@ -124,7 +124,7 @@ class ChatAttachBrowseController {
         }
         const sortColumn = requireSortableColumn(CHAT_ATTACH_BROWSE_SORT_COLUMNS, column, 'chat attach browse');
         this.#sortState = resolveNextSortState(this.#sortState, sortColumn, CHAT_ATTACH_BROWSE_SORT_COLUMN_DEFAULT_DIRECTIONS[sortColumn]);
-        this.#renderResults();
+        this.#renderResults(true);
     }
 
     async previewSelected(): Promise<void> {
@@ -193,8 +193,8 @@ class ChatAttachBrowseController {
         setBrowseFooterButtonState(this.#elements.attachButton, this.#active, enabled);
     }
 
-    #renderResults(): void {
-        renderBrowseResultsTable(this.#elements.results, sortBrowseResults(this.#results, this.#sortState), this.#selectedKey, this.#sortState);
+    #renderResults(animateReorder: boolean): void {
+        renderBrowseResultsTable(this.#elements.results, sortBrowseResults(this.#results, this.#sortState), this.#selectedKey, this.#sortState, animateReorder);
     }
 
     async #search(): Promise<void> {
@@ -235,7 +235,7 @@ class ChatAttachBrowseController {
                 this.#selectionGeneration += 1;
             }
             this.#selectedKey = nextSelectedKey;
-            this.#renderResults();
+            this.#renderResults(false);
             this.#syncFooter();
         } catch (error) {
             if (controller.signal.aborted || isAbortError(error)) {

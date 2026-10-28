@@ -5,15 +5,11 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import ValidationError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.files.rag_chunk_identity import build_rag_index_chunk_id_prefix
 from core.hardware.reservation_claims import claim_reserved_write
-from core.logging.trace import get_logger
 from core.rag.config_metadata import (
     normalize_rag_bm25_settings,
     parse_rag_config_metadata_value,
@@ -29,7 +25,6 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
 
 __all__ = (
-    "append_documents_to_sparse_index",
     "ensure_sqlite_sparse_index_ready",
     "get_all_chunks_for_conversation",
     "get_sparse_settings",
@@ -118,39 +113,6 @@ async def ensure_sqlite_sparse_index_ready(
         if recorded_count != db_chunk_count:
             chunks_to_add = await get_all_chunks_for_conversation(self, conv_id)
             await asyncio.to_thread(index.rebuild, chunks_to_add)
-
-
-async def append_documents_to_sparse_index(
-    self: MCPStorageProtocol,
-    conv_id: str,
-    *,
-    document_id: str,
-    documents: Sequence[tuple[str, str]],
-) -> None:
-    logger = get_logger(LOGGER_NAME)
-    try:
-        settings = await get_sparse_settings(self, conv_id)
-        index = SQLiteFTS5BM25Index(
-            db_path=sqlite_sparse_index_path(self, conv_id),
-            tokenizer=settings["tokenizer"],
-            stopwords_mode=settings["stopwords"],
-        )
-        await ensure_sqlite_sparse_index_ready(self, conv_id, index)
-        lock = await self.get_sparse_index_lock(conv_id)
-        async with lock:
-            await asyncio.to_thread(index.add_documents, list(documents))
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_handled_exception(
-            logger,
-            exception,
-            message=(
-                "Failed to update sparse index incrementally; it will be rebuilt on "
-                "demand (non-critical)."
-            ),
-            operation=OPERATION,
-            details={"conv_id": conv_id, "document_id": document_id},
-            level="debug",
-        )
 
 
 async def sparse_search(

@@ -15,6 +15,7 @@ from database.repositories.users.conversation_attachment_knowledge_readiness imp
 from database.repositories.users.conversation_attachment_rows import (
     format_knowledge_attachment_row,
 )
+from database.repositories.users.conversation_knowledge_extraction import KNOWLEDGE_SUMMARY_COLUMNS
 from database.repositories.users.conversation_linked_knowledge_selection_core import (
     linked_knowledge_catalog_source_exists_sql,
     linked_knowledge_source_operation_params,
@@ -31,7 +32,7 @@ _REUSABLE_KNOWLEDGE_MAX_LIMIT = 50
 
 def _reusable_knowledge_base_sql() -> str:
     return f"""
-    SELECT *
+    SELECT {KNOWLEDGE_SUMMARY_COLUMNS}
     FROM webui_conversation_knowledge_attachments
     WHERE user_id = ?
       AND state = 'committed'

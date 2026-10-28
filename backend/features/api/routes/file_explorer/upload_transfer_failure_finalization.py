@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, NoReturn
 from fastapi import Request
 
 from core.errors.exceptions import PayloadTooLargeError, ValidationError
+from core.errors.public_projection import project_public_exception
 from core.files.upload_size_validation import UPLOAD_MAX_SIZE_EXCEEDED_MESSAGE
 from core.tasks.enums import TaskStatus
 from features.api.runtime.task_api_errors import finalize_task_and_raise_api_error
@@ -63,7 +64,7 @@ async def finalize_and_raise_validation_error(
         trace_id=trace_id,
         operation=operation,
         http_status=422,
-        error_type="invalid_request_error",
+        error_type=str(project_public_exception(exception).code),
         error_message=str(exception.message),
         error_code=422,
         task_error_message=str(exception),

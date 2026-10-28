@@ -14,7 +14,7 @@ type OperationUpdateResult = { action: 'skip' } | { action: 'remove'; id: string
 
 const buildOperationMetaSignature = (meta: OperationMeta | null | undefined): string => {
     if (!meta || !isObject(meta)) return '';
-    const fields = ['plugin', 'pluginName', 'provider', 'sourcePlugin', 'universalId', 'url', 'taskId', 'displayName', 'taskType', 'operation', 'taskStatus', 'statusMessage', 'details', 'conversationTitle', 'model', 'tokenCount'];
+    const fields = ['plugin', 'pluginName', 'provider', 'sourcePlugin', 'universalId', 'url', 'taskId', 'displayName', 'taskType', 'operation', 'taskStatus', 'statusMessage', 'details', 'conversationTitle', 'model', 'modelId', 'quantization', 'tokenCount', 'cancelable', 'runId', 'deviceId', 'gpuName', 'profile', 'benchmarkMode', 'indeterminate'];
     return fields
         .map((key) => {
             const value = meta[key];
@@ -41,6 +41,8 @@ const derivePluginFromMeta = (meta: OperationMeta = {}, type: string | undefined
         return i18n.t('taskManager.sources.web');
     } else if (type?.startsWith('backup-')) {
         return i18n.t('taskManager.sources.system');
+    } else if (type === 'soaibench') {
+        return i18n.t('hardware.modals.soaibenchRun.title');
     } else if (type === 'software-update' || type === 'background-job') {
         return i18n.t('taskManager.sources.system');
     } else if (type === 'backend-update-all' || type === 'force-cleanup') {
@@ -77,7 +79,7 @@ const buildOperationUpdate = (event: OperationEvent | null | undefined, context:
     const dataObject = isObject(data) ? data : {};
     const messageValue = dataObject['message'];
     const detailsText = resolveOperationProgressDetails(dataObject);
-    const nextMeta: OperationMeta = { ...metaObject };
+    const nextMeta: OperationMeta = { ...metaObject, ...(typeof dataObject['indeterminate'] === 'boolean' ? { indeterminate: dataObject['indeterminate'] } : {}) };
     if (isString(messageValue) && messageValue.trim()) nextMeta['statusMessage'] = messageValue.trim();
     if (detailsText) nextMeta['details'] = detailsText;
 
@@ -101,7 +103,7 @@ const buildOperationUpdate = (event: OperationEvent | null | undefined, context:
 
     const existingProgressValue = isFiniteNumber(existing?.progress) ? existing.progress : 0;
     const existingWasLocal = existing?.isLocal === true;
-    const updated: OperationEntry = existing || { id, type };
+    const updated: OperationEntry = existing ? { ...existing } : { id, type };
     updated.meta = nextMeta;
     updated.type = type;
     updated.pluginKey = pluginKey;

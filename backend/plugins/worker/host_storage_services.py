@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from types import TracebackType
 
 from core.errors.exceptions import ValidationError
+from core.hardware.disk_reservation_records import DiskSpaceReservationRequest
 from core.hardware.reservation_exceptions import (
     DISK_RESERVATION_OPERATION_EXCEPTIONS,
     preserve_primary_exception_cleanup_failure,
@@ -172,6 +173,30 @@ class WorkerStorageAdapter:
         reservation_id = _require_storage_string_value(
             result.get("value"),
             "storage reservation id",
+        )
+        return WorkerStorageReservationLease(self._request, reservation_id=reservation_id)
+
+    async def reserve_many_disk_spaces(
+        self,
+        *,
+        requests: Sequence[DiskSpaceReservationRequest],
+    ) -> WorkerStorageReservationLease:
+        result = await self._request(
+            "storage.reserve_many_disk_spaces",
+            {
+                "requests": [
+                    {
+                        "path": request.path,
+                        "required_bytes": request.required_bytes,
+                        "operation": request.operation,
+                        "details": dict(request.details or {}),
+                    }
+                    for request in requests
+                ]
+            },
+        )
+        reservation_id = _require_storage_string_value(
+            result.get("value"), "storage reservation id"
         )
         return WorkerStorageReservationLease(self._request, reservation_id=reservation_id)
 

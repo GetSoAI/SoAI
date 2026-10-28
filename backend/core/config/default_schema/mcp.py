@@ -165,7 +165,7 @@ def build_mcp_defaults() -> ConfigDict:
                 "AUDIO_EXTRACTION_TIMEOUT_SEC": 900,
                 "PREVIEW_EXTRACTION_TIMEOUT_SEC": 300,
                 "LIVE_PROGRESS_MIN_INTERVAL_MS": 1000,
-                "WHISPER_MODEL": "base",
+                "WHISPER_MODEL": "auto",
             },
             "HOST_MODE": {
                 "ENABLED": True,

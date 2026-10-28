@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
+from core.skills.prompt_projection import is_skill_context_message
 from core.tool_calls.context_compaction_prompt_message import (
     normalize_context_compaction_prompt_message,
 )
@@ -31,6 +32,8 @@ _PLACEHOLDER_CONTENT = "Context compacted."
 
 
 def extract_summary_text_from_message(message: JSONDict) -> str | None:
+    if is_skill_context_message(message):
+        return None
     content = message.get("content")
     if not isinstance(content, str):
         return None

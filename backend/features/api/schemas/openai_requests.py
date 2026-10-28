@@ -8,6 +8,8 @@ from typing import Annotated, Literal
 from pydantic import Field, StrictBool, StrictInt, field_validator
 
 from core.errors.exceptions import ValidationError
+from core.errors.payload import ErrorPublicPayload
+from core.errors.public_projection import apply_public_error_payload
 from core.meta.soai_v1 import SoAIV1StrictModel
 from core.types.json import JSONValue
 from features.api.schemas.json_fields import PydanticJSONValue
@@ -122,10 +124,19 @@ class EmbeddingRequest(BaseInferenceRequest):
     @field_validator("input", mode="before")
     @classmethod
     def validate_embedding_input_non_empty(cls, value: JSONValue) -> JSONValue:
+        message: str | None = None
         if isinstance(value, str) and value == "":
-            raise ValidationError("input must not be empty.")
-        if isinstance(value, list) and not value:
-            raise ValidationError("input list must not be empty.")
-        if isinstance(value, list) and any(isinstance(item, str) and item == "" for item in value):
-            raise ValidationError("input must not contain empty strings.")
+            message = "input must not be empty."
+        elif isinstance(value, list) and not value:
+            message = "input list must not be empty."
+        elif isinstance(value, list) and any(
+            isinstance(item, str) and item == "" for item in value
+        ):
+            message = "input must not contain empty strings."
+        if message is not None:
+            error = ValidationError(message)
+            apply_public_error_payload(
+                error, ErrorPublicPayload(code=error.code, message=message, param="input")
+            )
+            raise error
         return value

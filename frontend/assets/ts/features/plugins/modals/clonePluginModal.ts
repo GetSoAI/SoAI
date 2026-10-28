@@ -34,7 +34,7 @@ const createClonePluginModalElement = (): HTMLElement => {
                     id="${modalUiId(modalId, 'name-input')}"
                     class="form-input"
                     placeholder="${uiAttr(i18n.t('plugins.modal.clonePlugin.namePlaceholder'))}"
-                />
+                / data-modal-localize="placeholder">
             </div>
         `,
         { className: 'modal-body--sectioned' }

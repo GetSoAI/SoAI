@@ -37,7 +37,8 @@ const CHAT_INPUT_ACTION_ICON_MAP: Record<string, IconDefinition> = {
     '.goto-prompts-btn .chat-action-icon': icon('prompt', CHAT_ICON_SIZE_MD),
     [`${CHAT_SELECTORS.CHARACTER_MAP_BTN} .chat-action-icon`]: icon('character-map', CHAT_ICON_SIZE_MD),
     [`${CHAT_SELECTORS.SKETCH_BTN} .chat-action-icon`]: icon('sketch', CHAT_ICON_SIZE_MD),
-    '.chat-action-btn': icon('arrow-up', CHAT_ICON_SIZE_MD)
+    '.chat-action-btn .chat-action-icon--send': icon('arrow-up', CHAT_ICON_SIZE_MD),
+    '.chat-action-btn .chat-action-icon--stop': icon('stop', CHAT_ICON_SIZE_MD)
 };
 Object.freeze(CHAT_INPUT_ACTION_ICON_MAP);
 

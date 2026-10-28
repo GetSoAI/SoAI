@@ -7,7 +7,7 @@ import { toTrimmedString } from '@core/normalize.ts';
 import { formatTitleFromId } from '@core/primitives/text.ts';
 import { normalizeVersion } from '@core/primitives/version.ts';
 import type { ResourceIncomingValue, ResourceItem } from '@core/data/ClientDataHub.ts';
-import { PLUGIN_ACTIVE_STATUSES, PLUGIN_STATUS_BACKEND_INSTALLING, PLUGIN_STATUS_BACKEND_NOT_INSTALLED, PLUGIN_STATUS_BACKEND_UPDATING, PLUGIN_STATUS_DELETE_ERROR, PLUGIN_STATUS_DISABLED, PLUGIN_STATUS_INSTALL_ERROR, PLUGIN_STATUS_LOAD_ERROR, PLUGIN_STATUS_PERSISTENT_READY, PLUGIN_STATUS_BACKEND_UNINSTALL_ERROR, PLUGIN_STATUS_UNKNOWN, PLUGIN_STATUS_UPDATE_ERROR } from '@core/state/pluginStatus.ts';
+import { PLUGIN_ACTIVE_STATUSES, PLUGIN_STATUS_BACKEND_INSTALLING, PLUGIN_STATUS_BACKEND_NOT_INSTALLED, PLUGIN_STATUS_BACKEND_UPDATING, PLUGIN_STATUS_REMOVING_BACKEND, PLUGIN_STATUS_DELETE_ERROR, PLUGIN_STATUS_DISABLED, PLUGIN_STATUS_INSTALL_ERROR, PLUGIN_STATUS_LOAD_ERROR, PLUGIN_STATUS_PERSISTENT_READY, PLUGIN_STATUS_BACKEND_UNINSTALL_ERROR, PLUGIN_STATUS_UNKNOWN, PLUGIN_STATUS_UPDATE_ERROR } from '@core/state/pluginStatus.ts';
 import { isArray, isFiniteNumber, isObject, isString } from '@core/typeGuards.ts';
 import { isNamedPluginRecord } from '@core/types/pluginRecordGuards.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
@@ -135,13 +135,17 @@ class PluginsDataController {
 
     getBackendStatus(plugin: PluginRecord | string | null | undefined): string {
         const record = this.resolvePluginRecord(plugin);
-        if (!record) return i18n.t('plugins.status.installed');
+        if (!record || !this.#dependencies.catalogStore.isFresh()) return i18n.t('common.unknown');
         if (this.isPluginPermanentlyDisabled(record)) return i18n.t('plugins.status.incompatible');
         if (record.capabilities?.supportsBackendInstallation === false) return i18n.t('plugins.status.notSupported');
-        const state = String(record.state ?? '').toUpperCase();
+        const state = String(record.state ?? '')
+            .trim()
+            .toUpperCase();
+        if (!state || state === PLUGIN_STATUS_UNKNOWN) return i18n.t('common.unknown');
         if (state === PLUGIN_STATUS_BACKEND_INSTALLING) {
             return i18n.t('plugins.status.installing');
         }
+        if (state === PLUGIN_STATUS_REMOVING_BACKEND) return i18n.t('plugins.loading.uninstallingBackend');
         if (state === PLUGIN_STATUS_BACKEND_UPDATING) {
             return i18n.t('plugins.status.updating');
         }

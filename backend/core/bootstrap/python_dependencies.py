@@ -3,9 +3,14 @@
 
 from __future__ import annotations
 
+import math
 import os
 import time
 
+from core.bootstrap.dependency_verification import (
+    record_verified_environment,
+    verified_environment_is_current,
+)
 from core.bootstrap.files import (
     compute_sha256,
     compute_source_directory_sha256,
@@ -27,7 +32,12 @@ from core.bootstrap.venv_markers import (
 from core.bootstrap.venv_paths import get_venv_path, get_venv_python_executable
 from core.errors.exceptions import StateError
 from core.meta.paths import join_data_abs
-from core.system.commands import CommandResult, run_argv_capture
+from core.system.commands import CommandResult
+from core.system.native_runtime_probes import (
+    NativeProbeBudget,
+    interpreter_probe_budget,
+    run_native_probe,
+)
 from core.timing.constants import LONG_REQUEST_TIMEOUT_SEC
 
 __all__ = (
@@ -52,7 +62,6 @@ DEPENDENCY_PROBE_IMPORTS: tuple[str, ...] = (
     "uvicorn",
 )
 X64_NATIVE_DEPENDENCY_PROBE_IMPORTS: tuple[str, ...] = (
-    "torch",
     "cv2",
     "onnxruntime",
     "rapidocr_onnxruntime",
@@ -62,11 +71,13 @@ X64_NATIVE_DEPENDENCY_PROBE_IMPORTS: tuple[str, ...] = (
 def ensure_pip_ready(
     python_executable: str, *, diagnostics: InstallDiagnostics | None = None
 ) -> None:
-    pip_probe = run_argv_capture(
+    pip_probe = run_native_probe(
         [python_executable, "-m", "pip", "--version"],
+        budget=interpreter_probe_budget(
+            python_executable, ordinary_seconds=30, probe_count=1, environment=False
+        ),
         encoding="utf-8",
         errors="replace",
-        timeout=30,
     )
     if diagnostics is not None:
         diagnostics.record_probe("pip --version", pip_probe, terminal=True)
@@ -117,14 +128,20 @@ def bootstrap_python_dependencies_if_needed(
             raise FileNotFoundError(
                 f"SoAI managed environment is missing. Start SoAI via soai.sh or soai.exe to create it. Expected python at '{resolved_python}'.",
             )
-        if diagnostics is None:
-            ensure_pip_ready(resolved_python)
-        else:
-            ensure_pip_ready(resolved_python, diagnostics=diagnostics)
         requirements_hash = _runtime_dependency_source_hash(
             repo_root_path=repo_root,
             requirements_path=requirements_path,
         )
+        if (
+            diagnostics is None
+            and _dependency_markers_match(venv_path, requirements_hash)
+            and verified_environment_is_current(venv_path, requirements_hash)
+        ):
+            return False
+        if diagnostics is None:
+            ensure_pip_ready(resolved_python)
+        else:
+            ensure_pip_ready(resolved_python, diagnostics=diagnostics)
         if diagnostics is None:
             needs_install = _python_dependencies_need_install(
                 venv_path=venv_path,
@@ -139,6 +156,7 @@ def bootstrap_python_dependencies_if_needed(
                 diagnostics=diagnostics,
             )
         if not needs_install:
+            record_verified_environment(venv_path, requirements_hash)
             return False
         resolved_offline_mode = (
             is_stage0_offline_mode_enabled(repo_root)
@@ -182,9 +200,7 @@ def _python_dependencies_need_install(
     requirements_hash: str,
     diagnostics: InstallDiagnostics | None = None,
 ) -> bool:
-    stored_hash = read_text_file(os.path.join(venv_path, REQUIREMENTS_HASH_FILENAME))
-    marker_value = read_text_file(os.path.join(venv_path, DEPENDENCY_CHECK_MARKER_FILENAME))
-    if stored_hash != requirements_hash or not marker_value:
+    if not _dependency_markers_match(venv_path, requirements_hash):
         return True
     if diagnostics is None:
         return not _runtime_dependency_probes_pass(python_executable)
@@ -194,6 +210,12 @@ def _python_dependencies_need_install(
         )
         is not None
     )
+
+
+def _dependency_markers_match(venv_path: str, requirements_hash: str) -> bool:
+    stored_hash = read_text_file(os.path.join(venv_path, REQUIREMENTS_HASH_FILENAME))
+    marker_value = read_text_file(os.path.join(venv_path, DEPENDENCY_CHECK_MARKER_FILENAME))
+    return stored_hash == requirements_hash and bool(marker_value)
 
 
 def _runtime_dependency_probes_pass(python_executable: str) -> bool:
@@ -207,17 +229,23 @@ def _runtime_dependency_probe_failure(
         (X64_NATIVE_DEPENDENCY_PROBE_IMPORTS, True),
         (DEPENDENCY_PROBE_IMPORTS, False),
     )
+    budget = interpreter_probe_budget(
+        python_executable,
+        ordinary_seconds=LONG_REQUEST_TIMEOUT_SEC,
+        probe_count=len(X64_NATIVE_DEPENDENCY_PROBE_IMPORTS) + len(DEPENDENCY_PROBE_IMPORTS) + 1,
+        environment=True,
+    )
     for module_names, x64_only in probe_groups:
         for module_name in module_names:
-            import_probe = run_argv_capture(
+            import_probe = run_native_probe(
                 [
                     python_executable,
                     "-c",
                     _build_dependency_probe_script(module_name, x64_only=x64_only),
                 ],
+                budget=budget,
                 encoding="utf-8",
                 errors="replace",
-                timeout=LONG_REQUEST_TIMEOUT_SEC,
             )
             if diagnostics is not None:
                 diagnostics.record_probe(f"import '{module_name}'", import_probe, terminal=terminal)
@@ -225,23 +253,26 @@ def _runtime_dependency_probe_failure(
                 return _format_dependency_probe_failure(
                     f"module '{module_name}' could not be imported",
                     import_probe,
+                    budget,
                 )
-    pip_check = run_argv_capture(
+    pip_check = run_native_probe(
         [python_executable, "-m", "pip", "check"],
+        budget=budget,
         encoding="utf-8",
         errors="replace",
-        timeout=LONG_REQUEST_TIMEOUT_SEC,
     )
     if diagnostics is not None:
         diagnostics.record_probe("pip check", pip_check, terminal=terminal)
     if pip_check.return_code != 0:
-        return _format_dependency_probe_failure("pip check failed", pip_check)
+        return _format_dependency_probe_failure("pip check failed", pip_check, budget)
     return None
 
 
-def _format_dependency_probe_failure(label: str, result: CommandResult) -> str:
-    if result.return_code == 124:
-        return f"{label} (timed out after {LONG_REQUEST_TIMEOUT_SEC} seconds)."
+def _format_dependency_probe_failure(
+    label: str, result: CommandResult, budget: NativeProbeBudget
+) -> str:
+    if result.timed_out:
+        return f"{label} (timed out after {math.ceil(budget.phase_seconds())} seconds)."
     detail = result.stderr.strip() or result.stdout.strip()
     if detail:
         detail_line = detail.splitlines()[-1].strip()
@@ -253,6 +284,11 @@ def _format_dependency_probe_failure(label: str, result: CommandResult) -> str:
 
 def _runtime_dependency_source_hash(*, repo_root_path: str, requirements_path: str) -> str:
     requirements_hash = compute_sha256(requirements_path)
+    bootstrap_hash = compute_sha256(
+        os.path.join(
+            repo_root_path, "backend", "core", "bootstrap", "tls_bootstrap_requirements.txt"
+        )
+    )
     local_tika_root = join_data_abs(repo_root_path, "vendor", "tika")
     local_tika_hash = "\n".join(
         (
@@ -261,7 +297,13 @@ def _runtime_dependency_source_hash(*, repo_root_path: str, requirements_path: s
             f"package:{compute_source_directory_sha256(os.path.join(local_tika_root, 'tika'))}",
         ),
     )
-    return f"requirements:{requirements_hash}\nlocal-tika:{local_tika_hash}"
+    security_artifacts = compute_source_directory_sha256(
+        join_data_abs(repo_root_path, "vendor", "security")
+    )
+    return (
+        f"requirements:{requirements_hash}\nbootstrap:{bootstrap_hash}\nlocal-tika:{local_tika_hash}"
+        f"\nlocal-security-artifacts:{security_artifacts}"
+    )
 
 
 def _build_dependency_probe_script(module_name: str, *, x64_only: bool = False) -> str:
@@ -283,6 +325,7 @@ def _write_dependency_markers(*, venv_path: str, requirements_hash: str) -> None
         os.path.join(venv_path, DEPENDENCY_CHECK_MARKER_FILENAME),
         str(_epoch_seconds_float()),
     )
+    record_verified_environment(venv_path, requirements_hash)
 
 
 def _epoch_seconds_float() -> float:

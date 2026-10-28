@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { createBootstrapDisplayServices } from '@app/bootstrap/serviceconstruction/display.ts';
+import visualizationWorkerUrl from '@app/entrypoints/visualization/visualizationWorker.ts?worker&url';
 import { registerCoreBootstrapServices } from '@app/bootstrap/serviceconstruction/coreRegistrations.ts';
 import { registerFeatureBootstrapServices } from '@app/bootstrap/serviceconstruction/featureRegistrations.ts';
 import { createBootstrapFoundationServices } from '@app/bootstrap/serviceconstruction/foundation.ts';
@@ -11,6 +12,7 @@ import { createModalStorageService, createRouterStateService, createStorageApiSe
 import { getAppModalDefinitions } from '@app/bootstrap/modalDefinitions.ts';
 import { CHAT_MEMORY_PROFILE_FIRST_RUN_REGISTRATION } from '@features/chat/public.ts';
 import { AuthManager } from '@core/auth/public.ts';
+import { hasPluginBackendUpdate } from '@core/plugins/backendUpdates.ts';
 import { createDashboardIntroDriverPresenceState, createDashboardIntroFirstRunRegistration } from '@features/firstrunmodals/public.ts';
 import { createFirstRunModalsService } from '@features/firstrunmodals/service.ts';
 import { createConnectionState } from '@core/connectionstate/service.ts';
@@ -34,6 +36,9 @@ import { createStorageService } from '@core/storage/StorageService.ts';
 import { createPresenceRuntime } from '@core/animations/presence/public.ts';
 import { createSecretInputToggleService } from '@core/ui/secretInput.ts';
 import { createSearchFieldActionService } from '@core/ui/searchField.ts';
+import { createDisabledInteractionService } from '@core/ui/controls/disabledInteraction.ts';
+import { createPointerFocusService } from '@core/ui/controls/pointerFocus.ts';
+import { createToggleSwitchDragRuntime } from '@core/ui/controls/toggleswitch/dragRuntime.ts';
 import { createTabsOverflowRuntime } from '@core/ui/controls/tabs/overflowRuntime.ts';
 import { createTooltipService } from '@core/ui/tooltips/public.ts';
 import { showNotification } from '@core/ui/notifications/notifications.ts';
@@ -43,6 +48,7 @@ import type { LanguageService } from '@core/routing/pages/pagetypes/public.ts';
 import { ClientDataHub } from '@core/data/ClientDataHub.ts';
 import { COLLECTION_CHANNEL_CATALOG } from '@core/data/clientdatahub/channelCatalog.ts';
 import { createCatalogStore } from '@features/catalog/state.ts';
+import { createSpeechSetupService } from '@core/speechsetup/catalog.ts';
 
 export function registerAllServices(languageService: LanguageService): void {
     initializeSoundEffectsUnlock();
@@ -72,6 +78,24 @@ export function registerAllServices(languageService: LanguageService): void {
     searchFieldActionService.initialize();
     registerService('core.searchFieldActions', searchFieldActionService, {
         moduleId: 'core.searchFieldActions',
+        initialized: true
+    });
+    const disabledInteractionService = createDisabledInteractionService(dom.getDocument());
+    disabledInteractionService.initialize();
+    registerService('core.disabledInteraction', disabledInteractionService, {
+        moduleId: 'core.disabledInteraction',
+        initialized: true
+    });
+    const pointerFocusService = createPointerFocusService(dom.getDocument());
+    pointerFocusService.initialize();
+    registerService('core.pointerFocus', pointerFocusService, {
+        moduleId: 'core.pointerFocus',
+        initialized: true
+    });
+    const toggleSwitchDragService = createToggleSwitchDragRuntime(dom.getDocument());
+    toggleSwitchDragService.initialize();
+    registerService('core.toggleSwitchDrag', toggleSwitchDragService, {
+        moduleId: 'core.toggleSwitchDrag',
         initialized: true
     });
     const presenceMotionService = createPresenceRuntime(dom.getDocument());
@@ -124,6 +148,13 @@ export function registerAllServices(languageService: LanguageService): void {
         refreshResource: async (resource) => streamManager.resources.refresh(resource, { allowDiscovery: true, throwOnError: true })
     });
     const catalogStore = createCatalogStore(clientDataHub, streamManager.tasks);
+    const speechSetup = createSpeechSetupService(clientDataHub, catalogStore);
+    registerService('core.speechSetup', speechSetup, { initialized: true });
+    foundation.cleanupManager.addCleanupHandler(
+        catalogStore.subscribe((plugins) => {
+            displayServices.sidebarComponent.setPluginBackendUpdateAvailable(catalogStore.isFresh() && plugins.some(hasPluginBackendUpdate));
+        })
+    );
     const dashboardIntroDriverPresence = createDashboardIntroDriverPresenceState();
     const dashboardIntroProduct = requireFrontendEditionComposition().createDashboardIntro(foundation.apiClient.os, soaiOsCapabilities);
     const dashboardIntroFirstRunRegistration = createDashboardIntroFirstRunRegistration({
@@ -143,6 +174,7 @@ export function registerAllServices(languageService: LanguageService): void {
         ResourceTracker,
         errorHandler,
         PageOutlet,
+        spinnerWorkerUrl: visualizationWorkerUrl,
         ErrorBoundary,
         modalPresenter,
         componentRegistry: foundation.componentRegistry.components,
@@ -181,7 +213,8 @@ export function registerAllServices(languageService: LanguageService): void {
         componentRegistry: foundation.componentRegistry,
         header: displayServices.header,
         sidebarComponent: displayServices.sidebarComponent,
-        overlay: displayServices.overlay
+        overlay: displayServices.overlay,
+        countdownOverlay: displayServices.countdownOverlay
     });
     registerFeatureBootstrapServices({
         basePageDependencies: {

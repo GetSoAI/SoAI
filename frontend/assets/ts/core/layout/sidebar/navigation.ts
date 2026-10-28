@@ -4,6 +4,8 @@
 import { isPresenceAnimating } from '@core/animations/presence/public.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { dom } from '@core/dom/dom.ts';
+import { getRouteRegistry, getSidebarComponentTargets } from '@core/routeregistry/service.ts';
+import type { SidebarComponentTargets } from '@core/routeregistry/contracts.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { measureViewportBox } from '@core/layout/elementGeometry.ts';
 import type { NavigationEventDetail } from '@core/navigationEvents.ts';
@@ -82,6 +84,8 @@ const followSidebarActiveRail = (menu: HTMLElement): void => {
 };
 
 const setSidebarActiveLink = (menu: HTMLElement | null, link: HTMLElement | null): void => {
+    const pageId = link?.getAttribute('data-page');
+    if (pageId && getRouteRegistry()[pageId]?.sidebar?.activateOnNavigation === false) return;
     const previousLink = menu ? resolveHTMLElement(SIDEBAR_ACTIVE_LINK_SELECTOR, menu) : null;
     const existingRail = menu ? resolveHTMLElement(`.${SIDEBAR_ACTIVE_RAIL_CLASS}`, menu) : null;
     if (previousLink === link && existingRail?.dataset['visible'] === SIDEBAR_RAIL_VISIBLE) {
@@ -108,7 +112,7 @@ const setSidebarActiveByPage = (menu: HTMLElement | null, pageId: string): void 
     setSidebarActiveLink(menu, link);
 };
 
-const syncSidebarWithCurrentRoute = (router: Router | null, menu: HTMLElement | null, routeComponentMap: Record<string, string>): void => {
+const syncSidebarWithCurrentRoute = (router: Router | null, menu: HTMLElement | null, routeComponentMap: SidebarComponentTargets): void => {
     if (!router) {
         return;
     }
@@ -144,7 +148,13 @@ const navigateSidebarTo = (router: Router | null, pageId: string, menu: HTMLElem
         }
         return;
     }
-    router.navigate({ path: pageId, meta: { source: 'sidebar' } }).catch((error) => errorHandler.warn('Sidebar', 'Sidebar navigation failed', error));
+    router
+        .navigate({ path: pageId, meta: { source: 'sidebar' } })
+        .finally(() => {
+            const selected = menu ? resolveHTMLElement(SIDEBAR_ACTIVE_LINK_SELECTOR, menu) : null;
+            if (selected?.getAttribute('data-page') === pageId) syncSidebarWithCurrentRoute(router, menu, getSidebarComponentTargets());
+        })
+        .catch((error) => errorHandler.warn('Sidebar', 'Sidebar navigation failed', error));
     if (mobile) {
         terminateHandledPromise(closeMobile());
     }

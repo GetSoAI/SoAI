@@ -7,12 +7,21 @@ import re
 from typing import TYPE_CHECKING
 
 from core.concurrency.deadlines import MonotonicDeadline, deadline_after
-from core.system.commands import run_argv_capture
+from core.errors.exception_logging import log_handled_exception
+from core.errors.exceptions import StateError, ValidationError
+from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.validation.coercion import coerce_int_from_scalar
 from hardware.gpu_capabilities.payloads import (
     mark_control_capability_unsupported,
     read_control_capability_section,
     update_control_capability_section,
+)
+from hardware.gpu_inventory.executable_resolution import GpuExecutableState
+from hardware.vendors.nvidia.settings_control_queries import (
+    NvidiaSettingsSession,
+    parse_settings_attribute,
+    query_settings_fans,
+    query_settings_output,
 )
 from hardware.vendors.nvidia.smi import NvidiaSettingsController
 
@@ -22,12 +31,21 @@ if TYPE_CHECKING:
     from core.logging.protocols import TraceLogger
     from core.types.json import JSONDict
 
+OPERATION_HARDWARE_NVIDIA_SETTINGS_FAN_CAPABILITIES = "hardware.nvidia.settings.fan_capabilities"
+
+
 __all__ = ("apply_nvidia_settings_capabilities",)
 
 RANGE_PATTERN_TEXT = "valid values for '[^']+' are in the range\\s+(-?\\d+)\\s+-\\s+(-?\\d+)"
 VALUE_PATTERN_TEXT = "\\):\\s*(-?\\d+)(?:\\.|\\s|$)"
 NVIDIA_SETTINGS_PERF_LEVEL = 3
 NVIDIA_SETTINGS_QUERY_TIMEOUT_SECONDS = 2
+SETTINGS_FAN_QUERY_EXCEPTIONS: tuple[type[Exception], ...] = (
+    StateError,
+    ValidationError,
+    OSError,
+    *RECOVERABLE_EXCEPTIONS,
+)
 
 
 def apply_nvidia_settings_capabilities(
@@ -48,6 +66,7 @@ def apply_nvidia_settings_capabilities(
         _apply_clock_capability(
             logger=logger,
             env=env,
+            controller=controller,
             deadline=operation_deadline,
             vendor_id=vendor_id,
             gpu_caps=gpu_caps,
@@ -57,6 +76,7 @@ def apply_nvidia_settings_capabilities(
         _apply_clock_capability(
             logger=logger,
             env=env,
+            controller=controller,
             deadline=operation_deadline,
             vendor_id=vendor_id,
             gpu_caps=gpu_caps,
@@ -66,6 +86,7 @@ def apply_nvidia_settings_capabilities(
         _apply_fan_capability(
             logger=logger,
             env=env,
+            controller=controller,
             vendor_id=vendor_id,
             gpu_caps=gpu_caps,
             deadline=operation_deadline,
@@ -77,6 +98,7 @@ def _apply_clock_capability(
     *,
     logger: TraceLogger,
     env: Mapping[str, str],
+    controller: NvidiaSettingsController,
     deadline: MonotonicDeadline,
     vendor_id: int,
     gpu_caps: JSONDict,
@@ -89,6 +111,7 @@ def _apply_clock_capability(
         env,
         f"[gpu:{vendor_id}]/{attribute}[{perf_level}]",
         deadline,
+        controller=controller,
     )
     if query_output is None:
         _mark_probe_failure(gpu_caps, caps_key, failure_reason)
@@ -100,19 +123,17 @@ def _apply_clock_capability(
         return
     caps = read_control_capability_section(gpu_caps, caps_key)
     default_clock = coerce_int_from_scalar(caps.get("default"))
-    current_clock = coerce_int_from_scalar(caps.get("current"))
     if default_clock is None:
         _mark_probe_failure(gpu_caps, caps_key, "parse_error")
         return
-    if current_offset is not None:
-        current_clock = default_clock + current_offset
+    current_clock = default_clock + current_offset if current_offset is not None else None
     absolute_min = default_clock + offset_min
     absolute_max = default_clock + offset_max
     update_control_capability_section(
         gpu_caps,
         caps_key,
         {
-            "current": current_clock if current_clock is not None else default_clock,
+            "current": current_clock,
             "min": absolute_min,
             "max": absolute_max,
             "offset_min": offset_min,
@@ -128,52 +149,68 @@ def _apply_fan_capability(
     *,
     logger: TraceLogger,
     env: Mapping[str, str],
+    controller: NvidiaSettingsController,
     deadline: MonotonicDeadline,
     vendor_id: int,
     gpu_caps: JSONDict,
 ) -> None:
-    state_output, state_failure_reason = _query_nvidia_settings(
-        logger,
-        env,
-        f"[gpu:{vendor_id}]/GPUFanControlState",
-        deadline,
-    )
-    target_output, target_failure_reason = _query_nvidia_settings(
-        logger,
-        env,
-        f"[fan:{vendor_id}]/GPUTargetFanSpeed",
-        deadline,
-    )
-    if state_output is None or target_output is None:
+    if deadline.remaining_seconds() < 1:
+        _mark_probe_failure(gpu_caps, "fan_speed_percent", "timeout")
+        return
+    try:
+        session = NvidiaSettingsSession(
+            controller.native_query, env["DISPLAY"], env.get("XAUTHORITY")
+        )
+        state = parse_settings_attribute(
+            query_settings_output(
+                session, f"[gpu:{vendor_id}]/GPUFanControlState", deadline=deadline
+            ),
+            attribute="GPUFanControlState",
+            target_type="gpu",
+            target_id=vendor_id,
+        ).value
+        if state not in (0, 1):
+            raise ValidationError("NVIDIA settings actual fan policy is invalid.")
+        fans = query_settings_fans(session, native_gpu_id=vendor_id, deadline=deadline)
+        minimum = max(fan.attribute.minimum for fan in fans if fan.attribute.minimum is not None)
+        maximum = min(fan.attribute.maximum for fan in fans if fan.attribute.maximum is not None)
+        if minimum > maximum:
+            raise ValidationError("NVIDIA settings related fan ranges have no shared target.")
+        targets = {fan.attribute.value for fan in fans}
+        if state == 1 and any(
+            fan.attribute.minimum is None
+            or fan.attribute.maximum is None
+            or not fan.attribute.minimum <= fan.attribute.value <= fan.attribute.maximum
+            for fan in fans
+        ):
+            raise ValidationError("NVIDIA settings manual fan target is invalid.")
+        if deadline.expired():
+            raise TimeoutError("NVIDIA settings fan capability deadline expired.")
+        update_control_capability_section(
+            gpu_caps,
+            "fan_speed_percent",
+            {
+                "current": next(iter(targets)) if state == 1 and len(targets) == 1 else None,
+                "min": minimum,
+                "max": maximum,
+                "mode": "manual" if state == 1 else "auto",
+                "supported": True,
+                "via_nvidia_settings": True,
+            },
+        )
+    except SETTINGS_FAN_QUERY_EXCEPTIONS as exception:
+        log_handled_exception(
+            logger,
+            exception,
+            message="NVIDIA related fan capability query failed.",
+            operation=OPERATION_HARDWARE_NVIDIA_SETTINGS_FAN_CAPABILITIES,
+            level="trace",
+        )
         _mark_probe_failure(
             gpu_caps,
             "fan_speed_percent",
-            state_failure_reason or target_failure_reason,
+            "timeout" if isinstance(exception, TimeoutError) else "device_unavailable",
         )
-        return
-    fan_min, fan_max = _parse_range(target_output)
-    if fan_min is None or fan_max is None or fan_min >= fan_max:
-        _mark_probe_failure(gpu_caps, "fan_speed_percent", "parse_error")
-        return
-    state_value = _parse_value(state_output)
-    current_value = _parse_value(target_output)
-    if state_value is None:
-        _mark_probe_failure(gpu_caps, "fan_speed_percent", "parse_error")
-        return
-    caps = read_control_capability_section(gpu_caps, "fan_speed_percent")
-    existing_current_value = coerce_int_from_scalar(caps.get("current"))
-    update_control_capability_section(
-        gpu_caps,
-        "fan_speed_percent",
-        {
-            "current": current_value if current_value is not None else existing_current_value,
-            "min": fan_min,
-            "max": fan_max,
-            "mode": "manual" if state_value == 1 else "auto",
-            "supported": True,
-            "via_nvidia_settings": True,
-        },
-    )
 
 
 def _query_nvidia_settings(
@@ -181,12 +218,17 @@ def _query_nvidia_settings(
     env: Mapping[str, str],
     target: str,
     deadline: MonotonicDeadline,
+    *,
+    controller: NvidiaSettingsController,
 ) -> tuple[str | None, str | None]:
     timeout = int(min(NVIDIA_SETTINGS_QUERY_TIMEOUT_SECONDS, deadline.remaining_seconds()))
     if timeout < 1:
         return (None, "timeout")
-    result = run_argv_capture(
-        ["nvidia-settings", "-q", target],
+    query = controller.native_query
+    if query.executable.state != GpuExecutableState.FOUND or query.executable.path is None:
+        return (None, "tool_missing")
+    result = query.capture(
+        [query.executable.path, "-q", target],
         env=env,
         timeout=timeout,
     )

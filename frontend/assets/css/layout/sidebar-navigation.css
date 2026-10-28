@@ -115,8 +115,12 @@
 
     .sidebar-link[data-active='true'] .sidebar-icon-button {
         color: var(--accent-primary);
-        border-color: var(--accent-primary);
+        border-color: color-mix(in srgb, var(--accent-primary) var(--control-button-border-strength), transparent);
         background: color-mix(in srgb, var(--accent-primary) 15%, var(--glass-underlay-surface));
+    }
+
+    .sidebar-link:hover .sidebar-icon-button:not(:disabled, [aria-disabled='true']) {
+        --control-button-border-strength: var(--control-button-border-hover-strength);
     }
 
     .sidebar-link:not(.main-state-indicator, [data-active='true']):hover .sidebar-icon-button {

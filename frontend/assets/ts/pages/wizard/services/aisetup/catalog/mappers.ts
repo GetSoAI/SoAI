@@ -1,8 +1,11 @@
 /* SoAI - Wizard AI setup model catalog matching [frontend/assets/ts/pages/wizard/services/aisetup/catalog/mappers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { DownloadParameters } from '@core/modelactions/contracts.ts';
+import { findModelCatalogEntry } from '@pages/wizard/services/aisetup/catalog/constants.ts';
 import { isChatSelectableModel } from '@core/models/chatModelAvailability.ts';
-import type { AiSetupModel, AiSetupProvider } from '@core/storage/aisetup/aiSetupTypes.ts';
+import { toTrimmedString } from '@core/normalize.ts';
+import type { AiSetupModel, AiSetupProvider, AiSetupState } from '@core/storage/aisetup/aiSetupTypes.ts';
 import { isFiniteNumber, isString } from '@core/typeGuards.ts';
 import type { ModelData } from '@core/types/modelTypes.ts';
 
@@ -65,9 +68,11 @@ const findDownloadedModel = (models: readonly ModelData[], item: AiSetupModel): 
 };
 
 const findItemModel = (models: readonly ModelData[], item: AiSetupModel): ModelData | null => {
-    if (item.modelId !== null) return models.find((model) => model.id === item.modelId) ?? null;
+    if (item.modelId !== null) return models.find((model) => readModelOperationId(model) === item.modelId || model.id === item.modelId) ?? null;
     return item.source === 'local' ? findDownloadedModel(models, item) : null;
 };
+
+const readModelOperationId = (model: ModelData): string => toTrimmedString(model.universalId) || model.id;
 
 const listProviderModels = (models: readonly ModelData[], provider: AiSetupProvider): ModelData[] => models.filter((model) => model.plugin === provider.pluginName && model.providerId === provider.providerId && isChatSelectableModel(model));
 
@@ -75,4 +80,17 @@ const readConfigurationFingerprint = (model: ModelData): string | null => (isFin
 
 const readModelLabel = (model: ModelData | null, fallback: string): string => model?.displayName || model?.name || fallback;
 
-export { findDownloadedModel, findItemModel, listProviderModels, readConfigurationFingerprint, readModelLabel };
+export { findDownloadedModel, findItemModel, listProviderModels, readConfigurationFingerprint, readModelLabel, readModelOperationId };
+
+const readAiSetupDownloadRequest = (setup: AiSetupState, item: AiSetupModel): DownloadParameters | null => {
+    if (item.repositoryId === null || item.artifactReference === null) return null;
+    return {
+        wizard: { previousTaskId: setup.lastLocalDownloadTaskId },
+        plugin: item.pluginName,
+        modelId: item.repositoryId,
+        quantization: item.artifactReference,
+        displayName: findModelCatalogEntry(item.catalogId)?.name ?? item.artifactName ?? item.artifactReference
+    };
+};
+
+export { readAiSetupDownloadRequest };

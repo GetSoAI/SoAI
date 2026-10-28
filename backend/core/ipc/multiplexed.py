@@ -109,6 +109,10 @@ class MultiplexedIpcServer(LoopbackIpcServerBase):
         payload: JSONDict,
         timeout_sec: float | None,
         event_handler: Callable[[JSONDict], Awaitable[None]] | None = None,
+        disconnect_on_cancel: bool = False,
+        require_cancellation_completion: bool = False,
+        cancellation_completion_timeout_sec: float | None = None,
+        completed_result_wins_cancellation: bool = False,
     ) -> JSONDict:
         connection = await self._get_connection(worker_id)
         return await execute_outbound_ipc_request(
@@ -121,6 +125,10 @@ class MultiplexedIpcServer(LoopbackIpcServerBase):
             payload=payload,
             timeout_sec=timeout_sec,
             event_handler=event_handler,
+            disconnect_on_cancel=disconnect_on_cancel,
+            require_cancellation_completion=require_cancellation_completion,
+            cancellation_completion_timeout_sec=cancellation_completion_timeout_sec,
+            completed_result_wins_cancellation=completed_result_wins_cancellation,
             drop_connection=lambda: self._drop_connection(int(worker_id), connection),
         )
 

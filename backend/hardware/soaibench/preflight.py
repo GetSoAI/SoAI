@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from hardware.soaibench.opencl_child_environment import opencl_child_compiler_evidence
 from hardware.soaibench.opencl_session import OpenCLExecutionSession
 from hardware.soaibench.types import SoAIBenchGpuIdentity
 from hardware.soaibench.workload_common import require_standard_memory_capability
@@ -36,4 +37,13 @@ def preflight_blocking(session: OpenCLExecutionSession, identity: SoAIBenchGpuId
         "opencl_device_vendor": runtime.device_vendor,
         "opencl_driver_version": runtime.driver_version,
         "opencl_enumeration_warnings": list(runtime.enumeration_warnings),
+        "opencl": {
+            "device_type": runtime.capabilities.device_type,
+            "device_profile": runtime.capabilities.profile,
+            "device_available": runtime.capabilities.available,
+            "compiler_available": runtime.capabilities.compiler_available,
+            "execution_capabilities": runtime.capabilities.execution_capabilities,
+            "compiler": opencl_child_compiler_evidence(),
+            "custom_discovery_warning": runtime.custom_discovery_warning,
+        },
     }

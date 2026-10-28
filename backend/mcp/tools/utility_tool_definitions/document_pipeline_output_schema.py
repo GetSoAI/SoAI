@@ -30,5 +30,6 @@ def build_document_pipeline_output_schema() -> JSONDict:
                 "type": "string",
                 "enum": ["complete", "degraded", "unsupported", "failed", "timed_out"],
             },
+            "missing_capabilities": {"type": "array", "items": {"type": "string"}},
         },
     }

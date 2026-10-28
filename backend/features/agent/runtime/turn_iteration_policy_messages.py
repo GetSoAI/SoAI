@@ -11,6 +11,7 @@ from core.prompts.system_prompts import (
     get_text_prompt_v1,
     render_text_prompt_template_v1,
 )
+from core.runtime.shutdown_errors import SERVER_SHUTDOWN_MESSAGE
 from core.types.json import JSONDict
 
 __all__ = (
@@ -26,13 +27,13 @@ __all__ = (
 )
 
 
-def get_cancelled_status() -> tuple[str, str, str]:
+def get_cancelled_status(*, shutdown_requested: bool = False) -> tuple[str, str, str]:
     status, error_message, error_type = resolve_agent_turn_terminal_defaults(
         AGENT_TURN_STATUS_CANCELLED,
     )
     return (
         status,
-        error_message or "Agent turn cancelled.",
+        SERVER_SHUTDOWN_MESSAGE if shutdown_requested else error_message or "Agent turn cancelled.",
         error_type or AGENT_TURN_STATUS_CANCELLED,
     )
 

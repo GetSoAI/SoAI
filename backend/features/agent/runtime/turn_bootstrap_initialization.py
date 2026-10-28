@@ -131,9 +131,16 @@ async def initialize_agent_turn(
         ),
         latest_error_type=read_turn_optional_text(initial_turn_state, "error_type"),
         latest_assistant_text=read_turn_assistant_text(initial_turn_state),
+        latest_reasoning_text=(
+            context.agent_prompt_replay_snapshot.pending_reasoning_text
+            if context.agent_prompt_replay_snapshot is not None
+            else ""
+        ),
         latest_tool_calls=[dict(entry) for entry in turn_state_tool_calls],
         latest_tool_results=list(turn_state_tool_results),
         latest_activities=[dict(entry) for entry in turn_state_activities],
+        latest_skill_activation=claimed_turn.skill_activation,
+        skill_input_claim=claimed_turn.skill_input_claim,
     )
     tool_sequence_state = TurnLoopToolSequenceState.from_turn_state_writer(turn_state_writer)
     bootstrap = AgentTurnBootstrap(

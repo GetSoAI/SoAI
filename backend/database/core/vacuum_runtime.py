@@ -30,6 +30,7 @@ from database.core.paths import DatabasePaths
 from database.core.vacuum import (
     VACUUM_MINIMUM_FREE_PERCENT,
     VACUUM_MINIMUM_RECLAIMABLE_BYTES,
+    VACUUM_PERCENTAGE_OVERRIDE_BYTES,
     VacuumExecution,
     sync_vacuum,
 )
@@ -169,11 +170,12 @@ class DatabaseVacuum:
         if result.status is DatabaseVacuumStatusValue.CANCELLED:
             raise asyncio.CancelledError()
         if result.status is DatabaseVacuumStatusValue.INSUFFICIENT_RECLAIMABLE_SPACE:
-            self._logger.info(
-                "Database vacuum skipped: insufficient reclaimable space (%.1f MiB); requires at least %.0f MiB and %s%% free pages.",
+            self._logger.debug(
+                "Database vacuum skipped: insufficient reclaimable space (%.1f MiB); requires at least %.0f MiB and either %s%% free pages or %.0f MiB reclaimable.",
                 result.reclaimable_bytes / MIB_BYTES,
                 VACUUM_MINIMUM_RECLAIMABLE_BYTES / MIB_BYTES,
                 VACUUM_MINIMUM_FREE_PERCENT,
+                VACUUM_PERCENTAGE_OVERRIDE_BYTES / MIB_BYTES,
             )
             return DatabaseVacuumStartupResult(
                 status="skipped", reason=result.status.value, result=result

@@ -2,17 +2,15 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
-import type { ChatStreamTranslationKey } from '@core/i18n/translationkeys/chat/stream.generated.ts';
+import type { ChatStreamStatusMessagesTranslationKey } from '@core/i18n/translationkeys/chat/stream__statusMessages.generated.ts';
 
-type StreamStatusMessageKey = Extract<ChatStreamTranslationKey, `chat.stream.statusMessages.${number}`>;
-
-const STATUS_MESSAGE_KEYS: readonly StreamStatusMessageKey[] = ['chat.stream.statusMessages.1', 'chat.stream.statusMessages.2', 'chat.stream.statusMessages.3', 'chat.stream.statusMessages.4', 'chat.stream.statusMessages.5', 'chat.stream.statusMessages.6', 'chat.stream.statusMessages.7', 'chat.stream.statusMessages.8', 'chat.stream.statusMessages.9', 'chat.stream.statusMessages.10', 'chat.stream.statusMessages.11', 'chat.stream.statusMessages.12', 'chat.stream.statusMessages.13', 'chat.stream.statusMessages.14', 'chat.stream.statusMessages.15', 'chat.stream.statusMessages.16', 'chat.stream.statusMessages.17', 'chat.stream.statusMessages.18', 'chat.stream.statusMessages.19', 'chat.stream.statusMessages.20', 'chat.stream.statusMessages.21', 'chat.stream.statusMessages.22', 'chat.stream.statusMessages.23', 'chat.stream.statusMessages.24', 'chat.stream.statusMessages.25'];
+const STATUS_MESSAGE_KEYS: readonly ChatStreamStatusMessagesTranslationKey[] = ['chat.stream.statusMessages.1', 'chat.stream.statusMessages.2', 'chat.stream.statusMessages.3', 'chat.stream.statusMessages.4', 'chat.stream.statusMessages.5', 'chat.stream.statusMessages.6', 'chat.stream.statusMessages.7', 'chat.stream.statusMessages.8', 'chat.stream.statusMessages.9', 'chat.stream.statusMessages.10', 'chat.stream.statusMessages.11', 'chat.stream.statusMessages.12', 'chat.stream.statusMessages.13', 'chat.stream.statusMessages.14', 'chat.stream.statusMessages.15', 'chat.stream.statusMessages.16', 'chat.stream.statusMessages.17', 'chat.stream.statusMessages.18', 'chat.stream.statusMessages.19', 'chat.stream.statusMessages.20', 'chat.stream.statusMessages.21', 'chat.stream.statusMessages.22', 'chat.stream.statusMessages.23', 'chat.stream.statusMessages.24', 'chat.stream.statusMessages.25'];
 const RECENT_STATUS_MESSAGE_KEY_LIMIT = 3;
 
-let statusMessageKeyBag: StreamStatusMessageKey[] = [];
-const recentStatusMessageKeys: StreamStatusMessageKey[] = [];
+let statusMessageKeyBag: ChatStreamStatusMessagesTranslationKey[] = [];
+const recentStatusMessageKeys: ChatStreamStatusMessagesTranslationKey[] = [];
 
-const getStatusMessageText = (key: StreamStatusMessageKey): string => {
+const getStatusMessageText = (key: ChatStreamStatusMessagesTranslationKey): string => {
     switch (key) {
         case 'chat.stream.statusMessages.1':
             return i18n.t('chat.stream.statusMessages.1');
@@ -73,7 +71,7 @@ const assertStatusMessageKeysAvailable = (): void => {
     }
 };
 
-const shuffleStatusMessageKeys = (): StreamStatusMessageKey[] => {
+const shuffleStatusMessageKeys = (): ChatStreamStatusMessagesTranslationKey[] => {
     assertStatusMessageKeysAvailable();
     const keys = [...STATUS_MESSAGE_KEYS];
     for (let index = keys.length - 1; index > 0; index -= 1) {
@@ -93,11 +91,11 @@ const refillStatusMessageKeyBag = (): void => {
     statusMessageKeyBag = shuffleStatusMessageKeys();
 };
 
-const isRecentlyIssuedStatusMessageKey = (key: StreamStatusMessageKey, previousKey: StreamStatusMessageKey | null): boolean => {
+const isRecentlyIssuedStatusMessageKey = (key: ChatStreamStatusMessagesTranslationKey, previousKey: ChatStreamStatusMessagesTranslationKey | null): boolean => {
     return key === previousKey || recentStatusMessageKeys.includes(key);
 };
 
-const takeStatusMessageKeyFromBag = (previousKey: StreamStatusMessageKey | null): StreamStatusMessageKey => {
+const takeStatusMessageKeyFromBag = (previousKey: ChatStreamStatusMessagesTranslationKey | null): ChatStreamStatusMessagesTranslationKey => {
     if (statusMessageKeyBag.length === 0) {
         refillStatusMessageKeyBag();
     }
@@ -117,18 +115,17 @@ const takeStatusMessageKeyFromBag = (previousKey: StreamStatusMessageKey | null)
     return selected;
 };
 
-const recordIssuedStatusMessageKey = (key: StreamStatusMessageKey): void => {
+const recordIssuedStatusMessageKey = (key: ChatStreamStatusMessagesTranslationKey): void => {
     recentStatusMessageKeys.push(key);
     while (recentStatusMessageKeys.length > RECENT_STATUS_MESSAGE_KEY_LIMIT) {
         recentStatusMessageKeys.shift();
     }
 };
 
-const chooseNextKey = (previousKey: StreamStatusMessageKey | null): StreamStatusMessageKey => {
+const chooseNextKey = (previousKey: ChatStreamStatusMessagesTranslationKey | null): ChatStreamStatusMessagesTranslationKey => {
     const key = takeStatusMessageKeyFromBag(previousKey);
     recordIssuedStatusMessageKey(key);
     return key;
 };
 
-export type { StreamStatusMessageKey };
 export { STATUS_MESSAGE_KEYS, chooseNextKey, getStatusMessageText };

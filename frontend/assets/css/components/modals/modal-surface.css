@@ -2,6 +2,10 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    [data-soai-modal-root='true'] {
+        --text-case-label: none;
+    }
+
     .modal-content {
         --motion-modal-translate-x: 0;
         --motion-modal-translate-y: 0;
@@ -22,7 +26,6 @@
 
         /* direction: physical — modal host supplies physical viewport coordinates */
         transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y));
-        animation: modal-appear var(--duration-200) var(--ease-smooth);
         pointer-events: auto;
         isolation: isolate;
     }
@@ -47,12 +50,15 @@
 
     .modal-content.is-fullscreen {
         border-radius: 0;
-        border-top-color: transparent;
-        border-inline-start-color: transparent;
+        border: none;
     }
 
-    .ui-modal.u-hidden .modal-content {
-        animation: modal-disappear var(--duration-200) var(--ease-in);
+    .ui-modal[data-modal-open='true']:not([data-modal-presentation='viewport']) > .modal-content {
+        animation: modal-appear var(--effect-modal-enter-duration) var(--ease-smooth);
+    }
+
+    .ui-modal.u-hidden:not([data-modal-presentation='viewport']) .modal-content {
+        animation: modal-disappear var(--effect-modal-exit-duration) var(--ease-in);
     }
 
     @container ui-viewport (width <= 768px) {
@@ -61,11 +67,7 @@
             min-width: 0;
             max-width: 100%;
             max-height: 100%;
-        }
-    }
-
-    @container ui-viewport (width <= 640px) {
-        .modal-content[data-modal-size] {
+            border: none;
             border-radius: 0;
         }
     }

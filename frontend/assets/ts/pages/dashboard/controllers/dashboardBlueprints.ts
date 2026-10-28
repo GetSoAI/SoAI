@@ -1,14 +1,13 @@
 /* SoAI - Dashboard page blueprints [frontend/assets/ts/pages/dashboard/controllers/dashboardBlueprints.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
+import type { TrustedHtml } from '@core/security/public.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { RequestDistributionSource } from '@core/models/requestDistribution.ts';
 import { resolveRequestDistributionSourceToggleLabel } from '@core/models/requestDistributionRendering.ts';
 import { uiHtml } from '@core/security/uiHtml.ts';
-import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
-import { renderIconSlot } from '@core/ui/icons/view.ts';
+import { renderDashboardTitlebarButton } from '@pages/dashboard/rendering/titlebar/view.ts';
 import { DASHBOARD_ACTION_LOGS_AUTOSCROLL_TOGGLE, DASHBOARD_ACTION_LOGS_SIZE_DECREASE, DASHBOARD_ACTION_LOGS_SIZE_INCREASE, DASHBOARD_ACTION_REQUEST_DISTRIBUTION_SOURCE_TOGGLE, DASHBOARD_REQUEST_DISTRIBUTION_SOURCE_TOGGLE_ID } from '@pages/dashboard/actions.ts';
 import { formatLogsAutoScrollLabel } from '@pages/dashboard/widgets/logs/LogsLabelsWidget.ts';
 
@@ -85,7 +84,6 @@ interface CollectionSectionConfig {
 }
 
 const createDashboardBlueprints = (dependencies: DashboardBlueprintsDependencies): Map<DashboardBlueprintId, DashboardBlueprint> => {
-    const textBtn = (label: string, attr: string, variant: string = 'ui-variant-neutral'): string => `<button type="button" class="ui-button ui-button--titlebar ${variant}" aria-label="${label}" data-tooltip="${label}" ${attr}>${label}</button>`;
     const blueprints: Map<DashboardBlueprintId, DashboardBlueprint> = new Map([
         [
             'status',
@@ -105,10 +103,10 @@ const createDashboardBlueprints = (dependencies: DashboardBlueprintsDependencies
                     const sizeDecreaseLabel = i18n.t('dashboard.sections.logs.sizeDecrease');
                     const sizeIncreaseLabel = i18n.t('dashboard.sections.logs.sizeIncrease');
                     const autoScrollLabel = formatLogsAutoScrollLabel(true);
-                    const sizeDecrease = `<button type="button" id="logs-size-decrease" data-action="${DASHBOARD_ACTION_LOGS_SIZE_DECREASE}" class="ui-button ui-button--titlebar ui-variant-neutral" aria-label="${sizeDecreaseLabel}" data-tooltip="${sizeDecreaseLabel}">${renderIconSlot(getIconSync('minus', { size: 14, strokeWidth: 1.6 }))}</button>`;
-                    const sizeIncrease = `<button type="button" id="logs-size-increase" data-action="${DASHBOARD_ACTION_LOGS_SIZE_INCREASE}" class="ui-button ui-button--titlebar ui-variant-neutral" aria-label="${sizeIncreaseLabel}" data-tooltip="${sizeIncreaseLabel}">${renderIconSlot(getIconSync('add', { size: 14, strokeWidth: 1.6 }))}</button>`;
-                    const autoScroll = textBtn(autoScrollLabel, `id="logs-autoscroll" data-action="${DASHBOARD_ACTION_LOGS_AUTOSCROLL_TOGGLE}" aria-pressed="true"`);
-                    return toTrustedUiHtml(`<div class="logs-controls"><div class="logs-size-controls">${sizeIncrease}${sizeDecrease}</div>${autoScroll}</div>`);
+                    const sizeDecrease = renderDashboardTitlebarButton({ id: 'logs-size-decrease', action: DASHBOARD_ACTION_LOGS_SIZE_DECREASE, label: sizeDecreaseLabel, icon: 'minus' });
+                    const sizeIncrease = renderDashboardTitlebarButton({ id: 'logs-size-increase', action: DASHBOARD_ACTION_LOGS_SIZE_INCREASE, label: sizeIncreaseLabel, icon: 'add' });
+                    const autoScroll = renderDashboardTitlebarButton({ id: 'logs-autoscroll', action: DASHBOARD_ACTION_LOGS_AUTOSCROLL_TOGGLE, label: autoScrollLabel, icon: 'chevron-down', variant: 'ui-variant-accent', pressed: true });
+                    return uiHtml`${sizeIncrease}${sizeDecrease}${autoScroll}`;
                 }
             }
         ],
@@ -181,8 +179,7 @@ const createDashboardBlueprints = (dependencies: DashboardBlueprintsDependencies
                 controls: () => {
                     const source = dependencies.renderers.getRequestDistributionSource();
                     const label = resolveRequestDistributionSourceToggleLabel(dependencies.renderers.getRequestDistributionNextSource());
-                    const icon = renderIconSlot(getIconSync('request-distribution-source', { size: 14, strokeWidth: 1.8 }));
-                    return toTrustedUiHtml(`<button type="button" id="${DASHBOARD_REQUEST_DISTRIBUTION_SOURCE_TOGGLE_ID}" class="ui-icon-button ui-icon-button--titlebar ui-variant-neutral" data-action="${DASHBOARD_ACTION_REQUEST_DISTRIBUTION_SOURCE_TOGGLE}" aria-label="${label}" data-tooltip="${label}" aria-pressed="${source === 'model' ? 'false' : 'true'}">${icon}</button>`);
+                    return renderDashboardTitlebarButton({ id: DASHBOARD_REQUEST_DISTRIBUTION_SOURCE_TOGGLE_ID, action: DASHBOARD_ACTION_REQUEST_DISTRIBUTION_SOURCE_TOGGLE, label, icon: 'request-distribution-source', pressed: source !== 'model' });
                 }
             }
         ],

@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { narrowButton } from '@core/dom/narrowElement.ts';
-import { isUpdatesActionId, UPDATES_ACTION_CHECK, UPDATES_ACTION_INSTALL } from '@pages/updates/actions.ts';
+import { isUpdatesActionId, UPDATES_ACTION_CHECK, UPDATES_ACTION_INSTALL, UPDATES_ACTION_OPEN_PLUGINS } from '@pages/updates/actions.ts';
 
 interface UpdatesPageActionHandlers {
+    onOpenPlugins: () => Promise<void> | void;
     onCheckUpdates: () => Promise<void> | void;
     onInstallSystemUpdate: (button: HTMLButtonElement) => Promise<void> | void;
 }
@@ -19,6 +20,10 @@ const handleAction = (action: string, actionElement: HTMLElement, handlers: Upda
     const requireButton = (): HTMLButtonElement => {
         return narrowButton(actionElement, `Updates action "${action}"`);
     };
+    if (action === UPDATES_ACTION_OPEN_PLUGINS) {
+        void handlers.onOpenPlugins();
+        return;
+    }
     if (action === UPDATES_ACTION_CHECK) {
         void handlers.onCheckUpdates();
         return;

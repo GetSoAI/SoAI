@@ -32,6 +32,7 @@ class WebContentFetcher:
         if not isinstance(deps, WebContentFetcherDependencies):
             raise ValidationError("WebContentFetcherDependencies are required.")
         self.http_client = deps.http_client
+        self.playwright_sessions = deps.playwright_sessions
         self.runtime_flags = deps.runtime_flags
         self.storage_manager = deps.storage_manager
         self.adblock_service = deps.adblock_service

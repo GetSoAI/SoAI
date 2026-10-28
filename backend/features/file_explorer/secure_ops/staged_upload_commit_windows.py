@@ -1,31 +1,43 @@
-"""SoAI - Windows staged upload commit primitives [backend/features/file_explorer/secure_ops/staged_upload_commit_windows.py]"""
+"""SoAI - Handle anchored Windows upload publication [backend/features/file_explorer/secure_ops/staged_upload_commit_windows.py]"""
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 from __future__ import annotations
 
 import errno
+import io
 import os
-import stat
-import uuid
+import sys
 from typing import TYPE_CHECKING
 
-from core.errors.exceptions import SecurityError, StateError, ValidationError
-from core.files.windows_reparse_points import is_windows_reparse_point
-from core.filesystem.atomic_write_primitives import fsync_directory
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
+from core.files.commit_receipt import FileCommitReceipt, FilePublicationUncertainError
+from core.files.content_errors import FileContentChangedError
+from core.files.content_snapshot import iter_snapshot_chunks
+from core.files.content_verification import require_descriptor_content
+from core.files.file_identity import FileIdentity
+from core.files.staged_transfer import write_chunks_to_descriptor
+from core.files.temp_files import create_secure_temp_binary_handle
+from core.files.windows_anchored_directory import open_windows_anchored_directory
+from core.files.windows_handle_operations import (
+    close_windows_path_resources,
+    mark_windows_file_descriptor_for_deletion,
+)
+from core.filesystem.file_sync import flush_and_fsync_file
 from core.hardware.reservation_claims import claim_reserved_write
-from features.file_explorer.secure_ops import (
-    staged_upload_commit_outcomes,
-    staged_upload_copy_io,
+from features.file_explorer.secure_ops.staged_upload_commit_outcomes import (
+    destination_exists_error,
+    raise_if_cancelled,
+    raise_if_commit_cancelled,
+    raise_publication_failure,
+    settle_upload_copy_resources,
 )
 
 if TYPE_CHECKING:
     from core.concurrency.protocols import CancellationTokenProtocol
+    from core.files.windows_anchored_directory import WindowsAnchoredDirectory
     from core.hardware.protocols_storage import StorageManagerProtocol
 
 __all__ = ("commit_windows_staged_upload",)
-
-_COPY_CHUNK_BYTES = 8 * 1024 * 1024
-_WINDOWS_BINARY_OPEN_FLAG = 0x8000
 
 
 def commit_windows_staged_upload(
@@ -34,154 +46,193 @@ def commit_windows_staged_upload(
     destination_path: str,
     destination_root: str,
     expected_size: int,
+    expected_sha256: str,
     token: CancellationTokenProtocol,
     storage_manager: StorageManagerProtocol,
     allow_symlinks: bool,
-) -> None:
-    destination_parent = os.path.dirname(destination_path)
-    source_stat = os.stat(source_path, follow_symlinks=False)
-    if not allow_symlinks and _is_reparse_point(source_path, source_stat):
-        raise SecurityError("Staged upload source cannot be a reparse point.")
-    if not allow_symlinks:
-        _reject_reparse_directory_chain(destination_root, os.path.dirname(destination_path))
-    if not stat.S_ISREG(source_stat.st_mode):
-        raise ValidationError("Staged upload source must be a regular file.")
-    if source_stat.st_size != expected_size:
-        raise StateError("Staged upload source size changed before commit.")
-    staged_upload_commit_outcomes.raise_if_cancelled(token)
+) -> FileCommitReceipt:
+    _ = allow_symlinks
+    published = False
+    receipt: FileCommitReceipt | None = None
     try:
-        os.rename(source_path, destination_path)
-    except FileExistsError as exception:
-        raise staged_upload_commit_outcomes.destination_exists_error(exception) from exception
-    except OSError as exception:
-        if exception.errno != errno.EXDEV:
-            raise
-        _copy_fallback(
-            source_path=source_path,
-            destination_path=destination_path,
-            source_stat=source_stat,
-            token=token,
-            storage_manager=storage_manager,
-        )
-        return
-    commit_validated = False
-    try:
-        destination_stat = os.stat(destination_path, follow_symlinks=False)
-        if not _same_file_identity(destination_stat, source_stat):
-            raise StateError("Staged upload source changed during commit.")
-        fsync_directory(destination_parent, strict=True)
-        commit_validated = True
-    finally:
-        if not commit_validated:
-            os.rename(destination_path, source_path)
-            fsync_directory(destination_parent, strict=True)
-    staged_upload_commit_outcomes.raise_if_commit_cancelled(token, source_path, destination_path)
+        root = open_windows_anchored_directory(destination_root)
+        try:
+            parent = open_windows_anchored_directory(os.path.dirname(destination_path))
+            try:
+                source_parent = open_windows_anchored_directory(os.path.dirname(source_path))
+                try:
+                    source = source_parent.open_file(
+                        os.path.basename(source_path), delete=True, writable=True
+                    )
+                    try:
+                        identity = FileIdentity.from_stat(os.fstat(source))
+                        if not identity.is_regular_file or identity.size != expected_size:
+                            raise FileContentChangedError(
+                                "The staged file changed. Upload it again."
+                            )
+                        os.fsync(source)
+                        raise_if_cancelled(token)
+                        require_descriptor_content(
+                            source,
+                            expected_size=expected_size,
+                            expected_sha256=expected_sha256,
+                            cancellation=token,
+                        )
+                        copy_required = False
+                        try:
+                            parent.publish_file_descriptor(
+                                source, os.path.basename(destination_path)
+                            )
+                        except FileExistsError as exception:
+                            raise destination_exists_error(exception) from exception
+                        except OSError as exception:
+                            if exception.errno != errno.EXDEV:
+                                raise
+                            copy_required = True
+                        else:
+                            published = True
+                            try:
+                                parent.flush()
+                                source_parent.flush()
+                            except OSError as exception:
+                                raise_publication_failure(exception, published=True)
+                            verified = require_descriptor_content(
+                                source,
+                                expected_size=expected_size,
+                                expected_sha256=expected_sha256,
+                            )
+                            receipt = FileCommitReceipt(
+                                os.path.abspath(destination_root),
+                                os.path.relpath(destination_path, destination_root),
+                                root.identity,
+                                verified,
+                                expected_sha256,
+                            )
+                        if copy_required:
+                            receipt = _copy_publish(
+                                source,
+                                parent,
+                                destination_path,
+                                destination_root,
+                                root.identity,
+                                expected_size,
+                                token,
+                                storage_manager,
+                                expected_sha256,
+                            )
+                            published = True
+                            mark_windows_file_descriptor_for_deletion(source)
+                    finally:
+                        close_windows_path_resources(
+                            [], leaf_file_descriptor=source, primary_exception=sys.exception()
+                        )
+                    source_parent.flush()
+                finally:
+                    source_parent.close()
+            finally:
+                parent.close()
+        finally:
+            root.close()
+    except HANDLED_RUNTIME_EXCEPTIONS as exception:
+        raise_publication_failure(exception, published=published)
+    if receipt is None:
+        raise FilePublicationUncertainError("The upload supplied no verified publication receipt.")
+    raise_if_commit_cancelled(token, source_path, destination_path, receipt)
+    return receipt
 
 
-def _copy_fallback(
-    *,
-    source_path: str,
-    destination_path: str,
-    source_stat: os.stat_result,
+def _copy_publish(
+    source: int,
+    parent: WindowsAnchoredDirectory,
+    destination: str,
+    root: str,
+    root_identity: tuple[int, int],
+    expected_size: int,
     token: CancellationTokenProtocol,
     storage_manager: StorageManagerProtocol,
-) -> None:
-    destination_parent = os.path.dirname(destination_path)
+    expected_sha256: str,
+) -> FileCommitReceipt:
+    identity = FileIdentity.from_stat(os.fstat(source))
+    if not identity.is_regular_file or identity.size != expected_size:
+        raise FileContentChangedError("The staged file changed. Upload it again.")
     reservation = storage_manager.reserve_disk_space(
-        path=destination_parent,
-        required_bytes=source_stat.st_size,
+        path=os.path.dirname(destination),
+        required_bytes=expected_size,
         operation="file_explorer.upload.commit_copy",
-        details={"size_bytes": source_stat.st_size},
+        details={"size_bytes": expected_size},
     )
-    partial_path = os.path.join(
-        destination_parent,
-        f".soai-upload-{uuid.uuid4().hex}.partial",
-    )
-    committed = False
-    operation_completed = False
-    release_attempted = False
+    handle: io.BufferedRandom | None = None
+    temporary_path: str | None = None
+    descriptor = -1
+    published = False
     try:
-        source_descriptor = os.open(source_path, os.O_RDONLY | _WINDOWS_BINARY_OPEN_FLAG)
+        handle, temporary_path = create_secure_temp_binary_handle(
+            directory=os.path.dirname(destination),
+            prefix=".soai-upload-",
+            suffix=".partial",
+            directory_authority=parent,
+            delete_access=True,
+        )
+        descriptor = handle.fileno()
+        content = write_chunks_to_descriptor(
+            descriptor,
+            iter_snapshot_chunks(source, identity, token, None),
+            on_chunk_write_scope=lambda byte_count: claim_reserved_write(
+                reservation, size_bytes=byte_count
+            ),
+            max_bytes=expected_size,
+            expected_size=expected_size,
+            expected_sha256=expected_sha256,
+        )
+        flush_and_fsync_file(handle)
+        raise_if_cancelled(token)
         try:
-            partial_descriptor = os.open(
-                partial_path,
-                os.O_WRONLY | os.O_CREAT | os.O_EXCL | _WINDOWS_BINARY_OPEN_FLAG,
-                stat.S_IMODE(source_stat.st_mode),
-            )
-            try:
-                while True:
-                    staged_upload_commit_outcomes.raise_if_cancelled(token)
-                    chunk = os.read(source_descriptor, _COPY_CHUNK_BYTES)
-                    if not chunk:
-                        break
-                    with claim_reserved_write(reservation, size_bytes=len(chunk)):
-                        staged_upload_copy_io.write_all(partial_descriptor, chunk)
-                os.fsync(partial_descriptor)
-            finally:
-                os.close(partial_descriptor)
-        finally:
-            os.close(source_descriptor)
-        staged_upload_commit_outcomes.raise_if_cancelled(token)
-        try:
-            os.rename(partial_path, destination_path)
+            parent.publish_file_descriptor(descriptor, os.path.basename(destination))
         except FileExistsError as exception:
-            raise staged_upload_commit_outcomes.destination_exists_error(exception) from exception
-        committed = True
-        fsync_directory(destination_parent, strict=True)
-        release_attempted = True
-        reservation.release()
-        current_stat = os.stat(source_path, follow_symlinks=False)
-        if not _same_file_identity(current_stat, source_stat):
-            raise StateError("Staged upload source changed during commit.")
-        os.unlink(source_path)
-        operation_completed = True
+            raise destination_exists_error(exception) from exception
+        published = True
+        temporary_path = None
+        written = FileIdentity.from_stat(os.fstat(descriptor))
+        closing_handle = handle
+        handle = None
+        descriptor = -1
+        closing_handle.close()
+        parent.flush()
+        descriptor = parent.open_file(os.path.basename(destination))
+        final_identity = FileIdentity.from_stat(os.fstat(descriptor))
+        if (written.device, written.inode, written.size) != (
+            final_identity.device,
+            final_identity.inode,
+            final_identity.size,
+        ):
+            raise FilePublicationUncertainError("The published file changed during commit.")
+        final_identity = require_descriptor_content(
+            descriptor,
+            expected_size=expected_size,
+            expected_sha256=content.sha256_hex,
+        )
+        return FileCommitReceipt(
+            os.path.abspath(root),
+            os.path.relpath(destination, root),
+            root_identity,
+            final_identity,
+            content.sha256_hex,
+        )
+    except HANDLED_RUNTIME_EXCEPTIONS as exception:
+        raise_publication_failure(exception, published=published)
     finally:
         try:
-            if committed and not operation_completed:
-                os.unlink(destination_path)
-                fsync_directory(destination_parent, strict=True)
+            if handle is None and descriptor >= 0:
+                close_windows_path_resources(
+                    [], leaf_file_descriptor=descriptor, primary_exception=sys.exception()
+                )
+        except HANDLED_RUNTIME_EXCEPTIONS as exception:
+            raise_publication_failure(exception, published=published)
         finally:
-            try:
-                _remove_partial_if_present(partial_path)
-            finally:
-                if not release_attempted:
-                    reservation.release()
-    staged_upload_commit_outcomes.raise_if_commit_cancelled(token, source_path, destination_path)
-
-
-def _is_reparse_point(path: str, path_stat: os.stat_result) -> bool:
-    if os.path.islink(path):
-        return True
-    return is_windows_reparse_point(path_stat)
-
-
-def _reject_reparse_directory_chain(root_path: str, directory_path: str) -> None:
-    root = os.path.abspath(root_path)
-    current = root
-    root_stat = os.stat(root, follow_symlinks=False)
-    if _is_reparse_point(root, root_stat):
-        raise SecurityError("Upload destination contains a reparse point.")
-    relative = os.path.relpath(os.path.abspath(directory_path), root)
-    if relative == ".":
-        return
-    for path_component in relative.split(os.sep):
-        current = os.path.join(current, path_component)
-        current_stat = os.stat(current, follow_symlinks=False)
-        if _is_reparse_point(current, current_stat):
-            raise SecurityError("Upload destination contains a reparse point.")
-
-
-def _same_file_identity(first: os.stat_result, second: os.stat_result) -> bool:
-    return (
-        first.st_dev == second.st_dev
-        and first.st_ino == second.st_ino
-        and first.st_size == second.st_size
-    )
-
-
-def _remove_partial_if_present(partial_path: str) -> bool:
-    try:
-        os.unlink(partial_path)
-        return True
-    except FileNotFoundError:
-        return False
+            settle_upload_copy_resources(
+                handle,
+                reservation,
+                published=published,
+                temporary_path=temporary_path,
+                delete_by_handle=True,
+            )

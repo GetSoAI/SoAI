@@ -3,10 +3,12 @@
 
 import type { FileExplorerListingAcceptedResponse, FileExplorerListingLocateOptions, FileExplorerListingLocateResponse, FileExplorerListingPageOptions, FileExplorerListingPageResponse, FileExplorerListingReleasedResponse, FileExplorerListingSortColumn, FileExplorerListingSortDirection } from '@core/api/contracts/fileExplorerListingContractTypes.ts';
 import type { FileExplorerSearchResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
-import { ensureError, isErrorHttpStatus } from '@core/errors/coerce.ts';
+import { FILE_EXPLORER_LISTING_EXPIRED_ERROR_CODE } from '@core/api/contracts/fileExplorerListingContracts.ts';
+import { ensureError, extractErrorCode, isErrorHttpStatus } from '@core/errors/coerce.ts';
 import { parseFileBrowserEntriesPayload, parseFileBrowserLoadResponse } from '@core/fileexplorerbrowser/parsing.ts';
 import { toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
 import type { DirectoryListingBrowserState, FileBrowserErrorResolver } from '@core/fileexplorerbrowser/types.ts';
+import { generateSecureId } from '@core/primitives/idGenerator.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 
 interface DirectoryListingApi {
@@ -51,6 +53,7 @@ class DirectoryListingController {
         isLoadingMore: false
     };
     #listingId: string | null = null;
+    #listingServedPage = false;
     #sessionAbort: AbortController | null = null;
     #pageAbort: AbortController | null = null;
     #sequence = 0;
@@ -62,7 +65,7 @@ class DirectoryListingController {
         this.#api = options.api;
         this.#awaitTask = options.awaitTask;
         this.#errorResolver = options.errorResolver;
-        this.#listingIdFactory = options.listingIdFactory ?? (() => `listing-${crypto.randomUUID()}`);
+        this.#listingIdFactory = options.listingIdFactory ?? (() => generateSecureId('listing'));
         this.#onError = options.onError ?? null;
         this.#onStateChange = options.onStateChange;
         this.#sortColumn = options.initialSort?.column ?? 'name';
@@ -161,6 +164,7 @@ class DirectoryListingController {
         this.#sessionAbort = sessionAbort;
         const previousListingId = this.#listingId;
         this.#listingId = null;
+        this.#listingServedPage = false;
         this.#updateState({
             currentPath,
             query,
@@ -236,6 +240,7 @@ class DirectoryListingController {
             });
             if (pageAbort.signal.aborted || sessionSignal.aborted || pageSequence !== this.#pageSequence || listingId !== this.#listingId) return;
             const entries = parseFileBrowserEntriesPayload(payload, payload.path, false);
+            this.#listingServedPage = true;
             this.#updateState({
                 currentPath: payload.path,
                 workspacePathResolved: payload.workspacePathResolved,
@@ -251,6 +256,10 @@ class DirectoryListingController {
         } catch (error) {
             if (pageAbort.signal.aborted || sessionSignal.aborted || pageSequence !== this.#pageSequence) return;
             const resolvedError = ensureError(error);
+            if (this.#listingServedPage && extractErrorCode(resolvedError) === FILE_EXPLORER_LISTING_EXPIRED_ERROR_CODE) {
+                await this.refresh();
+                return;
+            }
             if (request.append) {
                 this.#updateState({
                     isLoadingMore: false,

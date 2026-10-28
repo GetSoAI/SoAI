@@ -21,6 +21,7 @@ from database.repositories.tasks import (
 )
 from database.repositories.tasks.durable_acceptance_policy import (
     build_durable_acceptance_policy,
+    rebuild_durable_acceptance_policy,
 )
 from database.repositories.tasks.service_active_queries import (
     count_running_orchestrated_inference_tasks_for_owner,
@@ -48,12 +49,15 @@ from database.repositories.tasks.service_mutation_admission import (
     advance_mutation_execution,
     claim_mutation,
     claim_next_mutation,
+    has_unsettled_backend_update,
     mutation_requires_fenced_finalization,
     quarantine_exhausted_mutations,
     query_expired_mutation_recovery_candidates,
     query_recovery_required_admissions,
+    release_backend_update_recovery,
     release_mutation_recovery,
     renew_mutation_claim,
+    reserve_backend_update_child,
     validate_mutation_claim,
 )
 from database.repositories.tasks.service_orchestrator_queue import (
@@ -80,11 +84,19 @@ class DatabaseTasks:
     def __init__(self, deps: DatabaseRepositoryDependencies) -> None:
         self._core = deps.core
         self._fernets = deps.fernet
+        self._application_base_path = deps.config.require_str("SYSTEM.PATHS.BASE")
         self._durable_acceptance_policy = build_durable_acceptance_policy(
             deps.config,
             database_path=self._core.writer.db_path,
         )
         self._mutation_storage = deps.mutation_storage
+
+    def replace_durable_acceptance_policy(self, config_dict: JSONDict) -> None:
+        self._durable_acceptance_policy = rebuild_durable_acceptance_policy(
+            config_dict,
+            application_base_path=self._application_base_path,
+            filesystem_path=self._durable_acceptance_policy.filesystem_path,
+        )
 
     @property
     def core(self) -> DatabaseCoreProtocol:
@@ -122,11 +134,12 @@ class DatabaseTasks:
         self,
         request: CreateDurableInferenceTaskRequest,
     ) -> int:
+        policy = self._durable_acceptance_policy
         return await self._core.writer.queue_write_operation(
             orchestrator_queue_acceptance.sync_accept_durable_inference_task,
             request,
-            self._durable_acceptance_policy,
-            enqueue_timeout=self._durable_acceptance_policy.acceptance_db_busy_timeout_sec,
+            policy,
+            enqueue_timeout=policy.acceptance_db_busy_timeout_sec,
         )
 
     async def reserve_orchestrator_queue_scheduling_time(self, candidate_at_ms: int) -> int:
@@ -221,5 +234,8 @@ class DatabaseTasks:
     query_expired_mutation_recovery_candidates = query_expired_mutation_recovery_candidates
     query_recovery_required_admissions = query_recovery_required_admissions
     release_mutation_recovery = release_mutation_recovery
+    release_backend_update_recovery = release_backend_update_recovery
+    has_unsettled_backend_update = has_unsettled_backend_update
+    reserve_backend_update_child = reserve_backend_update_child
     renew_mutation_claim = renew_mutation_claim
     validate_mutation_claim = validate_mutation_claim

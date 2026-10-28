@@ -4,6 +4,7 @@
 import { ansiToHtmlString } from '@core/ansi/htmlString.ts';
 import { containsAnsi, formatTerminalControlCharacters } from '@core/ansi/sgrSegments.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { renderSpeechSetupFailure } from '@core/speechsetup/failure.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { formatToolActivityPayload } from '@features/chat/message/toolActivityPayloadFormatting.ts';
 import { renderStructuredFields } from '@features/chat/message/messageview/inlineToolFieldRendering.ts';
@@ -62,6 +63,8 @@ const renderToolActivityResult = (host: ChatMessageRenderHost, callId: string, p
     const resultLabel = i18n.t('chat.toolActivity.result');
     const record = tryExtractRecord(payload);
     if (record) {
+        const speechFailure = renderSpeechSetupFailure(record);
+        if (speechFailure !== null) return renderInlineToolSection(host, 'inline-tool-result', resultLabel, speechFailure.html);
         const trimmedCallId = callId.trim();
         const readVideoRender = options.toolLeafName === 'read_video' ? resolveReadVideoResultRender(host, record) : null;
         const videoFilteredRecord = readVideoRender ? omitReadVideoResultFields(record, readVideoRender) : record;

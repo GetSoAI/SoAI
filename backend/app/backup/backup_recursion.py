@@ -8,8 +8,7 @@ import os
 
 from app.backup.backup_target_paths import (
     get_enabled_backup_targets,
-    get_files_storage_path,
-    get_wallpaper_path,
+    get_user_data_source_paths,
 )
 from app.backup.backup_target_paths_extra import get_logs_path
 from app.backup.internal_protocols import ConfigProviderProtocol, FilesProviderProtocol
@@ -28,8 +27,7 @@ async def is_backup_recursion_safe(
     targets = get_enabled_backup_targets(config)
     paths_to_check: list[str] = []
     if targets.get("USER_DATA"):
-        paths_to_check.append(get_files_storage_path(config, files))
-        paths_to_check.append(get_wallpaper_path(config, files))
+        paths_to_check.extend(get_user_data_source_paths(config, files))
     if targets.get("LOGS"):
         paths_to_check.append(get_logs_path(config, files))
     for path in paths_to_check:

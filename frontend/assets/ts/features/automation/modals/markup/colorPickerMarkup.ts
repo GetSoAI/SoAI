@@ -17,7 +17,7 @@ const renderAutomationColorPickerMarkup = (modalId: string): string => {
     ]
         .map((option) => {
             const checkedAttr = option.value === '' ? ' checked' : '';
-            return `<label class="automation-color-option ${option.className}" data-tooltip="${uiAttr(option.label).html}" aria-label="${uiAttr(option.label).html}">` + `<input class="automation-color-input visually-hidden" type="radio" name="${radioName}" value="${uiAttr(option.value).html}"${checkedAttr}>` + `<span class="automation-color-swatch" aria-hidden="true"></span>` + `<span class="visually-hidden">${uiText(option.label).html}</span>` + `</label>`;
+            return `<label data-modal-localize="aria-label data-tooltip" class="automation-color-option ${option.className}" data-tooltip="${uiAttr(option.label).html}" aria-label="${uiAttr(option.label).html}">` + `<input class="automation-color-input visually-hidden" type="radio" name="${radioName}" value="${uiAttr(option.value).html}"${checkedAttr}>` + `<span class="automation-color-swatch" aria-hidden="true"></span>` + `<span class="visually-hidden" data-modal-localize="text">${uiText(option.label).html}</span>` + `</label>`;
         })
         .join('');
 };

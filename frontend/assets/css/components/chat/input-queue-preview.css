@@ -27,6 +27,10 @@
         --status-badge-color: var(--status-orange);
     }
 
+    :where(.chat-container) .input-queue-badge--held {
+        --status-badge-color: var(--status-grey);
+    }
+
     :where(.chat-container) .input-queue-preview {
         min-width: 0;
         max-width: 100%;
@@ -36,6 +40,7 @@
     }
 
     :where(.chat-container) .input-queue-preview .file-preview-item {
+        align-self: flex-start;
         flex: 0 1 min(14rem, 100%);
         width: min(14rem, 100%);
         min-width: 0;

@@ -10,6 +10,7 @@ from core.serialization.json import serialize_json_compact_stable_strict
 from core.serialization.json_parsing import MAX_JSON_NESTING_DEPTH, parse_json_value
 from core.types.json import JSONDict, JSONValue, is_json_value
 from core.types.json_value import copy_json_dict
+from core.users.update_history import merge_update_history_preferences
 
 __all__ = (
     "assert_supported_user_preferences",
@@ -91,5 +92,6 @@ def merge_user_preference_values(current: JSONDict, patch: JSONDict) -> JSONDict
     assert_supported_user_preferences(patch)
     merged = copy_json_dict(current)
     deep_merge(merged, copy_json_dict(patch), expand_dots=False)
+    merge_update_history_preferences(current, patch, merged)
     assert_supported_user_preferences(merged)
     return merged

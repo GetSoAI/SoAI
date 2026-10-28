@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.agent.status_values import AGENT_TURN_STATUS_ERROR
+from core.concurrency.cancellation import TaskCancelledError
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exceptions import ConflictError, StateError
@@ -81,8 +82,13 @@ async def resolve_turn_cancellation_failure(
     context: RequestContext,
     tool_context: MCPToolContext,
     operation: str,
-    exception: asyncio.CancelledError,
+    exception: asyncio.CancelledError | TaskCancelledError,
+    shutdown_event: asyncio.Event | None = None,
 ) -> TurnRuntimeFailureResolution:
+    shutdown_requested = shutdown_event is not None and shutdown_event.is_set()
+    final_status, final_error_message, final_error_type = get_cancelled_status(
+        shutdown_requested=shutdown_requested,
+    )
     if bootstrap is None:
         await uncancel_then_cleanup(
             finalize_running_turn_noncritical(
@@ -96,10 +102,10 @@ async def resolve_turn_cancellation_failure(
                     execution_token=context.agent_turn_execution_token,
                     operation=f"{operation}.bootstrap_cancelled",
                     log_message="Failed to finalize claimed agent turn after bootstrap cancellation (non-critical).",
+                    error_message=final_error_message,
                 ),
             ),
         )
-    final_status, final_error_message, final_error_type = get_cancelled_status()
     return TurnRuntimeFailureResolution(
         final_status=final_status,
         final_error_message=final_error_message,

@@ -3,16 +3,17 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
+from functools import partial
 from typing import TYPE_CHECKING
 
 from filelock import Timeout
 
 from app.backup.copy_no_symlinks.file_copy import sync_copy_file_and_hash_no_symlinks
 from core.backup.types import BackupFileEntry
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exception_logging import log_exception
-from core.files.locking import guarded_file_lock
+from core.files.locking import async_guarded_file_lock
 from core.filesystem.async_queries import async_makedirs, async_path_exists
 from core.logging.trace import get_logger
 from core.meta.paths import join_data_abs
@@ -47,12 +48,18 @@ async def backup_config_file(
         )
 
     try:
-        with guarded_file_lock(lock_path, timeout=lock_timeout_seconds, on_timeout=on_timeout):
-            size, file_hash = await asyncio.to_thread(
-                sync_copy_file_and_hash_no_symlinks,
-                config_path,
-                dest_path,
-                write_reservation=disk_reservation,
+        async with async_guarded_file_lock(
+            lock_path, timeout=lock_timeout_seconds, on_timeout=on_timeout
+        ):
+            size, file_hash = await run_joined_thread_call(
+                partial(
+                    sync_copy_file_and_hash_no_symlinks,
+                    config_path,
+                    dest_path,
+                    write_reservation=disk_reservation,
+                ),
+                task_name="backup-config-file-copy",
+                retain_resources_until_complete=True,
             )
     except RuntimeError as exception:
         log_exception(

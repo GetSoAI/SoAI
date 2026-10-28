@@ -12,6 +12,7 @@ interface LifecycleAuthHandlerHost {
 interface LifecycleAuthSubscriptions {
     unsubscribeLogin: () => void;
     unsubscribeLogout: () => void;
+    resumeDeferredLogin: (sessionNeedsHandoff: boolean) => void;
 }
 
 interface LifecycleLoginHost {
@@ -24,7 +25,7 @@ interface LifecycleLoginHost {
     resolveAuthenticatedRoute: () => string;
     navigateToAuthenticatedRoute: (route: string) => Promise<void>;
     monitorConnectionStatus: () => void;
-    toggleMainUI: (show: boolean) => void;
+    toggleMainUI: (show: boolean, animateEntrance?: boolean) => void;
     refreshSoaiOsAccess: () => Promise<void>;
     clearConnectionSubscription: () => void;
     destroyRealtimeTransport: () => void;

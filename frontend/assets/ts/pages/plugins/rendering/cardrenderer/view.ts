@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { renderRecentItemBadge } from '@core/collectionpage/recentItemTracker.ts';
+import { getPluginFallbackLogoPath } from '@features/catalog/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { renderLabelAttributes } from '@core/security/labelAttributes.ts';
 import { isPluginModelUnavailableStatus } from '@core/state/pluginStatus.ts';
@@ -47,7 +48,7 @@ function renderCardContent(dependencies: RenderCardContentDependencies): string 
     const modelsLabel = i18n.t('plugins.badges.models');
     const newBadge = host.actions.isNewItem(plugin) ? renderRecentItemBadge((value) => sanitize(value)) : '';
     const pluginLogo = host.presentation.getPluginLogo(plugin);
-    const pluginLogoFallback = host.presentation.getPluginLogoFallback(plugin);
+    const pluginLogoFallback = getPluginFallbackLogoPath(plugin);
 
     return `
         <div class="ui-collection-card__header plugin-card-header">
@@ -110,11 +111,13 @@ function renderCardContent(dependencies: RenderCardContentDependencies): string 
                 <div class="ui-metric-item">
                 <div class="ui-metric-badge ui-metric-badge--status-full ${metricStatusBadgeClass}" ${statusAttrValue}>
                 <span dir="auto" class="ui-metric-value">${sanitize(permanentlyDisabled ? i18n.t('plugins.status.incompatible') : quarantined ? i18n.t('plugins.status.quarantined') : (data.statusLabel ?? ''))}</span>
-                ${renderInstallButton(plugin, host, { backendNotInstalled: constants.statuses.backendNotInstalled })}
-                ${renderDownloadModelButton(plugin, host, {
-                    backendNotInstalled: constants.statuses.backendNotInstalled,
-                    backendInstalling: constants.statuses.backendInstalling
-                })}
+                ${
+                    renderInstallButton(plugin, host, { backendNotInstalled: constants.statuses.backendNotInstalled }) ||
+                    renderDownloadModelButton(plugin, host, {
+                        backendNotInstalled: constants.statuses.backendNotInstalled,
+                        backendInstalling: constants.statuses.backendInstalling
+                    })
+                }
                 </div>
                 </div>
                 </div>

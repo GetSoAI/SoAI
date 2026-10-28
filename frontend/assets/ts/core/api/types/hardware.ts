@@ -24,6 +24,7 @@ interface KillProcessOptions {
 interface HardwareSnapshotOptions extends RequestOptions {
     components?: readonly string[];
     useCache?: boolean;
+    includeGpuCapabilities?: boolean;
 }
 
 export type { HardwareHistoryConfig, HardwareSnapshotOptions, KillProcessOptions };

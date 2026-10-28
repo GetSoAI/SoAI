@@ -7,6 +7,7 @@ import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.agent.compaction_budget_errors import build_context_budget_unavailable_error
 from core.errors.exceptions import ConfigurationError, ValidationError
 from core.validation.strings import coerce_optional_trimmed_str
 from features.agent.session.compaction_config_values import (
@@ -101,7 +102,8 @@ def resolve_compaction_budget_from_context_window(
         or int(context_window_tokens) <= 0
     ):
         raise ValidationError("Compaction requires a resolved positive context window.")
-    resolved_context_window_tokens = int(context_window_tokens)
+    model_context_window_tokens = int(context_window_tokens)
+    resolved_context_window_tokens = model_context_window_tokens
     if tokenizer_is_approximate:
         safety_ratio = resolve_approximate_tokenizer_safety_ratio(config)
         resolved_context_window_tokens = max(
@@ -109,54 +111,23 @@ def resolve_compaction_budget_from_context_window(
             math.floor(resolved_context_window_tokens * safety_ratio),
         )
     reserved_output_tokens = resolve_compaction_reserved_output_tokens(config)
-    effective_context_window = resolved_context_window_tokens - reserved_output_tokens
-    if effective_context_window < 1:
-        message = "".join(
-            (
-                "Compaction requires an effective context window after output reservation ",
-                f"(context_window_tokens={resolved_context_window_tokens}, ",
-                f"reserved_output_tokens={reserved_output_tokens}).",
-            ),
-        )
-        raise ConfigurationError(
-            message,
-        )
     trigger_margin_ratio = resolve_compaction_trigger_margin_ratio(config)
     post_compact_margin_ratio = resolve_compaction_post_compact_margin_ratio(
         config=config,
         trigger_margin_ratio=trigger_margin_ratio,
     )
+    effective_context_window = resolved_context_window_tokens - reserved_output_tokens
     trigger_prompt_tokens = math.floor(effective_context_window * (1.0 - trigger_margin_ratio))
     target_prompt_tokens = math.floor(effective_context_window * (1.0 - post_compact_margin_ratio))
-    if trigger_prompt_tokens <= 0 or target_prompt_tokens <= 0:
-        message = "".join(
-            (
-                "Compaction derived prompt budget must be positive ",
-                f"(context_window_tokens={resolved_context_window_tokens}, ",
-                f"reserved_output_tokens={reserved_output_tokens}, ",
-                f"trigger_margin_ratio={trigger_margin_ratio}, ",
-                f"post_compact_margin_ratio={post_compact_margin_ratio}, ",
-                f"trigger_prompt_tokens={trigger_prompt_tokens}, ",
-                f"target_prompt_tokens={target_prompt_tokens}).",
-            ),
-        )
-        raise ConfigurationError(
-            message,
-        )
-    if target_prompt_tokens >= trigger_prompt_tokens:
-        message = "".join(
-            (
-                "Compaction hysteresis requires target_prompt_tokens < trigger_prompt_tokens ",
-                f"(context_window_tokens={resolved_context_window_tokens}, ",
-                f"reserved_output_tokens={reserved_output_tokens}, ",
-                f"trigger_margin_ratio={trigger_margin_ratio}, ",
-                f"post_compact_margin_ratio={post_compact_margin_ratio}, ",
-                f"trigger_prompt_tokens={trigger_prompt_tokens}, ",
-                f"target_prompt_tokens={target_prompt_tokens}).",
-            ),
-        )
-        raise ConfigurationError(
-            message,
+    if (
+        effective_context_window < 1
+        or target_prompt_tokens <= 0
+        or target_prompt_tokens >= trigger_prompt_tokens
+    ):
+        raise build_context_budget_unavailable_error(
+            context_window_tokens=model_context_window_tokens,
+            usable_context_tokens=resolved_context_window_tokens,
+            reserved_output_tokens=reserved_output_tokens,
         )
     return ResolvedCompactionBudget(
         context_window_tokens=resolved_context_window_tokens,
@@ -180,7 +151,10 @@ def resolve_compaction_summary_prompt_budget_from_context_window(
     ):
         raise ValidationError("Compaction requires a resolved positive context window.")
     resolved_context_window_tokens = int(context_window_tokens)
-    summary_max_tokens = resolve_compaction_summary_max_tokens(config)
+    summary_max_tokens = min(
+        resolve_compaction_summary_max_tokens(config),
+        max(1, resolved_context_window_tokens // 8),
+    )
     effective_context_window = resolved_context_window_tokens - int(summary_max_tokens)
     if effective_context_window < 1:
         message = "".join(

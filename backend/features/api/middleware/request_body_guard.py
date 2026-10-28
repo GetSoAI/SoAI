@@ -69,29 +69,37 @@ class RequestBodyGuardMiddleware:
             return
         deadline = time.monotonic() + self._policy.read_deadline_seconds
         received_bytes = 0
+        body_complete = False
         violation: _BodyViolation | None = None
         response_forwarded = False
 
         async def guarded_receive() -> Message:
-            nonlocal received_bytes, violation
+            nonlocal received_bytes, violation, body_complete
             if violation is not None:
                 raise _BodyViolationSignal
             if is_multipart:
                 if scope.get(_STREAMING_MULTIPART_OWNER_SCOPE_KEY) is not True:
                     violation = _streaming_multipart_required_violation()
                     raise _BodyViolationSignal
-            remaining_seconds = (
-                self._policy.read_deadline_seconds if is_multipart else deadline - time.monotonic()
-            )
-            if remaining_seconds <= 0.0:
-                violation = _timeout_violation()
-                raise _BodyViolationSignal
-            try:
-                async with asyncio.timeout(remaining_seconds):
-                    message = await receive()
-            except TimeoutError as exception:
-                violation = _timeout_violation()
-                raise _BodyViolationSignal from exception
+            if body_complete:
+                message = await receive()
+            else:
+                remaining_seconds = (
+                    self._policy.read_deadline_seconds
+                    if is_multipart
+                    else deadline - time.monotonic()
+                )
+                if remaining_seconds <= 0.0:
+                    violation = _timeout_violation()
+                    raise _BodyViolationSignal
+                try:
+                    async with asyncio.timeout(remaining_seconds):
+                        message = await receive()
+                except TimeoutError as exception:
+                    violation = _timeout_violation()
+                    raise _BodyViolationSignal from exception
+            if message.get("type") == "http.request" and not message.get("more_body", False):
+                body_complete = True
             if is_multipart:
                 return message
             if message.get("type") != "http.request":

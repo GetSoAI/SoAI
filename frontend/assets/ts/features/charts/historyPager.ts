@@ -58,7 +58,7 @@ class HistoryPager implements ChartHistoryPort {
     }
 
     get status(): ChartHistoryStatus {
-        return this.#status;
+        return this.#suspended ? 'loading' : this.#status;
     }
 
     get oldestNavigableTs(): number | null {
@@ -90,16 +90,18 @@ class HistoryPager implements ChartHistoryPort {
     }
 
     suspend(): void {
-        if (!this.#session) return;
+        if (!this.#session || this.#suspended) return;
         this.#fence.begin();
         this.#running = false;
         this.#suspended = true;
         if (this.#status === 'loading') this.#setStatus('idle', null);
+        else this.#dependencies.getChart()?.view.syncToSeries();
     }
 
     resume(): void {
         if (!this.#suspended) return;
         this.#suspended = false;
+        this.#dependencies.getChart()?.view.syncToSeries();
         this.#schedulePump();
     }
 

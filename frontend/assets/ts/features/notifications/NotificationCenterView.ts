@@ -1,20 +1,16 @@
 /* SoAI - Notifications feature notification center view [frontend/assets/ts/features/notifications/NotificationCenterView.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
+import { reconcilePresenceList } from '@core/animations/presence/public.ts';
+import { toTrustedUiHtml } from '@core/security/public.ts';
 import { optionalTrimmedDataAttribute } from '@core/dom/attributes.ts';
-import { reconcileChildNodes, reconcileElementChildrenFromTrustedHtml } from '@core/dom/childNodeReconciliation.ts';
-import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { dom } from '@core/dom/dom.ts';
-import { createHtmlFragment } from '@core/dom/html.ts';
-import { patchOrderedChildren } from '@core/dom/orderedChildPatching.ts';
-import { syncElementShell } from '@core/dom/patching.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { requireHeaderDropdownButton, requireHeaderDropdownElement } from '@core/layout/header/dropdownElements.ts';
 import { resolveNotificationText } from '@core/notifications/textResolution.ts';
 import { resolveNotificationTimeLabel } from '@core/notifications/timeLabels.ts';
 import type { NotificationsListResponse } from '@core/notifications/types.ts';
-import { uiAttr, uiHtml } from '@core/security/uiHtml.ts';
+import { EMPTY_UI_HTML, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 import { DROPDOWN_CHEVRON_OPTIONS } from '@core/ui/dropdown/chevron.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
 import { setIconSlot } from '@core/ui/icons/view.ts';
@@ -28,51 +24,6 @@ const resolveNotificationRowKey = (child: HTMLElement): string | null => {
         return null;
     }
     return optionalTrimmedDataAttribute(child, 'notification-id') ?? null;
-};
-
-const createNotificationRowsParent = (target: HTMLElement, html: TrustedHtml): HTMLElement => {
-    const parent = target.ownerDocument.createElement('div');
-    const fragment = createHtmlFragment({ documentRef: target.ownerDocument, html: html.html, context: target });
-    parent.appendChild(fragment);
-    return parent;
-};
-
-const insertNotificationRow = (parent: HTMLElement, child: HTMLElement, anchor: ChildNode | null): HTMLElement => {
-    parent.insertBefore(child, anchor);
-    return child;
-};
-
-const patchNotificationRow = (existingChild: HTMLElement, createdChild: HTMLElement): boolean => {
-    if (existingChild.outerHTML === createdChild.outerHTML) {
-        return false;
-    }
-    syncElementShell({ target: existingChild, source: createdChild });
-    reconcileChildNodes(existingChild, Array.from(createdChild.childNodes));
-    return true;
-};
-
-const removeNotificationRow = (child: HTMLElement): void => {
-    child.remove();
-};
-
-const replaceUnsupportedNotificationRows = (target: HTMLElement, createdParent: HTMLElement): boolean => {
-    target.replaceChildren(...Array.from(createdParent.children));
-    return true;
-};
-
-const reconcileNotificationRows = (target: HTMLElement, html: TrustedHtml): void => {
-    const createdParent = createNotificationRowsParent(target, html);
-    patchOrderedChildren({
-        existingParent: target,
-        createdParent,
-        resolveChildKey: resolveNotificationRowKey,
-        insertChild: insertNotificationRow,
-        patchChild: patchNotificationRow,
-        removeChild: removeNotificationRow,
-        replaceUnsupportedChildren(): boolean {
-            return replaceUnsupportedNotificationRows(target, createdParent);
-        }
-    });
 };
 
 const isNotificationMessageExpandable = (itemElement: HTMLElement): boolean => {
@@ -177,10 +128,10 @@ class NotificationCenterView {
             dom.setText(loadingText, i18n.t('header.notificationCenter.actions.loadingMore'));
         }
 
+        const emptyMessage = options.state.status === 'unavailable' ? i18n.t('header.notificationCenter.messages.unavailable') : i18n.t('header.notificationCenter.messages.noNotifications');
+        const emptyStateHtml = uiHtml`<div class="task-list-empty notification-list-empty"><p>${emptyMessage}</p></div>`;
         if (notifications.length === 0) {
-            const message = options.state.status === 'unavailable' ? i18n.t('header.notificationCenter.messages.unavailable') : i18n.t('header.notificationCenter.messages.noNotifications');
-            const emptyMarkup = uiHtml`<div class="task-list-empty notification-list-empty"><p>${message}</p></div>`;
-            reconcileElementChildrenFromTrustedHtml({ target: elements.list, html: emptyMarkup });
+            reconcilePresenceList({ list: elements.list, rowsHtml: EMPTY_UI_HTML, emptyStateHtml, resolveRowKey: resolveNotificationRowKey });
             return;
         }
 
@@ -189,20 +140,19 @@ class NotificationCenterView {
         const expandLabel = i18n.t('header.notificationCenter.actions.expand');
         const expandIcon = this.#getExpandIconMarkup();
 
-        const entries = notifications.map((notification, index) => {
+        const entries = notifications.map((notification) => {
             const unread = notification.readAtMs == null;
             const isExpanded = options.expandedNotificationIds.has(notification.id);
-            const checkerboardClass = resolveCheckerboardClass(index);
-            const classes = `dropdown-item notification-item ${checkerboardClass} ${unread ? 'notification-item--unread' : ''} notification-item--${notification.type} ${isExpanded ? 'notification-item--expanded' : ''}`;
+            const classes = `dropdown-item notification-item ${unread ? 'notification-item--unread' : ''} notification-item--${notification.type} ${isExpanded ? 'notification-item--expanded' : ''}`;
             const createdLabel = resolveNotificationTimeLabel(notification.createdAtMs);
             const title = resolveNotificationText(notification.title);
             const message = resolveNotificationText(notification.message);
             const tooltipText = !isExpanded ? message : '';
-            return uiHtml`<div class="${uiAttr(classes)}" data-notification-id="${uiAttr(notification.id)}" data-tooltip="${uiAttr(tooltipText)}"><div class="notification-item-body"><div class="notification-item-title-row"><span class="notification-item-title">${title}</span><span class="notification-item-time">${createdLabel}</span></div><div class="notification-item-message"><div class="notification-item-message-content">${message}</div></div></div><div class="notification-item-actions"><button class="ui-icon-button ui-icon-button--chromeless notification-delete-btn" type="button" data-notification-id="${uiAttr(notification.id)}" data-tooltip="${uiAttr(deleteLabel)}" aria-label="${uiAttr(deleteLabel)}">${deleteIcon}</button><button class="ui-icon-button ui-icon-button--chromeless notification-expand-btn u-hidden" type="button" data-notification-id="${uiAttr(notification.id)}" data-tooltip="${uiAttr(expandLabel)}" aria-label="${uiAttr(expandLabel)}" aria-hidden="true" disabled>${expandIcon}</button></div></div>`;
+            return uiHtml`<div class="${uiAttr(classes)}" data-notification-id="${uiAttr(notification.id)}" data-presence-atomic data-tooltip="${uiAttr(tooltipText)}"><div class="notification-item-body"><div class="notification-item-title-row"><span class="notification-item-title">${title}</span><span class="notification-item-time">${createdLabel}</span></div><div class="notification-item-message"><div class="notification-item-message-content">${message}</div></div></div><div class="notification-item-actions"><button class="ui-icon-button ui-icon-button--chromeless notification-delete-btn" type="button" data-notification-id="${uiAttr(notification.id)}" data-tooltip="${uiAttr(deleteLabel)}" aria-label="${uiAttr(deleteLabel)}">${deleteIcon}</button><button class="ui-icon-button ui-icon-button--chromeless notification-expand-btn u-hidden" type="button" data-notification-id="${uiAttr(notification.id)}" data-tooltip="${uiAttr(expandLabel)}" aria-label="${uiAttr(expandLabel)}" aria-hidden="true" disabled>${expandIcon}</button></div></div>`;
         });
 
-        const listMarkup = toTrustedUiHtml(entries.map((entry) => entry.html).join(''));
-        reconcileNotificationRows(elements.list, listMarkup);
+        const rowsHtml = toTrustedUiHtml(entries.map((entry) => entry.html).join(''));
+        reconcilePresenceList({ list: elements.list, rowsHtml, emptyStateHtml, resolveRowKey: resolveNotificationRowKey });
     }
 
     syncExpandButtons(elements: NotificationCenterElements): void {

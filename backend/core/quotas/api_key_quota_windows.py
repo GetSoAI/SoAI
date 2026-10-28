@@ -23,7 +23,6 @@ __all__ = (
     "normalize_api_key_quota_row_mode",
     "normalize_hourly_window_hours",
     "parse_api_key_quota_hourly_window_hours",
-    "require_positive_optional_quota_int",
     "resolve_window_ms",
 )
 
@@ -34,18 +33,6 @@ MONTHLY_WINDOW_SECONDS = 2_592_000
 WINDOW_NAMES: tuple[str, ...] = ("hourly", "daily", "weekly", "monthly")
 API_KEY_QUOTA_MODES: frozenset[str] = frozenset(("none", "tokens", "requests"))
 ACTIVE_API_KEY_QUOTA_MODES: frozenset[str] = frozenset(("tokens", "requests"))
-
-
-def require_positive_optional_quota_int(
-    value: int | None,
-    *,
-    error_message: str,
-) -> int | None:
-    if value is None:
-        return None
-    if value <= 0:
-        raise ValidationError(error_message)
-    return value
 
 
 def normalize_api_key_quota_mode(value: str, *, empty_message: str) -> str:

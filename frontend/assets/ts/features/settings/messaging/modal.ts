@@ -90,7 +90,8 @@ const openMessagingAccountModal = async (options: MessagingAccountModalOptions):
                 actions: MESSAGING_MCP_ACTIONS,
                 toolModes: ['default', 'plan', 'execute'],
                 initialToolMode: 'default',
-                getIconSync
+                getIconSync,
+                onConfigurationChanged: (control) => syncChanged(control)
             });
             mcp.setCatalog(options.mcpCatalog);
             if (options.account?.modelSettings.mcp) mcp.setValues(options.account.modelSettings.mcp);

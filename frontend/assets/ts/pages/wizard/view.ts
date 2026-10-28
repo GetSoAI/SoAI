@@ -78,7 +78,7 @@ export const renderWizardShellView = (context: WizardViewContext): string => {
         <div class="wizard-header-text">
         <h1>${i18n.t('wizard.title')}</h1>
         <div class="wizard-progress">
-        <div class="progress-bar"><div class="progress-fill progress-orange"></div></div>
+        <div class="progress-bar progress-bar--continuous"><div class="progress-fill progress-orange"></div></div>
         <span class="wizard-progress-text">${i18n.t('wizard.progress.stepOf', { current: 1, total })}</span>
         </div>
         </div>

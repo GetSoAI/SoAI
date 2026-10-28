@@ -92,19 +92,10 @@
         backdrop-filter: var(--glass-blur-base);
         border: var(--border-width-1) solid var(--text-field-border);
         border-radius: var(--border-radius);
-        box-shadow: var(--glass-shadow-base);
+        box-shadow: var(--text-field-shadow);
         padding: var(--space-15) var(--space-3);
         font-size: var(--font-size-sm);
-        color: var(--text-secondary);
-        transition:
-            background-color var(--transition-fast),
-            border-color var(--transition-fast),
-            box-shadow var(--transition-fast);
-    }
-
-    :where([data-section='wizard'], [data-page-scope='wizard']) input.setting-input:hover:not(:focus) {
-        background-color: var(--text-field-bg-hover);
-        border-color: var(--text-field-border-hover);
+        color: var(--text-field-color);
     }
 
     :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-step--license {
@@ -154,17 +145,8 @@
         border-radius: var(--border-radius);
         padding: var(--space-25) var(--space-3);
         font-size: var(--font-size-092);
-        color: var(--text-primary);
+        color: var(--text-field-color);
         background: var(--text-field-bg);
-        transition:
-            background-color var(--duration-150) var(--ease-in-out),
-            border-color var(--duration-150) var(--ease-in-out),
-            box-shadow var(--duration-150) var(--ease-in-out);
-    }
-
-    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-form-input:hover:not(:focus) {
-        background: var(--text-field-bg-hover);
-        border-color: var(--text-field-border-hover);
     }
 
     :where([data-section='wizard'], [data-page-scope='wizard']) .secret-input-container.ui-inline-action-field > .wizard-form-input.secret-input {

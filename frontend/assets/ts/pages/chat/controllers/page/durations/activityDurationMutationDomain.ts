@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { collectInlineActivities } from '@pages/chat/controllers/page/durations/activityDurationRegistrationDomain.ts';
-import { ACTIVITY_DURATION_EXPANSION_ATTRIBUTES } from '@pages/chat/controllers/page/durations/activityDurationPresentationDomain.ts';
 
-const ACTIVITY_DURATION_DISCOVERY_ATTRIBUTES = [...ACTIVITY_DURATION_EXPANSION_ATTRIBUTES, 'class', 'data-started-at-ms', 'data-assistant-started-at-ms', 'aria-disabled'];
+const ACTIVITY_DURATION_DISCOVERY_ATTRIBUTES = ['class', 'data-started-at-ms', 'data-assistant-started-at-ms'];
 
 type ActivityDurationMutationImpact = {
     roots: Set<HTMLElement>;
@@ -21,9 +20,6 @@ const resolveActivityDurationMutationImpact = (records: readonly MutationRecord[
             const target = record.target;
             if (target instanceof HTMLElement && target.classList.contains('inline-activity')) {
                 roots.add(target);
-                requiresPrune = true;
-            } else if (target instanceof HTMLElement && record.attributeName === 'aria-disabled' && target.parentElement?.classList.contains('inline-activity') && target.parentElement.firstElementChild === target) {
-                roots.add(target.parentElement);
                 requiresPrune = true;
             }
             continue;

@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
-from core.concurrency.lock_types import BoundedLockResult
+from core.concurrency.lock_types import BoundedLockResult, LockHolderSnapshot
 from core.concurrency.locks import BoundedLockContext
 from core.concurrency.protocols import AsyncContextManagerProtocol
 from core.di.validation import require_dependencies
@@ -95,6 +95,15 @@ class TTLAsyncLockRegistry[K: Hashable]:
         if entry is None:
             return False
         return entry.lock.locked()
+
+    def describe_holder(self, key: K) -> LockHolderSnapshot | None:
+        entry = self._entries.get(key)
+        if entry is None or entry.held_since_monotonic is None or not entry.lock.locked():
+            return None
+        return LockHolderSnapshot(
+            task_name=entry.holder_task_name,
+            held_seconds=max(0.0, time.monotonic() - entry.held_since_monotonic),
+        )
 
     def is_owned_by_current_task(self, key: K) -> bool:
         entry = self._entries.get(key)
@@ -201,6 +210,7 @@ class TTLAsyncLockRegistry[K: Hashable]:
             else:
                 await entry.lock.acquire()
                 acquired = True
+                entry.mark_held()
                 async with self._meta_lock:
                     entry.owner_task_id = current_task_id
                     entry.reentrancy_depth = 1
@@ -237,7 +247,13 @@ class TTLAsyncLockRegistry[K: Hashable]:
                 timeout=timeout,
                 raise_cancelled_on_exit=raise_cancelled_on_exit,
             ) as lock_result:
-                yield lock_result
+                if lock_result.acquired:
+                    entry.mark_held()
+                try:
+                    yield lock_result
+                finally:
+                    if lock_result.acquired:
+                        entry.clear_held()
         finally:
             await uncancel_then_cleanup(
                 self._release_entry(
@@ -283,6 +299,7 @@ class TTLAsyncLockRegistry[K: Hashable]:
                 self._evict_one_unborrowed_locked()
             self._capacity_condition.notify_all()
         if release_lock:
+            entry.clear_held()
             entry.lock.release()
 
 
@@ -293,3 +310,14 @@ class _TTLAsyncLockRegistryEntry:
     borrow_count: int
     owner_task_id: int | None = None
     reentrancy_depth: int = 0
+    holder_task_name: str | None = None
+    held_since_monotonic: float | None = None
+
+    def mark_held(self) -> None:
+        task = asyncio.current_task()
+        self.holder_task_name = task.get_name() if task is not None else None
+        self.held_since_monotonic = time.monotonic()
+
+    def clear_held(self) -> None:
+        self.holder_task_name = None
+        self.held_since_monotonic = None

@@ -36,19 +36,23 @@ def prepare_archive_logo(
         if content_hash.sha256_hex != archive_hash:
             raise StateError("Plugin artwork source does not match the catalog revision.")
         cache_key = (archive_hash, identity)
-        result = cache.get(cache_key)
-        reconstructed = result is None
-        if result is None:
+
+        def verify_source() -> None:
+            if not identity.matches_descriptor_snapshot(
+                FileIdentity.from_stat(os.fstat(source.fileno())),
+            ):
+                raise StateError("Plugin artwork source changed during preparation.")
+            if identity != FileIdentity.from_stat(os.stat(archive_path, follow_symlinks=False)):
+                raise StateError("Plugin artwork source was replaced during preparation.")
+
+        def reconstruct_logo() -> PluginLogoResult:
             snapshot = inspect_plugin_package_stream(plugin_name, source)
             if snapshot.content.archive_hash != content_hash.sha256_hex:
                 raise StateError("Plugin artwork source does not match the catalog revision.")
-            result = sanitize_plugin_logo(snapshot.logo_source)
-        if not identity.matches_descriptor_snapshot(
-            FileIdentity.from_stat(os.fstat(source.fileno())),
-        ):
-            raise StateError("Plugin artwork source changed during preparation.")
-        if identity != FileIdentity.from_stat(os.stat(archive_path, follow_symlinks=False)):
-            raise StateError("Plugin artwork source was replaced during preparation.")
-        if reconstructed:
-            cache.put(cache_key, result)
+            reconstructed = sanitize_plugin_logo(snapshot.logo_source)
+            verify_source()
+            return reconstructed
+
+        result = cache.get_or_compute(cache_key, reconstruct_logo)
+        verify_source()
         return result

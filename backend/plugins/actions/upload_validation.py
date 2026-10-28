@@ -225,7 +225,6 @@ async def load_and_validate_uploaded_plugin(
     await ensure_correct_permissions(package_audit.archive_path)
     manifest = await asyncio.to_thread(
         read_plugin_manifest_from_disk,
-        manager,
         plugin_name,
         package_audit=package_audit,
     )

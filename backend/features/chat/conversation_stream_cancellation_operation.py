@@ -13,6 +13,7 @@ from core.errors.exceptions import ConflictError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
+from features.agent.runtime.tool_execution_steer_interrupt import STEER_INTERRUPTED_ERROR_TYPE
 from features.api.runtime.chat_stream_registry import ChatStreamCancellationIntent
 from features.api.runtime.chat_stream_registry_types import execution_owns_runtime
 from features.chat.conversation_stream_cancellation import (
@@ -28,9 +29,16 @@ if TYPE_CHECKING:
     from core.runtime.request_context import RequestContext
     from features.api.runtime.container.types import ApiDependencies
 
-__all__ = ("ChatStreamCancellationAcceptance", "accept_chat_stream_cancellation")
+__all__ = (
+    "STEER_CANCELLATION_REASON",
+    "USER_STOPPED_CANCELLATION_CODE",
+    "ChatStreamCancellationAcceptance",
+    "accept_chat_stream_cancellation",
+)
 
 CANCELLATION_REASON = "User requested cancellation via WebUI."
+STEER_CANCELLATION_REASON = "Stopped to send the pending steer."
+USER_STOPPED_CANCELLATION_CODE = "user_stopped"
 LOGGER_NAME = "SoAI.features.chat.conversation_stream_cancellation_operation"
 OPERATION_SCHEDULE_CLEANUP = "chat.stream_cancellation.schedule_cleanup"
 OPERATION_SCHEDULE_INPUT_PUBLICATION = "chat.stream_cancellation.schedule_input_publication"
@@ -102,6 +110,11 @@ async def accept_chat_stream_cancellation(
                 request_id=request_id,
             )
             return ChatStreamCancellationAcceptance(conv_id, request_id, "already_terminal")
+        forced_input_created = persisted.get("forced_input_created") is True
+        cancellation_code = (
+            STEER_INTERRUPTED_ERROR_TYPE if forced_input_created else USER_STOPPED_CANCELLATION_CODE
+        )
+        terminal_reason = STEER_CANCELLATION_REASON if forced_input_created else reason
         if persisted.get("terminal_completed") is not True:
             intent = ChatStreamCancellationIntent(
                 user_id=user_id,
@@ -110,10 +123,11 @@ async def accept_chat_stream_cancellation(
                 force_pending_steers=bool(
                     persisted.get("force_pending_steers", force_pending_steers)
                 ),
-                reason=reason,
+                reason=terminal_reason,
+                code=cancellation_code,
             )
             await registry.remember_cancellation_intent(intent)
-        if persisted.get("forced_input_created") is True:
+        if forced_input_created or persisted.get("inputs_held") is True:
             try:
                 schedule_cancellation_input_publication(
                     api_dependencies,
@@ -135,7 +149,8 @@ async def accept_chat_stream_cancellation(
         if runtime is not None and execution_owns_runtime(request_id, runtime):
             cancellation_claimed = await claim_conversation_stream_runtime_cancellation(
                 runtime,
-                reason,
+                terminal_reason,
+                cancellation_code,
             )
             if cancellation_claimed:
                 try:
@@ -185,5 +200,5 @@ async def accept_chat_stream_cancellation(
             conv_id,
             request_id,
             "cancellation_requested",
-            persisted.get("forced_input_created") is True,
+            forced_input_created,
         )

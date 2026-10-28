@@ -63,4 +63,5 @@ export type HardwareCardsTranslationKey =
     | 'hardware.cards.storage.summary.volumeSingular'
     | 'hardware.cards.storage.summary.withTotal'
     | 'hardware.cards.storage.title'
+    | 'hardware.cards.storage.unavailable'
     | 'hardware.cards.storage.waiting';

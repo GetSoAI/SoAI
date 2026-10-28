@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from core.concurrency.protocols import CancellationTokenProtocol
+    from core.runtime.request_context import RequestContext
     from core.types.json import JSONDict
 
     type ParseProgressCallback = Callable[[float, str], Awaitable[None]]
@@ -33,6 +34,7 @@ class ParseExecutionContext:
     progress_callback: ParseProgressCallback | None
     display_name: str | None
     extraction_deadline: float
+    request_context: RequestContext
 
     def __post_init__(self) -> None:
         require_ocr_language(self.ocr_language)
@@ -48,6 +50,7 @@ class ParseExecutionContext:
             progress_callback=self.progress_callback,
             display_name=display_name,
             extraction_deadline=self.extraction_deadline,
+            request_context=self.request_context,
         )
 
 
@@ -58,6 +61,7 @@ class ParsedDocument:
     metadata: JSONDict | None = None
     extraction_state: ExtractionState = ExtractionState.COMPLETE
     warnings: tuple[str, ...] = ()
+    missing_capabilities: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,3 +77,4 @@ class DocumentReadResult:
     next_offset_chars: int | None
     total_chars: int | None
     extraction_state: ExtractionState = ExtractionState.COMPLETE
+    missing_capabilities: tuple[str, ...] = ()

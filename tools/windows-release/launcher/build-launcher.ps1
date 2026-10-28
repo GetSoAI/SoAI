@@ -112,7 +112,7 @@ function Find-WebView2Package {
 
 function Invoke-CSharpCompilerApi {
     param(
-        [Parameter(Mandatory=$true)][string]$SourcePath,
+        [Parameter(Mandatory=$true)][string[]]$SourcePaths,
         [Parameter(Mandatory=$true)][string]$ManifestPath,
         [string]$IconPath,
         [Parameter(Mandatory=$true)][string]$OutputPath,
@@ -131,11 +131,14 @@ function Invoke-CSharpCompilerApi {
     $parseOptions = [Microsoft.CodeAnalysis.CSharp.CSharpParseOptions]::new(
         [Microsoft.CodeAnalysis.CSharp.LanguageVersion]::CSharp5
     )
-    $sourceText = [Microsoft.CodeAnalysis.Text.SourceText]::From(
-        [IO.File]::ReadAllText($SourcePath),
-        [Text.Encoding]::UTF8
-    )
-    $syntaxTree = [Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree]::ParseText($sourceText, $parseOptions, $SourcePath)
+    $syntaxTrees = [System.Collections.Generic.List[Microsoft.CodeAnalysis.SyntaxTree]]::new()
+    foreach ($sourcePath in $SourcePaths) {
+        $sourceText = [Microsoft.CodeAnalysis.Text.SourceText]::From(
+            [IO.File]::ReadAllText($sourcePath),
+            [Text.Encoding]::UTF8
+        )
+        $syntaxTrees.Add([Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree]::ParseText($sourceText, $parseOptions, $sourcePath))
+    }
     $compilationOptions = [Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions]::new(
         [Microsoft.CodeAnalysis.OutputKind]::WindowsApplication
     ).WithOptimizationLevel(
@@ -145,7 +148,7 @@ function Invoke-CSharpCompilerApi {
     ).WithDeterministic($true)
     $compilation = [Microsoft.CodeAnalysis.CSharp.CSharpCompilation]::Create(
         [IO.Path]::GetFileNameWithoutExtension($OutputPath),
-        [Microsoft.CodeAnalysis.SyntaxTree[]]@($syntaxTree),
+        $syntaxTrees,
         $references,
         $compilationOptions
     )
@@ -196,6 +199,19 @@ $dependencyCacheRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
     'SoAI-Windows-Launcher-' + [Guid]::NewGuid().ToString('N')
 )
 try {
+    New-Item -ItemType Directory -Force -Path $dependencyCacheRoot | Out-Null
+    $assemblyInfo = Join-Path $dependencyCacheRoot 'SoAILauncher.AssemblyInfo.cs'
+    $assemblyInfoContent = @(
+        'using System.Reflection;',
+        '[assembly: AssemblyTitle("SoAI")]',
+        '[assembly: AssemblyProduct("SoAI Core")]',
+        '[assembly: AssemblyCompany("SoAI")]',
+        '[assembly: AssemblyCopyright("Copyright \u00A9 SoAI")]',
+        "[assembly: AssemblyVersion(""$versionQuad"")]",
+        "[assembly: AssemblyFileVersion(""$versionQuad"")]",
+        "[assembly: AssemblyInformationalVersion(""$Version"")]"
+    ) -join "`r`n"
+    Set-Content -LiteralPath $assemblyInfo -Value $assemblyInfoContent -Encoding UTF8
     $webView2Package = Find-WebView2Package `
         -ExplicitPath $WebView2PackageDir `
         -CachePath $dependencyCacheRoot
@@ -215,6 +231,7 @@ try {
             '/reference:System.dll',
             '/reference:System.Core.dll',
             '/reference:System.Drawing.dll',
+            '/reference:System.ServiceProcess.dll',
             '/reference:System.Windows.Forms.dll',
             '/reference:System.Web.Extensions.dll'
         ) + @($webView2References | ForEach-Object { "/reference:$_" })
@@ -226,7 +243,7 @@ try {
             '/optimize+',
             "/win32manifest:$manifest",
             "/out:$outExe"
-        ) + $references + @($source)
+        ) + $references + @($source, $assemblyInfo)
 
         if ($IconPath -and (Test-Path -LiteralPath $IconPath)) {
             $args = @(
@@ -237,7 +254,7 @@ try {
                 "/win32icon:$IconPath",
                 "/win32manifest:$manifest",
                 "/out:$outExe"
-            ) + $references + @($source)
+            ) + $references + @($source, $assemblyInfo)
         }
 
         & $csc @args
@@ -257,12 +274,13 @@ try {
             'System.dll',
             'System.Core.dll',
             'System.Drawing.dll',
+            'System.ServiceProcess.dll',
             'System.Windows.Forms.dll',
             'System.Web.Extensions.dll'
         ) | ForEach-Object { Join-Path $referenceRoot $_ }) + $webView2References
         Write-Host 'Compiling launcher with the PowerShell Roslyn compiler and pinned .NET Framework 4.8 reference assemblies.'
         Invoke-CSharpCompilerApi `
-            -SourcePath $source `
+            -SourcePaths @($source, $assemblyInfo) `
             -ManifestPath $manifest `
             -IconPath $IconPath `
             -OutputPath $outExe `

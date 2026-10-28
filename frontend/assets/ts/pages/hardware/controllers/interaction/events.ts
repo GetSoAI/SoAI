@@ -3,8 +3,10 @@
 
 import { requireTrimmedDataAttribute } from '@core/dom/attributes.ts';
 import { HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION, HARDWARE_SOAIBENCH_HISTORY_SORT_ACTION, METRIC_CONFIG, type SoAIBenchHistoryPagePanel, type SystemInfoModal } from '@features/hardware/public.ts';
-import { HARDWARE_ACTION_GPU_BOOT_TOGGLE, HARDWARE_ACTION_GPU_SLIDER_AUTO, HARDWARE_ACTION_GPU_SLIDER_INPUT, HARDWARE_ACTION_GPU_SOAIBENCH_SELECT, HARDWARE_ACTION_PROCESS_SORT, HARDWARE_ACTION_SYSTEM_INFO_ANONYMIZE, type HardwareActionId } from '@pages/hardware/actions.ts';
+import { HARDWARE_ACTION_GPU_BOOT_TOGGLE, HARDWARE_ACTION_GPU_SLIDER_AUTO, HARDWARE_ACTION_GPU_SLIDER_INPUT, HARDWARE_ACTION_GPU_VALUE_EDIT, HARDWARE_ACTION_GPU_VALUE_INPUT, HARDWARE_ACTION_GPU_SOAIBENCH_SELECT, HARDWARE_ACTION_PROCESS_SORT, HARDWARE_ACTION_SYSTEM_INFO_ANONYMIZE, type HardwareActionId } from '@pages/hardware/actions.ts';
 import type { GpuControlManager } from '@pages/hardware/controllers/gpucontrol/GpuControlManager.ts';
+import { getSupportedSliderKeyboardValue } from '@pages/hardware/controllers/gpucontrol/gpuControlDomControls.ts';
+import { discardGpuValueEdit, handleGpuValueInput, handleGpuValueKeydown, startGpuValueEdit } from '@pages/hardware/controllers/gpucontrol/gpuControlValueEditorController.ts';
 import { dispatchHardwareRootClickAction } from '@pages/hardware/controllers/hardwareRootClickDispatch.ts';
 import { buildDeviceSelectionValue, getDefaultMetricForDevice } from '@pages/hardware/state/hardwareSelection.ts';
 import type { MemorySwapPanelController } from '@pages/hardware/widgets/memoryswap/MemorySwapPanelController.ts';
@@ -33,6 +35,11 @@ type HardwareInteractionHandlers = {
 
 const createHardwareInteractionHandlers = (dependencies: HardwareInteractionEventDependencies): HardwareInteractionHandlers => {
     const handleRootActionClick = async (event: MouseEvent, action: HardwareActionId, actionElement: HTMLElement): Promise<void> => {
+        if (action === HARDWARE_ACTION_GPU_VALUE_EDIT) {
+            event.preventDefault();
+            startGpuValueEdit(dependencies.gpuController, actionElement);
+            return;
+        }
         if (action === HARDWARE_ACTION_GPU_SOAIBENCH_SELECT) {
             event.preventDefault();
             await dependencies.openSoAIBenchGpuSelection();
@@ -44,7 +51,7 @@ const createHardwareInteractionHandlers = (dependencies: HardwareInteractionEven
                 return;
             }
             if (action === HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION || action === HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION || action === HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION || action === HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION) {
-                const runId = requireTrimmedDataAttribute(actionElement, 'runId', 'SoAIBench history row action');
+                const runId = requireTrimmedDataAttribute(actionElement, 'runId', 'SoAI Bench history row action');
                 if (action === HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION) return dependencies.soaibenchHistoryPagePanel.copyRun(runId);
                 if (action === HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION) return dependencies.soaibenchHistoryPagePanel.downloadRun(runId);
                 if (action === HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION) return dependencies.soaibenchHistoryPagePanel.publishRun(runId);
@@ -88,6 +95,10 @@ const createHardwareInteractionHandlers = (dependencies: HardwareInteractionEven
 
     const handleRootActionInput = (event: Event, action: HardwareActionId, actionElement: HTMLElement): void => {
         void event;
+        if (action === HARDWARE_ACTION_GPU_VALUE_INPUT) {
+            handleGpuValueInput(dependencies.gpuController, actionElement);
+            return;
+        }
         if (action !== HARDWARE_ACTION_GPU_SLIDER_INPUT) return;
 
         if (!(actionElement instanceof HTMLInputElement)) {
@@ -95,7 +106,8 @@ const createHardwareInteractionHandlers = (dependencies: HardwareInteractionEven
         }
         const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU slider input');
         const sliderType = requireTrimmedDataAttribute(actionElement, 'sliderType', 'GPU slider input');
-        if (dependencies.gpuController.isCertifiedRunLocked(gpuIndex)) return;
+        if (dependencies.gpuController.ensureGpuUiState(gpuIndex).pending || dependencies.gpuController.isCertifiedRunLocked(gpuIndex)) return;
+        discardGpuValueEdit(dependencies.gpuController, gpuIndex, sliderType);
         dependencies.gpuController.markGpuSettingsEdited(gpuIndex);
         dependencies.gpuController.setSliderToManual(gpuIndex, sliderType, actionElement.value);
         dependencies.gpuController.markGpuStateHydrated(gpuIndex);
@@ -114,7 +126,8 @@ const createHardwareInteractionHandlers = (dependencies: HardwareInteractionEven
             }
             const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU slider auto toggle');
             const sliderType = requireTrimmedDataAttribute(actionElement, 'sliderType', 'GPU slider auto toggle');
-            if (dependencies.gpuController.isCertifiedRunLocked(gpuIndex)) return;
+            if (dependencies.gpuController.ensureGpuUiState(gpuIndex).pending || dependencies.gpuController.isCertifiedRunLocked(gpuIndex)) return;
+            discardGpuValueEdit(dependencies.gpuController, gpuIndex, sliderType);
             dependencies.gpuController.markGpuSettingsEdited(gpuIndex);
             dependencies.gpuController.updateSliderAutoState(gpuIndex, sliderType, actionElement.checked);
             dependencies.gpuController.markGpuStateHydrated(gpuIndex);
@@ -133,6 +146,28 @@ const createHardwareInteractionHandlers = (dependencies: HardwareInteractionEven
     };
 
     const handleRootActionKeydown = (event: KeyboardEvent, action: HardwareActionId, actionElement: HTMLElement): void => {
+        if (action === HARDWARE_ACTION_GPU_VALUE_INPUT) {
+            handleGpuValueKeydown(dependencies.gpuController, event, actionElement);
+            return;
+        }
+        if (action === HARDWARE_ACTION_GPU_SLIDER_INPUT) {
+            if (!(actionElement instanceof HTMLInputElement)) {
+                throw new Error('GPU slider input must be an input element');
+            }
+            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU slider input');
+            const sliderType = requireTrimmedDataAttribute(actionElement, 'sliderType', 'GPU slider input');
+            if (dependencies.gpuController.ensureGpuUiState(gpuIndex).pending || dependencies.gpuController.isCertifiedRunLocked(gpuIndex)) {
+                event.preventDefault();
+                return;
+            }
+            const value = getSupportedSliderKeyboardValue(dependencies.gpuController.gpuCapabilities, gpuIndex, sliderType, actionElement, event.key);
+            if (value === null) return;
+            event.preventDefault();
+            if (String(value) === actionElement.value) return;
+            actionElement.value = String(value);
+            handleRootActionInput(event, action, actionElement);
+            return;
+        }
         if (action === HARDWARE_SOAIBENCH_HISTORY_SORT_ACTION && actionElement.closest('#hardware-soaibench-history-panel')) {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();

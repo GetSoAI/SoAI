@@ -1,191 +1,302 @@
-"""SoAI - Prepared single-GPU direct tuning application [backend/hardware/gpu_tuning/direct_prepared_apply.py]"""
+"""SoAI - Frozen single-device native preparation and durable application [backend/hardware/gpu_tuning/direct_prepared_apply.py]"""
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 from __future__ import annotations
 
-import asyncio
+import copy
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
+from core.hardware.gpu_control_operation_types import (
+    GPUControlCommitIntent,
+    GPUControlPreflightRejection,
+)
+from core.hardware.gpu_control_types import (
+    GPURecoveryAdmissionState,
+    GPUSlotWriteError,
+    GPUSlotWriteFailure,
+)
 from core.hardware.gpu_operation_results import build_gpu_result
-from hardware.gpu_inventory.identity import normalize_gpu_index
+from core.hardware.gpu_physical_identity import GPUPhysicalDevice
+from core.types.json import JSONDict
+from core.types.json_value import require_json_dict
 from hardware.gpu_tuning.control_backend_selection import group_settings_by_control_backend
-from hardware.gpu_tuning.control_state_write_flow import (
-    CONTROL_STATE_WRITE_ERROR,
-    sync_write_requested_control_state,
+from hardware.gpu_tuning.control_operation_finalization import GPUControlFinalizationTarget
+from hardware.gpu_tuning.control_recovery_serialization import recovery_scope_digest
+from hardware.gpu_tuning.control_saved_state_authority import (
+    apply_verified_user_state,
+    control_state_digest,
+    require_saved_control_authority,
 )
-from hardware.gpu_tuning.device_mode_storage import load_known_device_slot_state
-from hardware.gpu_tuning.effective_control_state import (
-    build_apply_settings_for_modes,
-    control_state_active_for_request,
-    requested_applied_settings_for_modes,
-    settings_requiring_effective_apply,
-    settings_values_match_effective,
+from hardware.gpu_tuning.control_worker_results import (
+    GPU_CONTROL_WORKER_EXCEPTIONS,
+    GPUControlOperationOutcome,
 )
-from hardware.gpu_tuning.setting_modes import derive_field_modes_from_settings
+from hardware.gpu_tuning.effective_control_state import build_apply_settings_for_modes
+from hardware.gpu_tuning.mutation_policy import hardware_mutation_disabled_payload
+from hardware.gpu_tuning.native_control_results import reduce_gpu_control_result
+from hardware.gpu_tuning.runtime_original_restoration import (
+    reconciled_recovery_outcome,
+    restore_recorded_originals,
+)
 from hardware.gpu_tuning.vendor_backend_apply import (
     apply_vendor_backend_settings,
-    supports_vendor_backend_settings,
+    prepare_vendor_backend_settings,
 )
+from hardware.vendors.nvidia.nvml_clock_preparation import selected_nvml_clock_facilities
 
 if TYPE_CHECKING:
-    from core.types.json import JSONDict
-    from hardware.gpu_tuning.gpu_settings import GpuSettingsApplyDependencies
-
-__all__ = ("async_apply_prepared_gpu_settings",)
-
-OPERATION_HARDWARE_GPU_SETTINGS_UPDATE_CONTROL_STATE = "hardware.gpu_settings.update_control_state"
+    from core.concurrency.protocols import CancellationTokenProtocol
+    from core.hardware.gpu_control_types import GPUControlCommitAcknowledgement
+    from core.hardware.gpu_recovery_records import GPURecoveryRecord
+    from hardware.gpu_tuning.dependencies import GpuSettingsApplyDependencies
 
 
-async def async_apply_prepared_gpu_settings(
+__all__ = (
+    "GPUPreparedSettingsPlan",
+    "prepare_gpu_settings_plan",
+    "execute_gpu_settings_plan",
+    "sync_apply_prepared_gpu_settings",
+    "rejected_gpu_settings_outcome",
+)
+
+
+@dataclass(frozen=True, slots=True)
+class GPUPreparedSettingsPlan:
+    target: GPUPhysicalDevice
+    record: GPURecoveryRecord
+    result_key: str
+    scope_digest: str
+
+    @property
+    def finalization_target(self) -> GPUControlFinalizationTarget:
+        intent = self.record.commit_intent
+        if intent is None:
+            raise ValidationError("GPU native plan lacks its actual commit intent.")
+        return GPUControlFinalizationTarget(self.target, intent, self.result_key, self.scope_digest)
+
+
+def prepare_gpu_settings_plan(
     deps: GpuSettingsApplyDependencies,
     *,
-    device_id: str,
+    operation_id: str,
+    target: GPUPhysicalDevice,
     gpu_index: int,
-    device_info: JSONDict,
     capabilities: JSONDict,
     settings: JSONDict,
-) -> JSONDict:
-    return await asyncio.to_thread(
-        sync_apply_prepared_gpu_settings,
-        deps,
-        device_id=device_id,
-        gpu_index=gpu_index,
-        device_info=device_info,
-        capabilities=capabilities,
-        settings=settings,
+    field_modes: JSONDict,
+    commit_intent: GPUControlCommitIntent,
+    cancellation_token: CancellationTokenProtocol,
+) -> GPUPreparedSettingsPlan | GPUControlPreflightRejection:
+    cancellation_token.raise_if_cancelled()
+    apply_settings = build_apply_settings_for_modes(settings, field_modes)
+    grouped = group_settings_by_control_backend(apply_settings, capabilities)
+    normalized = {field: value for bucket in grouped.values() for field, value in bucket.items()}
+    modes = {field: field_modes[field] for field in normalized}
+    if set(commit_intent.user_fields) != set(normalized):
+        raise ValidationError("GPU user intent must cover exactly its selected native user fields.")
+    record = prepare_vendor_backend_settings(
+        executor=deps.executor,
+        logger=deps.logger,
+        nvidia_settings_controller=deps.nvidia_settings_controller,
+        gpu_services=deps.gpu_services,
+        target=target,
+        operation_id=operation_id,
+        normalized_settings=normalized,
+        requested_modes=modes,
+        grouped_settings=grouped,
+        clock_control_types=selected_nvml_clock_facilities(capabilities, normalized),
+    )
+    cancellation_token.raise_if_cancelled()
+    if isinstance(record, GPUControlPreflightRejection):
+        return record
+    record = replace(copy.deepcopy(record), commit_intent=commit_intent)
+    if record.pci_bdf_observations is None:
+        raise ValidationError("GPU native plan discarded actual PCI observations.")
+    frozen_target = replace(
+        target, identity=record.physical_identity, pci_bdf_observations=record.pci_bdf_observations
+    )
+    return GPUPreparedSettingsPlan(
+        frozen_target, record, str(gpu_index), recovery_scope_digest(record)
+    )
+
+
+def execute_gpu_settings_plan(
+    deps: GpuSettingsApplyDependencies,
+    plan: GPUPreparedSettingsPlan,
+    cancellation_token: CancellationTokenProtocol,
+) -> GPUControlOperationOutcome:
+    plan = copy.deepcopy(plan)
+    if recovery_scope_digest(plan.record) != plan.scope_digest:
+        raise ValidationError("GPU planned request changed after complete native preparation.")
+    cancellation_token.raise_if_cancelled()
+    if deps.runtime_flags.hardware_mutation_disabled:
+        disabled_payload = hardware_mutation_disabled_payload()
+        disabled_payload["gpus"] = {
+            plan.result_key: build_gpu_result(
+                errors=["Hardware mutation is disabled."], changed=False
+            )
+        }
+        return GPUControlOperationOutcome(
+            disabled_payload, (), False, False, None, False, (), (), (), None, None
+        )
+    recovery = deps.native_control_recovery
+    admission = recovery.inspect(plan.target)
+    if (
+        admission.state == GPURecoveryAdmissionState.RECOVERY_REQUIRED
+        and admission.operation_id is not None
+    ):
+        return reconciled_recovery_outcome(
+            plan.result_key, restore_recorded_originals(deps, plan.target, cancellation_token)
+        )
+    try:
+        prepared = recovery.prepare(plan.target, plan.record)
+    except GPU_CONTROL_WORKER_EXCEPTIONS as exception:
+        rejected = rejected_gpu_settings_outcome(
+            plan.result_key,
+            GPUControlPreflightRejection("gpu_control_preparation_failed", str(exception)),
+        )
+        return replace(rejected, failure=exception)
+    result, prepared = apply_vendor_backend_settings(
+        executor=deps.executor,
+        logger=deps.logger,
+        nvidia_settings_controller=deps.nvidia_settings_controller,
+        gpu_services=deps.gpu_services,
+        target=plan.target,
+        record=plan.record,
+        prepared=prepared,
+        recovery=recovery,
+        cancellation_token=cancellation_token,
+    )
+    reduction = reduce_gpu_control_result(result, prepared=prepared)
+    restoration = (
+        restore_recorded_originals(deps, plan.target, cancellation_token)
+        if reduction.unresolved
+        and reduction.changed is not False
+        and not cancellation_token.thread_event.is_set()
+        else None
+    )
+    committed: tuple[GPUControlCommitAcknowledgement, ...] = ()
+    committed_snapshots: JSONDict = {}
+    metadata_changed = False
+    failure: Exception | None = None
+    uncertain = False
+    if not reduction.unresolved:
+        try:
+            with deps.storage.lock:
+                saved = copy.deepcopy(deps.storage.read_payload().payload)
+                if reduction.persistence_eligible:
+                    require_saved_control_authority(saved, plan.record)
+                acknowledgement = recovery.finish(prepared, result)
+            if acknowledgement is not None:
+                committed = (acknowledgement,)
+                apply_verified_user_state(saved, plan.record, acknowledgement.committed_at)
+                devices = require_json_dict(saved["devices"], label="GPU committed device states")
+                committed_snapshots[plan.target.device_id] = copy.deepcopy(
+                    devices[plan.target.device_id]
+                )
+                metadata_changed = (
+                    control_state_digest(saved, plan.target.device_id)
+                    != acknowledgement.commit_intent.expected_control_state_digest
+                )
+        except GPUSlotWriteError as slot_exception:
+            failure = slot_exception
+            uncertain = slot_exception.reason == GPUSlotWriteFailure.PERSISTENCE_UNCERTAIN
+        except GPU_CONTROL_WORKER_EXCEPTIONS as exception:
+            failure = exception
+    cancelled = result.failure_codes == ("operation_cancelled",)
+    successful = reduction.persistence_eligible and bool(committed) and failure is None
+    entry = build_gpu_result(
+        messages=["GPU settings verified and saved."] if successful else [],
+        errors=(
+            []
+            if successful or cancelled
+            else ["GPU settings could not be verified and saved safely."]
+        ),
+        changed=reduction.changed,
+    )
+    payload: JSONDict = {"success": successful, "gpus": {plan.result_key: entry}}
+    if reduction.changed is not None:
+        payload["changed"] = True if metadata_changed else reduction.changed
+    if committed:
+        payload["applied_at"] = committed[0].committed_at
+        payload["committed_state_snapshots"] = committed_snapshots
+    if restoration is None:
+        return GPUControlOperationOutcome(
+            payload,
+            (reduction,),
+            metadata_changed,
+            uncertain,
+            failure,
+            cancelled,
+            (result,),
+            (),
+            committed,
+            prepared.dirty_marker_receipt,
+            None,
+        )
+    payload["original_restoration"] = restoration.state.value
+    return GPUControlOperationOutcome(
+        payload,
+        (reduction, *restoration.reductions),
+        metadata_changed,
+        uncertain or restoration.persistence_uncertain,
+        failure,
+        cancelled,
+        (result,) if restoration.result is None else (result, restoration.result),
+        (),
+        committed,
+        (
+            prepared.dirty_marker_receipt
+            if restoration.prepared is None
+            else restoration.prepared.dirty_marker_receipt
+        ),
+        None,
     )
 
 
 def sync_apply_prepared_gpu_settings(
     deps: GpuSettingsApplyDependencies,
     *,
-    device_id: str,
+    operation_id: str,
+    target: GPUPhysicalDevice,
     gpu_index: int,
-    device_info: JSONDict,
     capabilities: JSONDict,
     settings: JSONDict,
-) -> JSONDict:
-    requested_field_modes = derive_field_modes_from_settings(settings)
-    try:
-        apply_settings = build_apply_settings_for_modes(settings, requested_field_modes)
-    except ValidationError as error:
-        return _single_gpu_result(gpu_index, build_gpu_result(errors=[str(error)], changed=False))
-    requested_applied_settings = requested_applied_settings_for_modes(
-        settings,
-        requested_field_modes,
-    )
-    device_entry = load_known_device_slot_state(
-        storage=deps.storage,
-        device_id=device_id,
-    )
-    values_match_current = settings_values_match_effective(
-        apply_settings,
-        capabilities,
-        device_entry=device_entry,
-        requested_field_modes=requested_field_modes,
-    )
-    control_state_active = control_state_active_for_request(
-        device_entry=device_entry,
-        settings=settings,
-        requested_field_modes=requested_field_modes,
-    )
-    if values_match_current and control_state_active:
-        return _single_gpu_result(
-            gpu_index,
-            build_gpu_result(messages=["Requested settings already active."], changed=False),
-        )
-    if values_match_current:
-        write_result = sync_write_requested_control_state(
-            executor=deps.executor,
-            storage=deps.storage,
-            detailed_gpu_info=deps.detailed_gpu_info,
-            gpu_services=deps.gpu_services,
-            logger=deps.logger,
-            operation=OPERATION_HARDWARE_GPU_SETTINGS_UPDATE_CONTROL_STATE,
-            device_id=device_id,
-            field_modes=requested_field_modes,
-            applied_settings=requested_applied_settings,
-            current_device_info=device_info,
-        )
-        if not write_result.success:
-            return _single_gpu_result(
-                gpu_index,
-                build_gpu_result(errors=[CONTROL_STATE_WRITE_ERROR], changed=False),
-            )
-        return _single_gpu_result(gpu_index, write_result.gpu_result, changed=write_result.changed)
-    settings_to_apply = settings_requiring_effective_apply(
-        apply_settings,
-        capabilities,
-        device_entry=device_entry,
-        requested_field_modes=requested_field_modes,
-    )
-    try:
-        grouped_settings = group_settings_by_control_backend(settings_to_apply, capabilities)
-    except ValidationError as error:
-        return _single_gpu_result(gpu_index, build_gpu_result(errors=[str(error)], changed=False))
-    vendor_type = capabilities.get("type")
-    if not isinstance(vendor_type, str):
-        vendor_type = capabilities.get("vendor")
-    if not isinstance(vendor_type, str):
-        vendor_type = device_info.get("type")
-    if not isinstance(vendor_type, str):
-        vendor_type = device_info.get("vendor")
-    if not isinstance(vendor_type, str) or not supports_vendor_backend_settings(vendor_type):
-        return _single_gpu_result(gpu_index, build_gpu_result(errors=["Unknown GPU vendor"]))
-    vendor_id = normalize_gpu_index(capabilities.get("vendor_id"))
-    if vendor_id is None:
-        vendor_id = normalize_gpu_index(device_info.get("vendor_id"))
-    if vendor_id is None:
-        return _single_gpu_result(gpu_index, build_gpu_result(errors=["Invalid GPU vendor id"]))
-    apply_result, backend_changed = apply_vendor_backend_settings(
-        executor=deps.executor,
-        logger=deps.logger,
-        nvidia_settings_controller=deps.nvidia_settings_controller,
-        gpu_services=deps.gpu_services,
-        vendor_type=vendor_type,
-        vendor_id=vendor_id,
-        grouped_settings=grouped_settings,
+    field_modes: JSONDict,
+    commit_intent: GPUControlCommitIntent,
+    cancellation_token: CancellationTokenProtocol,
+) -> GPUControlOperationOutcome:
+    plan = prepare_gpu_settings_plan(
+        deps,
+        operation_id=operation_id,
+        target=target,
+        gpu_index=gpu_index,
         capabilities=capabilities,
+        settings=settings,
+        field_modes=field_modes,
+        commit_intent=commit_intent,
+        cancellation_token=cancellation_token,
     )
-    if _has_apply_errors(apply_result):
-        return _single_gpu_result(gpu_index, apply_result, changed=backend_changed)
-    write_result = sync_write_requested_control_state(
-        executor=deps.executor,
-        storage=deps.storage,
-        detailed_gpu_info=deps.detailed_gpu_info,
-        gpu_services=deps.gpu_services,
-        logger=deps.logger,
-        operation=OPERATION_HARDWARE_GPU_SETTINGS_UPDATE_CONTROL_STATE,
-        device_id=device_id,
-        field_modes=requested_field_modes,
-        applied_settings=requested_applied_settings,
-        current_device_info=device_info,
-    )
-    if not write_result.success:
-        return _single_gpu_result(
-            gpu_index,
-            build_gpu_result(errors=[CONTROL_STATE_WRITE_ERROR], changed=backend_changed),
-            changed=backend_changed,
-        )
-    changed = backend_changed or write_result.changed
-    return _single_gpu_result(gpu_index, apply_result, changed=changed)
+    if isinstance(plan, GPUControlPreflightRejection):
+        return rejected_gpu_settings_outcome(str(gpu_index), plan)
+    return execute_gpu_settings_plan(deps, plan, cancellation_token)
 
 
-def _has_apply_errors(result: JSONDict) -> bool:
-    errors = result.get("errors")
-    return not isinstance(errors, list) or bool(errors)
-
-
-def _single_gpu_result(
-    gpu_index: int,
-    gpu_result: JSONDict,
-    *,
-    changed: bool | None = None,
-) -> JSONDict:
-    parsed_changed = changed if changed is not None else gpu_result.get("changed") is True
-    return {
-        "success": not _has_apply_errors(gpu_result),
-        "gpus": {str(gpu_index): gpu_result},
-        "changed": parsed_changed,
+def rejected_gpu_settings_outcome(
+    result_key: str, rejection: GPUControlPreflightRejection
+) -> GPUControlOperationOutcome:
+    payload: JSONDict = {
+        "success": False,
+        "code": rejection.code,
+        "changed": False,
+        "gpus": {
+            result_key: build_gpu_result(
+                errors=["GPU settings preparation could not complete safely."], changed=False
+            )
+        },
     }
+    return GPUControlOperationOutcome(
+        payload, (), False, False, None, False, (), (rejection,), (), None, None
+    )

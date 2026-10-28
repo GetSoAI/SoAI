@@ -143,6 +143,17 @@ def sanitize_openai_request_messages(
             sanitized_message["role"] = message.get("role")
         if "content" in message:
             sanitized_message["content"] = message.get("content")
+        if "reasoning_content" in message:
+            reasoning_value = message.get("reasoning_content")
+            if message.get("role") != "assistant" or (
+                reasoning_value is not None and not isinstance(reasoning_value, str)
+            ):
+                raise ValidationError(
+                    "Message reasoning_content requires assistant text or null.",
+                    details={"param": f"messages[{index}].reasoning_content"},
+                    trace_id=trace_id,
+                )
+            sanitized_message["reasoning_content"] = reasoning_value
         name_value = message.get("name")
         if name_value is not None:
             if not isinstance(name_value, str):

@@ -20,6 +20,7 @@ from app.backup.backup_target_paths import (
     all_enabled_targets_completed,
     get_base_path,
     get_enabled_backup_targets,
+    select_user_data_sources,
 )
 from app.backup.backup_targets import (
     backup_config_target,
@@ -31,7 +32,11 @@ from app.backup.backup_targets import (
 from app.backup.backup_targets_user import backup_logs_target, backup_user_data_target
 from app.backup.backup_timeout_settings import get_stale_part_threshold_seconds
 from app.backup.copy_no_symlinks.permissions import ensure_backup_directory_permissions
-from app.backup.internal_protocols import BackupServiceContext, BackupTargetParams
+from app.backup.internal_protocols import (
+    BackupServiceContext,
+    BackupTargetParams,
+    UserDataSource,
+)
 from app.backup.licensing_recovery import build_licensing_recovery_summary
 from app.backup.size_format import format_size
 from core.backup.types import BackupCreateResult, BackupManifest, BackupManifestFiles
@@ -60,12 +65,14 @@ async def _reserve_backup_disk_space(
     self: BackupServiceContext,
     *,
     enabled_targets_map: dict[str, bool],
+    user_data_sources: tuple[UserDataSource, ...],
     logger: LoggerProtocol,
 ) -> tuple[DiskSpaceReservationLeaseProtocol, int]:
     estimated_required_bytes = await estimate_backup_required_bytes(
         self.config,
         self.files,
         enabled_targets_map,
+        user_data_sources,
     )
     storage_manager = self.runtime_dependencies.storage_manager
     reservation = storage_manager.reserve_disk_space(
@@ -181,9 +188,15 @@ async def create_backup_internal(
     enabled_targets_map = get_enabled_backup_targets(self.config)
     if not any(enabled_targets_map.values()):
         raise ValidationError("No backup targets are enabled.")
+    user_data_sources: tuple[UserDataSource, ...] = (
+        await asyncio.to_thread(select_user_data_sources, self.config, self.files)
+        if enabled_targets_map.get("USER_DATA")
+        else ()
+    )
     backup_reservation, _estimated_backup_bytes = await _reserve_backup_disk_space(
         self,
         enabled_targets_map=enabled_targets_map,
+        user_data_sources=user_data_sources,
         logger=logger,
     )
     final_path_target, part_path = await asyncio.to_thread(create_backup_slot, self.backups_path)
@@ -219,6 +232,7 @@ async def create_backup_internal(
             disk_reservation=backup_reservation,
             total_enabled_targets=len(enabled_targets),
             task_id=task_id,
+            user_data_sources=user_data_sources,
         )
         await _run_backup_targets(self, params)
         manifest["licensing_recovery"] = await asyncio.to_thread(

@@ -14,6 +14,7 @@ from core.plugins.backend_variant_availability import (
     BACKEND_VARIANT_AVAILABILITY_UNAVAILABLE,
     normalize_backend_variant_availability_type,
 )
+from core.plugins.backend_variant_compatibility import copy_variant_compatibility_requirements
 from core.plugins.backend_variant_ids import (
     AUTO_BACKEND_VARIANT_ID,
     normalize_backend_variant_id,
@@ -135,6 +136,7 @@ def _copy_optional_option_fields(
     platforms: _OptionPlatforms,
     platform_label: str | None,
 ) -> None:
+    copy_variant_compatibility_requirements(normalized, option)
     description = coerce_optional_trimmed_str(option.get("description"))
     if description is not None:
         normalized["description"] = description

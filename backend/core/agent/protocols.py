@@ -35,6 +35,7 @@ class SubagentSpawnRequest:
     workspace_path: str | None
     max_iterations: int | None
     tools: tuple[str, ...] | None
+    skill_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

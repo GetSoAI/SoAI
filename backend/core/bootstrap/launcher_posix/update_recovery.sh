@@ -33,9 +33,38 @@ soai_launcher__sudo_permits_command() {
         return 0
     fi
     case "$sudo_probe_output" in
-        *"a password is required"*) return 0 ;;
+        *"a password is required"*|*"interactive authentication is required"*) return 0 ;;
     esac
     return 1
+}
+
+soai_launcher__elevation_status() {
+    if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+        soai_install_ui__message information "$1"
+        return
+    fi
+    local color=""
+    local reset=""
+    if [ -t 2 ] && [ "${TERM:-dumb}" != dumb ] && [ -z "${NO_COLOR+x}" ]; then
+        color=$'\033[38;5;215m'
+        reset=$'\033[0m'
+    fi
+    printf '%s>%s %s\n' "$color" "$reset" "$1" >&2
+}
+
+soai_launcher__sudo_preserved_environment_names() {
+    local environment_policy="$1"
+    local names=""
+    local name=""
+    if [ "$environment_policy" != "preserve-environment" ]; then
+        return 0
+    fi
+    while IFS= read -r name; do
+        if [ "$name" != "PATH" ]; then
+            names="${names:+${names},}${name}"
+        fi
+    done < <(compgen -e)
+    printf '%s' "$names"
 }
 
 soai_launcher__select_root_elevation() {
@@ -82,7 +111,7 @@ soai_launcher__run_with_su() {
     local attempt=1
     local status=0
     while [ "$attempt" -le "$SOAI_LAUNCHER_ROOT_SU_ATTEMPTS" ]; do
-        echo "Root privileges are required. Enter the root password for su (attempt ${attempt}/${SOAI_LAUNCHER_ROOT_SU_ATTEMPTS})." >&2
+        soai_launcher__elevation_status "Enter the root password for su (attempt ${attempt}/${SOAI_LAUNCHER_ROOT_SU_ATTEMPTS})."
         status=0
         su -s /bin/bash root -c "$root_command" </dev/tty || status=$?
         if [ -e "${started_directory}/started" ] || [ "$status" -gt 128 ]; then
@@ -110,13 +139,18 @@ soai_launcher__run_as_root() {
     case "$SOAI_LAUNCHER_ROOT_ELEVATION" in
         root) "$@" ;;
         sudo)
-            if [ "$environment_policy" = "preserve-environment" ]; then
-                sudo -E -- "$@"
+            local preserved_names=""
+            preserved_names="$(soai_launcher__sudo_preserved_environment_names "$environment_policy")"
+            if [ -n "$preserved_names" ]; then
+                sudo "--preserve-env=${preserved_names}" -- "$@"
             else
                 sudo -- "$@"
             fi
             ;;
-        sudo-su) sudo su -s /bin/bash root -c "$(soai_launcher__root_shell_command "$@")" ;;
+        sudo-su)
+            soai_launcher__elevation_status "Obtaining root privileges through sudo su."
+            sudo su -s /bin/bash root -c "$(soai_launcher__root_shell_command "$@")"
+            ;;
         su) soai_launcher__run_with_su "$@" ;;
     esac
 }
@@ -131,12 +165,17 @@ soai_launcher__exec_as_root() {
     case "$SOAI_LAUNCHER_ROOT_ELEVATION" in
         root) exec "$@" ;;
         sudo)
-            if [ "$environment_policy" = "preserve-environment" ]; then
-                exec sudo -E -- "$@"
+            local preserved_names=""
+            preserved_names="$(soai_launcher__sudo_preserved_environment_names "$environment_policy")"
+            if [ -n "$preserved_names" ]; then
+                exec sudo "--preserve-env=${preserved_names}" -- "$@"
             fi
             exec sudo -- "$@"
             ;;
-        sudo-su) exec sudo su -s /bin/bash root -c "$(soai_launcher__root_shell_command "$@")" ;;
+        sudo-su)
+            soai_launcher__elevation_status "Obtaining root privileges through sudo su."
+            exec sudo su -s /bin/bash root -c "$(soai_launcher__root_shell_command "$@")"
+            ;;
         su)
             local status=0
             trap ':' INT
@@ -155,11 +194,24 @@ soai_launcher__elevate_for_installed_state() {
     if [ ! -d "$launcher_state_dir" ] || [ -w "$launcher_state_dir" ]; then
         return 0
     fi
-    echo "Root privileges are required to manage this SoAI installation." >&2
+    soai_launcher__elevation_status "Root privileges are required to manage the SoAI installation in ${SCRIPT_DIR}."
     soai_launcher__exec_as_root default-environment "${SCRIPT_DIR}/${SOAI_EXPLICIT_LAUNCHER_RELATIVE_PATH}" "$@"
 }
 
 soai_launcher__recover_update_transactions() {
+    case "${1:-}" in
+        install-deps|--install-deps|-install-deps)
+            local install_lock_dir="${SCRIPT_DIR}/data/state/locks/soai.install.lock.d"
+            if [ "${SOAI_INSTALL_LOCK_HELD_PATH:-}" = "$install_lock_dir" ]; then
+                source "${SCRIPT_DIR}/backend/core/bootstrap/launcher_posix/runtime_locks.sh" || return 1
+                if soai_managed_runtime__inherited_install_lock_is_parent_owned "$install_lock_dir"; then
+                    return 0
+                fi
+                echo "ERROR: Inherited installer ownership cannot be verified; update evidence was retained." >&2
+                return 1
+            fi
+            ;;
+    esac
     local transaction_path
     local recovery_required=0
     local recovery_backend="${SCRIPT_DIR}/backend"

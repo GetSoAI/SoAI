@@ -8,25 +8,23 @@ from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-from playwright.async_api import Error, HttpCredentials
+from playwright.async_api import HttpCredentials
 
 from core.browser.playwright_driver_errors import (
     PlaywrightDriverConnectionClosedError,
 )
-from core.browser.playwright_lifecycle import PlaywrightDriverSession, start_playwright_session
-from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
+from core.browser.playwright_lifecycle import (
+    PlaywrightDriverSession,
+    acquire_playwright_session,
+    start_playwright_session,
+)
 from core.concurrency.lock_registry import (
     TTLAsyncLockRegistry,
     TTLAsyncLockRegistryDependencies,
 )
 from core.config.protocols import ConfigProtocol
-from core.errors.cancellation import raise_cancelled_error
-from core.errors.exception_coercion import coerce_to_soai_error
-from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError, ValidationError
-from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
-from core.timing.constants import CONTROL_TIMEOUT_SEC
 from mcp.tools.browser.playwright_driver_calls import await_playwright_driver_call
 from mcp.tools.browser.playwright_launch import (
     launch_playwright_browser,
@@ -58,13 +56,6 @@ __all__ = ("PlaywrightBrowserRuntime",)
 
 LOGGER_NAME = "SoAI.mcp.tools.playwright_runtime"
 _OPERATION_START_PLAYWRIGHT = "mcp.browser.playwright_runtime.start"
-_OPERATION_DRIVER_DISCONNECT_CLEANUP_FAILURE = (
-    "mcp.browser.playwright_runtime.disconnect_cleanup_failure"
-)
-_DRIVER_DISCONNECT_CLEANUP_EXCEPTIONS: tuple[type[Exception], ...] = (
-    Error,
-    *HANDLED_RUNTIME_EXCEPTIONS,
-)
 
 
 class PlaywrightBrowserRuntime:
@@ -99,39 +90,51 @@ class PlaywrightBrowserRuntime:
         self._driver_disconnect_notifier = driver_disconnect_notifier
 
     async def _ensure_playwright_started(self) -> Playwright:
-        async with self._state_lock:
-            if self._playwright_session is not None:
-                return self._playwright_session.playwright
-            if self._shutting_down:
-                raise StateError("Playwright runtime is shutting down.")
         async with self._playwright_start_lock:
             async with self._state_lock:
-                if self._playwright_session is not None:
-                    return self._playwright_session.playwright
                 if self._shutting_down:
                     raise StateError("Playwright runtime is shutting down.")
+                session = self._playwright_session
+                if session is not None and session.is_active:
+                    return session.playwright
+                generation = self._driver_generation
+            if session is not None:
+                await self._invalidate_driver_locked(
+                    generation,
+                    PlaywrightDriverConnectionClosedError("Playwright driver is no longer active."),
+                )
             ensure_playwright_browsers_path()
-            session = await await_playwright_driver_call(
-                start_playwright_session(),
-                operation=_OPERATION_START_PLAYWRIGHT,
-                logger=get_logger(LOGGER_NAME),
-                details={"driver": "playwright"},
-                failure_message="Playwright driver start failed because the driver connection closed.",
-            )
             async with self._state_lock:
                 if self._shutting_down:
-                    self._playwright_session = None
-                else:
-                    self._driver_generation += 1
-                    self._playwright_session = session
-                    return session.playwright
-            await stop_playwright_with_logging(session, logger=get_logger(LOGGER_NAME))
-            raise StateError("Playwright runtime is shutting down.")
+                    raise StateError("Playwright runtime is shutting down.")
+                session = acquire_playwright_session()
+                self._playwright_session = session
+                self._driver_generation += 1
+            try:
+                await await_playwright_driver_call(
+                    start_playwright_session(session),
+                    operation=_OPERATION_START_PLAYWRIGHT,
+                    logger=get_logger(LOGGER_NAME),
+                    details={"driver": "playwright"},
+                    failure_message="Playwright driver start failed because the driver connection closed.",
+                )
+                async with self._state_lock:
+                    if not self._shutting_down:
+                        return session.playwright
+                await stop_playwright_with_logging(session, logger=get_logger(LOGGER_NAME))
+                raise StateError("Playwright runtime is shutting down.")
+
+            finally:
+                async with self._state_lock:
+                    if self._playwright_session is session and session.resources_closed:
+                        self._playwright_session = None
 
     async def _get_cached_browser(self, runtime_key: str) -> Browser | None:
         async with self._state_lock:
             if self._shutting_down:
                 raise StateError("Playwright runtime is shutting down.")
+            if self._playwright_session is None or not self._playwright_session.is_active:
+                return None
             cached = self._browsers.get(runtime_key)
             if cached is not None and cached.is_connected():
                 return cached
@@ -148,28 +151,30 @@ class PlaywrightBrowserRuntime:
 
     async def generation_for_browser(self, browser: Browser) -> int:
         async with self._state_lock:
-            if self._playwright_session is None or not any(
-                cached is browser for cached in self._browsers.values()
+            if (
+                self._playwright_session is None
+                or not self._playwright_session.is_active
+                or not any(cached is browser for cached in self._browsers.values())
             ):
                 raise StateError("Playwright browser belongs to an inactive driver.")
             return self._driver_generation
 
+    def _is_generation_active_locked(self, generation: int) -> bool:
+        return (
+            not self._shutting_down
+            and self._playwright_session is not None
+            and self._playwright_session.is_active
+            and self._driver_generation == generation
+        )
+
     async def is_generation_active(self, generation: int) -> bool:
         async with self._state_lock:
-            return (
-                not self._shutting_down
-                and self._playwright_session is not None
-                and self._driver_generation == generation
-            )
+            return self._is_generation_active_locked(generation)
 
     @asynccontextmanager
     async def active_generation(self, generation: int) -> AsyncGenerator[None]:
         async with self._state_lock:
-            if (
-                self._shutting_down
-                or self._playwright_session is None
-                or self._driver_generation != generation
-            ):
+            if not self._is_generation_active_locked(generation):
                 raise StateError("Playwright driver changed during browser session creation.")
             yield
 
@@ -184,35 +189,19 @@ class PlaywrightBrowserRuntime:
             playwright = self._playwright_session
             browsers = list(self._browsers.values())
             self._browsers = {}
-            self._playwright_session = None
         try:
             notifier = self._driver_disconnect_notifier
-            await uncancel_then_cleanup(
-                asyncio.wait_for(
-                    cleanup_disconnected_playwright_driver(
-                        playwright=playwright,
-                        browsers=browsers,
-                        logger=get_logger(LOGGER_NAME),
-                        notifier=(lambda: notifier(generation)) if notifier is not None else None,
-                    ),
-                    timeout=CONTROL_TIMEOUT_SEC,
-                ),
+            await cleanup_disconnected_playwright_driver(
+                playwright=playwright,
+                browsers=browsers,
+                logger=get_logger(LOGGER_NAME),
+                notifier=(lambda: notifier(generation)) if notifier is not None else None,
+                primary_exception=primary_exception,
             )
-        except asyncio.CancelledError as exception:
-            raise_cancelled_error(exception)
-        except _DRIVER_DISCONNECT_CLEANUP_EXCEPTIONS as cleanup_exception:
-            log_exception(
-                get_logger(LOGGER_NAME),
-                coerce_to_soai_error(
-                    cleanup_exception,
-                    operation=_OPERATION_DRIVER_DISCONNECT_CLEANUP_FAILURE,
-                ),
-                message="Playwright driver disconnect cleanup failed.",
-                operation=_OPERATION_DRIVER_DISCONNECT_CLEANUP_FAILURE,
-            )
-            primary_exception.add_note(
-                f"Playwright driver disconnect cleanup failed: {cleanup_exception}",
-            )
+        finally:
+            async with self._state_lock:
+                if self._playwright_session is playwright and playwright.resources_closed:
+                    self._playwright_session = None
 
     async def handle_driver_disconnect(
         self,
@@ -319,9 +308,19 @@ class PlaywrightBrowserRuntime:
                 browsers = list(self._browsers.values())
                 playwright = self._playwright_session
                 self._browsers = {}
-                self._playwright_session = None
-            await shutdown_playwright_runtime(
-                playwright=playwright,
-                browsers=browsers,
-                logger=get_logger(LOGGER_NAME),
-            )
+            try:
+                await shutdown_playwright_runtime(
+                    playwright=playwright,
+                    browsers=browsers,
+                    logger=get_logger(LOGGER_NAME),
+                )
+            finally:
+                async with self._state_lock:
+                    if self._playwright_session is playwright and (
+                        playwright is None or playwright.resources_closed
+                    ):
+                        self._playwright_session = None
+
+    @property
+    def resources_closed(self) -> bool:
+        return self._playwright_session is None and not self._browsers

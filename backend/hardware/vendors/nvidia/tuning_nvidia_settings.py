@@ -47,15 +47,20 @@ def sync_set_nvidia_settings_via_nvidia_settings(
     capabilities: JSONDict | None = None,
 ) -> JSONDict:
     if not nvml_gate.nvidia_settings_available:
-        return build_gpu_result(errors=["nvidia-settings not available on this system."])
+        return build_gpu_result(
+            errors=["nvidia-settings not available on this system."], changed=False
+        )
     if not nvidia_settings_controller:
-        return build_gpu_result(errors=["nvidia-settings controller not initialized."])
+        return build_gpu_result(
+            errors=["nvidia-settings controller not initialized."], changed=False
+        )
     gpu_result = build_gpu_result()
     errors = ensure_message_list(gpu_result, "errors")
     messages = ensure_message_list(gpu_result, "messages")
     caps = capabilities or {}
     if request.power_limit is not None:
         errors.append("Power limit control is not supported by nvidia-settings.")
+        gpu_result["changed"] = False
         capabilities_cache_service.invalidate(vendor_id)
         return gpu_result
     fan_speed = request.fan_speed

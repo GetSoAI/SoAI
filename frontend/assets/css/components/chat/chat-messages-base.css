@@ -164,6 +164,7 @@
 
     @container ui-viewport (width <= 1200px) {
         :where(.chat-container) .chat-messages-area {
+            --chat-messages-sticky-top: calc(var(--chat-conversation-header-height) + var(--chat-plan-overlay-height) + var(--chat-messages-avatar-top-inset) - var(--chat-messages-padding-top));
             padding-inline-start: calc(var(--space-16) + var(--space-8));
             padding-inline-end: calc(var(--space-16) + var(--space-8));
         }

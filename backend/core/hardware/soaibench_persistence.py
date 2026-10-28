@@ -10,6 +10,8 @@ from core.types.json import JSONDict
 
 __all__ = (
     "SOAIBENCH_GPU_HISTORY_IDENTITY_FIELDS",
+    "TASK_ID_PREFIX",
+    "task_id_for_run",
     "SoAIBenchMutationOutcome",
     "SoAIBenchMutationResult",
     "SoAIBenchReconciliationResult",
@@ -44,3 +46,10 @@ class SoAIBenchMutationResult:
 @dataclass(frozen=True, slots=True)
 class SoAIBenchReconciliationResult:
     runs: tuple[JSONDict, ...]
+
+
+TASK_ID_PREFIX = "hardware-soaibench-"
+
+
+def task_id_for_run(run_id: str) -> str:
+    return f"{TASK_ID_PREFIX}{run_id}"

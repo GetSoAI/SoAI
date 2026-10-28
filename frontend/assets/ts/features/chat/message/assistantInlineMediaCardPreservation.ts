@@ -7,7 +7,7 @@ import { applyInlineMediaCardIdentity, readInlineMediaCardIdentity, resolveInlin
 import { collectInlineMediaCardElements } from '@features/chat/message/enhancers/inlineMultimediaCardQueries.ts';
 import { resolveEligibleInlineMediaRemoteAnchorHref } from '@features/chat/message/enhancers/inlineMultimediaDomSafety.ts';
 import { createInlineMediaPendingCard } from '@features/chat/message/enhancers/inlineMultimediaPendingCard.ts';
-import { replaceInlineMediaTokensWithOptionalRenderer, type InlineMediaToken } from '@features/chat/message/enhancers/inlineMultimediaTokenParsing.ts';
+import { replaceInlineMediaTokensWithRenderer, type InlineMediaToken } from '@features/chat/message/enhancers/inlineMultimediaTokenParsing.ts';
 
 type InlineMediaCardPreservation = {
     cardsByIdentity: Map<string, HTMLElement[]>;
@@ -32,11 +32,11 @@ const resolveInlineMediaCardIdentityKeys = (identity: InlineMediaCardIdentity): 
     return keys;
 };
 
-const collectInlineMediaCardPreservation = (root: HTMLElement): InlineMediaCardPreservation => {
+const collectInlineMediaCardPreservation = (roots: readonly HTMLElement[]): InlineMediaCardPreservation => {
     const preservation: InlineMediaCardPreservation = {
         cardsByIdentity: new Map()
     };
-    for (const card of collectInlineMediaCardElements(root)) {
+    for (const card of roots.flatMap(collectInlineMediaCardElements)) {
         for (const identityKey of resolveInlineMediaCardIdentityKeys(readInlineMediaCardIdentity(card))) {
             const queue = preservation.cardsByIdentity.get(identityKey);
             if (queue) {
@@ -161,7 +161,7 @@ const cloneRenderedInlineMediaCards = (container: HTMLElement, preservation: Inl
 };
 
 const restoreInlineMediaTokens = (container: HTMLElement, preservation: InlineMediaCardPreservation): void => {
-    replaceInlineMediaTokensWithOptionalRenderer(container, {
+    replaceInlineMediaTokensWithRenderer(container, {
         includeStreamingTail: false,
         maxTokens: null,
         requireConnectedNodes: true,
@@ -181,7 +181,7 @@ const renderMissingPreservedInlineMediaToken = (doc: Document, token: InlineMedi
 };
 
 const cloneInlineMediaTokens = (container: HTMLElement, preservation: InlineMediaCardPreservation): void => {
-    replaceInlineMediaTokensWithOptionalRenderer(container, {
+    replaceInlineMediaTokensWithRenderer(container, {
         includeStreamingTail: false,
         maxTokens: null,
         requireConnectedNodes: false,

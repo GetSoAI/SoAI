@@ -52,6 +52,10 @@ const translateChatStreamContentToolPreviewKey = (previewKey: string, previewArg
             return i18n.t('chat.stream.preview.tools.read_document.detail.1', previewArguments).trim();
         case 'chat.stream.preview.tools.read_document.detail.2':
             return i18n.t('chat.stream.preview.tools.read_document.detail.2', previewArguments).trim();
+        case 'chat.stream.preview.tools.skill_read.1':
+            return i18n.t('chat.stream.preview.tools.skill_read.1', previewArguments).trim();
+        case 'chat.stream.preview.tools.skill_materialize.1':
+            return i18n.t('chat.stream.preview.tools.skill_materialize.1', previewArguments).trim();
         case 'chat.stream.preview.tools.read_file.1':
             return i18n.t('chat.stream.preview.tools.read_file.1', previewArguments).trim();
         case 'chat.stream.preview.tools.read_file.2':

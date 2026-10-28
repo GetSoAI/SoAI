@@ -8,7 +8,6 @@ from app.backup.backup_target_execution import (
     extract_manifest_sections,
     process_multi_file_results,
 )
-from app.backup.backup_target_paths import get_files_storage_path, get_wallpaper_path
 from app.backup.backup_target_paths_extra import get_logs_path
 from app.backup.internal_protocols import BackupServiceContext, BackupTargetParams
 from app.backup.logs_backup import backup_logs
@@ -38,8 +37,7 @@ async def backup_user_data_target(
     sections.targets_enabled["USER_DATA"] = True
     logger.debug("Backing up USER_DATA target...")
     user_data_results, user_data_success = await backup_user_data(
-        wallpaper_path=get_wallpaper_path(context.config, context.files),
-        files_path=get_files_storage_path(context.config, context.files),
+        sources=params.user_data_sources,
         dest_dir=params.backup_dir,
         log=logger,
         disk_reservation=params.disk_reservation,

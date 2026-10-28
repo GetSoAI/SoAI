@@ -5,8 +5,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from core.models.external_provider_record import ExternalProviderRecord
-from core.models.protocols import ModelProviderCoordinatorProtocol
 from core.network.errors import NetworkPolicyError
 from core.runtime.network_policy import OfflineModeError, validate_local_only_url
 from core.runtime.protocols import RuntimeFlagsViewProtocol
@@ -17,7 +15,6 @@ from features.api.runtime.external_provider_validation import (
 )
 
 __all__ = (
-    "apply_offline_remote_validation_status",
     "evaluate_external_provider_discovery_skip",
     "should_skip_external_provider_discovery",
     "validate_external_provider_for_save",
@@ -100,20 +97,3 @@ async def validate_external_provider_for_save(
         extra_headers=extra_headers,
         extra_query_params=extra_query_params,
     )
-
-
-async def apply_offline_remote_validation_status(
-    model_provider_coordinator: ModelProviderCoordinatorProtocol,
-    provider_id: str,
-    provider_record: ExternalProviderRecord,
-    validation: ExternalProviderValidationResult,
-) -> None:
-    if not should_skip_external_provider_discovery(validation):
-        return
-    await model_provider_coordinator.update_provider_status(
-        provider_id,
-        "UNCHECKED",
-        validation.message,
-    )
-    provider_record["last_status"] = "UNCHECKED"
-    provider_record["last_error"] = validation.message

@@ -17,6 +17,7 @@ from database.repositories.users.conversation_attachment_rows import (
     format_attachment_row,
     format_knowledge_attachment_row,
 )
+from database.repositories.users.conversation_knowledge_extraction import KNOWLEDGE_SUMMARY_COLUMNS
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -79,8 +80,8 @@ async def list_draft_knowledge_attachments_query(
 ) -> list[JSONDict]:
     rows = await query_to_dicts(
         database,
-        """
-        SELECT *
+        f"""
+        SELECT {KNOWLEDGE_SUMMARY_COLUMNS}
         FROM webui_conversation_knowledge_attachments
         WHERE conv_id = ? AND user_id = ? AND state = 'draft' AND expires_at_ms > ?
         ORDER BY created_at_ms ASC, id ASC
@@ -94,8 +95,12 @@ async def list_draft_knowledge_attachments_query(
             preview_rows = await query_to_dicts(
                 database,
                 """
-                SELECT *
-                FROM webui_conversation_knowledge_attachment_items
+                SELECT item.*, (
+                    SELECT document.metadata FROM rag_documents document
+                    WHERE document.id = item.document_id
+                      AND document.conv_id = item.conv_id AND document.user_id = item.user_id
+                ) AS document_metadata
+                FROM webui_conversation_knowledge_attachment_items item
                 WHERE conv_id = ? AND user_id = ? AND knowledge_attachment_id = ?
                 ORDER BY item_index ASC, id ASC
                 LIMIT ?
@@ -117,8 +122,8 @@ async def get_knowledge_attachment_query(
 ) -> JSONDict | None:
     row = await query_one_to_dict(
         database,
-        """
-        SELECT *
+        f"""
+        SELECT {KNOWLEDGE_SUMMARY_COLUMNS}
         FROM webui_conversation_knowledge_attachments
         WHERE conv_id = ? AND user_id = ? AND id = ?
         """,
@@ -176,8 +181,12 @@ async def get_knowledge_attachment_items_page_query(
         filters.append("(item_index > ? OR (item_index = ? AND id > ?))")
         params.extend((cursor_item_index, cursor_item_index, cursor_id))
     sql = f"""
-        SELECT *
-        FROM webui_conversation_knowledge_attachment_items
+        SELECT item.*, (
+            SELECT document.metadata FROM rag_documents document
+            WHERE document.id = item.document_id
+              AND document.conv_id = item.conv_id AND document.user_id = item.user_id
+        ) AS document_metadata
+        FROM webui_conversation_knowledge_attachment_items item
         WHERE {' AND '.join(filters)}
         ORDER BY item_index ASC, id ASC
         LIMIT ?

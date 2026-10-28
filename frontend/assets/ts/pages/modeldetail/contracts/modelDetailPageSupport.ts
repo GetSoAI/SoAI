@@ -4,7 +4,7 @@
 import type { CollapseController } from '@core/routing/pages/pagetypes/public.ts';
 import type { StreamFinishedValue } from '@core/routing/pages/pagetypes/stream/types.ts';
 import { createModuleLogger } from '@core/runtime/runtimeContext.ts';
-import { createTtlCache, readTtlStorageValue, writeTtlStorageValue } from '@core/storage/ttlStorageCache.ts';
+import { createTtlCache, readTtlStorageEntry, writeTtlStorageValue } from '@core/storage/ttlStorageCache.ts';
 import { isFunction, isNullOrUndefined, isObject, isString, isThenable } from '@core/typeGuards.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
@@ -77,13 +77,15 @@ const PARAMETER_SNAPSHOT_CACHE = createTtlCache<ParametersData | null>(SNAPSHOT_
 const MODEL_STORAGE_PREFIX = 'soai.modelDetail.snapshot.';
 const PARAMETER_STORAGE_PREFIX = 'soai.modelDetail.params.';
 
-const readSnapshot = (prefix: string, key: string): JsonValue | null => readTtlStorageValue('sessionStorage', prefix + key, SNAPSHOT_CACHE_TTL_MS);
+const readSnapshotEntry = (prefix: string, key: string): Readonly<{ value: JsonValue | null; timestamp: number }> | null => readTtlStorageEntry('sessionStorage', prefix + key, SNAPSHOT_CACHE_TTL_MS);
+
+const readSnapshot = (prefix: string, key: string): JsonValue | null => readSnapshotEntry(prefix, key)?.value ?? null;
 
 const writeSnapshot = (prefix: string, key: string, value: JsonValue | null): void => {
     writeTtlStorageValue('sessionStorage', prefix + key, value);
 };
 
-export { isCollapseController, isModelEntryMatch, isStreamHandle, isTestModalLogStreamHandle, MODEL_SNAPSHOT_CACHE, MODEL_STORAGE_PREFIX, PARAMETER_SNAPSHOT_CACHE, PARAMETER_STORAGE_PREFIX, readSnapshot, writeSnapshot };
+export { isCollapseController, isModelEntryMatch, isStreamHandle, isTestModalLogStreamHandle, MODEL_SNAPSHOT_CACHE, MODEL_STORAGE_PREFIX, PARAMETER_SNAPSHOT_CACHE, PARAMETER_STORAGE_PREFIX, readSnapshot, readSnapshotEntry, writeSnapshot };
 
 export { modelDetailLogger };
 export type { ParametersData, StreamHandle, StreamSubscription, TestModalLogStreamHandle };

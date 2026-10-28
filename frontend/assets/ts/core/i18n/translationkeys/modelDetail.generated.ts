@@ -11,9 +11,10 @@ import type { ModelDetailLoadingTranslationKey } from '@core/i18n/translationkey
 import type { ModelDetailLoadingDetailsTranslationKey } from '@core/i18n/translationkeys/modeldetail/loadingDetails.generated.ts';
 import type { ModelDetailModalTranslationKey } from '@core/i18n/translationkeys/modeldetail/modal.generated.ts';
 import type { ModelDetailNotificationsTranslationKey } from '@core/i18n/translationkeys/modeldetail/notifications.generated.ts';
+import type { ModelDetailParameterAvailabilityTranslationKey } from '@core/i18n/translationkeys/modeldetail/parameterAvailability.generated.ts';
 import type { ModelDetailParametersTranslationKey } from '@core/i18n/translationkeys/modeldetail/parameters.generated.ts';
 import type { ModelDetailSearchPlaceholderTranslationKey } from '@core/i18n/translationkeys/modeldetail/searchPlaceholder.generated.ts';
 import type { ModelDetailStatusTranslationKey } from '@core/i18n/translationkeys/modeldetail/status.generated.ts';
 import type { ModelDetailTabsTranslationKey } from '@core/i18n/translationkeys/modeldetail/tabs.generated.ts';
 
-export type ModelDetailTranslationKey = ModelDetailButtonsTranslationKey | ModelDetailCardsTranslationKey | ModelDetailConfirmationsTranslationKey | ModelDetailDeleteTranslationKey | ModelDetailErrorTranslationKey | ModelDetailFiltersTranslationKey | ModelDetailLoadingTranslationKey | ModelDetailLoadingDetailsTranslationKey | ModelDetailModalTranslationKey | ModelDetailNotificationsTranslationKey | ModelDetailParametersTranslationKey | ModelDetailSearchPlaceholderTranslationKey | ModelDetailStatusTranslationKey | ModelDetailTabsTranslationKey;
+export type ModelDetailTranslationKey = ModelDetailButtonsTranslationKey | ModelDetailCardsTranslationKey | ModelDetailConfirmationsTranslationKey | ModelDetailDeleteTranslationKey | ModelDetailErrorTranslationKey | ModelDetailFiltersTranslationKey | ModelDetailLoadingTranslationKey | ModelDetailLoadingDetailsTranslationKey | ModelDetailModalTranslationKey | ModelDetailNotificationsTranslationKey | ModelDetailParameterAvailabilityTranslationKey | ModelDetailParametersTranslationKey | ModelDetailSearchPlaceholderTranslationKey | ModelDetailStatusTranslationKey | ModelDetailTabsTranslationKey;

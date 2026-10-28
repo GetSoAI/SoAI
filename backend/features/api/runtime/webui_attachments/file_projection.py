@@ -92,9 +92,12 @@ async def _project_video_parts(
     try:
         snapshot = await load_verified_provider_descriptor_snapshot(
             context.storage_root,
+            file_content_pool=context.dependencies.file_content_pool,
             record=record,
             attachment=attachment,
         )
+    except TimeoutError:
+        return ([], "File verification is temporarily unavailable. Retry this attachment read.")
     except FileStorageSecurityError:
         return ([], "Attachment file is unavailable.")
     if snapshot is None:
@@ -116,8 +119,14 @@ async def _identity_unavailable_part(
     record: FileCatalogRecordWithPath,
     attachment: JSONDict,
 ) -> list[JSONDict] | None:
-    if await file_identity_available(context, record=record, attachment=attachment):
-        return None
+    try:
+        if await file_identity_available(context, record=record, attachment=attachment):
+            return None
+    except TimeoutError:
+        return _unavailable_part(
+            attachment,
+            reason="File verification is temporarily unavailable. Retry this attachment read.",
+        )
     return _unavailable_part(attachment, reason="Attachment file is unavailable.")
 
 
@@ -154,7 +163,12 @@ async def project_soai_file_for_provider(
             canonical_part=canonical_part,
         )
         if (
-            video_reason in {"Attachment file is unavailable.", "Attachment file content changed."}
+            video_reason
+            in {
+                "Attachment file is unavailable.",
+                "Attachment file content changed.",
+                "File verification is temporarily unavailable. Retry this attachment read.",
+            }
             and not video_parts
         ):
             return _unavailable_part(attachment, reason=video_reason)
@@ -163,8 +177,14 @@ async def project_soai_file_for_provider(
         try:
             snapshot = await load_verified_provider_descriptor_snapshot(
                 context.storage_root,
+                file_content_pool=context.dependencies.file_content_pool,
                 record=record,
                 attachment=attachment,
+            )
+        except TimeoutError:
+            return _unavailable_part(
+                attachment,
+                reason="File verification is temporarily unavailable. Retry this attachment read.",
             )
         except FileStorageSecurityError:
             return _unavailable_part(attachment, reason="Attachment file is unavailable.")
@@ -183,6 +203,8 @@ async def project_soai_file_for_provider(
             shaped = await run_joined_thread_call(
                 image_shaper,
                 task_name="webui-attachment-provider-image-shape",
+                pool=context.dependencies.file_content_pool,
+                retain_resources_until_complete=True,
             )
         finally:
             close_provider_descriptor_snapshot(snapshot)
@@ -258,5 +280,10 @@ async def project_soai_file_for_provider(
             *video_parts,
             *_video_note(video_reason),
         ]
+    except TimeoutError:
+        return _unavailable_part(
+            attachment,
+            reason="File verification is temporarily unavailable. Retry this attachment read.",
+        )
     except FileStorageSecurityError:
         return _unavailable_part(attachment, reason="Attachment file is unavailable.")

@@ -29,10 +29,18 @@ from features.assistant_timeline.activity_timing import (
     resolve_activity_running_duration_ms,
 )
 from features.assistant_timeline.models import AssistantTimelineRuntime
-from features.assistant_timeline.processing_activity import note_visible_activity_locked
+from features.assistant_timeline.processing_activity_support import (
+    can_start_timeline_activity,
+    note_visible_activity_locked,
+)
 from features.assistant_timeline.publish import (
     ensure_chat_stream_publish_lock,
-    publish_chat_stream_event_locked,
+)
+from features.assistant_timeline.visible_activity_event_emission import (
+    flush_assistant_text_then_publish_visible_event_locked,
+)
+from features.assistant_timeline.visible_activity_publishing import (
+    publish_chat_stream_event_after_visible_activity_locked,
 )
 
 if TYPE_CHECKING:
@@ -105,10 +113,10 @@ async def complete_wait_for_user_activity_if_running_locked(
         now_monotonic_ms=now_monotonic_ms,
         reason=reason,
     )
-    await publish_chat_stream_event_locked(
-        event_bus,
-        runtime,
-        database_messages,
+    await publish_chat_stream_event_after_visible_activity_locked(
+        event_bus=event_bus,
+        runtime=runtime,
+        database_messages=database_messages,
         event_type="wait_for_user_activity",
         payload={
             "assistant_at_ms": runtime.assistant_at_ms,
@@ -165,7 +173,7 @@ def start_wait_for_user_activity_ticker(
                 )
             lock = ensure_chat_stream_publish_lock(runtime)
             async with lock:
-                if runtime.detach_event is None or runtime.detach_event.is_set():
+                if not can_start_timeline_activity(runtime):
                     return
                 now_monotonic_ms = int(monotonic_ms())
                 now_epoch_ms = int(epoch_ms())
@@ -179,7 +187,6 @@ def start_wait_for_user_activity_ticker(
                             reason=None,
                         )
                     continue
-                note_visible_activity_locked(runtime, now_ms=now_monotonic_ms)
                 if runtime.wait_for_user_activity.status != "running":
                     runtime.wait_for_user_activity.status = "running"
                     runtime.wait_for_user_activity.started_at_monotonic_ms = now_monotonic_ms
@@ -193,16 +200,18 @@ def start_wait_for_user_activity_ticker(
                         now_monotonic_ms=now_monotonic_ms,
                         reason=None,
                     )
-                    await publish_chat_stream_event_locked(
-                        event_bus,
-                        runtime,
-                        database_messages,
+                    await flush_assistant_text_then_publish_visible_event_locked(
+                        event_bus=event_bus,
+                        runtime=runtime,
+                        database_messages=database_messages,
                         event_type="wait_for_user_activity",
                         payload={
                             "assistant_at_ms": runtime.assistant_at_ms,
                             "wait_for_user_activity": payload,
                         },
                     )
+                else:
+                    note_visible_activity_locked(runtime, now_ms=now_monotonic_ms)
 
     task = create_ephemeral_task(
         wait_for_user_ticker(),

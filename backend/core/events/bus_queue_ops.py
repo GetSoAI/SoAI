@@ -14,7 +14,7 @@ from core.concurrency.queue_ops import (
 from core.errors.error_types import ErrorType
 from core.events.bus_sentinel import EventBusSentinel
 from core.events.bus_worker import is_event_queue_item
-from core.events.protocols import EventCompletionSignal
+from core.events.completion_signals import mark_completion_signal_not_enqueued
 from core.events.types_base import ReplyableCommand
 from core.events.types_plugins import ErrorEvent
 from core.logging.protocols import TraceLogger
@@ -23,32 +23,37 @@ if TYPE_CHECKING:
     from core.events.bus_worker import EventQueueItem
 
 __all__ = (
-    "drain_queue_orphaned_completion_events",
     "send_error_to_reply_channel",
+    "settle_queued_events",
 )
 
 
-def drain_queue_orphaned_completion_events(
+def settle_queued_events(
     queue: asyncio.Queue[EventQueueItem | type[EventBusSentinel]],
-    sentinel: type[EventBusSentinel],
-) -> list[EventCompletionSignal]:
-    orphaned_completion_events: list[EventCompletionSignal] = []
+    *,
+    failure_message: str,
+    logger: TraceLogger,
+    drop_tracker: QueueDropTracker,
+) -> int:
+    settled_count = 0
     while True:
         try:
             item = queue.get_nowait()
-        except asyncio.QueueEmpty:
-            break
+        except (asyncio.QueueEmpty, asyncio.QueueShutDown):
+            return settled_count
         queue.task_done()
-        if item is sentinel or item is None:
+        if not is_event_queue_item(item):
             continue
-        try:
-            if is_event_queue_item(item):
-                _, _, completion_event = item
-                if completion_event is not None:
-                    orphaned_completion_events.append(completion_event)
-        except (TypeError, ValueError):
-            continue
-    return orphaned_completion_events
+        event, _publish_time, completion_signal = item
+        mark_completion_signal_not_enqueued(completion_signal, failure_message=failure_message)
+        if isinstance(event, ReplyableCommand):
+            send_error_to_reply_channel(
+                event,
+                message=failure_message,
+                logger=logger,
+                drop_tracker=drop_tracker,
+            )
+        settled_count += 1
 
 
 def send_error_to_reply_channel(

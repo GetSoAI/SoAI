@@ -10,6 +10,7 @@ from database.repositories.users.conversation_attachment_knowledge_readiness imp
     knowledge_attachment_ready_for_reference_params,
     knowledge_attachment_summary_ready_for_reference_sql,
 )
+from database.repositories.users.conversation_knowledge_extraction import KNOWLEDGE_SUMMARY_COLUMNS
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -92,6 +93,7 @@ def linked_knowledge_canonical_items_query(*, item_placeholders: str) -> str:
             document.file_type AS file_type,
             document.file_size_bytes AS file_size_bytes,
             document.status AS document_status,
+            document.metadata AS document_metadata,
             document.created_at_ms AS document_created_at_ms,
             (
                 SELECT COUNT(*)
@@ -141,7 +143,7 @@ def linked_knowledge_canonical_items_params(
 
 def linked_knowledge_active_client_batch_query(*, state_placeholders: str) -> str:
     return f"""
-        SELECT *
+        SELECT {KNOWLEDGE_SUMMARY_COLUMNS}
         FROM webui_conversation_knowledge_attachments
         WHERE conv_id = ?
           AND user_id = ?

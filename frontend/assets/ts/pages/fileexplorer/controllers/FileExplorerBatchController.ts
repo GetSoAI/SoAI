@@ -2,30 +2,42 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ensureError } from '@core/errors/coerce.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import { notifyFileExplorerHttpError } from '@pages/fileexplorer/controllers/fileExplorerHttpErrorController.ts';
 import type { FileExplorerControllerHost, FileExplorerSelectionProvider } from '@pages/fileexplorer/types.ts';
+import { ResourceTracker } from '@core/resourcetracker/service.ts';
+import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
+import { isJsonObject, type JsonObject } from '@core/types/jsonValues.ts';
+import type { FileExplorerSelectionCapture, FileExplorerSelectionModel } from '@pages/fileexplorer/state/FileExplorerSelectionState.ts';
 
 class FileExplorerBatchController {
     #host: FileExplorerControllerHost;
     #selection: FileExplorerSelectionProvider;
+    readonly #selectionModel: FileExplorerSelectionModel;
+    readonly #waitForDeletionTask: (taskId: string, signal: AbortSignal) => Promise<JsonObject | null>;
+    readonly #resources = new ResourceTracker();
     #disposed = false;
 
-    constructor(dependencies: { host: FileExplorerControllerHost; selection: FileExplorerSelectionProvider }) {
+    constructor(dependencies: { host: FileExplorerControllerHost; selection: FileExplorerSelectionProvider; selectionModel: FileExplorerSelectionModel; waitForDeletionTask: (taskId: string, signal: AbortSignal) => Promise<JsonObject | null> }) {
         this.#host = dependencies.host;
         this.#selection = dependencies.selection;
+        this.#selectionModel = dependencies.selectionModel;
+        this.#waitForDeletionTask = dependencies.waitForDeletionTask;
     }
 
     destroy(): void {
         this.#disposed = true;
+        this.#resources.cleanup();
     }
 
     async batchDeleteTask(paths: readonly string[]): Promise<string | null> {
         try {
             this.#requireActive();
             const normalized = paths.map((path) => toVirtualPath(path));
+            const deletion = this.#selectionModel.captureSelection(normalized);
             if (normalized.length <= 0) {
                 this.#host.showNotification(i18n.t('fileExplorer.errors.selectionRequired'), 'error');
                 return null;
@@ -43,7 +55,7 @@ class FileExplorerBatchController {
             if (this.#disposed) return null;
             const taskId = payload.taskId;
             this.#host.showNotification(i18n.t('fileExplorer.notifications.taskStarted', { taskId: taskId }), 'info');
-            this.#refreshSelection();
+            terminateHandledPromise(this.#watchDeletion(taskId, deletion));
             return taskId;
         } catch (error) {
             if (this.#disposed) return null;
@@ -117,6 +129,37 @@ class FileExplorerBatchController {
             if (this.#disposed) return;
             this.#host.handleError(ensureError(error), 'File Explorer refresh after task start failed', { notify: false });
         });
+    }
+
+    async #watchDeletion(taskId: string, deletion: FileExplorerSelectionCapture): Promise<void> {
+        const controller = this.#resources.track(new AbortController(), (resource) => resource.abort());
+        try {
+            const result = await this.#waitForDeletionTask(taskId, controller.signal);
+            if (this.#disposed || controller.signal.aborted) return;
+            const items = result?.['items'];
+            if (!Array.isArray(items)) throw new Error('File deletion task omitted its per-item results');
+            const deletedPaths: string[] = [];
+            for (const item of items) {
+                if (isJsonObject(item) && item['success'] === true && typeof item['path'] === 'string') {
+                    deletedPaths.push(item['path']);
+                }
+            }
+            this.#selectionModel.removeDeletedPaths(deletion, deletedPaths);
+            try {
+                await this.#selection.refresh();
+            } catch (error) {
+                if (!this.#disposed && !isAbortError(error)) {
+                    this.#host.handleError(ensureError(error), 'File Explorer refresh after committed deletion failed', { notify: false });
+                    this.#host.showNotification(i18n.t('fileExplorer.errors.changeRefreshFailed'), 'warning');
+                }
+            }
+        } catch (error) {
+            if (!this.#disposed && !isAbortError(error)) {
+                this.#handleError(ensureError(error), 'File Explorer deletion result reconciliation failed');
+            }
+        } finally {
+            this.#resources.untrack(controller);
+        }
     }
 
     #handleError(error: Error, context: string): void {

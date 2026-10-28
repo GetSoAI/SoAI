@@ -121,7 +121,7 @@ const bindHardwarePageModalEventListeners = (dependencies: HardwarePageModalEven
             if (action === HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION || action === HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION || action === HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION || action === HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION) {
                 const runId = actionElement.dataset['runId'] ?? '';
                 if (!runId) {
-                    throw new Error('SoAIBench history row action requires run_id');
+                    throw new Error('SoAI Bench history row action requires run_id');
                 }
                 if (action === HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION) {
                     return dependencies.soaibenchHistoryModal.copyRun(runId);
@@ -182,15 +182,15 @@ const bindHardwarePageModalEventListeners = (dependencies: HardwarePageModalEven
 };
 
 const dispatchSoAIBenchRunAction = (modal: SoAIBenchRunModalController, action: HardwareActionId, actionElement: HTMLElement): Promise<void> | null => {
-    const sectionId = (): string => requireTrimmedDataAttribute(actionElement, 'soaibenchSection', 'SoAIBench run section action');
-    const runId = (): string => requireTrimmedDataAttribute(actionElement, 'runId', 'SoAIBench run action');
+    const sectionId = (): string => requireTrimmedDataAttribute(actionElement, 'soaibenchSection', 'SoAI Bench run section action');
+    const runId = (): string => requireTrimmedDataAttribute(actionElement, 'runId', 'SoAI Bench run action');
     switch (action) {
         case HARDWARE_SOAIBENCH_RUN_NEW_ACTION:
             return modal.showNewBenchmark();
         case HARDWARE_SOAIBENCH_RUN_DISMISS_ACTION:
             return modal.dismissComposer();
         case HARDWARE_SOAIBENCH_RUN_PICK_ACTION:
-            return modal.selectGpu(requireTrimmedDataAttribute(actionElement, 'selectionIndex', 'SoAIBench GPU selection'));
+            return modal.selectGpu(requireTrimmedDataAttribute(actionElement, 'selectionIndex', 'SoAI Bench GPU selection'));
         case HARDWARE_SOAIBENCH_RUN_START_ACTION:
             return modal.startConfirmed();
         case HARDWARE_SOAIBENCH_RUN_HISTORY_ACTION:

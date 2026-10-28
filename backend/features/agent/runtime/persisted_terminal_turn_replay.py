@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from core.agent.status_values import AGENT_TURN_TERMINAL_STATUSES
 from core.agent.turn_snapshot import build_agent_turn_snapshot
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.conversations.protocols_database_agents import DatabaseAgentTurnsProtocol
 
 __all__ = (
@@ -32,10 +33,12 @@ async def resolve_persisted_terminal_turn_replay(
     user_id: int,
     turn_id: str,
 ) -> PersistedTerminalTurnReplay | None:
-    turn_record = await database_agent_turns.get_turn(
-        conv_id=conv_id,
-        user_id=user_id,
-        turn_id=turn_id,
+    turn_record = await uncancel_then_cleanup(
+        database_agent_turns.get_turn(
+            conv_id=conv_id,
+            user_id=user_id,
+            turn_id=turn_id,
+        ),
     )
     turn_snapshot = build_agent_turn_snapshot(turn_record)
     if turn_snapshot is None:

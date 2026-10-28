@@ -12,7 +12,9 @@ from starlette.responses import Response
 
 from core.auth.cookies import determine_secure_cookie
 from core.auth.openai_protection import OpenAIProtectionState
-from core.errors.exceptions import ServiceUnavailableError, StateError
+from core.errors.exceptions import StateError
+from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.hardware.system_info_keys import SYSTEM_INFO_COMPONENT_KEYS
 from core.meta.versioning import get_core_version
 from core.serialization.json import normalize_for_json, normalize_to_json_dict
 from core.state.access import AccessAction
@@ -30,6 +32,9 @@ __all__ = (
     "collect_system_status_snapshot",
     "register_routes",
 )
+
+
+HARDWARE_OBSERVATION_EXCEPTIONS: tuple[type[Exception], ...] = (OSError,) + RECOVERABLE_EXCEPTIONS
 
 
 def _get_restart_state_snapshot(
@@ -92,14 +97,11 @@ async def collect_system_status_snapshot(
     include_security: bool = False,
 ) -> JSONDict:
     orchestrator_instance = api_context.dependencies.orchestrator_control
-    hardware_manager = api_context.dependencies.hw_manager
     state_aggregator = api_context.dependencies.state_aggregator
     if orchestrator_instance is None:
         raise StateError("Orchestrator control is not available for system status.")
     if state_aggregator is None:
         raise StateError("State aggregator is not available for system status.")
-    if hardware_manager is None:
-        raise ServiceUnavailableError("Hardware manager is not available for system status.")
     (
         (plugin_states, plugin_state_version),
         hw_info,
@@ -107,7 +109,7 @@ async def collect_system_status_snapshot(
         main_state_snapshot,
     ) = await asyncio.gather(
         state_aggregator.get_all_plugin_states_with_version(),
-        hardware_manager.get_system_info(cache=True, include_gpu_capabilities=False),
+        _collect_optional_hardware_snapshot(api_context),
         orchestrator_instance.get_status(),
         state_aggregator.get_main_state(),
         return_exceptions=False,
@@ -137,10 +139,40 @@ async def collect_system_status_snapshot(
     )
 
 
+async def _collect_optional_hardware_snapshot(api_context: ApiContext) -> JSONDict:
+    hardware_manager = api_context.dependencies.hw_manager
+    if hardware_manager is not None:
+        try:
+            hardware = await hardware_manager.get_system_info(
+                cache=True, include_gpu_capabilities=False
+            )
+            return normalize_to_json_dict(
+                hardware, message="Hardware monitoring snapshot is invalid."
+            )
+        except HARDWARE_OBSERVATION_EXCEPTIONS:
+            return _unavailable_hardware_snapshot()
+    return _unavailable_hardware_snapshot()
+
+
+def _unavailable_hardware_snapshot() -> JSONDict:
+    checked_at_ms = epoch_ms()
+    return {
+        "timestamp_ms": checked_at_ms,
+        "component_status": {
+            component: {
+                "status": "unavailable",
+                "observed_at_ms": None,
+                "checked_at_ms": checked_at_ms,
+                "error_code": "hardware_monitoring_unavailable",
+            }
+            for component in SYSTEM_INFO_COMPONENT_KEYS
+        },
+    }
+
+
 def register_routes(routers: ApiRouters) -> None:
     status_read_deps = require_action_dependencies(AccessAction.SYSTEM_STATUS_READ)
 
-    @routers.system.get("/status", dependencies=status_read_deps)
     async def get_system_status(
         request: Request,
         api_context: ApiContext = Depends(resolve_api_context),
@@ -152,7 +184,6 @@ def register_routes(routers: ApiRouters) -> None:
         )
         return JSONResponse(content=snapshot)
 
-    @routers.system.get("/status/main", dependencies=status_read_deps)
     async def get_soai_main_status(
         api_context: ApiContext = Depends(resolve_api_context),
     ) -> Response:
@@ -166,10 +197,6 @@ def register_routes(routers: ApiRouters) -> None:
         payload["system_state"] = restart_info
         return JSONResponse(content=payload)
 
-    @routers.system.get(
-        "/security",
-        dependencies=require_action_dependencies(AccessAction.ACL_ADMIN),
-    )
     async def get_system_security(
         request: Request,
         api_context: ApiContext = Depends(resolve_api_context),
@@ -182,3 +209,16 @@ def register_routes(routers: ApiRouters) -> None:
                 openai_anonymous_mode_enabled=(protection_state is OpenAIProtectionState.OPEN),
             ),
         )
+
+    routers.system.add_api_route(
+        "/status", get_system_status, methods=["GET"], dependencies=status_read_deps
+    )
+    routers.system.add_api_route(
+        "/status/main", get_soai_main_status, methods=["GET"], dependencies=status_read_deps
+    )
+    routers.system.add_api_route(
+        "/security",
+        get_system_security,
+        methods=["GET"],
+        dependencies=require_action_dependencies(AccessAction.ACL_ADMIN),
+    )

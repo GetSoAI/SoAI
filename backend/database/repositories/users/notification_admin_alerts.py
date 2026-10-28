@@ -48,7 +48,12 @@ def _validate_alert_inputs(now_ms: int, cooldown_ms: int, max_per_user: int) -> 
 
 
 def _sync_resolve_alert_count(
-    conn: sqlite3.Connection, alert_id: str, now_ms: int, cooldown_ms: int
+    conn: sqlite3.Connection,
+    alert_id: str,
+    now_ms: int,
+    cooldown_ms: int,
+    *,
+    once_per_identity: bool,
 ) -> int:
     row = sync_fetch_one_as_dict(
         conn.execute(
@@ -70,6 +75,8 @@ def _sync_resolve_alert_count(
             (alert_id, int(now_ms), int(now_ms)),
         )
         return 1
+    if once_per_identity:
+        return 0
     last_emitted_at_ms = coerce_required_int_from_sqlite_row(row, "last_emitted_at_ms")
     pending_count = coerce_required_int_from_sqlite_row(row, "pending_count")
     if last_emitted_at_ms <= 0 or pending_count < 0:
@@ -145,8 +152,12 @@ def sync_create_template_admin_alert_if_due(
     now_ms: int,
     cooldown_ms: int,
     max_per_user: int,
+    *,
+    once_per_identity: bool = False,
 ) -> int:
     normalized_alert_id = _require_alert_string(alert_id, "Notification alert_id")
+    if not isinstance(once_per_identity, bool):
+        raise StateError("Notification once_per_identity must be a boolean.")
     if type_value not in NOTIFICATION_TYPE_SQL_VALUES:
         raise StateError("Notification alert type is invalid.")
     normalized_aggregate_param_name = aggregate_param_name
@@ -167,7 +178,11 @@ def sync_create_template_admin_alert_if_due(
         _build_message_params(message_params, normalized_aggregate_param_name, 1),
     )
     alert_count = _sync_resolve_alert_count(
-        conn, normalized_alert_id, int(now_ms), int(cooldown_ms)
+        conn,
+        normalized_alert_id,
+        int(now_ms),
+        int(cooldown_ms),
+        once_per_identity=once_per_identity,
     )
     if alert_count <= 0:
         return 0

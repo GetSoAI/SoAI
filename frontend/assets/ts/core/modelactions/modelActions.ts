@@ -1,6 +1,7 @@
 /* SoAI - Frontend model action ownership [frontend/assets/ts/core/modelactions/modelActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createMutationRequestId } from '@core/mutations/mutationIdentity.ts';
 import { modelPath } from '@core/api/endpoints/uiPaths.ts';
 import type { ModelAliasUpdateRequest } from '@core/api/contracts/modelOperationContracts.ts';
 import type { SuccessfulMutationResponse } from '@core/api/contracts/successfulMutationContract.ts';
@@ -8,6 +9,7 @@ import { getApiClient, type ApiClient } from '@core/api/service.ts';
 import type { ModelVariantResponse } from '@core/api/contracts/modelVariantContracts.ts';
 import type { RemoteModelSearchResult } from '@core/api/contracts/pluginSearchContracts.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { raceWithAbortSignal, throwIfAborted } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import type { ApiInterface, DownloadParameters, OperationMeta, RunStreamOptions, SearchOptions, StreamManagerInterface } from '@core/modelactions/contracts.ts';
 import { getStreamRuntime } from '@core/realtime/streammanager/public.ts';
@@ -86,14 +88,15 @@ const runTaskAction = async (endpoint: string, options: RunStreamOptions = {}): 
     return manager.taskAction(endpoint, { method, body, handlers, operation });
 };
 
-const runTaskCommand = async (command: JsonObject, options: { handlers?: StreamActionHandlers; operation?: OperationMeta | null } = {}): Promise<StreamActionHandle> => {
-    const manager = await resolveStreamManager();
+const runTaskCommand = async (command: JsonObject, options: { handlers?: StreamActionHandlers; operation?: OperationMeta | null; signal?: AbortSignal } = {}): Promise<StreamActionHandle> => {
+    const manager = options.signal === undefined ? await resolveStreamManager() : await raceWithAbortSignal(resolveStreamManager(), options.signal);
     const { handlers = {}, operation = null } = options;
+    throwIfAborted(options.signal);
     return manager.taskCommand(command, { handlers, operation });
 };
 
 const modelActions = Object.freeze({
-    async probeModelVariants(plugin: string, modelId: string): Promise<Array<ModelVariantResponse>> {
+    async probeModelVariants(plugin: string, modelId: string, options: { includeSpeedTests?: boolean; signal?: AbortSignal } = {}): Promise<Array<ModelVariantResponse>> {
         const normalizedPlugin = isString(plugin) ? plugin.trim() : '';
         const normalizedModel = isString(modelId) ? modelId.trim() : '';
         if (!normalizedPlugin || !normalizedModel) {
@@ -103,7 +106,7 @@ const modelActions = Object.freeze({
         if (!api.models?.getVariants) {
             throw new Error('core.apiClient is missing models.getVariants');
         }
-        const result = await api.models.getVariants(normalizedPlugin, normalizedModel, { includeSpeedTests: true });
+        const result = await api.models.getVariants(normalizedPlugin, normalizedModel, { includeSpeedTests: true, ...options });
         if (result === undefined) {
             throw new Error('core.apiClient.models.getVariants must return a value');
         }
@@ -132,7 +135,7 @@ const modelActions = Object.freeze({
         return result;
     },
 
-    startDownload(parameters: DownloadParameters = {}, options: { handlers?: StreamActionHandlers } = {}): Promise<StreamActionHandle> {
+    startDownload(parameters: DownloadParameters = {}, options: { handlers?: StreamActionHandlers; signal?: AbortSignal } = {}): Promise<StreamActionHandle> {
         const { plugin, modelId, universalId } = parameters;
         if (!universalId && (!plugin || !modelId)) {
             throw new Error('Model download requires universalId or both plugin and modelId');
@@ -157,10 +160,18 @@ const modelActions = Object.freeze({
                 operationMeta.pluginName = null;
             }
         }
+        const requestId = parameters.wizard === undefined ? null : createMutationRequestId();
+        if (parameters.wizard !== undefined && requestId !== null) {
+            payload['wizard'] = true;
+            payload['previous_task_id'] = parameters.wizard.previousTaskId;
+            operationMeta.operationKey = 'wizard:local-model-download';
+            operationMeta.requestId = requestId;
+        }
         return runTaskCommand(
-            { type: WEBSOCKET_MESSAGE_TYPES.MODEL_DOWNLOAD, body: payload },
+            { type: WEBSOCKET_MESSAGE_TYPES.MODEL_DOWNLOAD, body: payload, ...(requestId === null ? {} : { 'task_id': requestId }) },
             {
                 handlers: options.handlers ?? {},
+                ...(options.signal === undefined ? {} : { signal: options.signal }),
                 operation: operationMeta
             }
         );

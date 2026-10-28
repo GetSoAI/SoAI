@@ -4,47 +4,78 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
-
-from core.events.bus_queue_ops import drain_queue_orphaned_completion_events
-from core.events.protocols import EventCompletionSignal
 
 if TYPE_CHECKING:
     from core.events.bus_sentinel import EventBusSentinel
     from core.events.bus_worker import EventQueueItem
+    from core.types.json import JSONDict
 
 __all__ = (
-    "aggregate_queue_depth",
-    "build_partition_queues",
-    "drain_orphaned_completion_events",
-    "prune_inactive_worker_tasks",
+    "EventBusPartitions",
+    "EventBusQueuePressure",
 )
 
 
-def build_partition_queues(
-    *,
-    num_workers: int,
-    queue_max_per_worker: int,
-) -> list[asyncio.Queue[EventQueueItem | type[EventBusSentinel]]]:
-    return [asyncio.Queue(maxsize=queue_max_per_worker) for _ in range(num_workers)]
+@dataclass(frozen=True, slots=True)
+class EventBusQueuePressure:
+    partition_index: int | None
+    partition_depth: int
+    partition_capacity: int
+    aggregate_depth: int
+    aggregate_capacity: int
+
+    def describe(self) -> str:
+        aggregate = f"aggregate depth={self.aggregate_depth}/{self.aggregate_capacity}"
+        if self.partition_index is None:
+            return aggregate
+        return (
+            f"partition {self.partition_index} depth="
+            f"{self.partition_depth}/{self.partition_capacity}, {aggregate}"
+        )
+
+    def details(self) -> JSONDict:
+        return {
+            "partition_index": self.partition_index,
+            "partition_depth": self.partition_depth,
+            "partition_capacity": self.partition_capacity,
+            "queue_depth": self.aggregate_depth,
+            "queue_max": self.aggregate_capacity,
+        }
 
 
-def aggregate_queue_depth(
-    queues: list[asyncio.Queue[EventQueueItem | type[EventBusSentinel]]],
-) -> int:
-    return sum(queue.qsize() for queue in queues)
+class EventBusPartitions:
+    __slots__ = ("cursor", "partition_count", "queue_max_per_worker", "queues", "workers")
 
+    def __init__(self, *, partition_count: int, queue_max_per_worker: int) -> None:
+        self.partition_count = partition_count
+        self.queue_max_per_worker = queue_max_per_worker
+        self.queues: list[asyncio.Queue[EventQueueItem | type[EventBusSentinel]]] = []
+        self.workers: list[asyncio.Task[None]] = []
+        self.cursor = 0
+        self.rebuild()
 
-def drain_orphaned_completion_events(
-    *,
-    queues: list[asyncio.Queue[EventQueueItem | type[EventBusSentinel]]],
-    sentinel: type[EventBusSentinel],
-) -> list[EventCompletionSignal]:
-    orphaned_completion_events: list[EventCompletionSignal] = []
-    for queue in queues:
-        orphaned_completion_events.extend(drain_queue_orphaned_completion_events(queue, sentinel))
-    return orphaned_completion_events
+    def rebuild(self) -> None:
+        self.queues = [
+            asyncio.Queue(maxsize=self.queue_max_per_worker) for _ in range(self.partition_count)
+        ]
+        self.cursor = 0
 
+    def is_live(self, index: int) -> bool:
+        return index < len(self.workers) and not self.workers[index].done()
 
-def prune_inactive_worker_tasks(worker_tasks: list[asyncio.Task[None]]) -> list[asyncio.Task[None]]:
-    return [task for task in worker_tasks if not task.done()]
+    def has_live_worker(self) -> bool:
+        return any(not worker.done() for worker in self.workers)
+
+    def depth(self) -> int:
+        return sum(queue.qsize() for queue in self.queues)
+
+    def pressure(self, index: int | None) -> EventBusQueuePressure:
+        return EventBusQueuePressure(
+            partition_index=index,
+            partition_depth=0 if index is None else self.queues[index].qsize(),
+            partition_capacity=self.queue_max_per_worker,
+            aggregate_depth=self.depth(),
+            aggregate_capacity=self.queue_max_per_worker * self.partition_count,
+        )

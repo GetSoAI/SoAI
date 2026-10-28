@@ -7,6 +7,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
+from core.errors.payload import ErrorPublicPayload
+
 if TYPE_CHECKING:
     from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
     from core.types.json import JSONDict
@@ -37,6 +39,7 @@ class AgentStreamingInferenceOutcome:
     error_message: str | None = None
     error_type: str | None = None
     transcript: OpenAIStreamTranscript | None = None
+    public_error: ErrorPublicPayload | None = None
 
 
 class AgentStreamingInferenceRunnerProtocol(Protocol):

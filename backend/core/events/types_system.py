@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING
 
+from core.errors.payload import ErrorPublicPayload
 from core.events.types_base import (
     Event,
     EventDelivery,
@@ -111,7 +112,8 @@ class GPUSavedSettingsChangedEvent(Event):
     device_id: str
     slots: JSONDict
     boot: JSONDict
-    live: JSONDict
+    live: JSONDict | None
+    observation_failure: ErrorPublicPayload | None = None
 
 
 @dataclass(slots=True)
@@ -179,6 +181,7 @@ class HardwareHistoryResetEvent(Event):
 class SystemRestartRequiredEvent(Event):
     reason: str
     changed_path: str
+    connection_transition: JSONDict | None = None
 
 
 @dataclass(slots=True)

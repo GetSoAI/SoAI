@@ -1,85 +1,93 @@
-/* SoAI - Power page layout styles [frontend/assets/css/pages/power/layout.css] */
+/* SoAI - Power chooser footer and responsive layout [frontend/assets/css/pages/power/layout.css] */
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer pages {
-    :where([data-section='power'], [data-page-scope='power']) .power-restart-notice-message {
-        margin: 0;
-        font-size: inherit;
-        color: var(--status-orange);
-        line-height: inherit;
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-chooser .modal-footer-section--right {
+        flex: 1 1 auto;
+        min-width: 0;
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-options {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-3);
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-restart-notice {
+        --status-badge-text-transform: none;
+
+        min-width: 0;
+        max-width: 100%;
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-option {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3);
-        font-size: var(--font-size-body-xl);
-        color: var(--text-secondary);
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-restart-notice > .ui-icon {
+        flex-shrink: 0;
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-option-input {
-        width: 110px;
-        padding: var(--space-15) var(--space-2);
-        border-radius: var(--border-radius);
-        border: var(--border-width-1) solid var(--text-field-border);
-        background: var(--text-field-bg);
-        -webkit-backdrop-filter: var(--glass-blur-base);
-        backdrop-filter: var(--glass-blur-base);
-        color: var(--text-primary);
-        box-shadow: var(--glass-shadow-base);
-        transition:
-            background var(--transition-fast),
-            border-color var(--transition-fast),
-            box-shadow var(--transition-fast);
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-restart-notice-text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        unicode-bidi: plaintext;
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-option-input:hover:not(:focus) {
-        background: var(--text-field-bg-hover);
-        border-color: var(--text-field-border-hover);
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='power'], [data-page-scope='power']) .power-mode-chooser .modal-footer {
+            position: relative;
+        }
+
+        :where([data-section='power'], [data-page-scope='power']) .power-mode-chooser .modal-footer-section--right {
+            position: absolute;
+            inset-block: 0;
+            inset-inline: var(--modal-header-padding);
+            justify-content: center;
+        }
+
+        :where([data-section='power'], [data-page-scope='power']) .power-mode-restart-notice {
+            --status-badge-padding: 0 var(--space-2);
+        }
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .delay-option {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        font-size: var(--font-size-body-md);
-        color: var(--text-secondary);
+    @container ui-viewport (width > 600px) {
+        :where([data-section='power'], [data-page-scope='power']) .power-mode-chooser {
+            max-width: var(--modal-size-md-width);
+            overflow: hidden;
+            border: var(--border-width-1) solid var(--glass-border-strong);
+            border-radius: var(--border-radius);
+            background: var(--glass-surface-strong);
+            box-shadow: var(--modal-surface-shadow);
+        }
+
+        :where([data-section='power'], [data-page-scope='power']) .power-mode-groups {
+            padding: var(--space-7);
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-rows: repeat(2, auto);
+            gap: var(--space-5) var(--space-6);
+        }
+
+        :where([data-section='power'], [data-page-scope='power']) .power-mode-group {
+            display: grid;
+            grid-row: 1 / span 2;
+            grid-template-rows: subgrid;
+        }
+
+        :where([data-section='power'], [data-page-scope='power']) .power-mode-group[data-power-group='system'] {
+            grid-column: 2 / span 2;
+        }
+
+        :where([data-section='power'], [data-page-scope='power']) .power-mode-actions {
+            grid-row: 1 / span 2;
+            grid-template-rows: subgrid;
+            gap: var(--space-5) var(--space-6);
+        }
+
+        :where([data-section='power'], [data-page-scope='power']) [data-power-group='application'] .power-mode-actions {
+            grid-template-columns: minmax(0, 1fr);
+        }
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .delay-option label {
-        font-weight: 500;
-    }
+    @container ui-viewport (width <= 600px) {
+        :where([data-section='power'], [data-page-scope='power']) .power-mode-groups {
+            grid-template-columns: minmax(0, 1fr);
+        }
 
-    :where([data-section='power'], [data-page-scope='power']) .delay-option input {
-        width: 120px;
-        min-width: 60px;
-        padding: var(--space-15) var(--space-3);
-        font-size: var(--font-size-sm);
-        color: var(--text-secondary);
-        border: var(--border-width-1) solid var(--text-field-border);
-        border-radius: var(--border-radius);
-        background: var(--text-field-bg);
-        transition:
-            background var(--transition-fast),
-            border-color var(--transition-fast),
-            box-shadow var(--transition-fast);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .delay-option input:hover:not(:focus) {
-        background: var(--text-field-bg-hover);
-        border-color: var(--text-field-border-hover);
-    }
-
-    @container ui-viewport (width <= 900px) {
-        :where([data-section='power'], [data-page-scope='power']) .power-action-header.action-header {
-            flex-direction: column;
-            text-align: center;
+        :where([data-section='power'], [data-page-scope='power']) .power-mode-group + .power-mode-group {
+            border-block-start: var(--border-width-1) solid var(--glass-border-strong);
+            padding-block-start: var(--space-6);
         }
     }
 }

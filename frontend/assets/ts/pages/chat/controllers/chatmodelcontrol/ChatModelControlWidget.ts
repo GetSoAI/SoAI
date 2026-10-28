@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
+import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { resolveModelTypeLabel } from '@core/models/modelTypeLabel.ts';
 import type { SanitizerApi } from '@core/pagecontext/public.ts';
 import { renderLabelAttributes, toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
@@ -112,6 +113,7 @@ const buildMenuMarkup = (inputArguments: ModelControlRenderArguments & { slotInd
             const modeMarkup = modeLabel ? `<span class="chat-model-menu-slot-label-right">${stringValue.html(modeLabel)}</span>` : '';
             return `<div class="chat-model-menu-actions">` + `<span class="chat-model-menu-slot-label ui-model-type-badge ${badgeClass}">` + `<span class="chat-model-menu-slot-label-left">${stringValue.html(slotLabel)}</span>` + `${modeMarkup}` + `</span>` + `</div>`;
         }
+        if (!inputArguments.hasSelectableModels && windowIdentity.isDetachedContext()) return '';
         return `<div class="chat-model-menu-actions">` + `<button type="button" class="chat-model-menu-action ui-button ui-button--sm ui-variant-accent" data-action="${CHAT_MODEL_CONTROL_ACTION_ADD_MODEL}" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, compareLabel))} ${renderModelControlStateAttributes(inputArguments, addDisabled)}>` + `<span class="ui-icon chat-action-icon" aria-hidden="true">${compareIcon}</span>` + `<span class="chat-action-label">${stringValue.html(compareLabel)}</span>` + `</button>` + `</div>`;
     })();
 
@@ -129,7 +131,7 @@ const buildMenuMarkup = (inputArguments: ModelControlRenderArguments & { slotInd
     });
     const emptyMarkup = renderChatModelMenuEmpty({ sanitizer: stringValue, hidden: true });
 
-    return `<div class="${menuClass}" role="menu" popover="manual" data-presence-suspended aria-hidden="${isOpen ? 'false' : 'true'}"><div class="chat-model-menu-header">${searchMarkup}${actionsMarkup}</div>${preservedMarkup}${groups.map(renderGroup).join('')}${emptyMarkup}</div>`;
+    return `<div class="${menuClass}" role="menu" popover="manual" data-presence-atomic data-presence-visual-only aria-hidden="${isOpen ? 'false' : 'true'}"><div class="chat-model-menu-header">${searchMarkup}${actionsMarkup}</div>${preservedMarkup}${groups.map(renderGroup).join('')}${emptyMarkup}</div>`;
 };
 
 const resolveMissingSuffix = (inputArguments: { modelStreamHasPayload: boolean; modelIndex: Map<string, ModelData>; modelId: string | null }): string => {
@@ -156,7 +158,7 @@ const renderSingleModelControls = (inputArguments: ModelControlRenderArguments):
     const chevron = renderDropdownChevron(inputArguments.getCachedIcon, 'chat-model-control-primary-chevron');
 
     const primaryText = selectedModelId ? stringValue.html(modelLabel) : stringValue.html(i18n.t('chat.sidebar.selectModel'));
-    const primaryButton = `<button type="button" class="chat-model-control-primary ui-button${isMenuOpen ? ' is-open' : ''}" data-action="${CHAT_MODEL_CONTROL_ACTION_TOGGLE_MENU}" data-slot-index="0" ${inputArguments.scope === 'composer' ? 'data-presence-visual-only' : ''} ${renderLabelAttributes(resolveModelControlLabels(inputArguments, label))} ${renderModelControlStateAttributes(inputArguments, false)}>` + `<span class="chat-model-control-primary-text">${primaryText}</span>` + `${chevron}` + `</button>`;
+    const primaryButton = `<button type="button" class="chat-model-control-primary ui-button${isMenuOpen ? ' is-open' : ''}" aria-haspopup="menu" aria-expanded="${isMenuOpen ? 'true' : 'false'}" data-action="${CHAT_MODEL_CONTROL_ACTION_TOGGLE_MENU}" data-slot-index="0" ${inputArguments.scope === 'composer' ? 'data-presence-visual-only' : ''} ${renderLabelAttributes(resolveModelControlLabels(inputArguments, label))} ${renderModelControlStateAttributes(inputArguments, false)}>` + `<span class="chat-model-control-primary-text">${primaryText}</span>` + `${chevron}` + `</button>`;
 
     const menu = isMenuOpen
         ? buildMenuMarkup({
@@ -196,12 +198,12 @@ const renderMultiModelControls = (inputArguments: ModelControlRenderArguments): 
             const cube = inputArguments.getCachedIcon('model-default', { size: 20, strokeWidth: 1.5 }).html;
             const removeLabel = i18n.t('chat.attachments.removeTooltip');
             const removeIcon = inputArguments.getCachedIcon('close', { size: 12, strokeWidth: 2.2 }).html;
-            const slotButton = `<button type="button" class="chat-model-slot ui-icon-button${isOpen ? ' is-open' : ''}" data-action="${CHAT_MODEL_CONTROL_ACTION_TOGGLE_MENU}" data-slot-index="${String(index)}" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, label))} ${renderModelControlStateAttributes(inputArguments, false)}>` + `${cube}` + `</button>`;
+            const slotButton = `<button type="button" class="chat-model-slot ui-icon-button${isOpen ? ' is-open' : ''}" aria-haspopup="menu" aria-expanded="${isOpen ? 'true' : 'false'}" data-action="${CHAT_MODEL_CONTROL_ACTION_TOGGLE_MENU}" data-slot-index="${String(index)}" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, label))} ${renderModelControlStateAttributes(inputArguments, false)}>` + `${cube}` + `</button>`;
             const removeButton = `<button type="button" class="chat-model-slot-remove ui-corner-badge ui-corner-badge--danger" data-action="${CHAT_MODEL_CONTROL_ACTION_REMOVE_MODEL}" data-slot-index="${String(index)}" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, removeLabel))} ${renderModelControlStateAttributes(inputArguments, false)}>` + `${removeIcon}` + `</button>`;
             return `<div class="chat-model-slot-wrap" ${animateSlotLayout ? MODEL_SLOT_PRESENCE_ATTRIBUTES : ''}>${slotButton}${removeButton}</div>`;
         })
         .join('');
-    const addSlotButton = hasRoomForAnotherModel ? `<button type="button" class="chat-model-slot chat-model-slot--placeholder ui-icon-button ui-variant-accent" data-action="${CHAT_MODEL_CONTROL_ACTION_ADD_MODEL}" data-slot-index="${String(effective.length)}" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, addLabel))} ${renderModelControlStateAttributes(inputArguments, addDisabled)}>${addIcon}</button>` : '';
+    const addSlotButton = hasRoomForAnotherModel && (inputArguments.hasSelectableModels || !windowIdentity.isDetachedContext()) ? `<button type="button" class="chat-model-slot chat-model-slot--placeholder ui-icon-button ui-variant-accent" data-action="${CHAT_MODEL_CONTROL_ACTION_ADD_MODEL}" data-slot-index="${String(effective.length)}" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, addLabel))} ${renderModelControlStateAttributes(inputArguments, addDisabled)}>${addIcon}</button>` : '';
     const addSlot = addSlotButton ? `<div class="chat-model-slot-wrap chat-model-slot-wrap--placeholder" ${MODEL_SLOT_PRESENCE_ATTRIBUTES} ${animateSlotLayout ? '' : 'data-presence-visual-only'}>${addSlotButton}</div>` : '';
     const slotButtons = `${selectedSlotButtons}${addSlot}`;
 

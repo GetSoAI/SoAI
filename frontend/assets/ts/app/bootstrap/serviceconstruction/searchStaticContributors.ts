@@ -12,6 +12,7 @@ import { isJsonObject } from '@core/types/jsonValues.ts';
 import { createAdvancedSettingsRenderer, formatConfigPathLabel, NORMAL_TAB_DEFINITIONS, type AnalyzeStructure, type TabDefinition } from '@features/settings/public.ts';
 import { HELP_SECTIONS } from '@features/help/public.ts';
 import { buildPowerActionSearchMetadata } from '@features/power/public.ts';
+import { SPEECH_MODEL_SETTING_PATH, SPEECH_MODEL_SETTINGS_TAB } from '@core/speechsetup/presentation.ts';
 
 interface StaticSearchContributorDependencies {
     apiClient: {
@@ -74,6 +75,25 @@ const buildNormalSettingsEntries = (dependencies: StaticSearchContributorDepende
             icon: 'settings',
             alias: `${definition.id} settings configuration section`
         }));
+};
+
+const buildSpeechModelSettingEntries = (dependencies: StaticSearchContributorDependencies, grantedActions: ReadonlySet<string>): SearchItem[] => {
+    if (!grantedActions.has('CONFIG_PATCH') || !grantedActions.has('MODEL_READ') || !canAccessRoute(dependencies, 'settings', grantedActions)) {
+        return [];
+    }
+    return [
+        {
+            id: 'settings::speech-to-text',
+            name: i18n.t('settings.speechToText.title'),
+            description: i18n.t('settings.speechToText.description'),
+            type: 'configuration',
+            category: 'configuration',
+            identifier: SPEECH_MODEL_SETTINGS_TAB,
+            configPath: SPEECH_MODEL_SETTING_PATH,
+            icon: 'settings',
+            alias: 'speech to text stt transcription transcribe dictation audio video microphone whisper'
+        }
+    ];
 };
 
 const buildAdvancedSectionEntries = (tabs: readonly TabDefinition[]): SearchItem[] =>
@@ -187,7 +207,7 @@ const createSearchStaticContributors = (dependencies: StaticSearchContributorDep
         {
             id: 'settings-static-search',
             bucket: 'configs',
-            index: async ({ grantedActions }) => [...buildNormalSettingsEntries(dependencies, grantedActions), ...(await buildAdvancedSettingsEntries(dependencies, grantedActions))]
+            index: async ({ grantedActions }) => [...buildNormalSettingsEntries(dependencies, grantedActions), ...buildSpeechModelSettingEntries(dependencies, grantedActions), ...(await buildAdvancedSettingsEntries(dependencies, grantedActions))]
         },
         {
             id: 'help-static-search',

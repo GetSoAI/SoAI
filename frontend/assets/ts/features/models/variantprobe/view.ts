@@ -246,7 +246,7 @@ export const buildVariantCheckEntry = (variant: ModelVariantResponse | null, ind
 
     const entryClass = Number.isInteger(context.selectedIndex) && index === context.selectedIndex ? 'variant-check-entry variant-check-entry--selected' : 'variant-check-entry';
     return `
-        <div class="${entryClass}" data-variant-index="${index}"${context.action === undefined ? '' : ` data-action="${context.sanitizer.attribute(context.action)}"`} role="button" tabindex="0" ${renderLabelAttributes(nameText)}>
+        <div class="${entryClass}" data-variant-index="${index}"${context.action === undefined ? '' : ` data-action="${context.sanitizer.attribute(context.action)}"`} role="button" tabindex="0" aria-pressed="${index === context.selectedIndex}" ${renderLabelAttributes(nameText)}>
         <div class="variant-check-entry-header">
         <div class="variant-check-entry-title">
         <span class="variant-check-entry-name">${name}</span>

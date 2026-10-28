@@ -40,13 +40,15 @@ def terminal_projection(run: JSONDict) -> SoAIBenchTerminalProjection:
             task_status=TaskStatus.COMPLETED,
             task_result=result,
             error_message=None,
-            status_message="SoAIBench completed.",
+            status_message="SoAI Bench completed.",
             tool_status=TOOL_CALL_STATUS_COMPLETED,
             tool_error_message=None,
         )
     if status in {SoAIBenchRunStatus.CANCELLED, SoAIBenchRunStatus.STOPPED}:
         message = (
-            "SoAIBench stopped." if status == SoAIBenchRunStatus.STOPPED else "SoAIBench cancelled."
+            "SoAI Bench stopped."
+            if status == SoAIBenchRunStatus.STOPPED
+            else "SoAI Bench cancelled."
         )
         if run.get("failure_reason") is not None:
             failure_message = _terminal_error_message(run)
@@ -86,4 +88,4 @@ def _terminal_error_message(run: JSONDict) -> str:
         reason = run.get(key)
         if isinstance(reason, str) and reason.strip():
             return reason.strip()
-    return "SoAIBench failed."
+    return "SoAI Bench failed."

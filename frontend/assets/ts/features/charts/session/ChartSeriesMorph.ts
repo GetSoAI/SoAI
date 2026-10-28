@@ -1,11 +1,10 @@
 /* SoAI - Chart series resolution morph ownership [frontend/assets/ts/features/charts/session/ChartSeriesMorph.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { scaleAnimationDurationMs } from '@core/animations/speed.ts';
 import { findFirstIndexAtOrAfter } from '@features/charts/component/data/timestampIndex.ts';
 import type { ChartRedrawQueue } from '@features/charts/session/ChartRedrawQueue.ts';
 import type { ChartSeriesStore } from '@features/charts/session/ChartSeriesStore.ts';
-import { easeOutCubic, SERIES_TRANSITION_MS } from '@features/charts/viewport/easing.ts';
+import { easeOutCubic, scaleChartAnimationDurationMs, SERIES_TRANSITION_MS } from '@core/animations/chartMotion.ts';
 
 interface ChartSeriesSnapshot {
     timestamps: Float64Array;
@@ -72,7 +71,7 @@ class ChartSeriesMorph {
     begin(snapshot: ChartSeriesSnapshot | null, now: number): void {
         this.stop();
         const length = this.#store.dataLength;
-        const durationMs = scaleAnimationDurationMs(SERIES_TRANSITION_MS, this.#element);
+        const durationMs = scaleChartAnimationDurationMs(SERIES_TRANSITION_MS, this.#element);
         if (!snapshot || length === 0 || durationMs <= 0 || this.#store.hasOhlc()) return;
         if (this.#from.length < length) this.#from = new Float64Array(length);
         sampleSnapshot(snapshot, this.#store.timestamps, length, this.#from);
@@ -94,7 +93,7 @@ class ChartSeriesMorph {
 
     advance(now: number): boolean {
         if (!this.#active) return false;
-        const progress = (now - this.#startTime) / this.#durationMs;
+        const progress = scaleChartAnimationDurationMs(this.#durationMs, this.#element) === 0 ? 1 : (now - this.#startTime) / this.#durationMs;
         this.#progress = easeOutCubic(Math.min(1, Math.max(0, progress)));
         if (progress >= 1) this.#active = false;
         return true;

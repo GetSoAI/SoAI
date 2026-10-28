@@ -118,7 +118,7 @@ class FileExplorerPageInteractionController {
             const path = this.#requirePathData(actionElement);
             const isDirectory = actionElement.dataset['directory'] === '1';
             if (isDirectory) {
-                if (actionElement.dataset['parentRow'] !== '1' && this.#selection.getSelectedPaths().length > 0) {
+                if (actionElement.dataset['parentRow'] !== '1' && this.#commands.transferMode === null && this.#selection.getSelectedPaths().length > 0) {
                     this.#selection.setPathSelected(path, true);
                     return;
                 }
@@ -139,23 +139,23 @@ class FileExplorerPageInteractionController {
         if (await this.#selectionInteraction.handleClick(action)) {
             return;
         }
-        if (action === FILE_EXPLORER_ACTION_COPY_HERE) {
-            const taskId = await this.#batch.batchCopyTask(this.#commands.transferSources, this.#data.getCurrentPath());
-            if (this.#disposed) return;
-            if (taskId) {
-                this.#taskProgress.trackTask(taskId, i18n.t('fileExplorer.taskPanel.copy'));
-            }
-            this.#commands.exitTransferMode();
+        if (action === FILE_EXPLORER_ACTION_COPY_HERE || action === FILE_EXPLORER_ACTION_MOVE_HERE) {
+            await this.#submitTransfer(action === FILE_EXPLORER_ACTION_MOVE_HERE);
             return;
         }
-        if (action === FILE_EXPLORER_ACTION_MOVE_HERE) {
-            const taskId = await this.#batch.batchMoveTask(this.#commands.transferSources, this.#data.getCurrentPath());
-            if (this.#disposed) return;
-            if (taskId) {
-                this.#taskProgress.trackTask(taskId, i18n.t('fileExplorer.taskPanel.move'));
-            }
+    }
+
+    async #submitTransfer(isMove: boolean): Promise<void> {
+        const mode = this.#commands.transferMode;
+        const sources = this.#commands.transferSources;
+        const destination = this.#data.getCurrentPath();
+        const taskId = isMove ? await this.#batch.batchMoveTask(sources, destination) : await this.#batch.batchCopyTask(sources, destination);
+        if (this.#disposed) return;
+        if (taskId) {
+            this.#taskProgress.trackTask(taskId, isMove ? i18n.t('fileExplorer.taskPanel.move') : i18n.t('fileExplorer.taskPanel.copy'));
+        }
+        if (this.#commands.transferMode === mode && this.#commands.transferSources === sources) {
             this.#commands.exitTransferMode();
-            return;
         }
     }
 

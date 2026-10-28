@@ -60,7 +60,7 @@ async def run_certified_standard(
     warmup_cycle_count = 0
     warmup_progress = 0
     warmup_result: SoAIBenchWorkloadResult | None = None
-    warmup_telemetry_summary: JSONDict | None = None
+    warmup_owned_telemetry = SoAIBenchTelemetryAccumulator()
     while warmup_active_seconds < CERTIFIED_WARMUP_SECONDS:
         if await finish_cancelled_if_stopped(
             runtime_context=runtime_context,
@@ -85,6 +85,7 @@ async def run_certified_standard(
             publish_warmup_phase,
             runtime_context,
             warmup_telemetry_accumulator,
+            warmup_owned_telemetry,
         )
         if warmup_run.terminal_telemetry is not None:
             await finish_unstable_for_telemetry(
@@ -116,7 +117,6 @@ async def run_certified_standard(
             warmup_progress,
         )
         warmup_result = warmup
-        warmup_telemetry_summary = telemetry.summary
         await publish_certified_progress(
             runtime_context=runtime_context,
             event_context=event_context,
@@ -125,9 +125,11 @@ async def run_certified_standard(
             measured_passes=measured_passes,
             progress_current=warmup_progress,
         )
-    if warmup_result is None or warmup_telemetry_summary is None:
+    if warmup_result is None:
         raise StateError("Certified warm-up workload evidence is incomplete.")
-    warmup_passes.append(pass_payload(1, warmup_result, warmup_telemetry_summary, warmup=True))
+    warmup_passes.append(
+        pass_payload(1, warmup_result, warmup_owned_telemetry.summary(), warmup=True)
+    )
     for pass_index in range(CERTIFIED_MEASURED_PASSES):
         if await finish_cancelled_if_stopped(
             runtime_context=runtime_context,
@@ -145,6 +147,7 @@ async def run_certified_standard(
             pass_total=CERTIFIED_MEASURED_PASSES,
             minimum_progress=10 + (pass_index * 16),
         )
+        pass_telemetry_accumulator = SoAIBenchTelemetryAccumulator()
         measured_run = await run_certified_pass(
             opencl_pool,
             runtime_context.identity,
@@ -152,6 +155,7 @@ async def run_certified_standard(
             publish_measured_phase,
             runtime_context,
             measured_telemetry_accumulator,
+            pass_telemetry_accumulator,
         )
         if measured_run.terminal_telemetry is not None:
             await finish_unstable_for_telemetry(
@@ -176,7 +180,9 @@ async def run_certified_standard(
         if telemetry is None:
             return
         measured_passes.append(
-            pass_payload(pass_index + 1, measured, telemetry.summary, warmup=False),
+            pass_payload(
+                pass_index + 1, measured, pass_telemetry_accumulator.summary(), warmup=False
+            ),
         )
         last_measured_result = measured
         await publish_certified_progress(

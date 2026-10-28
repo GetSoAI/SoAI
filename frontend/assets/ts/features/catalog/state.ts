@@ -109,6 +109,10 @@ const createCatalogStore = (hub: ClientDataHub, taskTerminals: { subscribeTermin
     };
 
     return Object.freeze({
+        isFresh: (): boolean => {
+            const current = hub.snapshot(PLUGINS);
+            return current.hasAuthoritativeSnapshot && current.status === 'ready' && current.staleSinceMonotonicMs === null;
+        },
         ensureLoaded,
         refresh: (): Promise<ReadonlyArray<StoredPlugin>> => ensureLoaded({ force: true }),
         subscribe: (listener: ResourceListener<ReadonlyArray<StoredPlugin>>, { emitInitial = true }: { emitInitial?: boolean } = {}): (() => void) => {

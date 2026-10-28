@@ -68,6 +68,15 @@
                     }
                 },
                 "initFailed": "無法初始化 SoAI WebUI",
+                "reference": "參考編號：{reference}",
+                "stages": {
+                    "entrypoint": "WebUI 無法載入啟動資源。請重新載入頁面後再試一次。",
+                    "criticalServices": "WebUI 無法啟動所需的服務。請確認 SoAI 後端正在執行，然後重新載入頁面。",
+                    "authentication": "WebUI 無法檢查設定與登入狀態。請重新載入頁面後再試一次。",
+                    "session": "WebUI 無法準備您的登入工作階段。請重新載入頁面後再試一次。",
+                    "routeRendering": "WebUI 無法顯示所要求的頁面。請重新載入頁面後再試一次。",
+                    "background": "WebUI 無法完成最後的啟動步驟。請重新載入頁面後再試一次。"
+                },
                 "routeNotReady": "頁面未能在時限內完成載入。請重新載入頁面。",
                 "unknown": "發生未知錯誤。"
             },
@@ -610,13 +619,17 @@
                 "notSupported": "語音錄製需要安全連線 (HTTPS) 或 localhost",
                 "permissionDenied": "麥克風存取遭拒。請在瀏覽器設定中允許存取麥克風。",
                 "recordingFailed": "錄音失敗",
-                "transcriptionFailed": "語音轉錄失敗。"
+                "transcriptionFailed": "語音轉錄失敗。",
+                "transcriptionDeadlineExceeded": "轉寫耗時過長，已被取消。請嘗試較短的錄音或更快的轉寫模型。",
+                "transcriptionCancellationUnconfirmed": "轉寫耗時過長，且無法確認其已取消。請稍候片刻再重試。",
+                "transcriptionCancellationUnconfirmedReference": "轉寫耗時過長，且無法確認其已取消。請稍候片刻再重試。參考編號：{reference}"
             },
             "audioPreview": {
                 "cancel": "取消錄音",
                 "errorTitle": "語音錄製",
                 "processingStatus": "正在傳送音訊以進行轉錄",
                 "processingTitle": "正在轉錄語音",
+                "transcriptionSettling": "已達時間限制。正在停止轉寫…",
                 "recordingStatus": "正在錄音 {elapsed}",
                 "recordingTitle": "語音錄製",
                 "requestingStatus": "正在等待瀏覽器權限",
@@ -669,27 +682,27 @@
                 "assistantAvatarUploadLabel": "上傳助理頭像",
                 "assistantNamePlaceholder": "輸入自訂模型名稱...",
                 "autoHideChatComposer": "自動隱藏聊天輸入框",
-                "autoHideChatComposerHint": "閱讀較早的訊息時隱藏空白的聊天輸入框。",
+                "autoHideChatComposerHint": "閱讀較早的訊息時隱藏空白的聊天輸入框",
                 "autoHideChatHeader": "自動隱藏聊天標題列",
-                "autoHideChatHeaderHint": "閱讀較早的訊息時隱藏對話標題列。",
+                "autoHideChatHeaderHint": "閱讀較早的訊息時隱藏對話標題列",
                 "identityNameInvalid": "顯示名稱最多可包含 50 個 Unicode 字元，且不得包含無效文字。",
                 "promptInvalid": "提示詞包含無效的 Unicode 文字。",
                 "close": "關閉",
                 "delete": "刪除",
                 "frequencyPenalty": "頻率懲罰：",
-                "frequencyPenaltyHint": "根據 Token 在文字中的出現頻率施加懲罰，以減少重複。",
+                "frequencyPenaltyHint": "根據 Token 在文字中的出現頻率施加懲罰，以減少重複",
                 "hide_real_model": "隱藏模型 ID",
-                "hideRealModelHint": "在聊天標題列與訊息中隱藏技術模型識別碼。",
+                "hideRealModelHint": "在聊天標題列與訊息中隱藏技術模型識別碼",
                 "autoTitleGeneration": "自動重新命名對話",
-                "autoTitleGenerationHint": "第一則回覆完成後，若系統處於閒置狀態，SoAI 可產生一次簡短標題。",
+                "autoTitleGenerationHint": "第一則回覆完成後，若系統處於閒置狀態，SoAI 可產生一次簡短標題",
                 "showActivities": "顯示活動",
-                "showActivitiesHint": "停用後，助理文字仍會顯示，而活動會收合在載入列後方；展開後會恢復一般的活動版面。",
+                "showActivitiesHint": "停用後，助理文字仍會顯示，而活動會收合在載入列後方；展開後會恢復一般的活動版面",
                 "showActivityElapsedTime": "顯示活動經過時間",
                 "showActivityElapsedTimeHint": "活動執行時更新經過時間。停用後，最終時間只會在活動結束後顯示，因而可降低 CPU 使用率",
                 "hideAutomationRuns": "隱藏自動化執行",
-                "hideAutomationRunsHint": "啟用後，自動化執行對話會從側邊欄清單中隱藏。",
+                "hideAutomationRunsHint": "啟用後，自動化執行對話會從側邊欄清單中隱藏",
                 "hideMessagingConversations": "隱藏訊息對話",
-                "hideMessagingConversationsHint": "啟用後，訊息帳戶對話會從側邊欄清單中隱藏。",
+                "hideMessagingConversationsHint": "啟用後，訊息帳戶對話會從側邊欄清單中隱藏",
                 "inputActions": {
                     "prompts": "已儲存的提示詞",
                     "title": "輸入操作",
@@ -698,15 +711,15 @@
                     "camera": "相機",
                     "voice": "語音",
                     "call": "語音通話",
-                    "voiceHint": "在聊天輸入框中顯示語音輸入操作。",
-                    "callHint": "在聊天輸入框中顯示語音通話操作。",
-                    "uploadFileHint": "允許將檔案上傳至對話。",
-                    "cameraHint": "在聊天輸入框中顯示相機拍攝操作。",
-                    "promptsHint": "在聊天輸入框中顯示已儲存提示詞選擇器。",
-                    "tokenCounterHint": "在聊天輸入框中顯示 Token 計數器。",
+                    "voiceHint": "在聊天輸入框中顯示語音輸入操作",
+                    "callHint": "在聊天輸入框中顯示語音通話操作",
+                    "uploadFileHint": "允許將檔案上傳至對話",
+                    "cameraHint": "在聊天輸入框中顯示相機拍攝操作",
+                    "promptsHint": "在聊天輸入框中顯示已儲存提示詞選擇器",
+                    "tokenCounterHint": "在聊天輸入框中顯示 Token 計數器",
                     "auxiliary": {
                         "label": "行動版輔助輸入操作",
-                        "hint": "選擇一個額外操作，固定顯示在精簡聊天版面的傳送按鈕旁。",
+                        "hint": "選擇一個額外操作，固定顯示在精簡聊天版面的傳送按鈕旁",
                         "options": {
                             "none": "無",
                             "agentMode": "代理程式模式",
@@ -724,14 +737,14 @@
                         }
                     },
                     "exportToPdf": "匯出為 PDF",
-                    "exportToPdfHint": "啟用後，匯出對話時會開啟具樣式、可列印的 PDF 文件，而不是下載 JSON。"
+                    "exportToPdfHint": "啟用後，匯出對話時會開啟具樣式、可列印的 PDF 文件，而不是下載 JSON"
                 },
                 "toolApprovalRequired": "需要工具核准",
-                "toolApprovalRequiredHint": "在此對話中執行工具前需要核准。",
+                "toolApprovalRequiredHint": "在此對話中執行工具前需要核准",
                 "newConversationInheritLastSettings": "新聊天使用上次設定",
-                "newConversationInheritLastSettingsHint": "新聊天會沿用您上次使用的模型、工具與知識設定。",
+                "newConversationInheritLastSettingsHint": "新聊天會沿用您上次使用的模型、工具與知識設定",
                 "ctrlEnterSend": "使用 Ctrl + Enter 傳送",
-                "ctrlEnterSendHint": "啟用後，按 Ctrl + Enter 傳送，按 Enter 換行。停用後，按 Enter 傳送，按 Shift + Enter 換行。",
+                "ctrlEnterSendHint": "啟用後，按 Ctrl + Enter 傳送，按 Enter 換行。停用後，按 Enter 傳送，按 Shift + Enter 換行",
                 "knowledge": {
                     "downloadModel": "下載模型",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -742,8 +755,8 @@
                     "title": "知識設定"
                 },
                 "memory": {
-                    "description": "持久記憶可協助 SoAI 理解您的偏好、目標與經常出現的脈絡，而不必每次都提供自訂提示詞。",
-                    "empty": "目前尚未儲存任何記憶。",
+                    "description": "持久記憶可協助 SoAI 理解您的偏好、目標與經常出現的脈絡，而不必每次都提供自訂提示詞",
+                    "empty": "目前尚未儲存任何記憶",
                     "openProfile": "開啟個人資料表單",
                     "refresh": "重新整理記憶",
                     "title": "記憶設定",
@@ -773,11 +786,11 @@
                 },
                 "sendParameterToggle": "將此參數傳送給模型",
                 "maxCompletionTokens": "最大完成 Token 數",
-                "maxCompletionTokensHint": "推理模型 (o1, o3) 的 Token 上限，包含推理 Token。會覆寫最大 Token 數。",
+                "maxCompletionTokensHint": "推理模型 (o1, o3) 的 Token 上限，包含推理 Token。會覆寫最大 Token 數",
                 "agentMaxIterations": "代理程式最大迭代次數",
-                "agentMaxIterationsHint": "對話停止前代理程式迴圈的最大迭代次數。使用非常大的值，可達到實際上近乎無上限的執行。",
+                "agentMaxIterationsHint": "對話停止前代理程式迴圈的最大迭代次數。使用非常大的值，可達到實際上近乎無上限的執行",
                 "maxTokens": "最大 Token 數：",
-                "maxTokensHint": "回覆的 Token 數上限。",
+                "maxTokensHint": "回覆的 Token 數上限",
                 "mcp": {
                     "automation": "自動化",
                     "builtinServer": "SoAI 內建",
@@ -785,7 +798,7 @@
                         "modalTitle": "新聊天的預設工具",
                         "open": "選擇",
                         "summary": "已啟用工具：{count}",
-                        "summaryHint": "套用至新聊天；不會變更目前的聊天。",
+                        "summaryHint": "套用至新聊天；不會變更目前的聊天",
                         "title": "預設工具（新聊天）"
                     },
                     "automationEphemeralHint": "工具變更只會套用至您在此處的訊息，不會影響排程執行。",
@@ -794,7 +807,7 @@
                     "knowledgeManagedToolsEnabledHint": "已建立索引的知識在此對話中啟用時，工具會自動保持啟用。這不會變更新聊天的預設值。",
                     "noServers": "沒有可用的 MCP 伺服器。",
                     "noTools": "沒有可用的 MCP 工具。",
-                    "resetToolsDescription": "將 {mode} 工具重設為 SoAI 預設值。",
+                    "resetToolsDescription": "將 {mode} 工具重設為 SoAI 預設值",
                     "resetToolsLabel": "重設",
                     "resetToolsTitle": "重設預設工具",
                     "servers": "伺服器",
@@ -807,14 +820,14 @@
                     "tools_enabled": "工具已啟用",
                     "toolsEnabledLockedForAgentModeHint": "在計畫和執行模式中，工具會保持啟用。請先切換至聊天模式，再停用工具。",
                     "toolsEnabledLockedWhileConversationRunningHint": "此對話執行期間無法變更工具存取權。",
-                    "toolsEnabledHint": "為此對話啟用 MCP 工具。新聊天會使用您上次儲存的值。",
+                    "toolsEnabledHint": "為此對話啟用 MCP 工具。新聊天會使用您上次儲存的值",
                     "tool_approval_required": "需要工具核准",
-                    "toolApprovalRequiredHint": "執行具破壞性的工具前要求確認。",
+                    "toolApprovalRequiredHint": "執行具破壞性的工具前要求確認",
                     "unavailableTools": "無法使用的已儲存工具：{tools}。已保留選擇。",
                     "unavailableServers": "無法使用的已儲存伺服器：{servers}。已保留設定。"
                 },
                 "model_settings": {
-                    "contextWindowTokensHint": "覆寫此功能的脈絡長度。留空則使用所選模型的預設值。",
+                    "contextWindowTokensHint": "覆寫此功能的脈絡長度。留空則使用所選模型的預設值",
                     "contextWindowTokensLabel": "脈絡長度（Token）",
                     "detailUnavailable": "無法取得模型詳細資訊，因為此執行身分並未精確對應到單一內部模型詳細資訊目標。",
                     "title": "模型設定"
@@ -837,12 +850,12 @@
                 },
                 "notify_on_completion": "完成時通知",
                 "notify_on_error": "發生錯誤時通知",
-                "notifyOnCompletionHint": "助理完成回覆時顯示通知。",
-                "notifyOnErrorHint": "請求失敗時顯示通知。",
+                "notifyOnCompletionHint": "助理完成回覆時顯示通知",
+                "notifyOnErrorHint": "請求失敗時顯示通知",
                 "microphoneSoundEffects": "麥克風音效",
-                "microphoneSoundEffectsHint": "麥克風開始與結束錄音時播放音效。",
+                "microphoneSoundEffectsHint": "麥克風開始與結束錄音時播放音效",
                 "presencePenalty": "存在懲罰：",
-                "presencePenaltyHint": "對已出現過的 Token 施加懲罰，以減少重複。",
+                "presencePenaltyHint": "對已出現過的 Token 施加懲罰，以減少重複",
                 "rag": {
                     "chunkingFixedSize": "固定大小",
                     "chunkingParagraph": "段落",
@@ -860,12 +873,12 @@
                     },
                     "embeddingAuto": "自動（嵌入）",
                     "embeddingEmpty": "沒有可用的嵌入模型",
-                    "embeddingHint": "選擇嵌入模型，或使用「自動」讓 SoAI 決定。",
+                    "embeddingHint": "選擇嵌入模型，或使用「自動」讓 SoAI 決定",
                     "embeddingLoading": "正在載入嵌入模型...",
                     "embeddingModel": "嵌入模型",
                     "embeddingUnavailable": "{model}（無法使用）",
                     "enabled": "啟用 RAG",
-                    "enabledHint": "使用已上傳的知識檔案來改善此對話的回答。",
+                    "enabledHint": "使用已上傳的知識檔案來改善此對話的回答",
                     "retrievalHybrid": "混合",
                     "retrievalMmr": "MMR",
                     "retrievalSimilarity": "相似度",
@@ -880,14 +893,16 @@
                         "parsing": "解析中",
                         "queued": "已排入佇列",
                         "unreadable": "無法讀取",
-                        "unknown": "未知"
+                        "unknown": "未知",
+                        "noTranscript": "沒有轉寫文字",
+                        "partial": "部分擷取"
                     },
                     "title": "RAG 設定",
                     "topK": "Top K"
                 },
                 "reasoningEffort": "推理強度",
                 "reasoningEffortHigh": "高",
-                "reasoningEffortHint": "控制推理模型的推理強度。較高的值會使用更多 Token，但可能提升品質。",
+                "reasoningEffortHint": "控制推理模型的推理強度。較高的值會使用更多 Token，但可能提升品質",
                 "reasoningEffortLow": "低",
                 "reasoningEffortMaximum": "最大",
                 "reasoningEffortMedium": "中",
@@ -899,16 +914,16 @@
                 "refresh": "重新整理",
                 "restore": "還原",
                 "richTextMode": "呈現富文字 (Markdown)",
-                "richTextModeHint": "停用後，訊息會以純文字顯示。",
+                "richTextModeHint": "停用後，訊息會以純文字顯示",
                 "inlineMultimediaPreviews": "內嵌多媒體預覽",
-                "inlineMultimediaPreviewsHint": "啟用後，SoAI 會在聊天中安全地顯示媒體連結與絕對路徑參照的內嵌預覽。",
+                "inlineMultimediaPreviewsHint": "啟用後，SoAI 會在聊天中安全地顯示媒體連結與絕對路徑參照的內嵌預覽",
                 "save": "儲存",
                 "saved": "聊天設定已儲存",
                 "seed": "隨機種子",
-                "seedHint": "固定隨機種子以產生可重現的輸出。留空則使用隨機值。",
+                "seedHint": "固定隨機種子以產生可重現的輸出。留空則使用隨機值",
                 "serviceTier": {
                     "label": "服務層級",
-                    "hint": "控制 SoAI 佇列優先順序，並將標準 OpenAI service_tier 值轉送至所選提供者。",
+                    "hint": "控制 SoAI 佇列優先順序，並將標準 OpenAI service_tier 值轉送至所選提供者",
                     "unset": "未設定",
                     "auto": "自動",
                     "default": "預設",
@@ -916,13 +931,13 @@
                     "priority": "優先"
                 },
                 "soaiSystemPrompt": "SoAI 系統提示詞",
-                "soaiSystemPromptHint": "啟用或停用此對話的 SoAI 修正系統提示詞。",
+                "soaiSystemPromptHint": "啟用或停用此對話的 SoAI 修正系統提示詞",
                 "stopSequences": "停止序列",
-                "stopSequencesHint": "以逗號分隔的 Token；模型遇到這些 Token 時會停止生成。",
+                "stopSequencesHint": "以逗號分隔的 Token；模型遇到這些 Token 時會停止生成",
                 "systemPrompt": "系統提示詞",
-                "systemPromptHint": "定義模型行為與個性的指示。",
+                "systemPromptHint": "定義模型行為與個性的指示",
                 "systemPromptLock": "鎖定系統提示詞",
-                "systemPromptLockHint": "啟用後，此系統提示詞會套用至所有新訊息與對話。",
+                "systemPromptLockHint": "啟用後，此系統提示詞會套用至所有新訊息與對話",
                 "systemPromptLockLocked": "已鎖定",
                 "systemPromptLockUnlocked": "未鎖定",
                 "systemPromptPlaceholder": "設定 AI 的行為與脈絡...",
@@ -955,8 +970,8 @@
                     "newAction": "新增預設集",
                     "noMatches": "沒有符合此搜尋條件的預設集。",
                     "noChanges": "此預設集未變更暫存設定。",
-                    "notApplicable": "此預設集已儲存的設定在目前版本中皆無法使用。您仍可取代、重新命名或刪除它。",
-                    "omittedSettings": "已略過 {count} 個不支援或無效的已儲存設定。",
+                    "notApplicable": "此預設集已儲存的設定在目前版本中皆無法使用。您仍可取代、重新命名或刪除它",
+                    "omittedSettings": "已略過 {count} 個不支援或無效的已儲存設定",
                     "replaceAction": "取代",
                     "renameAction": "重新命名",
                     "retryAction": "再試一次",
@@ -1005,7 +1020,7 @@
                         "replaceDescription": "以目前暫存值的新快照取代此預設集。",
                         "replaceTitle": "取代預設集",
                         "reviewAction": "檢查最新修訂版本",
-                        "revisionChanged": "此預設集已在其他位置變更。繼續前請檢查最新修訂版本。",
+                        "revisionChanged": "此預設集已在其他位置變更。繼續前請檢查最新修訂版本",
                         "prunedValues": "此快照已略過 {count} 個無法使用的動態設定。",
                         "selectedCount": "已選取 {count} 個區段",
                         "sectionDescriptions": {
@@ -1019,7 +1034,7 @@
                         },
                         "sectionUnavailable": "此區段無法用於目前的對話。",
                         "sectionsLabel": "設定區段",
-                        "targetUnavailable": "此預設集已不存在。請取消此次編輯，或建立新的預設集。"
+                        "targetUnavailable": "此預設集已不存在。請取消此次編輯，或建立新的預設集"
                     }
                 },
                 "saveDegradedDetail": "已儲存 {completed}。已確認的後續投影需要處理；請從受影響的區段重試。",
@@ -1034,28 +1049,28 @@
                     "title": "語音",
                     "ttsModel": "文字轉語音模型",
                     "ttsModelAuto": "自動 (TTS)",
-                    "ttsModelHint": "用於朗讀與語音通話。",
+                    "ttsModelHint": "用於朗讀與語音通話",
                     "sttModel": "語音轉文字模型",
                     "sttModelAuto": "自動 (STT)",
-                    "sttModelHint": "用於麥克風聽寫與語音通話轉錄。",
+                    "sttModelHint": "用於麥克風聽寫與語音通話轉錄",
                     "ttsVoice": "文字轉語音音色",
                     "ttsVoicePlaceholder": "留空以使用本地自動／預設音色",
-                    "ttsVoiceHint": "部分遠端提供者需要此設定。若使用本地 MeloTTS 外掛程式，請選擇具體的語音模型，例如 melo-tts:<language>:<voice>；使用 Auto/base/default 語音時則可留空。"
+                    "ttsVoiceHint": "部分遠端提供者需要此設定。若使用本地 MeloTTS 外掛程式，請選擇具體的語音模型，例如 melo-tts:<language>:<voice>；使用 Auto/base/default 語音時則可留空"
                 },
                 "temperature": "溫度：",
                 "temperatureBalanced": "平衡",
                 "temperatureCreative": "創意",
                 "temperatureFocused": "專注",
-                "temperatureHint": "控制隨機性。較低的值更專注，較高的值更具創意。",
+                "temperatureHint": "控制隨機性。較低的值更專注，較高的值更具創意",
                 "text_zoom": "文字縮放",
                 "textZoomLarge": "大",
                 "textZoomNormal": "一般",
                 "textZoomSmall": "小",
                 "title": "聊天設定",
                 "topLogprobs": "最高對數機率",
-                "topLogprobsHint": "要傳回的最可能 Token 數量 (0-5)。必須啟用對數機率。",
+                "topLogprobsHint": "要傳回的最可能 Token 數量 (0-5)。必須啟用對數機率",
                 "topP": "Top P：",
-                "topPHint": "核採樣臨界值。考慮累積機率在此值以內的 Token。",
+                "topPHint": "核採樣臨界值。考慮累積機率在此值以內的 Token",
                 "user_name": "您的名稱",
                 "userAvatar": "您的頭像",
                 "userAvatarHint": "上傳自訂圖片作為使用者頭像",
@@ -1076,7 +1091,58 @@
                     "title": "網頁搜尋設定"
                 },
                 "widescreen_mode": "寬螢幕模式",
-                "widescreenModeHint": "在較大的螢幕上增加聊天可用空間。"
+                "widescreenModeHint": "在較大的螢幕上增加聊天可用空間",
+                "skills": {
+                    "title": "技能",
+                    "description": "技能為助理提供可重複使用的特定任務指令。為此聊天啟用技能後儲存。變更適用於新請求；已接受的任務會保留已記錄的技能。",
+                    "add": "新增技能",
+                    "empty": "新增 SKILL.md 檔案或 ZIP 技能集合以開始使用",
+                    "immediate": "匯入和從技能庫移除會立即生效。新技能預設停用",
+                    "unavailable": "選擇技能前，請先儲存一般聊天。受管理的對話不支援選擇技能",
+                    "automatic": "自動或直接呼叫",
+                    "explicit": "僅直接呼叫",
+                    "automaticOnly": "僅自動呼叫",
+                    "disabledReason": "此技能不允許自動或直接呼叫",
+                    "removeConfirm": "從技能庫和聊天的後續選擇中移除此技能？已接受的任務會保留技能套件。工作區檔案和對話歷史記錄會保留。",
+                    "conflict": "選擇已在其他位置變更。儲存草稿前，請檢查目前的選擇",
+                    "keepDraft": "保留我的選擇",
+                    "stale": "技能尚未更新。儲存前請重新連線或重試",
+                    "search": "搜尋技能...",
+                    "emptyTitle": "新增你的第一個技能",
+                    "noMatchesTitle": "沒有符合的技能",
+                    "errors": {
+                        "invalidPackage": "請匯入有效的 SKILL.md 檔案或 ZIP 技能集合，並檢查檔案格式和大小限制。",
+                        "uploadConflict": "這次上傳已用於另一個檔案。請重新選取檔案，開始新的匯入。",
+                        "nameConflict": "已安裝同名技能。請先移除，再匯入替代技能。",
+                        "libraryFull": "技能庫已滿。請移除不使用的技能，並等待使用已移除技能的工作完成。",
+                        "invocationUnavailable": "要求的技能未啟用或不允許直接呼叫。請檢查此聊天所選的技能。",
+                        "importBusy": "技能匯入正忙。請稍後重試這次上傳。",
+                        "notFound": "技能或資源無法使用。請重新整理技能庫。",
+                        "wrapperNameMismatch": "ZIP最外層目錄名稱必須與SKILL.md中的技能名稱一致。",
+                        "restrictionUnsupported": "此技能使用了不支援的工具限制。請在啟用前使用明確的 SoAI 工具名稱。",
+                        "toolRestricted": "某個作用中的技能禁止使用此工具。請遵循允許的工作流程，或開始新的執行。",
+                        "argumentConflict": "無法取代已接受的技能參數。請使用不同參數發起新的呼叫。",
+                        "aliasAmbiguous": "此別名對應多個已啟用的技能。請使用含命名空間的技能名稱。",
+                        "manifestFormat": "SKILL.md 需要 UTF-8 文字，以及 --- 分隔符之間有效的一般 YAML。請檢查格式和資訊清單大小限制。",
+                        "invalidField": "技能欄位 {field} 不支援、缺少或無效。請檢查欄位名稱和值類型。",
+                        "sourceConflict": "{first} 和 {second} 中的技能副本有衝突。請保留一個一致的副本。",
+                        "archiveIntegrity": "技能壓縮檔已損壞或不完整。請重新下載，並使用完整檔案重試。",
+                        "archiveUnsafe": "技能壓縮檔包含不安全的路徑、連結或衝突項目。請建立僅含一般檔案的可攜式壓縮檔。",
+                        "archiveUnsupported": "技能壓縮檔使用了不支援的加密或壓縮方式。請建立未加密的 ZIP，使用儲存或 Deflate 壓縮項目。",
+                        "invalidFilename": "請選擇名為 SKILL.md 的檔案或技能 ZIP 壓縮檔。",
+                        "resourceLimit": "技能匯入的 {field} 超出限制：{measured} > {limit}。請縮小壓縮檔或刪除未使用的技能後重試。",
+                        "manifestPosition": "第 {line} 行、第 {column} 欄的 YAML 無效。請修正 SKILL.md 後重試。"
+                    },
+                    "importUncertain": "匯入結果尚不確定。請保持選取此檔案，重試前使用「重新整理」檢查回執。",
+                    "invalidSelection": "部分已選技能無法使用或超出技能庫上限。請重新整理，然後在儲存前調整選擇",
+                    "status": {
+                        "importTitle": "匯入結果尚不確定",
+                        "conflictTitle": "選擇已在其他位置變更",
+                        "staleTitle": "技能清單可能不是最新版本",
+                        "unavailableTitle": "技能選擇無法使用",
+                        "invalidTitle": "選擇需要檢查"
+                    }
+                }
             },
             "confirmations": {
                 "externalLink": "開啟外部連結",
@@ -1139,8 +1205,15 @@
                 "conversationLoadFailed": "無法載入對話。",
                 "conversationUnavailable": "找不到對話。已返回空白聊天畫面。",
                 "interactionFocusUnavailable": "此安全互動連結已無法使用。請檢查目前的聊天提示詞。",
+                "modelToolCallingUnsupported": "所選模型不支援工具呼叫。請選擇支援工具的模型，或為此對話停用工具。",
                 "soaiWorkspaceChanged": "準備此訊息期間，對話工作區已變更。請重新開啟或重新連結 SoAI 來源後再傳送。",
-                "syncFailed": "無法同步對話"
+                "syncFailed": "無法同步對話",
+                "contextWindowOverrideInvalid": "上下文視窗覆寫值必須為正整數。請輸入有效值，或留空以使用模型預設值。",
+                "contextWindowOverrideConflict": "上下文視窗覆寫值有衝突。請設定一個值或清除覆寫值，然後重試。",
+                "durableQueueFull": "佇列已滿。請在目前工作完成後重試此已遭拒絕的請求。",
+                "promptBudgetExceeded": "輸入需要 {requested} 個權杖；扣除輸出保留量與安全餘裕後，可用預算為 {available} 個。請減少輸入或輸出保留量、壓縮對話，或增加上下文長度。",
+                "ragEmbeddingModelUnavailable": "沒有可用的嵌入模型。請在聊天設定中選擇嵌入模型，或安裝嵌入後端並下載模型，然後重試。",
+                "ragDocumentsNotIndexed": "沒有可重新索引的已索引知識。請先上傳文件並建立索引。"
             },
             "export": {
                 "noMessages": "沒有可匯出的訊息",
@@ -1340,6 +1413,7 @@
                 "voiceCallStart": "開始語音通話",
                 "steer": "引導提示詞",
                 "queue": "將提示詞排入佇列",
+                "resumeQueue": "繼續佇列中的提示詞",
                 "stop": "停止回覆",
                 "stopRecording": "停止錄音",
                 "transcribing": "轉錄中...",
@@ -1364,7 +1438,8 @@
             "inputQueue": {
                 "badge": {
                     "queued": "已排入佇列",
-                    "steer": "引導"
+                    "steer": "引導",
+                    "held": "已暫停"
                 },
                 "state": {
                     "materializing": "準備中",
@@ -1381,6 +1456,33 @@
                 "reason": "原因"
             },
             "memory": {
+                "library": {
+                    "add": "新增記憶",
+                    "search": "搜尋記憶",
+                    "noMatches": "沒有符合的記憶",
+                    "stale": "已儲存的資料已過期。上次重新整理：{time}。請重新整理以檢視目前資料。",
+                    "deleteFact": "刪除此事實或關係？",
+                    "deleteEntry": "刪除「{title}」，包括 {facts} 筆事實與 {relations} 筆關係？",
+                    "savedHidden": "已儲存。清除搜尋即可檢視此記憶。",
+                    "savedRefreshNeeded": "已儲存。請重新整理記憶庫。",
+                    "from": "起點",
+                    "to": "終點",
+                    "type": "關係類型",
+                    "staleTitle": "記憶清單可能不是最新版本",
+                    "errorTitle": "記憶庫無法使用"
+                },
+                "errors": {
+                    "revisionChanged": "此記憶已變更。儲存前請檢視目前內容。",
+                    "duplicateName": "已有記憶使用此標題，請選擇其他標題。",
+                    "duplicateId": "此草稿識別碼已存在。請重新整理並檢視已儲存的記憶。",
+                    "profileRestricted": "請使用個人資料表單管理結構化資料。",
+                    "duplicateRelation": "此關係已存在。",
+                    "relationNotIncident": "請將其中一個端點保持連接至此記憶。",
+                    "invalidText": "請輸入非空白的標題與內文。",
+                    "missing": "此紀錄無法使用或已不屬於此記憶。請重新整理並檢視。",
+                    "unconfirmed": "無法確認結果。請保留草稿，重新整理並檢視目前資料後再試。",
+                    "loadFailed": "無法載入記憶。請重新整理以重試。"
+                },
                 "profile": {
                     "description": "分享選填資訊，讓 SoAI 能在不同聊天中記住如何與您合作。",
                     "fields": {
@@ -1449,7 +1551,10 @@
                 },
                 "speak": {
                     "failed": "無法朗讀訊息。",
-                    "noText": "沒有可朗讀的內容。"
+                    "noText": "沒有可朗讀的內容。",
+                    "invalidVoice": "所選語音不適用於此語音模型。請在語音設定中選擇其他語音。",
+                    "invalidResponseFormat": "此語音模型無法產生所要求的音訊格式。",
+                    "invalidSpeed": "語速超出此模型支援的範圍。請在語音設定中調整語速。"
                 },
                 "assistant": "助理",
                 "assistantWithModel": "{assistant} ({model})",
@@ -1479,6 +1584,13 @@
                     "tokensTitle": "Token 使用量",
                     "toolActivity": "工具活動",
                     "totalTokens": "Token 總數"
+                },
+                "outputNotices": {
+                    "reasoningOnly": "模型回傳了推理內容，但沒有提供最終回答。請重試，或嘗試其他模型或推理設定。",
+                    "steered": "已根據您的新訊息在下方繼續。",
+                    "stopped": "您已停止此回應。",
+                    "tokenLimit": "回應已停止，因為達到了輸出權杖上限。請調高最大權杖數設定以取得更長的回答。",
+                    "tokenLimitReasoning": "模型在寫出回答之前已將全部輸出權杖預算用於推理。請調高最大權杖數設定或降低推理強度。"
                 },
                 "renderFailed": "無法轉譯訊息。",
                 "runningActivitySummary": {
@@ -1549,7 +1661,6 @@
                 "executePrompt": "實作此計畫。",
                 "executeUnavailable": "此對話無法切換至執行模式",
                 "label": "計畫",
-                "metrics": "{lines} 行 · {characters} 個字元",
                 "revision": "修訂版 {revision}"
             },
             "processing": {
@@ -1607,7 +1718,6 @@
                 "allUnicode": "所有 Unicode 字元",
                 "description": "瀏覽 Unicode 字元和表情符號，組合字元序列，然後複製或插入訊息中。",
                 "font": "字型",
-                "fontHint": "字型僅影響顯示效果；清單中的每個字元仍可選取。",
                 "fonts": {
                     "emoji": "平台表情符號字型",
                     "monospace": "通用等寬字型",
@@ -1624,7 +1734,7 @@
                 "noResults": "所選子集中沒有符合此搜尋的字元。",
                 "open": "開啟字元對應表",
                 "preference": "字元對應表",
-                "preferenceHint": "在聊天輸入框中顯示 Unicode 字元對應表。",
+                "preferenceHint": "在聊天輸入框中顯示 Unicode 字元對應表",
                 "resultCount": "{count} 個結果",
                 "resultsUnavailable": "字元結果暫時無法使用。",
                 "retry": "重試",
@@ -1634,19 +1744,6 @@
                 "staging": "要複製的字元",
                 "subset": "子集",
                 "title": "字元對應表"
-            },
-            "promptsPicker": {
-                "editFailed": "無法開啟提示詞編輯器。",
-                "empty": "尚無已儲存的提示詞。",
-                "emptyContent": "沒有提示詞內容",
-                "help": "選擇已儲存的提示詞，將其插入聊天輸入框。",
-                "loadFailed": "無法載入已儲存的提示詞。",
-                "loading": "正在載入提示詞...",
-                "manage": "管理提示詞",
-                "manageFailed": "無法開啟提示詞頁面。",
-                "noMatches": "沒有符合搜尋條件的提示詞。",
-                "search": "搜尋",
-                "title": "已儲存的提示詞"
             },
             "search": {
                 "placeholder": "搜尋聊天...",
@@ -1700,9 +1797,32 @@
                     "service_unavailable": "此回覆所需的服務暫時無法使用。",
                     "stream_hydration_failed": "無法重新同步回覆串流。",
                     "tool_sequence_contract_violation": "模型在重試後仍產生無效的工具序列。請重試或變更模型參數。",
+                    "invalid_request_error": "模型提供者拒絕了該請求。請檢查所選模型及其參數。",
+                    "authentication_error": "模型提供者拒絕了憑證或存取權限。請檢查已設定的 API 金鑰。",
+                    "payment_required_error": "模型提供者拒絕了請求，因為帳戶的帳單、額度或支出上限需要處理。",
+                    "rate_limit_error": "模型提供者忙碌中或已觸發速率限制。請稍候再試。",
+                    "timeout_error": "模型提供者在產生回應時逾時。請稍後再試。",
+                    "providerExplanation": "提供者說明：{explanation}",
                     "withCode": "{message}（代碼：{code}）",
                     "withReference": "{message}（代碼：{code}；參照：{referenceId}）",
-                    "ws_disconnected": "接收回覆時連線中斷。"
+                    "ws_disconnected": "接收回覆時連線中斷。",
+                    "providerPermission": "供應商拒絕了存取。請檢查 API 金鑰權限、帳戶存取權限及支援的地區。",
+                    "providerParameter": "供應商拒絕了 {param}。請變更或重設此模型參數，然後重試。",
+                    "providerMedia": "供應商拒絕了附件。請檢查其格式、大小和內容，或重新上傳。",
+                    "providerContext": "請求超出了上下文視窗。請壓縮對話上下文、減少輸出權杖，或選擇上下文較大的模型。",
+                    "providerContentPolicy": "供應商根據內容政策封鎖了請求。請改寫訊息或選擇其他模型。",
+                    "providerVision": "此模型或端點不接受圖片。請移除圖片或選擇支援圖片的模型。",
+                    "providerAudio": "此模型或端點不接受音訊。請移除音訊或選擇音訊模型。",
+                    "providerModelUnavailable": "供應商回報此模型無法使用。請重新整理目錄或選擇其他模型。",
+                    "providerUnavailable": "供應商暫時無法使用或負載過高。請稍後重試或選擇其他供應商。",
+                    "providerRetryAfter": "重試前請至少等待 {seconds} 秒。",
+                    "providerMediaFormat": "附件格式遭拒。請轉換為支援的格式後重試。",
+                    "providerMediaSize": "請檢查附件的大小與尺寸，並使用支援的大小重試。",
+                    "providerMediaDecoding": "無法解碼附件。請上傳有效檔案後重試。",
+                    "providerMediaRetrieval": "無法取得附件。請檢查連結或重新上傳檔案。",
+                    "providerContextUsage": "此請求需要 {requested} 個權杖；可用上下文為 {available} 個權杖。",
+                    "context_budget_unavailable": "模型上下文太小，無法容納已設定的輸出預留。請增加模型上下文長度，或減少壓縮輸出預留。",
+                    "contextBudgetUsage": "模型上下文為 {context} 個權杖（可用 {usable} 個）；壓縮輸出預留為 {reserved} 個權杖。"
                 },
                 "failedToGetResponse": "無法取得回覆",
                 "noModelSelected": "傳送訊息前請先選擇模型",
@@ -2155,6 +2275,12 @@
                         },
                         "apply_patch": {
                             "1": "正在套用變更"
+                        },
+                        "skill_read": {
+                            "1": "正在讀取技能說明"
+                        },
+                        "skill_materialize": {
+                            "1": "正在將技能檔案複製到工作區"
                         }
                     }
                 }
@@ -2412,12 +2538,15 @@
             "cancellation": {
                 "failed": "取消要求失敗。操作仍在執行中；請重試。",
                 "userRequested": "使用者要求取消。",
-                "userRequestedViaWebUi": "使用者透過 WebUI 要求取消。"
+                "userRequestedViaWebUi": "使用者透過 WebUI 要求取消。",
+                "cancelling": "正在取消",
+                "cancelled": "已取消"
             },
             "clipboard": {
                 "copied": "已複製到剪貼簿",
                 "copyFailed": "無法複製到剪貼簿",
-                "copyUnavailable": "此環境無法使用剪貼簿"
+                "copyUnavailable": "此環境無法使用剪貼簿",
+                "notificationCopied": "已將通知複製到剪貼簿"
             },
             "close": "關閉",
             "filters": {
@@ -2441,7 +2570,6 @@
                 "chatAttachments": "此訊息參照的附件。",
                 "chatMcpDefaultTools": "新聊天的預設 MCP 工具。",
                 "chatMemoryProfile": "SoAI 會在不同聊天中記住的個人詳細資料。",
-                "chatPromptsPicker": "可直接插入此聊天的已儲存提示詞。",
                 "voiceCall": "使用麥克風、轉錄、串流回覆與語音播放進行免持聊天。",
                 "credits": "第三方相依套件的致謝資訊。",
                 "fileExplorerMetadata": "檔案中繼資料。",
@@ -2490,12 +2618,24 @@
             "error": "錯誤",
             "errors": {
                 "errorWithMessage": "錯誤：{message}",
+                "fileAccessDenied": "SoAI 遭拒存取所需的檔案。請檢查該資料夾的權限，然後重試。",
+                "fileOperationFailed": "檔案操作失敗。請查看記錄以了解詳細資訊，然後重試。",
                 "insufficientDiskSpace": "磁碟空間不足，因此操作無法繼續。",
                 "offlinePolicy": "離線模式啟用時無法執行此操作。",
                 "operationFailed": "操作失敗。請重試。",
                 "operationFailedWithMessage": "無法{operation}：{error}",
+                "runtimeStartupTimeout": "執行階段未能及時就緒。新安裝的執行階段檔案首次啟動可能需要較長時間。請重試該操作。",
+                "runtimeVerificationTimeout": "SoAI 未能及時完成執行階段檢查。新安裝的執行階段檔案首次啟動可能需要較長時間。請重試該操作。",
+                "executionTimeoutResponse": "外掛未在 {budget} 秒內傳回回應（已經過 {elapsed} 秒）。",
+                "executionTimeoutInitialResponse": "模型未在 {budget} 秒內開始回應（已經過 {elapsed} 秒）。",
+                "executionTimeoutFirstToken": "模型未在 {budget} 秒內產生第一個輸出（已經過 {elapsed} 秒）。",
+                "executionTimeoutBufferedResponse": "模型未在 {budget} 秒內完成回應（已經過 {elapsed} 秒）。",
+                "executionTimeoutRequestLimit": "此時間上限由請求設定，因此外掛未被標記為異常。",
+                "executionTimeoutPluginBudget": "這是外掛的執行預算，因此外掛可能負載過重或沒有回應。",
                 "unknown": "未知錯誤",
-                "unknownError": "發生未知錯誤。"
+                "unknownError": "發生未知錯誤。",
+                "storageHeadroomInsufficient": "計入安全餘裕和現有保留空間後，儲存空間不足。請釋放空間或等待其他儲存操作完成後重試。",
+                "storageHeadroomValues": "包含安全餘裕的所需空間：{required}。此操作可用空間：{available}。"
             },
             "export": "匯出",
             "exportPreview": {
@@ -2606,6 +2746,10 @@
             "retry": "重試"
         },
         "contentPreview": {
+            "fields": {
+                "title": "標題",
+                "text": "內文"
+            },
             "actions": {
                 "goToPath": "前往路徑",
                 "goToUrl": "前往 URL",
@@ -2890,7 +3034,14 @@
                 "renameNameRequired": "請先輸入名稱。",
                 "renameNameUnchanged": "請輸入不同的名稱。",
                 "selectionChanged": "選取項目已變更。重新命名前請再次選取該項目。",
-                "selectionRequired": "請先選取至少一個項目。"
+                "selectionRequired": "請先選取至少一個項目。",
+                "changeRefreshFailed": "變更已儲存，但無法重新整理檔案詳細資料。請重新整理「檔案」頁面。",
+                "fileInUse": "其他應用程式正在使用此檔案。請關閉該應用程式後重試。",
+                "listingExpired": "資料夾清單已無法使用。請重新整理「檔案」頁面以再次載入。",
+                "publicationUncertain": "檔案可能已儲存，但無法驗證其最終狀態。再次上傳前，請在「檔案」中檢查目標位置。",
+                "cleanupIncomplete": "自動清理未能完成。重試前，請在「檔案」中檢查目的地。",
+                "contentChanged": "檔案在操作期間發生了變更。請重新選取檔案並重試。",
+                "destinationExists": "已存在同名檔案或資料夾。請選擇其他名稱或目標位置。"
             },
             "labels": {
                 "latestTask": "最新工作",
@@ -3114,7 +3265,8 @@
                         "withTotal": "{count} {label} • {total}"
                     },
                     "title": "儲存空間",
-                    "waiting": "正在偵測..."
+                    "waiting": "正在偵測...",
+                    "unavailable": "儲存空間無法使用"
                 }
             },
             "common": {
@@ -3137,7 +3289,47 @@
                 "network": "網路"
             },
             "errors": {
-                "historyInitFailed": "無法初始化歷史資料串流"
+                "historyInitFailed": "無法初始化歷史資料串流",
+                "gpuRecoveryIdentityConflict": "GPU 復原無法確認實體裝置。GPU 變更仍被停用。請保留復原資料並查看硬體診斷資訊。",
+                "gpuSlotAliasConflict": "已儲存的 GPU 別名包含衝突或無法辨識的設定。請保留插槽檔案，並在變更前檢查已儲存的設定檔。",
+                "opencl_compiler_unavailable": "OpenCL 執行階段無法編譯 SoAI Bench 核心。請安裝包含執行階段編譯器的 GPU OpenCL 執行階段。",
+                "opencl_kernel_execution_unavailable": "OpenCL 執行階段無法執行從原始碼編譯的核心。請安裝支援此功能的 GPU OpenCL 執行階段。",
+                "opencl_custom_identity_unproved": "無法驗證 OpenCL 中的 GPU 識別資訊或廠商資訊。請重新整理 GPU 偵測並更新 GPU 驅動程式。",
+                "opencl_memory_insufficient": "SoAI Bench 需要一次配置 256 MiB OpenCL 記憶體，並需要足夠的裝置總記憶體。請選擇符合這些要求的 GPU。",
+                "soaibenchPublicationUnsupported": "此 GPU 無法執行此基準測試，沒有可發布的分數。請選取受支援的 GPU，並先完成基準測試。",
+                "gpuInventoryBusy": "GPU 清單忙碌或正在復原。請稍候，再重試此歷史序列。",
+                "soaibenchPublicationCancelled": "此基準測試已取消。發佈前請完成支援的基準測試。",
+                "soaibenchPublicationIncomplete": "此基準測試沒有完整且符合條件的結果。發佈前請完成支援的認證基準測試。",
+                "gpuClockCombinationUnsupported": "此 GPU 無法組合使用這些時脈控制。請每次套用一種時脈控制。",
+                "gpuClockConversionUnavailable": "驅動程式無法提供所需的時脈轉換。請重新整理硬體偵測並檢查驅動程式支援情況。",
+                "gpuSettingOutOfRange": "此 GPU 設定超出支援範圍。請選擇支援的值。",
+                "gpuSettingRange": "{field}：{requested} {unit} 超出支援範圍 {minimum}–{maximum} {unit}。請選擇支援的值。",
+                "gpuObservationUnavailable": "無法讀取 GPU 的目前狀態。已儲存的變更仍然保留。請等候讀取恢復，然後重新整理介面。",
+                "gpuObservationTimeout": "讀取 GPU 目前狀態逾時。已儲存的變更仍然保留。請等候讀取恢復，然後重新整理介面。",
+                "gpuSensorPermissionDenied": "GPU 感測器存取遭拒。請授予 SoAI 服務帳戶存取 GPU 裝置與感測器檔案的權限，然後重新整理。",
+                "vulkanRuntimeUnavailable": "所選 GPU 繫結需要 Vulkan 裝置對應，但 Vulkan 工具無法使用或執行失敗。請安裝發行版的 Vulkan 工具與驅動程式，或繫結所有 GPU。",
+                "vulkanQueryTimeout": "所選 GPU 繫結需要 Vulkan 裝置對應，但 Vulkan 裝置查詢逾時。請檢查 Vulkan 驅動程式，或繫結所有 GPU。",
+                "vulkanFormatUnsupported": "所選 GPU 繫結需要 Vulkan 裝置對應，但 Vulkan 工具傳回了不支援的格式。請更新發行版的 Vulkan 工具，或繫結所有 GPU。",
+                "vulkanDeviceUnavailable": "所選 GPU 不在 Vulkan 裝置清單中。請檢查此 GPU 的 Vulkan 驅動程式，或選擇其他 GPU。",
+                "vulkanIdentityUnavailable": "所選 GPU 與 Vulkan 裝置沒有共同的 UUID 或 PCI 識別資訊，因此無法安全繫結。請改為繫結所有 GPU。",
+                "vulkanIdentityConflict": "所選 GPU 在 Vulkan 裝置清單中的識別資訊互相衝突，因此無法安全繫結。請檢查 GPU 驅動程式，或繫結所有 GPU。",
+                "vulkanDeviceAmbiguous": "所選 GPU 由多個 Vulkan 驅動程式公開。請移除重複的 Vulkan 驅動程式（ICD），或繫結所有 GPU。",
+                "gpuBindingIdentityConflict": "所選 GPU 的實體識別資訊在硬體清單中重複出現。請重新整理硬體資訊並重新選擇 GPU。",
+                "gpuDiscoveryTimeout": "GPU 偵測逾時。請等待硬體查詢結束後重試。",
+                "gpuDiscoveryBusy": "硬體查詢仍在執行。請等待 GPU 偵測完成後重試。",
+                "gpuDiscoveryNativeTimeout": "原生 GPU 查詢逾時。請檢查顯示卡驅動程式後重試。",
+                "gpuDiscoveryQueryFailed": "原生 GPU 查詢失敗。請檢查顯示卡驅動程式和系統診斷後重試。",
+                "gpuDiscoveryEmpty": "GPU 查詢未傳回資料。請檢查顯示卡驅動程式後重試。",
+                "gpuDiscoveryInvalid": "GPU 查詢傳回無效資料。請檢查顯示卡驅動程式和系統診斷後重試。",
+                "gpuDiscoveryRuntimeUnavailable": "GPU 偵測工具無法使用。請還原系統工具後重試。",
+                "gpuDiscoveryPermissionDenied": "GPU 偵測遭拒絕存取。請檢查服務帳戶的硬體存取權限後重試。",
+                "gpuDiscoveryUnavailable": "GPU 偵測無法使用。請檢查顯示卡驅動程式和系統工具後重試。",
+                "gpuDiscoveryChanged": "GPU 清單在偵測過程中發生變更。請等待硬體偵測完成後重試。",
+                "opencl_operation_deadline": "{phase} 超過了 {seconds} 秒的時限。未產生評分。請檢查圖形驅動程式是否回應，然後重試。",
+                "opencl_runtime_deadline": "OpenCL 未在時限內完成。請檢查圖形驅動程式是否回應，然後重試。",
+                "opencl_child_exited": "OpenCL 執行環境意外停止。請檢查圖形驅動程式，然後重試 SoAI Bench。",
+                "opencl_child_invalid_response": "OpenCL 執行環境傳回無效回應。請重新啟動 SoAI，然後重試 SoAI Bench。",
+                "opencl_child_disconnected": "與 OpenCL 執行環境的通訊中斷。請重試 SoAI Bench。"
             },
             "gpu": {
                 "actions": {
@@ -3154,8 +3346,11 @@
                 "controls": {
                     "autoLabel": "自動",
                     "coreClock": "核心時脈偏移",
+                    "coreClockFrequency": "核心時脈頻率",
                     "fan_speed": "風扇轉速",
                     "memoryClock": "記憶體時脈偏移",
+                    "memoryClockFrequency": "記憶體時脈頻率",
+                    "powerLimitOffset": "功率上限偏移",
                     "power_limit": "功率上限",
                     "toggleAutomatic": "自動控制"
                 },
@@ -3166,19 +3361,19 @@
                     "noManualChange": "儲存前請停用「Auto」模式。",
                     "noSettings": "沒有可套用的 GPU 設定。",
                     "reset": "GPU {index} 已重設為預設值",
-                    "soaibenchNoActiveRun": "GPU {index} 沒有作用中的 SoAIBench 執行",
-                    "soaibenchStarted": "GPU {index} 的 SoAIBench {profile} 已開始",
-                    "soaibenchStopRequested": "已要求停止 GPU {index} 的 SoAIBench",
-                    "soaibenchUnsupported": "GPU {index} 不支援 SoAIBench：{reason}",
+                    "soaibenchNoActiveRun": "GPU {index} 沒有作用中的 SoAI Bench 執行",
+                    "soaibenchStarted": "GPU {index} 的 SoAI Bench {profile} 已開始",
+                    "soaibenchStopRequested": "已要求停止 GPU {index} 的 SoAI Bench",
+                    "soaibenchUnsupported": "GPU {index} 不支援 SoAI Bench：{reason}",
                     "soaibenchSettingsLocked": "GPU {index} 正在執行基準測試。請先停止測試或等待其完成，再儲存設定。",
                     "slotApplied": "已套用 GPU {index} 插槽 {slot}",
                     "slotSaved": "已儲存 GPU {index} 插槽 {slot}"
                 },
                 "soaibench": {
-                    "standardTaskName": "GPU SoAIBench 標準",
+                    "standardTaskName": "GPU SoAI Bench 標準",
                     "stressRunningLabel": "壓力測試 - 執行中",
-                    "stopTaskName": "GPU SoAIBench 停止",
-                    "stressTaskName": "GPU SoAIBench 壓力測試"
+                    "stopTaskName": "GPU SoAI Bench 停止",
+                    "stressTaskName": "GPU SoAI Bench 壓力測試"
                 },
                 "panelHeader": "GPU {index}：{name}",
                 "panelTitle": "GPU 控制",
@@ -3195,6 +3390,28 @@
                     "powerDraw": "功率",
                     "temperatures": "溫度",
                     "memoryUtilization": "VRAM"
+                },
+                "errors": {
+                    "invalidGpuId": "請選取有效的 GPU，然後重試。",
+                    "invalidSlot": "請選取有效的 GPU 插槽，然後重試。",
+                    "invalidPayload": "請檢查 GPU 設定，然後重試。",
+                    "noSettings": "套用變更前，請至少選取一項 GPU 設定。",
+                    "deviceNotFound": "找不到所選 GPU。請重新整理硬體清單，然後再次選取。",
+                    "noGpus": "沒有可用的 GPU。請檢查硬體偵測，然後重試。",
+                    "slotEmpty": "所選 GPU 插槽是空的。請先將設定儲存至此插槽，再套用。",
+                    "slotUnchanged": "GPU 插槽已包含這些設定。",
+                    "bootUnchanged": "GPU 插槽已有此開機設定。",
+                    "slotRequiresApply": "請先套用 GPU 插槽，再啟用開機時套用。",
+                    "applyFailed": "無法安全套用 GPU 設定。請查看操作詳細資訊並重試。",
+                    "deviceUnavailable": "所選 GPU 無法使用。請等候其恢復，然後重試。",
+                    "hardwareMutationDisabled": "此安裝已停用 GPU 硬體變更。",
+                    "gpuActivityConflict": "GPU 正在執行其他操作。請等候操作完成，然後重試。",
+                    "hardwareUnavailable": "此安裝無法使用 GPU 調校。請檢查硬體支援與組態。",
+                    "gpuError": "GPU 設定操作失敗。請檢查設定，然後重試。",
+                    "slotError": "GPU 插槽操作失敗。請重新整理硬體清單，然後重試。",
+                    "recoveryReconciled": "已還原先前的 GPU 設定。請重新套用新設定。",
+                    "recoveryUnresolved": "無法安全還原先前的 GPU 設定。請在重新套用設定之前檢查 GPU 狀態。",
+                    "controlPreparationFailed": "存取硬體之前，GPU 設定準備失敗。請重試；若問題持續發生，請提供參考 ID 回報。"
                 }
             },
             "metrics": {
@@ -3217,41 +3434,41 @@
             "soaibenchPublication": {
                 "deleteLocalHistory": "刪除本機歷史記錄",
                 "deleteLocalConfirm": {
-                    "title": "刪除 SoAIBench 執行結果？",
-                    "message": "要從本機歷史記錄中刪除此 SoAIBench 執行結果嗎？此操作無法復原。"
+                    "title": "刪除 SoAI Bench 執行結果？",
+                    "message": "要從本機歷史記錄中刪除此 SoAI Bench 執行結果嗎？此操作無法復原。"
                 },
                 "action": "分享",
                 "openRun": "開啟結果",
-                "ariaLabel": "分享此 SoAIBench 分數",
-                "unavailable": "沒有可發布的 SoAIBench 執行結果",
+                "ariaLabel": "分享此 SoAI Bench 分數",
+                "unavailable": "沒有可發布的 SoAI Bench 執行結果",
                 "confirm": {
-                    "title": "分享 SoAIBench 分數？",
-                    "message": "要將分數 {score} 及其 {passes} 次測量結果發布至公開 SoAIBench 排行榜嗎？",
+                    "title": "分享 SoAI Bench 分數？",
+                    "message": "要將分數 {score} 及其 {passes} 次測量結果發布至公開 SoAI Bench 排行榜嗎？",
                     "description": "這會傳送分數、五次測量結果、公開的 GPU 與執行階段資訊、基準測試設定，以及選用的感測器證據。不會傳送帳戶身分、檔案、設定、分析資料及一般遙測資料。"
                 },
                 "outcomes": {
-                    "published": "已公開分享 SoAIBench 分數。",
-                    "alreadyPublished": "此 SoAIBench 分數已分享。",
-                    "heldForReview": "SoAIBench 結果因需審核身分或異常情況而暫時保留，尚未計入排行榜。",
+                    "published": "已公開分享 SoAI Bench 分數。",
+                    "alreadyPublished": "此 SoAI Bench 分數已分享。",
+                    "heldForReview": "SoAI Bench 結果因需審核身分或異常情況而暫時保留，尚未計入排行榜。",
                     "offline": "SoAI 離線時無法分享分數。",
-                    "unavailable": "SoAIBench 發布服務目前無法使用。",
+                    "unavailable": "SoAI Bench 發布服務目前無法使用。",
                     "timeout": "分享分數逾時。請重試以核對同一筆發布。",
                     "rateLimited": "此連線分享的分數過多，請稍後再試。",
-                    "capacity": "SoAIBench 排行榜目前已達容量上限。",
-                    "rejected": "SoAIBench 排行榜拒絕了此結果。",
+                    "capacity": "SoAI Bench 排行榜目前已達容量上限。",
+                    "rejected": "SoAI Bench 排行榜拒絕了此結果。",
                     "conflict": "此發布與現有排行榜狀態衝突。",
-                    "invalidResponse": "SoAIBench 排行榜傳回無效回應。",
+                    "invalidResponse": "SoAI Bench 排行榜傳回無效回應。",
                     "retryAfter": "請在 {seconds} 秒後重試。"
                 }
             },
             "modals": {
                 "soaibenchHistory": {
                     "ariaLabels": {
-                        "close": "關閉 SoAIBench 歷史記錄",
-                        "copy": "複製 SoAIBench 歷史記錄",
-                        "copyRun": "複製 SoAIBench 執行結果",
-                        "download": "下載 SoAIBench 歷史記錄 CSV",
-                        "downloadRun": "下載 SoAIBench 執行結果"
+                        "close": "關閉 SoAI Bench 歷史記錄",
+                        "copy": "複製 SoAI Bench 歷史記錄",
+                        "copyRun": "複製 SoAI Bench 執行結果",
+                        "download": "下載 SoAI Bench 歷史記錄 CSV",
+                        "downloadRun": "下載 SoAI Bench 執行結果"
                     },
                     "close": "關閉",
                     "copy": "複製",
@@ -3260,10 +3477,10 @@
                         "runs": "執行記錄",
                         "table": "執行記錄表"
                     },
-                    "copySuccess": "SoAIBench 歷史記錄已複製到剪貼簿",
-                    "copyUnavailable": "沒有可複製的 SoAIBench 歷史記錄",
+                    "copySuccess": "SoAI Bench 歷史記錄已複製到剪貼簿",
+                    "copyUnavailable": "沒有可複製的 SoAI Bench 歷史記錄",
                     "download": "下載",
-                    "downloadSuccess": "已開始下載 SoAIBench 歷史記錄 CSV",
+                    "downloadSuccess": "已開始下載 SoAI Bench 歷史記錄 CSV",
                     "columns": {
                         "actions": "操作",
                         "certification": "認證",
@@ -3287,11 +3504,11 @@
                         "quick": "快速",
                         "varianceSuffix": "{variance}% 變異"
                     },
-                    "description": "所選 GPU 先前的 SoAIBench 執行記錄。",
-                    "empty": "此 GPU 尚無 SoAIBench 執行記錄。",
+                    "description": "所選 GPU 先前的 SoAI Bench 執行記錄。",
+                    "empty": "此 GPU 尚無 SoAI Bench 執行記錄。",
                     "loading": "正在載入執行歷史記錄...",
-                    "pageEmpty": "目前沒有 SoAIBench 執行紀錄。",
-                    "pageLoadFailed": "無法載入 SoAIBench 執行紀錄。請重試。",
+                    "pageEmpty": "目前沒有 SoAI Bench 執行紀錄。",
+                    "pageLoadFailed": "無法載入 SoAI Bench 執行紀錄。請重試。",
                     "matchBases": {
                         "device_id": "裝置 ID",
                         "gpu_model_key": "GPU 模型鍵",
@@ -3313,9 +3530,11 @@
                         "stress": "壓力測試"
                     },
                     "reasons": {
-                        "opencl_numerical_mismatch": "OpenCL 工作負載數值驗證失敗。"
+                        "opencl_numerical_mismatch": "OpenCL 工作負載數值驗證失敗。",
+                        "preflight": "預先檢查",
+                        "startup": "啟動"
                     },
-                    "rowCopyUnavailable": "沒有可複製的 SoAIBench 執行結果",
+                    "rowCopyUnavailable": "沒有可複製的 SoAI Bench 執行結果",
                     "staleHardware": "過期的硬體比對",
                     "statuses": {
                         "cancelled": "已取消",
@@ -3327,28 +3546,28 @@
                         "unstable": "不穩定",
                         "unsupported": "不支援"
                     },
-                    "title": "SoAIBench 先前執行記錄"
+                    "title": "SoAI Bench 先前執行記錄"
                 },
                 "soaibenchRun": {
                     "selectGpu": "選擇要進行基準測試的 GPU",
                     "noGpus": "沒有可用於基準測試的 GPU。",
                     "ariaLabels": {
-                        "close": "關閉 SoAIBench",
-                        "copy": "複製 SoAIBench 執行結果",
-                        "download": "下載 SoAIBench 執行結果",
-                        "history": "開啟 SoAIBench 歷史記錄",
-                        "retry": "重試認證 SoAIBench",
-                        "stop": "停止認證 SoAIBench",
-                        "stopping": "正在停止認證 SoAIBench",
-                        "newBenchmark": "開始新的認證 SoAIBench 執行",
-                        "runAgain": "在此 GPU 上再次執行認證 SoAIBench",
-                        "recover": "重新檢查 SoAIBench 狀態",
-                        "start": "開始認證 SoAIBench"
+                        "close": "關閉 SoAI Bench",
+                        "copy": "複製 SoAI Bench 執行結果",
+                        "download": "下載 SoAI Bench 執行結果",
+                        "history": "開啟 SoAI Bench 歷史記錄",
+                        "retry": "重試認證 SoAI Bench",
+                        "stop": "停止認證 SoAI Bench",
+                        "stopping": "正在停止認證 SoAI Bench",
+                        "newBenchmark": "開始新的認證 SoAI Bench 執行",
+                        "runAgain": "在此 GPU 上再次執行認證 SoAI Bench",
+                        "recover": "重新檢查 SoAI Bench 狀態",
+                        "start": "開始認證 SoAI Bench"
                     },
                     "close": "關閉",
                     "copy": "複製",
-                    "copySuccess": "SoAIBench 執行結果已複製到剪貼簿",
-                    "copyUnavailable": "沒有可複製的 SoAIBench 執行結果",
+                    "copySuccess": "SoAI Bench 執行結果已複製到剪貼簿",
+                    "copyUnavailable": "沒有可複製的 SoAI Bench 執行結果",
                     "description": "用於驗證 SoAI 推論就緒狀態的認證 GPU 基準測試。",
                     "download": "下載",
                     "export": {
@@ -3360,7 +3579,7 @@
                         "rawRun": "原始執行詳細資料",
                         "runId": "執行 ID",
                         "status": "狀態",
-                        "title": "SoAIBench 執行詳細資料"
+                        "title": "SoAI Bench 執行詳細資料"
                     },
                     "history": "歷史記錄",
                     "metrics": {
@@ -3392,16 +3611,16 @@
                         "stability": "穩定性"
                     },
                     "progress": {
-                        "activeRunInProgress": "此 GPU 已有另一個 SoAIBench 正在執行。",
+                        "activeRunInProgress": "此 GPU 已有另一個 SoAI Bench 正在執行。",
                         "awaitingRun": "正在等待後端執行狀態",
                         "measured": "測量回合 {pass}/{total}",
                         "measuredDetail": "已測量 {pass}/{total}",
                         "measuredPhase": "測量回合 {pass}/{total}：{phase}",
                         "phaseDetail": "{phase} {index}/{total}",
-                        "running": "SoAIBench 執行中，請稍候...",
-                        "startFailed": "無法啟動 SoAIBench",
-                        "starting": "正在啟動認證 SoAIBench",
-                        "stopping": "正在停止 SoAIBench",
+                        "running": "SoAI Bench 執行中，請稍候...",
+                        "startFailed": "無法啟動 SoAI Bench",
+                        "starting": "正在啟動認證 SoAI Bench",
+                        "stopping": "正在停止 SoAI Bench",
                         "warmupDetail": "預熱 {pass}/{total}",
                         "warmupPhase": "預熱：{phase}",
                         "warmup": "預熱回合完成",
@@ -3411,7 +3630,7 @@
                         "startUnconfirmed": "無法確認基準測試已啟動，且此 GPU 上沒有正在進行的執行。重試前請查看歷史記錄。"
                     },
                     "retry": "重試",
-                    "scoreLabel": "SoAIBench 分數",
+                    "scoreLabel": "SoAI Bench 分數",
                     "sections": {
                         "expect": {
                             "items": "GPU 將處於忙碌狀態|功耗與風扇轉速可能上升|可以停止執行|不支援的執行階段情況會明確回報",
@@ -3439,7 +3658,7 @@
                         "unresolved": "狀態不明",
                         "rejected": "未啟動"
                     },
-                    "title": "SoAIBench"
+                    "title": "SoAI Bench"
                 },
                 "systemInfo": {
                     "anonymize": "匿名化",
@@ -3565,6 +3784,9 @@
                 "slotsRetained": "已儲存的 GPU 設定無法使用。正在顯示{age}的資料。",
                 "capabilitiesUnavailable": "GPU 控制無法使用。",
                 "slotsUnavailable": "已儲存的 GPU 設定無法使用。"
+            },
+            "observations": {
+                "retainedAge": "保留的觀測 · {seconds} 秒前"
             }
         },
         "header": {
@@ -3592,6 +3814,7 @@
                 "about": "關於",
                 "logout": "登出",
                 "logs": "日誌",
+                "power": "重新啟動 / 關閉",
                 "settings": "設定",
                 "updates": "更新"
             },
@@ -3630,7 +3853,7 @@
                     "unavailable": "通知無法使用。正在重新連線..."
                 },
                 "confirmations": {
-                    "clearAllMessage": "要清除所有通知嗎？此動作無法復原。"
+                    "clearAllMessage": "要清除所有通知（{count}）嗎？此動作無法復原。"
                 }
             }
         },
@@ -4205,17 +4428,22 @@
             "cards": {
                 "capabilities": {
                     "lockedReasons": {
-                        "requiresAudio": "啟用音訊模態後即可切換此設定。",
-                        "requiresImages": "啟用影像端點後即可切換此設定。",
-                        "requiresResponses": "啟用回應端點後即可切換此設定。",
-                        "requiresVision": "啟用視覺模態後即可切換此設定。",
+                        "requiresAudio": "需要音訊模態。",
+                        "requiresImages": "需要 Images 端點。",
+                        "requiresResponses": "需要 Responses 端點。",
+                        "requiresVision": "需要視覺模態。",
                         "text": "文字無法停用。",
-                        "unsupported": "此模型不支援此功能。"
+                        "unsupported": "模型未聲明具備此能力。"
                     },
                     "manifestLoading": "正在載入功能分類體系...",
+                    "modes": {
+                        "autoOff": "自動（關）",
+                        "autoOn": "自動（開）",
+                        "disabled": "已停用",
+                        "enabled": "已啟用"
+                    },
                     "none": "此模型沒有可用的 OpenAI 功能。",
                     "pluginCapabilitiesUnavailable": "外掛程式功能設定檔無法使用。",
-                    "reset": "重設覆寫",
                     "sections": {
                         "chatFeatures": "聊天功能",
                         "endpoints": "端點",
@@ -4223,7 +4451,9 @@
                         "modalities": "模態",
                         "responsesFeatures": "回應功能"
                     },
-                    "title": "功能"
+                    "title": "功能",
+                    "unverified": "未驗證",
+                    "unverifiedHint": "提供者未回報此能力。在你選擇已啟用或已停用之前，SoAI 會保持相容行為。"
                 },
                 "constituents": {
                     "hasParameters": "自訂參數",
@@ -4235,7 +4465,6 @@
                     "created": "建立時間",
                     "name": "提供者名稱",
                     "providerId": "提供者 ID",
-                    "status": "狀態",
                     "title": "外部提供者"
                 },
                 "identity": {
@@ -4270,6 +4499,9 @@
                     "delete": "移除",
                     "enabledNote": "已停用的模型無法接受要求，且不會顯示在模型選擇器中。",
                     "enabledToggleLabel": "啟用此模型",
+                    "inferenceUnverified": "尚未驗證。探索到模型並不代表請求能夠成功。",
+                    "inferenceVerification": "推論",
+                    "inferenceVerified": "上次成功：{date}",
                     "manageAlias": "重新命名",
                     "modelStatus": "模型狀態",
                     "orphaned": "孤立",
@@ -4300,12 +4532,6 @@
                 "externalLinkCancel": "取消",
                 "externalLinkConfirm": "開啟連結",
                 "externalLinkMessage": "確定要在新分頁中開啟後端說明文件嗎？",
-                "resetCapabilities": "重設功能覆寫",
-                "resetCapabilitiesConfirm": "重設",
-                "resetCapabilitiesMessage": "要重設所有功能覆寫，並讓此模型繼承外掛程式預設值嗎？",
-                "resetParameters": "重設參數",
-                "resetParametersConfirm": "重設",
-                "resetParametersMessage": "確定要將所有參數重設為預設值嗎？這將捨棄所有未儲存的變更。",
                 "stopPlugin": "停止外掛程式",
                 "stopPluginMessage": "確定要停止 {plugin} 嗎？"
             },
@@ -4369,6 +4595,7 @@
                 }
             },
             "notifications": {
+                "capabilitiesConflict": "能力已在其他位置變更。你的編輯已被捨棄；請檢視最新值後重新套用。",
                 "capabilitiesUpdated": "功能已成功更新",
                 "deletionInProgress": "模型刪除中...",
                 "enabledUpdated": "模型啟用狀態已成功更新",
@@ -4424,6 +4651,17 @@
             "tabs": {
                 "overview": "概觀",
                 "parameters": "參數"
+            },
+            "parameterAvailability": {
+                "loading": "正在載入參數...",
+                "refreshing": "正在重新整理參數... 上次更新：{age}。",
+                "stale": "連線已中斷；數值可能已過時。上次更新：{age}。",
+                "failed": "無法載入參數。",
+                "retained": "在參數可用之前，儲存功能已停用。上次更新：{age}。",
+                "schemaChanged": "參數定義在您編輯期間有所變更。請捨棄未儲存的變更以載入目前的定義。",
+                "discard": "捨棄變更",
+                "unavailableNotice": "模型參數無法使用。在能夠載入之前，儲存功能已停用。",
+                "saveBlocked": "參數可用之前無法儲存。請先重新載入參數。"
             }
         },
         "models": {
@@ -4463,7 +4701,8 @@
                 "externalLink": "外部連結",
                 "externalLinkCancel": "取消",
                 "externalLinkConfirm": "繼續",
-                "externalLinkMessage": "確定要在新分頁中開啟此模型的儲存庫嗎？"
+                "externalLinkMessage": "確定要在新分頁中開啟此模型的儲存庫嗎？",
+                "deleteLargeModelMessage": "刪除「{model}」（{sizeGb} GB）？重新下載可能需要較長時間並消耗大量流量。此操作無法復原。"
             },
             "description": "管理各外掛程式與提供者的 AI 模型。",
             "searchPlaceholder": "搜尋模型...",
@@ -4502,7 +4741,7 @@
                     "close": "關閉",
                     "confirmDownload": "下載模型",
                     "modelIdLabel": "模型下載 ID",
-                    "pluginHelp": "選擇要處理模型下載的外掛程式",
+                    "pluginHelp": "用於下載模型的外掛",
                     "pluginLabel": "外掛程式",
                     "pluginPlaceholder": "選擇外掛程式...",
                     "quantHelp": "輸入模型識別碼與量化設定（格式取決於所選外掛程式）",
@@ -4587,7 +4826,7 @@
                     "modelsFilterPlaceholder": "例如 free, gpt, claude",
                     "nameHelp": "此外部提供者的描述性名稱",
                     "nameLabel": "提供者名稱",
-                    "pluginHelp": "選擇要管理此外部提供者的外掛程式",
+                    "pluginHelp": "用於管理外部供應商的外掛",
                     "pluginLabel": "外掛程式",
                     "pluginPlaceholder": "選擇外掛程式...",
                     "title": "新增提供者"
@@ -4790,7 +5029,42 @@
                 "unknown": "未知",
                 "virtual": "虛擬"
             },
-            "virtualModelLabel": "虛擬模型"
+            "virtualModelLabel": "虛擬模型",
+            "errors": {
+                "ollamaPullEof": "Ollama 在確認成功前結束了下載。",
+                "ollamaPullTimeout": "Ollama 下載逾時。",
+                "ollamaPullDisconnected": "與 Ollama 的連線已中斷。",
+                "ollamaPullRejected": "Ollama 拒絕了模型下載。",
+                "ollamaPullProtocolInvalid": "Ollama 傳回無效的下載資料。",
+                "ollamaPullTargetMissing": "下載的模型未出現在 Ollama 的目前目錄中。",
+                "ollamaPullCacheFailed": "無法儲存已下載模型的本機目錄。",
+                "ollamaPullCleanupFailed": "清理尚未完成。請停止受管理的 Ollama 服務，解決清理問題後再重試。",
+                "ollamaPullPreparationFailed": "無法準備 Ollama 下載服務。",
+                "ollamaPullRecovery": "請檢查 Ollama 的診斷資訊與儲存空間，然後重試操作。",
+                "modelNotFound": "找不到要求的模型。請安裝或註冊該模型，或使用可用的 API 模型 ID。",
+                "parameterSchemaBusy": "外掛程式操作進行中，模型參數暫時無法使用。請稍後再試一次。",
+                "parameterSchemaUnavailable": "外掛程式後端未載入，模型參數無法使用。請啟動或修復外掛程式，然後再試一次。",
+                "parametersApplyFailed": "參數已儲存，但 SoAI 無法將其套用到正在執行的模型。請重新整理以檢視已儲存的值，並重新載入模型以套用這些值。",
+                "configurationMissing": "GGUF 模型需要其原始模型設定。請將原始 config.json 放在 GGUF 檔案旁邊，或設定 Hugging Face 設定路徑，然後再試一次。",
+                "architectureUnsupported": "所選後端不支援此模型架構。請使用該模型的其他版本或其他後端。",
+                "cudaDeviceArchitectureUnsupported": "已安裝的 CUDA 後端無法在所選 NVIDIA GPU 架構上執行。請選擇支援的 GPU、安裝支援此 GPU 的 CUDA 後端變體，或使用 CPU 後端。",
+                "nativeCpuFeaturesUnsupported": "此處理器缺少已安裝後端變體所需的 CPU 指令。請安裝相容的後端變體，例如 CPU。",
+                "openvinoTensorShapeIncompatible": "由於此模型計算圖的張量形狀不相容，OpenVINO 後端無法執行此模型。請為此模型使用其他後端變體，或將 GPU 層數設為零以在 CPU 上執行。",
+                "repositoryUnavailable": "無法存取模型儲存庫或修訂版本。請檢查其識別碼；私人或受限儲存庫還需要已授權的儲存庫權杖並接受存取條款。",
+                "modelSearchTimeout": "模型搜尋耗時過長。目錄可能仍在準備中，請稍後再試。"
+            },
+            "phases": {
+                "ollamaServicePreparation": "正在準備 Ollama 服務",
+                "ollamaPullStreaming": "正在透過 Ollama 下載模型",
+                "ollamaTerminalConfirmation": "正在確認下載完成",
+                "ollamaTargetVerification": "正在驗證目前模型目錄",
+                "ollamaCachePublication": "正在儲存本機模型目錄",
+                "ollamaCleanup": "正在清理 Ollama 下載",
+                "transferDownloading": "正在下載",
+                "transferHashing": "正在計算保留下載資料的雜湊",
+                "transferReplaying": "正在比較保留的下載資料",
+                "transferVerifying": "正在驗證完整下載檔案"
+            }
         },
         "nav": {
             "about": "關於",
@@ -5111,7 +5385,31 @@
             },
             "errors": {
                 "changeHandlerFailed": "外掛程式變更處理常式失敗",
-                "clickHandlerFailed": "外掛程式點擊處理常式失敗"
+                "clickHandlerFailed": "外掛程式點擊處理常式失敗",
+                "modelConversionFailed": "模型轉換失敗。請查看轉換器記錄，檢查缺少的相依項目或無效的模型輸入，然後重試。",
+                "backendCancellationCleanupFailed": "無法確認取消後的清理已完成。請保持此後端停止，修復其環境後再重試。",
+                "melottsContainerCleanupFailed": "MeloTTS 已安裝，但暫存資源尚未清理完畢。請重試後端操作。",
+                "backendDockerBuilderUnavailable": "Docker Buildx 建置器無法使用。請設定可正常運作的建置器後重試。",
+                "backendDockerBuildxUnavailable": "後端帳戶無法使用 Docker Buildx。請安裝或啟用 Buildx 後重試。",
+                "backendDockerCliMissing": "後端帳戶無法使用 Docker。請安裝 Docker 後重試。",
+                "backendDockerEngineUnavailable": "後端帳戶無法存取 Docker 引擎。請啟動 Docker，並檢查權限和虛擬化支援後重試。",
+                "backendDockerStorageUnavailable": "後端帳戶無法探索 Docker 儲存空間。請啟動 Docker，確認後端帳戶可以查詢引擎，然後重試。",
+                "backendDockerStorageUnmapped": "無法將 Docker 儲存空間對應到經過驗證的主機位置。請使用資料磁碟位於本機磁碟機上的本機 Docker 引擎，然後重試。",
+                "backendDockerStorageAccessDenied": "後端帳戶無法檢查 Docker 儲存位置。請檢查其對 Docker 資料位置的存取權限，然後重試。",
+                "backendDockerStorageChanged": "安裝期間 Docker 引擎或其儲存空間已變更。安裝期間請保持 Docker 設定不變，然後重試。",
+                "modelConversionDependencyMissing": "缺少 CTranslate2 轉換器相依項目。請更新或重新安裝後端，再重新下載模型。",
+                "backendLifecycleLocked": "另一個後端操作正在使用此外掛程式。請等待操作完成後重試。",
+                "configurationBusy": "外掛程式設定正被另一項作業使用，未進行任何變更。請稍後再試。",
+                "ollamaResponsesSettingsUnsupported": "本機 Ollama Responses 無法套用已設定的執行設定。請透過 Chat 或 /v1/chat/completions 使用此模型，以套用這些設定。",
+                "backendRuntimeIncompatible": "此執行環境與目前選擇的硬體不相容。請選擇相容的GPU或其他執行環境。",
+                "backendRuntimeSelectionChanged": "安裝期間硬體選擇發生了變更。請檢查GPU和執行環境後重試。",
+                "managedCompilerUnavailable": "無法安裝受管理的編譯器，或編譯器無法編譯CPU執行環境。請檢查儲存空間和網路存取，然後修復後端安裝。",
+                "runtimeIllegalInstruction": "執行環境驗證因非法指令而停止。請選擇相容的執行環境或修復後端。",
+                "runtimeVerificationFailed": "執行環境驗證失敗。請修復後端並查看診斷資訊。",
+                "backendCpuInstructionsUnavailable": "此執行環境需要目前無法使用的 CPU 指令。請選擇其他相容的執行環境。",
+                "configurationChanged": "外掛程式設定已變更。請重新整理並檢查您的變更，然後再次儲存。",
+                "configurationApplyFailed": "設定已儲存，但執行環境無法套用。請檢查後端狀態，然後重試套用設定。",
+                "backendRuntimeUnverified": "無法驗證 GPU 相容性。請等待硬體偵測完成後重試，或選擇已驗證的執行階段。"
             },
             "filters": {
                 "active": "作用中",
@@ -5266,7 +5564,9 @@
                     "loadFailed": "無法載入後端變體。",
                     "loading": "正在載入後端變體...",
                     "loadingBackends": "正在載入後端...",
-                    "saveFailed": "無法儲存後端變體。"
+                    "saveFailed": "無法儲存後端變體。",
+                    "autoCompatibility": "自動選擇會針對目前的硬體選擇排除{variants}。請選擇其他GPU或其他可用的執行環境。",
+                    "compatibilityUnknown": "無法根據目前的觀測資訊確認相容性。請重新整理硬體資訊或選擇其他可用的執行環境。"
                 },
                 "manageBackend": {
                     "author": "作者：{author}",
@@ -5327,13 +5627,14 @@
                 "providerManagedReadOnly": "{plugin} 會自行管理其提供者。請使用外掛程式主控台進行身分驗證或管理存取權。",
                 "providersUnavailable": "{plugin} 不提供外部提供者。",
                 "restartButton": "重新啟動 SoAI",
-                "restartFailed": "無法重新啟動 SoAI。",
                 "restartRequired": "重新啟動 SoAI 以套用新的同時執行外掛程式限制。",
                 "selectFile": "請選擇外掛程式檔案",
                 "stopAllSuccess": "已發出停止所有外掛程式的命令。",
                 "stopSuccess": "外掛程式 {plugin} 已成功停止",
                 "updateCheckFailed": "無法檢查更新",
-                "uploadFailed": "無法上傳外掛程式"
+                "uploadFailed": "無法上傳外掛程式",
+                "backendUpdateTitle": "有可用的後端更新",
+                "backendUpdateMessage": "{pluginName} 有可用的後端更新。請開啟外掛程式頁面查看。"
             },
             "providerMode": {
                 "badges": {
@@ -5392,88 +5693,71 @@
                 "hibernateSystem": {
                     "buttonLabel": "系統休眠",
                     "confirmMessage": "確定要讓系統進入休眠嗎？",
-                    "confirmMessageWithDelay": "確定要讓系統進入休眠嗎？此操作將於 {delay} 秒後開始。",
                     "confirmTitle": "系統休眠",
                     "confirmWarning": "只有在機器重新開機後，工作階段才會恢復。",
                     "description": "將記憶體內容儲存到磁碟，並關閉大部分硬體電源。",
                     "optionDelay": "延遲（秒）",
                     "overlayMessage": "系統正在休眠...",
-                    "successNotification": "已開始系統休眠",
-                    "successNotificationWithDelay": "已排定系統休眠（延遲 {delay}s）",
                     "title": "系統休眠"
                 },
                 "rebootSystem": {
                     "buttonLabel": "重新啟動系統",
                     "confirmMessage": "確定要重新啟動系統嗎？",
-                    "confirmMessageWithDelay": "確定要重新啟動系統嗎？此操作將於 {delay} 秒後開始。",
                     "confirmTitle": "重新啟動系統",
                     "confirmWarning": "這會重新啟動整台機器。",
                     "description": "重新啟動整台機器並重新載入作業系統。",
                     "optionDelay": "延遲（秒）",
                     "optionForce": "強制重新啟動",
-                    "successNotification": "已開始重新啟動系統",
-                    "successNotificationWithDelay": "已排定重新啟動系統（延遲 {delay}s）",
                     "title": "重新啟動系統"
                 },
                 "restartApplication": {
                     "buttonLabel": "重新啟動應用程式",
-                    "confirmMessage": "確定要重新啟動應用程式嗎？",
-                    "confirmTitle": "重新啟動應用程式",
-                    "confirmWarning": "應用程式重新啟動期間，所有使用者都會短暫中斷連線。",
-                    "description": "重新啟動 SoAI 應用程式並重新載入所有服務。",
+                    "confirmMessage": "確定要重新啟動 SoAI 嗎？",
+                    "confirmTitle": "重新啟動 SoAI",
+                    "confirmWarning": "SoAI 重新啟動期間，所有使用者都會短暫中斷連線。",
+                    "description": "重新啟動 SoAI 並重新載入所有服務。",
                     "optionDelay": "延遲（秒）",
-                    "successNotification": "已開始重新啟動應用程式",
-                    "title": "重新啟動應用程式"
+                    "title": "重新啟動 SoAI"
                 },
                 "shutdownApplication": {
                     "buttonLabel": "關閉應用程式",
-                    "confirmMessage": "確定要關閉 SoAI 應用程式嗎？",
-                    "confirmMessageWithDelay": "確定要關閉 SoAI 應用程式嗎？此操作將於 {delay} 秒後開始。",
-                    "confirmTitle": "關閉應用程式",
-                    "confirmWarning": "在應用程式再次啟動之前，使用者將中斷連線。",
-                    "description": "停止 SoAI 應用程式，同時讓主機保持可用。",
+                    "confirmMessage": "確定要關閉 SoAI 嗎？",
+                    "confirmTitle": "關閉 SoAI",
+                    "confirmWarning": "在 SoAI 再次啟動之前，使用者將中斷連線。",
+                    "description": "停止 SoAI，同時讓主機保持可用。",
                     "optionDelay": "延遲（秒）",
-                    "overlayMessage": "應用程式正在關閉...",
-                    "successNotification": "已開始關閉應用程式",
-                    "successNotificationWithDelay": "已排定關閉應用程式（延遲 {delay}s）",
-                    "title": "關閉應用程式"
+                    "overlayMessage": "SoAI 正在關閉...",
+                    "title": "關閉 SoAI"
                 },
                 "shutdownSystem": {
                     "buttonLabel": "關機",
                     "confirmMessage": "確定要關閉系統嗎？",
-                    "confirmMessageWithDelay": "確定要關閉系統嗎？此操作將於 {delay} 秒後開始。",
                     "confirmTitle": "關閉系統",
                     "confirmWarning": "這會停止所有處理程序並完全關閉機器電源。",
                     "description": "等待中的操作完成後，關閉整台機器的電源。",
                     "optionDelay": "延遲（秒）",
                     "optionForce": "強制關機",
                     "overlayMessage": "系統正在關機...",
-                    "successNotification": "已開始關閉系統",
-                    "successNotificationWithDelay": "已排定關閉系統（延遲 {delay}s）",
                     "title": "關閉系統"
                 },
                 "suspendSystem": {
                     "buttonLabel": "系統暫停",
                     "confirmMessage": "確定要暫停系統嗎？",
-                    "confirmMessageWithDelay": "確定要暫停系統嗎？此操作將於 {delay} 秒後開始。",
                     "confirmTitle": "系統暫停",
                     "confirmWarning": "處理程序會暫停，直到系統恢復為止。",
                     "description": "讓系統進入低耗電睡眠狀態。",
                     "optionDelay": "延遲（秒）",
                     "overlayMessage": "系統正在進入睡眠模式...",
-                    "successNotification": "已開始暫停系統",
-                    "successNotificationWithDelay": "已排定暫停系統（延遲 {delay}s）",
                     "title": "系統暫停"
                 }
             },
-            "description": "應用程式與系統電源操作。",
             "operations": {
                 "failed": "電源操作失敗。請檢查其狀態與執行階段電源原則，並僅在操作可重試時再次嘗試。"
             },
             "overlays": {
                 "applicationShutdown": {
-                    "monitoring": "正在停止 SoAI 應用程式。",
-                    "offline": "應用程式已離線。"
+                    "monitoring": "正在停止 SoAI。",
+                    "offline": "SoAI 已離線。"
                 },
                 "countdown": {
                     "cancel": "取消",
@@ -5497,6 +5781,10 @@
             "restartReminder": {
                 "message": "需要重新啟動才能套用變更。",
                 "messageWithReason": "需要重新啟動：{reason}"
+            },
+            "groups": {
+                "application": "SoAI",
+                "system": "系統"
             }
         },
         "prompts": {
@@ -5664,7 +5952,20 @@
             "title": "提示詞",
             "unnamedPrompt": "未命名提示詞",
             "unsavedChanges": "您有尚未儲存的變更。確定要離開嗎？",
-            "untitled": "未命名"
+            "untitled": "未命名",
+            "picker": {
+                "editFailed": "無法開啟提示詞編輯器。",
+                "empty": "尚無已儲存的提示詞。",
+                "emptyContent": "沒有提示詞內容",
+                "help": "選擇已儲存的提示詞以使用其文字。",
+                "loadFailed": "無法載入已儲存的提示詞。",
+                "loading": "正在載入提示詞...",
+                "manage": "管理提示詞",
+                "manageFailed": "無法開啟提示詞頁面。",
+                "noMatches": "沒有符合搜尋條件的提示詞。",
+                "search": "搜尋",
+                "title": "已儲存的提示詞"
+            }
         },
         "restartOverlay": {
             "descriptions": {
@@ -5672,7 +5973,7 @@
                 "generic": "SoAI 正在執行操作。",
                 "rebooting": "系統正在重新啟動。請稍候，等待系統重新上線。",
                 "rebootTimeout": "15 分鐘後仍無法確認系統狀態。現在將強制完整重新整理。",
-                "restarting": "應用程式正在重新啟動。這應該只需要片刻。",
+                "restarting": "SoAI 正在重新啟動。這應該只需要片刻。",
                 "shutdown": "系統正在關機。您可以關閉此瀏覽器視窗。",
                 "sleep": "系統正在進入睡眠模式。請喚醒系統以繼續使用 SoAI。",
                 "updateTimeout": "更新後 SoAI 未能恢復上線。請檢查 SoAI 記錄資料夾中的 application_updater.log，然後重新載入此頁面。",
@@ -5692,7 +5993,16 @@
                 "updateTimeout": "SoAI 尚未恢復",
                 "updating": "SoAI 正在更新..."
             },
-            "reconnecting": "正在嘗試重新連線..."
+            "reconnecting": "正在嘗試重新連線...",
+            "handoff": {
+                "plannedAddress": "重新啟動後預計使用的位址。草稿會保留在此分頁中。",
+                "newAddress": "連線已中斷。請開啟新位址以重新連線；伺服器可能仍在啟動。",
+                "manualHttps": "伺服器將使用 HTTPS。請透過為伺服器或反向代理設定的位址開啟 SoAI。",
+                "manualHttp": "伺服器將使用 HTTP。請透過為伺服器或反向代理設定的位址開啟 SoAI。",
+                "open": "開啟新位址",
+                "copy": "複製位址",
+                "copied": "已複製位址"
+            }
         },
         "richText": {
             "footnotes": {
@@ -5961,7 +6271,9 @@
                     "timeout": "逾時時間"
                 },
                 "nullPlaceholder": "null",
-                "sectionHeader": "進階設定 (config.yaml)"
+                "sectionHeader": "進階設定 (config.yaml)",
+                "autoUpdateBuiltinLabel": "自動更新內建後端",
+                "autoUpdateBuiltinHelp": "外掛套件變更後，檢查已安裝的後端，並在內建後端安全停止後進行更新。執行中的工作會保留。第三方後端需要手動更新。"
             },
             "advancedMode": "進階",
             "advancedTitle": "進階設定",
@@ -6797,7 +7109,6 @@
                     "readVideoAudioExtractionTimeoutSec": "音訊擷取逾時時間。",
                     "readVideoPreviewExtractionTimeoutSec": "預覽擷取逾時時間。",
                     "readVideoLiveProgressMinIntervalMs": "即時進度更新最小間隔。",
-                    "readVideoWhisperModel": "用於音訊逐字稿的 Whisper 模型。",
                     "hostModeEnabled": "啟用主機模式用戶端。",
                     "hostModeAutoConnectOnStartup": "啟動時連線至已儲存的伺服器。",
                     "hostModeReconnectDelaySec": "重新連線嘗試前的延遲。",
@@ -7719,6 +8030,14 @@
                     "help": "從裝置上傳圖片（PNG、JPG、GIF、WebP、SVG - 最大 25MB）",
                     "label": "上傳桌布"
                 }
+            },
+            "speechToText": {
+                "title": "語音轉文字",
+                "description": "轉寫檔案、知識與工具中的音訊和影片。",
+                "model": {
+                    "label": "語音轉文字模型",
+                    "help": "自動模式會使用第一個可用的本機模型。聊天聽寫會使用各聊天的語音設定。"
+                }
             }
         },
         "statusCatalog": {
@@ -7934,13 +8253,19 @@
                 "partial": "部分版本說明無法載入。已顯示可用的說明。"
             },
             "outcome": {
+                "diagnosticsInstalledOriginalChanged": "更新在準備還原副本期間，已安裝的檔案發生了變更。",
+                "diagnosticsInterruptedPreparation": "更新在準備還原副本時被中斷。",
+                "diagnosticsMessage": "此次嘗試的診斷資訊已儲存在 SoAI 電腦的 {location}。{summary} 參考編號：{reference}。",
+                "diagnosticsRetainedCopyMismatch": "已安裝檔案的還原副本與原始檔案不一致。",
+                "diagnosticsSnapshotOperationFailed": "由於檔案操作失敗，無法完成還原副本。",
+                "diagnosticsSourceUnverifiable": "無法讀取已安裝的檔案以驗證還原副本。",
                 "failureMessage": "更新至 {version} 版未完成。SoAI {previousVersion} 仍保持安裝。如需詳細資訊，請檢查 SoAI 記錄資料夾中的 application_updater.log。",
                 "failureTitle": "更新未完成",
                 "later": "稍後",
                 "reloadMessage": "SoAI 現在執行的是 {version} 版。請重新載入此頁面以使用更新後的介面。",
                 "reloadTitle": "SoAI 已更新",
-                "successMessage": "SoAI 已成功更新至 {version} 版。",
-                "successTitle": "更新完成"
+                "successMessage": "版本 {version} 已就緒。",
+                "successTitle": "SoAI 已更新"
             },
             "progress": {
                 "downloading": "正在下載更新...",
@@ -8015,7 +8340,25 @@
                 "updating": "正在更新..."
             },
             "title": "更新",
-            "unknown": "未知"
+            "unknown": "未知",
+            "backend": {
+                "failedUpdatesHeading": "更新失敗",
+                "availableHeading": "後端更新可用",
+                "updatingHeading": "正在更新",
+                "pendingHeading": "等待檢查",
+                "failedHeading": "需要注意的檢查",
+                "reviewUpdate": "檢視更新",
+                "reviewUpdates": "檢視更新",
+                "viewPlugins": "查看外掛"
+            },
+            "history": {
+                "lastCheck": "上次檢查：{date}。",
+                "lastUpdate": "上次更新：{date}。",
+                "savedResults": "儲存於 {date} 的結果。請重新檢查以取得最新資訊。",
+                "restored": "已儲存的更新資訊。請重新檢查以取得最新資訊。",
+                "unavailable": "無法載入或儲存更新記錄。請重新檢查更新。",
+                "saved": "已儲存的結果"
+            }
         },
         "wizard": {
             "completion": {
@@ -8252,7 +8595,8 @@
                             "recommended": "建議",
                             "warning": "警告",
                             "unavailable": "無法使用"
-                        }
+                        },
+                        "automaticRuntime": "將在安裝期間為 {engine} 選擇執行環境。尚未確認是否支援加速。"
                     }
                 },
                 "models": {
@@ -8321,19 +8665,20 @@
                     "retryInstallation": "重試安裝",
                     "skipItem": "略過此項目",
                     "testAgain": "再次測試",
-                    "checkAgain": "再次檢查",
                     "sendTest": "傳送測試訊息",
                     "error": {
                         "empty": "模型已載入但沒有回覆。請重試或選擇其他模型。",
-                        "loadError": "模型無法在此裝置上啟動。請重試或選擇較小的模型。",
+                        "loadError": "模型測試失敗。請檢查並解決原因，然後重試。",
                         "timeout": "模型回覆時間過長。請重試或選擇較小的模型。",
                         "disconnected": "測試期間連線中斷。請重試。",
                         "downloadFailed": "下載已停止。請重試。",
                         "installFailed": "安裝未完成。請重試。",
-                        "noDiskSpace": "磁碟空間不足，無法容納此模型。請釋出空間或選擇較小的模型。"
+                        "noDiskSpace": "磁碟空間不足，無法容納此模型。請釋出空間或選擇較小的模型。",
+                        "discoveryFailed": "下載已完成，但無法將模型加入目錄。請開啟「模型」檢查，或稍後完成設定。"
                     },
                     "testPrompt": "請用一句簡短友善的話回覆。",
-                    "testCancelled": "SoAI 設定測試已取消。"
+                    "testCancelled": "SoAI 設定測試已取消。",
+                    "useCpuRuntime": "使用 CPU 執行環境"
                 },
                 "completion": {
                     "modelsTitle": "AI 模型",
@@ -8362,6 +8707,40 @@
                     "both": "模型下載和後端安裝將在背景繼續進行。"
                 }
             }
+        },
+        "speechSetup": {
+            "notTranscribed": "語音尚未轉寫",
+            "askAdministrator": "請聯絡管理員設定語音轉文字。",
+            "askAdministratorTextToSpeech": "請聯絡管理員設定文字轉語音。",
+            "installBackend": "安裝 {plugin} 後端",
+            "enablePlugin": "啟用 {plugin}",
+            "changeModel": "變更語音模型",
+            "openPlugins": "開啟外掛程式",
+            "addAgain": "語音轉文字現已可用。請重新上傳檔案以進行轉寫。",
+            "checking": "正在檢查語音轉文字可用性…",
+            "checkingTextToSpeech": "正在檢查文字轉語音可用性…",
+            "errors": {
+                "noPlugin": "沒有已安裝的外掛程式提供本機語音轉文字。",
+                "noModel": "尚未安裝本機語音轉文字模型。",
+                "notLocal": "媒體轉寫在本機執行。請選擇本機語音轉文字模型。",
+                "translationUnsupported": "已安裝的本機語音模型不支援翻譯。請選擇多語言模型。",
+                "unsupportedOption": "{model} 無法傳回此要求所需的時間資訊或語言。請選擇其他語音模型。",
+                "configuredModelMissing": "所選語音轉文字模型無法使用。",
+                "mediaDependencyUnavailable": "媒體處理需要 FFmpeg 和 ffprobe。請安裝 FFmpeg 後再試一次。",
+                "noVoiceModel": "沒有可用的語音轉文字模型。",
+                "noTextToSpeechModel": "沒有可用的文字轉語音模型。",
+                "backendNotInstalled": "語音轉文字外掛程式的後端尚未安裝。",
+                "textToSpeechBackendNotInstalled": "文字轉語音外掛程式的後端尚未安裝。",
+                "pluginDisabled": "語音轉文字外掛程式已停用。",
+                "textToSpeechPluginDisabled": "文字轉語音外掛程式已停用。",
+                "modelDisabled": "已安裝的語音轉文字模型已停用或無法使用。",
+                "textToSpeechModelDisabled": "已安裝的文字轉語音模型已停用或無法使用。",
+                "unsupportedOptionSelected": "所選語音模型無法傳回此要求所需的時間資訊或語言。請選擇其他語音模型。"
+            },
+            "notTranscribedNotice": "語音尚未轉寫。請先設定語音轉文字，再重新上傳檔案。",
+            "notTranscribedAskAdministrator": "語音尚未轉寫。請聯絡管理員設定語音轉文字，再重新上傳檔案。",
+            "openModels": "開啟模型",
+            "openSettings": "語音轉文字設定"
         }
     }
 }

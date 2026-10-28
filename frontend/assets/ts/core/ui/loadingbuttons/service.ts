@@ -1,6 +1,7 @@
 /* SoAI - Shared UI loading buttons service [frontend/assets/ts/core/ui/loadingbuttons/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { deferUntilPresenceExitsSettle } from '@core/animations/presence/public.ts';
 import { isString } from '@core/typeGuards.ts';
 import { dom } from '@core/dom/dom.ts';
 import { setAriaBusy } from '@core/ui/controls/ariaBusy.ts';
@@ -89,7 +90,8 @@ const beginLoadingButton = (button: BusyDisabledTarget): BusyDisabledToken => {
 };
 
 const endLoadingButton = (button: BusyDisabledTarget, token: BusyDisabledToken): void => {
-    setBusyDisabledState(button, { isBusy: false, token });
+    const clear = (): void => setBusyDisabledState(button, { isBusy: false, token });
+    if (getBusyDisabledToken(button) !== token || !deferUntilPresenceExitsSettle(button, clear)) clear();
 };
 
 const clearLoadingButtonIfNeeded = (button: BusyDisabledTarget): void => {

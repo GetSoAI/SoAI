@@ -50,7 +50,7 @@ interface UiManager {
 type ChatConversationSettingsManager = ChatConversationSettingsManagerContract;
 
 interface ComposerDraftManager {
-    beginComposerTransfer(conversationId: string | null, options: { mode: ComposerDraftTransferMode; signal?: AbortSignal }): { complete(): Promise<void>; cancel(): void };
+    beginComposerTransfer(conversationId: string | null, options: { mode: ComposerDraftTransferMode; signal?: AbortSignal; knownEmpty?: boolean }): { complete(): Promise<void>; cancel(): void };
     discardConversation(conversationId: string): void;
 }
 

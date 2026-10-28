@@ -5,8 +5,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from hardware.manager.gpu_device_resolution import resolve_gpu_device_id
+from hardware.manager.gpu_device_resolution import GPUHistoryDeviceResolution, resolve_gpu_device_id
 from hardware.manager.history_queries import get_historical_data
+from hardware.vendors.amd.adl_session import AdlRuntime
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Mapping
@@ -50,15 +51,17 @@ async def query_historical_data(
     gpu_index: int | None,
     identifier: str | None,
     availability_metric: str | None,
+    adl_runtime: AdlRuntime | None = None,
 ) -> JSONDict:
-    def device_id_resolver(idx: int) -> str | None:
+    def device_id_resolver(gpu_index: int) -> GPUHistoryDeviceResolution | None:
         return resolve_gpu_device_id(
-            idx,
+            gpu_index,
             executor,
             gpu_info_cache_service,
             gpu_vendor_detection_service,
             nvidia_nvml_gate,
             nvidia_capabilities_cache_service,
+            adl_runtime,
         )
 
     return await get_historical_data(

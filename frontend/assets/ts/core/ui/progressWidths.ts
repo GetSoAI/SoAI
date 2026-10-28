@@ -4,42 +4,16 @@
 import { dom } from '@core/dom/dom.ts';
 import type { DOMQueryRoot } from '@core/dom/types.ts';
 import { clampPercent } from '@core/primitives/clampNumber.ts';
+import { resolveProgressColor } from '@core/ui/progressColors.ts';
 
 const PROGRESS_WIDTH_ATTRIBUTE = 'data-soai-progress-width';
-
-type ProgressUsageClass = 'progress-red' | 'progress-orange' | 'progress-yellow' | 'progress-green';
-
-const PROGRESS_USAGE_CLASSES: readonly ProgressUsageClass[] = Object.freeze(['progress-red', 'progress-orange', 'progress-yellow', 'progress-green']);
-
-const resolveProgressUsageClass = (percentUsed: number): ProgressUsageClass => {
-    const normalizedPercent = clampPercent(percentUsed);
-    if (normalizedPercent < 25) {
-        return 'progress-red';
-    }
-    if (normalizedPercent < 50) {
-        return 'progress-orange';
-    }
-    if (normalizedPercent < 75) {
-        return 'progress-yellow';
-    }
-    return 'progress-green';
-};
-
-const syncProgressUsageClass = (element: Element, percentUsed: number): void => {
-    element.classList.remove(...PROGRESS_USAGE_CLASSES);
-    element.classList.add(resolveProgressUsageClass(percentUsed));
-};
-
-const clearProgressUsageClass = (element: Element): void => {
-    element.classList.remove(...PROGRESS_USAGE_CLASSES);
-};
 
 interface DeterminateProgressSyncOptions {
     fillElement: Element;
     progress: number;
     progressbarElement?: Element | null | undefined;
     valueElement?: Element | null | undefined;
-    syncUsageClass?: boolean | undefined;
+    colorize?: boolean | undefined;
     setStyle?: ((element: Element, property: string, value: string) => void) | undefined;
     setText?: ((element: Element, value: string) => void) | undefined;
     setAttribute?: ((element: Element, name: string, value: string) => void) | undefined;
@@ -52,8 +26,8 @@ const syncDeterminateProgress = (options: DeterminateProgressSyncOptions): numbe
     const setText = options.setText ?? ((element: Element, value: string): void => dom.setText(element, value));
     const setAttribute = options.setAttribute ?? ((element: Element, name: string, value: string): void => dom.setAttribute(element, name, value));
     setStyle(options.fillElement, 'width', `${progress}%`);
-    if (options.syncUsageClass === true) {
-        syncProgressUsageClass(options.fillElement, progress);
+    if (options.colorize === true) {
+        setStyle(options.fillElement, '--soai-progress-color', resolveProgressColor(progress));
     }
     if (options.valueElement) {
         setText(options.valueElement, progressText);
@@ -64,7 +38,7 @@ const syncDeterminateProgress = (options: DeterminateProgressSyncOptions): numbe
     return progress;
 };
 
-const readProgressWidth = (element: HTMLElement): string | null => {
+const readProgressWidth = (element: HTMLElement): number | null => {
     const rawValue = element.getAttribute(PROGRESS_WIDTH_ATTRIBUTE);
     if (!rawValue) {
         return null;
@@ -73,8 +47,7 @@ const readProgressWidth = (element: HTMLElement): string | null => {
     if (!Number.isFinite(numericValue)) {
         throw new TypeError(`Progress width must be numeric: ${rawValue}`);
     }
-    const clampedValue = clampPercent(numericValue);
-    return `${clampedValue}%`;
+    return clampPercent(numericValue);
 };
 
 const applyProgressWidths = (root: DOMQueryRoot, updateStyle: (element: Element, property: string, value: string | null) => void): void => {
@@ -83,8 +56,14 @@ const applyProgressWidths = (root: DOMQueryRoot, updateStyle: (element: Element,
         if (!(progressElement instanceof HTMLElement)) {
             throw new TypeError('Progress width target must be an HTMLElement');
         }
-        updateStyle(progressElement, 'width', readProgressWidth(progressElement));
+        const progress = readProgressWidth(progressElement);
+        if (progress === null) {
+            updateStyle(progressElement, 'width', null);
+            updateStyle(progressElement, '--soai-progress-color', null);
+        } else {
+            syncDeterminateProgress({ fillElement: progressElement, progress, colorize: true, setStyle: updateStyle });
+        }
     }
 };
 
-export { applyProgressWidths, clearProgressUsageClass, PROGRESS_WIDTH_ATTRIBUTE, resolveProgressUsageClass, syncDeterminateProgress };
+export { applyProgressWidths, PROGRESS_WIDTH_ATTRIBUTE, syncDeterminateProgress };

@@ -23,6 +23,7 @@ from features.agent.runtime.turn_iteration_policy_types import AgentOutputPublic
 
 if TYPE_CHECKING:
     from core.openai.token_accounting import PromptOccupancy
+    from core.streaming.protocols import StreamGeneratorStateProtocol
     from features.agent.runtime.context_compaction.activity_result import (
         PreparedAutoCompactionSnapshot,
     )
@@ -68,6 +69,7 @@ async def execute_claimed_prepared_stream(
         Callable[[str], Awaitable[PreviewContractOutputValidationResult]] | None
     ) = None,
     initial_output_publication_mode: AgentOutputPublicationMode | None = None,
+    public_error_state: StreamGeneratorStateProtocol | None = None,
 ) -> PreparedStreamingTurnExecution:
     execution: PreparedStreamingTurnExecution | None = None
 
@@ -99,6 +101,7 @@ async def execute_claimed_prepared_stream(
             turn_id=turn_id,
             validate_visible_assistant_output=validate_visible_assistant_output,
             initial_output_publication_mode=initial_output_publication_mode,
+            public_error_state=public_error_state,
         )
 
     await execute_claimed_stream(

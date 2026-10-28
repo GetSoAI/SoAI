@@ -4,14 +4,18 @@
 from __future__ import annotations
 
 import asyncio
+from sys import exception
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ProcessError, StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.files.locking import async_guarded_file_lock
 from core.logging.trace import get_logger
+from core.plugins.protocols_instance import PluginInstanceProtocol
 from core.runtime.protocols import RuntimeFlagsViewProtocol
 from core.types.json import JSONDict
+from plugins.load_cleanup import preserve_plugin_load_failure
 from plugins.package_leases import remove_plugin_package_lease
 from plugins.package_paths import get_plugin_package_cache_lock_target
 from plugins.protocols_internal.runtime.internal_protocols import (
@@ -26,6 +30,7 @@ from plugins.worker.runtime_policy_retirement import (
     retire_runtime_after_policy_update_failure,
 )
 from plugins.worker.runtime_registry import (
+    PluginWorkerAcquisition,
     PluginWorkerRuntime,
     PluginWorkerRuntimeRegistry,
     PluginWorkerRuntimeRegistryDependencies,
@@ -37,8 +42,6 @@ __all__ = (
 )
 
 LOGGER_NAME = "SoAI.plugins.worker.controller"
-OPERATION_WORKER_SHUTDOWN_TERMINATE = "plugins.worker.controller.shutdown_terminate"
-OPERATION_WORKER_SHUTDOWN_REMOVE_LEASE = "plugins.worker.controller.shutdown_remove_package_lease"
 OPERATION_WORKER_UPDATE_RUNTIME_FLAGS = "plugins.worker.controller.update_runtime_flags"
 PLUGIN_WORKER_FAILURE_EXCEPTIONS: tuple[type[Exception], ...] = (
     *RECOVERABLE_EXCEPTIONS,
@@ -54,8 +57,7 @@ class PluginWorkerController:
                 runtime_lock=asyncio.Lock(),
                 workers={},
                 worker_id_to_plugin_name={},
-                stopping_worker_ids=set(),
-                stopping_plugin_names=set(),
+                pending_worker_resources={},
                 next_worker_id=1,
             ),
         )
@@ -79,77 +81,65 @@ class PluginWorkerController:
         await self._server.start()
 
     async def shutdown(self) -> None:
-        logger = get_logger(LOGGER_NAME)
-        first_exception: BaseException | None = None
-        runtimes = await self._registry.snapshot_runtimes_for_shutdown()
-        try:
-            for runtime in runtimes:
-                try:
-                    await runtime.worker.terminate(operation="plugins.worker.shutdown")
-                    self._host_router.release_worker_reservations(runtime.worker_id)
-                except PLUGIN_WORKER_FAILURE_EXCEPTIONS as exception:
-                    self._host_router.release_worker_reservations(runtime.worker_id)
-                    if first_exception is None:
-                        first_exception = exception
-                    log_exception(
-                        logger,
-                        exception,
-                        message="Failed to terminate plugin worker during shutdown.",
-                        operation=OPERATION_WORKER_SHUTDOWN_TERMINATE,
-                        details={"worker_id": runtime.worker_id},
-                        level="warning",
-                    )
-                    continue
-                try:
-                    remove_plugin_package_lease(runtime.package_lease_path)
-                except OSError as exception:
-                    if first_exception is None:
-                        first_exception = exception
-                    log_exception(
-                        logger,
-                        exception,
-                        message="Failed to remove terminated plugin worker package lease during shutdown.",
-                        operation=OPERATION_WORKER_SHUTDOWN_REMOVE_LEASE,
-                        details={"worker_id": runtime.worker_id},
-                        level="error",
-                    )
-        finally:
-            await self._exit_watcher.cancel_all()
-            await self._registry.clear_all()
-            await self._server.shutdown()
-        if first_exception is not None:
-            raise first_exception
+        plugin_names = await self._registry.snapshot_plugin_names_for_shutdown()
+        stop_operations = [self.stop_plugin(plugin_name) for plugin_name in plugin_names]
+        outcomes = await uncancel_then_cleanup(
+            asyncio.gather(*stop_operations, return_exceptions=True)
+        )
+        for outcome in outcomes:
+            if isinstance(outcome, BaseException):
+                raise outcome
+        await self._exit_watcher.cancel_all()
+        await self._server.shutdown()
 
-    async def stop_plugin(self, plugin_name: str) -> None:
-        runtime = await self._registry.begin_stop(plugin_name)
-        if runtime is not None:
-            terminated = False
-            lease_removal_error: OSError | None = None
-            try:
-                await runtime.worker.terminate(operation="plugins.worker.stop_plugin")
-                self._host_router.release_worker_reservations(runtime.worker_id)
-                terminated = True
-            except PLUGIN_WORKER_FAILURE_EXCEPTIONS:
-                await self._registry.restore_after_stop_failure(
-                    plugin_name=plugin_name,
-                    runtime=runtime,
+    async def stop_plugin(
+        self,
+        plugin_name: str,
+        *,
+        expected_instance: PluginInstanceProtocol | None = None,
+        expected_worker_id: int | None = None,
+    ) -> None:
+        tasks = await self._registry.begin_stop(
+            plugin_name,
+            expected_instance=expected_instance,
+            expected_worker_id=expected_worker_id,
+            stop_operation=self._stop_runtime,
+            finalizer_tracker=self._manager.dependencies.infrastructure.lifecycle.finalizer_tracker,
+            cancellation_binder=self._manager.dependencies.infrastructure.lifecycle.cancellation_binder,
+        )
+        outcomes = await uncancel_then_cleanup(asyncio.gather(*tasks, return_exceptions=True))
+        for outcome in outcomes:
+            if isinstance(outcome, BaseException):
+                raise outcome
+
+    async def _stop_runtime(
+        self, plugin_name: str, runtime: PluginWorkerRuntime | PluginWorkerAcquisition
+    ) -> None:
+        stopped = False
+        try:
+            if (
+                isinstance(runtime, PluginWorkerAcquisition)
+                and runtime.acquisition_task is not None
+            ):
+                self._registry.record_cleanup_stage(runtime.worker_id, "acquisition_cancellation")
+                if not runtime.acquisition_task.done():
+                    runtime.acquisition_task.cancel()
+                await uncancel_then_cleanup(
+                    asyncio.gather(runtime.acquisition_task, return_exceptions=True)
                 )
-                raise
+            self._registry.record_cleanup_stage(runtime.worker_id, "worker_termination")
+            await runtime.worker.terminate(operation="plugins.worker.stop_plugin")
+            self._registry.record_cleanup_stage(runtime.worker_id, "ipc_disconnection")
+            await self._server.disconnect_worker(runtime.worker_id)
+            await self._server.forget_worker_secret(runtime.worker_id)
+            self._registry.record_cleanup_stage(runtime.worker_id, "exit_watcher_cancellation")
+            await self._exit_watcher.cancel(runtime.worker_id)
+            self._host_router.release_worker_reservations(runtime.worker_id)
+            self._registry.record_cleanup_stage(runtime.worker_id, "package_lease_removal")
             try:
-                remove_plugin_package_lease(runtime.package_lease_path)
-            except OSError as exception:
-                lease_removal_error = exception
-            finally:
-                if terminated:
-                    await self._server.disconnect_worker(runtime.worker_id)
-                    should_cancel_monitor = await self._registry.finalize_stop(
-                        plugin_name,
-                        runtime,
-                    )
-                    await self._server.forget_worker_secret(runtime.worker_id)
-                    if should_cancel_monitor:
-                        await self._exit_watcher.cancel(runtime.worker_id)
-            if lease_removal_error is not None:
+                if runtime.package_lease_path is not None:
+                    remove_plugin_package_lease(runtime.package_lease_path)
+            except OSError as lease_exception:
                 raise StateError(
                     "Plugin worker terminated but its package cache lease could not be removed.",
                     operation="plugins.worker.stop_plugin.remove_package_lease",
@@ -158,11 +148,20 @@ class PluginWorkerController:
                         "worker_id": runtime.worker_id,
                         "lease_path": runtime.package_lease_path,
                     },
-                ) from lease_removal_error
-        else:
-            await self._registry.cancel_stop_flag(plugin_name)
+                ) from lease_exception
+            await self._registry.finalize_stop(plugin_name, runtime)
+            stopped = True
+        finally:
+            if not stopped:
+                await uncancel_then_cleanup(
+                    self._registry.retain_worker_resource(plugin_name=plugin_name, runtime=runtime)
+                )
+
+    def describe_worker_ownership(self, plugin_name: str) -> JSONDict:
+        return self._registry.describe_worker_ownership(plugin_name)
 
     async def delete_plugin_environment(self, plugin_name: str) -> None:
+        await self.stop_plugin(plugin_name)
         await self._manager.dependencies.infrastructure.environment_manager.delete_environment(
             plugin_name
         )
@@ -173,12 +172,12 @@ class PluginWorkerController:
         for runtime in runtimes:
             try:
                 await runtime.proxy.update_runtime_flags(runtime_flags)
-            except PLUGIN_WORKER_FAILURE_EXCEPTIONS as exception:
+            except PLUGIN_WORKER_FAILURE_EXCEPTIONS as policy_exception:
                 if first_exception is None:
-                    first_exception = exception
+                    first_exception = policy_exception
                 log_exception(
                     get_logger(LOGGER_NAME),
-                    exception,
+                    policy_exception,
                     message="Failed to update plugin worker runtime flags.",
                     operation=OPERATION_WORKER_UPDATE_RUNTIME_FLAGS,
                     details={
@@ -189,11 +188,9 @@ class PluginWorkerController:
                 )
                 await retire_runtime_after_policy_update_failure(
                     manager=self._manager,
-                    registry=self._registry,
-                    server=self._server,
-                    exit_watcher=self._exit_watcher,
-                    host_router=self._host_router,
+                    worker_controller=self,
                     runtime=runtime,
+                    primary_exception=policy_exception,
                 )
         if first_exception is not None:
             raise first_exception
@@ -215,18 +212,32 @@ class PluginWorkerController:
         cache_lock_path = self._manager.dependencies.infrastructure.config_manager.get_lock_path(
             cache_lock_target
         )
-        async with async_guarded_file_lock(cache_lock_path, timeout=120):
-            await self.stop_plugin(plugin_name)
-            return await load_plugin_worker(
-                manager=self._manager,
-                registry=self._registry,
-                server=self._server,
-                host_router=self._host_router,
-                exit_watcher=self._exit_watcher,
-                plugin_name=plugin_name,
-                plugin_package_root=plugin_package_root,
-                plugin_entrypoint_path=plugin_entrypoint_path,
-                plugin_file_hash=plugin_file_hash,
-                package_dependencies=package_dependencies,
-                plugin_config=plugin_config,
-            )
+        load_result: PluginWorkerLoadResult | None = None
+        transferred = False
+        try:
+            async with async_guarded_file_lock(cache_lock_path, timeout=120):
+                await self.stop_plugin(plugin_name)
+                load_result = await load_plugin_worker(
+                    manager=self._manager,
+                    registry=self._registry,
+                    server=self._server,
+                    host_router=self._host_router,
+                    exit_watcher=self._exit_watcher,
+                    plugin_name=plugin_name,
+                    plugin_package_root=plugin_package_root,
+                    plugin_entrypoint_path=plugin_entrypoint_path,
+                    plugin_file_hash=plugin_file_hash,
+                    package_dependencies=package_dependencies,
+                    plugin_config=plugin_config,
+                )
+            transferred = True
+            return load_result
+        finally:
+            primary_exception = exception()
+            if load_result is not None and not transferred:
+                try:
+                    await uncancel_then_cleanup(
+                        self.stop_plugin(plugin_name, expected_instance=load_result.instance)
+                    )
+                finally:
+                    preserve_plugin_load_failure(primary_exception, exception())

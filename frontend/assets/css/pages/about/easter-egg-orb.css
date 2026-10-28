@@ -81,13 +81,7 @@
     :where([data-section='about'], [data-page-scope='about']) .orb-logo {
         width: calc(var(--ee-orb-size) * 0.6);
         height: calc(var(--ee-orb-size) * 0.6);
-
-        --soai-animated-logo-ring-edge: var(--bg-secondary);
-        --soai-animated-logo-ring-mid: var(--color-white);
-        --soai-animated-logo-ring-border: var(--glass-border-strong);
-        --soai-animated-logo-dot-fill: var(--text-tertiary);
-        --soai-animated-logo-center-fill: var(--accent-green);
-        --soai-animated-logo-pulse-color: color-mix(in srgb, var(--accent-green) 80%, transparent);
+        object-fit: contain;
         filter: drop-shadow(0 2px 8px var(--shadow-medium));
         pointer-events: none;
         user-select: none;

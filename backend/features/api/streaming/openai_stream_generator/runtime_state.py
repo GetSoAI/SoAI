@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from core.openai.sse_frame_accumulator import OpenAISSEFrameAccumulator
 from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
 from core.openai.streaming_token_budget import StreamingTokenBudgetTracker
+from core.openai.streaming_usage import OpenAIPublicUsageProjection
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -32,3 +33,4 @@ class OpenAIStreamRuntimeState:
     tool_call_ids_by_index: dict[int, str] = field(default_factory=dict[int, str])
     tool_call_ids_by_ordinal: dict[int, str] = field(default_factory=dict[int, str])
     withheld_provider_usage: JSONDict | None = None
+    public_usage_projection: OpenAIPublicUsageProjection | None = None

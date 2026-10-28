@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { StreamResourceLoader } from '@core/realtime/streammanager/resourceLoader.ts';
+import type { TaskCancellationResponse } from '@core/api/contracts/systemContracts.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { ResourceSubscriptionHandler, SubscriptionHandler } from '@core/subscriptionmanager/contracts.ts';
 
@@ -10,6 +11,7 @@ export interface StreamActionHandle {
     accepted?: Promise<string>;
     finished: Promise<StreamFinishedValue>;
     close?: () => void;
+    requestCancellation?: (reason: string | null) => Promise<TaskCancellationResponse>;
 }
 
 export interface StreamCompletionStatus {

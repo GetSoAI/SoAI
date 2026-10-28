@@ -5,20 +5,28 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from core.app.protocols import ApplicationRuntimeCoordinatorProtocol
 from core.auth.protocols_database_tokens import DatabaseTokensProtocol
 from core.di.validation import require_dependencies
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import ServiceUnavailableError, SoAIError, StateError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.events.protocols import EventBusProtocol
 from core.events.types_base import Event
 from core.events.types_webui import UserCreatedEvent
+from core.hardware.gpu_control_types import GPUControlStartupResult, GPURecoveryAdmissionState
 from core.hardware.protocols import HardwareGpuTuningProtocol, HardwareManagerProtocol
 from core.logging.protocols import LoggerProtocol
+from core.logging.rate_limited_logger import RateLimitedLogger
 from core.metrics.protocols import MetricsManagerProtocol
 from core.runtime.protocols import RuntimeStateStoreProtocol
+from core.timing.retry_backoff import compute_exponential_backoff_seconds
+from core.users.bootstrap_state import BootstrapState
+from core.users.protocols_database import DatabaseUsersProtocol
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -46,6 +54,7 @@ class InitialUserPersistenceActivationDependencies:
     hardware_manager: HardwareManagerProtocol
     hardware_gpu_tuning: HardwareGpuTuningProtocol
     database_tokens: DatabaseTokensProtocol
+    database_users: DatabaseUsersProtocol
     runtime_state: RuntimeStateStoreProtocol
     logger: LoggerProtocol
     hardware_activation_enabled: bool
@@ -54,6 +63,7 @@ class InitialUserPersistenceActivationDependencies:
         require_dependencies(
             owner="InitialUserPersistenceActivationDependencies",
             database_tokens=self.database_tokens,
+            database_users=self.database_users,
             event_bus=self.event_bus,
             hardware_activation_enabled=self.hardware_activation_enabled,
             hardware_gpu_tuning=self.hardware_gpu_tuning,
@@ -92,52 +102,160 @@ def schedule_prune_webui_session_state(
         task_coroutine,
         name="prune-webui-session-state",
     )
+    if scheduled_task is None:
+        raise ServiceUnavailableError("WebUI session pruning could not be scheduled.")
     runtime_state.set_prune_tokens_task(scheduled_task)
 
 
-class InitialUserPersistenceActivation:
+class InitialUserActivationPhase(StrEnum):
+    BOOTSTRAP = "bootstrap"
+    METRICS = "metrics"
+    PRUNING = "pruning"
+    MONITORING = "monitoring"
+    GPU = "gpu"
+    ACTIVE = "active"
+    DEGRADED = "degraded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
 
+
+class InitialUserPersistenceActivation:
     def __init__(self, deps: InitialUserPersistenceActivationDependencies) -> None:
         self._deps = deps
         self._enabled = False
-        self._activated = False
-        self._activation_lock = asyncio.Lock()
+        self._requested = False
+        self._worker: asyncio.Task[None] | None = None
+        self.phase = InitialUserActivationPhase.BOOTSTRAP
+        self._failure_limiter = RateLimitedLogger(interval_seconds=30.0)
         self._handler: Callable[[Event], Awaitable[None]] = self._handle_user_created_event
 
     def enable(self) -> None:
-        if self._enabled:
+        if self._enabled or self._deps.runtime_state.is_shutting_down:
             return
         self._deps.event_bus.subscribe(UserCreatedEvent, self._handler)
         self._enabled = True
+        self.request_activation()
+
+    def request_activation(self) -> None:
+        if self._deps.runtime_state.is_shutting_down or self.phase in (
+            InitialUserActivationPhase.ACTIVE,
+            InitialUserActivationPhase.DEGRADED,
+            InitialUserActivationPhase.FAILED,
+            InitialUserActivationPhase.CANCELLED,
+        ):
+            return
+        self._requested = True
+        if self._worker is not None and not self._worker.done():
+            return
+        self._worker = self._deps.runtime_coordinator.schedule_background_task(
+            self._run_activation(), name="initial-user-persistence-activation"
+        )
+        if self._worker is None:
+            self.phase = InitialUserActivationPhase.FAILED
+            self._deps.event_bus.unsubscribe(UserCreatedEvent, self._handler)
+            raise ServiceUnavailableError("Initial user activation could not be scheduled.")
+        self._deps.runtime_state.initial_user_activation_task = self._worker
 
     async def _handle_user_created_event(self, event: Event) -> None:
-        if not isinstance(event, UserCreatedEvent):
-            return
-        if event.user_id <= 0:
-            return
-        async with self._activation_lock:
-            if self._activated:
-                return
-            try:
-                await self._deps.metrics_manager.start()
-                schedule_prune_webui_session_state(
-                    runtime_coordinator=self._deps.runtime_coordinator,
-                    runtime_state=self._deps.runtime_state,
-                    database_tokens=self._deps.database_tokens,
-                    logger=self._deps.logger,
-                )
-                if self._deps.hardware_activation_enabled:
-                    await self._deps.hardware_manager.start_monitoring()
-                    await self._deps.hardware_gpu_tuning.apply_startup_gpu_settings()
+        if isinstance(event, UserCreatedEvent) and event.user_id > 0:
+            self.request_activation()
+
+    async def _run_activation(self) -> None:
+        attempt = 0
+        try:
+            while not self._deps.runtime_state.is_shutting_down:
+                self._requested = False
+                try:
+                    if self.phase == InitialUserActivationPhase.BOOTSTRAP:
+                        state = await self._deps.database_users.get_bootstrap_state()
+                        if state == BootstrapState.UNINITIALIZED:
+                            if self._requested:
+                                continue
+                            return
+                        if state != BootstrapState.COMPLETE:
+                            raise StateError(
+                                "Initial user activation requires consistent bootstrap state."
+                            )
+                        self.phase = InitialUserActivationPhase.METRICS
+                    await self._activate_phases()
+                    return
+                except RECOVERABLE_EXCEPTIONS as exception:
+                    retryable = self.phase != InitialUserActivationPhase.GPU and (
+                        not isinstance(exception, SoAIError) or exception.is_transient
+                    )
+                    if not retryable:
+                        raise
+                    emit, suppressed = self._failure_limiter.should_emit()
+                    if emit:
+                        log_exception(
+                            self._deps.logger,
+                            exception,
+                            message="Initial user activation is degraded; retrying the incomplete phase.",
+                            operation=OPERATION_STARTUP_INITIAL_USER_PERSISTENCE_ACTIVATION,
+                            details={"phase": self.phase.value, "suppressed": suppressed},
+                            level="warning",
+                        )
+                    delay = compute_exponential_backoff_seconds(
+                        attempt, base_seconds=0.5, maximum_seconds=30.0, jitter_ratio=0.2
+                    )
+                    attempt += 1
+                    await asyncio.sleep(delay)
+        except asyncio.CancelledError:
+            self.phase = InitialUserActivationPhase.CANCELLED
+            raise
+        except HANDLED_RUNTIME_EXCEPTIONS as exception:
+            self.phase = InitialUserActivationPhase.FAILED
+            self._deps.runtime_state.set_degraded_mode(True)
+            log_exception(
+                self._deps.logger,
+                exception,
+                message="Initial user activation requires recovery; completed phases are retained.",
+                operation=OPERATION_STARTUP_INITIAL_USER_PERSISTENCE_ACTIVATION,
+            )
+        finally:
+            if (
+                self._deps.runtime_state.is_shutting_down
+                or self.phase != InitialUserActivationPhase.BOOTSTRAP
+            ):
                 self._deps.event_bus.unsubscribe(UserCreatedEvent, self._handler)
-                self._activated = True
-                self._deps.logger.info(
-                    "Startup persistence services activated after initial user creation.",
+
+    async def _activate_phases(self) -> None:
+        if self.phase == InitialUserActivationPhase.METRICS:
+            await self._deps.metrics_manager.start()
+            self.phase = InitialUserActivationPhase.PRUNING
+        if self.phase == InitialUserActivationPhase.PRUNING:
+            schedule_prune_webui_session_state(
+                runtime_coordinator=self._deps.runtime_coordinator,
+                runtime_state=self._deps.runtime_state,
+                database_tokens=self._deps.database_tokens,
+                logger=self._deps.logger,
+            )
+            self.phase = InitialUserActivationPhase.MONITORING
+        if self.phase == InitialUserActivationPhase.MONITORING:
+            if self._deps.hardware_activation_enabled:
+                await self._deps.hardware_manager.start_monitoring()
+            self.phase = InitialUserActivationPhase.GPU
+        if self._deps.runtime_state.is_shutting_down:
+            raise asyncio.CancelledError()
+        if self._deps.hardware_activation_enabled:
+            result = await self._deps.hardware_gpu_tuning.apply_startup_gpu_settings()
+            if not isinstance(result, GPUControlStartupResult):
+                raise ValidationError("GPU activation requires actual typed startup readiness.")
+            if (
+                result.admission is not None
+                and result.admission.state != GPURecoveryAdmissionState.CLEAR
+            ):
+                self.phase = InitialUserActivationPhase.DEGRADED
+                self._deps.runtime_state.set_degraded_mode(True)
+                self._deps.logger.warning(
+                    "GPU startup admission remains %s (operation %s).",
+                    result.admission.state.value,
+                    result.admission.operation_id,
                 )
-            except RECOVERABLE_EXCEPTIONS as exception:
-                log_exception(
-                    self._deps.logger,
-                    exception,
-                    message="Failed to activate startup persistence services after user creation. Services will be retried on next user creation event or startup tick.",
-                    operation=OPERATION_STARTUP_INITIAL_USER_PERSISTENCE_ACTIVATION,
-                )
+                return
+        if self._deps.runtime_state.is_shutting_down:
+            raise asyncio.CancelledError()
+        self.phase = InitialUserActivationPhase.ACTIVE
+        self._deps.logger.info(
+            "Startup persistence services activated after initial user creation."
+        )

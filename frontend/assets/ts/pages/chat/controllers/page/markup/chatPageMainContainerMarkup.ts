@@ -31,18 +31,18 @@ const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string =>
         </div>
         <div class="chat-header-actions">
         <div class="chat-header-overflow page-actions">
-        <button type="button" class="chat-overflow-trigger ui-icon-button page-actions__trigger" ${renderLabelAttributes(strings.moreActions)} aria-haspopup="true" aria-expanded="false"><span class="chat-action-icon" aria-hidden="true"></span></button>
+        <button type="button" class="chat-overflow-trigger ui-icon-button page-actions__trigger" ${renderLabelAttributes(strings.moreActions)} aria-haspopup="true" aria-expanded="false"><span class="ui-icon chat-action-icon" aria-hidden="true"></span></button>
         <div class="page-actions__menu page-actions__menu--split" role="toolbar" data-presence>
         <button type="button" class="agent-mode-cycle-btn ui-button" data-action="chat:cycle-agent-mode" data-agent-mode="chat" data-page-actions-menu-keep-open="true" ${renderLabelAttributes(strings.agentModeCycleTooltip)}><span class="agent-mode-cycle-icon ui-icon" aria-hidden="true"></span><span class="agent-mode-cycle-label">${strings.agentModeChat}</span></button>
-        <button type="button" class="agent-compact-btn chat-header-action ui-button u-hidden" data-action="chat:compact-agent" ${renderLabelAttributes(agentCompactTooltip)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.agentCompact}</span></button>
-        <button type="button" class="export-btn chat-header-action ui-button u-hidden" data-action="chat:export-conversation" ${renderLabelAttributes(strings.exportAction)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.exportAction}</span></button>
-        <button type="button" class="configuration-toggle-btn configuration-toggle-btn--dropdown chat-header-action ui-button" data-action="chat:toggle-configuration" aria-description="${presetsHoldHint}" ${renderLabelAttributes(strings.configuration)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.configuration}</span></button>
+        <button type="button" class="agent-compact-btn chat-header-action ui-button ui-icon-button u-hidden" data-action="chat:compact-agent" ${renderLabelAttributes(agentCompactTooltip)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.agentCompact}</span></button>
+        <button type="button" class="export-btn chat-header-action ui-button ui-icon-button u-hidden" data-action="chat:export-conversation" ${renderLabelAttributes(strings.exportAction)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.exportAction}</span></button>
+        <button type="button" class="configuration-toggle-btn configuration-toggle-btn--dropdown chat-header-action ui-button ui-icon-button" data-action="chat:toggle-configuration" aria-description="${presetsHoldHint}" ${renderLabelAttributes(strings.configuration)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.configuration}</span></button>
         ${headerOverflowComposerButtonsHtml}
         </div>
         </div>
-        <button type="button" class="header-favorite-btn chat-header-action ui-button" data-action="chat:toggle-current-favorite" data-page-actions-menu-keep-open="true" ${renderLabelAttributes(strings.toggleFavorite)} aria-pressed="false"><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.toggleFavorite}</span></button>
-        <button type="button" class="tools-toggle-btn chat-header-action ui-button" data-action="chat:toggle-tools" data-page-actions-menu-keep-open="true" aria-description="${toolsHoldHint}" ${renderLabelAttributes(strings.toggleTools)} aria-pressed="false"><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.toggleTools}</span></button>
-        <button type="button" class="plan-bar-toggle-btn chat-header-action ui-button ui-variant-violet u-hidden" data-action="chat:toggle-plan-bar" data-page-actions-menu-keep-open="true" aria-controls="agent-todo-panel-container" aria-expanded="true" ${renderLabelAttributes(planBarToggleTooltip)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label"></span></button>
+        <button type="button" class="header-favorite-btn chat-header-action ui-button ui-icon-button" data-action="chat:toggle-current-favorite" data-page-actions-menu-keep-open="true" ${renderLabelAttributes(strings.toggleFavorite)} aria-pressed="false"><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.toggleFavorite}</span></button>
+        <button type="button" class="tools-toggle-btn chat-header-action ui-button ui-icon-button" data-action="chat:toggle-tools" data-page-actions-menu-keep-open="true" aria-description="${toolsHoldHint}" ${renderLabelAttributes(strings.toggleTools)} aria-pressed="false"><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.toggleTools}</span></button>
+        <button type="button" class="plan-bar-toggle-btn chat-header-action ui-button ui-icon-button ui-variant-violet u-hidden" data-action="chat:toggle-plan-bar" data-page-actions-menu-keep-open="true" aria-controls="agent-todo-panel-container" aria-expanded="true" ${renderLabelAttributes(planBarToggleTooltip)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label"></span></button>
         <button type="button" class="configuration-toggle-btn ui-icon-button" data-action="chat:toggle-configuration" aria-description="${presetsHoldHint}" ${renderLabelAttributes(strings.configuration)}></button>
         </div>
         </div>
@@ -59,12 +59,14 @@ const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string =>
         </div>
         </div>
         <div class="chat-previews-container u-hidden" id="chat-previews-container">
-        <div class="input-queue-preview glass-surface-strong u-hidden" aria-hidden="true"></div>
         <div class="tool-approval-preview glass-surface-strong u-hidden" aria-hidden="true"></div>
         <div class="ask-user-preview glass-surface-strong u-hidden" aria-hidden="true"></div>
         <div class="secret-prompt-preview glass-surface-strong u-hidden" aria-hidden="true"></div>
         <div class="voice-recording-preview glass-surface-strong u-hidden" aria-hidden="true"></div>
-        <div class="attached-files-preview glass-surface-strong u-hidden" aria-hidden="true"></div>
+        <div class="chat-draft-tray glass-surface-strong">
+        <div class="input-queue-preview u-hidden" aria-hidden="true"></div>
+        <div class="attached-files-preview u-hidden" aria-hidden="true"></div>
+        </div>
         </div>
         <div class="chat-input-area">
         <div class="input-container">
@@ -85,7 +87,7 @@ const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string =>
 			        ${inputActionsInlineHtml.auxiliary}
 			        </div>
 			        <div class="chat-mobile-auxiliary-action-slot u-hidden" data-presence data-mobile-auxiliary-action="none"></div>
-		        <button type="button" class="chat-action-btn square-btn" data-action="chat:send-or-stop" ${renderLabelAttributes(strings.send)} disabled></button>
+		        <button type="button" class="chat-action-btn square-btn ui-icon-button" data-action="chat:send-or-stop" ${renderLabelAttributes(strings.send)} disabled></button>
 		        </div>
 	        </div>
         </div>

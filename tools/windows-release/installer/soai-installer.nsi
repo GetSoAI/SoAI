@@ -98,6 +98,11 @@ Var UpgradePrepared
 Var InstallerMutexHandle
 Var InstallMutationStarted
 Var UpdateStageRoot
+Var InstallerCandidateStage
+Var InstallerRemoveDataArgument
+Var InstallerSourceArgument
+Var InstallerChildCommandLine
+Var InstallerChildResultRoot
 Var InstallerFilesystemRoot
 Var InstallerRefreshResultRoot
 Var InstallerIsRefreshWorker
@@ -117,6 +122,7 @@ Var InstallFailureMessage
 Var InstallFailureSummary
 Var InstallRecoveryCompleted
 Var InstallMutationReverted
+Var InstallerFailureDataArgument
 Var InstallStartTicks
 Var InstallerCreatedRoot
 Var InstallerDiagnosticsRetained
@@ -140,6 +146,8 @@ Var RuntimeJobHandle
 Var RuntimePageElapsedLabel
 Var RuntimePageInfoLabel
 Var IntegrationStage
+Var IntegrationServiceCreated
+Var RuntimeExistingInstallationArgument
 Var IntegrationRegularFontExisted
 Var IntegrationItalicFontExisted
 Var IntegrationPriorRegularFont
@@ -155,9 +163,11 @@ Var RegistrationPriorInstallLocation
 Var RegistrationPriorDisplayIcon
 Var RegistrationPriorUninstallString
 Var RegistrationPriorQuietUninstallString
+Var RegistrationPriorRecoveryDirectory
 Var RegistrationPriorEstimatedSize
 Var RegistrationPriorNoModify
 Var RegistrationPriorNoRepair
+Var UninstallSupportRoot
 
 !define MUI_CUSTOMFUNCTION_ABORT AbortSoAIInstall
 !define MUI_ICON "assets\soai-installer.ico"
@@ -209,7 +219,6 @@ Section "SoAI" SEC_SOAI
     StrCmp $InstallFailed 1 install_failed
     Call StopExistingSoAI
     StrCmp $InstallFailed 1 install_failed
-    Call StartUpdateProgressWindow
     Call PrepareExistingInstallRoot
     StrCmp $InstallFailed 1 install_failed
 
@@ -267,7 +276,11 @@ Section "Uninstall"
   SetShellVarContext all
   SetRegView 64
 
-  IfFileExists "$INSTDIR\installer-support\Remove-SoAI.ps1" 0 cleanup_registry
+  ReadEnvStr $UninstallSupportRoot "SOAI_UNINSTALL_SUPPORT_ROOT"
+  IfFileExists "$UninstallSupportRoot\Remove-SoAI.ps1" cleanup_script 0
+    SetErrorLevel 1
+    Abort
+  cleanup_script:
     StrCpy $1 ""
     ${If} $UninstallRemoveData == 1
       DetailPrint "Removing SoAI runtime, application files, and application data..."
@@ -276,7 +289,19 @@ Section "Uninstall"
       DetailPrint "Removing SoAI runtime and application files while retaining application data..."
     ${EndIf}
     SetOutPath "$TEMP"
-    nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$INSTDIR\installer-support\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Uninstall$1'
+    FileOpen $0 "$UninstallSupportRoot\selected-mode.txt" w
+    ${If} $UninstallRemoveData == 1
+      FileWrite $0 "all"
+    ${Else}
+      FileWrite $0 "retain"
+    ${EndIf}
+    System::Call 'kernel32::FlushFileBuffers(p r0) i .r2'
+    FileClose $0
+    ${If} $2 == 0
+      SetErrorLevel 1
+      Abort
+    ${EndIf}
+    nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$UninstallSupportRoot\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Uninstall -ControlLauncherPath "$UninstallSupportRoot\soai-control.exe" -ManifestPath "$UninstallSupportRoot\installed-files.txt"$1'
     Pop $0
     ${If} $0 != 0
       ${IfNot} ${Silent}
@@ -286,16 +311,12 @@ Section "Uninstall"
       Abort
     ${EndIf}
 
-  cleanup_registry:
-  Call un.RemoveSoAITypeFonts
-  Delete "$SMPROGRAMS\SoAI\SoAI.lnk"
-  Delete "$SMPROGRAMS\SoAI\Uninstall SoAI.lnk"
-  RMDir "$SMPROGRAMS\SoAI"
-  Delete "$DESKTOP\SoAI.lnk"
+  ReadRegStr $0 HKLM "${PRODUCT_UNINSTALL_KEY}" "InstallLocation"
+  ${If} $0 == $INSTDIR
+    Call un.RemoveSoAITypeFonts
+  ${EndIf}
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
-  DeleteRegKey HKLM "${PRODUCT_REGKEY}"
-  DeleteRegKey HKLM "${PRODUCT_UNINSTALL_KEY}"
   Call un.ReleaseInstallerTarget
   ${If} $UninstallRemoveData == 1
     !insertmacro RemoveInstallerDataSkeleton "un."

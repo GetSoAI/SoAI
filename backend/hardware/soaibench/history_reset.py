@@ -33,9 +33,9 @@ async def reset_soaibench_history(
         await cancel_active_soaibench_runs(
             deps=deps,
             active_runs=active_runs,
-            reason="SoAIBench history reset",
+            reason="SoAI Bench history reset",
             operation=HISTORY_RESET_OPERATION,
-            cancelled_message="SoAIBench worker cancelled during history reset.",
+            cancelled_message="SoAI Bench worker cancelled during history reset.",
         )
         cleared_through_ms = await deps.database_hardware.clear_hardware_history(
             reset_genesis_uptime,

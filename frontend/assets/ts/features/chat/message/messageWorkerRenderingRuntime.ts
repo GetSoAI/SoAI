@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ensureError } from '@core/errors/coerce.ts';
+import { dom } from '@core/dom/dom.ts';
 import type { SyntaxHighlighter } from '@core/syntaxhighlighter/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
@@ -80,6 +81,7 @@ class ChatMessageWorkerRenderingRuntime {
         this.#inlineDetailsRenderer = new ChatMessageInlineActivityDetailsRenderer({
             dependencies: {
                 client: this.#renderWorkerClient,
+                syntaxHighlighter: this.#dependencies.syntaxHighlighter,
                 isRichTextEnabled: () => this.#dependencies.presentation.isRichTextEnabled(),
                 isCodeRecognitionEnabled: () => this.#dependencies.presentation.isCodeRecognitionEnabled(),
                 isThinkingFeatureEnabled: () => this.#dependencies.presentation.isThinkingFeatureEnabled(),
@@ -91,7 +93,7 @@ class ChatMessageWorkerRenderingRuntime {
                 getCurrentConversation: () => this.#dependencies.session.getCurrentConversation(),
                 resolveMessageForDomId: (conversation: ConversationContract, messageDomId: string) => this.#dependencies.state.resolveMessageReference(conversation, messageDomId).message,
                 handleError: (error: Error, context: string) => this.#handleError(error, context),
-                postRenderEffects: (container: Element | null) => this.#postRenderRequest(container, 'streamingTimeline'),
+                postRenderEffects: (container: Element | null) => this.#postRenderRequest(container, container !== null && dom.resolve('[data-speech-setup]', container) !== null ? 'full' : 'streamingTimeline'),
                 retryPendingRender: (container: Element | null) => this.#postRenderRequest(container, 'full')
             }
         });

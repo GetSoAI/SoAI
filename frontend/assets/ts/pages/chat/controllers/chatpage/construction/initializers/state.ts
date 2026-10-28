@@ -159,7 +159,10 @@ const initializeConversationInputsManager = (page: ChatControllerInitializationC
             logWarning: (message, error) => {
                 errorHandler.warn('ConversationInputs', message, error);
             },
-            updateInputQueuePreview: () => page.runtime.composerSurface.requireUi().updateInputQueuePreview(),
+            updateInputQueuePreview: () => {
+                page.runtime.composerSurface.requireUi().updateInputQueuePreview();
+                page.sessions.composer.refreshTokenCounterPreview();
+            },
             reconcileSettledConversationInputs: async (conversationId) => await page.runtime.turnRuntime.requireStreaming().reconcileConversationInputSettlement(conversationId),
             subscribeConversationInputEvents: (listeners) =>
                 subscribeManagedWebSocketContracts({

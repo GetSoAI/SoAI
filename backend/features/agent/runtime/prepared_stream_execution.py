@@ -28,6 +28,7 @@ from features.agent.runtime.turn_iteration_policy_types import AgentOutputPublic
 
 if TYPE_CHECKING:
     from core.openai.token_accounting import PromptOccupancy
+    from core.streaming.protocols import StreamGeneratorStateProtocol
     from core.types.json import JSONDict
     from features.agent.runtime.context_compaction.activity_result import (
         PreparedAutoCompactionSnapshot,
@@ -79,6 +80,7 @@ async def execute_prepared_streaming_turn(
         Callable[[str], Awaitable[PreviewContractOutputValidationResult]] | None
     ) = None,
     initial_output_publication_mode: AgentOutputPublicationMode | None = None,
+    public_error_state: StreamGeneratorStateProtocol | None = None,
 ) -> PreparedStreamingTurnExecution:
     initial_bundle: AgentStreamingTaskBundle | None = None
     if context.conversation_input_resume_phase is None:
@@ -111,6 +113,7 @@ async def execute_prepared_streaming_turn(
         model=requested_model,
         request_source=request_source,
         token_estimation_profile=settings.token_estimation_profile,
+        public_error_state=public_error_state,
     )
     result = await run_streaming_turn(
         deps=deps,
@@ -132,6 +135,7 @@ async def execute_prepared_streaming_turn(
         include_usage=include_usage,
         summarize_messages=summarize_messages,
         include_usage_in_result=include_usage_in_result,
+        shutdown_event=api_dependencies.shutdown_event,
         first_iteration_cancellation_id=(
             initial_bundle.task.cancellation_id if initial_bundle is not None else None
         ),

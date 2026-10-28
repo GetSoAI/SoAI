@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING
 
 from app.backup.archive_io import serialize_manifest, write_manifest_content
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.hardware.reservation_claims import claim_reserved_write
 
 if TYPE_CHECKING:
@@ -36,4 +36,10 @@ async def write_manifest_with_disk_reservation(
         },
     ) as manifest_reservation:
         with claim_reserved_write(manifest_reservation, size_bytes=manifest_bytes):
-            await asyncio.to_thread(write_manifest_content, manifest_path, manifest_content)
+            await run_joined_thread_call(
+                write_manifest_content,
+                manifest_path,
+                manifest_content,
+                task_name="backup-manifest-write",
+                retain_resources_until_complete=True,
+            )

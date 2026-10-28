@@ -29,13 +29,13 @@ const resolveSettledStatus = (status: TerminalAssistantStatus): SettledActivityS
     return status;
 };
 
-const resolveFrozenDurationMs = (durationMs: number | undefined, startedAtMs: number | undefined, terminalAtMs: number): number | undefined => {
+const resolveFrozenDurationMs = (durationMs: number | undefined, startedAtMs: number | undefined, terminalAtMs: number | null): number | undefined => {
     const suppliedDurationMs = typeof durationMs === 'number' && Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : null;
     if (suppliedDurationMs !== null) return suppliedDurationMs;
-    return typeof startedAtMs === 'number' && Number.isFinite(startedAtMs) ? Math.max(0, terminalAtMs - startedAtMs) : undefined;
+    return terminalAtMs !== null && typeof startedAtMs === 'number' && Number.isFinite(startedAtMs) ? Math.max(0, terminalAtMs - startedAtMs) : undefined;
 };
 
-const settleStatusActivity = (activity: AssistantActivityState, status: SettledActivityStatus, terminalAtMs: number): AssistantActivityState => {
+const settleStatusActivity = (activity: AssistantActivityState, status: SettledActivityStatus, terminalAtMs: number | null): AssistantActivityState => {
     if (activity.status !== 'running') return activity;
     return {
         ...activity,
@@ -44,17 +44,16 @@ const settleStatusActivity = (activity: AssistantActivityState, status: SettledA
     };
 };
 
-const settleToolActivity = <Tool extends ToolActivityItem | AssistantTimelineTool>(tool: Tool, status: SettledActivityStatus, terminalAtMs: number): Tool => {
+const settleToolActivity = <Tool extends ToolActivityItem | AssistantTimelineTool>(tool: Tool, status: SettledActivityStatus, terminalAtMs: number | null): Tool => {
     if (!isActiveToolActivity(tool) || isDurableBackgroundToolActivity(tool)) return tool;
-    return {
-        ...tool,
-        status,
-        durationMs: resolveFrozenDurationMs(tool.durationMs, tool.startedAtMs, terminalAtMs),
-        completedAtMs: terminalAtMs
-    };
+    const frozenDurationMs = resolveFrozenDurationMs(tool.durationMs, tool.startedAtMs, terminalAtMs);
+    const settled = { ...tool, status };
+    if (terminalAtMs !== null) settled.completedAtMs = terminalAtMs;
+    if (frozenDurationMs !== undefined) settled.durationMs = frozenDurationMs;
+    return settled;
 };
 
-const settleTerminalAssistantActivities = (message: ChatMessage, terminalStatus: TerminalAssistantStatus, terminalAtMs: number): boolean => {
+const settleTerminalAssistantActivities = (message: ChatMessage, terminalStatus: TerminalAssistantStatus, terminalAtMs: number | null): boolean => {
     const settledStatus = resolveSettledStatus(terminalStatus);
     let timelineChanged = false;
     const timeline = message.assistantEventTimeline?.map((event) => {

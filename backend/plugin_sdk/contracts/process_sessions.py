@@ -7,7 +7,7 @@ import asyncio
 import io
 import logging
 import os
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 
 import psutil
@@ -85,6 +85,7 @@ async def spawn_logged_process(
     start_new_session: bool = False,
     creationflags: int = 0,
     strip_ansi: bool = False,
+    output_observer: Callable[[str, str], None] | None = None,
 ) -> ManagedProcessSession:
     spawn_task = create_ephemeral_task(
         spawn_async_process(
@@ -103,14 +104,14 @@ async def spawn_logged_process(
     process: asyncio.subprocess.Process | None
     try:
         process = await asyncio.shield(spawn_task)
-    except asyncio.CancelledError:
+    except asyncio.CancelledError as exception:
         process = await _collect_spawned_process_after_cancellation(
             spawn_task=spawn_task,
             logger=logger,
             plugin_label=plugin_label,
         )
         if process is not None:
-            await _terminate_spawn_failure_session(
+            terminated = await _terminate_spawn_failure_session(
                 session=_build_process_session(
                     process=process,
                     log_file_handle=log_file_handle,
@@ -120,6 +121,10 @@ async def spawn_logged_process(
                 plugin_label=plugin_label,
                 use_process_group=start_new_session or creationflags != 0,
             )
+            if not terminated:
+                raise ProcessError(
+                    "Cancelled process startup could not verify process termination."
+                ) from exception
         else:
             await _close_spawn_failure_log_handle(
                 log_file_handle=log_file_handle,
@@ -151,6 +156,8 @@ async def spawn_logged_process(
                         log_file_handle=log_file_handle,
                         plugin_label=plugin_label,
                         strip_ansi=strip_ansi,
+                        stream_name="stdout",
+                        output_observer=output_observer,
                     ),
                     name=f"{plugin_label}-stdout-consumer",
                 ),
@@ -164,17 +171,23 @@ async def spawn_logged_process(
                         log_file_handle=log_file_handle,
                         plugin_label=plugin_label,
                         strip_ansi=strip_ansi,
+                        stream_name="stderr",
+                        output_observer=output_observer,
                     ),
                     name=f"{plugin_label}-stderr-consumer",
                 ),
             )
-    except asyncio.CancelledError:
-        await _terminate_spawn_failure_session(
+    except asyncio.CancelledError as exception:
+        terminated = await _terminate_spawn_failure_session(
             session=session,
             logger=logger,
             plugin_label=plugin_label,
             use_process_group=start_new_session or creationflags != 0,
         )
+        if not terminated:
+            raise ProcessError(
+                "Cancelled process startup could not verify process termination."
+            ) from exception
         raise
     except PROCESS_SESSION_OPERATION_EXCEPTIONS as exception:
         if not await _terminate_spawn_failure_session(
@@ -198,7 +211,6 @@ async def terminate_logged_process(
     shutdown_timeout_sec: float = 30.0,
     kill_wait_sec: float = 10.0,
     use_process_group: bool = True,
-    force_kill_tree_callback: Callable[[int, float], Awaitable[bool]] | None = None,
 ) -> bool:
     return await terminate_managed_process(
         process=session.process,
@@ -208,7 +220,6 @@ async def terminate_logged_process(
         shutdown_timeout_sec=shutdown_timeout_sec,
         kill_wait_sec=kill_wait_sec,
         use_process_group=use_process_group,
-        force_kill_tree_callback=force_kill_tree_callback,
         log_consumer_tasks=session.log_consumer_tasks,
         log_file_handle=session.log_file_handle,
     )

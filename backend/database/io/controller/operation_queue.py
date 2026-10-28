@@ -9,6 +9,8 @@ import threading
 from collections.abc import Callable
 from queue import Full, Queue
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
+from core.database.write_storage import DatabaseWriteStorage
 from core.errors.exceptions import SoAIError
 from core.logging.trace import get_logger
 from core.mutations.identifiers import create_timestamped_operation_id
@@ -59,6 +61,7 @@ class DatabaseWriteOperationQueue:
         *args: *Ts,
         enqueue_timeout: float | None = None,
         operation_timeout: float | None = None,
+        storage: DatabaseWriteStorage | None = None,
     ) -> T:
         logger = get_logger(LOGGER_NAME)
         if not self._is_running():
@@ -72,6 +75,7 @@ class DatabaseWriteOperationQueue:
         if future is None:
             raise DatabaseUnavailableError("Future was not created.")
         cancelled = threading.Event()
+        submitted = threading.Event()
         try:
             self._status_tracker.record(operation_id, OperationStatus.PENDING)
             try:
@@ -83,8 +87,10 @@ class DatabaseWriteOperationQueue:
                         cancelled=cancelled,
                         operation_id=operation_id,
                         operation_name=operation_name,
+                        storage=storage,
                     ),
                     enqueue_timeout=enqueue_timeout,
+                    submitted=submitted if storage is not None else None,
                 )
             except asyncio.CancelledError:
                 self._mark_cancelled_by_caller(operation_id, cancelled=cancelled, future=future)
@@ -196,6 +202,13 @@ class DatabaseWriteOperationQueue:
         except SoAIError as exception:
             exception.headers = {**(exception.headers or {}), "X-SoAI-Operation-Id": operation_id}
             raise
+        finally:
+            if storage is not None and submitted.is_set():
+                await run_joined_thread_call(
+                    storage.completed.wait,
+                    task_name=f"database.write.resources:{operation_id}",
+                    retain_resources_until_complete=True,
+                )
 
     def _mark_cancelled_by_caller[T](
         self,
@@ -220,11 +233,26 @@ class DatabaseWriteOperationQueue:
         job: DatabaseWriteJobProtocol,
         *,
         enqueue_timeout: float | None,
+        submitted: threading.Event | None = None,
     ) -> None:
         if enqueue_timeout is None:
             self._queue.put_nowait(job)
+            if submitted is not None:
+                submitted.set()
             return
-        await asyncio.to_thread(self._queue.put, job, True, enqueue_timeout)
+        if submitted is None:
+            await asyncio.to_thread(self._queue.put, job, True, enqueue_timeout)
+            return
+
+        def enqueue_reserved_job() -> None:
+            self._queue.put(job, True, enqueue_timeout)
+            submitted.set()
+
+        await run_joined_thread_call(
+            enqueue_reserved_job,
+            task_name=f"database.write.enqueue:{job.operation_id}",
+            retain_resources_until_complete=True,
+        )
 
     @staticmethod
     def _status_url(operation_id: str) -> str:

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { syncElementShell } from '@core/dom/patching.ts';
+import { preserveBoundedVerticalResizeState } from '@core/dom/boundedVerticalResize.ts';
 import { patchOrderedChildren } from '@core/dom/orderedChildPatching.ts';
 import { insertOrReplaceAssistantDomChild } from '@features/chat/message/assistantDomReconciler.ts';
 import { resolveAssistantDomStateForPatch } from '@features/chat/message/assistantDomState.ts';
@@ -119,6 +120,7 @@ const shouldSkipCurrentDetailsPatch = (activity: HTMLElement, existingDetails: H
 };
 
 const patchInlineActivityDetailsContent = (existingDetails: HTMLElement, createdDetails: HTMLElement, patchActivity: ActivityPatchHandler, context: ActivityPatchContext, applyStreamingReveal: boolean): boolean => {
+    preserveBoundedVerticalResizeState(existingDetails, createdDetails);
     let changed = syncElementShell({ target: existingDetails, source: createdDetails });
 
     const existingThinking = resolveDirectThinkingPhase(existingDetails);
@@ -177,7 +179,7 @@ const patchToolDetailsMarkup = (inputArguments: { existing: HTMLElement; created
         if (!existingDetails) {
             return false;
         }
-        if (inputArguments.preserveOpenDetails && inputArguments.existing.getAttribute('data-collapsed') !== 'true' && detailsRootHasPopulatedContent(existingDetails)) {
+        if (inputArguments.preserveOpenDetails && (inputArguments.existing.getAttribute('data-collapsed') !== 'true' || inputArguments.existing.getAttribute('data-collapsing') === 'true') && detailsRootHasPopulatedContent(existingDetails)) {
             return false;
         }
         removeElementWithAssistantState(existingDetails, { assistantDomState: inputArguments.assistantDomState });

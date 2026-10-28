@@ -3,7 +3,7 @@
 
 @layer components {
     :where(.chat-container) .inline-activity-leading-icon {
-        --inline-activity-leading-icon-slot-size: 16px;
+        --inline-activity-leading-icon-slot-size: var(--chat-activity-icon-size);
         --inline-activity-leading-icon-icon-size: 12px;
         width: var(--inline-activity-leading-icon-slot-size);
         height: var(--inline-activity-leading-icon-slot-size);
@@ -11,6 +11,7 @@
         transition: transform var(--duration-220) var(--ease-default);
         position: relative;
         overflow: hidden;
+        flex-shrink: 0;
     }
 
     :where(.chat-container) .inline-activity-leading-icon[data-leading-variant='hourglass'] {
@@ -22,9 +23,10 @@
     }
 
     :where(.chat-container) .inline-activity-icon {
-        width: 16px;
-        height: 16px;
+        width: var(--chat-activity-icon-size);
+        height: var(--chat-activity-icon-size);
         color: var(--text-secondary);
+        flex-shrink: 0;
     }
 
     :where(.chat-container) :is(.inline-activity-icon, .inline-activity-separator-dot) > :is(svg, .ui-icon) {
@@ -65,8 +67,10 @@
     }
 
     :where(.chat-container) .inline-activity {
+        --presence-morph-duration: var(--duration-240);
         --ui-surface-panel-bg: var(--glass-surface-medium);
         --ui-surface-panel-border: var(--surface-card-border);
+        transition: padding-block-end var(--duration-220) var(--ease-default);
         display: flex;
         flex-direction: column;
         align-self: flex-start;
@@ -167,7 +171,9 @@
     }
 
     :where(.chat-container) .inline-activity-header {
-        gap: var(--space-2);
+        --inline-activity-header-tint: transparent;
+        gap: var(--chat-activity-header-gap);
+        justify-content: flex-start;
         flex-wrap: nowrap;
         min-width: 0;
         width: 100%;
@@ -183,8 +189,33 @@
         border-bottom: none;
         border-end-start-radius: 0;
         border-end-end-radius: 0;
-        background: var(--title-bar-background);
-        transition: color var(--duration-220) var(--ease-default);
+        background: transparent;
+        transition:
+            color var(--duration-300) var(--ease-default),
+            background-color var(--duration-300) var(--ease-default);
+    }
+
+    :where(.chat-container) .inline-activity-header::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(var(--inline-activity-header-tint), var(--inline-activity-header-tint)), var(--title-bar-background);
+        opacity: 1;
+        z-index: var(--z-base);
+        pointer-events: none;
+        transition: opacity var(--duration-300) var(--ease-default);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where(.chat-container) .inline-activity-header {
+            transition: none;
+        }
+
+        :where(.chat-container) .inline-activity-header::after,
+        :where(.chat-container) .inline-activity-header::before {
+            transition: none;
+        }
     }
 
     :where(.chat-container) .inline-activity-header::before {
@@ -194,9 +225,15 @@
         border-radius: inherit;
         background-color: var(--ui-button-bg-hover);
         opacity: 0;
-        z-index: var(--z-base);
+        z-index: var(--z-above-sibling);
         pointer-events: none;
-        transition: opacity var(--duration-220) var(--ease-default);
+        transition: opacity var(--duration-300) var(--ease-default);
+    }
+
+    body.reduce-motions :where(.chat-container) .inline-activity-header,
+    body.reduce-motions :where(.chat-container) .inline-activity-header::after,
+    body.reduce-motions :where(.chat-container) .inline-activity-header::before {
+        transition: none;
     }
 
     :where(.chat-container) .inline-activity-header > * {
@@ -241,7 +278,11 @@
     }
 
     :where(.chat-container) .inline-activity:not(.message-role-activity) > .inline-activity-header:is([aria-disabled='true'], [data-toggle-disabled='true']) {
-        background: var(--button-surface-bg);
+        background-color: var(--button-surface-bg);
+    }
+
+    :where(.chat-container) .inline-activity:not(.message-role-activity) > .inline-activity-header:is([aria-disabled='true'], [data-toggle-disabled='true'])::after {
+        opacity: 0;
     }
 
     :where(.chat-container) .inline-activity.message-role-activity[data-action]:is(:hover, :focus-within) > .inline-activity-header {

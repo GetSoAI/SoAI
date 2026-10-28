@@ -126,8 +126,11 @@ def prepare_managed_data_commit(paths: UpdateTransactionPaths) -> None:
         raise StateError("The installed default configuration must be a regular file.")
 
 
-def copy_managed_data_to_rollback(paths: UpdateTransactionPaths) -> None:
-    metadata_path = os.path.join(paths.base_path, *MANAGED_INSTALL_METADATA_RELATIVE_COMPONENTS)
+def copy_managed_data_to_rollback(
+    paths: UpdateTransactionPaths, *, retained_installation_root: str | None = None
+) -> None:
+    source_root = retained_installation_root or paths.base_path
+    metadata_path = os.path.join(source_root, *MANAGED_INSTALL_METADATA_RELATIVE_COMPONENTS)
     if os.path.lexists(metadata_path):
         metadata_storage = os.path.join(paths.rollback_old_path, MANAGED_ROLLBACK_DIR)
         os.makedirs(metadata_storage, mode=0o700, exist_ok=True)
@@ -136,8 +139,14 @@ def copy_managed_data_to_rollback(paths: UpdateTransactionPaths) -> None:
             os.path.join(metadata_storage, *MANAGED_INSTALL_METADATA_RELATIVE_COMPONENTS)
         )
     managed_paths = (
-        (_base_vendor_path(paths), _rollback_vendor_path(paths)),
-        (_base_config_default_path(paths), _rollback_config_default_path(paths)),
+        (
+            os.path.join(source_root, *MANAGED_VENDOR_RELATIVE_COMPONENTS),
+            _rollback_vendor_path(paths),
+        ),
+        (
+            os.path.join(source_root, *MANAGED_CONFIG_DEFAULT_RELATIVE_COMPONENTS),
+            _rollback_config_default_path(paths),
+        ),
     )
     for source_path, destination_path in managed_paths:
         if not os.path.lexists(source_path):

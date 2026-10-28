@@ -1,7 +1,14 @@
 /* SoAI - Chat feature main timeline scroll [frontend/assets/ts/features/chat/mainTimelineScroll.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isNamedFormField } from '@core/dom/formFields.ts';
 import { CHAT_SCROLL_BOTTOM_THRESHOLD } from '@features/chat/chatConstants.ts';
+
+const USER_SCROLL_KEYS: ReadonlySet<string> = new Set(['ArrowDown', 'ArrowUp', 'End', 'Home', 'PageDown', 'PageUp', ' ']);
+
+const isEditableKeyTarget = (target: EventTarget | null): boolean => target instanceof Element && (isNamedFormField(target) || target.closest('[contenteditable]') !== null);
+
+const isMainTimelineKeyboardScrollEvent = (event: Event): event is KeyboardEvent => event instanceof KeyboardEvent && USER_SCROLL_KEYS.has(event.key) && !isEditableKeyTarget(event.target);
 
 const MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE = 'data-auto-scroll-lock';
 const programmaticScrollOffsets = new WeakMap<HTMLElement, number>();
@@ -24,12 +31,22 @@ const isMainTimelineAtBottom = (element: HTMLElement): boolean => isMainTimeline
 
 const isMainTimelineAutoScrollLocked = (element: HTMLElement): boolean => element.getAttribute(MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE) === 'true';
 
-const writeMainTimelineScrollTop = (element: HTMLElement, top: number): void => {
-    const previousTop = element.scrollTop;
-    if (top === previousTop) return;
-    element.scrollTop = top;
+const isMainTimelineScrollRestoring = (element: HTMLElement): boolean => element.getAttribute(MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE) === 'restoring';
+
+const recordMainTimelineProgrammaticScrollOffset = (element: HTMLElement, previousTop: number): void => {
     const appliedOffset = element.scrollTop - previousTop;
     if (appliedOffset !== 0) programmaticScrollOffsets.set(element, (programmaticScrollOffsets.get(element) ?? 0) + appliedOffset);
+};
+
+const writeMainTimelineScrollTop = (element: HTMLElement, top: number): void => {
+    const previousTop = element.scrollTop;
+    if (top !== previousTop) element.scrollTop = top;
+    recordMainTimelineProgrammaticScrollOffset(element, previousTop);
+};
+
+const writeMainTimelineScrollOffset = (element: HTMLElement, offset: number, previousTop: number = element.scrollTop): void => {
+    if (offset !== 0) element.scrollBy({ top: offset, behavior: 'instant' });
+    recordMainTimelineProgrammaticScrollOffset(element, previousTop);
 };
 
 const consumeMainTimelineProgrammaticScrollOffset = (element: HTMLElement): number => {
@@ -38,5 +55,5 @@ const consumeMainTimelineProgrammaticScrollOffset = (element: HTMLElement): numb
     return offset;
 };
 
-export { MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, consumeMainTimelineProgrammaticScrollOffset, isMainTimelineAtBottom, isMainTimelineAutoScrollLocked, isMainTimelineMeasurementAtBottom, measureMainTimelineScroll, writeMainTimelineScrollTop };
+export { MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, consumeMainTimelineProgrammaticScrollOffset, isEditableKeyTarget, isMainTimelineKeyboardScrollEvent, isMainTimelineAtBottom, isMainTimelineAutoScrollLocked, isMainTimelineScrollRestoring, isMainTimelineMeasurementAtBottom, measureMainTimelineScroll, writeMainTimelineScrollOffset, writeMainTimelineScrollTop };
 export type { MainTimelineScrollMeasurement };

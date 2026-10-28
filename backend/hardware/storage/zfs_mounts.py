@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from core.files.findmnt import parse_findmnt_filesystems
 from core.files.mount_filters import is_internal_mount_point
 from core.os.storage_types import ZFS_STORAGE_READ_ONLY_REASON
+from core.runtime.platform import get_runtime_platform
 from core.system.command_failures import require_command_success
 from core.validation.integers import coerce_non_negative_exact_int_or_zero
 from hardware.operations import create_device_id
@@ -31,6 +32,8 @@ def get_zfs_mount_info(
     executor: CommandExecutorProtocol,
     known_mounts: set[str],
 ) -> list[JSONDict]:
+    if not get_runtime_platform().is_linux:
+        return []
     argv = [
         "findmnt",
         "--json",

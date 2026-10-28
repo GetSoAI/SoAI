@@ -12,6 +12,7 @@ from hardware.soaibench.phase_telemetry import PhaseTelemetryRunResult, run_phas
 from hardware.soaibench.runtime import (
     CERTIFIED_MEASURED_PASSES,
     CERTIFIED_WARMUP_PASSES,
+    STANDARD_PHASE_TIMEOUT_SECONDS,
 )
 from hardware.soaibench.worker_execution import (
     run_alu_phase,
@@ -49,7 +50,6 @@ __all__ = (
     "run_certified_pass",
 )
 
-CERTIFIED_PHASE_TIMEOUT_SECONDS = 3600.0
 CERTIFIED_TELEMETRY_SAMPLE_INTERVAL_SECONDS = 0.25
 
 
@@ -66,6 +66,7 @@ async def run_certified_pass(
     phase_progress: CertifiedPhaseProgress,
     runtime_context: SoAIBenchWorkerRuntimeContext,
     telemetry_accumulator: SoAIBenchTelemetryAccumulator,
+    pass_telemetry_accumulator: SoAIBenchTelemetryAccumulator,
 ) -> CertifiedPassRunResult:
     if stop_event.is_set():
         return CertifiedPassRunResult(None, None)
@@ -79,9 +80,10 @@ async def run_certified_pass(
         run_compute_phase(
             opencl_pool=opencl_pool,
             identity=identity,
-            timeout_sec=CERTIFIED_PHASE_TIMEOUT_SECONDS,
+            timeout_sec=STANDARD_PHASE_TIMEOUT_SECONDS,
         ),
         "soaibench-certified-compute",
+        pass_telemetry_accumulator,
     )
     if compute_run.terminal_telemetry is not None:
         return CertifiedPassRunResult(None, compute_run.terminal_telemetry)
@@ -100,9 +102,10 @@ async def run_certified_pass(
         run_alu_phase(
             opencl_pool=opencl_pool,
             identity=identity,
-            timeout_sec=CERTIFIED_PHASE_TIMEOUT_SECONDS,
+            timeout_sec=STANDARD_PHASE_TIMEOUT_SECONDS,
         ),
         "soaibench-certified-alu",
+        pass_telemetry_accumulator,
     )
     if alu_run.terminal_telemetry is not None:
         return CertifiedPassRunResult(None, alu_run.terminal_telemetry)
@@ -121,9 +124,10 @@ async def run_certified_pass(
         run_matrix_phase(
             opencl_pool=opencl_pool,
             identity=identity,
-            timeout_sec=CERTIFIED_PHASE_TIMEOUT_SECONDS,
+            timeout_sec=STANDARD_PHASE_TIMEOUT_SECONDS,
         ),
         "soaibench-certified-matrix",
+        pass_telemetry_accumulator,
     )
     if matrix_run.terminal_telemetry is not None:
         return CertifiedPassRunResult(None, matrix_run.terminal_telemetry)
@@ -142,9 +146,10 @@ async def run_certified_pass(
         run_latency_phase(
             opencl_pool=opencl_pool,
             identity=identity,
-            timeout_sec=CERTIFIED_PHASE_TIMEOUT_SECONDS,
+            timeout_sec=STANDARD_PHASE_TIMEOUT_SECONDS,
         ),
         "soaibench-certified-latency",
+        pass_telemetry_accumulator,
     )
     if latency_run.terminal_telemetry is not None:
         return CertifiedPassRunResult(None, latency_run.terminal_telemetry)
@@ -163,9 +168,10 @@ async def run_certified_pass(
         run_memory_phase(
             opencl_pool=opencl_pool,
             identity=identity,
-            timeout_sec=CERTIFIED_PHASE_TIMEOUT_SECONDS,
+            timeout_sec=STANDARD_PHASE_TIMEOUT_SECONDS,
         ),
         "soaibench-certified-memory",
+        pass_telemetry_accumulator,
     )
     if memory_run.terminal_telemetry is not None:
         return CertifiedPassRunResult(None, memory_run.terminal_telemetry)
@@ -185,9 +191,10 @@ async def run_certified_pass(
             opencl_pool=opencl_pool,
             identity=identity,
             stress=False,
-            timeout_sec=CERTIFIED_PHASE_TIMEOUT_SECONDS,
+            timeout_sec=STANDARD_PHASE_TIMEOUT_SECONDS,
         ),
         "soaibench-certified-mixed",
+        pass_telemetry_accumulator,
     )
     if mixed_run.terminal_telemetry is not None:
         return CertifiedPassRunResult(None, mixed_run.terminal_telemetry)
@@ -210,6 +217,7 @@ async def _run_monitored_phase(
     opencl_pool: SoAIBenchOpenCLExecutionProtocol,
     awaitable: Coroutine[None, None, SoAIBenchPhaseResult],
     task_name: str,
+    pass_telemetry_accumulator: SoAIBenchTelemetryAccumulator,
 ) -> PhaseTelemetryRunResult:
     return await run_phase_with_telemetry(
         awaitable=awaitable,
@@ -218,6 +226,7 @@ async def _run_monitored_phase(
         telemetry_accumulator=telemetry_accumulator,
         sample_interval_seconds=CERTIFIED_TELEMETRY_SAMPLE_INTERVAL_SECONDS,
         terminate_execution=opencl_pool.close,
+        pass_telemetry_accumulator=pass_telemetry_accumulator,
     )
 
 

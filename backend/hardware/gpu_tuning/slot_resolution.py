@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from hardware.gpu_tuning.slot_payload import SlotPayloadDependencies
 
 __all__ = (
-    "load_locked_slot_inventory_payload_or_error",
     "load_preview_slot_inventory_payload_or_error",
     "load_slot_capabilities_inventory_payload_or_error",
     "load_slot_inventory_payload_or_error",
@@ -54,28 +53,6 @@ def load_slot_inventory_payload_or_error(
     return (slot_id, deps, inventory, payload)
 
 
-def load_locked_slot_inventory_payload_or_error(
-    *,
-    executor: CommandExecutorProtocol,
-    storage: GpuSlotStorageManagerProtocol,
-    detailed_gpu_info: bool,
-    logger: TraceLogger,
-    slot: str | int,
-    gpu_services: GpuServiceDependencies,
-    allow_create: bool,
-) -> tuple[str, SlotPayloadDependencies, dict[str, JSONDict], JSONDict] | JSONDict:
-    with storage.lock:
-        return load_slot_inventory_payload_or_error(
-            executor=executor,
-            storage=storage,
-            detailed_gpu_info=detailed_gpu_info,
-            logger=logger,
-            slot=slot,
-            gpu_services=gpu_services,
-            allow_create=allow_create,
-        )
-
-
 def load_preview_slot_inventory_payload_or_error(
     *,
     executor: CommandExecutorProtocol,
@@ -85,7 +62,7 @@ def load_preview_slot_inventory_payload_or_error(
     slot: str | int,
     gpu_services: GpuServiceDependencies,
 ) -> tuple[str, SlotPayloadDependencies, dict[str, JSONDict], JSONDict] | JSONDict:
-    return load_locked_slot_inventory_payload_or_error(
+    return load_slot_inventory_payload_or_error(
         executor=executor,
         storage=storage,
         detailed_gpu_info=detailed_gpu_info,

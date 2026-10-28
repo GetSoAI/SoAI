@@ -46,5 +46,10 @@ const requirePluginsUi = (host: PluginsPageDomHost): PluginsUi => {
     return { root, grid, listBody, viewModeToggleButton };
 };
 
-export { requirePluginsUi };
+const optionalPendingPluginToggleSlider = (element: HTMLElement): HTMLElement | null => {
+    const slider = dom.resolve('.plugin-enable-toggle[data-pending] > .slider', element);
+    return slider instanceof HTMLElement ? slider : null;
+};
+
+export { optionalPendingPluginToggleSlider, requirePluginsUi };
 export type { PluginsUi, PluginsPageDomHost };

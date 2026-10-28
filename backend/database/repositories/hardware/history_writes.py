@@ -28,11 +28,20 @@ class HardwareHistoryWrites:
     async def log(self, info: JSONDict) -> None:
         observed_at_ms = resolve_hardware_sample_timestamp_ms(info)
         async with self._lock:
-            if observed_at_ms <= self._cleared_through_ms:
+            disk_rows = info.get("disk")
+            has_row_observations = isinstance(disk_rows, list) and any(
+                isinstance(row, dict) and "observation_status" in row for row in disk_rows
+            )
+            if (
+                observed_at_ms <= self._cleared_through_ms
+                and "component_status" not in info
+                and not has_row_observations
+            ):
                 return
             await self._core.writer.queue_write_operation(
                 sync_log_hardware_metrics,
                 {**info, "timestamp_ms": observed_at_ms},
+                self._cleared_through_ms,
             )
 
     async def clear(self, reset_genesis_uptime: bool) -> int:

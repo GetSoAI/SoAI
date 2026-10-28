@@ -68,4 +68,6 @@ class DatabasePluginCloneTransactionsProtocol(Protocol):
         task_id: str,
         current_phase: str,
         following_phase: str,
+        *,
+        mutation_fencing_token: int | None = None,
     ) -> bool: ...

@@ -53,7 +53,6 @@ def merge_backend_apply_result(
     backend_changed = backend_result.get("changed") is True
     if isinstance(backend_messages, list):
         apply_messages.extend(str(message) for message in backend_messages)
-        backend_changed = backend_changed or bool(backend_messages)
     backend_errors = backend_result.get("errors")
     if isinstance(backend_errors, list):
         apply_errors.extend(str(error) for error in backend_errors)

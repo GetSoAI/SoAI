@@ -29,7 +29,7 @@
     }
 
     :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator {
-        --chat-page-mode-chevron-color: var(--text-tertiary);
+        --chat-page-mode-chevron-color: var(--ui-button-neutral-color);
         --chat-page-mode-chevron-size: calc(1em + (var(--button-icon-scale) * 1rem));
         --chat-page-mode-select-height: calc(var(--control-height) - 2px);
 
@@ -57,11 +57,11 @@
     }
 
     :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator:has(.chat-page-mode-indicator-select[data-agent-mode='plan']) {
-        --chat-page-mode-chevron-color: var(--accent-purple);
+        --chat-page-mode-chevron-color: color-mix(in srgb, var(--accent-purple) 80%, var(--text-primary) 20%);
     }
 
     :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator:has(.chat-page-mode-indicator-select[data-agent-mode='execute']) {
-        --chat-page-mode-chevron-color: var(--status-orange);
+        --chat-page-mode-chevron-color: color-mix(in srgb, var(--status-orange) 80%, var(--text-primary) 20%);
     }
 
     :where(.chat-container) .chat-page-indicator-row .chat-page-model-indicator-select.page-header-filter-select[data-chat-model-control='true'] {
@@ -95,7 +95,7 @@
         min-width: 0;
         padding-block: 0 0;
         padding-inline: var(--space-25) calc(var(--space-25) + var(--control-icon-size) + var(--space-2));
-        border: var(--border-width-1) solid var(--filter-control-border);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--filter-control-border) var(--control-button-border-strength), transparent);
         border-radius: var(--border-radius);
         font-size: inherit;
         line-height: normal;
@@ -113,7 +113,7 @@
         --filter-control-color: var(--ui-button-neutral-color);
 
         background-color: var(--filter-control-bg);
-        border-color: var(--filter-control-border);
+        border-color: color-mix(in srgb, var(--filter-control-border) var(--control-button-border-strength), transparent);
         color: var(--filter-control-color);
     }
 
@@ -123,7 +123,7 @@
         --filter-control-color: var(--ui-button-neutral-color-hover);
 
         background-color: var(--filter-control-bg);
-        border-color: var(--filter-control-border);
+        border-color: color-mix(in srgb, var(--filter-control-border) var(--control-button-border-strength), transparent);
         color: var(--filter-control-color);
     }
 
@@ -147,5 +147,17 @@
         color: color-mix(in srgb, var(--agent-mode-color) 92%, var(--text-primary) 8%);
         border-color: color-mix(in srgb, var(--agent-mode-color) 65%, var(--glass-border-strong));
         background-color: color-mix(in srgb, var(--agent-mode-color) 16%, var(--ui-button-surface-strong));
+    }
+
+    :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator:has(select[data-agent-mode='chat']:is(:hover, :focus-visible)) {
+        --chat-page-mode-chevron-color: var(--ui-button-neutral-color-hover);
+    }
+
+    :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator:has(select[data-agent-mode='plan']:is(:hover, :focus-visible)) {
+        --chat-page-mode-chevron-color: color-mix(in srgb, var(--accent-purple) 92%, var(--text-primary) 8%);
+    }
+
+    :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator:has(select[data-agent-mode='execute']:is(:hover, :focus-visible)) {
+        --chat-page-mode-chevron-color: color-mix(in srgb, var(--status-orange) 92%, var(--text-primary) 8%);
     }
 }

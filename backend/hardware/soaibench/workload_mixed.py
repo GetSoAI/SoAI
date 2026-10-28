@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from core.hardware.soaibench_workloads import (
+    ELEMENT_ALIGNMENT,
     MIXED_BATCH_DISPATCHES,
     MIXED_ELEMENTS,
     MIXED_STANDARD_ROUNDS,
@@ -55,6 +56,7 @@ def execute_mixed_workload(
         summary_prefix="mixed",
         element_count=STRESS_MIXED_ELEMENT_COUNT if stress else STANDARD_MIXED_ELEMENT_COUNT,
         synchronize_each_repeat=True,
+        maximum_dispatch_elements=ELEMENT_ALIGNMENT,
         stress=stress,
         session=session,
     )

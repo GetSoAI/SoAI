@@ -47,12 +47,19 @@ class SystemRestartRequester:
     async def require_restart(self, reason: str, source: str = "unknown") -> None:
         normalized_reason = (reason or "Restart required").strip()
         normalized_source = (source or "unknown").strip()
-        await self._deps.restart_state_manager.require_restart(normalized_reason, normalized_source)
+        restart_state_manager = self._deps.restart_state_manager
+        await restart_state_manager.require_restart(normalized_reason, normalized_source)
+        connection_transition = restart_state_manager.get_connection_transition()
         try:
             await self._deps.event_bus.publish(
                 self._deps.system_restart_required_event(
                     reason=normalized_reason,
                     changed_path=normalized_source,
+                    connection_transition=(
+                        None
+                        if connection_transition is None
+                        else connection_transition.to_public_payload()
+                    ),
                 ),
             )
         except RECOVERABLE_EXCEPTIONS as exception:

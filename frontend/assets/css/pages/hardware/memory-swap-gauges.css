@@ -88,10 +88,10 @@
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-ring-arc {
+        --ring-gauge-color: var(--hardware-memory-swap-accent);
+
         inset: var(--border-width-1);
         z-index: var(--z-base);
-        background: conic-gradient(from -225deg, var(--hardware-memory-swap-accent) 0 var(--memory-swap-arc), transparent var(--memory-swap-arc) 100%);
-        mask: radial-gradient(farthest-side, transparent calc(100% - var(--memory-swap-center-inset)), var(--color-black) calc(100% - var(--memory-swap-center-inset) + 0.02rem));
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-ring-face {
@@ -153,6 +153,7 @@
         font-size: var(--font-size-base);
         font-weight: 700;
         font-variant-numeric: tabular-nums;
+        transition: opacity var(--duration-400) var(--ease-emphasized);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-stat {
@@ -171,5 +172,14 @@
         color: var(--text-secondary);
         font-size: var(--font-size-compact);
         font-variant-numeric: tabular-nums;
+        transition: opacity var(--duration-400) var(--ease-emphasized);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-gauge.hardware-observation-stale .hardware-memory-swap-gauge-value,
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-gauge.hardware-observation-stale .hardware-memory-swap-stat-value,
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-gauge.hardware-observation-stale .hardware-memory-swap-ring-arc {
+        --ring-gauge-color: var(--hardware-memory-swap-accent);
+
+        opacity: 0.5;
     }
 }

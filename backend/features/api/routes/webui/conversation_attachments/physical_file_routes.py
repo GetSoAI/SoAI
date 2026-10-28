@@ -78,6 +78,7 @@ def register_physical_attachment_file_routes(routers: ApiRouters) -> None:
             try:
                 managed = await open_verified_soai_file_descriptor(
                     storage_root,
+                    file_content_pool=api_context.dependencies.file_content_pool,
                     record=file_record,
                     attachment=attachment,
                 )

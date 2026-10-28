@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
-from core.errors.exceptions import StateError
+from core.errors.exceptions import StateError, ValidationError
+from core.validation.strict_integer import is_strict_int
 from hardware.vendors.command_probe import require_json_command_payload
 
 if TYPE_CHECKING:
@@ -34,6 +36,7 @@ def execute_amd_smi_json_command(
         timeout=timeout,
         use_sudo=use_sudo,
         failure_message="amd-smi command failed",
+        framing="amd_smi",
     )
 
 
@@ -42,6 +45,8 @@ def execute_amd_smi_command(
     vendor_id: int,
     command: list[str],
 ) -> None:
+    if "--clk-level" in command:
+        raise StateError("AMD SMI clock command syntax is unproved for the selected backend.")
     cmd = ["amd-smi", "set", "-g", str(vendor_id)] + command
     result = executor.execute(
         cmd,
@@ -50,8 +55,7 @@ def execute_amd_smi_command(
         use_sudo=True,
         stdin_text=_AMD_SMI_ACCEPT_TERMS_STDIN,
     )
-    if result.return_code != 0:
-        raise StateError(result.stderr or "amd-smi command failed")
+    _require_amd_control_command_success(result.return_code, result.stdout, result.stderr)
 
 
 def execute_amd_smi_reset_command(
@@ -61,5 +65,23 @@ def execute_amd_smi_reset_command(
 ) -> None:
     cmd = ["amd-smi", "reset", "-g", str(vendor_id)] + command
     result = executor.execute(cmd, timeout=5, shell=False, use_sudo=True)
-    if result.return_code != 0:
-        raise StateError(result.stderr or "amd-smi reset command failed")
+    _require_amd_control_command_success(result.return_code, result.stdout, result.stderr)
+
+
+def _require_amd_control_command_success(return_code: int, stdout: str, stderr: str) -> None:
+    if not is_strict_int(return_code) or not isinstance(stdout, str) or not isinstance(stderr, str):
+        raise ValidationError("AMD SMI control command returned a malformed response.")
+    diagnostic = re.search(
+        r"(?im)(?:^\s*error\b|parameter[^\n]*is invalid|unrecognized arguments:|error code:\s*-[1-9]\d*)",
+        f"{stdout}\n{stderr}",
+    )
+    if return_code != 0 or diagnostic is not None:
+        raise StateError(
+            "AMD SMI control command failed after invocation.",
+            details={
+                "return_code": return_code,
+                "stdout": stdout,
+                "stderr": stderr,
+                "actuator_invoked": True,
+            },
+        )

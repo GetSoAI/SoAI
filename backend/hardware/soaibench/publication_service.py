@@ -64,7 +64,7 @@ class SoAIBenchPublicationService:
 
     async def preview(self, *, run_id: str, user_id: int) -> JSONDict:
         if re.fullmatch(r"[0-9a-f]{32}", run_id) is None:
-            raise ValidationError("SoAIBench run ID is invalid.")
+            raise ValidationError("SoAI Bench run ID is invalid.")
         publication = await self._deps.database_hardware.get_soaibench_publication(
             user_id=user_id,
             run_id=run_id,
@@ -77,10 +77,10 @@ class SoAIBenchPublicationService:
                 run_id=run_id,
             )
             if run is None:
-                raise ValidationError("SoAIBench run was not found.")
+                raise ValidationError("SoAI Bench run was not found.")
             canonical = build_publication_document(run, validated_measured_passes(run))
             document = parse_json_dict(
-                canonical, field="SoAIBench publication preview", reject_duplicate_keys=True
+                canonical, field="SoAI Bench publication preview", reject_duplicate_keys=True
             )
         return {
             "projection_json": serialize_json_pretty_sorted_strict(document, ensure_ascii=False)
@@ -88,7 +88,7 @@ class SoAIBenchPublicationService:
 
     async def publish(self, *, run_id: str, user_id: int) -> tuple[int, JSONDict]:
         if re.fullmatch(r"[0-9a-f]{32}", run_id) is None:
-            raise ValidationError("SoAIBench run ID is invalid.")
+            raise ValidationError("SoAI Bench run ID is invalid.")
         await self._require_owned_source(run_id=run_id, user_id=user_id)
         return await self._singleflight.execute_or_wait(
             run_id,
@@ -107,7 +107,7 @@ class SoAIBenchPublicationService:
             run_id=run_id,
         )
         if run is None:
-            raise ValidationError("SoAIBench run was not found.")
+            raise ValidationError("SoAI Bench run was not found.")
 
     async def _publish_once(self, *, run_id: str, user_id: int) -> tuple[int, JSONDict]:
         publication = await self._deps.database_hardware.get_soaibench_publication(
@@ -117,7 +117,7 @@ class SoAIBenchPublicationService:
         if publication is not None and publication.state == "published":
             receipt = publication.receipt
             if not isinstance(receipt, dict):
-                raise StateError("Published SoAIBench receipt is missing.")
+                raise StateError("Published SoAI Bench receipt is missing.")
             score = _prepared_score(publication)
             validated_receipt = validate_publication_receipt(receipt, score)
             state = await self._current_publication_state(validated_receipt)
@@ -137,7 +137,7 @@ class SoAIBenchPublicationService:
             log_handled_exception(
                 self._deps.logger,
                 exception,
-                message="SoAIBench publication request failed.",
+                message="SoAI Bench publication request failed.",
                 operation=PUBLICATION_OPERATION,
                 details={"code": str(exception.code)},
                 level="warning",
@@ -152,7 +152,7 @@ class SoAIBenchPublicationService:
         )
         stored_receipt = stored.receipt
         if not isinstance(stored_receipt, dict):
-            raise StateError("SoAIBench publication receipt was not persisted.")
+            raise StateError("SoAI Bench publication receipt was not persisted.")
         if upstream_status == 200 or duplicate:
             state = await self._current_publication_state(stored_receipt)
         elif stored_receipt.get("validation") == "flagged":
@@ -166,7 +166,7 @@ class SoAIBenchPublicationService:
     async def _current_publication_state(self, receipt: JSONDict) -> str:
         submission_id = receipt.get("submission_id")
         if not isinstance(submission_id, str):
-            raise StateError("Published SoAIBench submission ID is missing.")
+            raise StateError("Published SoAI Bench submission ID is missing.")
         try:
             current_status = await read_soaibench_publication_status(
                 self._deps.http_client, submission_id
@@ -175,7 +175,7 @@ class SoAIBenchPublicationService:
             log_handled_exception(
                 self._deps.logger,
                 exception,
-                message="SoAIBench publication status request failed.",
+                message="SoAI Bench publication status request failed.",
                 operation=PUBLICATION_OPERATION,
                 details={"code": str(exception.code)},
                 level="warning",
@@ -183,7 +183,7 @@ class SoAIBenchPublicationService:
             raise
         if current_status == "removed":
             raise ApiError(
-                "SoAIBench publication was removed.",
+                "SoAI Bench publication was removed.",
                 code="soaibench_publication_rejected",
                 http_status=410,
             )
@@ -195,7 +195,7 @@ class SoAIBenchPublicationService:
             run_id=run_id,
         )
         if run is None:
-            raise ValidationError("SoAIBench run was not found.")
+            raise ValidationError("SoAI Bench run was not found.")
         measured = validated_measured_passes(run)
         canonical = build_publication_document(run, measured)
         return await self._deps.database_hardware.prepare_soaibench_publication(
@@ -222,19 +222,19 @@ def _prepared_score(publication: SoAIBenchPublicationRecord) -> int:
     document = _prepared_document(publication)
     benchmark = document.get("benchmark")
     if not isinstance(benchmark, dict):
-        raise StateError("Prepared SoAIBench publication benchmark is invalid.")
+        raise StateError("Prepared SoAI Bench publication benchmark is invalid.")
     score = benchmark.get("overall_score")
     if isinstance(score, bool) or not isinstance(score, int) or score < 0:
-        raise StateError("Prepared SoAIBench publication score is invalid.")
+        raise StateError("Prepared SoAI Bench publication score is invalid.")
     return score
 
 
 def _prepared_delivery(publication: SoAIBenchPublicationRecord) -> tuple[bytes, int]:
     if publication.state != "prepared":
-        raise StateError("Prepared SoAIBench publication state is invalid.")
+        raise StateError("Prepared SoAI Bench publication state is invalid.")
     canonical = publication.canonical_submission_json
     if not isinstance(canonical, str):
-        raise StateError("Prepared SoAIBench publication is incomplete.")
+        raise StateError("Prepared SoAI Bench publication is incomplete.")
     _prepared_document(publication)
     return canonical.encode("utf-8"), _prepared_score(publication)
 
@@ -242,14 +242,14 @@ def _prepared_delivery(publication: SoAIBenchPublicationRecord) -> tuple[bytes, 
 def _prepared_document(publication: SoAIBenchPublicationRecord) -> JSONDict:
     canonical = publication.canonical_submission_json
     if not isinstance(canonical, str):
-        raise StateError("Prepared SoAIBench publication document is missing.")
+        raise StateError("Prepared SoAI Bench publication document is missing.")
     try:
         document = parse_json_dict(
-            canonical, field="prepared SoAIBench publication", reject_duplicate_keys=True
+            canonical, field="prepared SoAI Bench publication", reject_duplicate_keys=True
         )
         validate_publication_document(document)
     except ValidationError as exception:
-        raise StateError("Prepared SoAIBench publication document is invalid.") from exception
+        raise StateError("Prepared SoAI Bench publication document is invalid.") from exception
     if serialize_json_compact_stable(document, ensure_ascii=False) != canonical:
-        raise StateError("Prepared SoAIBench publication document is not canonical.")
+        raise StateError("Prepared SoAI Bench publication document is not canonical.")
     return document

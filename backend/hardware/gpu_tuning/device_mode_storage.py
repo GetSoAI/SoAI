@@ -7,8 +7,9 @@ import copy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from hardware.gpu_tuning.slot_payload import observe_locked_slot_inventory
-from hardware.presets.slot_storage import update_control_state_for_device
+from hardware.gpu_tuning.slot_capabilities import snapshot_tuning_inventory
+from hardware.presets.slot_control_state import update_control_state_for_device
+from hardware.presets.slot_payload_loading import read_gpu_slot_mutation_authority
 
 if TYPE_CHECKING:
     from core.hardware.protocols import GpuSlotStorageManagerProtocol
@@ -21,7 +22,6 @@ __all__ = (
     "ensure_device_control_state",
     "ensure_known_device_control_state",
     "load_known_device_slot_state",
-    "load_device_slot_state",
 )
 
 
@@ -30,33 +30,6 @@ class DeviceControlStateWriteResult:
     success: bool
     changed: bool
     entry: JSONDict | None
-
-
-def load_device_slot_state(
-    *,
-    executor: CommandExecutorProtocol,
-    storage: GpuSlotStorageManagerProtocol,
-    detailed_gpu_info: bool,
-    gpu_services: GpuServiceDependencies,
-    device_id: str,
-) -> tuple[JSONDict | None, JSONDict | None]:
-    with storage.lock:
-        observation = observe_locked_slot_inventory(
-            executor=executor,
-            storage=storage,
-            detailed_gpu_info=detailed_gpu_info,
-            gpu_services=gpu_services,
-            prune=True,
-            allow_create=True,
-        )
-        inventory, slots_payload = (observation.inventory, observation.payload)
-        payload_devices = slots_payload.get("devices")
-        device_entry = payload_devices.get(device_id) if isinstance(payload_devices, dict) else None
-        device_info = inventory.get(device_id)
-        return (
-            device_info if isinstance(device_info, dict) else None,
-            device_entry if isinstance(device_entry, dict) else None,
-        )
 
 
 def ensure_device_control_state(
@@ -69,19 +42,17 @@ def ensure_device_control_state(
     field_modes: JSONDict,
     applied_settings: JSONDict,
 ) -> DeviceControlStateWriteResult:
+    inventory = snapshot_tuning_inventory(
+        executor=executor,
+        detailed_gpu_info=detailed_gpu_info,
+        gpu_services=gpu_services,
+    )
+    device_info = inventory.get(device_id)
+    if not isinstance(device_info, dict):
+        return DeviceControlStateWriteResult(success=False, changed=False, entry=None)
     with storage.lock:
-        observation = observe_locked_slot_inventory(
-            executor=executor,
-            storage=storage,
-            detailed_gpu_info=detailed_gpu_info,
-            gpu_services=gpu_services,
-            prune=True,
-            allow_create=True,
-        )
-        inventory, slots_payload = (observation.inventory, observation.payload)
-        device_info = inventory.get(device_id)
-        if not isinstance(device_info, dict):
-            return DeviceControlStateWriteResult(success=False, changed=False, entry=None)
+        read = read_gpu_slot_mutation_authority(storage)
+        slots_payload = copy.deepcopy(read.payload)
         changed = update_control_state_for_device(
             slots_payload,
             device_id,
@@ -93,7 +64,7 @@ def ensure_device_control_state(
         device_entry = devices_value.get(device_id) if isinstance(devices_value, dict) else None
         entry_snapshot = copy.deepcopy(device_entry) if isinstance(device_entry, dict) else None
         if changed:
-            storage.write_payload(slots_payload)
+            storage.write_payload(slots_payload, expected_read=read)
         return DeviceControlStateWriteResult(
             success=True,
             changed=changed,
@@ -107,7 +78,7 @@ def load_known_device_slot_state(
     device_id: str,
 ) -> JSONDict | None:
     with storage.lock:
-        slots_payload, _existed = storage.read_payload()
+        slots_payload = storage.read_payload().payload
         payload_devices = slots_payload.get("devices")
         device_entry = payload_devices.get(device_id) if isinstance(payload_devices, dict) else None
         return device_entry if isinstance(device_entry, dict) else None
@@ -122,7 +93,8 @@ def ensure_known_device_control_state(
     applied_settings: JSONDict,
 ) -> DeviceControlStateWriteResult:
     with storage.lock:
-        slots_payload, _existed = storage.read_payload()
+        read = read_gpu_slot_mutation_authority(storage)
+        slots_payload = copy.deepcopy(read.payload)
         changed = update_control_state_for_device(
             slots_payload,
             device_id,
@@ -134,7 +106,7 @@ def ensure_known_device_control_state(
         device_entry = devices_value.get(device_id) if isinstance(devices_value, dict) else None
         entry_snapshot = copy.deepcopy(device_entry) if isinstance(device_entry, dict) else None
         if changed:
-            storage.write_payload(slots_payload)
+            storage.write_payload(slots_payload, expected_read=read)
         return DeviceControlStateWriteResult(
             success=True,
             changed=changed,

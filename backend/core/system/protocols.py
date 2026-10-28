@@ -119,6 +119,12 @@ class CommandResultProtocol(Protocol):
     @property
     def stderr(self) -> str: ...
 
+    @property
+    def timed_out(self) -> bool | None: ...
+
+    @property
+    def startup_failure(self) -> str | None: ...
+
 
 class CommandExecutorProtocol(Protocol):
     def execute(

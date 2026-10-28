@@ -35,7 +35,7 @@ class PageHeaderAnimator {
                         continue;
                     }
                     processed.add(animator);
-                    animator.queueHeaderHeightUpdate();
+                    animator.updateHeaderHeight();
                 }
             });
         }
@@ -67,6 +67,10 @@ class PageHeaderAnimator {
         }
         animator.destroy();
         this.animators.delete(scrollContainer);
+    }
+
+    reveal(scrollContainer: HTMLElement): void {
+        this.animators.get(scrollContainer)?.reveal();
     }
 
     setScrollTopWithoutReaction(scrollContainer: HTMLElement, scrollTop: number): void {

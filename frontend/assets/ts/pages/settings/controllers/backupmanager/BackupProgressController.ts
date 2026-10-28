@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { errorHandler } from '@core/errorHandler.ts';
+import { serverEpochMs } from '@core/time/clock.ts';
+import { isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
+import { i18n } from '@core/i18n/index.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
-import type { JsonValue } from '@core/types/jsonValues.ts';
-import type { AcceptedPowerActionResponse } from '@core/api/contracts/powerContracts.ts';
 import type { BackupOperationState } from '@core/settings/contracts.ts';
 import { parseBackupCompletionPayload, parseBackupProgressPayload } from '@pages/settings/controllers/backupmanager/mappers.ts';
 import { resolveBackupFailureNotification, resolveBackupProgressLabel, resolveBackupSuccessNotification } from '@pages/settings/controllers/backupmanager/backupOperationMessagesController.ts';
@@ -18,7 +19,6 @@ interface BackupProgressHost extends PageFeedbackOwnerHost {
     getBackupOperation: () => BackupOperationState | null;
     setBackupOperation: (operation: BackupOperationState | null) => void;
     trackAcceptedTask: (taskId: string, options: { handlers: StreamActionHandlers; operation: { type: string } }) => StreamActionResult;
-    restartApplication: () => Promise<AcceptedPowerActionResponse>;
     showRestartOverlay: (value: OperationType) => void;
 }
 
@@ -28,11 +28,17 @@ interface BackupProgressDependencies {
     requestReload: () => Promise<void>;
 }
 
+interface BackupTaskTracking {
+    taskId: string;
+    handle: StreamActionResult | null;
+}
+
 class BackupProgressController {
     readonly #host: BackupProgressHost;
     readonly #renderProgress: () => void;
     readonly #requestReload: () => Promise<void>;
-    readonly #trackedTaskIds = new Set<string>();
+    #tracking: BackupTaskTracking | null = null;
+    #automaticRecoveryAttempted = false;
 
     constructor({ host, renderProgress, requestReload }: BackupProgressDependencies) {
         this.#host = host;
@@ -45,41 +51,67 @@ class BackupProgressController {
         if (existingOperation && existingOperation.taskId !== operation.taskId) {
             throw new Error(`Cannot track backup task ${operation.taskId} while ${existingOperation.taskId} is active`);
         }
-        this.#host.setBackupOperation(operation);
-        this.#renderProgress();
-        if (this.#trackedTaskIds.has(operation.taskId)) {
+        if (this.#tracking?.taskId === operation.taskId) {
             return;
         }
-        this.#trackedTaskIds.add(operation.taskId);
+        const retainedOperation = existingOperation ?? operation;
+        const trackingState = retainedOperation.tracking ?? { status: 'current', updatedAtMs: serverEpochMs() };
+        this.#host.setBackupOperation({ ...retainedOperation, tracking: { ...trackingState, status: trackingState.status === 'unavailable' ? 'recovering' : trackingState.status } });
+        const tracking: BackupTaskTracking = { taskId: operation.taskId, handle: null };
+        this.#tracking = tracking;
+        this.#renderProgress();
         try {
             const taskHandle = this.#host.trackAcceptedTask(operation.taskId, {
                 operation: { type: `backup-${operation.type}` },
                 handlers: {
-                    onProgress: (data): void => this.#handleBackupProgress(data),
-                    onComplete: (data): void => this.#handleBackupComplete(data),
-                    onStreamError: (data): void => this.#handleBackupComplete(data),
-                    onError: (error): void => this.#handleTrackingError(operation, ensureError(error))
+                    onProgress: (data): void => this.#handleBackupProgress(tracking, data),
+                    onComplete: (data): void => this.#handleBackupComplete(tracking, data),
+                    onStreamError: (data): void => this.#handleBackupComplete(tracking, data),
+                    onError: (error): void => this.#handleTrackingError(tracking, ensureError(error))
                 }
             });
+            tracking.handle = taskHandle;
             terminateHandledPromise(
                 taskHandle.finished.finally(() => {
-                    this.#trackedTaskIds.delete(operation.taskId);
+                    if (this.#tracking === tracking) {
+                        this.#handleTrackingError(tracking, new Error('Backup watcher ended without a terminal task outcome'));
+                    }
                 })
             );
         } catch (trackingError) {
-            this.#trackedTaskIds.delete(operation.taskId);
-            throw ensureError(trackingError);
+            this.#handleTrackingError(tracking, ensureError(trackingError));
+        }
+    }
+
+    resume(): void {
+        const operation = this.#host.getBackupOperation();
+        if (operation && this.#tracking === null) {
+            this.track(operation);
         }
     }
 
     clear(): void {
+        const tracking = this.#tracking;
+        this.#tracking = null;
+        this.#automaticRecoveryAttempted = false;
         this.#host.setBackupOperation(null);
+        tracking?.handle?.close?.();
         this.#renderProgress();
     }
 
-    #handleBackupProgress(data: JsonValue): void {
+    dispose(): void {
+        const tracking = this.#tracking;
+        this.#tracking = null;
         const operation = this.#host.getBackupOperation();
-        if (!operation) {
+        if (operation?.tracking && operation.taskId === tracking?.taskId) {
+            this.#host.setBackupOperation({ ...operation, tracking: { ...operation.tracking, status: 'recovering' } });
+        }
+        tracking?.handle?.close?.();
+    }
+
+    #handleBackupProgress(tracking: BackupTaskTracking, data: JsonValue): void {
+        const operation = this.#host.getBackupOperation();
+        if (!operation || this.#tracking !== tracking || operation.taskId !== tracking.taskId) {
             return;
         }
 
@@ -91,8 +123,10 @@ class BackupProgressController {
             return;
         }
 
+        this.#automaticRecoveryAttempted = false;
         this.#host.setBackupOperation({
             ...operation,
+            tracking: { status: 'current', updatedAtMs: serverEpochMs() },
             progress: payload.percent,
             message: resolveBackupProgressLabel(operation.type)
         });
@@ -102,9 +136,9 @@ class BackupProgressController {
         this.#renderProgress();
     }
 
-    #handleBackupComplete(data: JsonValue): void {
+    #handleBackupComplete(tracking: BackupTaskTracking, data: JsonValue): void {
         const operation = this.#host.getBackupOperation();
-        if (!operation) {
+        if (!operation || this.#tracking !== tracking || operation.taskId !== tracking.taskId) {
             return;
         }
 
@@ -116,7 +150,10 @@ class BackupProgressController {
             return;
         }
 
-        this.#trackedTaskIds.delete(operation.taskId);
+        if (isJsonObject(data) && (data['detached'] === true || data['status'] === 'detached')) {
+            this.#handleTrackingError(tracking, new Error('Backup task snapshot is unavailable'));
+            return;
+        }
         this.clear();
 
         if (payload.success) {
@@ -127,26 +164,32 @@ class BackupProgressController {
             }
             this.#host.feedback.show(resolveBackupFailureNotification(operation.type), 'error');
         }
-        if (operation.type === 'restore') {
-            void this.#host.restartApplication().catch((error) => {
-                const runtimeError = ensureError(error);
-                errorHandler.warn('Settings', 'Restart application after backup restore failed', runtimeError);
-            });
+        if (operation.type === 'restore' && payload.success) {
             this.#host.showRestartOverlay('restore-backup');
             return;
         }
         this.#requestReloadSafely();
     }
 
-    #handleTrackingError(operation: BackupOperationState, runtimeError: Error): void {
-        this.#trackedTaskIds.delete(operation.taskId);
-        if (this.#host.getBackupOperation()?.taskId !== operation.taskId) {
+    #handleTrackingError(tracking: BackupTaskTracking, runtimeError: Error): void {
+        const operation = this.#host.getBackupOperation();
+        if (!operation || this.#tracking !== tracking || operation.taskId !== tracking.taskId) {
             return;
         }
-        this.clear();
-        this.#host.feedback.show(resolveBackupFailureNotification(operation.type), 'error');
-        this.#requestReloadSafely();
-        errorHandler.handleError(runtimeError, { context: `settings:${operation.type}BackupTracking` });
+        this.#tracking = null;
+        const shouldRecover = !this.#automaticRecoveryAttempted;
+        this.#automaticRecoveryAttempted = true;
+        this.#host.setBackupOperation({
+            ...operation,
+            tracking: { status: shouldRecover ? 'recovering' : 'unavailable', updatedAtMs: operation.tracking?.updatedAtMs ?? serverEpochMs() }
+        });
+        this.#renderProgress();
+        errorHandler.warn('Settings', 'Backup task tracking lost', runtimeError);
+        if (shouldRecover) {
+            this.#requestReloadSafely();
+        } else {
+            this.#host.feedback.show(i18n.t('settings.availability.unavailable'), 'warning');
+        }
     }
 
     #requestReloadSafely(): void {

@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from core.files.extraction_state import ExtractionState
+
 __all__ = ("FetchedContent",)
 
 HTML_TYPES = frozenset(("text/html", "application/xhtml+xml"))
@@ -23,3 +25,6 @@ class FetchedContent:
     page_count: int | None = None
     source_url: str | None = None
     source_html: str | None = None
+    extraction_state: ExtractionState = ExtractionState.COMPLETE
+    warnings: tuple[str, ...] = ()
+    missing_capabilities: tuple[str, ...] = ()

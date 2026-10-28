@@ -63,3 +63,4 @@ class ToolPhaseExecutionContext:
     emit_event: Callable[[Event], Awaitable[None]]
     turn_cancelled: Callable[[], Awaitable[bool]]
     shape_cache: ToolResultPromptShapeCache
+    reasoning_text: str = ""

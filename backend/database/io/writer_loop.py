@@ -114,6 +114,7 @@ def run_database_writer_loop(
                         error_type="WriterSessionReset",
                     )
                     skipped_job.resolve_unavailable()
+                    skipped_job.release_resources()
                 continue
             if isinstance(item, type):
                 if item is ShutdownSentinel:
@@ -240,6 +241,8 @@ def run_database_writer_loop(
                 )
                 job_for_error.resolve_exception(db_error)
         finally:
+            if job_for_error is not None:
+                job_for_error.release_resources()
             if active_job_id is not None:
                 status_tracker.unregister_active_job(active_job_id)
                 active_job_id = None

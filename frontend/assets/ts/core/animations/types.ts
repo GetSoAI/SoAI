@@ -7,6 +7,7 @@ interface PageHeaderAnimatorProxy {
     initialize: () => void;
     attach: (scrollContainer: HTMLElement) => void;
     detach: (scrollContainer: HTMLElement) => void;
+    reveal: (scrollContainer: HTMLElement) => void;
     setScrollTopWithoutReaction: (scrollContainer: HTMLElement, scrollTop: number) => void;
 }
 

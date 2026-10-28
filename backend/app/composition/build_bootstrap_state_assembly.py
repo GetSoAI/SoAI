@@ -66,12 +66,18 @@ from app.types_services_foundation import (
     TaskServices,
 )
 from core.app.service_groups import HardwareRuntimeServices
+from core.browser.playwright_session_resources import PlaywrightSessionResources
+from core.events.types_skills import MaterializeSkillCommand
 from core.logging.trace import get_logger
 from core.openai.chat_template_role_policy_resolver import (
     ChatTemplateRolePolicyResolver,
     ChatTemplateRolePolicyResolverDependencies,
 )
 from core.secrets.handle_store import SecretHandleStore
+from core.skills.materialization_execution import SkillMaterializationService
+from core.skills.materialization_execution_dependencies import (
+    SkillMaterializationServiceDependencies,
+)
 from features.chat.attention.coordinator import (
     ConversationAttentionCoordinator,
     ConversationAttentionCoordinatorDependencies,
@@ -79,6 +85,10 @@ from features.chat.attention.coordinator import (
 from hardware.control_service import (
     HardwareControlService,
     HardwareControlServiceDependencies,
+)
+from hardware.vendors.nvidia.architecture_reads import (
+    NvidiaArchitectureReader,
+    NvidiaArchitectureReaderDependencies,
 )
 
 __all__ = ("assemble_application_bootstrap_state",)
@@ -89,6 +99,22 @@ HARDWARE_CONTROL_LOGGER_NAME = "SoAI.hardware.control_service"
 def assemble_application_bootstrap_state(
     deps: BootstrapStateAssemblyDependencies,
 ) -> ApplicationBootstrapState:
+    skill_materialization = SkillMaterializationService(
+        SkillMaterializationServiceDependencies(
+            skills=deps.database_services.skills,
+            tasks=deps.database_services.tasks,
+            registry=deps.task_registry_result.registry,
+            users=deps.database_services.users,
+            conversations=deps.database_services.conversations,
+            files=deps.files,
+            storage=deps.storage_manager,
+            token_collection=deps.cancellation_system.token_collection,
+            cancellation_history=deps.cancellation_system.history,
+            cancellation_event_bus=deps.cancellation_system.event_bus,
+            plugin_directory=deps.paths.plugin_directory,
+        )
+    )
+    deps.event_bus.subscribe(MaterializeSkillCommand, skill_materialization.handle)
     authoritative_plugin_state_waiters = AuthoritativePluginStateWaiters()
     authoritative_plugin_state_transitions = AuthoritativePluginStateTransitions(
         AuthoritativePluginStateTransitionsDependencies(
@@ -109,6 +135,7 @@ def assemble_application_bootstrap_state(
     )
     soaibench = build_soaibench_service(
         hardware_manager=deps.hardware_manager,
+        recovery_admission=deps.hardware_gpu_tuning.recovery_admission,
         database_hardware=deps.database_services.hardware,
         task_registry=deps.task_registry_result.registry,
         cancellation_binder=deps.cancellation_system.binder,
@@ -118,6 +145,7 @@ def assemble_application_bootstrap_state(
         http_client=deps.http_client,
     )
     infrastructure_services = InfrastructureServices(
+        playwright_sessions=PlaywrightSessionResources(),
         event_bus=deps.event_bus,
         domain_event_delivery=deps.domain_event_delivery,
         log_manager=deps.log_manager,
@@ -224,6 +252,9 @@ def assemble_application_bootstrap_state(
         ),
         http_client=deps.http_client,
         hardware=HardwareRuntimeServices(
+            nvidia_architecture_reader=NvidiaArchitectureReader(
+                NvidiaArchitectureReaderDependencies(gate=deps.hardware_manager.nvidia_nvml_gate)
+            ),
             manager=deps.hardware_manager,
             gpu_tuning=deps.hardware_gpu_tuning,
             control=hardware_control,

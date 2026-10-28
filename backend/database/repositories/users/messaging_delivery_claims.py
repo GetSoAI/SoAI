@@ -6,8 +6,11 @@ from __future__ import annotations
 import sqlite3
 from typing import TYPE_CHECKING
 
+import aiosqlite
+
 from core.errors.exceptions import StateError
 from core.messaging.delivery_models import MessagingDeliveryAttempt
+from database.core.query_execution import query_one_to_dict
 from database.core.sqlite_row_scalars import (
     require_sqlite_row_int,
     require_sqlite_row_non_empty_str,
@@ -20,17 +23,12 @@ from database.repositories.users.messaging_delivery_state_transitions import (
 if TYPE_CHECKING:
     from core.conversations.conversation_source import MessagingPlatform
 
-__all__ = ("sync_claim_next_messaging_delivery_attempt",)
+__all__ = ("sync_claim_next_messaging_delivery_attempt", "query_messaging_delivery_candidate")
 
 ROW_LABEL = "Messaging delivery claim"
 
 
-def _select_candidate(
-    conn: sqlite3.Connection,
-    claimed_at_ms: int,
-) -> sqlite3.Row | None:
-    row = conn.execute(
-        """
+MESSAGING_DELIVERY_CANDIDATE_SQL = """
         SELECT delivery.delivery_id
         FROM messaging_deliveries AS delivery
         WHERE delivery.state = 'pending' AND delivery.next_attempt_at_ms <= ?
@@ -46,7 +44,24 @@ def _select_candidate(
         ORDER BY delivery.next_attempt_at_ms, delivery.created_at_ms,
                  delivery.delivery_id
         LIMIT 1
-        """,
+        """
+
+
+async def query_messaging_delivery_candidate(
+    database: aiosqlite.Connection, claimed_at_ms: int
+) -> bool:
+    return (
+        await query_one_to_dict(database, MESSAGING_DELIVERY_CANDIDATE_SQL, (claimed_at_ms,))
+        is not None
+    )
+
+
+def _select_candidate(
+    conn: sqlite3.Connection,
+    claimed_at_ms: int,
+) -> sqlite3.Row | None:
+    row = conn.execute(
+        MESSAGING_DELIVERY_CANDIDATE_SQL,
         (claimed_at_ms,),
     ).fetchone()
     if row is None:

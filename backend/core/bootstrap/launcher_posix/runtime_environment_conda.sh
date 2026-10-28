@@ -2,7 +2,92 @@
 # SoAI - POSIX launcher Conda runtime provisioning [backend/core/bootstrap/launcher_posix/runtime_environment_conda.sh]
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-SOAI_MANAGED_RUNTIME_SETUPTOOLS_VERSION="84.0.0"
+SOAI_MANAGED_RUNTIME_SETUPTOOLS_VERSION="84.2.1"
+SOAI_MANAGED_RUNTIME_PYTHON_VERSION="3.13.18"
+SOAI_MANAGED_RUNTIME_OPENSSL_VERSION="3.6.5"
+SOAI_MANAGED_RUNTIME_OPENSSL_LTS_VERSION="3.5.9"
+
+soai_managed_runtime__ensure_security_updates() {
+    local env_dir="$1"
+    local state_dir="$2"
+    local micromamba_version="$3"
+    local offline_mode="$4"
+    local security_probe="import importlib.metadata
+import platform
+import re
+import ssl
+import sys
+required_python = tuple(map(int, sys.argv[1].split('.')))
+openssl_match = re.fullmatch(r'OpenSSL ([0-9]+)\.([0-9]+)\.([0-9]+)(?: [^\r\n]+)?', ssl.OPENSSL_VERSION)
+if openssl_match is None:
+    sys.exit('Unsupported TLS runtime identity. Repair the managed runtime with a supported stable OpenSSL release.')
+openssl_version = tuple(map(int, openssl_match.groups()))
+if openssl_version[0] != 3 or openssl_version[1] > 6:
+    sys.exit('Unqualified OpenSSL branch. Retain this runtime and select a supported OpenSSL 3.5 or 3.6 runtime before continuing.')
+required_openssl = sys.argv[3] if openssl_version[:2] == (3, 5) else sys.argv[2]
+python_outdated = sys.version_info[:3] < required_python
+openssl_outdated = openssl_version < tuple(map(int, required_openssl.split('.')))
+crypto_target = None
+crypto_outdated = False
+if sys.platform == 'darwin' and platform.machine() == 'x86_64':
+    with open(sys.argv[4], encoding='utf-8') as requirements:
+        crypto_pins = [line.strip().split('=', 1)[1] for line in requirements if line.startswith('cryptography=')]
+    if len(crypto_pins) != 1 or re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', crypto_pins[0]) is None:
+        sys.exit('The Intel macOS cryptography binary package pin is missing or invalid.')
+    crypto_target = crypto_pins[0]
+    try:
+        installed_crypto = importlib.metadata.version('cryptography')
+    except importlib.metadata.PackageNotFoundError:
+        crypto_outdated = True
+    else:
+        if re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', installed_crypto) is None:
+            sys.exit('The installed cryptography version could not be qualified. Repair the managed runtime before continuing.')
+        crypto_outdated = tuple(map(int, installed_crypto.split('.'))) < tuple(map(int, crypto_target.split('.')))
+if python_outdated or openssl_outdated or crypto_outdated:
+    python_target = sys.argv[1] if python_outdated else '.'.join(map(str, sys.version_info[:3]))
+    openssl_target = required_openssl if openssl_outdated else '.'.join(map(str, openssl_version))
+    print('python=' + python_target)
+    print('openssl=' + openssl_target)
+    if crypto_outdated:
+        print('cryptography=' + crypto_target)"
+    local outdated_packages=""
+    outdated_packages="$("${env_dir}/bin/python" -c "$security_probe" "$SOAI_MANAGED_RUNTIME_PYTHON_VERSION" "$SOAI_MANAGED_RUNTIME_OPENSSL_VERSION" "$SOAI_MANAGED_RUNTIME_OPENSSL_LTS_VERSION" "${SOAI_LAUNCHER_MODULE_DIR}/darwin_x64_conda_runtime_packages.txt")" || {
+        soai_managed_runtime__die "The managed runtime security versions could not be inspected. Repair its Python runtime before continuing." || return 1
+    }
+    if [ -z "$outdated_packages" ]; then
+        return 0
+    fi
+    if [ "$offline_mode" = "1" ]; then
+        soai_managed_runtime__die "STAY_OFFLINE=true but the managed Python, OpenSSL or required binary package needs a security update. Disable STAY_OFFLINE and run once online." || return 1
+    fi
+    local micromamba_bin=""
+    micromamba_bin="$(soai_managed_runtime__ensure_micromamba "$state_dir" "$micromamba_version" "$offline_mode")" || return 1
+    local mamba_root="${state_dir}/managed_runtime/mamba_root"
+    mkdir -p "$mamba_root" || return 1
+    local -a security_packages=()
+    local package_name=""
+    while IFS= read -r package_name; do
+        if [[ "$package_name" =~ ^(python|openssl|cryptography)=[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            security_packages+=("$package_name")
+        else
+            soai_managed_runtime__die "The managed runtime security probe returned an invalid package identity." || return 1
+        fi
+    done <<< "$outdated_packages"
+    if ! soai_install__run_noisy_command "$micromamba_bin" install -y -p "$env_dir" \
+            --root-prefix "$mamba_root" \
+            --no-rc \
+            --override-channels \
+            -c conda-forge \
+            "${security_packages[@]}"; then
+        soai_managed_runtime__die "The managed runtime security update failed. Existing application data was retained; rerun online to complete runtime preparation." || return 1
+    fi
+    outdated_packages="$("${env_dir}/bin/python" -c "$security_probe" "$SOAI_MANAGED_RUNTIME_PYTHON_VERSION" "$SOAI_MANAGED_RUNTIME_OPENSSL_VERSION" "$SOAI_MANAGED_RUNTIME_OPENSSL_LTS_VERSION" "${SOAI_LAUNCHER_MODULE_DIR}/darwin_x64_conda_runtime_packages.txt")" || {
+        soai_managed_runtime__die "The managed runtime security versions could not be inspected after installation." || return 1
+    }
+    if [ -n "$outdated_packages" ]; then
+        soai_managed_runtime__die "The managed runtime did not pass its Python and OpenSSL security-version verification after installation." || return 1
+    fi
+}
 
 soai_managed_runtime__tls_smoke_check() {
     local env_dir="$1"
@@ -159,6 +244,10 @@ soai_managed_runtime_ensure_env() {
                 soai_managed_runtime__die "Managed env Python version does not match ${python_version}. Delete the stale env and re-run: ${env_dir}" || return 1
             }
         else
+            soai_managed_runtime__ensure_security_updates "$env_dir" "$state_dir" "$micromamba_version" "$offline_mode" || {
+                soai_managed_runtime__release_lock_dir_once
+                return 1
+            }
             soai_managed_runtime__ensure_env_uses_system_ca "$env_dir"
             soai_managed_runtime__ensure_sqlite_runtime "$env_dir" "$state_dir" "$micromamba_version" "$offline_mode" || {
                 soai_managed_runtime__release_lock_dir_once
@@ -173,6 +262,10 @@ soai_managed_runtime_ensure_env() {
                 return 1
             }
             soai_managed_runtime__ensure_python_build_dependencies "$env_dir" "$state_dir" "$micromamba_version" "$offline_mode" || {
+                soai_managed_runtime__release_lock_dir_once
+                return 1
+            }
+            soai_managed_runtime__ensure_security_updates "$env_dir" "$state_dir" "$micromamba_version" "$offline_mode" || {
                 soai_managed_runtime__release_lock_dir_once
                 return 1
             }
@@ -223,7 +316,7 @@ soai_managed_runtime_ensure_env() {
             --no-rc \
             --override-channels \
             -c conda-forge \
-            "python=${python_version}" pip "setuptools=${SOAI_MANAGED_RUNTIME_SETUPTOOLS_VERSION}" wheel; then
+            "python=${python_version}" "openssl=${SOAI_MANAGED_RUNTIME_OPENSSL_VERSION}" pip "setuptools=${SOAI_MANAGED_RUNTIME_SETUPTOOLS_VERSION}" wheel; then
         soai_managed_runtime__release_lock_dir_once
         soai_managed_runtime__die "micromamba env creation failed at: ${env_dir}" || return 1
     fi
@@ -268,6 +361,10 @@ soai_managed_runtime_ensure_env() {
             soai_managed_runtime__die "micromamba platform runtime package install failed (${platform})." || return 1
         fi
     fi
+    soai_managed_runtime__ensure_security_updates "$env_dir" "$state_dir" "$micromamba_version" "$offline_mode" || {
+        soai_managed_runtime__release_lock_dir_once
+        return 1
+    }
     soai_managed_runtime__ensure_env_uses_system_ca "$env_dir"
     soai_managed_runtime__ensure_sqlite_runtime "$env_dir" "$state_dir" "$micromamba_version" "$offline_mode" || {
         soai_managed_runtime__release_lock_dir_once
@@ -282,6 +379,10 @@ soai_managed_runtime_ensure_env() {
         return 1
     }
     soai_managed_runtime__ensure_python_build_dependencies "$env_dir" "$state_dir" "$micromamba_version" "$offline_mode" || {
+        soai_managed_runtime__release_lock_dir_once
+        return 1
+    }
+    soai_managed_runtime__ensure_security_updates "$env_dir" "$state_dir" "$micromamba_version" "$offline_mode" || {
         soai_managed_runtime__release_lock_dir_once
         return 1
     }

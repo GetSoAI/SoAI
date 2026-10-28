@@ -142,10 +142,10 @@ def _build_model_notes(
         notes.append("Audio contains a long pause between speech segments.")
     low_confidence = _json_int(diagnostics.get("low_confidence_segment_count"))
     if low_confidence > 0:
-        notes.append("Whisper reported low-confidence segments.")
+        notes.append("The speech model reported low-confidence segments.")
     high_no_speech = _json_int(diagnostics.get("high_no_speech_segment_count"))
     if high_no_speech > 0:
-        notes.append("Whisper marked some segments as likely non-speech.")
+        notes.append("The speech model marked some segments as likely non-speech.")
     return notes
 
 

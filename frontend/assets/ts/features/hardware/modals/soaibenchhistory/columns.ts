@@ -6,8 +6,8 @@ import type { SortDirection } from '@core/ui/tables/sortableTable.ts';
 
 type SoAIBenchHistorySortColumn = 'profile' | 'status' | 'score' | 'phases' | 'stability' | 'certification' | 'temperature' | 'power' | 'duration' | 'started' | 'match' | 'settings' | 'stale' | 'reason';
 
-interface SoAIBenchHistoryColumnDefinition {
-    key: SoAIBenchHistorySortColumn;
+interface SoAIBenchHistoryColumnDefinition<Column extends string = SoAIBenchHistorySortColumn> {
+    key: Column;
     defaultDirection: SortDirection;
     initialDirection: SortDirection | 'none';
 }
@@ -35,11 +35,13 @@ const resolveHistoryColumnDefaultDirection = (column: SoAIBenchHistorySortColumn
             return definition.defaultDirection;
         }
     }
-    throw new Error(`Unsupported SoAIBench history sort column: ${column}`);
+    throw new Error(`Unsupported SoAI Bench history sort column: ${column}`);
 };
 
-const resolveSoAIBenchHistoryColumnLabel = (column: SoAIBenchHistorySortColumn): string => {
+const resolveSoAIBenchHistoryColumnLabel = (column: SoAIBenchHistorySortColumn | 'gpu'): string => {
     switch (column) {
+        case 'gpu':
+            return i18n.t('hardware.components.gpu');
         case 'profile':
             return i18n.t('hardware.modals.soaibenchHistory.columns.profile');
         case 'status':

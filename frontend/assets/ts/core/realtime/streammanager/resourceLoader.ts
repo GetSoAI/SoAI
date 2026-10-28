@@ -121,14 +121,16 @@ class StreamResourceLoader {
     ensureResourceStarted<ResourceId extends StreamResourceId>(name: ResourceId, options?: { allowDiscovery?: boolean; throwOnError?: boolean; signal?: AbortSignal | undefined }): Promise<StreamResourceValue<ResourceId> | null>;
     ensureResourceStarted(name: string, options?: { allowDiscovery?: boolean; throwOnError?: boolean; signal?: AbortSignal | undefined }): Promise<JsonValue | null>;
     async ensureResourceStarted(name: string, options: { allowDiscovery?: boolean; throwOnError?: boolean; signal?: AbortSignal | undefined } = {}): Promise<JsonValue | null> {
+        const signalScope = createAbortSignalScope([this.#readiness.resetSignal, options.signal]);
         try {
             this.#store.requireStartAllowed();
-            if (!this.#readiness.ready) await this.ensureReady({ allowDiscovery: options.allowDiscovery !== false, signal: options.signal });
-            const signalScope = createAbortSignalScope([this.#readiness.resetSignal, options.signal]);
-            return await this.#store.ensureStarted(name, signalScope.signal, (resourceName, startOptions) => this.startResource(resourceName, startOptions)).finally(signalScope.cleanup);
+            if (!this.#readiness.ready) await this.ensureReady({ allowDiscovery: options.allowDiscovery !== false, signal: signalScope.signal });
+            return await this.#store.ensureStarted(name, signalScope.signal, (resourceName, startOptions) => this.startResource(resourceName, startOptions));
         } catch (error) {
             if (options.throwOnError === false) return null;
             throw error;
+        } finally {
+            signalScope.cleanup();
         }
     }
 

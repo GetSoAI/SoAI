@@ -8,17 +8,6 @@
         background: linear-gradient(180deg, color-mix(in srgb, var(--plan-accent) 6%, transparent) 0%, transparent 38%), color-mix(in srgb, var(--glass-surface-strong) 88%, var(--plan-accent) 4%);
     }
 
-    :where(.chat-container) .assistant-plan-widget__plan-metrics {
-        font-size: var(--font-size-068);
-        font-weight: 500;
-        letter-spacing: var(--tracking-snug);
-        color: var(--text-tertiary);
-        font-feature-settings: 'tnum' 1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
     :where(.chat-container) .assistant-plan-widget__body {
         flex: 1 1 auto;
         min-width: 0;

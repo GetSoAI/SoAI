@@ -1,0 +1,192 @@
+/* SoAI - Shared chat configuration library layout [frontend/assets/css/components/chat/chat-configuration-library.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-preset-list, .chat-skills-list, .chat-memory-list) {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-2);
+        place-content: start stretch;
+        place-items: stretch;
+    }
+
+    :where(.chat-preset-row, .chat-skills-row, .chat-memory-row) {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        padding: var(--space-4);
+        border-radius: var(--border-radius);
+    }
+
+    :is(.chat-preset-row, .chat-skills-row, .chat-memory-row) {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+    }
+
+    :is(.chat-preset-row, .chat-skills-row, .chat-memory-row).checkerboard-light {
+        --glass-surface-bg: var(--alternating-grey-light);
+    }
+
+    :is(.chat-preset-row, .chat-skills-row, .chat-memory-row).checkerboard-dark {
+        --glass-surface-bg: var(--alternating-grey-dark);
+    }
+
+    :is(.chat-preset-row, .chat-skills-row, .chat-memory-row):hover {
+        --glass-surface-bg: var(--glass-surface-interactive-hover);
+    }
+
+    :is(.chat-preset-row, .chat-skills-row, .chat-memory-row) .collection-list-item-main {
+        flex: 1 1 auto;
+        align-self: flex-start;
+        min-width: 0;
+    }
+
+    :is(.chat-preset-row, .chat-skills-row, .chat-memory-row) .collection-list-item-title {
+        margin: 0;
+        overflow-wrap: anywhere;
+        font-size: var(--font-size-base);
+    }
+
+    :is(.chat-preset-row, .chat-skills-row, .chat-memory-row) .collection-list-item-meta {
+        margin-block: var(--space-1) var(--space-2);
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+    }
+
+    :is(.chat-preset-row-actions, .chat-skills-actions, .chat-memory-actions) {
+        display: flex;
+        align-items: center;
+        flex: 0 0 auto;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        gap: var(--space-1);
+        width: var(--control-round-button-size);
+        min-width: var(--control-round-button-size);
+    }
+
+    :is(.chat-skills-actions, .chat-memory-actions) {
+        align-self: flex-start;
+    }
+
+    :is(.chat-preset-row-actions, .chat-skills-actions, .chat-memory-actions) > .ui-round-button--settings {
+        --ui-round-button-surface: var(--control-round-button-modal-close-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-modal-close-bg-hover);
+    }
+
+    .chat-memory-preview {
+        margin: 0;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .chat-memory-record ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .chat-memory-record-row {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding-block: var(--space-3);
+        border-block-end: var(--border-width-1) solid var(--glass-border-strong);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .chat-memory-record-row > :first-child {
+        min-width: 0;
+    }
+    @container (width >= 640px) {
+        .chat-memory-list {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+    @container (width >= 1200px) {
+        .chat-memory-list {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    .chat-configuration-library {
+        container-type: inline-size;
+        display: grid;
+        gap: var(--space-4);
+        min-width: 0;
+    }
+
+    .chat-configuration-library-toolbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    .chat-configuration-library-toolbar > .searchbar-container {
+        flex: 1 1 12rem;
+        min-width: 0;
+    }
+
+    .chat-configuration-library-toolbar > .chat-configuration-actions {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: var(--space-2);
+        width: auto;
+        min-height: 0;
+        margin: 0;
+    }
+
+    .chat-configuration-library-utility {
+        display: flex;
+        gap: var(--space-3);
+        align-items: center;
+        justify-content: space-between;
+        margin-block-start: var(--space-2);
+        padding: var(--space-4);
+        border-radius: var(--border-radius);
+    }
+
+    .chat-configuration-library-utility p {
+        margin-block: var(--space-1) 0;
+        margin-inline: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .chat-configuration-library-utility {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .chat-configuration-library-utility .ui-button {
+            width: 100%;
+        }
+
+        .chat-configuration-library-toolbar {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .chat-configuration-library-toolbar > .searchbar-container {
+            flex-basis: auto;
+        }
+
+        .chat-configuration-library-toolbar > .chat-configuration-actions {
+            width: 100%;
+        }
+
+        .chat-configuration-library-toolbar > .chat-configuration-actions > .ui-button {
+            flex: 1 1 auto;
+        }
+    }
+}

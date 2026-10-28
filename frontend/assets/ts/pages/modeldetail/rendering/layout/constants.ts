@@ -17,6 +17,7 @@ const DETAIL_ROWS: readonly RowDefinition[] = Object.freeze([
 const STATUS_ROWS: readonly RowDefinition[] = Object.freeze([
     { id: 'modeldetail-type', getLabel: (): string => i18n.t('modelDetail.cards.identity.type') },
     { id: 'modeldetail-available', getLabel: (): string => i18n.t('modelDetail.cards.status.available') },
+    { id: 'modeldetail-inference-verification', getLabel: (): string => i18n.t('modelDetail.cards.status.inferenceVerification') },
     { id: 'modeldetail-created', copyable: true, getLabel: (): string => i18n.t('modelDetail.cards.technical.created') },
     { id: 'modeldetail-orphaned', getLabel: (): string => i18n.t('modelDetail.cards.status.orphaned') },
     { id: 'modeldetail-avg-tokens', getLabel: (): string => i18n.t('modelDetail.cards.metrics.avgTokens') },

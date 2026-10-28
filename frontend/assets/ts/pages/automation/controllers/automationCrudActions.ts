@@ -1,6 +1,8 @@
 /* SoAI - Automation page crud actions [frontend/assets/ts/pages/automation/controllers/automationCrudActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { applyTextContent } from '@core/dom/textContent.ts';
+
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -85,7 +87,7 @@ const handleToggleAutomationEnabled = (host: AutomationCrudActionHost, element: 
         try {
             checkbox.disabled = true;
             row.classList.toggle('is-enabled', enabled);
-            label.textContent = enabled ? i18n.t('common.enabled') : i18n.t('common.disabled');
+            applyTextContent(label, enabled ? i18n.t('common.enabled') : i18n.t('common.disabled'));
 
             try {
                 await host.state.dataService.updateAutomation(automationId, { enabled }, null);
@@ -93,7 +95,7 @@ const handleToggleAutomationEnabled = (host: AutomationCrudActionHost, element: 
                 const runtimeError = ensureError(error);
                 checkbox.checked = previous;
                 row.classList.toggle('is-enabled', previous);
-                label.textContent = previous ? i18n.t('common.enabled') : i18n.t('common.disabled');
+                applyTextContent(label, previous ? i18n.t('common.enabled') : i18n.t('common.disabled'));
                 notifyOperationFailed(host, i18n.t('common.save'), runtimeError);
                 errorHandler.error('AutomationCrudActions', 'Failed to toggle automation enabled', runtimeError);
                 return;

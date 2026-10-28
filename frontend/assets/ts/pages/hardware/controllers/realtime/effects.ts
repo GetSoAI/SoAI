@@ -166,12 +166,15 @@ const applyHistoryResponse = async (dependencies: HardwareHistoryStreamDependenc
     runtime.session.backup = null;
     completeMainChartLoad(dependencies.renderController.chartContext, options.chartLoadToken);
     const activeSeries = candlestick ? state.candlestickData : state.historyData;
-    setHistoryLoadStatus(dependencies, activeSeries.length === 0 ? i18n.t('charts.emptyState') : null, activeSeries.length === 0 ? 'info' : null);
+    const identity = response.metadata.identityObservation;
+    const retainedMessage = identity?.status === 'stale' && identity.observedAtMs !== null ? i18n.t('hardware.observations.retainedAge', { seconds: Math.max(0, Math.floor((serverEpochMs() - identity.observedAtMs) / 1000)) }) : null;
+    setHistoryLoadStatus(dependencies, retainedMessage ?? (activeSeries.length === 0 ? i18n.t('charts.emptyState') : null), retainedMessage !== null ? 'warning' : activeSeries.length === 0 ? 'info' : null);
 };
 
 const handleHistoryLoadError = (dependencies: HardwareHistoryStreamDependencies, runtime: HardwareHistoryRuntime, error: Error, chartLoadToken: HardwareChartLoadToken): void => {
     const session = runtime.session;
-    dependencies.logger('error', 'History load failed', error);
+    const inventoryBusy = error instanceof APIError && (error.code === 'gpu_inventory_busy' || error.reason === 'gpu_inventory_busy');
+    dependencies.logger(inventoryBusy ? 'warn' : 'error', 'History load failed', error);
     if (session.backup) {
         dependencies.historyStateManager.restore(dependencies.state, session.backup);
         updateMainChart(dependencies.renderController.chartContext, { resetView: false });

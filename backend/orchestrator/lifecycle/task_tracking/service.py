@@ -51,6 +51,7 @@ class OrchestratorLifecycleTaskTracking:
         provider_backed: bool,
         persistent_runtime: bool,
     ) -> bool:
+        requires_local_model = not provider_backed and not persistent_runtime
         if not await self._deps.state.wait_for_finalize_complete(
             plugin_name,
             LOCAL_IO_TIMEOUT_SEC,
@@ -69,7 +70,7 @@ class OrchestratorLifecycleTaskTracking:
             async with self._deps.state.plugins_context() as plugin_context:
                 plugin_state = plugin_context.plugin_states.get(plugin_name)
                 if plugin_state is None:
-                    if not provider_backed and not persistent_runtime:
+                    if requires_local_model:
                         return False
                     loaded_universal_id = None
                     loaded_parameters = None
@@ -84,13 +85,9 @@ class OrchestratorLifecycleTaskTracking:
                     finalize_pending = plugin_state.finalize_pending
             if finalize_pending:
                 return False
-            if (
-                not provider_backed
-                and not persistent_runtime
-                and loaded_universal_id != request_universal_id
-            ):
+            if requires_local_model and loaded_universal_id != request_universal_id:
                 return False
-            if not persistent_runtime:
+            if requires_local_model:
                 if not await self.reload_params_match(
                     plugin_name,
                     loaded_parameters,
@@ -105,12 +102,12 @@ class OrchestratorLifecycleTaskTracking:
             async with self._deps.state.plugins_context() as plugin_context:
                 plugin_state = plugin_context.plugin_states.get(plugin_name)
                 if plugin_state is None:
-                    if not provider_backed and not persistent_runtime:
+                    if requires_local_model:
                         return False
                     plugin_state = PluginState(plugin_name=plugin_name)
                     plugin_context.plugin_states[plugin_name] = plugin_state
                 current_loaded_parameters = plugin_state.loaded_parameters
-                loaded_parameters_unchanged = persistent_runtime or (
+                loaded_parameters_unchanged = not requires_local_model or (
                     (current_loaded_parameters is None and loaded_parameters is None)
                     or (
                         current_loaded_parameters is not None
@@ -121,8 +118,7 @@ class OrchestratorLifecycleTaskTracking:
                 if plugin_state.finalize_pending or not loaded_parameters_unchanged:
                     return False
                 if (
-                    not provider_backed
-                    and not persistent_runtime
+                    requires_local_model
                     and plugin_state.loaded_model_universal_id != request_universal_id
                 ):
                     return False

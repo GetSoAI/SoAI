@@ -95,7 +95,7 @@ class ParameterManagerProtocol(Protocol):
     async def get_parameter_schema_snapshot(
         self,
         plugin_name: str,
-    ) -> tuple[JSONDict, JSONDict]: ...
+    ) -> tuple[JSONDict, JSONDict] | None: ...
 
 
 class ModelProviderCoordinatorProtocol(Protocol):

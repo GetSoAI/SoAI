@@ -24,7 +24,7 @@ import { DashboardMemoController } from '@pages/dashboard/controllers/dashboardM
 import { createDashboardQuickActionsSectionRenderer } from '@pages/dashboard/controllers/dashboardQuickActionsWidget.ts';
 import { DashboardThroughputController } from '@pages/dashboard/controllers/dashboardThroughputWidget.ts';
 import type { DashboardLiveDataContext, DashboardLiveDataKey } from '@pages/dashboard/controllers/dashboardLiveData.ts';
-import { createDashboardRequestsSectionRenderer, syncDashboardRequestDistributionSourceToggle } from '@pages/dashboard/controllers/dashboardRequestsSection.ts';
+import { createDashboardRequestsSectionRenderer, syncDashboardRequestDistributionSourceToggle, type DashboardRequestsRenderOptions } from '@pages/dashboard/controllers/dashboardRequestsSection.ts';
 import { createDashboardStatusSectionRenderer } from '@pages/dashboard/controllers/dashboardStatusSection.ts';
 import { createDashboardSectionRenderQueue } from '@pages/dashboard/controllers/effects.ts';
 import { createDashboardActionHandlers } from '@pages/dashboard/controllers/events.ts';
@@ -93,7 +93,7 @@ const createDashboardRuntime = (dependencies: DashboardRuntimeDependencies): Das
         getModels: (): readonly JsonValue[] => liveDataContext.state.models,
         getStatusManager: (): StatusManagerContract | null => statusManager()
     });
-    const renderRequestsSection = (options: { transition?: boolean } = {}): void => {
+    const renderRequestsSection = (options: DashboardRequestsRenderOptions = {}): void => {
         createDashboardRequestsSectionRenderer({
             host,
             chartSizeWatcher: requestDistributionChartSizeWatcher,
@@ -203,7 +203,7 @@ const createDashboardRuntime = (dependencies: DashboardRuntimeDependencies): Das
         onRequestDistributionSourceToggle: (): void => {
             requestDistributionViewState.toggleSource();
             syncDashboardRequestDistributionSourceToggle(host, requestDistributionViewState);
-            renderRequestsSection({ transition: true });
+            renderRequestsSection({ transition: true, transitionLegend: true });
         },
         onQuickActionNavigate: (pageId: string): void => {
             dependencies.navigate(pageId);

@@ -173,6 +173,23 @@ def register_routes(routers: ApiRouters) -> None:
         )
 
     @routers.actions.post(
+        "/plugins/{plugin_name}/check-for-updates",
+        dependencies=restart_protected_dependencies(AccessAction.PLUGIN_ADMIN),
+    )
+    async def check_backend_update(
+        request: Request,
+        api_context: ApiContext = Depends(resolve_api_context),
+        normalized_name: str = Depends(get_validated_plugin_name),
+    ) -> JSONResponse:
+        try:
+            update = await api_context.dependencies.plugin_manager.check_backend_update(
+                normalized_name
+            )
+            return JSONResponse(content=update)
+        except OfflineModeError as exception:
+            raise_offline_mode(request, str(exception))
+
+    @routers.actions.post(
         "/plugins/check-for-updates",
         dependencies=require_action_dependencies(AccessAction.PLUGIN_ADMIN),
     )

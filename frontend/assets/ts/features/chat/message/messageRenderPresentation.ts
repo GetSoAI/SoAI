@@ -8,7 +8,7 @@ import { isChatMessage } from '@features/chat/message/chatMessageGuards.ts';
 import { resolveMessageDomId } from '@features/chat/message/messageDomIds.ts';
 import { resolveNormalizedMessageRole } from '@features/chat/message/messageRole.ts';
 import { isEmptyAssistantPlaceholderMessage } from '@features/chat/message/placeholderAssistantMessage.ts';
-import { resolveActiveStreamingAssistantSelection, type ActiveComparisonRun, type TerminalRenderPendingPredicate } from '@features/chat/message/activeStreamingAssistantMessage.ts';
+import { resolveActiveStreamingAssistantSelection, type ActiveComparisonRun, type TerminalRenderStateResolver } from '@features/chat/message/activeStreamingAssistantMessage.ts';
 import type { ChatTurnAdmissionStreamIdentity } from '@features/chat/chatstreamservice/types.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 
@@ -134,7 +134,7 @@ const resolveLiveMessageRenderPresentation = (
         isConversationStreaming: boolean;
         activeComparisonRun: ActiveComparisonRun | null;
         activeStreamIdentity: ChatTurnAdmissionStreamIdentity | null;
-        isTerminalRenderPending: TerminalRenderPendingPredicate;
+        resolveTerminalRenderState: TerminalRenderStateResolver;
         isMessagePendingDeletion: MessagePendingDeletionPredicate;
     }
 ): ChatMessageRenderPresentation => {
@@ -142,7 +142,7 @@ const resolveLiveMessageRenderPresentation = (
         isConversationStreaming: inputArguments.isConversationStreaming,
         activeComparisonRun: inputArguments.activeComparisonRun,
         activeStreamIdentity: inputArguments.activeStreamIdentity,
-        isTerminalRenderPending: inputArguments.isTerminalRenderPending
+        resolveTerminalRenderState: inputArguments.resolveTerminalRenderState
     });
     return resolveMessageRenderPresentation(conversation, message, messageIndex, {
         activeStreamingAssistantDomIds: activeStreamingSelection.domIds,
@@ -163,7 +163,7 @@ type LiveMessageRenderPresentationResolverOptions = {
     isConversationStreaming: (conversationId: string) => boolean;
     getActiveComparisonRun: (conversationId: string) => ActiveComparisonRun | null;
     getActiveStreamIdentity: (conversationId: string) => ChatTurnAdmissionStreamIdentity | null;
-    isTerminalRenderPending: TerminalRenderPendingPredicate;
+    resolveTerminalRenderState: TerminalRenderStateResolver;
     isMessagePendingDeletion: (conversation: ConversationContract | null, messageDomId: string) => boolean;
 };
 
@@ -180,7 +180,7 @@ class LiveMessageRenderPresentationResolver {
             isConversationStreaming: conversationId !== null && this.#options.isConversationStreaming(conversationId),
             activeComparisonRun: conversationId === null ? null : this.#options.getActiveComparisonRun(conversationId),
             activeStreamIdentity: conversationId === null ? null : this.#options.getActiveStreamIdentity(conversationId),
-            isTerminalRenderPending: this.#options.isTerminalRenderPending,
+            resolveTerminalRenderState: this.#options.resolveTerminalRenderState,
             isMessagePendingDeletion: (messageDomId) => this.#options.isMessagePendingDeletion(conversation, messageDomId)
         });
     }

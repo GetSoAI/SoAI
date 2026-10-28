@@ -8,16 +8,34 @@ import io
 import os
 import sys
 import time
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 
+from core.errors.exceptions import StateError
 from core.filesystem.path_coercion import normalize_filesystem_path
+from core.meta.paths import join_data_abs
 from core.timing.epoch import epoch_seconds
 from core.timing.sleep import sleep_seconds
 
-__all__ = ("INSTALLATION_TRANSACTION_LOCK_FILENAME", "acquire_interprocess_lock")
+__all__ = (
+    "INSTALLATION_TRANSACTION_LOCK_FILENAME",
+    "acquire_interprocess_lock",
+    "require_no_foreign_install_lock",
+)
 
 INSTALLATION_TRANSACTION_LOCK_FILENAME = "soai.installation.transaction.lock"
+
+
+def require_no_foreign_install_lock(
+    base_path: str,
+    *,
+    inherited_install_lock_validator: Callable[[str], bool] | None = None,
+) -> None:
+    lock_dir = join_data_abs(base_path, "state", "locks", "soai.install.lock.d")
+    if os.path.lexists(normalize_filesystem_path(lock_dir)) and (
+        inherited_install_lock_validator is None or not inherited_install_lock_validator(lock_dir)
+    ):
+        raise StateError("Another installer owns this installation.")
 
 
 def _is_lock_contended_error(exception: BaseException) -> bool:

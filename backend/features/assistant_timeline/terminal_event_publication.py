@@ -151,4 +151,3 @@ async def persist_and_publish_terminal_chat_stream_event(
         locked_operation=locked_operation,
     )
     await event_bus.publish(chat_stream_event)
-    runtime.terminal_event_published = True

@@ -44,6 +44,8 @@ class DatabaseConversationsProtocol(Protocol):
         model_settings: JSONDict,
         is_automation: bool,
         conv_id: str | None = None,
+        *,
+        title_auto_update_allowed: bool = False,
     ) -> JSONDict: ...
     async def clone_conversation(
         self,
@@ -103,6 +105,8 @@ class DatabaseConversationsProtocol(Protocol):
         user_id: int,
         expected_title: str,
         new_title: str,
+        *,
+        require_title_auto_update_allowed: bool = False,
     ) -> JSONDict | None: ...
     async def update_conversation_settings(
         self,

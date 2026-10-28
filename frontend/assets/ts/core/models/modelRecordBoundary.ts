@@ -97,6 +97,8 @@ const decodeModelRecord = (record: JsonObject): ModelRecord => {
     if (modelRepository !== undefined) decoded.modelRepository = modelRepository;
     if (path !== undefined) decoded.path = path;
     if (family !== undefined) decoded.family = family;
+    const whisperModelId = readOptionalStringValue(record['whisper_model_id'], 'models.collection model.whisper_model_id');
+    if (whisperModelId !== undefined) decoded.whisperModelId = whisperModelId;
     if (license !== undefined) decoded.license = license;
     if (quantization !== undefined) decoded.quantization = quantization;
     if (providerId !== undefined) decoded.providerId = providerId;
@@ -140,7 +142,9 @@ const decodeModelRecord = (record: JsonObject): ModelRecord => {
     const tags = readOptionalArray(record['tags'], 'models.collection model.tags');
     const modalities = readOptionalArray(record['modalities'], 'models.collection model.modalities');
     const openaiCapabilities = readOptionalObject(record['openai_capabilities'], 'models.collection model.openai_capabilities');
+    const openaiBaseProfile = readOptionalObject(record['openai_base_profile'], 'models.collection model.openai_base_profile');
     const openaiCapabilitiesOverrides = readOptionalObject(record['openai_capabilities_overrides'], 'models.collection model.openai_capabilities_overrides');
+    const openaiCapabilityEvidence = readOptionalObject(record['openai_capability_evidence'], 'models.collection model.openai_capability_evidence');
     const models = decodeVirtualModelConstituents(record['models']);
     if (provider !== undefined) decoded.provider = provider;
     if (providerMetadata !== undefined) decoded.providerMetadata = providerMetadata;
@@ -148,8 +152,10 @@ const decodeModelRecord = (record: JsonObject): ModelRecord => {
     if (tags !== undefined) decoded.tags = tags;
     if (modalities !== undefined) decoded.modalities = modalities.filter((entry): entry is string => typeof entry === 'string');
     if (openaiCapabilities !== undefined) decoded.openaiCapabilities = openaiCapabilities;
+    if (openaiBaseProfile !== undefined) decoded.openaiBaseProfile = openaiBaseProfile;
     if (record['openai_capabilities_overrides'] === null) decoded.openaiCapabilitiesOverrides = null;
     else if (openaiCapabilitiesOverrides !== undefined) decoded.openaiCapabilitiesOverrides = openaiCapabilitiesOverrides;
+    if (openaiCapabilityEvidence !== undefined) decoded.openaiCapabilityEvidence = openaiCapabilityEvidence;
     if (models !== undefined) decoded.models = models;
     return decoded;
 };

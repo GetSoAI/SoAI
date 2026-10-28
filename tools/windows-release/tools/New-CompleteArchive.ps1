@@ -64,6 +64,7 @@ foreach ($requiredPath in @(
     'installer-support\Install-SoAIRuntime.ps1',
     'installer-support\dependencies-v1.json',
     'installer-support\Remove-SoAI.ps1',
+    'installer-support\Shared-SoAIResourceOwnership.ps1',
     'installer-support\installed-files.txt'
     'installer-support\soai.exe.config'
 )) {

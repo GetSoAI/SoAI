@@ -1,13 +1,12 @@
 /* SoAI - Chat feature storage events [frontend/assets/ts/features/chat/storage/events.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { isJsonObject } from '@core/types/jsonValues.ts';
+import { applyConversationTitleMetadata } from '@features/chat/conversation/conversationPersistenceSnapshots.ts';
 import { WEBSOCKET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/registry.ts';
 import type { ConversationCreatedEvent, ConversationDeletedEvent, ConversationUpdatedEvent } from '@core/realtime/eventcontracts/conversationContracts.ts';
 import { createWebSocketContractBinding, subscribeManagedWebSocketContracts } from '@core/realtime/websocketBatchSubscription.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { invalidateConversationListRefresh, refreshConversationList } from '@features/chat/storage/conversationListRefresh.ts';
-import { resolveMessageTitle } from '@features/chat/messageBuilding.ts';
 import { parseBackendConversationUpdateEvent } from '@features/chat/storage/conversationPayloadParsing.ts';
 import type { ChatStorageManagerContract } from '@features/chat/storage/managerContracts.ts';
 import type { Conversation } from '@features/chat/storage/storageModels.ts';
@@ -47,35 +46,6 @@ const markConversationPersisted = (manager: ChatStorageEventsRuntime, conversati
     manager.conversationManager.markConversationPersisted(conversationId);
 };
 
-const resolveConversationDefaultTitle = (conversation: Conversation): string | null => {
-    for (const message of conversation.messages) {
-        if (!isJsonObject(message) || message['role'] !== 'user') {
-            continue;
-        }
-        const resolvedTitle = resolveMessageTitle(message);
-        return resolvedTitle ? resolvedTitle : null;
-    }
-    return null;
-};
-
-const shouldIgnoreStaleTitlePatch = (conversation: Conversation, incomingTitle: string, incomingUpdatedAt: number): boolean => {
-    if (incomingUpdatedAt >= conversation.updatedAt) {
-        return false;
-    }
-    if (conversation.title === incomingTitle) {
-        return false;
-    }
-    const defaultTitle = resolveConversationDefaultTitle(conversation);
-    if (defaultTitle !== null && conversation.title === defaultTitle) {
-        return false;
-    }
-    return true;
-};
-
-const shouldApplyStaleTitlePatch = (conversation: Conversation, incomingTitle: string, incomingUpdatedAt: number): boolean => {
-    return incomingUpdatedAt < conversation.updatedAt && !shouldIgnoreStaleTitlePatch(conversation, incomingTitle, incomingUpdatedAt);
-};
-
 const applyConversationUpdatedEventPayload = (manager: ChatStorageEventsRuntime, event: ConversationUpdatedEvent): boolean => {
     const existingConversationId = event.convId;
     const currentConversation = manager.state.getConversations().get(existingConversationId);
@@ -90,16 +60,8 @@ const applyConversationUpdatedEventPayload = (manager: ChatStorageEventsRuntime,
     }
     const updatedAt = parsed.patch.updatedAt;
     const isStalePatch = updatedAt < targetConversation.updatedAt;
-    if (isStalePatch) {
-        if (parsed.patch.title !== undefined && shouldApplyStaleTitlePatch(targetConversation, parsed.patch.title, updatedAt)) {
-            targetConversation.title = parsed.patch.title;
-            targetConversation.updatedAt = Math.max(targetConversation.updatedAt, updatedAt);
-        }
-        return parsed.patch.settingsAuthorityChanged === true;
-    }
-    if (parsed.patch.title !== undefined) {
-        targetConversation.title = parsed.patch.title;
-    }
+    applyConversationTitleMetadata(targetConversation, parsed.patch);
+    if (isStalePatch) return parsed.patch.settingsAuthorityChanged === true;
     if (parsed.patch.isFavorite !== undefined) {
         targetConversation.isFavorite = parsed.patch.isFavorite;
     }
@@ -135,6 +97,9 @@ const handleConversationCreated = async (manager: ChatStorageEventsRuntime, even
     }
     const conversationId = event.convId;
     markConversationPersisted(manager, conversationId);
+    if (manager.state.getConversations().has(conversationId) || manager.conversationManager.isConversationCreationPending(conversationId)) {
+        return;
+    }
     await refreshConversationList(manager);
 };
 

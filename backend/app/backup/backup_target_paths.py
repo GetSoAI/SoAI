@@ -5,9 +5,21 @@ from __future__ import annotations
 
 import os
 
-from app.backup.internal_protocols import ConfigProviderProtocol, FilesProviderProtocol
-from core.errors.exceptions import StateError
+from app.backup.internal_protocols import (
+    ConfigProviderProtocol,
+    FilesProviderProtocol,
+    UserDataSource,
+)
+from core.backup.paths import (
+    get_backup_relative_files_path,
+    get_backup_relative_user_files_path,
+    get_backup_relative_wallpaper_path,
+)
+from core.errors.exceptions import StateError, ValidationError
+from core.files.path_policy import is_path_inside_directory
+from core.files.workspace_path import resolve_existing_workspace_directory
 from core.validation.booleans import parse_bool
+from core.workspaces.user_workspace_path import managed_user_workspace_root
 
 __all__ = (
     "all_enabled_targets_completed",
@@ -17,8 +29,14 @@ __all__ = (
     "get_encryption_key_path",
     "get_files_storage_path",
     "get_gpu_settings_path",
+    "get_user_data_source_paths",
+    "get_user_files_path",
     "get_wallpaper_path",
+    "select_user_data_sources",
 )
+
+_FILES_STORAGE_PATH_KEY = "DATA.FILES.PATHS.FILES_STORAGE"
+_WALLPAPER_PATH_KEY = "SERVER.WEBUI.WALLPAPER_STORAGE_PATH"
 
 _BACKUP_TARGET_DEFAULTS: tuple[tuple[str, bool], ...] = (
     ("DATABASE", True),
@@ -95,8 +113,8 @@ def get_files_storage_path(config: ConfigProviderProtocol, files: FilesProviderP
     return resolve_required_path(
         config,
         files,
-        "DATA.FILES.PATHS.FILES_STORAGE",
-        error_message="DATA.FILES.PATHS.FILES_STORAGE is missing or invalid.",
+        _FILES_STORAGE_PATH_KEY,
+        error_message=f"{_FILES_STORAGE_PATH_KEY} is missing or invalid.",
     )
 
 
@@ -104,8 +122,8 @@ def get_wallpaper_path(config: ConfigProviderProtocol, files: FilesProviderProto
     return resolve_required_path(
         config,
         files,
-        "SERVER.WEBUI.WALLPAPER_STORAGE_PATH",
-        error_message="SERVER.WEBUI.WALLPAPER_STORAGE_PATH is missing or invalid.",
+        _WALLPAPER_PATH_KEY,
+        error_message=f"{_WALLPAPER_PATH_KEY} is missing or invalid.",
     )
 
 
@@ -116,3 +134,67 @@ def get_gpu_settings_path(config: ConfigProviderProtocol, files: FilesProviderPr
         "SYSTEM.HARDWARE.GPU_SETTINGS_SLOTS_PATH",
         error_message="SYSTEM.HARDWARE.GPU_SETTINGS_SLOTS_PATH is missing or invalid.",
     )
+
+
+def get_user_files_path(files: FilesProviderProtocol) -> str:
+    return files.resolve_path(managed_user_workspace_root())
+
+
+def _configured_user_data_sources(
+    config: ConfigProviderProtocol,
+    files: FilesProviderProtocol,
+) -> tuple[tuple[str, UserDataSource], ...]:
+    return (
+        (
+            _WALLPAPER_PATH_KEY,
+            UserDataSource(get_backup_relative_wallpaper_path(), get_wallpaper_path(config, files)),
+        ),
+        (
+            _FILES_STORAGE_PATH_KEY,
+            UserDataSource(get_backup_relative_files_path(), get_files_storage_path(config, files)),
+        ),
+    )
+
+
+def get_user_data_source_paths(
+    config: ConfigProviderProtocol,
+    files: FilesProviderProtocol,
+) -> tuple[str, ...]:
+    return (
+        *(source.source_path for _key, source in _configured_user_data_sources(config, files)),
+        get_user_files_path(files),
+    )
+
+
+def _require_separate_user_data_folders(folders: tuple[tuple[str, str], ...]) -> None:
+    real_folders = tuple((label, path, os.path.realpath(path)) for label, path in folders)
+    for index, (first_label, first_path, first_real_path) in enumerate(real_folders):
+        for second_label, second_path, second_real_path in real_folders[index + 1 :]:
+            if is_path_inside_directory(first_real_path, second_real_path) or (
+                is_path_inside_directory(second_real_path, first_real_path)
+            ):
+                raise ValidationError(
+                    f"{first_label} ({first_path}) and {second_label} ({second_path}) must not contain each other, because a backup could not restore them separately. Move a configured folder to a separate location, update its setting and back up again."
+                )
+
+
+def select_user_data_sources(
+    config: ConfigProviderProtocol,
+    files: FilesProviderProtocol,
+) -> tuple[UserDataSource, ...]:
+    configured_sources = _configured_user_data_sources(config, files)
+    sources = tuple(source for _key, source in configured_sources)
+    existing_folders = tuple(
+        (setting_key, source.source_path)
+        for setting_key, source in configured_sources
+        if os.path.isdir(source.source_path)
+    )
+    configured_workspace_root = get_user_files_path(files)
+    if not os.path.lexists(configured_workspace_root):
+        _require_separate_user_data_folders(existing_folders)
+        return sources
+    workspace_root = resolve_existing_workspace_directory(configured_workspace_root)
+    _require_separate_user_data_folders(
+        (*existing_folders, ("the account workspaces folder", workspace_root))
+    )
+    return (*sources, UserDataSource(get_backup_relative_user_files_path(), workspace_root))

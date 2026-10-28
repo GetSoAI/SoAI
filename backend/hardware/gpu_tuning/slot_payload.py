@@ -28,7 +28,6 @@ __all__ = (
     "build_slot_payload_dependencies",
     "get_capabilities_and_inventory",
     "load_inventory_and_payload",
-    "load_locked_devices_payload",
     "load_locked_payload",
     "observe_locked_slot_inventory",
 )
@@ -123,33 +122,13 @@ def observe_locked_slot_inventory(
         prune=prune,
         allow_create=allow_create,
         inventory=inventory,
+        adl_runtime=gpu_services.adl_runtime,
     )
     return SlotInventoryObservation(
         inventory=inventory_snapshot,
         payload=payload,
         nvidia_inventory_available=nvidia_inventory_available,
     )
-
-
-def load_locked_devices_payload(
-    *,
-    executor: CommandExecutorProtocol,
-    storage: GpuSlotStorageManagerProtocol,
-    detailed_gpu_info: bool,
-    gpu_services: GpuServiceDependencies,
-    prune: bool = True,
-    allow_create: bool,
-) -> JSONDict:
-    observation = observe_locked_slot_inventory(
-        executor=executor,
-        storage=storage,
-        detailed_gpu_info=detailed_gpu_info,
-        gpu_services=gpu_services,
-        prune=prune,
-        allow_create=allow_create,
-    )
-    devices_payload = observation.payload.get("devices")
-    return devices_payload if isinstance(devices_payload, dict) else {}
 
 
 def load_locked_payload(

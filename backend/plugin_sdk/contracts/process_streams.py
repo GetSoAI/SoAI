@@ -7,6 +7,7 @@ import asyncio
 import io
 import logging
 import re
+from collections.abc import Callable
 
 from core.concurrency.cancellation_cleanup import uncancel_and_wait
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
@@ -93,6 +94,8 @@ async def consume_process_stream(
     log_file_handle: io.BufferedIOBase | None = None,
     plugin_label: str,
     strip_ansi: bool = False,
+    stream_name: str = "output",
+    output_observer: Callable[[str, str], None] | None = None,
 ) -> None:
     while True:
         try:
@@ -107,6 +110,8 @@ async def consume_process_stream(
                 break
 
             line_text = line_bytes.decode("utf-8", errors="replace").rstrip("\r\n")
+            if output_observer is not None:
+                output_observer(stream_name, line_text)
             level_name, _message = parse_plugin_log_line(line_text)
             level_number = resolve_log_level(level_name)
             record = logger.makeRecord(logger.name, level_number, __file__, 0, line_text, (), None)

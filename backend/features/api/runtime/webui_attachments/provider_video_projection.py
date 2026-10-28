@@ -14,6 +14,7 @@ from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exceptions import SoAIError
 from core.files.temp_directory_scope import scoped_temp_directory
 from core.files.upload_policy import resolve_temp_directory_runtime
+from core.filesystem.descriptor_io import open_descriptor
 from core.media.frame_extraction import extract_video_frame
 from core.media.frame_geometry import compute_frame_target
 from core.media.probing import probe_video
@@ -94,7 +95,7 @@ async def _shape_frame(
     config: ConfigProtocol,
     max_encoded_chars: int,
 ) -> JSONDict | None:
-    descriptor = os.open(frame_path, os.O_RDONLY)
+    descriptor = open_descriptor(frame_path, os.O_RDONLY)
     try:
         image_shaper = partial(
             shape_descriptor_image_for_provider,

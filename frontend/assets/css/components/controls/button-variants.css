@@ -96,11 +96,11 @@
 
     :is(.ui-button, .ui-icon-button).ui-variant-neutral.is-active {
         background-color: var(--ui-button-bg-hover);
-        border-color: var(--ui-button-border-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
         color: var(--ui-button-color-hover);
     }
 
-    .ui-variant-surface {
+    :is(.ui-button, .ui-icon-button).ui-variant-surface {
         --ui-button-bg: var(--ui-button-surface-strong);
         --ui-button-border: var(--ui-button-border-strong);
         --ui-button-color: var(--text-primary);

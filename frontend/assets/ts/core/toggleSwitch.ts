@@ -93,6 +93,7 @@ const createToggleSwitch = (options: ToggleSwitchOptions): HTMLElement => {
         className: wrapperClasses.join(' '),
         dataset: buildDataset(labels, options.wrapperDataset)
     });
+    wrapper.setAttribute('data-modal-localize', 'data-toggle-label-true data-toggle-label-false data-tooltip');
     if (options.pending) {
         wrapper.setAttribute('data-pending', 'true');
         wrapper.setAttribute('aria-busy', 'true');
@@ -107,6 +108,7 @@ const createToggleSwitch = (options: ToggleSwitchOptions): HTMLElement => {
     if (!(inputElement instanceof HTMLInputElement)) {
         throw new Error('ToggleSwitch must create an HTMLInputElement');
     }
+    inputElement.setAttribute('data-modal-localize', 'data-toggle-label-true data-toggle-label-false aria-label');
     if (options.checked) {
         inputElement.setAttribute('checked', '');
     }

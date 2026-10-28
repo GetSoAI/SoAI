@@ -128,11 +128,11 @@ async def publish_soaibench_run_api(
     body = await read_bounded_body_bytes_or_raise(
         request,
         max_body_bytes=1,
-        invalid_body_message="SoAIBench publication request body is invalid.",
-        payload_too_large_message="SoAIBench publication accepts no request body.",
+        invalid_body_message="SoAI Bench publication request body is invalid.",
+        payload_too_large_message="SoAI Bench publication accepts no request body.",
     )
     if body:
-        raise ValidationError("SoAIBench publication accepts no request body.")
+        raise ValidationError("SoAI Bench publication accepts no request body.")
     status_code, result = await api_context.dependencies.hardware_soaibench.publish_run(
         run_id=run_id,
         user_id=current_user["id"],

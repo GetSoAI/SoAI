@@ -100,11 +100,13 @@ def require_bounded_trimmed_text(
     max_length: int,
     max_length_message: str,
     nul_message: str | None = None,
+    preserve_whitespace: bool = False,
+    allow_blank: bool = False,
 ) -> str:
     if not isinstance(value, str):
         raise ValidationError(type_message)
-    normalized = value.strip()
-    if not normalized:
+    normalized = value if preserve_whitespace else value.strip()
+    if not normalized.strip() and not allow_blank:
         raise ValidationError(empty_message)
     if "\x00" in normalized:
         raise ValidationError(nul_message or empty_message)

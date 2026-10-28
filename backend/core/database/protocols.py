@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
     from core.database.operation_status import DatabaseOperationStatus
     from core.database.vacuum_result import DatabaseVacuumResult, DatabaseVacuumStartupResult
+    from core.database.write_storage import DatabaseWriteStorage
     from core.types.json import JSONValue
 
 __all__ = (
@@ -78,6 +79,7 @@ class DatabaseWriterProtocol(Protocol):
         *args: *Ts,
         enqueue_timeout: float | None = None,
         operation_timeout: float | None = None,
+        storage: DatabaseWriteStorage | None = None,
         **named_args: JSONValue,
     ) -> TCo_co: ...
 

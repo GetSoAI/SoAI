@@ -3,7 +3,7 @@
 
 import { measureLayoutBox, type GeometryBox } from '@core/layout/elementGeometry.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
-import { CHECKERBOARD_CLASS_PAIR, resolveCheckerboardClass, type CheckerboardClassName } from '@core/dom/checkerboardAssignment.ts';
+import { applyCheckerboardClasses, resolveCheckerboardClass, type CheckerboardClassName } from '@core/dom/checkerboardAssignment.ts';
 import type { ResourceTracker } from '@core/resourcetracker/service.ts';
 
 const SUPPRESSED_ITEM_CLASS = 'ui-page-header-stats__card--suppressed';
@@ -13,8 +13,6 @@ interface CheckerboardServiceDependencies {
     getDomWindow: () => Window;
     generateSecureId: (prefix: string) => string;
     dom: {
-        addClass: (element: Element, classes: string | string[]) => void;
-        removeClass: (element: Element, classes: string | string[]) => void;
         getData: (element: Element, name: string) => string | null;
         setData: (element: Element, name: string, value: string) => void;
     };
@@ -68,12 +66,12 @@ class CheckerboardService {
         const observer = new MutationObserver(() => {
             this.updateCheckerboard(container, itemSelector);
         });
-        const resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => this.scheduleUpdate(container, itemSelector)) : null;
+        const resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => this.updateCheckerboard(container, itemSelector)) : null;
         resizeObserver?.observe(container);
 
         observer.observe(container, {
             childList: true,
-            subtree: false
+            subtree: true
         });
 
         this.observers.set(containerId, {
@@ -118,9 +116,10 @@ class CheckerboardService {
             return;
         }
         this.#reapplyKnownAssignments(containerId, items);
-        const columns = this.#resolveColumnCount(container);
+        const allTableRows = items.every((item) => item instanceof HTMLTableRowElement);
+        const columns = allTableRows ? 0 : this.#resolveColumnCount(container);
         const classSignature = items.map((item) => this.#resolveStableClassSignature(item)).join('|');
-        const signature = `${itemSelector}:${items.length}:${container.clientWidth}:${columns}:${resolvedOffset}:${classSignature}`;
+        const signature = `${itemSelector}:${items.length}:${allTableRows ? 0 : container.clientWidth}:${columns}:${resolvedOffset}:${classSignature}`;
         const hasAppliedClasses = items.every((item) => item.classList.contains('checkerboard-light') || item.classList.contains('checkerboard-dark'));
         if (hasAppliedClasses && this.#lastSignatures.get(containerId) === signature && this.#itemsMatchLastRun(containerId, items)) {
             return;
@@ -128,14 +127,8 @@ class CheckerboardService {
         this.#lastSignatures.set(containerId, signature);
         this.#lastItems.set(containerId, items);
 
-        const assignments = this.#computeAssignments(container, itemSelector, items, columns, resolvedOffset);
-        items.forEach((item, index) => {
-            const assigned = assignments[index];
-            if (assigned !== undefined && !item.classList.contains(assigned)) {
-                this.#dependencies.dom.removeClass(item, CHECKERBOARD_CLASS_PAIR);
-                this.#dependencies.dom.addClass(item, assigned);
-            }
-        });
+        const assignments = this.#computeAssignments(container, itemSelector, items, columns, resolvedOffset, allTableRows);
+        applyCheckerboardClasses(items, assignments);
         this.#lastAssignments.set(containerId, assignments);
     }
 
@@ -168,8 +161,7 @@ class CheckerboardService {
         return rows;
     }
 
-    #computeAssignments(container: Element, itemSelector: string, items: Element[], columns: number, absoluteIndexOffset: number): CheckerboardClassName[] {
-        const allTableRows = items.every((item) => item instanceof HTMLTableRowElement);
+    #computeAssignments(container: Element, itemSelector: string, items: Element[], columns: number, absoluteIndexOffset: number, allTableRows: boolean): CheckerboardClassName[] {
         if (allTableRows) {
             return items.map((_item, index) => resolveCheckerboardClass(absoluteIndexOffset + index));
         }
@@ -208,13 +200,7 @@ class CheckerboardService {
         if (!assignments || assignments.length !== items.length) {
             return;
         }
-        items.forEach((item, index) => {
-            const assigned = assignments[index];
-            if (assigned !== undefined && !item.classList.contains(assigned)) {
-                this.#dependencies.dom.removeClass(item, CHECKERBOARD_CLASS_PAIR);
-                this.#dependencies.dom.addClass(item, assigned);
-            }
-        });
+        applyCheckerboardClasses(items, assignments);
     }
 
     #resolveColumnCount(container: Element): number {

@@ -23,6 +23,7 @@ export interface ModalCloseOptions {
 export type ModalLayoutPreset = 'md' | 'lg' | 'xl';
 
 export interface ModalRegisterOptions {
+    presentation?: 'window' | 'viewport';
     layout: ModalLayoutPreset;
     initialFocusSelector: string;
     resizable?: boolean | undefined;
@@ -32,6 +33,7 @@ export interface ModalRegisterOptions {
 }
 
 export interface ModalConfig {
+    presentation: 'window' | 'viewport';
     closeOnEsc: boolean;
     closeOnOverlay: boolean;
     restoreFocus: boolean;

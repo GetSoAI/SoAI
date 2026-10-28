@@ -1,0 +1,60 @@
+<svg style="--soai-animated-logo-ring-edge: #0d0d0d; --soai-animated-logo-ring-mid: #222222; --soai-animated-logo-ring-border: #444444; --soai-animated-logo-dot-fill: #858585; --soai-animated-logo-center-fill: #bedc00;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+    <style>
+        :root {
+            --soai-animated-logo-ring-edge: #0d0d0d;
+            --soai-animated-logo-ring-mid: #222222;
+            --soai-animated-logo-ring-border: #444444;
+            --soai-animated-logo-dot-fill: #858585;
+            --soai-animated-logo-center-fill: #bedc00;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --soai-animated-logo-ring-edge: #e5e5e5;
+                --soai-animated-logo-ring-mid: #ffffff;
+                --soai-animated-logo-ring-border: #b8b8b8;
+            }
+        }
+        .soai-animated-logo__dot {
+            fill: var(--soai-animated-logo-dot-fill);
+            opacity: 0.78;
+        }
+        .soai-animated-logo__dot--ring-4 { opacity: 0.46; }
+        .soai-animated-logo__center { fill: var(--soai-animated-logo-center-fill); }
+    </style>
+    <defs>
+        <radialGradient id="soai-ring-gradient" cx="50%" cy="50%" r="50%" gradientUnits="userSpaceOnUse">
+            <stop offset="72%" style="stop-color:var(--soai-animated-logo-ring-edge)" />
+            <stop offset="81.5%" style="stop-color:var(--soai-animated-logo-ring-mid)" />
+            <stop offset="91%" style="stop-color:var(--soai-animated-logo-ring-edge)" />
+        </radialGradient>
+        <filter id="soai-ring-bevel" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
+            <feOffset dx="1" dy="1" result="offset" />
+            <feComposite in="SourceGraphic" in2="offset" operator="over" />
+        </filter>
+    </defs>
+    <circle cx="100" cy="100" r="81.5" fill="none" stroke="url(#soai-ring-gradient)" stroke-width="17" filter="url(#soai-ring-bevel)" />
+    <circle cx="100" cy="100" r="90" fill="none" stroke="var(--soai-animated-logo-ring-border)" stroke-width="1" opacity="0.25" />
+    <circle cx="100" cy="100" r="73" fill="none" stroke="var(--soai-animated-logo-ring-border)" stroke-width="1" opacity="0.25" />
+    <circle cx="78" cy="100" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-1" />
+    <circle cx="122" cy="100" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-1" />
+    <circle cx="100" cy="78" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-1" />
+    <circle cx="100" cy="122" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-1" />
+    <circle cx="78" cy="78" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-2" />
+    <circle cx="122" cy="78" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-2" />
+    <circle cx="78" cy="122" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-2" />
+    <circle cx="122" cy="122" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-2" />
+    <circle cx="56" cy="100" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-3" />
+    <circle cx="144" cy="100" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-3" />
+    <circle cx="100" cy="56" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-3" />
+    <circle cx="100" cy="144" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-3" />
+    <circle cx="78" cy="56" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-4" />
+    <circle cx="122" cy="56" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-4" />
+    <circle cx="56" cy="78" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-4" />
+    <circle cx="144" cy="78" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-4" />
+    <circle cx="56" cy="122" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-4" />
+    <circle cx="144" cy="122" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-4" />
+    <circle cx="78" cy="144" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-4" />
+    <circle cx="122" cy="144" r="7.5" class="soai-animated-logo__dot soai-animated-logo__dot--ring-4" />
+    <circle cx="100" cy="100" r="7.5" class="soai-animated-logo__center" transform="translate(100 100) scale(1.42) translate(-100 -100)" />
+</svg>

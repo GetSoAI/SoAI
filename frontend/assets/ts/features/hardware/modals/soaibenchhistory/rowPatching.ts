@@ -9,7 +9,8 @@ const STATE_ROW_KEY = 'state';
 
 const resolveHistoryRowKey = (row: HTMLElement): string | null => {
     const runId = row.dataset['runId'];
-    if (runId) return `run:${runId}`;
+    const deviceId = row.dataset['deviceId'];
+    if (runId) return deviceId === undefined ? `run:${runId}` : `device-run:${JSON.stringify([deviceId, runId])}`;
     return row.dataset['historyState'] === undefined ? null : STATE_ROW_KEY;
 };
 

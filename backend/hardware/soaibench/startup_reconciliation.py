@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import StateError
+from core.hardware.soaibench_persistence import TASK_ID_PREFIX, task_id_for_run
 from core.serialization.json import serialize_json_compact_stable
 from core.tasks.enums import TaskStatus
 from core.tasks.finalization import finalize
@@ -14,7 +15,6 @@ from core.timing.epoch import epoch_ms
 from core.tool_calls.status_values import is_active_tool_call_status
 from core.validation.strict_numbers import coerce_optional_non_negative_int_strict
 from hardware.soaibench.responses import run_response
-from hardware.soaibench.runtime import TASK_ID_PREFIX, task_id_for_run
 from hardware.soaibench.terminal_projection import terminal_projection
 
 if TYPE_CHECKING:
@@ -125,16 +125,16 @@ async def _reconcile_remaining_active_tool_calls(
                 continue
             task = await task_registry.get(task_id, force_refresh=True)
             if task is None or task.task_type != TASK_TYPE_HARDWARE_SOAIBENCH:
-                raise StateError("SoAIBench deferred tool call has no matching task owner.")
+                raise StateError("SoAI Bench deferred tool call has no matching task owner.")
             run_id_value = task.metadata.get("run_id")
             if not isinstance(run_id_value, str) or task_id != task_id_for_run(run_id_value):
-                raise StateError("SoAIBench deferred tool call task identity is invalid.")
+                raise StateError("SoAI Bench deferred tool call task identity is invalid.")
             run = await database_hardware.get_soaibench_run_for_user(
                 user_id=task.user_id,
                 run_id=run_id_value,
             )
             if run is None or run.get("status") == "running":
-                raise StateError("SoAIBench deferred tool call has no terminal durable run.")
+                raise StateError("SoAI Bench deferred tool call has no terminal durable run.")
             await _reconcile_tool_call(
                 database_tool_calls,
                 task_id,
@@ -162,7 +162,7 @@ async def _reconcile_active_task(
         return
     run_id = run_id_value.strip()
     if task.task_id != task_id_for_run(run_id):
-        raise StateError("SoAIBench task identity does not match its persisted run_id.")
+        raise StateError("SoAI Bench task identity does not match its persisted run_id.")
     run = await database_hardware.get_soaibench_run_for_user(
         user_id=task.user_id,
         run_id=run_id,
@@ -172,7 +172,7 @@ async def _reconcile_active_task(
         await _finalize_missing_run_task(task_registry, task, "missing_run")
         return
     if run.get("status") == "running":
-        raise StateError("SoAIBench run remained running after process-boundary reconciliation.")
+        raise StateError("SoAI Bench run remained running after process-boundary reconciliation.")
     await _finalize_task_and_tool(
         task_registry=task_registry,
         database_tool_calls=database_tool_calls,
@@ -193,7 +193,7 @@ async def _finalize_missing_run_task(
         TaskStatus.FAILED,
         prefetched_task=task,
         result={"status": "failed", "reason": reason},
-        error_message="SoAIBench durable run is missing.",
+        error_message="SoAI Bench durable run is missing.",
     )
 
 
@@ -205,7 +205,7 @@ def _diagnose_missing_run(
     logger: LoggerProtocol,
 ) -> None:
     logger.warning(
-        "SoAIBench active task references invalid or missing durable run state.",
+        "SoAI Bench active task references invalid or missing durable run state.",
         extra={
             "soai_integrity": {
                 "task_id": task.task_id,
@@ -267,7 +267,7 @@ async def _reconcile_tool_call(
         if is_active_tool_call_status(str(tool_call.get("status") or ""))
     ]
     if len(active_calls) > 1:
-        raise StateError("SoAIBench task owns more than one active deferred tool call.")
+        raise StateError("SoAI Bench task owns more than one active deferred tool call.")
     if not owner_calls:
         return
     projection = terminal_projection(run)
@@ -276,7 +276,7 @@ async def _reconcile_tool_call(
         if is_active_tool_call_status(tool_status) or tool_status == projection.tool_status:
             continue
         logger.warning(
-            "SoAIBench terminal tool call conflicts with its durable run.",
+            "SoAI Bench terminal tool call conflicts with its durable run.",
             extra={
                 "soai_integrity": {
                     "run_id": str(run["run_id"]),
@@ -292,7 +292,7 @@ async def _reconcile_tool_call(
     tool_call = active_calls[0]
     completed_at_ms = coerce_optional_non_negative_int_strict(run.get("completed_at_ms"))
     if completed_at_ms is None:
-        raise StateError("SoAIBench terminal run is missing completed_at_ms.")
+        raise StateError("SoAI Bench terminal run is missing completed_at_ms.")
     duration_ms = coerce_optional_non_negative_int_strict(run.get("duration_ms")) or 0
     result_run = dict(run)
     result_run["task_id"] = task_id
@@ -305,7 +305,7 @@ async def _reconcile_tool_call(
         completed_at_ms=completed_at_ms,
     )
     if finalized is None or finalized.get("status") != projection.tool_status:
-        raise StateError("SoAIBench deferred tool call repair did not reach terminal state.")
+        raise StateError("SoAI Bench deferred tool call repair did not reach terminal state.")
 
 
 def _diagnose_terminal_task_conflict(
@@ -318,7 +318,7 @@ def _diagnose_terminal_task_conflict(
     if task.status == projection.task_status:
         return
     logger.warning(
-        "SoAIBench terminal task conflicts with its durable run.",
+        "SoAI Bench terminal task conflicts with its durable run.",
         extra={
             "soai_integrity": {
                 "run_id": str(run["run_id"]),

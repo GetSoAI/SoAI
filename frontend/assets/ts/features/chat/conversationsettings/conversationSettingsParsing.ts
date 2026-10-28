@@ -35,6 +35,7 @@ const parseRagDocument = (response: RagDocumentResponse): RagDocument => ({
     fileSizeBytes: response.fileSizeBytes,
     status: response.status.toLowerCase(),
     statusDetails: response.statusDetails,
+    missingCapabilities: response.missingCapabilities ?? [],
     totalChunks: response.totalChunks,
     processedChunks: response.processedChunks,
     createdAtMs: response.createdAtMs,

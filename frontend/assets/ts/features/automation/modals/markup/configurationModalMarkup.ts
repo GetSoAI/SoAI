@@ -53,67 +53,67 @@ const renderAutomationConfigurationModalMarkup = (): TrustedHtml => {
             <div id="${modalUiId(modalId, 'conflict')}" class="form-disclaimer automation-editor-notice u-hidden" role="alert">
                 <p id="${modalUiId(modalId, 'conflict-message')}" class="automation-editor-notice-message"></p>
                 <div class="automation-editor-notice-actions">
-                    <button type="button" class="ui-button ui-variant-accent" data-action="${uiAttr(AUTOMATION_ACTION_CONFLICT_KEEP_CHANGES)}" aria-label="${uiAttr(keepChangesLabel)}" data-tooltip="${uiAttr(keepChangesLabel)}">${keepChangesLabel}</button>
-                    <button type="button" class="ui-button ui-variant-neutral" data-action="${uiAttr(AUTOMATION_ACTION_CONFLICT_LOAD_LATEST)}" aria-label="${uiAttr(loadLatestLabel)}" data-tooltip="${uiAttr(loadLatestLabel)}">${loadLatestLabel}</button>
+                    <button type="button" class="ui-button ui-variant-accent" data-action="${uiAttr(AUTOMATION_ACTION_CONFLICT_KEEP_CHANGES)}" aria-label="${uiAttr(keepChangesLabel)}" data-tooltip="${uiAttr(keepChangesLabel)}" data-modal-localize="text aria-label data-tooltip">${keepChangesLabel}</button>
+                    <button type="button" class="ui-button ui-variant-neutral" data-action="${uiAttr(AUTOMATION_ACTION_CONFLICT_LOAD_LATEST)}" aria-label="${uiAttr(loadLatestLabel)}" data-tooltip="${uiAttr(loadLatestLabel)}" data-modal-localize="text aria-label data-tooltip">${loadLatestLabel}</button>
                 </div>
             </div>
             <div id="${modalUiId(modalId, 'prerequisites-error')}" class="form-disclaimer form-disclaimer-error automation-editor-notice u-hidden" role="alert">
                 <p id="${modalUiId(modalId, 'prerequisites-error-message')}" class="automation-editor-notice-message"></p>
                 <div class="automation-editor-notice-actions">
-                    <button type="button" id="${modalUiId(modalId, 'prerequisites-retry')}" class="ui-button ui-variant-neutral" data-action="${uiAttr(AUTOMATION_ACTION_RETRY_EDITOR_PREREQUISITES)}" aria-label="${uiAttr(retryLabel)}" data-tooltip="${uiAttr(retryLabel)}">${retryLabel}</button>
+                    <button type="button" id="${modalUiId(modalId, 'prerequisites-retry')}" class="ui-button ui-variant-neutral" data-action="${uiAttr(AUTOMATION_ACTION_RETRY_EDITOR_PREREQUISITES)}" aria-label="${uiAttr(retryLabel)}" data-tooltip="${uiAttr(retryLabel)}" data-modal-localize="text aria-label data-tooltip">${retryLabel}</button>
                 </div>
             </div>
             <div id="${modalUiId(modalId, 'form')}" class="automation-editor-form">
             <div class="form-group setting-change-surface" data-automation-field="title">
-                <label for="${modalUiId(modalId, 'title-input')}">${renderRequiredFieldLabel(titleLabel)}</label>
-                <input id="${modalUiId(modalId, 'title-input')}" class="form-input" type="text" autocomplete="off" spellcheck="false" placeholder="${uiAttr(i18n.t('automation.modal.placeholders.title'))}">
+                <label for="${modalUiId(modalId, 'title-input')}" data-modal-localize="text">${renderRequiredFieldLabel(titleLabel)}</label>
+                <input id="${modalUiId(modalId, 'title-input')}" class="form-input" type="text" autocomplete="off" spellcheck="false" placeholder="${uiAttr(i18n.t('automation.modal.placeholders.title'))}" data-modal-localize="placeholder">
                 ${renderFieldErrorMarkup(modalUiId(modalId, 'title-error'))}
             </div>
             <div class="form-group setting-change-surface" data-automation-field="color">
-                <label id="${modalUiId(modalId, 'color-select-label')}">${colorLabel}</label>
+                <label id="${modalUiId(modalId, 'color-select-label')}" data-modal-localize="text">${colorLabel}</label>
                 <div id="${modalUiId(modalId, 'color-select')}" class="automation-color-picker automation-color-select" role="radiogroup" aria-labelledby="${modalUiId(modalId, 'color-select-label')}">
                     ${toTrustedHtml(renderAutomationColorPickerMarkup(modalId))}
                 </div>
             </div>
             <div class="form-group setting-change-surface" data-automation-field="timezone">
-                <label for="${modalUiId(modalId, 'timezone-select')}">${renderRequiredFieldLabel(timezoneLabel)}</label>
+                <label for="${modalUiId(modalId, 'timezone-select')}" data-modal-localize="text">${renderRequiredFieldLabel(timezoneLabel)}</label>
                 ${toTrustedUiHtml(renderStandardDropdownSelectControl(`<select id="${modalUiId(modalId, 'timezone-select')}" class="form-input"></select>`))}
                 ${renderFieldErrorMarkup(modalUiId(modalId, 'timezone-error'))}
             </div>
             <div class="form-group setting-change-surface" data-automation-field="start">
-                <label for="${modalUiId(modalId, 'start-input')}">${renderRequiredFieldLabel(startLabel)}</label>
+                <label for="${modalUiId(modalId, 'start-input')}" data-modal-localize="text">${renderRequiredFieldLabel(startLabel)}</label>
                 <input id="${modalUiId(modalId, 'start-input')}" class="form-input" type="datetime-local">
                 ${renderFieldErrorMarkup(modalUiId(modalId, 'start-error'))}
             </div>
             <div class="form-group setting-change-surface" data-automation-field="recurrence">
-                <label for="${modalUiId(modalId, 'recurrence-select')}">${renderRequiredFieldLabel(recurrenceLabel)}</label>
+                <label for="${modalUiId(modalId, 'recurrence-select')}" data-modal-localize="text">${renderRequiredFieldLabel(recurrenceLabel)}</label>
                 ${toTrustedUiHtml(
                     renderStandardDropdownSelectControl(`<select id="${modalUiId(modalId, 'recurrence-select')}" class="form-input">
-                    <option value="none">${uiText(i18n.t('automation.recurrence.none')).html}</option>
-                    <option value="hourly">${uiText(i18n.t('automation.recurrence.hourly')).html}</option>
-                    <option value="daily">${uiText(i18n.t('automation.recurrence.daily')).html}</option>
-                    <option value="weekly">${uiText(i18n.t('automation.recurrence.weekly')).html}</option>
-                    <option value="monthly">${uiText(i18n.t('automation.recurrence.monthly')).html}</option>
-                    <option value="yearly">${uiText(i18n.t('automation.recurrence.yearly')).html}</option>
+                    <option value="none" data-modal-localize="text">${uiText(i18n.t('automation.recurrence.none')).html}</option>
+                    <option value="hourly" data-modal-localize="text">${uiText(i18n.t('automation.recurrence.hourly')).html}</option>
+                    <option value="daily" data-modal-localize="text">${uiText(i18n.t('automation.recurrence.daily')).html}</option>
+                    <option value="weekly" data-modal-localize="text">${uiText(i18n.t('automation.recurrence.weekly')).html}</option>
+                    <option value="monthly" data-modal-localize="text">${uiText(i18n.t('automation.recurrence.monthly')).html}</option>
+                    <option value="yearly" data-modal-localize="text">${uiText(i18n.t('automation.recurrence.yearly')).html}</option>
                 </select>`)
                 )}
-                <div class="form-help">${recurrenceHelp}</div>
+                <div class="form-help" data-modal-localize="text">${recurrenceHelp}</div>
                 ${renderFieldErrorMarkup(modalUiId(modalId, 'recurrence-error'))}
                 <div id="${modalUiId(modalId, 'schedule-summary')}" class="form-help automation-schedule-summary" aria-live="polite"></div>
             </div>
             <div class="modal-body-section">
                 <div class="form-group setting-change-surface" data-automation-field="model">
-                    <label for="${modalUiId(modalId, 'model-input')}">${renderRequiredFieldLabel(modelLabel)}</label>
+                    <label for="${modalUiId(modalId, 'model-input')}" data-modal-localize="text">${renderRequiredFieldLabel(modelLabel)}</label>
                     ${toTrustedUiHtml(renderStandardDropdownSelectControl(`<select id="${modalUiId(modalId, 'model-input')}" class="form-input model-selector automation-model-selector"></select>`))}
                     ${renderFieldErrorMarkup(modalUiId(modalId, 'model-error'))}
                 </div>
                 <div class="form-group setting-change-surface" data-automation-field="interactiveToolApproval">
-                    <label for="${modalUiId(modalId, 'interactive-tool-approval-toggle')}">${interactiveToolApprovalLabel}</label>
+                    <label for="${modalUiId(modalId, 'interactive-tool-approval-toggle')}" data-modal-localize="text">${interactiveToolApprovalLabel}</label>
                     <div class="toggle-switch">
                         <input id="${modalUiId(modalId, 'interactive-tool-approval-toggle')}" type="checkbox">
                         <label class="slider" for="${modalUiId(modalId, 'interactive-tool-approval-toggle')}"></label>
                     </div>
-                    <div class="form-help">${interactiveToolApprovalHint}</div>
+                    <div class="form-help" data-modal-localize="text">${interactiveToolApprovalHint}</div>
                 </div>
                 ${buildWorkspaceFolderFieldMarkup({
                     pathInputId: modalUiId(modalId, 'workspace-path-input'),
@@ -129,40 +129,40 @@ const renderAutomationConfigurationModalMarkup = (): TrustedHtml => {
                     fieldAttributes: uiHtml` data-automation-field="workspace"`
                 })}
                 <div class="form-group setting-change-surface chat-config-span-2 automation-modal-settings-field" data-automation-field="parameters">
-                    <label for="${modalUiId(modalId, 'parameters-summary-input')}">${parametersLabel}</label>
+                    <label for="${modalUiId(modalId, 'parameters-summary-input')}" data-modal-localize="text">${parametersLabel}</label>
                     <div class="form-row-split form-row-split--with-action automation-modal-settings-row">
                         <div class="form-col-main automation-modal-settings-main">
                             <input id="${modalUiId(modalId, 'parameters-summary-input')}" class="form-input" type="text" readonly>
                         </div>
                         <div class="form-col-action automation-modal-settings-action">
-                            <button type="button" id="${modalUiId(modalId, 'parameters-button')}" class="ui-button" data-action="${uiAttr(AUTOMATION_ACTION_OPEN_PARAMETERS_MODAL)}" aria-label="${uiAttr(parametersButton)}" data-tooltip="${uiAttr(parametersButton)}">${parametersButton}</button>
+                            <button type="button" id="${modalUiId(modalId, 'parameters-button')}" class="ui-button" data-action="${uiAttr(AUTOMATION_ACTION_OPEN_PARAMETERS_MODAL)}" aria-label="${uiAttr(parametersButton)}" data-tooltip="${uiAttr(parametersButton)}" data-modal-localize="text aria-label data-tooltip">${parametersButton}</button>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="modal-body-section">
                 <div class="form-group setting-change-surface" data-automation-field="maxRunMinutes">
-                    <label for="${modalUiId(modalId, 'max-run-minutes-input')}">${renderRequiredFieldLabel(maxRunMinutesLabel)}</label>
+                    <label for="${modalUiId(modalId, 'max-run-minutes-input')}" data-modal-localize="text">${renderRequiredFieldLabel(maxRunMinutesLabel)}</label>
                     <input id="${modalUiId(modalId, 'max-run-minutes-input')}" class="form-input" type="number" min="1" max="1440">
-                    <div class="form-help">${maxRunMinutesHelp}</div>
+                    <div class="form-help" data-modal-localize="text">${maxRunMinutesHelp}</div>
                     ${renderFieldErrorMarkup(modalUiId(modalId, 'max-run-minutes-error'))}
                 </div>
             </div>
             <div class="modal-body-section">
                 <div class="form-group setting-change-surface" data-automation-field="turns">
-                    <label>${renderRequiredFieldLabel(turnsLabel)} <span id="${modalUiId(modalId, 'turns-char-counter')}" class="automation-turn-char-counter">${i18n.t('automation.modal.counters.turnChars', { used: 0 })}</span></label>
+                    <label data-modal-localize="text">${renderRequiredFieldLabel(turnsLabel)} <span id="${modalUiId(modalId, 'turns-char-counter')}" class="automation-turn-char-counter" data-modal-localize="text">${i18n.t('automation.modal.counters.turnChars', { used: 0 })}</span></label>
                     <div id="${modalUiId(modalId, 'turns-container')}" class="automation-turns-container">
-                        <div id="${modalUiId(modalId, 'turns-list')}" class="automation-turns-list" role="list" aria-label="${uiAttr(turnsLabel)}"></div>
+                        <div id="${modalUiId(modalId, 'turns-list')}" class="automation-turns-list" role="list" aria-label="${uiAttr(turnsLabel)}" data-modal-localize="aria-label"></div>
                         ${renderFieldErrorMarkup(modalUiId(modalId, 'turns-error'))}
-                        <button type="button" class="ui-button ui-variant-accent automation-add-turn-button" id="${modalUiId(modalId, 'add-turn-button')}" data-action="${uiAttr(AUTOMATION_ACTION_ADD_TURN)}" aria-label="${uiAttr(addLabel)}" data-tooltip="${uiAttr(addLabel)}">${addLabel}</button>
+                        <button type="button" class="ui-button ui-variant-accent automation-add-turn-button" id="${modalUiId(modalId, 'add-turn-button')}" data-action="${uiAttr(AUTOMATION_ACTION_ADD_TURN)}" aria-label="${uiAttr(addLabel)}" data-tooltip="${uiAttr(addLabel)}" data-modal-localize="text aria-label data-tooltip">${addLabel}</button>
                     </div>
                 </div>
             </div>
             <div class="modal-body-section setting-change-surface" data-automation-field="mcp">
                 <div id="${modalUiId(modalId, 'tools-unavailable')}" class="form-disclaimer automation-editor-notice u-hidden" role="status">
-                    <p class="automation-editor-notice-message">${uiText(i18n.t('automation.modal.prerequisites.toolsUnavailable'))}</p>
+                    <p class="automation-editor-notice-message" data-modal-localize="text">${uiText(i18n.t('automation.modal.prerequisites.toolsUnavailable'))}</p>
                     <div class="automation-editor-notice-actions">
-                        <button type="button" class="ui-button ui-variant-neutral" data-action="${uiAttr(AUTOMATION_ACTION_RETRY_EDITOR_PREREQUISITES)}" aria-label="${uiAttr(retryLabel)}" data-tooltip="${uiAttr(retryLabel)}">${retryLabel}</button>
+                        <button type="button" class="ui-button ui-variant-neutral" data-action="${uiAttr(AUTOMATION_ACTION_RETRY_EDITOR_PREREQUISITES)}" aria-label="${uiAttr(retryLabel)}" data-tooltip="${uiAttr(retryLabel)}" data-modal-localize="text aria-label data-tooltip">${retryLabel}</button>
                     </div>
                 </div>
                 ${toTrustedHtml(

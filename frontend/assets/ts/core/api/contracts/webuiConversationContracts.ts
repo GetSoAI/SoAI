@@ -13,6 +13,7 @@ import { decodeConversationSource, type MessagingPlatform } from '@core/chat/con
 interface WebuiConversationResponse {
     id: string;
     title: string;
+    titleAutoUpdateAllowed?: boolean;
     createdAtMs: number;
     lastModifiedAtMs: number;
     modelSettings: JsonObject;
@@ -43,6 +44,7 @@ interface ConversationCatalogPageResponse {
 interface ArchivedConversationResponse {
     id: string;
     title: string;
+    titleAutoUpdateAllowed?: boolean;
     lastModifiedAtMs: number;
     color: string | null;
     isFavorite: boolean;
@@ -138,6 +140,7 @@ const decodeConversationRecord = (value: JsonValue, label: string): WebuiConvers
     return {
         id: readRequiredTrimmedString(record, 'id', `${label}.id`),
         title: readRequiredTrimmedString(record, 'title', `${label}.title`),
+        ...(Object.hasOwn(record, 'title_auto_update_allowed') ? { titleAutoUpdateAllowed: readRequiredBooleanValue(record['title_auto_update_allowed'], `${label}.title_auto_update_allowed`) } : {}),
         createdAtMs: readEpochMs(record, 'created_at_ms', label),
         lastModifiedAtMs: readEpochMs(record, 'last_modified_at_ms', label),
         modelSettings: requireRecord(record['model_settings'], `${label}.model_settings`),
@@ -181,6 +184,7 @@ const decodeArchivedConversationRecord = (value: JsonValue, label: string): Arch
     return {
         id: readRequiredTrimmedString(record, 'id', `${label}.id`),
         title: readRequiredTrimmedString(record, 'title', `${label}.title`),
+        ...(Object.hasOwn(record, 'title_auto_update_allowed') ? { titleAutoUpdateAllowed: readRequiredBooleanValue(record['title_auto_update_allowed'], `${label}.title_auto_update_allowed`) } : {}),
         lastModifiedAtMs: readEpochMs(record, 'last_modified_at_ms', label),
         color: readNullableTrimmedStringValue(record['color'], `${label}.color`),
         isFavorite: readRequiredBooleanValue(record['is_favorite'], `${label}.is_favorite`),

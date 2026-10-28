@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
-import io
-import warnings
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
+from core.errors.exceptions import PayloadTooLargeError, ValidationError
+from core.files.image_inspection import open_inspected_image
 from core.files.image_signature import validate_image_signature
 from core.files.inline_image_jpeg_preparation import prepare_opened_image_as_jpeg
 from core.files.inline_image_payload import (
@@ -79,6 +79,8 @@ def prepare_inline_image_for_prompt_relay(
         ValueError,
         Image.DecompressionBombError,
         Image.DecompressionBombWarning,
+        PayloadTooLargeError,
+        ValidationError,
     ):
         return (None, "Image processing failed; image data is corrupt or unsupported.")
     inline_payload, failure_reason = build_inline_image_payload(
@@ -131,12 +133,17 @@ def _prepare_image_bytes(
     max_encoded_chars: int,
     jpeg_quality: int,
 ) -> tuple[bytes, int, int, int, int]:
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", Image.DecompressionBombWarning)
-        with Image.open(io.BytesIO(image_bytes)) as image:
-            image.verify()
-        with Image.open(io.BytesIO(image_bytes)) as source_image:
-            transposed_image = ImageOps.exif_transpose(source_image)
+    source_pixel_limit = Image.MAX_IMAGE_PIXELS
+    if source_pixel_limit is None or source_pixel_limit <= 0:
+        raise ValidationError("The image decoder source pixel limit is unavailable.")
+    with open_inspected_image(
+        image_bytes,
+        maximum_bytes=max(1, len(image_bytes)),
+        maximum_pixels=source_pixel_limit,
+        animation="first_frame",
+        orientation_policy="permissive",
+    ) as inspected:
+        with ImageOps.exif_transpose(inspected.image) as transposed_image:
             return prepare_opened_image_as_jpeg(
                 image=transposed_image,
                 max_pixels=max_pixels,

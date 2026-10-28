@@ -136,7 +136,7 @@ const createVirtualModel = async (dependencies: CreateVirtualModelDependencies):
     const models = dependencies.collectSelectedModels(modalUiSelector(VIRTUAL_MODELS_MODAL_ID, 'vm-models'));
     const normalizedName = dependencies.validateVirtualModelForm(name, models);
     if (!normalizedName) return;
-    await dependencies.processVirtualModelAction('create', null, { name: normalizedName, strategy, models });
+    await dependencies.processVirtualModelAction('create', null, { name: normalizedName, strategy, models: models.map((model) => ({ 'universal_id': model.universalId })) });
 };
 
 const saveEditedVirtualModel = async (dependencies: SaveEditedVirtualModelDependencies): Promise<void> => {
@@ -152,7 +152,7 @@ const saveEditedVirtualModel = async (dependencies: SaveEditedVirtualModelDepend
     }
     const normalizedName = dependencies.validateVirtualModelForm(vmName, models);
     if (!normalizedName) return;
-    await dependencies.processVirtualModelAction('update', normalizedName, { strategy, models });
+    await dependencies.processVirtualModelAction('update', normalizedName, { strategy, models: models.map((model) => ({ 'universal_id': model.universalId })) });
 };
 
 const deleteVirtualModel = async (dependencies: DeleteVirtualModelDependencies, name: string): Promise<void> => {

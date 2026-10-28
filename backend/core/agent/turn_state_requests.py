@@ -14,7 +14,10 @@ from core.runtime.boot_id import get_boot_id
 from core.serialization.json import serialize_json_compact_stable
 
 if TYPE_CHECKING:
+    from core.agent.prompt_replay import AgentInferencePromptReplay
+    from core.conversations.input_claim import ConversationInputClaim
     from core.runtime.protocols import RequestContextProtocol
+    from core.skills.checkpoint import SkillActivationCheckpoint
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
@@ -55,6 +58,10 @@ def build_turn_state_request(
     started_at_ms: int,
     updated_at_ms: int,
     finished_at_ms: int | None,
+    prompt_replay: AgentInferencePromptReplay | None = None,
+    skill_activation: SkillActivationCheckpoint | None = None,
+    skill_activation_call_id: str | None = None,
+    skill_input_claim: ConversationInputClaim | None = None,
 ) -> WriteAgentTurnStateRequest:
     return WriteAgentTurnStateRequest(
         conv_id=conv_id,
@@ -93,6 +100,10 @@ def build_turn_state_request(
         started_at_ms=started_at_ms,
         updated_at_ms=updated_at_ms,
         finished_at_ms=finished_at_ms,
+        prompt_replay=prompt_replay,
+        skill_activation=skill_activation,
+        skill_activation_call_id=skill_activation_call_id,
+        skill_input_claim=skill_input_claim,
     )
 
 
@@ -167,6 +178,7 @@ def build_running_turn_start_request(
     active_inference_cancellation_id: str | None,
     todo_state: AgentTurnTodoState,
     started_at_ms: int,
+    skill_activation: SkillActivationCheckpoint | None = None,
 ) -> WriteAgentTurnStateRequest:
     return build_turn_state_request(
         conv_id=conv_id,
@@ -192,6 +204,7 @@ def build_running_turn_start_request(
         started_at_ms=started_at_ms,
         updated_at_ms=started_at_ms,
         finished_at_ms=None,
+        skill_activation=skill_activation,
     )
 
 

@@ -96,7 +96,9 @@ async def execute_clone(
         release_storage_reservation = False
         try:
             config_manager = plugin_manager.dependencies.infrastructure.config_manager
-            async with config_manager.plugin_config_mutation_scope(source_plugin_name):
+            async with config_manager.plugin_config_mutation_scope(
+                source_plugin_name, operation="plugin_clone.configuration_snapshot"
+            ):
                 configuration_snapshot = await config_manager.build_clone_configuration_snapshot(
                     source_plugin_name,
                     field_overrides,
@@ -147,7 +149,11 @@ async def execute_clone(
             )
             release_storage_reservation = True
         except CLONE_EXECUTION_EXCEPTIONS:
-            await uncancel_and_wait(rollback_clone_transaction(plugin_manager, task_id=task_id))
+            await uncancel_and_wait(
+                rollback_clone_transaction(
+                    plugin_manager, task_id=task_id, mutation_fencing_token=fencing_token
+                )
+            )
             release_storage_reservation = True
             raise
         finally:
@@ -183,4 +189,6 @@ async def cleanup_failed_clone(
         mutation_task_id=task_id,
         mutation_fencing_token=fencing_token,
     ):
-        await rollback_clone_transaction(plugin_manager, task_id=task_id)
+        await rollback_clone_transaction(
+            plugin_manager, task_id=task_id, mutation_fencing_token=fencing_token
+        )

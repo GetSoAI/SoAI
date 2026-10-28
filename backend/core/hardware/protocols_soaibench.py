@@ -8,12 +8,14 @@ from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+    from core.hardware.opencl_runtime_types import OpenCLRuntimeSnapshot
     from core.hardware.soaibench_persistence import (
         SoAIBenchMutationResult,
         SoAIBenchReconciliationResult,
     )
     from core.hardware.soaibench_publication import SoAIBenchPublicationRecord
     from core.history.reset_notification import HistoryResetOutcome
+    from core.system.protocols import CommandExecutorProtocol
     from core.tool_calls.deferred_tool_call_streamer import DeferredToolCallActivity
     from core.types.json import JSONDict
 
@@ -114,6 +116,10 @@ class SoAIBenchServiceProtocol(Protocol):
     async def reconcile_startup(self) -> None: ...
 
     async def shutdown(self) -> None: ...
+
+    async def discover_opencl_runtime(
+        self, *, command_executor: CommandExecutorProtocol, timeout_sec: float = 10.0
+    ) -> OpenCLRuntimeSnapshot: ...
 
     async def reset_history(self, *, reset_genesis_uptime: bool) -> HistoryResetOutcome: ...
 

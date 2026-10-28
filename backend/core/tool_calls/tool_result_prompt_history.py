@@ -16,6 +16,7 @@ from core.tool_calls.tool_result_prompt_settings import (
 from core.types.json_value import coerce_json_dict
 
 if TYPE_CHECKING:
+    from core.conversations.assistant_turn_variant_identity import AssistantTurnVariantIdentity
     from core.tool_calls.tool_result_prompt_cache import ToolResultPromptShapeCache
     from core.types.json import JSONDict
 
@@ -83,12 +84,23 @@ def shape_prompt_history_tool_results(
     messages: Sequence[JSONDict],
     *,
     shape_cache: ToolResultPromptShapeCache,
+    active_turn_identity: AssistantTurnVariantIdentity | None = None,
 ) -> list[JSONDict]:
     shaped_messages: list[JSONDict] = []
     tool_names_by_id: dict[str, str] = {}
     for message in messages:
         if message.get("role") == "assistant":
             tool_names_by_id.update(_resolve_assistant_tool_names(message))
+            shaped_messages.append(dict(message))
+            continue
+        if (
+            message.get("role") == "tool"
+            and active_turn_identity is not None
+            and (
+                message.get("assistant_turn_at_ms") == active_turn_identity.assistant_turn_at_ms
+                and message.get("model_variant_index") == active_turn_identity.model_variant_index
+            )
+        ):
             shaped_messages.append(dict(message))
             continue
         if message.get("role") == "tool":

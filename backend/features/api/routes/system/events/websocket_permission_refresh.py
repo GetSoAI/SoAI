@@ -35,8 +35,9 @@ async def refresh_websocket_effective_actions(
         return False
     connection.effective_actions_refresh_deadline = now_monotonic + STANDARD_DELAY_SEC
     previous_actions = connection.granted_actions
-    connection.request.state.effective_access_actions = None
-    connection.granted_actions = await resolve_request_effective_actions(connection.request)
+    connection.granted_actions = await connection.authorization.resolve(
+        lambda: resolve_request_effective_actions(connection.request)
+    )
     return connection.granted_actions != previous_actions
 
 

@@ -12,6 +12,7 @@ from app.cli.instance_control_pid import resolve_pid_file_path
 from app.cli.status.config_summary_reader import read_config_summary_quick
 from app.cli.status.formatting import (
     format_load_average,
+    format_nvidia_gpu_readings,
     format_uptime,
 )
 from app.cli.status.network import (
@@ -142,13 +143,10 @@ def display_enhanced_status(
         if gpu_info:
             for gpu in gpu_info:
                 logger.info(
-                    "GPU %d:   %s - %d%% util, %d / %d MB VRAM, %d°C",
+                    "GPU %d:   %s - %s",
                     gpu.index,
                     gpu.name,
-                    int(gpu.utilization_percent),
-                    int(gpu.memory_used_mb),
-                    int(gpu.memory_total_mb),
-                    int(gpu.temperature_c),
+                    format_nvidia_gpu_readings(gpu),
                 )
 
         if storage_info:

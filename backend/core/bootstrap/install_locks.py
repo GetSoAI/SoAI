@@ -32,6 +32,7 @@ __all__ = (
     "guard_windows_installer_gate",
     "inherited_install_lock_is_valid",
     "publish_install_lock_environment",
+    "build_install_lock_environment",
     "acquire_lock_dir",
     "lock_dir_has_live_owner",
     "read_lock_pid",
@@ -55,7 +56,9 @@ class InstallDirectoryLock:
     inode: int
 
 
-def acquire_lock_dir(lock_dir: str) -> InstallDirectoryLock:
+def acquire_lock_dir(
+    lock_dir: str, *, timeout_seconds: float = LOCK_TIMEOUT_SECONDS
+) -> InstallDirectoryLock:
     resolved_lock_dir = os.path.abspath(lock_dir)
     try:
         owner_start_ms = read_process_create_time_ms(psutil.Process())
@@ -96,7 +99,7 @@ def acquire_lock_dir(lock_dir: str) -> InstallDirectoryLock:
                 resolved_lock_dir,
                 missing_pid_started=missing_pid_started,
             )
-            if time.monotonic() - start >= LOCK_TIMEOUT_SECONDS:
+            if time.monotonic() - start >= timeout_seconds:
                 raise SoAITimeoutError(
                     "Timed out waiting for SoAI install lock.",
                     details={"lock_dir": resolved_lock_dir},
@@ -191,13 +194,13 @@ def read_lock_pid(lock_dir: str) -> int | None:
     read_succeeded = False
     try:
         with open(normalize_filesystem_path(pid_file), encoding="utf-8", errors="strict") as handle:
-            text = handle.readline().strip()
+            text = handle.read().strip()
         read_succeeded = True
     except (OSError, UnicodeError):
         read_succeeded = False
     if not read_succeeded:
         return None
-    if not text.isdigit():
+    if not text.isdigit() or int(text) <= 0:
         return None
     return int(text)
 
@@ -224,6 +227,15 @@ def read_lock_token(lock_dir: str) -> str | None:
 
 
 def inherited_install_lock_is_valid(lock_dir: str) -> bool:
+    if (
+        os.path.islink(lock_dir)
+        or not os.path.isdir(lock_dir)
+        or any(
+            os.path.islink(os.path.join(lock_dir, name))
+            for name in ("pid", "token", "owner-start-ms")
+        )
+    ):
+        return False
     inherited_path = os.environ.get(INSTALL_LOCK_ENV, "")
     if not inherited_path or os.path.normcase(os.path.abspath(inherited_path)) != os.path.normcase(
         os.path.abspath(lock_dir)
@@ -232,6 +244,15 @@ def inherited_install_lock_is_valid(lock_dir: str) -> bool:
     inherited_token = os.environ.get(INSTALL_LOCK_TOKEN_ENV, "")
     token = read_lock_token(lock_dir)
     owner_pid = read_lock_pid(lock_dir)
+    if os.name != "nt" and not inherited_token and token is None:
+        valid_parent = False
+        try:
+            valid_parent = owner_pid is not None and any(
+                parent.pid == owner_pid for parent in psutil.Process().parents()
+            )
+        except psutil.Error:
+            valid_parent = False
+        return valid_parent
     start_value = os.environ.get(INSTALL_LOCK_OWNER_START_ENV, "")
     if not inherited_token or token is None or owner_pid is None or not start_value.isdigit():
         return False
@@ -249,9 +270,18 @@ def inherited_install_lock_is_valid(lock_dir: str) -> bool:
 
 
 def publish_install_lock_environment(lock: InstallDirectoryLock) -> None:
-    os.environ[INSTALL_LOCK_ENV] = lock.path
-    os.environ[INSTALL_LOCK_TOKEN_ENV] = lock.token
-    os.environ[INSTALL_LOCK_OWNER_START_ENV] = str(read_process_create_time_ms(psutil.Process()))
+    os.environ.update(build_install_lock_environment(lock.path))
+
+
+def build_install_lock_environment(lock_dir: str) -> dict[str, str]:
+    token = read_lock_token(lock_dir)
+    if token is None or read_lock_pid(lock_dir) != os.getpid():
+        raise StateError("The invoking process does not own the installation lock.")
+    return {
+        INSTALL_LOCK_ENV: lock_dir,
+        INSTALL_LOCK_TOKEN_ENV: token,
+        INSTALL_LOCK_OWNER_START_ENV: str(read_process_create_time_ms(psutil.Process())),
+    }
 
 
 @contextmanager

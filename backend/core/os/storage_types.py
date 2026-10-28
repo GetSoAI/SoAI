@@ -14,7 +14,6 @@ __all__ = (
     "FstabEntry",
     "FstabEntryConfig",
     "Partition",
-    "PartitionConfig",
     "StorageStatusSnapshot",
     "ZFSStorageVolume",
 )
@@ -73,13 +72,6 @@ class ZFSStorageVolume:
     storage_backend: Literal["block", "zfs"] = "zfs"
     read_only: bool = True
     read_only_reason: str = ZFS_STORAGE_READ_ONLY_REASON
-
-
-@dataclass(frozen=True, slots=True)
-class PartitionConfig:
-    start: str
-    end: str
-    partition_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

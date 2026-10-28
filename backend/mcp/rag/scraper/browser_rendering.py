@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from playwright.async_api import Error
 
 from core.browser.playwright_lifecycle import managed_playwright
+from core.browser.playwright_session_resources import PlaywrightSessionResources
 from core.browser_adblock.protocols import EasyListAdblockServiceProtocol
 from core.config.protocols import ConfigProtocol
 from core.errors.exception_coercion import coerce_to_soai_error
@@ -114,6 +115,7 @@ async def render_url_to_html(
     runtime_flags: RuntimeFlagsViewProtocol,
     *,
     config: ConfigProtocol,
+    playwright_sessions: PlaywrightSessionResources,
     adblock_service: EasyListAdblockServiceProtocol | None,
     url: str,
     dns_timeout_sec: float,
@@ -135,120 +137,123 @@ async def render_url_to_html(
         raise ValueError(f"Only http/https URLs are supported for browser rendering: {url}")
     await enforce_offline_policy(runtime_flags, normalized_url, source="browser render")
 
-    async with managed_playwright() as playwright:
-        browser: Browser | None = None
-        context: BrowserContext | None = None
+    async with playwright_sessions.managed_session() as session:
+        async with managed_playwright(session) as playwright:
+            browser: Browser | None = None
+            context: BrowserContext | None = None
 
-        browser = await launch_local_chromium_browser(
-            config=config,
-            runtime_flags=runtime_flags,
-            playwright=playwright,
-            headless=bool(headless),
-            install_lock=None,
-            logger=logger,
-            operation=OPERATION_LAUNCH,
-        )
-        try:
-            if browser is None:
-                raise StateError("Playwright browser launch did not produce a browser instance.")
-            context = await browser.new_context()
-            host_cache: dict[str, bool] = {}
-
-            async def _route_handler(
-                route: Route,
-                request: Request,
-            ) -> None:
-                evaluation = evaluate_request_routing_for_playwright_request(
-                    request,
-                    block_images=block_images,
-                    block_fonts=block_fonts,
-                    block_media=block_media,
-                    block_ads=block_ads,
-                    adblock_service=adblock_service,
-                )
-                routing_inputs = evaluation.routing_inputs
-                request_url = routing_inputs.request_url
-                decision = evaluation.decision
-                host = ""
-                if decision.block:
-                    await route.abort()
-                    return
-                if not isinstance(request_url, str) or not request_url:
-                    await route.abort()
-                    return
-                if not request_url.startswith(("http://", "https://")):
-                    await route.continue_()
-                    return
-                try:
-                    await enforce_offline_policy(
-                        runtime_flags,
-                        request_url,
-                        source="browser render request",
+            browser = await launch_local_chromium_browser(
+                config=config,
+                runtime_flags=runtime_flags,
+                playwright=playwright,
+                headless=bool(headless),
+                install_lock=None,
+                logger=logger,
+                operation=OPERATION_LAUNCH,
+            )
+            try:
+                if browser is None:
+                    raise StateError(
+                        "Playwright browser launch did not produce a browser instance."
                     )
-                    host = (urlparse(request_url).hostname or "").lower()
-                    cached = host_cache.get(host) if host else None
-                    if cached is False:
+                context = await browser.new_context()
+                host_cache: dict[str, bool] = {}
+
+                async def _route_handler(
+                    route: Route,
+                    request: Request,
+                ) -> None:
+                    evaluation = evaluate_request_routing_for_playwright_request(
+                        request,
+                        block_images=block_images,
+                        block_fonts=block_fonts,
+                        block_media=block_media,
+                        block_ads=block_ads,
+                        adblock_service=adblock_service,
+                    )
+                    routing_inputs = evaluation.routing_inputs
+                    request_url = routing_inputs.request_url
+                    decision = evaluation.decision
+                    host = ""
+                    if decision.block:
                         await route.abort()
                         return
-                    if not is_offline_mode_enabled(runtime_flags):
-                        await asyncio.wait_for(
-                            enforce_url_network_policy(
-                                request_url,
-                                block_private_networks=block_private_networks,
-                                dns_timeout_sec=dns_timeout_sec,
-                                source="browser render request",
-                            ),
-                            timeout=max(1.0, float(dns_timeout_sec) + 2.0),
+                    if not isinstance(request_url, str) or not request_url:
+                        await route.abort()
+                        return
+                    if not request_url.startswith(("http://", "https://")):
+                        await route.continue_()
+                        return
+                    try:
+                        await enforce_offline_policy(
+                            runtime_flags,
+                            request_url,
+                            source="browser render request",
                         )
-                    await route.continue_()
-                except OfflineModeError:
-                    if host:
-                        host_cache[host] = False
-                    await route.abort()
-                except ValidationError as exception:
-                    normalized_message = normalize_browser_policy_error_message(str(exception))
-                    handled_error = ValidationError(normalized_message)
-                    log_handled_exception(
-                        logger,
-                        handled_error,
-                        message="Browser render request blocked due to request policy error (non-critical).",
-                        operation=OPERATION,
-                        details={"request_url": request_url},
-                        level="trace",
-                    )
-                    if host:
-                        host_cache[host] = False
-                    await route.abort()
-                except RECOVERABLE_EXCEPTIONS as exception:
-                    coerced = coerce_to_soai_error(
-                        exception,
-                        operation="mcp.rag.scraper.browser_render.route",
-                    )
-                    log_handled_exception(
-                        logger,
-                        coerced,
-                        message="Browser render request blocked due to request policy error (non-critical).",
-                        operation=OPERATION,
-                        details={"request_url": request_url},
-                        level="trace",
-                    )
-                    if host:
-                        host_cache[host] = False
-                    await route.abort()
+                        host = (urlparse(request_url).hostname or "").lower()
+                        cached = host_cache.get(host) if host else None
+                        if cached is False:
+                            await route.abort()
+                            return
+                        if not is_offline_mode_enabled(runtime_flags):
+                            await asyncio.wait_for(
+                                enforce_url_network_policy(
+                                    request_url,
+                                    block_private_networks=block_private_networks,
+                                    dns_timeout_sec=dns_timeout_sec,
+                                    source="browser render request",
+                                ),
+                                timeout=max(1.0, float(dns_timeout_sec) + 2.0),
+                            )
+                        await route.continue_()
+                    except OfflineModeError:
+                        if host:
+                            host_cache[host] = False
+                        await route.abort()
+                    except ValidationError as exception:
+                        normalized_message = normalize_browser_policy_error_message(str(exception))
+                        handled_error = ValidationError(normalized_message)
+                        log_handled_exception(
+                            logger,
+                            handled_error,
+                            message="Browser render request blocked due to request policy error (non-critical).",
+                            operation=OPERATION,
+                            details={"request_url": request_url},
+                            level="trace",
+                        )
+                        if host:
+                            host_cache[host] = False
+                        await route.abort()
+                    except RECOVERABLE_EXCEPTIONS as exception:
+                        coerced = coerce_to_soai_error(
+                            exception,
+                            operation="mcp.rag.scraper.browser_render.route",
+                        )
+                        log_handled_exception(
+                            logger,
+                            coerced,
+                            message="Browser render request blocked due to request policy error (non-critical).",
+                            operation=OPERATION,
+                            details={"request_url": request_url},
+                            level="trace",
+                        )
+                        if host:
+                            host_cache[host] = False
+                        await route.abort()
 
-            await context.route("**/*", _route_handler)
-            page = await context.new_page()
-            page.set_default_navigation_timeout(int(nav_timeout_sec) * 1000)
-            await page.goto(normalized_url, wait_until="domcontentloaded")
-            if stabilize_ms > 0:
-                await page.wait_for_timeout(int(stabilize_ms))
-            html = await page.content()
-            title = await page.title()
-            final_url = page.url or normalized_url
-            return RenderedPage(html=html, title=title, final_url=final_url)
-        finally:
-            await _close_render_browser_resources(
-                logger=logger,
-                context=context,
-                browser=browser,
-            )
+                await context.route("**/*", _route_handler)
+                page = await context.new_page()
+                page.set_default_navigation_timeout(int(nav_timeout_sec) * 1000)
+                await page.goto(normalized_url, wait_until="domcontentloaded")
+                if stabilize_ms > 0:
+                    await page.wait_for_timeout(int(stabilize_ms))
+                html = await page.content()
+                title = await page.title()
+                final_url = page.url or normalized_url
+                return RenderedPage(html=html, title=title, final_url=final_url)
+            finally:
+                await _close_render_browser_resources(
+                    logger=logger,
+                    context=context,
+                    browser=browser,
+                )

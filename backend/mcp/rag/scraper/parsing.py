@@ -24,6 +24,7 @@ from mcp.rag.scraper.types import MARKDOWN_TYPES, FetchedContent
 
 if TYPE_CHECKING:
     from core.hardware.protocols_storage import StorageManagerProtocol
+    from core.runtime.request_context import RequestContext
     from core.types.json import JSONDict
     from mcp.rag.scraper.internal_protocols import WebContentFetcherProtocol
 
@@ -190,6 +191,7 @@ async def parse_with_registered_parser(
     content_type_hint: str | None,
     final_url: str,
     ocr_language: str,
+    request_context: RequestContext,
 ) -> FetchedContent:
     parser = self.parsers.get(extension)
     if not parser:
@@ -210,6 +212,7 @@ async def parse_with_registered_parser(
                 progress_callback=None,
                 display_name=f"source.{extension}",
                 extraction_deadline=time.monotonic() + LONG_IDLE_TIMEOUT_SEC,
+                request_context=request_context,
             ),
         )
     finally:
@@ -243,4 +246,7 @@ async def parse_with_registered_parser(
         title=title,
         page_count=parsed.page_count,
         source_url=final_url,
+        extraction_state=parsed.extraction_state,
+        warnings=parsed.warnings,
+        missing_capabilities=parsed.missing_capabilities,
     )

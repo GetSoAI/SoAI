@@ -10,6 +10,7 @@ import { resolveModelPluginName, resolveModelSourceName } from '@core/models/mod
 import { isArray, isObject } from '@core/typeGuards.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
+import { reconcileOpenAICapabilityControls } from '@features/models/capabilities/openaiCapabilityDom.ts';
 import { renderOpenAICapabilityOverrides } from '@features/models/capabilities/openaiCapabilityRendering.ts';
 import type { OpenAICapabilityOverrideState } from '@features/models/capabilities/openaiCapabilityState.ts';
 import type { EditModelModalHost } from '@features/models/modals/editmodelmodal/types.ts';
@@ -44,7 +45,7 @@ const populateEditModelCapabilities = (host: EditModelModalHost, model: ModelRec
         }
     });
     const trustedHtml = toTrustedUiHtml(html);
-    host.view.updateHTML(container, trustedHtml);
+    reconcileOpenAICapabilityControls(container, trustedHtml);
     host.view.toggleClassName(field, 'u-hidden', false, modalRoot);
     host.view.toggleClassName(container, 'u-hidden', false, modalRoot);
 };

@@ -1,6 +1,8 @@
 /* SoAI - Shared realtime actions service [frontend/assets/ts/core/realtime/streammanager/actions/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { decodeTaskResponse, type TaskResponse } from '@core/api/contracts/taskContracts.ts';
+import { recordTaskLiveChange } from '@core/realtime/streammanager/actions/taskSnapshotTransactions.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { toTrimmedString } from '@core/normalize.ts';
@@ -148,6 +150,9 @@ class StreamTaskRuntime implements StreamTaskRuntimeContract {
     }
 
     handleTaskWebSocketEvent(eventType: string, payload: JsonObject): void {
+        const taskId = toTrimmedString(payload['task_id']);
+        if (taskId && this.#state.terminalTaskIds.has(taskId)) return;
+        if (taskId) recordTaskLiveChange(this.#state, taskId);
         handleTaskWebSocketEvent({
             eventType,
             payload,
@@ -255,6 +260,18 @@ class StreamTaskRuntime implements StreamTaskRuntimeContract {
             ...this.#createTaskExecutionRuntime()
         });
         return taskHandle;
+    }
+
+    async readTaskSnapshot(taskId: string): Promise<TaskResponse | null> {
+        const normalizedTaskId = toTrimmedString(taskId);
+        if (!normalizedTaskId) throw new Error('Task snapshot requires an identity');
+        const websocket = this.#getWebSocket();
+        if (websocket === null) throw new Error('Task snapshot transport is unavailable');
+        const snapshot = await websocket.requestSnapshot('tasks.by_id', { 'task_id': normalizedTaskId });
+        if (snapshot?.data === null || snapshot?.data === undefined) return null;
+        const task = decodeTaskResponse(snapshot.data);
+        if (task.taskId !== normalizedTaskId) throw new Error('Task snapshot identity mismatch');
+        return task;
     }
 
     async reconnectOperations(): Promise<void> {

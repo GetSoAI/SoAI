@@ -3,6 +3,7 @@
 
 @layer pages {
     .login-container:where([data-section='login'], [data-page-scope='login']) {
+        --text-case-label: none;
         display: flex;
         min-height: calc(100 * var(--ui-viewport-dynamic-height-unit));
         height: calc(100 * var(--ui-viewport-dynamic-height-unit));

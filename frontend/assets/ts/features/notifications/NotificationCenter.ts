@@ -1,6 +1,7 @@
 /* SoAI - Notifications feature notification center [frontend/assets/ts/features/notifications/NotificationCenter.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { measureViewportBox } from '@core/layout/elementGeometry.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { runCleanup } from '@core/lifecycle/cleanup.ts';
@@ -123,8 +124,9 @@ class NotificationCenter extends LifecycleModel {
             toggle: () => this.toggle(),
             toggleExpandedNotification: (notificationId) => this.#toggleNotificationExpanded(notificationId),
             triggerClearAll: () => {
+                const notificationCount = this.#lastSnapshot?.totalCount ?? 0;
                 this.hide();
-                terminateHandledPromise(this.#operationController.clearAll());
+                terminateHandledPromise(this.#operationController.clearAll(notificationCount));
             }
         });
         bindNotificationCenterLocalizationUpdates({
@@ -212,8 +214,9 @@ class NotificationCenter extends LifecycleModel {
     expand(): void {
         const elements = this.#requireElements();
         this.isExpanded = true;
-        this.#view.setExpandedState(elements, true);
         this.#renderSnapshot(elements);
+        measureViewportBox(elements.panel);
+        this.#view.setExpandedState(elements, true);
         this.#syncVisibleNotifications();
     }
 

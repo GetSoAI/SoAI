@@ -3,7 +3,7 @@
 
 import { requireTrimmedDataAttribute } from '@core/dom/attributes.ts';
 import { normalizeSortDirection, requireSortableHeaders, resolveSortableAriaSortValue, type SortDirection } from '@core/ui/tables/sortableTable.ts';
-import { MARKDOWN_TABLE_HEADER_SELECTOR, MARKDOWN_TABLE_INDICATOR_OVERLAY_CLASS, MARKDOWN_TABLE_SELECTOR, resolveMarkdownTableSourceSignature, restoreMarkdownTableRows, restoreMarkdownTableSourceOrder } from '@features/chat/message/markdownTableSorting.ts';
+import { MARKDOWN_TABLE_HEADER_SELECTOR, MARKDOWN_TABLE_SELECTOR, resolveMarkdownTableSourceSignature, restoreMarkdownTableRows, restoreMarkdownTableSourceOrder } from '@features/chat/message/markdownTableSorting.ts';
 import { collectMatchingElements } from '@features/chat/stream/streamDomQueries.ts';
 
 type MarkdownTableSortStateEntry = {
@@ -13,7 +13,6 @@ type MarkdownTableSortStateEntry = {
     sourceSignature: string;
     column: string;
     direction: SortDirection;
-    indicatorOverlay: boolean;
     indicatorNodes: ChildNode[];
 };
 
@@ -89,7 +88,6 @@ const collectMarkdownTableSortState = (root: Element): MarkdownTableSortState =>
             sourceSignature: resolveMarkdownTableSourceSignature(table),
             column,
             direction,
-            indicatorOverlay: activeHeader.indicator.classList.contains(MARKDOWN_TABLE_INDICATOR_OVERLAY_CLASS),
             indicatorNodes: Array.from(activeHeader.indicator.childNodes).map(cloneChildNode)
         });
     }
@@ -122,7 +120,6 @@ const restoreMarkdownTableSortState = (root: Element, state: MarkdownTableSortSt
             header.header.classList.toggle('is-active', active);
             header.header.setAttribute('aria-sort', active ? resolveSortableAriaSortValue(preserved.direction) : 'none');
             header.indicator.replaceChildren(...(active ? preserved.indicatorNodes.map(cloneChildNode) : []));
-            header.indicator.classList.toggle(MARKDOWN_TABLE_INDICATOR_OVERLAY_CLASS, active && preserved.indicatorOverlay);
         }
     }
 };
@@ -156,7 +153,6 @@ const normalizeSerializedMarkdownTableSortState = (root: Element): boolean => {
             header.header.classList.remove('is-active');
             header.header.setAttribute('aria-sort', 'none');
             header.indicator.replaceChildren();
-            header.indicator.classList.remove(MARKDOWN_TABLE_INDICATOR_OVERLAY_CLASS);
         }
     }
     return changed;

@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from core.errors.error_types import ErrorType
+from core.errors.status_mapping import error_type_to_status_code
 from core.logging.protocols import LoggerProtocol
 from core.tasks.enums import TaskStatus
 from core.tasks.task import Task
@@ -47,6 +49,7 @@ async def recover_failed_task_without_context(
     *,
     error_message: str,
     status_message: str,
+    error_type: ErrorType | None = None,
 ) -> bool:
     resolved_task, has_live_ownership = await resolver.resolve_unowned_tracked_task(task)
     if has_live_ownership:
@@ -55,12 +58,18 @@ async def recover_failed_task_without_context(
         await resolver.finalize_without_context(
             task,
             TaskStatus.FAILED,
-            error_code=503,
+            error_code=503 if error_type is None else error_type_to_status_code(error_type),
+            error_type=None if error_type is None else error_type.value,
             error_message=error_message,
             status_message=status_message,
         )
         return True
-    await deps.outcomes.fail_task(resolved_task, error_message, allow_failover=False)
+    await deps.outcomes.fail_task(
+        resolved_task,
+        error_message,
+        allow_failover=False,
+        error_type=ErrorType.SERVER_ERROR if error_type is None else error_type,
+    )
     return True
 
 

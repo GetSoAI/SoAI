@@ -3,7 +3,7 @@
 
 import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 
-export type RagIngestionState = 'running' | 'paused' | 'submitted' | 'cancelled';
+export type RagIngestionState = 'running' | 'paused' | 'submitted' | 'cancelled' | 'failed';
 export type RagIngestionAttachmentSource = 'composer_document_upload' | 'composer_folder_upload' | 'knowledge_tab_document_upload' | 'knowledge_tab_folder_upload';
 
 export type RagIngestionStatus = {

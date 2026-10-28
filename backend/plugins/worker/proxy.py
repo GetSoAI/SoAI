@@ -4,15 +4,17 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterable, Awaitable, Callable, Sequence
+from collections.abc import AsyncIterable, Awaitable, Callable, Mapping, Sequence
 
+from core.errors.exceptions import ValidationError
 from core.plugins.protocols_instance import (
     ModelContextProtocol,
     RemoteModelSearchResultProtocol,
 )
 from core.runtime.protocols import RuntimeFlagsViewProtocol
 from core.runtime.request_context import RequestContext
-from core.types.json import JSONDict
+from core.timing.constants import SETUP_TIMEOUT_SEC
+from core.types.json import JSONDict, JSONValue
 from plugins.worker.bootstrap_payload import build_plugin_worker_runtime_flags_payload
 from plugins.worker.proxy_dependencies import ProxyPluginInstanceDependencies
 from plugins.worker.proxy_invocation import ProxyInvocationClient
@@ -58,6 +60,25 @@ class ProxyPluginInstance(ProxyPluginStaticSurface):
 
     async def refresh_runtime_configuration(self) -> JSONDict:
         return await self._calls.dict_call("call.refresh_runtime_configuration", {})
+
+    async def validate_runtime_configuration(
+        self,
+        current_config: Mapping[str, JSONValue],
+        proposed_config: Mapping[str, JSONValue],
+        capabilities: Mapping[str, JSONValue],
+        gpu_inventory: Mapping[str, JSONValue] | None,
+    ) -> None:
+        value = await self._calls.value_call(
+            "call.validate_runtime_configuration",
+            {
+                "current_config": dict(current_config),
+                "proposed_config": dict(proposed_config),
+                "capabilities": dict(capabilities),
+                "gpu_inventory": dict(gpu_inventory) if gpu_inventory is not None else None,
+            },
+        )
+        if value is not None:
+            raise ValidationError("Runtime configuration validation returned an invalid result.")
 
     async def update_runtime_flags(self, runtime_flags: RuntimeFlagsViewProtocol) -> None:
         payload: JSONDict = {
@@ -163,7 +184,9 @@ class ProxyPluginInstance(ProxyPluginStaticSurface):
         return require_bool_text_tuple(value, label="cancellation")
 
     async def cleanup_partial_installation(self) -> None:
-        await self._calls.value_call("call.cleanup_partial_installation", {})
+        await self._calls.value_call(
+            "call.cleanup_partial_installation", {}, timeout_sec=SETUP_TIMEOUT_SEC
+        )
 
     async def load_model_in_service(
         self,

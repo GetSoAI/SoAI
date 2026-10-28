@@ -122,6 +122,7 @@ async def build_database_config_manager_tasks_and_http_client(
                 finalizer_tracker=cancellation_system.finalizer_tracker,
                 plugin_directory=paths.plugin_directory,
                 lock_directory=locks_directory,
+                invalidate_backend_update=database_services.plugins.invalidate_backend_update,
             ),
         )
         runtime_foundation.lifecycle_coordinator.register_actor(config_manager)
@@ -168,6 +169,7 @@ async def build_database_config_manager_tasks_and_http_client(
             database_tool_calls=database_services.tool_calls,
             logger=application_logger,
         )
+        await database_services.skills.reconcile_retention()
         http_client = build_http_client(
             config=config,
             runtime_flags=runtime_flags_service,

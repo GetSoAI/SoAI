@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 
+from core.concurrency.lock_registry import TTLAsyncLockRegistry
 from core.logging.rate_limited_logger import RateLimitedLogger
 from core.logging.trace import get_logger
 from core.state.state_transition_sets import SCHEDULER_UNAVAILABLE_PLUGIN_STATES
@@ -50,6 +51,7 @@ async def dispatch_task_to_plugin_queue(
     plugin_queue_dispatcher_loop: PluginQueueDispatcherLoop,
     dispatch_not_ready_warners: dict[str, RateLimitedLogger],
     dispatcher_lock: asyncio.Lock,
+    owner_admission_locks: TTLAsyncLockRegistry[tuple[str, str]],
     plugin_queue_dispatchers: dict[str, asyncio.Task[None]],
     purge_state: SchedulerPurgeState,
     cleanup_plugin_queue_dispatcher: Callable[[str, asyncio.Task[None]], None],
@@ -150,6 +152,7 @@ async def dispatch_task_to_plugin_queue(
         deps=deps,
         plugin_queue_dispatcher_loop=plugin_queue_dispatcher_loop,
         dispatcher_lock=dispatcher_lock,
+        owner_admission_locks=owner_admission_locks,
         plugin_queue_dispatchers=plugin_queue_dispatchers,
         purge_state=purge_state,
         cleanup_plugin_queue_dispatcher=cleanup_plugin_queue_dispatcher,

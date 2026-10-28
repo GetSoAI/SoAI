@@ -8,19 +8,28 @@ import logging
 import os
 from collections.abc import Sequence
 
+from core.filesystem.descriptor_io import open_descriptor
 from core.timing.constants import STANDARD_DELAY_SEC
 
-__all__ = ("read_recent_process_log",)
+__all__ = ("read_recent_process_log", "wait_for_process_output_drained")
 
 
 def _read_recent_process_log(file_path: str, max_bytes: int) -> str:
-    file_descriptor = os.open(file_path, os.O_RDONLY)
+    file_descriptor = open_descriptor(file_path, os.O_RDONLY)
     try:
         end_offset = os.lseek(file_descriptor, 0, os.SEEK_END)
         os.lseek(file_descriptor, max(0, end_offset - max_bytes), os.SEEK_SET)
         return os.read(file_descriptor, max_bytes).decode("utf-8", errors="replace")
     finally:
         os.close(file_descriptor)
+
+
+async def wait_for_process_output_drained(
+    log_consumer_tasks: Sequence[asyncio.Task[None]],
+) -> None:
+    pending_consumers = {task for task in log_consumer_tasks if not task.done()}
+    if pending_consumers:
+        await asyncio.wait(pending_consumers, timeout=STANDARD_DELAY_SEC)
 
 
 async def read_recent_process_log(
@@ -32,9 +41,7 @@ async def read_recent_process_log(
 ) -> str:
     if not file_path or max_bytes <= 0:
         return ""
-    pending_consumers = {task for task in log_consumer_tasks if not task.done()}
-    if pending_consumers:
-        await asyncio.wait(pending_consumers, timeout=STANDARD_DELAY_SEC)
+    await wait_for_process_output_drained(log_consumer_tasks)
     try:
         return await asyncio.to_thread(_read_recent_process_log, file_path, max_bytes)
     except OSError as exception:

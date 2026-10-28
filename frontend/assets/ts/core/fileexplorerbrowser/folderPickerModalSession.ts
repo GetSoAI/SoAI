@@ -1,6 +1,7 @@
 /* SoAI - Shared file explorer browser folder picker modal session [frontend/assets/ts/core/fileexplorerbrowser/folderPickerModalSession.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { captureReorderMotion, resolveLeadingCellTextKey } from '@core/animations/reorderMotion.ts';
 import { toTrustedTableBodyHtml } from '@core/security/public.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { resolveDelegatedActionElement } from '@core/dom/dataAction.ts';
@@ -86,8 +87,10 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
 
             const toggleSort = (): void => {
                 sortState = resolveNextSortState(sortState, 'name', 'asc');
+                const motion = captureReorderMotion(rowsElement, resolveLeadingCellTextKey);
                 updateSortIndicator();
                 renderRows();
+                motion.play();
             };
 
             const renderRows = (): void => {

@@ -1,6 +1,8 @@
 /* SoAI - SoAI Bench GPU patch controller [frontend/assets/ts/pages/hardware/controllers/gpucontrol/gpucontrolmanager/soaibenchPatchController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isPresenceExiting } from '@core/animations/presence/public.ts';
+import { patchGpuPrimaryActionGroup } from '@pages/hardware/controllers/gpucontrol/gpucontrolmanager/gpuActionReconciliationController.ts';
 import { dom } from '@core/dom/dom.ts';
 import { createElementFromMarkup } from '@pages/hardware/controllers/gpucontrol/gpucontrolmanager/dom.ts';
 import type { GpuControlManagerViewContext } from '@pages/hardware/controllers/gpucontrol/gpucontrolmanager/internalContracts.ts';
@@ -80,41 +82,17 @@ const syncSoAIBenchActions = (context: GpuControlManagerViewContext, panel: HTML
     if (!(primaryActionGroup instanceof HTMLElement)) {
         throw new Error(`GPU control primary action group is missing for index ${index}`);
     }
-    const existingActions = dom.resolve('.gpu-soaibench-actions', primaryActionGroup);
-    const existingToggle = dom.resolve('.gpu-test-btn', primaryActionGroup);
     const activeStressRun = !state.soaibenchStopRequested && hasActiveStressSoAIBenchRunForDevice(context.soaibenchRuns, state.deviceId);
-    if (state.saveMode) {
-        existingActions?.remove();
-        existingToggle?.remove();
-        return;
+    const createdGroup = primaryActionGroup.ownerDocument.createElement('div');
+    for (const child of Array.from(primaryActionGroup.children)) {
+        if (child instanceof HTMLElement && !isPresenceExiting(child) && child.matches('.gpu-apply-btn, .gpu-save-btn')) createdGroup.appendChild(child.cloneNode(true));
     }
-    if ((state.showSoAIBenchActions && !isSoAIBenchToggleDisabled(state)) || activeStressRun) {
-        const actionsMarkup = renderSoAIBenchActions({ security: context.security, getIconSync: context.dependencies.getIconSync }, index, state, context.soaibenchRuns);
-        const actionsElement = createElementFromMarkup(primaryActionGroup.ownerDocument, `<div class="gpu-soaibench-actions">${actionsMarkup}</div>`);
-        if (existingActions instanceof HTMLElement) {
-            if (existingActions.outerHTML !== actionsElement.outerHTML) {
-                existingActions.replaceWith(actionsElement);
-            }
-            return;
-        }
-        if (existingToggle instanceof HTMLElement) {
-            existingToggle.replaceWith(actionsElement);
-            return;
-        }
-        primaryActionGroup.appendChild(actionsElement);
-        return;
+    if (!state.saveMode) {
+        const expanded = (state.showSoAIBenchActions && !isSoAIBenchToggleDisabled(state)) || activeStressRun;
+        const markup = expanded ? `<div class="gpu-soaibench-actions">${renderSoAIBenchActions({ security: context.security, getIconSync: context.dependencies.getIconSync }, index, state, context.soaibenchRuns)}</div>` : renderSoAIBenchToggleButton({ security: context.security, getIconSync: context.dependencies.getIconSync }, index, state);
+        createdGroup.appendChild(createElementFromMarkup(primaryActionGroup.ownerDocument, markup));
     }
-    const toggleMarkup = renderSoAIBenchToggleButton({ security: context.security, getIconSync: context.dependencies.getIconSync }, index, state);
-    if (existingToggle instanceof HTMLElement) {
-        existingToggle.replaceWith(createElementFromMarkup(primaryActionGroup.ownerDocument, toggleMarkup));
-        return;
-    }
-    const toggleElement = createElementFromMarkup(primaryActionGroup.ownerDocument, toggleMarkup);
-    if (existingActions instanceof HTMLElement) {
-        existingActions.replaceWith(toggleElement);
-        return;
-    }
-    primaryActionGroup.appendChild(toggleElement);
+    patchGpuPrimaryActionGroup(primaryActionGroup, createdGroup);
 };
 
 const syncGpuControlSoAIBenchUi = (context: GpuControlManagerViewContext, { only = null }: { only?: string[] | null } = {}): void => {

@@ -28,6 +28,7 @@ from core.tasks.protocols import (
     TaskCancellationBinderProtocol,
     TaskFinalizerTrackerProtocol,
 )
+from hardware.manager.component_observations import current_history_snapshot
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -190,7 +191,7 @@ class HardwareMonitoringCoordinator:
         if self._history_enabled and self._database_hardware:
             try:
                 history_future = asyncio.run_coroutine_threadsafe(
-                    self._database_hardware.log_hardware_metrics(info),
+                    self._database_hardware.log_hardware_metrics(current_history_snapshot(info)),
                     loop,
                 )
                 history_future.add_done_callback(

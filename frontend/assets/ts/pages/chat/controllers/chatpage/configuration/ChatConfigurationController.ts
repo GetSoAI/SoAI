@@ -4,16 +4,15 @@
 import { dom } from '@core/dom/dom.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
-import { getEventHub } from '@core/environment/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
-import { bindAvatarUploadEvents, bindChatConfigurationModalParameterEvents, CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, CHAT_MEMORY_UPDATED_EVENT, CHAT_SELECTORS, openChatToolCallOutputModal, resolveChatConfigurationTabId, type ChatConfigurationModalBindingsHost } from '@features/chat/public.ts';
+import { bindAvatarUploadEvents, bindChatConfigurationModalParameterEvents, CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, CHAT_SELECTORS, CHAT_CONFIGURATION_TAB_DEFINITIONS, resolveChatConfigurationTabLabel, openChatToolCallOutputModal, resolveChatConfigurationTabId, type ChatConfigurationModalBindingsHost } from '@features/chat/public.ts';
 import { isConversationAuthorityLocked } from '@core/chat/conversationAuthorityLock.ts';
 import { beginChatConfigurationModalOpen, invalidateChatConfigurationModalOpen } from '@pages/chat/controllers/chatConfigurationModalOpenController.ts';
 import { createChatConfigurationTabsHost } from '@pages/chat/controllers/chatConfigurationTabsHostController.ts';
 import type { ChatRootEventsHost } from '@pages/chat/controllers/page/events/contracts.ts';
 import { disposeChatConfigurationTabs, type ChatConfigurationTabsHost } from '@pages/chat/widgets/chatconfigurationtabs/ChatConfigurationTabsController.ts';
-import { refreshChatMemoryTab, type ChatMemoryTabHost } from '@pages/chat/widgets/memorytab/service.ts';
+import { MemoryLibraryController } from '@pages/chat/widgets/memorytab/service.ts';
 import { ChatPresetLibraryController } from '@pages/chat/controllers/chatconfigurationcontroller/ChatPresetLibraryController.ts';
 import { ChatPresetSectionAdapterRegistry } from '@pages/chat/controllers/chatconfigurationcontroller/adapters.ts';
 import { bindChatConfigurationInputs, bindChatConfigurationModalEvents } from '@pages/chat/controllers/chatpage/configuration/events.ts';
@@ -23,6 +22,7 @@ import { ChatConfigurationDestinationController, type ChatConfigurationDestinati
 class ChatConfigurationController {
     readonly #page: ChatConfigurationDependencies;
     readonly #destinations: ChatConfigurationDestinationController;
+    #memoryLibrary: MemoryLibraryController | null = null;
     #inputDisposer: (() => void) | null = null;
     #tabsHost: ChatConfigurationTabsHost | null = null;
     #presetLibrary: ChatPresetLibraryController | null = null;
@@ -42,6 +42,8 @@ class ChatConfigurationController {
     dispose(): void {
         this.#destinations.dispose();
         this.#resetSessionState();
+        this.#memoryLibrary?.dispose();
+        this.#memoryLibrary = null;
         this.#presetLibrary?.dispose();
         this.#presetLibrary = null;
         this.#tabsHost = null;
@@ -56,14 +58,21 @@ class ChatConfigurationController {
                 handleModelAction: (actionElement) => this.handleModelAction(actionElement),
                 openConfiguration: (modal) => this.#open(modal),
                 closeConfiguration: () => this.#close(),
+                localizeConfiguration: () => this.refreshLocalization(),
                 setDefaultToolsExpanded: (expanded) => this.#setDefaultToolsExpanded(expanded)
             },
             signal,
             getRootEventsHost
         );
         bindAvatarUploadEvents(this.#createModalBindingsHost(), { inputsRoot: rootElement, resolvePreviewRoot: () => this.#resolveOpenConfigurationModal() }, signal);
-        const handleMemoryUpdated = (): void => this.#refreshMemoryTabInBackground('Unexpected refreshMemoryTab rejection after chat memory update event');
-        getEventHub().addEventListener(CHAT_MEMORY_UPDATED_EVENT, handleMemoryUpdated, { signal });
+    }
+
+    refreshLocalization(): void {
+        if (!this.#sessionAbort || this.#sessionAbort.signal.aborted) return;
+        this.#page.layout.getTabs()?.updateTabLabels(CHAT_CONFIGURATION_TAB_DEFINITIONS.map((tab) => ({ id: tab.id, label: resolveChatConfigurationTabLabel(tab.id) })));
+        this.#page.configurationRuntime.optionalConversationSettings()?.refreshLocalization();
+        this.#memoryLibrary?.refreshLocalization();
+        this.#presetLibrary?.refreshLocalization();
     }
 
     openMemoryProfile(): void {
@@ -93,28 +102,25 @@ class ChatConfigurationController {
         );
     }
 
+    memoryAction(element: HTMLElement): void {
+        this.#requireMemoryLibrary().handleAction(element);
+    }
+
     async refreshMemoryTab(): Promise<boolean> {
-        const presenter = requireModalPresenter();
-        if (!presenter.isOpen(CHAT_CONFIGURATION_MODAL_ID)) {
-            return false;
-        }
-        const modal = presenter.requireElement(CHAT_CONFIGURATION_MODAL_ID);
-        const token = this.#page.taskScope.concurrency.beginRenderSequence('memory-tab-refresh');
-        const isStale = (): boolean => !this.#page.taskScope.concurrency.isRenderSequenceCurrent('memory-tab-refresh', token) || !presenter.isOpen(CHAT_CONFIGURATION_MODAL_ID) || presenter.requireElement(CHAT_CONFIGURATION_MODAL_ID) !== modal;
-        const host: ChatMemoryTabHost = {
-            pageDom: this.#page.pageDom,
-            isCurrent: () => !isStale(),
-            api: this.#page.api
-        };
-        try {
-            await refreshChatMemoryTab(host, modal);
-            return !isStale();
-        } catch (error) {
-            if (isStale()) return false;
-            errorHandler.error('ChatPage', 'Failed to refresh chat memory tab', ensureError(error));
-            this.#page.feedback.show(i18n.t('chat.configuration.notifications.loadFailed'), 'error');
-            return false;
-        }
+        if (!requireModalPresenter().isOpen(CHAT_CONFIGURATION_MODAL_ID)) return false;
+        return await this.#requireMemoryLibrary().refresh();
+    }
+
+    #requireMemoryLibrary(): MemoryLibraryController {
+        if (!this.#memoryLibrary)
+            this.#memoryLibrary = new MemoryLibraryController({
+                root: requireModalPresenter().requireElement(CHAT_CONFIGURATION_MODAL_ID),
+                api: this.#page.api.webui.memory,
+                openProfile: () => this.openMemoryProfile(),
+                runTask: (operation, task) => this.#page.taskScope.run(operation, task),
+                show: (message, type) => this.#page.feedback.show(message, type)
+            });
+        return this.#memoryLibrary;
     }
 
     async refreshMemoryTabFromAction(): Promise<void> {
@@ -180,6 +186,7 @@ class ChatConfigurationController {
             {
                 handleModelSearchInput: (input) => this.#page.configurationRuntime.requireConfiguration().modelControl.handleSearchInput(input),
                 closeModelMenu: () => this.#page.configurationRuntime.requireConfiguration().modelControl.closeMenu(),
+                updateMemorySearch: (value) => this.#requireMemoryLibrary().updateSearch(value),
                 updatePresetSearch: (value) => this.#requirePresetLibrary().updateSearch(value),
                 updatePresetName: (value) => this.#requirePresetLibrary().updateEditorName(value),
                 updatePresetSection: (sectionId, selected) => this.#requirePresetLibrary().updateEditorSection(sectionId, selected)
@@ -187,6 +194,7 @@ class ChatConfigurationController {
             modal,
             sessionAbort.signal
         );
+        this.#requireMemoryLibrary().open(sessionAbort.signal);
         beginChatConfigurationModalOpen({
             host: this.#page,
             tabsHost: this.#requireTabsHost(),
@@ -254,9 +262,9 @@ class ChatConfigurationController {
         this.#sessionAbort?.abort();
         this.#sessionAbort = null;
         this.#presetLibrary?.close();
+        this.#memoryLibrary?.close();
         this.#inputDisposer?.();
         this.#inputDisposer = null;
-        this.#page.taskScope.concurrency.beginRenderSequence('memory-tab-refresh');
     }
 
     #requirePresetLibrary(): ChatPresetLibraryController {

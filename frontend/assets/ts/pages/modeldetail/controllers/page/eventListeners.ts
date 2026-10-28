@@ -15,7 +15,7 @@ import type { ParameterGroup, ParameterView } from '@pages/modeldetail/contracts
 import { isParameterGroup, isParameterView } from '@pages/modeldetail/controllers/parameterviewmanager/constants.ts';
 import { createModelDetailActionHandlers } from '@pages/modeldetail/controllers/modelDetailActionHandlers.ts';
 import { resetModelDetailOpenAICapabilityOverrides, toggleModelDetailOpenAICapabilityOverride } from '@pages/modeldetail/controllers/openaicapabilities/overrideActions.ts';
-import { resetAllModelDetailParameters, type ModelDetailActionsHost } from '@pages/modeldetail/controllers/page/actionEffects.ts';
+import type { ModelDetailActionsHost } from '@pages/modeldetail/controllers/page/actionEffects.ts';
 import { handleModelDetailLanguageChanged } from '@pages/modeldetail/controllers/page/dom.ts';
 import { deleteModelDetailModel, stopModelDetailPlugin } from '@pages/modeldetail/controllers/page/operations/effects.ts';
 import { handleModelDetailBackendDocumentationClick } from '@pages/modeldetail/controllers/page/view/service.ts';
@@ -171,7 +171,7 @@ const createModelDetailDelegatedActionHandlers = (dependencies: { host: ModelDet
                 terminateHandledPromise(dependencies.save.requestSave());
             },
             resetAllParameters: () => {
-                terminateHandledPromise(resetAllModelDetailParameters(actionsHost));
+                actionsHost.parameterView.resetAllParameters();
             },
             manageAlias: () => {
                 const model = host.session.model;
@@ -230,7 +230,7 @@ const createModelDetailDelegatedActionHandlers = (dependencies: { host: ModelDet
                 void toggleModelDetailOpenAICapabilityOverride(actionsHost, element);
             },
             resetOpenAICapabilities: () => {
-                terminateHandledPromise(resetModelDetailOpenAICapabilityOverrides(actionsHost));
+                resetModelDetailOpenAICapabilityOverrides(actionsHost);
             }
         },
         parameters: {
@@ -251,7 +251,9 @@ const createModelDetailDelegatedActionHandlers = (dependencies: { host: ModelDet
             },
             navigateParameterCategory: (element: HTMLElement) => {
                 host.parameterView.navigateToCategory(requireActionData(element.dataset['category'], 'data-category'));
-            }
+            },
+            retryParameters: () => actionsHost.retryParameters(),
+            discardParameterChanges: () => actionsHost.discardParameterChanges()
         }
     });
 };

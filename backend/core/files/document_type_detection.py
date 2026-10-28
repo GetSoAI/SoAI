@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import os
 
-from core.files.content_types import normalize_content_type
 from core.files.image_candidates import is_supported_image_candidate
 from core.files.mime_detection import detect_mime_type
 from core.filesystem.open_files import open_binary
@@ -14,7 +13,6 @@ __all__ = (
     "detect_mime_from_path",
     "extract_extension",
     "is_image_type",
-    "is_pdf_type",
 )
 
 _MIME_SAMPLE_BYTES: int = 8192
@@ -34,12 +32,6 @@ def detect_mime_from_path(file_path: str) -> str:
     except OSError:
         sample = b""
     return (detect_mime_type(sample, filename=os.path.basename(file_path)) or "").strip()
-
-
-def is_pdf_type(detected_mime: str, extension: str) -> bool:
-    if extension == "pdf":
-        return True
-    return normalize_content_type(detected_mime) == "application/pdf"
 
 
 def is_image_type(detected_mime: str, extension: str) -> bool:

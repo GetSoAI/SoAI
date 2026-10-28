@@ -12,6 +12,8 @@ from core.errors.exceptions import (
     ApiError,
     ConfigurationError,
     IpcRemoteRequestError,
+    ModelOutputContractError,
+    SecurityError,
     SoAITimeoutError,
     ValidationError,
 )
@@ -38,6 +40,8 @@ _RESULT_EXCEPTION_PASSTHROUGH_TYPES: tuple[type[BaseException], ...] = (
     ApiError,
     ExternalServiceError,
     IpcRemoteRequestError,
+    ModelOutputContractError,
+    SecurityError,
     SoAITimeoutError,
     ValidationError,
     ConfigurationError,

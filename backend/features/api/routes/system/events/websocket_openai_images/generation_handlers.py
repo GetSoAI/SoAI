@@ -10,6 +10,7 @@ from fastapi import HTTPException
 
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.public_projection import project_public_error
 from core.events.types_models_requests import ImageGenerationRequestReceived
 from core.logging.trace import get_logger
 from core.openai.inference_normalization import normalize_openai_inference_payload
@@ -124,7 +125,7 @@ async def handle_openai_images_generation_start(
             connection.queue,
             build_openai_images_generation_error(
                 run_id=run_id,
-                message=str(coerced),
+                message=project_public_error(coerced).message,
                 code="invalid_request_error",
             ),
             "OpenAI images generation error",

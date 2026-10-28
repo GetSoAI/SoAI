@@ -90,6 +90,7 @@ async def apply_parameter_snapshot_state_to_context(
             request_overrides = extract_payload_request_overrides(
                 payload=payload if isinstance(payload, dict) else None,
                 parameter_definitions=parameter_definitions,
+                configured_parameters=parameter_values,
             )
             if request_overrides:
                 parameter_values.update(

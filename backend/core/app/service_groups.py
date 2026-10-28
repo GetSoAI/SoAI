@@ -10,6 +10,7 @@ from core.hardware.protocols import (
     HardwareControlServiceProtocol,
     HardwareGpuTuningProtocol,
     HardwareManagerProtocol,
+    NvidiaArchitectureReaderProtocol,
 )
 from core.hardware.protocols_soaibench import SoAIBenchServiceProtocol
 from core.hardware.protocols_storage import StorageManagerProtocol
@@ -26,6 +27,7 @@ class HardwareRuntimeServices:
     soaibench: SoAIBenchServiceProtocol
     terminal: TerminalServiceProtocol
     storage: StorageManagerProtocol
+    nvidia_architecture_reader: NvidiaArchitectureReaderProtocol | None = None
 
     def __post_init__(self) -> None:
         require_dependencies(

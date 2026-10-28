@@ -36,7 +36,6 @@ __all__ = (
     "flush_chat_stream_event_persistence",
     "publish_chat_stream_event",
     "publish_chat_stream_event_locked",
-    "publish_chat_stream_event_when",
     "run_chat_stream_event_operation_locked",
     "run_attach_guarded_publish_loop",
 )
@@ -157,44 +156,6 @@ async def publish_chat_stream_event_locked(
             "publish_chat_stream_event_locked requires publish_lock to be held by the caller.",
         )
 
-    async def locked_operation(
-        sequence: int,
-        assistant_revision: int,
-        stamped_payload: JSONDict,
-        chat_stream_event: ChatStreamEvent,
-    ) -> None:
-        await publish_chat_stream_event_locked_internal(
-            event_bus,
-            runtime,
-            database_messages,
-            event_type=event_type,
-            sequence=sequence,
-            assistant_revision=assistant_revision,
-            payload=stamped_payload,
-            chat_stream_event=chat_stream_event,
-            wait=wait,
-        )
-
-    await run_chat_stream_event_operation_locked(
-        runtime=runtime,
-        event_type=event_type,
-        payload=payload,
-        locked_operation=locked_operation,
-    )
-
-
-async def publish_chat_stream_event_when(
-    condition: bool,
-    event_bus: EventBusProtocol,
-    runtime: AssistantTimelineRuntime,
-    database_messages: DatabaseStreamingMessagesProtocol,
-    *,
-    event_type: str,
-    payload: JSONDict,
-    wait: bool = False,
-) -> bool:
-    if not condition:
-        return False
     await publish_chat_stream_event(
         event_bus,
         runtime,
@@ -203,7 +164,6 @@ async def publish_chat_stream_event_when(
         payload=payload,
         wait=wait,
     )
-    return True
 
 
 async def run_attach_guarded_publish_loop(

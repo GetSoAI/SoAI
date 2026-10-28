@@ -1,9 +1,10 @@
 /* SoAI - Plugins feature manage backend modal contracts [frontend/assets/ts/features/plugins/modals/backend/managebackendmodal/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { BackendVariantsResponse, PluginBackendUpdatesResponse, PluginBackendUpdateStatus } from '@core/api/contracts/pluginManagementContracts.ts';
+import type { BackendVariantsResponse, PluginBackendUpdateStatus } from '@core/api/contracts/pluginManagementContracts.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
+import type { BackendUpdateAccess } from '@core/plugins/backendUpdates.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
@@ -18,6 +19,9 @@ interface ManageState {
     currentPlugin: PluginRecord | null;
     updateInfo: PluginBackendUpdateStatus | null;
     backendVariantsReady: boolean;
+    backendVariantsLoading: boolean;
+    backendVariantSaving: boolean;
+    operationActive: boolean;
 }
 
 interface ManageBackendViewPort {
@@ -37,6 +41,8 @@ interface ManageBackendViewPort {
 }
 
 interface ManageBackendPolicyPort {
+    backendUpdateAccess(plugin: PluginRecord): BackendUpdateAccess;
+    subscribeBackendUpdateAccess(listener: () => void): () => void;
     checkBackendInstallationSupport(plugin: PluginRecord): boolean;
     isPluginPermanentlyDisabled(plugin: PluginRecord): boolean;
     notifyPluginIncompatible(plugin: PluginRecord): void;
@@ -56,12 +62,17 @@ interface ManageBackendStatusPort {
 }
 
 interface ManageBackendOperationsPort extends BackendOperationHost {
-    checkUpdates(): Promise<PluginBackendUpdatesResponse>;
-    getBackendVariants(pluginName: string): Promise<BackendVariantsResponse>;
+    checkBackendUpdate(pluginName: string, options?: { signal?: AbortSignal }): Promise<PluginBackendUpdateStatus>;
+    getBackendVariants(pluginName: string, options?: { signal?: AbortSignal }): Promise<BackendVariantsResponse>;
     saveBackendVariantSelection(pluginName: string, variantId: string): Promise<BackendVariantsResponse>;
 }
 
 interface ManageBackendManagerHost {
+    catalog: {
+        isFresh(): boolean;
+        getPlugin(name: string): PluginRecord | null;
+        subscribe(callback: () => void, options: { emitInitial: boolean }): () => void;
+    };
     view: ManageBackendViewPort;
     policy: ManageBackendPolicyPort;
     status: ManageBackendStatusPort;

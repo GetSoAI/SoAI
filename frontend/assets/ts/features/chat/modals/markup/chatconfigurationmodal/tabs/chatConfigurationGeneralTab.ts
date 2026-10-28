@@ -22,9 +22,9 @@ const buildGeneralTabMarkup = (context: ChatPageMarkupContext): string => {
   <div class="chat-config-grid">
     <div class="form-group setting-change-surface">
       <div class="chat-config-field-header">
-        <span id="${uiIdAttr('configuration-model-label')}" class="form-label">${i18n.html(context.sanitizer, 'chat.configuration.configurationModel.label')}</span>
+        <span id="${uiIdAttr('configuration-model-label')}" class="form-label" data-modal-localize="text">${i18n.html(context.sanitizer, 'chat.configuration.configurationModel.label')}</span>
         <div class="chat-config-field-hide-model">
-          <label for="${uiIdAttr('hide-real-model-checkbox')}">${strings.hideRealModel}</label>
+          <label for="${uiIdAttr('hide-real-model-checkbox')}" data-modal-localize="text">${strings.hideRealModel}</label>
           ${buildToggleSwitchMarkup({
               modalId,
               token: 'hide-real-model-checkbox',
@@ -37,7 +37,7 @@ const buildGeneralTabMarkup = (context: ChatPageMarkupContext): string => {
         </div>
       </div>
       <div class="model-selector page-header-filter-select" data-chat-model-control="true" data-scope="configuration" aria-labelledby="${uiIdAttr('configuration-model-label')}"></div>
-      <span class="chat-configuration-hint">${strings.hideRealModelHint}</span>
+      <span class="chat-configuration-hint" data-modal-localize="text">${strings.hideRealModelHint}</span>
     </div>
 ${buildGeneralIdentityMarkup({ strings, uiIdAttr })}
 ${buildGeneralPreferencesMarkup({ modalId, strings, uiIdAttr, enabledDisabledLabels })}

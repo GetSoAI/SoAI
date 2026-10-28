@@ -23,6 +23,7 @@ interface TokenCounterWebSocket {
 
 class ChatTokenCounterController {
     readonly #host: TokenCounterHost;
+    readonly #getSteeringTargetInputId: () => string | null;
     readonly #requestDebounce: ((reason: string) => void) & { cancel: () => void };
     readonly #usageTracker = new TokenCounterUsageRateTracker();
     readonly #requestCoordinator: TokenCounterRequestCoordinator;
@@ -32,9 +33,10 @@ class ChatTokenCounterController {
     readonly #eventSubscribe: WebSocketEventBatchSubscribe | undefined;
     #initialized: boolean = false;
 
-    constructor(options: { host: TokenCounterHost; ws: TokenCounterWebSocket; eventSubscribe?: WebSocketEventBatchSubscribe }) {
+    constructor(options: { getSteeringTargetInputId: () => string | null; host: TokenCounterHost; ws: TokenCounterWebSocket; eventSubscribe?: WebSocketEventBatchSubscribe }) {
         this.#host = options.host;
-        this.#requestCoordinator = new TokenCounterRequestCoordinator({ host: options.host, ws: options.ws, usageTracker: this.#usageTracker });
+        this.#getSteeringTargetInputId = options.getSteeringTargetInputId;
+        this.#requestCoordinator = new TokenCounterRequestCoordinator({ getSteeringTargetInputId: options.getSteeringTargetInputId, host: options.host, ws: options.ws, usageTracker: this.#usageTracker });
         this.#eventSubscribe = options.eventSubscribe;
         this.#streamController = new TokenCounterStreamController({
             host: options.host,
@@ -45,6 +47,7 @@ class ChatTokenCounterController {
             onStreamStarted: () => {
                 this.#requestDebounce.cancel();
                 this.#requestCoordinator.resetActiveRequestId();
+                this.#requestIfEnabledAndActive('streamStarted');
             },
             onStreamTerminal: () => this.#requestIfEnabledAndActive('streamTerminal')
         });
@@ -67,8 +70,12 @@ class ChatTokenCounterController {
         this.#requestIfEnabledAndActive(reason);
     }
 
+    #canPreviewSteeringDraft(): boolean {
+        return this.#getSteeringTargetInputId() !== null && (this.#sessionState.draftText.trim().length > 0 || this.#host.getDraftAttachmentContent().length > 0);
+    }
+
     #requestIfEnabledAndActive(reason: string): void {
-        if (this.#host.isPageTerminating() || !this.#host.isTokenCounterInputActionEnabled() || !this.#sessionState.isActive || this.#usageTracker.isStreamActive) {
+        if (this.#host.isPageTerminating() || !this.#host.isTokenCounterInputActionEnabled() || !this.#sessionState.isActive || (this.#usageTracker.isStreamActive && !this.#canPreviewSteeringDraft())) {
             return;
         }
         this.#requestDebounce(reason);
@@ -93,7 +100,13 @@ class ChatTokenCounterController {
                         tokenCountError: (event) => this.#handleTokenCountError(event),
                         conversationUpdated: (event) => this.#handleConversationUpdated(event),
                         knowledgePromptStateChanged: (event) => this.#handleConversationBoundRequest(event, 'knowledgePromptStateChanged'),
-                        agentModeChanged: (event) => this.#handleConversationBoundRequest(event, 'agentModeChanged')
+                        agentModeChanged: (event) => this.#handleConversationBoundRequest(event, 'agentModeChanged'),
+                        skillsChanged: (event) => {
+                            if (event.conversationId !== this.#sessionState.activeConversationId) return;
+                            this.#resetTokenCounterState({ resetNotificationSuppression: false, clearUsage: true, preserveActiveStream: true });
+                            this.#requestIfEnabledAndActive('skillsChanged');
+                            this.#render('skillsChanged');
+                        }
                     }
                 })
             );
@@ -122,6 +135,7 @@ class ChatTokenCounterController {
         if (options.resetActiveRequestId !== false) {
             this.#requestCoordinator.resetActiveRequestId();
         }
+        this.#usageTracker.clearSteeringPreview();
         const preserveActiveStream = options.preserveActiveStream === true && this.#usageTracker.isStreamActive;
         if (!preserveActiveStream) {
             this.#streamController.reset();
@@ -237,7 +251,7 @@ class ChatTokenCounterController {
     }
 
     #requestTokenCount(_reason: string): void {
-        if (this.#host.isPageTerminating() || !this.#host.isTokenCounterInputActionEnabled() || !this.#sessionState.isActive || this.#usageTracker.isStreamActive) {
+        if (this.#host.isPageTerminating() || !this.#host.isTokenCounterInputActionEnabled() || !this.#sessionState.isActive || (this.#usageTracker.isStreamActive && !this.#canPreviewSteeringDraft())) {
             return;
         }
         const conversationId = this.#sessionState.activeConversationId;
@@ -253,7 +267,7 @@ class ChatTokenCounterController {
             return;
         }
         const hasSelectableModels = this.#host.hasSelectableModels();
-        const payload = hasSelectableModels ? buildTokenCounterRequestPayload(this.#host, this.#sessionState.draftText) : null;
+        const payload = hasSelectableModels ? buildTokenCounterRequestPayload(this.#host, this.#sessionState.draftText, this.#getSteeringTargetInputId()) : null;
         if (!payload) {
             this.#resetTokenCounterState({ resetNotificationSuppression: false, clearUsage: true });
             this.#render('tokenCountMissingModel');
@@ -264,8 +278,9 @@ class ChatTokenCounterController {
             openAiRequest: payload.openAiRequest,
             draftUserText: payload.draftUserText,
             draftAttachmentContent: payload.draftAttachmentContent,
+            targetInputId: payload.targetInputId ?? null,
             onFailure: () => {
-                this.#resetTokenCounterState({ resetActiveRequestId: false, resetNotificationSuppression: false });
+                this.#resetTokenCounterState({ resetActiveRequestId: false, resetNotificationSuppression: false, preserveActiveStream: true });
                 this.#showTokenCountFailure(i18n.t('chat.tokenCounter.countFailed'));
                 this.#render('tokenCountSendFailed');
             }
@@ -293,9 +308,10 @@ class ChatTokenCounterController {
             return;
         }
         const errorState = resolveTokenCounterErrorState(event);
-        this.#resetTokenCounterState({ resetActiveRequestId: false, resetNotificationSuppression: false, clearUsage: true });
+        this.#resetTokenCounterState({ resetActiveRequestId: false, resetNotificationSuppression: false, clearUsage: true, preserveActiveStream: true });
         if (errorState.usage) {
-            this.#usageTracker.setPromptUsageSnapshot(errorState.usage);
+            if (this.#usageTracker.isStreamActive) this.#usageTracker.setSteeringPreview(errorState.usage);
+            else this.#usageTracker.setPromptUsageSnapshot(errorState.usage);
         }
         this.#showTokenCountFailure(errorState.notificationMessage);
         this.#render('tokenCountError');

@@ -26,6 +26,7 @@ import { claimErrorReporting } from '@core/errors/reportingOwnership.ts';
 import { notifyHandledOperationError } from '@core/operationErrorNotifier.ts';
 import type { PageHostInstance } from '@core/pageoutlet/types.ts';
 import { isAbortError, raceWithAbortSignal } from '@core/errors/abort.ts';
+import type { RouterLocalizationRefreshController } from '@core/routing/router/localizationRefresh.ts';
 
 class Router {
     #componentLoader: RouterComponentLoader;
@@ -53,6 +54,9 @@ class Router {
     resources: ResourceTrackerInstance;
     routerBoundary: InstanceType<RouterDependencies['ErrorBoundary']>;
     #activeNavigation: AbortController | null = null;
+    #latestNavigationCompletion: Promise<void> | null = null;
+    #browserNavigationSuspended = false;
+    #localization: RouterLocalizationRefreshController;
     navigationMiddleware: NavigationMiddlewareController;
     constructor(dependencies: RouterDependencies) {
         assertRouterDependencies(dependencies);
@@ -76,6 +80,7 @@ class Router {
         this.#componentLoader = composition.componentLoader;
         this.#lifecycleDependencies = composition.lifecycleDependencies;
         this.#sidebarTargets = getSidebarComponentTargets();
+        this.#localization = composition.localization;
     }
     getUI(selector: string, context: Element | Document | null = null): Element | null {
         return this.dom.resolve(selector, context);
@@ -103,7 +108,10 @@ class Router {
                 errorHandler: this.errorHandler,
                 renderCriticalError: (message: string) => renderRouterError(this.dom, this.contentContainer, 'critical', message, reloadHandler),
                 isInitialized: () => this.initialized,
-                getCurrentRoute: () => this.currentRoute
+                isBrowserNavigationSuspended: () => this.#browserNavigationSuspended,
+                getCurrentRoute: () => this.currentRoute,
+                refreshLanguage: () => this.#localization.request(),
+                resumeLanguageRefresh: () => this.#localization.resume()
             });
             return;
         }
@@ -145,18 +153,33 @@ class Router {
             this.#activeNavigation?.abort('navigation-superseded');
             const navigation = new AbortController();
             this.#activeNavigation = navigation;
-            try {
-                await raceWithAbortSignal(this.pageOutlet.waitForCommit(), navigation.signal);
-                await this.#navigateInternal(request, navigation.signal);
-            } catch (error) {
-                if (!isAbortError(error) || !navigation.signal.aborted) throw error;
-            } finally {
-                if (this.#activeNavigation === navigation) {
-                    this.#activeNavigation = null;
-                    this.pageOutlet.cancelActive('navigation-settled');
+            const completion = (async (): Promise<void> => {
+                try {
+                    await raceWithAbortSignal(this.pageOutlet.waitForCommit(), navigation.signal);
+                    await this.#navigateInternal(request, navigation.signal);
+                } catch (error) {
+                    if (!isAbortError(error) || !navigation.signal.aborted) throw error;
+                } finally {
+                    if (this.#activeNavigation === navigation) {
+                        this.#activeNavigation = null;
+                        this.pageOutlet.cancelActive('navigation-settled');
+                        this.#localization.resume();
+                    }
                 }
-            }
+            })();
+            this.#latestNavigationCompletion = completion;
+            return completion;
         }, 'navigate');
+    }
+    setBrowserNavigationSuspended(suspended: boolean): void {
+        this.#browserNavigationSuspended = suspended;
+        if (!suspended) this.#localization.resume();
+    }
+    getLatestNavigationCompletion(): Promise<void> | null {
+        return this.#latestNavigationCompletion;
+    }
+    isBrowserNavigationSuspended(): boolean {
+        return this.#browserNavigationSuspended;
     }
     useNavigationMiddleware(middleware: RouterMiddleware, options: { priority: number }): () => void {
         return useRouterNavigationMiddleware(this.navigationMiddleware, middleware, options);
@@ -195,7 +218,7 @@ class Router {
             lifecycle: this.#lifecycleDependencies,
             sectionTracker: this.sectionTracker,
             loadPageComponent: async (componentName: string, parameters: RouteParameters, renderOptions: { beforePrepare: () => Promise<void>; beforeCommit: () => Promise<void>; commitNavigation: () => void; signal: AbortSignal }): Promise<boolean> => {
-                const rendered = await this.pageOutlet.render({ component: componentName, parameters, ...renderOptions });
+                const rendered = await this.pageOutlet.render({ component: componentName, parameters, ...renderOptions, commitNavigation: this.#localization.commitRendered(renderOptions.commitNavigation) });
                 return rendered !== null;
             },
             sidebarTargets: this.#sidebarTargets,
@@ -262,8 +285,10 @@ class Router {
     }
 
     async destroy(): Promise<void> {
+        this.#localization.dispose();
         this.#activeNavigation?.abort('router-destroyed');
         this.#activeNavigation = null;
+        this.#latestNavigationCompletion = null;
         this.resources.cleanup();
         const pageOutlet = this.pageOutlet;
         if (isFunction(pageOutlet.destroy)) {

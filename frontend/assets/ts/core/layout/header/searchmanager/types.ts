@@ -100,6 +100,7 @@ export interface HeaderSearchManagerContract extends SearchManagerState {
     cancelBlurTimer: () => void;
     isSessionActive: (token: number) => boolean;
     resetDropdown: () => void;
+    cancelPendingSearch: () => void;
     resetResults: () => void;
     hideDropdown: () => void;
     collapse: (options?: SearchManagerCollapseOptions) => void;

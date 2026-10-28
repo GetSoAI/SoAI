@@ -22,6 +22,8 @@ interface StreamTaskExecutionRuntime {
 
 interface StreamTaskRuntimeState {
     generation: number;
+    pendingTaskSnapshots: Set<Set<string>>;
+    terminalTaskIds: Set<string>;
     operationListeners: Set<OperationListener>;
     operationHandlers: Map<string, StreamActionResult>;
     keyedTaskAdmissions: Map<string, KeyedTaskAdmissionGate>;

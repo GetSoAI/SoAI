@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import codecs
 import os
+import unicodedata
 
 from core.files.image_signature import validate_image_signature
 from core.files.text_extensions import resolve_text_file_content_type_from_extension
@@ -32,6 +34,10 @@ _HTML_TOKENS: tuple[bytes, ...] = (b"<!doctype html", b"<html", b"<body", b"<hea
 _FTYP_AUDIO_BRANDS: frozenset[str] = frozenset(("f4a ", "m4a ", "m4b ", "m4p "))
 _FTYP_HEIC_BRANDS: frozenset[str] = frozenset(("heic", "heix", "hevc", "hevx", "heim", "heis"))
 _FTYP_HEIF_BRANDS: frozenset[str] = frozenset(("mif1", "msf1"))
+_TEXT_SAMPLE_BYTES: int = 1024
+_TEXT_MINIMUM_RATIO: float = 0.8
+_TEXT_CONTROL_CHARACTERS: frozenset[str] = frozenset(("\t", "\n", "\r"))
+_TEXT_UNICODE_CATEGORY_GROUPS: frozenset[str] = frozenset(("L", "M", "N", "P", "S", "Z"))
 
 
 class LocalMimeDetector:
@@ -247,7 +253,7 @@ def _looks_like_html(data: bytes) -> bool:
 
 
 def _looks_like_text(data: bytes) -> bool:
-    sample = data[:1024]
+    sample = data[:_TEXT_SAMPLE_BYTES]
     if not sample:
         return False
     if b"\x00" in sample:
@@ -255,4 +261,25 @@ def _looks_like_text(data: bytes) -> bool:
     printable_count = sum(
         1 for byte_value in sample if 32 <= byte_value <= 126 or byte_value in (9, 10, 13)
     )
-    return (printable_count / len(sample)) >= 0.8
+    if (printable_count / len(sample)) >= _TEXT_MINIMUM_RATIO:
+        return True
+    return _looks_like_utf8_text(sample, sample_truncated=len(data) > len(sample))
+
+
+def _looks_like_utf8_text(sample: bytes, *, sample_truncated: bool) -> bool:
+    decoder = codecs.getincrementaldecoder("utf-8")(errors="strict")
+    try:
+        decoded_text = decoder.decode(sample, final=not sample_truncated)
+    except UnicodeDecodeError:
+        return False
+    if not decoded_text:
+        return False
+    text_character_count = sum(1 for character in decoded_text if _is_text_character(character))
+    return (text_character_count / len(decoded_text)) >= _TEXT_MINIMUM_RATIO
+
+
+def _is_text_character(character: str) -> bool:
+    if character in _TEXT_CONTROL_CHARACTERS:
+        return True
+    category = unicodedata.category(character)
+    return category == "Cf" or category[0] in _TEXT_UNICODE_CATEGORY_GROUPS

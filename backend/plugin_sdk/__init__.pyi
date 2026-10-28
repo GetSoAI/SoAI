@@ -5,8 +5,11 @@ from __future__ import annotations
 
 from core.archives.errors import ArchiveLinkTargetNotFoundError
 from core.concurrency.cancellation_cleanup import run_idempotent_current_task_operation
+from core.concurrency.deadlines import MonotonicDeadline, deadline_after
 from core.concurrency.joined_thread_call import run_joined_thread_call
+from core.config.gpu_binding import gpu_binding_selected_device_ids
 from core.config.protocols import ConfigProtocol
+from core.errors.backend_lifecycle import IpcCancellationCleanupError, NativeProbeTerminationError
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.memory_exhaustion import (
@@ -16,6 +19,7 @@ from core.errors.memory_exhaustion import (
 from core.events.protocols import EventBusProtocol
 from core.files.locking import guarded_file_lock
 from core.files.temp_files import create_persistent_staging_directory
+from core.files.windows_reparse_points import is_windows_reparse_point
 from core.filesystem.async_queries import (
     async_isdir,
     async_isfile,
@@ -29,7 +33,21 @@ from core.filesystem.hashing import (
     calculate_file_hash,
     calculate_file_hash_sync,
 )
+from core.filesystem.operation_errors import build_filesystem_operation_error
 from core.filesystem.size_calculation import get_path_size
+from core.hardware.disk_reservation_records import DiskSpaceReservationRequest
+from core.hardware.gpu_inventory_errors import require_gpu_discovery_capabilities
+from core.hardware.native_compatibility import (
+    require_cpu_instruction_features,
+    require_cuda_13_device_support,
+)
+from core.hardware.native_compatibility_assessment import (
+    NativeCompatibilityAssessment,
+    assess_native_compatibility,
+    has_native_runtime_evidence,
+    require_native_compatibility,
+)
+from core.hardware.native_execution_devices import native_execution_devices_unchanged
 from core.models.remote_model_search_payloads import normalize_model_search_payload
 from core.network.errors import HTTPReadUnavailableError
 from core.network.retryable_reads import run_retryable_http_read
@@ -39,6 +57,7 @@ from core.openai.audio_upload_responses import (
     is_audio_upload_error_response,
     read_audio_upload_error_response,
 )
+from core.openai.capability_evidence import build_openai_model_capability_profile
 from core.openai.context_overflow_validation import (
     build_context_overflow_validation_error,
     extract_context_overflow_validation,
@@ -53,6 +72,7 @@ from core.openai.model_output_contract_errors import (
     build_invalid_tool_call_json_error_details,
     is_invalid_tool_call_json_contract_error,
 )
+from core.openai.provider_http_errors import build_openai_provider_http_error
 from core.openai.provider_transport import (
     build_openai_provider_headers,
     build_openai_upstream_error_details,
@@ -88,9 +108,24 @@ from core.plugins.runtime_services import (
     PluginPathResolver,
     PluginRuntimeServices,
 )
+from core.security.public_text_redaction import sanitize_public_diagnostic_text
 from core.system.commands import run_argv_capture
+from core.system.docker_storage.location import DockerStorageLocation
+from core.system.docker_storage.resolver import resolve_docker_storage, revalidate_docker_storage
+from core.system.native_image_budget import NativeImageAllowance, native_image_allowance
+from core.system.native_runtime_probes import (
+    NativeProbeBudget,
+    RuntimeVerificationFailedError,
+    RuntimeVerificationTimeoutError,
+    capture_native_probe,
+    interpreter_probe_budget,
+    run_native_probe,
+    runtime_probe_failure_error,
+    runtime_timeout_error,
+)
 from core.system.subprocess_env import build_minimal_subprocess_env
 from core.tasks.periodic import run_periodic_task
+from core.types.dict import freeze_json_dict
 from core.types.json import JSONDict, JSONValue
 from core.types.protocols import HttpClientProtocol
 from plugin_sdk.config import Config, ConfigError
@@ -101,6 +136,7 @@ from plugin_sdk.contracts.archive_extraction import (
     async_safe_tar_extractall,
     async_safe_zip_extractall,
 )
+from plugin_sdk.contracts.backend_variant_resources import load_backend_variant_options
 from plugin_sdk.contracts.chat_template_role_policy import (
     SOAI_CHAT_TEMPLATE_MAX_ROLE_PARAMETER,
     normalize_openai_messages_for_chat_template_role_policy,
@@ -143,6 +179,11 @@ from plugin_sdk.contracts.model_variants import (
     normalize_variant_name,
     resolve_model_download_required_bytes,
 )
+from plugin_sdk.contracts.native_runtime_probe import (
+    NativeRuntimeProbeResult,
+    classify_llama_server_probe,
+    run_native_runtime_probe,
+)
 from plugin_sdk.contracts.openai import (
     OPENAI_CAPABILITY_CATEGORIES,
     OPENAI_FEATURE_MATRIX,
@@ -173,7 +214,10 @@ from plugin_sdk.contracts.parameters import (
     ParameterDefinition,
     build_parameter_schema,
 )
-from plugin_sdk.contracts.process_diagnostics import read_recent_process_log
+from plugin_sdk.contracts.process_diagnostics import (
+    read_recent_process_log,
+    wait_for_process_output_drained,
+)
 from plugin_sdk.contracts.process_lifecycle import check_process_alive
 from plugin_sdk.contracts.process_sessions import (
     ManagedProcessSession,
@@ -226,6 +270,7 @@ from plugin_sdk.contracts.transfer import (
 from plugin_sdk.contracts.version import get_core_version
 from plugin_sdk.errors import (
     AcceleratorMemoryExhaustedError,
+    BackendPrerequisiteError,
     ConfigurationError,
     ExternalServiceError,
     FeatureDisabledError,
@@ -280,6 +325,7 @@ from plugin_sdk.runtime_network import (
 )
 
 __all__ = (
+    "load_backend_variant_options",
     "LOGO_FILENAMES",
     "MAX_LOGO_SOURCE_BYTES",
     "MAX_LOGO_DIMENSION",
@@ -288,6 +334,7 @@ __all__ = (
     "PluginLogoResult",
     "sanitize_plugin_logo",
     "AcceleratorMemoryExhaustedError",
+    "BackendPrerequisiteError",
     "ArchiveLinkTargetNotFoundError",
     "AUTO_BACKEND_VARIANT_ID",
     "BasePlugin",
@@ -302,6 +349,7 @@ __all__ = (
     "coerce_to_soai_error",
     "log_exception",
     "log_handled_exception",
+    "sanitize_public_diagnostic_text",
     "ProgressPayload",
     "SpeedCalculator",
     "format_progress_bar",
@@ -353,6 +401,8 @@ __all__ = (
     "build_unsupported_prompt_token_count_result",
     "build_context_overflow_validation_error",
     "build_openai_upstream_error_details",
+    "build_openai_provider_http_error",
+    "build_openai_model_capability_profile",
     "compose_openai_provider_url",
     "extract_context_overflow_validation",
     "normalize_openai_provider_query_params",
@@ -418,6 +468,16 @@ __all__ = (
     "build_accelerator_environment",
     "AcceleratorInventoryProviderProtocol",
     "snapshot_accelerator_inventory",
+    "gpu_binding_selected_device_ids",
+    "freeze_json_dict",
+    "require_cpu_instruction_features",
+    "require_cuda_13_device_support",
+    "NativeCompatibilityAssessment",
+    "require_native_compatibility",
+    "assess_native_compatibility",
+    "has_native_runtime_evidence",
+    "native_execution_devices_unchanged",
+    "require_gpu_discovery_capabilities",
     "build_repository_artifact_directory",
     "build_repository_artifact_model_identifier",
     "resolve_repository_artifact_model_identifier",
@@ -451,11 +511,13 @@ __all__ = (
     "merge_embedding_batch_responses",
     "normalize_hf_model_input",
     "normalize_backend_variant_id",
+    "DiskSpaceReservationRequest",
     "resolve_cuda_backend_availability",
     "normalize_variant_name",
     "prepare_embedding_batches",
     "read_metadata",
     "read_recent_process_log",
+    "wait_for_process_output_drained",
     "classify_memory_exhaustion",
     "raise_for_memory_exhaustion",
     "require_online_mode",
@@ -464,6 +526,23 @@ __all__ = (
     "resolve_embedding_batch_limit",
     "run_periodic_task",
     "run_argv_capture",
+    "NativeImageAllowance",
+    "native_image_allowance",
+    "RuntimeVerificationTimeoutError",
+    "interpreter_probe_budget",
+    "run_native_probe",
+    "capture_native_probe",
+    "runtime_timeout_error",
+    "runtime_probe_failure_error",
+    "RuntimeVerificationFailedError",
+    "NativeProbeBudget",
+    "DockerStorageLocation",
+    "IpcCancellationCleanupError",
+    "is_windows_reparse_point",
+    "MonotonicDeadline",
+    "deadline_after",
+    "resolve_docker_storage",
+    "revalidate_docker_storage",
     "build_minimal_subprocess_env",
     "runtime_flags",
     "safe_config_float",
@@ -487,4 +566,9 @@ __all__ = (
     "strip_soai_internal_chat_template_parameters",
     "build_openai_upstream_request_body_payload",
     "resolve_openai_upstream_custom_request_field_names",
+    "NativeProbeTerminationError",
+    "NativeRuntimeProbeResult",
+    "run_native_runtime_probe",
+    "classify_llama_server_probe",
+    "build_filesystem_operation_error",
 )

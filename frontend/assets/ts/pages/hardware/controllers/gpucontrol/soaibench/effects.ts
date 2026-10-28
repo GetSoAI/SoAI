@@ -47,7 +47,7 @@ const resolveSoAIBenchUnsupportedReason = (result: GpuOperationResponse): string
     if (isString(reason) && reason.trim()) {
         return reason.trim();
     }
-    throw new Error('SoAIBench unsupported result requires a reason');
+    throw new Error('SoAI Bench unsupported result requires a reason');
 };
 
 const notifySoAIBenchStartResult = (context: ControlContext, result: GpuOperationResponse, key: string, profile: GpuSoAIBenchProfile): void => {

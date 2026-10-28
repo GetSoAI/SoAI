@@ -8,15 +8,18 @@ import { resolveSectionApplyStateTransition } from '@features/chat/conversations
 import { ConversationWorkspacePathSettingsController } from '@features/chat/conversationsettings/workspacepathsettingscontroller/service.ts';
 import { IdentityPromptsConversationSettingsController } from '@features/chat/conversationsettings/identitypromptsconversationsettingscontroller/service.ts';
 import { McpConversationSettingsController } from '@features/chat/conversationsettings/mcpconversationsettingscontroller/service.ts';
+import { SkillsConversationSettingsController } from '@features/chat/conversationsettings/skills/controller.ts';
 import { RagConversationSettingsController } from '@features/chat/conversationsettings/ragconversationsettings/service/RagConversationSettingsController.ts';
 import type { SettingsState } from '@features/chat/conversationsettings/settingsModels.ts';
 import type { ConversationSettingsSection, ConversationSettingsSectionState } from '@features/chat/conversationsettings/types.ts';
+import { mountSpeechSetup } from '@core/speechsetup/view.ts';
 
 interface ConversationSettingsControllerBundle {
     workspacePathController: ConversationWorkspacePathSettingsController;
     identityPromptsController: IdentityPromptsConversationSettingsController;
     mcpController: McpConversationSettingsController;
     ragController: RagConversationSettingsController;
+    skillsController: SkillsConversationSettingsController;
 }
 
 interface ConversationSettingsControllerRegistryArguments {
@@ -103,7 +106,9 @@ const createConversationSettingsControllerBundle = (inputArguments: Conversation
         onDirtyStateChange: (hasChanges) => inputArguments.setSectionDirtyState('identityPrompts', hasChanges)
     });
 
+    const skillsController = new SkillsConversationSettingsController(inputArguments.host, (dirty, valid) => inputArguments.setSectionDirtyState('skills', dirty, valid));
     return {
+        skillsController,
         workspacePathController,
         identityPromptsController,
         mcpController,
@@ -112,13 +117,16 @@ const createConversationSettingsControllerBundle = (inputArguments: Conversation
 };
 
 const bindConversationSettingsControllerEvents = (bundle: ConversationSettingsControllerBundle, modal: HTMLElement, defaultToolsModal: HTMLElement): Array<() => void> => {
-    return [...bundle.workspacePathController.bindEvents(modal), ...bundle.ragController.bindEvents(modal), ...bundle.mcpController.bindEvents(modal, defaultToolsModal), ...bundle.identityPromptsController.bindEvents(modal)];
+    const controller = new AbortController();
+    mountSpeechSetup(modal, controller.signal);
+    return [() => controller.abort(), ...bundle.skillsController.bindEvents(modal), ...bundle.workspacePathController.bindEvents(modal), ...bundle.ragController.bindEvents(modal), ...bundle.mcpController.bindEvents(modal, defaultToolsModal), ...bundle.identityPromptsController.bindEvents(modal)];
 };
 
 const disposeConversationSettingsControllerBundle = (bundle: ConversationSettingsControllerBundle | null): void => {
     if (!bundle) {
         return;
     }
+    bundle.skillsController.dispose();
     bundle.workspacePathController.dispose();
     bundle.ragController.dispose();
     bundle.mcpController.dispose();

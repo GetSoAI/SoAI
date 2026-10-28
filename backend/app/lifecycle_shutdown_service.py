@@ -17,15 +17,22 @@ from app.lifecycle.budgets import (
     LifecycleShutdownBudgets,
     resolve_lifecycle_shutdown_budgets,
 )
+from app.lifecycle.entries import LifecycleEntry
+from app.lifecycle.failure_recording import record_critical_lifecycle_failures
+from app.lifecycle.results import LifecycleFailure
+from app.lifecycle.runner import LifecycleRunner
+from app.lifecycle.shutdown_stage_runner import run_shutdown_stage_continue
 from app.types_application import ApplicationContext
 from app.types_services import ApplicationServices
+from core.concurrency.cancellation_cleanup import current_task_has_pending_cancellation
 from core.di.validation import require_dependencies
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import SoAIError, StateError
+from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import UNEXPECTED_RUNTIME_EXCEPTIONS
 from core.events.types_system import SoAIMainState, SystemQuiesceEvent
+from core.lifecycle.protocols import Shutdownable
 from core.runtime.protocols import RuntimeStateStoreProtocol
 from core.runtime.shutdown_marker import (
     clear_process_shutdown_marker,
@@ -84,22 +91,87 @@ class LifecycleShutdownService:
         await self._publish_stopping_state()
         if not self._deps.runtime.system_stop_event.is_set():
             self._deps.runtime.set_system_stop()
+        shutdown_verified = False
         try:
             budgets = resolve_lifecycle_shutdown_budgets(self._deps.services.configuration.config)
             await self._publish_quiesce_event()
-            await self._drain_api_requests(budgets.quiesce_period_sec)
-            await self._deps.host_service.shutdown_servers(budgets.server_drain_timeout_sec)
-            await self._deps.host_service.stop_discovery_server()
-            if self._deps.services.databases.core.writer.is_initialized:
-                await self._quiesce_database_dispatchers_before_reconciliation()
-                await self._reconcile_runtime_state_before_teardown()
-            await self._deps.run_shutdown_sequence(application_context, budgets)
-            await self._clear_process_shutdown_marker()
-        finally:
-            self._deps.logging.logger.info(
-                "--- SoAI shutdown complete in %.2fs ---",
-                time.monotonic() - shutdown_start_time,
+            await run_shutdown_stage_continue(
+                application_context=application_context,
+                component_name="Media Transcription Tasks",
+                awaitable=self._deps.services.storage.media_parsing.transcription_runtime.shutdown(),
             )
+            await run_shutdown_stage_continue(
+                application_context=application_context,
+                component_name="API Request Drain",
+                awaitable=self._drain_api_requests(budgets.quiesce_period_sec),
+            )
+            await run_shutdown_stage_continue(
+                application_context=application_context,
+                component_name="API Servers",
+                awaitable=self._shutdown_servers(application_context, budgets),
+            )
+            await run_shutdown_stage_continue(
+                application_context=application_context,
+                component_name="Discovery Server",
+                awaitable=self._deps.host_service.stop_discovery_server(),
+            )
+            await run_shutdown_stage_continue(
+                application_context=application_context,
+                component_name="Durable Runtime Reconciliation",
+                awaitable=self._prepare_runtime_teardown(application_context, budgets),
+            )
+            await run_shutdown_stage_continue(
+                application_context=application_context,
+                component_name="Application Teardown",
+                awaitable=self._deps.run_shutdown_sequence(application_context, budgets),
+            )
+            if (
+                self._deps.runtime.exit_code == 0
+                and not self._deps.runtime.database_recovery_pending
+                and not current_task_has_pending_cancellation()
+            ):
+                await run_shutdown_stage_continue(
+                    application_context=application_context,
+                    component_name="Process Shutdown Marker",
+                    awaitable=self._clear_process_shutdown_marker(),
+                )
+                shutdown_verified = self._deps.runtime.exit_code == 0
+        finally:
+            elapsed = time.monotonic() - shutdown_start_time
+            if shutdown_verified:
+                self._deps.logging.logger.info("--- SoAI shutdown complete in %.2fs ---", elapsed)
+            elif self._deps.runtime.exit_code == 0 and self._deps.runtime.database_recovery_pending:
+                self._deps.logging.logger.info(
+                    "--- SoAI stopped in %.2fs with database recovery pending; verification is required on the next startup ---",
+                    elapsed,
+                )
+            else:
+                self._deps.logging.logger.warning(
+                    "--- SoAI shutdown ended without verified clean teardown in %.2fs; recovery marker retained ---",
+                    elapsed,
+                )
+
+    async def _shutdown_servers(
+        self, application_context: ApplicationContext, budgets: LifecycleShutdownBudgets
+    ) -> None:
+        failures = await self._deps.host_service.shutdown_servers(budgets.server_drain_timeout_sec)
+        record_critical_lifecycle_failures(application_context, failures)
+
+    async def _prepare_runtime_teardown(
+        self, application_context: ApplicationContext, budgets: LifecycleShutdownBudgets
+    ) -> None:
+        failures = await self._quiesce_dispatchers_before_reconciliation(
+            budgets.component_timeout_sec
+        )
+        record_critical_lifecycle_failures(application_context, failures)
+        if (
+            self._deps.services.databases.core.writer.is_initialized
+            and not self._deps.runtime.database_recovery_pending
+        ):
+            failures = await self._reconcile_runtime_state_before_teardown(
+                budgets.component_timeout_sec
+            )
+            record_critical_lifecycle_failures(application_context, failures)
 
     async def _clear_process_shutdown_marker(self) -> None:
         config = self._deps.services.configuration.config
@@ -108,91 +180,57 @@ class LifecycleShutdownService:
             return
         await clear_process_shutdown_marker(
             resolve_process_shutdown_marker_path(system_data_path),
-            self._deps.logging.lifecycle_logger,
         )
 
-    async def _reconcile_runtime_state_before_teardown(self) -> None:
+    async def _reconcile_runtime_state_before_teardown(
+        self, timeout_sec: float
+    ) -> list[LifecycleFailure]:
         databases = self._deps.services.databases
-        try:
-            await reconcile_runtime_state_on_shutdown(
-                database_agent_turn_process_boundary=databases.agent_turn_process_boundary,
-                database_agent_turns=databases.agent_turns,
-                database_tool_calls=databases.tool_calls,
-                database_automation_run_scheduler=databases.automation_run_scheduler,
-                logger=self._deps.logging.logger,
-            )
-        except RECOVERABLE_EXCEPTIONS as exception:
-            log_exception(
-                self._deps.logging.logger,
-                exception,
-                message="Runtime shutdown reconciliation failed; continuing teardown.",
-                operation=OPERATION_LIFECYCLE_SHUTDOWN,
-                level="warning",
-            )
-        except SoAIError as exception:
-            log_exception(
-                self._deps.logging.logger,
-                exception,
-                message="Runtime shutdown reconciliation failed; continuing teardown.",
-                operation=OPERATION_LIFECYCLE_SHUTDOWN,
-                level="warning",
-            )
-        except UNEXPECTED_RUNTIME_EXCEPTIONS as exception:
-            coerced = coerce_to_soai_error(
-                exception,
-                operation=OPERATION_LIFECYCLE_SHUTDOWN,
-            )
-            log_exception(
-                self._deps.logging.logger,
-                coerced,
-                message="Unexpected runtime shutdown reconciliation failure; continuing teardown.",
-                operation=OPERATION_LIFECYCLE_SHUTDOWN,
-                level="warning",
-            )
+        return await reconcile_runtime_state_on_shutdown(
+            database_agent_turn_process_boundary=databases.agent_turn_process_boundary,
+            database_agent_turns=databases.agent_turns,
+            database_tool_calls=databases.tool_calls,
+            database_automation_run_scheduler=databases.automation_run_scheduler,
+            logger=self._deps.logging.logger,
+            timeout_sec=timeout_sec,
+        )
 
-    async def _quiesce_database_dispatchers_before_reconciliation(self) -> None:
+    async def _quiesce_dispatchers_before_reconciliation(
+        self, timeout_sec: float
+    ) -> list[LifecycleFailure]:
         infrastructure = self._deps.services.infrastructure
-        for component_name, dispatcher in (
+        dispatchers: list[tuple[str, Shutdownable]] = [
             (
-                "Mutation Command Supervisor",
-                infrastructure.mutation_command_supervisor,
+                "Backend Update Reconciliation",
+                self._deps.services.plugins.backend_update_reconciliation,
             ),
-            (
-                "Authoritative Plugin State Dispatcher",
-                infrastructure.authoritative_plugin_state_dispatcher,
-            ),
-            ("Domain Event Outbox Dispatcher", infrastructure.domain_event_outbox_dispatcher),
-        ):
-            try:
-                await dispatcher.shutdown()
-            except RECOVERABLE_EXCEPTIONS as exception:
-                log_exception(
-                    self._deps.logging.logger,
-                    exception,
-                    message=f"{component_name} quiesce before reconciliation failed.",
-                    operation=OPERATION_LIFECYCLE_SHUTDOWN,
-                    level="warning",
+            ("Conversation Input Dispatcher", infrastructure.conversation_input_dispatcher),
+        ]
+        if self._deps.services.databases.core.writer.is_initialized:
+            dispatchers.extend(
+                (
+                    ("Mutation Command Supervisor", infrastructure.mutation_command_supervisor),
+                    (
+                        "Authoritative Plugin State Dispatcher",
+                        infrastructure.authoritative_plugin_state_dispatcher,
+                    ),
+                    (
+                        "Domain Event Outbox Dispatcher",
+                        infrastructure.domain_event_outbox_dispatcher,
+                    ),
                 )
-            except SoAIError as exception:
-                log_exception(
-                    self._deps.logging.logger,
-                    exception,
-                    message=f"{component_name} quiesce before reconciliation failed.",
-                    operation=OPERATION_LIFECYCLE_SHUTDOWN,
-                    level="warning",
-                )
-            except UNEXPECTED_RUNTIME_EXCEPTIONS as exception:
-                coerced = coerce_to_soai_error(
-                    exception,
-                    operation=OPERATION_LIFECYCLE_SHUTDOWN,
-                )
-                log_exception(
-                    self._deps.logging.logger,
-                    coerced,
-                    message=f"Unexpected {component_name} quiesce failure before reconciliation.",
-                    operation=OPERATION_LIFECYCLE_SHUTDOWN,
-                    level="warning",
-                )
+            )
+        entries = tuple(
+            LifecycleEntry(
+                component_name=component_name,
+                phase="shutdown_quiesce",
+                action=dispatcher.shutdown,
+                timeout_sec=timeout_sec,
+                critical=True,
+            )
+            for component_name, dispatcher in dispatchers
+        )
+        return await LifecycleRunner(logger=self._deps.logging.logger).run_entries_continue(entries)
 
     async def _clear_restart_requirement_before_shutdown(self) -> None:
         if not self._deps.runtime.restart_state_manager or self._deps.runtime.restart_requested:

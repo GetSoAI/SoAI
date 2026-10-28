@@ -8,12 +8,14 @@ param(
     [Parameter(Mandatory=$true,ParameterSetName='Install')][string]$ToVersion,
     [Parameter(Mandatory=$true,ParameterSetName='Install')][int]$UpdaterPid,
     [Parameter(ParameterSetName='Install')][string]$StageRoot,
+    [Parameter(ParameterSetName='Install')][ValidateRange(1, 2000000)][int]$PreparationTimeoutSeconds = 600,
     [Parameter(Mandatory=$true,ParameterSetName='Recovery')]
     [Parameter(ParameterSetName='Install')][string]$TransactionPath,
     [Parameter(Mandatory=$true,ParameterSetName='Recovery')][int]$RecoveryLauncherPid,
     [Parameter(Mandatory=$true,ParameterSetName='Recovery')][long]$RecoveryLauncherStartTicks,
     [Parameter(ParameterSetName='Recovery')][string]$RelaunchArguments,
-    [Parameter(ParameterSetName='Install')][switch]$RestartAfterUpdate
+    [Parameter(ParameterSetName='Install')][switch]$RestartAfterUpdate,
+    [Parameter(ParameterSetName='Install')][switch]$ServiceManaged
 )
 
 $ErrorActionPreference = 'Stop'
@@ -123,6 +125,15 @@ function Start-SoAILauncher {
     $launcher = [Diagnostics.Process]::Start($startInfo)
     if (!$launcher) { throw 'The installed launcher process could not be created.' }
     $launcher.Dispose()
+}
+
+function Start-SoAIAfterUpdate {
+    param([string]$LauncherArguments = '')
+    if ($ServiceManaged) {
+        [SoAILauncher.ServiceRegistration]::Start($InstallRoot)
+        return
+    }
+    Start-SoAILauncher -Arguments $LauncherArguments
 }
 
 function Remove-OwnedTemporaryFile {
@@ -325,7 +336,7 @@ if (![string]::IsNullOrWhiteSpace($StageRoot)) {
             $InstallRoot,
             "$StageRoot.preparation.log"
         )
-        if (!$preparation.ProcessHandle.WaitForExit(600000)) {
+        if (!$preparation.ProcessHandle.WaitForExit($PreparationTimeoutSeconds * 1000)) {
             throw 'The Windows installer preparation exceeded its deadline.'
         }
         $preparationExitCode = $preparation.ProcessHandle.ExitCode
@@ -412,7 +423,7 @@ begin_windows_update_transaction(*sys.argv[1:])
     if ($RestartAfterUpdate) {
         Invoke-UpdateActivation
         $activationCommitted = $true
-        Start-SoAILauncher -Arguments '--soai-after-update'
+        Start-SoAIAfterUpdate -LauncherArguments '--soai-after-update'
     }
     exit 0
 }
@@ -442,16 +453,16 @@ catch {
         Write-Warning 'The previous application files, runtime, and state were restored; retained recovery material awaits cleanup.'
         if ($RestartAfterUpdate) {
             try {
-                Start-SoAILauncher
+                Start-SoAIAfterUpdate
             }
             catch {
                 Write-UpdateDiagnostic -Operation 'restored-launcher-start' -Failure $_
-                Write-Warning 'The previous installation was restored, but its desktop launcher could not start.'
+                Write-Warning 'The previous installation was restored, but SoAI could not start.'
             }
         }
     }
     elseif ($activationCommitted) {
-        Write-Warning 'The update completed activation, but its desktop launcher could not start.'
+        Write-Warning 'The update completed activation, but SoAI could not start.'
     }
     else {
         Write-Warning 'Windows update recovery is required before the installation can start; retained transaction evidence must be preserved.'

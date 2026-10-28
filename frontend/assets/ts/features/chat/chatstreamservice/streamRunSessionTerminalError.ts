@@ -58,7 +58,7 @@ const hasCompleteTerminalLoadingError = (payload: AssistantActivityState): boole
     return payload.status === 'error' && payload.reason !== undefined && payload.errorType !== undefined;
 };
 
-const resolveLatestTerminalTimelineError = (timeline: AssistantEventTimelineItem[] | undefined): { message: string; code: string; referenceId: string; previewContract?: JsonValue } | null => {
+const resolveLatestTerminalTimelineError = (timeline: AssistantEventTimelineItem[] | undefined): { message: string; code: string; referenceId: string; explanation?: string; parameterName?: string; details?: JsonValue; previewContract?: JsonValue } | null => {
     if (!timeline) return null;
     for (let index = timeline.length - 1; index >= 0; index -= 1) {
         const event = timeline[index];
@@ -66,7 +66,7 @@ const resolveLatestTerminalTimelineError = (timeline: AssistantEventTimelineItem
         const message = normalizeTerminalString(event.payload.message, 'Chat stream terminal error event message');
         const code = normalizeTerminalString(event.payload.code, 'Chat stream terminal error event code');
         const referenceId = normalizeTerminalString(event.payload.referenceId, 'Chat stream terminal error event reference ID');
-        return { message, code, referenceId, ...(event.payload.previewContract !== undefined ? { previewContract: event.payload.previewContract } : {}) };
+        return { message, code, referenceId, ...(event.payload.explanation !== undefined ? { explanation: event.payload.explanation } : {}), ...(event.payload['param'] !== undefined ? { parameterName: event.payload['param'] } : {}), ...(event.payload.details !== undefined ? { details: event.payload.details } : {}), ...(event.payload.previewContract !== undefined ? { previewContract: event.payload.previewContract } : {}) };
     }
     return null;
 };

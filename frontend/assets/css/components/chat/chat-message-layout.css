@@ -27,6 +27,7 @@
 
     :where(.chat-container) .chat-messages-area-shell {
         position: relative;
+        z-index: var(--z-base);
         display: flex;
         flex-direction: column;
         flex: 1;
@@ -38,6 +39,8 @@
     :where(.chat-container) .chat-messages-area {
         --chat-messages-content-padding-top: var(--space-6);
         --chat-messages-padding-top: calc(var(--chat-conversation-header-height) + var(--chat-plan-overlay-height) + var(--chat-messages-content-padding-top));
+        --chat-messages-avatar-top-inset: calc(var(--space-3) - var(--border-width-1));
+        --chat-messages-sticky-top: calc(var(--chat-conversation-header-offset) + var(--chat-plan-overlay-height) + var(--chat-messages-avatar-top-inset) - var(--chat-messages-padding-top));
         --chat-messages-surface: var(--chat-sidebar-strip-background);
         flex: 1;
         min-height: 0;
@@ -60,6 +63,10 @@
     :where(.chat-container) .chat-messages-area.widescreen-mode {
         padding-inline-start: var(--space-8);
         padding-inline-end: var(--space-8);
+    }
+
+    :where(.chat-container) .chat-messages-area .message-avatar {
+        top: var(--chat-messages-sticky-top);
     }
 
     :where(.chat-container) .chat-messages-area:has(> .chat-messages[data-conversation-color]) {

@@ -4,6 +4,7 @@
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { resolveAudioCaptureFailureMessage } from '@core/media/audioCaptureSupport.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { playSoundEffect } from '@core/ui/sound/engine.ts';
 import type { ChatStreamTerminalUpdate } from '@features/chat/public.ts';
@@ -180,8 +181,9 @@ class VoiceCallController {
             if (!this.#runtimeState.isStartTokenActive(token)) {
                 return;
             }
-            this.#host.feedback.handle(ensureError(startError), 'Voice call start failed');
-            const failureMessage = i18n.t('chat.voiceCall.failed');
+            const runtimeError = ensureError(startError);
+            this.#host.feedback.handle(runtimeError, 'Voice call start failed');
+            const failureMessage = resolveAudioCaptureFailureMessage(runtimeError) ?? i18n.t('chat.voiceCall.failed');
             this.#uiState.setStatus('error', failureMessage);
             this.#host.feedback.show(failureMessage, 'error');
         } finally {
@@ -200,8 +202,9 @@ class VoiceCallController {
     }
 
     #handleCaptureError(error: Error): void {
+        if (!this.#runtimeState.isRuntimeActive()) return;
         this.#host.feedback.handle(error, 'Voice call capture failed');
-        this.#handleRuntimeFailure(i18n.t('chat.voiceCall.failed'));
+        this.#handleRuntimeFailure(resolveAudioCaptureFailureMessage(error) ?? i18n.t('chat.voiceCall.failed'));
     }
 
     #handleRuntimeFailure(message: string): void {

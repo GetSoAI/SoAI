@@ -12,7 +12,11 @@ from core.types.json import JSONValue
 __all__ = ("DestinationExistsError", "MoveFileCommittedError")
 
 
-class DestinationExistsError(ValidationError): ...
+class DestinationExistsError(ValidationError):
+    code: str | int = "file_destination_exists"
+    public_message: str | None = (
+        "A file or directory with this name already exists. Choose another name or destination."
+    )
 
 
 class MoveFileCommittedError(StateError):

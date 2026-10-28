@@ -69,7 +69,6 @@ async def _resolve_granted_actions(
     licensing_status = await api_context.dependencies.licensing_service.resolved_status()
     granted_actions = apply_licensing_action_policy(granted_actions, licensing_status)
     request.state.licensing_status = licensing_status
-    request.state.effective_access_actions = granted_actions
     request.state.context.access_actions = granted_actions
     return (access_state, granted_actions)
 

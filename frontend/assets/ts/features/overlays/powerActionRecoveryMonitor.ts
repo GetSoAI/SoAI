@@ -8,6 +8,8 @@ import { startPollingLoop, type PollingLoopHandle } from '@core/concurrency/poll
 import { errorHandler } from '@core/errorHandler.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { monotonicMs } from '@core/time/clock.ts';
+import { LifecycleScope } from '@core/lifecycle/lifecycleScope.ts';
 import { isFunction, isObject } from '@core/typeGuards.ts';
 import { POLL_INTERVAL_MS, REQUEST_TIMEOUT_MS, type PowerActionKey } from '@features/overlays/powerActionConfig.ts';
 import { observePowerTransition } from '@features/overlays/powerTransitionObservation.ts';
@@ -23,9 +25,11 @@ interface PowerActionRecoveryCallbacks {
 class PowerActionRecoveryMonitor {
     readonly #api: ApiClient;
     readonly #callbacks: PowerActionRecoveryCallbacks;
+    readonly #lifecycle = new LifecycleScope();
     #action: PowerActionKey | null = null;
     #interruptionObserved = false;
-    #lastProbeCompletedAtMs: number | null = null;
+    #lastProbeTiming: { wallMs: number; monotonicMs: number } | null = null;
+    #pollingSuspended = false;
     #pollingHandle: PollingLoopHandle | null = null;
     #transportUnsubscribe: (() => void) | null = null;
 
@@ -36,44 +40,51 @@ class PowerActionRecoveryMonitor {
 
     start(action: PowerActionKey): void {
         this.stop();
+        const run = this.#lifecycle.begin('power-action-monitor-start');
         this.#action = action;
-        this.#lastProbeCompletedAtMs = Date.now();
+        this.#pollingSuspended = !this.#callbacks.canPoll();
+        this.#resetProbeTiming();
         this.#transportUnsubscribe = observePowerTransition({
             onInterrupted: () => {
-                if (this.#action !== 'suspendSystem' && this.#action !== 'hibernateSystem') this.#markInterrupted();
+                if (this.#lifecycle.isCurrent(run)) this.#markInterrupted();
             },
-            onConnected: () => this.#startPolling()
+            onConnected: () => {
+                if (this.#lifecycle.isCurrent(run)) this.#startPolling();
+            }
         });
         this.#startPolling();
     }
 
     suspendPolling(): void {
+        this.#observeResumeEvidence();
         this.#stopPolling();
-        this.#lastProbeCompletedAtMs = null;
+        this.#pollingSuspended = true;
     }
 
     resumePolling(): void {
         if (this.#action === null) return;
-        this.#lastProbeCompletedAtMs = Date.now();
+        this.#observeResumeEvidence();
+        this.#pollingSuspended = false;
+        this.#resetProbeTiming();
         this.#startPolling();
     }
 
     stop(): void {
+        this.#lifecycle.abort('power-action-monitor-stop');
         this.#stopPolling();
         this.#transportUnsubscribe?.();
         this.#transportUnsubscribe = null;
         this.#action = null;
         this.#interruptionObserved = false;
-        this.#lastProbeCompletedAtMs = null;
+        this.#lastProbeTiming = null;
+        this.#pollingSuspended = false;
     }
 
     async #probe(signal: AbortSignal): Promise<boolean> {
         const action = this.#action;
         if (action === null) return true;
-        const probeStartedAtMs = Date.now();
-        if ((action === 'suspendSystem' || action === 'hibernateSystem') && this.#lastProbeCompletedAtMs !== null && probeStartedAtMs - this.#lastProbeCompletedAtMs >= RESUME_GAP_EVIDENCE_MS) {
-            this.#markInterrupted();
-        }
+        throwIfAborted(signal);
+        this.#observeResumeEvidence();
         try {
             throwIfAborted(signal);
             const systemApi = this.#api.system;
@@ -115,8 +126,20 @@ class PowerActionRecoveryMonitor {
             this.#callbacks.onRecovered();
             return true;
         } finally {
-            if (!signal.aborted && this.#action === action) this.#lastProbeCompletedAtMs = Date.now();
+            if (!signal.aborted && this.#action === action) this.#resetProbeTiming();
         }
+    }
+
+    #resetProbeTiming(): void {
+        this.#lastProbeTiming = { wallMs: Date.now(), monotonicMs: monotonicMs() };
+    }
+
+    #observeResumeEvidence(): void {
+        const previous = this.#lastProbeTiming;
+        if ((this.#action !== 'suspendSystem' && this.#action !== 'hibernateSystem') || previous === null) return;
+        const wallElapsed = Date.now() - previous.wallMs;
+        const elapsed = this.#pollingSuspended ? wallElapsed - (monotonicMs() - previous.monotonicMs) : wallElapsed;
+        if (elapsed >= RESUME_GAP_EVIDENCE_MS) this.#markInterrupted();
     }
 
     #markInterrupted(): void {

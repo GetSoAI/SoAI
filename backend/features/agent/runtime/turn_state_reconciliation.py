@@ -8,8 +8,11 @@ from typing import TYPE_CHECKING
 from core.agent.status_values import AGENT_TURN_STATUS_ABANDONED
 from core.agent.turn_record_fields import read_turn_id
 from core.agent.turn_scope_values import TURN_SCOPE_ROOT
+from core.agent.turn_write_conflicts import (
+    AgentTurnFinalizedWriteConflictError,
+    AgentTurnStaleProgressError,
+)
 from core.database.requests import ClaimAgentTurnAbandonRequest
-from core.errors.exceptions import ValidationError
 from core.logging.trace import get_logger
 from features.agent.runtime.stale_turn_reconciliation import (
     persist_stale_turn_terminal_outcome,
@@ -71,7 +74,7 @@ async def reconcile_running_turns(
                 outcome=outcome,
                 logger=logger,
             )
-        except ValidationError:
+        except (AgentTurnFinalizedWriteConflictError, AgentTurnStaleProgressError):
             refreshed_turn = await refresh_running_turn_if_current(
                 database_agent_turns=database_agent_turns,
                 conv_id=conv_id,
@@ -122,7 +125,7 @@ async def collect_stale_running_turn_claims(
                     outcome=outcome,
                     logger=logger,
                 )
-            except ValidationError:
+            except (AgentTurnFinalizedWriteConflictError, AgentTurnStaleProgressError):
                 continue
             continue
         stale_turn_id = read_turn_id(stale_turn)

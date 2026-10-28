@@ -57,6 +57,7 @@ export interface LanguageService {
     initialize: () => Promise<void>;
     setLanguage: (code: string) => Promise<void>;
     getLanguage: () => string;
+    isLanguageRequestSettled: (code: string) => boolean;
     getAvailableLanguages: () => ReadonlyArray<LanguageEntryWithCountryCode>;
     getLocale: () => string;
     getTranslation: (key: string, langCode?: string | null) => string | null;

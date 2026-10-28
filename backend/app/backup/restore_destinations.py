@@ -11,6 +11,7 @@ from app.backup.backup_target_paths import (
     get_encryption_key_path,
     get_files_storage_path,
     get_gpu_settings_path,
+    get_user_files_path,
     get_wallpaper_path,
 )
 from app.backup.backup_target_paths_extra import (
@@ -93,6 +94,7 @@ def build_restore_destinations(
         "gpu_settings_path": os.path.abspath(get_gpu_settings_path(config, files)),
         "config_path": os.path.abspath(get_core_config_path(config, files)),
         "wallpaper_path": os.path.abspath(get_wallpaper_path(config, files)),
+        "user_files_path": os.path.abspath(get_user_files_path(files)),
         "logs_path": os.path.abspath(get_logs_path(config, files)),
         "plugins_path": os.path.abspath(get_plugins_path(config, files)),
     }

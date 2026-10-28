@@ -19,6 +19,8 @@ __all__ = (
 
 WORKER_BASELINE_PACKAGE_NAMES_RAW: tuple[str, ...] = (
     "dnspython",
+    "filelock",
+    "httpx",
     "httpx2",
     "psutil",
     "pydantic",

@@ -116,7 +116,6 @@ export type SettingsMcpConfigHelpTranslationKey =
     | 'settings.mcp.configHelp.readVideoPreviewSeconds'
     | 'settings.mcp.configHelp.readVideoProbeTimeoutSec'
     | 'settings.mcp.configHelp.readVideoTempReservationSafetyMultiplier'
-    | 'settings.mcp.configHelp.readVideoWhisperModel'
     | 'settings.mcp.configHelp.secretPromptHandleStoreMaxPerUser'
     | 'settings.mcp.configHelp.secretPromptHandleStoreMaxTotal'
     | 'settings.mcp.configHelp.serverModeAllowedOrigins'

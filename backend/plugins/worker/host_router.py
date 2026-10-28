@@ -140,6 +140,12 @@ class PluginWorkerHostRouter:
                 storage_manager=self._manager.dependencies.infrastructure.storage_manager,
                 payload=payload,
             )
+        elif method == "storage.reserve_many_disk_spaces":
+            value = self._storage_reservations.reserve_many_disk_spaces(
+                worker_id=worker_id,
+                storage_manager=self._manager.dependencies.infrastructure.storage_manager,
+                payload=payload,
+            )
         elif method == "storage.claim_reservation":
             value = self._storage_reservations.claim_reservation(
                 worker_id=worker_id,

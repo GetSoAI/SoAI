@@ -39,6 +39,8 @@
         --chat-advanced-scroll-width: var(--chat-input-actions-height);
         --chat-native-scrollbar-gutter-width: var(--ui-scrollbar-inline-size);
         --chat-minimap-message-height: 8px;
+        --chat-activity-header-gap: var(--space-2);
+        --chat-activity-icon-size: 16px;
         --chat-conversation-item-height: max(calc((var(--font-size-sm) * 1.5) + (var(--font-size-xs) * 1.5) + var(--space-1) + (var(--space-3) * 2)), calc((var(--chat-round-action-button-size) * 2) + var(--space-1) + (var(--space-3) * 2)));
         --chat-composer-inset-inline: 0.5rem;
         --chat-input-wrapper-padding: var(--space-2);
@@ -159,12 +161,6 @@
         --ui-button-bg: var(--ui-button-dynamic-accent-bg);
         --ui-button-bg-hover: var(--ui-button-dynamic-accent-bg-hover);
         --ui-button-focus-ring: var(--ui-button-dynamic-accent-focus-ring);
-    }
-
-    .chat-container:where([data-section='chat'], [data-page-scope='chat']) .tools-toggle-btn:where([data-tools-mode-locked='true'], [data-tools-execution-locked='true']):disabled {
-        cursor: no-drop;
-        opacity: 1;
-        pointer-events: auto;
     }
 
     .chat-container:where([data-section='chat'], [data-page-scope='chat']) .tools-toggle-btn[data-tools-settings-available='true'][aria-disabled='true']:not([aria-busy='true']) {

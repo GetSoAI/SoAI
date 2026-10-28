@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from core.openai.responses_events import build_response_status_event
 
 if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
     from core.openai.responses_provider_state import (
         ResponsesProviderState,
     )
@@ -52,8 +53,9 @@ async def emit_failure_done(
     done_chunk: bytes,
     code: str,
     message: str,
+    public_error: ErrorPublicPayload | None = None,
 ) -> AsyncGenerator[bytes]:
-    yield await persistence.emit_failure(code=code, message=message)
+    yield await persistence.emit_failure(code=code, message=message, public_error=public_error)
     yield done_chunk
 
 

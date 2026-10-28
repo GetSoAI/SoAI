@@ -66,8 +66,13 @@ const replaceChildrenFromTrustedHtml = (inputArguments: { element: Element; html
 };
 
 const serializeNodeToHtml = (node: Node): string => {
-    const serializer = new XMLSerializer();
-    return serializer.serializeToString(node);
+    const documentRef = node.ownerDocument;
+    if (documentRef === null) {
+        throw new Error('HTML serialization requires a node owned by a document');
+    }
+    const template = documentRef.createElement('template');
+    template.content.append(node.cloneNode(true));
+    return template.innerHTML;
 };
 
 const serializeElementToHtml = (element: Element): string => serializeNodeToHtml(element);

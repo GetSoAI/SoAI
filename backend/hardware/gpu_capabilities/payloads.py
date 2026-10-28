@@ -6,7 +6,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
-from core.errors.payload import ErrorPublicPayload
 from core.types.json_value import coerce_json_dict_or_empty
 from core.validation.boolean_coercion import coerce_bool_with_recovery
 
@@ -17,7 +16,6 @@ if TYPE_CHECKING:
 __all__ = (
     "CONTROL_CAPABILITY_KEYS",
     "build_default_gpu_capabilities",
-    "build_gpu_capability_error",
     "build_unsupported_control_capability",
     "coerce_control_backend",
     "enforce_gpu_control_backend_support",
@@ -88,19 +86,6 @@ def build_unsupported_control_capability(
         capability["min"] = 0
         capability["max"] = 100
     return capability
-
-
-def build_gpu_capability_error(
-    code: str,
-    message: str,
-    *,
-    vendor_id: int,
-    reason: str | None = None,
-) -> JSONDict:
-    details: JSONDict = {"vendor_id": vendor_id}
-    if reason is not None:
-        details["reason"] = reason
-    return ErrorPublicPayload(code=code, message=message, details=details).to_dict()
 
 
 def read_control_capability_section(gpu_caps: Mapping[str, JSONValue], caps_key: str) -> JSONDict:

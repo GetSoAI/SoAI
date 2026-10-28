@@ -6,6 +6,9 @@ from __future__ import annotations
 from core.browser.playwright_driver_errors import (
     is_playwright_driver_connection_closed,
 )
+from mcp.tools.browser.playwright_error_classification import (
+    is_browser_target_closed_error,
+)
 from mcp.tools.browser.types import BrowserSessionState
 
 __all__ = (
@@ -30,15 +33,13 @@ def mark_browser_session_from_playwright_exception(
     *,
     exception: BaseException,
 ) -> None:
-    message = str(exception).strip()
     if is_playwright_driver_connection_closed(exception):
         mark_browser_session_driver_disconnected(
             state,
-            reason=message,
+            reason=str(exception).strip(),
         )
         return
-    lowered = message.lower()
-    if "closed" in lowered or "target" in lowered or "crashed" in lowered:
+    if is_browser_target_closed_error(exception):
         mark_browser_session_context_closed(state)
 
 

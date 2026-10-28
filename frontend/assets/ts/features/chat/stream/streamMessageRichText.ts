@@ -14,6 +14,8 @@ type StreamRichTextUpdateResult = {
     postRenderTargets: HTMLElement[];
 };
 
+type StreamRichTextSource = { text: string; textDelta?: never } | { text?: never; textDelta: string };
+
 const STREAM_RICH_TEXT_DELTA_CHARS = 768;
 
 const resolveStreamingAppendText = (inputArguments: { cached: StreamingElementCache; text: string; streamTextRunKey: string }): string => {
@@ -37,9 +39,18 @@ const canPatchStreamingPlainText = (inputArguments: { cached: StreamingElementCa
     return !streamingMarkdownAppendRequiresCanonicalRender(resolveStreamingMutableSource(projection), inputArguments.appendText);
 };
 
-export const updateStreamRichTextFromText = (inputArguments: { text: string; streamTextRunKey: string; cached: StreamingElementCache; messageManager: StreamMessageManager }): StreamRichTextUpdateResult => {
+export const updateStreamRichTextFromText = (inputArguments: StreamRichTextSource & { streamTextRunKey: string; cached: StreamingElementCache; messageManager: StreamMessageManager }): StreamRichTextUpdateResult => {
     const { streamTextRunKey, cached, messageManager } = inputArguments;
-    const text = normalizeMultilineInput(inputArguments.text);
+    let text: string;
+    if (inputArguments.textDelta === undefined) {
+        text = normalizeMultilineInput(inputArguments.text);
+    } else {
+        const projection = cached.richTextProjection;
+        if (projection === null) {
+            throw new Error('Verified streaming text append requires a rich-text projection');
+        }
+        text = `${projection.source}${normalizeMultilineInput(inputArguments.textDelta)}`;
+    }
     const appendText = resolveStreamingAppendText({ cached, text, streamTextRunKey });
     const renderEpoch = messageManager.getWorkerRenderEpoch();
     const canPatchPlainText = canPatchStreamingPlainText({ cached, text, appendText, streamTextRunKey, renderEpoch });

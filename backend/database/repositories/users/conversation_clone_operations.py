@@ -58,7 +58,7 @@ def _insert_cloned_conversation(
                 """
                 INSERT INTO webui_conversations (
                     id, user_id, title, created_at_ms, last_modified_at_ms, model_settings,
-                    color, is_favorite, is_automation, is_archived
+                    color, is_favorite, is_automation, is_archived, title_auto_update_allowed
                 )
                 SELECT ?, c.user_id, c.title, ?, ?,
                     CASE
@@ -66,7 +66,7 @@ def _insert_cloned_conversation(
                             THEN COALESCE(messaging_account.model_settings_json, c.model_settings)
                         ELSE c.model_settings
                     END,
-                    c.color, c.is_favorite, c.is_automation, 0
+                    c.color, c.is_favorite, c.is_automation, 0, c.title_auto_update_allowed
                 FROM webui_conversations AS c
                 LEFT JOIN messaging_thread_bindings AS messaging_binding
                   ON messaging_binding.conv_id = c.id

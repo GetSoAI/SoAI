@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from core.validation.strict_integer import is_strict_int
+
 __all__ = ("MAX_PLAUSIBLE_OFFSET_MHZ", "resolve_offset_bounds")
 
 MAX_PLAUSIBLE_OFFSET_MHZ = 100000
@@ -13,8 +15,10 @@ def _is_plausible_offset(value: int) -> bool:
 
 
 def resolve_offset_bounds(raw_min: int, raw_max: int) -> tuple[int, int] | None:
-    if raw_max <= 0 or not _is_plausible_offset(raw_max):
+    if not is_strict_int(raw_min) or not is_strict_int(raw_max):
         return None
-    if _is_plausible_offset(raw_min) and raw_min < raw_max:
-        return (raw_min, raw_max)
-    return (-raw_max, raw_max)
+    if not _is_plausible_offset(raw_min) or not _is_plausible_offset(raw_max):
+        return None
+    if raw_min >= raw_max:
+        return None
+    return (raw_min, raw_max)

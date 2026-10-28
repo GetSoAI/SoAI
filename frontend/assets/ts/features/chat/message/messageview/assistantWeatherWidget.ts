@@ -23,7 +23,7 @@ const renderWeatherHeader = (host: ChatMessageRenderHost, payload: ToolResultWea
     const headerIcon = host.getIconHtml('weather-cloud', WEATHER_HEADER_ICON_OPTIONS);
     const label = host.escapeHtml(i18n.t('chat.weather.label'));
     const dailyRangeText = formatDailyRange(payload.daily);
-    const dailyRange = dailyRangeText ? `<span class="assistant-weather-widget__query">${host.escapeHtml(dailyRangeText)}</span>` : '';
+    const dailyRange = dailyRangeText ? `<span class="assistant-activity-widget__subtitle">${host.escapeHtml(dailyRangeText)}</span>` : '';
     const scope = renderWeatherScope(host, payload, locationLabel);
     return ['<header class="assistant-weather-widget__header">', '<span class="assistant-weather-widget__title">', `<span class="assistant-weather-widget__title-icon">${headerIcon}</span>`, `<span class="assistant-weather-widget__label">${label}</span>`, dailyRange, '</span>', `<span class="assistant-weather-widget__scope">${scope}</span>`, '</header>'].join('');
 };
@@ -40,17 +40,18 @@ const renderHourlyEntry = (host: ChatMessageRenderHost, entry: WeatherHourlyPayl
     return [`<div class="assistant-weather-widget__hour"${nowAttribute}>`, `<span class="assistant-weather-widget__hour-label">${label}</span>`, `<span class="assistant-weather-widget__hour-icon" data-condition="${condition}">${icon}</span>`, precip, `<span class="assistant-weather-widget__hour-temp">${temperature}</span>`, '</div>'].join('');
 };
 
-const renderHourlyStrip = (host: ChatMessageRenderHost, payload: ToolResultWeatherPayload): string => {
-    if (payload.hourly.length === 0) {
+const renderHourlyStrip = (host: ChatMessageRenderHost, entries: readonly WeatherHourlyPayload[], currentTime: string, unitSystem: UnitSystem): string => {
+    if (entries.length === 0) {
         return '';
     }
     const titleText = i18n.t('chat.weather.hourly');
     const title = host.escapeHtml(titleText);
     const ariaLabel = host.escapeAttribute(titleText);
-    const rangeText = formatHourlyRange(payload.hourly);
+    const rangeText = formatHourlyRange(entries);
     const range = rangeText ? `<span class="assistant-weather-widget__strip-range">${host.escapeHtml(rangeText)}</span>` : '';
-    const entries = payload.hourly.map((entry, index) => renderHourlyEntry(host, entry, payload.unitSystem, index === 0)).join('');
-    return [`<div class="assistant-weather-widget__strip" aria-label="${ariaLabel}">`, '<header class="assistant-weather-widget__strip-header">', `<span class="assistant-weather-widget__strip-title">${title}</span>`, range, '</header>', `<div class="assistant-weather-widget__hourly">${entries}</div>`, '</div>'].join('');
+    const currentHour = currentTime.slice(0, 13);
+    const hourlyEntries = entries.map((entry) => renderHourlyEntry(host, entry, unitSystem, entry.time.slice(0, 13) === currentHour)).join('');
+    return [`<div class="assistant-weather-widget__strip" aria-label="${ariaLabel}">`, '<header class="assistant-weather-widget__strip-header">', `<span class="assistant-weather-widget__strip-title">${title}</span>`, range, '</header>', `<div class="assistant-weather-widget__hourly">${hourlyEntries}</div>`, '</div>'].join('');
 };
 
 const renderForecastCard = (host: ChatMessageRenderHost, entry: WeatherDailyPayload, unitSystem: UnitSystem, isToday: boolean, radioId: string): string => {
@@ -73,12 +74,13 @@ const renderWeatherWidget = (host: ChatMessageRenderHost, payload: ToolResultWea
     const location = host.escapeHtml(locationLabel);
     const todayIsoDate = resolveLocalIsoDate();
     const radioGroupName = `weather-day-${callId}`;
-    const hourlyHtml = renderHourlyStrip(host, payload);
     const todayIndex = payload.daily.findIndex((entry) => entry.date === todayIsoDate);
     const selectedIndex = todayIndex >= 0 ? todayIndex : 0;
     const panels = payload.daily
         .map((entry, index) => {
             const radioId = `weather-day-${callId}-${String(index)}`;
+            const hourlyEntries = payload.hourly.filter((hourlyEntry) => hourlyEntry.time.startsWith(`${entry.date}T`));
+            const hourlyHtml = renderHourlyStrip(host, hourlyEntries, payload.current.time, payload.unitSystem);
             return renderDayPanel(host, payload, entry, index === selectedIndex, entry.date === todayIsoDate, location, radioId, radioGroupName, hourlyHtml);
         })
         .join('');

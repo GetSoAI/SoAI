@@ -14,7 +14,8 @@ from database.core.query_execution import query_to_dicts, sync_fetch_all_as_dict
 from database.repositories.users.conversation_input_constants import (
     ACTIVE_INPUT_STATES,
     CONVERSATION_INPUT_ACTIVE_ORDER_SQL,
-    CONVERSATION_INPUT_DISPATCH_RANK_SQL,
+    CONVERSATION_INPUT_HELD_DISPATCH_RANK,
+    build_conversation_input_dispatch_rank_sql,
 )
 
 if TYPE_CHECKING:
@@ -38,6 +39,7 @@ SELECT input_id, state
 FROM ranked_inputs
 WHERE conv_id = ? AND user_id = ?
   AND state IN ('pending', 'materializing', 'running', 'input_required')
+  AND dispatch_rank != {held_rank}
 ORDER BY {active_order}
 """
 
@@ -50,14 +52,16 @@ SELECT conv_id, input_id, state
 FROM ranked_inputs
 WHERE user_id = ?
   AND state IN ('pending', 'materializing', 'running', 'input_required')
+  AND dispatch_rank != {held_rank}
 ORDER BY conv_id ASC, {active_order}
 """
 
 
 def _render_active_inputs_sql(template: str) -> str:
     return template.format(
-        dispatch_rank=CONVERSATION_INPUT_DISPATCH_RANK_SQL,
+        dispatch_rank=build_conversation_input_dispatch_rank_sql(),
         active_order=CONVERSATION_INPUT_ACTIVE_ORDER_SQL,
+        held_rank=CONVERSATION_INPUT_HELD_DISPATCH_RANK,
     )
 
 

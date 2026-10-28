@@ -91,25 +91,33 @@ class ModelMutationEffects:
         await self.invalidate_resolution_cache_for_model(universal_id)
         await self.publish_catalog_changed(removed_universal_ids=[universal_id])
 
-    async def commit_parameter_changes(
+    async def persist_parameter_changes(
         self,
         *,
         universal_id: str,
         plugin_name: str,
         new_custom: JSONDict,
         reload_needed: bool,
-        reload_reason: str,
     ) -> None:
         if not await self._deps.database_models.update_model_parameters(
             universal_id, new_custom, increment_version=reload_needed
         ):
             raise StateError(
                 f"Failed to save parameters for '{universal_id}' to database.",
-                operation="models.mutation_effects.commit_parameter_changes",
+                operation="models.mutation_effects.persist_parameter_changes",
                 details={"universal_id": universal_id, "plugin_name": plugin_name},
             )
         await self._deps.parameter_cache.invalidate(universal_id)
         await self._deps.model_invalidate_list_caches()
+
+    async def publish_parameter_changes(
+        self,
+        *,
+        universal_id: str,
+        plugin_name: str,
+        reload_needed: bool,
+        reload_reason: str,
+    ) -> None:
         await self._deps.event_bus.publish(ModelParametersChangedEvent(universal_id=universal_id))
         if reload_needed:
             await self._deps.event_bus.publish(

@@ -83,32 +83,32 @@ const dispatchHardwareRootClickAction = async (inputArguments: { event: MouseEve
             return true;
         }
         case HARDWARE_ACTION_GPU_SOAIBENCH_STANDARD: {
-            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU SoAIBench');
+            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU SoAI Bench');
             await host.gpuController.handleGpuSoAIBenchStandardClick(gpuIndex);
             return true;
         }
         case HARDWARE_ACTION_GPU_SOAIBENCH_STRESS: {
-            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU SoAIBench stress');
+            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU SoAI Bench stress');
             await host.gpuController.handleGpuSoAIBenchStressClick(gpuIndex);
             return true;
         }
         case HARDWARE_ACTION_GPU_SOAIBENCH_STOP: {
-            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU SoAIBench stop');
+            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU SoAI Bench stop');
             await host.gpuController.handleGpuSoAIBenchStopClick(gpuIndex);
             return true;
         }
         case HARDWARE_ACTION_GPU_SOAIBENCH_HISTORY: {
-            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU SoAIBench history');
+            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU SoAI Bench history');
             await host.gpuController.handleGpuSoAIBenchHistoryClick(gpuIndex);
             return true;
         }
         case HARDWARE_ACTION_GPU_SOAIBENCH_REOPEN: {
-            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU SoAIBench reopen');
+            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU SoAI Bench reopen');
             await host.gpuController.handleGpuSoAIBenchReopenClick(gpuIndex);
             return true;
         }
         case HARDWARE_ACTION_GPU_SOAIBENCH_TOGGLE: {
-            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU SoAIBench toggle');
+            const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU SoAI Bench toggle');
             host.gpuController.handleGpuSoAIBenchToggleClick(gpuIndex);
             return true;
         }

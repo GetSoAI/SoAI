@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { stopPluginActionPath } from '@core/api/endpoints/uiPaths.ts';
+import { formatLocalizedNumber } from '@core/localization/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { StreamActionHandle, StreamHandleTrackerContract } from '@core/routing/pages/pagetypes/public.ts';
 import { resolveTaskOperationFailureText } from '@core/tasks/operationText.ts';
 import { settleTrackedTaskStream } from '@core/tasks/trackedTaskStream.ts';
-import { isObject } from '@core/typeGuards.ts';
+import { isFiniteNumber, isObject } from '@core/typeGuards.ts';
 import type { ResourceItem } from '@core/data/ClientDataHub.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
@@ -54,6 +55,8 @@ interface ModelsOperationsController {
     toggleModelEnabled: (model: ModelRecord, event?: Event) => Promise<void>;
 }
 
+const LARGE_MODEL_DELETE_WARNING_BYTES = 50 * 1024 ** 3;
+
 const createModelsDeleteController = (dependencies: DeleteModelDependencies): ((identifier: string | number) => Promise<void>) => {
     return async (identifier: string | number): Promise<void> => {
         const universalId = String(identifier);
@@ -84,10 +87,12 @@ const createModelsDeleteController = (dependencies: DeleteModelDependencies): ((
             return;
         }
 
+        const sizeBytes = model?.['sizeBytes'];
+        const confirmMessage = isFiniteNumber(sizeBytes) && sizeBytes > LARGE_MODEL_DELETE_WARNING_BYTES ? i18n.t('models.confirmations.deleteLargeModelMessage', { model: modelName, sizeGb: formatLocalizedNumber(sizeBytes / 1024 ** 3, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }) : i18n.t('models.confirmations.deleteModelMessage', { model: modelName });
         await dependencies.executeItemDeletion({
             identifier: universalId,
             confirmTitle: i18n.t('models.confirmations.deleteModel'),
-            confirmMessage: i18n.t('models.confirmations.deleteModelMessage', { model: modelName }),
+            confirmMessage,
             confirmButton: i18n.t('models.confirmations.deleteModelButton'),
             getStream: () => dependencies.modelActionsDelete(String(universalId)),
             gridId: dependencies.gridId,

@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 from core.agent.settings_types import AgentSettings
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.conversations.interaction_checkpoint import ConversationInputSuspended
+from core.errors.exceptions import ApiError
+from core.errors.public_projection import apply_public_error_payload
 from core.openai.request_fields import resolve_optional_model_name
 from core.runtime.cancellation_ids import build_agent_iteration_cancellation_id
 from core.runtime.request_context import RequestContext
@@ -27,6 +29,7 @@ from features.agent.runtime.turn_lifecycle.finalize import (
 from features.api.runtime.chat_stream_usage_preview_callback import (
     build_chat_stream_usage_preview_refresh_callback,
 )
+from features.api.streaming.stream_generator_state import StreamGeneratorState
 from features.assistant_timeline.agentic_outcome import resolve_agentic_terminal_outcome
 from features.assistant_timeline.assistant_timeline_session import (
     AssistantTimelineSession,
@@ -90,6 +93,7 @@ async def execute_conversation_agent_stream(
         mode=agent_settings.mode,
     )
     suspended = False
+    stream_state = StreamGeneratorState()
     try:
         requested_model = resolve_optional_model_name(request_json)
 
@@ -158,9 +162,15 @@ async def execute_conversation_agent_stream(
             cancelled_log_message="Failed to finalize conversation agent turn after cancellation.",
             validate_visible_assistant_output=validate_visible_assistant_output,
             initial_output_publication_mode=initial_output_publication_mode,
+            public_error_state=stream_state,
         )
     except ConversationInputSuspended:
         suspended = True
+        raise
+    except ApiError as exception:
+        public_error = stream_state.public_error
+        if public_error is not None:
+            apply_public_error_payload(exception, public_error)
         raise
     finally:
         if not suspended:
@@ -169,5 +179,6 @@ async def execute_conversation_agent_stream(
                     session,
                     turn_state_loader=turn_state_loader,
                     resolve_terminal_outcome=resolve_agentic_terminal_outcome,
+                    public_error=stream_state.public_error,
                 ),
             )

@@ -7,12 +7,9 @@ import re
 
 from core.errors.exceptions import ValidationError
 from core.types.json import JSONValue
-from core.validation.integers import is_strict_int
 
 __all__ = (
     "normalize_optional_task_id",
-    "require_non_negative_offset",
-    "require_positive_limit",
     "require_task_id",
     "validate_optional_task_id",
 )
@@ -48,23 +45,3 @@ def validate_optional_task_id(task_id: JSONValue, field_name: str = "task_id") -
     ):
         return normalized
     raise ValidationError(f"{field_name} must be a valid UUID v4 or a server-generated task id.")
-
-
-def require_positive_limit(
-    value: int,
-    *,
-    error_message: str,
-    minimum: int = 1,
-    maximum: int | None = None,
-) -> int:
-    if not is_strict_int(value) or value < int(minimum):
-        raise ValidationError(error_message)
-    if maximum is not None and value > int(maximum):
-        raise ValidationError(error_message)
-    return int(value)
-
-
-def require_non_negative_offset(value: int, *, error_message: str) -> int:
-    if not is_strict_int(value) or value < 0:
-        raise ValidationError(error_message)
-    return int(value)

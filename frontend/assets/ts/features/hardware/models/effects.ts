@@ -1,19 +1,21 @@
 /* SoAI - Hardware feature models effects [frontend/assets/ts/features/hardware/models/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { HardwareNetworkAddress, HardwareNetworkInterface } from '@core/api/contracts/hardwareContractTypes.ts';
+import { resolveHardwareObservation } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
 import { isArray, isFiniteNumber, isObject, isString } from '@core/typeGuards.ts';
 import { filterStringArrayValue } from '@core/types/payloadArrayReaders.ts';
 import { DEFAULT_IGNORED_NETWORK_PREFIXES } from '@features/hardware/models/constants.ts';
 import { buildVolumeModels, getCpuDevices, getGpuDevices, getNetworkInterfaces } from '@features/hardware/models/mappers.ts';
 import { resolveNetworkSpeedEntry } from '@features/hardware/models/networkSpeed.ts';
 import { getWindowsNetworkInventoryStatus, isVisibleNetworkInterfaceName } from '@features/hardware/models/networkVisibility.ts';
-import type { HardwareModels, HardwareModelsOptions, HardwareSnapshot, NetworkAddress, NetworkInterfaceModel, NetworkInterfaceRaw, NetworkInterfaceOptions, NetworkModelOptions, NetworkSpeedSnapshot } from '@features/hardware/models/types.ts';
+import type { HardwareModels, HardwareModelsOptions, HardwareSnapshot, NetworkInterfaceModel, NetworkInterfaceOptions, NetworkModelOptions, NetworkSpeedSnapshot } from '@features/hardware/models/types.ts';
 
-const normalizeNetworkAddresses = (value: NetworkAddress[] | null | undefined): NetworkAddress[] => {
+const normalizeNetworkAddresses = (value: HardwareNetworkAddress[] | null | undefined): HardwareNetworkAddress[] => {
     if (!isArray(value)) {
         return [];
     }
-    const addresses: NetworkAddress[] = [];
+    const addresses: HardwareNetworkAddress[] = [];
     for (const entry of value) {
         if (!entry || typeof entry !== 'object') {
             continue;
@@ -24,7 +26,7 @@ const normalizeNetworkAddresses = (value: NetworkAddress[] | null | undefined): 
         if (!type && !address) {
             continue;
         }
-        const normalizedAddress: NetworkAddress = {};
+        const normalizedAddress: HardwareNetworkAddress = {};
         if (type !== undefined) {
             normalizedAddress.type = type;
         }
@@ -39,7 +41,7 @@ const normalizeNetworkAddresses = (value: NetworkAddress[] | null | undefined): 
     return addresses;
 };
 
-const buildNetworkInterfaceModel = (iface: NetworkInterfaceRaw, speeds: NetworkSpeedSnapshot | null | undefined, { ignorePrefixes = DEFAULT_IGNORED_NETWORK_PREFIXES, windowsInventoryStatus = null }: NetworkInterfaceOptions = {}): NetworkInterfaceModel | null => {
+const buildNetworkInterfaceModel = (iface: HardwareNetworkInterface, speeds: NetworkSpeedSnapshot | null | undefined, { ignorePrefixes = DEFAULT_IGNORED_NETWORK_PREFIXES, windowsInventoryStatus = null }: NetworkInterfaceOptions = {}): NetworkInterfaceModel | null => {
     const nameValue = iface?.name;
     const deviceIdValue = iface?.deviceId;
     if (!isString(nameValue) || !nameValue.trim()) {
@@ -55,12 +57,12 @@ const buildNetworkInterfaceModel = (iface: NetworkInterfaceRaw, speeds: NetworkS
     }
 
     const speedEntry = isObject(speeds) ? resolveNetworkSpeedEntry(speeds, name, deviceIdValue.trim()) : null;
-    const dlCandidate = speedEntry ? Number(speedEntry.downloadMbps) : 0;
-    const ulCandidate = speedEntry ? Number(speedEntry.uploadMbps) : 0;
+    const dlCandidate = speedEntry?.downloadMbps;
+    const ulCandidate = speedEntry?.uploadMbps;
     const observedCandidate = speedEntry ? Number(speedEntry.observedAtMs) : 0;
 
-    const dlMbps = isFiniteNumber(dlCandidate) && dlCandidate >= 0 ? dlCandidate : 0;
-    const ulMbps = isFiniteNumber(ulCandidate) && ulCandidate >= 0 ? ulCandidate : 0;
+    const dlMbps = isFiniteNumber(dlCandidate) && dlCandidate >= 0 ? dlCandidate : undefined;
+    const ulMbps = isFiniteNumber(ulCandidate) && ulCandidate >= 0 ? ulCandidate : undefined;
     const observedAtMs = isFiniteNumber(observedCandidate) && observedCandidate > 0 ? observedCandidate : 0;
     const linkSpeedCandidate = Number(iface.linkSpeedMbps);
     const linkSpeedMbps = isFiniteNumber(linkSpeedCandidate) && linkSpeedCandidate > 0 ? linkSpeedCandidate : 0;
@@ -91,7 +93,8 @@ const buildNetworkInterfaceModels = (snapshot: HardwareSnapshot | null | undefin
     getNetworkInterfaces(snapshot)
         .map((iface) => buildNetworkInterfaceModel(iface, speeds, { ignorePrefixes, windowsInventoryStatus: getWindowsNetworkInventoryStatus(snapshot) }))
         .filter((value): value is NetworkInterfaceModel => value !== null)
-        .sort((firstValue, secondValue) => Math.max(secondValue.dlMbps, secondValue.ulMbps) - Math.max(firstValue.dlMbps, firstValue.ulMbps));
+        .map((value) => ({ ...value, observationStatus: snapshot ? resolveHardwareObservation(snapshot, 'network_speed') : undefined }))
+        .sort((firstValue, secondValue) => Math.max(secondValue.dlMbps ?? 0, secondValue.ulMbps ?? 0) - Math.max(firstValue.dlMbps ?? 0, firstValue.ulMbps ?? 0));
 
 const buildHardwareModels = (snapshot: HardwareSnapshot | null | undefined, options: HardwareModelsOptions = {}): HardwareModels => {
     return {

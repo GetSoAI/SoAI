@@ -1,6 +1,10 @@
 /* SoAI - Wizard AI setup step incremental presentation [frontend/assets/ts/pages/wizard/controllers/AiSetupStepUiController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { setWizardDisclosureExpanded } from '@pages/wizard/widgets/WizardDisclosureWidget.ts';
+import { animatePresenceMorph, measurePresenceSize, stopPresenceAnimation, insertWithPresence, removeWithPresence, isPresenceExiting } from '@core/animations/presence/public.ts';
+import { createHtmlFragment } from '@core/dom/html.ts';
+import { patchOrderedChildren } from '@core/dom/orderedChildPatching.ts';
 import { dom } from '@core/dom/dom.ts';
 import { scrollElementIntoView } from '@core/scroll.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -8,12 +12,13 @@ import { createOperationProgressReporter } from '@core/operationprogress/public.
 import type { OperationProgressReporter } from '@core/operationprogress/types.ts';
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import type { AiSetupWizardStepId } from '@features/wizard/public.ts';
-import { applyModelSearchCheckerboard } from '@features/models/public.ts';
+import { applyModelSearchCheckerboard, applyVariantCheckerboard, highlightVariantProbeSelection } from '@features/models/public.ts';
 import type { AiSetupConnectView, AiSetupModelsView } from '@pages/wizard/contracts/aisetup/types.ts';
 import { AI_ENGINE_INPUT_NAME, AI_ENGINE_MODE_INPUT_NAME, renderCloudRegion, resolveCloudRegionMode } from '@pages/wizard/rendering/aisetup/connect/view.ts';
 import { AI_CLOUD_FILTER_ID, cloudSelectionKey, itemSelectionKey, localSelectionKey, renderAiCloudModels, renderAiPickedModels } from '@pages/wizard/rendering/aisetup/models/view.ts';
-import { describeAiSetupRow, readReadyCountText, renderAiProgressRow, renderAiRowActions } from '@pages/wizard/rendering/aisetup/progress/view.ts';
+import { describeAiSetupRow, visibleAiProgressRows, readReadyCountText, renderAiProgressRow, renderAiRowActions } from '@pages/wizard/rendering/aisetup/progress/view.ts';
 import { renderAiSearchResults, renderAiSearchVariants } from '@pages/wizard/rendering/aisetup/search/view.ts';
+import { renderAiSetupLoadFailedStep } from '@pages/wizard/rendering/aisetup/view.ts';
 import type { AiSetupProgressSummary } from '@pages/wizard/services/aisetup/progress/mappers.ts';
 import type { ModelSearchState } from '@pages/wizard/services/aisetup/AiSetupModelSearchController.ts';
 import type { WizardViewContext } from '@pages/wizard/types.ts';
@@ -69,6 +74,14 @@ class AiSetupStepUiController {
         return this.#stepId;
     }
 
+    syncLoadFailed(): void {
+        const content = this.#content;
+        const stepId = this.#stepId;
+        if (content === null || stepId === null || optionalElement('[data-action="wizard-ai-retry-load"]', content) !== null) return;
+        this.attach(stepId, content);
+        this.#host.updateHTML(content, toTrustedUiHtml(renderAiSetupLoadFailedStep(this.#host.createViewContext())));
+    }
+
     syncConnect(view: AiSetupConnectView): void {
         const content = this.#content;
         if (content === null) return;
@@ -80,7 +93,7 @@ class AiSetupStepUiController {
         if (region.dataset['aiMode'] !== mode) {
             this.#connectReporter?.destroy();
             this.#connectReporter = null;
-            this.#host.updateHTML(region, toTrustedUiHtml(renderCloudRegion(this.#host.createViewContext(), view)));
+            this.#updateRegion(region, toTrustedUiHtml(renderCloudRegion(this.#host.createViewContext(), view)));
             region.dataset['aiMode'] = mode;
         }
         if (mode === 'form') this.#syncProviderForm(region, view);
@@ -101,13 +114,21 @@ class AiSetupStepUiController {
             const choice = optionalElement('.wizard-ai-choice, .wizard-ai-cloud-choice', wrapper);
             const input = choice === null ? null : optionalElement('input', choice);
             if (choice !== null) this.#host.toggleClassName(choice, 'is-selected', itemId !== null);
-            if (input instanceof HTMLInputElement) this.#host.updateProperty(input, 'checked', itemId !== null);
+            if (input instanceof HTMLInputElement) {
+                this.#host.updateProperty(input, 'checked', itemId !== null);
+                this.#host.updateProperty(input, 'disabled', !key.startsWith('cloud:') && view.localSelectionLocked);
+            }
             const openChat = optionalElement('[data-ai-open-chat]', wrapper);
             const radio = openChat === null ? null : optionalElement('input', openChat);
             if (openChat !== null) this.#host.toggleHidden(openChat, !(view.showOpenChat && itemId !== null));
             if (radio instanceof HTMLInputElement) this.#host.updateProperty(radio, 'checked', itemId !== null && itemId === view.firstChatItemId);
         }
         this.#syncSearch(content, view.search);
+        const variants = optionalElement('[data-ai-region="search-variants"]', content);
+        if (variants !== null) {
+            highlightVariantProbeSelection(variants, view.selectedVariantIndex);
+            for (const entry of elements('.variant-check-entry', variants)) entry.setAttribute('aria-disabled', String(view.localSelectionLocked));
+        }
         this.#syncCloudFilter(content, view.cloudFilter);
     }
 
@@ -124,7 +145,7 @@ class AiSetupStepUiController {
         if (region === null) return;
         const rendered = elements('[data-ai-model]', region).map((wrapper) => wrapper.dataset['aiModel'] ?? '');
         const expected = view.pickedModels.map((picked) => itemSelectionKey(picked.itemId));
-        if (rendered.join('\n') !== expected.join('\n')) this.#host.updateHTML(region, toTrustedUiHtml(renderAiPickedModels(this.#host.createViewContext(), view)));
+        if (rendered.join('\n') !== expected.join('\n')) this.#updateRegion(region, toTrustedUiHtml(renderAiPickedModels(this.#host.createViewContext(), view)));
     }
 
     #syncCloudModels(content: HTMLElement, view: AiSetupModelsView): void {
@@ -133,7 +154,7 @@ class AiSetupStepUiController {
         const rendered = elements('.wizard-ai-cloud-model', region).map((wrapper) => wrapper.dataset['aiModel'] ?? '');
         if (rendered.join('\n') === view.cloudModels.map((model) => cloudSelectionKey(model.modelId)).join('\n')) return;
         const filterFocused = optionalElement(`#${AI_CLOUD_FILTER_ID}`, region)?.matches(':focus') === true;
-        this.#host.updateHTML(region, toTrustedUiHtml(renderAiCloudModels(this.#host.createViewContext(), view)));
+        this.#updateRegion(region, toTrustedUiHtml(renderAiCloudModels(this.#host.createViewContext(), view)));
         const filter = filterFocused ? optionalElement(`#${AI_CLOUD_FILTER_ID}`, region) : null;
         if (filter instanceof HTMLInputElement) filter.focus();
     }
@@ -143,14 +164,38 @@ class AiSetupStepUiController {
         const list = content === null ? null : optionalElement('[data-ai-progress-list]', content);
         if (content === null || list === null) return;
         const context = this.#host.createViewContext();
-        const renderedKeys = elements('[data-ai-row]', list).map((row) => row.dataset['aiRow'] ?? '');
-        if (renderedKeys.join('\n') !== summary.rows.map((row) => row.key).join('\n')) {
-            for (const reporter of this.#rowReporters.values()) reporter.destroy();
-            this.#rowReporters.clear();
-            this.#host.updateHTML(list, toTrustedUiHtml(summary.rows.map((row) => renderAiProgressRow(context, row)).join('')));
+        const renderedKeys = elements(':scope > .wizard-ai-progress-item[data-ai-row]', list)
+            .filter((row) => !isPresenceExiting(row))
+            .map((row) => row.dataset['aiRow'] ?? '');
+        const rows = visibleAiProgressRows(summary, renderedKeys);
+        if (renderedKeys.join('\n') !== rows.map((row) => row.key).join('\n')) {
+            const created = document.createElement('div');
+            const markup = toTrustedUiHtml(rows.map((row) => renderAiProgressRow(context, row)).join(''));
+            created.appendChild(createHtmlFragment({ documentRef: document, html: markup.html, context: list }));
+            patchOrderedChildren({
+                existingParent: list,
+                createdParent: created,
+                resolveChildKey: (row) => row.dataset['aiRow'] ?? null,
+                patchChild: () => false,
+                insertChild: (parent, row, anchor) => {
+                    insertWithPresence(parent, row, anchor);
+                    return row;
+                },
+                removeChild: (row) => {
+                    const key = row.dataset['aiRow'] ?? '';
+                    this.#rowReporters.get(key)?.destroy();
+                    this.#rowReporters.delete(key);
+                    if (row.contains(dom.getActiveElement())) (optionalElement('button', list) ?? content).focus({ preventScroll: true });
+                    removeWithPresence(row);
+                },
+                isChildDetaching: isPresenceExiting,
+                replaceUnsupportedChildren: () => {
+                    throw new Error('Wizard progress rows require unique identities');
+                }
+            });
         }
-        for (const row of summary.rows) {
-            const item = optionalElement(`[data-ai-row="${CSS.escape(row.key)}"]`, list);
+        for (const row of rows) {
+            const item = optionalElement(`:scope > .wizard-ai-progress-item[data-ai-row="${CSS.escape(row.key)}"]`, list);
             if (item === null) continue;
             this.#requireRowReporter(row.key, item).update(row.key, describeAiSetupRow(row));
             const actions = optionalElement('[data-ai-row-actions]', item);
@@ -179,18 +224,12 @@ class AiSetupStepUiController {
     openModelSearch(): void {
         const content = this.#content;
         if (content === null) return;
-        const details = optionalElement('[data-ai-search]', content);
-        if (details instanceof HTMLDetailsElement) details.open = true;
+        const toggle = optionalElement('[aria-controls="wizard-ai-search"]', content);
+        if (toggle !== null) setWizardDisclosureExpanded(toggle, true);
         const input = optionalElement('#wizard-ai-search-input', content);
         if (!(input instanceof HTMLInputElement)) return;
         input.focus({ preventScroll: true });
         scrollElementIntoView(input, { block: 'center' });
-    }
-
-    revealSearchVariants(): void {
-        const variants = this.#content === null ? null : optionalElement('[data-ai-region="search-variants"]', this.#content);
-        if (variants === null || variants.childElementCount === 0) return;
-        scrollElementIntoView(variants, { block: 'start' });
     }
 
     #requireRowReporter(key: string, item: HTMLElement): OperationProgressReporter {
@@ -222,15 +261,41 @@ class AiSetupStepUiController {
 
     #syncSearch(content: HTMLElement, search: ModelSearchState): void {
         if (this.#renderedSearch === search) return;
+        const previous = this.#renderedSearch;
         this.#renderedSearch = search;
         const context = this.#host.createViewContext();
         const results = optionalElement('[data-ai-region="search-results"]', content);
         const variants = optionalElement('[data-ai-region="search-variants"]', content);
-        if (results !== null) {
-            this.#host.updateHTML(results, toTrustedUiHtml(renderAiSearchResults(context, search)));
+        const resultsChanged = previous === null || previous.status !== search.status || previous.results !== search.results || previous.error !== search.error;
+        const variantsChanged = previous === null || previous.variantStatus !== search.variantStatus || previous.variants !== search.variants || previous.variantError !== search.variantError;
+        let resultsAnimation: Animation | null = null;
+        let variantsAnimation: Animation | null = null;
+        if (results !== null && resultsChanged) {
+            resultsAnimation = this.#updateRegion(results, toTrustedUiHtml(renderAiSearchResults(context, search)));
             applyModelSearchCheckerboard(results);
         }
-        if (variants !== null) this.#host.updateHTML(variants, toTrustedUiHtml(renderAiSearchVariants(context, search)));
+        if (variants !== null && variantsChanged) {
+            variantsAnimation = this.#updateRegion(variants, toTrustedUiHtml(renderAiSearchVariants(context, search)));
+            applyVariantCheckerboard(variants);
+        }
+        dom.flush();
+        const target = variantsChanged && search.variantStatus !== 'idle' ? variants : resultsChanged && search.status !== 'idle' ? results : null;
+        if (target === null) return;
+        const reveal = (): void => {
+            if (this.#content === content && this.#renderedSearch === search && target.closest('[inert]') === null) scrollElementIntoView(target, { block: 'start' });
+        };
+        const animation = target === variants ? variantsAnimation : resultsAnimation;
+        if (animation === null) reveal();
+        else animation.addEventListener('finish', reveal, { once: true });
+    }
+
+    #updateRegion(region: HTMLElement, markup: TrustedHtml): Animation | null {
+        const previous = measurePresenceSize(region);
+        stopPresenceAnimation(region);
+        this.#host.updateHTML(region, markup);
+        dom.flush();
+        const next = measurePresenceSize(region);
+        return next === null ? null : animatePresenceMorph(region, previous ?? { width: next.width, height: 0 }, next, { fadeChildren: false, preserveWrapping: true });
     }
 
     #syncCloudFilter(content: HTMLElement, filter: string): void {

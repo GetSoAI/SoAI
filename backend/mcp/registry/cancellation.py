@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.logging.trace import get_logger
+from core.mcp.mcp_2025_11_25 import validate_jsonrpc_id_for_request
 from mcp.registry.internal_protocols import MCPRegistryManagerProtocol
 from mcp.server.state import MCPServerPendingRequestKey
 
@@ -26,13 +27,19 @@ async def handle_notification_cancelled(
     logger = get_logger(LOGGER_NAME)
     if not session_id:
         return
-    rpc_id = parameters.get("rpc_id")
-    if rpc_id is None:
-        rpc_id = parameters.get("rpcId")
-    if rpc_id is None:
+    if "requestId" in parameters:
+        request_id = parameters["requestId"]
+    else:
+        request_id = parameters.get("rpc_id")
+        if request_id is None:
+            request_id = parameters.get("rpcId")
+    if request_id is None:
         return
-    if not isinstance(rpc_id, str | int) or isinstance(rpc_id, bool):
-        logger.warning("Invalid rpc_id type in notifications/cancelled: %s", type(rpc_id).__name__)
+    valid_id, rpc_id = validate_jsonrpc_id_for_request(request_id)
+    if not valid_id or rpc_id is None:
+        logger.warning(
+            "Invalid rpc_id type in notifications/cancelled: %s", type(request_id).__name__
+        )
         return
     request_key = MCPServerPendingRequestKey(session_id=session_id, rpc_id=rpc_id)
     async with manager.pending_server_requests_lock:

@@ -6,6 +6,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from core.errors.exceptions import InsufficientDiskSpaceError, ValidationError
+from core.errors.payload import ErrorPublicPayload
+from core.errors.public_projection import apply_public_error_payload
 from core.formatting.bytes import format_bytes
 from core.types.json import JSONDict, JSONValue
 from core.validation.strict_numbers import require_non_negative_int_strict
@@ -61,8 +63,28 @@ def require_disk_space_available(
         error_details["disk_usage_path"] = disk_usage_path
     if details:
         error_details["context"] = dict(details)
-    raise InsufficientDiskSpaceError(
+    error = InsufficientDiskSpaceError(
         f"Insufficient disk space to start this operation. Required: {format_bytes(required_value)} (+ {format_bytes(tolerance_value)} safety tolerance = {format_bytes(required_total)}); Available: {format_bytes(available_value)} (short by {format_bytes(deficit)}).",
         details=error_details,
         operation=operation_value,
     )
+    apply_public_error_payload(
+        error,
+        ErrorPublicPayload(
+            code=error.code,
+            message=(
+                "There is not enough storage headroom for this operation, including safety "
+                "space and existing reservations. Free space or wait for other storage "
+                "operations to finish, then retry."
+            ),
+            details={
+                "required_bytes": required_value,
+                "tolerance_bytes": tolerance_value,
+                "required_with_tolerance_bytes": required_total,
+                "available_bytes": available_value,
+                "deficit_bytes": deficit,
+            },
+            http_status=error.http_status,
+        ),
+    )
+    raise error

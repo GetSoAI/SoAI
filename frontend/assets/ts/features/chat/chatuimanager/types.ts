@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
-import type { ConversationInputState } from '@core/api/contracts/chatQueueDraftContracts.ts';
+import type { ConversationInputActiveState } from '@core/chat/protocols.ts';
 import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
@@ -26,9 +26,10 @@ type DebouncedHandler = {
 export type ConversationInputPreview = {
     inputId: string;
     inputType: 'prompt' | 'steer';
-    state: ConversationInputState | 'regeneration_failed';
+    state: ConversationInputActiveState | 'regeneration_failed';
     text: string;
     attachmentContent: readonly ChatContentSegment[];
+    isHeld: boolean;
 };
 
 export interface ConversationInputModalSession {
@@ -69,7 +70,7 @@ export type ChatChromeVisibilityRuntime = {
     dispose: () => void;
 };
 
-export type ChatComposerActionMode = 'send' | 'stop' | 'steer' | 'queue';
+export type ChatComposerActionMode = 'send' | 'stop' | 'steer' | 'queue' | 'resume';
 
 export type ElementSelectorKey = 'input' | 'actionBtn' | 'attachBtn' | 'messagesArea' | 'preview' | 'inputQueuePreview' | 'toolApprovalPreview' | 'askUserPreview' | 'secretPromptPreview' | 'voiceRecordingPreview';
 
@@ -112,6 +113,7 @@ interface ChatUiDraftPort {
     refreshDraftKnowledgeAttachments: () => void;
     cancelRagIngestion: () => Promise<void>;
     getConversationInputs: () => ConversationInputPreview[] | null;
+    hasDispatchingConversationInput: () => boolean;
     saveChatState: (force?: boolean) => void;
     requestMessageWindow: (direction: MessageWindowRequestDirection) => void;
 }
@@ -163,6 +165,8 @@ export interface ChatUiManagerDependencies {
 }
 
 export interface ChatUIManagerState {
+    speechSetupAbortController: AbortController | null;
+    speechSetupSelection: ((mimeTypes: readonly string[], persisted?: boolean) => void) | null;
     conversationInputModal: ConversationInputModalSession | null;
     autoScrollEnabled: boolean;
     autoScrollUserIntentActive: boolean;
@@ -178,7 +182,9 @@ export interface ChatUIManagerState {
     conversationScrollSnapshotPersistTimer: number | null;
     conversationScrollSnapshotPersistenceDisposer: (() => void) | null;
     pendingConversationScrollRestoreConversationId: string | null;
-    activeConversationScrollRestore: { conversationId: string; generation: number; messagesArea: HTMLElement; renderAnchor: MessageWindowScrollAnchor; disposers: Array<() => void>; settleTimer: number | null; completion: (cancelled: boolean) => void } | null;
+    userStoppedTurn: { conversationId: string; requestId: string | null } | null;
+    failedConversationScrollRestoreConversationId: string | null;
+    activeConversationScrollRestore: { conversationId: string; generation: number; messagesArea: HTMLElement; renderAnchor: MessageWindowScrollAnchor | 'bottom'; disposers: Array<() => void>; deadlineTimer: number | null; completion: (cancelled: boolean) => void } | null;
     conversationScrollRestoreGeneration: number;
     attachedFilesPreviewLayoutDisposer: (() => void) | null;
     advancedScrollPreviewDisposer: (() => void) | null;

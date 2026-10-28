@@ -7,7 +7,9 @@ import asyncio
 import hashlib
 import io
 import os
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from functools import partial
 
 from filelock import Timeout
 from ruamel.yaml import YAML
@@ -15,6 +17,7 @@ from ruamel.yaml.comments import CommentedMap
 from ruamel.yaml.error import YAMLError
 
 from app.config.paths import get_config_path_sync, path_to_config_name
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.config.file_permissions import (
     runtime_config_atomic_file_mode,
     secure_runtime_config_paths,
@@ -74,6 +77,7 @@ class ConfigIODependencies:
     plugins_path: str | None
     lock_directory: str | None
     logger: LoggerProtocol
+    invalidate_backend_update: Callable[[str], Awaitable[bool]] | None = None
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -91,6 +95,10 @@ class ConfigIO:
         self.plugins_path = deps.plugins_path
         self.lock_directory = resolve_lock_directory(deps.lock_directory)
         self._yaml_parse = YAML(typ="safe")
+
+    async def invalidate_plugin_backend_update(self, config_name: str) -> None:
+        if config_name != "core" and self._deps.invalidate_backend_update is not None:
+            await self._deps.invalidate_backend_update(config_name)
 
     def get_config_path_sync(self, config_name: str) -> str:
         return get_config_path_sync(
@@ -137,7 +145,16 @@ class ConfigIO:
         if data is None:
             return CommentedMap()
         if isinstance(data, dict):
-            return CommentedMap(data)
+            try:
+                roundtrip_data = build_roundtrip_yaml().load(raw_contents)
+                if roundtrip_data != data:
+                    raise ConfigurationError("Configuration round-trip parsing changed its values.")
+            except (YAMLError, RecursionError) as exception:
+                raise ConfigurationError(
+                    f"Error parsing YAML file {config_path}: {exception}"
+                ) from exception
+            if isinstance(roundtrip_data, CommentedMap):
+                return roundtrip_data
         raise ConfigurationError(f"Config file for '{config_name}' is not a valid YAML mapping.")
 
     async def read_config_snapshot(
@@ -270,16 +287,42 @@ class ConfigIO:
         backup_path: str | None,
         encoding: str,
     ) -> None:
-        def _writer(handle: io.TextIOBase) -> None:
-            build_roundtrip_yaml().dump(config_mapping, handle)
+        await run_joined_thread_call(
+            partial(
+                self.atomic_write_yaml_unlocked_sync,
+                config_path=config_path,
+                config_mapping=config_mapping,
+                backup_path=backup_path,
+                encoding=encoding,
+            ),
+            task_name="config_manager.write_yaml",
+            retain_resources_until_complete=True,
+        )
 
-        await asyncio.to_thread(secure_runtime_config_paths, config_path, backup_path)
-        await asyncio.to_thread(
-            atomic_write_text,
+    def atomic_write_yaml_unlocked_sync(
+        self,
+        *,
+        config_path: str,
+        config_mapping: CommentedMap,
+        backup_path: str | None,
+        encoding: str,
+        serialized_contents: str | None = None,
+    ) -> None:
+        def _writer(handle: io.TextIOBase) -> None:
+            if serialized_contents is None:
+                build_roundtrip_yaml().dump(config_mapping, handle)
+            else:
+                handle.write(serialized_contents)
+
+        secure_runtime_config_paths(config_path, backup_path)
+        atomic_write_text(
             config_path,
             _writer,
             encoding=encoding,
             backup_path=backup_path,
             file_mode=runtime_config_atomic_file_mode(),
+            fsync_parent_directory=True,
+            newline="" if serialized_contents is not None else None,
+            preserve_windows_acl=True,
         )
-        await asyncio.to_thread(secure_runtime_config_paths, config_path, backup_path)
+        secure_runtime_config_paths(config_path, backup_path)

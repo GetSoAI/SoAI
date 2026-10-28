@@ -4,6 +4,8 @@
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
 import { promptEnhancerModalDefinition } from '@features/prompts/modals/promptEnhancerModal.ts';
 
-const PROMPTS_MODAL_DEFINITIONS: readonly ModalDefinition[] = Object.freeze([promptEnhancerModalDefinition]);
+import { promptsPickerModalDefinition } from '@features/prompts/modals/promptsPickerModal.ts';
+
+const PROMPTS_MODAL_DEFINITIONS: readonly ModalDefinition[] = Object.freeze([promptEnhancerModalDefinition, promptsPickerModalDefinition]);
 
 export { PROMPTS_MODAL_DEFINITIONS };

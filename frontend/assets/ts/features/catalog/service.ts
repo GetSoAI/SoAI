@@ -11,7 +11,7 @@ const isCatalogStore = <T>(value: T): value is T & CatalogStore => {
     if (!isObject(value)) {
         return false;
     }
-    return hasFunctionProperty(value, 'subscribe') && hasFunctionProperty(value, 'ensureLoaded') && hasFunctionProperty(value, 'refresh') && hasFunctionProperty(value, 'getPlugins') && hasFunctionProperty(value, 'getCapabilityManifest') && hasFunctionProperty(value, 'ensureCapabilityManifestReady');
+    return hasFunctionProperty(value, 'isFresh') && hasFunctionProperty(value, 'subscribe') && hasFunctionProperty(value, 'ensureLoaded') && hasFunctionProperty(value, 'refresh') && hasFunctionProperty(value, 'getPlugins') && hasFunctionProperty(value, 'getCapabilityManifest') && hasFunctionProperty(value, 'ensureCapabilityManifestReady');
 };
 
 const requireCatalogStore = (): CatalogStore => {

@@ -14,8 +14,10 @@ from hardware.gpu_tuning.boot_state import (
     slot_toggle_enabled_boot_payload,
 )
 from hardware.gpu_tuning.service_dependencies import GpuServiceDependencies
-from hardware.gpu_tuning.slot_errors import slot_empty_error
+from hardware.gpu_tuning.slot_errors import devices, slot_empty_error
 from hardware.gpu_tuning.slot_operation_preparation import prepare_slot_boot_toggle_operation
+from hardware.presets.slot_alias_authority import require_slot_mutation_authority
+from hardware.presets.slot_payload_loading import read_canonical_gpu_slot_candidate
 
 if TYPE_CHECKING:
     from core.system.protocols import CommandExecutorProtocol
@@ -47,40 +49,50 @@ def sync_toggle_gpu_slot_boot(
         return prepared
     slot_id = prepared.slot_id
     flag = prepared.flag
-    context = prepared.context
-    entry = context.entry
-    payload = context.payload
-    if not isinstance(entry, dict):
-        return slot_empty_error(device_id, slot_id)
-    current_boot = boot_payload_from_value(entry.get("boot"))
-    if flag:
-        slots_value = entry.get("slots")
-        slots_dict = slots_value if isinstance(slots_value, dict) else {}
-        slot_entry = slots_dict.get(slot_id)
-        if not (
-            isinstance(slot_entry, dict)
-            and isinstance((signature := slot_entry.get("signature")), str)
-            and signature
-            and isinstance(slot_entry.get("last_applied_at"), str)
-            and current_boot.get("applied_signature") == signature
-        ):
+    with storage.lock:
+        read, payload, reconciliation = read_canonical_gpu_slot_candidate(
+            storage, prepared.context.inventory, device_id
+        )
+        require_slot_mutation_authority(reconciliation, device_id)
+        entry_value = devices(payload).get(device_id)
+        entry = entry_value if isinstance(entry_value, dict) else None
+        if not isinstance(entry, dict):
+            return slot_empty_error(device_id, slot_id)
+        current_boot = boot_payload_from_value(entry.get("boot"))
+        if flag:
+            slots_value = entry.get("slots")
+            slots_dict = slots_value if isinstance(slots_value, dict) else {}
+            slot_entry = slots_dict.get(slot_id)
+            if not (
+                isinstance(slot_entry, dict)
+                and isinstance((signature := slot_entry.get("signature")), str)
+                and signature
+                and isinstance(slot_entry.get("last_applied_at"), str)
+                and current_boot.get("applied_signature") == signature
+            ):
+                return build_gpu_operation_error(
+                    "slot_requires_apply",
+                    "Apply the slot with apply_at_boot=true before enabling the boot toggle.",
+                    device_id=device_id,
+                    slot=slot_id,
+                )
+            desired_boot = slot_toggle_enabled_boot_payload(current_boot, slot_id)
+        else:
+            desired_boot = disabled_boot_payload()
+        if current_boot == desired_boot:
             return build_gpu_operation_error(
-                "slot_requires_apply",
-                "Apply the slot with apply_at_boot=true before enabling the boot toggle.",
+                "boot_unchanged",
+                "Boot preference is already set to the requested state.",
                 device_id=device_id,
                 slot=slot_id,
             )
-        desired_boot = slot_toggle_enabled_boot_payload(current_boot, slot_id)
-    else:
-        desired_boot = disabled_boot_payload()
-    if current_boot == desired_boot:
-        return build_gpu_operation_error(
-            "boot_unchanged",
-            "Boot preference is already set to the requested state.",
-            device_id=device_id,
-            slot=slot_id,
-        )
-    entry["boot"] = desired_boot
-    storage.write_payload(payload)
-    entry_snapshot = copy.deepcopy(entry)
-    return {"success": True, "slot": slot_id, "device_id": device_id, "entry": entry_snapshot}
+        entry["boot"] = desired_boot
+        storage.write_payload(payload, expected_read=read)
+        entry_snapshot = copy.deepcopy(entry)
+        return {
+            "success": True,
+            "slot": slot_id,
+            "device_id": device_id,
+            "entry": entry_snapshot,
+            "boot_changed": True,
+        }

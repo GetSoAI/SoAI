@@ -21,6 +21,7 @@ type PresetWorkingState = {
     model: ConfigurationModelSnapshot;
     identity: IdentityPromptsSnapshot | null;
     rag: RagConfig | null;
+    skills: JsonObject | null;
     mcp: McpFormValues | null;
     workspacePath: string | null;
 };
@@ -76,6 +77,7 @@ class ChatPresetSectionAdapterRegistry implements ChatPresetConfigurationPort {
             voice: coreHydrated && !authorityLocked && parameterEligible('voice'),
             files: controllers.workspacePathController.isHydrated(),
             knowledge: controllers.ragController.isHydrated(),
+            skills: controllers.skillsController.isHydrated() && controllers.skillsController.isEditable(),
             tools: controllers.mcpController.isHydrated() && controllers.mcpController.isEditable()
         };
         return CHAT_PRESET_SECTION_DEFINITIONS.map((definition) => ({ id: definition.id, eligible: hydrated[definition.id], hydrated: hydrated[definition.id], reason: hydrated[definition.id] ? null : i18n.t('chat.configuration.presetLibrary.editor.sectionUnavailable') }));
@@ -109,6 +111,8 @@ class ChatPresetSectionAdapterRegistry implements ChatPresetConfigurationPort {
                     prunedValues.push('knowledge:embedding_model');
                 }
             }
+            const skills = controllers.skillsController.workingSection();
+            if (selectedSections.has('skills') && skills) sections.skills = skills;
             const mcp = controllers.mcpController.workingValues();
             if (selectedSections.has('tools') && mcp) sections.tools = snapshotMcpPreset(mcp, controllers.mcpController.tools(), controllers.mcpController.baselineConfig(), this.#isToolsEnabledLocked());
             const voice = sections.voice;
@@ -146,6 +150,7 @@ class ChatPresetSectionAdapterRegistry implements ChatPresetConfigurationPort {
         this.#configuration.commitPresetWorkingState(next.parameters, next.model);
         if (next.identity) controllers.identityPromptsController.commitWorkingSnapshot(next.identity);
         if (next.rag) controllers.ragController.commitWorkingConfig(next.rag);
+        if (preflight.appliedSections.includes('skills') && next.skills) controllers.skillsController.stageSection(next.skills);
         if (next.mcp) controllers.mcpController.commitWorkingValues(next.mcp);
         controllers.workspacePathController.commitWorkingOverride(next.workspacePath);
         this.#configuration.refreshPresetWorkingPresentation();
@@ -170,6 +175,7 @@ class ChatPresetSectionAdapterRegistry implements ChatPresetConfigurationPort {
             if (record.sections.completion) dirty.add('completion');
         }
         if (record.sections.knowledge && !recordsEqual(controllers.ragController.workingConfig(), controllers.ragController.baselineConfig())) dirty.add('knowledge');
+        if (record.sections.skills && controllers.skillsController.isDirty()) dirty.add('skills');
         const mcpValues = controllers.mcpController.workingValues();
         const mcpBaseline = controllers.mcpController.baselineConfig();
         if (record.sections.tools && mcpValues && mcpBaseline && hasMcpConfigChanges(mcpValues, mcpBaseline)) dirty.add('tools');
@@ -256,6 +262,10 @@ class ChatPresetSectionAdapterRegistry implements ChatPresetConfigurationPort {
         const rag = knowledgeApplied && knowledgeSection ? controllers.ragController.mergePreset(knowledgeSection) : controllers.ragController.workingConfig();
         if (knowledgeApplied && !rag) return null;
         if (knowledgeApplied) appliedSections.add('knowledge');
+        const skillPreset = applicableSections.has('skills') && sections.skills ? controllers.skillsController.resolvePreset(sections.skills) : null;
+        if (skillPreset) skippedValues.push(...skillPreset.skippedValues);
+        if (skillPreset?.section) appliedSections.add('skills');
+        const skills = skillPreset?.section ?? controllers.skillsController.workingSection();
         const currentMcp = controllers.mcpController.workingValues();
         const mcpBaseline = controllers.mcpController.baselineConfig();
         const hypotheticalMcpBaseline = mcpBaseline && rag ? deriveHypotheticalKnowledgeMcpConfig(mcpBaseline, rag.enabled, model.supportsToolCalling) : mcpBaseline;
@@ -270,12 +280,13 @@ class ChatPresetSectionAdapterRegistry implements ChatPresetConfigurationPort {
         if (workspacePath !== null && typeof workspacePath !== 'string') return null;
         if (applicableSections.has('files') && !controllers.workspacePathController.canCommitWorkingOverride(workspacePath)) return null;
         if (applicableSections.has('files')) appliedSections.add('files');
-        return { state: { parameters, model, identity, rag, mcp: mcpMerge?.values ?? currentMcp, workspacePath }, appliedSections: [...appliedSections], skippedValues };
+        return { state: { parameters, model, identity, rag, skills, mcp: mcpMerge?.values ?? currentMcp, workspacePath }, appliedSections: [...appliedSections], skippedValues };
     }
 
     #isApplySectionHydrated(sectionId: ChatPresetSectionId, section: JsonObject, controllers: ConversationSettingsControllerBundle, identityEligible: boolean, identityHydrated: boolean, authorityLocked: boolean): boolean {
         if (sectionId === 'files') return controllers.workspacePathController.isHydrated();
         if (sectionId === 'knowledge') return controllers.ragController.isHydrated() && (typeof section['embedding_model'] !== 'string' || controllers.ragController.isEmbeddingModelCatalogHydrated());
+        if (sectionId === 'skills') return controllers.skillsController.isHydrated() && controllers.skillsController.isEditable();
         if (sectionId === 'tools') return controllers.mcpController.isHydrated() && controllers.mcpController.isEditable();
         if (!this.#configuration.isEditingConfiguration()) return false;
         if (authorityLocked && (sectionId === 'completion' || sectionId === 'voice')) return false;
@@ -308,7 +319,7 @@ class ChatPresetSectionAdapterRegistry implements ChatPresetConfigurationPort {
     }
 
     #workingState(controllers: ConversationSettingsControllerBundle): PresetWorkingState {
-        return { parameters: cloneChatParameters(this.#configuration.getWorkingParameters()), model: this.#configuration.model.snapshot(), identity: controllers.identityPromptsController.workingSnapshot(), rag: controllers.ragController.workingConfig(), mcp: controllers.mcpController.workingValues(), workspacePath: controllers.workspacePathController.workingOverride() };
+        return { parameters: cloneChatParameters(this.#configuration.getWorkingParameters()), model: this.#configuration.model.snapshot(), identity: controllers.identityPromptsController.workingSnapshot(), rag: controllers.ragController.workingConfig(), skills: controllers.skillsController.workingSection(), mcp: controllers.mcpController.workingValues(), workspacePath: controllers.workspacePathController.workingOverride() };
     }
 
     #controllers(): ConversationSettingsControllerBundle {

@@ -60,7 +60,7 @@ class ModelDetailPage extends StaticBasePage {
         if (signalAborted(context.signal ?? null)) {
             return;
         }
-        await this.#domain.setup();
+        await this.#domain.setup(parameters ?? {});
     }
 
     override async loadData(): Promise<void> {

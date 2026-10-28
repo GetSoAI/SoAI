@@ -9,13 +9,20 @@ from collections.abc import Awaitable, Callable
 from app.lifecycle.failure_recording import record_critical_lifecycle_failures
 from app.lifecycle.results import LifecycleFailure
 from app.types_application import ApplicationContext
+from core.concurrency.cancellation import TaskCancelledError
 from core.concurrency.cancellation_cleanup import current_task_has_pending_cancellation
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import SoAIError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import UNEXPECTED_RUNTIME_EXCEPTIONS
 
 __all__ = ("run_shutdown_stage_continue", "run_sync_shutdown_stage_continue")
+
+LIFECYCLE_OPERATION_EXCEPTIONS: tuple[type[Exception], ...] = (
+    *RECOVERABLE_EXCEPTIONS,
+    SoAIError,
+)
 
 OPERATION_RUN_SHUTDOWN_STAGE = "app.lifecycle.shutdown_stage_runner.run_shutdown_stage"
 
@@ -40,7 +47,13 @@ async def run_shutdown_stage_continue(
             level="critical",
         )
         _record_shutdown_stage_failure(application_context, component_name, message)
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except TaskCancelledError as exception:
+        _record_shutdown_stage_failure(
+            application_context,
+            component_name,
+            f"Shutdown stage was cancelled for {component_name}: {exception.reason}",
+        )
+    except LIFECYCLE_OPERATION_EXCEPTIONS as exception:
         message = (
             f"Shutdown stage failed for {component_name}: "
             f"{type(exception).__name__}: {exception}"
@@ -80,7 +93,13 @@ def run_sync_shutdown_stage_continue(
 ) -> None:
     try:
         action()
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except TaskCancelledError as exception:
+        _record_shutdown_stage_failure(
+            application_context,
+            component_name,
+            f"Shutdown stage was cancelled for {component_name}: {exception.reason}",
+        )
+    except LIFECYCLE_OPERATION_EXCEPTIONS as exception:
         message = (
             f"Shutdown stage failed for {component_name}: "
             f"{type(exception).__name__}: {exception}"

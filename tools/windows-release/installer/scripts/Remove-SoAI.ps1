@@ -1,14 +1,18 @@
+# SoAI Windows installation cleanup and completion verification [Remove-SoAI.ps1]
+# SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)][string]$InstallRoot,
-    [ValidateSet('Uninstall','ArchiveUninstall','Upgrade','Stop')][string]$Mode = 'Uninstall',
+    [ValidateSet('Uninstall','ArchiveUninstall','Upgrade','Stop','VerifyUninstall')][string]$Mode = 'Uninstall',
     [string]$ManifestPath = '',
     [string]$ControlLauncherPath = '',
+    [string]$VerificationPath = '',
     [switch]$RemoveApplicationData,
     [switch]$InstallerRollback
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'Shared-SoAIResourceOwnership.ps1')
 trap { if ($env:SOAI_INSTALLER_FAILURE_PATH) { try { [IO.File]::WriteAllText($env:SOAI_INSTALLER_FAILURE_PATH, (($_.Exception.Message -replace '\s+', ' ').Trim()), [Text.Encoding]::Unicode) } catch { } }; break }
 [AppContext]::SetSwitch('Switch.System.IO.UseLegacyPathHandling', $false)
 [AppContext]::SetSwitch('Switch.System.IO.BlockLongPaths', $false)
@@ -24,7 +28,6 @@ function Initialize-RemovalAdmission {
     param([Parameter(Mandatory=$true)][string]$Root)
     $lockDirectory = $Root.TrimEnd('\') + '\data\state\locks\soai.install.lock.d'
     if ($env:SOAI_INSTALL_LOCK_HELD_PATH) {
-        Assert-RemovalAdmissionOwner -LockDirectory $lockDirectory
         $script:removalGate = [Threading.Mutex]::OpenExisting('Global\SoAI.WindowsInstaller.V1')
     }
     else {
@@ -36,11 +39,12 @@ function Initialize-RemovalAdmission {
     if (![string]::IsNullOrWhiteSpace($ControlLauncherPath) -or [IO.File]::Exists((ConvertTo-RemovalFilesystemPath $launcher))) {
         $controlLauncher = if ([string]::IsNullOrWhiteSpace($ControlLauncherPath)) { $launcher } else { [IO.Path]::GetFullPath($ControlLauncherPath) }
         [Reflection.Assembly]::Load([IO.File]::ReadAllBytes((ConvertTo-RemovalFilesystemPath $controlLauncher))) | Out-Null
-        [SoAILauncher.NativeBackendJob]::PrepareTemporaryEnvironment()
     }
     else {
         throw 'The SoAI control launcher is missing. Run the current SoAI installer to repair this installation before removing it. No application files were removed.'
     }
+    if ($env:SOAI_INSTALL_LOCK_HELD_PATH) { Assert-RemovalAdmissionOwner -LockDirectory $lockDirectory }
+    [SoAILauncher.NativeBackendJob]::PrepareTemporaryEnvironment()
     if ($env:SOAI_INSTALL_LOCK_HELD_PATH) { return }
     $current = [IO.Path]::GetFullPath($Root)
     $ancestors = New-Object System.Collections.Generic.List[string]
@@ -63,13 +67,14 @@ function Initialize-RemovalAdmission {
         }
         Retain-RemovalDirectory -Path $directory
     }
+    Remove-CommittedUpdateStorage -Root $Root
     $transactionPath = ConvertTo-RemovalFilesystemPath ($Root.TrimEnd('\') + '\data\locks\soai.installation.transaction.lock')
     $script:removalTransaction = [IO.File]::Open($transactionPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::ReadWrite)
     $script:removalTransaction.Lock(0, 1)
     $null = Assert-SafeInstallRoot -Root $Root
     foreach ($entry in [IO.Directory]::GetFileSystemEntries((ConvertTo-RemovalFilesystemPath $Root))) {
         $name = [IO.Path]::GetFileName($entry)
-        if (Test-RetainedUpdateStorageName -EntryName $name) { throw 'An update awaits recovery; removal has not changed application files.' }
+        if (!$RemoveApplicationData -and (Test-RetainedUpdateStorageName -EntryName $name)) { throw 'An update awaits recovery; removal has not changed application files.' }
     }
     foreach ($name in @('backup_restore_journal.json')) {
         if ([IO.File]::Exists((ConvertTo-RemovalFilesystemPath ($Root.TrimEnd('\') + '\data\state\' + $name)))) {
@@ -133,11 +138,18 @@ function Assert-RemovalAdmissionOwner {
         }
         if ($ownerPid -eq $PID) { return }
         $processId = $PID
+        $childCreated = $null
         for ($depth = 0; $depth -lt 128; $depth += 1) {
-            $process = Get-CimInstance Win32_Process -Filter "ProcessId=$processId" -ErrorAction Stop
-            if ($null -eq $process -or $process.ParentProcessId -eq 0) { break }
-            if ($process.ParentProcessId -eq $ownerPid) { return }
-            $processId = $process.ParentProcessId
+            $process = Get-Process -Id $processId -ErrorAction Stop
+            try {
+                $created = $process.StartTime.ToUniversalTime()
+                if ($null -ne $childCreated -and $created -gt $childCreated) { throw 'The removal admission ancestry changed process identity.' }
+                $parentId = [SoAILauncher.NativeFilesystemHandles]::GetParentProcessId($process)
+                $childCreated = $created
+            } finally { $process.Dispose() }
+            if ($parentId -eq 0) { break }
+            if ($parentId -eq $ownerPid -and $owner.StartTime.ToUniversalTime() -le $childCreated) { return }
+            $processId = $parentId
         }
         throw 'The removal process is not a child of its verified admission owner.'
     } finally { $owner.Dispose() }
@@ -168,13 +180,53 @@ function Resolve-ChildPath {
 }
 
 function Test-RetainedUpdateStorageName {
-    param([Parameter(Mandatory=$true)][string]$EntryName)
-    return $EntryName.StartsWith('.soai_update_transaction_', [StringComparison]::OrdinalIgnoreCase) -or
-        $EntryName.StartsWith('.soai_update_cleanup_', [StringComparison]::OrdinalIgnoreCase)
+    param([Parameter(Mandatory=$true)][string]$EntryName, [switch]$CleanupOnly)
+    $cleanup = $EntryName.StartsWith('.soai_update_cleanup_', [StringComparison]::OrdinalIgnoreCase)
+    if ($CleanupOnly) { return $cleanup }
+    return $EntryName.StartsWith('.soai_update_transaction_', [StringComparison]::OrdinalIgnoreCase) -or $cleanup
+}
+
+function Remove-CommittedUpdateStorage {
+    param([Parameter(Mandatory=$true)][string]$Root)
+    $nativeRoot = ConvertTo-RemovalFilesystemPath $Root
+    if (![IO.Directory]::Exists($nativeRoot)) { return }
+    $retained = @([IO.Directory]::GetFileSystemEntries($nativeRoot) | Where-Object { Test-RetainedUpdateStorageName -EntryName ([IO.Path]::GetFileName($_)) })
+    if ($retained.Count -eq 0) { return }
+    $removal = if ($Mode -in @('Uninstall', 'ArchiveUninstall')) { 'uninstall' } else { 'recover' }
+    if ($removal -eq 'recover') {
+        foreach ($entry in $retained) {
+            if (!((Test-RetainedUpdateStorageName -EntryName ([IO.Path]::GetFileName($entry)) -CleanupOnly) -or [IO.File]::Exists($entry + '\success_complete'))) { return }
+        }
+    }
+    $python = Join-Path $Root 'soai_main_venv\Scripts\python.exe'
+    if (!(Test-Path -LiteralPath (ConvertTo-RemovalFilesystemPath $python) -PathType Leaf)) { return }
+    $source = @'
+import logging
+import sys
+from app.updater.software_update.committed_transaction_disposal import discard_unstarted_installer_activation, dispose_committed_update_storage_once
+from app.updater.software_update.install_transaction_recovery import recover_interrupted_update_transactions
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger('installer.update_cleanup')
+if sys.argv[2] == 'uninstall':
+    discard_unstarted_installer_activation(sys.argv[1])
+    sys.exit(0 if dispose_committed_update_storage_once(sys.argv[1], logger) else 1)
+sys.exit(0 if recover_interrupted_update_transactions(sys.argv[1], logger) else 1)
+'@
+    $priorPythonPath = $env:PYTHONPATH
+    $priorBytecode = $env:PYTHONDONTWRITEBYTECODE
+    try {
+        $env:PYTHONPATH = $Root.TrimEnd('\') + '\backend'
+        $env:PYTHONDONTWRITEBYTECODE = '1'
+        & $python -B -P -c $source $Root $removal | Out-Host
+    }
+    finally {
+        $env:PYTHONPATH = $priorPythonPath
+        $env:PYTHONDONTWRITEBYTECODE = $priorBytecode
+    }
 }
 
 function Assert-SafeInstallRoot {
-    param([Parameter(Mandatory=$true)][string]$Root)
+    param([Parameter(Mandatory=$true)][string]$Root, [switch]$DeferRetainedUpdateCheck)
     $full = Resolve-FullPath $Root
     $driveRoot = [System.IO.Path]::GetPathRoot($full).TrimEnd('\')
     $trimmed = $full.TrimEnd('\')
@@ -221,7 +273,7 @@ function Assert-SafeInstallRoot {
     if ($Mode -in @('Upgrade', 'Stop') -and !(Test-Path -LiteralPath (ConvertTo-RemovalFilesystemPath $marker)) -and !$looksLikeSoAI) {
         throw "The target does not look like a SoAI installation: $full"
     }
-    if ($Mode -in @('Uninstall', 'ArchiveUninstall') -and (Test-Path -LiteralPath (ConvertTo-RemovalFilesystemPath $full) -PathType Container)) {
+    if (!$DeferRetainedUpdateCheck -and $Mode -in @('Uninstall', 'ArchiveUninstall') -and (Test-Path -LiteralPath (ConvertTo-RemovalFilesystemPath $full) -PathType Container)) {
         foreach ($entry in Get-ChildItem -LiteralPath (ConvertTo-RemovalFilesystemPath $full) -Force -ErrorAction Stop) {
             if (Test-RetainedUpdateStorageName -EntryName $entry.Name) {
                 throw 'A software update awaits recovery or cleanup. Reopen SoAI to complete it before uninstalling. No application files were removed.'
@@ -322,7 +374,12 @@ function Stop-SoAI {
         return
     }
     Write-Step 'Stopping SoAI...'
-    $updateProgressHost = if ($Mode -in @('Uninstall', 'ArchiveUninstall')) { Join-Path $Root 'data\state\update-progress\soai.exe' } else { $launcher }
+    if ([SoAILauncher.NativeBackendJob]::ReleaseInheritedKillOnCloseJobs($Root) -gt 0) {
+        Write-Step 'Detached this maintenance from the previous SoAI launcher so closing it cannot interrupt the update.'
+    }
+    if (![SoAILauncher.ServiceRegistration]::Stop($Root, 300)) {
+        Write-Step 'The SoAI background service did not stop within 5 minutes; its processes are stopped directly.'
+    }
     $runtimePython = $null
     if (!$InstallerRollback) {
         $runtimePython = Resolve-InstalledControlPython -Root $Root
@@ -368,8 +425,7 @@ sys.exit(handle_stop(sys.argv[1], logging.getLogger('installer.stop'), expected_
                 }
                 $null = $candidate.Handle
                 $executable = $candidate.MainModule.FileName
-                if (![string]::Equals($executable, $launcher, [StringComparison]::OrdinalIgnoreCase) -and
-                    ![string]::Equals($executable, $updateProgressHost, [StringComparison]::OrdinalIgnoreCase)) {
+                if (![string]::Equals($executable, $launcher, [StringComparison]::OrdinalIgnoreCase)) {
                     $candidate.Dispose()
                     continue
                 }
@@ -399,6 +455,11 @@ sys.exit(handle_stop(sys.argv[1], logging.getLogger('installer.stop'), expected_
     }
     Stop-InstalledWebViewProcesses -Root $Root
     Stop-InstalledRuntimeProcesses -Root $Root
+    $runtimeLockDirectory = $Root.TrimEnd('\') + '\data\state\locks\soai.runtime.lock.d'
+    [void][SoAILauncher.NativeFilesystemHandles]::RecoverAbandonedInstallLock($runtimeLockDirectory)
+    if ([IO.Directory]::Exists((ConvertTo-RemovalFilesystemPath $runtimeLockDirectory))) {
+        throw ('Runtime ownership remains unresolved after shutdown. Diagnostics: ' + $script:removalDiagnosticRoot)
+    }
     Remove-Item -LiteralPath (ConvertTo-RemovalFilesystemPath $script:removalDiagnosticRoot) -Recurse -Force -ErrorAction SilentlyContinue
 }
 
@@ -460,6 +521,10 @@ function Stop-InstalledWebViewProcesses {
     $rootPrefix = [IO.Path]::GetFullPath($Root).TrimEnd('\') + '\'
     $deadline = [Diagnostics.Stopwatch]::StartNew()
     while ($true) {
+        $views = [Diagnostics.Process]::GetProcessesByName('msedgewebview2')
+        $potentialViews = $views.Count
+        foreach ($view in $views) { $view.Dispose() }
+        if ($potentialViews -eq 0) { return }
         $found = $false
         foreach ($instance in @(Get-CimInstance -ClassName Win32_Process -Filter "Name = 'msedgewebview2.exe'" -ErrorAction SilentlyContinue)) {
             if ([string]::IsNullOrEmpty($instance.CommandLine) -or $instance.CommandLine.IndexOf($rootPrefix, [StringComparison]::OrdinalIgnoreCase) -lt 0) { continue }
@@ -504,40 +569,117 @@ function Remove-AdmittedApplicationData {
         throw 'The data cleanup does not match the installer admission owner.'
     }
     Assert-RemovalAdmissionOwner -LockDirectory $lockDirectory
-    $protectedPaths = @($lockDirectory, ($root + '\locks\soai.installation.transaction.lock'))
-    function Remove-AdmittedDataDirectory {
-        param([Parameter(Mandatory=$true)][string]$Directory)
-        $nativeDirectory = ConvertTo-RemovalFilesystemPath $Directory
-        foreach ($entry in [IO.Directory]::GetFileSystemEntries($nativeDirectory)) {
-            $logicalEntry = $Directory.TrimEnd('\') + '\' + [IO.Path]::GetFileName($entry)
-            $protected = $false
-            $containsProtectedPath = $false
-            foreach ($protectedPath in $protectedPaths) {
-                if ([string]::Equals($logicalEntry, $protectedPath, [StringComparison]::OrdinalIgnoreCase)) { $protected = $true }
-                if ($protectedPath.StartsWith($logicalEntry + '\', [StringComparison]::OrdinalIgnoreCase)) { $containsProtectedPath = $true }
+    Remove-DirectoryEntries -Directory $root -ProtectedPaths @($lockDirectory, ($root + '\locks\soai.installation.transaction.lock'))
+}
+
+function Remove-DirectoryEntries {
+    param(
+        [Parameter(Mandatory=$true)][string]$Directory,
+        [string[]]$ProtectedPaths = @()
+    )
+    $nativeDirectory = ConvertTo-RemovalFilesystemPath $Directory
+    foreach ($entry in [IO.Directory]::GetFileSystemEntries($nativeDirectory)) {
+        $logicalEntry = $Directory.TrimEnd('\') + '\' + [IO.Path]::GetFileName($entry)
+        $protected = $false
+        $containsProtectedPath = $false
+        foreach ($protectedPath in $ProtectedPaths) {
+            if ([string]::Equals($logicalEntry, $protectedPath, [StringComparison]::OrdinalIgnoreCase)) { $protected = $true }
+            if ($protectedPath.StartsWith($logicalEntry + '\', [StringComparison]::OrdinalIgnoreCase)) { $containsProtectedPath = $true }
+        }
+        if ($protected) { continue }
+        $attributes = [IO.File]::GetAttributes($entry)
+        $isDirectory = ($attributes -band [IO.FileAttributes]::Directory) -ne 0
+        $isReparsePoint = ($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
+        if ($containsProtectedPath) {
+            if (!$isDirectory -or $isReparsePoint) { throw 'An admission ancestor changed during data cleanup.' }
+            Remove-DirectoryEntries -Directory $logicalEntry -ProtectedPaths $ProtectedPaths
+        }
+        elseif ($isDirectory -and !$isReparsePoint) {
+            Remove-DirectoryEntries -Directory $logicalEntry -ProtectedPaths $ProtectedPaths
+            [IO.Directory]::Delete($entry, $false)
+        }
+        elseif ($isDirectory) { [IO.Directory]::Delete($entry, $false) }
+        else {
+            if (!$isReparsePoint -and ($attributes -band [IO.FileAttributes]::ReadOnly) -ne 0) {
+                [IO.File]::SetAttributes($entry, $attributes -band (-bnot [IO.FileAttributes]::ReadOnly))
             }
-            if ($protected) { continue }
-            $attributes = [IO.File]::GetAttributes($entry)
-            $isDirectory = ($attributes -band [IO.FileAttributes]::Directory) -ne 0
-            $isReparsePoint = ($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
-            if ($containsProtectedPath) {
-                if (!$isDirectory -or $isReparsePoint) { throw 'An admission ancestor changed during data cleanup.' }
-                Remove-AdmittedDataDirectory -Directory $logicalEntry
-            }
-            elseif ($isDirectory -and !$isReparsePoint) {
-                Remove-AdmittedDataDirectory -Directory $logicalEntry
-                [IO.Directory]::Delete($entry, $false)
-            }
-            elseif ($isDirectory) { [IO.Directory]::Delete($entry, $false) }
-            else {
-                if (!$isReparsePoint -and ($attributes -band [IO.FileAttributes]::ReadOnly) -ne 0) {
-                    [IO.File]::SetAttributes($entry, $attributes -band (-bnot [IO.FileAttributes]::ReadOnly))
-                }
-                [IO.File]::Delete($entry)
-            }
+            [IO.File]::Delete($entry)
         }
     }
-    Remove-AdmittedDataDirectory -Directory $root
+}
+
+function Resolve-UnlinkedDirectory {
+    param(
+        [Parameter(Mandatory=$true)][string]$Directory,
+        [Parameter(Mandatory=$true)][string[]]$Components
+    )
+    $current = $Directory.TrimEnd('\')
+    foreach ($component in $Components) {
+        $current = $current + '\' + $component
+        $nativeCurrent = ConvertTo-RemovalFilesystemPath $current
+        if (![IO.Directory]::Exists($nativeCurrent)) { return $null }
+        if (([IO.File]::GetAttributes($nativeCurrent) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            Write-Step "Per-user SoAI data behind a link was not removed: $current"
+            return $null
+        }
+    }
+    return $current
+}
+
+function Remove-UserLauncherState {
+    param([Parameter(Mandatory=$true)][string]$Root)
+    $identity = [SoAILauncher.LauncherPaths]::StableRootIdentity($Root)
+    $profileList = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64)
+    try {
+        $profiles = $profileList.OpenSubKey('SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList')
+        if ($null -eq $profiles) { throw 'The Windows profile list is unavailable; per-user SoAI data was not removed.' }
+        try {
+            foreach ($sid in $profiles.GetSubKeyNames()) {
+                $profileKey = $profiles.OpenSubKey($sid)
+                if ($null -eq $profileKey) { continue }
+                try { $profilePath = [Environment]::ExpandEnvironmentVariables([string]$profileKey.GetValue('ProfileImagePath', '')) }
+                finally { $profileKey.Dispose() }
+                if ([string]::IsNullOrWhiteSpace($profilePath) -or ![IO.Path]::IsPathRooted($profilePath)) { continue }
+                $stateDirectory = Resolve-UnlinkedDirectory -Directory $profilePath -Components @('AppData', 'Local', 'SoAI')
+                if ($null -eq $stateDirectory) { continue }
+                $browserProfile = Resolve-UnlinkedDirectory -Directory $stateDirectory -Components @('launcher-webview2', $identity)
+                if ($null -ne $browserProfile) {
+                    Write-Step "Removing per-user SoAI data from $browserProfile..."
+                    Stop-InstalledWebViewProcesses -Root $browserProfile
+                    Remove-DirectoryEntries -Directory $browserProfile
+                    [IO.Directory]::Delete((ConvertTo-RemovalFilesystemPath $browserProfile), $false)
+                }
+                $browserProfiles = $stateDirectory + '\launcher-webview2'
+                if ([IO.Directory]::Exists((ConvertTo-RemovalFilesystemPath $browserProfiles)) -and
+                    [IO.Directory]::GetFileSystemEntries((ConvertTo-RemovalFilesystemPath $browserProfiles)).Count -gt 0) {
+                    continue
+                }
+                Write-Step "Removing per-user SoAI data from $stateDirectory..."
+                foreach ($candidate in [Diagnostics.Process]::GetProcessesByName('soai')) {
+                    try {
+                        try {
+                            if ($candidate.HasExited) { continue }
+                            $null = $candidate.Handle
+                            $executable = $candidate.MainModule.FileName
+                        }
+                        catch {
+                            if ($candidate.HasExited) { continue }
+                            throw
+                        }
+                        if ($executable.StartsWith($stateDirectory + '\', [StringComparison]::OrdinalIgnoreCase)) {
+                            Wait-ForOwnedProcessExit -Process $candidate -TimeoutMilliseconds 10000
+                        }
+                    }
+                    finally { $candidate.Dispose() }
+                }
+                Stop-InstalledWebViewProcesses -Root $stateDirectory
+                Remove-DirectoryEntries -Directory $stateDirectory
+                [IO.Directory]::Delete((ConvertTo-RemovalFilesystemPath $stateDirectory), $false)
+            }
+        }
+        finally { $profiles.Dispose() }
+    }
+    finally { $profileList.Dispose() }
 }
 
 function Remove-DirectoryTree {
@@ -547,24 +689,9 @@ function Remove-DirectoryTree {
         Remove-AdmittedApplicationData -DataRoot $Path
         return
     }
-    if (!(Test-Path -LiteralPath (ConvertTo-RemovalFilesystemPath $Path) -PathType Container)) {
-        return
-    }
-    try {
-        Remove-Item -LiteralPath (ConvertTo-RemovalFilesystemPath $Path) -Recurse -Force -ErrorAction Stop
-        return
-    }
-    catch {
-    }
-
-    $emptyRoot = Join-Path $env:TEMP ("SoAI-Empty-" + [Guid]::NewGuid().ToString('N'))
-    New-Item -ItemType Directory -Force -Path $emptyRoot | Out-Null
-    try {
-        & "$env:WINDIR\System32\robocopy.exe" $emptyRoot $Path /MIR /XJ /R:1 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+    for ($attempt = 0; $attempt -lt 3 -and (Test-Path -LiteralPath (ConvertTo-RemovalFilesystemPath $Path) -PathType Container); $attempt++) {
+        if ($attempt -gt 0) { Start-Sleep -Seconds 1 }
         Remove-Item -LiteralPath (ConvertTo-RemovalFilesystemPath $Path) -Recurse -Force -ErrorAction SilentlyContinue
-    }
-    finally {
-        Remove-Item -LiteralPath (ConvertTo-RemovalFilesystemPath $emptyRoot) -Recurse -Force -ErrorAction SilentlyContinue
     }
     if (Test-Path -LiteralPath (ConvertTo-RemovalFilesystemPath $Path) -PathType Container) {
         throw "Failed to remove directory tree: $Path"
@@ -604,6 +731,39 @@ function Remove-SourceBytecode {
     }
 }
 
+function Preserve-InstallationDiagnostics {
+    param([Parameter(Mandatory=$true)][string]$Root)
+    $support = Resolve-ChildPath -Root $Root -Child 'installer-support'
+    $nativeSupport = ConvertTo-RemovalFilesystemPath $support
+    if (![IO.Directory]::Exists($nativeSupport)) { return }
+    Retain-RemovalDirectory -Path $support
+    $archives = @([IO.DirectoryInfo]::new($nativeSupport).GetFileSystemInfos('install-diagnostics-*.zip'))
+    if ($archives.Count -eq 0) { return }
+    foreach ($archive in $archives) {
+        if (($archive.Attributes -band ([IO.FileAttributes]::Directory -bor [IO.FileAttributes]::ReparsePoint)) -ne 0) {
+            throw 'An installation diagnostic archive is not a regular file. No diagnostic archives were moved.'
+        }
+    }
+    $destination = Resolve-ChildPath -Root $Root -Child 'data\installer-diagnostics'
+    $nativeDestination = ConvertTo-RemovalFilesystemPath $destination
+    [IO.Directory]::CreateDirectory($nativeDestination) | Out-Null
+    Retain-RemovalDirectory -Path $destination
+    foreach ($archive in $archives) {
+        $target = $nativeDestination + '\' + $archive.Name
+        $attributes = [SoAILauncher.NativeFilesystemHandles]::GetFileAttributes($target)
+        $failure = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        if ($attributes -ne [uint32]::MaxValue) {
+            throw "An installation diagnostic retention target already exists: $($archive.Name). No diagnostic archives were moved."
+        }
+        if ($failure -ne 2 -and $failure -ne 3) {
+            throw (New-Object ComponentModel.Win32Exception($failure, 'An installation diagnostic retention target could not be verified. No diagnostic archives were moved.'))
+        }
+    }
+    foreach ($archive in $archives) {
+        [IO.File]::Move($archive.FullName, ($nativeDestination + '\' + $archive.Name))
+    }
+}
+
 function Remove-ManifestFiles {
     param(
         [Parameter(Mandatory=$true)][string]$Root,
@@ -626,6 +786,7 @@ function Remove-ManifestFiles {
     $dataPrefix = $dataRoot.TrimEnd('\') + '\'
     $installRootMarker = Resolve-ChildPath -Root $Root -Child '.soai-install-root'
     $removalScript = Resolve-ChildPath -Root $Root -Child 'installer-support\Remove-SoAI.ps1'
+    $ownershipScript = Resolve-ChildPath -Root $Root -Child 'installer-support\Shared-SoAIResourceOwnership.ps1'
     foreach ($line in Get-Content -LiteralPath (ConvertTo-RemovalFilesystemPath $manifest)) {
         $relative = ''
         if ($line -ne $null) {
@@ -635,12 +796,17 @@ function Remove-ManifestFiles {
             continue
         }
         $target = Resolve-ChildPath -Root $Root -Child $relative
+        if ($Mode -eq 'Uninstall' -and $env:SOAI_UNINSTALL_OWNER_PID -and
+            [string]::Equals($target, $installRootMarker, [StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
         if ($PreserveApplicationData -and
             ([string]::Equals($target, $dataRoot, [StringComparison]::OrdinalIgnoreCase) -or
             $target.StartsWith($dataPrefix, [StringComparison]::OrdinalIgnoreCase) -or
             [string]::Equals($target, $installRootMarker, [StringComparison]::OrdinalIgnoreCase) -or
             [string]::Equals($target, $manifest, [StringComparison]::OrdinalIgnoreCase) -or
-            [string]::Equals($target, $removalScript, [StringComparison]::OrdinalIgnoreCase))) {
+            [string]::Equals($target, $removalScript, [StringComparison]::OrdinalIgnoreCase) -or
+            [string]::Equals($target, $ownershipScript, [StringComparison]::OrdinalIgnoreCase))) {
             continue
         }
         if ($Mode -eq 'Upgrade' -and
@@ -653,6 +819,8 @@ function Remove-ManifestFiles {
 }
 
 function Remove-Shortcuts {
+    param([Parameter(Mandatory=$true)][string]$Root)
+    if (![SoAILauncher.SynchronousUninstall]::OwnsWindowsIntegration($Root)) { return }
     $shortcutDirs = @(
         [Environment]::GetFolderPath('CommonDesktopDirectory'),
         [Environment]::GetFolderPath('DesktopDirectory'),
@@ -734,8 +902,21 @@ $script:removalHandles = New-Object System.Collections.Generic.List[Microsoft.Wi
 $previousLockPath = $env:SOAI_INSTALL_LOCK_HELD_PATH
 $previousLockToken = $env:SOAI_INSTALL_LOCK_HELD_TOKEN
 $previousOwnerStarted = $env:SOAI_INSTALL_LOCK_OWNER_START_MS
+if ($Mode -eq 'VerifyUninstall') {
+    $verificationRoot = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($ControlLauncherPath))
+    if ([string]::IsNullOrWhiteSpace($VerificationPath) -or
+        ![string]::Equals([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($VerificationPath)), $verificationRoot, [StringComparison]::OrdinalIgnoreCase) -or
+        [IO.Path]::GetFileName($VerificationPath) -cnotmatch '^verified-[0-9a-f]{32}\.txt$') {
+        throw 'Uninstall verification requires an owned completion record beside its control launcher.'
+    }
+    [Reflection.Assembly]::Load([IO.File]::ReadAllBytes((ConvertTo-RemovalFilesystemPath $ControlLauncherPath))) | Out-Null
+    Assert-SoAISharedResourceRelease -InstallRoot $InstallRoot -RetainData (!$RemoveApplicationData)
+    $selection = if ($RemoveApplicationData) { 'all' } else { 'retain' }
+    [SoAILauncher.NativeFilesystemHandles]::WriteNewDurableFile($VerificationPath, ($selection + "`n" + [IO.Path]::GetFullPath($InstallRoot).TrimEnd('\')))
+    return
+}
 try {
-    $root = Assert-SafeInstallRoot $InstallRoot
+    $root = Assert-SafeInstallRoot $InstallRoot -DeferRetainedUpdateCheck
     if ($RemoveApplicationData -and $Mode -notin @('Uninstall', 'ArchiveUninstall')) {
         throw 'Application data removal is valid only for an uninstall operation.'
     }
@@ -743,7 +924,32 @@ try {
         throw 'Installer rollback removal is valid only for restoring an upgrade or removing a failed fresh installation.'
     }
     Initialize-RemovalAdmission -Root $root
+    $null = Assert-SafeInstallRoot -Root $root -DeferRetainedUpdateCheck:($RemoveApplicationData -and $Mode -in @('Uninstall', 'ArchiveUninstall'))
     Stop-SoAI -Root $root
+
+    $updateStoragePresent = @([IO.Directory]::GetFileSystemEntries((ConvertTo-RemovalFilesystemPath $root)) | Where-Object { Test-RetainedUpdateStorageName -EntryName ([IO.Path]::GetFileName($_)) }).Count -gt 0
+    if ($RemoveApplicationData -and $Mode -in @('Uninstall', 'ArchiveUninstall') -and $updateStoragePresent) {
+        $python = Resolve-InstalledControlPython -Root $root
+        $disposal = @'
+import sys
+from app.updater.software_update.committed_transaction_disposal import dispose_update_transaction_for_all_data_uninstall
+from core.logging.trace import get_logger
+dispose_update_transaction_for_all_data_uninstall(sys.argv[1], get_logger('SoAI.installer.uninstall_disposal'), edition='soai-core')
+'@
+        $priorPythonPath = $env:PYTHONPATH
+        $priorBytecode = $env:PYTHONDONTWRITEBYTECODE
+        try {
+            $env:PYTHONPATH = Join-Path $root 'backend'
+            $env:PYTHONDONTWRITEBYTECODE = '1'
+            & $python -B -P -c $disposal $root | Out-Host
+            if ($LASTEXITCODE -ne 0) { throw 'All-data uninstall could not dispose its owned update transaction. Recovery evidence has been retained.' }
+        }
+        finally {
+            $env:PYTHONPATH = $priorPythonPath
+            $env:PYTHONDONTWRITEBYTECODE = $priorBytecode
+        }
+        $null = Assert-SafeInstallRoot -Root $root
+    }
 
     if ($Mode -eq 'Stop') {
         return
@@ -760,13 +966,32 @@ try {
 
     $preserveApplicationData = $Mode -in @('Uninstall', 'ArchiveUninstall') -and !$RemoveApplicationData
     if ($preserveApplicationData) {
+        Preserve-InstallationDiagnostics -Root $root
+    }
+    $releaseJournal = ''
+    if ($Mode -eq 'Uninstall' -and $RemoveApplicationData -and $env:SOAI_UNINSTALL_OWNER_PID) {
+        $releaseStage = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($ControlLauncherPath))
+        if (![string]::Equals($releaseStage, $PSScriptRoot, [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'The shared ownership release journal is outside the protected uninstall staging directory.'
+        }
+        $releaseJournal = Join-Path $releaseStage 'shared-release.txt'
+    }
+    Release-SoAISharedResourceClaim -InstallRoot $root -RetainData (!$RemoveApplicationData) -ReleaseJournalPath $releaseJournal
+
+    if ([SoAILauncher.ServiceRegistration]::Unregister($root)) {
+        Write-Step 'Removed the SoAI background service.'
+    }
+    if ($RemoveApplicationData -and !$InstallerRollback) {
+        Remove-UserLauncherState -Root $root
+    }
+    if ($preserveApplicationData) {
         Write-Step 'Removing SoAI application files while retaining application data...'
     }
     else {
         Write-Step 'Removing SoAI application files and application data...'
     }
     if ($Mode -eq 'Uninstall') {
-        Remove-Shortcuts
+        Remove-Shortcuts -Root $root
     }
     $installedManifest = if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
         Join-Path $root 'installer-support\installed-files.txt'
@@ -804,19 +1029,33 @@ try {
         'soai.exe',
         'soai.exe.config',
         'Uninstall.exe',
+        'Uninstall.exe.config',
+        'installer-support\UninstallWorker.exe',
         'soai-app.ico',
+        'install_soai_from_release.bat',
+        'CHANGE-DATES.md',
+        'COMMERCIAL-LICENSE.md',
+        'COMMERCIAL-LICENSING-AVAILABILITY.md',
+        'COMMERCIAL-SUPPORT-TERMS.md',
+        'ORGANIZATION-EVALUATION-TERMS.md',
         'install-soai-from-release.bat',
+        'install-soai-from-release.command',
+        'install-soai-from-release.sh',
+        'install-soai-linux.sh',
+        'install-soai-macos.command',
+        'install-soai-windows.ps1',
+        'uninstall-soai-linux.sh',
         'requirements.txt',
         'README.md',
         'LICENSE.md',
         'LICENSING.md',
-        'ORGANIZATION-EVALUATION-TERMS.md',
+        'ORGANIZATION_EVALUATION_TERMS.md',
         'PERSONAL-PURCHASE-TERMS.md',
         'NOTICE',
         'DOCUMENTATION.md',
-        'COMMERCIAL-LICENSING-AVAILABILITY.md',
-        'COMMERCIAL-LICENSE.md',
-        'COMMERCIAL-SUPPORT-TERMS.md',
+        'COMMERCIAL_LICENSING_AVAILABILITY.md',
+        'COMMERCIAL_LICENSE.md',
+        'COMMERCIAL_SUPPORT_TERMS.md',
         'Microsoft.Web.WebView2.Core.dll',
         'Microsoft.Web.WebView2.WinForms.dll',
         'WebView2Loader.dll',
@@ -828,7 +1067,7 @@ try {
         'vcruntime140.dll',
         'vcruntime140_1.dll'
     )
-    if (!$preserveApplicationData) {
+    if (!$preserveApplicationData -and !($Mode -eq 'Uninstall' -and $env:SOAI_UNINSTALL_OWNER_PID)) {
         $ownedFiles += '.soai-install-root'
     }
     foreach ($relative in $ownedFiles) {
@@ -853,7 +1092,8 @@ try {
         if ($env:SOAI_INSTALL_LOCK_HELD_PATH) {
             $remaining = @(Get-ChildItem -LiteralPath (ConvertTo-RemovalFilesystemPath $root) -Force -ErrorAction Stop)
             foreach ($entry in $remaining) {
-                if (![string]::Equals($entry.Name, 'data', [StringComparison]::OrdinalIgnoreCase)) {
+                if (![string]::Equals($entry.Name, 'data', [StringComparison]::OrdinalIgnoreCase) -and
+                    !($Mode -eq 'Uninstall' -and $env:SOAI_UNINSTALL_OWNER_PID -and $entry.Name -ceq '.soai-install-root')) {
                     throw "Admitted cleanup retained an unexpected application entry: $($entry.Name)"
                 }
             }

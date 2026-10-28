@@ -16,8 +16,6 @@ __all__ = (
     "PasswordStrengthResult",
     "evaluate_password_strength",
     "validate_password_strength",
-    "validate_strong_password",
-    "validate_very_strong_password",
 )
 
 
@@ -240,11 +238,3 @@ def validate_password_strength(
     if strength_order[result.strength] < strength_order[min_strength]:
         feedback_text = ", ".join(result.feedback) if result.feedback else "password is too weak"
         raise ValidationError(f"Password validation failed: {feedback_text}")
-
-
-def validate_strong_password(password: str) -> None:
-    validate_password_strength(password, PasswordStrength.STRONG)
-
-
-def validate_very_strong_password(password: str) -> None:
-    validate_password_strength(password, PasswordStrength.VERY_STRONG)

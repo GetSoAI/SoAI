@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import os
 from contextlib import AbstractContextManager, nullcontext
+from functools import partial
 from typing import TYPE_CHECKING
 
 from app.backup.manifest_entries import build_file_manifest_entry
@@ -18,6 +19,7 @@ from app.backup.task_registry_reporting import update_status_noncritical
 from app.backup.task_result_validation import require_backup_bool_value
 from core.backup.types import BackupFileEntry
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.concurrency.task_groups import cancel_and_await
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
@@ -64,6 +66,26 @@ async def _refresh_sqlite_backup_activity(
             )
 
 
+async def _copy_sqlite_database(
+    db_path: str,
+    dest_path: str,
+    *,
+    sqlite_backup_timeout_seconds: float,
+    sqlite_backup_timeout_seconds_per_gib: float,
+) -> bool:
+    return await run_joined_thread_call(
+        partial(
+            sync_sqlite_backup,
+            db_path,
+            dest_path,
+            timeout_seconds=sqlite_backup_timeout_seconds,
+            timeout_seconds_per_gib=sqlite_backup_timeout_seconds_per_gib,
+        ),
+        task_name="backup-sqlite-database-copy",
+        retain_resources_until_complete=True,
+    )
+
+
 async def _run_sqlite_backup_with_activity(
     *,
     db_path: str,
@@ -75,12 +97,11 @@ async def _run_sqlite_backup_with_activity(
     task_id: str | None,
 ) -> bool:
     if task_registry is None or not task_id:
-        return await asyncio.to_thread(
-            sync_sqlite_backup,
+        return await _copy_sqlite_database(
             db_path,
             dest_path,
-            timeout_seconds=sqlite_backup_timeout_seconds,
-            timeout_seconds_per_gib=sqlite_backup_timeout_seconds_per_gib,
+            sqlite_backup_timeout_seconds=sqlite_backup_timeout_seconds,
+            sqlite_backup_timeout_seconds_per_gib=sqlite_backup_timeout_seconds_per_gib,
         )
     stop_event = asyncio.Event()
     activity_task = create_ephemeral_task(
@@ -93,12 +114,11 @@ async def _run_sqlite_backup_with_activity(
         name=f"sqlite-backup-activity-{task_id}",
     )
     try:
-        return await asyncio.to_thread(
-            sync_sqlite_backup,
+        return await _copy_sqlite_database(
             db_path,
             dest_path,
-            timeout_seconds=sqlite_backup_timeout_seconds,
-            timeout_seconds_per_gib=sqlite_backup_timeout_seconds_per_gib,
+            sqlite_backup_timeout_seconds=sqlite_backup_timeout_seconds,
+            sqlite_backup_timeout_seconds_per_gib=sqlite_backup_timeout_seconds_per_gib,
         )
     finally:
         stop_event.set()

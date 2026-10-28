@@ -4,6 +4,8 @@
 @layer foundations {
     :root {
         --modal-overlay-backdrop-filter: blur(12px);
+        --modal-monochrome-backdrop-filter: grayscale(1);
+        --modal-monochrome-overlay-surface: color-mix(in srgb, var(--bg-primary) 90%, transparent);
         --modal-overlay-surface: var(--glass-surface-medium);
         --modal-surface-width: min(calc(80 * var(--ui-viewport-width-unit)), 500px);
         --modal-surface-max-height: min(calc(80 * var(--ui-viewport-height-unit)), 600px);

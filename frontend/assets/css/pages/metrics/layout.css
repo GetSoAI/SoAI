@@ -88,9 +88,8 @@
     :where([data-section='metrics'], [data-page-scope='metrics']) .frontend-metrics-table.table-compact td:nth-child(2) {
         width: 40%;
         min-width: 16ch;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
         white-space: normal;
-        word-break: break-word;
     }
 
     :where([data-section='metrics'], [data-page-scope='metrics']) .frontend-metrics-table.table-compact {

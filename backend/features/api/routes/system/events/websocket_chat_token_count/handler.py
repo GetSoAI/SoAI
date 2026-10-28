@@ -5,10 +5,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.errors.error_types import ErrorType
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_handled_exception
-from core.errors.exceptions import ValidationError
-from core.errors.public_projection import project_public_error
+from core.errors.exceptions import SoAIError, ValidationError
+from core.errors.payload import ErrorPublicPayload
+from core.errors.public_projection import project_public_error, project_specific_public_error
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from features.api.routes.system.events.chat_stream.command_payload_parsing import (
@@ -25,6 +27,7 @@ from features.api.routes.system.events.websocket_chat_token_count.computed_usage
 from features.api.routes.system.events.websocket_chat_token_count.payloads import (
     enqueue_conversation_not_found_token_count_error,
     enqueue_token_count_error,
+    enqueue_token_count_public_error,
 )
 from features.api.runtime.chat_usage_preview_projection import (
     prepare_chat_usage_preview_request,
@@ -46,6 +49,21 @@ LOGGER_NAME = "SoAI.features.api.handler"
 OPERATION_WEBUI_WS_CHAT_TOKEN_COUNT_COUNT = "webui_ws_chat_token_count.count"
 OPERATION_WEBUI_WS_CHAT_TOKEN_COUNT_PREPARE = "webui_ws_chat_token_count.prepare"
 OPERATION_WEBUI_WS_CHAT_TOKEN_COUNT_VALIDATE = "webui_ws_chat_token_count.validate"
+
+
+def _project_token_count_validation_error(
+    exception: ValidationError,
+    *,
+    trace_id: str | None,
+) -> ErrorPublicPayload:
+    specific = project_specific_public_error(exception, trace_id=trace_id)
+    if specific is not None:
+        return specific
+    return ErrorPublicPayload(
+        code=ErrorType.INVALID_REQUEST.value,
+        message=str(exception),
+        trace_id=trace_id,
+    )
 
 
 async def handle_chat_token_count(
@@ -74,6 +92,9 @@ async def handle_chat_token_count(
         payload = require_chat_command_json_payload(data, command_name="chat_token_count")
         fields = parse_chat_command_request_fields(payload)
         draft_user_text = resolve_optional_non_empty_chat_command_text(payload, "draft_user_text")
+        skill_target_input_id = resolve_optional_non_empty_chat_command_text(
+            payload, "target_input_id"
+        )
         draft_attachment_content = resolve_optional_chat_command_json_array(
             payload,
             "draft_attachment_content",
@@ -134,6 +155,7 @@ async def handle_chat_token_count(
             conv_id=conv_id,
             canonical_history=canonical_history,
             draft_user_text=draft_user_text,
+            skill_target_input_id=skill_target_input_id,
             draft_attachment_content=draft_attachment_content,
             logger=logger,
             trace_id=trace_id,
@@ -147,14 +169,29 @@ async def handle_chat_token_count(
             operation=OPERATION_WEBUI_WS_CHAT_TOKEN_COUNT_PREPARE,
             level="debug",
         )
-        await enqueue_token_count_error(
+        await enqueue_token_count_public_error(
             connection=connection,
             enqueue_warning_tracker=enqueue_warning_tracker,
-            trace_id=trace_id,
             conv_id=conv_id,
             request_id=request_id,
-            code="invalid_request_error",
-            message=str(exception),
+            public_error=_project_token_count_validation_error(exception, trace_id=trace_id),
+        )
+        return
+    except SoAIError as exception:
+        log_handled_exception(
+            logger,
+            exception,
+            message="Token count request preparation was rejected.",
+            trace_id=trace_id,
+            operation=OPERATION_WEBUI_WS_CHAT_TOKEN_COUNT_PREPARE,
+            level="warning" if int(exception.http_status) >= 500 else "debug",
+        )
+        await enqueue_token_count_public_error(
+            connection=connection,
+            enqueue_warning_tracker=enqueue_warning_tracker,
+            conv_id=conv_id,
+            request_id=request_id,
+            public_error=project_public_error(exception, trace_id=trace_id),
         )
         return
     except (AttributeError, KeyError, TypeError, ValueError) as exception:
@@ -203,14 +240,12 @@ async def handle_chat_token_count(
             level="debug",
             details={"conv_id": conv_id, "request_id": request_id},
         )
-        await enqueue_token_count_error(
+        await enqueue_token_count_public_error(
             connection=connection,
             enqueue_warning_tracker=enqueue_warning_tracker,
-            trace_id=trace_id,
             conv_id=conv_id,
             request_id=request_id,
-            code="invalid_request_error",
-            message=str(exception),
+            public_error=_project_token_count_validation_error(exception, trace_id=trace_id),
         )
     except RECOVERABLE_EXCEPTIONS as exception:
         coerced = coerce_to_soai_error(

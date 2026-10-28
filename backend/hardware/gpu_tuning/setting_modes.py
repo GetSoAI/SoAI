@@ -21,6 +21,7 @@ __all__ = (
     "derive_field_modes_from_settings",
     "field_modes_mapping_or_none",
     "field_modes_match_current",
+    "has_unrecognized_field_modes",
     "normalize_field_mode",
     "normalize_field_mode_mapping",
     "normalize_field_modes_for_settings",
@@ -94,6 +95,14 @@ def normalize_field_mode_mapping(value: JSONValue) -> JSONDict:
         if isinstance(field, str) and mode_text is not None:
             normalized[field] = mode_text
     return normalized
+
+
+def has_unrecognized_field_modes(value: JSONValue) -> bool:
+    if not isinstance(value, dict):
+        return True
+    return bool(set(value) - set(GPU_DIRECT_SETTING_FIELDS)) or len(
+        normalize_field_mode_mapping(value)
+    ) != len(value)
 
 
 def normalize_field_modes_value_for_settings(

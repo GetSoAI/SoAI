@@ -22,6 +22,7 @@ from models.actions.delete_workflows import (
 )
 from models.actions.dependencies import ModelActionsServiceDependencies
 from models.actions.openai_capability_overrides import (
+    replace_model_openai_capability_overrides,
     reset_model_openai_capability_overrides,
     update_model_openai_capability_override,
 )
@@ -125,6 +126,25 @@ class ModelActionsService:
             enabled=enabled,
         )
         await self._deps.mutation_effects.publish_catalog_changed()
+
+    async def model_replace_openai_capability_overrides(
+        self,
+        universal_id: str,
+        disabled: dict[str, list[str]],
+        enabled: dict[str, list[str]],
+        expected: JSONDict,
+    ) -> None:
+        _info, plugin_name = await self.model_validate_and_get_context(universal_id)
+        changed = await replace_model_openai_capability_overrides(
+            self._deps,
+            universal_id=universal_id,
+            plugin_name=plugin_name,
+            disabled=disabled,
+            enabled=enabled,
+            expected=expected,
+        )
+        if changed:
+            await self._deps.mutation_effects.publish_catalog_changed()
 
     async def model_reset_openai_capability_overrides(self, universal_id: str) -> None:
         _info, _plugin_name = await self.model_validate_and_get_context(universal_id)

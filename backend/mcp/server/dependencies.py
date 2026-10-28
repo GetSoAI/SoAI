@@ -13,7 +13,9 @@ import httpx2
 from core.attachments.protocols_database import (
     DatabaseConversationKnowledgeAttachmentsProtocol,
 )
+from core.browser.playwright_session_resources import PlaywrightSessionResources
 from core.calendar.protocols import CalendarServiceProtocol
+from core.concurrency.bounded_blocking import BoundedBlockingPool
 from core.config.protocols import ConfigProtocol
 from core.conversations.protocols_database_agents import (
     DatabaseAgentEventSequencesProtocol,
@@ -58,6 +60,7 @@ from core.rag.protocols import DatabaseKnowledgePromptStateProtocol
 from core.runtime.protocols import RuntimeFlagsViewProtocol
 from core.runtime.request_context import RequestContext
 from core.secrets.handle_store import SecretHandleStore
+from core.skills.protocols import SkillRepositoryProtocol
 from core.tasks.protocols import (
     CancellationEventBusProtocol,
     CancellationHistoryProtocol,
@@ -89,6 +92,8 @@ __all__ = ("MCPServerDependencies",)
 
 @dataclass(frozen=True, slots=True)
 class MCPServerDependencies(MCPSharedPersistence):
+    numeric_math_pool: BoundedBlockingPool
+    playwright_sessions: PlaywrightSessionResources
     config: ConfigProtocol
     licensing_status: LicensingStatusProtocol
     storage_manager: StorageManagerProtocol
@@ -106,6 +111,7 @@ class MCPServerDependencies(MCPSharedPersistence):
     database_knowledge_prompt_state: DatabaseKnowledgePromptStateProtocol
     database_users: DatabaseUsersProtocol
     database_conversations: DatabaseConversationsProtocol
+    database_skills: SkillRepositoryProtocol
     database_messages: DatabaseMessagesProtocol
     database_agent_event_sequences: DatabaseAgentEventSequencesProtocol
     database_agent_todo_state: DatabaseAgentTodoStateProtocol
@@ -154,6 +160,8 @@ class MCPServerDependencies(MCPSharedPersistence):
     def __post_init__(self) -> None:
         require_dependencies(
             owner="MCPServerDependencies",
+            numeric_math_pool=self.numeric_math_pool,
+            playwright_sessions=self.playwright_sessions,
             active_client_context=self.active_client_context,
             active_task_context=self.active_task_context,
             active_user_id_context=self.active_user_id_context,
@@ -173,6 +181,7 @@ class MCPServerDependencies(MCPSharedPersistence):
             database_agent_todo_state=self.database_agent_todo_state,
             database_agent_plan=self.database_agent_plan,
             database_conversations=self.database_conversations,
+            database_skills=self.database_skills,
             database_conversation_knowledge_attachments=(
                 self.database_conversation_knowledge_attachments
             ),

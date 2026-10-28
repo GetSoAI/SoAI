@@ -19,6 +19,7 @@ import type { SystemManager } from '@pages/settings/controllers/systemmanager/Sy
 import type { ThemeManager } from '@pages/settings/controllers/thememanager/ThemeManager.ts';
 import type { UsersManager } from '@pages/settings/controllers/UsersManager.ts';
 import type { InstanceIdentityManager } from '@pages/settings/controllers/instanceidentity/InstanceIdentityManager.ts';
+import type { SpeechModelSettingsManager } from '@pages/settings/controllers/speechmodel/SpeechModelSettingsManager.ts';
 import type { SettingsUi } from '@pages/settings/types.ts';
 import type { LicensingManager } from '@pages/settings/controllers/LicensingManager.ts';
 import type { ConnectManager } from '@pages/settings/controllers/ConnectManager.ts';
@@ -91,6 +92,7 @@ interface SettingsPageState {
     backupOperation: BackupOperationState | null;
     preferencesManager: PreferencesManager | null;
     instanceIdentityManager: InstanceIdentityManager | null;
+    speechModelSettingsManager: SpeechModelSettingsManager | null;
     themeManager: ThemeManager | null;
     usersManager: UsersManager | null;
     aclManager: AclManager | null;
@@ -162,6 +164,7 @@ const createInitialSettingsPageState = (restartOverlay: RestartOverlayService): 
         backupOperation: null,
         preferencesManager: null,
         instanceIdentityManager: null,
+        speechModelSettingsManager: null,
         themeManager: null,
         usersManager: null,
         aclManager: null,

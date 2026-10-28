@@ -39,6 +39,7 @@ from database.repositories.users.conversation_attachment_knowledge_terminal_coun
 from database.repositories.users.conversation_attachment_rows import (
     format_knowledge_attachment_row,
 )
+from database.repositories.users.conversation_knowledge_extraction import KNOWLEDGE_SUMMARY_COLUMNS
 
 KNOWLEDGE_ATTACHMENT_FIELD_LABEL = "Knowledge attachment field"
 
@@ -60,7 +61,7 @@ def _fetch_summary_by_task_id(
     row = sync_fetch_one_as_dict(
         conn.execute(
             f"""
-            SELECT *
+            SELECT {KNOWLEDGE_SUMMARY_COLUMNS}
             FROM webui_conversation_knowledge_attachments
             WHERE task_id = ?
               AND state IN ({state_placeholders})

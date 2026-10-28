@@ -186,7 +186,7 @@
         border: var(--border-width-1) solid var(--text-field-border);
         border-radius: var(--border-radius);
         background: var(--text-field-bg);
-        color: var(--text-primary);
+        color: var(--text-field-color);
         font-size: var(--font-size-sm);
         font-weight: 500;
     }

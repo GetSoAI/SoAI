@@ -12,6 +12,7 @@ from core.config.numeric_lenient import (
     coerce_lenient_positive_int,
 )
 from core.errors.exceptions import ConfigurationError
+from core.media.config import read_speech_model_setting
 from core.validation.booleans import parse_bool_flag_with_default
 
 if TYPE_CHECKING:
@@ -20,9 +21,6 @@ if TYPE_CHECKING:
 __all__ = ("ReadVideoConfig", "resolve_read_video_config")
 
 _PREFIX = "TOOLS.MCP.READ_VIDEO"
-_VALID_WHISPER_MODELS = frozenset(
-    {"tiny", "base", "small", "medium", "large", "large-v2", "large-v3"},
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,23 +148,9 @@ def resolve_read_video_config(config: ConfigProtocol) -> ReadVideoConfig:
                 default=1000,
                 minimum=0,
             ),
-            whisper_model=_read_whisper_model(config),
+            whisper_model=read_speech_model_setting(config),
         )
     except AttributeError as exception:
         raise ConfigurationError(
             "read_video config requires a ConfigProtocol provider.",
         ) from exception
-
-
-def _read_whisper_model(config: ConfigProtocol) -> str:
-    raw_value = config.get(f"{_PREFIX}.WHISPER_MODEL")
-    if isinstance(raw_value, str):
-        model = raw_value.strip() or "base"
-    else:
-        model = "base"
-    if model not in _VALID_WHISPER_MODELS:
-        valid_list = ", ".join(sorted(_VALID_WHISPER_MODELS))
-        raise ConfigurationError(
-            f"{_PREFIX}.WHISPER_MODEL is invalid: {model}. Valid: {valid_list}",
-        )
-    return model

@@ -8,6 +8,7 @@ interface ConversationMutationSnapshot {
     messages: ConversationMessage[];
     title: string | undefined;
     hasTitle: boolean;
+    committedTitleMetadata: ConversationContract['committedTitleMetadata'];
     modelSettings: ConversationContract['modelSettings'];
     hasModelSettings: boolean;
     updatedAt: number | undefined;
@@ -29,6 +30,7 @@ const captureConversationMutationSnapshot = (conversation: ConversationContract)
         messages: [...conversation.messages],
         title: conversation.title,
         hasTitle: hasConversationField(conversation, 'title'),
+        committedTitleMetadata: conversation.committedTitleMetadata,
         modelSettings: conversation.modelSettings,
         hasModelSettings: hasConversationField(conversation, 'modelSettings'),
         updatedAt: conversation.updatedAt,
@@ -38,14 +40,16 @@ const captureConversationMutationSnapshot = (conversation: ConversationContract)
 
 const restoreConversationMutationSnapshot = (conversation: ConversationContract, snapshot: ConversationMutationSnapshot): void => {
     conversation.messages = snapshot.messages;
-    if (snapshot.hasTitle) {
-        if (snapshot.title === undefined) {
-            delete conversation['title'];
+    if (conversation.committedTitleMetadata === snapshot.committedTitleMetadata) {
+        if (snapshot.hasTitle) {
+            if (snapshot.title === undefined) {
+                delete conversation['title'];
+            } else {
+                conversation.title = snapshot.title;
+            }
         } else {
-            conversation.title = snapshot.title;
+            delete conversation['title'];
         }
-    } else {
-        delete conversation['title'];
     }
     if (snapshot.hasModelSettings) {
         if (snapshot.modelSettings === undefined) {

@@ -24,7 +24,7 @@ const areCollectionCardRevealAnimationsDisabled = (scope: Document | Element): b
     return isReducedAnimationScope(scope);
 };
 
-const formatCollectionCardRevealDelay = (index: number): string => `${index * COLLECTION_CARD_REVEAL_STEP_MS}ms`;
+const formatCollectionCardRevealDelay = (index: number, stepMs: number = COLLECTION_CARD_REVEAL_STEP_MS): string => `${index * stepMs}ms`;
 
 const resolveCollectionCardRevealTargets = (node: HTMLElement): HTMLElement[] => {
     const view = node.ownerDocument.defaultView;
@@ -38,9 +38,25 @@ const resolveCollectionCardRevealTargets = (node: HTMLElement): HTMLElement[] =>
     throw new Error('Collection display-contents item requires explicit card reveal targets');
 };
 
+const collectionCardRevealCleanups = new WeakMap<HTMLElement, (event: Event) => void>();
+
 const clearCollectionCardRevealTarget = (node: HTMLElement): void => {
+    const cleanup = collectionCardRevealCleanups.get(node);
+    if (cleanup !== undefined) {
+        collectionCardRevealCleanups.delete(node);
+        node.removeEventListener('animationend', cleanup);
+        node.removeEventListener('animationcancel', cleanup);
+    }
     node.classList.remove(COLLECTION_CARD_ENTERING_CLASS);
     node.style.removeProperty('--collection-enter-delay');
+};
+
+const canCollectionCardEnterAnimationReplay = (node: HTMLElement): boolean => {
+    if (node.closest(`.${COLLECTION_CARD_REVEAL_READY_CLASS}`) === null) {
+        return true;
+    }
+    const animationNames = node.ownerDocument.defaultView?.getComputedStyle(node).animationName ?? '';
+    return animationNames.split(',').some((animationName) => animationName.trim() === COLLECTION_CARD_ENTER_ANIMATION_NAME);
 };
 
 const readCollectionCardRevealDelay = (node: HTMLElement): string | null => {
@@ -52,24 +68,32 @@ const readCollectionCardRevealDelay = (node: HTMLElement): string | null => {
     return null;
 };
 
+const readStagedCollectionCardRevealDelay = (node: HTMLElement): string | null => {
+    const section = node.closest('[data-section]');
+    if (section === null || section.classList.contains(COLLECTION_CARD_REVEAL_READY_CLASS)) return null;
+    return readCollectionCardRevealDelay(node);
+};
+
 const armCollectionCardRevealTarget = (node: HTMLElement, delay: string): void => {
     if (delay) {
         node.style.setProperty('--collection-enter-delay', delay);
     } else {
         node.style.removeProperty('--collection-enter-delay');
     }
-    if (node.classList.contains(COLLECTION_CARD_ENTERING_CLASS)) {
+    node.classList.add(COLLECTION_CARD_ENTERING_CLASS);
+    if (collectionCardRevealCleanups.has(node)) {
         return;
     }
-    node.classList.add(COLLECTION_CARD_ENTERING_CLASS);
     const cleanup = (event: Event): void => {
         if (!(event instanceof AnimationEvent) || event.target !== node || event.animationName !== COLLECTION_CARD_ENTER_ANIMATION_NAME) {
             return;
         }
-        node.removeEventListener('animationend', cleanup);
-        node.removeEventListener('animationcancel', cleanup);
+        if (event.type === 'animationcancel' && canCollectionCardEnterAnimationReplay(node)) {
+            return;
+        }
         clearCollectionCardRevealTarget(node);
     };
+    collectionCardRevealCleanups.set(node, cleanup);
     node.addEventListener('animationend', cleanup);
     node.addEventListener('animationcancel', cleanup);
 };
@@ -80,8 +104,8 @@ const armCollectionCardRevealTargets = (node: HTMLElement, delay: string): void 
     }
 };
 
-const armCollectionCardRevealTargetsAtIndex = (node: HTMLElement, index: number): void => {
-    armCollectionCardRevealTargets(node, formatCollectionCardRevealDelay(index));
+const armCollectionCardRevealTargetsAtIndex = (node: HTMLElement, index: number, stepMs: number = COLLECTION_CARD_REVEAL_STEP_MS): void => {
+    armCollectionCardRevealTargets(node, formatCollectionCardRevealDelay(index, stepMs));
 };
 
 const hasCollectionCardRevealTargetArmed = (node: HTMLElement): boolean => {
@@ -157,4 +181,4 @@ const armCollectionCardRevealTargetsForCommit = (nodes: readonly HTMLElement[]):
     });
 };
 
-export { COLLECTION_CARD_REVEAL_LIMIT, areCollectionCardRevealAnimationsDisabled, armCollectionCardRevealTargets, armCollectionCardRevealTargetsAtIndex, armCollectionCardRevealTargetsForCommit, clearCollectionCardRevealHydrating, hasCollectionCardRevealTargetArmed, isCollectionCardRevealHydrating, markCollectionCardRevealHydrating, readCollectionCardRevealDelay, releaseCollectionCardReveal, stageCollectionCardReveal, stageCollectionGridCardReveal };
+export { COLLECTION_CARD_REVEAL_LIMIT, areCollectionCardRevealAnimationsDisabled, armCollectionCardRevealTargets, armCollectionCardRevealTargetsAtIndex, armCollectionCardRevealTargetsForCommit, clearCollectionCardRevealHydrating, hasCollectionCardRevealTargetArmed, isCollectionCardRevealHydrating, markCollectionCardRevealHydrating, readCollectionCardRevealDelay, readStagedCollectionCardRevealDelay, releaseCollectionCardReveal, stageCollectionCardReveal, stageCollectionGridCardReveal };

@@ -32,6 +32,18 @@
         white-space: nowrap;
     }
 
+    .chart-filter > .dropdown-select {
+        width: 100%;
+        max-width: 26ch;
+    }
+
+    .chart-filter > .dropdown-select::after {
+        inset-inline-end: var(--space-15);
+        width: var(--control-icon-size-compact);
+        height: var(--control-icon-size-compact);
+        mask-size: var(--control-icon-size-compact);
+    }
+
     .chart-filter-select {
         appearance: none;
         width: 100%;
@@ -40,10 +52,10 @@
         min-height: var(--control-height-compact);
         padding-block: 0 0;
         padding-inline: var(--space-2) calc(var(--space-2) + var(--control-icon-size-compact) + var(--space-15));
-        border: var(--border-width-1) solid var(--glass-border-strong);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--filter-control-border) var(--control-button-border-strength), transparent);
         border-radius: var(--border-radius);
-        color: var(--text-primary);
-        background-color: var(--bg-secondary);
+        color: var(--filter-control-color);
+        background-color: var(--filter-control-bg);
         background-image: var(--control-select-arrow-image);
         background-repeat: no-repeat;
         background-position: var(--inline-end-edge) var(--space-15) center;
@@ -58,10 +70,14 @@
             color var(--transition-fast);
     }
 
-    .chart-filter-select:is(:hover, :focus-visible) {
-        border-color: var(--status-grey);
-        background-color: var(--bg-tertiary);
-        color: var(--text-primary);
+    .chart-filter > .dropdown-select > .chart-filter-select {
+        background-image: none;
+    }
+
+    .chart-filter-select:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true']) {
+        border-color: color-mix(in srgb, var(--filter-control-border-hover) var(--control-button-border-strength), transparent);
+        background-color: var(--filter-control-bg-hover);
+        color: var(--filter-control-color-hover);
     }
 
     .chart-filter-select :is(option, optgroup) {
@@ -95,7 +111,7 @@
 
     .chart-filter-buttons > .ui-button.is-active {
         background-color: var(--ui-button-bg-hover);
-        border-color: var(--ui-button-border-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
         color: var(--ui-button-color-hover);
     }
 

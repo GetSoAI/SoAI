@@ -34,7 +34,13 @@ const wrapFilterControl = ({ type, control, showLabel, label }: WrapFilterContro
             })
         );
     }
-    wrapper.appendChild(control);
+    if (control instanceof HTMLSelectElement) {
+        const selectShell = dom.create('span', { className: 'dropdown-select', includeIdClass: false });
+        selectShell.appendChild(control);
+        wrapper.appendChild(selectShell);
+    } else {
+        wrapper.appendChild(control);
+    }
     return wrapper;
 };
 
@@ -78,6 +84,7 @@ const createFilterTrigger = (): HTMLButtonElement => {
 const createFilterPanel = (): HTMLDivElement => {
     const panel = dom.create('div', {
         className: 'chart-filters-panel',
+        'data-presence-visual-only': '',
         includeIdClass: false
     });
     if (!(panel instanceof HTMLDivElement)) {

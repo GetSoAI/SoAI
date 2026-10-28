@@ -21,6 +21,41 @@ const resolveFullscreenTransition = (content: HTMLElement): string => {
     return `width ${duration}ms ease, height ${duration}ms ease, transform ${duration}ms ease`;
 };
 
+const beginFullscreenTransition = (state: ModalHostState, content: HTMLElement, transition: string): (() => void) => {
+    const previous = state.fullscreenTransitions.get(content);
+    if (previous) {
+        previous.abort();
+        state.resources.untrack(previous);
+    }
+    const events = new AbortController();
+    state.fullscreenTransitions.set(content, events);
+    state.resources.track(events, (controller) => {
+        controller.abort();
+        state.fullscreenTransitions.delete(content);
+    });
+    let layoutPainted = false;
+    const settle = (event?: Event): void => {
+        if (!layoutPainted || events.signal.aborted || (event && event.target !== content)) return;
+        if (content.getAnimations().some((animation) => animation instanceof CSSTransition && animation.playState !== 'finished' && animation.playState !== 'idle')) return;
+        events.abort();
+        state.resources.untrack(events);
+        state.fullscreenTransitions.delete(content);
+        dom.setStyle(content, 'transition', '');
+    };
+    content.addEventListener('transitionend', settle, { signal: events.signal });
+    content.addEventListener('transitioncancel', settle, { signal: events.signal });
+    dom.setStyle(content, 'transition', transition);
+    return () => {
+        state.resources.requestAnimationFrame(() => {
+            if (events.signal.aborted) return;
+            state.resources.requestAnimationFrame(() => {
+                layoutPainted = true;
+                settle();
+            });
+        });
+    };
+};
+
 const getModalElement = (id: string): Element | null => {
     const modalId = id ? id.trim() : '';
     return modalId ? dom.resolve(`#${modalId}`) : null;
@@ -39,7 +74,7 @@ const applyFullscreenLayout = (state: ModalHostState, modalId: string, content: 
         sizeOverride: { width: limits.maxWidth, height: limits.maxHeight }
     });
 
-    dom.setStyle(content, 'transition', transition);
+    const scheduleSettlement = beginFullscreenTransition(state, content, transition);
     dom.setStyles(content, {
         width: `${limits.maxWidth}px`,
         height: `${limits.maxHeight}px`,
@@ -50,6 +85,7 @@ const applyFullscreenLayout = (state: ModalHostState, modalId: string, content: 
     });
     applyPosition(content, bounded);
     dom.addClass(content, 'is-fullscreen');
+    scheduleSettlement();
     return true;
 };
 
@@ -111,33 +147,22 @@ const exitFullscreen = (state: ModalHostState, modalId: string, content: HTMLEle
     }
     const generation = advanceModalLayoutGeneration(state);
 
-    dom.setStyle(content, 'transition', immediate ? 'none' : resolveFullscreenTransition(content));
+    const scheduleSettlement = beginFullscreenTransition(state, content, immediate ? 'none' : resolveFullscreenTransition(content));
     const restoredPosition = forcedPosition ?? savedState.previousPosition;
     const restoredX = restoredPosition.x;
     const restoredY = restoredPosition.y;
 
-    const hasForcedPosition = forcedPosition !== undefined;
     const restoreStyles = (): void => {
         if (!isModalLayoutCurrent(state, modalId, generation)) {
+            scheduleSettlement();
             return;
         }
-        const transition = resolveFullscreenTransition(content);
         dom.setStyles(content, {
             width: `${savedState.previousSize.width}px`,
             height: `${savedState.previousSize.height}px`
         });
         applyPosition(content, { x: restoredX, y: restoredY });
-        if (immediate && !hasForcedPosition) {
-            dom.setStyle(content, 'transition', transition);
-        }
-        if (immediate && hasForcedPosition) {
-            state.resources.requestAnimationFrame(() => {
-                if (!isModalLayoutCurrent(state, modalId, generation)) {
-                    return;
-                }
-                dom.setStyle(content, 'transition', transition);
-            });
-        }
+        scheduleSettlement();
     };
 
     dom.removeClass(content, 'is-fullscreen');

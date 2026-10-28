@@ -25,7 +25,6 @@ __all__ = (
     "IMAGES_EDITS_CREATE_MULTIPART_FIELDS",
     "IMAGES_GENERATIONS_CREATE_FIELDS",
     "IMAGES_VARIATIONS_CREATE_MULTIPART_FIELDS",
-    "OPENAI_ENDPOINT_FIELD_SNAPSHOTS",
     "RESPONSES_COMPACT_FIELDS",
     "RESPONSES_CREATE_FIELDS",
     "RESPONSES_INPUT_TOKENS_FIELDS",
@@ -167,56 +166,4 @@ EMBEDDINGS_CREATE_FIELDS = frozenset(
         "model",
         "user",
     },
-)
-
-OPENAI_ENDPOINT_FIELD_SNAPSHOTS: tuple[tuple[str, str, str, frozenset[str]], ...] = (
-    ("/chat/completions", "post", "application/json", CHAT_COMPLETIONS_CREATE_FIELDS),
-    (
-        "/chat/completions/{completion_id}",
-        "post",
-        "application/json",
-        CHAT_COMPLETIONS_MODIFY_FIELDS,
-    ),
-    ("/completions", "post", "application/json", COMPLETIONS_CREATE_FIELDS),
-    ("/responses", "post", "application/json", RESPONSES_CREATE_FIELDS),
-    (
-        "/responses/input_tokens",
-        "post",
-        "application/json",
-        RESPONSES_INPUT_TOKENS_FIELDS,
-    ),
-    ("/responses/compact", "post", "application/json", RESPONSES_COMPACT_FIELDS),
-    ("/embeddings", "post", "application/json", EMBEDDINGS_CREATE_FIELDS),
-    (
-        "/images/generations",
-        "post",
-        "application/json",
-        IMAGES_GENERATIONS_CREATE_FIELDS,
-    ),
-    (
-        "/images/edits",
-        "post",
-        "multipart/form-data",
-        IMAGES_EDITS_CREATE_MULTIPART_FIELDS,
-    ),
-    (
-        "/images/variations",
-        "post",
-        "multipart/form-data",
-        IMAGES_VARIATIONS_CREATE_MULTIPART_FIELDS,
-    ),
-    (
-        "/audio/transcriptions",
-        "post",
-        "multipart/form-data",
-        AUDIO_TRANSCRIPTIONS_CREATE_MULTIPART_FIELDS,
-    ),
-    (
-        "/audio/translations",
-        "post",
-        "multipart/form-data",
-        AUDIO_TRANSLATIONS_CREATE_MULTIPART_FIELDS,
-    ),
-    ("/audio/speech", "post", "application/json", AUDIO_SPEECH_CREATE_FIELDS),
-    ("/files", "post", "multipart/form-data", FILES_CREATE_MULTIPART_FIELDS),
 )

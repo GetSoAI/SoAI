@@ -4,7 +4,7 @@
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
 import type { DataPoint, MetricChartNormalizer } from '@features/hardware/widgets/contracts.ts';
-import { buildChartSeries, createSmoothLine, createSmoothPath } from '@features/hardware/widgets/mappers.ts';
+import { type ChartPoint, buildChartSeries, createSmoothPathValues } from '@features/hardware/widgets/mappers.ts';
 import { SCALE_CONFIG, WIDGET_CONSTANTS } from '@features/hardware/widgets/constants.ts';
 import type { ChartPathValues } from '@features/hardware/widgets/basehardwarewidget/types.ts';
 
@@ -14,7 +14,7 @@ const resolveWidgetWindowDurationMs = (): number => {
 };
 
 const appendLiveDataPoint = (points: ReadonlyArray<DataPoint>, point: DataPoint, now: number): DataPoint[] => {
-    const nextPoints = [...points, point];
+    const nextPoints = [...points.filter((existing) => existing.timestamp !== point.timestamp), point];
     const cutoff = now - resolveWidgetWindowDurationMs();
     while (nextPoints.length > 0) {
         const first = nextPoints[0];
@@ -43,43 +43,33 @@ const trimHistoricalDataPoints = (points: ReadonlyArray<DataPoint>): DataPoint[]
 
 const identityChartNormalizer: MetricChartNormalizer = (value: number): number => value;
 
-const buildSinglePointPathValues = (point: DataPoint, metric: string, normalizeMetricValue: MetricChartNormalizer): ChartPathValues => {
+const buildSinglePointSeries = (point: DataPoint, metric: string, now: number, normalizeMetricValue: MetricChartNormalizer): ChartPoint[] => {
     const viewBox = WIDGET_CONSTANTS.SVG_VIEWBOX;
     const rawValue = point[metric];
-    const value = isFiniteNumber(rawValue) ? rawValue : 0;
+    if (!isFiniteNumber(rawValue) || point.timestamp < now - resolveWidgetWindowDurationMs()) return [];
+    const value = rawValue;
     const normalizedValue = clampNumber(normalizeMetricValue(value, metric), 0, 100);
     const yCoordinate = viewBox - (normalizedValue / 100) * viewBox;
-    const normalizedPoints = [
+    return [
         { x: 0, y: yCoordinate },
-        { x: viewBox, y: yCoordinate }
+        { x: clampNumber(((point.timestamp - now + resolveWidgetWindowDurationMs()) / resolveWidgetWindowDurationMs()) * viewBox, 0, viewBox), y: yCoordinate }
     ];
-    return {
-        areaPath: createSmoothPath(normalizedPoints, WIDGET_CONSTANTS.SVG_VIEWBOX),
-        linePath: createSmoothLine(normalizedPoints)
-    };
+};
+
+const buildWidgetChartSeries = (points: ReadonlyArray<DataPoint>, metric: string, now: number, normalizeMetricValue: MetricChartNormalizer = identityChartNormalizer): ChartPoint[] => {
+    if (points.length === 0) return [];
+    if (points.length === 1) {
+        const point = points[0];
+        if (!point) throw new Error('Expected widget chart point to exist when points.length === 1');
+        return buildSinglePointSeries(point, metric, now, normalizeMetricValue);
+    }
+    const normalizedPoints = buildChartSeries(points, metric, now, resolveWidgetWindowDurationMs(), WIDGET_CONSTANTS.SVG_VIEWBOX, normalizeMetricValue);
+    return normalizedPoints.length >= 2 ? normalizedPoints : [];
 };
 
 const buildWidgetChartPathValues = (points: ReadonlyArray<DataPoint>, metric: string, now: number, normalizeMetricValue: MetricChartNormalizer = identityChartNormalizer): ChartPathValues => {
-    if (points.length === 0) {
-        return { areaPath: '', linePath: '' };
-    }
-    if (points.length === 1) {
-        const point = points[0];
-        if (!point) {
-            throw new Error('Expected widget chart point to exist when points.length === 1');
-        }
-        return buildSinglePointPathValues(point, metric, normalizeMetricValue);
-    }
-
-    const normalizedPoints = buildChartSeries(points, metric, now, resolveWidgetWindowDurationMs(), WIDGET_CONSTANTS.SVG_VIEWBOX, normalizeMetricValue);
-    if (normalizedPoints.length < 2) {
-        return { areaPath: '', linePath: '' };
-    }
-
-    return {
-        areaPath: createSmoothPath(normalizedPoints, WIDGET_CONSTANTS.SVG_VIEWBOX),
-        linePath: createSmoothLine(normalizedPoints)
-    };
+    const series = buildWidgetChartSeries(points, metric, now, normalizeMetricValue);
+    return createSmoothPathValues(series, WIDGET_CONSTANTS.SVG_VIEWBOX);
 };
 
-export { appendLiveDataPoint, buildWidgetChartPathValues, trimHistoricalDataPoints };
+export { appendLiveDataPoint, buildWidgetChartPathValues, buildWidgetChartSeries, resolveWidgetWindowDurationMs, trimHistoricalDataPoints };

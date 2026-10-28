@@ -51,6 +51,7 @@ const handleModalViewportChange = (state: ModalHostState): void => {
             if (!(modal instanceof HTMLElement)) {
                 return;
             }
+            if (state.registry.getConfig(id).presentation === 'viewport') return;
             syncFullscreenButton(state, id, modal);
             const contentElement = modal ? dom.resolve('.modal-content', modal) : null;
             const content = contentElement instanceof HTMLElement ? contentElement : null;

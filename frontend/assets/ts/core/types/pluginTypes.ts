@@ -5,6 +5,15 @@ import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 
 import type { Plugin, PluginCapabilities } from '@core/types/catalogPluginTypes.ts';
 
+export interface PluginBackendUpdateAdvisory extends JsonObject {
+    status: 'none' | 'check_pending' | 'current' | 'update_available' | 'check_failed' | 'unavailable';
+    currentVersion: string | null;
+    latestVersion: string | null;
+    checkedAtMs: number | null;
+    autoUpdateFailed: boolean;
+    canUpdate: boolean;
+}
+
 export interface PluginStats {
     backendVariantAvailableCount?: number;
     modelCount?: number;
@@ -48,6 +57,7 @@ export interface OpenAICapabilities extends JsonObject {
 }
 
 export interface PluginCapabilitiesExtended extends PluginCapabilities {
+    localModels?: boolean;
     hasConfiguration?: boolean;
     supportsCloning?: boolean;
     supportsBackendInstallation?: boolean;
@@ -62,6 +72,7 @@ export interface PluginRecord extends Omit<Plugin, 'capabilities'> {
     icon?: string;
     logoRevision?: string | null;
     backendVersion?: string;
+    backendUpdate?: PluginBackendUpdateAdvisory;
     disabledReason?: string | null;
     modalities?: string[];
     icons?: { default?: string };

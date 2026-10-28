@@ -51,7 +51,8 @@ def build_openai_validation_error_response(
     public_payload = project_public_error(exception, trace_id=trace_id)
     return build_openai_invalid_request_json_response(
         message=public_payload.message,
-        param=_extract_param(public_payload.details),
+        param=public_payload.param or _extract_param(public_payload.details),
+        code=str(public_payload.code),
         trace_id=trace_id,
         headers=headers,
     )
@@ -98,6 +99,7 @@ def build_openai_soai_error_response(
         details=public_payload.details,
         trace_id=trace_id,
         headers=headers,
+        public_error=public_payload,
     )
 
 

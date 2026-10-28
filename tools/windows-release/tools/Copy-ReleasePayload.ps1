@@ -125,6 +125,7 @@ Copy-Item -LiteralPath (Join-Path $windowsReleaseRoot 'installer\scripts\Install
 Copy-Item -LiteralPath (Join-Path $windowsReleaseRoot 'installer\scripts\Admit-SoAIInstall.ps1') -Destination $supportDir -Force
 Copy-Item -LiteralPath (Join-Path $windowsReleaseRoot 'dependencies-v1.json') -Destination $supportDir -Force
 Copy-Item -LiteralPath (Join-Path $windowsReleaseRoot 'installer\scripts\Remove-SoAI.ps1') -Destination $supportDir -Force
+Copy-Item -LiteralPath (Join-Path $windowsReleaseRoot 'installer\scripts\Shared-SoAIResourceOwnership.ps1') -Destination $supportDir -Force
 Copy-Item -LiteralPath (Join-Path $windowsReleaseRoot 'installer\scripts\Preserve-SoAIUpgrade.ps1') -Destination $supportDir -Force
 
 $releaseInfo = (@{

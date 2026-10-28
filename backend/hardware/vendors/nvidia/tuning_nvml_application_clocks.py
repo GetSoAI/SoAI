@@ -15,12 +15,10 @@ from hardware.vendors.nvidia.nvml_application_clock_capabilities import (
 )
 
 if TYPE_CHECKING:
-    import ctypes
-
     from core.logging.protocols import TraceLogger
     from core.types.json import JSONDict, JSONValue
+    from hardware.vendors.nvidia.internal_protocols import NvmlDeviceHandle
 
-    type NvmlDeviceHandle = ctypes.c_void_p
 
 __all__ = (
     "apply_nvml_application_clock_settings",

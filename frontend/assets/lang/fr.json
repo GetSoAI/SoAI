@@ -68,6 +68,15 @@
                     }
                 },
                 "initFailed": "Échec de l’initialisation de la WebUI SoAI",
+                "reference": "Référence : {reference}",
+                "stages": {
+                    "entrypoint": "La WebUI n’a pas pu charger ses ressources de démarrage. Rechargez la page pour réessayer.",
+                    "criticalServices": "La WebUI n’a pas pu démarrer les services dont elle a besoin. Vérifiez que le backend SoAI est en cours d’exécution, puis rechargez la page.",
+                    "authentication": "La WebUI n’a pas pu vérifier l’état de la configuration et de la connexion. Rechargez la page pour réessayer.",
+                    "session": "La WebUI n’a pas pu préparer votre session connectée. Rechargez la page pour réessayer.",
+                    "routeRendering": "La WebUI n’a pas pu afficher la page demandée. Rechargez la page pour réessayer.",
+                    "background": "La WebUI n’a pas pu terminer ses dernières étapes de démarrage. Rechargez la page pour réessayer."
+                },
                 "routeNotReady": "La page n’a pas fini de se charger à temps. Veuillez la recharger.",
                 "unknown": "Une erreur inconnue s’est produite."
             },
@@ -610,13 +619,17 @@
                 "notSupported": "L’enregistrement vocal nécessite une connexion sécurisée (HTTPS) ou localhost",
                 "permissionDenied": "Accès au microphone refusé. Autorisez l’accès au microphone dans les paramètres de votre navigateur.",
                 "recordingFailed": "Échec de l’enregistrement",
-                "transcriptionFailed": "Échec de la transcription vocale."
+                "transcriptionFailed": "Échec de la transcription vocale.",
+                "transcriptionDeadlineExceeded": "La transcription a pris trop de temps et a été annulée. Essayez un enregistrement plus court ou un modèle de transcription plus rapide.",
+                "transcriptionCancellationUnconfirmed": "La transcription a pris trop de temps et son annulation n'a pas pu être confirmée. Patientez un instant avant de réessayer.",
+                "transcriptionCancellationUnconfirmedReference": "La transcription a pris trop de temps et son annulation n'a pas pu être confirmée. Patientez un instant avant de réessayer. Référence : {reference}"
             },
             "audioPreview": {
                 "cancel": "Annuler l’enregistrement",
                 "errorTitle": "Enregistrement vocal",
                 "processingStatus": "Envoi de l’audio pour transcription",
                 "processingTitle": "Transcription de la voix",
+                "transcriptionSettling": "Délai atteint. Arrêt de la transcription…",
                 "recordingStatus": "Enregistrement {elapsed}",
                 "recordingTitle": "Enregistrement vocal",
                 "requestingStatus": "En attente de l’autorisation du navigateur",
@@ -742,8 +755,8 @@
                     "title": "Paramètres des connaissances"
                 },
                 "memory": {
-                    "description": "La mémoire persistante aide SoAI à comprendre vos préférences, vos objectifs et le contexte récurrent sans nécessiter un prompt personnalisé à chaque fois.",
-                    "empty": "Aucune mémoire enregistrée pour le moment.",
+                    "description": "La mémoire persistante aide SoAI à comprendre vos préférences, vos objectifs et le contexte récurrent sans nécessiter un prompt personnalisé à chaque fois",
+                    "empty": "Aucune mémoire enregistrée pour le moment",
                     "openProfile": "Ouvrir le formulaire de profil",
                     "refresh": "Actualiser la mémoire",
                     "title": "Paramètres de mémoire",
@@ -794,7 +807,7 @@
                     "knowledgeManagedToolsEnabledHint": "Les outils restent automatiquement activés tant que les connaissances indexées sont actives pour cette conversation. Cela ne modifie pas votre valeur par défaut pour les nouveaux chats",
                     "noServers": "Aucun serveur MCP disponible.",
                     "noTools": "Aucun outil MCP disponible.",
-                    "resetToolsDescription": "Réinitialiser les outils de {mode} aux valeurs par défaut de SoAI.",
+                    "resetToolsDescription": "Réinitialiser les outils de {mode} aux valeurs par défaut de SoAI",
                     "resetToolsLabel": "Réinitialiser",
                     "resetToolsTitle": "Réinitialiser les outils par défaut",
                     "servers": "Serveurs",
@@ -880,7 +893,9 @@
                         "parsing": "Analyse",
                         "queued": "En attente",
                         "unreadable": "Illisible",
-                        "unknown": "Inconnu"
+                        "unknown": "Inconnu",
+                        "noTranscript": "Aucune transcription",
+                        "partial": "Extraction partielle"
                     },
                     "title": "Paramètres RAG",
                     "topK": "Top K"
@@ -955,8 +970,8 @@
                     "newAction": "Nouveau préréglage",
                     "noMatches": "Aucun préréglage ne correspond à cette recherche.",
                     "noChanges": "Le préréglage n’a pas modifié la configuration en attente.",
-                    "notApplicable": "Aucun des paramètres enregistrés de ce préréglage n’est disponible dans la version actuelle. Vous pouvez toujours le remplacer, le renommer ou le supprimer.",
-                    "omittedSettings": "{count} paramètre(s) enregistré(s) non pris en charge ou non valide(s) ont été omis.",
+                    "notApplicable": "Aucun des paramètres enregistrés de ce préréglage n’est disponible dans la version actuelle. Vous pouvez toujours le remplacer, le renommer ou le supprimer",
+                    "omittedSettings": "{count} paramètre(s) enregistré(s) non pris en charge ou non valide(s) ont été omis",
                     "replaceAction": "Remplacer",
                     "renameAction": "Renommer",
                     "retryAction": "Réessayer",
@@ -1005,7 +1020,7 @@
                         "replaceDescription": "Remplacez ce préréglage par un nouvel instantané des valeurs actuellement en attente.",
                         "replaceTitle": "Remplacer le préréglage",
                         "reviewAction": "Vérifier la dernière révision",
-                        "revisionChanged": "Ce préréglage a été modifié ailleurs. Vérifiez la dernière révision avant de continuer.",
+                        "revisionChanged": "Ce préréglage a été modifié ailleurs. Vérifiez la dernière révision avant de continuer",
                         "prunedValues": "{count} paramètre(s) dynamique(s) indisponible(s) ont été omis de cet instantané.",
                         "selectedCount": "{count} sections sélectionnées",
                         "sectionDescriptions": {
@@ -1019,7 +1034,7 @@
                         },
                         "sectionUnavailable": "Cette section n’est pas disponible pour la conversation actuelle.",
                         "sectionsLabel": "Sections de configuration",
-                        "targetUnavailable": "Ce préréglage n’existe plus. Annulez cette modification ou créez un nouveau préréglage."
+                        "targetUnavailable": "Ce préréglage n’existe plus. Annulez cette modification ou créez un nouveau préréglage"
                     }
                 },
                 "saveDegradedDetail": "{completed} enregistré. Une projection de suivi confirmée nécessite votre attention ; réessayez depuis la section concernée.",
@@ -1076,7 +1091,58 @@
                     "title": "Paramètres de recherche web"
                 },
                 "widescreen_mode": "Mode écran large",
-                "widescreenModeHint": "Augmente l’espace disponible pour le chat sur les écrans plus grands"
+                "widescreenModeHint": "Augmente l’espace disponible pour le chat sur les écrans plus grands",
+                "skills": {
+                    "title": "Compétences",
+                    "description": "Les compétences donnent à l’assistant des instructions réutilisables pour des tâches précises. Activez-les pour cette discussion, puis enregistrez. Les modifications concernent les nouvelles demandes ; les tâches déjà acceptées conservent leurs compétences.",
+                    "add": "Ajouter une compétence",
+                    "empty": "Ajoutez un fichier SKILL.md ou une collection de compétences au format ZIP pour commencer",
+                    "immediate": "Les importations et les suppressions de la bibliothèque sont immédiates. Les nouvelles compétences sont désactivées au départ",
+                    "unavailable": "Enregistrez une discussion ordinaire avant de sélectionner des compétences. La sélection est indisponible pour les conversations gérées",
+                    "automatic": "Invocation automatique ou directe",
+                    "explicit": "Invocation directe uniquement",
+                    "automaticOnly": "Invocation automatique uniquement",
+                    "disabledReason": "Cette compétence ne permet ni l’invocation automatique ni l’invocation directe",
+                    "removeConfirm": "Supprimer cette compétence de votre bibliothèque et des futures sélections de vos discussions ? Les tâches acceptées conservent leur paquet. Les fichiers de l’espace de travail et l’historique restent disponibles.",
+                    "conflict": "La sélection a été modifiée ailleurs. Vérifiez la sélection actuelle avant d’enregistrer votre brouillon",
+                    "keepDraft": "Garder ma sélection",
+                    "stale": "Les compétences ne sont pas à jour. Reconnectez-vous ou réessayez avant d’enregistrer",
+                    "search": "Rechercher des compétences...",
+                    "emptyTitle": "Ajoutez votre première compétence",
+                    "noMatchesTitle": "Aucune compétence correspondante",
+                    "errors": {
+                        "invalidPackage": "Importez un fichier SKILL.md valide ou une collection de compétences au format ZIP. Vérifiez le format et les limites de taille.",
+                        "uploadConflict": "Cet envoi a déjà été utilisé pour un autre fichier. Sélectionnez à nouveau le fichier pour lancer un nouvel import.",
+                        "nameConflict": "Une compétence portant ce nom est déjà installée. Supprimez-la avant d’en importer une autre pour la remplacer.",
+                        "libraryFull": "La bibliothèque de compétences est pleine. Supprimez les compétences inutilisées et attendez la fin des tâches utilisant celles qui ont été supprimées.",
+                        "invocationUnavailable": "La compétence demandée n’est pas activée ou n’autorise pas l’invocation directe. Vérifiez les compétences sélectionnées pour cette discussion.",
+                        "importBusy": "L’import de compétences est occupé. Réessayez le même envoi dans un instant.",
+                        "notFound": "La compétence ou la ressource est indisponible. Actualisez votre bibliothèque de compétences.",
+                        "wrapperNameMismatch": "Le dossier englobant du ZIP doit correspondre au nom de la compétence dans SKILL.md.",
+                        "restrictionUnsupported": "Cette compétence utilise des restrictions d’outils non prises en charge. Utilisez des noms d’outils SoAI explicites avant de l’activer.",
+                        "toolRestricted": "Une compétence active interdit cet outil. Suivez le processus autorisé ou lancez une nouvelle exécution.",
+                        "argumentConflict": "Les arguments admis de la compétence ne peuvent pas être remplacés. Lancez un nouvel appel avec d’autres arguments.",
+                        "aliasAmbiguous": "Cet alias désigne plusieurs compétences activées. Utilisez un nom de compétence qualifié.",
+                        "manifestFormat": "SKILL.md doit contenir du texte UTF-8 et du YAML simple valide entre les délimiteurs ---. Vérifiez son format et la taille maximale du manifeste.",
+                        "invalidField": "Le champ de compétence {field} est absent, non pris en charge ou invalide. Vérifiez son nom et le type de sa valeur.",
+                        "sourceConflict": "Les copies de la compétence dans {first} et {second} sont en conflit. Conservez une seule copie cohérente.",
+                        "archiveIntegrity": "L’archive de compétences est endommagée ou incomplète. Téléchargez-la à nouveau et réessayez avec le fichier complet.",
+                        "archiveUnsafe": "L’archive de compétences contient des chemins dangereux, des liens ou des entrées contradictoires. Créez une archive portable contenant des fichiers ordinaires.",
+                        "archiveUnsupported": "L’archive de compétences utilise un chiffrement ou une compression non pris en charge. Créez un ZIP non chiffré avec des entrées stockées ou compressées avec Deflate.",
+                        "invalidFilename": "Choisissez un fichier nommé SKILL.md ou une archive ZIP de compétences.",
+                        "resourceLimit": "Limite d’importation de compétences dépassée pour {field} : {measured} > {limit}. Réduisez l’archive ou supprimez des compétences inutilisées, puis réessayez.",
+                        "manifestPosition": "YAML invalide à la ligne {line}, colonne {column}. Corrigez SKILL.md et réessayez."
+                    },
+                    "importUncertain": "Le résultat de l’importation est incertain. Gardez ce fichier sélectionné et utilisez Actualiser pour vérifier le reçu avant de réessayer.",
+                    "invalidSelection": "Certaines compétences sélectionnées sont indisponibles ou dépassent la limite de la bibliothèque. Actualisez, puis ajustez la sélection avant d’enregistrer",
+                    "status": {
+                        "importTitle": "Résultat de l’importation incertain",
+                        "conflictTitle": "Sélection modifiée ailleurs",
+                        "staleTitle": "La liste des compétences n’est peut-être pas à jour",
+                        "unavailableTitle": "Sélection des compétences indisponible",
+                        "invalidTitle": "La sélection doit être vérifiée"
+                    }
+                }
             },
             "confirmations": {
                 "externalLink": "Ouvrir le lien externe",
@@ -1139,8 +1205,15 @@
                 "conversationLoadFailed": "Échec du chargement de la conversation.",
                 "conversationUnavailable": "Conversation introuvable. Vous avez été redirigé vers un chat vide.",
                 "interactionFocusUnavailable": "Ce lien d’interaction sécurisé n’est plus disponible. Vérifiez le prompt actuel du chat.",
+                "modelToolCallingUnsupported": "Le modèle sélectionné ne prend pas en charge l'appel d'outils. Sélectionnez un modèle compatible avec les outils ou désactivez les outils pour cette conversation.",
                 "soaiWorkspaceChanged": "L’espace de travail de la conversation a changé pendant la préparation de ce message. Rouvrez ou reliez à nouveau les sources SoAI, puis renvoyez le message.",
-                "syncFailed": "Échec de la synchronisation de la conversation"
+                "syncFailed": "Échec de la synchronisation de la conversation",
+                "contextWindowOverrideInvalid": "La fenêtre de contexte doit être un entier positif. Saisissez une valeur valide ou laissez le champ vide pour utiliser la valeur par défaut du modèle.",
+                "contextWindowOverrideConflict": "Les valeurs de la fenêtre de contexte sont contradictoires. Définissez une seule valeur ou effacez la personnalisation, puis réessayez.",
+                "durableQueueFull": "La file est pleine. Réessayez cette demande rejetée une fois les travaux en cours terminés.",
+                "promptBudgetExceeded": "Le texte nécessite {requested} jetons ; {available} restent après réservation de la sortie et marge de sécurité. Réduisez le texte ou la sortie réservée, compactez la conversation ou augmentez le contexte.",
+                "ragEmbeddingModelUnavailable": "Aucun modèle d’embedding n’est disponible. Sélectionnez-en un dans les paramètres du chat, ou installez un moteur d’embedding et téléchargez un modèle, puis réessayez.",
+                "ragDocumentsNotIndexed": "Aucune connaissance indexée n’est disponible pour une réindexation. Importez et indexez d’abord un document."
             },
             "export": {
                 "noMessages": "Aucun message à exporter",
@@ -1340,6 +1413,7 @@
                 "voiceCallStart": "Démarrer l’appel vocal",
                 "steer": "Orienter le prompt",
                 "queue": "Mettre le prompt en file d’attente",
+                "resumeQueue": "Reprendre les prompts en file d’attente",
                 "stop": "Arrêter la réponse",
                 "stopRecording": "Arrêter l’enregistrement",
                 "transcribing": "Transcription...",
@@ -1364,7 +1438,8 @@
             "inputQueue": {
                 "badge": {
                     "queued": "En attente",
-                    "steer": "Orienter"
+                    "steer": "Orienter",
+                    "held": "En pause"
                 },
                 "state": {
                     "materializing": "Préparation",
@@ -1381,6 +1456,33 @@
                 "reason": "Raison"
             },
             "memory": {
+                "library": {
+                    "add": "Ajouter une mémoire",
+                    "search": "Rechercher des mémoires",
+                    "noMatches": "Aucune mémoire correspondante",
+                    "stale": "Les données enregistrées sont périmées. Dernière actualisation : {time}. Actualisez pour vérifier les données actuelles.",
+                    "deleteFact": "Supprimer ce fait ou cette relation ?",
+                    "deleteEntry": "Supprimer « {title} », avec {facts} faits et {relations} relations ?",
+                    "savedHidden": "Enregistré. Effacez la recherche pour voir cette mémoire.",
+                    "savedRefreshNeeded": "Enregistré. La bibliothèque doit être actualisée.",
+                    "from": "De",
+                    "to": "Vers",
+                    "type": "Type de relation",
+                    "staleTitle": "La liste des mémoires n’est peut-être pas à jour",
+                    "errorTitle": "Bibliothèque de mémoire indisponible"
+                },
+                "errors": {
+                    "revisionChanged": "Cette mémoire a changé. Vérifiez son contenu actuel avant de sauvegarder.",
+                    "duplicateName": "Une mémoire utilise déjà ce titre. Choisissez-en un autre.",
+                    "duplicateId": "Cet identifiant de brouillon existe déjà. Actualisez et vérifiez la mémoire enregistrée.",
+                    "profileRestricted": "Utilisez le formulaire du profil pour gérer les faits structurés.",
+                    "duplicateRelation": "Cette relation existe déjà.",
+                    "relationNotIncident": "Gardez une extrémité reliée à cette mémoire.",
+                    "invalidText": "Saisissez un titre et un texte non vides.",
+                    "missing": "Cet enregistrement est indisponible ou ne fait plus partie de cette mémoire. Actualisez et vérifiez-le.",
+                    "unconfirmed": "Le résultat n’a pas pu être confirmé. Gardez votre brouillon et actualisez pour vérifier les données actuelles avant de réessayer.",
+                    "loadFailed": "Impossible de charger les mémoires. Actualisez pour réessayer."
+                },
                 "profile": {
                     "description": "Partagez des informations facultatives afin que SoAI puisse se rappeler comment travailler avec vous d’une conversation à l’autre.",
                     "fields": {
@@ -1449,7 +1551,10 @@
                 },
                 "speak": {
                     "failed": "Impossible de lire le message à voix haute.",
-                    "noText": "Aucun texte à lire."
+                    "noText": "Aucun texte à lire.",
+                    "invalidVoice": "La voix sélectionnée n’est pas disponible pour ce modèle vocal. Choisissez une autre voix dans les paramètres vocaux.",
+                    "invalidResponseFormat": "Ce modèle vocal ne peut pas produire le format audio demandé.",
+                    "invalidSpeed": "La vitesse de parole est en dehors de la plage prise en charge par ce modèle. Ajustez la vitesse dans les paramètres vocaux."
                 },
                 "assistant": "Assistant",
                 "assistantWithModel": "{assistant} ({model})",
@@ -1479,6 +1584,13 @@
                     "tokensTitle": "Utilisation des tokens",
                     "toolActivity": "Activité des outils",
                     "totalTokens": "Total de tokens"
+                },
+                "outputNotices": {
+                    "reasoningOnly": "Le modèle a renvoyé un raisonnement mais aucune réponse finale. Réessayez, ou essayez un autre modèle ou un autre réglage de raisonnement.",
+                    "steered": "Suite ci-dessous avec votre nouveau message.",
+                    "stopped": "Vous avez arrêté cette réponse.",
+                    "tokenLimit": "La réponse s'est arrêtée car elle a atteint la limite de jetons de sortie. Augmentez le réglage du nombre maximal de jetons pour obtenir une réponse plus longue.",
+                    "tokenLimitReasoning": "Le modèle a consacré tout son budget de jetons de sortie au raisonnement avant d'écrire une réponse. Augmentez le réglage du nombre maximal de jetons ou réduisez l'effort de raisonnement."
                 },
                 "renderFailed": "Échec du rendu du message.",
                 "runningActivitySummary": {
@@ -1549,7 +1661,6 @@
                 "executePrompt": "Mettez en œuvre le plan.",
                 "executeUnavailable": "Cette conversation ne peut pas passer en mode exécution",
                 "label": "Plan",
-                "metrics": "{lines} lignes · {characters} caractères",
                 "revision": "Révision {revision}"
             },
             "processing": {
@@ -1607,7 +1718,6 @@
                 "allUnicode": "Tout Unicode",
                 "description": "Parcourez les caractères Unicode et les émojis, composez une séquence, puis copiez-la ou insérez-la dans votre message",
                 "font": "Police",
-                "fontHint": "Les polices ne modifient que l'affichage ; chaque caractère répertorié reste sélectionnable",
                 "fonts": {
                     "emoji": "Émojis de la plateforme",
                     "monospace": "Chasse fixe générique",
@@ -1634,19 +1744,6 @@
                 "staging": "Caractères à copier",
                 "subset": "Sous-ensemble",
                 "title": "Table des caractères"
-            },
-            "promptsPicker": {
-                "editFailed": "Impossible d’ouvrir l’éditeur de prompts.",
-                "empty": "Aucun prompt enregistré pour le moment.",
-                "emptyContent": "Aucun contenu de prompt",
-                "help": "Choisissez un prompt enregistré pour l’insérer dans le composeur de chat",
-                "loadFailed": "Impossible de charger les prompts enregistrés.",
-                "loading": "Chargement des prompts...",
-                "manage": "Gérer les prompts",
-                "manageFailed": "Impossible d’ouvrir la page des prompts.",
-                "noMatches": "Aucun prompt ne correspond à votre recherche.",
-                "search": "Rechercher",
-                "title": "Prompts enregistrés"
             },
             "search": {
                 "placeholder": "Rechercher des conversations...",
@@ -1700,9 +1797,32 @@
                     "service_unavailable": "Un service requis pour cette réponse est temporairement indisponible.",
                     "stream_hydration_failed": "Échec de la resynchronisation du flux de réponse.",
                     "tool_sequence_contract_violation": "Le modèle a produit une séquence d’outils non valide après plusieurs tentatives. Réessayez ou modifiez les paramètres du modèle.",
+                    "invalid_request_error": "Le fournisseur du modèle a rejeté la requête. Vérifiez le modèle sélectionné et ses paramètres.",
+                    "authentication_error": "Le fournisseur du modèle a rejeté les identifiants ou les autorisations d'accès. Vérifiez la clé API configurée.",
+                    "payment_required_error": "Le fournisseur du modèle a rejeté la requête, car la facturation, les crédits ou la limite de dépenses du compte nécessitent votre attention.",
+                    "rate_limit_error": "Le fournisseur du modèle est occupé ou limite le débit. Patientez un instant puis réessayez.",
+                    "timeout_error": "Le fournisseur du modèle a expiré pendant la génération de la réponse. Réessayez plus tard.",
+                    "providerExplanation": "Explication du fournisseur : {explanation}",
                     "withCode": "{message} (code : {code})",
                     "withReference": "{message} (code : {code} ; référence : {referenceId})",
-                    "ws_disconnected": "Connexion perdue lors de la réception de la réponse."
+                    "ws_disconnected": "Connexion perdue lors de la réception de la réponse.",
+                    "providerPermission": "Le fournisseur a refusé l’accès. Vérifiez les autorisations de la clé API, l’accès du compte et les régions prises en charge.",
+                    "providerParameter": "Le fournisseur a rejeté {param}. Modifiez ou réinitialisez ce paramètre du modèle, puis réessayez.",
+                    "providerMedia": "Le fournisseur a rejeté une pièce jointe. Vérifiez son format, sa taille et son contenu, ou importez-la à nouveau.",
+                    "providerContext": "La requête dépasse la fenêtre de contexte. Compactez la conversation, réduisez les jetons de sortie ou choisissez un modèle avec un contexte plus grand.",
+                    "providerContentPolicy": "Le fournisseur a bloqué la requête selon sa politique de contenu. Reformulez le message ou choisissez un autre modèle.",
+                    "providerVision": "Ce modèle ou point de terminaison n’accepte pas les images. Retirez l’image ou choisissez un modèle visuel.",
+                    "providerAudio": "Ce modèle ou point de terminaison n’accepte pas l’audio. Retirez l’audio ou choisissez un modèle audio.",
+                    "providerModelUnavailable": "Le fournisseur indique que ce modèle est indisponible. Actualisez le catalogue ou choisissez un autre modèle.",
+                    "providerUnavailable": "Le fournisseur est temporairement indisponible ou surchargé. Réessayez plus tard ou choisissez un autre fournisseur.",
+                    "providerRetryAfter": "Attendez au moins {seconds} secondes avant de réessayer.",
+                    "providerMediaFormat": "Le format de la pièce jointe a été refusé. Convertissez-la dans un format pris en charge et réessayez.",
+                    "providerMediaSize": "Vérifiez la taille et les dimensions de la pièce jointe, puis réessayez avec une taille prise en charge.",
+                    "providerMediaDecoding": "La pièce jointe n’a pas pu être décodée. Importez un fichier valide et réessayez.",
+                    "providerMediaRetrieval": "La pièce jointe n’a pas pu être récupérée. Vérifiez son lien ou importez de nouveau le fichier.",
+                    "providerContextUsage": "Cette requête nécessite {requested} tokens ; le contexte disponible contient {available} tokens.",
+                    "context_budget_unavailable": "Le contexte du modèle est trop petit pour la réserve de sortie configurée. Augmentez la longueur de contexte du modèle ou réduisez la réserve de sortie de compactage.",
+                    "contextBudgetUsage": "Le contexte du modèle contient {context} tokens ({usable} utilisables) ; la réserve de sortie de compactage est de {reserved} tokens."
                 },
                 "failedToGetResponse": "Échec de l’obtention de la réponse",
                 "noModelSelected": "Sélectionnez un modèle avant d’envoyer un message",
@@ -2155,6 +2275,12 @@
                         },
                         "apply_patch": {
                             "1": "Application des modifications"
+                        },
+                        "skill_read": {
+                            "1": "Lecture des instructions de la compétence"
+                        },
+                        "skill_materialize": {
+                            "1": "Copie des fichiers de la compétence dans l’espace de travail"
                         }
                     }
                 }
@@ -2412,12 +2538,15 @@
             "cancellation": {
                 "failed": "La demande d’annulation a échoué. L’opération est toujours en cours ; réessayez.",
                 "userRequested": "L’utilisateur a demandé l’annulation.",
-                "userRequestedViaWebUi": "L’utilisateur a demandé l’annulation via la WebUI."
+                "userRequestedViaWebUi": "L’utilisateur a demandé l’annulation via la WebUI.",
+                "cancelling": "Annulation en cours",
+                "cancelled": "Annulé"
             },
             "clipboard": {
                 "copied": "Copié dans le presse-papiers",
                 "copyFailed": "Échec de la copie dans le presse-papiers",
-                "copyUnavailable": "Le presse-papiers n’est pas disponible dans cet environnement"
+                "copyUnavailable": "Le presse-papiers n’est pas disponible dans cet environnement",
+                "notificationCopied": "Notification copiée dans le presse-papiers"
             },
             "close": "Fermer",
             "filters": {
@@ -2441,7 +2570,6 @@
                 "chatAttachments": "Pièces jointes référencées par ce message",
                 "chatMcpDefaultTools": "Outils MCP par défaut pour les nouveaux chats",
                 "chatMemoryProfile": "Informations personnelles que SoAI mémorise d’une conversation à l’autre",
-                "chatPromptsPicker": "Prompts enregistrés prêts à être insérés dans ce chat",
                 "voiceCall": "Chat mains libres avec microphone, transcription, réponses en streaming et lecture vocale",
                 "credits": "Crédits des dépendances tierces",
                 "fileExplorerMetadata": "Métadonnées du fichier",
@@ -2490,12 +2618,24 @@
             "error": "Erreur",
             "errors": {
                 "errorWithMessage": "Erreur : {message}",
+                "fileAccessDenied": "SoAI s’est vu refuser l’accès à un fichier dont il a besoin. Vérifiez les autorisations du dossier, puis réessayez.",
+                "fileOperationFailed": "Une opération sur un fichier a échoué. Consultez le journal pour plus de détails, puis réessayez.",
                 "insufficientDiskSpace": "L’opération n’a pas pu se poursuivre, car l’espace disque est insuffisant.",
                 "offlinePolicy": "L’opération est indisponible lorsque le mode hors ligne est actif.",
                 "operationFailed": "L’opération a échoué. Réessayez.",
                 "operationFailedWithMessage": "Échec de l’opération « {operation} » : {error}",
+                "runtimeStartupTimeout": "Un environnement d’exécution n’a pas été prêt à temps. Les fichiers d’exécution récemment installés peuvent prendre plus de temps lors de leur premier démarrage. Relancez l’opération.",
+                "runtimeVerificationTimeout": "SoAI n’a pas pu terminer à temps la vérification d’un environnement d’exécution. Les fichiers d’exécution récemment installés peuvent prendre plus de temps lors de leur premier démarrage. Relancez l’opération.",
+                "executionTimeoutResponse": "Le plugin n’a pas renvoyé de réponse en {budget} secondes ({elapsed} secondes écoulées).",
+                "executionTimeoutInitialResponse": "Le modèle n’a pas commencé à répondre en {budget} secondes ({elapsed} secondes écoulées).",
+                "executionTimeoutFirstToken": "Le modèle n’a pas produit sa première sortie en {budget} secondes ({elapsed} secondes écoulées).",
+                "executionTimeoutBufferedResponse": "Le modèle n’a pas terminé sa réponse en {budget} secondes ({elapsed} secondes écoulées).",
+                "executionTimeoutRequestLimit": "La requête a fixé cette limite de temps ; le plugin n’a donc pas été marqué comme défaillant.",
+                "executionTimeoutPluginBudget": "Il s’agissait du budget d’exécution du plugin ; le plugin est peut-être surchargé ou ne répond plus.",
                 "unknown": "Erreur inconnue",
-                "unknownError": "Une erreur inconnue s’est produite."
+                "unknownError": "Une erreur inconnue s’est produite.",
+                "storageHeadroomInsufficient": "L’espace de stockage disponible est insuffisant compte tenu de la marge de sécurité et des réservations existantes. Libérez de l’espace ou attendez la fin des autres opérations de stockage, puis réessayez.",
+                "storageHeadroomValues": "Espace requis, marge de sécurité comprise : {required}. Disponible pour cette opération : {available}."
             },
             "export": "Exporter",
             "exportPreview": {
@@ -2606,6 +2746,10 @@
             "retry": "Réessayer"
         },
         "contentPreview": {
+            "fields": {
+                "title": "Titre",
+                "text": "Texte"
+            },
             "actions": {
                 "goToPath": "Accéder au chemin",
                 "goToUrl": "Accéder à l’URL",
@@ -2890,7 +3034,14 @@
                 "renameNameRequired": "Saisissez d’abord un nom.",
                 "renameNameUnchanged": "Saisissez un nom différent.",
                 "selectionChanged": "La sélection a changé. Sélectionnez de nouveau l’entrée avant de la renommer.",
-                "selectionRequired": "Sélectionnez d’abord au moins une entrée."
+                "selectionRequired": "Sélectionnez d’abord au moins une entrée.",
+                "changeRefreshFailed": "La modification a été enregistrée, mais les détails du fichier n’ont pas pu être actualisés. Actualisez Fichiers.",
+                "fileInUse": "Ce fichier est utilisé par une autre application. Fermez cette application et réessayez.",
+                "listingExpired": "La liste du dossier n’est plus disponible. Actualisez Fichiers pour la recharger.",
+                "publicationUncertain": "Le fichier a peut-être été enregistré, mais son état final n’a pas pu être vérifié. Vérifiez la destination dans Fichiers avant de le téléverser à nouveau.",
+                "cleanupIncomplete": "Le nettoyage automatique n’a pas pu être terminé. Vérifiez la destination dans Fichiers avant de réessayer.",
+                "contentChanged": "Le fichier a changé pendant l’opération. Sélectionnez-le à nouveau et réessayez.",
+                "destinationExists": "Un fichier ou dossier porte déjà ce nom. Choisissez un autre nom ou emplacement."
             },
             "labels": {
                 "latestTask": "Dernière tâche",
@@ -3114,7 +3265,8 @@
                         "withTotal": "{count} {label} • {total}"
                     },
                     "title": "Stockage",
-                    "waiting": "Détection..."
+                    "waiting": "Détection...",
+                    "unavailable": "Stockage indisponible"
                 }
             },
             "common": {
@@ -3137,7 +3289,47 @@
                 "network": "Réseau"
             },
             "errors": {
-                "historyInitFailed": "Échec de l’initialisation du flux d’historique"
+                "historyInitFailed": "Échec de l’initialisation du flux d’historique",
+                "gpuRecoveryIdentityConflict": "La récupération du GPU n’a pas pu vérifier le périphérique physique. Les modifications du GPU restent désactivées. Conservez les données de récupération et consultez les diagnostics matériels.",
+                "gpuSlotAliasConflict": "Les alias de GPU enregistrés contiennent des paramètres contradictoires ou inconnus. Conservez le fichier des emplacements et vérifiez les profils enregistrés avant toute modification.",
+                "opencl_compiler_unavailable": "L’environnement OpenCL ne peut pas compiler les noyaux de SoAI Bench. Installez un environnement OpenCL pour GPU avec un compilateur utilisable à l’exécution.",
+                "opencl_kernel_execution_unavailable": "L’environnement OpenCL ne peut pas exécuter les noyaux compilés à partir du code source. Installez un environnement OpenCL pour GPU qui les prend en charge.",
+                "opencl_custom_identity_unproved": "L’identité du GPU ou les informations du fabricant dans OpenCL n’ont pas pu être vérifiées. Actualisez la détection des GPU et mettez à jour le pilote graphique.",
+                "opencl_memory_insufficient": "SoAI Bench nécessite une allocation OpenCL de 256 MiB et une mémoire totale suffisante sur le périphérique. Sélectionnez un GPU qui répond à ces exigences.",
+                "soaibenchPublicationUnsupported": "Ce GPU ne peut pas exécuter ce test de performance. Aucun score ne peut être publié. Sélectionnez un GPU compatible et terminez d’abord un test.",
+                "gpuInventoryBusy": "L’inventaire GPU est occupé ou en cours de récupération. Patientez et réessayez cette série historique.",
+                "soaibenchPublicationCancelled": "Ce benchmark a été annulé. Terminez un benchmark pris en charge avant publication.",
+                "soaibenchPublicationIncomplete": "Ce benchmark n’a pas de résultat complet admissible. Terminez un benchmark certifié pris en charge avant publication.",
+                "gpuClockCombinationUnsupported": "Ce GPU ne peut pas combiner ces commandes de fréquence. Appliquez une commande à la fois.",
+                "gpuClockConversionUnavailable": "Le pilote ne peut pas fournir la conversion de fréquence requise. Actualisez la détection du matériel et vérifiez la prise en charge par le pilote.",
+                "gpuSettingOutOfRange": "Ce réglage du GPU est hors de la plage prise en charge. Choisissez une valeur prise en charge.",
+                "gpuSettingRange": "{field} : {requested} {unit} est hors de la plage prise en charge {minimum}–{maximum} {unit}. Choisissez une valeur prise en charge.",
+                "gpuObservationUnavailable": "L’état actuel du GPU n’a pas pu être lu. Les modifications enregistrées sont conservées. Attendez le rétablissement de la lecture, puis actualisez la vue.",
+                "gpuObservationTimeout": "La lecture de l’état actuel du GPU a dépassé le délai. Les modifications enregistrées sont conservées. Attendez le rétablissement de la lecture, puis actualisez la vue.",
+                "gpuSensorPermissionDenied": "L’accès aux capteurs du GPU a été refusé. Autorisez le compte du service SoAI à accéder au périphérique GPU et aux fichiers des capteurs, puis actualisez.",
+                "vulkanRuntimeUnavailable": "L’association de GPU sélectionnée nécessite le mappage des périphériques Vulkan, mais les outils Vulkan sont indisponibles ou ont échoué. Installez les outils et le pilote Vulkan de votre distribution, ou associez tous les GPU.",
+                "vulkanQueryTimeout": "L’association de GPU sélectionnée nécessite le mappage des périphériques Vulkan, mais la requête des périphériques Vulkan a expiré. Vérifiez le pilote Vulkan ou associez tous les GPU.",
+                "vulkanFormatUnsupported": "L’association de GPU sélectionnée nécessite le mappage des périphériques Vulkan, mais les outils Vulkan ont renvoyé un format non pris en charge. Mettez à jour les outils Vulkan de votre distribution ou associez tous les GPU.",
+                "vulkanDeviceUnavailable": "Le GPU sélectionné ne figure pas parmi les périphériques Vulkan. Vérifiez le pilote Vulkan de ce GPU ou sélectionnez un autre GPU.",
+                "vulkanIdentityUnavailable": "Le GPU sélectionné ne partage aucune identité UUID ou PCI avec les périphériques Vulkan ; il ne peut donc pas être associé en toute sécurité. Associez plutôt tous les GPU.",
+                "vulkanIdentityConflict": "Le GPU sélectionné a une identité contradictoire dans la liste des périphériques Vulkan ; il ne peut donc pas être associé en toute sécurité. Vérifiez les pilotes GPU ou associez tous les GPU.",
+                "vulkanDeviceAmbiguous": "Le GPU sélectionné est exposé par plusieurs pilotes Vulkan. Supprimez le pilote Vulkan en double (ICD) ou associez tous les GPU.",
+                "gpuBindingIdentityConflict": "L’identité physique du GPU sélectionné apparaît plusieurs fois dans l’inventaire matériel. Actualisez les informations matérielles et sélectionnez de nouveau le GPU.",
+                "gpuDiscoveryTimeout": "Le délai de détection des GPU a expiré. Attendez la fin de la requête matérielle, puis réessayez.",
+                "gpuDiscoveryBusy": "Une requête matérielle est toujours en cours. Attendez la fin de la détection des GPU, puis réessayez.",
+                "gpuDiscoveryNativeTimeout": "Le délai de la requête native du GPU a expiré. Vérifiez le pilote graphique, puis réessayez.",
+                "gpuDiscoveryQueryFailed": "La requête native du GPU a échoué. Vérifiez le pilote graphique et les diagnostics système, puis réessayez.",
+                "gpuDiscoveryEmpty": "La requête du GPU n’a renvoyé aucune donnée. Vérifiez le pilote graphique, puis réessayez.",
+                "gpuDiscoveryInvalid": "La requête du GPU a renvoyé des données non valides. Vérifiez le pilote graphique et les diagnostics système, puis réessayez.",
+                "gpuDiscoveryRuntimeUnavailable": "Les outils de détection des GPU sont indisponibles. Restaurez les outils système, puis réessayez.",
+                "gpuDiscoveryPermissionDenied": "L’accès pour détecter les GPU a été refusé. Vérifiez les autorisations matérielles du compte de service, puis réessayez.",
+                "gpuDiscoveryUnavailable": "La détection des GPU est indisponible. Vérifiez le pilote graphique et les outils système, puis réessayez.",
+                "gpuDiscoveryChanged": "L’inventaire des GPU a changé pendant la détection. Attendez la fin de la détection matérielle, puis réessayez.",
+                "opencl_operation_deadline": "{phase} a dépassé le délai de {seconds} secondes. Aucun score n’a été créé. Vérifiez que le pilote graphique répond, puis réessayez.",
+                "opencl_runtime_deadline": "OpenCL n’a pas terminé dans le délai imparti. Vérifiez que le pilote graphique répond, puis réessayez.",
+                "opencl_child_exited": "Le moteur d’exécution OpenCL s’est arrêté de façon inattendue. Vérifiez le pilote graphique, puis relancez SoAI Bench.",
+                "opencl_child_invalid_response": "Le moteur d’exécution OpenCL a renvoyé une réponse non valide. Redémarrez SoAI et relancez SoAI Bench.",
+                "opencl_child_disconnected": "La communication avec le moteur d’exécution OpenCL a été interrompue. Relancez SoAI Bench."
             },
             "gpu": {
                 "actions": {
@@ -3149,13 +3341,16 @@
                     "viewBenchmark": "Voir le benchmark",
                     "test": "Tester",
                     "reset": "Réinitialiser",
-                    "save": "Enregistrer"
+                    "save": "Sauver"
                 },
                 "controls": {
                     "autoLabel": "Auto",
                     "coreClock": "Décalage de l’horloge du cœur",
+                    "coreClockFrequency": "Fréquence de l’horloge du cœur",
                     "fan_speed": "Vitesse du ventilateur",
                     "memoryClock": "Décalage de l’horloge mémoire",
+                    "memoryClockFrequency": "Fréquence de l’horloge mémoire",
+                    "powerLimitOffset": "Décalage de la limite de puissance",
                     "power_limit": "Limite de puissance",
                     "toggleAutomatic": "Contrôle automatique"
                 },
@@ -3166,19 +3361,19 @@
                     "noManualChange": "Désactivez le mode 'Auto' avant d’enregistrer.",
                     "noSettings": "Aucun paramètre GPU à appliquer.",
                     "reset": "GPU {index} réinitialisé aux valeurs par défaut",
-                    "soaibenchNoActiveRun": "Le GPU {index} n’a aucune exécution SoAIBench active",
-                    "soaibenchStarted": "SoAIBench {profile} démarré sur le GPU {index}",
-                    "soaibenchStopRequested": "Arrêt de SoAIBench demandé sur le GPU {index}",
-                    "soaibenchUnsupported": "SoAIBench non pris en charge sur le GPU {index} : {reason}",
+                    "soaibenchNoActiveRun": "Le GPU {index} n’a aucune exécution SoAI Bench active",
+                    "soaibenchStarted": "SoAI Bench {profile} démarré sur le GPU {index}",
+                    "soaibenchStopRequested": "Arrêt de SoAI Bench demandé sur le GPU {index}",
+                    "soaibenchUnsupported": "SoAI Bench non pris en charge sur le GPU {index} : {reason}",
                     "soaibenchSettingsLocked": "Le GPU {index} exécute un benchmark. Arrêtez-le ou attendez qu'il se termine avant d'enregistrer ses paramètres.",
                     "slotApplied": "Emplacement {slot} appliqué au GPU {index}",
                     "slotSaved": "Emplacement {slot} enregistré pour le GPU {index}"
                 },
                 "soaibench": {
-                    "standardTaskName": "SoAIBench GPU standard",
+                    "standardTaskName": "SoAI Bench GPU standard",
                     "stressRunningLabel": "Test de stress - en cours",
-                    "stopTaskName": "Arrêt de SoAIBench GPU",
-                    "stressTaskName": "Stress SoAIBench GPU"
+                    "stopTaskName": "Arrêt de SoAI Bench GPU",
+                    "stressTaskName": "Stress SoAI Bench GPU"
                 },
                 "panelHeader": "GPU {index} : {name}",
                 "panelTitle": "Contrôles du GPU",
@@ -3192,9 +3387,31 @@
                 },
                 "telemetry": {
                     "coreUtilization": "Cœur",
-                    "powerDraw": "Puissance",
+                    "powerDraw": "Puiss.",
                     "temperatures": "Températures",
                     "memoryUtilization": "VRAM"
+                },
+                "errors": {
+                    "invalidGpuId": "Sélectionnez un GPU valide et réessayez.",
+                    "invalidSlot": "Sélectionnez un emplacement GPU valide et réessayez.",
+                    "invalidPayload": "Vérifiez les paramètres GPU et réessayez.",
+                    "noSettings": "Choisissez au moins un paramètre GPU avant d’appliquer les modifications.",
+                    "deviceNotFound": "Le GPU sélectionné est introuvable. Actualisez la liste du matériel et sélectionnez-le à nouveau.",
+                    "noGpus": "Aucun GPU n’est disponible. Vérifiez la détection du matériel et réessayez.",
+                    "slotEmpty": "L’emplacement GPU sélectionné est vide. Enregistrez des paramètres dans cet emplacement avant de l’appliquer.",
+                    "slotUnchanged": "L’emplacement GPU contient déjà ces paramètres.",
+                    "bootUnchanged": "L’emplacement GPU possède déjà ce paramètre de démarrage.",
+                    "slotRequiresApply": "Appliquez l’emplacement GPU avant de l’activer au démarrage.",
+                    "applyFailed": "Les paramètres GPU n’ont pas pu être appliqués en toute sécurité. Consultez les détails de l’opération et réessayez.",
+                    "deviceUnavailable": "Le GPU sélectionné est indisponible. Attendez qu’il soit à nouveau disponible et réessayez.",
+                    "hardwareMutationDisabled": "Les modifications du matériel GPU sont désactivées pour cette installation.",
+                    "gpuActivityConflict": "Le GPU est occupé par une autre opération. Attendez qu’elle se termine et réessayez.",
+                    "hardwareUnavailable": "Le réglage du GPU est indisponible dans cette installation. Vérifiez la prise en charge du matériel et la configuration.",
+                    "gpuError": "L’opération sur les paramètres GPU a échoué. Vérifiez les paramètres et réessayez.",
+                    "slotError": "L’opération sur l’emplacement GPU a échoué. Actualisez la liste du matériel et réessayez.",
+                    "recoveryReconciled": "Les réglages GPU précédents ont été restaurés. Appliquez à nouveau les nouveaux réglages.",
+                    "recoveryUnresolved": "Les réglages GPU précédents n’ont pas pu être restaurés en toute sécurité. Vérifiez l’état du GPU avant d’appliquer à nouveau des réglages.",
+                    "controlPreparationFailed": "La préparation des paramètres GPU a échoué avant tout accès au matériel. Réessayez et signalez l’identifiant de référence si le problème persiste."
                 }
             },
             "metrics": {
@@ -3217,41 +3434,41 @@
             "soaibenchPublication": {
                 "deleteLocalHistory": "Supprimer l’historique local",
                 "deleteLocalConfirm": {
-                    "title": "Supprimer l’exécution SoAIBench ?",
-                    "message": "Supprimer cette exécution SoAIBench de l’historique local ? Cette action est irréversible."
+                    "title": "Supprimer l’exécution SoAI Bench ?",
+                    "message": "Supprimer cette exécution SoAI Bench de l’historique local ? Cette action est irréversible."
                 },
                 "action": "Partager",
                 "openRun": "Ouvrir le résultat",
-                "ariaLabel": "Partager ce score SoAIBench",
-                "unavailable": "Aucun test SoAIBench publiable n’est disponible",
+                "ariaLabel": "Partager ce score SoAI Bench",
+                "unavailable": "Aucun test SoAI Bench publiable n’est disponible",
                 "confirm": {
-                    "title": "Partager le score SoAIBench ?",
-                    "message": "Publier le score {score} et ses {passes} passes mesurées dans le classement public SoAIBench ?",
+                    "title": "Partager le score SoAI Bench ?",
+                    "message": "Publier le score {score} et ses {passes} passes mesurées dans le classement public SoAI Bench ?",
                     "description": "Cette action envoie le score, cinq passes mesurées, les informations publiques sur le GPU et l’environnement d’exécution, les réglages du test et les éventuelles données des capteurs. L’identité du compte, les fichiers, la configuration, les analyses et la télémétrie générale sont exclus."
                 },
                 "outcomes": {
-                    "published": "Score SoAIBench partagé publiquement.",
-                    "alreadyPublished": "Ce score SoAIBench a déjà été partagé.",
-                    "heldForReview": "Le résultat SoAIBench est retenu pour vérification de l’identité ou d’une anomalie et n’est pas encore pris en compte dans le classement.",
+                    "published": "Score SoAI Bench partagé publiquement.",
+                    "alreadyPublished": "Ce score SoAI Bench a déjà été partagé.",
+                    "heldForReview": "Le résultat SoAI Bench est retenu pour vérification de l’identité ou d’une anomalie et n’est pas encore pris en compte dans le classement.",
                     "offline": "Le score ne peut pas être partagé lorsque SoAI est hors ligne.",
-                    "unavailable": "Le service de publication SoAIBench est indisponible.",
+                    "unavailable": "Le service de publication SoAI Bench est indisponible.",
                     "timeout": "Le délai de partage du score a expiré. Réessayez pour rapprocher la même publication.",
                     "rateLimited": "Trop de scores ont été partagés depuis cette connexion. Réessayez plus tard.",
-                    "capacity": "Le classement SoAIBench est actuellement saturé.",
-                    "rejected": "Le classement SoAIBench a refusé ce résultat.",
+                    "capacity": "Le classement SoAI Bench est actuellement saturé.",
+                    "rejected": "Le classement SoAI Bench a refusé ce résultat.",
                     "conflict": "Cette publication entre en conflit avec l’état existant du classement.",
-                    "invalidResponse": "Le classement SoAIBench a renvoyé une réponse non valide.",
+                    "invalidResponse": "Le classement SoAI Bench a renvoyé une réponse non valide.",
                     "retryAfter": "Réessayez dans {seconds} secondes."
                 }
             },
             "modals": {
                 "soaibenchHistory": {
                     "ariaLabels": {
-                        "close": "Fermer l’historique SoAIBench",
-                        "copy": "Copier l’historique SoAIBench",
-                        "copyRun": "Copier l’exécution SoAIBench",
-                        "download": "Télécharger l’historique SoAIBench au format CSV",
-                        "downloadRun": "Télécharger l’exécution SoAIBench"
+                        "close": "Fermer l’historique SoAI Bench",
+                        "copy": "Copier l’historique SoAI Bench",
+                        "copyRun": "Copier l’exécution SoAI Bench",
+                        "download": "Télécharger l’historique SoAI Bench au format CSV",
+                        "downloadRun": "Télécharger l’exécution SoAI Bench"
                     },
                     "close": "Fermer",
                     "copy": "Copier",
@@ -3260,10 +3477,10 @@
                         "runs": "Exécutions",
                         "table": "Tableau des exécutions"
                     },
-                    "copySuccess": "Historique SoAIBench copié dans le presse-papiers",
-                    "copyUnavailable": "Aucun historique SoAIBench disponible à copier",
+                    "copySuccess": "Historique SoAI Bench copié dans le presse-papiers",
+                    "copyUnavailable": "Aucun historique SoAI Bench disponible à copier",
                     "download": "Télécharger",
-                    "downloadSuccess": "Téléchargement de l’historique SoAIBench au format CSV démarré",
+                    "downloadSuccess": "Téléchargement de l’historique SoAI Bench au format CSV démarré",
                     "columns": {
                         "actions": "Actions",
                         "certification": "Certification",
@@ -3287,11 +3504,11 @@
                         "quick": "Rapide",
                         "varianceSuffix": "variation de {variance} %"
                     },
-                    "description": "Exécutions SoAIBench précédentes pour le GPU sélectionné",
-                    "empty": "Aucune exécution SoAIBench pour ce GPU pour le moment.",
+                    "description": "Exécutions SoAI Bench précédentes pour le GPU sélectionné",
+                    "empty": "Aucune exécution SoAI Bench pour ce GPU pour le moment.",
                     "loading": "Chargement de l’historique des exécutions...",
-                    "pageEmpty": "Aucune exécution SoAIBench pour le moment.",
-                    "pageLoadFailed": "Impossible de charger les exécutions SoAIBench. Réessayez.",
+                    "pageEmpty": "Aucune exécution SoAI Bench pour le moment.",
+                    "pageLoadFailed": "Impossible de charger les exécutions SoAI Bench. Réessayez.",
                     "matchBases": {
                         "device_id": "ID de l’appareil",
                         "gpu_model_key": "Clé du modèle GPU",
@@ -3313,9 +3530,11 @@
                         "stress": "Stress"
                     },
                     "reasons": {
-                        "opencl_numerical_mismatch": "La validation numérique de la charge de travail OpenCL a échoué."
+                        "opencl_numerical_mismatch": "La validation numérique de la charge de travail OpenCL a échoué.",
+                        "preflight": "Vérification préalable",
+                        "startup": "Démarrage"
                     },
-                    "rowCopyUnavailable": "Aucune exécution SoAIBench disponible à copier",
+                    "rowCopyUnavailable": "Aucune exécution SoAI Bench disponible à copier",
                     "staleHardware": "Correspondance matérielle obsolète",
                     "statuses": {
                         "cancelled": "Annulé",
@@ -3327,28 +3546,28 @@
                         "unstable": "Instable",
                         "unsupported": "Non pris en charge"
                     },
-                    "title": "Exécutions SoAIBench précédentes"
+                    "title": "Exécutions SoAI Bench précédentes"
                 },
                 "soaibenchRun": {
                     "selectGpu": "Sélectionnez un GPU à évaluer",
                     "noGpus": "Aucun GPU n’est disponible pour le test de performance.",
                     "ariaLabels": {
-                        "close": "Fermer SoAIBench",
-                        "copy": "Copier l’exécution SoAIBench",
-                        "download": "Télécharger l’exécution SoAIBench",
-                        "history": "Ouvrir l’historique SoAIBench",
-                        "retry": "Réessayer SoAIBench certifié",
-                        "stop": "Arrêter SoAIBench certifié",
-                        "stopping": "Arrêt de SoAIBench certifié",
-                        "newBenchmark": "Démarrer une nouvelle exécution de SoAIBench certifié",
-                        "runAgain": "Relancer SoAIBench certifié sur ce GPU",
-                        "recover": "Vérifier à nouveau l'état de SoAIBench",
-                        "start": "Démarrer SoAIBench certifié"
+                        "close": "Fermer SoAI Bench",
+                        "copy": "Copier l’exécution SoAI Bench",
+                        "download": "Télécharger l’exécution SoAI Bench",
+                        "history": "Ouvrir l’historique SoAI Bench",
+                        "retry": "Réessayer SoAI Bench certifié",
+                        "stop": "Arrêter SoAI Bench certifié",
+                        "stopping": "Arrêt de SoAI Bench certifié",
+                        "newBenchmark": "Démarrer une nouvelle exécution de SoAI Bench certifié",
+                        "runAgain": "Relancer SoAI Bench certifié sur ce GPU",
+                        "recover": "Vérifier à nouveau l'état de SoAI Bench",
+                        "start": "Démarrer SoAI Bench certifié"
                     },
                     "close": "Fermer",
                     "copy": "Copier",
-                    "copySuccess": "Exécution SoAIBench copiée dans le presse-papiers",
-                    "copyUnavailable": "Aucune exécution SoAIBench disponible à copier",
+                    "copySuccess": "Exécution SoAI Bench copiée dans le presse-papiers",
+                    "copyUnavailable": "Aucune exécution SoAI Bench disponible à copier",
                     "description": "Benchmark GPU certifié pour vérifier l’aptitude à l’inférence avec SoAI",
                     "download": "Télécharger",
                     "export": {
@@ -3360,7 +3579,7 @@
                         "rawRun": "Détails bruts de l’exécution",
                         "runId": "ID d’exécution",
                         "status": "État",
-                        "title": "Détails de l’exécution SoAIBench"
+                        "title": "Détails de l’exécution SoAI Bench"
                     },
                     "history": "Historique",
                     "metrics": {
@@ -3392,16 +3611,16 @@
                         "stability": "Stabilité"
                     },
                     "progress": {
-                        "activeRunInProgress": "Une autre exécution SoAIBench est déjà active sur ce GPU.",
+                        "activeRunInProgress": "Une autre exécution SoAI Bench est déjà active sur ce GPU.",
                         "awaitingRun": "En attente de l’état d’exécution du backend",
                         "measured": "Passe mesurée {pass} sur {total}",
                         "measuredDetail": "Mesurée {pass}/{total}",
                         "measuredPhase": "Passe mesurée {pass} sur {total} : {phase}",
                         "phaseDetail": "{phase} {index}/{total}",
-                        "running": "SoAIBench en cours, veuillez patienter...",
-                        "startFailed": "Impossible de démarrer SoAIBench",
-                        "starting": "Démarrage de SoAIBench certifié",
-                        "stopping": "Arrêt de SoAIBench",
+                        "running": "SoAI Bench en cours, veuillez patienter...",
+                        "startFailed": "Impossible de démarrer SoAI Bench",
+                        "starting": "Démarrage de SoAI Bench certifié",
+                        "stopping": "Arrêt de SoAI Bench",
                         "warmupDetail": "Préchauffage {pass}/{total}",
                         "warmupPhase": "Préchauffage : {phase}",
                         "warmup": "Passe de préchauffage terminée",
@@ -3411,7 +3630,7 @@
                         "startUnconfirmed": "Le démarrage du benchmark n'a pas pu être confirmé et aucune exécution n'est active sur ce GPU. Consultez l'historique avant de réessayer."
                     },
                     "retry": "Réessayer",
-                    "scoreLabel": "Score SoAIBench",
+                    "scoreLabel": "Score SoAI Bench",
                     "sections": {
                         "expect": {
                             "items": "Le GPU sera fortement sollicité|La puissance et la vitesse des ventilateurs peuvent augmenter|L’exécution peut être arrêtée|Les cas d’exécution non pris en charge sont signalés explicitement",
@@ -3439,7 +3658,7 @@
                         "unresolved": "État inconnu",
                         "rejected": "Non démarré"
                     },
-                    "title": "SoAIBench"
+                    "title": "SoAI Bench"
                 },
                 "systemInfo": {
                     "anonymize": "Anonymiser",
@@ -3565,6 +3784,9 @@
                 "slotsRetained": "Les paramètres GPU enregistrés sont indisponibles. Dernière mise à jour des données affichées : {age}.",
                 "capabilitiesUnavailable": "Les commandes du GPU sont indisponibles.",
                 "slotsUnavailable": "Les paramètres enregistrés du GPU sont indisponibles."
+            },
+            "observations": {
+                "retainedAge": "Observation conservée · ancienneté {seconds}s"
             }
         },
         "header": {
@@ -3592,6 +3814,7 @@
                 "about": "À propos",
                 "logout": "Déconnexion",
                 "logs": "Journaux",
+                "power": "Redémarrer / Arrêter",
                 "settings": "Paramètres",
                 "updates": "Mises à jour"
             },
@@ -3630,7 +3853,7 @@
                     "unavailable": "Les notifications sont indisponibles. Reconnexion..."
                 },
                 "confirmations": {
-                    "clearAllMessage": "Effacer toutes les notifications ? Cette action est irréversible."
+                    "clearAllMessage": "Effacer toutes les notifications ({count}) ? Cette action est irréversible."
                 }
             }
         },
@@ -4205,17 +4428,22 @@
             "cards": {
                 "capabilities": {
                     "lockedReasons": {
-                        "requiresAudio": "Activez la modalité Audio pour pouvoir modifier ce paramètre.",
-                        "requiresImages": "Activez l’endpoint Images pour pouvoir modifier ce paramètre.",
-                        "requiresResponses": "Activez l’endpoint Responses pour pouvoir modifier ce paramètre.",
-                        "requiresVision": "Activez la modalité Vision pour pouvoir modifier ce paramètre.",
+                        "requiresAudio": "Nécessite la modalité Audio.",
+                        "requiresImages": "Nécessite le point de terminaison Images.",
+                        "requiresResponses": "Nécessite le point de terminaison Responses.",
+                        "requiresVision": "Nécessite la modalité Vision.",
                         "text": "Le texte ne peut pas être désactivé.",
-                        "unsupported": "Ce modèle ne prend pas en charge cette capacité."
+                        "unsupported": "Le modèle ne déclare pas cette capacité."
                     },
                     "manifestLoading": "Chargement de la taxonomie des capacités...",
+                    "modes": {
+                        "autoOff": "Auto (désactivé)",
+                        "autoOn": "Auto (activé)",
+                        "disabled": "Désactivé",
+                        "enabled": "Activé"
+                    },
                     "none": "Aucune capacité OpenAI disponible pour ce modèle.",
                     "pluginCapabilitiesUnavailable": "Le profil de capacités du plugin n’est pas disponible.",
-                    "reset": "Réinitialiser les surcharges",
                     "sections": {
                         "chatFeatures": "Fonctionnalités de chat",
                         "endpoints": "Endpoints",
@@ -4223,7 +4451,9 @@
                         "modalities": "Modalités",
                         "responsesFeatures": "Fonctionnalités des réponses"
                     },
-                    "title": "Capacités"
+                    "title": "Capacités",
+                    "unverified": "Non vérifié",
+                    "unverifiedHint": "Le fournisseur n'a pas signalé cette capacité. SoAI conserve le comportement de compatibilité jusqu'à ce que vous choisissiez Activé ou Désactivé"
                 },
                 "constituents": {
                     "hasParameters": "Paramètres personnalisés",
@@ -4235,7 +4465,6 @@
                     "created": "Créé",
                     "name": "Nom du fournisseur",
                     "providerId": "ID du fournisseur",
-                    "status": "État",
                     "title": "Fournisseur externe"
                 },
                 "identity": {
@@ -4270,6 +4499,9 @@
                     "delete": "Supprimer",
                     "enabledNote": "Les modèles désactivés ne peuvent pas accepter de requêtes et sont masqués dans les sélecteurs de modèles.",
                     "enabledToggleLabel": "Activer ce modèle",
+                    "inferenceUnverified": "Pas encore vérifiée. La découverte ne confirme pas que les requêtes aboutissent.",
+                    "inferenceVerification": "Inférence",
+                    "inferenceVerified": "Dernière réussite le {date}",
                     "manageAlias": "Renommer",
                     "modelStatus": "État du modèle",
                     "orphaned": "Orphelin",
@@ -4300,12 +4532,6 @@
                 "externalLinkCancel": "Annuler",
                 "externalLinkConfirm": "Ouvrir le lien",
                 "externalLinkMessage": "Voulez-vous vraiment ouvrir la documentation du backend dans un nouvel onglet ?",
-                "resetCapabilities": "Réinitialiser les surcharges de capacités",
-                "resetCapabilitiesConfirm": "Réinitialiser",
-                "resetCapabilitiesMessage": "Réinitialiser toutes les surcharges de capacités et hériter des valeurs par défaut du plugin pour ce modèle ?",
-                "resetParameters": "Réinitialiser les paramètres",
-                "resetParametersConfirm": "Réinitialiser",
-                "resetParametersMessage": "Voulez-vous vraiment réinitialiser tous les paramètres à leurs valeurs par défaut ? Toutes les modifications non enregistrées seront perdues.",
                 "stopPlugin": "Arrêter le plugin",
                 "stopPluginMessage": "Voulez-vous vraiment arrêter {plugin} ?"
             },
@@ -4369,6 +4595,7 @@
                 }
             },
             "notifications": {
+                "capabilitiesConflict": "Les capacités ont été modifiées ailleurs. Vos modifications ont été abandonnées ; vérifiez les dernières valeurs et appliquez-les à nouveau.",
                 "capabilitiesUpdated": "Capacités mises à jour avec succès",
                 "deletionInProgress": "Suppression du modèle en cours...",
                 "enabledUpdated": "État d’activation du modèle mis à jour avec succès",
@@ -4424,6 +4651,17 @@
             "tabs": {
                 "overview": "Vue d’ensemble",
                 "parameters": "Paramètres"
+            },
+            "parameterAvailability": {
+                "loading": "Chargement des paramètres...",
+                "refreshing": "Actualisation des paramètres... Dernière mise à jour : {age}.",
+                "stale": "Connexion perdue ; les valeurs peuvent être obsolètes. Dernière mise à jour : {age}.",
+                "failed": "Impossible de charger les paramètres.",
+                "retained": "L’enregistrement est désactivé jusqu’à ce que les paramètres soient disponibles. Dernière mise à jour : {age}.",
+                "schemaChanged": "Les définitions des paramètres ont changé pendant votre modification. Abandonnez vos modifications non enregistrées pour charger les définitions actuelles.",
+                "discard": "Abandonner les modifications",
+                "unavailableNotice": "Les paramètres du modèle sont indisponibles. L’enregistrement est désactivé jusqu’à ce qu’ils puissent être chargés.",
+                "saveBlocked": "Les paramètres ne peuvent pas être enregistrés tant qu’ils ne sont pas disponibles. Rechargez-les d’abord."
             }
         },
         "models": {
@@ -4463,7 +4701,8 @@
                 "externalLink": "Lien externe",
                 "externalLinkCancel": "Annuler",
                 "externalLinkConfirm": "Continuer",
-                "externalLinkMessage": "Voulez-vous vraiment ouvrir le dépôt de ce modèle dans un nouvel onglet ?"
+                "externalLinkMessage": "Voulez-vous vraiment ouvrir le dépôt de ce modèle dans un nouvel onglet ?",
+                "deleteLargeModelMessage": "Supprimer « {model} » ({sizeGb} GB) ? Le télécharger à nouveau peut prendre beaucoup de temps et consommer un volume de données important. Cette action est irréversible."
             },
             "description": "Gérez les modèles d’IA entre plugins et fournisseurs.",
             "searchPlaceholder": "Rechercher des modèles...",
@@ -4502,7 +4741,7 @@
                     "close": "Fermer",
                     "confirmDownload": "Télécharger le modèle",
                     "modelIdLabel": "ID de téléchargement du modèle",
-                    "pluginHelp": "Choisissez le plugin qui gérera le téléchargement du modèle",
+                    "pluginHelp": "Le plugin utilisé pour télécharger le modèle",
                     "pluginLabel": "Plugin",
                     "pluginPlaceholder": "Sélectionnez un plugin...",
                     "quantHelp": "Saisissez l’identifiant du modèle et la quantification (le format dépend du plugin sélectionné)",
@@ -4587,7 +4826,7 @@
                     "modelsFilterPlaceholder": "p. ex., free, gpt, claude",
                     "nameHelp": "Un nom descriptif pour ce fournisseur externe",
                     "nameLabel": "Nom du fournisseur",
-                    "pluginHelp": "Choisissez le plugin qui gérera ce fournisseur externe",
+                    "pluginHelp": "Le plugin utilisé pour gérer le fournisseur externe",
                     "pluginLabel": "Plugin",
                     "pluginPlaceholder": "Sélectionnez un plugin...",
                     "title": "Ajouter un fournisseur"
@@ -4790,7 +5029,42 @@
                 "unknown": "Inconnu",
                 "virtual": "Virtuel"
             },
-            "virtualModelLabel": "Modèle virtuel"
+            "virtualModelLabel": "Modèle virtuel",
+            "errors": {
+                "ollamaPullEof": "Ollama a terminé le téléchargement sans confirmer sa réussite.",
+                "ollamaPullTimeout": "Le téléchargement Ollama a dépassé le délai.",
+                "ollamaPullDisconnected": "La connexion à Ollama a été perdue.",
+                "ollamaPullRejected": "Ollama a refusé le téléchargement du modèle.",
+                "ollamaPullProtocolInvalid": "Ollama a renvoyé des données de téléchargement invalides.",
+                "ollamaPullTargetMissing": "Le modèle téléchargé est absent du catalogue actuel d’Ollama.",
+                "ollamaPullCacheFailed": "Le catalogue local du modèle téléchargé n’a pas pu être enregistré.",
+                "ollamaPullCleanupFailed": "Le nettoyage est incomplet. Arrêtez le service Ollama géré et terminez le nettoyage avant de réessayer.",
+                "ollamaPullPreparationFailed": "Le service de téléchargement Ollama n’a pas pu être préparé.",
+                "ollamaPullRecovery": "Vérifiez les diagnostics et le stockage d’Ollama, puis réessayez l’opération.",
+                "modelNotFound": "Le modèle demandé est introuvable. Installez-le ou enregistrez-le, ou utilisez un identifiant de modèle disponible dans l’API.",
+                "parameterSchemaBusy": "Les paramètres du modèle sont temporairement indisponibles pendant une opération du plugin. Réessayez dans un instant.",
+                "parameterSchemaUnavailable": "Les paramètres du modèle sont indisponibles car le backend du plugin n’est pas chargé. Démarrez ou réparez le plugin, puis réessayez.",
+                "parametersApplyFailed": "Les paramètres ont été enregistrés, mais SoAI n’a pas pu les appliquer au modèle en cours d’exécution. Actualisez pour vérifier les valeurs enregistrées et rechargez le modèle pour les appliquer.",
+                "configurationMissing": "Le modèle GGUF a besoin de sa configuration de modèle d’origine. Placez le config.json d’origine à côté du fichier GGUF ou définissez le chemin de configuration Hugging Face, puis réessayez.",
+                "architectureUnsupported": "Le backend sélectionné ne prend pas en charge cette architecture de modèle. Utilisez une autre version du modèle ou un autre backend.",
+                "cudaDeviceArchitectureUnsupported": "Le backend CUDA installé ne peut pas fonctionner sur l’architecture du GPU NVIDIA sélectionné. Sélectionnez un GPU pris en charge, installez une variante du backend CUDA compatible avec ce GPU ou utilisez un backend CPU.",
+                "nativeCpuFeaturesUnsupported": "Ce processeur ne dispose pas d’instructions CPU requises par la variante du backend installée. Installez une variante du backend compatible, comme CPU.",
+                "openvinoTensorShapeIncompatible": "Le backend OpenVINO n’a pas pu exécuter ce modèle, car les formes des tenseurs de son graphe sont incompatibles. Utilisez une autre variante du backend pour ce modèle ou réglez le nombre de couches GPU sur zéro pour une exécution sur le CPU.",
+                "repositoryUnavailable": "Le dépôt ou la révision du modèle est inaccessible. Vérifiez son identifiant ; un dépôt privé ou restreint nécessite aussi un jeton de dépôt autorisé et l’acceptation des conditions d’accès.",
+                "modelSearchTimeout": "La recherche de modèles a pris trop de temps. Le catalogue est peut-être encore en cours de préparation ; réessayez dans un instant."
+            },
+            "phases": {
+                "ollamaServicePreparation": "Préparation du service Ollama",
+                "ollamaPullStreaming": "Téléchargement du modèle avec Ollama",
+                "ollamaTerminalConfirmation": "Confirmation de la fin du téléchargement",
+                "ollamaTargetVerification": "Vérification du catalogue actuel des modèles",
+                "ollamaCachePublication": "Enregistrement du catalogue local des modèles",
+                "ollamaCleanup": "Nettoyage du téléchargement Ollama",
+                "transferDownloading": "Téléchargement en cours",
+                "transferHashing": "Calcul de l’empreinte des données téléchargées conservées",
+                "transferReplaying": "Comparaison des données téléchargées conservées",
+                "transferVerifying": "Vérification du téléchargement complet"
+            }
         },
         "nav": {
             "about": "À propos",
@@ -5111,7 +5385,31 @@
             },
             "errors": {
                 "changeHandlerFailed": "Échec du gestionnaire de modification des plugins",
-                "clickHandlerFailed": "Échec du gestionnaire de clic des plugins"
+                "clickHandlerFailed": "Échec du gestionnaire de clic des plugins",
+                "modelConversionFailed": "La conversion du modèle a échoué. Consultez le journal du convertisseur pour repérer les dépendances manquantes ou les entrées de modèle non valides, puis réessayez.",
+                "backendCancellationCleanupFailed": "Le nettoyage après annulation n’a pas pu être confirmé. Laissez ce moteur arrêté et réparez son environnement avant de réessayer.",
+                "melottsContainerCleanupFailed": "MeloTTS est installé, mais le nettoyage des ressources temporaires est incomplet. Réessayez l’opération du moteur.",
+                "backendDockerBuilderUnavailable": "Le constructeur Docker Buildx est indisponible. Configurez un constructeur fonctionnel et réessayez.",
+                "backendDockerBuildxUnavailable": "Docker Buildx est indisponible pour le compte du moteur. Installez ou activez Buildx et réessayez.",
+                "backendDockerCliMissing": "Docker est indisponible pour le compte du moteur. Installez Docker et réessayez.",
+                "backendDockerEngineUnavailable": "Le compte du moteur ne peut pas accéder au moteur Docker. Démarrez Docker et vérifiez les autorisations et la prise en charge de la virtualisation.",
+                "backendDockerStorageUnavailable": "Le compte du backend n’a pas pu détecter le stockage Docker. Démarrez Docker, vérifiez que le compte du backend peut interroger le moteur, puis réessayez.",
+                "backendDockerStorageUnmapped": "Le stockage Docker ne peut pas être associé à un emplacement vérifié sur l’hôte. Utilisez un moteur Docker local dont le disque de données se trouve sur un lecteur local, puis réessayez.",
+                "backendDockerStorageAccessDenied": "Le compte du backend ne peut pas inspecter l’emplacement de stockage Docker. Vérifiez son accès à l’emplacement des données Docker, puis réessayez.",
+                "backendDockerStorageChanged": "Le moteur Docker ou son stockage a changé pendant l’installation. Ne modifiez pas les paramètres de Docker pendant l’installation, puis réessayez.",
+                "modelConversionDependencyMissing": "Une dépendance du convertisseur CTranslate2 manque. Mettez à jour ou réinstallez le moteur, puis relancez le téléchargement du modèle.",
+                "backendLifecycleLocked": "Une autre opération du moteur utilise cette extension. Attendez qu’elle se termine, puis réessayez.",
+                "configurationBusy": "La configuration du plugin est occupée par une autre opération et rien n’a été modifié. Réessayez dans un instant.",
+                "ollamaResponsesSettingsUnsupported": "Responses d’Ollama local ne peut pas appliquer les paramètres d’exécution configurés. Utilisez Chat ou /v1/chat/completions avec ce modèle pour les appliquer.",
+                "backendRuntimeIncompatible": "Cet environnement d’exécution est incompatible avec le matériel sélectionné. Sélectionnez des GPU compatibles ou un autre environnement d’exécution.",
+                "backendRuntimeSelectionChanged": "La sélection matérielle a changé pendant l’installation. Vérifiez les GPU et l’environnement d’exécution, puis réessayez.",
+                "managedCompilerUnavailable": "Le compilateur géré n’a pas pu être installé ou n’a pas pu compiler l’environnement CPU. Vérifiez le stockage et l’accès au réseau, puis réparez l’installation du backend.",
+                "runtimeIllegalInstruction": "La vérification a été arrêtée par une instruction illégale. Choisissez un environnement compatible ou réparez le moteur.",
+                "runtimeVerificationFailed": "La vérification a échoué. Réparez le moteur et consultez les diagnostics.",
+                "backendCpuInstructionsUnavailable": "Cet environnement nécessite des instructions CPU indisponibles. Choisissez un autre environnement compatible.",
+                "configurationChanged": "La configuration du plugin a changé. Actualisez-la et vérifiez vos modifications avant de l’enregistrer à nouveau.",
+                "configurationApplyFailed": "La configuration a été enregistrée, mais l’environnement d’exécution n’a pas pu l’appliquer. Vérifiez l’état du backend et réessayez de l’appliquer.",
+                "backendRuntimeUnverified": "La compatibilité du GPU n’a pas pu être vérifiée. Attendez la détection, puis réessayez ou choisissez un environnement d’exécution vérifié."
             },
             "filters": {
                 "active": "Actif",
@@ -5266,7 +5564,9 @@
                     "loadFailed": "Impossible de charger les variantes du backend.",
                     "loading": "Chargement des variantes du backend...",
                     "loadingBackends": "Chargement des backends...",
-                    "saveFailed": "Impossible d’enregistrer la variante du backend."
+                    "saveFailed": "Impossible d’enregistrer la variante du backend.",
+                    "autoCompatibility": "Auto exclut {variants} pour la sélection matérielle actuelle. Sélectionnez d’autres GPU ou un autre environnement d’exécution disponible.",
+                    "compatibilityUnknown": "La compatibilité n’a pas pu être confirmée à partir des observations actuelles. Actualisez les informations matérielles ou sélectionnez un autre environnement d’exécution disponible."
                 },
                 "manageBackend": {
                     "author": "Auteur : {author}",
@@ -5327,13 +5627,14 @@
                 "providerManagedReadOnly": "{plugin} gère ses propres fournisseurs. Utilisez la console du plugin pour vous authentifier ou gérer les accès.",
                 "providersUnavailable": "{plugin} n’expose pas de fournisseurs externes.",
                 "restartButton": "Redémarrer SoAI",
-                "restartFailed": "Échec du redémarrage de SoAI.",
                 "restartRequired": "Redémarrez SoAI pour appliquer la nouvelle limite de plugins simultanés.",
                 "selectFile": "Sélectionnez un fichier de plugin",
                 "stopAllSuccess": "La commande d’arrêt de tous les plugins a été envoyée.",
                 "stopSuccess": "Plugin {plugin} arrêté avec succès",
                 "updateCheckFailed": "Échec de la recherche de mises à jour",
-                "uploadFailed": "Échec de l’importation du plugin"
+                "uploadFailed": "Échec de l’importation du plugin",
+                "backendUpdateTitle": "Mise à jour du moteur disponible",
+                "backendUpdateMessage": "Une mise à jour du moteur de {pluginName} est disponible. Ouvrez Plugins pour la consulter."
             },
             "providerMode": {
                 "badges": {
@@ -5392,88 +5693,71 @@
                 "hibernateSystem": {
                     "buttonLabel": "Mettre le système en veille prolongée",
                     "confirmMessage": "Voulez-vous vraiment mettre le système en veille prolongée ?",
-                    "confirmMessageWithDelay": "Voulez-vous vraiment mettre le système en veille prolongée ? L’action commence dans {delay} secondes.",
                     "confirmTitle": "Mettre le système en veille prolongée",
                     "confirmWarning": "Les sessions ne reprennent qu’après le rallumage de la machine",
                     "description": "Enregistrez la mémoire sur le disque et éteignez la plupart des composants matériels.",
                     "optionDelay": "Délai (secondes)",
                     "overlayMessage": "Mise en veille prolongée du système...",
-                    "successNotification": "Mise en veille prolongée du système lancée",
-                    "successNotificationWithDelay": "Mise en veille prolongée du système planifiée (délai de {delay}s)",
                     "title": "Mettre le système en veille prolongée"
                 },
                 "rebootSystem": {
                     "buttonLabel": "Redémarrer le système",
                     "confirmMessage": "Voulez-vous vraiment redémarrer le système ?",
-                    "confirmMessageWithDelay": "Voulez-vous vraiment redémarrer le système ? L’action commence dans {delay} secondes.",
                     "confirmTitle": "Redémarrer le système",
                     "confirmWarning": "Cette action redémarre l’intégralité de la machine",
                     "description": "Redémarrez l’intégralité de la machine et rechargez le système d’exploitation.",
                     "optionDelay": "Délai (secondes)",
                     "optionForce": "Forcer le redémarrage",
-                    "successNotification": "Redémarrage du système lancé",
-                    "successNotificationWithDelay": "Redémarrage du système planifié (délai de {delay}s)",
                     "title": "Redémarrer le système"
                 },
                 "restartApplication": {
                     "buttonLabel": "Redémarrer l’application",
-                    "confirmMessage": "Voulez-vous vraiment redémarrer l’application ?",
-                    "confirmTitle": "Redémarrer l’application",
-                    "confirmWarning": "Tous les utilisateurs seront brièvement déconnectés pendant le redémarrage de l’application",
-                    "description": "Redémarrez l’application SoAI et rechargez tous les services.",
+                    "confirmMessage": "Voulez-vous vraiment redémarrer SoAI ?",
+                    "confirmTitle": "Redémarrer SoAI",
+                    "confirmWarning": "Tous les utilisateurs seront brièvement déconnectés pendant le redémarrage de SoAI",
+                    "description": "Redémarrez SoAI et rechargez tous les services.",
                     "optionDelay": "Délai (secondes)",
-                    "successNotification": "Redémarrage de l’application lancé",
-                    "title": "Redémarrer l’application"
+                    "title": "Redémarrer SoAI"
                 },
                 "shutdownApplication": {
                     "buttonLabel": "Arrêter l’application",
-                    "confirmMessage": "Voulez-vous vraiment arrêter l’application SoAI ?",
-                    "confirmMessageWithDelay": "Voulez-vous vraiment arrêter l’application SoAI ? L’action commence dans {delay} secondes.",
-                    "confirmTitle": "Arrêter l’application",
-                    "confirmWarning": "Les utilisateurs seront déconnectés jusqu’au redémarrage de l’application",
-                    "description": "Arrêtez l’application SoAI tout en laissant l’hôte disponible.",
+                    "confirmMessage": "Voulez-vous vraiment arrêter SoAI ?",
+                    "confirmTitle": "Arrêter SoAI",
+                    "confirmWarning": "Les utilisateurs seront déconnectés jusqu’au redémarrage de SoAI",
+                    "description": "Arrêtez SoAI tout en laissant l’hôte disponible.",
                     "optionDelay": "Délai (secondes)",
-                    "overlayMessage": "Arrêt de l’application en cours...",
-                    "successNotification": "Arrêt de l’application lancé",
-                    "successNotificationWithDelay": "Arrêt de l’application planifié (délai de {delay}s)",
-                    "title": "Arrêter l’application"
+                    "overlayMessage": "Arrêt de SoAI en cours...",
+                    "title": "Arrêter SoAI"
                 },
                 "shutdownSystem": {
                     "buttonLabel": "Arrêter",
                     "confirmMessage": "Voulez-vous vraiment arrêter le système ?",
-                    "confirmMessageWithDelay": "Voulez-vous vraiment arrêter le système ? L’action commence dans {delay} secondes.",
                     "confirmTitle": "Arrêter le système",
                     "confirmWarning": "Cette action arrête tous les processus et éteint complètement la machine",
                     "description": "Éteignez l’intégralité de la machine une fois les opérations en attente terminées.",
                     "optionDelay": "Délai (secondes)",
                     "optionForce": "Forcer l’arrêt",
                     "overlayMessage": "Arrêt du système en cours...",
-                    "successNotification": "Arrêt du système lancé",
-                    "successNotificationWithDelay": "Arrêt du système planifié (délai de {delay}s)",
                     "title": "Arrêter le système"
                 },
                 "suspendSystem": {
                     "buttonLabel": "Mettre le système en veille",
                     "confirmMessage": "Voulez-vous vraiment mettre le système en veille ?",
-                    "confirmMessageWithDelay": "Voulez-vous vraiment mettre le système en veille ? L’action commence dans {delay} secondes.",
                     "confirmTitle": "Mettre le système en veille",
                     "confirmWarning": "Les processus sont suspendus jusqu’à la reprise du système",
                     "description": "Placez le système dans un état de veille à faible consommation.",
                     "optionDelay": "Délai (secondes)",
                     "overlayMessage": "Passage du système en veille...",
-                    "successNotification": "Mise en veille du système lancée",
-                    "successNotificationWithDelay": "Mise en veille du système planifiée (délai de {delay}s)",
                     "title": "Mettre le système en veille"
                 }
             },
-            "description": "Opérations d’alimentation de l’application et du système.",
             "operations": {
                 "failed": "L’opération d’alimentation a échoué. Vérifiez son état et la stratégie d’alimentation à l’exécution, puis réessayez uniquement si l’opération peut être relancée."
             },
             "overlays": {
                 "applicationShutdown": {
-                    "monitoring": "Arrêt de l’application SoAI.",
-                    "offline": "L’application est hors ligne."
+                    "monitoring": "Arrêt de SoAI.",
+                    "offline": "SoAI est hors ligne."
                 },
                 "countdown": {
                     "cancel": "Annuler",
@@ -5497,6 +5781,10 @@
             "restartReminder": {
                 "message": "Redémarrage requis pour appliquer les modifications.",
                 "messageWithReason": "Redémarrage requis : {reason}"
+            },
+            "groups": {
+                "application": "SoAI",
+                "system": "Système"
             }
         },
         "prompts": {
@@ -5664,7 +5952,20 @@
             "title": "Prompts",
             "unnamedPrompt": "Prompt sans nom",
             "unsavedChanges": "Vous avez des modifications non enregistrées. Voulez-vous vraiment quitter ?",
-            "untitled": "Sans titre"
+            "untitled": "Sans titre",
+            "picker": {
+                "editFailed": "Impossible d’ouvrir l’éditeur de prompts.",
+                "empty": "Aucun prompt enregistré pour le moment.",
+                "emptyContent": "Aucun contenu de prompt",
+                "help": "Choisissez un prompt enregistré pour utiliser son texte",
+                "loadFailed": "Impossible de charger les prompts enregistrés.",
+                "loading": "Chargement des prompts...",
+                "manage": "Gérer les prompts",
+                "manageFailed": "Impossible d’ouvrir la page des prompts.",
+                "noMatches": "Aucun prompt ne correspond à votre recherche.",
+                "search": "Rechercher",
+                "title": "Prompts enregistrés"
+            }
         },
         "restartOverlay": {
             "descriptions": {
@@ -5672,7 +5973,7 @@
                 "generic": "SoAI effectue une opération.",
                 "rebooting": "Le système redémarre. Veuillez patienter jusqu’à ce qu’il soit de nouveau en ligne.",
                 "rebootTimeout": "Impossible de confirmer l’état du système après 15 minutes. Actualisation complète forcée en cours.",
-                "restarting": "L’application redémarre. Cela ne devrait prendre que quelques instants.",
+                "restarting": "SoAI redémarre. Cela ne devrait prendre que quelques instants.",
                 "shutdown": "Le système s’arrête. Vous pouvez fermer cette fenêtre du navigateur.",
                 "sleep": "Le système passe en veille. Réactivez-le pour continuer à utiliser SoAI.",
                 "updateTimeout": "SoAI n'est pas revenu en ligne après la mise à jour. Consultez application_updater.log dans le dossier des journaux de SoAI, puis rechargez cette page.",
@@ -5692,7 +5993,16 @@
                 "updateTimeout": "SoAI n'est pas encore revenu",
                 "updating": "Mise à jour de SoAI..."
             },
-            "reconnecting": "Tentative de reconnexion..."
+            "reconnecting": "Tentative de reconnexion...",
+            "handoff": {
+                "plannedAddress": "Adresse prévue après le redémarrage. Vos brouillons restent dans cet onglet.",
+                "newAddress": "La connexion a été interrompue. Ouvrez la nouvelle adresse pour vous reconnecter ; le serveur est peut-être encore en cours de démarrage.",
+                "manualHttps": "Le serveur utilisera HTTPS. Ouvrez SoAI à l’adresse configurée pour votre serveur ou proxy inverse.",
+                "manualHttp": "Le serveur utilisera HTTP. Ouvrez SoAI à l’adresse configurée pour votre serveur ou proxy inverse.",
+                "open": "Ouvrir la nouvelle adresse",
+                "copy": "Copier l’adresse",
+                "copied": "Adresse copiée"
+            }
         },
         "richText": {
             "footnotes": {
@@ -5961,7 +6271,9 @@
                     "timeout": "Durée du délai d’expiration"
                 },
                 "nullPlaceholder": "null",
-                "sectionHeader": "Paramètres avancés (config.yaml)"
+                "sectionHeader": "Paramètres avancés (config.yaml)",
+                "autoUpdateBuiltinLabel": "Mettre à jour automatiquement les moteurs intégrés",
+                "autoUpdateBuiltinHelp": "Après une modification des paquets de plugins, vérifie les moteurs installés et met à jour les moteurs intégrés lorsqu’ils sont arrêtés en toute sécurité. Le travail en cours est préservé. Les moteurs tiers nécessitent une mise à jour manuelle"
             },
             "advancedMode": "Avancé",
             "advancedTitle": "Paramètres avancés",
@@ -6797,7 +7109,6 @@
                     "readVideoAudioExtractionTimeoutSec": "Délai d’expiration de l’extraction audio",
                     "readVideoPreviewExtractionTimeoutSec": "Délai d’expiration de l’extraction de l’aperçu",
                     "readVideoLiveProgressMinIntervalMs": "Intervalle minimal de progression en direct",
-                    "readVideoWhisperModel": "Modèle Whisper pour les transcriptions audio",
                     "hostModeEnabled": "Activer les clients en mode hôte",
                     "hostModeAutoConnectOnStartup": "Connecter les serveurs enregistrés au démarrage",
                     "hostModeReconnectDelaySec": "Délai avant les tentatives de reconnexion",
@@ -7719,6 +8030,14 @@
                     "help": "Importez une image depuis votre appareil (PNG, JPG, GIF, WebP, SVG - Max 25MB)",
                     "label": "Importer un fond d’écran"
                 }
+            },
+            "speechToText": {
+                "title": "Reconnaissance vocale",
+                "description": "Transcrit l’audio et la vidéo des fichiers, des Connaissances et des outils.",
+                "model": {
+                    "label": "Modèle de reconnaissance vocale",
+                    "help": "Auto utilise le premier modèle local disponible. La dictée du chat utilise le réglage Voix de chaque chat"
+                }
             }
         },
         "statusCatalog": {
@@ -7934,13 +8253,19 @@
                 "partial": "Certaines notes de version n’ont pas pu être chargées. Les notes disponibles sont affichées."
             },
             "outcome": {
+                "diagnosticsInstalledOriginalChanged": "Des fichiers installés ont changé pendant que la mise à jour préparait sa copie de restauration.",
+                "diagnosticsInterruptedPreparation": "La mise à jour a été interrompue pendant la préparation de sa copie de restauration.",
+                "diagnosticsMessage": "Les diagnostics de cette tentative ont été enregistrés sur l'ordinateur SoAI à l'emplacement {location}. {summary} Référence : {reference}.",
+                "diagnosticsRetainedCopyMismatch": "La copie de restauration des fichiers installés ne correspondait pas aux originaux.",
+                "diagnosticsSnapshotOperationFailed": "La copie de restauration n'a pas pu être terminée, car une opération sur les fichiers a échoué.",
+                "diagnosticsSourceUnverifiable": "Les fichiers installés n'ont pas pu être lus pour vérifier la copie de restauration.",
                 "failureMessage": "La mise à jour vers la version {version} n'a pas abouti. SoAI {previousVersion} est toujours installé. Consultez application_updater.log dans le dossier des journaux de SoAI pour plus de détails.",
                 "failureTitle": "Mise à jour non terminée",
                 "later": "Plus tard",
                 "reloadMessage": "SoAI utilise désormais la version {version}. Rechargez cette page pour utiliser l'interface mise à jour.",
                 "reloadTitle": "SoAI a été mis à jour",
-                "successMessage": "SoAI a été mis à jour avec succès vers la version {version}.",
-                "successTitle": "Mise à jour terminée"
+                "successMessage": "La version {version} est prête.",
+                "successTitle": "SoAI mis à jour"
             },
             "progress": {
                 "downloading": "Téléchargement de la mise à jour...",
@@ -8015,7 +8340,25 @@
                 "updating": "Mise à jour..."
             },
             "title": "Mises à jour",
-            "unknown": "Inconnu"
+            "unknown": "Inconnu",
+            "backend": {
+                "failedUpdatesHeading": "Échecs de mise à jour",
+                "availableHeading": "Mises à jour des moteurs disponibles",
+                "updatingHeading": "Mises à jour en cours",
+                "pendingHeading": "Vérifications en attente",
+                "failedHeading": "Vérifications nécessitant une attention",
+                "reviewUpdate": "Examiner la mise à jour",
+                "reviewUpdates": "Examiner les mises à jour",
+                "viewPlugins": "Voir les extensions"
+            },
+            "history": {
+                "lastCheck": "Dernière recherche : {date}.",
+                "lastUpdate": "Dernière mise à jour : {date}.",
+                "savedResults": "Résultats enregistrés du {date}. Relancez la recherche pour les actualiser.",
+                "restored": "Informations de mise à jour enregistrées. Relancez la recherche pour les actualiser.",
+                "unavailable": "Impossible de charger ou d’enregistrer l’historique des mises à jour. Relancez la recherche.",
+                "saved": "Résultat enregistré"
+            }
         },
         "wizard": {
             "completion": {
@@ -8252,7 +8595,8 @@
                             "recommended": "Recommandé",
                             "warning": "Avertissement",
                             "unavailable": "Indisponible"
-                        }
+                        },
+                        "automaticRuntime": "Le moteur d’exécution de {engine} sera choisi pendant l’installation. L’accélération n’est pas encore confirmée."
                     }
                 },
                 "models": {
@@ -8321,19 +8665,20 @@
                     "retryInstallation": "Relancer l’installation",
                     "skipItem": "Ignorer cet élément",
                     "testAgain": "Tester à nouveau",
-                    "checkAgain": "Vérifier à nouveau",
                     "sendTest": "Envoyer un message de test",
                     "error": {
                         "empty": "Le modèle s’est chargé mais n’a pas répondu. Réessayez ou choisissez un autre modèle.",
-                        "loadError": "Le modèle n’a pas pu démarrer sur cet appareil. Réessayez ou choisissez un modèle plus léger.",
+                        "loadError": "Le test du modèle a échoué. Examinez et corrigez la cause, puis réessayez.",
                         "timeout": "Le modèle a mis trop de temps à répondre. Réessayez ou choisissez un modèle plus léger.",
                         "disconnected": "La connexion a été perdue pendant le test. Réessayez.",
                         "downloadFailed": "Le téléchargement s’est interrompu. Réessayez.",
                         "installFailed": "L’installation ne s’est pas terminée. Réessayez.",
-                        "noDiskSpace": "Espace disque insuffisant pour ce modèle. Libérez de l’espace ou choisissez un modèle plus léger."
+                        "noDiskSpace": "Espace disque insuffisant pour ce modèle. Libérez de l’espace ou choisissez un modèle plus léger.",
+                        "discoveryFailed": "Le téléchargement est terminé, mais le modèle n’a pas pu être ajouté au catalogue. Ouvrez Modèles pour le vérifier ou terminez la configuration plus tard."
                     },
                     "testPrompt": "Réponds par une phrase courte et amicale.",
-                    "testCancelled": "Le test de configuration de SoAI a été annulé."
+                    "testCancelled": "Le test de configuration de SoAI a été annulé.",
+                    "useCpuRuntime": "Utiliser le moteur CPU"
                 },
                 "completion": {
                     "modelsTitle": "Modèles d’IA",
@@ -8362,6 +8707,40 @@
                     "both": "Les téléchargements de modèles et les installations de backend se poursuivront en arrière-plan."
                 }
             }
+        },
+        "speechSetup": {
+            "notTranscribed": "Parole non transcrite",
+            "askAdministrator": "Demandez à un administrateur de configurer la transcription.",
+            "askAdministratorTextToSpeech": "Demandez à un administrateur de configurer la synthèse vocale.",
+            "installBackend": "Installer le moteur de {plugin}",
+            "enablePlugin": "Activer {plugin}",
+            "changeModel": "Changer de modèle vocal",
+            "openPlugins": "Ouvrir Plugins",
+            "addAgain": "La transcription est maintenant disponible. Importez de nouveau le fichier pour le transcrire.",
+            "checking": "Vérification de la disponibilité de la transcription…",
+            "checkingTextToSpeech": "Vérification de la disponibilité de la synthèse vocale…",
+            "errors": {
+                "noPlugin": "Aucun plugin installé ne fournit de transcription locale.",
+                "noModel": "Aucun modèle de transcription locale installé.",
+                "notLocal": "La transcription multimédia est locale. Choisissez un modèle de transcription locale.",
+                "translationUnsupported": "Aucun modèle vocal local installé ne prend en charge la traduction. Choisissez un modèle multilingue.",
+                "unsupportedOption": "{model} ne peut pas fournir les horodatages ou la langue nécessaires. Choisissez un autre modèle vocal.",
+                "configuredModelMissing": "Le modèle de transcription sélectionné n’est pas disponible.",
+                "mediaDependencyUnavailable": "Le traitement des médias nécessite FFmpeg et ffprobe. Installez FFmpeg et réessayez.",
+                "noVoiceModel": "Aucun modèle de reconnaissance vocale n’est disponible.",
+                "noTextToSpeechModel": "Aucun modèle de synthèse vocale n’est disponible.",
+                "backendNotInstalled": "Le moteur du plugin de transcription n’est pas installé.",
+                "textToSpeechBackendNotInstalled": "Le moteur du plugin de synthèse vocale n’est pas installé.",
+                "pluginDisabled": "Le plugin de transcription est désactivé.",
+                "textToSpeechPluginDisabled": "Le plugin de synthèse vocale est désactivé.",
+                "modelDisabled": "Les modèles de transcription installés sont désactivés ou indisponibles.",
+                "textToSpeechModelDisabled": "Les modèles de synthèse vocale installés sont désactivés ou indisponibles.",
+                "unsupportedOptionSelected": "Le modèle vocal sélectionné ne peut pas fournir les horodatages ou la langue nécessaires à cette demande. Choisissez un autre modèle vocal."
+            },
+            "notTranscribedNotice": "Parole non transcrite. Configurez la transcription, puis importez de nouveau le fichier.",
+            "notTranscribedAskAdministrator": "Parole non transcrite. Demandez à un administrateur de configurer la transcription, puis importez de nouveau le fichier.",
+            "openModels": "Ouvrir Modèles",
+            "openSettings": "Paramètres de reconnaissance vocale"
         }
     }
 }

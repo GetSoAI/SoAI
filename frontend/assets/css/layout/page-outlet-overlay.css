@@ -72,12 +72,47 @@
         --soai-spinner-duration: var(--spinner-duration-800);
         --soai-spinner-stroke: var(--border-width-4);
         --soai-spinner-track-color: color-mix(in srgb, var(--glass-border-strong) 45%, var(--glass-underlay-surface));
-        --motion-essential-duration: var(--spinner-duration-800), 0ms;
+        --motion-essential-duration: 0ms;
         width: 3rem;
         height: 3rem;
-        animation:
-            spin var(--spinner-duration-800) var(--ease-linear) infinite,
-            effect-fade-enter var(--duration-1000) var(--ease-in-out) forwards;
+        animation: effect-fade-enter var(--duration-1000) var(--ease-in-out) forwards;
+    }
+
+    .page-outlet-spinner-trail {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    .page-outlet-overlay-spinner[data-spinner-renderer='gpu']::before {
+        content: none;
+        animation: none;
+    }
+
+    .page-outlet-overlay-spinner[data-spinner-renderer='gpu'] {
+        box-sizing: content-box;
+        padding: var(--border-width-1);
+        margin: calc(var(--border-width-1) * -1);
+        mask-size: calc(100% - var(--border-width-1) * 2) calc(100% - var(--border-width-1) * 2);
+        mask-position: center;
+        mask-repeat: no-repeat;
+    }
+
+    @media (resolution < 1dppx) {
+        .page-outlet-overlay-spinner {
+            --motion-essential-duration: var(--spinner-duration-800), 0ms;
+            animation:
+                spin var(--spinner-duration-800) var(--ease-linear) infinite,
+                effect-fade-enter var(--duration-1000) var(--ease-in-out) forwards;
+        }
+
+        .page-outlet-overlay-spinner[data-spinner-renderer='gpu'] {
+            --motion-essential-duration: 0ms;
+            background-image: none;
+            animation: effect-fade-enter var(--duration-1000) var(--ease-in-out) forwards;
+        }
     }
 
     .page-outlet-overlay-label {

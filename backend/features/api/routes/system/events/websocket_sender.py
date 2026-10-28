@@ -8,9 +8,11 @@ from typing import TYPE_CHECKING
 
 from fastapi import WebSocket
 
-from core.concurrency.task_groups import QueueEventWaiter
+from core.concurrency.queue_race import (
+    QueueRaceOutcome,
+    race_queue_operation_against_signals,
+)
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import SoAITimeoutError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.serialization.json import normalize_for_json
@@ -43,58 +45,60 @@ async def run_websocket_sender(
     connection: WebsocketConnection,
     shutdown_event: asyncio.Event,
 ) -> None:
-    waiter = QueueEventWaiter(connection.queue, shutdown_event)
-    try:
-        while True:
+    terminal_error = connection.terminal_error
+    while not shutdown_event.is_set():
+        retrieved_from_queue = False
+        try:
+            wait_result = await race_queue_operation_against_signals(
+                connection.queue.get(),
+                (shutdown_event, terminal_error.requested),
+                timeout_seconds=INTERACTIVE_TIMEOUT_SEC,
+            )
+            retrieved_from_queue = wait_result.outcome is QueueRaceOutcome.OPERATION_COMPLETED
             if shutdown_event.is_set():
                 break
-            retrieved_from_queue = False
-            try:
-                try:
-                    wait_result = await waiter.wait_with_result(timeout=INTERACTIVE_TIMEOUT_SEC)
-                except (SoAITimeoutError, TimeoutError):
-                    wait_result = None
-                if wait_result is None:
-                    event_data: JSONDict = build_websocket_event_payload(WebSocketEventTypes.PING)
-                else:
-                    event_data = (
-                        wait_result.event
-                        if wait_result.event is not None
-                        else build_websocket_event_payload(WebSocketEventTypes.PING)
-                    )
-                    retrieved_from_queue = wait_result.retrieved_from_queue
-                    if shutdown_event.is_set():
-                        break
-                if shutdown_event.is_set():
-                    break
-                if not await validate_websocket_session(connection, force=False):
-                    shutdown_event.set()
-                    break
-                if "protocol_version" not in event_data:
-                    event_data["protocol_version"] = WEBSOCKET_PROTOCOL_VERSION
-                normalized_payload = normalize_for_json(event_data)
-                await websocket.send_json(normalized_payload)
-            except RECOVERABLE_EXCEPTIONS as exception:
-                log_exception(
-                    get_logger(LOGGER_NAME),
-                    exception,
-                    message="WebSocket sender task error.",
-                    operation=OPERATION,
-                    details={"username": connection.user.get("username", "unknown")},
-                    level="warning",
+            terminal_payload = terminal_error.payload if terminal_error.requested.is_set() else None
+            event_data: JSONDict = (
+                terminal_payload
+                if terminal_payload is not None
+                else (
+                    wait_result.value
+                    if wait_result.value is not None
+                    else build_websocket_event_payload(WebSocketEventTypes.PING)
                 )
+            )
+            if not await validate_websocket_session(connection, force=False):
                 shutdown_event.set()
                 break
-            except WEBSOCKET_TERMINAL_LIFECYCLE_EXCEPTIONS:
+            if shutdown_event.is_set():
+                break
+            if "protocol_version" not in event_data:
+                event_data["protocol_version"] = WEBSOCKET_PROTOCOL_VERSION
+            normalized_payload = normalize_for_json(event_data)
+            await websocket.send_json(normalized_payload)
+            if terminal_payload is not None:
+                terminal_error.delivered.set()
                 shutdown_event.set()
                 return
-            finally:
-                if retrieved_from_queue:
-                    try:
-                        connection.queue.task_done()
-                    except ValueError:
-                        get_logger(LOGGER_NAME).trace(
-                            "task_done called on empty websocket queue (cleanup race).",
-                        )
-    finally:
-        await waiter.cancel()
+        except RECOVERABLE_EXCEPTIONS as exception:
+            log_exception(
+                get_logger(LOGGER_NAME),
+                exception,
+                message="WebSocket sender task error.",
+                operation=OPERATION,
+                details={"username": connection.user.get("username", "unknown")},
+                level="warning",
+            )
+            shutdown_event.set()
+            break
+        except WEBSOCKET_TERMINAL_LIFECYCLE_EXCEPTIONS:
+            shutdown_event.set()
+            return
+        finally:
+            if retrieved_from_queue:
+                try:
+                    connection.queue.task_done()
+                except ValueError:
+                    get_logger(LOGGER_NAME).trace(
+                        "task_done called on empty websocket queue (cleanup race).",
+                    )

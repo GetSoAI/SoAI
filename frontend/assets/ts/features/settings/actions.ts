@@ -7,7 +7,7 @@ import { isArray, isBoolean, isNumber, isString } from '@core/typeGuards.ts';
 import { isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import type { AnalyzeStructure, SectionItem, TabDefinition } from '@features/settings/types.ts';
 
-const formatSettingLabel = (key: string): string => formatSentenceLabelFromId(key);
+const formatSettingLabel = (key: string): string => (key === 'AUTO_UPDATE_BUILTIN' ? i18n.t('settings.advanced.autoUpdateBuiltinLabel') : formatSentenceLabelFromId(key));
 
 const SETTING_PATH_SEGMENT_SEPARATOR = ' / ';
 const CONFIG_PATH_SEGMENT_SEPARATOR = '.';
@@ -42,6 +42,7 @@ const createAdvancedTabs = (structure: AnalyzeStructure | null): TabDefinition[]
 };
 
 const resolveHelpText = (key: string, value: JsonValue): string => {
+    if (key === 'AUTO_UPDATE_BUILTIN') return i18n.t('settings.advanced.autoUpdateBuiltinHelp');
     const lowerKey = isString(key) ? key.toLowerCase() : '';
     if (lowerKey.includes('port')) return i18n.t('settings.advanced.helpText.port');
     if (lowerKey.includes('host')) return i18n.t('settings.advanced.helpText.host');

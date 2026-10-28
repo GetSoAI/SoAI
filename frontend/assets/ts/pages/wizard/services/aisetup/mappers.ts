@@ -1,6 +1,7 @@
 /* SoAI - Wizard AI setup step view model derivation [frontend/assets/ts/pages/wizard/services/aisetup/mappers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { readModelVariantDownloadReference, readModelVariantRepository } from '@core/modelactions/variantInput.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { formatBytes } from '@core/primitives/byteSize.ts';
 import type { AiSetupState } from '@core/storage/aisetup/aiSetupTypes.ts';
@@ -25,6 +26,7 @@ interface AiSetupSnapshot {
     providerAvailability: ProviderPluginAvailability;
     search: ModelSearchState;
     searchOpen: boolean;
+    localDownloadComplete: boolean;
     cloudFilter: string;
     resolveRepositoryUrl(pluginName: string, repository: string): string | null;
 }
@@ -41,7 +43,8 @@ const describeAutomaticEngine = (facts: AiSetupFacts, engine: AutomaticEngine): 
     if (engine.status === 'none') return null;
     const name = readEngineName(facts, engine.pluginName);
     if (engine.status === 'installed') return i18n.t('wizard.aiSetup.connect.local.usesInstalled', { engine: name });
-    return engine.usesGpu ? i18n.t('wizard.aiSetup.connect.local.usesGpu', { engine: name }) : i18n.t('wizard.aiSetup.connect.local.usesProcessor', { engine: name });
+    if (engine.executionTarget === 'unresolved') return i18n.t('wizard.aiSetup.connect.local.automaticRuntime', { engine: name });
+    return engine.executionTarget === 'gpu' ? i18n.t('wizard.aiSetup.connect.local.usesGpu', { engine: name }) : i18n.t('wizard.aiSetup.connect.local.usesProcessor', { engine: name });
 };
 
 const buildSourcesView = (snapshot: AiSetupSnapshot): AiSetupSourcesView => ({
@@ -74,6 +77,7 @@ const buildModelsView = (snapshot: AiSetupSnapshot): AiSetupModelsView => {
     const provider = activeProvider(setup);
     const cloudItems = setup.models.filter((model) => model.source === 'cloud' && !model.excluded);
     return {
+        localSelectionLocked: snapshot.localDownloadComplete,
         showLocal: setup.sources.local,
         showCloud: setup.sources.cloud && provider !== null,
         localCards: selection.cards.map((card) => ({ card, itemId: localItems.find((item) => item.catalogId === card.entry.id)?.itemId ?? null, repositoryUrl: snapshot.resolveRepositoryUrl(card.entry.pluginName, card.entry.repository) })),
@@ -81,6 +85,7 @@ const buildModelsView = (snapshot: AiSetupSnapshot): AiSetupModelsView => {
         limitedMessage: readLimitedMessage(selection),
         searchOpen: snapshot.searchOpen || (selection.cards.length === 0 && selection.emptyReason === null),
         search: snapshot.search,
+        selectedVariantIndex: snapshot.search.variants.findIndex((variant) => localItems.some((item) => item.pluginName === snapshot.search.pluginName && item.repositoryId === (readModelVariantRepository(variant) || snapshot.search.repositoryId) && item.artifactReference === readModelVariantDownloadReference(variant))),
         providerName: provider?.providerName ?? null,
         cloudModels: provider === null ? [] : listProviderModels(snapshot.models, provider).map((model) => ({ modelId: model.id, label: readModelLabel(model, model.id), itemId: cloudItems.find((item) => item.modelId === model.id)?.itemId ?? null })),
         cloudFilter: snapshot.cloudFilter,

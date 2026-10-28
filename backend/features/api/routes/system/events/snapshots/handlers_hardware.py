@@ -7,8 +7,11 @@ from typing import TYPE_CHECKING
 
 from fastapi import WebSocket
 
-from core.errors.exceptions import ApiError, ValidationError
-from core.hardware.gpu_slot_failures import translate_gpu_slot_failure
+from core.errors.exceptions import ValidationError
+from core.hardware.gpu_slot_failures import (
+    build_gpu_settings_failure_error,
+    build_gpu_slot_failure_error,
+)
 from core.hardware.soaibench_limits import (
     SOAIBENCH_HISTORY_DEFAULT_LIMIT,
     SOAIBENCH_LIST_MAX_LIMIT,
@@ -63,14 +66,7 @@ def _require_gpu_operation_success(result: JSONValue, *, operation: str) -> JSON
         recover_message="Failed to parse GPU operation success flag.",
     ):
         return result
-    status_code, code, message, details = translate_gpu_slot_failure(result)
-    raise ApiError(
-        message,
-        code=code,
-        http_status=status_code,
-        details=details,
-        operation=operation,
-    )
+    raise build_gpu_slot_failure_error(result, operation=operation)
 
 
 async def snapshot_hardware_snapshot(
@@ -116,13 +112,7 @@ async def snapshot_hardware_gpu_settings_update(
         payload.model_dump(),
     )
     if not outcome.success:
-        raise ApiError(
-            outcome.error_message or "GPU settings operation failed.",
-            code=outcome.error_type or "gpu_error",
-            http_status=outcome.status_code,
-            details=outcome.error_detail,
-            operation="hardware.gpu.settings.update",
-        )
+        raise build_gpu_settings_failure_error(outcome)
     return outcome.payload or {}
 
 
@@ -308,7 +298,7 @@ async def snapshot_hardware_process_kill(
 def _require_user_id(connection: WebsocketConnection) -> int:
     user_id_value = connection.user.get("id")
     if not is_positive_strict_int(user_id_value):
-        raise ValidationError("Authenticated user id is required for SoAIBench.")
+        raise ValidationError("Authenticated user id is required for SoAI Bench.")
     return user_id_value
 
 

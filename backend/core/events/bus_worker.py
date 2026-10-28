@@ -7,6 +7,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, TypeGuard
 
+from core.concurrency.cancellation_cleanup import current_task_has_pending_cancellation
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
@@ -78,6 +79,7 @@ async def run_event_bus_worker(
     logger.trace("EventBus worker-%s started.", worker_id)
     while True:
         item = completion_event = None
+        event_type_name = "event"
         trace_id: str | None = None
         dispatch_timed_out = False
         dispatch_failure_message: str | None = None
@@ -89,6 +91,7 @@ async def run_event_bus_worker(
             if not is_event_queue_item(item):
                 raise TypeError(f"Event bus queue item is invalid: {type(item).__name__}")
             event, publish_time, completion_event = item
+            event_type_name = type(event).__name__
             trace_id = None
             if metrics_recorder:
                 metrics_recorder.record_timing(
@@ -113,6 +116,19 @@ async def run_event_bus_worker(
                 dispatch_timed_out = dispatch_result.aggregate_timed_out
                 dispatch_failure_message = dispatch_result.failure_message
         except asyncio.CancelledError:
+            if current_task_has_pending_cancellation():
+                dispatch_failure_message = (
+                    "Event bus worker was cancelled before dispatch completed."
+                )
+                logger.trace("EventBus worker-%s cancelled by its owner.", worker_id)
+                raise
+            dispatch_failure_message = f"A subscriber cancelled delivery of {event_type_name}."
+            logger.debug(
+                "EventBus worker-%s observed subscriber cancellation for %s.",
+                worker_id,
+                event_type_name,
+            )
+        except asyncio.QueueShutDown:
             break
         except HANDLED_RUNTIME_EXCEPTIONS as exception:
             coerced = coerce_to_soai_error(

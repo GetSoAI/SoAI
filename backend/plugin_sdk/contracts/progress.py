@@ -20,6 +20,8 @@ from core.progress.progress_bar import format_progress_bar
 from core.progress.speed import SpeedCalculator
 
 if TYPE_CHECKING:
+    from core.network.http_download_progress import DownloadActivity
+
     type ProgressCallback = Callable[[ProgressPayload], None]
     type AsyncProgressCallback = Callable[[ProgressPayload], Awaitable[None]]
 
@@ -62,6 +64,9 @@ class DownloadProgressReporter:
     _last_reported_at: float = field(default=0.0, repr=False, init=False)
     _speed_calc: SpeedCalculator = field(default_factory=SpeedCalculator, repr=False, init=False)
     _start_time: float = field(default=0.0, repr=False, init=False)
+    _last_activity: DownloadActivity | None = field(default=None, repr=False, init=False)
+    _last_activity_at: float = field(default=0.0, repr=False, init=False)
+    _last_transfer_at: float = field(default=0.0, repr=False, init=False)
 
     def __post_init__(self) -> None:
         self._start_time = time.monotonic()
@@ -105,11 +110,42 @@ class DownloadProgressReporter:
         self, chunk_size: int, *, maximum_percent: int | None = None
     ) -> ProgressPayload | None:
         self.downloaded_bytes += chunk_size
+        self._last_transfer_at = time.monotonic()
         return self._build_payload(maximum_percent=maximum_percent)
 
     async def report_async(self, chunk_size: int, *, maximum_percent: int | None = None) -> None:
         payload = self.report_sync(chunk_size, maximum_percent=maximum_percent)
         if payload and self.output_callback:
+            result = self.output_callback(payload)
+            if inspect.isawaitable(result):
+                await result
+
+    async def report_activity_async(
+        self, activity: DownloadActivity, processed_bytes: int, total_bytes: int | None
+    ) -> None:
+        now = time.monotonic()
+        if activity == self._last_activity and now - self._last_activity_at < 1.0:
+            return
+        self._last_activity, self._last_activity_at = activity, now
+        speed = self._speed_calc.speed if now - self._last_transfer_at <= 5.0 else 0.0
+        details = (
+            format_transfer_details(
+                self.downloaded_bytes,
+                self.total_size if self.total_size > 0 else None,
+                speed=speed,
+                eta_seconds=self._calculate_eta(speed),
+            )
+            if activity == "downloading"
+            else format_transfer_details(processed_bytes, total_bytes)
+        )
+        payload: ProgressPayload = {
+            "type": "progress",
+            "component": self.component,
+            "percent": min(self._calculate_percent(), self.progress_end - 1),
+            "message": f"transfer.phase.{activity}",
+            "details": details,
+        }
+        if self.output_callback is not None:
             result = self.output_callback(payload)
             if inspect.isawaitable(result):
                 await result
@@ -130,6 +166,7 @@ class DownloadProgressReporter:
                 eta_seconds=0.0,
                 last_reported_at=self._last_reported_at,
                 elapsed_seconds=elapsed_seconds,
+                force=True,
             )
         return None
 
@@ -146,6 +183,9 @@ class DownloadProgressReporter:
         self._last_reported_at = 0.0
         self._speed_calc.reset()
         self._start_time = time.monotonic()
+        self._last_activity = None
+        self._last_activity_at = 0.0
+        self._last_transfer_at = 0.0
 
     @property
     def download_stats(self) -> DownloadStatsPayload:
@@ -171,6 +211,7 @@ def get_progress_payload(
     last_reported_at: float = 0.0,
     min_interval_seconds: float = 60.0,
     elapsed_seconds: float = 0.0,
+    force: bool = False,
 ) -> ProgressPayload | None:
     logger_progress = get_logger(LOGGER_NAME)
     now = time.monotonic()
@@ -188,7 +229,8 @@ def get_progress_payload(
     time_since_last_report = now - last_reported_at
     should_show = False
     if (
-        percent == 100
+        force
+        or percent == 100
         or 0 < min_interval_seconds <= time_since_last_report
         or (percent != last_reported_percent and time_since_last_report >= 1.0)
     ):

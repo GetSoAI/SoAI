@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+from collections.abc import Awaitable, Callable, Coroutine
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import StateError
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
         PluginManagerRuntimeProtocol,
     )
 
-__all__ = ("stop_plugin_if_running",)
+__all__ = ("stop_plugin_if_running", "build_stop_running_plugin_pre_execute_hook")
 
 LOGGER_NAME = "SoAI.plugins.actions.backend_lifecycle_stop"
 
@@ -136,3 +137,26 @@ async def stop_plugin_if_running(
         manager.dependencies.infrastructure.task_registry,
         manager.dependencies.infrastructure.task_helpers.send_task_progress_event,
     )
+
+
+def build_stop_running_plugin_pre_execute_hook(
+    manager: PluginManagerRuntimeProtocol,
+    plugin_name: str,
+    reply_channel: asyncio.Queue[Event] | None,
+) -> Callable[[str | None, str], Awaitable[None]]:
+    def pre_execute_hook(
+        task_id: str | None,
+        current_cancellation_id: str,
+    ) -> Coroutine[None, None, None]:
+        excluded_cancellation_ids = {current_cancellation_id}
+        if isinstance(task_id, str) and task_id.strip():
+            excluded_cancellation_ids.add(task_id.strip())
+        return stop_plugin_if_running(
+            manager,
+            plugin_name,
+            reply_channel,
+            task_id=task_id,
+            exclude_cancellation_ids=frozenset(excluded_cancellation_ids),
+        )
+
+    return pre_execute_hook

@@ -5,12 +5,14 @@ from __future__ import annotations
 
 import asyncio
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from core.agent.turn_scope_values import TURN_SCOPE_ROOT
 from core.agent.turn_state_requests import require_turn_execution_token
-from core.errors.exceptions import ValidationError
+from core.conversations.input_claim import ConversationInputClaim
+from core.errors.exceptions import ConflictError, ValidationError
+from core.skills.checkpoint import SkillActivationCheckpoint
 from core.validation.strings import coerce_optional_trimmed_str
 from features.agent.runtime.turn_engine import TurnPrimitives
 from features.agent.runtime.turn_lifecycle.transitions import start_or_resume_turn_state
@@ -36,6 +38,8 @@ class ClaimedAgentTurnState:
     primitives: TurnPrimitives
     turn_record: JSONDict
     todo_state: AgentTurnTodoState
+    skill_activation: SkillActivationCheckpoint | None
+    skill_input_claim: ConversationInputClaim | None
 
 
 def _reconcile_primitives_from_turn_record(
@@ -72,6 +76,29 @@ async def claim_turn_state_from_primitives(
     initial_active_inference_cancellation_id: str | None,
     bind_owner: str,
 ) -> ClaimedAgentTurnState:
+    replay_snapshot = context.agent_prompt_replay_snapshot
+    claimed_execution_token = (
+        replay_snapshot.claimed_execution_token if replay_snapshot is not None else None
+    )
+    if (
+        claimed_execution_token is not None
+        and claimed_execution_token != context.agent_turn_execution_token
+    ):
+        raise ConflictError("Agent replay claim token changed before bootstrap.")
+    admission_snapshot = replay_snapshot if claimed_execution_token is None else None
+    skill_activation = None
+    skill_input_claim = None
+    if (
+        context.skill_execution_context is not None
+        and context.skill_execution_context.snapshot.available
+    ):
+        skill_activation = SkillActivationCheckpoint.from_execution(context.skill_execution_context)
+        skill_input_claim = ConversationInputClaim.from_fields(
+            context.conversation_input_id,
+            context.conversation_input_claim_generation,
+            context.conversation_input_claim_owner,
+            context.conversation_input_server_boot_id,
+        )
     turn_record = await start_or_resume_turn_state(
         deps,
         conv_id=primitives.conv_id,
@@ -83,6 +110,7 @@ async def claim_turn_state_from_primitives(
         initial_active_inference_cancellation_id=initial_active_inference_cancellation_id,
         todo_state=todo_state,
         existing_execution_token=context.agent_turn_execution_token,
+        prompt_replay_snapshot=admission_snapshot,
         turn_scope=context.agent_turn_scope or TURN_SCOPE_ROOT,
         parent_turn_id=context.agent_parent_turn_id,
         parent_tool_call_id=context.agent_parent_tool_call_id,
@@ -90,11 +118,17 @@ async def claim_turn_state_from_primitives(
         display_name=context.agent_display_name,
         requested_model=context.agent_requested_model,
         owner_task_id=context.agent_owner_task_id,
+        skill_activation=skill_activation,
+        skill_input_claim=skill_input_claim,
     )
     context.agent_turn_execution_token = require_turn_execution_token(
         turn_record,
         operation="agent.turn_lifecycle.claim_state.claim_turn_state_from_primitives",
     )
+    if admission_snapshot is not None:
+        context.agent_prompt_replay_snapshot = replace(
+            admission_snapshot, claimed_execution_token=context.agent_turn_execution_token
+        )
     resolved_primitives = _reconcile_primitives_from_turn_record(primitives, turn_record)
     context.agent_turn_id = resolved_primitives.turn_id
     if context.agent_turn_scope is None:
@@ -116,6 +150,8 @@ async def claim_turn_state_from_primitives(
         primitives=resolved_primitives,
         turn_record=turn_record,
         todo_state=build_turn_todo_state_from_turn_record(turn_record),
+        skill_activation=skill_activation,
+        skill_input_claim=skill_input_claim,
     )
 
 

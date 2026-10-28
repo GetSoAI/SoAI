@@ -3,14 +3,19 @@
 
 from __future__ import annotations
 
+import codecs
+import locale
 import subprocess
+import sys
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from typing import TypedDict
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, TypedDict
 
+from core.errors.exceptions import ValidationError
 from core.platform.os import is_linux, is_macos, is_windows
 from core.system.protocols import (
     CommandExecutorProtocol,
+    CommandResultProtocol,
     StartupInfoProtocol,
 )
 from core.system.subprocess_platform import (
@@ -20,9 +25,11 @@ from core.system.subprocess_platform import (
     resolve_subprocess_startupinfo,
     windows_no_window_creationflags,
 )
+from core.validation.strict_integer import is_strict_int
 
 __all__ = (
     "CommandResult",
+    "require_command_result",
     "ProcessInfo",
     "SystemActionCommand",
     "build_system_action_command",
@@ -30,6 +37,11 @@ __all__ = (
     "kill_process_native",
     "run_argv_capture",
 )
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    type CommandStartupFailure = Literal["not_found", "permission_denied", "unavailable"]
 
 
 class ProcessInfo(TypedDict):
@@ -46,12 +58,14 @@ class CommandResult:
     stdout: str
     return_code: int
     stderr: str
+    timed_out: bool | None = field(default=None, compare=False)
+    startup_failure: CommandStartupFailure | None = field(default=None, compare=False)
 
 
 def run_argv_capture(
     argv: Sequence[str],
     *,
-    timeout: int,
+    timeout: float,
     stdin_text: str | None = None,
     env: Mapping[str, str] | None = None,
     cwd: str | None = None,
@@ -88,27 +102,61 @@ def run_argv_capture(
             stdout=process.stdout,
             return_code=process.returncode,
             stderr=process.stderr,
+            timed_out=False,
         )
-    except subprocess.TimeoutExpired:
-        result = CommandResult(stdout="", return_code=124, stderr=f"Timeout after {timeout}s")
+    except subprocess.TimeoutExpired as exception:
+        output_encoding = (
+            locale.getencoding()
+            if encoding == "locale"
+            else encoding or ("utf-8" if sys.flags.utf8_mode else locale.getencoding())
+        )
+        result = CommandResult(
+            stdout=_decode_timeout_output(exception.stdout, output_encoding, errors),
+            return_code=124,
+            stderr=_decode_timeout_output(exception.stderr, output_encoding, errors)
+            or f"Timeout after {timeout}s",
+            timed_out=True,
+        )
     except FileNotFoundError as exception:
         result = CommandResult(
             stdout="",
             return_code=127,
             stderr=f"Command not found: {exception!s}",
+            timed_out=False,
+            startup_failure="not_found",
         )
     except OSError as exception:
         result = CommandResult(
-            stdout="", return_code=127, stderr=f"Command could not start: {exception!s}"
+            stdout="",
+            return_code=127,
+            stderr=f"Command could not start: {exception!s}",
+            timed_out=False,
+            startup_failure=(
+                "permission_denied" if isinstance(exception, PermissionError) else "unavailable"
+            ),
         )
     if check and result.return_code != 0:
-        raise subprocess.CalledProcessError(
+        failure = subprocess.CalledProcessError(
             result.return_code,
             argv_list,
             output=result.stdout,
             stderr=result.stderr,
         )
+        if result.timed_out:
+            failure.add_note(f"SoAI command capture exceeded its {timeout}s deadline.")
+        raise failure
     return result
+
+
+def _decode_timeout_output(value: str | bytes | None, encoding: str, errors: str | None) -> str:
+    if value is None:
+        return ""
+    decoded = (
+        codecs.getincrementaldecoder(encoding)(errors or "strict").decode(value)
+        if isinstance(value, bytes)
+        else value
+    )
+    return decoded.replace("\r\n", "\n").replace("\r", "\n")
 
 
 @dataclass(frozen=True, slots=True)
@@ -212,3 +260,12 @@ def kill_process_native(
             ),
         )
     return (False, f"Failed to kill process {pid}: {result.stderr}")
+
+
+def require_command_result(result: CommandResultProtocol, *, error_message: str) -> None:
+    if (
+        not is_strict_int(result.return_code)
+        or not isinstance(result.stdout, str)
+        or not isinstance(result.stderr, str)
+    ):
+        raise ValidationError(error_message)

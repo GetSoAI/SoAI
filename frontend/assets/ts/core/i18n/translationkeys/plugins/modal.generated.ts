@@ -26,6 +26,8 @@ export type PluginsModalTranslationKey =
     | 'plugins.modal.addPlugin.urlHelp'
     | 'plugins.modal.addPlugin.urlLabel'
     | 'plugins.modal.addPlugin.urlPlaceholder'
+    | 'plugins.modal.backendVariants.autoCompatibility'
+    | 'plugins.modal.backendVariants.compatibilityUnknown'
     | 'plugins.modal.backendVariants.installedOption'
     | 'plugins.modal.backendVariants.loadFailed'
     | 'plugins.modal.backendVariants.loading'

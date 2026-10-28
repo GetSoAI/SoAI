@@ -4,6 +4,13 @@
 @layer components {
     :root {
         --table-row-hover-background: var(--glass-surface-interactive-hover);
+        --table-cell-padding-inline: var(--space-2);
+        --sortable-header-indicator-size: 14px;
+        --sortable-header-indicator-gap: var(--space-1);
+    }
+
+    :where(th:has(> .sort-indicator)) {
+        position: relative;
     }
 
     .data-table-wrapper {
@@ -33,7 +40,7 @@
 
     .table-compact th {
         min-width: 0;
-        padding: var(--space-2);
+        padding: var(--space-2) var(--table-cell-padding-inline);
         font-size: var(--font-size-caption-plus);
         font-weight: 700;
         color: var(--text-primary);
@@ -45,18 +52,16 @@
         top: 0;
         z-index: var(--z-above-sibling);
         vertical-align: middle;
-        overflow-wrap: anywhere;
-        word-break: break-word;
+        overflow-wrap: break-word;
     }
 
     .table-compact td {
         min-width: 0;
-        padding: var(--space-15) var(--space-2);
+        padding: var(--space-15) var(--table-cell-padding-inline);
         font-size: var(--font-size-caption-plus);
         color: var(--text-primary);
         vertical-align: middle;
-        overflow-wrap: anywhere;
-        word-break: break-word;
+        overflow-wrap: break-word;
     }
 
     .table-compact th.sortable {
@@ -65,7 +70,6 @@
             background-color var(--transition-fast),
             color var(--transition-fast),
             border-color var(--transition-fast);
-        position: relative;
     }
 
     .table-compact th.sortable:hover {
@@ -78,20 +82,6 @@
         background: color-mix(in srgb, var(--surface-card) 88%, var(--border-color) 12%);
         border-bottom-color: var(--border-color);
         font-weight: 700;
-    }
-
-    .table-compact th.sortable .sort-indicator {
-        margin-inline-start: var(--space-1);
-        min-width: 14px;
-        height: 14px;
-        vertical-align: middle;
-    }
-
-    .table-compact th.sortable .sort-indicator svg {
-        width: 14px;
-        height: 14px;
-        display: block;
-        color: inherit;
     }
 
     .table-compact th.sortable.is-active .sort-indicator {

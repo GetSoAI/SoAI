@@ -5,34 +5,39 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING
 
-from core.attachments.attachment_parse_temp_copy import (
-    copy_attachment_descriptor_to_temp_path,
-)
+from core.concurrency.deadlines import deadline_after
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.files.content_snapshot import FileSnapshot, capture_file_snapshot
 from core.files.document_type_detection import extract_extension, is_image_type
 from core.files.extraction_state import ExtractionState
+from core.files.temp_files import system_temp_directory
 from core.files.upload_staging import cleanup_temp_file
 from core.logging.trace import get_logger
 from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 
 if TYPE_CHECKING:
+    from core.concurrency.bounded_blocking import BoundedBlockingPool
     from core.files.protocols import (
         DocumentReaderProtocol,
         FileParserRegistryFactoryProtocol,
     )
     from core.files.types import DocumentReadResult
+    from core.runtime.request_context import RequestContext
 
 __all__ = (
+    "ATTACHMENT_PARSE_CONTEXT_REASON",
     "AttachmentParseOutcome",
     "classify_attachment_descriptor_for_provider",
-    "classify_attachment_for_provider",
     "read_result_outcome",
 )
 
 LOGGER_NAME = "SoAI.core.attachments.attachment_parse_classification"
+ATTACHMENT_PARSE_CONTEXT_REASON = "attachment_parse"
 OPERATION_WEBUI_ATTACHMENT_PARSE_CLASSIFY = "webui.attachment_parse.classify"
 
 
@@ -43,11 +48,13 @@ class AttachmentParseOutcome:
     provider_text_truncated: bool | None
     parse_state: str
     parse_error: str | None
+    missing_capabilities: tuple[str, ...] = ()
 
 
 async def _read_document(
     *,
     ocr_language: str,
+    request_context: RequestContext,
     document_reader: DocumentReaderProtocol,
     parser_registry_factory: FileParserRegistryFactoryProtocol,
     file_path: str,
@@ -58,6 +65,7 @@ async def _read_document(
     return await document_reader.read_document_to_text(
         file_path=file_path,
         ocr_language=ocr_language,
+        request_context=request_context,
         parser_registry=parser_registry_factory(),
         parse_timeout_sec=parse_timeout_sec,
         max_chars=max_chars,
@@ -73,16 +81,6 @@ def _provider_descriptor_path(descriptor: int) -> str | None:
     if not os.path.isfile(descriptor_path):
         return None
     return descriptor_path
-
-
-def _missing_file_outcome() -> AttachmentParseOutcome:
-    return AttachmentParseOutcome(
-        provider_mode=None,
-        provider_text=None,
-        provider_text_truncated=None,
-        parse_state="failed",
-        parse_error="Attachment file is missing from managed storage.",
-    )
 
 
 def _parse_failure_outcome(*, image: bool) -> AttachmentParseOutcome:
@@ -118,6 +116,7 @@ def read_result_outcome(*, image: bool, result: DocumentReadResult) -> Attachmen
             ),
             parse_state="ready",
             parse_error=None,
+            missing_capabilities=result.missing_capabilities,
         )
     if content:
         return AttachmentParseOutcome(
@@ -128,6 +127,7 @@ def read_result_outcome(*, image: bool, result: DocumentReadResult) -> Attachmen
             ),
             parse_state="ready",
             parse_error=None,
+            missing_capabilities=result.missing_capabilities,
         )
     return AttachmentParseOutcome(
         provider_mode="reference",
@@ -135,12 +135,14 @@ def read_result_outcome(*, image: bool, result: DocumentReadResult) -> Attachmen
         provider_text_truncated=None,
         parse_state="ready",
         parse_error=None,
+        missing_capabilities=result.missing_capabilities,
     )
 
 
 async def _classify_provider_file(
     *,
     ocr_language: str,
+    request_context: RequestContext,
     document_reader: DocumentReaderProtocol,
     parser_registry_factory: FileParserRegistryFactoryProtocol,
     file_path: str,
@@ -154,6 +156,7 @@ async def _classify_provider_file(
     try:
         result = await _read_document(
             ocr_language=ocr_language,
+            request_context=request_context,
             document_reader=document_reader,
             parser_registry_factory=parser_registry_factory,
             file_path=file_path,
@@ -173,36 +176,17 @@ async def _classify_provider_file(
     return read_result_outcome(image=image, result=result)
 
 
-async def classify_attachment_for_provider(
-    *,
-    ocr_language: str,
-    document_reader: DocumentReaderProtocol,
-    parser_registry_factory: FileParserRegistryFactoryProtocol,
-    file_path: str,
-    filename: str,
-    mime_type: str,
-    max_chars: int,
-    parse_timeout_sec: float = float(INTERACTIVE_TIMEOUT_SEC),
-) -> AttachmentParseOutcome:
-    if not os.path.isfile(file_path):
-        return _missing_file_outcome()
-    return await _classify_provider_file(
-        ocr_language=ocr_language,
-        document_reader=document_reader,
-        parser_registry_factory=parser_registry_factory,
-        file_path=file_path,
-        filename=filename,
-        mime_type=mime_type,
-        parse_timeout_sec=parse_timeout_sec,
-        max_chars=max_chars,
-    )
+def _remove_cancelled_snapshot(snapshot: FileSnapshot) -> None:
+    os.unlink(snapshot.content.file_path)
 
 
 async def classify_attachment_descriptor_for_provider(
     *,
     ocr_language: str,
+    request_context: RequestContext,
     document_reader: DocumentReaderProtocol,
     parser_registry_factory: FileParserRegistryFactoryProtocol,
+    file_content_pool: BoundedBlockingPool,
     descriptor: int,
     filename: str,
     mime_type: str,
@@ -213,6 +197,7 @@ async def classify_attachment_descriptor_for_provider(
     if descriptor_path is not None:
         return await _classify_provider_file(
             ocr_language=ocr_language,
+            request_context=request_context,
             document_reader=document_reader,
             parser_registry_factory=parser_registry_factory,
             file_path=descriptor_path,
@@ -221,19 +206,33 @@ async def classify_attachment_descriptor_for_provider(
             parse_timeout_sec=parse_timeout_sec,
             max_chars=max_chars,
         )
-    temp_path = copy_attachment_descriptor_to_temp_path(
-        descriptor=descriptor,
-        filename=filename,
+    capture_deadline = deadline_after(parse_timeout_sec)
+    snapshot = await run_joined_thread_call(
+        partial(
+            capture_file_snapshot,
+            descriptor=descriptor,
+            directory=system_temp_directory(),
+            suffix=os.path.splitext(filename)[1],
+            maximum_bytes=os.fstat(descriptor).st_size,
+            deadline=capture_deadline,
+        ),
+        task_name="attachment-classification-snapshot",
+        admission_deadline=capture_deadline,
+        pool=file_content_pool,
+        cancelled_result_cleanup=_remove_cancelled_snapshot,
+        retain_resources_until_complete=True,
     )
+    temp_path = snapshot.content.file_path
     try:
         return await _classify_provider_file(
             ocr_language=ocr_language,
+            request_context=request_context,
             document_reader=document_reader,
             parser_registry_factory=parser_registry_factory,
             file_path=temp_path,
             filename=filename,
             mime_type=mime_type,
-            parse_timeout_sec=parse_timeout_sec,
+            parse_timeout_sec=capture_deadline.remaining_seconds(),
             max_chars=max_chars,
         )
     finally:

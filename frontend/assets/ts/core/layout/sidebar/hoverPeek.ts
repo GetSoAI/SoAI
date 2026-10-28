@@ -1,6 +1,8 @@
 /* SoAI - Shared layout sidebar hover peek [frontend/assets/ts/core/layout/sidebar/hoverPeek.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { measureViewportBox, measureViewportPoint } from '@core/layout/elementGeometry.ts';
+import { resolveModalCloseTrigger } from '@core/modals/modalhost/guards.ts';
 import type { SidebarDisposerCandidate } from '@core/layout/sidebar/disposers.ts';
 
 const SIDEBAR_PEEK_OPEN_DELAY_MS = 250;
@@ -28,6 +30,13 @@ const bindSidebarHoverPeek = (host: SidebarHoverPeekHost): void => {
 
     let openTimer: number | null = null;
     let closeTimer: number | null = null;
+    let hoverSuppressedUntilLeave = false;
+    let carriedCloseControl: Element | null = null;
+    const clearCarriedHover = (): void => {
+        hamburger.removeAttribute('data-hover-carried');
+        carriedCloseControl?.removeAttribute('data-hover-carried');
+        carriedCloseControl = null;
+    };
 
     const clearOpenTimer = (): void => {
         if (openTimer !== null) host.clearTimer(openTimer);
@@ -40,7 +49,7 @@ const bindSidebarHoverPeek = (host: SidebarHoverPeekHost): void => {
     const containsTarget = (surface: Element, target: EventTarget | null): boolean => target instanceof Node && surface.contains(target);
     const open = (): void => {
         openTimer = null;
-        if (host.canHoverPeek()) host.setHoverPeek(true);
+        if (!hoverSuppressedUntilLeave && host.canHoverPeek()) host.setHoverPeek(true);
     };
     const close = (): void => {
         closeTimer = null;
@@ -51,11 +60,39 @@ const bindSidebarHoverPeek = (host: SidebarHoverPeekHost): void => {
         closeTimer = host.setTimer(close, SIDEBAR_PEEK_CLOSE_DELAY_MS);
     };
 
+    const isOverHamburger = (event: MouseEvent): boolean => {
+        const bounds = measureViewportBox(hamburger);
+        const point = measureViewportPoint(event);
+        return point.x >= bounds.left && point.x < bounds.right && point.y >= bounds.top && point.y < bounds.bottom;
+    };
+    host.addSessionDisposer(
+        host.on(hamburger.ownerDocument, 'pointerdown', (event: Event) => {
+            if (!(event instanceof MouseEvent) || !isMousePointerEvent(event) || event.button !== 0 || !(event.target instanceof Element)) return;
+            const closeControl = resolveModalCloseTrigger(event.target);
+            if (!closeControl?.closest('[data-modal-presentation="viewport"]') || !isOverHamburger(event)) return;
+            clearCarriedHover();
+            carriedCloseControl = closeControl;
+            closeControl.setAttribute('data-hover-carried', '');
+            hamburger.setAttribute('data-hover-carried', '');
+            hoverSuppressedUntilLeave = true;
+            clearOpenTimer();
+            clearCloseTimer();
+            if (host.isHoverPeeking()) host.setHoverPeek(false);
+        })
+    );
+    host.addSessionDisposer(
+        host.on(hamburger.ownerDocument, 'pointermove', (event: Event) => {
+            if (!hoverSuppressedUntilLeave || !(event instanceof MouseEvent) || !isMousePointerEvent(event) || isOverHamburger(event)) return;
+            hoverSuppressedUntilLeave = false;
+            clearCarriedHover();
+        })
+    );
+
     host.addSessionDisposer(
         host.on(hamburger, 'pointerenter', (event: Event) => {
             if (!isMousePointerEvent(event)) return;
             clearCloseTimer();
-            if (host.canHoverPeek() && openTimer === null) {
+            if (!hoverSuppressedUntilLeave && host.canHoverPeek() && openTimer === null) {
                 openTimer = host.setTimer(open, SIDEBAR_PEEK_OPEN_DELAY_MS);
             }
         })
@@ -63,6 +100,8 @@ const bindSidebarHoverPeek = (host: SidebarHoverPeekHost): void => {
     host.addSessionDisposer(
         host.on(hamburger, 'pointerleave', (event: Event) => {
             if (!isMousePointerEvent(event)) return;
+            hoverSuppressedUntilLeave = false;
+            clearCarriedHover();
             clearOpenTimer();
             if (host.isHoverPeeking() && !containsTarget(sidebar, event instanceof MouseEvent ? event.relatedTarget : null)) scheduleClose();
         })
@@ -79,6 +118,7 @@ const bindSidebarHoverPeek = (host: SidebarHoverPeekHost): void => {
         })
     );
     host.addSessionDisposer(() => {
+        clearCarriedHover();
         clearOpenTimer();
         clearCloseTimer();
         if (host.isHoverPeeking()) host.setHoverPeek(false);

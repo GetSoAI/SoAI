@@ -7,6 +7,7 @@ interface ConversationOperationOptions {
     refreshUi?: boolean;
     syncRoute?: boolean;
     transferMode?: ComposerDraftTransferMode;
+    knownEmpty?: boolean;
 }
 
 interface ConversationDeleteOperationOptions {

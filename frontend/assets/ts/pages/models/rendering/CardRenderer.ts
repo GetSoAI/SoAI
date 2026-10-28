@@ -65,7 +65,7 @@ class ModelCardRenderer extends BaseCardRenderer<ModelData | null, CardData> {
         const statusContent = this.buildListStatusContent(model, metrics.statusLabel, metrics.statusBadgeClass);
         const providerFact = this.host.status.isExternalProviderModel(model) && providerName ? `<div class="ui-collection-list__facts"><span class="ui-collection-list__fact" data-metric-key="provider"><span class="ui-metric-label">${i18n.t('models.table.provider')}</span><span dir="auto" class="ui-metric-value">${this.host.presentation.sanitizeText(providerName)}</span></span></div>` : '';
         const markup = `
-            <tr class="${className}" data-render-mode="list" data-action="${MODELS_ACTION_EDIT_PARAMETERS}" data-model="${this.host.presentation.sanitizeText(String(data.cardId))}" data-model-enabled="${disabled ? 'false' : 'true'}">
+            <tr class="${className}" data-render-mode="list" data-presence-atomic data-action="${MODELS_ACTION_EDIT_PARAMETERS}" data-model="${this.host.presentation.sanitizeText(String(data.cardId))}" data-model-enabled="${disabled ? 'false' : 'true'}">
                 <td class="models-list-cell models-list-cell-main">
                     <button type="button" class="models-list-open" data-action="${MODELS_ACTION_EDIT_PARAMETERS}" ${renderLabelAttributes(title)}>
                         <span class="models-list-title-row">

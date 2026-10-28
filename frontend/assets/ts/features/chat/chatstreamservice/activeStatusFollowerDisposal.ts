@@ -31,6 +31,10 @@ const disposeFollowerSession = (inputArguments: ActiveStatusFollowerDisposalArgu
 
 const deactivateFollowerSession = (inputArguments: ActiveStatusFollowerDisposalArguments, conversationId: string, session: ChatStreamSession): void => {
     session.active = false;
+    const currentSession = inputArguments.sessions.get(conversationId);
+    if (currentSession !== undefined && currentSession !== session && currentSession.requestId === session.requestId) {
+        return;
+    }
     disposeFollowerSession(inputArguments, conversationId, session.requestId);
 };
 

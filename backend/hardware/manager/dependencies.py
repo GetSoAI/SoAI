@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -30,9 +30,11 @@ from hardware.internal_protocols import (
     GPUInfoCacheServiceProtocol,
     GPUVendorDetectionServiceProtocol,
 )
+from hardware.vendors.amd.adl_session import AdlRuntime
 from hardware.vendors.nvidia.smi import NvidiaSettingsController
 
 if TYPE_CHECKING:
+    from core.concurrency.bounded_blocking import BoundedBlockingPool
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
@@ -72,12 +74,15 @@ class HardwareManagerDependencies:
     nvidia_settings_controller: NvidiaSettingsController | None
     settings: HardwareManagerSettings
     command_executor: CommandExecutorProtocol
+    system_capability_pool_factory: Callable[[], BoundedBlockingPool]
+    adl_runtime: AdlRuntime | None = None
 
     def __post_init__(self) -> None:
         require_dependencies(
             owner="HardwareManagerDependencies",
             cancellation_binder=self.cancellation_binder,
             command_executor=self.command_executor,
+            system_capability_pool_factory=self.system_capability_pool_factory,
             config=self.config,
             disk_speed_test_service=self.disk_speed_test_service,
             finalizer_tracker=self.finalizer_tracker,

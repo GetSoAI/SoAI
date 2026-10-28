@@ -45,6 +45,8 @@ const NOTIFICATION_TEMPLATE_REQUIRED_PARAMETER_KEYS: { readonly [K in Notificati
     'low_disk_space_title': ['operationLabel'],
     'security_login_throttle_title': [],
     'security_login_throttle_message': ['attemptCount', 'windowMinutes'],
+    'plugin_backend_update_title': [],
+    'plugin_backend_update_message': ['pluginName'],
     'plugin_circuit_breaker_tripped_title': [],
     'plugin_circuit_breaker_tripped_message': ['pluginName']
 };
@@ -54,3 +56,6 @@ const isNotificationTemplateId = (value: string): value is NotificationTemplateI
 };
 
 export { NOTIFICATION_TEMPLATE_REQUIRED_PARAMETER_KEYS, isNotificationTemplateId };
+
+const NOTIFICATION_NEGOTIATED_TEMPLATES = 'plugin_backend_update_title,plugin_backend_update_message';
+export { NOTIFICATION_NEGOTIATED_TEMPLATES };

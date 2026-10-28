@@ -6,10 +6,12 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
+from core.concurrency.deadlines import MonotonicDeadline, deadline_after
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from core.events.conversation_publication import publish_conversation_updated
+from core.events.conversation_publication import publish_conversation_title_updated
 from core.logging.protocols import TraceLogger
 from core.logging.trace import get_logger
 from core.validation.strings import coerce_optional_trimmed_str
@@ -21,8 +23,8 @@ from features.api.conversation_auto_title.admission import (
 )
 from features.api.conversation_auto_title.attempt_state import (
     AutoTitleAttemptState,
+    is_automatic_title_committed,
     load_auto_title_attempt_state,
-    require_last_modified_at_ms,
 )
 from features.api.conversation_auto_title.inference import (
     acquire_auto_title_slot,
@@ -48,6 +50,7 @@ _REASON_MISSING_ORIGINATING_TASK = "missing_originating_task"
 _REASON_PARSE_FAILED = "generation_failed"
 _REASON_DEFAULT_TITLE = "default_title_generated"
 _REASON_CAS_MISS = "compare_and_swap_miss"
+_REASON_DEADLINE_EXPIRED = "deadline_expired"
 
 
 async def spawn_auto_title_generation_if_needed(
@@ -105,62 +108,30 @@ async def generate_and_persist_auto_title(
     attempt_state: AutoTitleAttemptState,
 ) -> None:
     logger = get_logger(LOGGER_NAME)
+    background_deadline = deadline_after(_AUTO_TITLE_BACKGROUND_TIMEOUT_SECONDS)
+    background_scope = asyncio.timeout_at(background_deadline.deadline_monotonic)
     try:
-        generated_title: str | None = None
-        async with asyncio.timeout(_AUTO_TITLE_BACKGROUND_TIMEOUT_SECONDS):
-            admission_result = await await_auto_title_admission(
+        async with background_scope:
+            generated_title = await _generate_admitted_title(
                 api_dependencies=api_dependencies,
-                originating_task_id=runtime.active_task_id or "",
+                runtime=runtime,
+                attempt_state=attempt_state,
+                logger=logger,
             )
-            if not admission_result.admitted:
-                _log_auto_title_skip(
-                    logger,
-                    runtime=runtime,
-                    reason=admission_result.reason or REASON_ORIGINATING_TASK_UNSETTLED,
+            if background_scope.expired() or background_deadline.remaining_seconds() <= 0:
+                _log_auto_title_skip(logger, runtime=runtime, reason=_REASON_DEADLINE_EXPIRED)
+                return
+            if generated_title is not None:
+                await uncancel_then_cleanup(
+                    _persist_and_publish_title(
+                        api_dependencies=api_dependencies,
+                        runtime=runtime,
+                        attempt_state=attempt_state,
+                        generated_title=generated_title,
+                        background_deadline=background_deadline,
+                        logger=logger,
+                    )
                 )
-                return
-            if not await orchestrator_is_idle(api_dependencies):
-                _log_auto_title_skip(
-                    logger,
-                    runtime=runtime,
-                    reason=REASON_ORCHESTRATOR_BACKLOG,
-                )
-                return
-            async with acquire_auto_title_slot(
-                api_dependencies,
-                conversation_id=runtime.conv_id,
-            ):
-                generated_title = await generate_auto_title(
-                    api_dependencies=api_dependencies,
-                    runtime=runtime,
-                    user_message=attempt_state.first_user_message,
-                    assistant_message=attempt_state.first_assistant_message,
-                )
-            if generated_title is None:
-                _log_auto_title_skip(logger, runtime=runtime, reason=_REASON_PARSE_FAILED)
-                return
-            if generated_title == attempt_state.default_title:
-                _log_auto_title_skip(logger, runtime=runtime, reason=_REASON_DEFAULT_TITLE)
-                return
-            updated_record = (
-                await api_dependencies.database_conversations.update_conversation_title_if_matches(
-                    runtime.conv_id,
-                    runtime.user_id,
-                    attempt_state.default_title,
-                    generated_title,
-                )
-            )
-            if updated_record is None:
-                _log_auto_title_skip(logger, runtime=runtime, reason=_REASON_CAS_MISS)
-                return
-            last_modified_at_ms = require_last_modified_at_ms(updated_record)
-            await publish_conversation_updated(
-                api_dependencies.event_bus,
-                user_id=runtime.user_id,
-                conv_id=runtime.conv_id,
-                last_modified_at_ms=last_modified_at_ms,
-                title=generated_title,
-            )
     except RECOVERABLE_EXCEPTIONS as exception:
         coerced = coerce_to_soai_error(
             exception,
@@ -174,6 +145,79 @@ async def generate_and_persist_auto_title(
             details={"conv_id": runtime.conv_id, "user_id": runtime.user_id},
             level="debug",
         )
+
+
+async def _generate_admitted_title(
+    *,
+    api_dependencies: ApiDependencies,
+    runtime: AssistantTimelineRuntime,
+    attempt_state: AutoTitleAttemptState,
+    logger: TraceLogger,
+) -> str | None:
+    admission_result = await await_auto_title_admission(
+        api_dependencies=api_dependencies,
+        originating_task_id=runtime.active_task_id or "",
+    )
+    if not admission_result.admitted:
+        _log_auto_title_skip(
+            logger,
+            runtime=runtime,
+            reason=admission_result.reason or REASON_ORIGINATING_TASK_UNSETTLED,
+        )
+        return None
+    if not await orchestrator_is_idle(api_dependencies):
+        _log_auto_title_skip(logger, runtime=runtime, reason=REASON_ORCHESTRATOR_BACKLOG)
+        return None
+    async with acquire_auto_title_slot(api_dependencies, conversation_id=runtime.conv_id):
+        generated_title = await generate_auto_title(
+            api_dependencies=api_dependencies,
+            runtime=runtime,
+            user_message=attempt_state.first_user_message,
+            assistant_message=attempt_state.first_assistant_message,
+        )
+    if generated_title is None:
+        _log_auto_title_skip(logger, runtime=runtime, reason=_REASON_PARSE_FAILED)
+        return None
+    if generated_title == attempt_state.default_title:
+        _log_auto_title_skip(logger, runtime=runtime, reason=_REASON_DEFAULT_TITLE)
+        return None
+    return generated_title
+
+
+async def _persist_and_publish_title(
+    *,
+    api_dependencies: ApiDependencies,
+    runtime: AssistantTimelineRuntime,
+    attempt_state: AutoTitleAttemptState,
+    generated_title: str,
+    background_deadline: MonotonicDeadline,
+    logger: TraceLogger,
+) -> None:
+    if background_deadline.remaining_seconds() <= 0:
+        _log_auto_title_skip(logger, runtime=runtime, reason=_REASON_DEADLINE_EXPIRED)
+        return
+    conversations = api_dependencies.database_conversations
+    try:
+        updated_record = await conversations.update_conversation_title_if_matches(
+            runtime.conv_id,
+            runtime.user_id,
+            attempt_state.default_title,
+            generated_title,
+            require_title_auto_update_allowed=True,
+        )
+    except RECOVERABLE_EXCEPTIONS:
+        updated_record = await conversations.get_conversation(runtime.conv_id, runtime.user_id)
+        if not is_automatic_title_committed(updated_record, generated_title):
+            raise
+    if updated_record is None:
+        _log_auto_title_skip(logger, runtime=runtime, reason=_REASON_CAS_MISS)
+        return
+    await publish_conversation_title_updated(
+        api_dependencies.event_bus,
+        user_id=runtime.user_id,
+        conv_id=runtime.conv_id,
+        conversation_record=updated_record,
+    )
 
 
 def _log_auto_title_skip(

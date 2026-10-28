@@ -46,6 +46,7 @@ class DatabaseNotificationsProtocol(Protocol):
         aggregate_param_name: str | None,
         source: str | None,
         cooldown_seconds: int,
+        once_per_identity: bool = False,
     ) -> int: ...
 
     async def open_notification(

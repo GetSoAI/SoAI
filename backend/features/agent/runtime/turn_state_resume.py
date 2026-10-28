@@ -32,6 +32,7 @@ from features.agent.runtime.turn_state_running_persistence import (
 )
 
 if TYPE_CHECKING:
+    from core.agent.prompt_replay import AgentTurnPromptReplaySnapshot
     from core.types.json import JSONDict
     from features.agent.runtime.turn_engine import AgentTurnEngineDependencies
 
@@ -116,6 +117,7 @@ async def _resume_same_execution_token_turn(
     turn_scope: str,
     persisted_execution_token: str,
     active_inference_cancellation_id: str | None,
+    prompt_replay_snapshot: AgentTurnPromptReplaySnapshot | None = None,
 ) -> JSONDict:
     stale_running_turns = await collect_stale_running_turn_claims(
         database_agent_turns=deps.database_agent_turns,
@@ -128,6 +130,19 @@ async def _resume_same_execution_token_turn(
         exclude_turn_id=turn_id,
     )
     try:
+        if prompt_replay_snapshot is not None:
+            return await deps.database_agent_turns.claim_turn_state(
+                ClaimAgentTurnStateRequest(
+                    turn_state=build_running_turn_state_request_from_record(
+                        record=record,
+                        execution_token=create_turn_execution_token(),
+                        expected_execution_token=persisted_execution_token,
+                        active_inference_cancellation_id=active_inference_cancellation_id,
+                    ),
+                    stale_running_turns=stale_running_turns,
+                    prompt_replay_snapshot=prompt_replay_snapshot,
+                ),
+            )
         if read_active_inference_cancellation_id(record) != active_inference_cancellation_id:
             return await persist_active_inference_cancellation_id(
                 deps.database_agent_turns,
@@ -161,6 +176,7 @@ async def _reclaim_stale_existing_turn(
     turn_scope: str,
     persisted_execution_token: str,
     active_inference_cancellation_id: str | None,
+    prompt_replay_snapshot: AgentTurnPromptReplaySnapshot | None = None,
 ) -> JSONDict:
     stale_running_turns = await collect_stale_running_turn_claims(
         database_agent_turns=deps.database_agent_turns,
@@ -182,6 +198,7 @@ async def _reclaim_stale_existing_turn(
                     active_inference_cancellation_id=active_inference_cancellation_id,
                 ),
                 stale_running_turns=stale_running_turns,
+                prompt_replay_snapshot=prompt_replay_snapshot,
             ),
         )
     except ValidationError as exception:
@@ -197,6 +214,7 @@ async def resume_existing_turn_state(
     mode: str,
     max_iterations: int,
     active_inference_cancellation_id: str | None,
+    prompt_replay_snapshot: AgentTurnPromptReplaySnapshot | None = None,
     existing_execution_token: str | None,
     header: TurnStateHeader,
 ) -> JSONDict | None:
@@ -206,6 +224,8 @@ async def resume_existing_turn_state(
         turn_id=turn_id,
     )
     if existing_turn is None:
+        if prompt_replay_snapshot is not None:
+            raise ConflictError("Agent replay turn disappeared before resume.")
         return None
     if str(existing_turn.get("status") or "") != AGENT_TURN_STATUS_RUNNING:
         raise ConflictError("Agent turn already finalized.")
@@ -236,6 +256,7 @@ async def resume_existing_turn_state(
             turn_scope=header.turn_scope,
             persisted_execution_token=persisted_execution_token,
             active_inference_cancellation_id=active_inference_cancellation_id,
+            prompt_replay_snapshot=prompt_replay_snapshot,
         )
     is_live = await turn_record_is_live(
         task_registry_queries=deps.task_registry_queries,
@@ -258,4 +279,5 @@ async def resume_existing_turn_state(
         turn_scope=header.turn_scope,
         persisted_execution_token=persisted_execution_token,
         active_inference_cancellation_id=active_inference_cancellation_id,
+        prompt_replay_snapshot=prompt_replay_snapshot,
     )

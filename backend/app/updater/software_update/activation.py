@@ -12,10 +12,8 @@ from app.updater.software_update.activation_state import (
     find_pending_update_activation,
 )
 from app.updater.software_update.install_transaction import finalize_update_transaction
-from app.updater.software_update.install_transaction_state import (
-    AppliedUpdateTransaction,
-    cleanup_update_transaction,
-)
+from app.updater.software_update.install_transaction_cleanup import cleanup_update_transaction
+from app.updater.software_update.install_transaction_state import AppliedUpdateTransaction
 from core.bootstrap.lock import acquire_interprocess_lock
 from core.errors.exceptions import StateError
 from core.logging.protocols import LoggerProtocol

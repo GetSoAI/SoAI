@@ -3,7 +3,7 @@
 
 import type { JsonObject } from '@core/types/jsonValues.ts';
 
-type ChatPresetSectionId = 'general' | 'appearance' | 'completion' | 'voice' | 'files' | 'knowledge' | 'tools';
+type ChatPresetSectionId = 'general' | 'appearance' | 'completion' | 'voice' | 'files' | 'knowledge' | 'skills' | 'tools';
 
 interface ChatPresetSections {
     general?: JsonObject;
@@ -12,6 +12,7 @@ interface ChatPresetSections {
     voice?: JsonObject;
     files?: JsonObject;
     knowledge?: JsonObject;
+    skills?: JsonObject;
     tools?: JsonObject;
 }
 

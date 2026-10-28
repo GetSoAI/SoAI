@@ -55,6 +55,7 @@ class ConversationCreatedEvent(Event):
     messaging_account_snapshot_id: str | None = None
     settings_authority: JSONDict | None = None
     is_archived: bool = False
+    title_auto_update_allowed: bool = False
 
 
 @dataclass(slots=True)
@@ -63,6 +64,7 @@ class ConversationUpdatedEvent(Event):
     conv_id: str
     last_modified_at_ms: int
     title: str | None = None
+    title_auto_update_allowed: bool | None = None
     is_favorite: bool | None = None
     color: str | None = None
     color_present: bool = False

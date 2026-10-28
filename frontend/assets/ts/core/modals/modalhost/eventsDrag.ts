@@ -43,6 +43,7 @@ const handleDragStart = (state: ModalHostState, event: Event): void => {
         return;
     }
 
+    if (state.registry.getConfig(modal.id).presentation === 'viewport') return;
     const existingDrag = state.dragState.get(modal.id);
     if (existingDrag?.isDragging || existingDrag?.isFullscreenRestorePending || state.resizeState.get(modal.id)?.isResizing) {
         return;

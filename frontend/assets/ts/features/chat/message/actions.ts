@@ -152,9 +152,11 @@ class ChatMessageActions {
                 if (isAssistantMessageRole(message) && index >= 0) {
                     const container = this.#dependencies.presentation.resolveMessageContainer(messageId);
                     let loadingToken: string | null = null;
+                    let loadingButton: HTMLButtonElement | null = null;
                     if (container) {
                         const button = dom.resolve('.regenerate-message-btn', container);
                         if (button instanceof HTMLButtonElement) {
+                            loadingButton = button;
                             loadingToken = setRegenerateButtonLoading(button, true);
                         }
                     }
@@ -170,11 +172,8 @@ class ChatMessageActions {
                         }
                         await this.#regenerationController.regenerateMessage(index);
                     } finally {
-                        if (container && loadingToken) {
-                            const button = dom.resolve('.regenerate-message-btn', container);
-                            if (button instanceof HTMLButtonElement) {
-                                setRegenerateButtonLoading(button, false, loadingToken);
-                            }
+                        if (loadingButton && loadingToken) {
+                            setRegenerateButtonLoading(loadingButton, false, loadingToken);
                         }
                     }
                 }

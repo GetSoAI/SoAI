@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
+import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { dom } from '@core/dom/dom.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
@@ -96,8 +97,10 @@ const createFolderPreviewButton = (
 ): HTMLButtonElement => {
     const button = doc.createElement('button');
     button.type = 'button';
-    button.className = 'chat-inline-media-card__body chat-inline-media-card__body--folder-preview chat-inline-media-card__excerpt chat-inline-media-card__excerpt--clickable';
-    button.dataset.action = CHAT_ACTIONS.OPEN_INLINE_LOCAL_FOLDER;
+    const isDetached = windowIdentity.isDetachedContext();
+    button.className = `chat-inline-media-card__body chat-inline-media-card__body--folder-preview chat-inline-media-card__excerpt${isDetached ? '' : ' chat-inline-media-card__excerpt--clickable'}`;
+    button.disabled = isDetached;
+    if (!isDetached) button.dataset.action = CHAT_ACTIONS.OPEN_INLINE_LOCAL_FOLDER;
     button.dataset['inlineMediaFolderPath'] = options.folderPath;
     const referenceText = options.referenceText ? options.referenceText.trim() : '';
     if (referenceText) {

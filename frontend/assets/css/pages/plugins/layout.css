@@ -6,16 +6,16 @@
         --status-color: var(--status-orange);
     }
 
-    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='BACKEND_UPDATING'] {
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary:is([data-status='BACKEND_UPDATING'], [data-backend-update='available']) {
         --status-color: var(--status-blue);
     }
 
-    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary:is([data-status='BACKEND_INSTALLING'], [data-status='BACKEND_UPDATING']) {
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary:is([data-status='BACKEND_INSTALLING'], [data-status='BACKEND_UPDATING'], [data-backend-update='available']) {
         --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 3%, var(--glass-underlay-surface));
         border-color: color-mix(in srgb, var(--status-color) 40%, var(--glass-border-strong));
     }
 
-    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary:is([data-status='BACKEND_INSTALLING'], [data-status='BACKEND_UPDATING']) :is(.ui-metric-label, .ui-metric-value) {
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary:is([data-status='BACKEND_INSTALLING'], [data-status='BACKEND_UPDATING'], [data-backend-update='available']) :is(.ui-metric-label, .ui-metric-value) {
         color: color-mix(in srgb, var(--status-color) 85%, var(--text-secondary));
     }
 
@@ -188,12 +188,22 @@
         color: var(--text-tertiary);
     }
 
-    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-install-badge:is([data-state='needs-install'], [data-state='loading']) {
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-install-badge {
+        max-inline-size: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-install-badge:is([data-state='needs-install'], [data-state='loading'], [data-state='unknown']) {
         --status-badge-color: var(--status-grey);
     }
 
-    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-install-badge:is([data-state='installing'], [data-state='uninstalling']) {
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-install-badge:is([data-state='installing'], [data-state='updating'], [data-state='uninstalling']) {
         --status-badge-color: var(--status-orange);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-install-badge:is([data-state='failed'], [data-state='load-error']) {
+        --status-badge-color: var(--status-red);
     }
 
     :where([data-section='plugins'], [data-page-scope='plugins']) .backend-variant-selector {
@@ -206,17 +216,24 @@
         color: var(--text-tertiary);
     }
 
-    :where([data-section='plugins'], [data-page-scope='plugins']) .backend-variant-footer-slot {
-        display: flex;
-        align-items: center;
-        min-height: var(--control-height);
+    :where([data-section='plugins'], [data-page-scope='plugins']) .backend-variant-body-slot {
+        padding: var(--modal-body-padding);
     }
 
-    :where([data-section='plugins'], [data-page-scope='plugins']) .backend-variant-footer-slot > .form-disclaimer {
+    :where([data-section='plugins'], [data-page-scope='plugins']) .backend-variant-body-slot .backend-variant-selector {
         display: flex;
-        align-items: center;
-        min-height: var(--control-height);
-        margin-top: 0;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .backend-variant-compatibility {
+        margin: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .backend-variant-compatibility:empty {
+        display: none;
     }
 
     :where([data-section='plugins'], [data-page-scope='plugins']) .backend-variant-select-shell {

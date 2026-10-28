@@ -2,7 +2,7 @@
 # SoAI - POSIX launcher managed SQLite provisioning [backend/core/bootstrap/launcher_posix/runtime_environment_sqlite.sh]
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-SOAI_MANAGED_SQLITE_VERSION="3.53.3"
+SOAI_MANAGED_SQLITE_VERSION="3.54.1"
 SOAI_MINIMUM_SAFE_SQLITE_VERSION="3.51.3"
 
 soai_managed_runtime__python_sqlite_version() {

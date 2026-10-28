@@ -20,7 +20,10 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
     from features.api.runtime.context import ApiContext
 
-__all__ = ("load_conversation_mcp_catalog_state",)
+__all__ = (
+    "load_conversation_mcp_catalog_state",
+    "load_conversation_mcp_local_state",
+)
 
 
 async def load_conversation_mcp_catalog_state(
@@ -62,3 +65,35 @@ async def load_conversation_mcp_catalog_state(
             available_tool_names=set(tool_map),
         )
     return (state, tool_map)
+
+
+async def load_conversation_mcp_local_state(
+    *,
+    request: RequestProtocol,
+    api_context: ApiContext,
+    conv_id: str,
+    user_id: int,
+    local_tool_catalog_scope: MCPToolCatalogScope,
+    model_id_override: str | None = None,
+) -> ConversationMCPState:
+    registration = api_context.dependencies.mcp_server.registration
+    state = await resolve_conversation_mcp_state(
+        request=request,
+        api_context=api_context,
+        conv_id=conv_id,
+        user_id=user_id,
+        model_id_override=model_id_override,
+        available_tool_names=set(registration.available_local_tool_names(local_tool_catalog_scope)),
+    )
+    if state.is_automation and local_tool_catalog_scope != PUBLIC_MCP_TOOL_CATALOG_SCOPE:
+        state = await resolve_conversation_mcp_state(
+            request=request,
+            api_context=api_context,
+            conv_id=conv_id,
+            user_id=user_id,
+            model_id_override=model_id_override,
+            available_tool_names=set(
+                registration.available_local_tool_names(PUBLIC_MCP_TOOL_CATALOG_SCOPE)
+            ),
+        )
+    return state

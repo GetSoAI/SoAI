@@ -4,13 +4,16 @@
 import type { ManageState } from '@features/plugins/modals/backend/managebackendmodal/types.ts';
 
 const createManageInitialState = (): ManageState => {
-    return { currentPlugin: null, updateInfo: null, backendVariantsReady: false };
+    return { currentPlugin: null, updateInfo: null, backendVariantsReady: false, backendVariantsLoading: false, backendVariantSaving: false, operationActive: false };
 };
 
 const clearManageState = (state: ManageState): void => {
     state.currentPlugin = null;
     state.updateInfo = null;
     state.backendVariantsReady = false;
+    state.backendVariantsLoading = false;
+    state.backendVariantSaving = false;
+    state.operationActive = false;
 };
 
 export { clearManageState, createManageInitialState };

@@ -96,32 +96,34 @@
         background: var(--glass-surface-medium);
     }
 
-    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document summary {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document .wizard-disclosure-label {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: var(--space-3);
-        padding: var(--space-3) var(--space-4);
-        cursor: pointer;
+        flex: 1;
     }
 
-    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document summary > span:first-child {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document .wizard-disclosure-label > span:first-child {
         display: grid;
         gap: var(--space-1);
         min-width: 0;
     }
 
-    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document summary small {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document .wizard-disclosure-label small {
         color: var(--text-secondary);
     }
 
-    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-document-read,
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-document-read {
+        color: var(--text-secondary);
+    }
+
     :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-contact-link {
         color: var(--accent-green);
         font-weight: 600;
     }
 
-    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document[open] .wizard-document-read {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document [aria-expanded='true'] .wizard-document-read {
         display: none;
     }
 
@@ -216,7 +218,7 @@
             grid-template-columns: minmax(0, 1fr);
         }
 
-        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document summary {
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document .wizard-disclosure-label {
             align-items: flex-start;
             flex-direction: column;
         }

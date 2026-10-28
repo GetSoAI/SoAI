@@ -14,6 +14,7 @@ __all__ = (
     "deadline_remaining_clamped",
     "is_deadline_expired",
     "wait_for_hard_deadline",
+    "earliest_deadline",
 )
 
 
@@ -30,6 +31,13 @@ class MonotonicDeadline:
 
 def deadline_after(timeout_seconds: float) -> MonotonicDeadline:
     return MonotonicDeadline(time.monotonic() + max(0.0, float(timeout_seconds)))
+
+
+def earliest_deadline(*deadlines: MonotonicDeadline | None) -> MonotonicDeadline | None:
+    established = [deadline for deadline in deadlines if deadline is not None]
+    return (
+        min(established, key=lambda deadline: deadline.deadline_monotonic) if established else None
+    )
 
 
 def deadline_remaining(deadline_monotonic: float) -> float:

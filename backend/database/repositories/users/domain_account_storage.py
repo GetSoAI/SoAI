@@ -27,7 +27,6 @@ __all__ = (
     "delete_user_account_row",
     "insert_user_account_row",
     "read_user_account_row",
-    "read_user_account_row_by_external_account_id",
     "read_user_account_rows",
     "update_user_account_row",
 )
@@ -62,23 +61,6 @@ async def read_user_account_row(
         database,
         f"SELECT * FROM {table_name} WHERE user_id = ? AND id = ? LIMIT 1",
         (require_user_id(user_id), require_account_id(account_id)),
-    )
-
-
-async def read_user_account_row_by_external_account_id(
-    database: aiosqlite.Connection,
-    *,
-    table: str,
-    user_id: int,
-    external_account_id: str,
-    require_user_id: Callable[[int], int],
-    require_external_account_id: Callable[[str], str],
-) -> SQLiteRowDict | None:
-    table_name = validate_sql_identifier(table, label="account table")
-    return await query_one_to_dict(
-        database,
-        f"SELECT * FROM {table_name} WHERE user_id = ? AND external_account_id = ? LIMIT 1",
-        (require_user_id(user_id), require_external_account_id(external_account_id)),
     )
 
 

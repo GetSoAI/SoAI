@@ -79,18 +79,36 @@ const formatHistoryRowColumns = (run: SoAIBenchHistoryRun): string[] => {
     columns.push(resolveSoAIBenchMatchBasisLabel(run.matchBasis));
     columns.push(run.settingsSnapshotAvailable ? i18n.t('common.yes') : i18n.t('common.no'));
     columns.push(run.staleHardware ? i18n.t('common.yes') : i18n.t('common.no'));
-    columns.push(resolveSoAIBenchReasonLabel(run.reasonMessage, run.failureReason, run.unsupportedReason, run.staleHardware) ?? getSoAIBenchNotAvailableLabel());
+    columns.push(resolveSoAIBenchReasonLabel(run.reasonMessage, run.failureReason, run.unsupportedReason, run.staleHardware, null, run.deadline) ?? getSoAIBenchNotAvailableLabel());
     return columns;
 };
 
 const formatHistoryRows = (runs: readonly SoAIBenchHistoryRun[]): SoAIBenchHistoryDisplayRow[] => {
     return runs.map((run) => ({
         runId: run.runId,
+        statusClassName: resolveHistoryStatusClassName(run.status),
         publicationEligible: run.publicationEligible,
         localDeletionEligible: run.status !== 'running',
         columns: formatHistoryRowColumns(run),
         raw: run.raw
     }));
+};
+
+const resolveHistoryStatusClassName = (status: string): string => {
+    switch (status) {
+        case 'completed':
+            return 'status-green';
+        case 'failed':
+        case 'cancelled':
+        case 'unstable':
+            return 'status-red';
+        case 'running':
+        case 'unsupported':
+        case 'indeterminate':
+            return 'status-orange';
+        default:
+            return 'status-grey';
+    }
 };
 
 export { formatHistoryColumnLabels, formatHistoryRows };

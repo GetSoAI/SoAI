@@ -52,7 +52,7 @@
     }
 
     .chat-attach-results-table th {
-        padding: var(--space-15) var(--space-2);
+        padding: var(--space-15) var(--table-cell-padding-inline);
         border-bottom: var(--border-width-1) solid var(--glass-border-subtle);
         text-align: start;
         vertical-align: middle;
@@ -92,14 +92,6 @@
         align-items: center;
         vertical-align: middle;
         width: auto;
-    }
-
-    .chat-attach-results-table .sort-indicator {
-        display: inline-flex;
-        align-items: center;
-        width: var(--control-icon-size);
-        margin-inline-start: var(--space-1);
-        vertical-align: middle;
     }
 
     .chat-attach-result-row {

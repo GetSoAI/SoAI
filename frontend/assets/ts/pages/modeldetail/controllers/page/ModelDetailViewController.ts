@@ -13,6 +13,8 @@ import type { ParameterStateManager } from '@pages/modeldetail/controllers/Param
 import type { ParameterViewManager } from '@pages/modeldetail/controllers/ParameterViewManager.ts';
 import type { ModelDetailSession } from '@pages/modeldetail/state/ModelDetailSession.ts';
 import type { ModelDetailSaveStatusState } from '@pages/modeldetail/state/ModelDetailSaveStatusState.ts';
+import { renderModelDetailParameterAvailability } from '@pages/modeldetail/rendering/modelDetailParameterAvailabilityWidget.ts';
+import { EMPTY_UI_HTML } from '@core/security/uiHtml.ts';
 
 interface ModelDetailViewControllerDependencies {
     session: ModelDetailSession;
@@ -71,7 +73,20 @@ class ModelDetailViewController {
 
     renderParametersInterface(): void {
         const dependencies = this.#dependencies;
-        dependencies.parameterView.renderInterface(dependencies.session.model?.type === 'virtual', dependencies.session.model);
+        const isVirtual = dependencies.session.model?.type === 'virtual';
+        if (!isVirtual && dependencies.session.parameters === null) {
+            dependencies.parameterView.disposeEventHandlers();
+            if (dependencies.session.ui) dependencies.pageDom.updateHtml(dependencies.session.ui.parametersInterface, EMPTY_UI_HTML);
+            this.renderParameterAvailability();
+            return;
+        }
+        dependencies.parameterView.renderInterface(isVirtual, dependencies.session.model);
+        this.renderParameterAvailability();
+    }
+
+    renderParameterAvailability(): void {
+        const { pageDom, session } = this.#dependencies;
+        if (session.ui) renderModelDetailParameterAvailability(pageDom, session.ui.parametersAvailability, session.parameterAuthority, session.parameters !== null);
     }
 }
 

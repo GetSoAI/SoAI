@@ -43,15 +43,24 @@ async def check_hanging_requests(
         streaming_request = is_streaming is True
         stream_activity_seen = info.get("stream_activity_seen", False) is True
         streaming_task = streaming_request or stream_activity_seen
-        request_timeout = info.get("request_timeout_sec")
-        if not stream_activity_seen and isinstance(request_timeout, int | float):
-            timeout = float(request_timeout)
+        budget_deadline = info.get("initial_output_deadline_monotonic")
+        if not stream_activity_seen and isinstance(budget_deadline, int | float):
+            if info.get("execution_budget_source") == "caller_request" or now <= budget_deadline:
+                continue
+        health_watchdog = info.get("health_watchdog_sec")
+        if not stream_activity_seen and isinstance(health_watchdog, int | float):
+            timeout = float(health_watchdog)
             last_event = dispatch_time
         elif streaming_request and not stream_activity_seen:
             timeout = non_streaming_timeout
             last_event = dispatch_time
         elif stream_activity_seen:
-            timeout = streaming_idle_timeout
+            admitted_idle_timeout = info.get("streaming_idle_timeout_sec")
+            timeout = (
+                float(admitted_idle_timeout)
+                if isinstance(admitted_idle_timeout, int | float) and admitted_idle_timeout > 0
+                else streaming_idle_timeout
+            )
             last_event_value = info.get("last_progress_time", dispatch_time)
             last_event = (
                 float(last_event_value)
@@ -61,6 +70,8 @@ async def check_hanging_requests(
         else:
             timeout = non_streaming_timeout
             last_event = dispatch_time
+        if not stream_activity_seen and isinstance(budget_deadline, int | float):
+            timeout = max(0.0, float(budget_deadline) - dispatch_time)
         if now - last_event <= timeout:
             continue
         reason = (

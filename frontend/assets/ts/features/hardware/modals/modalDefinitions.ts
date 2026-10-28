@@ -40,7 +40,7 @@ const createSystemInfoModalElement = (): HTMLElement => {
         left: uiHtml`${renderModalFooterCloseButton({ modalId, text: closeText, ariaLabel: closeAriaLabel })}<label class="toggle-switch system-info-anonymize-toggle">
                 <input type="checkbox" data-action="hardware.systemInfo.anonymize" id="${modalUiId(modalId, 'anonymize-toggle')}" />
                 <span class="slider"></span>
-                <span class="toggle-label">${i18n.t('hardware.modals.systemInfo.anonymize')}</span>
+                <span class="toggle-label" data-modal-localize="text">${i18n.t('hardware.modals.systemInfo.anonymize')}</span>
             </label>`,
         right: uiHtml`${renderModalFooterActionButton({ text: copyText, ariaLabel: copyAriaLabel, id: modalUiId(modalId, 'copy'), variant: 'primary', action: 'hardware.systemInfo.copy' })}${renderModalFooterActionButton({ text: downloadText, ariaLabel: downloadAriaLabel, id: modalUiId(modalId, 'download'), variant: 'accent', action: 'hardware.systemInfo.download' })}`
     });

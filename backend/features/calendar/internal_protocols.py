@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from core.runtime.protocols import RuntimeFlagsViewProtocol
 
 __all__ = (
-    "CalendarAccountDomainServiceProtocol",
     "CalendarAccountLockProviderProtocol",
     "CalendarAccountTestingServiceProtocol",
     "CalendarDateTimePropertyProtocol",
@@ -75,19 +74,6 @@ class CalendarAccountTestingServiceProtocol(CalendarAccountLockProviderProtocol,
     http_client: httpx2.AsyncClient
     database_calendar: DatabaseCalendarProtocol
     external_accounts: ExternalAccountsServiceProtocol
-
-
-class CalendarAccountDomainServiceProtocol(CalendarAccountTestingServiceProtocol, Protocol):
-    database_calendar: DatabaseCalendarProtocol
-    database_mail: DatabaseMailProtocol
-    external_accounts: ExternalAccountsServiceProtocol
-
-    def mail_account_lock(
-        self,
-        *,
-        user_id: int,
-        account_id: str,
-    ) -> AsyncContextManagerProtocol[None]: ...
 
 
 class CalendarMutationServiceProtocol(CalendarAccountLockProviderProtocol, Protocol):

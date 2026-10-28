@@ -7,7 +7,9 @@ import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from core.hardware.soaibench_workloads import FLOAT_SIZE_BYTES
 from hardware.soaibench.errors import SoAIBenchUnsupported
+from hardware.soaibench.opencl_memory_budget import opencl_buffer_capacity_bytes
 from hardware.soaibench.opencl_program import (
     create_buffer,
     create_kernel,
@@ -58,10 +60,25 @@ class OpenCLExecutionSession:
     ) -> OpenCLWorkloadResources:
         self.validate_identity(identity)
         runtime = self.runtime_for(identity)
+        if element_count < 1 or buffer_size_bytes != element_count * FLOAT_SIZE_BYTES:
+            raise SoAIBenchUnsupported(
+                reason="opencl_workload_invalid",
+                message="OpenCL buffer size does not match the workload element count.",
+            )
         key = (source, kernel_name, initialization_kernel_name, element_count)
         existing = self.resources.get(key)
         if existing is not None:
             return existing
+        retained_bytes = sum(
+            resources.element_count * FLOAT_SIZE_BYTES for resources in self.resources.values()
+        )
+        if buffer_size_bytes > opencl_buffer_capacity_bytes(
+            runtime.global_mem_bytes, runtime.max_alloc_bytes, retained_bytes=retained_bytes
+        ):
+            raise SoAIBenchUnsupported(
+                reason="opencl_memory_insufficient",
+                message="OpenCL device memory limits are too small for SoAI Bench.",
+            )
         program = 0
         kernel = 0
         initialization_kernel = 0
@@ -129,7 +146,7 @@ class OpenCLExecutionSession:
         if self.closed:
             raise SoAIBenchUnsupported(
                 reason="opencl_session_closed",
-                message="The SoAIBench OpenCL execution session is closed.",
+                message="The SoAI Bench OpenCL execution session is closed.",
             )
         if self.runtime is None:
             self.runtime = build_opencl_runtime(self.identity)

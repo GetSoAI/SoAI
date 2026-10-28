@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
+from core.concurrency.deadlines import deadline_after
 from core.config.upload_limits import UploadLimitType, resolve_upload_limit_bytes
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ValidationError
@@ -25,6 +26,7 @@ from features.api.routes.system.events.websocket_openai_audio.payloads import (
     build_openai_audio_transcription_error,
 )
 from features.api.routes.system.events.websocket_openai_audio.runtime import (
+    TRANSCRIPTION_DEADLINE_SECONDS,
     OpenAiAudioTranscriptionRuntime,
     create_empty_temp_file,
     extract_suffix_from_filename,
@@ -185,4 +187,7 @@ async def handle_openai_audio_transcription_start(
         lock=asyncio.Lock(),
         state="uploading",
         sealed_bytes=0,
+        deadline=deadline_after(TRANSCRIPTION_DEADLINE_SECONDS),
+        cancellation=None,
+        cancellation_requested=asyncio.Event(),
     )

@@ -59,6 +59,17 @@ def _build_disk_speed_payload(record: JSONDict | None) -> JSONDict | None:
     }
 
 
+async def _load_disk_speed_refresh(manager: DiskSpeedManagerProtocol) -> JSONDict | None:
+    database_hardware = manager.database_hardware
+    if database_hardware is None:
+        return None
+    with manager.state.cache_lock:
+        if manager.state.monitoring_stop_event.is_set():
+            return None
+        manager.state.disk_speed_refresh_task = asyncio.current_task()
+    return await database_hardware.get_latest_speed_test_snapshot()
+
+
 def _schedule_disk_speed_refresh(manager: DiskSpeedManagerProtocol) -> None:
     database_hardware = manager.database_hardware
     loop = manager.main_loop
@@ -69,7 +80,7 @@ def _schedule_disk_speed_refresh(manager: DiskSpeedManagerProtocol) -> None:
         or manager.state.monitoring_stop_event.is_set()
     ):
         return
-    coroutine = database_hardware.get_latest_speed_test_snapshot()
+    coroutine = _load_disk_speed_refresh(manager)
     try:
         manager.state.disk_speed_refresh_future = asyncio.run_coroutine_threadsafe(
             coroutine,
@@ -118,7 +129,9 @@ def get_disk_speed_snapshot(manager: DiskSpeedManagerProtocol) -> JSONDict | Non
     now = time.monotonic()
     with manager.state.cache_lock:
         future = manager.state.disk_speed_refresh_future
-        if future is not None and future.done():
+        refresh_task = manager.state.disk_speed_refresh_task
+        if future is not None and future.done() and (refresh_task is None or refresh_task.done()):
+            manager.state.disk_speed_refresh_task = None
             manager.state.disk_speed_refresh_future = None
             _consume_completed_disk_speed_refresh(manager, future, cached_at=now)
         if now - manager.disk_speed_cache_timestamp < 30:

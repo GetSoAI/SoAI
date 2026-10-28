@@ -11,10 +11,12 @@ from concurrent.futures import Executor, ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import override
 
+from core.concurrency.deadlines import MonotonicDeadline
 from core.config.numeric import coerce_positive_int
 from core.errors.exceptions import ValidationError
 
 __all__ = (
+    "admit_bounded_blocking_call",
     "BoundedBlockingCancelledBase",
     "BoundedBlockingCancelledError",
     "BoundedBlockingPool",
@@ -240,41 +242,21 @@ async def run_bounded_blocking_call[*Ts, R](
         raise ValidationError("timeout_sec must be positive when provided.")
     if total_timeout_sec is not None and total_timeout_sec <= 0.0:
         raise ValidationError("total_timeout_sec must be positive when provided.")
-    loop = asyncio.get_running_loop()
     if total_timeout_sec is None:
         deadline = None
-        await bounded.semaphore.acquire()
+        submitted = await admit_bounded_blocking_call(bounded, func, *args, deadline=None)
     else:
         deadline = time.monotonic() + total_timeout_sec
-        queue_remaining = deadline - time.monotonic()
         try:
-            await asyncio.wait_for(bounded.semaphore.acquire(), timeout=queue_remaining)
+            submitted = await admit_bounded_blocking_call(
+                bounded, func, *args, deadline=MonotonicDeadline(deadline)
+            )
         except TimeoutError as exception:
             raise BoundedBlockingTimeoutError(
                 future=None,
                 timeout_sec=total_timeout_sec,
                 pool_label=bounded.label,
             ) from exception
-    released = False
-
-    def _release_once(future: asyncio.Future[R]) -> None:
-        nonlocal released
-        if released:
-            return
-        released = True
-        if not future.cancelled():
-            future.exception()
-        bounded.semaphore.release()
-
-    callback_attached = False
-    try:
-        submitted = loop.run_in_executor(bounded.executor, func, *args)
-        submitted.add_done_callback(_release_once)
-        callback_attached = True
-    finally:
-        if not callback_attached and not released:
-            released = True
-            bounded.semaphore.release()
     effective_timeout = timeout_sec
     if deadline is not None:
         deadline_remaining = max(0.0, deadline - time.monotonic())
@@ -312,6 +294,33 @@ async def run_bounded_blocking_call[*Ts, R](
             future=submitted,
             pool_label=bounded.label,
         ) from exception
+
+
+async def admit_bounded_blocking_call[*Ts, R](
+    bounded: BoundedBlockingPool,
+    func: Callable[[*Ts], R],
+    *args: *Ts,
+    deadline: MonotonicDeadline | None,
+) -> asyncio.Future[R]:
+    if deadline is None:
+        await bounded.semaphore.acquire()
+    else:
+        await asyncio.wait_for(bounded.semaphore.acquire(), timeout=deadline.remaining_seconds())
+
+    def release_admission(future: asyncio.Future[R]) -> None:
+        if not future.cancelled():
+            future.exception()
+        bounded.semaphore.release()
+
+    pending_release = True
+    try:
+        submitted = asyncio.get_running_loop().run_in_executor(bounded.executor, func, *args)
+        submitted.add_done_callback(release_admission)
+        pending_release = False
+    finally:
+        if pending_release:
+            bounded.semaphore.release()
+    return submitted
 
 
 def shutdown_bounded_pool_executor(pool: BoundedBlockingPool) -> None:

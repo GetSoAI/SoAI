@@ -12,6 +12,7 @@ import type { JsonObject } from '@core/types/jsonValues.ts';
 import { bindPluginLogoFallbacks } from '@features/catalog/public.ts';
 import { PAGE_ID, PAGE_MODULE_ID } from '@pages/models/contracts/modelsPageConstants.ts';
 import { isModelsDataActionId } from '@pages/models/actions.ts';
+import { handleModelsInitialAction } from '@pages/models/controllers/modelsPageInitialActions.ts';
 import { bindModelsModalLifecycleEvents } from '@pages/models/controllers/page/modelsModalLifecycleController.ts';
 import { requireModelsRoot } from '@pages/models/dom.ts';
 import { ModelsPageDomain } from '@pages/models/controllers/page/ModelsPageDomain.ts';
@@ -111,7 +112,7 @@ class ModelsPage extends StaticBasePage {
 
     override async onRefresh(parameters: JsonObject | null): Promise<void> {
         await super.onRefresh(parameters);
-        await this.#domain.pageLifecycleController.refresh(parameters);
+        await this.#domain.pageLifecycleController.refresh();
     }
 
     override async prepareInitialContent(parameters?: JsonObject, context: { signal?: AbortSignal } = {}): Promise<void> {
@@ -124,6 +125,8 @@ class ModelsPage extends StaticBasePage {
     override async startLiveUpdates(parameters?: JsonObject, context: { signal?: AbortSignal } = {}): Promise<void> {
         await this.#domain.lifecycle.startLiveUpdates({ signal: context.signal });
         await super.startLiveUpdates(parameters, context);
+        if (signalAborted(context.signal ?? null) || this.isDestroyed) return;
+        await handleModelsInitialAction(this.#domain.bindings.controllerBundle.initialActionHost, parameters ?? null);
     }
 
     override async commitInitialContent(context: { signal?: AbortSignal } = {}): Promise<void> {

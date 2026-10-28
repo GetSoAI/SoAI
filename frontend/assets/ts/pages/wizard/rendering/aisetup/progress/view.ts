@@ -1,6 +1,7 @@
 /* SoAI - Wizard AI setup progress and completion view [frontend/assets/ts/pages/wizard/rendering/aisetup/progress/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { resolveOperationCauseMessage } from '@core/errors/operationCausePresentation.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { OperationProgressData } from '@core/operationprogress/types.ts';
 import type { AiSetupCompletionView } from '@pages/wizard/contracts/aisetup/types.ts';
@@ -22,14 +23,19 @@ const readFailureMessage = (failure: AiSetupRowFailure): string => {
             return i18n.t('wizard.aiSetup.progress.error.loadError');
         case 'timeout':
             return i18n.t('wizard.aiSetup.progress.error.timeout');
-        case 'disconnected':
         case 'cancelled':
+            return i18n.t('common.cancellation.cancelled');
+        case 'discovery_failed':
+            return i18n.t('wizard.aiSetup.progress.error.discoveryFailed');
+        case 'disconnected':
             return i18n.t('wizard.aiSetup.progress.error.disconnected');
     }
 };
 
 const readActionLabel = (action: AiSetupRowAction): string => {
     switch (action) {
+        case 'repair_runtime':
+            return i18n.t('wizard.aiSetup.progress.useCpuRuntime');
         case 'retry':
             return i18n.t('wizard.aiSetup.progress.retry');
         case 'retry_installation':
@@ -38,8 +44,6 @@ const readActionLabel = (action: AiSetupRowAction): string => {
             return i18n.t('wizard.aiSetup.progress.skipItem');
         case 'test_again':
             return i18n.t('wizard.aiSetup.progress.testAgain');
-        case 'check_again':
-            return i18n.t('wizard.aiSetup.progress.checkAgain');
         case 'send_test':
             return i18n.t('wizard.aiSetup.progress.sendTest');
     }
@@ -57,12 +61,16 @@ const describeAiSetupRow = (row: AiSetupRow): OperationProgressData => {
             return row.progress?.progress === undefined ? { ...indeterminate(i18n.t('wizard.aiSetup.progress.installing', engine), 'downloading', row.progress?.details ?? ''), cancelable: true } : { ...row.progress, message: i18n.t('wizard.aiSetup.progress.installing', engine), state: 'downloading', indeterminate: false, cancelable: true, badge: '' };
         case 'installed':
             return { message: row.label, state: 'success', progress: 100, indeterminate: false, cancelable: false, details: '', badge: i18n.t('wizard.aiSetup.connect.local.status.installed') };
+        case 'cancelling':
+            return { ...indeterminate(i18n.t('common.cancellation.cancelling'), 'pending', row.label), cancelable: true };
+        case 'cancelled':
+            return { message: i18n.t('common.cancellation.cancelled'), state: 'info', progress: 0, indeterminate: false, cancelable: false, details: row.label, badge: '' };
         case 'waiting':
-            return indeterminate(i18n.t('wizard.aiSetup.progress.waitingForEngine', engine), 'pending', row.label);
+            return { ...indeterminate(i18n.t('wizard.aiSetup.progress.waitingForEngine', engine), 'pending', row.label), cancelable: true };
         case 'blocked':
             return { message: i18n.t('wizard.aiSetup.progress.blocked', engine), state: 'error', progress: 0, indeterminate: false, cancelable: false, details: row.label, badge: '' };
         case 'starting':
-            return indeterminate(i18n.t('wizard.aiSetup.progress.downloading', model), 'downloading', '');
+            return { ...indeterminate(i18n.t('wizard.aiSetup.progress.downloading', model), 'downloading', ''), cancelable: true };
         case 'downloading':
             return row.progress?.progress === undefined ? { ...indeterminate(i18n.t('wizard.aiSetup.progress.downloading', model), 'downloading', row.progress?.details ?? ''), cancelable: true } : { ...row.progress, message: i18n.t('wizard.aiSetup.progress.downloading', model), state: 'downloading', indeterminate: false, cancelable: true, badge: '' };
         case 'discovering':
@@ -76,7 +84,7 @@ const describeAiSetupRow = (row: AiSetupRow): OperationProgressData => {
         case 'stale':
             return { message: row.label, state: 'pending', progress: 100, indeterminate: false, cancelable: false, details: '', badge: '' };
         case 'failed':
-            return { message: readFailureMessage(row.failure ?? 'download_failed'), state: 'error', progress: 0, indeterminate: false, cancelable: false, details: row.label, badge: '' };
+            return { message: resolveOperationCauseMessage(row.failureMetadata?.code ?? null) ?? readFailureMessage(row.failure ?? 'download_failed'), state: 'error', progress: 0, indeterminate: false, cancelable: false, details: row.failureMetadata?.runId ? `${row.label} · ${i18n.t('app.errors.reference', { reference: row.failureMetadata.runId })}` : row.label, badge: '' };
     }
 };
 
@@ -88,12 +96,16 @@ const renderAiRowActions = (context: WizardViewContext, row: AiSetupRow): string
     return buttons.join('');
 };
 
-const renderAiProgressRow = (context: WizardViewContext, row: AiSetupRow): string => `<div class="wizard-ai-progress-item" data-ai-row="${context.sanitizer.attribute(row.key)}" tabindex="-1"><div class="wizard-ai-progress-slot" data-ai-row-progress></div><div class="wizard-ai-row-actions${row.actions.length === 0 ? ' u-hidden' : ''}" data-ai-row-actions data-ai-actions="${context.sanitizer.attribute(row.actions.join(','))}">${renderAiRowActions(context, row)}</div></div>`;
+const renderAiProgressRow = (context: WizardViewContext, row: AiSetupRow): string => `<div class="wizard-ai-progress-item" data-presence-visual-only data-presence-atomic data-ai-row="${context.sanitizer.attribute(row.key)}" tabindex="-1"><div class="wizard-ai-progress-slot" data-ai-row-progress></div><div class="wizard-ai-row-actions${row.actions.length === 0 ? ' u-hidden' : ''}" data-ai-row-actions data-ai-actions="${context.sanitizer.attribute(row.actions.join(','))}">${renderAiRowActions(context, row)}</div></div>`;
 
 const readReadyCountText = (summary: AiSetupProgressSummary): string => i18n.t('wizard.aiSetup.progress.readyCount', { ready: summary.readyCount, total: summary.modelCount });
 
+const visibleAiProgressRows = (summary: AiSetupProgressSummary, shownKeys: readonly string[] = []): AiSetupRow[] => summary.rows.filter((row) => row.phase !== 'installed' || shownKeys.includes(row.key));
+
 const renderAiProgressStep = (context: WizardViewContext, summary: AiSetupProgressSummary): string => {
-    const rows = summary.rows.map((row) => renderAiProgressRow(context, row)).join('');
+    const rows = visibleAiProgressRows(summary)
+        .map((row) => renderAiProgressRow(context, row))
+        .join('');
     return `<div class="wizard-step wizard-step--ai">${renderAiSetupHeading(context, i18n.t('wizard.aiSetup.progress.heading'), i18n.t('wizard.aiSetup.progress.description'))}<p class="wizard-ai-ready-count" role="status" aria-live="polite" data-ai-ready-count>${context.sanitizer.html(readReadyCountText(summary))}</p><div class="ui-operation-progress-list wizard-ai-progress" data-ai-progress-list>${rows}</div></div>`;
 };
 
@@ -104,4 +116,4 @@ const renderAiCompletionSummary = (context: WizardViewContext, view: AiSetupComp
     return `<div class="wizard-summary-item"><div class="wizard-summary-icon">${renderIcon(context, 'model-default', 24)}</div><div><h3>${context.sanitizer.html(i18n.t('wizard.aiSetup.completion.modelsTitle'))}</h3><p>${context.sanitizer.html(ready)}</p>${detail ? `<p class="wizard-summary-detail">${context.sanitizer.html(detail)}</p>` : ''}</div></div>`;
 };
 
-export { describeAiSetupRow, readReadyCountText, renderAiCompletionSummary, renderAiProgressRow, renderAiProgressStep, renderAiRowActions };
+export { visibleAiProgressRows, describeAiSetupRow, readReadyCountText, renderAiCompletionSummary, renderAiProgressRow, renderAiProgressStep, renderAiRowActions };

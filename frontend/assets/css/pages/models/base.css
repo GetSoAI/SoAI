@@ -61,18 +61,20 @@
         align-items: baseline;
         gap: var(--space-2);
         min-width: 0;
+        justify-content: flex-start;
         padding: var(--space-3) var(--space-4);
         font-size: var(--font-size-body);
         color: var(--text-primary);
         white-space: nowrap;
-        border-top: var(--border-width-1) solid var(--surface-card-border);
-        background: var(--surface-card);
-        -webkit-backdrop-filter: var(--glass-blur-base);
-        backdrop-filter: var(--glass-blur-base);
+        box-shadow: none;
+
+        --presence-scale-from: 1;
+        --presence-blur-from: 0;
     }
 
-    :where([data-section='models'], [data-page-scope='models']).download-model-modal .download-model-selected-model-bar.u-hidden {
-        display: none;
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .modal-body:has(.download-model-selected-model-bar:is(:not(.u-hidden), [data-presence-state='exiting'])) + .modal-footer {
+        border-top: 0;
+        box-shadow: none;
     }
 
     :where([data-section='models'], [data-page-scope='models']).download-model-modal .download-model-selected-model-label {
@@ -151,7 +153,20 @@
             box-shadow var(--duration-200) var(--ease-in-out);
     }
 
-    :where([data-section='models'], [data-page-scope='models']) .variant-check-entry:is(:focus, :focus-visible) {
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-entry[role='button']:not([aria-disabled='true']) {
+        cursor: pointer;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-entry[role='button']:not([aria-disabled='true']):hover {
+        border-color: var(--accent-primary);
+        background: color-mix(in srgb, var(--accent-primary) 5%, var(--glass-surface-medium));
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-entry[role='button']:not([aria-disabled='true']):active {
+        background: color-mix(in srgb, var(--accent-primary) 15%, var(--glass-surface-medium));
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-entry:focus-visible {
         border-color: var(--accent-primary);
         box-shadow: 0 0 0 var(--control-focus-ring-width) color-mix(in srgb, var(--accent-primary) 22%, transparent);
     }

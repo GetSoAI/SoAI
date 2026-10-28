@@ -58,6 +58,7 @@ from features.api.routes.openai.responses.response_event_storage import (
     persist_normalized_response_event,
 )
 from features.api.runtime.context import ApiContext
+from features.api.runtime.openai_error_conversion import build_openai_soai_error_response
 from features.api.runtime.response_body import create_json_body_response
 from features.api.runtime.responses import (
     apply_operation_id_header,
@@ -204,21 +205,7 @@ async def wait_for_non_streaming_responses_result(
             details={"task_id": task.task_id},
             level="warning",
         )
-        try:
-            status_raw = coerced.http_status
-        except AttributeError:
-            status_raw = 500
-        status_code = int(status_raw or 500)
-        message = "Internal server error." if status_code >= 500 else str(coerced)
-        return build_openai_error_json_response(
-            status_code=status_code,
-            message=message,
-            canonical_error_type="server_error",
-            param=None,
-            code=None,
-            trace_id=context.trace_id,
-            headers=None,
-        )
+        return build_openai_soai_error_response(coerced, trace_id=context.trace_id)
 
     if payload:
         payload_response_event = build_response_event_from_json(response_json=payload)

@@ -5,10 +5,11 @@ import type { BasePageDependencies } from '@core/routing/pages/pagetypes/public.
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import { createHeaderActionController, type HeaderActionController } from '@core/headerActionBus.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { DomObserver } from '@core/dom/dom.ts';
+import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
 import { bindPageActionDispatcher, bindTypedResolvedDataActionListener } from '@core/dom/dataActionBinding.ts';
 import { signalAborted } from '@core/lifecycle/abortSignals.ts';
 import { HARDWARE } from '@core/realtime/streammanager/resources/ids.ts';
+import { handleGpuValueFocusOut } from '@pages/hardware/controllers/gpucontrol/gpuControlValueEditorController.ts';
 import { closeDetachedRuntimeWindowsByPage, openDetachedRuntimeWindow } from '@core/runtimeenv/public.ts';
 import { createModuleLogger } from '@core/runtime/runtimeContext.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -30,6 +31,7 @@ const hardwareLogger = createModuleLogger('HardwarePage', { defaultLevel: 'warn'
 class HardwarePage extends StaticBasePage {
     readonly #runtime: HardwarePageRuntime;
     #detachActionController: HeaderActionController | null = null;
+    readonly #handleGpuValueFocusOut = (event: FocusEvent): void => handleGpuValueFocusOut(this.#runtime.gpuController, event);
     constructor({ storage, security }: HardwarePageDependencies, basePageDependencies: BasePageDependencies) {
         super(PAGE_ID, { dependencies: basePageDependencies });
         this.#runtime = composeHardwarePageRuntime(
@@ -97,6 +99,7 @@ class HardwarePage extends StaticBasePage {
     bindPageEvents(): void {
         const signal = this.pageLifecycle.beginListeners();
         const root = this.resolveHostContainer();
+        root.addEventListener('focusout', this.#handleGpuValueFocusOut, { signal });
         initializeHardwarePageBootstrapController({
             root,
             signal,
@@ -173,11 +176,11 @@ class HardwarePage extends StaticBasePage {
     override async afterPageReveal(context: { signal?: AbortSignal } = {}): Promise<void> {
         await super.afterPageReveal(context);
         if (this.#runtime.layoutController.hasPanel('processes')) {
-            await DomObserver.animationFrame();
+            await awaitPresentationFrame(context.signal ?? null, 'Hardware process hydration aborted.');
             if (context.signal?.aborted) {
                 return;
             }
-            await DomObserver.animationFrame();
+            await awaitPresentationFrame(context.signal ?? null, 'Hardware process hydration aborted.');
             if (context.signal?.aborted) {
                 return;
             }
@@ -190,6 +193,7 @@ class HardwarePage extends StaticBasePage {
         this.#runtime.soaibenchRunModal.disposeForPageLifecycle('pageHide');
         this.#disposeDetachAction();
         this.#runtime.gpuController.setDomRequired(false);
+        this.#runtime.processController.setDomRequired(false);
         this.#runtime.exportPreviewModal.disposeForPageLifecycle('pageHide');
         this.#runtime.overflowNavController.dispose();
         this.#runtime.interactionController.dispose();
@@ -215,6 +219,7 @@ class HardwarePage extends StaticBasePage {
         this.#runtime.soaibenchRunModal.disposeForPageLifecycle('pageDestroy');
         this.#disposeDetachAction();
         this.#runtime.exportPreviewModal.disposeForPageLifecycle('pageDestroy');
+        this.#runtime.processController.setDomRequired(false);
         this.#runtime.overflowNavController.dispose();
         this.#runtime.layoutController.destroy();
         this.#runtime.interactionController.dispose();

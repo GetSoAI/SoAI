@@ -9,7 +9,7 @@
         margin-inline-start: auto;
         position: relative;
         inset: auto;
-        z-index: var(--z-base);
+        z-index: var(--z-above-sibling);
         flex: 0 0 auto;
         border-radius: var(--border-radius);
         box-shadow: none;

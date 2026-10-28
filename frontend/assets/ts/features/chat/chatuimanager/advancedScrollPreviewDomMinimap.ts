@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { clampNumber } from '@core/primitives/clampNumber.ts';
-import { syncStyleProperty } from '@core/dom/patching.ts';
 import { cloneMinimapMessage, type MinimapCloneLayout, mutationTouchesMessageList, patchMinimapCloneInPlace, resolveMinimapCloneStateSignature } from '@features/chat/chatuimanager/advancedScrollPreviewDomClones.ts';
 import type { MainTimelineCoordinator } from '@features/chat/mainTimelineCoordinator.ts';
 
@@ -22,14 +21,11 @@ type MinimapMeasuredEntry = {
 };
 
 type AdvancedScrollPreviewDomMinimapMeasurement = {
-    heightPx: number;
-    widthPx: number;
     entries: readonly MinimapMeasuredEntry[];
     orderedIds: readonly string[] | null;
 };
 
 const isMessageId = (value: string | null): value is string => typeof value === 'string' && value.trim().length > 0;
-const MIN_PROJECTED_MESSAGE_HEIGHT_PX = 8;
 
 const collectSourceEntries = (messagesRoot: HTMLElement): HTMLElement[] => {
     const entries: HTMLElement[] = [];
@@ -87,13 +83,14 @@ export const createAdvancedScrollPreviewDomMinimapRuntime = (input: { coordinato
     };
 
     const resolveCloneLayout = (geometry: { topPx: number; heightPx: number }, overlayWidth: number, overlayHeight: number, scrollHeight: number): MinimapCloneLayout => {
-        if (overlayWidth <= 0 || overlayHeight <= 0 || scrollHeight <= 0) {
-            return { topPx: 0, heightPx: MIN_PROJECTED_MESSAGE_HEIGHT_PX };
+        if (scrollHeight <= 0) {
+            return { topRatio: 0, heightRatio: 0, projectedHeightPx: 0 };
         }
-        const scaleY = clampNumber(overlayHeight / scrollHeight, 0.001, 1);
+        const projectedScale = overlayWidth > 0 && overlayHeight > 0 ? clampNumber(overlayHeight / scrollHeight, 0.001, 1) : 0;
         return {
-            topPx: geometry.topPx * scaleY,
-            heightPx: Math.max(MIN_PROJECTED_MESSAGE_HEIGHT_PX, geometry.heightPx * scaleY)
+            topRatio: clampNumber(geometry.topPx / scrollHeight, 0, 1),
+            heightRatio: clampNumber(geometry.heightPx / scrollHeight, 0, 1),
+            projectedHeightPx: geometry.heightPx * projectedScale
         };
     };
 
@@ -175,15 +172,13 @@ export const createAdvancedScrollPreviewDomMinimapRuntime = (input: { coordinato
                 layout: resolveCloneLayout(geometry, widthPx, heightPx, scrollHeight)
             });
         }
-        return { heightPx, widthPx, entries, orderedIds };
+        return { entries, orderedIds };
     };
 
     const apply = (measurement: AdvancedScrollPreviewDomMinimapMeasurement): boolean => {
         if (isDisposed) {
             return false;
         }
-        syncStyleProperty(inner, 'width', `${measurement.widthPx}px`);
-        syncStyleProperty(inner, 'height', `${measurement.heightPx}px`);
         let removedThisSync = false;
         if (measurement.orderedIds !== null) {
             const present = new Set(measurement.orderedIds);
@@ -202,12 +197,12 @@ export const createAdvancedScrollPreviewDomMinimapRuntime = (input: { coordinato
 
         const MAX_NEW_CLONES_PER_FRAME = 256;
         let createdThisSync = 0;
-        let hasPending = false;
+        let hasPendingClones = false;
 
         for (const entry of measurement.entries) {
             if (cloneById.has(entry.messageId)) continue;
             if (createdThisSync >= MAX_NEW_CLONES_PER_FRAME) {
-                hasPending = true;
+                hasPendingClones = true;
                 continue;
             }
             const created = cloneMinimapMessage(entry.source, entry.layout);
@@ -222,6 +217,10 @@ export const createAdvancedScrollPreviewDomMinimapRuntime = (input: { coordinato
             if (!clone) continue;
             const stateSignature = resolveMinimapCloneStateSignature(entry.source, entry.layout);
             if (cloneStateSignatureById.get(entry.messageId) !== stateSignature) {
+                if (createdThisSync > 0) {
+                    earliestDirtyIndex = 0;
+                    continue;
+                }
                 patchMinimapCloneInPlace(clone, entry.source, entry.layout);
                 cloneStateSignatureById.set(entry.messageId, stateSignature);
             }
@@ -238,9 +237,9 @@ export const createAdvancedScrollPreviewDomMinimapRuntime = (input: { coordinato
                 }
             }
         }
-        cloneOrderDirty = hasPending;
+        cloneOrderDirty = hasPendingClones;
 
-        return hasPending;
+        return hasPendingClones || earliestDirtyIndex !== null;
     };
 
     const hasVisibleContent = (): boolean => {

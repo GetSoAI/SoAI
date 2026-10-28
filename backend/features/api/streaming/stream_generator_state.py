@@ -6,6 +6,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.errors.payload import ErrorPublicPayload
+
 if TYPE_CHECKING:
     from core.types.json import JSONDict
 
@@ -19,3 +21,4 @@ class StreamGeneratorState:
     done_sent: bool = False
     stream_successful: bool = True
     usage: JSONDict | None = None
+    public_error: ErrorPublicPayload | None = None

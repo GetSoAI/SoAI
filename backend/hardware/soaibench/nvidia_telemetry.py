@@ -8,6 +8,7 @@ import ctypes
 from core.errors.exceptions import StateError
 from core.hardware.protocols import NvmlGateProtocol
 from core.types.json import JSONDict
+from hardware.gpu_inventory.identity import normalize_uuid, uuid_from_device_id
 from hardware.soaibench.internal_protocols import (
     NvidiaClockEventNvmlModuleProtocol,
     NvidiaPowerNvmlModuleProtocol,
@@ -15,6 +16,7 @@ from hardware.soaibench.internal_protocols import (
     NvidiaTemperatureNvmlModuleProtocol,
     NvidiaThrottleNvmlModuleProtocol,
     NvidiaUtilizationNvmlModuleProtocol,
+    NvidiaUuidNvmlModuleProtocol,
 )
 from hardware.vendors.nvidia.nvml_metric_reading import (
     is_nvml_error_not_supported,
@@ -34,7 +36,8 @@ def read_nvidia_fast_telemetry(
     if not nvml_gate.nvml_available:
         return None
     pci_bdf = _device_id_pci_bdf(device_id)
-    if pci_bdf is None:
+    device_uuid = uuid_from_device_id(device_id)
+    if pci_bdf is None and device_uuid is None:
         return None
     active_pynvml_module = pynvml_module_ref
     if not isinstance(active_pynvml_module, NvidiaTelemetryNvmlModuleProtocol):
@@ -44,7 +47,7 @@ def read_nvidia_fast_telemetry(
             device_count = int(active_pynvml_module.nvmlDeviceGetCount())
             for device_index in range(device_count):
                 handle = active_pynvml_module.nvmlDeviceGetHandleByIndex(device_index)
-                if not _handle_matches_pci_bdf(active_pynvml_module, handle, pci_bdf):
+                if not _handle_matches_device(active_pynvml_module, handle, pci_bdf, device_uuid):
                     continue
                 return _read_handle_telemetry(active_pynvml_module, handle)
     except (active_pynvml_module.NVMLError, StateError):
@@ -148,6 +151,21 @@ def _handle_matches_pci_bdf(
     bus_id = pci_info.busId
     bus_text = bus_id.decode() if isinstance(bus_id, bytes) else str(bus_id)
     return _normalize_pci_bdf(bus_text).endswith(_normalize_pci_bdf(pci_bdf))
+
+
+def _handle_matches_device(
+    pynvml_module: NvidiaTelemetryNvmlModuleProtocol,
+    handle: ctypes.c_void_p,
+    pci_bdf: str | None,
+    device_uuid: str | None,
+) -> bool:
+    if pci_bdf is not None:
+        return _handle_matches_pci_bdf(pynvml_module, handle, pci_bdf)
+    if device_uuid is None or not isinstance(pynvml_module, NvidiaUuidNvmlModuleProtocol):
+        return False
+    handle_uuid = pynvml_module.nvmlDeviceGetUUID(handle)
+    handle_uuid_text = handle_uuid.decode() if isinstance(handle_uuid, bytes) else handle_uuid
+    return normalize_uuid(handle_uuid_text) == normalize_uuid(device_uuid)
 
 
 def _device_id_pci_bdf(device_id: str) -> str | None:

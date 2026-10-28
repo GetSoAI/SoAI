@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import re
+
 from core.hardware.gpu_identity_normalization import is_specific_gpu_name, normalize_identity_name
 from core.hardware.soaibench_telemetry import project_public_telemetry
 from core.serialization.json import serialize_json_compact_stable
@@ -68,12 +70,28 @@ def _gpu(run: JSONDict, environment: JSONDict) -> JSONDict:
         ),
         "vendor": normalize_public_text(vendor, required=False, allow_empty=True),
         "driver_version": normalize_public_text(
-            run.get("driver_version"), required=False, allow_empty=True
+            _public_driver_version(run, environment), required=False, allow_empty=True
         ),
         "kernel_driver": normalize_public_text(
             identity.get("kernel_driver"), required=False, allow_empty=True
         ),
     }
+
+
+def _public_driver_version(run: JSONDict, environment: JSONDict) -> JSONValue:
+    value = run.get("driver_version")
+    vendor = run.get("vendor")
+    if (
+        not isinstance(value, str)
+        or not isinstance(vendor, str)
+        or normalize_identity_name(vendor) != "amd"
+        or environment.get("os") != "Linux"
+    ):
+        return value
+    match = re.match(r"Linux\s*version\s*([0-9][A-Za-z0-9.+~_-]*)\s*\(", value)
+    if match is not None and match.group(1) == environment.get("os_release"):
+        return match.group(1)
+    return value
 
 
 def resolve_public_gpu_name(run: JSONDict, opencl: JSONDict) -> JSONValue:

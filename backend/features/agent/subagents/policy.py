@@ -10,6 +10,8 @@ from core.agent_tool_policy import build_subagent_tool_map
 from core.errors.exceptions import ValidationError
 from core.mcp.default_tool_names import SUBAGENT_FORBIDDEN_UNQUALIFIED_TOOL_NAMES
 from core.orchestrator.types import MCPToolContext
+from core.skills.execution import SkillExecutionContext
+from core.skills.execution_policy import skill_tool_is_permitted
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -41,6 +43,7 @@ def build_subagent_tool_context(
     *,
     subagent_mode: str,
     requested_tools: tuple[str, ...] | None,
+    skill_context: SkillExecutionContext | None = None,
 ) -> MCPToolContext:
     text_only_requested = requested_tools == ()
     normalized_requested_tools = (
@@ -49,7 +52,11 @@ def build_subagent_tool_context(
         else None
     )
     subagent_tool_map: dict[str, JSONDict] = build_subagent_tool_map(
-        parent_tool_context.tool_map,
+        {
+            name: entry
+            for name, entry in parent_tool_context.tool_map.items()
+            if skill_tool_is_permitted(skill_context, name)
+        },
         subagent_mode=subagent_mode,
         requested_tools=normalized_requested_tools,
         forbidden_tool_names=SUBAGENT_FORBIDDEN_UNQUALIFIED_TOOL_NAMES,

@@ -80,7 +80,9 @@ const createTabsContainer = (state: AttachmentOverflowTabsState): HTMLElement =>
         const count = countForTab(state.counts, filter);
         const badge = dom.getDocument().createElement('span');
         badge.className = 'tab-notify-badge';
-        badge.textContent = count > 0 ? String(count) : '';
+        badge.setAttribute('data-presence', '');
+        badge.classList.toggle('u-hidden', count === 0);
+        if (count > 0) badge.textContent = String(count);
         button.append(labelNode, badge);
         nav.append(button);
     }
@@ -108,7 +110,8 @@ const updateExistingTabs = (host: HTMLElement, state: AttachmentOverflowTabsStat
         const badge = dom.resolve('.tab-notify-badge', candidate);
         if (badge instanceof HTMLElement) {
             const count = countForTab(state.counts, tab);
-            badge.textContent = count > 0 ? String(count) : '';
+            badge.classList.toggle('u-hidden', count === 0);
+            if (count > 0) badge.textContent = String(count);
         }
     }
     return true;

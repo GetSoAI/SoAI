@@ -62,9 +62,6 @@ from plugins.security import ensure_import_tree_has_no_forbidden_imports
 if TYPE_CHECKING:
     from core.types.json import JSONDict
     from plugins.package_audit import PluginPackageAudit
-    from plugins.protocols_internal.runtime.internal_protocols import (
-        PluginManagerRuntimeProtocol,
-    )
 
 __all__ = ("extract_plugin_manifest_from_disk",)
 
@@ -80,13 +77,11 @@ def _extract_declared_package_names(manifest_payload: JSONDict) -> list[str]:
 
 
 def extract_plugin_manifest_from_disk(
-    manager: PluginManagerRuntimeProtocol,
     plugin_name: str,
     *,
     enforce_safety_validation: bool = True,
     package_audit: PluginPackageAudit,
 ) -> JSONDict:
-    del manager
     tree = package_audit.content.entrypoint.parsed_source
     if enforce_safety_validation and not package_audit.imports_validated:
         for python_member in package_audit.content.python_members:
@@ -191,9 +186,13 @@ def extract_plugin_manifest_from_disk(
             ),
             parameter_schema=package_audit.parameter_schema,
             backend_variant_options=(
-                eval_required_literal(assignments, PLUGIN_FIELD_BACKEND_VARIANT_OPTIONS)
-                if PLUGIN_FIELD_BACKEND_VARIANT_OPTIONS in assignments
-                else []
+                package_audit.backend_variant_options
+                if package_audit.backend_variant_options is not None
+                else (
+                    eval_required_literal(assignments, PLUGIN_FIELD_BACKEND_VARIANT_OPTIONS)
+                    if PLUGIN_FIELD_BACKEND_VARIANT_OPTIONS in assignments
+                    else []
+                )
             ),
             supports_model_search=(
                 eval_required_bool(assignments, PLUGIN_FIELD_SUPPORTS_MODEL_SEARCH)

@@ -108,7 +108,12 @@ class LanguageService {
             if (code === this.currentLanguage && this.loadedLanguages.has(code)) {
                 return;
             }
-            await this.loadLanguageFile(code);
+            try {
+                await this.loadLanguageFile(code);
+            } catch (error) {
+                if (request.isCurrent()) this.#requestedLanguage = this.currentLanguage;
+                throw error;
+            }
             if (request.isStale()) {
                 return;
             }
@@ -154,7 +159,7 @@ class LanguageService {
         }
         this.#languageNotificationTimer = this.resources.setTimeout(() => {
             this.#languageNotificationTimer = null;
-            if (this.isLanguageRequestSettled(code)) {
+            if (code === this.currentLanguage) {
                 this.notifyLanguageChange(code);
             }
         }, 0);

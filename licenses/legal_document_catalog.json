@@ -26,8 +26,8 @@
         "update_verification"
       ],
       "offers": [],
-      "repository_path": "CHANGE-DATES.md",
-      "sha256": "fcec2a8ff9f956db0f3574e5126360c00b27ea1ca97eb78f550ade93a379c1e1",
+      "repository_path": "CHANGE_DATES.md",
+      "sha256": "748d83ba5fb695d44bf904589e8cec39c1bbc08537592952efe427ac34e8e1e4",
       "version": "1.0"
     },
     {
@@ -38,7 +38,7 @@
         "os_evaluation_conversion"
       ],
       "offers": [],
-      "repository_path": "ORGANIZATION-EVALUATION-TERMS.md",
+      "repository_path": "ORGANIZATION_EVALUATION_TERMS.md",
       "sha256": "97077ee7ae50ba18fff5de3050c6e9c2ac4bc7bc856134849a404c6c6f28db72",
       "version": "1.0"
     },
@@ -55,7 +55,7 @@
         "core_commercial",
         "os_commercial"
       ],
-      "repository_path": "COMMERCIAL-LICENSE.md",
+      "repository_path": "COMMERCIAL_LICENSE.md",
       "sha256": "e5c9ea4394fb22478708f3868ccdd6d46a7ec3059f0b8e36a79962bf60dedf3e",
       "version": "1.0"
     },
@@ -71,7 +71,7 @@
         "core_commercial",
         "os_commercial"
       ],
-      "repository_path": "COMMERCIAL-SUPPORT-TERMS.md",
+      "repository_path": "COMMERCIAL_SUPPORT_TERMS.md",
       "sha256": "8375bae05ce5d585c6364440cb2f00007d02d210a1682c8eb9f720da111d6a90",
       "version": "1.0"
     }

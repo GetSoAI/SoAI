@@ -7,6 +7,7 @@ import re
 from dataclasses import dataclass
 
 from core.system.commands import run_argv_capture
+from hardware.gpu_inventory.executable_resolution import acquire_gpu_executable
 
 __all__ = (
     "NvidiaSmiRuntimeInfo",
@@ -24,9 +25,9 @@ class NvidiaSmiRuntimeInfo:
     cuda_version: str | None
 
 
-def _query_driver_version() -> str | None:
+def _query_driver_version(executable_path: str) -> str | None:
     result = run_argv_capture(
-        ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader,nounits"],
+        [executable_path, "--query-gpu=driver_version", "--format=csv,noheader,nounits"],
         timeout=5,
     )
     if result.return_code != 0:
@@ -38,8 +39,8 @@ def _query_driver_version() -> str | None:
     return None
 
 
-def _query_cuda_version() -> str | None:
-    result = run_argv_capture(["nvidia-smi"], timeout=5)
+def _query_cuda_version(executable_path: str) -> str | None:
+    result = run_argv_capture([executable_path], timeout=5)
     if result.return_code != 0:
         return None
     match = _cuda_version_pattern().search(result.stdout)
@@ -49,8 +50,11 @@ def _query_cuda_version() -> str | None:
 
 
 def query_nvidia_smi_runtime_info() -> NvidiaSmiRuntimeInfo | None:
-    driver_version = _query_driver_version()
-    cuda_version = _query_cuda_version()
+    resolution = acquire_gpu_executable("nvidia-smi")
+    if resolution.path is None:
+        return None
+    driver_version = _query_driver_version(resolution.path)
+    cuda_version = _query_cuda_version(resolution.path)
     if driver_version is None and cuda_version is None:
         return None
     return NvidiaSmiRuntimeInfo(

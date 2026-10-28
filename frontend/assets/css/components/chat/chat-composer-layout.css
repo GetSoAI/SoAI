@@ -2,6 +2,18 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    @property --chat-composer-fold-progress {
+        syntax: '<number>';
+        inherits: true;
+        initial-value: 1;
+    }
+
+    @property --chat-composer-control-opacity {
+        syntax: '<number>';
+        inherits: false;
+        initial-value: 1;
+    }
+
     :where(.chat-container) .chat-input-wrapper {
         --chat-composer-control-size: var(--icon-button-size);
         --chat-composer-separator-gap: var(--space-3);
@@ -16,8 +28,11 @@
         --chat-input-actions-content-opacity: 1;
         --chat-composer-hover-emphasis: 0%;
         --chat-composer-resting-height: calc(var(--chat-input-empty-height) + var(--chat-composer-control-size) + var(--space-2) + (var(--chat-input-wrapper-padding) * 2));
+        --chat-agent-mode-popup-resting-offset: calc(-100% + var(--space-15));
         --chat-composer-fold-visibility-delay: 0s;
-        --chat-composer-fold-transition: opacity var(--header-fold-duration) var(--header-fold-easing), translate var(--header-fold-duration) var(--header-fold-easing), visibility 0s linear var(--chat-composer-fold-visibility-delay);
+        --chat-composer-fold-progress: 1;
+        --chat-composer-fold-offset: calc((1 - var(--chat-composer-fold-progress)) * var(--chat-composer-resting-height));
+        --chat-composer-fold-transition: visibility 0s linear var(--chat-composer-fold-visibility-delay);
         position: absolute;
         bottom: calc(0.5rem + var(--ui-safe-area-inset-bottom));
         inset-inline-start: var(--chat-composer-inset-inline);
@@ -31,6 +46,7 @@
         padding: var(--chat-input-wrapper-padding);
         box-shadow: none;
         transition:
+            --chat-composer-fold-progress var(--header-fold-duration) var(--header-fold-easing),
             background-color var(--transition-fast),
             border-color var(--transition-fast),
             box-shadow var(--transition-fast);
@@ -170,20 +186,6 @@
         background: var(--ui-separator-gradient-vertical);
         pointer-events: none;
         transition: opacity var(--transition-fast);
-    }
-
-    :where(.chat-container) .chat-input-actions .chat-action-icon svg {
-        width: var(--control-icon-size);
-        height: var(--control-icon-size);
-    }
-
-    :where(.chat-container) .chat-input-actions .character-map-btn {
-        --icon-size: 17px;
-    }
-
-    :where(.chat-container) .chat-input-actions :is(.new-conversation-input-btn, .character-map-btn) .chat-action-icon svg {
-        width: var(--icon-size);
-        height: var(--icon-size);
     }
 
     @container ui-viewport (width <= 768px) {

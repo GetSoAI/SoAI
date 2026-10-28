@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping, Sequence
+from functools import partial
 from types import TracebackType
 from typing import TYPE_CHECKING
 
 from core.archives.tar_extraction import safe_tar_extractall
 from core.archives.zip_extraction import safe_zip_extractall
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.hardware.disk_reservation_records import DiskSpaceReservationRequest
 from core.hardware.reservation_exceptions import (
     DISK_RESERVATION_OPERATION_EXCEPTIONS,
@@ -26,7 +28,12 @@ if TYPE_CHECKING:
         PluginStorageWriteClaimProtocol,
     )
 
-__all__ = ("async_safe_tar_extractall", "async_safe_zip_extractall")
+__all__ = ("async_safe_tar_extractall", "async_safe_zip_extractall", "check_archive_shutdown")
+
+
+def check_archive_shutdown(shutdown_event: asyncio.Event) -> None:
+    if shutdown_event.is_set():
+        raise asyncio.CancelledError("Archive extraction cancelled.")
 
 
 async def async_safe_tar_extractall(
@@ -34,13 +41,21 @@ async def async_safe_tar_extractall(
     destination: str,
     *,
     reservation_provider: PluginStorageRuntimeProtocol,
+    shutdown_event: asyncio.Event | None = None,
 ) -> None:
+    event = shutdown_event if shutdown_event is not None else asyncio.Event()
     sync_provider = _SyncPluginReservationProvider(reservation_provider, asyncio.get_running_loop())
-    await asyncio.to_thread(
-        safe_tar_extractall,
-        archive_path,
-        destination,
-        reservation_provider=sync_provider,
+    await run_joined_thread_call(
+        partial(
+            safe_tar_extractall,
+            archive_path,
+            destination,
+            reservation_provider=sync_provider,
+            progress_check=partial(check_archive_shutdown, event),
+        ),
+        task_name="plugin-tar-extraction",
+        retain_resources_until_complete=True,
+        on_cancel=event.set,
     )
 
 
@@ -49,13 +64,21 @@ async def async_safe_zip_extractall(
     destination: str,
     *,
     reservation_provider: PluginStorageRuntimeProtocol,
+    shutdown_event: asyncio.Event | None = None,
 ) -> list[str]:
+    event = shutdown_event if shutdown_event is not None else asyncio.Event()
     sync_provider = _SyncPluginReservationProvider(reservation_provider, asyncio.get_running_loop())
-    return await asyncio.to_thread(
-        safe_zip_extractall,
-        archive_path,
-        destination,
-        reservation_provider=sync_provider,
+    return await run_joined_thread_call(
+        partial(
+            safe_zip_extractall,
+            archive_path,
+            destination,
+            reservation_provider=sync_provider,
+            progress_check=partial(check_archive_shutdown, event),
+        ),
+        task_name="plugin-zip-extraction",
+        retain_resources_until_complete=True,
+        on_cancel=event.set,
     )
 
 

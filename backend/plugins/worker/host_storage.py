@@ -7,6 +7,7 @@ import secrets
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
+from core.hardware.disk_reservation_records import DiskSpaceReservationRequest
 from core.hardware.protocols_storage import (
     DiskSpaceReservationLeaseProtocol,
     DiskSpaceWriteClaimProtocol,
@@ -56,6 +57,35 @@ class PluginWorkerHostStorageReservations:
             self._leases_by_worker[worker_id] = worker_leases
         worker_leases[reservation_id] = lease
         return reservation_id
+
+    def reserve_many_disk_spaces(
+        self,
+        *,
+        worker_id: int,
+        storage_manager: StorageManagerProtocol,
+        payload: JSONDict,
+    ) -> str:
+        entries = payload.get("requests")
+        if not isinstance(entries, list) or not entries:
+            raise ValidationError("Storage reservation requests must be a non-empty list.")
+        requests: list[DiskSpaceReservationRequest] = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                raise ValidationError("Storage reservation request must be an object.")
+            requests.append(
+                DiskSpaceReservationRequest(
+                    path=read_required_named_str_field(entry, "path", label=HOST_FIELD_LABEL),
+                    required_bytes=read_required_int_field(
+                        entry, "required_bytes", label=HOST_FIELD_LABEL
+                    ),
+                    operation=read_required_named_str_field(
+                        entry, "operation", label=HOST_FIELD_LABEL
+                    ),
+                    details=read_dict_field(entry, "details", label=HOST_FIELD_LABEL),
+                )
+            )
+        lease = storage_manager.reserve_many_disk_spaces(requests=requests)
+        return self.register_reservation(worker_id=worker_id, lease=lease)
 
     def register_reservation(
         self,

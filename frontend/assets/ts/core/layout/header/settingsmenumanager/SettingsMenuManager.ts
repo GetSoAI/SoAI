@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
+import { getAuthManager } from '@core/auth/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -96,8 +97,21 @@ export class SettingsMenuManager {
             })
         );
         this.buildMenuItems();
+        const auth = getAuthManager();
+        this.#trackDisposer(auth.onLogin(this.#syncPowerVisibility));
+        this.#trackDisposer(auth.onLogout(this.#syncPowerVisibility));
+        this.#syncPowerVisibility();
         this.localize();
     }
+
+    readonly #syncPowerVisibility = (): void => {
+        const element = this.itemMap.get('power');
+        if (!element) {
+            return;
+        }
+        const auth = getAuthManager();
+        element.classList.toggle('u-hidden', !(auth.getCurrentUser() && auth.isAdmin()));
+    };
 
     destroy(): void {
         this.#disposeBindings();
@@ -132,6 +146,7 @@ export class SettingsMenuManager {
         };
         localizeItem('logs', i18n.t('header.menu.logs'));
         localizeItem('settings', i18n.t('header.menu.settings'));
+        localizeItem('power', i18n.t('header.menu.power'));
         localizeItem('updates', i18n.t('header.menu.updates'));
         localizeItem('about', i18n.t('header.menu.about'));
         localizeItem('logout', i18n.t('header.menu.logout'));
@@ -205,6 +220,16 @@ export class SettingsMenuManager {
                 };
             case 'settings':
                 return (): void => terminateHandledPromise(router.navigate('settings'));
+            case 'power': {
+                const button = this.button;
+                if (!button) {
+                    throw new Error('Settings menu Power entry requires the settings button');
+                }
+                return (): void => {
+                    button.focus({ preventScroll: true });
+                    terminateHandledPromise(router.navigate('power'));
+                };
+            }
             case 'updates':
                 return (): void => terminateHandledPromise(router.navigate('updates'));
             case 'about':

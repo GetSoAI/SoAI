@@ -121,7 +121,7 @@ class AttachmentOverflowKnowledgePreview {
         return createTextContentPreviewRequest({
             scope: 'chat',
             type: 'text',
-            headerDescription: i18n.t('chat.attachments.badge.knowledge'),
+            headerDescription: [i18n.t('chat.attachments.badge.knowledge'), ...(payload.document.missingCapabilities?.includes('speech_to_text') ? [i18n.t('speechSetup.notTranscribed')] : [])].join(' - '),
             baseline: {
                 title: resolveKnowledgeAttachmentPreviewTitle(payload, inputArguments.record.title),
                 content: resolveKnowledgeAttachmentPreviewText(payload),

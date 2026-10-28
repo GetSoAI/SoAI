@@ -20,7 +20,10 @@ from core.tasks.identifiers import normalize_optional_task_id
 from core.timing.epoch import epoch_seconds_float
 
 if TYPE_CHECKING:
+    from core.agent.prompt_replay import AgentTurnPromptReplaySnapshot
     from core.orchestrator.types import MCPToolContext
+    from core.skills.execution import SkillExecutionContext
+    from core.skills.protocols import SkillActivationCallback
 
 __all__ = (
     "RequestContext",
@@ -43,6 +46,9 @@ class RequestContext:
     agent_turn_id: str | None = None
     agent_turn_scope: str | None = None
     agent_turn_execution_token: str | None = None
+    agent_prompt_replay_snapshot: AgentTurnPromptReplaySnapshot | None = None
+    skill_execution_context: SkillExecutionContext | None = None
+    skill_activation_callback: SkillActivationCallback | None = None
     agent_iteration_index: int | None = None
     agent_parent_turn_id: str | None = None
     agent_parent_tool_call_id: str | None = None
@@ -77,6 +83,9 @@ class RequestContext:
         agent_turn_id: str | None = None,
         agent_turn_scope: str | None = None,
         agent_turn_execution_token: str | None = None,
+        agent_prompt_replay_snapshot: AgentTurnPromptReplaySnapshot | None = None,
+        skill_execution_context: SkillExecutionContext | None = None,
+        skill_activation_callback: SkillActivationCallback | None = None,
         agent_iteration_index: int | None = None,
         agent_parent_turn_id: str | None = None,
         agent_parent_tool_call_id: str | None = None,
@@ -220,6 +229,9 @@ class RequestContext:
         self.agent_turn_id = normalized_agent_turn_id
         self.agent_turn_scope = normalized_agent_turn_scope
         self.agent_turn_execution_token = normalized_agent_turn_execution_token
+        self.agent_prompt_replay_snapshot = agent_prompt_replay_snapshot
+        self.skill_execution_context = skill_execution_context
+        self.skill_activation_callback = skill_activation_callback
         self.agent_iteration_index = normalized_agent_iteration_index
         self.agent_parent_turn_id = normalized_agent_parent_turn_id
         self.agent_parent_tool_call_id = normalized_agent_parent_tool_call_id
@@ -241,7 +253,7 @@ class RequestContext:
         self.access_actions = normalized_access_actions
 
 
-def create_system_context(reason: str) -> RequestContext:
+def create_system_context(reason: str, *, user_id: int = 0) -> RequestContext:
     normalized_reason = reason.strip().lower().replace(" ", "_")
     normalized_reason = normalized_reason or "system"
     trace_id = create_system_id(
@@ -252,6 +264,7 @@ def create_system_context(reason: str) -> RequestContext:
     return RequestContext(
         trace_id=trace_id,
         client_ip="internal",
+        user_id=user_id,
         task_id=trace_id,
         cancellation_id=trace_id,
     )

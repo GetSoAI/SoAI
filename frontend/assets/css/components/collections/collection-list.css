@@ -8,7 +8,7 @@
         flex: 1 1 auto;
         min-height: 0;
         width: 100%;
-        overflow: hidden;
+        overflow: auto hidden;
         padding: 0;
         border: var(--border-width-1) solid var(--glass-border-strong);
         border-radius: var(--border-radius);
@@ -43,11 +43,13 @@
         --layout-collection-list-mobile-columns: auto 1fr auto;
         --layout-collection-list-mobile-rows: auto auto;
         --border-collection-row: var(--glass-border-strong);
+        --table-cell-padding-inline: var(--space-3);
         display: flex;
         flex-direction: column;
         flex: 1 1 auto;
         min-height: 0;
         width: 100%;
+        min-width: min-content;
         color: var(--text-secondary);
         border-collapse: separate;
         border-spacing: 0;
@@ -64,7 +66,7 @@
 
     .ui-collection-list__table :is(th, td) {
         min-width: 0;
-        padding: var(--space-2) var(--space-3);
+        padding: var(--space-2) var(--table-cell-padding-inline);
         border-bottom: var(--border-width-1) solid var(--glass-border-strong);
         text-align: start;
         vertical-align: middle;
@@ -167,19 +169,6 @@
     .ui-collection-list__table th.sortable.is-active {
         color: var(--text-primary);
         font-weight: 700;
-    }
-
-    .ui-collection-list__table th.sortable .sort-indicator {
-        min-width: 14px;
-        height: 14px;
-        vertical-align: middle;
-    }
-
-    .ui-collection-list__table th.sortable .sort-indicator svg {
-        width: 14px;
-        height: 14px;
-        display: block;
-        color: inherit;
     }
 
     @container ui-viewport (width <= 640px) {

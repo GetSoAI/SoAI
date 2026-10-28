@@ -12,6 +12,7 @@
     }
 
     .wizard-container:where([data-section='wizard'], [data-page-scope='wizard']) {
+        --text-case-label: none;
         position: fixed;
         inset: 0;
         padding: clamp(var(--space-6), calc(5 * var(--ui-viewport-width-unit)), var(--space-12));
@@ -115,6 +116,7 @@
         overflow-y: auto;
         overflow-x: hidden;
         overflow-anchor: none;
+        scroll-behavior: smooth;
         padding: clamp(var(--space-4), calc(3 * var(--ui-viewport-width-unit)), var(--space-8)) clamp(var(--space-4), calc(4 * var(--ui-viewport-width-unit)), var(--space-10));
         display: flex;
         justify-content: center;
@@ -234,5 +236,10 @@
         max-width: 520px;
         color: var(--text-secondary);
         line-height: 1.6;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-content {
+            scroll-behavior: auto;
+        }
     }
 }

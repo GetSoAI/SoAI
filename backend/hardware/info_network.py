@@ -30,10 +30,18 @@ LOGGER_NAME = "SoAI.hardware.info_network"
 OPERATION = "hardware_info.network.net_io_counters"
 
 
-def get_network_info(executor: CommandExecutorProtocol) -> JSONDict:
+def get_network_info(
+    executor: CommandExecutorProtocol,
+    *,
+    windows_visible_adapter_names: Sequence[str] | None = None,
+) -> JSONDict:
     if not get_runtime_platform().is_windows:
         return _collect_psutil_network_info()
-    visible_adapter_names = query_windows_visible_adapter_names(executor)
+    visible_adapter_names = (
+        query_windows_visible_adapter_names(executor)
+        if windows_visible_adapter_names is None
+        else windows_visible_adapter_names
+    )
     if visible_adapter_names is None:
         return _build_network_payload([], {}, windows_inventory_status="unavailable")
     return _collect_windows_visible_network_info(visible_adapter_names)

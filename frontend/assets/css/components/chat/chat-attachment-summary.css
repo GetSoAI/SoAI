@@ -140,11 +140,6 @@
         cursor: not-allowed;
     }
 
-    .chat-attachment-overflow-search:hover:not(:focus, :disabled) {
-        background-color: color-mix(in srgb, var(--search-control-bg) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
-        border-color: color-mix(in srgb, var(--border-color) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
-    }
-
     .chat-attachment-overflow-toolbar[hidden] {
         display: var(--hidden-display);
     }

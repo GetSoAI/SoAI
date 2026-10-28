@@ -3,6 +3,8 @@
 
 import type { GpuUiState } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 
+export const isCurrentGpuControlState = (current: GpuUiState, captured: GpuUiState, deviceId: GpuUiState['deviceId']): boolean => current === captured && captured.deviceId === deviceId;
+
 export const createDefaultGpuUiState = (): GpuUiState => ({
     deviceId: null,
     saveMode: false,

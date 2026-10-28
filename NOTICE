@@ -3,7 +3,7 @@ Copyright (C) 2024-2026 Roberto Martini
 
 SoAI Core is distributed under the SoAI Source-Available License 1.0. See LICENSE.md.
 Each released version of SoAI Core converts to the MIT License (licenses/MIT.txt) exactly four years
-after its first official public distribution. Change Dates are recorded in CHANGE-DATES.md. Separately licensed
+after its first official public distribution. Change Dates are recorded in CHANGE_DATES.md. Separately licensed
 separately distributed SoAI OS source is unaffected by Core Change Dates. The SoAI names, logos, and trademarks are reserved
 in all cases.
 
@@ -20,10 +20,10 @@ SoAI to develop, test, or operate a plugin still requires personal, evaluation, 
 
 Commercial terms for company use, redistribution, SaaS use, and trademark licensing are documented separately
 in the following operative files:
-  CHANGE-DATES.md
-  ORGANIZATION-EVALUATION-TERMS.md
-  COMMERCIAL-LICENSE.md
-  COMMERCIAL-SUPPORT-TERMS.md
+  CHANGE_DATES.md
+  ORGANIZATION_EVALUATION_TERMS.md
+  COMMERCIAL_LICENSE.md
+  COMMERCIAL_SUPPORT_TERMS.md
 
 LICENSING.md, PRIVACY.md, and this NOTICE are explanatory and non-operative. They summarize or point to the
 operative documents and do not themselves grant, limit, or vary any right.
@@ -34,24 +34,27 @@ analytics or usage reporting; and the only first-party endpoints SoAI contacts o
 explicit licensing operations and https://api.github.com for release lookups. The privacy notice at
 https://soai.to/privacy/ separately covers the licensing website, checkout, and direct support records.
 
-This distribution does not include a prebuilt Python environment. Windows release packages include the pinned
-Python 3.13 NuGet package, and SoAI installs it into the managed runtime only when needed. On every platform,
-Python dependencies listed in requirements.txt are installed into that managed environment; those separately
-acquired dependencies are not included in this distribution and carry their own license terms.
+This distribution does not include a prepared application Python environment. Windows release packages include
+the pinned Python 3.13 runtime archive from Astral's Python Build Standalone project, which SoAI installs when
+needed. Python dependencies listed in requirements.txt are installed into the managed environment. Selected
+dependency wheels are included with the distribution; other dependencies are acquired separately. All retain
+their own license terms.
 
 On first start, SoAI may also download additional runtime artifacts, such as:
 - Playwright Chromium (stored under data/state/playwright-browsers)
-- Microsoft Build of OpenJDK for Apache Tika (stored under data/state/java)
+- Azul Zulu Builds of OpenJDK for Apache Tika (stored under data/state/java)
 - tiktoken encoding tables published by OpenAI from Microsoft-operated storage at
   https://openaipublic.blob.core.windows.net, used for local token counting
   (stored under data/state/tiktoken-cache)
 
-Linux, macOS, and Windows release packages include Apache Tika Server 3.3.2 at
-runtime-assets/tika-server-standard-3.3.2.jar. Source and development runs can
-download it to data/state/tika. The JAR retains its upstream license and notice files.
+Linux, macOS, and Windows release packages include the Apache Tika Server 4.1.0 distribution at
+runtime-assets/tika-server-standard-4.1.0.zip, its checksum, and the accompanying source archives required by its
+licenses. SoAI extracts the server and its configuration under data/state/tika. Source and development runs
+download the distribution when needed. The upstream license and notice material is retained; see
+licenses/TIKA-RUNTIME-NOTICES.txt.
 
 Linux and macOS release packages include pinned micromamba and ripgrep archives for both supported native
-architectures. Windows release packages include the pinned x64 ripgrep archive, Python NuGet package, and managed
+architectures. Windows release packages include the pinned x64 ripgrep archive, Python runtime archive, and managed
 Tesseract OCR runtime. SoAI verifies and extracts these archives lazily when their corresponding runtime capability
 is first needed. The unmodified upstream archives retain their embedded license and metadata files.
 
@@ -71,11 +74,11 @@ Upstream: https://github.com/chrismattmann/tika-python
 
 Note: The vendored "tika" Python library may download and run Apache Tika server components at runtime,
 depending on configuration. SoAI's managed document-parsing runtime uses the separately packaged
-Apache Tika Server JAR described above in platform releases.
+Apache Tika Server distribution described above in platform releases.
 
-SoAI bootstraps a managed Java runtime for Tika using Microsoft Build of OpenJDK. License and notice
+SoAI bootstraps a managed Java runtime for Tika using Azul Zulu Builds of OpenJDK. License and notice
 texts for that runtime-fetched artifact are provided in:
-  licenses/Microsoft-OpenJDK-NOTICE.txt
+  licenses/Azul-Zulu-NOTICE.txt
   licenses/OpenJDK-GPLv2.txt
   licenses/OpenJDK-ADDITIONAL-LICENSE-INFO.txt
 

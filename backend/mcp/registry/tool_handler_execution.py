@@ -22,6 +22,7 @@ from core.timing.constants import SETUP_TIMEOUT_SEC
 from core.types.json_value import is_json_value
 from mcp.protocol.types import MCPJSONRPCError
 from mcp.shared.exception_boundary import (
+    build_jsonrpc_error_from_mcp_error,
     resolve_mcp_boundary_rpc_code,
     resolve_mcp_boundary_rpc_data,
 )
@@ -112,11 +113,7 @@ async def invoke_tool_handler_with_timeout(
     except MCPJSONRPCError:
         raise
     except MCPError as exception:
-        raise MCPJSONRPCError(
-            exception.rpc_code,
-            exception.message,
-            exception.rpc_data,
-        ) from exception
+        raise build_jsonrpc_error_from_mcp_error(exception) from exception
     except Exception as exception:
         coerced = coerce_to_soai_error(
             exception,

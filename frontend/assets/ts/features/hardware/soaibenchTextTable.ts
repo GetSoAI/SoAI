@@ -10,13 +10,13 @@ const escapeSoAIBenchTextTableCell = (value: string): string => {
 
 const formatSoAIBenchTextTable = (headers: readonly string[], rows: readonly (readonly string[])[]): string => {
     if (headers.length === 0) {
-        throw new Error('SoAIBench text table requires at least one column');
+        throw new Error('SoAI Bench text table requires at least one column');
     }
     const escapedHeaders = headers.map(escapeSoAIBenchTextTableCell);
     const lines = [`| ${escapedHeaders.join(' | ')} |`, `| ${escapedHeaders.map(() => '---').join(' | ')} |`];
     for (const row of rows) {
         if (row.length !== headers.length) {
-            throw new Error('SoAIBench text table rows must match the header width');
+            throw new Error('SoAI Bench text table rows must match the header width');
         }
         lines.push(`| ${row.map(escapeSoAIBenchTextTableCell).join(' | ')} |`);
     }

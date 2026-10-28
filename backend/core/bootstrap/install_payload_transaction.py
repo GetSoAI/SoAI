@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import os
 import shutil
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from core.bootstrap.install_payload import (
+    INSTALL_MANIFEST_FILENAME,
     managed_root_entries,
     validate_existing_install_edition,
     write_install_manifest,
@@ -17,6 +19,10 @@ from core.filesystem.atomic_write_primitives import fsync_directory
 from core.filesystem.file_sync import fsync_install_entry
 from core.filesystem.path_coercion import normalize_filesystem_path
 from core.filesystem.windows_access_control import copy_windows_discretionary_acl
+from core.filesystem.windows_sharing_conflicts import (
+    remove_path_with_sharing_retry,
+    replace_with_sharing_retry,
+)
 from core.meta.paths import join_data_abs
 
 __all__ = (
@@ -27,16 +33,7 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
-    from core.hardware.protocols_storage import (
-        DiskSpaceReservationLeaseProtocol,
-        StorageManagerProtocol,
-    )
-
-PAYLOAD_OPERATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    OSError,
-    shutil.Error,
-    ValueError,
-)
+    from core.hardware.protocols_storage import StorageManagerProtocol
 
 
 def copy_managed_payload(
@@ -47,70 +44,38 @@ def copy_managed_payload(
     edition: str,
     product_version: str,
     core_version: str,
+    prepare_staging: Callable[[str], None] | None = None,
+    complete_installation: Callable[[], None] | None = None,
+    rollback_installation: Callable[[], None] | None = None,
 ) -> None:
     source_root = os.path.abspath(source)
     target_root = os.path.abspath(target)
     validate_existing_install_edition(target_root, edition)
-    root_entries = managed_root_entries(edition)
+    root_entries = (*managed_root_entries(edition), INSTALL_MANIFEST_FILENAME)
     if os.path.normcase(source_root) == os.path.normcase(target_root):
-        write_install_manifest(
-            target_root,
-            source_root,
-            reservation_provider=reservation_provider,
-            edition=edition,
-            product_version=product_version,
-            core_version=core_version,
-        )
-        return
-    staging = os.path.join(target_root, f".soai_install_staging.{os.getpid()}")
-    backup = os.path.join(target_root, f".soai_install_previous.{os.getpid()}")
-    _safe_remove(target_root, staging)
-    _safe_remove(target_root, backup)
-    required_bytes = _managed_payload_copy_size(source_root, root_entries)
-    reservation = _reserve_payload_copy(
-        target_root,
-        required_bytes=required_bytes,
-        source_root=source_root,
-        reservation_provider=reservation_provider,
-    )
-    try:
-        with reservation.claim_write_bytes(required_bytes) as claim:
-            os.makedirs(staging, exist_ok=False)
-            _copy_staging_payload(source_root, staging, root_entries)
-            claim.commit()
-        os.makedirs(backup, exist_ok=False)
+        payload_completed = False
         try:
-            _backup_staged_entries(target_root, backup, staging, root_entries)
-            _move_staged_entries(target_root, staging, root_entries)
-        except PAYLOAD_OPERATION_EXCEPTIONS:
-            _restore_managed_entries(target_root, backup, root_entries)
-            raise
-        if os.path.isdir(backup):
-            _safe_remove(target_root, backup)
-    except PAYLOAD_OPERATION_EXCEPTIONS:
-        _safe_remove(target_root, staging)
-        raise
-    finally:
-        reservation.release()
-    _safe_remove(target_root, staging)
-    write_install_manifest(
-        target_root,
-        source_root,
-        reservation_provider=reservation_provider,
-        edition=edition,
-        product_version=product_version,
-        core_version=core_version,
-    )
-
-
-def _reserve_payload_copy(
-    target_root: str,
-    *,
-    required_bytes: int,
-    source_root: str,
-    reservation_provider: StorageManagerProtocol,
-) -> DiskSpaceReservationLeaseProtocol:
-    return reservation_provider.reserve_disk_space(
+            if prepare_staging is not None:
+                prepare_staging(source_root)
+            write_install_manifest(
+                target_root,
+                source_root,
+                reservation_provider=reservation_provider,
+                edition=edition,
+                product_version=product_version,
+                core_version=core_version,
+            )
+            if complete_installation is not None:
+                complete_installation()
+            payload_completed = True
+        finally:
+            if not payload_completed and rollback_installation is not None:
+                rollback_installation()
+        return
+    staging = create_secure_temp_directory(directory=target_root, prefix=".soai_install_staging.")
+    backup = create_secure_temp_directory(directory=target_root, prefix=".soai_install_previous.")
+    required_bytes = _managed_payload_copy_size(source_root, root_entries)
+    reservation = reservation_provider.reserve_disk_space(
         path=target_root,
         required_bytes=required_bytes,
         operation="core.bootstrap.install_payload.copy_managed_payload",
@@ -120,6 +85,46 @@ def _reserve_payload_copy(
             "required_bytes": required_bytes,
         },
     )
+    original_entries = frozenset(
+        path
+        for path in (
+            *(os.path.join(target_root, entry) for entry in root_entries),
+            join_data_abs(target_root, "vendor"),
+        )
+        if os.path.lexists(path)
+    )
+    try:
+        payload_completed = False
+        try:
+            with reservation.claim_write_bytes(required_bytes) as claim:
+                _copy_staging_payload(source_root, staging, root_entries)
+                if prepare_staging is not None:
+                    prepare_staging(staging)
+                claim.commit()
+            _backup_staged_entries(target_root, backup, staging, root_entries)
+            _move_staged_entries(target_root, staging, root_entries)
+            write_install_manifest(
+                target_root,
+                source_root,
+                reservation_provider=reservation_provider,
+                edition=edition,
+                product_version=product_version,
+                core_version=core_version,
+            )
+            if complete_installation is not None:
+                complete_installation()
+            payload_completed = True
+        finally:
+            if not payload_completed:
+                if rollback_installation is not None:
+                    rollback_installation()
+                _restore_managed_entries(target_root, backup, root_entries, original_entries)
+                _safe_remove(target_root, staging)
+        if os.path.isdir(backup):
+            _safe_remove(target_root, backup)
+        _safe_remove(target_root, staging)
+    finally:
+        reservation.release()
 
 
 def _managed_payload_copy_size(
@@ -230,7 +235,7 @@ def replace_install_entry(source_entry: str, target_parent: str, *, staging_root
         fsync_install_entry(staged_entry)
         if os.path.isdir(target_entry) and not os.path.islink(target_entry):
             _safe_remove(target_parent, target_entry)
-        os.replace(staged_entry, target_entry)
+        replace_with_sharing_retry(staged_entry, target_entry)
         fsync_directory(target_parent, strict=True)
         fsync_directory(scratch, strict=True)
     finally:
@@ -245,7 +250,7 @@ def _backup_staged_entries(
     root_entries: tuple[str, ...],
 ) -> None:
     for entry in root_entries:
-        if not os.path.exists(os.path.join(staging, entry)):
+        if not os.path.exists(os.path.join(staging, entry)) and entry != INSTALL_MANIFEST_FILENAME:
             continue
         source_entry = os.path.join(target, entry)
         if os.path.exists(source_entry):
@@ -279,15 +284,20 @@ def _restore_managed_entries(
     target: str,
     backup: str,
     root_entries: tuple[str, ...],
+    original_entries: frozenset[str],
 ) -> None:
     for entry in root_entries:
         target_entry = os.path.join(target, entry)
-        if os.path.exists(target_entry):
-            _safe_remove(target, target_entry)
         backup_entry = os.path.join(backup, entry)
+        if target_entry in original_entries and not os.path.lexists(backup_entry):
+            continue
+        if os.path.lexists(target_entry):
+            _safe_remove(target, target_entry)
         if os.path.exists(backup_entry):
             shutil.move(backup_entry, target_entry)
     target_vendor = join_data_abs(target, "vendor")
+    if target_vendor in original_entries and not os.path.lexists(join_data_abs(backup, "vendor")):
+        return
     if os.path.exists(target_vendor):
         _safe_remove(target, target_vendor)
     backup_vendor = join_data_abs(backup, "vendor")
@@ -307,7 +317,4 @@ def _safe_remove(target: str, path: str) -> None:
     candidate = normalize_filesystem_path(candidate)
     if not os.path.lexists(candidate):
         return
-    if os.path.isdir(candidate) and not os.path.islink(candidate):
-        shutil.rmtree(candidate)
-        return
-    os.unlink(candidate)
+    remove_path_with_sharing_retry(candidate)

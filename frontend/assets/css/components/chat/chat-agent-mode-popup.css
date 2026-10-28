@@ -2,11 +2,20 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    @property --chat-agent-mode-popup-focus-opacity {
+        syntax: '<number>';
+        inherits: false;
+        initial-value: 0;
+    }
+
     :where(.chat-container) .agent-mode-popup {
+        --chat-agent-mode-popup-focus-opacity: 0;
+        --chat-agent-mode-popup-opacity: calc(var(--chat-composer-fold-progress) * var(--chat-agent-mode-popup-focus-opacity));
         position: absolute;
         top: var(--chat-input-wrapper-padding);
         inset-inline-start: var(--chat-input-wrapper-padding);
-        transform: translateY(calc(-100% + var(--space-15)));
+        transform: translateY(var(--chat-agent-mode-popup-resting-offset));
+        translate: 0 var(--chat-composer-fold-offset);
         z-index: var(--z-raised);
         padding: var(--space-15) var(--space-3);
         background: var(--chat-input-surface-color);
@@ -26,18 +35,19 @@
         line-height: 1;
         white-space: nowrap;
         pointer-events: none;
-        opacity: 0;
+        opacity: var(--chat-agent-mode-popup-opacity);
         visibility: hidden;
         transition:
-            opacity var(--duration-300) var(--ease-smooth),
+            var(--chat-composer-fold-transition),
+            --chat-agent-mode-popup-focus-opacity var(--header-fold-duration) var(--header-fold-easing),
             transform var(--duration-300) var(--ease-spring),
             background-color var(--transition-fast),
             color var(--transition-fast),
             border-color var(--transition-fast);
     }
 
-    :where(.chat-container) .chat-input-wrapper:has(.chat-input:focus) .agent-mode-popup--visible {
-        opacity: 1;
+    :where(.chat-container .chat-input-wrapper:has(.chat-input:focus)) .agent-mode-popup--visible {
+        --chat-agent-mode-popup-focus-opacity: 1;
         visibility: visible;
         transform: translateY(-100%);
     }

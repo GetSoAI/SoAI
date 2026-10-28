@@ -1,6 +1,7 @@
 /* SoAI - Frontend core Translation declarations for `chat` namespace section 03 [frontend/assets/ts/core/i18n/translationkeys/chat__section03.generated.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ChatConfigurationTextZoomLargeTranslationKey } from '@core/i18n/translationkeys/chat/configuration__textZoomLarge.generated.ts';
 import type { ChatConfigurationTextZoomNormalTranslationKey } from '@core/i18n/translationkeys/chat/configuration__textZoomNormal.generated.ts';
 import type { ChatConfigurationTextZoomSmallTranslationKey } from '@core/i18n/translationkeys/chat/configuration__textZoomSmall.generated.ts';
 import type { ChatConfigurationTitleTranslationKey } from '@core/i18n/translationkeys/chat/configuration__title.generated.ts';
@@ -51,18 +52,18 @@ import type { ChatParametersTranslationKey } from '@core/i18n/translationkeys/ch
 import type { ChatPlanWidgetTranslationKey } from '@core/i18n/translationkeys/chat/planWidget.generated.ts';
 import type { ChatProcessingTranslationKey } from '@core/i18n/translationkeys/chat/processing.generated.ts';
 import type { ChatPromptHistoryTranslationKey } from '@core/i18n/translationkeys/chat/promptHistory.generated.ts';
-import type { ChatPromptsPickerTranslationKey } from '@core/i18n/translationkeys/chat/promptsPicker.generated.ts';
 import type { ChatSearchTranslationKey } from '@core/i18n/translationkeys/chat/search.generated.ts';
 import type { ChatSecretPromptTranslationKey } from '@core/i18n/translationkeys/chat/secretPrompt.generated.ts';
 import type { ChatSidebarTranslationKey } from '@core/i18n/translationkeys/chat/sidebar.generated.ts';
 import type { ChatSketchTranslationKey } from '@core/i18n/translationkeys/chat/sketch.generated.ts';
 import type { ChatStatusTranslationKey } from '@core/i18n/translationkeys/chat/status.generated.ts';
-import type { ChatStreamTranslationKey } from '@core/i18n/translationkeys/chat/stream.generated.ts';
-import type { ChatSuggestionsTranslationKey } from '@core/i18n/translationkeys/chat/suggestions.generated.ts';
-import type { ChatSyncTranslationKey } from '@core/i18n/translationkeys/chat/sync.generated.ts';
-import type { ChatThinkingTranslationKey } from '@core/i18n/translationkeys/chat/thinking.generated.ts';
+import type { ChatStreamComparisonModelsUnavailableTranslationKey } from '@core/i18n/translationkeys/chat/stream__comparisonModelsUnavailable.generated.ts';
+import type { ChatStreamComparisonModelUnavailableTranslationKey } from '@core/i18n/translationkeys/chat/stream__comparisonModelUnavailable.generated.ts';
+import type { ChatStreamErrorCodeTranslationKey } from '@core/i18n/translationkeys/chat/stream__error_code.generated.ts';
+import type { ChatStreamErrorsTranslationKey } from '@core/i18n/translationkeys/chat/stream__errors.generated.ts';
 
 export type ChatSection03TranslationKey =
+    | ChatConfigurationTextZoomLargeTranslationKey
     | ChatConfigurationTextZoomNormalTranslationKey
     | ChatConfigurationTextZoomSmallTranslationKey
     | ChatConfigurationTitleTranslationKey
@@ -113,13 +114,12 @@ export type ChatSection03TranslationKey =
     | ChatPlanWidgetTranslationKey
     | ChatProcessingTranslationKey
     | ChatPromptHistoryTranslationKey
-    | ChatPromptsPickerTranslationKey
     | ChatSearchTranslationKey
     | ChatSecretPromptTranslationKey
     | ChatSidebarTranslationKey
     | ChatSketchTranslationKey
     | ChatStatusTranslationKey
-    | ChatStreamTranslationKey
-    | ChatSuggestionsTranslationKey
-    | ChatSyncTranslationKey
-    | ChatThinkingTranslationKey;
+    | ChatStreamComparisonModelsUnavailableTranslationKey
+    | ChatStreamComparisonModelUnavailableTranslationKey
+    | ChatStreamErrorCodeTranslationKey
+    | ChatStreamErrorsTranslationKey;

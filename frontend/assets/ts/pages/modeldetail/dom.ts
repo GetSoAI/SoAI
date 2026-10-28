@@ -10,6 +10,7 @@ export interface ModelDetailUi {
     searchContainer: HTMLElement;
     saveParametersHeaderButton: HTMLButtonElement;
     resetAllParametersHeaderButton: HTMLButtonElement;
+    resetOverviewHeaderButton: HTMLButtonElement;
     manageAliasButton: HTMLButtonElement;
     testModelHeaderButton: HTMLButtonElement;
     deleteModelButton: HTMLButtonElement;
@@ -21,6 +22,7 @@ export interface ModelDetailUi {
     modelTabsContainer: HTMLElement;
     overviewContent: HTMLElement;
     parametersContent: HTMLElement;
+    parametersAvailability: HTMLElement;
     parametersInterface: HTMLElement;
     modelDetailError: HTMLElement;
 }
@@ -31,6 +33,7 @@ export const requireModelDetailUi = (dependencies: { requireHTMLElement: (select
 
     const saveParametersHeaderButton = narrowButton(dependencies.requireHTMLElement('#save-params-header', root), 'Save parameters header');
     const resetAllParametersHeaderButton = narrowButton(dependencies.requireHTMLElement('#reset-all-params-header', root), 'Reset parameters header');
+    const resetOverviewHeaderButton = narrowButton(dependencies.requireHTMLElement('#modeldetail-openai-capabilities-reset', root), 'Reset overview header');
     const manageAliasButton = narrowButton(dependencies.requireHTMLElement('#manage-alias', root), 'Manage alias');
     const testModelHeaderButton = narrowButton(dependencies.requireHTMLElement('#test-model-header', root), 'Test model');
     const deleteModelButton = narrowButton(dependencies.requireHTMLElement('#delete-model', root), 'Delete model');
@@ -43,6 +46,7 @@ export const requireModelDetailUi = (dependencies: { requireHTMLElement: (select
     const modelTabsContainer = dependencies.requireHTMLElement('#model-tabs-container', root);
     const overviewContent = dependencies.requireHTMLElement('#overview-content', root);
     const parametersContent = dependencies.requireHTMLElement('#parameters-content', root);
+    const parametersAvailability = dependencies.requireHTMLElement('#parameters-availability', parametersContent);
     const parametersInterface = dependencies.requireHTMLElement('#parameters-interface', parametersContent);
     const modelDetailError = dependencies.requireHTMLElement('#model-detail-error', root);
 
@@ -51,6 +55,7 @@ export const requireModelDetailUi = (dependencies: { requireHTMLElement: (select
         searchContainer,
         saveParametersHeaderButton,
         resetAllParametersHeaderButton,
+        resetOverviewHeaderButton,
         manageAliasButton,
         testModelHeaderButton,
         deleteModelButton,
@@ -60,6 +65,7 @@ export const requireModelDetailUi = (dependencies: { requireHTMLElement: (select
         modelTabsContainer,
         overviewContent,
         parametersContent,
+        parametersAvailability,
         parametersInterface,
         modelDetailError
     };

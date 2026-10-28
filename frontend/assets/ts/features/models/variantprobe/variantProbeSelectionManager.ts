@@ -1,6 +1,7 @@
 /* SoAI - Models feature variant probe selection manager [frontend/assets/ts/features/models/variantprobe/variantProbeSelectionManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { dom } from '@core/dom/dom.ts';
 import { optionalNonNegativeIntegerDataAttribute } from '@core/dom/attributes.ts';
 import type { ModelVariantResponse } from '@core/api/contracts/modelVariantContracts.ts';
 import { readTrimmedInputValue } from '@core/dom/formValues.ts';
@@ -43,12 +44,13 @@ const selectVariantProbeEntry = (element: Element | null, context: VariantProbeS
     return { selectedIndex: index, selectedVariant: variant };
 };
 
-const highlightVariantProbeSelection = (context: VariantProbeSelectionContext, selectedIndex: number | null): void => {
-    const resultsElement = context.requireUiElement('model-variant-results');
-    const entries = context.host.pageDom.query('.variant-check-entry', resultsElement);
+const highlightVariantProbeSelection = (resultsElement: Element, selectedIndex: number | null): void => {
+    const entries = dom.resolveAll('.variant-check-entry', resultsElement);
     entries.forEach((entry) => {
         const entryIndex = optionalNonNegativeIntegerDataAttribute(entry, 'variant-index', 'Variant probe entry');
-        context.host.pageDom.toggleClass(entry, 'variant-check-entry--selected', entryIndex === selectedIndex);
+        const selected = entryIndex === selectedIndex;
+        dom.toggleClass(entry, 'variant-check-entry--selected', selected);
+        entry.setAttribute('aria-pressed', String(selected));
     });
 };
 

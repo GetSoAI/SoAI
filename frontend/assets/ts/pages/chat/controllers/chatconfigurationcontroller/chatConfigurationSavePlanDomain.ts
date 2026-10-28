@@ -81,7 +81,22 @@ const commitConversationCoreProjection = (options: { active: boolean; captured: 
 const normalizeConversationSettingsSavePlan = (plan: ConversationSettingsSavePlanInput | null): ConversationSettingsSavePlan => ({
     conversation: normalizeConversationSettingsAction(plan?.conversation ?? null),
     knowledge: normalizeConversationSettingsAction(plan?.knowledge ?? null),
+    skills: normalizeConversationSettingsAction(plan?.skills ?? null),
     tools: normalizeConversationSettingsAction(plan?.tools ?? null)
+});
+
+const createSettingsSaveUnit = (access: ChatConfigurationSavePlanAccess, unitId: 'knowledge' | 'skills' | 'tools'): SaveUnit => ({
+    id: unitId,
+    hasChanges: () => Boolean(access.settingsPlan()[unitId]?.hasChanges),
+    isValid: () => access.settingsPlan()[unitId]?.isValid ?? true,
+    save: rejectUnpreparedSave,
+    prepare: () => {
+        const action = access.settingsPlan()[unitId];
+        return {
+            isValid: () => (action?.isStillValid() ?? true) || access.invalidate(unitId),
+            save: () => runPreparedUnit(access, unitId, async () => await action?.handler?.())
+        };
+    }
 });
 
 const createChatConfigurationSaveUnits = (access: ChatConfigurationSavePlanAccess): readonly SaveUnit[] => [
@@ -114,38 +129,7 @@ const createChatConfigurationSaveUnits = (access: ChatConfigurationSavePlanAcces
             };
         }
     },
-    {
-        id: 'knowledge',
-        hasChanges: () => Boolean(access.settingsPlan().knowledge?.hasChanges),
-        isValid: () => access.settingsPlan().knowledge?.isValid ?? true,
-        save: rejectUnpreparedSave,
-        prepare: () => {
-            const action = access.settingsPlan().knowledge;
-            return {
-                isValid: () => (action?.isStillValid() ?? true) || access.invalidate('knowledge'),
-                save: () =>
-                    runPreparedUnit(access, 'knowledge', async () => {
-                        return await action?.handler?.();
-                    })
-            };
-        }
-    },
-    {
-        id: 'tools',
-        hasChanges: () => Boolean(access.settingsPlan().tools?.hasChanges),
-        isValid: () => access.settingsPlan().tools?.isValid ?? true,
-        save: rejectUnpreparedSave,
-        prepare: () => {
-            const action = access.settingsPlan().tools;
-            return {
-                isValid: () => (action?.isStillValid() ?? true) || access.invalidate('tools'),
-                save: () =>
-                    runPreparedUnit(access, 'tools', async () => {
-                        return await action?.handler?.();
-                    })
-            };
-        }
-    },
+    ...(['knowledge', 'skills', 'tools'] satisfies readonly ChatConfigurationSaveUnitId[]).map((unitId) => createSettingsSaveUnit(access, unitId)),
     {
         id: 'preferences',
         hasChanges: () => access.preferencesDirty() || access.projectionEffectsDirty() || (!access.hasWritableConversation() && (access.parametersDirty() || access.modelDirty())) || Boolean(access.settingsPlan().conversation?.hasChanges),

@@ -49,6 +49,7 @@ const buildTerminalTaskPayload = (taskId: string, payload: JsonValue | null | un
     if (errorType) taskPayload['errorType'] = errorType;
     if (statusMessage) taskPayload['statusMessage'] = statusMessage;
     if (errorMessage) taskPayload['errorMessage'] = errorMessage;
+    if (payload['result'] !== undefined) taskPayload['result'] = payload['result'];
     if (payload['cancelled'] === true || isCancelledTaskStatus(normalizedStatus)) taskPayload['cancelled'] = true;
     return taskPayload;
 };

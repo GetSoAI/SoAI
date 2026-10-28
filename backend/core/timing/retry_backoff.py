@@ -8,7 +8,8 @@ import secrets
 from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING
 
-from core.timing.epoch import epoch_ms, epoch_seconds
+from core.timing.epoch import epoch_ms
+from core.validation.javascript_integer import JAVASCRIPT_SAFE_INTEGER_MAX
 from core.validation.numbers import coerce_float_from_json
 
 if TYPE_CHECKING:
@@ -20,6 +21,7 @@ __all__ = (
     "compute_uniform_delay_seconds",
     "parse_retry_after_seconds",
     "parse_retry_after_milliseconds",
+    "normalize_retry_after_header",
 )
 
 
@@ -78,25 +80,47 @@ def compute_uniform_delay_seconds(*, minimum_seconds: float, maximum_seconds: fl
     return secrets.SystemRandom().uniform(lower, upper)
 
 
-def parse_retry_after_seconds(value: str | None, *, default_seconds: int = 0) -> int:
-    default = max(0, int(default_seconds))
-    if value is None:
-        return default
-    normalized = value.strip()
-    if not normalized:
-        return default
-    numeric_seconds: int | None
-    try:
-        numeric_seconds = max(0, int(float(normalized)))
-    except (OverflowError, ValueError):
-        numeric_seconds = None
+def _retry_after_delay_seconds(value: JSONValue) -> float | None:
+    if isinstance(value, str) and (len(value) > 128 or "\r" in value or "\n" in value):
+        return None
+    numeric_seconds = coerce_float_from_json(value, default=None)
     if numeric_seconds is not None:
-        return numeric_seconds
+        return numeric_seconds if abs(numeric_seconds) <= JAVASCRIPT_SAFE_INTEGER_MAX else None
+    if not isinstance(value, str):
+        return None
     try:
-        parsed = parsedate_to_datetime(normalized)
+        parsed = parsedate_to_datetime(value.strip())
+        if parsed.tzinfo is None:
+            return None
+        delay_seconds = parsed.timestamp() - epoch_ms() / 1000.0
     except (TypeError, ValueError, IndexError, OverflowError):
-        return default
-    return max(0, int(parsed.timestamp()) - epoch_seconds())
+        return None
+    return max(0.0, delay_seconds)
+
+
+def parse_retry_after_seconds(
+    value: str | None,
+    *,
+    default_seconds: int = 0,
+    round_up: bool = False,
+) -> int:
+    seconds = _retry_after_delay_seconds(value)
+    if seconds is None:
+        return max(0, int(default_seconds))
+    return max(0, math.ceil(seconds) if round_up else int(seconds))
+
+
+def normalize_retry_after_header(value: str | None, *, milliseconds: bool = False) -> str | None:
+    if milliseconds:
+        if not isinstance(value, str) or len(value) > 128 or "\r" in value or "\n" in value:
+            return None
+        seconds = coerce_float_from_json(value, default=None)
+        seconds = seconds / 1000.0 if seconds is not None else None
+    else:
+        seconds = _retry_after_delay_seconds(value)
+    if seconds is None or seconds < 0 or seconds > JAVASCRIPT_SAFE_INTEGER_MAX:
+        return None
+    return str(math.ceil(seconds))
 
 
 def parse_retry_after_milliseconds(
@@ -107,14 +131,7 @@ def parse_retry_after_milliseconds(
 ) -> int:
     maximum = max(0, maximum_milliseconds)
     default = min(max(0, default_milliseconds), maximum)
-    seconds = coerce_float_from_json(value, default=None)
+    seconds = _retry_after_delay_seconds(value)
     if seconds is not None:
         return min(maximum, max(0, math.ceil(seconds * 1000.0)))
-    if not isinstance(value, str):
-        return default
-    try:
-        parsed = parsedate_to_datetime(value.strip())
-    except (TypeError, ValueError, IndexError, OverflowError):
-        return default
-    delay = math.ceil((parsed.timestamp() * 1000.0) - epoch_ms())
-    return min(maximum, max(0, delay))
+    return default

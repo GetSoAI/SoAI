@@ -82,7 +82,7 @@ class TabsOverflowRuntime implements TabsOverflowRuntimeService {
     };
 
     #bindWithin(root: HTMLElement): boolean {
-        const candidates = root.matches(TABS_NAV_SELECTOR) ? [root] : dom.resolveAll(TABS_NAV_SELECTOR, root);
+        const candidates = root.matches(TABS_NAV_SELECTOR) ? [root] : root.firstElementChild === null ? [] : dom.resolveAll(TABS_NAV_SELECTOR, root);
         let bound = false;
         for (const nav of candidates) {
             const wrapper = nav.parentElement;

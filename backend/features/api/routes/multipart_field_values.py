@@ -16,11 +16,8 @@ __all__ = (
     "field_optional_int",
     "field_optional_json",
     "field_optional_json_object",
-    "field_optional_ranged_int",
     "field_optional_str",
-    "field_optional_str_list",
     "field_optional_str_list_alias",
-    "field_required_int",
     "field_required_str",
 )
 
@@ -57,16 +54,6 @@ def field_optional_str(fields: dict[str, tuple[str, ...]], key: str) -> str | No
     if len(values) != 1:
         raise ValidationError(f"Field '{key}' must be provided at most once.")
     return values[0]
-
-
-def field_optional_str_list(
-    fields: dict[str, tuple[str, ...]],
-    key: str,
-) -> tuple[str, ...]:
-    values = _field_values(fields, key)
-    if values is None:
-        return ()
-    return values
 
 
 def field_optional_str_list_alias(
@@ -138,36 +125,6 @@ def field_optional_int(fields: dict[str, tuple[str, ...]], key: str) -> int | No
     parsed = coerce_exact_int_or_none(raw)
     if parsed is None:
         raise ValidationError(f"Field '{key}' must be an integer.")
-    return parsed
-
-
-def field_optional_ranged_int(
-    fields: dict[str, tuple[str, ...]],
-    key: str,
-    *,
-    minimum: int,
-    maximum: int,
-) -> int | None:
-    parsed = field_optional_int(fields, key)
-    if parsed is None:
-        return None
-    if parsed < minimum or parsed > maximum:
-        raise ValidationError(f"Field '{key}' must be between {minimum} and {maximum}.")
-    return parsed
-
-
-def field_required_int(
-    fields: dict[str, tuple[str, ...]],
-    key: str,
-    *,
-    minimum: int | None = None,
-) -> int:
-    raw = field_required_str(fields, key)
-    parsed = coerce_exact_int_or_none(raw)
-    if parsed is None:
-        raise ValidationError(f"Field '{key}' must be an integer.")
-    if minimum is not None and parsed < minimum:
-        raise ValidationError(f"Field '{key}' must be >= {minimum}.")
     return parsed
 
 

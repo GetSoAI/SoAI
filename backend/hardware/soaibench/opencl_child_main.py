@@ -3,20 +3,28 @@
 
 from __future__ import annotations
 
+import faulthandler
 import math
 import sys
 
 from core.errors.exceptions import ValidationError
+from core.hardware.gpu_physical_identity import GPUPhysicalDevice, GPUPhysicalIdentity
+from core.hardware.soaibench_limits import MAX_CHILD_MESSAGE_BYTES
 from core.hardware.soaibench_numerical import SoAIBenchNumericalError
 from core.hardware.soaibench_workloads import sample_positions
-from core.serialization.json import serialize_json_compact_stable
-from core.serialization.json_parsing import parse_json_value
-from core.types.json import JSONDict
+from core.ipc.ndjson import NdjsonCodec
+from core.ipc.ndjson_rpc_loop import NdjsonRpcRequest, NdjsonRpcResponse, run_ndjson_rpc_loop
+from core.ipc.ndjson_worker_handshake import connect_ndjson_ipc_worker_session
+from core.ipc.stream_closing import close_ipc_writer
+from core.runtime.event_loop_runner import run_coroutine_in_new_event_loop
+from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
+from core.types.json import JSONDict, JSONValue
 from hardware.soaibench.errors import SoAIBenchUnsupported
 from hardware.soaibench.gpu_identity import identity_from_payload
-from hardware.soaibench.internal_protocols import MAX_CHILD_MESSAGE_BYTES
+from hardware.soaibench.opencl_child_environment import configure_opencl_child_environment
 from hardware.soaibench.opencl_session import OpenCLExecutionSession
 from hardware.soaibench.preflight import preflight_blocking
+from hardware.soaibench.runtime_discovery import discover_opencl_target
 from hardware.soaibench.types import SoAIBenchGpuIdentity
 from hardware.soaibench.workload_alu import execute_alu_workload
 from hardware.soaibench.workload_common import SoAIBenchPhaseResult
@@ -30,100 +38,123 @@ __all__ = ("main",)
 
 
 def main() -> None:
+    configure_opencl_child_environment()
+    faulthandler.enable(file=sys.stderr, all_threads=True)
+    run_coroutine_in_new_event_loop(_serve())
+
+
+async def _serve() -> None:
+    codec = NdjsonCodec(
+        max_line_bytes=MAX_CHILD_MESSAGE_BYTES, max_depth=32, reject_duplicate_keys=True
+    )
+    sys.stderr.write("SoAI Bench child stage: authentication\n")
+    reader, writer, worker_id = await connect_ndjson_ipc_worker_session(
+        worker_label="SoAI Bench", codec=codec
+    )
+    sys.stderr.write("SoAI Bench child stage: ready\n")
     session: OpenCLExecutionSession | None = None
-    try:
-        for line in sys.stdin.buffer:
-            response: JSONDict
-            try:
-                command = _read_command(line)
-                identity = _command_identity(command)
+
+    async def handle_request(request: NdjsonRpcRequest) -> NdjsonRpcResponse:
+        nonlocal session
+        response: JSONDict
+        try:
+            if request.method != "execute":
+                raise ValueError("SoAI Bench child method is invalid.")
+            command = _read_command(request.payload)
+            identity = _command_identity(command)
+            sys.stderr.write(
+                f"SoAI Bench child stage: {command.get("operation")} {command.get("phase", "")}\n"
+            )
+            if command.get("operation") == "discover_runtime":
+                response = _discover_runtime_command(command, identity)
+            else:
                 if session is None:
                     session = OpenCLExecutionSession(identity)
                 response = _execute(command, session)
-            except SoAIBenchUnsupported as exception:
-                response = {
-                    "ok": False,
-                    "reason": exception.reason,
-                    "message": exception.message,
-                }
-                if exception.diagnostic:
-                    response["diagnostic"] = exception.diagnostic
-            except SoAIBenchNumericalError as exception:
-                response = {
-                    "ok": False,
-                    "reason": "opencl_numerical_mismatch",
-                    "message": "OpenCL workload numerical validation failed.",
-                }
-                diagnostic = str(exception)
-                if diagnostic:
-                    response["diagnostic"] = diagnostic[:8192]
-            except (
-                KeyError,
-                IndexError,
-                OSError,
-                RuntimeError,
-                TypeError,
-                ValidationError,
-                ValueError,
-            ) as exception:
-                response = {
-                    "ok": False,
-                    "reason": "opencl_runtime_error",
-                    "message": "The SoAIBench OpenCL child failed while executing its workload.",
-                }
-                diagnostic = str(exception)
-                if diagnostic:
-                    response["diagnostic"] = diagnostic[:8192]
-            _write_response(response)
+        except SoAIBenchUnsupported as exception:
+            response = {
+                "ok": False,
+                "reason": exception.reason,
+                "message": exception.message,
+            }
+            if exception.diagnostic:
+                response["diagnostic"] = exception.diagnostic
+        except SoAIBenchNumericalError as exception:
+            response = {
+                "ok": False,
+                "reason": "opencl_numerical_mismatch",
+                "message": "OpenCL workload numerical validation failed.",
+            }
+            diagnostic = str(exception)
+            if diagnostic:
+                response["diagnostic"] = diagnostic[:8192]
+        except (
+            KeyError,
+            IndexError,
+            OSError,
+            RuntimeError,
+            TypeError,
+            ValidationError,
+            ValueError,
+        ) as exception:
+            response = {
+                "ok": False,
+                "reason": "opencl_runtime_error",
+                "message": "The SoAI Bench OpenCL child failed while executing its workload.",
+            }
+            diagnostic = str(exception)
+            if diagnostic:
+                response["diagnostic"] = diagnostic[:8192]
+        return NdjsonRpcResponse(request.request_id, True, response)
+
+    try:
+        await run_ndjson_rpc_loop(
+            reader=reader,
+            writer=writer,
+            idle_timeout_sec=INTERACTIVE_TIMEOUT_SEC,
+            handle_request=handle_request,
+            codec=codec,
+        )
     finally:
-        if session is not None:
-            session.close()
+        try:
+            if session is not None:
+                session.close()
+        finally:
+            await close_ipc_writer(writer, worker_id=worker_id)
 
 
 def _command_identity(command: JSONDict) -> SoAIBenchGpuIdentity:
     identity_payload = command.get("identity")
     if not isinstance(identity_payload, dict):
-        raise TypeError("SoAIBench child command is invalid.")
+        raise TypeError("SoAI Bench child command is invalid.")
     return identity_from_payload(identity_payload)
 
 
-def _read_command(line: bytes) -> JSONDict:
-    if len(line) > MAX_CHILD_MESSAGE_BYTES:
-        raise ValueError("SoAIBench child command is too large.")
-    try:
-        parsed = parse_json_value(
-            line,
-            field="SoAIBench child command",
-            max_depth=32,
-            strict_utf8=True,
-            reject_duplicate_keys=True,
-        )
-    except (TypeError, ValueError) as exception:
-        raise ValueError("SoAIBench child command is invalid.") from exception
-    if not isinstance(parsed, dict):
-        raise TypeError("SoAIBench child command is invalid.")
-    return parsed
+def _read_command(payload: JSONValue) -> JSONDict:
+    if not isinstance(payload, dict):
+        raise TypeError("SoAI Bench child command is invalid.")
+    return payload
 
 
 def _execute(command: JSONDict, session: OpenCLExecutionSession) -> JSONDict:
     operation = command.get("operation")
     identity_payload = command.get("identity")
     if not isinstance(operation, str) or not isinstance(identity_payload, dict):
-        raise TypeError("SoAIBench child command is invalid.")
+        raise TypeError("SoAI Bench child command is invalid.")
     identity = identity_from_payload(identity_payload)
     session.validate_identity(identity)
     if operation == "preflight":
         if set(command) != {"operation", "identity"}:
-            raise ValueError("SoAIBench child preflight fields are invalid.")
+            raise ValueError("SoAI Bench child preflight fields are invalid.")
         return {"ok": True, "preflight": preflight_blocking(session, identity)}
     if operation != "phase":
-        raise ValueError("SoAIBench child operation is invalid.")
+        raise ValueError("SoAI Bench child operation is invalid.")
     if set(command) != {"operation", "phase", "stress", "identity"}:
-        raise ValueError("SoAIBench child phase fields are invalid.")
+        raise ValueError("SoAI Bench child phase fields are invalid.")
     phase_name = command.get("phase")
     stress = command.get("stress")
     if not isinstance(phase_name, str) or not isinstance(stress, bool):
-        raise TypeError("SoAIBench child phase command is invalid.")
+        raise TypeError("SoAI Bench child phase command is invalid.")
     result = _execute_phase(phase_name, identity, stress, session)
     return {"ok": True, "phase": _phase_payload(result)}
 
@@ -148,12 +179,12 @@ def _execute_phase(
         case "mixed":
             return execute_mixed_workload(identity, stress=stress, session=session)
         case _:
-            raise ValueError("SoAIBench child phase is invalid.")
+            raise ValueError("SoAI Bench child phase is invalid.")
 
 
 def _phase_payload(result: SoAIBenchPhaseResult) -> JSONDict:
     if not math.isfinite(result.elapsed_seconds) or result.elapsed_seconds <= 0.0:
-        raise ValueError("SoAIBench child phase timing is invalid.")
+        raise ValueError("SoAI Bench child phase timing is invalid.")
     positive_counts = (
         result.duration_ms,
         result.sample_count,
@@ -162,13 +193,13 @@ def _phase_payload(result: SoAIBenchPhaseResult) -> JSONDict:
         result.dispatches,
     )
     if result.checksum < 0 or any(value < 1 for value in positive_counts):
-        raise ValueError("SoAIBench child phase accounting is invalid.")
+        raise ValueError("SoAI Bench child phase accounting is invalid.")
     if (
         result.sample_positions != sample_positions(result.element_count)
         or len(result.sample_values) != len(result.sample_positions)
         or any(not math.isfinite(value) for value in result.sample_values)
     ):
-        raise ValueError("SoAIBench child phase samples are invalid.")
+        raise ValueError("SoAI Bench child phase samples are invalid.")
     return {
         "elapsed_seconds": result.elapsed_seconds,
         "duration_ms": result.duration_ms,
@@ -183,22 +214,33 @@ def _phase_payload(result: SoAIBenchPhaseResult) -> JSONDict:
     }
 
 
-def _write_response(response: JSONDict) -> None:
-    try:
-        encoded = serialize_json_compact_stable(response).encode("utf-8")
-    except (TypeError, ValueError):
-        encoded = _failure_response_bytes()
-    if len(encoded) + 1 > MAX_CHILD_MESSAGE_BYTES:
-        encoded = _failure_response_bytes()
-    sys.stdout.buffer.write(encoded + b"\n")
-    sys.stdout.buffer.flush()
-
-
-def _failure_response_bytes() -> bytes:
-    return (
-        b'{"ok":false,"reason":"opencl_runtime_error",'
-        b'"message":"The SoAIBench OpenCL child response exceeded its size bound."}'
+def _discover_runtime_command(command: JSONDict, identity: SoAIBenchGpuIdentity) -> JSONDict:
+    if set(command) != {"operation", "identity"} or identity.vendor is None:
+        raise ValidationError("OpenCL discovery requires the selected physical target.")
+    target = GPUPhysicalDevice(
+        identity.device_id,
+        identity.vendor,
+        GPUPhysicalIdentity(identity.gpu_uuid, identity.pci_bdf),
+        None,
+        None,
+        (),
     )
+    result = discover_opencl_target(target)
+    return {
+        "ok": True,
+        "runtime": {
+            "device_id": result.device_id,
+            "vendor": result.vendor,
+            "state": result.state.value,
+            "reason_code": result.reason_code,
+            "message": result.message,
+            "match_basis": result.match_basis,
+            "platform_name": result.platform_name,
+            "driver_version": result.driver_version,
+            "effective_uid": result.effective_uid,
+            "effective_gid": result.effective_gid,
+        },
+    }
 
 
 if __name__ == "__main__":

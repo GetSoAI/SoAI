@@ -122,6 +122,7 @@ const handleWizardAccountSubmission = async (host: WizardPageServiceHost, accoun
     }
 
     host.view.state.isBusy = true;
+    host.view.state.accountSubmissionPending = true;
     beginLoadingButton(ui.navNextButton);
     host.view.syncNavigation(ui, 'account');
 
@@ -129,8 +130,10 @@ const handleWizardAccountSubmission = async (host: WizardPageServiceHost, accoun
         if (await createWizardAccount(host, account, fields)) await advance();
     } finally {
         host.view.state.isBusy = false;
+        host.view.state.accountSubmissionPending = false;
         clearLoadingButtonIfNeeded(ui.navNextButton);
         host.view.syncCurrentNavigation();
+        host.completion.reconcileSetupCompletion();
     }
 };
 

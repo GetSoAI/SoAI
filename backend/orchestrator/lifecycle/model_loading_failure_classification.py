@@ -7,11 +7,18 @@ from dataclasses import dataclass
 
 from core.errors.error_types import ErrorType
 from core.errors.exceptions import ConfigurationError, IpcRemoteRequestError, ValidationError
-from core.errors.public_projection import project_public_exception
+from core.errors.public_projection import (
+    project_public_exception,
+    project_specific_public_exception,
+)
 from orchestrator.execution.failure_classification import resolve_remote_error_code
 from orchestrator.lifecycle.model_loading_result import ModelScopedLoadError
 
 __all__ = ("ModelLoadFailureClassification", "classify_model_load_failure")
+
+INVALID_STARTUP_SETTINGS_REASON = (
+    "Model startup settings are invalid. Review the model parameters and backend configuration."
+)
 
 MODEL_SCOPED_REMOTE_ERROR_CODES = frozenset(
     {
@@ -30,15 +37,16 @@ class ModelLoadFailureClassification:
 
 
 def classify_model_load_failure(exception: BaseException) -> ModelLoadFailureClassification:
-    public_reason = project_public_exception(exception).message
+    specific_error = project_specific_public_exception(exception)
+    public_reason = (
+        specific_error.message
+        if specific_error is not None
+        else project_public_exception(exception).message
+    )
     if isinstance(exception, ValidationError | ConfigurationError):
         return ModelLoadFailureClassification(
             model_scoped=True,
-            reason=(
-                public_reason
-                if exception.public_message is not None
-                else "Model startup settings are invalid. Review the model parameters and backend configuration."
-            ),
+            reason=public_reason if specific_error is not None else INVALID_STARTUP_SETTINGS_REASON,
         )
     if isinstance(exception, ModelScopedLoadError):
         return ModelLoadFailureClassification(
@@ -53,9 +61,9 @@ def classify_model_load_failure(exception: BaseException) -> ModelLoadFailureCla
                 or remote_error_code == ConfigurationError.code
             ),
             reason=(
-                "Model startup settings are invalid. Review the model parameters and backend configuration."
+                INVALID_STARTUP_SETTINGS_REASON
                 if remote_error_code in {ErrorType.INVALID_REQUEST.value, ConfigurationError.code}
-                and exception.public_message is None
+                and specific_error is None
                 else public_reason
             ),
         )

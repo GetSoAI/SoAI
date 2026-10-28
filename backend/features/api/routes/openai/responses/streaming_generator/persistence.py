@@ -3,9 +3,14 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from core.openai.responses_events import build_failed_response_event
 from core.openai.sse_events import format_openai_sse_data
 from core.openai.sse_frames import sse_done_chunk
+
+if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
 
 __all__ = (
     "build_failed_event_bytes",
@@ -20,6 +25,7 @@ def build_failed_event_bytes(
     code: str,
     model: str,
     created_at: int,
+    public_error: ErrorPublicPayload | None = None,
 ) -> bytes:
     payload = build_failed_response_event(
         response_id=response_id,
@@ -27,6 +33,7 @@ def build_failed_event_bytes(
         code=code,
         model=model,
         created_at=created_at,
+        public_error=public_error,
     )
     return format_openai_sse_data(payload).encode("utf-8")
 

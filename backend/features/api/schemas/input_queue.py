@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, StrictBool, field_validator, model_validator
 
 from core.conversations.conversation_draft_content_validation import (
     CHAT_COMPOSER_TEXT_MAX_LENGTH,
@@ -45,6 +45,7 @@ class InputQueueEnqueueRequest(SoAIV1StrictModel):
     attachment_content: list[PydanticJSONValue] = Field(default_factory=list[PydanticJSONValue])
     client_id: str = Field(..., min_length=1, max_length=128)
     client_request_id: str = Field(..., min_length=1, max_length=128)
+    fallback_to_prompt: StrictBool = False
 
     @field_validator("input_type")
     @classmethod
@@ -86,6 +87,8 @@ class InputQueueEnqueueRequest(SoAIV1StrictModel):
 
     @model_validator(mode="after")
     def validate_payload(self) -> InputQueueEnqueueRequest:
+        if self.fallback_to_prompt and self.input_type != "steer":
+            raise ValidationError("fallback_to_prompt is only valid for steer inputs.")
         if self.text is None and not self.attachment_content:
             raise ValidationError("Input queue enqueue requires either text or attachment_content.")
         if self.text is not None and self.prompt_history_text is None:

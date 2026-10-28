@@ -12,10 +12,13 @@ from core.errors.error_types import ErrorType
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import SoAIError
+from core.errors.external_service_exception import ExternalServiceError
 from core.errors.http_recoverable import HTTP_RECOVERABLE_EXCEPTIONS
 from core.errors.public_projection import project_public_error
 from core.logging.trace import get_logger
 from core.openai.openai_sse_error_escalation import OpenAIStreamError
+from core.openai.provider_error_explanations import UpstreamFailureType
+from core.openai.provider_transport import build_openai_upstream_error_details
 from core.openai.request_features import request_includes_tool_calling
 from core.runtime.request_sources import REQUEST_SOURCE_MODEL_TEST
 from core.state.state_names import (
@@ -23,11 +26,14 @@ from core.state.state_names import (
     PLUGIN_STATE_DELETING,
     PLUGIN_STATE_REMOVING_BACKEND,
 )
+from core.tasks.execution_budget import ExecutionBudgetSource
 from core.timing.constants import RESPONSIVE_TIMEOUT_SEC
 from orchestrator.execution.execution_http_response_readback import (
     drain_httpx_error_response_body,
 )
+from orchestrator.execution.execution_phase_timeouts import ExecutionPhaseTimeoutError
 from orchestrator.execution.failure_classification import classify_execution_failure
+from orchestrator.execution.streaming import StreamingIdleTimeoutError, StreamingSourceTimeoutError
 from orchestrator.execution.transport_failure_diagnostics import (
     sanitize_health_ping_detail,
 )
@@ -68,13 +74,64 @@ async def handle_execution_failure(
     task: Task,
     plugin_instance: PluginInstanceProtocol,
     plugin_name: str,
+    provider_id: str | None,
     exception: Exception,
     request_timeout: float,
 ) -> bool:
     logger = get_logger(LOGGER_NAME)
+    current_task = await queue.task_registry.get(task.task_id)
+    timeout_outcome_pending = current_task is not None and current_task.execution_timeout_pending
+    logger.debug(
+        "Execution failure ownership resolved. task_id=%s timeout_outcome_pending=%s reply_queue_attached=%s",
+        task.task_id,
+        timeout_outcome_pending,
+        current_task is not None and current_task.reply_queue is not None,
+    )
+    if timeout_outcome_pending and current_task is not None:
+        task = current_task
     context = queue.require_orchestration_context(task)
     is_model_test_request = context.request_source == REQUEST_SOURCE_MODEL_TEST
     event = context.event
+    root_exception = _unwrap_generic_soai_error(exception)
+    caller_phase_timeout = (
+        isinstance(root_exception, ExecutionPhaseTimeoutError)
+        and root_exception.attribution.source is ExecutionBudgetSource.CALLER_REQUEST
+    )
+    if (
+        provider_id is not None
+        and not caller_phase_timeout
+        and isinstance(
+            root_exception,
+            TimeoutError
+            | httpx2.RequestError
+            | StreamingIdleTimeoutError
+            | StreamingSourceTimeoutError
+            | ExecutionPhaseTimeoutError,
+        )
+    ):
+        timed_out = isinstance(
+            root_exception,
+            TimeoutError
+            | httpx2.TimeoutException
+            | StreamingIdleTimeoutError
+            | StreamingSourceTimeoutError
+            | ExecutionPhaseTimeoutError,
+        )
+        upstream_details = build_openai_upstream_error_details(
+            provider_id, transport_error=not timed_out
+        )
+        upstream_details["upstream_failure_type"] = (
+            UpstreamFailureType.TIMEOUT.value
+            if timed_out
+            else UpstreamFailureType.PROVIDER_OUTAGE.value
+        )
+        exception = ExternalServiceError(
+            "Provider request timed out." if timed_out else "Provider transport failed.",
+            details=upstream_details,
+            cause=exception,
+            operation="orchestrator.provider_execution",
+            trace_id=event.context.trace_id if event is not None else None,
+        )
     if isinstance(exception, httpx2.HTTPStatusError):
         await drain_httpx_error_response_body(exception, logger=logger)
     if (
@@ -184,22 +241,11 @@ async def handle_execution_failure(
         )
     else:
         logger.warning("Error executing task %s: %s", task.task_id, user_message)
-    if details.affects_plugin_health and (not is_model_test_request):
-        await lifecycle.circuit_breakers.record_cb_failure(plugin_name)
-        if await state_aggregator.get_plugin_status(plugin_name) not in {
-            PLUGIN_STATE_DELETING,
-            PLUGIN_STATE_REMOVING_BACKEND,
-        }:
-            await lifecycle.publisher.publish_runtime_state_change(
-                plugin_name,
-                ORCH_STATE_ERROR,
-                details.state_reason,
-            )
-        else:
-            logger.warning(
-                "Request failed during plugin removal for '%s'. Suppressing state change to ERROR.",
-                plugin_name,
-            )
+    report_health_failure = details.affects_plugin_health and not is_model_test_request
+    if report_health_failure and not timeout_outcome_pending:
+        await _record_plugin_health_failure(
+            lifecycle, state_aggregator, plugin_name, details.state_reason
+        )
     await outcomes.fail_task(
         task,
         user_message,
@@ -207,9 +253,39 @@ async def handle_execution_failure(
         error_type=error_type,
         reason_is_public=True,
         public_error=(
-            project_public_error(root_exception)
-            if isinstance(root_exception, SoAIError) and root_exception.public_message is not None
-            else None
+            details.public_error
+            if details.public_error is not None
+            else (
+                project_public_error(root_exception)
+                if isinstance(root_exception, SoAIError)
+                and root_exception.public_message is not None
+                else None
+            )
         ),
     )
+    if report_health_failure and timeout_outcome_pending:
+        await _record_plugin_health_failure(
+            lifecycle, state_aggregator, plugin_name, details.state_reason
+        )
     return False
+
+
+async def _record_plugin_health_failure(
+    lifecycle: OrchestratorLifecycleCoordinatorProtocol,
+    state_aggregator: StateAggregatorProtocol,
+    plugin_name: str,
+    reason: str,
+) -> None:
+    await lifecycle.circuit_breakers.record_cb_failure(plugin_name)
+    if await state_aggregator.get_plugin_status(plugin_name) not in {
+        PLUGIN_STATE_DELETING,
+        PLUGIN_STATE_REMOVING_BACKEND,
+    }:
+        await lifecycle.publisher.publish_runtime_state_change(
+            plugin_name, ORCH_STATE_ERROR, reason
+        )
+    else:
+        get_logger(LOGGER_NAME).warning(
+            "Request failed during plugin removal for '%s'. Suppressing state change to ERROR.",
+            plugin_name,
+        )

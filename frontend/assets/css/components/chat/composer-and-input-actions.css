@@ -2,11 +2,8 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
-    :where(.chat-container) .chat-input-shell .chat-input-actions > * {
-        opacity: var(--chat-input-actions-content-opacity);
-        transition:
-            opacity var(--transition-fast),
-            translate var(--header-fold-duration) var(--header-fold-easing);
+    :where(.chat-container) .chat-input-wrapper .chat-input-actions :is(.ui-button, .ui-icon-button):not(:disabled, [aria-disabled='true'], [data-toggle-disabled='true'], [aria-busy='true'], .is-processing, .is-recording, .is-stop-mode, .is-open, .is-warning, .is-critical, [aria-pressed='true'], [aria-expanded='true'], :where([aria-busy='true'] *)) {
+        --ui-control-opacity: var(--chat-input-actions-content-opacity);
     }
 
     :where(.chat-container) .chat-input-actions-inline {
@@ -83,24 +80,14 @@
             inset 0 1px 0 var(--surface-top-highlight-soft),
             0 2px 4px var(--surface-drop-shadow-soft),
             0 0 0 1px var(--surface-top-highlight-muted);
-        opacity: 0.8;
+
+        --ui-control-opacity: 0.8;
+        opacity: var(--ui-control-opacity);
         pointer-events: none;
     }
 
     :where(.chat-container) .chat-input-actions.is-collapsed-into-header .chat-input-actions-inline {
         display: none;
-    }
-
-    :where(.chat-container) .chat-input-actions :is(.chat-input-action-inline, .chat-input-action)[aria-disabled='true'],
-    :where(.chat-container) .chat-input-actions :is(.chat-input-action-inline, .chat-input-action)[data-toggle-disabled='true'] {
-        opacity: 0.55;
-        cursor: no-drop;
-        pointer-events: auto;
-    }
-
-    :where(.chat-container) .chat-input-actions :is(.chat-input-action-inline, .chat-input-action)[aria-disabled='true']:is(:hover, :focus-visible, :active),
-    :where(.chat-container) .chat-input-actions :is(.chat-input-action-inline, .chat-input-action)[data-toggle-disabled='true']:is(:hover, :focus-visible, :active) {
-        opacity: 0.55;
     }
 
     :where(.chat-container) .chat-token-counter-btn.is-warning {
@@ -139,7 +126,7 @@
     }
 
     :where(.chat-container) .chat-input-wrapper.chat-input-wrapper--conversation-scrolled {
-        --chat-input-actions-content-opacity: 0.3;
+        --chat-input-actions-content-opacity: var(--ui-button-subdued-opacity);
     }
 
     :where(.chat-container) .chat-input-wrapper.chat-input-wrapper--conversation-scrolled:is(:hover, :focus-within) {

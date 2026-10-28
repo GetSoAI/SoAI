@@ -95,7 +95,6 @@ const KNOWN_HELP_TEXT_RESOLVERS: Readonly<Record<string, () => string>> = Object
     'TOOLS.MCP.READ_IMAGE.MAX_ENCODED_CHARS': () => i18n.t('settings.mcp.configHelp.readImageMaxEncodedChars'),
     'TOOLS.MCP.READ_IMAGE.MAX_PIXELS': () => i18n.t('settings.mcp.configHelp.readImageMaxPixels'),
     'TOOLS.MCP.READ_IMAGE.JPEG_QUALITY': () => i18n.t('settings.mcp.configHelp.readImageJpegQuality'),
-    'TOOLS.MCP.READ_VIDEO.WHISPER_MODEL': () => i18n.t('settings.mcp.configHelp.readVideoWhisperModel'),
     'TOOLS.MCP.HOST_MODE.ENABLED': () => i18n.t('settings.mcp.configHelp.hostModeEnabled'),
     'TOOLS.MCP.HOST_MODE.AUTO_CONNECT_ON_STARTUP': () => i18n.t('settings.mcp.configHelp.hostModeAutoConnectOnStartup'),
     'TOOLS.MCP.HOST_MODE.RECONNECT_DELAY_SEC': () => i18n.t('settings.mcp.configHelp.hostModeReconnectDelaySec'),

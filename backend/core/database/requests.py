@@ -10,6 +10,9 @@ from core.agent.protocols import AgentTurnCoreFields
 from core.errors.exceptions import ValidationError
 
 if TYPE_CHECKING:
+    from core.agent.prompt_replay import AgentInferencePromptReplay, AgentTurnPromptReplaySnapshot
+    from core.conversations.input_claim import ConversationInputClaim
+    from core.skills.checkpoint import SkillActivationCheckpoint
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
@@ -188,6 +191,10 @@ class WriteAgentTurnStateRequest(AgentTurnCoreFields):
     started_at_ms: int
     updated_at_ms: int
     finished_at_ms: int | None = None
+    prompt_replay: AgentInferencePromptReplay | None = None
+    skill_activation: SkillActivationCheckpoint | None = None
+    skill_activation_call_id: str | None = None
+    skill_input_claim: ConversationInputClaim | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -200,6 +207,9 @@ class ClaimAgentTurnAbandonRequest:
 class ClaimAgentTurnStateRequest:
     turn_state: WriteAgentTurnStateRequest
     stale_running_turns: tuple[ClaimAgentTurnAbandonRequest, ...] = ()
+    prompt_replay_snapshot: AgentTurnPromptReplaySnapshot | None = None
+    skill_input_claim: ConversationInputClaim | None = None
+    skill_parent_execution_token: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

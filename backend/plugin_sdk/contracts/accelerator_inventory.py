@@ -15,8 +15,12 @@ __all__ = ("snapshot_accelerator_inventory",)
 
 async def snapshot_accelerator_inventory(
     provider: AcceleratorInventoryProviderProtocol | None,
+    *,
+    include_gpu_capabilities: bool = True,
 ) -> JSONDict | None:
     if provider is None:
         return None
-    snapshot = await provider.get_system_info(components=["gpu"], cache=False)
+    snapshot = await provider.get_system_info(
+        components=["gpu"], cache=False, include_gpu_capabilities=include_gpu_capabilities
+    )
     return dict(snapshot) if is_json_dict(snapshot) else None

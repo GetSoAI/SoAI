@@ -78,7 +78,7 @@ async def resolve_retained_terminal_event(
     completion_event = retention.completion_event
     if completion_event is not None and completion_event.is_set():
         terminal_detected = True
-    elif completion_event is None:
+    if not terminal_detected:
         terminal_detected = await check_task_terminal(task_registry, task_id, logger=logger)
     if not terminal_detected:
         return None

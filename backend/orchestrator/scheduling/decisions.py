@@ -34,6 +34,7 @@ from orchestrator.scheduling.execution_selection import (
     SchedulerActionExecutionSelectionDependencies,
 )
 from orchestrator.scheduling.internal_protocols import SchedulerCapacityProtocol
+from orchestrator.scheduling.plugin_action_failure import PluginActionFailure
 from orchestrator.scheduling.task_preparation import (
     SchedulerTaskPreparation,
     SchedulerTaskPreparationDependencies,
@@ -50,6 +51,7 @@ __all__ = (
 )
 
 LOGGER_NAME = "SoAI.orchestrator.scheduling.decisions"
+PENDING_TASK_CANCELLED_REASON = "Task cancelled while awaiting the scheduler."
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,13 +208,13 @@ class SchedulerDecisions:
             routing_keys_to_evaluate,
         )
         async with self._scheduler_decision_lock:
-            all_possible_actions, failures_to_process = (
+            all_possible_actions, failures_to_process, cancelled_tasks = (
                 await self._deps.action_generation.generate_scheduler_actions(
                     routing_keys_to_evaluate,
                     prefetched_data,
                 )
             )
-            if not all_possible_actions and not failures_to_process:
+            if not all_possible_actions and not failures_to_process and not cancelled_tasks:
                 return
             actions_to_execute = (
                 await self._action_selection.select_actions_to_execute(
@@ -222,12 +224,21 @@ class SchedulerDecisions:
                 if all_possible_actions
                 else []
             )
-            if not actions_to_execute and not failures_to_process:
+            if not actions_to_execute and not failures_to_process and not cancelled_tasks:
                 return
             logger.trace(
                 "Scheduler cycle decisions: %s actions to execute, %s failures to process.",
                 len(actions_to_execute),
                 len(failures_to_process),
+            )
+        if cancelled_tasks:
+            pending_cancellations = [
+                self._deps.outcomes.cancel_task(task, PENDING_TASK_CANCELLED_REASON)
+                for task in cancelled_tasks
+            ]
+            await asyncio.gather(
+                *pending_cancellations,
+                return_exceptions=False,
             )
         dispatch_tasks: list[Awaitable[None]] = []
         for action in actions_to_execute:
@@ -246,11 +257,24 @@ class SchedulerDecisions:
             await asyncio.gather(*dispatch_tasks, return_exceptions=False)
         if failures_to_process:
             fail_tasks = [
-                self._deps.outcomes.fail_waiters(
-                    key,
-                    failure.message,
-                    error_type=failure.error_type,
-                )
+                self._settle_action_failure(key, failure)
                 for key, failure in failures_to_process.items()
             ]
             await asyncio.gather(*fail_tasks, return_exceptions=False)
+
+    async def _settle_action_failure(self, key: str, failure: PluginActionFailure) -> None:
+        if failure.rejected_task is not None:
+            await self._deps.outcomes.fail_task(
+                failure.rejected_task,
+                failure.message,
+                allow_failover=False,
+                error_type=failure.error_type,
+                public_error=failure.public_error,
+            )
+            await self._reevaluate_routing_key(key)
+            return
+        await self._deps.outcomes.fail_waiters(
+            key,
+            failure.message,
+            error_type=failure.error_type,
+        )

@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 __all__ = (
     "PromptCompactionProjection",
     "build_prompt_compaction_projections",
+    "build_prompt_compaction_marker_projections",
 )
 
 
@@ -32,6 +33,7 @@ __all__ = (
 class PromptCompactionProjection:
     marker: JSONDict
     post_compaction_text: str
+    event_sequence: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,8 +133,8 @@ def _collect_compaction_candidates(
     *,
     compaction_tools: Mapping[tuple[int, str], JSONDict],
     assistant_event_rows: Sequence[SQLiteRow],
-) -> dict[int, _PromptCompactionCandidate]:
-    candidates_by_timestamp: dict[int, _PromptCompactionCandidate] = {}
+) -> dict[tuple[int, str], _PromptCompactionCandidate]:
+    candidates_by_tool: dict[tuple[int, str], _PromptCompactionCandidate] = {}
     for event_row in assistant_event_rows:
         assistant_at_ms, sequence, event_type = _resolve_event_identity(event_row)
         if event_type != "tool_call_completed":
@@ -150,10 +152,11 @@ def _collect_compaction_candidates(
         candidate = _build_candidate(tool_call=tool_call, event_sequence=sequence)
         if candidate is None:
             continue
-        existing = candidates_by_timestamp.get(assistant_at_ms)
-        if existing is None or candidate.tool_sequence_index >= existing.tool_sequence_index:
-            candidates_by_timestamp[assistant_at_ms] = candidate
-    return candidates_by_timestamp
+        identity = (assistant_at_ms, call_id)
+        existing = candidates_by_tool.get(identity)
+        if existing is None or candidate.event_sequence >= existing.event_sequence:
+            candidates_by_tool[identity] = candidate
+    return candidates_by_tool
 
 
 def _collect_post_compaction_text(
@@ -191,10 +194,15 @@ def build_prompt_compaction_projections(
     compaction_tools = _build_terminal_context_compaction_tools(tool_call_rows)
     if not compaction_tools or not assistant_event_rows:
         return {}
-    candidates_by_timestamp = _collect_compaction_candidates(
+    candidates_by_tool = _collect_compaction_candidates(
         compaction_tools=compaction_tools,
         assistant_event_rows=assistant_event_rows,
     )
+    candidates_by_timestamp: dict[int, _PromptCompactionCandidate] = {}
+    for (assistant_at_ms, _), candidate in candidates_by_tool.items():
+        existing = candidates_by_timestamp.get(assistant_at_ms)
+        if existing is None or candidate.tool_sequence_index >= existing.tool_sequence_index:
+            candidates_by_timestamp[assistant_at_ms] = candidate
     text_by_timestamp = _collect_post_compaction_text(
         candidates_by_timestamp=candidates_by_timestamp,
         assistant_event_rows=assistant_event_rows,
@@ -202,7 +210,29 @@ def build_prompt_compaction_projections(
     return {
         assistant_at_ms: PromptCompactionProjection(
             marker=dict(candidate.marker),
+            event_sequence=candidate.event_sequence,
             post_compaction_text=text_by_timestamp.get(assistant_at_ms, ""),
         )
         for assistant_at_ms, candidate in candidates_by_timestamp.items()
     }
+
+
+def build_prompt_compaction_marker_projections(
+    *,
+    tool_call_rows: Sequence[JSONDict],
+    assistant_event_rows: Sequence[SQLiteRow],
+) -> list[PromptCompactionProjection]:
+    compaction_tools = _build_terminal_context_compaction_tools(tool_call_rows)
+    if not compaction_tools or not assistant_event_rows:
+        return []
+    candidates = _collect_compaction_candidates(
+        compaction_tools=compaction_tools, assistant_event_rows=assistant_event_rows
+    )
+    return [
+        PromptCompactionProjection(
+            marker=dict(candidate.marker),
+            post_compaction_text="",
+            event_sequence=candidate.event_sequence,
+        )
+        for candidate in sorted(candidates.values(), key=lambda candidate: candidate.event_sequence)
+    ]

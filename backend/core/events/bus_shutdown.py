@@ -23,6 +23,8 @@ async def shutdown_worker_tasks[T](
     for queue in queues:
         try:
             queue.put_nowait(sentinel)
+        except asyncio.QueueShutDown:
+            continue
         except asyncio.QueueFull:
             logger.warning("Event bus queue full during shutdown, cancelling workers directly.")
             for task in worker_tasks:

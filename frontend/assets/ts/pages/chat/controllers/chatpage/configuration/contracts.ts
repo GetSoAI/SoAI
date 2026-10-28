@@ -17,7 +17,7 @@ import type { ChatComposerSurfaceRuntimeOwner } from '@pages/chat/controllers/ch
 import type { ChatConfigurationRuntimeOwner } from '@pages/chat/controllers/chatpage/runtime/ChatConfigurationRuntime.ts';
 import type { ChatUiTaskScopeHost } from '@pages/chat/controllers/chatpage/runtime/ChatUiTaskScopeManager.ts';
 import type { ChatRuntimeServices } from '@pages/chat/state/ChatRuntimeServiceManager.ts';
-import type { ChatMemoryTabHost } from '@pages/chat/widgets/memorytab/service.ts';
+import type { WebuiUserEndpoints } from '@core/api/endpoints/webuiUserEndpoints.ts';
 
 interface ChatConfigurationDomainPort extends ChatComposerSurfaceRuntimeOwner, ChatConfigurationRuntimeOwner, ChatConversationViewHost, ChatComposerHost, ChatModelSessionHost, ChatPagePresentationHost {}
 
@@ -27,7 +27,7 @@ interface ChatConfigurationDependencies extends ChatConfigurationDomainPort, Cha
     pageLifecycle: Pick<PageLifecycle, 'run'>;
     runtimeServices: Pick<ChatRuntimeServices, 'firstRunModals'>;
     settings: { storage: Pick<ChatUiStorage, 'getAssistantAvatar' | 'setAssistantAvatar' | 'getUserAvatar' | 'setUserAvatar'> };
-    api: ChatMemoryTabHost['api'] & { webui: { chat: Pick<ChatPageApi['webui']['chat'], 'presets'> } };
+    api: { webui: { memory: WebuiUserEndpoints['memory']; chat: Pick<ChatPageApi['webui']['chat'], 'presets'> } };
 }
 
 export type { ChatConfigurationDependencies };

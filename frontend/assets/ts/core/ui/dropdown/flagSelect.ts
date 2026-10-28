@@ -24,16 +24,17 @@ const syncFlagSelect = (select: HTMLSelectElement): void => {
     image.hidden = true;
     image.removeAttribute('src');
     const countryCode = select.selectedOptions.item(0)?.dataset['countryCode'];
-    if (!countryCode || !isFlagCountryCode(countryCode) || failedAssets.has(countryCode)) return;
+    if (!countryCode || !isFlagCountryCode(countryCode)) return;
     const path = flagAssetUrl(countryCode);
     const preload = new Image();
     preload.onload = (): void => {
-        if (selectionRevisions.get(select) !== revision || !select.isConnected) return;
+        if (selectionRevisions.get(select) !== revision) return;
+        failedAssets.delete(countryCode);
         image.src = path;
         image.hidden = false;
     };
     preload.onerror = (): void => {
-        if (selectionRevisions.get(select) !== revision || !select.isConnected) return;
+        if (selectionRevisions.get(select) !== revision) return;
         image.hidden = true;
         if (failedAssets.has(countryCode)) return;
         failedAssets.add(countryCode);

@@ -4,7 +4,8 @@
 import { i18n } from '@core/i18n/index.ts';
 import { resolveTabFromQuery } from '@core/queryTabs.ts';
 import { IN_PLACE_SEARCH_DEBOUNCE_MS } from '@core/search/searchDebounce.ts';
-import { isFunction } from '@core/typeGuards.ts';
+import { isFunction, isNonEmptyString } from '@core/typeGuards.ts';
+import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { ModelDetailSession } from '@pages/modeldetail/state/ModelDetailSession.ts';
 import type { PageLayoutOwnerHost } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
@@ -15,7 +16,7 @@ interface ModelDetailSetupDependencies extends PageLayoutOwnerHost, PageResource
     setupHeaderButtons: () => void;
     notifySaveChanged: () => void;
     parameterView: { setSearchFilter: (query: string) => void; clearSearchFilter: () => void };
-    router: { getQueryParameters: () => Record<string, string> };
+    routeParameters: JsonObject;
     initializeTabsComponent: () => Promise<void>;
     onTabChange: (tabId: string) => void;
 }
@@ -40,13 +41,12 @@ const setupModelDetailPage = async (session: ModelDetailSession, host: ModelDeta
         onSearch: (query: string) => host.parameterView.setSearchFilter(query),
         onClear: () => host.parameterView.clearSearchFilter()
     });
-    const queryParameters = host.router.getQueryParameters();
-    const queryTab = resolveTabFromQuery(queryParameters, ['overview', 'parameters']);
+    const queryTab = resolveTabFromQuery(host.routeParameters, ['overview', 'parameters']);
     if (queryTab) {
         session.activeTab = queryTab;
     }
-    const pendingAction = queryParameters['action'];
-    if (pendingAction) {
+    const pendingAction = host.routeParameters['action'];
+    if (isNonEmptyString(pendingAction)) {
         session.pendingAction = pendingAction;
     }
     await host.initializeTabsComponent();

@@ -20,6 +20,7 @@ export const createInitialState = (): TestModalState => {
         logEntries: [],
         pendingLogEntries: [],
         logFlushTimerId: null,
+        logsScrollTimerId: null,
         logStreamCallback: null,
         logStreamHandle: null,
         logStreamPluginName: null,

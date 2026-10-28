@@ -48,6 +48,7 @@ __all__ = (
 class ConversationCreate(SoAIV1StrictModel):
     id: StrictStr | None = Field(default=None, pattern=CONVERSATION_ID_PATTERN_TEXT)
     title: StrictStr = Field(..., min_length=1, max_length=255)
+    title_auto_update_allowed: StrictBool = False
 
     @field_validator("title")
     @classmethod

@@ -1,7 +1,8 @@
 /* SoAI - Hardware page GPU control lifecycle manager [frontend/assets/ts/pages/hardware/controllers/gpucontrol/gpucontrolmanager/gpuControlLifecycleManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { GpuSettingsState, GpuSnapshot, GpuUiState } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
+import type { GpuSettingsState, GpuSettingsUpdatePayload, GpuSnapshot, GpuUiState } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
+import { GPU_SETTING_KEYS } from '@pages/hardware/controllers/gpucontrol/gpuControlConfig.ts';
 
 type TransientActionSync = 'none' | 'render' | 'soaibench';
 
@@ -39,25 +40,28 @@ const commitDirectApply = (state: GpuUiState, normalized: GpuSettingsState, snap
     };
 };
 
+const commitGpuReset = (state: GpuUiState, payload: GpuSettingsUpdatePayload, draft: GpuSettingsState | null): void => {
+    for (const settingKey of GPU_SETTING_KEYS) {
+        if (payload[settingKey] !== 'auto') continue;
+        if (state.liveSettings) state.liveSettings = { ...state.liveSettings, [settingKey]: { mode: 'auto', value: null } };
+    }
+    clearGpuSlotPreview(state);
+    state.previewSettings = draft;
+    clearTransientActions(state);
+    if (GPU_SETTING_KEYS.some((settingKey) => payload[settingKey] === 'auto')) state.activeSlot = null;
+    state.applyCapability = null;
+};
+
 const commitSlotApply = (state: GpuUiState, slot: string, boot: boolean | undefined): void => {
     clearTransientActions(state);
-    state.previewSlot = slot;
-    state.previewSource = 'slot';
-    state.previewHydrated = false;
-    state.bootToggleDirty = false;
-    state.canStoreAppliedSettings = false;
+    if (state.previewSettings) state.liveSettings = state.previewSettings;
+    clearGpuSlotPreview(state);
     state.activeSlot = slot;
-    if (state.previewSettings) {
-        state.liveSettings = state.previewSettings;
-    }
-    if (boot !== undefined) {
-        state.applyAtBootDesired = boot;
-        state.bootSlot = boot ? slot : null;
-    }
+    if (boot !== undefined) state.bootSlot = boot ? slot : null;
 };
 
 const clearSlotSaveMode = (state: GpuUiState): void => {
-    const canStoreCurrentSettings = state.canSaveCurrentSettings;
+    const canStoreCurrentSettings = state.previewSource !== 'recovered' && state.canSaveCurrentSettings;
     clearTransientActions(state);
     state.previewSlot = null;
     state.previewSource = 'live';
@@ -67,7 +71,7 @@ const clearSlotSaveMode = (state: GpuUiState): void => {
     state.canStoreAppliedSettings = canStoreCurrentSettings;
 };
 
-const clearSlotPreviewForDirectEdit = (state: GpuUiState): void => {
+const clearGpuSlotPreview = (state: GpuUiState): void => {
     state.previewSlot = null;
     state.previewSource = 'live';
     state.previewSettings = null;
@@ -82,4 +86,4 @@ const markGpuSettingsEdited = (state: GpuUiState): void => {
     state.canStoreAppliedSettings = false;
 };
 
-export { clearSlotPreviewForDirectEdit, clearSlotSaveMode, clearTransientActions, clearTransientActionsForApplyChange, commitDirectApply, commitSlotApply, markGpuSettingsEdited };
+export { commitGpuReset, clearGpuSlotPreview, clearSlotSaveMode, clearTransientActions, clearTransientActionsForApplyChange, commitDirectApply, commitSlotApply, markGpuSettingsEdited };

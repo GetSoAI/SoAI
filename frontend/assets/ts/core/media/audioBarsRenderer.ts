@@ -12,6 +12,8 @@ const CORNER_RADIUS = 3;
 
 type BarLayout = Readonly<{ baseline: number; maxHeight: number; slot: number; barWidth: number }>;
 
+let cachedBandEdges: Readonly<{ binCount: number; edges: readonly number[] }> | null = null;
+
 const resolveLayout = (size: CanvasSize): BarLayout => {
     const slot = size.width / BAR_COUNT;
     return Object.freeze({
@@ -23,6 +25,7 @@ const resolveLayout = (size: CanvasSize): BarLayout => {
 };
 
 const buildBandEdges = (binCount: number): readonly number[] => {
+    if (cachedBandEdges?.binCount === binCount) return cachedBandEdges.edges;
     const minBin = 1;
     const maxBin = Math.max(minBin + 1, binCount - 1);
     const edges: number[] = [minBin];
@@ -31,6 +34,7 @@ const buildBandEdges = (binCount: number): readonly number[] => {
         const previous = edges[index - 1] ?? minBin;
         edges.push(computed > previous ? computed : previous + 1);
     }
+    cachedBandEdges = { binCount, edges };
     return edges;
 };
 

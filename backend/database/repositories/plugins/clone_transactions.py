@@ -10,7 +10,9 @@ from core.database.clone_requests import (
     CloneTransactionRecord,
 )
 from core.errors.exceptions import StateError, ValidationError
+from core.timing.epoch import epoch_ms
 from database.repositories.tasks.mutation_finalization import sync_finalize_mutation_for_task
+from database.repositories.tasks.mutation_lifecycle import sync_validate_mutation_claim
 
 __all__ = (
     "sync_get_clone_transaction",
@@ -210,8 +212,14 @@ def sync_transition_clone_transaction(
     task_id: str,
     current_phase: str,
     following_phase: str,
+    *,
+    mutation_fencing_token: int | None = None,
 ) -> bool:
     if (current_phase, following_phase) not in _PHASE_TRANSITIONS:
+        return False
+    if mutation_fencing_token is not None and not sync_validate_mutation_claim(
+        connection, task_id, mutation_fencing_token, epoch_ms()
+    ):
         return False
     if following_phase == "rolled_back":
         remaining = connection.execute(
@@ -241,13 +249,14 @@ def sync_transition_clone_transaction(
             "UPDATE plugin_clone_transactions SET recovery_error = NULL WHERE task_id = ?",
             (task_id,),
         )
-        connection.execute(
-            """UPDATE mutation_admissions
-            SET lifecycle_status = 'recovery_required', claim_owner = NULL,
-                lease_expires_at_ms = NULL
-            WHERE accepted_task_id = ? AND lifecycle_status IN ('accepted', 'running')""",
-            (task_id,),
-        )
+        if mutation_fencing_token is None:
+            connection.execute(
+                """UPDATE mutation_admissions
+                SET lifecycle_status = 'recovery_required', claim_owner = NULL,
+                    lease_expires_at_ms = NULL
+                WHERE accepted_task_id = ? AND lifecycle_status IN ('accepted', 'running')""",
+                (task_id,),
+            )
         terminal_task = connection.execute(
             """SELECT status, result, completed_at_ms FROM unified_tasks
             WHERE task_id = ? AND status IN ('completed', 'failed', 'cancelled')""",

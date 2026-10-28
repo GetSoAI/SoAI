@@ -3,19 +3,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from core.errors.exceptions import ValidationError
-from core.serialization.json import serialize_json_compact_stable_strict
-
-if TYPE_CHECKING:
-    from core.types.json import JSONValue
 
 __all__ = (
-    "normalize_kv_map",
     "resolve_delete_statement",
     "resolve_prune_statement",
-    "serialize_optional_map",
     "validate_retention_hours",
 )
 
@@ -83,21 +75,3 @@ def validate_retention_hours(retention_hours: float | str) -> int:
     if sanitized_retention < 0:
         raise ValidationError(f"retention_hours must be non-negative, got: {retention_hours}")
     return sanitized_retention
-
-
-def normalize_kv_map(payload: JSONValue) -> dict[str, str]:
-    if not isinstance(payload, dict):
-        return {}
-    normalized: dict[str, str] = {}
-    for raw_key, raw_value in payload.items():
-        key = str(raw_key or "").strip()
-        if not key:
-            continue
-        normalized[key] = "" if raw_value is None else str(raw_value)
-    return normalized
-
-
-def serialize_optional_map(payload: dict[str, str] | None) -> str | None:
-    if not payload:
-        return None
-    return serialize_json_compact_stable_strict(payload)

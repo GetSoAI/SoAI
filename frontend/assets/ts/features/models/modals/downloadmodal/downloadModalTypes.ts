@@ -103,7 +103,7 @@ interface DownloadModalSessionPort {
     sanitizer: Sanitizer;
     getIconSync(name: IconName, options?: IconOptions): TrustedHtml;
     isAdmin(): boolean;
-    consumeInitialActionContext(): { action?: string; plugin?: string; vm?: string } | null;
+    consumeInitialActionContext(): { action?: string; plugin?: string; vm?: string; search?: string } | null;
     getClipboardService(): ClipboardApi;
     copyToClipboard(text: string, options?: CopyToClipboardOptions): Promise<void>;
     setLocationHash(hash: string): void;

@@ -7,6 +7,7 @@ import { getCurrentLocale } from '@core/languageservice/service.ts';
 import { resolveOpenAiEndpointModelId } from '@core/models/modelIdentity.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { supportsOpenAIEndpointForModel } from '@core/openai/capabilityChecks.ts';
+import { SPEECH_SETUP_REFRESH_EVENT } from '@core/speechsetup/view.ts';
 import type { ModelData } from '@core/types/modelTypes.ts';
 import { CHAT_CONFIGURATION_MODAL_ID, type ChatParameters } from '@features/chat/public.ts';
 import type { ChatPageDomHost } from '@pages/chat/controllers/page/dom/contracts.ts';
@@ -34,10 +35,11 @@ const appendAudioModelOptions = (selectElement: HTMLSelectElement, autoLabel: st
     if (selectedValue !== 'auto' && !sortedModelIds.includes(selectedValue)) {
         const selectedOption = document.createElement('option');
         selectedOption.value = selectedValue;
-        selectedOption.textContent = selectedValue;
+        selectedOption.textContent = `${selectedValue} (${i18n.t('common.notAvailable')})`;
         selectElement.append(selectedOption);
     }
     setSelectValueAndSyncDefault(selectElement, selectedValue || 'auto');
+    selectElement.dispatchEvent(new Event(SPEECH_SETUP_REFRESH_EVENT, { bubbles: true }));
 };
 
 const updateVoiceAudioModelSelect = (host: Pick<ChatPageDomHost, 'pageDom'>, inputArguments: { selectorToken: string; selectedValue: string | null; autoLabel: string; models: ModelData[]; predicate: (model: ModelData) => boolean; root?: Element }): void => {

@@ -8,13 +8,20 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 from core.agent.status_values import (
+    AGENT_TURN_STATUS_CANCELLED,
     AGENT_TURN_STATUS_COMPLETED,
 )
 from core.agent.turn_write_conflicts import AgentTurnAlreadyFinalizedDuringWriteError
+from core.concurrency.cancellation import TaskCancelledError
 from core.errors.exceptions import StateError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.runtime.request_context import RequestContext
+from core.runtime.shutdown_errors import (
+    build_shutdown_task_cancelled_error,
+    is_shutdown_service_unavailable,
+)
 from features.agent.runtime.turn_bootstrap_initialization import initialize_agent_turn
+from features.agent.runtime.turn_iteration_policy_messages import get_cancelled_status
 from features.agent.runtime.turn_iteration_policy_types import (
     AgentOutputPublicationMode,
 )
@@ -89,6 +96,7 @@ async def execute_agent_turn_runtime(
     initial_active_inference_cancellation_id: str | None,
     operation: str,
     include_usage_in_result: bool,
+    shutdown_event: asyncio.Event | None = None,
     on_tool_sequence_indexes_reserved: Callable[[ToolSequenceIndexReservation], None] | None = None,
     on_pre_compaction_prompt_occupancy: Callable[[PromptOccupancy], None] | None = None,
     on_compacted_prompt_occupancy: Callable[[PromptOccupancy], None] | None = None,
@@ -211,22 +219,48 @@ async def execute_agent_turn_runtime(
             tool_context=tool_context,
             operation=operation,
             exception=exception,
+            shutdown_event=shutdown_event,
         )
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
-        failure_resolution = await resolve_turn_runtime_exception_failure(
-            deps=deps,
-            bootstrap=bootstrap,
-            context=context,
-            tool_context=tool_context,
-            operation=operation,
-            exception=exception,
-        )
+        if is_shutdown_service_unavailable(exception, shutdown_event):
+            failure_resolution = await resolve_turn_cancellation_failure(
+                deps=deps,
+                bootstrap=bootstrap,
+                context=context,
+                tool_context=tool_context,
+                operation=operation,
+                exception=(
+                    exception
+                    if isinstance(exception, TaskCancelledError)
+                    else build_shutdown_task_cancelled_error(context.cancellation_id)
+                ),
+                shutdown_event=shutdown_event,
+            )
+        else:
+            failure_resolution = await resolve_turn_runtime_exception_failure(
+                deps=deps,
+                bootstrap=bootstrap,
+                context=context,
+                tool_context=tool_context,
+                operation=operation,
+                exception=exception,
+            )
     if failure_resolution is not None:
         final_status = failure_resolution.final_status
         final_error_message = failure_resolution.final_error_message
         final_error_type = failure_resolution.final_error_type
         raised_error = failure_resolution.raised_error
         persisted_terminal_turn_replay = failure_resolution.persisted_terminal_turn_replay
+    if (
+        persisted_terminal_turn_replay is None
+        and final_status == AGENT_TURN_STATUS_CANCELLED
+        and final_error_type == AGENT_TURN_STATUS_CANCELLED
+        and shutdown_event is not None
+        and shutdown_event.is_set()
+    ):
+        final_status, final_error_message, final_error_type = get_cancelled_status(
+            shutdown_requested=True,
+        )
     if bootstrap is None:
         if raised_error is not None:
             raise raised_error

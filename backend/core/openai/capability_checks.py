@@ -14,11 +14,9 @@ if TYPE_CHECKING:
 
 __all__ = (
     "has_openai_modality",
-    "has_openai_model_modality",
     "is_openai_audio_input_supported",
     "is_openai_capability_enabled",
     "is_openai_input_feature_supported",
-    "is_openai_model_audio_input_supported",
     "is_openai_model_capability_enabled",
     "is_openai_model_capability_supported",
     "is_openai_model_vision_input_supported",
@@ -130,23 +128,8 @@ def is_openai_model_capability_supported(
     )
 
 
-def has_openai_model_modality(
-    model_entry: Mapping[str, JSONValue],
-    *,
-    token: str,
-) -> bool:
-    return has_openai_modality(model_entry.get("modalities"), token)
-
-
 def is_openai_model_vision_input_supported(model_entry: Mapping[str, JSONValue]) -> bool:
     return is_openai_vision_input_supported(
-        modalities=model_entry.get("modalities"),
-        openai_capabilities=model_entry.get("openai_capabilities"),
-    )
-
-
-def is_openai_model_audio_input_supported(model_entry: Mapping[str, JSONValue]) -> bool:
-    return is_openai_audio_input_supported(
         modalities=model_entry.get("modalities"),
         openai_capabilities=model_entry.get("openai_capabilities"),
     )

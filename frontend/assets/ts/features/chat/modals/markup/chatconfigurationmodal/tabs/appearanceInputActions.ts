@@ -30,10 +30,10 @@ const resolveInputActionToggleDescriptors = (strings: ChatPageMarkupContext['str
 ];
 
 const buildInputActionToggleMarkup = (modalId: string, uiIdAttr: (token: string) => string, labels: ToggleLabels, descriptor: InputActionToggleDescriptor): string => {
-    const hint = descriptor.hint === null ? '' : `\n    <span class="chat-configuration-hint">${descriptor.hint}</span>`;
+    const hint = descriptor.hint === null ? '' : `\n    <span class="chat-configuration-hint" data-modal-localize="text">${descriptor.hint}</span>`;
     return `
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr(descriptor.token)}">${descriptor.label}</label>
+    <label for="${uiIdAttr(descriptor.token)}" data-modal-localize="text">${descriptor.label}</label>
     ${buildToggleSwitchMarkup({ modalId, token: descriptor.token, inputClassName: descriptor.token, checked: descriptor.checked, labels, dataParameter: descriptor.dataParameter })}${hint}
   </div>
 `;
@@ -46,11 +46,11 @@ const buildAppearanceInputActionsMarkup = (inputArguments: { modalId: string; st
         .join('');
     return `${toggles}
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('input-action-mobile-auxiliary-action-select')}">${strings.inputActionMobileAuxiliaryAction}</label>
-    ${renderStandardDropdownSelectControl(`<select id="${uiIdAttr('input-action-mobile-auxiliary-action-select')}" class="form-input" data-param="input_action_mobile_auxiliary_action">
+    <label for="${uiIdAttr('input-action-mobile-auxiliary-action-select')}" data-modal-localize="text">${strings.inputActionMobileAuxiliaryAction}</label>
+    ${renderStandardDropdownSelectControl(`<select id="${uiIdAttr('input-action-mobile-auxiliary-action-select')}" class="form-input" data-param="input_action_mobile_auxiliary_action" data-modal-localize="options">
       ${renderChatMobileAuxiliaryActionSelectOptions(sanitizer)}
     </select>`)}
-    <span class="chat-configuration-hint">${strings.inputActionMobileAuxiliaryActionHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.inputActionMobileAuxiliaryActionHint}</span>
   </div>
 `;
 };

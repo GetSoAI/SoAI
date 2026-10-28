@@ -18,6 +18,11 @@ from core.validation.record_fields import (
     require_json_object,
 )
 from database.core.row_booleans import coerce_sqlite_bool_int
+from database.core.savepoints import SQLiteSavepoint
+from database.repositories.plugins.backend_update_records import (
+    sync_delete_backend_update,
+    sync_invalidate_backend_update,
+)
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
@@ -126,19 +131,27 @@ def sync_add_or_update_plugin(
     insert_cols = ", ".join(final_columns)
     placeholders = ", ".join(["?"] * len(params))
     update_clause = ", ".join(f"{col}=excluded.{col}" for col in update_columns)
-    conn.execute(
-        f"INSERT INTO plugins_catalog ({insert_cols}) VALUES ({placeholders}) ON CONFLICT(plugin_name) DO UPDATE SET {update_clause};",
-        tuple(params),
-    )
+    with SQLiteSavepoint(conn, "plugin_package_catalog_identity"):
+        existing = conn.execute(
+            "SELECT file_hash FROM plugins_catalog WHERE plugin_name = ?", (plugin_name,)
+        ).fetchone()
+        if existing is not None and existing[0] != plugin_data.get("file_hash"):
+            sync_invalidate_backend_update(conn, str(plugin_name))
+        conn.execute(
+            f"INSERT INTO plugins_catalog ({insert_cols}) VALUES ({placeholders}) ON CONFLICT(plugin_name) DO UPDATE SET {update_clause};",
+            tuple(params),
+        )
 
 
 def sync_permanently_delete_plugin_record(conn: sqlite3.Connection, plugin_name: str) -> int:
-    cursor = conn.execute("DELETE FROM plugins_catalog WHERE plugin_name = ?", (plugin_name,))
-    conn.execute(
-        "DELETE FROM plugin_clone_transactions WHERE target_plugin_name = ? AND committed = 1",
-        (plugin_name,),
-    )
-    return cursor.rowcount
+    with SQLiteSavepoint(conn, "delete_plugin_catalog_record"):
+        sync_delete_backend_update(conn, plugin_name)
+        cursor = conn.execute("DELETE FROM plugins_catalog WHERE plugin_name = ?", (plugin_name,))
+        conn.execute(
+            "DELETE FROM plugin_clone_transactions WHERE target_plugin_name = ? AND committed = 1",
+            (plugin_name,),
+        )
+        return cursor.rowcount
 
 
 def _require_key(plugin_data: JSONDict, key: str) -> JSONValue:

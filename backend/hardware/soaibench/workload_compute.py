@@ -7,6 +7,7 @@ from core.hardware.soaibench_workloads import (
     COMPUTE_BATCH_DISPATCHES,
     COMPUTE_MAXIMUM_ELEMENTS,
     COMPUTE_ROUNDS,
+    ELEMENT_ALIGNMENT,
     counted_operations,
 )
 from hardware.soaibench.opencl_session import OpenCLExecutionSession
@@ -43,6 +44,8 @@ def execute_compute_workload(
         repeats=STANDARD_COMPUTE_REPEATS,
         summary_prefix="compute",
         element_count=COMPUTE_ELEMENT_COUNT,
+        synchronize_each_repeat=True,
+        maximum_dispatch_elements=ELEMENT_ALIGNMENT,
         session=session,
     )
 

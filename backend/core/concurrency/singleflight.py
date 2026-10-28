@@ -20,7 +20,12 @@ __all__ = (
     "ResultCopyMode",
     "SyncFlightState",
     "SyncSingleflight",
+    "SyncSingleflightWaitTimeoutError",
 )
+
+
+class SyncSingleflightWaitTimeoutError(TimeoutError):
+    __slots__ = ()
 
 
 class ResultCopyMode(Enum):
@@ -175,7 +180,7 @@ class SyncSingleflight[KeyT, ResultT]:
         self, flight: SyncFlightState[ResultT], timeout: float | None = None
     ) -> ResultT:
         if not flight.event.wait(timeout=timeout):
-            raise TimeoutError("Timed out waiting for shared computation.")
+            raise SyncSingleflightWaitTimeoutError("Timed out waiting for shared computation.")
         if flight.error is not None:
             raise flight.error
         if not flight.has_result:

@@ -76,12 +76,12 @@ const getWindowOpen = (): ((url?: string | URL, target?: string, features?: stri
     };
 };
 
-const getComputedStyleStrict = (element: Element): CSSStyleDeclaration => {
+const getComputedStyleStrict = (element: Element, pseudoElement: string | null = null): CSSStyleDeclaration => {
     const win = getWindow();
     if (!isFunction(win.getComputedStyle)) {
         throw new Error('Window.getComputedStyle must be available for environment operations');
     }
-    return win.getComputedStyle(element);
+    return win.getComputedStyle(element, pseudoElement);
 };
 
 const getMatchMedia = (): ((query: string) => MediaQueryList) => {
@@ -140,6 +140,14 @@ const getBroadcastChannelCtor = (): typeof BroadcastChannel => {
     return ctor;
 };
 
+const getMessageChannelCtor = (): typeof MessageChannel => {
+    const constructor = getGlobalScope().MessageChannel;
+    if (!isFunction(constructor)) {
+        throw new Error('MessageChannel constructor is required for environment operations');
+    }
+    return constructor;
+};
+
 const getAbortControllerCtor = (): typeof AbortController => {
     const scope = getGlobalScope();
     const ctor = scope.AbortController;
@@ -164,4 +172,4 @@ const getDevicePixelRatio = (): number => {
 
 const getUserAgent = (): string => getWindow().navigator.userAgent;
 
-export { dispatchCustomEvent, getAbortControllerCtor, getBody, getBroadcastChannelCtor, getCancelAnimationFrame, getComputedStyleStrict, getDevicePixelRatio, getDocument, getDocumentElement, getElementByIdStrict, getEventConstructor, getEventHub, getGlobalScope, getHistory, getLocation, getMatchMedia, getMutationObserverCtor, getPerformance, getPrompt, getRequestAnimationFrame, getScrollTo, getSharedWorkerCtor, getStructuredClone, getUserAgent, getWindow, getWindowOpen, requireDocument, requirePerformanceNow };
+export { dispatchCustomEvent, getAbortControllerCtor, getBody, getBroadcastChannelCtor, getCancelAnimationFrame, getComputedStyleStrict, getDevicePixelRatio, getDocument, getDocumentElement, getElementByIdStrict, getEventConstructor, getEventHub, getGlobalScope, getHistory, getLocation, getMatchMedia, getMessageChannelCtor, getMutationObserverCtor, getPerformance, getPrompt, getRequestAnimationFrame, getScrollTo, getSharedWorkerCtor, getStructuredClone, getUserAgent, getWindow, getWindowOpen, requireDocument, requirePerformanceNow };

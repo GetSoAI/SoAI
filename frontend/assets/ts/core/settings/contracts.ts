@@ -94,6 +94,7 @@ interface SettingItemOptions {
     fieldKey?: string;
     dataset?: Record<string, string | null | undefined>;
     attributes?: Record<string, SettingsAttributeValue>;
+    footer?: string;
 }
 interface SectionOptions {
     title: string;
@@ -206,5 +207,6 @@ interface BackupOperationState {
     backupId?: string;
     progress: number;
     message: string;
+    tracking?: { status: 'current' | 'recovering' | 'unavailable'; updatedAtMs: number };
 }
 export type { TabDefinition, NormalTabDefinition, AdvancedTabDefinition, SettingsCapabilityStatus, SettingsCapabilityAvailability, PreferenceToggleConfig, ExternalEventConfig, BindControlOptions, ToggleControlOptions, SelectControlOptions, SliderControlOptions, SettingItemOptions, SectionOptions, SettingsSubgroupOptions, SettingsGroupOptions, SettingsRecordListOptions, SettingsStatusBadgeTone, ResetActionOptions, ApiKey, ApiKeyQuotaMode, ApiKeyQuotaLimit, ApiKeyQuotaHourlyLimit, ApiKeyQuotaConfig, ApiKeyQuotaWindowStatus, ApiKeyQuotaStatus, ApiKeyQuotaSummary, WallpaperMetadata, BackupApiEntry, BackupEntry, BackupListLoadStatus, BackupOperationState };

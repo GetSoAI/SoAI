@@ -17,6 +17,7 @@ from core.logging.trace import get_logger
 from core.metrics.protocols import MetricsManagerProtocol
 from core.models.protocols import ParameterManagerProtocol
 from core.models.protocols_database import DatabaseModelsProtocol
+from core.plugins.protocols_lifecycle import PluginLifecycleProtocol
 from core.tasks.asyncio_task_spawner import spawn_tracked_task
 from core.tasks.protocols import (
     TaskCancellationBinderProtocol,
@@ -53,6 +54,7 @@ def build_parameter_services(
     model_record_locks: AsyncLockRegistryProtocol[str],
     model_actions_service: ModelActionsService,
     model_information_service: ModelInformationService,
+    plugin_lifecycle: PluginLifecycleProtocol,
     shutdown_event: asyncio.Event,
 ) -> tuple[ParameterMutationService, ModelParameterService]:
     parameter_service_holder = ParameterServiceHolder()
@@ -85,6 +87,7 @@ def build_parameter_services(
             metrics=metrics_manager,
             model_get_info=model_information_service.model_get_info,
             model_validate_and_get_context=model_actions_service.model_validate_and_get_context,
+            plugin_lifecycle=plugin_lifecycle,
         ),
     )
     parameter_service_holder.service = model_parameter_service

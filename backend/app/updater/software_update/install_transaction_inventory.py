@@ -3,20 +3,17 @@
 
 from __future__ import annotations
 
-import hashlib
 import os
-import stat
+import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-from app.updater.disk_space import require_disk_space_for_update
-from app.updater.software_update.install_transaction_managed_data import (
-    copy_managed_data_to_rollback,
-    prepare_managed_data_commit,
+from app.backup.restore_destinations import ensure_restore_destination_is_safe
+from app.updater.software_update.install_transaction_fingerprint import (
+    FingerprintSnapshot,
+    capture_fingerprint_snapshot,
 )
 from app.updater.software_update.install_transaction_persisted_state import (
     PersistedUpdateState,
-    plan_persisted_update_state,
     read_persisted_update_state,
 )
 from app.updater.software_update.install_transaction_state import (
@@ -24,45 +21,48 @@ from app.updater.software_update.install_transaction_state import (
     MANAGED_INSTALL_METADATA_RELATIVE_COMPONENTS,
     MANAGED_ROLLBACK_DIR,
     MANAGED_VENDOR_RELATIVE_COMPONENTS,
-    OLD_COMPLETE_MARKER,
-    PREPARING_MARKER,
     ROLLBACK_INVENTORY_REQUIRED_MARKER,
     UpdateTransactionPaths,
     marker_path,
-    write_marker,
 )
-from app.updater.software_update.install_transaction_state_transfer import (
-    copy_persisted_update_state,
-)
-from core.bootstrap.install_payload import managed_root_entries
-from core.bootstrap.install_payload_transaction import copy_install_entry, install_entry_copy_size
-from core.bootstrap.venv_paths import get_venv_path
+from core.bootstrap.filename_layout import FILENAME_MAPPINGS
+from core.bootstrap.install_payload import managed_root_entries, validate_existing_install_edition
+from core.bootstrap.venv_paths import get_retained_venv_path, get_venv_path
 from core.errors.exceptions import StateError
 from core.files.path_policy import (
+    is_path_overlap_with_base,
     safe_join_relative_under_base,
     safe_join_relative_under_base_lexical,
 )
-from core.files.staged_transfer import compute_file_sha256
-from core.filesystem.atomic_write_primitives import fsync_directory
-from core.filesystem.atomic_writes import atomic_write_json_content
-from core.filesystem.file_sync import fsync_install_entry
 from core.filesystem.open_files import read_regular_file_no_symlink
-from core.filesystem.path_coercion import normalize_filesystem_path
-from core.serialization.json import serialize_json_compact_stable_strict
 from core.serialization.json_parsing import parse_json_dict
 from core.types.json import is_str_list
 
-if TYPE_CHECKING:
-    from core.types.json import JSONDict
-
 __all__ = (
+    "ROLLBACK_INVENTORY_FIELDS",
+    "ROLLBACK_INVENTORY_FILENAME",
+    "RollbackContentMismatch",
+    "RollbackSourceFailure",
+    "UpdateRollbackInventory",
+    "inspect_rollback_inventory",
+    "installed_original_path",
     "plan_replacement_roots",
-    "prepare_update_rollback",
     "require_rollback_inventory",
-    "write_rollback_inventory",
+    "require_retained_installation_root",
 )
 
 ROLLBACK_INVENTORY_FILENAME = "rollback_inventory.json"
+ROLLBACK_INVENTORY_FIELDS = frozenset(
+    {
+        "paths",
+        "replacement_roots",
+        "original_hashes",
+        "persisted_destinations",
+        "persisted_absent_parents",
+        "persisted_directories",
+        "runtime_directory",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,136 +72,95 @@ class UpdateRollbackInventory:
     runtime_directory: str | None
 
 
-def _installed_original_path(
-    paths: UpdateTransactionPaths, entry: str, state: PersistedUpdateState
+@dataclass(frozen=True, slots=True)
+class RollbackContentMismatch:
+    entry: str
+    entry_index: int
+    source: str
+    expected_aggregate: str
+    actual: FingerprintSnapshot
+    traversal_seconds: float
+
+
+@dataclass(frozen=True, slots=True)
+class RollbackSourceFailure:
+    entry: str
+    entry_index: int
+    source: str
+    exception: OSError | StateError
+
+
+def require_retained_installation_root(
+    base_path: str,
+    retained_root: str,
+    *,
+    edition: str,
+    expected_version: str | None = None,
+) -> None:
+    ensure_restore_destination_is_safe(retained_root)
+    if not os.path.isdir(retained_root) or is_path_overlap_with_base(base_path, retained_root):
+        raise StateError("Retained installer originals must be a separate regular directory.")
+    validate_existing_install_edition(retained_root, edition)
+    marker = read_regular_file_no_symlink(
+        os.path.join(retained_root, ".soai-upgrade-backup"), max_bytes=128
+    )
+    if marker.rstrip(b"\r\n") != b"SoAI upgrade backup V1":
+        raise StateError("Retained installer original authority is invalid.")
+    if expected_version is not None:
+        version = (
+            read_regular_file_no_symlink(os.path.join(retained_root, "VERSION"), max_bytes=128)
+            .decode("utf-8")
+            .strip()
+        )
+        if version != expected_version:
+            raise StateError("Retained installer original version conflicts with the transaction.")
+
+
+def installed_original_path(
+    paths: UpdateTransactionPaths,
+    entry: str,
+    state: PersistedUpdateState,
+    *,
+    retained_installation_root: str | None = None,
 ) -> str:
     if entry in state.destinations:
-        return state.destinations[entry]
-    return os.path.join(paths.base_path, *entry.removeprefix(f"{MANAGED_ROLLBACK_DIR}/").split("/"))
-
-
-def _original_fingerprint(path: str) -> str:
-    entries: JSONDict = {}
-    pending = [(normalize_filesystem_path(path), "")]
-    while pending:
-        entry_path, relative_path = pending.pop()
-        metadata = os.lstat(entry_path)
-        if stat.S_ISLNK(metadata.st_mode):
-            entries[relative_path] = f"symlink:{os.readlink(entry_path)}"
-        elif stat.S_ISREG(metadata.st_mode):
-            digest = compute_file_sha256(entry_path).sha256_hex
-            entries[relative_path] = f"file:{stat.S_IMODE(metadata.st_mode)}:{digest}"
-        elif stat.S_ISDIR(metadata.st_mode):
-            entries[relative_path] = f"directory:{stat.S_IMODE(metadata.st_mode)}"
-            for name in os.listdir(entry_path):
-                pending.append((os.path.join(entry_path, name), f"{relative_path}/{name}"))
-        else:
-            raise StateError("Update originals contain an unsupported filesystem entry.")
-    return hashlib.sha256(serialize_json_compact_stable_strict(entries).encode("utf-8")).hexdigest()
+        destination = state.destinations[entry]
+        if retained_installation_root is not None and destination == get_venv_path(paths.base_path):
+            return get_retained_venv_path(paths.base_path, retained_installation_root)
+        return destination
+    return os.path.join(
+        retained_installation_root or paths.base_path,
+        *entry.removeprefix(f"{MANAGED_ROLLBACK_DIR}/").split("/"),
+    )
 
 
 def plan_replacement_roots(
     paths: UpdateTransactionPaths, edition: str, additional_roots: tuple[str, ...] = ()
 ) -> tuple[str, ...]:
     staged_roots = {name for name in os.listdir(paths.staged_new_path) if name != "data"}
-    roots = tuple(sorted(staged_roots.union(additional_roots)))
+    planned_roots = staged_roots.union(additional_roots)
+    for original, canonical in FILENAME_MAPPINGS:
+        if original in planned_roots or canonical in planned_roots:
+            planned_roots.update(
+                name
+                for name in (original, canonical)
+                if os.path.lexists(os.path.join(paths.base_path, name))
+            )
+    roots = tuple(sorted(planned_roots))
     owned_roots = managed_root_entries(edition)
     if any(name not in owned_roots for name in roots):
         raise StateError("Update payload contains content outside release ownership.")
     return roots
 
 
-def write_rollback_inventory(
-    paths: UpdateTransactionPaths,
-    replacement_roots: tuple[str, ...],
-    state_files: tuple[str, ...] = (),
-    state_directories: tuple[str, ...] = (),
-) -> PersistedUpdateState:
-    state = plan_persisted_update_state(paths, replacement_roots, state_files, state_directories)
-    entries = [
-        name for name in replacement_roots if os.path.lexists(os.path.join(paths.base_path, name))
-    ]
-    for components in (
-        MANAGED_VENDOR_RELATIVE_COMPONENTS,
-        MANAGED_CONFIG_DEFAULT_RELATIVE_COMPONENTS,
-        MANAGED_INSTALL_METADATA_RELATIVE_COMPONENTS,
-    ):
-        if os.path.lexists(os.path.join(paths.base_path, *components)):
-            entries.append("/".join((MANAGED_ROLLBACK_DIR, *components)))
-    entries.extend(state.original_entries)
-    rollback_copy_bytes = sum(
-        install_entry_copy_size(_installed_original_path(paths, entry, state)) for entry in entries
-    )
-    require_disk_space_for_update(
-        paths.base_path,
-        rollback_copy_bytes + install_entry_copy_size(paths.staged_new_path),
-        0,
-        operation="application_updater.rollback_copy_space",
-    )
-    original_hashes = {
-        entry: _original_fingerprint(_installed_original_path(paths, entry, state))
-        for entry in entries
-    }
-    atomic_write_json_content(
-        os.path.join(paths.transaction_path, ROLLBACK_INVENTORY_FILENAME),
-        {
-            "paths": sorted(entries),
-            "replacement_roots": list(replacement_roots),
-            "original_hashes": original_hashes,
-            "persisted_destinations": dict(state.destinations),
-            "persisted_absent_parents": list(state.absent_parents),
-            "persisted_directories": list(state.directory_destinations),
-            "runtime_directory": (
-                get_venv_path(paths.base_path)
-                if get_venv_path(paths.base_path) in state.directory_destinations
-                else None
-            ),
-        },
-        fsync_parent_directory=True,
-    )
-    write_marker(paths.transaction_path, ROLLBACK_INVENTORY_REQUIRED_MARKER)
-    return state
-
-
-def prepare_update_rollback(
-    paths: UpdateTransactionPaths,
-    *,
-    edition: str,
-    state_files: tuple[str, ...] = (),
-    state_directories: tuple[str, ...] = (),
-    additional_roots: tuple[str, ...] = (),
-) -> None:
-    if os.path.lexists(os.path.join(paths.transaction_path, ROLLBACK_INVENTORY_FILENAME)) or (
-        os.listdir(paths.rollback_old_path)
-    ):
-        raise StateError("Update rollback preparation already has evidence; recover it first.")
-    replacement_roots = plan_replacement_roots(paths, edition, additional_roots)
-    prepare_managed_data_commit(paths)
-    persisted_state = write_rollback_inventory(
-        paths, replacement_roots, state_files, state_directories
-    )
-    write_marker(paths.transaction_path, PREPARING_MARKER)
-    copy_persisted_update_state(paths, persisted_state)
-    copy_managed_data_to_rollback(paths)
-    for item_name in replacement_roots:
-        if not os.path.lexists(os.path.join(paths.base_path, item_name)):
-            continue
-        copy_install_entry(os.path.join(paths.base_path, item_name), paths.rollback_old_path)
-        fsync_directory(paths.rollback_old_path, strict=True)
-        fsync_directory(paths.base_path, strict=True)
-    fsync_install_entry(paths.rollback_old_path)
-    require_rollback_inventory(paths, old_complete=True)
-    require_rollback_inventory(paths, old_complete=False, originals_at_installation=True)
-    write_marker(paths.transaction_path, OLD_COMPLETE_MARKER)
-
-
-def require_rollback_inventory(
+def inspect_rollback_inventory(
     paths: UpdateTransactionPaths,
     *,
     old_complete: bool,
     originals_at_installation: bool = False,
     verify_content: bool = True,
-) -> UpdateRollbackInventory | None:
+    retained_installation_root: str | None = None,
+) -> UpdateRollbackInventory | RollbackContentMismatch | RollbackSourceFailure | None:
     inventory_path = os.path.join(paths.transaction_path, ROLLBACK_INVENTORY_FILENAME)
     if not os.path.lexists(inventory_path):
         if os.path.lexists(marker_path(paths.transaction_path, ROLLBACK_INVENTORY_REQUIRED_MARKER)):
@@ -209,6 +168,10 @@ def require_rollback_inventory(
                 "Update rollback inventory is missing; preserve the transaction for repair."
             )
         return None
+    if os.path.islink(paths.rollback_old_path) or not os.path.isdir(paths.rollback_old_path):
+        raise StateError(
+            "Update rollback storage is not a regular directory; preserve it for repair."
+        )
     payload = parse_json_dict(
         read_regular_file_no_symlink(inventory_path, max_bytes=1024 * 1024),
         field="update rollback inventory",
@@ -223,16 +186,7 @@ def require_rollback_inventory(
         raise StateError("Update replacement inventory is invalid.")
     entries = payload.get("paths")
     if (
-        set(payload)
-        != {
-            "paths",
-            "replacement_roots",
-            "original_hashes",
-            "persisted_destinations",
-            "persisted_absent_parents",
-            "persisted_directories",
-            "runtime_directory",
-        }
+        set(payload) != ROLLBACK_INVENTORY_FIELDS
         or not is_str_list(entries)
         or len(entries) != len(set(entries))
     ):
@@ -247,7 +201,11 @@ def require_rollback_inventory(
     ):
         raise StateError("Update runtime ownership does not match its directory inventory.")
     original_hashes = payload.get("original_hashes")
-    if not isinstance(original_hashes, dict) or set(original_hashes) != set(entries):
+    if (
+        not isinstance(original_hashes, dict)
+        or set(original_hashes) != set(entries)
+        or not all(isinstance(value, str) for value in original_hashes.values())
+    ):
         raise StateError("Update original fingerprints do not match the recorded inventory.")
     expected_roots = {entry.split("/", 1)[0] for entry in entries}
     if set(os.listdir(paths.rollback_old_path)).difference(expected_roots):
@@ -260,7 +218,7 @@ def require_rollback_inventory(
             MANAGED_INSTALL_METADATA_RELATIVE_COMPONENTS,
         )
     )
-    for entry in entries:
+    for entry_index, entry in enumerate(sorted(entries)):
         if entry not in roots and entry not in managed_entries and entry not in state.destinations:
             raise StateError("Update original inventory contains an unmanaged path.")
         source = safe_join_relative_under_base_lexical(
@@ -278,7 +236,9 @@ def require_rollback_inventory(
             )
             if os.path.islink(source):
                 raise StateError("Managed update rollback original cannot be a symbolic link.")
-        destination = _installed_original_path(paths, entry, state)
+        destination = installed_original_path(
+            paths, entry, state, retained_installation_root=retained_installation_root
+        )
         if originals_at_installation:
             source = destination
         if not os.path.lexists(source):
@@ -288,22 +248,75 @@ def require_rollback_inventory(
                 )
             source = destination
         if entry in state.destinations:
-            directory_original = destination in state.directory_destinations
+            directory_original = state.destinations[entry] in state.directory_destinations
             if (directory_original and not os.path.isdir(source)) or (
                 not directory_original and not os.path.isfile(source)
             ):
                 raise StateError(
                     "Update persisted original does not match its recorded entry type."
                 )
-        if verify_content and _original_fingerprint(source) != original_hashes[entry]:
-            raise StateError(
-                "Update rollback original content is damaged; preserve the transaction for repair."
-            )
+        if verify_content:
+            traversal_started = time.monotonic()
+            try:
+                actual = capture_fingerprint_snapshot(source)
+            except (OSError, StateError) as exception:
+                return RollbackSourceFailure(entry, entry_index, source, exception)
+            if actual.aggregate != original_hashes[entry]:
+                return RollbackContentMismatch(
+                    entry,
+                    entry_index,
+                    source,
+                    str(original_hashes[entry]),
+                    actual,
+                    time.monotonic() - traversal_started,
+                )
 
     if originals_at_installation:
         if any(os.path.lexists(parent) for parent in state.absent_parents):
-            raise StateError("Originally absent update state parents appeared during preparation.")
+            raise StateError(
+                "Originally absent update state parents appeared during preparation.",
+                details={"classification": "absent_parent_appeared"},
+            )
         for slot, destination in state.destinations.items():
             if slot not in state.original_entries and os.path.lexists(destination):
-                raise StateError("Originally absent update state appeared during preparation.")
+                raise StateError(
+                    "Originally absent update state appeared during preparation.",
+                    details={
+                        "classification": "absent_destination_appeared",
+                        "inventory_slot": slot,
+                        "destination": destination,
+                    },
+                )
     return UpdateRollbackInventory(tuple(roots), state, runtime_directory)
+
+
+def require_rollback_inventory(
+    paths: UpdateTransactionPaths,
+    *,
+    old_complete: bool,
+    originals_at_installation: bool = False,
+    verify_content: bool = True,
+    retained_installation_root: str | None = None,
+) -> UpdateRollbackInventory | None:
+    inspection = inspect_rollback_inventory(
+        paths,
+        old_complete=old_complete,
+        originals_at_installation=originals_at_installation,
+        verify_content=verify_content,
+        retained_installation_root=retained_installation_root,
+    )
+    if isinstance(inspection, RollbackSourceFailure):
+        raise inspection.exception
+    if isinstance(inspection, RollbackContentMismatch):
+        raise StateError(
+            "Update rollback original content is damaged; preserve the transaction for repair.",
+            details={
+                "classification": "original_fingerprint_mismatch",
+                "inventory_slot": inspection.entry,
+                "source": inspection.source,
+                "original_source": (
+                    "retained" if retained_installation_root else "installation_or_snapshot"
+                ),
+            },
+        )
+    return inspection

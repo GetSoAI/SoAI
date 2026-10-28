@@ -84,13 +84,9 @@ class EventBus(Shutdownable):
         )
         self._queue_size = initialized_state.queue_size
         self.num_workers = initialized_state.num_workers
-        self._queue_max_per_worker = initialized_state.queue_max_per_worker
-        self._aggregate_queue_max = initialized_state.aggregate_queue_max
         self._cancellation_binder = cancellation_binder
         self._finalizer_tracker = finalizer_tracker
-        self._queues = initialized_state.queues
-        self._round_robin_index = 0
-        self._worker_tasks: list[asyncio.Task[None]] = []
+        self._partitions = initialized_state.partitions
         self.shutdown_event: asyncio.Event = asyncio.Event()
         self.metrics_recorder = metrics_recorder
         self._publish_timeout = initialized_state.publish_timeout
@@ -134,17 +130,13 @@ class EventBus(Shutdownable):
         event: Event,
         wait_for_completion: EventCompletionSignal | None = None,
     ) -> None:
-        self._worker_tasks, self._round_robin_index = await execute_event_bus_publish(
+        await execute_event_bus_publish(
             event=event,
             wait_for_completion=wait_for_completion,
             shutdown_event=self.shutdown_event,
-            worker_tasks=self._worker_tasks,
-            queues=self._queues,
-            num_workers=self.num_workers,
-            round_robin_index=self._round_robin_index,
+            partitions=self._partitions,
             queue_size=self._queue_size,
             publish_timeout=self._publish_timeout,
-            aggregate_queue_max=self._aggregate_queue_max,
             backpressure_tracker=self._backpressure_tracker,
             reply_channel_drop_tracker=self._reply_channel_drop_tracker,
             metrics_recorder=self.metrics_recorder,
@@ -156,31 +148,22 @@ class EventBus(Shutdownable):
         event: Event,
         wait_for_completion: EventCompletionSignal | None = None,
     ) -> bool:
-        published, self._worker_tasks, self._round_robin_index = (
-            try_execute_event_bus_publish_nowait(
-                event=event,
-                wait_for_completion=wait_for_completion,
-                shutdown_event=self.shutdown_event,
-                worker_tasks=self._worker_tasks,
-                queues=self._queues,
-                num_workers=self.num_workers,
-                round_robin_index=self._round_robin_index,
-                queue_size=self._queue_size,
-                backpressure_tracker=self._backpressure_tracker,
-                reply_channel_drop_tracker=self._reply_channel_drop_tracker,
-                metrics_recorder=self.metrics_recorder,
-                logger=self._logger,
-            )
+        return try_execute_event_bus_publish_nowait(
+            event=event,
+            wait_for_completion=wait_for_completion,
+            shutdown_event=self.shutdown_event,
+            partitions=self._partitions,
+            queue_size=self._queue_size,
+            backpressure_tracker=self._backpressure_tracker,
+            reply_channel_drop_tracker=self._reply_channel_drop_tracker,
+            metrics_recorder=self.metrics_recorder,
+            logger=self._logger,
         )
-        return published
 
     def start(self) -> None:
-        self._queues, self._worker_tasks, self._round_robin_index = execute_event_bus_start(
-            worker_tasks=self._worker_tasks,
+        execute_event_bus_start(
+            partitions=self._partitions,
             shutdown_event=self.shutdown_event,
-            queues=self._queues,
-            num_workers=self.num_workers,
-            queue_max_per_worker=self._queue_max_per_worker,
             metrics_recorder=self.metrics_recorder,
             collect_callbacks=self._subscriptions.collect_callbacks,
             dispatch_timeout=self._dispatch_timeout,
@@ -189,18 +172,17 @@ class EventBus(Shutdownable):
             cancellation_binder=self._cancellation_binder,
             finalizer_tracker=self._finalizer_tracker,
             stuck_callback_registry=self._stuck_callback_registry,
+            reply_channel_drop_tracker=self._reply_channel_drop_tracker,
         )
 
     @override
     async def shutdown(self) -> None:
-        self._queues, self._round_robin_index = await execute_event_bus_shutdown(
+        await execute_event_bus_shutdown(
+            partitions=self._partitions,
             shutdown_event=self.shutdown_event,
-            queues=self._queues,
-            worker_tasks=self._worker_tasks,
             shutdown_timeout=self._shutdown_timeout,
-            num_workers=self.num_workers,
-            queue_max_per_worker=self._queue_max_per_worker,
             logger=self._logger,
+            reply_channel_drop_tracker=self._reply_channel_drop_tracker,
         )
         await self._stuck_callback_registry.cancel_pending(
             logger=self._logger,

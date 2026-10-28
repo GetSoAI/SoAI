@@ -1,7 +1,6 @@
 /* SoAI - Chart viewport ownership [frontend/assets/ts/features/charts/session/ChartViewport.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { scaleAnimationDurationMs } from '@core/animations/speed.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { monotonicMs } from '@core/time/clock.ts';
 import { minutesToMs } from '@core/time/durations.ts';
@@ -15,7 +14,7 @@ import type { ChartConfigurationState, ChartViewportState } from '@features/char
 import type { ChartEvents } from '@features/charts/session/ChartEvents.ts';
 import type { ChartRedrawQueue } from '@features/charts/session/ChartRedrawQueue.ts';
 import { isUsableViewport, panByPixels, plotRight, xToTime, type TimeAxisFrame } from '@features/charts/viewport/timeViewport.ts';
-import { SERIES_TRANSITION_MS } from '@features/charts/viewport/easing.ts';
+import { scaleChartAnimationDurationMs, SERIES_TRANSITION_MS } from '@core/animations/chartMotion.ts';
 import { cancelViewportAnimation, shiftViewportAnimation, startViewportAnimation, stepViewportAnimation } from '@features/charts/viewport/viewportAnimation.ts';
 import { clampTimeViewport, clampViewportRightEdge, clampViewportScale, resolveSeriesIntervalMs, type ViewportBoundsInput } from '@features/charts/viewport/viewportBounds.ts';
 import { alignViewportToNewest, applyViewportFit, DATA_FIT, isNewestVisible, type ViewportFit } from '@features/charts/viewport/viewportFit.ts';
@@ -169,7 +168,8 @@ class ChartViewport {
     advanceAnimation(now: number): boolean {
         const { time, animation } = this.#state;
         if (!animation.active) return false;
-        const running = stepViewportAnimation(animation, time, now);
+        const animationTime = scaleChartAnimationDurationMs(animation.durationMs, this.#surface.element) === 0 ? Math.max(now, animation.startTime + animation.durationMs) : now;
+        const running = stepViewportAnimation(animation, time, animationTime);
         const input = this.#boundsInput();
         if (input) clampTimeViewport(time, input);
         this.#redraw.request(FULL_REDRAW);
@@ -219,7 +219,7 @@ class ChartViewport {
             return;
         }
         const rightEdgeTs = (animation.active ? animation.toAnchorTs + animation.anchorOffsetPx * animation.toMsPerPx : time.rightEdgeTs) + deltaTs;
-        startViewportAnimation(animation, time, { msPerPx: time.msPerPx, anchorTs: rightEdgeTs, anchorOffsetPx: 0 }, scaleAnimationDurationMs(SERIES_TRANSITION_MS, this.#surface.element), monotonicMs());
+        startViewportAnimation(animation, time, { msPerPx: time.msPerPx, anchorTs: rightEdgeTs, anchorOffsetPx: 0 }, scaleChartAnimationDurationMs(SERIES_TRANSITION_MS, this.#surface.element), monotonicMs());
     }
 
     #zoomAround(frame: TimeAxisFrame, anchorX: number, requestedMsPerPx: number, animate: boolean): boolean {
@@ -231,7 +231,7 @@ class ChartViewport {
         if (Math.abs(msPerPx / frame.msPerPx - 1) < ZOOM_EPSILON_RATIO) return false;
         const rightEdgeTs = clampViewportRightEdge(anchorTs + anchorOffsetPx * msPerPx, msPerPx, input);
         const target = { msPerPx, anchorTs: rightEdgeTs - anchorOffsetPx * msPerPx, anchorOffsetPx };
-        const durationMs = animate && this.#configuration.options.enableSmoothZoom ? scaleAnimationDurationMs(this.#configuration.options.zoomEasingMs, this.#surface.element) : 0;
+        const durationMs = animate && this.#configuration.options.enableSmoothZoom ? scaleChartAnimationDurationMs(this.#configuration.options.zoomEasingMs, this.#surface.element) : 0;
         startViewportAnimation(this.#state.animation, this.#state.time, target, durationMs, monotonicMs());
         this.#state.time.followLive = isNewestVisible({ rightEdgeTs, msPerPx, followLive: false }, input.newestTs);
         this.#redraw.request(FULL_REDRAW);

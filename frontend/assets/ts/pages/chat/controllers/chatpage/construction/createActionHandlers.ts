@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { errorHandler } from '@core/errorHandler.ts';
+import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { isString, isThenable } from '@core/typeGuards.ts';
 import { knowledgeSummaryMatchesIngestion, resolveChatAttachmentDraftSource, type ChatActionId, type ChatInputActionName } from '@features/chat/public.ts';
@@ -15,6 +16,7 @@ import { copyInlineMediaReference, type CopyInlineMediaReferenceHost } from '@pa
 import { openInlineMediaLocalFolder, type OpenInlineMediaLocalFolderHost } from '@pages/chat/controllers/page/actions/openInlineMediaLocalFolderController.ts';
 
 const runNavigationOperation = (operationId: string, operation: () => void | Promise<void>): void => {
+    if (windowIdentity.isDetachedContext()) return;
     try {
         const result = operation();
         if (!isThenable(result)) {
@@ -144,6 +146,7 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
             openConversationInput: (conversationId, inputId) => page.runtime.composerSurface.requireUi().openConversationInput(conversationId, inputId),
             canRemoveConversationInput: (conversationId, inputId) => page.runtime.composerSurface.optionalUi()?.canRemoveConversationInput(conversationId, inputId) ?? false,
             cancelConversationInput: (conversationId, inputId) => page.sessions.composer.cancelConversationInput(conversationId, inputId),
+            resumeConversationInputs: (conversationId) => page.sessions.composer.resumeConversationInputs(conversationId),
             retryConversationRegeneration: (conversationId, inputId) => page.sessions.composer.retryConversationRegeneration(conversationId, inputId),
             resolveAskUser: (conversationId, taskId, action) => page.sessions.composer.resolveAskUserPrompt(conversationId, taskId, action),
             resolveSecret: (conversationId, taskId, payload) => page.sessions.composer.resolveSecretPrompt(conversationId, taskId, payload),
@@ -160,7 +163,9 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
             updateInputState: () => page.runtime.composerSurface.requireUi().updateInputState(),
             applyInputActionVisibility: () => page.sessions.composer.applyInputActionVisibility(),
             updateInputQueuePreview: () => page.runtime.composerSurface.optionalUi()?.updateInputQueuePreview(),
-            resolvePrimaryActionMode: () => page.runtime.composerSurface.requireUi().resolveComposerActionMode()
+            resolvePrimaryActionMode: () => page.runtime.composerSurface.requireUi().resolveComposerActionMode(),
+            canStopHandoff: () => page.runtime.composerSurface.requireUi().canStopComposerHandoff(),
+            noteUserStop: (conversationId, requestId) => page.runtime.composerSurface.optionalUi()?.noteUserStop(conversationId, requestId)
         },
         attachments: {
             fileUploadEnabled: () => page.state.settings.parameters.inputActionFileUploadEnabled === true,
@@ -230,6 +235,7 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
             toggle: () => page.runtime.composerSurface.requireUi().toggleConfiguration(),
             openTab: (tabId) => page.sessions.configurationSession.openTab(tabId),
             openMemoryProfile: () => page.sessions.configurationSession.openMemoryProfile(),
+            memoryAction: (element) => page.sessions.configurationSession.memoryAction(element),
             refreshMemory: () => page.sessions.configurationSession.refreshMemoryTabFromAction(),
             handleModelAction: (actionElement) => page.sessions.configurationSession.handleModelAction(actionElement),
             refreshPresets: () => page.sessions.configurationSession.refreshPresets(),

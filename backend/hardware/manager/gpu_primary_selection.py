@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.validation.text_numbers import coerce_float_from_text
+from hardware.gpu_inventory.memory_metrics import gpu_capacity_is_current
 from hardware.vendors.vendor_metadata import (
     normalize_vendor_value,
     ready_vendors_from_compute_drivers,
@@ -57,7 +58,11 @@ def _collect_vendor_summaries(gpu_info: JSONDict) -> dict[str, VendorGpuSummary]
         vendor = normalize_vendor_value(gpu.get("type"))
         if not vendor:
             continue
-        memory_total_mb = _coerce_memory_total_mb(gpu.get("memory_total_mb"))
+        memory_total_mb = (
+            _coerce_memory_total_mb(gpu.get("memory_total_mb"))
+            if gpu_capacity_is_current(gpu)
+            else 0.0
+        )
         gpu_name_value = gpu.get("name")
         gpu_name = gpu_name_value if isinstance(gpu_name_value, str) and gpu_name_value else "N/A"
         if vendor not in summaries:

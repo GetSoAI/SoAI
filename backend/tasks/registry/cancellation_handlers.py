@@ -13,7 +13,7 @@ from core.tasks.cancellation_commands import cancel_via_registry
 from core.tasks.enums import TaskStatus
 from core.tasks.finalization import finalize
 from core.tasks.protocols import TaskRegistryLifecycleView
-from core.tasks.type_catalog import is_orchestrated_inference_task_type
+from core.tasks.type_catalog import requires_owner_terminal_settlement
 from core.timing.epoch import epoch_ms
 from tasks.registry.conversion import task_from_row
 
@@ -39,11 +39,6 @@ async def handle_cancel_task_command(
     if registry is None:
         raise ValidationError("Task registry instance is required.")
     logger = get_logger(LOGGER_NAME)
-    orchestrated_task_types = frozenset(
-        task_type
-        for task_type in registry.task_catalog.task_types
-        if is_orchestrated_inference_task_type(task_type)
-    )
     cancel_args = await cancel_via_registry(
         command,
         registry.cancellation_coordinator,
@@ -87,7 +82,14 @@ async def handle_cancel_task_command(
             if not isinstance(task_id, str) or not task_id:
                 continue
             task_type = row.get("task_type")
-            if isinstance(task_type, str) and task_type in orchestrated_task_types:
+            owner_id = row.get("owner_id")
+            if (
+                isinstance(task_type, str)
+                and task_type in registry.task_catalog.task_types
+                and requires_owner_terminal_settlement(
+                    task_type, owner_id=owner_id if isinstance(owner_id, str) else None
+                )
+            ):
                 continue
             try:
                 prefetched_task = task_from_row(registry.task_catalog, row)

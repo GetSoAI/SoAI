@@ -1,7 +1,7 @@
 /* SoAI - Conversation input observation contracts [frontend/assets/ts/features/chat/conversationinputs/ConversationInputTypes.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { ConversationInput, ConversationInputState, ConversationInputType } from '@core/api/contracts/chatQueueDraftContracts.ts';
+import type { ConversationInput, ConversationInputType } from '@core/api/contracts/chatQueueDraftContracts.ts';
 import type { ConversationInputTerminalEvent, ConversationInputsChangedEvent } from '@core/realtime/eventcontracts/chatControlContracts.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { ChatPageApi } from '@features/chat/pagecontracts/types.ts';
@@ -23,5 +23,5 @@ interface RetryableConversationRegeneration {
     previewContractFeedback: JsonObject | null;
 }
 
-export type { ConversationInput, ConversationInputState, ConversationInputType };
+export type { ConversationInput, ConversationInputType };
 export type { ChatConversationInputsManagerDependencies, RetryableConversationRegeneration };

@@ -35,10 +35,10 @@ operate the plugin still needs personal, evaluation, or commercial rights.
 The licensing documents are:
 
 - `LICENSE.md` — SoAI Core Source-Available License 1.0;
-- `CHANGE-DATES.md` — immutable Core release/change-date schedule;
-- `ORGANIZATION-EVALUATION-TERMS.md` — Core and converted OS evaluation terms;
-- `COMMERCIAL-LICENSE.md` — standard annual commercial terms;
-- `COMMERCIAL-SUPPORT-TERMS.md` — standard commercial support;
+- `CHANGE_DATES.md` — immutable Core release/change-date schedule;
+- `ORGANIZATION_EVALUATION_TERMS.md` — Core and converted OS evaluation terms;
+- `COMMERCIAL_LICENSE.md` — standard annual commercial terms;
+- `COMMERCIAL_SUPPORT_TERMS.md` — standard commercial support;
 - SoAI OS Source-Available License 1.0; and
 - Personal SoAI OS Purchase Terms — personal USD 99 purchase.
 

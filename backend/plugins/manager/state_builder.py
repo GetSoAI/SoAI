@@ -73,6 +73,9 @@ def build_plugin_manager_state(
             backend_drift_scan_last_requested_monotonic=0.0,
         ),
         catalog=PluginManagerCatalogState(
+            backend_update_wake=asyncio.Event(),
+            backend_update_publication_pending=False,
+            backend_update_degraded=False,
             loaded_plugin_surfaces={},
             loaded_plugin_instances={},
             alias_map={},

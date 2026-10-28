@@ -16,6 +16,7 @@ from core.openai.system_prompt_support import (
 )
 from core.orchestrator.types import MCPToolContext
 from core.runtime.request_sources import RequestSource
+from core.skills.prompt_projection import can_load_skills_automatically, project_skill_context
 from core.tool_calls.context_compaction_boundary_resolution import (
     resolve_context_compaction_boundaries,
 )
@@ -43,6 +44,7 @@ from features.agent.session.compaction_budget import (
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    from core.skills.execution import SkillExecutionContext
     from core.types.json import JSONDict
     from features.api.runtime.container.types import ApiDependencies
 
@@ -79,7 +81,10 @@ async def build_agentic_request_assembly(
     summarize_messages: Callable[[list[JSONDict]], Awaitable[str]] | None,
     extra_system_messages: tuple[str, ...] = (),
     model_settings_snapshot: JSONDict | None = None,
+    skill_context: SkillExecutionContext | None = None,
 ) -> PreparedAgenticRequestAssembly:
+    if skill_context is not None:
+        skill_context.require_owner(user_id=user_id, conv_id=conv_id)
     canonical_source_messages = copy_json_dict_list(message_source.canonical_messages)
     pinned_source_prefix, source_message_body = split_leading_pinned_prefix(
         canonical_source_messages,
@@ -96,6 +101,7 @@ async def build_agentic_request_assembly(
             *boundary_applied_source_messages,
         ],
         shape_cache=shape_cache,
+        active_turn_identity=message_source.active_turn_identity,
     )
     provider_prompt_source_messages = await message_source.build_provider_messages(
         prompt_boundary_applied_source_messages,
@@ -130,7 +136,11 @@ async def build_agentic_request_assembly(
                 continue
             insert_system_message(messages, normalized, index=insertion_index)
         prompt_request_json["messages"] = messages
-    normalized_source_messages = extract_openai_messages(prompt_request_json)
+    normalized_source_messages = project_skill_context(
+        extract_openai_messages(prompt_request_json),
+        skill_context,
+        automatic_loading_available=can_load_skills_automatically(tool_context, request_json),
+    )
     sanitized_prompt_request_json = build_inference_request_payload(prompt_request_json)
     sanitized_prompt_request_json["messages"] = strip_internal_message_metadata(
         normalized_source_messages,
@@ -163,6 +173,7 @@ async def build_agentic_request_assembly(
         source_policy=source_policy,
         request_json=prompt_request_json,
         source_messages=normalized_source_messages,
+        skill_context=skill_context,
         boundary_source_messages=boundary_applied_source_messages,
         conv_id=tool_context.conv_id,
         user_id=tool_context.user_id,

@@ -8,9 +8,7 @@ from contextlib import AbstractAsyncContextManager
 from typing import TYPE_CHECKING, Protocol
 
 from core.errors.error_types import ErrorType
-from core.models.model_context import ModelContext
 from core.orchestrator.routing_config import RoutingConfig, VirtualModelConfig
-from core.runtime.request_context import RequestContext
 from orchestrator.lifecycle.state_access.contexts import (
     CircuitBreakersContext,
     PluginsContext,
@@ -25,26 +23,11 @@ __all__ = (
     "LifecycleStateAccessorProtocol",
     "PluginWorkPurgeProtocol",
     "RoutingConfigProviderProtocol",
-    "StartablePluginManagerProtocol",
 )
 
 
 class KillablePluginProcessProtocol(Protocol):
     plugin_name: str
-
-    async def get_backend_process_pids(self) -> list[int]: ...
-
-
-class StartablePluginManagerProtocol(Protocol):
-    plugin_name: str
-
-    async def start_with_model(
-        self,
-        model_context: ModelContext,
-        request_context: RequestContext,
-    ) -> bool: ...
-
-    async def health_ping(self) -> tuple[bool, str]: ...
 
     async def get_backend_process_pids(self) -> list[int]: ...
 

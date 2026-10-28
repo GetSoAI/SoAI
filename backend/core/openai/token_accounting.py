@@ -23,7 +23,6 @@ __all__ = (
     "count_history_prompt_occupancy",
     "count_prompt_occupancy",
     "count_prompt_occupancy_async",
-    "resolve_explicit_prompt_occupancy",
 )
 
 
@@ -72,12 +71,6 @@ def _resolve_capped(count_result: PromptTokenCountResult) -> bool:
             details={"actual_type": type(count_result.capped).__name__},
         )
     return count_result.capped
-
-
-def _require_prompt_token_count(prompt_tokens: int | None) -> int:
-    if not is_non_negative_strict_int(prompt_tokens):
-        raise ValidationError("Prompt token counter returned no token count.")
-    return int(prompt_tokens)
 
 
 def _resolve_context_window_tokens(context_window_tokens: int | None) -> int | None:
@@ -166,19 +159,6 @@ def count_history_prompt_occupancy(
         prompt_token_counter=prompt_token_counter,
         request_payload=request_payload,
         token_estimation_profile=token_estimation_profile,
-    )
-
-
-def resolve_explicit_prompt_occupancy(
-    prompt_tokens: int | None,
-) -> PromptOccupancy | None:
-    if prompt_tokens is None:
-        return None
-    return PromptOccupancy(
-        prompt_tokens=_require_prompt_token_count(prompt_tokens),
-        capped=False,
-        capped_reason=None,
-        precision="exact",
     )
 
 

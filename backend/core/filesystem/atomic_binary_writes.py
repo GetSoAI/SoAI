@@ -16,8 +16,7 @@ from core.filesystem.atomic_write_primitives import (
     cleanup_temp_file_on_failure,
     copy_existing_file_to_descriptor,
     ensure_parent_directory,
-    finalize_atomic_write_create_and_clear_callbacks,
-    finalize_atomic_write_replace_and_clear_callbacks,
+    finalize_atomic_write_and_clear_callbacks,
 )
 from core.filesystem.file_sync import flush_and_fsync_file
 from core.filesystem.path_coercion import coerce_path, normalize_filesystem_path
@@ -31,32 +30,6 @@ __all__ = (
 )
 
 
-def _finalize_binary_write(
-    stack: ExitStack,
-    target: AtomicWriteTarget,
-    *,
-    backup_path: str | None,
-    file_mode: int | None,
-    fsync_parent_directory: bool,
-    exclusive: bool,
-) -> None:
-    if exclusive:
-        finalize_atomic_write_create_and_clear_callbacks(
-            stack,
-            target,
-            file_mode=file_mode,
-            fsync_parent_directory=fsync_parent_directory,
-        )
-        return
-    finalize_atomic_write_replace_and_clear_callbacks(
-        stack,
-        target,
-        backup_path=backup_path,
-        file_mode=file_mode,
-        fsync_parent_directory=fsync_parent_directory,
-    )
-
-
 def atomic_write_binary(
     path: PathInput,
     writer: Callable[[io.BufferedIOBase], None],
@@ -68,6 +41,7 @@ def atomic_write_binary(
     file_mode: int | None = None,
     fsync_parent_directory: bool = False,
     exclusive: bool = False,
+    preserve_windows_acl: bool = False,
 ) -> None:
     resolved = coerce_path(path)
     if mode not in {"wb", "ab"}:
@@ -97,13 +71,14 @@ def atomic_write_binary(
             writer(binary_handle)
             if fsync:
                 flush_and_fsync_file(binary_handle)
-        _finalize_binary_write(
+        finalize_atomic_write_and_clear_callbacks(
             stack,
             target,
             backup_path=backup_path,
             file_mode=file_mode,
             fsync_parent_directory=fsync_parent_directory,
             exclusive=exclusive,
+            preserve_windows_acl=preserve_windows_acl,
         )
 
 
@@ -115,6 +90,7 @@ def atomic_write_binary_content(
     fsync: bool = True,
     file_mode: int | None = None,
     fsync_parent_directory: bool = False,
+    preserve_windows_acl: bool = False,
 ) -> None:
     def writer(handle: io.BufferedIOBase) -> None:
         handle.write(content)
@@ -127,4 +103,5 @@ def atomic_write_binary_content(
         fsync=fsync,
         file_mode=file_mode,
         fsync_parent_directory=fsync_parent_directory,
+        preserve_windows_acl=preserve_windows_acl,
     )

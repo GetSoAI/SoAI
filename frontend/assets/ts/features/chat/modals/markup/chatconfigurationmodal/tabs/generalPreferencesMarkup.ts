@@ -10,7 +10,7 @@ const buildGeneralPreferencesMarkup = (inputArguments: { modalId: string; string
     const { modalId, strings, uiIdAttr, enabledDisabledLabels } = inputArguments;
     return `
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('conversation-pdf-export-toggle')}">${strings.exportToPdf}</label>
+    <label for="${uiIdAttr('conversation-pdf-export-toggle')}" data-modal-localize="text">${strings.exportToPdf}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'conversation-pdf-export-toggle',
@@ -19,11 +19,11 @@ const buildGeneralPreferencesMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'conversation_pdf_export_enabled'
     })}
-    <span class="chat-configuration-hint">${strings.exportToPdfHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.exportToPdfHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('inherit-last-settings-toggle')}">${strings.newConversationInheritLastSettings}</label>
+    <label for="${uiIdAttr('inherit-last-settings-toggle')}" data-modal-localize="text">${strings.newConversationInheritLastSettings}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'inherit-last-settings-toggle',
@@ -32,11 +32,11 @@ const buildGeneralPreferencesMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'new_conversation_inherit_last_settings'
     })}
-    <span class="chat-configuration-hint">${strings.newConversationInheritLastSettingsHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.newConversationInheritLastSettingsHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('ctrl-enter-send-toggle')}">${strings.ctrlEnterSend}</label>
+    <label for="${uiIdAttr('ctrl-enter-send-toggle')}" data-modal-localize="text">${strings.ctrlEnterSend}</label>
     ${buildToggleSwitchMarkup({
         modalId,
         token: 'ctrl-enter-send-toggle',
@@ -45,7 +45,7 @@ const buildGeneralPreferencesMarkup = (inputArguments: { modalId: string; string
         labels: enabledDisabledLabels,
         dataParameter: 'ctrl_enter_send_enabled'
     })}
-    <span class="chat-configuration-hint">${strings.ctrlEnterSendHint}</span>
+    <span class="chat-configuration-hint" data-modal-localize="text">${strings.ctrlEnterSendHint}</span>
   </div>
 `;
 };

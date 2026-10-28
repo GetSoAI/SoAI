@@ -1,6 +1,8 @@
 /* SoAI - Shared storage AI setup state codec [frontend/assets/ts/core/storage/aisetup/aiSetupCodec.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { normalizeModelTestFailureMetadata } from '@core/openai/modelTestStreamOutcome.ts';
+import { isMutationRequestId } from '@core/mutations/mutationIdentity.ts';
 import { AI_SETUP_DISPOSITIONS, AI_SETUP_ENGINE_MODES, AI_SETUP_MAX_BACKENDS, AI_SETUP_MAX_MODELS, AI_SETUP_MAX_PROVIDERS, AI_SETUP_MODEL_SOURCES, AI_SETUP_STEPS, AI_SETUP_TEST_OUTCOMES, AI_SETUP_TEST_STATUSES, type AiSetupBackend, type AiSetupModel, type AiSetupModelTest, type AiSetupProvider, type AiSetupState } from '@core/storage/aisetup/aiSetupTypes.ts';
 import { isArray, isBoolean, isFiniteNumber, isNonEmptyString, isObject } from '@core/typeGuards.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
@@ -57,7 +59,9 @@ const readTest = (value: JsonValue | undefined): Decoded<AiSetupModelTest> => {
     const testedAtMs = testedAtValue === null ? null : isFiniteNumber(testedAtValue) && testedAtValue >= 0 ? testedAtValue : INVALID;
     if (status === INVALID || outcome === INVALID || configurationFingerprint === INVALID || testedAtMs === INVALID) return INVALID;
     const outcomeMatchesStatus = status === 'not_run' ? outcome === null : status === 'passed' || status === 'stale' ? outcome === 'passed' : outcome !== null && outcome !== 'passed';
-    return outcomeMatchesStatus ? { status, outcome, configurationFingerprint, testedAtMs } : INVALID;
+    const serializedFailure = value['failure'];
+    const failure = status === 'failed' && isObject(serializedFailure) ? normalizeModelTestFailureMetadata(serializedFailure['code'], serializedFailure['run_id']) : null;
+    return outcomeMatchesStatus ? { status, outcome, configurationFingerprint, testedAtMs, failure } : INVALID;
 };
 
 const readModel = (value: JsonValue): Decoded<AiSetupModel> => {
@@ -80,7 +84,8 @@ const readModel = (value: JsonValue): Decoded<AiSetupModel> => {
 const hasConsistentReferences = (state: AiSetupState): boolean => {
     const itemIds = new Set(state.models.map((model) => model.itemId));
     if (itemIds.size !== state.models.length) return false;
-    const references = [state.firstChatItemId, state.handoff.itemId, ...state.pendingToastShownFor];
+    if (state.committedLocalItemId !== null && !state.models.some((model) => model.itemId === state.committedLocalItemId && model.source === 'local')) return false;
+    const references = [state.committedLocalItemId, state.firstChatItemId, state.handoff.itemId, ...state.pendingToastShownFor];
     if (!references.every((itemId) => itemId === null || itemIds.has(itemId))) return false;
     if (new Set(state.pendingToastShownFor).size !== state.pendingToastShownFor.length) return false;
     return !state.handoff.pending || state.handoff.itemId !== null;
@@ -105,7 +110,11 @@ const decodeAiSetupState = (value: JsonValue | undefined): AiSetupState | null =
     const handoffItemId = readNullableIdentifier(handoff['item_id']);
     const pendingToastShownFor = readList(value['pending_toast_shown_for'], AI_SETUP_MAX_MODELS, readIdentifier);
     if (disposition === INVALID || step === INVALID || local === INVALID || cloud === INVALID || mode === INVALID || backends === INVALID || providers === INVALID || models === INVALID || firstChatItemId === INVALID || pending === INVALID || handoffItemId === INVALID || pendingToastShownFor === INVALID) return null;
-    const state: AiSetupState = { disposition, step, sources: { local, cloud }, engine: { mode, backends }, providers, models, firstChatItemId, handoff: { pending, itemId: handoffItemId }, pendingToastShownFor };
+    const localModels = models.filter((model) => model.source === 'local' && !model.excluded);
+    const committedLocalItemId = value['committed_local_item_id'] === undefined ? (step === 'ai_progress' && localModels.length === 1 ? (localModels[0]?.itemId ?? null) : null) : readNullableIdentifier(value['committed_local_item_id']);
+    const lastLocalDownloadTaskId = value['last_local_download_task_id'] === undefined ? null : readNullableIdentifier(value['last_local_download_task_id']);
+    if (committedLocalItemId === INVALID || lastLocalDownloadTaskId === INVALID || (lastLocalDownloadTaskId !== null && !isMutationRequestId(lastLocalDownloadTaskId))) return null;
+    const state: AiSetupState = { committedLocalItemId, lastLocalDownloadTaskId, disposition, step, sources: { local, cloud }, engine: { mode, backends }, providers, models, firstChatItemId, handoff: { pending, itemId: handoffItemId }, pendingToastShownFor };
     return hasConsistentReferences(state) ? state : null;
 };
 
@@ -119,13 +128,15 @@ const serializeAiSetupModel = (model: AiSetupModel): JsonObject => ({
     'artifact_name': model.artifactName,
     'model_id': model.modelId,
     'download_task_id': model.downloadTaskId,
-    test: { status: model.test.status, outcome: model.test.outcome, 'configuration_fingerprint': model.test.configurationFingerprint, 'tested_at_ms': model.test.testedAtMs },
+    test: { status: model.test.status, outcome: model.test.outcome, 'configuration_fingerprint': model.test.configurationFingerprint, 'tested_at_ms': model.test.testedAtMs, failure: model.test.failure ? { code: model.test.failure.code, 'run_id': model.test.failure.runId } : null },
     excluded: model.excluded
 });
 
 const serializeAiSetupState = (state: AiSetupState | null): JsonObject | null => {
     if (!state) return null;
     return {
+        'committed_local_item_id': state.committedLocalItemId,
+        'last_local_download_task_id': state.lastLocalDownloadTaskId,
         disposition: state.disposition,
         step: state.step,
         sources: { local: state.sources.local, cloud: state.sources.cloud },

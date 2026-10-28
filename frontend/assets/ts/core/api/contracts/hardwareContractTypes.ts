@@ -1,6 +1,7 @@
 /* SoAI - Frontend hardware API contract types [frontend/assets/ts/core/api/contracts/hardwareContractTypes.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { HardwareComponentObservation } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
 import type { HistoryAvailability } from '@core/realtime/historyAvailabilityContracts.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { GpuIdentity, GpuSoAIBenchHistoryRun, GpuSoAIBenchRun, GpuSoAIBenchStartRequest } from '@core/api/contracts/hardwareSoAIBenchTypes.ts';
@@ -51,6 +52,7 @@ interface HardwareOperatingSystemSnapshot {
     processor?: string | undefined;
 }
 interface HardwareVolumeSnapshot {
+    observationStatus?: HardwareComponentObservation | undefined;
     deviceId?: string | undefined;
     filesystem?: string | undefined;
     mount?: string | undefined;
@@ -99,6 +101,8 @@ interface HardwareCpuSnapshot {
     powerLimitWatts?: number | undefined;
 }
 interface HardwareGpuSnapshot {
+    telemetryObservation?: HardwareComponentObservation | undefined;
+    memoryTotalObservation?: HardwareComponentObservation | undefined;
     id?: number | undefined;
     deviceId?: string | undefined;
     index?: number | undefined;
@@ -127,7 +131,12 @@ interface HardwareGpuSnapshot {
     memoryTotalMb?: number | undefined;
     memoryUsedMb?: number | undefined;
 }
+interface HardwareGpuInventorySource {
+    state: 'observed' | 'unknown' | 'runtime_unavailable' | 'query_failed' | 'permission_denied' | 'invalid_response';
+    reasonCode: string | null;
+}
 interface HardwareSnapshotResponse {
+    componentStatus?: Record<string, HardwareComponentObservation> | undefined;
     timestampMs: number;
     summary: HardwareSummary;
     capabilities: HardwareCapabilitiesResponse;
@@ -138,12 +147,13 @@ interface HardwareSnapshotResponse {
     uptime?: HardwareUptimeSnapshot;
     os?: HardwareOperatingSystemSnapshot;
     disk?: HardwareVolumeSnapshot[];
-    gpu?: { gpus: HardwareGpuSnapshot[]; binding?: { devices: HardwareGpuSnapshot[] } };
+    gpu?: { gpus: HardwareGpuSnapshot[]; binding?: { devices: HardwareGpuSnapshot[] }; inventorySources?: Readonly<Record<string, HardwareGpuInventorySource>> };
     network?: { interfaces: HardwareNetworkInterface[]; byDeviceId?: Record<string, HardwareNetworkInterface>; windowsInventoryStatus?: WindowsNetworkInventoryStatus };
     networkSpeed?: Record<string, HardwareNetworkSpeed>;
     diskSpeed?: { status: string; observedAtMs?: number } | null;
 }
 interface HardwareHistoryMetadata {
+    identityObservation?: HardwareComponentObservation | undefined;
     aggregation: string;
     intervalMs: number;
     requestedIntervalMs: number | null;
@@ -224,4 +234,4 @@ interface KillProcessResponse {
     status: string;
 }
 
-export type { GpuIdentity, GpuOperationResponse, GpuSettingValue, GpuSettingsUpdateRequest, GpuSlotStoreRequest, GpuSoAIBenchHistoryRun, GpuSoAIBenchRun, GpuSoAIBenchStartRequest, HardwareCapabilitiesResponse, HardwareCpuSnapshot, HardwareGpuSnapshot, HardwareHistoryConfiguration, HardwareHistoryMetadata, HardwareHistoryRequest, HardwareHistoryResponse, HardwareMemorySnapshot, HardwareNetworkAddress, HardwareNetworkInterface, HardwareNetworkSpeed, HardwareOperatingSystemSnapshot, HardwareSnapshotResponse, HardwareSummary, HardwareUptimeSnapshot, HardwareVolumeSnapshot, KillProcessResponse, WindowsNetworkInventoryStatus };
+export type { GpuIdentity, GpuOperationResponse, GpuSettingValue, GpuSettingsUpdateRequest, GpuSlotStoreRequest, GpuSoAIBenchHistoryRun, GpuSoAIBenchRun, GpuSoAIBenchStartRequest, HardwareCapabilitiesResponse, HardwareCpuSnapshot, HardwareGpuInventorySource, HardwareGpuSnapshot, HardwareHistoryConfiguration, HardwareHistoryMetadata, HardwareHistoryRequest, HardwareHistoryResponse, HardwareMemorySnapshot, HardwareNetworkAddress, HardwareNetworkInterface, HardwareNetworkSpeed, HardwareOperatingSystemSnapshot, HardwareSnapshotResponse, HardwareSummary, HardwareUptimeSnapshot, HardwareVolumeSnapshot, KillProcessResponse, WindowsNetworkInventoryStatus };

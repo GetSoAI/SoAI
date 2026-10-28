@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isHexColorString } from '@core/theme/hexColor.ts';
-import type { SettingsRuntimeContext } from '@pages/settings/controllers/page/contracts.ts';
+import type { SettingsUiPreferenceHost } from '@pages/settings/controllers/page/contracts.ts';
 import type { SettingsPageState } from '@pages/settings/controllers/page/state.ts';
 import { requireUiPrefsAnimation, requireUiPrefsAnimationSpeed, requireUiPrefsBoolean, requireUiPrefsChartColorMode, requireUiPrefsClockFormat, requireUiPrefsDateFormat, requireUiPrefsInterfaceScale, requireUiPrefsLanguage, requireUiPrefsMeasurementUnits, requireUiPrefsNonEmptyString, requireUiPrefsNotificationDuration, requireUiPrefsNullableString, requireUiPrefsRegionalLocale, requireUiPrefsTheme, requireUiPrefsWallpaperOverlay } from '@pages/settings/controllers/uiprefs/guards.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
+import type { SaveUnitResult } from '@core/save/public.ts';
 
 function requireHexColor(value: JsonValue | null | undefined, label: string, nullable: true): string | null;
 function requireHexColor(value: JsonValue | null | undefined, label: string, nullable: false): string;
@@ -48,7 +49,7 @@ const readUiPreferencesForCommit = (current: Record<string, JsonValue | null | u
     chartStaticColor: requireHexColor(current['chartStaticColor'], 'uiPrefs.chartStaticColor', false)
 });
 
-const commitUiPreferences = async (page: SettingsRuntimeContext, state: SettingsPageState): Promise<void> => {
+const commitUiPreferences = async (page: SettingsUiPreferenceHost, state: Pick<SettingsPageState, 'uiPrefsManager'>): Promise<SaveUnitResult> => {
     const manager = state.uiPrefsManager;
     if (!manager || !manager.hasChanges) {
         return;
@@ -59,8 +60,11 @@ const commitUiPreferences = async (page: SettingsRuntimeContext, state: Settings
     const storage = page.owners.storage;
 
     const language = preferences.language;
-    if (language !== page.owners.languageService.getLanguage()) {
+    if (language !== manager.originalData['language']) {
         await page.owners.languageService.setLanguage(language);
+        if (!page.owners.languageService.isLanguageRequestSettled(language)) return { type: 'stop' };
+    } else {
+        manager.applyCommittedPatch({ language: page.owners.languageService.getLanguage() });
     }
 
     const promptEnhancerModel = preferences.promptEnhancerModel;
@@ -148,7 +152,7 @@ const commitUiPreferences = async (page: SettingsRuntimeContext, state: Settings
     const chartStaticColor = preferences.chartStaticColor;
     storage.setChartStaticColor(chartStaticColor);
 
-    manager.commitChanges();
+    manager.commitChanges({ ...preferences, language: page.owners.languageService.getLanguage() });
 };
 
 export { commitUiPreferences };

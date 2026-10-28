@@ -1,6 +1,8 @@
 /* SoAI - SoAI Bench history modal public contracts [frontend/assets/ts/features/hardware/modals/soaibenchhistory/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { SoAIBenchDeadline } from '@features/hardware/soaibenchLabels.ts';
+
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -52,6 +54,7 @@ interface SoAIBenchHistoryRun {
     publicationEligible: boolean;
     settingsSnapshotAvailable: boolean;
     reasonMessage: string | null;
+    deadline?: SoAIBenchDeadline;
     guidanceMessage: string | null;
     failureReason: string | null;
     unsupportedReason: string | null;
@@ -62,6 +65,7 @@ interface SoAIBenchHistoryRun {
 
 interface SoAIBenchHistoryDisplayRow {
     runId: string;
+    statusClassName: string;
     publicationEligible: boolean;
     localDeletionEligible: boolean;
     columns: readonly string[];

@@ -13,6 +13,9 @@ from database.repositories.users.conversation_input_active_state_reads import (
 from database.repositories.users.conversation_input_admission import (
     normalize_conversation_input_admission,
 )
+from database.repositories.users.conversation_input_dispatch_holds import (
+    sync_release_conversation_input_holds,
+)
 from database.repositories.users.conversation_input_force_steering import (
     sync_force_pending_conversation_steers,
 )
@@ -74,6 +77,7 @@ class DatabaseConversationInputs:
         messaging_ingress_id: str | None = None,
         source_metadata: JSONDict | None = None,
         media_descriptors: list[JSONDict] | None = None,
+        fallback_model_settings: JSONDict | None = None,
     ) -> JSONDict:
         admission = normalize_conversation_input_admission(
             conv_id=conv_id,
@@ -83,6 +87,7 @@ class DatabaseConversationInputs:
             prompt_history_text=prompt_history_text,
             attachment_content=attachment_content,
             model_settings=model_settings,
+            fallback_model_settings=fallback_model_settings,
             expected_input_generation=expected_input_generation,
             client_id=client_id,
             client_request_id=client_request_id,
@@ -100,6 +105,7 @@ class DatabaseConversationInputs:
             admission.prompt_history_text,
             serialize_json_compact_stable(admission.attachment_content),
             admission.model_settings_json,
+            admission.fallback_model_settings_json,
             admission.source_key,
             admission.client_id,
             admission.client_request_id,
@@ -163,6 +169,14 @@ class DatabaseConversationInputs:
         )
         notify_domain_event_outbox_dispatch_requested(self.event_bus)
         return cancelled
+
+    async def resume_held_inputs(self, *, conv_id: str, user_id: int) -> int:
+        return await queue_storage_backed_write(
+            self.core,
+            sync_release_conversation_input_holds,
+            conv_id,
+            user_id,
+        )
 
     async def force_pending_steers(
         self,

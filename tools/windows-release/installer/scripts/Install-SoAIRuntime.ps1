@@ -11,7 +11,10 @@ param(
     [int]$DependencyInstallTimeoutSeconds = 7200,
     [switch]$BootstrapOnly,
     [switch]$PreflightOnly,
-    [switch]$VisualCppRuntimeOnly
+    [switch]$VisualCppRuntimeOnly,
+    [switch]$SecureAccessOnly,
+    [switch]$CompleteInstallation,
+    [switch]$ExistingInstallation
 )
 
 function Resolve-FullPath {
@@ -28,6 +31,7 @@ function Resolve-NativePath {
 }
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'Shared-SoAIResourceOwnership.ps1')
 $ProgressPreference = 'SilentlyContinue'
 if ($PreflightOnly -and $BootstrapOnly) {
     throw 'PreflightOnly and BootstrapOnly are mutually exclusive.'
@@ -35,12 +39,18 @@ if ($PreflightOnly -and $BootstrapOnly) {
 if ($VisualCppRuntimeOnly -and ($PreflightOnly -or $BootstrapOnly)) {
     throw 'VisualCppRuntimeOnly cannot be combined with PreflightOnly or BootstrapOnly.'
 }
-if ($PreflightOnly -or $BootstrapOnly -or $VisualCppRuntimeOnly) {
+if ($SecureAccessOnly -and ($PreflightOnly -or $BootstrapOnly -or $VisualCppRuntimeOnly -or $ExistingInstallation)) {
+    throw 'SecureAccessOnly cannot be combined with other runtime preparation modes.'
+}
+if ($CompleteInstallation -and !$SecureAccessOnly) {
+    throw 'CompleteInstallation requires SecureAccessOnly after runtime dependency installation succeeds.'
+}
+if ($PreflightOnly -or $BootstrapOnly -or $VisualCppRuntimeOnly -or $SecureAccessOnly) {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     try {
         $principal = [Security.Principal.WindowsPrincipal]::new($identity)
         if (!$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-            throw 'Windows runtime preflight, bootstrap, and Visual C++ runtime preparation require an elevated administrator process.'
+            throw 'Windows runtime preflight, bootstrap, Visual C++ runtime, and file access preparation require an elevated administrator process.'
         }
     }
     finally { $identity.Dispose() }
@@ -54,7 +64,7 @@ if ($PreflightOnly) {
         $sourceVersion = [IO.File]::ReadAllText((Resolve-NativePath (Join-Path $sourceRoot 'VERSION'))).Trim()
         $controlPath = Resolve-NativePath (Join-Path $sourceRoot 'soai.exe')
         [Reflection.Assembly]::Load([IO.File]::ReadAllBytes($controlPath)) | Out-Null
-        if ($sourceFields.Count -ne 6 -or (Compare-Object $sourceFields $expectedFields -CaseSensitive).Count -ne 0 -or
+        if ($sourceFields.Count -ne 6 -or @(Compare-Object $sourceFields $expectedFields -CaseSensitive).Count -ne 0 -or
             $sourceIdentity.product -isnot [string] -or ![string]::Equals($sourceIdentity.product, 'SoAI', [StringComparison]::Ordinal) -or
             $sourceIdentity.edition -isnot [string] -or ![string]::Equals($sourceIdentity.edition, 'soai-core', [StringComparison]::Ordinal) -or
             $sourceIdentity.artifact_type -isnot [string] -or ![string]::Equals($sourceIdentity.artifact_type, 'complete', [StringComparison]::Ordinal) -or
@@ -618,6 +628,7 @@ function Invoke-LoggedCommand {
         [int]$TimeoutSeconds = 7200,
         [string[]]$ProgressPaths = @(),
         [int]$NoProgressTimeoutSeconds = 0,
+        [int]$StartupAllowanceSeconds = 0,
         [int]$HeartbeatSeconds = 0,
         [string]$HeartbeatMessage,
         [int]$ProgressStart = 0,
@@ -667,23 +678,25 @@ function Invoke-LoggedCommand {
         $job = [SoAILauncher.NativeBackendJob]::StartLoggedProcess($psi, $stdoutLogPath, $stderrLogPath)
         $process = $job.ProcessHandle
         $commandState = 'running'
-        $deadlineUtc = [DateTime]::UtcNow.AddSeconds([Math]::Max(60, $TimeoutSeconds))
+        $clock = [Diagnostics.Stopwatch]::StartNew()
+        $deadlineSeconds = [Math]::Max(60, $TimeoutSeconds)
         $progressDeadlineEnabled = $NoProgressTimeoutSeconds -gt 0
         $progressWatchPaths = @($stdoutLogPath, $stderrLogPath) + @($ProgressPaths)
         $lastProgressFingerprint = Get-ProgressFingerprint -Paths $progressWatchPaths
-        $lastProgressUtc = [DateTime]::UtcNow
-        $startedUtc = [DateTime]::UtcNow
-        $nextHeartbeatUtc = $startedUtc.AddSeconds($HeartbeatSeconds)
-        $nextFingerprintUtc = $startedUtc.AddSeconds(5)
+        $lastProgressSeconds = 0.0
+        $inactivityLimitSeconds = $NoProgressTimeoutSeconds
+        $startupAllowancePending = $StartupAllowanceSeconds -gt 0
+        $nextHeartbeatSeconds = [double]$HeartbeatSeconds
+        $nextFingerprintSeconds = 5.0
         $lastActivity = $null
         $lastProgress = $script:InstallProgress
         while (!$process.WaitForExit(1000)) {
-            $nowUtc = [DateTime]::UtcNow
-            if ($HeartbeatSeconds -gt 0 -and $nowUtc -ge $nextHeartbeatUtc) {
+            $nowSeconds = $clock.Elapsed.TotalSeconds
+            if ($HeartbeatSeconds -gt 0 -and $nowSeconds -ge $nextHeartbeatSeconds) {
                 $currentProgress = $script:InstallProgress
                 if ($ProgressStart -gt 0 -and $ProgressEnd -gt $ProgressStart) {
                     $expectedSeconds = [Math]::Min([Math]::Max(900, $TimeoutSeconds / 4), 1800)
-                    $fraction = [Math]::Min(0.95, [Math]::Max(0.0, ($nowUtc - $startedUtc).TotalSeconds / $expectedSeconds))
+                    $fraction = [Math]::Min(0.95, [Math]::Max(0.0, $nowSeconds / $expectedSeconds))
                     $currentProgress = $ProgressStart + [int][Math]::Floor(($ProgressEnd - $ProgressStart - 1) * $fraction)
                 }
                 $activity = Get-CommandActivity -StdoutLogPath $stdoutLogPath -StderrLogPath $stderrLogPath
@@ -692,22 +705,30 @@ function Invoke-LoggedCommand {
                     $lastActivity = $activity
                     $lastProgress = $currentProgress
                 }
-                $nextHeartbeatUtc = $nowUtc.AddSeconds($HeartbeatSeconds)
+                $nextHeartbeatSeconds = $nowSeconds + $HeartbeatSeconds
             }
-            if ($nowUtc -gt $deadlineUtc) {
+            if ($nowSeconds -gt $deadlineSeconds) {
                 $commandState = 'timed-out'
                 throw "SoAI $PhaseName did not finish within $TimeoutSeconds seconds."
             }
-            if ($progressDeadlineEnabled -and $nowUtc -ge $nextFingerprintUtc) {
-                $nextFingerprintUtc = $nowUtc.AddSeconds(5)
+            if ($progressDeadlineEnabled -and $nowSeconds -ge $nextFingerprintSeconds) {
+                $nextFingerprintSeconds = $nowSeconds + 5
                 $fingerprint = Get-ProgressFingerprint -Paths $progressWatchPaths
                 if ($fingerprint -ne $lastProgressFingerprint) {
                     $lastProgressFingerprint = $fingerprint
-                    $lastProgressUtc = $nowUtc
+                    $lastProgressSeconds = $nowSeconds
+                    $inactivityLimitSeconds = $NoProgressTimeoutSeconds
                 }
-                elseif (($nowUtc - $lastProgressUtc).TotalSeconds -ge $NoProgressTimeoutSeconds) {
-                    $commandState = 'stalled'
-                    throw "SoAI $PhaseName made no observable progress for $NoProgressTimeoutSeconds seconds."
+                elseif (($nowSeconds - $lastProgressSeconds) -ge $inactivityLimitSeconds) {
+                    if ($startupAllowancePending) {
+                        $startupAllowancePending = $false
+                        $inactivityLimitSeconds += $StartupAllowanceSeconds
+                        Write-InstallerConsoleMessage "[SoAI] $PhaseName is quiet; allowing $StartupAllowanceSeconds more seconds for first-start checks of newly installed runtime files."
+                    }
+                    else {
+                        $commandState = 'stalled'
+                        throw "SoAI $PhaseName made no observable progress for $inactivityLimitSeconds seconds."
+                    }
                 }
             }
         }
@@ -1025,7 +1046,7 @@ function Download-File {
         [Parameter(Mandatory=$true)][string]$Uri,
         [Parameter(Mandatory=$true)][string]$Destination,
         [string]$Sha256,
-        [ValidateSet('Exe','Zip')][string]$Kind = 'Exe'
+        [ValidateSet('Exe','Zip','TarGzip')][string]$Kind = 'Exe'
     )
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
     $temp = "$Destination.download"
@@ -1037,6 +1058,15 @@ function Download-File {
     }
     if ($Kind -eq 'Zip' -and !(Test-ZipHeader $temp)) {
         throw 'download did not look like a zip package'
+    }
+    if ($Kind -eq 'TarGzip') {
+        $stream = [IO.File]::OpenRead($temp)
+        try {
+            if ($stream.ReadByte() -ne 0x1f -or $stream.ReadByte() -ne 0x8b) {
+                throw 'download did not look like a gzip archive'
+            }
+        }
+        finally { $stream.Dispose() }
     }
     Assert-Hash -Path $temp -Sha256 $Sha256
     Move-Item -LiteralPath $temp -Destination $Destination -Force -ErrorAction Stop
@@ -1348,10 +1378,13 @@ function Invoke-VisualCppRedistributable {
         [Parameter(Mandatory=$true)][ValidateSet('install', 'repair')][string]$Operation
     )
     $exitCode = $null
+    $timeoutSeconds = ([SoAILauncher.NativeImageBudget]::Calculate(1200, [string[]]@($Redistributable), [string[]]@(), [string[]]@(),
+        @(Get-CompleteVisualCppRuntimeDllNames).Count)).WholeSeconds
+    $timeoutMinutes = [int][Math]::Ceiling($timeoutSeconds / 60)
     for ($attempt = 1; $attempt -le 6; $attempt += 1) {
         $logPath = Get-UniqueInstallLogPath -Root $Root -Name "visual-cpp-redist-$Operation" -Extension '.log'
         $exitCode = Invoke-VisualCppRuntimeProcess -Executable $Redistributable `
-            -Arguments @("/$Operation", '/quiet', '/norestart', '/log', $logPath) -TimeoutSeconds 1200
+            -Arguments @("/$Operation", '/quiet', '/norestart', '/log', $logPath) -TimeoutSeconds $timeoutSeconds
         Add-VisualCppRuntimeEvidence ([ordered]@{
             action = "redistributable-$Operation"
             attempt = $attempt
@@ -1360,7 +1393,7 @@ function Invoke-VisualCppRedistributable {
             log = $logPath
         })
         if ($null -eq $exitCode) {
-            Write-InstallerConsoleMessage "[SoAI] Microsoft Visual C++ Runtime $Operation did not finish within 20 minutes. Log: $logPath"
+            Write-InstallerConsoleMessage "[SoAI] Microsoft Visual C++ Runtime $Operation did not finish within $timeoutMinutes minutes. Log: $logPath"
             return $null
         }
         Write-InstallerConsoleMessage "[SoAI] Microsoft Visual C++ Runtime $Operation finished with exit code $exitCode. Log: $logPath"
@@ -1399,8 +1432,9 @@ function Expand-VisualCppRuntimeRedistributable {
         New-Item -ItemType Directory -Force -Path $directory | Out-Null
     }
     $logPath = Get-UniqueInstallLogPath -Root $Root -Name 'visual-cpp-redist-layout' -Extension '.log'
+    $timeoutSeconds = ([SoAILauncher.NativeImageBudget]::Calculate(1200, [string[]]@($Redistributable), [string[]]@(), [string[]]@(), 0)).WholeSeconds
     $exitCode = Invoke-VisualCppRuntimeProcess -Executable $Redistributable `
-        -Arguments @('/layout', $layoutDir, '/quiet', '/norestart', '/log', $logPath) -TimeoutSeconds 1200
+        -Arguments @('/layout', $layoutDir, '/quiet', '/norestart', '/log', $logPath) -TimeoutSeconds $timeoutSeconds
     Add-VisualCppRuntimeEvidence ([ordered]@{
         action = 'redistributable-layout'
         exit_code = $exitCode
@@ -1408,7 +1442,7 @@ function Expand-VisualCppRuntimeRedistributable {
         log = $logPath
     })
     if ($null -eq $exitCode) {
-        throw "The Microsoft Visual C++ Redistributable layout did not finish within 20 minutes. Log: $logPath"
+        throw "The Microsoft Visual C++ Redistributable layout did not finish within $([int][Math]::Ceiling($timeoutSeconds / 60)) minutes. Log: $logPath"
     }
     if ($exitCode -ne 0) {
         throw "The Microsoft Visual C++ Redistributable layout failed with exit code $exitCode. Log: $logPath"
@@ -1551,12 +1585,13 @@ function Get-ManagedVenvHome {
             continue
         }
         try {
-            $homeDirectory = [IO.Path]::GetFullPath($match.Groups[1].Value).TrimEnd('\')
+            $homeDirectory = [IO.Path]::GetFullPath([SoAILauncher.LauncherPaths]::RemoveWindowsPathNamespace($match.Groups[1].Value)).TrimEnd('\')
+            $rootDirectory = [IO.Path]::GetFullPath([SoAILauncher.LauncherPaths]::RemoveWindowsPathNamespace($Root)).TrimEnd('\')
         }
         catch {
             return $null
         }
-        if (!$homeDirectory.StartsWith($Root.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        if (!$homeDirectory.StartsWith($rootDirectory + '\', [StringComparison]::OrdinalIgnoreCase)) {
             Write-InstallerConsoleMessage "[SoAI] The SoAI managed environment uses a Python outside the SoAI installation; SoAI will not modify it: $homeDirectory"
             return $null
         }
@@ -1667,6 +1702,19 @@ function Copy-AppLocalVisualCppRuntimeDlls {
     }
 }
 
+function Get-PythonProbeTimeoutSeconds {
+    param(
+        [Parameter(Mandatory=$true)][string]$Root,
+        [Parameter(Mandatory=$true)][string]$PythonExe,
+        [Parameter(Mandatory=$true)][int]$OrdinarySeconds
+    )
+    $pythonHome = Resolve-ChildPath -Root $Root -Child 'python'
+    $allowance = [SoAILauncher.NativeImageBudget]::Calculate($OrdinarySeconds,
+        [string[]]@($PythonExe, (Join-Path $pythonHome 'DLLs')),
+        [string[]]@((Split-Path -Parent $PythonExe), $pythonHome), [string[]]@(), 0)
+    return $allowance.WholeSeconds
+}
+
 function Test-PythonRuntime {
     param(
         [Parameter(Mandatory=$true)][string]$Root,
@@ -1680,7 +1728,8 @@ function Test-PythonRuntime {
     try {
         $log = Invoke-LoggedCommand -Root $Root -PhaseName 'validate-python-runtime' `
             -WorkingDirectory ([Environment]::GetFolderPath('System')) -Executable $PythonExe `
-            -Arguments @('--version') -EnvironmentValues @{} -TimeoutSeconds 60
+            -Arguments @('--version') -EnvironmentValues @{} `
+            -TimeoutSeconds (Get-PythonProbeTimeoutSeconds -Root $Root -PythonExe $PythonExe -OrdinarySeconds 60)
         $output = ([string](Get-Content -LiteralPath $log -Raw -Encoding UTF8)).Trim()
         if ($output -ne "Python $PythonVersion") { throw "Python runtime version mismatch: expected Python $PythonVersion; received $output. Diagnostic output: $log" }
         return $true
@@ -1690,6 +1739,146 @@ function Test-PythonRuntime {
         Write-Step "Existing Python runtime requires repair: $($_.Exception.Message)"
         return $false
     }
+}
+
+function Get-PythonRuntimeArchiveSuffix {
+    if (([Uri]$PythonUrl).AbsolutePath.EndsWith('.tar.gz', [StringComparison]::Ordinal)) {
+        return 'tar.gz'
+    }
+    return 'nupkg'
+}
+
+function Read-PythonArchiveBytes {
+    param(
+        [Parameter(Mandatory=$true)][IO.Stream]$Stream,
+        [Parameter(Mandatory=$true)][byte[]]$Buffer,
+        [Parameter(Mandatory=$true)][int]$Count
+    )
+    $offset = 0
+    while ($offset -lt $Count) {
+        $received = $Stream.Read($Buffer, $offset, $Count - $offset)
+        if ($received -eq 0) { throw 'The Python runtime archive ended before its content was complete.' }
+        $offset += $received
+    }
+}
+
+function Get-PythonArchiveOctal {
+    param(
+        [Parameter(Mandatory=$true)][byte[]]$Header,
+        [Parameter(Mandatory=$true)][int]$Offset,
+        [Parameter(Mandatory=$true)][int]$Length
+    )
+    $text = [Text.Encoding]::ASCII.GetString($Header, $Offset, $Length).Trim([char[]]@(0, 32))
+    if ($text -notmatch '^[0-7]{1,11}$') { throw 'The Python runtime archive contains an invalid numeric field.' }
+    return [Convert]::ToInt64($text, 8)
+}
+
+function Get-PythonArchiveTextField {
+    param(
+        [Parameter(Mandatory=$true)][byte[]]$Header,
+        [Parameter(Mandatory=$true)][int]$Offset,
+        [Parameter(Mandatory=$true)][int]$Length,
+        [Parameter(Mandatory=$true)][Text.Encoding]$Encoding
+    )
+    $terminator = [Array]::IndexOf($Header, [byte]0, $Offset, $Length)
+    if ($terminator -ge 0) { $Length = $terminator - $Offset }
+    return $Encoding.GetString($Header, $Offset, $Length)
+}
+
+function Expand-PythonRuntimeTar {
+    param(
+        [Parameter(Mandatory=$true)][string]$Archive,
+        [Parameter(Mandatory=$true)][string]$Destination
+    )
+    $nativeDestination = Resolve-NativePath $Destination
+    [IO.Directory]::CreateDirectory($nativeDestination) | Out-Null
+    if (@([IO.Directory]::EnumerateFileSystemEntries($nativeDestination)).Count -ne 0) {
+        throw 'Python runtime extraction requires an empty staging directory.'
+    }
+    $destinationPrefix = $nativeDestination.TrimEnd('\') + '\'
+    $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $encoding = [Text.UTF8Encoding]::new($false, $true)
+    $header = New-Object byte[] 512
+    $buffer = New-Object byte[] 65536
+    $totalBytes = 0L
+    $deadline = [Diagnostics.Stopwatch]::StartNew()
+    $archiveStream = [IO.File]::OpenRead((Resolve-NativePath $Archive))
+    try {
+        $gzip = [IO.Compression.GZipStream]::new($archiveStream, [IO.Compression.CompressionMode]::Decompress)
+        try {
+            while ($true) {
+                if ($deadline.Elapsed.TotalMinutes -ge 30) { throw 'Python runtime extraction exceeded its 30-minute deadline.' }
+                Read-PythonArchiveBytes -Stream $gzip -Buffer $header -Count 512
+                $nonzero = $false
+                foreach ($value in $header) { if ($value -ne 0) { $nonzero = $true; break } }
+                if (!$nonzero) {
+                    Read-PythonArchiveBytes -Stream $gzip -Buffer $header -Count 512
+                    foreach ($value in $header) { if ($value -ne 0) { throw 'The Python runtime archive has an invalid end marker.' } }
+                    $trailingBytes = 0
+                    while (($received = $gzip.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                        $trailingBytes += $received
+                        if ($trailingBytes -gt 1MB) { throw 'The Python runtime archive has excessive trailing data.' }
+                        for ($offset = 0; $offset -lt $received; $offset++) {
+                            if ($buffer[$offset] -ne 0) { throw 'The Python runtime archive has unexpected trailing content.' }
+                        }
+                    }
+                    if ($names.Count -eq 0) { throw 'The Python runtime archive contains no files.' }
+                    return
+                }
+                $storedChecksum = Get-PythonArchiveOctal -Header $header -Offset 148 -Length 8
+                $checksum = 0L
+                for ($offset = 0; $offset -lt 512; $offset++) {
+                    if ($offset -ge 148 -and $offset -lt 156) { $checksum += 32 }
+                    else { $checksum += $header[$offset] }
+                }
+                if ($checksum -ne $storedChecksum -or $header[156] -notin @(0, 48) -or
+                    $encoding.GetString($header, 257, 5) -cne 'ustar') {
+                    throw 'The Python runtime archive contains an invalid header or unsupported file type.'
+                }
+                $name = Get-PythonArchiveTextField -Header $header -Offset 0 -Length 100 -Encoding $encoding
+                $prefix = Get-PythonArchiveTextField -Header $header -Offset 345 -Length 155 -Encoding $encoding
+                if ($prefix.Length -gt 0) { $name = $prefix + '/' + $name }
+                if (!$name.StartsWith('python/', [StringComparison]::Ordinal)) {
+                    throw 'The Python runtime archive contains a file outside its python directory.'
+                }
+                foreach ($segment in $name.Split('/')) {
+                    if ([string]::IsNullOrEmpty($segment) -or $segment -in @('.', '..') -or
+                        $segment.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0 -or
+                        $segment.EndsWith('.') -or $segment.EndsWith(' ') -or
+                        $segment -match '^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\..*)?$') {
+                        throw 'The Python runtime archive contains an unsafe filename.'
+                    }
+                }
+                $target = Resolve-NativePath ([IO.Path]::Combine($Destination,
+                    $name.Replace([char]'/', [IO.Path]::DirectorySeparatorChar)))
+                if (!$target.StartsWith($destinationPrefix, [StringComparison]::OrdinalIgnoreCase) -or
+                    !$names.Add($target) -or $names.Count -gt 20000) {
+                    throw 'The Python runtime archive contains conflicting paths or too many files.'
+                }
+                $size = Get-PythonArchiveOctal -Header $header -Offset 124 -Length 12
+                $totalBytes += $size
+                if ($totalBytes -gt 256MB) { throw 'The Python runtime archive exceeds its extracted size limit.' }
+                [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target)) | Out-Null
+                $output = [IO.File]::Open($target, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+                try {
+                    $remaining = $size
+                    while ($remaining -gt 0) {
+                        if ($deadline.Elapsed.TotalMinutes -ge 30) { throw 'Python runtime extraction exceeded its 30-minute deadline.' }
+                        $count = [int][Math]::Min($remaining, $buffer.Length)
+                        Read-PythonArchiveBytes -Stream $gzip -Buffer $buffer -Count $count
+                        $output.Write($buffer, 0, $count)
+                        $remaining -= $count
+                    }
+                    $output.Flush($true)
+                }
+                finally { $output.Dispose() }
+                $padding = [int]((512 - ($size % 512)) % 512)
+                if ($padding -gt 0) { Read-PythonArchiveBytes -Stream $gzip -Buffer $buffer -Count $padding }
+            }
+        }
+        finally { $gzip.Dispose() }
+    }
+    finally { $archiveStream.Dispose() }
 }
 
 function Get-PackagedPythonRuntimePath {
@@ -1713,7 +1902,8 @@ function Get-PackagedPythonRuntimePath {
     if (!$platformItem.PSIsContainer -or ($platformItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
         throw "Packaged Python runtime platform directory is unsafe: $platformDirectory"
     }
-    $archivePath = Join-Path $platformDirectory "python-$PythonVersion.nupkg"
+    $suffix = Get-PythonRuntimeArchiveSuffix
+    $archivePath = Join-Path $platformDirectory "python-$PythonVersion.$suffix"
     $archiveItem = Get-Item -LiteralPath $archivePath -Force -ErrorAction SilentlyContinue
     if ($null -eq $archiveItem) {
         throw "Packaged Python runtime platform directory is incomplete: $platformDirectory"
@@ -1765,7 +1955,8 @@ function Install-PythonRuntime {
     }
 
     $downloadDir = $script:InstallerDownloadRoot
-    $package = Join-Path $downloadDir "python-$PythonVersion.nupkg"
+    $suffix = Get-PythonRuntimeArchiveSuffix
+    $package = Join-Path $downloadDir "python-$PythonVersion.$suffix"
     $packageZip = Join-Path $downloadDir "python-$PythonVersion.zip"
     $extractDir = Join-Path $downloadDir "python-$PythonVersion-package"
     New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
@@ -1775,26 +1966,45 @@ function Install-PythonRuntime {
         Assert-Hash -Path $package -Sha256 $PythonSha256
     }
     elseif (!(Test-Path -LiteralPath $package)) {
-        Download-File -Uri $PythonUrl -Destination $package -Sha256 $PythonSha256 -Kind Zip
+        $archiveType = if ($suffix -eq 'tar.gz') { 'TarGzip' } else { 'Zip' }
+        Download-File -Uri $PythonUrl -Destination $package -Sha256 $PythonSha256 -Kind $archiveType
     }
     else {
         Assert-Hash -Path $package -Sha256 $PythonSha256
     }
 
-    if (Test-Path -LiteralPath $pythonDir) {
-        Write-Step 'Removing incomplete Python runtime...'
-        Remove-Item -LiteralPath $pythonDir -Recurse -Force
-    }
-
     Write-Step "Extracting app-local Python $PythonVersion runtime..."
     Remove-Item -LiteralPath $extractDir -Recurse -Force -ErrorAction SilentlyContinue
-    Copy-Item -LiteralPath $package -Destination $packageZip -Force
-    Expand-Archive -LiteralPath $packageZip -DestinationPath $extractDir -Force
-    $toolsDir = Join-Path $extractDir 'tools'
-    if (!(Test-Path -LiteralPath (Join-Path $toolsDir 'python.exe'))) {
-        throw 'The Python package did not contain tools\python.exe.'
+    if ($suffix -eq 'tar.gz') {
+        Expand-PythonRuntimeTar -Archive $package -Destination $extractDir
+        $toolsDir = Join-Path $extractDir 'python'
     }
-    Move-Item -LiteralPath $toolsDir -Destination $pythonDir -Force
+    else {
+        Copy-Item -LiteralPath $package -Destination $packageZip -Force
+        Expand-Archive -LiteralPath $packageZip -DestinationPath $extractDir -Force
+        $toolsDir = Join-Path $extractDir 'tools'
+    }
+    if (!(Test-Path -LiteralPath (Join-Path $toolsDir 'python.exe'))) {
+        throw 'The Python package did not contain its required python.exe.'
+    }
+    [void](Test-PythonRuntime -Root $Root -PythonExe (Join-Path $toolsDir 'python.exe') -Required)
+    if (Test-Path -LiteralPath $pythonDir) {
+        Write-Step 'Replacing the previous Python runtime...'
+        Remove-Item -LiteralPath $pythonDir -Recurse -Force
+    }
+    $toolsMove = [SoAILauncher.SharingConflictWait]::Begin($toolsDir, $pythonDir)
+    try {
+        while ($true) {
+            try {
+                Move-Item -LiteralPath $toolsDir -Destination $pythonDir -Force -ErrorAction Stop
+                break
+            }
+            catch {
+                if (!$toolsMove.ShouldRetry($_.Exception)) { throw }
+            }
+        }
+    }
+    finally { $toolsMove.Dispose() }
     [void](Test-PythonRuntime -Root $Root -PythonExe $pythonExe -Required)
     Copy-AppLocalPythonRuntimeDlls -Root $Root
 }
@@ -1802,11 +2012,34 @@ function Install-PythonRuntime {
 function Install-Stage0BootstrapDependencies {
     param([Parameter(Mandatory=$true)][string]$Root)
     $pythonExe = Resolve-ChildPath -Root $Root -Child 'python\python.exe'
+    $runtimeRequirementsPath = Resolve-ChildPath -Root $Root -Child 'requirements.txt'
+    if (![IO.File]::Exists($runtimeRequirementsPath)) {
+        throw 'SoAI runtime requirements are missing. Reinstall SoAI from a verified package.'
+    }
+    $runtimeRequirements = [IO.File]::ReadAllLines($runtimeRequirementsPath)
+    $stage0Requirements = @(
+        foreach ($package in @('ruamel-yaml', 'httpx2', 'filelock', 'psutil')) {
+            $pattern = '^' + [regex]::Escape($package) + '==[^\s;]+$'
+            $matchingRequirements = @($runtimeRequirements | Where-Object { $_ -match $pattern })
+            if ($matchingRequirements.Count -ne 1) {
+                throw "SoAI requires one unconditional runtime pin for ${package}. Reinstall SoAI from a verified package."
+            }
+            $matchingRequirements[0]
+        }
+    )
     Write-Step 'Preparing the SoAI stage-0 bootstrap dependencies...'
+    $tlsBootstrapRequirements = Resolve-ChildPath -Root $Root -Child 'backend\core\bootstrap\tls_bootstrap_requirements.txt'
+    Invoke-LoggedCommand -Root $Root -PhaseName 'install-stage0-pip' `
+        -WorkingDirectory ([Environment]::GetFolderPath('System')) -Executable $pythonExe `
+        -Arguments @('-m', 'pip', 'install', '--disable-pip-version-check', '--no-warn-script-location',
+            '--upgrade', '--force-reinstall', '--no-deps', '--only-binary=:all:', '--require-hashes',
+            '-r', $tlsBootstrapRequirements) `
+        -EnvironmentValues @{ PYTHONUTF8 = '1'; PYTHONIOENCODING = 'utf-8' } `
+        -TimeoutSeconds $DependencyInstallTimeoutSeconds -HeartbeatSeconds 2 `
+        -HeartbeatMessage 'Updating Python package installer certificates' | Out-Null
     Invoke-LoggedCommand -Root $Root -PhaseName 'install-stage0-dependencies' `
         -WorkingDirectory ([Environment]::GetFolderPath('System')) -Executable $pythonExe `
-        -Arguments @('-m', 'pip', 'install', '--disable-pip-version-check', '--no-warn-script-location', '--upgrade',
-            'ruamel-yaml==0.19.1', 'httpx2==2.10.0', 'filelock==3.32.2', 'psutil==7.2.2') `
+        -Arguments (@('-m', 'pip', 'install', '--disable-pip-version-check', '--no-warn-script-location', '--upgrade') + $stage0Requirements) `
         -EnvironmentValues @{ PYTHONUTF8 = '1'; PYTHONIOENCODING = 'utf-8' } `
         -TimeoutSeconds $DependencyInstallTimeoutSeconds -HeartbeatSeconds 2 `
         -HeartbeatMessage 'Preparing SoAI bootstrap dependencies' | Out-Null
@@ -1845,14 +2078,15 @@ function Install-WebView2Runtime {
     Assert-AuthenticodeValid -Path $bootstrapper -ExpectedPublisher 'Microsoft'
 
     Write-Step 'Installing Microsoft Edge WebView2 Runtime...'
+    $timeoutSeconds = ([SoAILauncher.NativeImageBudget]::Calculate(600, [string[]]@($bootstrapper), [string[]]@(), [string[]]@(), 0)).WholeSeconds
     $process = Start-Process -FilePath $bootstrapper -ArgumentList @('/silent', '/install') -PassThru
-    if (!$process.WaitForExit(600000)) {
+    if (!$process.WaitForExit($timeoutSeconds * 1000)) {
         try {
             $process.Kill()
         }
         catch {
         }
-        throw 'WebView2 Runtime installer did not finish within 10 minutes.'
+        throw "WebView2 Runtime installer did not finish within $([int][Math]::Ceiling($timeoutSeconds / 60)) minutes."
     }
     if ($process.ExitCode -ne 0) {
         throw "WebView2 Runtime installer failed with exit code $($process.ExitCode)."
@@ -1900,34 +2134,22 @@ function Remove-TemporaryInstallDrive {
         [Parameter(Mandatory=$true)][string]$Drive,
         [Parameter(Mandatory=$true)][string]$Root
     )
+    $failedInstallPhase = $script:LastFailedInstallPhase
     Invoke-LoggedCommand -Root $Root -PhaseName 'release-install-drive' `
         -WorkingDirectory ([Environment]::GetFolderPath('System')) `
         -Executable "$env:WINDIR\System32\subst.exe" -Arguments @($Drive, '/D') `
         -EnvironmentValues @{} -TimeoutSeconds 60 | Out-Null
+    $script:LastFailedInstallPhase = $failedInstallPhase
 }
 
 function Remove-DirectoryTree {
     param([Parameter(Mandatory=$true)][string]$Path)
-    if (!(Test-Path -LiteralPath $Path -PathType Container)) {
-        return
+    $nativePath = Resolve-NativePath $Path
+    for ($attempt = 0; $attempt -lt 3 -and (Test-Path -LiteralPath $nativePath -PathType Container); $attempt++) {
+        if ($attempt -gt 0) { Start-Sleep -Seconds 1 }
+        Remove-Item -LiteralPath $nativePath -Recurse -Force -ErrorAction SilentlyContinue
     }
-    try {
-        Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
-        return
-    }
-    catch {
-    }
-
-    $emptyRoot = Join-Path $env:TEMP ("SoAI-Empty-" + [Guid]::NewGuid().ToString('N'))
-    New-Item -ItemType Directory -Force -Path $emptyRoot | Out-Null
-    try {
-        & "$env:WINDIR\System32\robocopy.exe" $emptyRoot $Path /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
-        Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue
-    }
-    finally {
-        Remove-Item -LiteralPath $emptyRoot -Recurse -Force -ErrorAction SilentlyContinue
-    }
-    if (Test-Path -LiteralPath $Path -PathType Container) {
+    if (Test-Path -LiteralPath $nativePath -PathType Container) {
         throw "Failed to remove directory tree: $Path"
     }
 }
@@ -1999,12 +2221,24 @@ import sys
 
 repo_root = os.path.abspath(sys.argv[1])
 sys.path.insert(0, os.path.join(repo_root, "backend"))
+from core.bootstrap.backend_bytecode import compile_backend_bytecode
 from core.bootstrap.runtime_artifacts import ensure_runtime_artifacts_if_needed
+from core.errors.exceptions import SoAIError
 
 ensure_runtime_artifacts_if_needed(
     repo_root,
     python_executable=sys.executable,
 )
+print("Preparing SoAI backend bytecode...", flush=True)
+try:
+    compile_backend_bytecode(
+        repo_root,
+        progress=lambda entries: print(f"Prepared backend bytecode: {entries}", flush=True),
+    )
+except (SoAIError, OSError) as exception:
+    print(f"Backend bytecode preparation failed; SoAI compiles on demand: {exception}", flush=True)
+else:
+    print("SoAI backend bytecode is ready.", flush=True)
 print("runtime_artifacts_ready=True")
 '@
 
@@ -2036,6 +2270,8 @@ function Invoke-SoAIInstallCommandOnce {
         $realPlaywrightDir = Resolve-ChildPath -Root $Root -Child 'data\state\playwright-browsers'
         $realJavaDir = Join-Path $realStateDir 'java'
         $realTikaDir = Join-Path $realStateDir 'tika'
+        $realTiktokenDir = Join-Path $realStateDir 'tiktoken-cache'
+        $realBackendDir = Resolve-ChildPath -Root $Root -Child 'backend'
         if (!(Test-Path -LiteralPath $pythonExe)) {
             throw "SoAI app-local Python was not found: $pythonExe"
         }
@@ -2114,6 +2350,7 @@ function Invoke-SoAIInstallCommandOnce {
             PYTHONPATH = Resolve-ChildPath -Root $Root -Child 'backend'
         }
 
+        $artifactStartupAllowanceSeconds = ([SoAILauncher.NativeImageBudget]::Calculate(0, [string[]]@((Resolve-ChildPath -Root $Root -Child 'python'), $realVenvPath), [string[]]@(), [string[]]@(), 0)).WholeSeconds
         for ($artifactAttempt = 1; $artifactAttempt -le 2; $artifactAttempt += 1) {
             try {
                 Invoke-LoggedCommand `
@@ -2124,8 +2361,9 @@ function Invoke-SoAIInstallCommandOnce {
                     -Arguments @($phaseScripts.InstallArtifacts, $realRepoRoot) `
                     -EnvironmentValues $realEnvValues `
                     -TimeoutSeconds $DependencyInstallTimeoutSeconds `
-                    -ProgressPaths @($realPlaywrightDir, $realJavaDir, $realTikaDir) `
+                    -ProgressPaths @($realPlaywrightDir, $realJavaDir, $realTikaDir, $realTiktokenDir, $realBackendDir) `
                     -NoProgressTimeoutSeconds 300 `
+                    -StartupAllowanceSeconds $artifactStartupAllowanceSeconds `
                     -HeartbeatSeconds 2 `
                     -HeartbeatMessage 'Preparing SoAI runtime artifacts' `
                     -ProgressStart 82 `
@@ -2141,6 +2379,17 @@ function Invoke-SoAIInstallCommandOnce {
             }
         }
 
+        if (![string]::IsNullOrWhiteSpace($env:SOAI_INSTALL_RETAINED_ROOT)) {
+            Invoke-LoggedCommand `
+                -Root $Root `
+                -PhaseName 'preserve-plugin-selections' `
+                -WorkingDirectory $realRepoRoot `
+                -Executable $realVenvPython `
+                -Arguments @('-P', '-m', 'app.updater.installation_plugin_upgrade', 'prepare', '--base-path', $realRepoRoot, '--source', $realRepoRoot, '--staged', $realRepoRoot, '--edition', 'soai-core', '--retained-installation-root', $env:SOAI_INSTALL_RETAINED_ROOT) `
+                -EnvironmentValues $realEnvValues `
+                -TimeoutSeconds 1200 | Out-Null
+        }
+
         Invoke-LoggedCommand `
             -Root $Root `
             -PhaseName 'post-update-hook' `
@@ -2153,6 +2402,14 @@ function Invoke-SoAIInstallCommandOnce {
             -HeartbeatMessage 'Finalizing SoAI installation' `
             -ProgressStart 92 `
             -ProgressEnd 95 | Out-Null
+        Invoke-LoggedCommand `
+            -Root $Root `
+            -PhaseName 'protect-installation-activation' `
+            -WorkingDirectory $realRepoRoot `
+            -Executable $realVenvPython `
+            -Arguments @('-P', '-m', 'app.updater.installation_plugin_upgrade', 'finish', '--base-path', $realRepoRoot, '--edition', 'soai-core') `
+            -EnvironmentValues $realEnvValues `
+            -TimeoutSeconds 1200 | Out-Null
     }
     finally {
         Remove-TemporaryInstallDrive -Drive $alias.Drive -Root $Root
@@ -2196,7 +2453,7 @@ function Invoke-SoAIInstallCommand {
             }
             catch {
                 Remove-LocalPackageBuildArtifacts -Root $Root
-                if ($attempt -eq 2 -or $script:LastFailedInstallPhase -in @('install-runtime-artifacts', 'post-update-hook')) {
+                if ($attempt -eq 2 -or $script:LastFailedInstallPhase -in @('install-runtime-artifacts', 'preserve-plugin-selections', 'post-update-hook', 'protect-installation-activation')) {
                     throw
                 }
                 Write-Step "SoAI managed environment preparation failed: $($_.Exception.Message)"
@@ -2218,10 +2475,18 @@ function Write-InstallState {
     $venvPython = Resolve-ChildPath -Root $Root -Child 'soai_main_venv\Scripts\python.exe'
     $runtimeVersionLog = Invoke-LoggedCommand -Root $Root -PhaseName 'installed-python-version' `
         -WorkingDirectory ([Environment]::GetFolderPath('System')) -Executable $pythonExe `
-        -Arguments @('--version') -EnvironmentValues @{} -TimeoutSeconds 60
+        -Arguments @('--version') -EnvironmentValues @{} `
+        -TimeoutSeconds (Get-PythonProbeTimeoutSeconds -Root $Root -PythonExe $pythonExe -OrdinarySeconds 60)
     $managedVersionLog = Invoke-LoggedCommand -Root $Root -PhaseName 'managed-python-version' `
         -WorkingDirectory ([Environment]::GetFolderPath('System')) -Executable $venvPython `
-        -Arguments @('--version') -EnvironmentValues @{} -TimeoutSeconds 60
+        -Arguments @('--version') -EnvironmentValues @{} `
+        -TimeoutSeconds (Get-PythonProbeTimeoutSeconds -Root $Root -PythonExe $venvPython -OrdinarySeconds 60)
+    foreach ($versionLog in @($runtimeVersionLog, $managedVersionLog)) {
+        $installedVersion = ([string](Get-Content -LiteralPath $versionLog -Raw -Encoding UTF8)).Trim()
+        if ($installedVersion -cne "Python $PythonVersion") {
+            throw "Installed Python version mismatch: expected Python $PythonVersion; received $installedVersion. Diagnostic output: $versionLog"
+        }
+    }
     $state = @{
         product = 'SoAI'
         installed_at_utc = [DateTime]::UtcNow.ToString('o')
@@ -2232,19 +2497,74 @@ function Write-InstallState {
     Set-Content -LiteralPath (Join-Path $stateDir 'windows-install.json') -Value $state -Encoding UTF8
 }
 
-function Grant-RuntimeWriteAccess {
-    param([Parameter(Mandatory=$true)][string]$Root)
-    $usersSidGrant = '*S-1-5-32-545:(OI)(CI)M'
-    foreach ($relative in @('data', 'soai_main_venv', 'python')) {
-        $path = Resolve-NativePath (Resolve-ChildPath -Root $Root -Child $relative)
-        if (!(Test-Path -LiteralPath $path -PathType Container)) {
-            continue
+function Invoke-RuntimeSecurityOperation {
+    param(
+        [Parameter(Mandatory=$true)][string]$Path,
+        [Parameter(Mandatory=$true)][scriptblock]$Operation
+    )
+    try {
+        & $Operation
+    }
+    catch {
+        $failure = $_.Exception
+        while ($null -ne $failure.InnerException) { $failure = $failure.InnerException }
+        $description = $failure.Message
+        if ($failure -is [ComponentModel.Win32Exception]) {
+            $nativeFailure = [ComponentModel.Win32Exception]::new($failure.NativeErrorCode)
+            $description = "Windows error $($failure.NativeErrorCode): $($nativeFailure.Message) $description"
         }
-        & "$env:WINDIR\System32\icacls.exe" $path /grant $usersSidGrant /T | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to grant standard user write access to SoAI runtime directory: $path"
+        throw [InvalidOperationException]::new("SoAI could not secure $Path. $description", $failure)
+    }
+}
+
+function Set-RuntimePathSecurity {
+    param(
+        [Parameter(Mandatory=$true)][string]$Path,
+        [Parameter(Mandatory=$true)][string]$Security
+    )
+    Invoke-RuntimeSecurityOperation -Path $Path -Operation { [SoAILauncher.InstallationSecurity]::Protect($Path, $Security) }
+}
+
+function Reset-RuntimePathSecurity {
+    param(
+        [Parameter(Mandatory=$true)][string]$Root,
+        [Parameter(Mandatory=$true)][string]$Path,
+        [Parameter(Mandatory=$true)][string]$ParentSecurity
+    )
+    Invoke-RuntimeSecurityOperation -Path $Path -Operation { [SoAILauncher.InstallationSecurity]::ResetTree($Root, $Path, $ParentSecurity) }
+}
+
+function Set-RuntimeAccessControl {
+    param(
+        [Parameter(Mandatory=$true)][string]$Root,
+        [switch]$DeferUnsecuredInstallation
+    )
+    $rootPath = Resolve-FullPath $Root
+    if ([IO.Directory]::GetDirectories((Resolve-NativePath $rootPath), '.soai_update_transaction_*').Count -gt 0) {
+        Write-Step 'SoAI will secure its files the next time it starts after this update.'
+        return
+    }
+    if ($DeferUnsecuredInstallation -and ![SoAILauncher.InstallationSecurity]::IsSecured($rootPath)) {
+        Write-Step 'SoAI will secure its files the next time it starts.'
+        return
+    }
+    $dataPath = Resolve-ChildPath -Root $rootPath -Child 'data'
+    [void][IO.Directory]::CreateDirectory((Resolve-NativePath $dataPath))
+    Write-Step "Securing SoAI files in $rootPath..."
+    Set-RuntimePathSecurity -Path $rootPath -Security ([SoAILauncher.InstallationSecurity]::RootSecurity)
+    foreach ($entry in [IO.Directory]::GetFileSystemEntries((Resolve-NativePath $rootPath))) {
+        $name = [IO.Path]::GetFileName($entry)
+        if (![string]::Equals($name, 'data', [StringComparison]::OrdinalIgnoreCase) `
+            -and !$name.StartsWith('.soai_update_cleanup_', [StringComparison]::OrdinalIgnoreCase)) {
+            Reset-RuntimePathSecurity -Root $rootPath -Path (Join-Path $rootPath $name) -ParentSecurity ([SoAILauncher.InstallationSecurity]::RootSecurity)
         }
     }
+    Set-RuntimePathSecurity -Path $dataPath -Security ([SoAILauncher.InstallationSecurity]::DataSecurity)
+    foreach ($entry in [IO.Directory]::GetFileSystemEntries((Resolve-NativePath $dataPath))) {
+        Reset-RuntimePathSecurity -Root $rootPath -Path (Join-Path $dataPath ([IO.Path]::GetFileName($entry))) -ParentSecurity ([SoAILauncher.InstallationSecurity]::DataSecurity)
+    }
+    [SoAILauncher.InstallationSecurity]::CompleteSecuring($rootPath)
+    Write-Step 'SoAI files are secured.'
 }
 
 function Test-SQLiteRuntimeAccess {
@@ -2255,8 +2575,25 @@ function Test-SQLiteRuntimeAccess {
         Invoke-LoggedCommand -Root $Root -PhaseName $phase `
             -WorkingDirectory ([Environment]::GetFolderPath('System')) -Executable $pythonExe `
             -Arguments @('-c', 'import sqlite3; print(sqlite3.sqlite_version)') `
-            -EnvironmentValues @{} -TimeoutSeconds 60 | Out-Null
+            -EnvironmentValues @{} -TimeoutSeconds (Get-PythonProbeTimeoutSeconds -Root $Root -PythonExe $pythonExe -OrdinarySeconds 60) | Out-Null
     }
+}
+
+if ($SecureAccessOnly) {
+    if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
+        throw 'InstallRoot is required to secure SoAI files.'
+    }
+    $resolvedInstallRoot = Resolve-FullPath $InstallRoot
+    [Reflection.Assembly]::Load([IO.File]::ReadAllBytes((Resolve-NativePath (Resolve-ChildPath -Root $resolvedInstallRoot -Child 'soai.exe')))) | Out-Null
+    Set-RuntimeAccessControl -Root $resolvedInstallRoot
+    if ($CompleteInstallation) {
+        $installationMarker = Join-Path $resolvedInstallRoot '.soai-install-root'
+        if (![IO.File]::Exists((Resolve-NativePath $installationMarker))) {
+            [SoAILauncher.NativeFilesystemHandles]::WriteNewDurableFile($installationMarker, 'SoAI Windows Installer Root')
+        }
+        Register-SoAISharedResourceClaim -InstallRoot $resolvedInstallRoot
+    }
+    exit 0
 }
 
 $pythonParameters = @($PythonVersion, $PythonUrl, $PythonSha256)
@@ -2273,7 +2610,7 @@ if ($providedPythonParameters.Count -eq 0) {
     }
     $pythonDependencyFields = @($pythonDependency.PSObject.Properties.Name | Sort-Object)
     if ($dependencyAuthority.schema_version -ne 1 `
-        -or (Compare-Object $pythonDependencyFields @('package_sha256', 'url', 'version')).Count -ne 0) {
+        -or @(Compare-Object $pythonDependencyFields @('package_sha256', 'url', 'version')).Count -ne 0) {
         throw 'Windows Python dependency metadata is invalid.'
     }
     $PythonVersion = $pythonDependency.version
@@ -2316,9 +2653,10 @@ try {
             Invoke-SoAIInstallCommand -Root $resolvedInstallRoot
             Set-InstallProgress -Progress 96 -Message 'Writing SoAI installation state...'
             Write-InstallState -Root $resolvedInstallRoot
-            Set-InstallProgress -Progress 97 -Message 'Configuring SoAI runtime permissions...'
-            Grant-RuntimeWriteAccess -Root $resolvedInstallRoot
+            Set-InstallProgress -Progress 97 -Message 'Securing SoAI files...'
+            Set-RuntimeAccessControl -Root $resolvedInstallRoot -DeferUnsecuredInstallation:$ExistingInstallation
             Test-SQLiteRuntimeAccess -Root $resolvedInstallRoot
+            Register-SoAISharedResourceClaim -InstallRoot $resolvedInstallRoot
             Set-InstallProgress -Progress 98 -Message 'SoAI is ready to start.'
         }
     }

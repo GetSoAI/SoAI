@@ -76,7 +76,7 @@ const resolveSegmentSignature = (segment: MessageSegment, nowMs: number): string
     }
     if (segment.type === 'inline_loading_activity') {
         const signatureSequence = requireSignatureSequence(segment, 'inline_loading_activity');
-        return ['inline_loading_activity', String(signatureSequence), segment.status, String(segment.startedAtMs), resolveDisplayDurationSignature(segment, nowMs)].join('|');
+        return ['inline_loading_activity', String(signatureSequence), segment.status, String(segment.startedAtMs), resolveDisplayDurationSignature(segment, nowMs), segment.reason ?? '', segment.errorType ?? ''].join('|');
     }
     if (segment.type === 'inline_processing_activity') {
         const signatureSequence = requireSignatureSequence(segment, 'inline_processing_activity');
@@ -130,7 +130,7 @@ const resolveRunningInlineActivitySignature = (segment: DurationSignatureSegment
         return ['inline_thinking_activity', segment.callId, String(segment.timelineSequenceIndex), String(segment.contentIndexBefore), String(requireSignatureSequence(segment, 'inline_thinking_activity streaming signature')), segment.status, String(segment.collapsed ? 1 : 0), String(segment.startedAtMs ?? ''), durationSignature].join('|');
     }
     if (segment.type === 'inline_loading_activity') {
-        return ['inline_loading_activity', String(requireSignatureSequence(segment, 'inline_loading_activity streaming signature')), segment.status, String(segment.startedAtMs), durationSignature].join('|');
+        return ['inline_loading_activity', String(requireSignatureSequence(segment, 'inline_loading_activity streaming signature')), segment.status, String(segment.startedAtMs), durationSignature, segment.reason ?? '', segment.errorType ?? ''].join('|');
     }
     if (segment.type === 'inline_processing_activity') {
         return ['inline_processing_activity', String(requireSignatureSequence(segment, 'inline_processing_activity streaming signature')), segment.status, String(segment.startedAtMs), durationSignature].join('|');

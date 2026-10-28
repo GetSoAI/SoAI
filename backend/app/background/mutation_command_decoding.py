@@ -11,17 +11,20 @@ from cryptography.fernet import Fernet
 from core.database.mutation_requests import MutationClaim
 from core.errors.exceptions import StateError, ValidationError
 from core.events.types_base import Event, ReplyableCommand
+from core.events.types_models_model_commands import ModelDownloadCommand
 from core.events.types_plugins import (
     ClonePluginCommand,
     InstallPluginBackendCommand,
     RemovePluginBackendCommand,
     UpdatePluginBackendCommand,
 )
+from core.events.types_skills import MaterializeSkillCommand
 from core.mutations.edition_composition import DurableMutationComposition
 from core.plugins.portable_identifiers import require_portable_plugin_identifier
 from core.runtime.request_context import RequestContext
 from core.security.encryption import decrypt_data
 from core.serialization.json_parsing import parse_json_dict
+from core.skills.materialization import SkillMaterializationRequest
 from core.types.json import JSONDict, JSONValue
 
 __all__ = ("decode_mutation_command",)
@@ -84,6 +87,7 @@ def _decode_backend_command(
             context=context,
             plugin_name=plugin_name,
             backend_variant_id=backend_variant_id,
+            mutation_claim=claim,
         )
     raise StateError("Unsupported durable backend mutation operation.")
 
@@ -207,8 +211,35 @@ def decode_mutation_command(
     expected_schema = f"{claim.operation_type}_v1"
     if claim.schema_discriminator != expected_schema:
         raise StateError("Durable mutation schema discriminator is inconsistent.")
+    if claim.operation_type == "wizard_model_download":
+        _require_exact_keys(payload, frozenset(("plugin_name", "model_id", "quantization")))
+        model_id, quantization = payload["model_id"], payload["quantization"]
+        if (
+            not isinstance(model_id, str)
+            or not model_id.strip()
+            or (quantization is not None and not isinstance(quantization, str))
+        ):
+            raise StateError("Recovered wizard download identity is invalid.")
+        return ModelDownloadCommand(
+            reply_channel=reply_queue,
+            context=context,
+            plugin_name=_require_plugin_name(payload),
+            model_id=model_id,
+            quantization=quantization,
+        )
     if claim.operation_type == "plugin_clone":
         return _decode_clone_command(claim, payload, context, reply_queue, fernets)
+    if claim.operation_type == "skill_materialize":
+        materialization = SkillMaterializationRequest.restore(payload)
+        if (
+            claim.owner_id != str(materialization.identity.user_id)
+            or context.user_id != materialization.identity.user_id
+            or claim.target_identity != materialization.operation_key
+        ):
+            raise StateError("Recovered skill materialization ownership is inconsistent.")
+        return MaterializeSkillCommand(
+            reply_channel=reply_queue, context=context, mutation_claim=claim
+        )
     operation_matches = durable_mutations.operation_matches
     decode_extension = durable_mutations.decode_command
     if operation_matches is not None and operation_matches(claim.operation_type):

@@ -54,15 +54,6 @@ class CompressionHelper:
         elif os.path.exists(path):
             os.remove(path)
 
-    def resolve_source_path(self, path: str) -> str | None:
-        try:
-            compress_enabled = bool(self._handler.compress)
-        except AttributeError:
-            compress_enabled = False
-        if compress_enabled:
-            return self._resolve_existing_archive(self.apply_suffix(path))
-        return path if os.path.exists(path) else None
-
     def compress_and_rotate(self, source: str, dest: str) -> None:
         try:
             compress_enabled = bool(self._handler.compress)

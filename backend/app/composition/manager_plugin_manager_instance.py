@@ -18,12 +18,12 @@ from app.types_services_foundation import InfrastructureServices
 from core.config.protocols import ConfigManagerProtocol, ConfigProtocol
 from core.licensing.types import Edition
 from core.orchestrator.routing_config import RoutingConfig
-from core.plugins.protocols import PluginManagerProtocol
 from core.plugins.protocols_instance import FilesProtocol
-from core.runtime.protocols import RuntimeFlagsViewProtocol
+from core.runtime.protocols import RuntimeFlagsViewProtocol, RuntimeRepairPlaneViewProtocol
 
 if TYPE_CHECKING:
     from app.composition.manager_bootstrap_types import ModelBootstrapComponents
+    from plugins.manager.manager import PluginManager
 
 __all__ = ("build_plugin_manager_instance",)
 
@@ -34,6 +34,7 @@ async def build_plugin_manager_instance(
     files: FilesProtocol,
     routing_config: RoutingConfig,
     runtime_flags: RuntimeFlagsViewProtocol,
+    runtime_health: RuntimeRepairPlaneViewProtocol,
     plugin_directory: str,
     backends_directory: str,
     updater_module_dependencies: ApplicationUpdaterModuleDependencies,
@@ -43,7 +44,7 @@ async def build_plugin_manager_instance(
     preconditions: ManagerPreconditions,
     config_manager: ConfigManagerProtocol,
     model_bootstrap_components: ModelBootstrapComponents,
-) -> PluginManagerProtocol:
+) -> PluginManager:
     (
         event_bus,
         log_manager,
@@ -51,7 +52,7 @@ async def build_plugin_manager_instance(
         task_registry_queries,
         http_client,
         hardware_manager,
-        command_executor,
+        _command_executor,
         metrics_manager,
         state_aggregator,
         authoritative_plugin_state_transitions,
@@ -96,6 +97,7 @@ async def build_plugin_manager_instance(
         http_client=http_client,
         log_manager=log_manager,
         runtime_flags=runtime_flags,
+        runtime_health=runtime_health,
         hardware_manager=hardware_manager,
         storage_manager=infrastructure_services.hardware.storage,
         event_bus=event_bus,
@@ -122,5 +124,4 @@ async def build_plugin_manager_instance(
         updater_module_dependencies=updater_module_dependencies,
         edition=edition,
         lifecycle_coordinator=lifecycle_coordinator,
-        command_executor=command_executor,
     )

@@ -33,17 +33,17 @@ const renderVoiceCallBody = (): ReturnType<typeof uiHtml> => {
         <div class="voice-call-status">
             <div class="voice-call-status-heading">
                 <div class="voice-call-status-spinner loading-spinner" aria-hidden="true"></div>
-                <div class="voice-call-status-title">${i18n.t('chat.voiceCallModal.idleTitle')}</div>
+                <div class="voice-call-status-title" data-modal-localize="text">${i18n.t('chat.voiceCallModal.idleTitle')}</div>
             </div>
-            <div class="voice-call-status-detail">${i18n.t('chat.voiceCallModal.idleDetail')}</div>
+            <div class="voice-call-status-detail" data-modal-localize="text">${i18n.t('chat.voiceCallModal.idleDetail')}</div>
         </div>
         <div class="voice-call-transcript u-hidden" aria-hidden="true">
             <div class="voice-call-transcript-row voice-call-transcript-user u-hidden" aria-hidden="true">
-                <span class="voice-call-transcript-label">${i18n.t('chat.voiceCallModal.userTranscriptLabel')}</span>
+                <span class="voice-call-transcript-label" data-modal-localize="text">${i18n.t('chat.voiceCallModal.userTranscriptLabel')}</span>
                 <span class="voice-call-transcript-text"></span>
             </div>
             <div class="voice-call-transcript-row voice-call-transcript-assistant u-hidden" aria-hidden="true">
-                <span class="voice-call-transcript-label">${i18n.t('chat.voiceCallModal.assistantTranscriptLabel')}</span>
+                <span class="voice-call-transcript-label" data-modal-localize="text">${i18n.t('chat.voiceCallModal.assistantTranscriptLabel')}</span>
                 <span class="voice-call-transcript-text"></span>
             </div>
         </div>

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { replaceContentWithFade } from '@core/animations/contentReplacement.ts';
 import { getUserAgent } from '@core/environment/public.ts';
 import { resolveOptionalKernelService } from '@core/runtime/runtimeContext.ts';
 import { replaceChildrenFromTrustedHtml } from '@core/dom/html.ts';
@@ -49,7 +50,7 @@ const renderSecretInputToggleIcon = (visible: boolean): string => {
 
 const renderSecretInputToggle = (inputId: string): string => {
     const label = resolveSecretInputShowLabel();
-    return `<button type="button" class="${SECRET_INPUT_TOGGLE_CLASS}" ${SECRET_INPUT_TOGGLE_ATTRIBUTE}="${uiAttr(inputId).html}" aria-label="${uiAttr(label).html}" data-tooltip="${uiAttr(label).html}" aria-pressed="false"><span class="${SECRET_INPUT_TOGGLE_ICON_CLASS}" aria-hidden="true">${renderSecretInputToggleIcon(false)}</span></button>`;
+    return `<button type="button" class="${SECRET_INPUT_TOGGLE_CLASS}" data-modal-localization-owner="session" ${SECRET_INPUT_TOGGLE_ATTRIBUTE}="${uiAttr(inputId).html}" aria-label="${uiAttr(label).html}" data-tooltip="${uiAttr(label).html}" aria-pressed="false"><span class="${SECRET_INPUT_TOGGLE_ICON_CLASS}" aria-hidden="true">${renderSecretInputToggleIcon(false)}</span></button>`;
 };
 
 const browserProvidesNativeSecretReveal = (): boolean => NATIVE_SECRET_REVEAL_USER_AGENT_PATTERN.test(getUserAgent());
@@ -103,7 +104,16 @@ const syncSecretInputToggle = (button: HTMLButtonElement, input: HTMLInputElemen
     const visible = isSecretInputVisible(input);
     const label = visible ? resolveSecretInputHideLabel() : resolveSecretInputShowLabel();
     const icon = requireSecretInputToggleIcon(button);
-    replaceChildrenFromTrustedHtml({ element: icon, html: getIconSync(visible ? 'eye-closed' : 'eye-open', { size: 20 }) });
+    const iconName = visible ? 'eye-closed' : 'eye-open';
+    const iconMarkup = getIconSync(iconName, { size: 20 });
+    replaceContentWithFade(
+        icon,
+        iconName,
+        () => {
+            replaceChildrenFromTrustedHtml({ element: icon, html: iconMarkup });
+        },
+        icon.firstElementChild?.getAttribute('data-icon-name') ?? null
+    );
     button.setAttribute('aria-label', label);
     button.setAttribute('aria-pressed', visible ? 'true' : 'false');
     setTooltipText(button, label);
@@ -134,6 +144,7 @@ class SecretInputToggleController implements SecretInputToggleService {
         }
         const abortController = new AbortController();
         this.#documentRef.addEventListener('click', this.#handleClick, { signal: abortController.signal, capture: true });
+        this.#documentRef.addEventListener('core.modal.localize', this.#handleLocalization, { signal: abortController.signal });
         this.#abortController = abortController;
     }
 
@@ -152,6 +163,14 @@ class SecretInputToggleController implements SecretInputToggleService {
         }
         event.preventDefault();
         toggleSecretInputForButton(button);
+    };
+
+    readonly #handleLocalization = (event: Event): void => {
+        const root = event.target;
+        if (!(root instanceof HTMLElement)) return;
+        for (const button of dom.resolveAll(SECRET_INPUT_TOGGLE_SELECTOR, root)) {
+            if (button instanceof HTMLButtonElement) syncSecretInputToggle(button, requireSecretInputForToggle(button));
+        }
     };
 }
 

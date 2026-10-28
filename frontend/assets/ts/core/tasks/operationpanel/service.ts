@@ -28,10 +28,9 @@ interface TaskOperationPanelOptions {
 const buildQueuedBadgeMap = (operations: TaskOperationEntry[]): Map<string, string> => {
     const seenPluginNames = new Set<string>();
     const queuedBadges = new Map<string, string>();
-    for (const operation of operations) {
-        if (operation.type !== 'model-download') {
-            continue;
-        }
+    const downloads = operations.filter((operation) => operation.type === 'model-download');
+    downloads.sort((first, second) => Number((second.progress ?? 0) > 0) - Number((first.progress ?? 0) > 0));
+    for (const operation of downloads) {
         const pluginName = resolveTaskOperationPluginName(operation);
         if (!pluginName) {
             continue;

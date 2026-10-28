@@ -178,6 +178,7 @@ interface Window {
     chrome?: { webview?: ChromeWebViewTransport };
     soaiDesktopLauncher?: Readonly<{ platform: 'windows' | 'linux' | 'macos'; protocolVersion: 1 }>;
     soaiDesktopLauncherBoot?: Readonly<{ startedAt: number; status: string }>;
+    soaiDesktopLauncherDetachedContext?: import('../assets/ts/core/types/jsonValues.ts').JsonValue;
     soaiWindowOpenInstrumented?: boolean;
     soaiWindowOpenRecords?: Array<{ url: string | undefined; name: string | undefined }>;
     soaiRuntimeProbe?: Array<{ type: string; time: number }>;

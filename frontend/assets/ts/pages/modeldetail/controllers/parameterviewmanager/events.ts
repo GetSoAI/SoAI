@@ -23,43 +23,36 @@ const setParameterInputValidity = (element: HTMLInputElement, valid: boolean): v
 };
 
 const bindParameterControls = ({ host, container, boundEvents, eventDisposers, onUpdateArrayItemValue, onUpdateParameter, onUpdateJsonParameter, onSetParameterValidity }: ParameterControlBindings): void => {
-    registerHandlers(host, container, '.array-item-input', 'input', boundEvents, eventDisposers, (_event: Event, element: HTMLElement) => {
-        if (!(element instanceof HTMLInputElement)) {
-            throw new TypeError('Array item input must be an HTMLInputElement');
+    const updateControl = (_event: Event, element: HTMLElement): void => {
+        if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement)) {
+            throw new TypeError('Parameter control must be an input, textarea, or select');
         }
         const key = getDomData(host, element, 'param');
-        const index = Number(getDomData(host, element, 'index'));
-        if (key && Number.isInteger(index)) {
-            const value = element.type === 'checkbox' ? element.checked : element.type === 'number' && Number.isFinite(element.valueAsNumber) ? element.valueAsNumber : element.value;
-            onUpdateArrayItemValue(key, index, value);
-        }
-    });
-    registerHandlers(host, container, 'input[type="number"][data-param]', 'input', boundEvents, eventDisposers, (_event: Event, element: HTMLElement) => {
-        if (!(element instanceof HTMLInputElement)) {
-            throw new TypeError('Numeric parameter control must be an HTMLInputElement');
-        }
-        const key = getDomData(host, element, 'param');
-        if (!key) {
+        if (!key) return;
+        if (element.classList.contains('json-input')) {
+            if (!(element instanceof HTMLTextAreaElement)) throw new TypeError('JSON parameter control must be a textarea');
+            onUpdateJsonParameter(key, element.value, element.id);
             return;
         }
-        if (!element.validity.valid) {
-            setParameterInputValidity(element, false);
-            onSetParameterValidity(key, false);
+        if (element.classList.contains('array-item-input')) {
+            if (!(element instanceof HTMLInputElement)) throw new TypeError('Array item control must be an input');
+            const index = Number(getDomData(host, element, 'index'));
+            setParameterInputValidity(element, element.validity.valid);
+            const inputs = host.dom.resolveAll(`.array-item-input[data-param="${CSS.escape(key)}"]`, container);
+            if (element.validity.valid && Number.isInteger(index)) {
+                const value = element.type === 'checkbox' ? element.checked : element.type === 'number' && Number.isFinite(element.valueAsNumber) ? element.valueAsNumber : element.value;
+                onUpdateArrayItemValue(key, index, value);
+            }
+            onSetParameterValidity(
+                key,
+                inputs.every((input) => input instanceof HTMLInputElement && input.validity.valid)
+            );
             return;
         }
-        setParameterInputValidity(element, true);
-        onSetParameterValidity(key, true);
-        const step = element.step ? Number(element.step) : NaN;
-        const numericValue = element.valueAsNumber;
-        const parsed = Number.isFinite(numericValue) && (!Number.isNaN(step) && step < 1 ? true : Number.isInteger(numericValue)) ? numericValue : null;
-        onUpdateParameter(key, parsed);
-    });
-    registerHandlers(host, container, 'input[data-param], textarea[data-param], select[data-param]', 'change', boundEvents, eventDisposers, (_event: Event, element: HTMLElement) => {
-        if (element.matches('.array-item-input, .json-input, input[type="number"]')) {
-            return;
-        }
-        const key = getDomData(host, element, 'param');
-        if (!key) {
+        if (element instanceof HTMLInputElement && element.type === 'number') {
+            setParameterInputValidity(element, element.validity.valid);
+            if (element.validity.valid) onUpdateParameter(key, Number.isFinite(element.valueAsNumber) ? element.valueAsNumber : null);
+            onSetParameterValidity(key, element.validity.valid);
             return;
         }
         if (element instanceof HTMLInputElement && element.type === 'checkbox') {
@@ -67,22 +60,11 @@ const bindParameterControls = ({ host, container, boundEvents, eventDisposers, o
             updateToggleLabel(element);
             return;
         }
-        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) {
-            onUpdateParameter(key, element.value);
-            return;
-        }
-        throw new TypeError('Parameter control change target must be an HTMLInputElement, HTMLTextAreaElement, or HTMLSelectElement');
-    });
-    registerHandlers(host, container, '.json-input', 'focusout', boundEvents, eventDisposers, (_event: Event, element: HTMLElement) => {
-        const key = getDomData(host, element, 'param');
-        if (!key) {
-            return;
-        }
-        if (!(element instanceof HTMLTextAreaElement)) {
-            throw new TypeError('JSON parameter control must be an HTMLTextAreaElement');
-        }
-        onUpdateJsonParameter(key, element.value, element.id);
-    });
+        onUpdateParameter(key, element.value);
+    };
+    const selector = 'input[data-param], textarea[data-param], select[data-param], .array-item-input, .json-input';
+    registerHandlers(host, container, selector, 'input', boundEvents, eventDisposers, updateControl);
+    registerHandlers(host, container, selector, 'change', boundEvents, eventDisposers, updateControl);
 };
 
 export { bindParameterControls };

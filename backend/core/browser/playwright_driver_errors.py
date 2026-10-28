@@ -26,7 +26,9 @@ class PlaywrightDriverConnectionClosedError(ServiceUnavailableError):
 
 
 def is_playwright_driver_connection_closed(exception: BaseException) -> bool:
-    return _DRIVER_CONNECTION_CLOSED_SIGNATURE in str(exception).lower()
+    return isinstance(exception, PlaywrightDriverConnectionClosedError) or (
+        _DRIVER_CONNECTION_CLOSED_SIGNATURE in str(exception).lower()
+    )
 
 
 def build_playwright_driver_connection_closed_error(

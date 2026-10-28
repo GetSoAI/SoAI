@@ -41,7 +41,7 @@ async def publish_soaibench_run_update(
         event_run["task_id"] = task_id
         await event_bus.publish(_event_from_run(run=event_run, update_type=update_type))
     except asyncio.CancelledError as exception:
-        exception.add_note("SoAIBench realtime update publication was cancelled.")
+        exception.add_note("SoAI Bench realtime update publication was cancelled.")
         raise
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
         coerced_exception = coerce_to_soai_error(exception, operation=OPERATION)
@@ -49,7 +49,7 @@ async def publish_soaibench_run_update(
             log_exception(
                 logger,
                 coerced_exception,
-                message="SoAIBench realtime update publication failed.",
+                message="SoAI Bench realtime update publication failed.",
                 operation=OPERATION,
                 details={"run_id": run_id, "update_type": update_type},
                 level="warning",

@@ -7,8 +7,9 @@ const MINIMAP_LINE_HEIGHT_PX = 2;
 const MINIMAP_LINE_PITCH_PX = 7;
 
 type MinimapCloneLayout = {
-    topPx: number;
-    heightPx: number;
+    topRatio: number;
+    heightRatio: number;
+    projectedHeightPx: number;
 };
 
 const mutationTouchesMessageList = (mutation: MutationRecord, messagesRoot: HTMLElement): boolean => {
@@ -39,6 +40,8 @@ const resolveMinimapMessageHeightPx = (heightPx: number): number => {
     return Math.max(8, Math.ceil(heightPx));
 };
 
+const formatMinimapPercent = (ratio: number): string => `${String(Number((Number.isFinite(ratio) ? Math.max(0, ratio) * 100 : 0).toFixed(4)))}%`;
+
 const resolveMinimapLineWidth = (height: number): number => {
     if (height <= 14) {
         return 42;
@@ -54,15 +57,14 @@ const resolveMinimapLineWidth = (height: number): number => {
 
 const resolveMinimapCloneStateSignature = (source: HTMLElement, layout: MinimapCloneLayout): string => {
     const roleClass = resolveRoleClass(source);
-    const height = resolveMinimapMessageHeightPx(layout.heightPx);
-    return `${roleClass}|${source.hidden ? '1' : '0'}|${String(Math.max(0, Math.floor(layout.topPx)))}|${String(height)}`;
+    const lineWidth = resolveMinimapLineWidth(resolveMinimapMessageHeightPx(layout.projectedHeightPx));
+    return `${roleClass}|${source.hidden ? '1' : '0'}|${formatMinimapPercent(layout.topRatio)}|${formatMinimapPercent(layout.heightRatio)}|${String(lineWidth)}`;
 };
 
 const syncMinimapLineMarker = (target: HTMLElement, source: HTMLElement, height: number): void => {
     const existing = target.firstElementChild;
     const marker = existing instanceof HTMLSpanElement ? existing : source.ownerDocument.createElement('span');
     syncStyleProperty(marker, 'width', `${resolveMinimapLineWidth(height)}%`);
-    syncStyleProperty(marker, 'height', `${height}px`);
     syncStyleProperty(marker, 'background', `repeating-linear-gradient(to bottom, currentColor 0 ${MINIMAP_LINE_HEIGHT_PX}px, transparent ${MINIMAP_LINE_HEIGHT_PX}px ${MINIMAP_LINE_PITCH_PX}px)`);
     if (marker.parentElement !== target) {
         target.replaceChildren(marker);
@@ -71,7 +73,7 @@ const syncMinimapLineMarker = (target: HTMLElement, source: HTMLElement, height:
 
 const syncMinimapCloneState = (target: HTMLElement, source: HTMLElement, layout: MinimapCloneLayout): void => {
     const roleClass = resolveRoleClass(source);
-    const height = resolveMinimapMessageHeightPx(layout.heightPx);
+    const height = resolveMinimapMessageHeightPx(layout.projectedHeightPx);
     const className = `chat-advanced-scroll-minimap-message ${roleClass}`;
     if (target.className !== className) {
         target.className = className;
@@ -79,8 +81,8 @@ const syncMinimapCloneState = (target: HTMLElement, source: HTMLElement, layout:
     if (target.hidden !== source.hidden) {
         target.hidden = source.hidden;
     }
-    syncStyleProperty(target, 'top', `${Math.max(0, Math.floor(layout.topPx))}px`);
-    syncStyleProperty(target, 'height', `${height}px`);
+    syncStyleProperty(target, 'top', formatMinimapPercent(layout.topRatio));
+    syncStyleProperty(target, 'height', formatMinimapPercent(layout.heightRatio));
     syncMinimapLineMarker(target, source, height);
 };
 

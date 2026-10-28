@@ -1,14 +1,17 @@
 /* SoAI - Hardware page realtime [frontend/assets/ts/pages/hardware/realtime/hardwarePageRealtime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { projectHardwareResourceObservation } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
+import { serverEpochMs } from '@core/time/clock.ts';
+import { ResourceTracker } from '@core/resourcetracker/service.ts';
+import { isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { buildSignalRequestOptions } from '@core/api/requestOptions.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { runCleanupCallbacks } from '@core/lifecycle/cleanup.ts';
 import type { LogLevel } from '@core/moduleContext.ts';
 import { disposeResourceStreamSubscriptions, subscribeResourceStateStreamBatch, type ResourceStreamSubscription } from '@core/realtime/resourceSubscriptions.ts';
-import { HARDWARE_GPU_CAPABILITIES, HARDWARE_GPU_SLOTS, HARDWARE_GPU_SOAIBENCH_RUNS, HARDWARE_PROCESSES } from '@core/realtime/streammanager/resources/ids.ts';
-import type { JsonValue } from '@core/types/jsonValues.ts';
+import { HARDWARE, HARDWARE_GPU_CAPABILITIES, HARDWARE_GPU_SLOTS, HARDWARE_GPU_SOAIBENCH_RUNS, HARDWARE_PROCESSES } from '@core/realtime/streammanager/resources/ids.ts';
 import type { StreamRuntimeOwners } from '@core/realtime/streammanager/public.ts';
 import type { ReconciledResourceStatus, ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
 import { subscribeHistoryResync } from '@features/charts/public.ts';
@@ -73,21 +76,36 @@ const createGpuResourceStateListener = (host: HardwareRealtimeHost, gpuResource:
     };
 };
 
-const createResourceValueListener = (handler: (value: JsonValue | null) => void): ((snapshot: ResourceReconciliationSnapshot) => void) => {
-    return (snapshot: ResourceReconciliationSnapshot): void => {
-        if (snapshot.status !== 'ready') {
-            return;
-        }
-        handler(snapshot.value);
+const createResourceValueListener =
+    (handler: (value: JsonValue | null) => void): ((snapshot: ResourceReconciliationSnapshot) => void) =>
+    (snapshot) => {
+        if (snapshot.status === 'ready') handler(snapshot.value);
     };
-};
 
 const subscribeHardwareResource = (host: HardwareRealtimeHost, resource: string, handler: (value: JsonValue | null) => void): (() => void) | null => {
     const gpuResource = GPU_RESOURCE_IDS[resource];
-    if (gpuResource === undefined) {
-        return host.subscribeToResourceState(resource, createResourceValueListener(handler));
+    if (gpuResource !== undefined) return host.subscribeToResourceState(resource, createGpuResourceStateListener(host, gpuResource, resource, handler));
+    if (resource !== HARDWARE) return host.subscribeToResourceState(resource, createResourceValueListener(handler));
+    const resources = new ResourceTracker();
+    let timer: number | null = null;
+    const unsubscribe = host.subscribeToResourceState(resource, (snapshot) => {
+        if (timer !== null) resources.clearTimeout(timer);
+        if (snapshot.value === null) return;
+        handler(projectHardwareResourceObservation(snapshot.value, snapshot.status, serverEpochMs()));
+        if (snapshot.status !== 'ready') {
+            const capabilities = isJsonObject(snapshot.value) ? snapshot.value['capabilities'] : null;
+            const interval = isJsonObject(capabilities) ? capabilities['monitoringIntervalMs'] : null;
+            timer = resources.setTimeout(() => handler(projectHardwareResourceObservation(snapshot.value, snapshot.status, serverEpochMs())), 3 * (typeof interval === 'number' && interval > 0 ? interval : 1000));
+        }
+    });
+    if (!unsubscribe) {
+        resources.cleanup();
+        return null;
     }
-    return host.subscribeToResourceState(resource, createGpuResourceStateListener(host, gpuResource, resource, handler));
+    return () => {
+        unsubscribe();
+        resources.cleanup();
+    };
 };
 
 interface HardwareRealtimeStreams {

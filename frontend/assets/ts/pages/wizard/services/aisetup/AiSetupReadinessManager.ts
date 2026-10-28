@@ -7,12 +7,12 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { createAbortError, isAbortError, throwIfAborted } from '@core/errors/abort.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { runOpenAiModelTestStream } from '@core/openai/modelTestStreamClient.ts';
-import { readModelTestStreamFailureOutcome } from '@core/openai/modelTestStreamOutcome.ts';
+import { ModelTestStreamError, readModelTestStreamFailureOutcome, type ModelTestFailureMetadata } from '@core/openai/modelTestStreamOutcome.ts';
 import type { AiSetupModel, AiSetupState, AiSetupTestOutcome } from '@core/storage/aisetup/aiSetupTypes.ts';
 import { wallClockMs } from '@core/time/clock.ts';
 import { MODEL_CONTEXT_WINDOW_PARAMETER_KEY, type ModelData } from '@core/types/modelTypes.ts';
 import { createWebSocketRunId } from '@core/websocketclient/runCorrelation.ts';
-import { findItemModel, readConfigurationFingerprint } from '@pages/wizard/services/aisetup/catalog/mappers.ts';
+import { findItemModel, readConfigurationFingerprint, readModelOperationId } from '@pages/wizard/services/aisetup/catalog/mappers.ts';
 import type { ReadinessPhase } from '@pages/wizard/services/aisetup/progress/mappers.ts';
 import { withConfiguration, withModelDiscovered, withTestResult, withTestStale } from '@pages/wizard/services/aisetup/state.ts';
 
@@ -82,6 +82,7 @@ class AiSetupReadinessManager {
     }
 
     requestTest(itemId: string): void {
+        if (this.#abortController.signal.aborted) return;
         const item = this.#host.getSetup().models.find((entry) => entry.itemId === itemId) ?? null;
         if (item === null || item.excluded || this.#phases.has(itemId)) return;
         if (item.source === 'local') {
@@ -118,7 +119,7 @@ class AiSetupReadinessManager {
         if (model === null) throw new Error('AI setup model is unavailable during configuration');
         const contextTokens = this.#host.resolveStarterContextTokens(item);
         if (contextTokens === null || model.modelHasCustomParameters === true) return readConfigurationFingerprint(model) ?? UNVERSIONED_CONFIGURATION;
-        await getApiClient().models.updateParameters(model.id, { [MODEL_CONTEXT_WINDOW_PARAMETER_KEY]: contextTokens });
+        await getApiClient().models.updateParameters(readModelOperationId(model), { [MODEL_CONTEXT_WINDOW_PARAMETER_KEY]: contextTokens });
         throwIfAborted(this.#abortController.signal);
         const refreshed = await this.#host.refreshModels();
         throwIfAborted(this.#abortController.signal);
@@ -135,14 +136,17 @@ class AiSetupReadinessManager {
     }
 
     async #runTest(item: AiSetupModel): Promise<void> {
+        throwIfAborted(this.#abortController.signal);
         const model = this.#requireModel(item);
         const fingerprint = readConfigurationFingerprint(model) ?? item.test.configurationFingerprint;
         this.#setPhase(item.itemId, 'testing');
         let outcome: AiSetupTestOutcome;
+        let failure: ModelTestFailureMetadata | null = null;
+        const testedRecord = item.test;
         try {
             outcome = await runOpenAiModelTestStream({
                 runId: createWebSocketRunId('ws_ai_setup_test'),
-                request: { model: model.id, stream: true, reasoningEffort: 'none', messages: [{ role: 'user', content: i18n.t('wizard.aiSetup.progress.testPrompt') }] },
+                request: { model: readModelOperationId(model), stream: true, reasoningEffort: 'none', messages: [{ role: 'user', content: i18n.t('wizard.aiSetup.progress.testPrompt') }] },
                 signal: this.#abortController.signal,
                 cancelReason: i18n.t('wizard.aiSetup.progress.testCancelled'),
                 timeoutMs: MODEL_TEST_TIMEOUT_MS,
@@ -151,12 +155,21 @@ class AiSetupReadinessManager {
                 onAssistantTextDelta: () => undefined
             });
         } catch (error) {
-            outcome = readModelTestStreamFailureOutcome(ensureError(error));
+            const runtimeError = ensureError(error);
+            outcome = readModelTestStreamFailureOutcome(runtimeError);
+            failure = runtimeError instanceof ModelTestStreamError ? runtimeError.failure : null;
         } finally {
             this.#phases.delete(item.itemId);
         }
         if (this.#abortController.signal.aborted) return;
-        this.#host.updateSetup((setup) => withTestResult(setup, item.itemId, outcome, fingerprint, wallClockMs()));
+        this.#host.updateSetup((setup) => {
+            const current = setup.models.find((entry) => entry.itemId === item.itemId);
+            if (!current || current.excluded || current.modelId !== item.modelId || current.pluginName !== item.pluginName || current.artifactReference !== item.artifactReference || current.repositoryId !== item.repositoryId) return setup;
+            if (current.test.status !== testedRecord.status || current.test.outcome !== testedRecord.outcome || current.test.testedAtMs !== testedRecord.testedAtMs || current.test.configurationFingerprint !== testedRecord.configurationFingerprint) return setup;
+            const currentModel = findItemModel(this.#host.getModels(), current);
+            if (currentModel === null || readModelOperationId(currentModel) !== readModelOperationId(model) || (readConfigurationFingerprint(currentModel) ?? current.test.configurationFingerprint) !== fingerprint) return setup;
+            return withTestResult(setup, item.itemId, outcome, fingerprint, wallClockMs(), failure);
+        });
         this.#host.onChange();
     }
 

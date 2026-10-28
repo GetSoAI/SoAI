@@ -6,7 +6,7 @@ import type { UpdatesPageDependencies } from '@pages/updates/contracts/contracts
 import type { UpdatesPageActionHandlers } from '@pages/updates/controllers/events.ts';
 import type { UpdatesInstallOutcome, UpdatesOperationOutcome, UpdatesProductController, UpdatesProductRuntimeDependencies } from '@core/edition/updatesContribution.ts';
 import type { UpdatesControllerNoticeSurface } from '@pages/updates/controllers/contracts.ts';
-import { applyCheckOutcomeNotice, applyCheckingUpdatesNotice, applyInstallOutcomeNotice, applyInstallStartedNotice, applyOperationTimeoutNotice, resolveUpdatesCheckNotification } from '@pages/updates/controllers/updatesPageNoticeController.ts';
+import { applyCheckOutcomeNotice, applyInitialUpdatesNotice, applyCheckingUpdatesNotice, applyInstallOutcomeNotice, applyInstallStartedNotice, applyOperationTimeoutNotice, resolveUpdatesCheckNotification } from '@pages/updates/controllers/updatesPageNoticeController.ts';
 import { executeApplicationInstallWorkflow, executeUpdatesCheckWorkflow } from '@pages/updates/controllers/updatesPageOperationsController.ts';
 import { UpdatesOperationMonitor } from '@pages/updates/controllers/updatesOperationMonitorController.ts';
 import { createUpdatesSystemControllerHost, type UpdatesPageControllerHostDependencies } from '@pages/updates/controllers/updatesPageHostController.ts';
@@ -29,6 +29,8 @@ import { hoursToMs } from '@core/time/durations.ts';
 import { RichTextRenderer } from '@core/richtextrenderer/service.ts';
 import { toTrustedHtml } from '@core/security/public.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { errorHandler } from '@core/errorHandler.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import { UpdatesPreparationProgressController } from '@pages/updates/controllers/updatesPreparationProgressController.ts';
 
 const UPDATE_OPERATION_TIMEOUT_MS = hoursToMs(2);
@@ -73,22 +75,22 @@ class UpdatesPageWorkflowController {
         this.#preparationProgress = new UpdatesPreparationProgressController({
             ui,
             createReporter: (container) => this.#dependencies.streaming.progressReporter(container, { showCancel: false, showBadge: false }),
-            getPreparation: async () => await this.#dependencies.api.software.getUpdatePreparation(),
-            setTimeout: (callback, milliseconds) => this.#dependencies.pageResources.setTimeout(callback, milliseconds),
-            clearTimer: (timerId) => this.#dependencies.pageResources.clearTimer(timerId)
+            subscribeOperations: (listener) => this.#dependencies.streaming.runtime().tasks.subscribeOperations(listener),
+            reconcileOperations: async () => await this.#dependencies.streaming.runtime().tasks.reconnectOperations()
         });
     }
 
     setControllers(systemController: UpdatesSystemController, productController: UpdatesProductController | null): void {
         this.#systemController = systemController;
         this.#productController = productController;
+        this.#withNoticeUi((ui) => applyInitialUpdatesNotice(this.#createNoticeHost(), ui, systemController.hasHistory || productController?.hasHistory === true));
     }
 
     createSystemHost(): UpdatesSystemControllerHost {
         return createUpdatesSystemControllerHost(this.#createControllerHostDependencies());
     }
 
-    createActionHandlers(): UpdatesPageActionHandlers {
+    createActionHandlers(): Omit<UpdatesPageActionHandlers, 'onOpenPlugins'> {
         return {
             onCheckUpdates: async () => await this.#checkForUpdates(),
             onInstallSystemUpdate: async (button) => await this.#onInstallSystemUpdate(button)
@@ -142,8 +144,19 @@ class UpdatesPageWorkflowController {
 
     #createControllerHostDependencies(): UpdatesPageControllerHostDependencies {
         return {
+            storage: this.#dependencies.storage,
             checkUpdates: async () => await this.#dependencies.api.software.checkUpdates(),
-            updateSoAI: async () => await this.#dependencies.api.software.updateSoAI(),
+            updateSoAI: async () => {
+                const result = await this.#dependencies.api.software.updateSoAI();
+                if (result.taskId) {
+                    const task = this.#dependencies.streaming.runtime().tasks.trackAcceptedTask(result.taskId, {
+                        operation: { type: 'software-update', cancelable: false, indeterminate: true },
+                        timeoutMs: UPDATE_OPERATION_TIMEOUT_MS
+                    });
+                    void task.finished.catch((error) => errorHandler.warn('Updates', 'Accepted software update task failed', ensureError(error)));
+                }
+                return result;
+            },
             systemSurface: {
                 notify: (message, type) => this.#dependencies.feedback.show(message, type ?? 'info'),
                 setButtonLoading: (button, loading, options) => this.#setButtonLoading(button, loading, options),

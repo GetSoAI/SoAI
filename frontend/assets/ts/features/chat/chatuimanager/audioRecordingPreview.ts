@@ -49,6 +49,7 @@ const resolveRecordingStatus = (snapshot: AudioRecordingSnapshot): string => {
     if (snapshot.presentation === 'ptt-sending') return i18n.t('chat.audioPreview.pushToTalk.sending');
     if (snapshot.presentation === 'ptt-queued') return i18n.t('chat.audioPreview.pushToTalk.queued');
     if (snapshot.presentation === 'ptt-cancelled') return i18n.t('chat.audioPreview.pushToTalk.cancelled');
+    if (snapshot.presentation === 'transcription-settling') return i18n.t('chat.audioPreview.transcriptionSettling');
     if (snapshot.state === 'processing') {
         return snapshot.intent === 'push-to-talk' ? i18n.t('chat.audioPreview.pushToTalk.transcribing') : i18n.t('chat.audioPreview.processingStatus');
     }
@@ -92,6 +93,7 @@ const updateAudioRecordingPreview = (context: ChatUIManagerContext, snapshot: Au
     const actionLabel = snapshot.errorText ? i18n.t('common.close') : i18n.t('chat.audioPreview.cancel');
     const actionLabelAttr = context.dependencies.sanitizer.attribute(actionLabel);
     ensureAudioRecordingPreviewShell(context, preview);
+    syncAttributeValue(requireRootHTMLElement(preview, PREVIEW_ITEM_SELECTOR, 'voice recording preview item'), 'data-voice-recording-failed', snapshot.errorText ? 'true' : 'false');
     syncTextContent(requireRootHTMLElement(preview, PREVIEW_TITLE_SELECTOR, 'voice recording preview title'), resolveRecordingTitle(snapshot));
     syncTextContent(requireRootHTMLElement(preview, PREVIEW_STATUS_SELECTOR, 'voice recording preview status'), resolveRecordingStatus(snapshot));
     const spinner = requireRootHTMLElement(preview, PREVIEW_SPINNER_SELECTOR, 'voice recording preview spinner');

@@ -4,7 +4,7 @@
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconDefaultOptions } from '@core/ui/icons/iconservice/types.ts';
 
-const MIRRORED_ICON_KEYS: ReadonlySet<IconName> = new Set<IconName>(['chevron-left', 'chevron-right', 'arrow-left', 'arrow-right', 'send', 'undo', 'redo', 'panel-left-visible', 'panel-right-visible', 'panel-hidden', 'resize-corner', 'external-link']);
+const MIRRORED_ICON_KEYS: ReadonlySet<IconName> = new Set<IconName>(['chevron-left', 'chevron-right', 'arrow-left', 'arrow-right', 'send', 'undo', 'redo', 'panel-left-visible', 'panel-right-visible', 'panel-hidden', 'resize-corner', 'external-link', 'external-link-modal']);
 
 const DEFAULT_ICON_SIZE = 24;
 const DEFAULT_ICON_STROKE = 1.5;
@@ -22,7 +22,7 @@ const ICON_DEFAULTS: Readonly<Partial<Record<IconName, IconDefaultOptions>>> = (
 
     setMany(['chevron-up', 'chevron-down', 'chevron-left', 'chevron-right', 'close', 'menu', 'refresh', 'search', 'add', 'minus', 'external-link', 'sparkle', 'prompt'], 16, 1.5);
 
-    setMany(['power', 'provider', 'settings', 'tasks', 'plan', 'error', 'error-modal', 'success-modal', 'warning-modal', 'danger-modal', 'info-modal', 'download', 'window', 'select', 'model-virtual', 'warning', 'plugin', 'filter'], 24, 1.5);
+    setMany(['power', 'provider', 'settings', 'tasks', 'plan', 'error', 'error-modal', 'success-modal', 'warning-modal', 'danger-modal', 'info-modal', 'restart-application-modal', 'shutdown-application-modal', 'restart-modal', 'power-modal', 'suspend-modal', 'hibernate-modal', 'external-link-modal', 'copy-modal', 'folder-modal', 'clock-modal', 'key-modal', 'download', 'window', 'select', 'model-virtual', 'warning', 'plugin', 'filter'], 24, 1.5);
 
     setMany(['model-default', 'device-network', 'device-storage', 'device-cpu', 'device-gpu'], 20, 1.5);
 
@@ -37,7 +37,7 @@ const ICON_DEFAULTS: Readonly<Partial<Record<IconName, IconDefaultOptions>>> = (
     defaults['restart'] = { size: 48, strokeWidth: 1.5 };
     defaults['suspend'] = { size: 48, strokeWidth: 1.5 };
     defaults['hibernate'] = { size: 48, strokeWidth: 1.5 };
-    defaults['copy'] = { size: 10, strokeWidth: 1 };
+    defaults['copy'] = { size: 16, strokeWidth: 1.5 };
 
     return defaults;
 })();

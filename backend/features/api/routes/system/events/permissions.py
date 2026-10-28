@@ -14,6 +14,7 @@ from core.events.types_conversation_durable import (
 )
 from core.events.types_file_explorer import FileSystemChangedEvent
 from core.events.types_mcp import KnowledgePromptStateChangedEvent, MCPNotificationEvent
+from core.events.types_skills import ConversationSkillsChangedEvent, SkillLibraryChangedEvent
 from core.events.types_system import (
     ChatStreamActivityChangedEvent,
     ChatStreamEvent,
@@ -73,6 +74,8 @@ if TYPE_CHECKING:
 __all__ = ("event_visible_to_user", "resolve_current_user_id")
 
 SNAPSHOT_PERMISSION_RULES: tuple[tuple[str, AccessAction], ...] = (
+    ("skills.library", AccessAction.AUTH_COOKIE),
+    ("skills.selection", AccessAction.AUTH_COOKIE),
     ("models.collection", AccessAction.MODEL_READ),
     ("models.last_used", AccessAction.MODEL_READ),
     ("plugins.collection", AccessAction.PLUGIN_READ),
@@ -146,6 +149,8 @@ def event_visible_to_user(
     mcp_server: MCPServerProtocol | None,
 ) -> bool:
     user_id = resolve_current_user_id(current_user)
+    if isinstance(event, SkillLibraryChangedEvent | ConversationSkillsChangedEvent):
+        return event.user_id == user_id
     if isinstance(event, PromptListUpdatedEvent):
         return event.user_id == user_id
     if isinstance(event, ConversationAttentionChangedEvent):

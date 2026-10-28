@@ -21,6 +21,7 @@ from core.files.managed_storage_errors import FileStorageSecurityError
 from core.files.secure_open_flags import secure_read_only_open_flags
 from core.files.windows_handle_operations import mark_windows_file_descriptor_for_deletion
 from core.files.windows_managed_path_handles import open_windows_managed_path_handles
+from core.filesystem.descriptor_io import open_descriptor
 from core.logging.trace import get_logger
 from features.api.runtime.file_descriptor_response import FileDescriptorResponse
 
@@ -157,7 +158,7 @@ def _open_stable_temporary_file(
                 cause=exception,
             ) from exception
     try:
-        descriptor = os.open(path, secure_read_only_open_flags(directory=False))
+        descriptor = open_descriptor(path, secure_read_only_open_flags(directory=False))
     except (FileStorageSecurityError, OSError) as exception:
         raise StateError(
             "Temporary response file could not be opened securely.",

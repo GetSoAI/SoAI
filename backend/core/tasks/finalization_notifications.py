@@ -11,6 +11,7 @@ from core.errors.exception_logging import log_exception
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.events.types_tasks import TaskCompleteEvent
 from core.logging.trace import get_logger
+from core.models.parameter_errors import MODEL_PARAMETER_SCHEMA_UNAVAILABLE_CODE
 from core.openai.capability_taxonomy import OpenAIModality
 from core.openai.request_requirement_failures import (
     classify_openai_request_requirement_mismatch,
@@ -39,6 +40,8 @@ _AGENT_TOOL_IMAGE_RELAY_REQUESTED_METADATA_KEY = "agent_tool_image_relay_request
 def _should_log_failure_as_warning(task: Task) -> bool:
     if task.error_code is not None and 400 <= task.error_code < 500:
         return True
+    if task.error_type == MODEL_PARAMETER_SCHEMA_UNAVAILABLE_CODE:
+        return True
     mismatch = classify_openai_request_requirement_mismatch(message=task.error_message)
     if mismatch is None:
         return False
@@ -53,7 +56,7 @@ def _should_log_failure_as_warning(task: Task) -> bool:
 def _log_terminal_progress(task: Task, old_status: TaskStatus, final_message: str) -> None:
     logger = get_logger(LOGGER_NAME_LIFECYCLE)
     progress_logger = get_logger(LOGGER_NAME_PROGRESS)
-    if task.is_progress_trackable():
+    if task.is_progress_trackable() or task.execution_timeout_pending:
         return
     log_line = f"[Task/{task.task_type}] {final_message} ({task.task_id})"
     try:

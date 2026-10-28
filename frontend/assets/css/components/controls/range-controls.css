@@ -3,26 +3,28 @@
 
 @layer components {
     input[type='range'] {
-        --range-track-height: 4px;
+        --range-track-height: var(--control-progress-height);
         --range-thumb-size: var(--control-icon-size);
         --range-thumb-radius: var(--border-radius);
-        --range-thumb-accent: var(--accent-primary);
-        --range-thumb-accent-hover: var(--accent-primary-hover);
+        --range-thumb-accent: color-mix(in srgb, var(--accent-primary) 88%, var(--glass-surface-medium-base));
         --range-thumb-border: color-mix(in srgb, var(--range-thumb-accent) 55%, var(--glass-border-strong) 45%);
         --range-thumb-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-white) 35%, transparent), inset 0 -1px 1px color-mix(in srgb, var(--color-black) 16%, transparent), 0 2px 4px color-mix(in srgb, var(--color-black) 22%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-black) 6%, transparent);
-        --range-thumb-shadow-hover: inset 0 1px 0 color-mix(in srgb, var(--color-white) 42%, transparent), inset 0 -1px 1px color-mix(in srgb, var(--color-black) 14%, transparent), 0 3px 7px color-mix(in srgb, var(--range-thumb-accent) 26%, transparent), 0 0 0 1px color-mix(in srgb, var(--range-thumb-accent) 24%, transparent);
+        appearance: none;
+        background: transparent;
     }
 
     input[type='range']::-webkit-slider-runnable-track {
         height: var(--range-track-height);
-        background: transparent;
+        background: var(--control-progress-track-background);
+        border: var(--border-width-1) solid var(--control-progress-track-border);
+        border-radius: var(--control-progress-radius);
     }
 
     input[type='range']::-webkit-slider-thumb {
         appearance: none;
         width: var(--range-thumb-size);
         height: var(--range-thumb-size);
-        margin-top: calc((var(--range-track-height) - var(--range-thumb-size)) / 2);
+        margin-top: calc((var(--range-track-height) - var(--range-thumb-size)) / 2 - var(--border-width-1));
         background: linear-gradient(180deg, color-mix(in srgb, var(--range-thumb-accent) 78%, var(--color-white) 22%), var(--range-thumb-accent));
         border: var(--border-width-1) solid var(--range-thumb-border);
         border-radius: var(--range-thumb-radius);
@@ -37,8 +39,9 @@
 
     input[type='range']::-moz-range-track {
         height: var(--range-track-height);
-        background: transparent;
-        border: none;
+        background: var(--control-progress-track-background);
+        border: var(--border-width-1) solid var(--control-progress-track-border);
+        border-radius: var(--control-progress-radius);
     }
 
     input[type='range']::-moz-range-thumb {
@@ -56,13 +59,6 @@
             box-shadow var(--transition-fast);
     }
 
-    input[type='range']::-webkit-slider-thumb:hover,
-    input[type='range']::-moz-range-thumb:hover {
-        background: linear-gradient(180deg, color-mix(in srgb, var(--range-thumb-accent-hover) 82%, var(--color-white) 18%), var(--range-thumb-accent-hover));
-        border-color: color-mix(in srgb, var(--range-thumb-accent-hover) 68%, var(--glass-border-strong) 32%);
-        transform: scale(1.08);
-    }
-
     .ui-range {
         width: 100%;
         height: var(--range-track-height);
@@ -77,14 +73,5 @@
     .ui-range:focus-visible {
         border-color: var(--accent-green);
         box-shadow: 0 0 0 var(--control-focus-ring-width) color-mix(in srgb, var(--control-focus-ring-color) 35%, transparent);
-    }
-
-    .ui-range::-webkit-slider-runnable-track {
-        background: transparent;
-    }
-
-    .ui-range::-moz-range-track {
-        background: transparent;
-        border: none;
     }
 }

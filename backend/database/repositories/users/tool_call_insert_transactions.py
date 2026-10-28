@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import sqlite3
-from typing import TYPE_CHECKING
 
 from core.database.requests import CreateToolCallRequest, CreateToolCallResult
 from core.errors.exceptions import ValidationError
@@ -16,9 +15,6 @@ from database.repositories.users.context_compaction_metric_events import (
 )
 from database.repositories.users.tool_call_chronology_validation import (
     resolve_tool_call_content_anchor_against_assistant_message,
-)
-from database.repositories.users.tool_call_identity_queries import (
-    build_tool_call_identity_query,
 )
 from database.repositories.users.tool_call_insert_conflicts import (
     resolve_tool_call_insert_conflict,
@@ -40,37 +36,7 @@ from database.repositories.users.tool_call_validation import (
     validate_terminal_status_error_message,
 )
 
-if TYPE_CHECKING:
-    from database.core.sqlite_values import SQLiteRowDict
-
-__all__ = (
-    "select_tool_call_by_identity",
-    "sync_create_tool_call",
-)
-
-
-def select_tool_call_by_identity(
-    conn: sqlite3.Connection,
-    *,
-    conv_id: str,
-    turn_id: str | None,
-    iteration_index: int | None,
-    message_index: int | None,
-    assistant_turn_at_ms: int,
-    model_variant_index: int,
-    call_id: str,
-) -> SQLiteRowDict | None:
-    query, query_params = build_tool_call_identity_query(
-        conv_id=conv_id,
-        call_id=call_id,
-        turn_id=turn_id,
-        iteration_index=iteration_index,
-        message_index=message_index,
-        assistant_turn_at_ms=assistant_turn_at_ms,
-        model_variant_index=model_variant_index,
-    )
-    cursor = conn.execute(query, query_params)
-    return sync_fetch_one_as_dict(cursor)
+__all__ = ("sync_create_tool_call",)
 
 
 def sync_create_tool_call(

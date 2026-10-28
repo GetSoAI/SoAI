@@ -61,7 +61,7 @@ def _enrich_gpu_summary_from_system_caps(
     vendors: list[str],
     system_caps: JSONDict,
 ) -> tuple[str, str, str, str, str, JSONDict]:
-    gpu_summary["inventory_available"] = True
+    gpu_summary["inventory_available"] = "gpu_discovery" not in system_caps
     gpu_meta_value = system_caps.get("gpu")
     gpu_meta = gpu_meta_value if is_json_dict(gpu_meta_value) else {}
     primary_vendor = str(gpu_meta.get("vendor", "")).strip().lower() if gpu_meta else ""
@@ -149,7 +149,7 @@ async def get_host_capability_snapshot(
                 operation=OPERATION,
             )
     gpu_info: JSONDict = {}
-    if include_gpu_inventory:
+    if include_gpu_inventory and (system_caps is None or "gpu_discovery" not in system_caps):
         try:
             gpu_info = await asyncio.to_thread(get_gpu_info, False)
         except RECOVERABLE_EXCEPTIONS as exception:
@@ -196,4 +196,6 @@ async def get_host_capability_snapshot(
     snapshot["drivers"] = driver_names
     snapshot["normalized_drivers"] = normalized_driver_names
     snapshot["driver_details"] = driver_details_json
+    if system_caps is not None and "gpu_discovery" in system_caps:
+        snapshot["gpu_discovery"] = system_caps["gpu_discovery"]
     return snapshot

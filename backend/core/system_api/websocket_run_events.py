@@ -3,11 +3,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from core.system_api.websocket_payloads import (
     build_websocket_error_payload,
     build_websocket_event_payload,
 )
 from core.types.json import JSONDict
+
+if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
 
 __all__ = (
     "build_websocket_run_error_event",
@@ -36,14 +41,19 @@ def build_websocket_run_error_event(
     message: str,
     code: str,
     task_id: str | None = None,
+    param: str | None = None,
+    public_error: ErrorPublicPayload | None = None,
 ) -> JSONDict:
     fields: JSONDict = {"run_id": run_id, "code": code}
     if task_id is not None and task_id.strip():
         fields["task_id"] = task_id.strip()
+    if param is not None and param.strip():
+        fields["param"] = param.strip()
     return build_websocket_error_payload(
         event_type=event_type,
         trace_id=None,
         message=message,
         code=code,
         extra=fields,
+        public_error=public_error,
     )

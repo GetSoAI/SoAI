@@ -1,6 +1,7 @@
 /* SoAI - Frontend WebUI conversation message response contracts [frontend/assets/ts/core/api/contracts/webuiMessageContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { readTrimmedStringArrayOrEmptyValue } from '@core/types/payloadArrayReaders.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { decodeWebuiMessageContentPart, type WebuiMessageContent } from '@core/api/contracts/webuiMessageContentPartContract.ts';
 import { CHAT_MESSAGE_ROLES, type MessageRole } from '@core/chat/messageRoles.ts';
@@ -12,6 +13,14 @@ import { isJsonArray, type JsonObject, type JsonValue } from '@core/types/jsonVa
 import { decodeAssistantTimeline, decodeAssistantTimelineProjection } from '@core/realtime/eventcontracts/assistantTimelineContracts.ts';
 import { requireAssistantTimelineTool } from '@core/realtime/eventcontracts/assistantToolContracts.ts';
 import type { AssistantEventTimelineItem, AssistantTimelineTool, AssistantTimelineType } from '@core/realtime/eventcontracts/assistantTimelineTypes.ts';
+
+const readAttachmentMissingCapabilities = (value: JsonValue | undefined): Record<string, string[]> => {
+    if (value === undefined) return {};
+    const record = requireRecord(value, 'Message attachment extraction outcomes');
+    const outcomes: Record<string, string[]> = {};
+    for (const [attachmentId, capabilities] of Object.entries(record)) outcomes[attachmentId] = readTrimmedStringArrayOrEmptyValue(capabilities, `Message attachment ${attachmentId} missing capabilities`);
+    return outcomes;
+};
 
 interface WebuiMessageToolCall {
     id?: string | undefined;
@@ -26,6 +35,7 @@ interface WebuiMessageToolCall {
 }
 
 interface WebuiConversationMessageResponse {
+    attachmentMissingCapabilities?: Record<string, string[]>;
     id?: number | undefined;
     conversationInputId?: string | undefined;
     messagingSenderDisplayName?: string | undefined;
@@ -70,6 +80,7 @@ const assertKnownMessageFields = (record: JsonObject, label: string): void => {
             case 'assistant_turn_at_ms':
             case 'model_variant_index':
             case 'content':
+            case 'attachment_missing_capabilities':
             case 'name':
             case 'tool_call_id':
             case 'tool_calls':
@@ -122,6 +133,7 @@ const decodeMessage = (value: JsonValue, label: string): WebuiConversationMessag
         throw new TypeError(`${label} timeline fields are only supported for assistant messages.`);
     }
     return {
+        ...(record['attachment_missing_capabilities'] === undefined ? {} : { attachmentMissingCapabilities: readAttachmentMissingCapabilities(record['attachment_missing_capabilities']) }),
         id: record['id'] === undefined ? undefined : readRequiredNonNegativeIntegerValue(record['id'], `${label}.id`),
         conversationInputId: optionalString(record['conversation_input_id'], `${label}.conversation_input_id`),
         messagingSenderDisplayName: optionalString(record['messaging_sender_display_name'], `${label}.messaging_sender_display_name`),

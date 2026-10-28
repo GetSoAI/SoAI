@@ -132,7 +132,7 @@ class ConversationSendLockManager {
     clear(): void {
         for (const waiter of this.#waiters.splice(0)) {
             waiter.removeAbortListener();
-            waiter.completion.reject(new Error('Chat send lock manager was disposed.'));
+            waiter.completion.reject(createAbortError('Chat send lock manager was disposed.'));
         }
         this.#heldByKey.clear();
     }
@@ -151,14 +151,6 @@ class ConversationSendLockManager {
             if (this.#heldByKey.get(key) === leaseId) {
                 this.#heldByKey.delete(key);
             }
-        }
-        this.#drainWaiters();
-    }
-
-    releaseKeys(keys: readonly string[]): void {
-        const normalizedKeys = normalizeLockKeys(keys);
-        for (const key of normalizedKeys) {
-            this.#heldByKey.delete(key);
         }
         this.#drainWaiters();
     }

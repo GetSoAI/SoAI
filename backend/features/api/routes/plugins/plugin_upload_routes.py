@@ -69,7 +69,7 @@ async def _stage_plugin_upload(
                 chunk_details={"purpose": "plugin_upload_temp_file"},
             ),
             required_fields=frozenset(),
-            allowed_fields=frozenset(),
+            allowed_fields=frozenset({"content_type"}),
         ),
     )
     return staged.parsed.files[0]
@@ -83,10 +83,6 @@ async def _remove_staged_upload(path: str) -> None:
 
 
 def register_routes(routers: ApiRouters) -> None:
-    @routers.plugins.post(
-        "/upload",
-        dependencies=restart_protected_dependencies(AccessAction.PLUGIN_ADMIN),
-    )
     async def upload_plugin(
         request: Request,
         task_id: str | None = Query(
@@ -155,3 +151,10 @@ def register_routes(routers: ApiRouters) -> None:
         finally:
             if staged_path is not None:
                 await _remove_staged_upload(staged_path)
+
+    routers.plugins.add_api_route(
+        "/upload",
+        upload_plugin,
+        methods=["POST"],
+        dependencies=restart_protected_dependencies(AccessAction.PLUGIN_ADMIN),
+    )

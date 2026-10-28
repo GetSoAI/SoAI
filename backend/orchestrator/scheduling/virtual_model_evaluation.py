@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
+from core.errors.public_projection import project_public_error
 from core.events.bus_dispatch_logging import resolve_event_trace_id
 from core.logging.trace import get_logger
 from core.orchestrator.execution_plan import (
@@ -14,6 +15,7 @@ from core.orchestrator.execution_plan import (
     EXECUTION_PLAN_STATUS_ON_COOLDOWN,
     ExecutionPlan,
     resolve_execution_plan_failure_reason,
+    resolve_execution_plan_validation_error,
 )
 from core.orchestrator.routing_config import VirtualModelConfig
 from core.tasks.errors import TASK_STATE_PERSISTENCE_FAILED_MESSAGE
@@ -31,6 +33,7 @@ from orchestrator.scheduling.action_generation_dependencies import (
 )
 
 if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
     from core.types.json import JSONDict
 
 __all__ = (
@@ -53,6 +56,7 @@ class VirtualModelResolutionResult:
     model_info: JSONDict | None = None
     plugin_name: str | None = None
     failure_reason: str | None = None
+    public_error: ErrorPublicPayload | None = None
 
 
 async def evaluate_virtual_model_routing(
@@ -113,6 +117,7 @@ async def evaluate_virtual_model_routing(
         plan,
         default_reason=DEFAULT_NO_VIRTUAL_MODELS_REASON,
     )
+    validation_error = resolve_execution_plan_validation_error(plan)
     return VirtualModelResolutionResult(
         status="unavailable",
         task=task,
@@ -121,6 +126,11 @@ async def evaluate_virtual_model_routing(
         pending_key=routing_key,
         moved=False,
         failure_reason=resolved_failure_reason,
+        public_error=(
+            project_public_error(validation_error, trace_id=resolve_event_trace_id(context.event))
+            if validation_error is not None
+            else None
+        ),
     )
 
 

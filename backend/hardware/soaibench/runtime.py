@@ -17,15 +17,14 @@ __all__ = (
     "CERTIFIED_WARMUP_SECONDS",
     "CERTIFIED_WARMUP_PASSES",
     "OWNER_TYPE",
-    "TASK_ID_PREFIX",
+    "STANDARD_PHASE_TIMEOUT_SECONDS",
     "parse_benchmark_mode",
     "parse_profile",
     "parse_temperature_limit_celsius",
-    "task_id_for_run",
 )
 
 OWNER_TYPE = "hardware_soaibench"
-TASK_ID_PREFIX = "hardware-soaibench-"
+STANDARD_PHASE_TIMEOUT_SECONDS = 3600.0
 CERTIFIED_MEASURED_PASSES = 5
 CERTIFIED_WARMUP_PASSES = 1
 CERTIFIED_WARMUP_SECONDS = 120.0
@@ -65,7 +64,3 @@ def parse_temperature_limit_celsius(value: JSONValue | None) -> float | None:
             f"temperature_limit_celsius must be between {SOAIBENCH_TEMPERATURE_LIMIT_MIN_CELSIUS} and {SOAIBENCH_TEMPERATURE_LIMIT_MAX_CELSIUS}.",
         )
     return parsed
-
-
-def task_id_for_run(run_id: str) -> str:
-    return f"{TASK_ID_PREFIX}{run_id}"

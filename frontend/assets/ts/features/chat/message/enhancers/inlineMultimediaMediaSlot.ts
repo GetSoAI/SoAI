@@ -5,6 +5,7 @@ import { dom } from '@core/dom/dom.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { setAriaBusy } from '@core/ui/controls/ariaBusy.ts';
 import { isHTMLAudioElementInOwnDocument, isHTMLElementInOwnDocument, isHTMLImageElementInOwnDocument, isHTMLVideoElementInOwnDocument } from '@features/chat/message/enhancers/inlineMultimediaDomSafety.ts';
+import { collectMatchingElements } from '@features/chat/stream/streamDomQueries.ts';
 
 type MediaLoadState = 'loading' | 'loaded' | 'error';
 type HtmlMediaPreloadMode = 'none' | 'metadata' | 'auto';
@@ -102,6 +103,28 @@ const reconcileInlineMediaSlotLoadState = (slot: HTMLElement, media: HTMLElement
         return setInlineMediaSlotLoadState(slot, media.readyState >= 1 ? 'loaded' : 'loading');
     }
     return false;
+};
+
+const resolvePrimaryInlineMediaElement = (slot: HTMLElement): HTMLElement | null => {
+    for (const element of dom.resolveAll('img:not(.chat-inline-media-card__image--blurred-bg), audio, video', slot)) {
+        if (isHTMLImageElementInOwnDocument(element) || isHTMLAudioElementInOwnDocument(element) || isHTMLVideoElementInOwnDocument(element)) {
+            return element;
+        }
+    }
+    return null;
+};
+
+const reconcileInlineMediaSlots = (root: HTMLElement): boolean => {
+    let changed = false;
+    for (const slot of collectMatchingElements(root, '.chat-inline-media-card__media')) {
+        const media = resolvePrimaryInlineMediaElement(slot);
+        if (media === null) {
+            continue;
+        }
+        registerInlineMediaSlotLifecycle(slot, media);
+        changed = reconcileInlineMediaSlotLoadState(slot, media) || changed;
+    }
+    return changed;
 };
 
 const createMediaSlot = <TMedia extends HTMLElement>(doc: Document, media: TMedia, options: { errorMessage: string }): MediaSlotElements<TMedia> => {
@@ -223,4 +246,4 @@ const resolveMediaAltText = (candidate: string, fallback: string): string => {
     return normalized ? normalized : fallback;
 };
 
-export { createAudioSlot, createImageSlot, createVideoSlot, reconcileInlineMediaSlotLoadState, registerInlineMediaSlotLifecycle, resolveMediaAltText, setInlineMediaSlotLoadState };
+export { createAudioSlot, createImageSlot, createVideoSlot, reconcileInlineMediaSlots, resolveMediaAltText, setInlineMediaSlotLoadState };

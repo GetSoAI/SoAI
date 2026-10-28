@@ -17,6 +17,7 @@ from core.logging.trace import get_logger
 from core.network.browser_policy_error_text import (
     normalize_browser_policy_error_message,
 )
+from core.network.errors import NetworkPolicyDeniedError
 from core.runtime.network_policy import is_offline_mode_enabled
 from core.validation.integers import is_strict_int
 from mcp.tools.browser.download_support import create_pending_download
@@ -114,7 +115,11 @@ def make_route_handler(
                 details={"request_url": request_url},
                 level="trace",
             )
-            if host and not is_offline_mode_enabled(runtime_flags):
+            if (
+                host
+                and isinstance(exception, NetworkPolicyDeniedError)
+                and not is_offline_mode_enabled(runtime_flags)
+            ):
                 state.host_block_cache.add(host)
             await route.abort()
         except RECOVERABLE_EXCEPTIONS as exception:
@@ -130,8 +135,6 @@ def make_route_handler(
                 details={"request_url": request_url},
                 level="trace",
             )
-            if host and not is_offline_mode_enabled(runtime_flags):
-                state.host_block_cache.add(host)
             await route.abort()
 
     return _route_handler

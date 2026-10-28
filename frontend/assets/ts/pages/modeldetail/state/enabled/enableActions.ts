@@ -9,12 +9,14 @@ import type { SuccessfulMutationResponse } from '@core/api/contracts/successfulM
 import type { ModelRecord } from '@core/types/modelTypes.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 
-interface ModelDetailEnabledActionsHost extends PageFeedbackOwnerHost {
+interface ModelDetailEnabledActionsHost {
     model: ModelRecord | null;
+    feedback: Pick<PageFeedbackOwnerHost['feedback'], 'show'>;
     isVirtualModel(): boolean;
     requireModelId(): string;
     runWithBoundary: <T>(name: string, functionValue: () => Promise<T>) => Promise<T>;
     refreshModelsCollection: () => Promise<void>;
+    getPageSignal: () => AbortSignal | null;
     api: {
         models: {
             updateEnabled: (id: string, payload: { enabled: boolean }) => Promise<SuccessfulMutationResponse>;
@@ -50,23 +52,23 @@ const toggleModelDetailEnabled = async (host: ModelDetailEnabledActionsHost, ele
         }
         const { enabled, checkbox } = parseEnabledToggleRequest(element);
         const previousChecked = !enabled;
+        const modelId = host.requireModelId();
+        const signal = host.getPageSignal();
+        const isCurrent = (): boolean => signal?.aborted !== true && host.model?.universalId === modelId;
         try {
             setTogglePending(element, checkbox, true);
-            await host.api.models.updateEnabled(host.requireModelId(), { enabled });
-            if (host.model) {
-                host.model.isEnabled = enabled;
-                if (!enabled) {
-                    host.model.isAvailable = false;
-                }
-            }
+            await host.api.models.updateEnabled(modelId, { enabled });
+            if (!isCurrent()) return;
+            host.model = { ...host.model, isEnabled: enabled, ...(!enabled ? { isAvailable: false } : {}) };
             try {
                 await host.refreshModelsCollection();
             } catch (error) {
                 const runtimeError = ensureError(error);
                 errorHandler.handleError(runtimeError, { context: 'ModelDetailPage.toggleEnabled.refreshModelsCollection' });
             }
-            host.feedback.show(i18n.t('modelDetail.notifications.enabledUpdated'), 'success');
+            if (isCurrent()) host.feedback.show(i18n.t('modelDetail.notifications.enabledUpdated'), 'success');
         } catch (error) {
+            if (!isCurrent()) return;
             const runtimeError = ensureError(error);
             errorHandler.handleError(runtimeError, { context: 'ModelDetailPage.toggleEnabled' });
             checkbox.checked = previousChecked;

@@ -27,11 +27,19 @@ class IpcStreamClosedError(ValidationError): ...
 
 
 class NdjsonCodec:
-    def __init__(self, *, max_line_bytes: int = IPC_DEFAULT_MAX_LINE_BYTES) -> None:
+    def __init__(
+        self,
+        *,
+        max_line_bytes: int = IPC_DEFAULT_MAX_LINE_BYTES,
+        max_depth: int | None = None,
+        reject_duplicate_keys: bool = False,
+    ) -> None:
         max_value = int(max_line_bytes)
         if max_value < 1024:
             raise ValidationError("max_line_bytes must be at least 1024.")
         self._max_line_bytes = max_value
+        self._max_depth = max_depth
+        self._reject_duplicate_keys = reject_duplicate_keys
 
     @staticmethod
     def default_max_line_bytes() -> int:
@@ -66,7 +74,11 @@ class NdjsonCodec:
         if not decoded:
             raise ValidationError("IPC message is empty.")
         try:
-            parsed = parse_json_value(decoded)
+            parsed = parse_json_value(
+                decoded,
+                max_depth=self._max_depth,
+                reject_duplicate_keys=self._reject_duplicate_keys,
+            )
         except ValidationError as exception:
             raise ValidationError("IPC message is not valid JSON.") from exception
         if not isinstance(parsed, dict):

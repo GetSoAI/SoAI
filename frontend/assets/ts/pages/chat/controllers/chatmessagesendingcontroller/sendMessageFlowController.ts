@@ -10,17 +10,10 @@ import { resolveComposerPayloadForSubmission, type ComposerPayload } from '@page
 import { sendMessageWithResolvedPayload, type ConversationInputIntent, type PostAdmissionHook, type QueuedSendGuard } from '@pages/chat/controllers/chatmessagesendingcontroller/service.ts';
 import type { ConversationInputComposerOutcome, MessageSendingHost, QueuedSendOutcome, SendMessageOptions } from '@pages/chat/controllers/chatmessagesendingcontroller/types.ts';
 
-const runWithConversationSendLockIfIdle = async (inputArguments: { manager: ConversationSendLockManager; conversationId: string | null | undefined; task: () => Promise<void>; canReleaseBusyLock?: () => boolean }): Promise<ConversationExecutionRunResult> => {
-    const lockKey = resolveSendLockKey(inputArguments.conversationId);
-    let lease = inputArguments.manager.tryAcquire([lockKey]);
+const runWithConversationSendLockIfIdle = async (inputArguments: { manager: ConversationSendLockManager; conversationId: string | null | undefined; task: () => Promise<void> }): Promise<ConversationExecutionRunResult> => {
+    const lease = inputArguments.manager.tryAcquire([resolveSendLockKey(inputArguments.conversationId)]);
     if (lease === null) {
-        if (inputArguments.canReleaseBusyLock?.() === true) {
-            inputArguments.manager.releaseKeys([lockKey]);
-            lease = inputArguments.manager.tryAcquire([lockKey]);
-        }
-        if (lease === null) {
-            return { status: 'busy' };
-        }
+        return { status: 'busy' };
     }
     try {
         await inputArguments.task();
@@ -44,7 +37,7 @@ const sendMessageFromComposer = async (inputArguments: { host: MessageSendingHos
         if (!payload) {
             return;
         }
-        await sendMessageWithResolvedPayload({ host, lockLease: lease, initialSendLockKey, payload, applyComposerSideEffects: true, onEffectiveSendCommitted: inputArguments.onEffectiveSendCommitted, afterAdmission });
+        await sendMessageWithResolvedPayload({ host, lockLease: lease, initialSendLockKey, payload, applyComposerSideEffects: true, scrollToBottomOnSend: true, onEffectiveSendCommitted: inputArguments.onEffectiveSendCommitted, afterAdmission });
     } finally {
         lease.release();
     }
@@ -60,7 +53,7 @@ const sendMessageFromPayload = async (inputArguments: { host: MessageSendingHost
     }
 
     try {
-        await sendMessageWithResolvedPayload({ host, lockLease: lease, initialSendLockKey, payload: inputArguments.payload, applyComposerSideEffects: false, afterAdmission });
+        await sendMessageWithResolvedPayload({ host, lockLease: lease, initialSendLockKey, payload: inputArguments.payload, applyComposerSideEffects: false, scrollToBottomOnSend: true, afterAdmission });
     } finally {
         lease.release();
     }

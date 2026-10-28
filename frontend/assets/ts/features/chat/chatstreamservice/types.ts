@@ -18,6 +18,7 @@ type HydratedSnapshotApplicationResult = 'active' | 'terminal';
 type StreamMutationType = 'replay' | 'initial-timeline' | 'text-delta' | 'timeline-event' | 'image' | 'terminal';
 type ChatStreamStartAdmission = 'inactive' | 'busy' | 'unknown';
 type ChatTurnAdmissionPhase = 'inactive' | 'starting' | 'streaming' | 'stopping' | 'stop_failed' | 'terminalizing' | 'reserved';
+type ChatStreamTerminalRenderState = 'none' | 'pending' | 'settled';
 
 interface ChatStreamStopOptions {
     expectedRequestId?: string;
@@ -96,6 +97,7 @@ interface ChatStreamSession extends ChatStreamSessionMeta {
     usagePreview: TokenUsageSnapshot | null;
     pendingCancellation: { reason: string; forcePendingSteers?: boolean } | null;
     stopOperationPending?: boolean;
+    terminalAtMs?: number;
     ownerReleaseRequested: boolean;
     ownerReleaseListener: (() => void) | null;
     onFirstServerEvent?: (() => Promise<void>) | null;
@@ -138,4 +140,4 @@ type ChatNotifyPrefs = {
     notifyOnError: boolean;
 };
 
-export { type ChatNotifyPrefs, type ChatStreamLifecycle, type ChatStreamResponseOptions, type ChatStreamSession, type ChatStreamSessionMeta, type ChatStreamStartAdmission, type ChatStreamStartOptions, type ChatStreamStartOutcome, type ChatStreamStopOptions, type ChatTurnAdmissionPhase, type ChatTurnAdmissionSnapshot, type ChatTurnAdmissionStreamIdentity, type HydratedSnapshotApplicationResult, type InterruptedStreamSnapshot, type StreamListener, type StreamMutationType, type StreamTransportMode, type StreamUpdate };
+export { type ChatNotifyPrefs, type ChatStreamLifecycle, type ChatStreamResponseOptions, type ChatStreamSession, type ChatStreamSessionMeta, type ChatStreamStartAdmission, type ChatStreamStartOptions, type ChatStreamStartOutcome, type ChatStreamStopOptions, type ChatStreamTerminalRenderState, type ChatTurnAdmissionPhase, type ChatTurnAdmissionSnapshot, type ChatTurnAdmissionStreamIdentity, type HydratedSnapshotApplicationResult, type InterruptedStreamSnapshot, type StreamListener, type StreamMutationType, type StreamTransportMode, type StreamUpdate };

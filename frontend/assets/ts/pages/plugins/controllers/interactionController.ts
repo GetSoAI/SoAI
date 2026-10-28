@@ -50,6 +50,7 @@ interface PluginsInteractionControllerDependencies extends PageDomOwnerHost, Pag
     getConfigManager(): { handleSavePluginConfig(): void };
     copyPluginInfo(): Promise<void>;
     getManageBackendModalManager(): {
+        handleRetryBackendVariants(): void;
         handleStartBackendInstall(): void;
         handleCheckBackendUpdate(): Promise<void>;
         handleUninstallBackend(): Promise<void>;
@@ -129,6 +130,7 @@ class PluginsInteractionController {
                     handleInfoCopy: () => this.handleInfoCopyAction()
                 },
                 backend: {
+                    handleBackendVariantsRetry: () => manageBackendModalManager.handleRetryBackendVariants(),
                     handleBackendInstallStart: () => manageBackendModalManager.handleStartBackendInstall(),
                     handleBackendUpdateCheck: () => manageBackendModalManager.handleCheckBackendUpdate(),
                     handleBackendUninstall: () => manageBackendModalManager.handleUninstallBackend(),

@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from ruamel.yaml.comments import CommentedMap
 
     from core.config.value_types import ConfigValue
+    from core.plugins.protocols_instance import PluginInstanceProtocol
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
@@ -130,17 +131,19 @@ async def refresh_plugin_runtime_configuration(
     auto_load: bool = True,
 ) -> JSONDict:
     self.dependencies.infrastructure.lifecycle.require_enabled("Plugin manager")
-    if auto_load:
-        instance = await self.require_loaded_plugin(plugin_name, auto_load=True)
-    else:
-        async with serialized_plugin_load_scope(self, plugin_name):
-            instance_optional = await self.get_plugin_instance(plugin_name)
-        if instance_optional is None:
+    async with serialized_plugin_load_scope(self, plugin_name):
+        instance: PluginInstanceProtocol | None
+        if auto_load:
+            instance = await self.require_loaded_plugin(
+                plugin_name, auto_load=True, already_serialized=True
+            )
+        else:
+            instance = await self.get_plugin_instance(plugin_name)
+        if instance is None or not supports_plugin_capability_from_instance(
+            instance, "SUPPORTS_CONFIGURATION"
+        ):
             return {}
-        instance = instance_optional
-    if not supports_plugin_capability_from_instance(instance, "SUPPORTS_CONFIGURATION"):
-        return {}
-    return await instance.refresh_runtime_configuration()
+        return await instance.refresh_runtime_configuration()
 
 
 async def reconcile_plugin_configuration(

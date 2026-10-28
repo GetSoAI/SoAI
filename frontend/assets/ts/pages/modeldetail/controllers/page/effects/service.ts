@@ -10,15 +10,16 @@ import { toJsonCompatibleValue } from '@core/primitives/clone.ts';
 import { isObject } from '@core/typeGuards.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
-import { MODEL_SNAPSHOT_CACHE, MODEL_STORAGE_PREFIX, PARAMETER_STORAGE_PREFIX, PARAMETER_SNAPSHOT_CACHE, modelDetailLogger, readSnapshot, writeSnapshot } from '@pages/modeldetail/contracts/modelDetailPageSupport.ts';
-import type { ModelDetailEffectsDependencies, ModelDetailEffectsHost, ParametersData } from '@pages/modeldetail/controllers/page/effects/types.ts';
+import { MODEL_SNAPSHOT_CACHE, MODEL_STORAGE_PREFIX, PARAMETER_STORAGE_PREFIX, modelDetailLogger, readSnapshot, writeSnapshot } from '@pages/modeldetail/contracts/modelDetailPageSupport.ts';
+import type { ModelDetailEffectsDependencies, ModelDetailEffectsHost } from '@pages/modeldetail/controllers/page/effects/types.ts';
 import { extractModelDetailPayload } from '@pages/modeldetail/controllers/page/mappers.ts';
 import { getModelDetailPluginName } from '@pages/modeldetail/controllers/page/state.ts';
 import { setModelDetailPageState, updateModelDetailBackendDocumentationLink } from '@pages/modeldetail/controllers/page/view/service.ts';
-import { fetchModelSnapshotFromCollection, fetchParametersViaWebSocketSnapshot } from '@pages/modeldetail/services/modelDetailSnapshotFetch.ts';
+import { fetchModelSnapshotFromCollection } from '@pages/modeldetail/services/modelDetailSnapshotFetch.ts';
 import { handleModelDetailMetricsUpdate, handleModelDetailPluginCollectionUpdate, handleModelDetailRealtimeModelUpdate } from '@pages/modeldetail/controllers/page/effects/events.ts';
 import { ensureModelDetailRealtimeCollectionsReady } from '@pages/modeldetail/controllers/page/events.ts';
-import { decodeModelDetailParameterPayload, serializeModelDetailParameterPayload } from '@pages/modeldetail/mappers/ModelDetailParameterPayloadDomain.ts';
+import { serializeModelDetailParameterPayload } from '@pages/modeldetail/mappers/ModelDetailParameterPayloadDomain.ts';
+import { markModelDetailParametersStale, readCachedModelDetailParameters, refreshModelDetailParameters, showCachedModelDetailParameters } from '@pages/modeldetail/controllers/page/effects/parameterSnapshotRuntime.ts';
 
 const composeModelDetailEffects = (host: ModelDetailEffectsDependencies): ModelDetailEffectsHost => {
     const updateBackendDocumentationLink = async (options: { ensurePlugins?: boolean; plugins?: (JsonValue | null)[] | null } = {}): Promise<void> => {
@@ -33,6 +34,9 @@ const composeModelDetailEffects = (host: ModelDetailEffectsDependencies): ModelD
             pageResources: host.pageResources,
             get isDestroyed(): boolean {
                 return host.isDestroyed;
+            },
+            get signal(): AbortSignal | null {
+                return host.pageLifecycle.signal();
             },
             get modelId(): string | null {
                 return host.session.modelId;
@@ -50,6 +54,10 @@ const composeModelDetailEffects = (host: ModelDetailEffectsDependencies): ModelD
             set parametersData(value) {
                 host.session.parameters = value;
             },
+            get parameterAuthority() {
+                return host.session.parameterAuthority;
+            },
+            isParameterEditorDirty: (): boolean => host.parameterView.hasParameterChanges(),
             get activeTab(): string {
                 return host.session.activeTab;
             },
@@ -74,6 +82,12 @@ const composeModelDetailEffects = (host: ModelDetailEffectsDependencies): ModelD
                     handleModelUpdate: (value) => handleModelDetailRealtimeModelUpdate(effectsHost, value),
                     handleMetricsUpdate: (value) => handleModelDetailMetricsUpdate(effectsHost, value),
                     handlePluginCollectionUpdate: (value) => handleModelDetailPluginCollectionUpdate(effectsHost, value),
+                    connection: host.streamManager.connection,
+                    handleTransportDisconnected: () => markModelDetailParametersStale(effectsHost),
+                    handleTransportConnected: (): void => {
+                        const status = host.session.parameterAuthority.status;
+                        if (status === 'stale' || status === 'unavailable') terminateHandledPromise(refreshModelDetailParameters(effectsHost));
+                    },
                     logRealtimeWarning: (message, error) => modelDetailLogger('warn', message, error)
                 })
         },
@@ -84,6 +98,11 @@ const composeModelDetailEffects = (host: ModelDetailEffectsDependencies): ModelD
             applyParametersPayload: (payload) => host.applyParametersPayload(payload),
             populateModelInfo: () => host.populateModelInfo(),
             renderParametersInterface: () => host.renderParametersInterface(),
+            renderParameterAvailability: () => host.parameterAvailability.renderParameterAvailability(),
+            notifySaveChanged: () => host.parameterAvailability.notifySaveChanged(),
+            notifyParametersUnavailable: (message: string): void => {
+                host.feedback.show(message, 'warning');
+            },
             persistSnapshots: (modelSnapshot, parameterSnapshot): void => {
                 persistModelDetailSnapshots(host.session.modelId, modelSnapshot, parameterSnapshot);
             },
@@ -164,18 +183,6 @@ const fetchModelDetailSnapshot = async (host: ModelDetailEffectsHost): Promise<M
         host.state.isDestroyed
     );
 };
-const fetchModelDetailParametersViaWebSocket = async (host: ModelDetailEffectsHost): Promise<ParametersData> => {
-    if (!host.state.modelId) {
-        throw new Error('ModelDetailPage requires a model identifier');
-    }
-    return fetchParametersViaWebSocketSnapshot({ modelId: host.state.modelId, model: host.state.model });
-};
-const fetchModelDetailParametersSnapshot = async (host: ModelDetailEffectsHost): Promise<ParametersData | null> => {
-    if (!host.state.modelId) {
-        throw new Error('ModelDetailPage requires a model identifier');
-    }
-    return fetchModelDetailSnapshotData(PARAMETER_SNAPSHOT_CACHE, host.state.modelId, 'Fetching parameter snapshot (WebSocket)', 'Parameter snapshot received', 'Model parameters payload is unavailable', () => fetchModelDetailParametersViaWebSocket(host), 'Parameter snapshot request failed', host.state.isDestroyed);
-};
 const loadModelDetailData = async (host: ModelDetailEffectsHost): Promise<void> => {
     await host.rendering.runWithBoundary('modelDetail:loadModelDetails', async (): Promise<void> => {
         try {
@@ -185,12 +192,8 @@ const loadModelDetailData = async (host: ModelDetailEffectsHost): Promise<void> 
                 host.rendering.setLoadError(null);
                 host.state.model = cachedModel;
                 host.state.parameterView.setModel(host.state.model);
-                host.state.parametersData = cachedParameters;
-                host.rendering.applyParametersPayload(cachedParameters);
+                showCachedModelDetailParameters(host, cachedParameters);
                 host.rendering.populateModelInfo();
-                if (host.state.activeTab === 'parameters') {
-                    host.rendering.renderParametersInterface();
-                }
                 host.rendering.setPageState('ready');
                 terminateHandledPromise(refreshModelDetailSnapshots(host));
                 return;
@@ -205,19 +208,15 @@ const loadModelDetailData = async (host: ModelDetailEffectsHost): Promise<void> 
             host.state.parameterView.setModel(host.state.model);
             await host.rendering.updateBackendDocumentationLink();
             host.rendering.populateModelInfo();
-            const parametersSnapshot = await fetchModelDetailParametersSnapshot(host);
-            if (!parametersSnapshot) {
-                throw new Error('Model parameters payload is unavailable');
-            }
-            host.state.parametersData = parametersSnapshot;
-            host.rendering.applyParametersPayload(parametersSnapshot);
-            errorHandler.info('ModelDetailPage', 'Model parameters loaded', { id: host.state.modelId });
-            host.rendering.persistSnapshots(host.state.model, host.state.parametersData);
-            if (host.state.activeTab === 'parameters') {
+            host.rendering.persistSnapshots(host.state.model, null);
+            if (cachedParameters) {
+                showCachedModelDetailParameters(host, cachedParameters);
+            } else if (host.state.activeTab === 'parameters') {
                 host.rendering.renderParametersInterface();
             }
             host.rendering.setLoadError(null);
             host.rendering.setPageState('ready');
+            terminateHandledPromise(refreshModelDetailParameters(host));
         } catch (error) {
             const runtimeError = ensureError(error);
             if (!isModelDetailSnapshotAbortError(runtimeError, host.state.isDestroyed)) {
@@ -237,23 +236,15 @@ const refreshModelDetailSnapshots = async (host: ModelDetailEffectsHost): Promis
         if (!isObject(modelSnapshot)) {
             throw new Error('Model snapshot is unavailable');
         }
-        const parameterSnapshot = await fetchModelDetailParametersSnapshot(host);
-        if (!parameterSnapshot) {
-            throw new Error('Model parameters payload is unavailable');
-        }
         host.state.model = modelSnapshot;
         host.state.parameterView.setModel(host.state.model);
-        host.state.parametersData = parameterSnapshot;
-        host.rendering.applyParametersPayload(parameterSnapshot);
-        host.rendering.persistSnapshots(modelSnapshot, parameterSnapshot);
+        host.rendering.persistSnapshots(modelSnapshot, null);
         host.rendering.populateModelInfo();
-        if (host.state.activeTab === 'parameters') {
-            host.rendering.renderParametersInterface();
-        }
     } catch (error) {
         const runtimeError = ensureError(error);
         errorHandler.debug('ModelDetailPage', 'Snapshot refresh failed', runtimeError);
     }
+    await refreshModelDetailParameters(host);
 };
 const persistModelDetailSnapshots = (modelId: string | null, model: ModelDetailEffectsHost['state']['model'], parameters: ModelDetailEffectsHost['state']['parametersData']): void => {
     if (!modelId) {
@@ -267,17 +258,5 @@ const persistModelDetailSnapshots = (modelId: string | null, model: ModelDetailE
     }
 };
 
-const readCachedModelDetailParameters = (modelId: string): ParametersData | null => {
-    const snapshot = readSnapshot(PARAMETER_STORAGE_PREFIX, modelId);
-    if (snapshot === null) return null;
-    try {
-        return decodeModelDetailParameterPayload(snapshot);
-    } catch (error) {
-        const runtimeError = ensureError(error);
-        errorHandler.warn('ModelDetailPage', 'Discarding invalid cached parameter snapshot', { id: modelId, error: runtimeError });
-        return null;
-    }
-};
-
-export { composeModelDetailEffects, fetchModelDetailParametersSnapshot, fetchModelDetailParametersViaWebSocket, fetchModelDetailSnapshot, isModelDetailNotFoundError, isModelDetailSnapshotAbortError, loadModelDetailData, persistModelDetailSnapshots, readCachedModelDetailParameters, refreshModelDetailSnapshots };
+export { composeModelDetailEffects, fetchModelDetailSnapshot, isModelDetailNotFoundError, isModelDetailSnapshotAbortError, loadModelDetailData, persistModelDetailSnapshots, refreshModelDetailSnapshots };
 export type { ModelDetailEffectsHost };

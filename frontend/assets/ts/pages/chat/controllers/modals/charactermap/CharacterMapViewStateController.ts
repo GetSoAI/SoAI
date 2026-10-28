@@ -81,7 +81,7 @@ class CharacterMapViewStateController {
         this.#persist();
     }
 
-    #handleScroll(): void {
+    refreshViewportAnchor(): void {
         if (!this.#captureEnabled || this.#persistenceFailed) return;
         this.#captureAnchor();
         if (this.#scrollTimer !== null) this.#timers.clearTimeout(this.#scrollTimer);
@@ -107,7 +107,7 @@ class CharacterMapViewStateController {
     #bind(): void {
         const listener = (event: Event): void => {
             if (event.type === 'scroll') {
-                this.#handleScroll();
+                this.refreshViewportAnchor();
                 return;
             }
             if (event.currentTarget === this.#host.refs.font) this.#selectFont(this.#host.refs.font.value);

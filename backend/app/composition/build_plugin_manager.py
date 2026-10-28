@@ -3,9 +3,6 @@
 
 from __future__ import annotations
 
-import threading
-from typing import TYPE_CHECKING
-
 import httpx2
 
 from app.application_dependencies import ApplicationUpdaterModuleDependencies
@@ -18,7 +15,6 @@ from core.concurrency.bounded_blocking import (
     create_bounded_thread_pool,
     create_bounded_thread_pool_from_env,
 )
-from core.concurrency.singleflight import SyncSingleflight
 from core.concurrency.ttl_cache import TTLCache, TTLCacheDependencies
 from core.config.protocols import ConfigManagerProtocol, ConfigProtocol
 from core.events.protocols import EventBusProtocol
@@ -26,9 +22,7 @@ from core.files.operations import ensure_dirs_exist
 from core.formatting.bytes import format_bytes
 from core.hardware.protocols import (
     DatabaseHardwareProtocol,
-    GetGpuInfoCallable,
     HardwareManagerProtocol,
-    NvmlGateProtocol,
 )
 from core.hardware.protocols_storage import StorageManagerProtocol
 from core.licensing.types import Edition
@@ -44,12 +38,11 @@ from core.models.protocols_database import ModelDatabasePurgeServiceProtocol
 from core.orchestrator.routing_config import RoutingConfig
 from core.plugins.protocols_database import DatabasePluginsProtocol
 from core.plugins.protocols_instance import FilesProtocol
-from core.runtime.protocols import RuntimeFlagsViewProtocol
+from core.runtime.protocols import RuntimeFlagsViewProtocol, RuntimeRepairPlaneViewProtocol
 from core.state.protocols import (
     AuthoritativePluginStateTransitionsProtocol,
     StateAggregatorProtocol,
 )
-from core.system.protocols import CommandExecutorProtocol
 from core.tasks.api_events import send_task_complete_event, send_task_progress_event
 from core.tasks.asyncio_task_spawner import spawn_tracked_task
 from core.tasks.cancellation_token_scope import cancellation_token_scope
@@ -71,18 +64,9 @@ from core.tasks.service_lifecycle import ServiceLifecycle, ServiceLifecycleDepen
 from core.tasks.status_transitions import update_status
 from core.tasks.task_cancellation import cancel
 from core.tasks.task_cancellation_ops import cancel_task
-from hardware.gpu_info_cache_service import (
-    GPUInfoCacheService,
-    GPUInfoCacheServiceDependencies,
-)
-from hardware.info_gpu import get_gpu_info
-from hardware.vendor_detection_service import (
-    GPUVendorDetectionService,
-    GPUVendorDetectionServiceDependencies,
-)
-from hardware.vendors.nvidia.persistence import (
-    NvidiaCapabilitiesCacheService,
-    NvidiaCapabilitiesCacheServiceDependencies,
+from plugins.discovery_ownership import (
+    PluginDiscoveryOwnership,
+    PluginDiscoveryOwnershipDependencies,
 )
 from plugins.lifecycle import PluginLifecycle
 from plugins.lifecycle_dependencies import PluginLifecycleDependencies
@@ -109,50 +93,9 @@ from plugins.state.transfer_resolvers import (
 )
 from plugins.state.updater import build_updater_factory
 
-if TYPE_CHECKING:
-    from core.types.json import JSONDict
-
 __all__ = ("build_plugin_manager",)
 
 LOGGER_NAME_PLUGIN_MANAGER = "SoAI.app.composition.plugin_manager"
-LOGGER_NAME_PLUGIN_MANAGER_HARDWARE = "SoAI.app.composition.plugin_manager_hardware"
-
-
-def _create_get_gpu_info_callable(
-    command_executor: CommandExecutorProtocol | None,
-    nvidia_nvml_gate: NvmlGateProtocol,
-) -> GetGpuInfoCallable:
-    if command_executor is not None:
-        logger = get_logger(LOGGER_NAME_PLUGIN_MANAGER_HARDWARE)
-        gpu_info_cache_service = GPUInfoCacheService(GPUInfoCacheServiceDependencies())
-        gpu_vendor_detection_service = GPUVendorDetectionService(
-            GPUVendorDetectionServiceDependencies(logger=logger, command_executor=command_executor),
-        )
-        nvidia_capabilities_cache_service = NvidiaCapabilitiesCacheService(
-            NvidiaCapabilitiesCacheServiceDependencies(
-                entries={},
-                entries_lock=threading.Lock(),
-                singleflight=SyncSingleflight(),
-            ),
-        )
-
-        def _enabled_get_gpu_info(detailed: bool = True) -> JSONDict:
-            return get_gpu_info(
-                command_executor,
-                detailed=detailed,
-                cache_service=gpu_info_cache_service,
-                vendor_detection_service=gpu_vendor_detection_service,
-                nvidia_nvml_gate=nvidia_nvml_gate,
-                nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
-            )
-
-        return _enabled_get_gpu_info
-
-    def _disabled_hardware_get_gpu_info(detailed: bool = True) -> JSONDict:
-        _ = detailed
-        return {"gpus": [], "compute_drivers": {}}
-
-    return _disabled_hardware_get_gpu_info
 
 
 async def build_plugin_manager(
@@ -163,6 +106,7 @@ async def build_plugin_manager(
     http_client: httpx2.AsyncClient,
     log_manager: LoggingManagerProtocol,
     runtime_flags: RuntimeFlagsViewProtocol,
+    runtime_health: RuntimeRepairPlaneViewProtocol,
     hardware_manager: HardwareManagerProtocol,
     storage_manager: StorageManagerProtocol,
     event_bus: EventBusProtocol,
@@ -189,7 +133,6 @@ async def build_plugin_manager(
     updater_module_dependencies: ApplicationUpdaterModuleDependencies,
     edition: Edition,
     lifecycle_coordinator: LifecycleCoordinatorProtocol,
-    command_executor: CommandExecutorProtocol | None,
 ) -> PluginManager:
     await ensure_dirs_exist([backends_directory])
     plugin_manager_lifecycle = ServiceLifecycle(
@@ -242,10 +185,16 @@ async def build_plugin_manager(
             state_aggregator=state_aggregator,
             lifecycle_publisher=authoritative_plugin_state_transitions,
             runtime_flags=runtime_flags,
+            runtime_health=runtime_health,
             lifecycle=PluginLifecycle(
                 PluginLifecycleDependencies(
                     lifecycle=plugin_manager_lifecycle,
                     locks=plugin_worker_support.lifecycle_locks,
+                    discovery_ownership=PluginDiscoveryOwnership(
+                        PluginDiscoveryOwnershipDependencies(
+                            locks=plugin_worker_support.lifecycle_locks,
+                        ),
+                    ),
                     cancellation_coordinator=cancellation_coordinator,
                     cancellation_history=cancellation_history,
                     cancellation_event_bus=cancellation_event_bus,
@@ -273,10 +222,7 @@ async def build_plugin_manager(
                 create_streaming_task=create_streaming_task,
             ),
             hardware_helpers=PluginManagerHardwareHelpers(
-                get_gpu_info=_create_get_gpu_info_callable(
-                    command_executor,
-                    hardware_manager.nvidia_nvml_gate,
-                ),
+                get_gpu_info=hardware_manager.sync_get_gpu_info,
                 format_bytes=format_bytes,
             ),
             environment_manager=plugin_worker_support.environment_manager,

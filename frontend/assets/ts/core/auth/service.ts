@@ -1,14 +1,14 @@
 /* SoAI - Shared authentication service [frontend/assets/ts/core/auth/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { checkWizardStatus, getWizardStatusSnapshot, initializeAuthManager, invalidateSessionAuthManager, logoutAuthManager, notifyLogin, notifyLogout, onAuthLogin, onAuthLogout } from '@core/auth/effects.ts';
+import { checkWizardStatus, getWizardStatusSnapshot, initializeAuthManager, invalidateSessionAuthManager, logoutAuthManager, notifyLogin, notifyLogout, onAuthLogin, onAuthLogout, recoverRotatedSessionAuthManager } from '@core/auth/effects.ts';
 import { loginAuthManager } from '@core/auth/loginEffects.ts';
 import { reconcileWizardCompletion } from '@core/auth/wizardCompletion.ts';
 import { getLanguageService } from '@core/languageservice/service.ts';
 import { applyUserSession, beginAuthenticatedEpoch, beginTerminalAuthIntent, createAuthManagerState, resetAuthManagerState } from '@core/auth/state.ts';
 import { isApiInterface, isStorageInterface } from '@core/auth/adapters.ts';
 import { AUTH_TAG, STATE_KEY } from '@core/auth/constants.ts';
-import type { ApiInterface, AuthCallback, InitializeOptions, LoginCallback, LoginResult, SessionInvalidationResult, StorageInterface, WebuiUser, WizardCompletionResult, WizardStatus } from '@core/auth/types.ts';
+import type { ApiInterface, AuthCallback, InitializeOptions, LoginCallback, LoginResult, SessionInvalidationResult, SessionReconciliationResult, StorageInterface, WebuiUser, WizardCompletionResult, WizardStatus } from '@core/auth/types.ts';
 import type { AuthManagerStateHandle } from '@core/auth/internalContracts.ts';
 import { getApiClient } from '@core/api/service.ts';
 import { requireStorageService } from '@core/storage/runtime.ts';
@@ -23,6 +23,8 @@ import { APIError } from '@core/apiError.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { runProtectedReadGate } from '@core/auth/protectedReadGate.ts';
+import { reconcileAuthSession } from '@core/auth/sessionReconciliation.ts';
+import { createAbortError } from '@core/errors/abort.ts';
 
 class AuthManager {
     #state: AuthManagerStateHandle;
@@ -31,7 +33,7 @@ class AuthManager {
     #resolverApi: (() => Promise<ApiInterface>) | null = null;
     #resolverStorage: (() => Promise<StorageInterface>) | null = null;
     readonly #transitions = new AuthTransitionOwner();
-    #terminalTask: Promise<SessionInvalidationResult> | null = null;
+    #terminalTask: { epoch: number; task: Promise<SessionInvalidationResult> } | null = null;
     #recoveryAbortController = new AbortController();
     readonly #recovery = new AuthRecoverySupervisor();
 
@@ -45,6 +47,10 @@ class AuthManager {
 
     get isAuthenticated(): boolean {
         return this.#state.isAuthenticated;
+    }
+
+    get authEpoch(): number {
+        return this.#state.authEpoch;
     }
 
     get loginCallbacks(): LoginCallback[] {
@@ -128,6 +134,8 @@ class AuthManager {
         try {
             return await this.#transitions.runCookieMutation(async (): Promise<LoginResult> => {
                 const epoch = beginAuthenticatedEpoch(this.#state);
+                this.#recoveryAbortController.abort();
+                this.#recoveryAbortController = new AbortController();
                 const result = await loginAuthManager(this.#state, username, password, resolveApi, resolveStorage, epoch);
                 if (result.status === 'authenticated') this.#recovery.reset();
                 return result;
@@ -150,11 +158,25 @@ class AuthManager {
         return await this.#runTerminalTransition(async () => invalidateSessionAuthManager(this.#state, resolveStorage));
     }
 
+    async reconcileSession(signal: AbortSignal): Promise<SessionReconciliationResult> {
+        const [resolveApi, resolveStorage] = this.#createAuthResolvers();
+        return await reconcileAuthSession({
+            state: this.#state,
+            transitions: this.#transitions,
+            resolveApi,
+            resolveStorage,
+            signal,
+            authSignal: this.#recoveryAbortController.signal
+        });
+    }
+
     async completeWizard(username: string, password: string): Promise<WizardCompletionResult> {
         const [resolveApi, resolveStorage] = this.#createAuthResolvers();
         try {
             return await this.#transitions.runCookieMutation(async (): Promise<WizardCompletionResult> => {
                 const epoch = beginAuthenticatedEpoch(this.#state);
+                this.#recoveryAbortController.abort();
+                this.#recoveryAbortController = new AbortController();
                 const result = await reconcileWizardCompletion(this.#state, username, password, getLanguageService().getLanguage(), resolveApi, resolveStorage, async (state: AuthManagerStateHandle, loginUsername: string, loginPassword: string, apiResolver: () => Promise<ApiInterface>, storageResolver: () => Promise<StorageInterface>, expectedEpoch: number): Promise<LoginResult> => loginAuthManager(state, loginUsername, loginPassword, apiResolver, storageResolver, expectedEpoch), epoch);
                 if (result.status === 'authenticated') this.#recovery.reset();
                 return result;
@@ -191,23 +213,20 @@ class AuthManager {
 
     async recoverRotatedSession(): Promise<void> {
         const [resolveApi, resolveStorage] = this.#createAuthResolvers();
-        await this.#transitions.runCookieMutation(async (): Promise<void> => {
-            const epoch = this.#state.authEpoch;
-            try {
-                const api = await resolveApi();
-                const user = await this.#recovery.recoverClosure(api, this.#recoveryAbortController.signal);
-                await this.#reconcileAuthenticatedUser(user, epoch, resolveStorage);
-                const operation = await this.#recovery.resume(user, api, await resolveStorage(), this.#recoveryAbortController.signal);
-                if (operation !== null) await this.#reconcileAuthenticatedUser(operation.user, epoch, resolveStorage);
-            } catch (error) {
-                const runtimeError = ensureError(error);
-                if (runtimeError instanceof APIError && runtimeError.status === 401) {
-                    beginTerminalAuthIntent(this.#state);
-                    await invalidateSessionAuthManager(this.#state, resolveStorage);
-                }
-                throw runtimeError;
-            }
-        });
+        const expectedEpoch = this.#state.authEpoch;
+        const signal = this.#recoveryAbortController.signal;
+        await this.#transitions.runCookieMutation(
+            async (): Promise<void> =>
+                await recoverRotatedSessionAuthManager({
+                    state: this.#state,
+                    recovery: this.#recovery,
+                    resolveApi,
+                    resolveStorage,
+                    signal,
+                    expectedEpoch,
+                    reconcile: async (user) => this.#reconcileAuthenticatedUser(user, expectedEpoch, resolveStorage)
+                })
+        );
     }
 
     async checkWizardStatus(): Promise<boolean> {
@@ -244,21 +263,25 @@ class AuthManager {
     }
 
     async #runTerminalTransition(operation: () => Promise<SessionInvalidationResult>): Promise<SessionInvalidationResult> {
-        if (this.#terminalTask !== null) {
-            return await this.#terminalTask;
+        if (this.#terminalTask !== null && this.#terminalTask.epoch === this.#state.authEpoch) {
+            return await this.#terminalTask.task;
         }
-        beginTerminalAuthIntent(this.#state);
+        const epoch = beginTerminalAuthIntent(this.#state);
         this.#recoveryAbortController.abort();
         this.#recoveryAbortController = new AbortController();
         this.#recovery.reset();
-        const task = this.#transitions.runCookieMutation(operation);
-        this.#terminalTask = task;
+        const task = this.#transitions.runCookieMutation(async () => {
+            if (this.#state.authEpoch !== epoch || this.#state.terminalEpoch !== epoch) throw createAbortError('Authentication transition was superseded.');
+            return await operation();
+        });
+        this.#terminalTask = { epoch, task };
         try {
             return await task;
         } finally {
-            if (this.#terminalTask === task) {
+            if (this.#terminalTask?.task === task) {
                 this.#terminalTask = null;
             }
+            if (this.#state.terminalEpoch === null) this.#state.isLoggingOut = false;
         }
     }
 

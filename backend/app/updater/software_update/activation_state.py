@@ -7,9 +7,10 @@ import os
 
 from app.installation_transaction_admission import (
     TRANSACTION_PREFIX,
+    list_update_transaction_storage,
 )
-from app.updater.config_timeout_default_upgrade_state import (
-    complete_pending_timeout_default_upgrade,
+from app.updater.config_upgrade_state import (
+    complete_pending_config_upgrades,
 )
 from app.updater.software_update.activation_identity import (
     UpdateActivationIdentity,
@@ -20,6 +21,7 @@ from app.updater.software_update.install_transaction_state import (
     ACTIVATION_FAILED_MARKER,
     NEW_COMPLETE_MARKER,
     OLD_COMPLETE_MARKER,
+    ROLLBACK_COMPLETE_MARKER,
     ROLLBACK_REQUIRED_MARKER,
     SUCCESS_COMPLETE_MARKER,
     AppliedUpdateTransaction,
@@ -59,6 +61,7 @@ __all__ = (
     "read_pending_update_activation",
     "read_update_activation_identity",
     "record_update_activation_identity",
+    "require_armed_update_transaction",
     "require_update_candidate_stopped",
     "validate_update_recovery_evidence",
 )
@@ -153,6 +156,22 @@ def record_update_activation_identity(
             ) from exception
 
 
+def require_armed_update_transaction(paths: UpdateTransactionPaths) -> None:
+    validate_update_recovery_evidence(paths)
+    if not all(
+        os.path.isfile(marker_path(paths.transaction_path, marker))
+        for marker in (OLD_COMPLETE_MARKER, ROLLBACK_REQUIRED_MARKER)
+    ) or any(
+        os.path.lexists(marker_path(paths.transaction_path, marker))
+        for marker in (SUCCESS_COMPLETE_MARKER, ROLLBACK_COMPLETE_MARKER, ACTIVATION_FAILED_MARKER)
+    ):
+        raise StateError(
+            "An unarmed or terminal installer preparation cannot complete successfully."
+        )
+    if require_rollback_inventory(paths, old_complete=True) is None:
+        raise StateError("Installer activation is missing its protected original inventory.")
+
+
 def prepare_update_activation(transaction: AppliedUpdateTransaction) -> None:
     paths = paths_from_transaction_directory(transaction.base_path, transaction.transaction_path)
     validate_transaction_markers(paths.transaction_path)
@@ -176,10 +195,10 @@ def find_pending_update_activation(
     base_path: str, *, include_preparation: bool = False
 ) -> UpdateActivationIdentity | None:
     found: UpdateActivationIdentity | None = None
-    for name in os.listdir(base_path):
+    for path in list_update_transaction_storage(base_path):
+        name = os.path.basename(path)
         if not name.startswith(TRANSACTION_PREFIX):
             continue
-        path = os.path.join(base_path, name)
         if os.path.islink(path) or not os.path.isdir(path):
             raise StateError("Update transaction storage is invalid; preserve it for repair.")
         paths = paths_from_transaction_directory(base_path, path)
@@ -190,7 +209,10 @@ def find_pending_update_activation(
             and os.path.lexists(os.path.join(path, ACTIVATION_IDENTITY_FILENAME))
         ):
             validate_transaction_markers(path)
-            if os.path.isfile(marker_path(path, ROLLBACK_REQUIRED_MARKER)):
+            if not any(
+                os.path.lexists(marker_path(path, marker))
+                for marker in (SUCCESS_COMPLETE_MARKER, ROLLBACK_COMPLETE_MARKER)
+            ):
                 pending = read_update_activation_identity(paths)
         if pending is None:
             continue
@@ -269,7 +291,7 @@ def persist_committed_activation_result(paths: UpdateTransactionPaths) -> None:
         return
     if not os.path.isfile(marker_path(paths.transaction_path, SUCCESS_COMPLETE_MARKER)):
         raise StateError("An update cannot publish completion before durable activation commit.")
-    complete_pending_timeout_default_upgrade(pending.config_path)
+    complete_pending_config_upgrades(pending.config_path)
     record = read_runtime_instance_record(activation_process_path(paths))
     write_software_update_result(
         paths.base_path,

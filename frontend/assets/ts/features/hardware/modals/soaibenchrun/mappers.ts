@@ -112,6 +112,7 @@ function presentRunRecord(value: GpuSoAIBenchRun, raw: JsonObject): SoAIBenchRun
         publicationEligible: value.publicationEligible === true,
         matchBasis: nullableText(value.matchBasis),
         reasonMessage: nullableText(summary.message),
+        deadline: { failedPhase: nullableText(summary.failedPhase), deadlineSeconds: summary.deadlineSeconds ?? null },
         guidanceMessage: nullableText(summary.guidance),
         failureReason: nullableText(value.failureReason),
         unsupportedReason: nullableText(value.unsupportedReason),
@@ -122,7 +123,7 @@ function presentRunRecord(value: GpuSoAIBenchRun, raw: JsonObject): SoAIBenchRun
 
 const normalizeRunRecord = (value: JsonValue | null | undefined): SoAIBenchRunRecord | null => {
     if (!isJsonObject(value)) return null;
-    return presentRunRecord(decodeGpuSoAIBenchRun(value, 'SoAIBench run'), value);
+    return presentRunRecord(decodeGpuSoAIBenchRun(value, 'SoAI Bench run'), value);
 };
 
 const presentDecodedRunRecord = (value: DecodedSoAIBenchRun): SoAIBenchRunRecord => presentRunRecord(value, serializeGpuSoAIBenchRun(value));

@@ -6,6 +6,7 @@ from __future__ import annotations
 import copy
 from typing import TYPE_CHECKING
 
+from core.hardware.gpu_operation_results import build_gpu_operation_error
 from core.hardware.protocols import GpuSlotStorageManagerProtocol
 from core.logging.protocols import TraceLogger
 from core.logging.trace import get_logger
@@ -17,16 +18,20 @@ from hardware.gpu_tuning.boot_state import (
     disabled_boot_payload,
     pending_enabled_boot_payload,
 )
+from hardware.gpu_tuning.control_saved_state_authority import control_state_digest
 from hardware.gpu_tuning.service_dependencies import GpuServiceDependencies
 from hardware.gpu_tuning.setting_modes import field_modes_mapping_or_none
+from hardware.gpu_tuning.slot_capabilities import snapshot_tuning_inventory
 from hardware.gpu_tuning.slot_errors import (
+    device_missing_error,
     devices,
     gpu_index_error,
     slot_empty_error,
 )
 from hardware.gpu_tuning.slot_operation_preparation import prepare_slot_apply_operation
-from hardware.gpu_tuning.slot_payload import load_locked_payload
+from hardware.presets.slot_alias_authority import require_slot_mutation_authority
 from hardware.presets.slot_mutations import record_slot_application_unlocked
+from hardware.presets.slot_payload_loading import read_canonical_gpu_slot_candidate
 
 if TYPE_CHECKING:
     from core.system.protocols import CommandExecutorProtocol
@@ -110,6 +115,8 @@ def sync_prepare_slot_apply(
         "apply_flag": apply_flag,
         "unchanged": unchanged,
         "boot_state": copy.deepcopy(boot_state),
+        "device_info": copy.deepcopy(context.inventory[device_id]),
+        "expected_control_state_digest": control_state_digest(context.payload, device_id),
     }
 
 
@@ -124,6 +131,8 @@ def sync_finalize_slot_apply(
     signature: str,
     apply_flag: bool | None,
     applied_at: str,
+    settings: JSONDict,
+    field_modes: JSONDict | None,
     gpu_services: GpuServiceDependencies,
 ) -> JSONDict:
     logger.debug(
@@ -131,46 +140,58 @@ def sync_finalize_slot_apply(
         device_id,
         slot_id,
     )
+    inventory = snapshot_tuning_inventory(
+        executor=executor,
+        detailed_gpu_info=detailed_gpu_info,
+        gpu_services=gpu_services,
+    )
+    if device_id not in inventory:
+        return device_missing_error(device_id)
     with storage.lock:
-        payload = load_locked_payload(
-            executor=executor,
-            storage=storage,
-            detailed_gpu_info=detailed_gpu_info,
-            gpu_services=gpu_services,
-            allow_create=False,
+        read, payload, reconciliation = read_canonical_gpu_slot_candidate(
+            storage, inventory, device_id
         )
+        require_slot_mutation_authority(reconciliation, device_id)
         entry = devices(payload).get(device_id)
         if not isinstance(entry, dict):
-            return {
-                "success": True,
-                "entry": None,
-                "boot_changed": False,
-                "warning": "Device removed before slot persistence update.",
-            }
+            return slot_empty_error(device_id, slot_id)
+        slots_value = entry.get("slots")
+        slot_entry = slots_value.get(slot_id) if isinstance(slots_value, dict) else None
+        if not isinstance(slot_entry, dict):
+            return slot_empty_error(device_id, slot_id)
+        current_modes = field_modes_mapping_or_none(slot_entry.get("field_modes"))
+        current_signature = slot_entry.get("signature") or compute_slot_signature(
+            settings, current_modes
+        )
+        if (
+            slot_entry.get("settings") != settings
+            or current_modes != field_modes
+            or current_signature != signature
+        ):
+            return build_gpu_operation_error(
+                "apply_failed",
+                "Saved GPU slot changed during application.",
+                details={"reason_code": "persistence_conflict"},
+                device_id=device_id,
+                slot=slot_id,
+            )
         original_boot = copy.deepcopy(entry.get("boot", {}))
         if apply_flag is not None:
             entry["boot"] = (
                 pending_enabled_boot_payload(slot_id) if apply_flag else disabled_boot_payload()
             )
-        boot_changed, entry_snapshot = record_slot_application_unlocked(
-            storage,
+        _boot_changed, entry_snapshot = record_slot_application_unlocked(
             payload,
             device_id,
             slot_id,
             signature,
             applied_at,
         )
-        if isinstance(entry_snapshot, dict):
-            boot_changed = entry_snapshot.get("boot", {}) != original_boot
-            storage.write_payload(payload)
-            return {
-                "success": True,
-                "entry": copy.deepcopy(entry_snapshot),
-                "boot_changed": boot_changed,
-            }
-        storage.write_payload(payload)
+        if not isinstance(entry_snapshot, dict):
+            return slot_empty_error(device_id, slot_id)
+        storage.write_payload(payload, expected_read=read)
         return {
             "success": True,
-            "entry": copy.deepcopy(entry),
-            "boot_changed": boot_changed,
+            "entry": copy.deepcopy(entry_snapshot),
+            "boot_changed": entry_snapshot.get("boot", {}) != original_boot,
         }

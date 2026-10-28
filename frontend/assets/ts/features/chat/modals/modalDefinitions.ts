@@ -12,16 +12,16 @@ import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } fr
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { uiAttr, uiHtml } from '@core/security/uiHtml.ts';
-import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 
 import type { FirstRunStateStorage } from '@core/firstrun/protocols.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import type { WebuiUserEndpoints } from '@core/api/endpoints/webuiUserEndpoints.ts';
-import { CHAT_CONVERSATION_INPUT_MODAL_ID, AGENT_PLAN_MODAL_ID, ARCHIVED_CONVERSATIONS_MODAL_ID, CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, CHAT_PROMPTS_PICKER_MODAL_ID, CHAT_TOOL_CALL_OUTPUT_MODAL_ID } from '@features/chat/modals/constants.ts';
+import { CHAT_CONVERSATION_INPUT_MODAL_ID, AGENT_PLAN_MODAL_ID, ARCHIVED_CONVERSATIONS_MODAL_ID, CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, CHAT_TOOL_CALL_OUTPUT_MODAL_ID } from '@features/chat/modals/constants.ts';
 import { createChatAttachModalDefinition } from '@features/chat/composerattachmodal/definition.ts';
 import { CHARACTER_MAP_MODAL_DEFINITION } from '@features/chat/charactermap/definition.ts';
 import { CHAT_SKETCH_MODAL_DEFINITION } from '@features/chat/sketch/definition.ts';
 import { createChatMemoryProfileModalDefinition } from '@features/chat/modals/chatMemoryProfileModal.ts';
+import { CHAT_MEMORY_RECORD_MODAL_DEFINITION } from '@features/chat/modals/chatMemoryRecordModal.ts';
 import { createVoiceCallModalDefinition } from '@features/chat/modals/voiceCallModal.ts';
 import { renderArchivedConversationsModalScaffold } from '@features/chat/modals/archived/archivedConversationsModalScaffold.ts';
 import { buildChatConfigurationModalMarkup } from '@features/chat/modals/markup/chatPageConfigurationModalMarkup.ts';
@@ -151,67 +151,6 @@ const attachmentOverflowModalDefinition: ModalDefinition = {
     }
 };
 
-const renderChatPromptsPickerBody = (modalId: string): ReturnType<typeof uiHtml> => {
-    const searchInputId = modalUiId(modalId, 'search');
-    const searchButtonId = modalUiId(modalId, 'search-button');
-    const resultsId = modalUiId(modalId, 'results');
-    const statusId = modalUiId(modalId, 'status');
-    const placeholder = uiAttr(i18n.t('prompts.searchPlaceholder'));
-    const searchLabel = uiAttr(i18n.t('chat.promptsPicker.search'));
-    return uiHtml`
-        <div class="form-group setting-change-surface setting-change-surface--child-selection chat-prompts-picker-surface">
-            <div class="chat-prompts-picker" data-chat-prompts-picker>
-                <div class="form-row-split form-row-split--search ui-collection-search-row">
-                    <div class="form-col-main ui-collection-search-row__field">
-                        <div class="searchbar-container searchbar-container--collection">
-                            <input type="text" id="${searchInputId}" class="form-input searchbar-input chat-prompts-picker-search-input" placeholder="${placeholder}" autocomplete="off">
-                            ${renderSearchFieldActions()}
-                        </div>
-                    </div>
-                    <div class="form-col-secondary form-col-action ui-collection-search-row__action">
-                        <button class="ui-button" id="${searchButtonId}" type="button" aria-label="${searchLabel}" data-tooltip="${searchLabel}">${i18n.t('chat.promptsPicker.search')}</button>
-                    </div>
-                </div>
-                <div class="form-help">${i18n.t('chat.promptsPicker.help')}</div>
-                <div class="chat-prompts-picker-status" id="${statusId}" aria-live="polite"></div>
-                <div class="chat-prompts-picker-results" id="${resultsId}"></div>
-            </div>
-        </div>
-    `;
-};
-
-const chatPromptsPickerModalDefinition: ModalDefinition = {
-    id: CHAT_PROMPTS_PICKER_MODAL_ID,
-    layout: 'lg',
-    initialFocusSelector: modalUiSelector(CHAT_PROMPTS_PICKER_MODAL_ID, 'search'),
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
-        const modalId = CHAT_PROMPTS_PICKER_MODAL_ID;
-        const titleId = modalUiId(modalId, 'title');
-        const manageButtonId = modalUiId(modalId, 'manage');
-        const closeLabel = i18n.t('common.close');
-        const manageLabel = i18n.t('chat.promptsPicker.manage');
-        const header = renderStandardModalHeader({
-            modalId,
-            title: i18n.t('chat.promptsPicker.title'),
-            description: i18n.t('common.modalDescriptions.chatPromptsPicker'),
-            closeLabel,
-            titleId
-        });
-        const body = renderModalBody(renderChatPromptsPickerBody(modalId), { className: 'modal-body--sectioned chat-prompts-picker-modal-body' });
-        const footer = renderSplitModalFooter({
-            left: renderModalFooterCloseButton({ modalId, text: closeLabel }),
-            right: renderModalFooterActionButton({ id: manageButtonId, text: manageLabel, variant: 'neutral' })
-        });
-        return createModalElement({
-            id: modalId,
-            rootAttributes: { 'data-page-scope': 'chat' },
-            header,
-            body,
-            footer
-        });
-    }
-};
-
 const createChatModalMarkupContext = () => {
     const pageContext = new PageContext({ pageId: 'chat' });
     return createChatPageMarkupContext(pageContext.sanitizer, windowIdentity.isDetachedContext());
@@ -293,7 +232,7 @@ const archivedConversationsModalDefinition: ModalDefinition = {
 };
 
 const createChatModalDefinitions = (dependencies: { storage: FirstRunStateStorage; apiClient: ApiClientContext & { webui?: Pick<WebuiUserEndpoints, 'memory'> | undefined } }): readonly ModalDefinition[] => {
-    return Object.freeze([conversationInputModalDefinition, messageInfoModalDefinition, toolCallOutputModalDefinition, createChatAttachModalDefinition(), attachmentOverflowModalDefinition, chatPromptsPickerModalDefinition, CHARACTER_MAP_MODAL_DEFINITION, CHAT_SKETCH_MODAL_DEFINITION, chatConfigurationModalDefinition, chatMcpDefaultToolsModalDefinition, agentPlanModalDefinition, archivedConversationsModalDefinition, createChatMemoryProfileModalDefinition(dependencies), createVoiceCallModalDefinition()]);
+    return Object.freeze([conversationInputModalDefinition, messageInfoModalDefinition, toolCallOutputModalDefinition, createChatAttachModalDefinition(), attachmentOverflowModalDefinition, CHARACTER_MAP_MODAL_DEFINITION, CHAT_SKETCH_MODAL_DEFINITION, chatConfigurationModalDefinition, chatMcpDefaultToolsModalDefinition, agentPlanModalDefinition, archivedConversationsModalDefinition, createChatMemoryProfileModalDefinition(dependencies), CHAT_MEMORY_RECORD_MODAL_DEFINITION, createVoiceCallModalDefinition()]);
 };
 
 export { conversationInputModalDefinition, createChatModalDefinitions };

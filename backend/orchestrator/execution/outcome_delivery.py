@@ -16,11 +16,14 @@ from core.errors.public_projection import project_public_status_error
 from core.errors.status_mapping import error_type_to_status_code
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.events.types_base import Event
+from core.events.types_models_streaming import InferenceResultEvent
 from core.events.types_plugins import ErrorEvent
 from core.events.types_tasks import TaskCompleteEvent
 from core.logging.trace import get_logger
 from core.tasks.enums import TaskStatus
+from core.tasks.execution_timeout_claim import adopt_execution_timeout_delivery
 from core.tasks.orchestration_context import OrchestrationContext
+from core.tasks.protocols import TaskRegistryProtocol
 from core.tasks.task import Task
 from core.timing.constants import LOCAL_IO_TIMEOUT_SEC, RESPONSIVE_TIMEOUT_SEC
 from orchestrator.execution.event_context import is_streaming_request
@@ -49,11 +52,18 @@ async def prepare_failure_delivery(
     task: Task,
     *,
     reason: str,
+    task_registry: TaskRegistryProtocol | None = None,
 ) -> tuple[OrchestrationContext, Task, int | None, str | None, BaseException | None]:
     context = queue.require_orchestration_context(task)
     dedup_exception: BaseException | None = None
     dedup_hash_to_notify: str | None = None
-    task, delivery_version = await delivery.prepare_delivery(task)
+    if context.execution_timeout_claim is not None and task_registry is not None:
+        adopted_task, delivery_version = await adopt_execution_timeout_delivery(
+            task_registry, task.task_id
+        )
+        task = adopted_task if adopted_task is not None else task
+    else:
+        task, delivery_version = await delivery.prepare_delivery(task)
     if delivery_version is None:
         return (context, task, None, None, None)
     context = queue.require_orchestration_context(task)
@@ -74,6 +84,7 @@ async def try_publish_error_event(
     operation: str,
     reason_is_public: bool = False,
     public_error: ErrorPublicPayload | None = None,
+    audio_upload_error_response: JSONDict | None = None,
     details: JSONDict | None = None,
     level: str | None = None,
 ) -> bool:
@@ -104,6 +115,8 @@ async def try_publish_error_event(
                 user_id=task.user_id,
                 status=TaskStatus.CANCELLED.value,
             )
+        elif audio_upload_error_response is not None:
+            terminal_event = InferenceResultEvent(payload=audio_upload_error_response)
         else:
             terminal_event = ErrorEvent(
                 message=public_message,

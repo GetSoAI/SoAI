@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ResourceTracker } from '@core/resourcetracker/service.ts';
-import { getRequestAnimationFrame } from '@core/environment/public.ts';
+import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { PAGE_CONTENT_READY, PAGE_EXITING_ATTRIBUTE, PAGE_TRANSITIONING_IN, PAGE_TRANSITION_MODE_ATTRIBUTE, isReduceMotionsEnabled, resolveActiveSection, requirePageTransitionSurface, waitForElementAnimations } from '@core/pageTransitions.ts';
 import { DelayedPageOutletLoading } from '@core/pageoutlet/delayedLoading.ts';
 import { startPageExitAnimation, captureExitAnimationStartState } from '@core/pageoutlet/exitAnimation.ts';
+import { observePageSectionInteractivity } from '@core/pageoutlet/sectionInteractivity.ts';
 
 interface PageOutletVisualTransactionOptions {
     resources: ResourceTracker;
@@ -23,9 +24,12 @@ class PageOutletVisualTransaction {
     #exitAnimation: Animation | null = null;
     #delayedLoading: DelayedPageOutletLoading;
     #setReady: () => void;
+    #resources: ResourceTracker;
+    #stopSectionInteractivity: (() => void) | null = null;
 
     constructor(options: PageOutletVisualTransactionOptions) {
         this.#setReady = options.setReady;
+        this.#resources = options.resources;
         this.#delayedLoading = new DelayedPageOutletLoading({
             resources: options.resources,
             showLoading: options.showLoading
@@ -35,6 +39,11 @@ class PageOutletVisualTransaction {
     setContainer(container: HTMLElement): void {
         this.cancel();
         this.#container = container;
+        if (this.#stopSectionInteractivity) {
+            this.#stopSectionInteractivity();
+            this.#resources.untrack(this.#stopSectionInteractivity);
+        }
+        this.#stopSectionInteractivity = this.#resources.track(observePageSectionInteractivity(container));
     }
 
     begin(): symbol {
@@ -124,7 +133,7 @@ class PageOutletVisualTransaction {
             return;
         }
         section.classList.add(PAGE_TRANSITIONING_IN);
-        await this.#waitForFrame();
+        await awaitPresentationFrame(null, 'Page reveal presentation aborted.');
         if (this.#activeToken !== token) {
             return;
         }
@@ -173,11 +182,6 @@ class PageOutletVisualTransaction {
         this.#setReady();
     }
 
-    async #waitForFrame(): Promise<void> {
-        const frame = getRequestAnimationFrame();
-        await new Promise<void>((resolve) => frame(() => resolve()));
-    }
-
     #requireContainer(): HTMLElement {
         if (!this.#container) {
             throw new Error('PageOutlet visual transaction requires a container');
@@ -186,7 +190,7 @@ class PageOutletVisualTransaction {
     }
 
     async #runPageExit(section: Element, epoch: symbol): Promise<void> {
-        if (isReduceMotionsEnabled()) {
+        if (isReduceMotionsEnabled() || section.ownerDocument.visibilityState === 'hidden') {
             this.#applyExitedSectionState(section, epoch);
             return;
         }
@@ -194,7 +198,7 @@ class PageOutletVisualTransaction {
         this.#exitAnimation = animation;
         section.setAttribute(PAGE_EXITING_ATTRIBUTE, 'true');
         try {
-            await animation.finished;
+            await waitForElementAnimations(section, { ensureStarted: false, requireAnimation: true, animations: [animation] });
         } catch (error) {
             if (this.#exitEpoch !== epoch) {
                 return;
@@ -205,7 +209,7 @@ class PageOutletVisualTransaction {
                 this.#exitAnimation = null;
             }
             animation.cancel();
-            section.removeAttribute(PAGE_EXITING_ATTRIBUTE);
+            if (this.#exitEpoch === epoch) section.removeAttribute(PAGE_EXITING_ATTRIBUTE);
         }
         this.#applyExitedSectionState(section, epoch);
     }
@@ -218,6 +222,8 @@ class PageOutletVisualTransaction {
     }
 
     #clearExitState(): void {
+        this.#exitAnimation?.cancel();
+        this.#exitingSection?.removeAttribute(PAGE_EXITING_ATTRIBUTE);
         this.#exitingSection = null;
         this.#exitEpoch = null;
         this.#exitTask = null;
@@ -236,7 +242,6 @@ class PageOutletVisualTransaction {
         const mounted = this.#container ? resolveActiveSection(this.#container) : null;
         if (!mounted || mounted === this.#exitingSection) return;
         if (mounted.classList.contains(PAGE_CONTENT_READY) && !mounted.classList.contains(PAGE_TRANSITIONING_IN)) return;
-        this.#exitAnimation?.cancel();
         this.#clearExitState();
         this.#exitingSection = mounted;
         this.#exitEpoch = Symbol('page-exit-superseded');
@@ -253,7 +258,6 @@ class PageOutletVisualTransaction {
 
     #restoreExitingSection(): void {
         const section = this.#exitingSection;
-        this.#exitAnimation?.cancel();
         this.#clearExitState();
         if (section) {
             this.#revealSection(section);

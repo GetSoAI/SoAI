@@ -4,7 +4,7 @@
 import type { HardwareSnapshotOptions } from '@core/api/types/hardware.ts';
 import type { AcceptedPowerActionResponse } from '@core/api/contracts/powerContracts.ts';
 import type { ConfigUpdateResponse } from '@core/api/contracts/configContracts.ts';
-import type { BackendVariantsResponse, PluginBackendUpdatesResponse, PluginCompatibilityOverrideResponse } from '@core/api/contracts/pluginManagementContracts.ts';
+import type { BackendVariantsResponse, PluginBackendUpdateStatus, PluginCompatibilityOverrideResponse } from '@core/api/contracts/pluginManagementContracts.ts';
 import type { ManualInstallPathResponse } from '@core/api/contracts/manualInstallPathContracts.ts';
 import type { SuccessfulMutationResponse } from '@core/api/contracts/successfulMutationContract.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
@@ -43,8 +43,8 @@ interface PluginsApi {
     configs: { get(name: string): Promise<JsonObject>; update(name: string, data: JsonValue): Promise<ConfigUpdateResponse> };
     hardware: { snapshot(options?: HardwareSnapshotOptions): Promise<HardwareSnapshotResponse> };
     plugins: {
-        checkUpdates(): Promise<PluginBackendUpdatesResponse>;
-        getBackendVariants(pluginName: string): Promise<BackendVariantsResponse>;
+        checkBackendUpdate(pluginName: string, options?: { signal?: AbortSignal }): Promise<PluginBackendUpdateStatus>;
+        getBackendVariants(pluginName: string, options?: { signal?: AbortSignal }): Promise<BackendVariantsResponse>;
         manualInstall(): Promise<ManualInstallPathResponse>;
         overrideIncompatibility(pluginName: string, override: boolean): Promise<PluginCompatibilityOverrideResponse>;
         saveBackendVariantSelection(pluginName: string, variantId: string): Promise<BackendVariantsResponse>;

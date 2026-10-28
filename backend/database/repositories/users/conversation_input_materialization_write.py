@@ -12,6 +12,7 @@ from core.conversations.default_title_resolution import (
 from core.errors.exceptions import StateError
 from core.timing.epoch import epoch_ms
 from core.validation.integers import is_strict_int
+from database.core.row_fields import require_row_bool
 from database.repositories.users.conversation_input_attachment_semantics import (
     build_expected_user_message_content,
 )
@@ -66,6 +67,37 @@ def _next_message_timestamp(sqlite_conn: sqlite3.Connection, conv_id: str) -> in
     return max(current_ms, int(latest_value) + 1)
 
 
+def _apply_permitted_default_title(
+    sqlite_conn: sqlite3.Connection,
+    *,
+    conv_id: str,
+    user_id: int,
+    message: JSONDict,
+) -> str | None:
+    row = sqlite_conn.execute(
+        "SELECT title, title_auto_update_allowed FROM webui_conversations WHERE id = ? AND user_id = ?",
+        (conv_id, user_id),
+    ).fetchone()
+    if row is None:
+        raise StateError("Materialized conversation input conversation is missing.")
+    if not require_row_bool(
+        row["title_auto_update_allowed"],
+        label="Conversation title_auto_update_allowed",
+        build_error=StateError,
+    ):
+        return None
+    default_title = resolve_default_title_from_user_message(message)
+    if row["title"] == default_title:
+        return None
+    updated = sqlite_conn.execute(
+        "UPDATE webui_conversations SET title = ? WHERE id = ? AND user_id = ? AND title_auto_update_allowed = 1",
+        (default_title, conv_id, user_id),
+    )
+    if updated.rowcount != 1:
+        raise StateError("Materialized conversation input title update failed.")
+    return default_title
+
+
 def sync_materialize_conversation_input_user_message(
     sqlite_conn: sqlite3.Connection,
     *,
@@ -114,15 +146,13 @@ def sync_materialize_conversation_input_user_message(
     if row is None or not is_strict_int(row["id"]):
         raise StateError("Materialized conversation input message is missing.")
     message = build_message_payload_from_row(dict(row))
-    conversation_title = None
-    if set_default_title and write_result.message_count == 1:
-        conversation_title = resolve_default_title_from_user_message(message)
-        updated = sqlite_conn.execute(
-            "UPDATE webui_conversations SET title = ? WHERE id = ? AND user_id = ?",
-            (conversation_title, conv_id, user_id),
+    conversation_title = (
+        _apply_permitted_default_title(
+            sqlite_conn, conv_id=conv_id, user_id=user_id, message=message
         )
-        if updated.rowcount != 1:
-            raise StateError("Materialized conversation input title update failed.")
+        if set_default_title and write_result.message_count == 1
+        else None
+    )
     return ConversationInputMessageMaterialization(
         message_id=int(row["id"]),
         message_at_ms=message_at_ms,

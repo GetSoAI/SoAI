@@ -11,17 +11,20 @@ type FollowerRecoveryReconcileRequest = (convId: string) => void;
 
 const log = createModuleLogger('ChatStreamFollowerCoordinator', { defaultLevel: 'warn' });
 
-const requestFollowerHydrationRecovery = (inputArguments: { hydration: ChatStreamHydrationSession; receivedSequence: number; convId: string; requestReconcile: FollowerRecoveryReconcileRequest | null; failProtocol: FollowerRecoveryFailure }): void => {
+const requestFollowerHydrationRecovery = (inputArguments: { hydration: ChatStreamHydrationSession; receivedSequence: number; convId: string; requestReconcile: FollowerRecoveryReconcileRequest | null; failProtocol: FollowerRecoveryFailure; isCurrentOwner: () => boolean }): void => {
     void inputArguments.hydration
         .request(inputArguments.receivedSequence)
         .then((result) => {
-            if (result.status !== 'recoverable') {
+            if (result.status !== 'recoverable' || !inputArguments.isCurrentOwner()) {
                 return;
             }
             log('warn', 'Stream hydration exhausted; requesting active-status reconciliation', { convId: inputArguments.convId, requiredSequence: result.requiredSequence, progressRevision: result.progressRevision });
             inputArguments.requestReconcile?.(inputArguments.convId);
         })
         .catch((error) => {
+            if (!inputArguments.isCurrentOwner()) {
+                return;
+            }
             const runtimeError = ensureError(error);
             log('warn', 'Stream hydration failed', { convId: inputArguments.convId, error: runtimeError });
             inputArguments.failProtocol(`Stream hydration failed: ${runtimeError.message}`, 'stream_hydration_failed');

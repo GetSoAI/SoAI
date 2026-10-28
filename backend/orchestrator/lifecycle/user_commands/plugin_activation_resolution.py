@@ -64,6 +64,7 @@ async def _resolve_activation_target(
             instance,
             operation=f"{operation}.get_status",
             logger=logger,
+            raise_on_error=True,
         )
         installed = plugin_status_reports_installed(
             status_payload,

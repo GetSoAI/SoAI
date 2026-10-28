@@ -61,6 +61,7 @@ if TYPE_CHECKING:
     from core.prompts.protocols_database import DatabasePromptsProtocol
     from core.rag.protocols import DatabaseKnowledgePromptStateProtocol
     from core.read_video.protocols_database import DatabaseReadVideoJobsProtocol
+    from core.skills.protocols import SkillRepositoryProtocol
     from core.state.protocols import (
         AuthoritativePluginStateTransitionsProtocol,
         StateAggregatorProtocol,
@@ -73,6 +74,7 @@ if TYPE_CHECKING:
         TaskCancellationBinderProtocol,
         TaskFinalizerTrackerProtocol,
         TaskRegistryProtocol,
+        TaskTypeRoutingServiceProtocol,
         TokenCollectionProtocol,
     )
     from core.tasks.protocols_query import TaskRegistryQueryView
@@ -117,6 +119,7 @@ class ManagerPreconditions:
     database_notifications: DatabaseNotificationsProtocol
     database_password_vault: DatabasePasswordVaultProtocol
     database_tool_calls: DatabaseToolCallsProtocol
+    database_skills: SkillRepositoryProtocol
     database_read_video: DatabaseReadVideoJobsProtocol
     database_files: DatabaseFilesProtocol
     database_operation_status: DatabaseOperationStatusProtocol
@@ -134,3 +137,4 @@ class ManagerPreconditions:
     token_collection: TokenCollectionProtocol
     cancellation_binder: TaskCancellationBinderProtocol
     finalizer_tracker: TaskFinalizerTrackerProtocol
+    task_type_routing_service: TaskTypeRoutingServiceProtocol

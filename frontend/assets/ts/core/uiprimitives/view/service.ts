@@ -10,6 +10,7 @@ import { normalizeCollectionNodeType, renderCollectionCard, renderCollectionHead
 import { composeCollectionButtonContent } from '@core/uiprimitives/view/effects.ts';
 import type { BuildConfig, BuildResult, ButtonConfig, CardConfig, ClassValue, EmptyStateConfig, EscapableValue, GridConfig, IconConfig, IconOptions, LayoutNodeValue, MarkupContent, NodeConfig, PageInstance } from '@core/uiprimitives/types.ts';
 import { isTrustedHtml, type TrustedHtml } from '@core/security/public.ts';
+import { EMPTY_UI_HTML } from '@core/security/uiHtml.ts';
 
 const renderMarkupContent = (content: MarkupContent): string => (isTrustedHtml(content) ? content.html : content);
 
@@ -158,7 +159,7 @@ class CollectionLayoutBuilder {
     }
 
     composeButtonContent(config: ButtonConfig = {}): string {
-        return composeCollectionButtonContent(config, (icon): string => this.resolveIcon(icon), this.escapeHtml);
+        return composeCollectionButtonContent(config, (icon): TrustedHtml => this.resolveIconMarkup(icon), this.escapeHtml);
     }
 
     card(config: CardConfig = {}): string {
@@ -174,9 +175,13 @@ class CollectionLayoutBuilder {
     }
 
     resolveIcon(icon: string | IconConfig | undefined): string {
-        if (!icon) return '';
-        if (isString(icon)) return this.iconResolver(icon, {}).html;
-        return isPlainObject(icon) && icon.name ? this.iconResolver(icon.name, isPlainObject(icon.options) ? icon.options : {}).html : '';
+        return this.resolveIconMarkup(icon).html;
+    }
+
+    resolveIconMarkup(icon: string | IconConfig | undefined): TrustedHtml {
+        if (!icon) return EMPTY_UI_HTML;
+        if (isString(icon)) return this.iconResolver(icon, {});
+        return isPlainObject(icon) && icon.name ? this.iconResolver(icon.name, isPlainObject(icon.options) ? icon.options : {}) : EMPTY_UI_HTML;
     }
 
     #resolve(node: LayoutNodeValue): string {

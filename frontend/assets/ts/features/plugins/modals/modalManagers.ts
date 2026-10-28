@@ -119,7 +119,6 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
         },
         operations: {
             loadCoreConfig: operations.loadCoreConfig,
-            getRestartOverlay: concurrency.getRestartOverlay,
             api: {
                 configs: {
                     update: (name: string, config: JsonObject) => {
@@ -128,8 +127,7 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
                         }
                         return foundation.api.configs.update(name, config);
                     }
-                },
-                ...(foundation.api.system ? { system: foundation.api.system } : {})
+                }
             }
         }
     };
@@ -137,6 +135,7 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
     const backendClassNames = { hidden: C_HIDDEN, disabled: C_DISABLED };
     const manageBackendModalManager = new ManageBackendModalManager({
         host: {
+            catalog: state.catalog,
             view: {
                 modals: callbacks.modals,
                 requireHTMLElement: callbacks.requireHTMLElement,
@@ -153,6 +152,8 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
                 dom: foundation.dom
             },
             policy: {
+                backendUpdateAccess: state.backendUpdateAccess,
+                subscribeBackendUpdateAccess: state.subscribeBackendUpdateAccess,
                 checkBackendInstallationSupport: presentation.checkBackendInstallationSupport,
                 isPluginPermanentlyDisabled: presentation.isPluginPermanentlyDisabled,
                 notifyPluginIncompatible: presentation.notifyPluginIncompatible
@@ -170,7 +171,7 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
                 normalizeVersion: updates.normalizeVersion
             },
             operations: {
-                checkUpdates: updates.checkUpdates,
+                checkBackendUpdate: updates.checkBackendUpdate,
                 getBackendVariants: updates.getBackendVariants,
                 saveBackendVariantSelection: updates.saveBackendVariantSelection,
                 streams: foundation.streams,

@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { TrustedHtml } from '@core/security/public.ts';
+import { dom } from '@core/dom/dom.ts';
 import { normalizeModalId } from '@core/modals/guards.ts';
 import type { HtmlAttributeValue } from '@core/modals/scaffold.ts';
 import { EMPTY_UI_HTML, staticUiHtml, uiAttr, uiAttributes, uiHtml } from '@core/security/uiHtml.ts';
+import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 
 type FooterButtonVariant = 'neutral' | 'primary' | 'accent' | 'success' | 'warning' | 'danger' | 'violet';
 
@@ -42,7 +44,7 @@ const renderModalFooterDismissAttribute = (): TrustedHtml => {
     return uiAttributes({ [MODAL_FOOTER_DISMISS_ATTRIBUTE]: 'true' });
 };
 
-const renderModalFooterCloseButton = (options: { modalId: string; text: string; ariaLabel?: string | undefined; id?: string | undefined; className?: string | undefined; attributes?: Readonly<Record<string, HtmlAttributeValue>> | undefined }): ReturnType<typeof uiHtml> => {
+const renderModalFooterCloseButton = (options: { modalId: string; text: string; ariaLabel?: string | undefined; id?: string | undefined; className?: string | undefined; localize?: boolean | undefined; attributes?: Readonly<Record<string, HtmlAttributeValue>> | undefined }): ReturnType<typeof uiHtml> => {
     const modalId = normalizeModalId(options.modalId);
     const text = String(options.text ?? '').trim();
     if (!text) {
@@ -56,10 +58,10 @@ const renderModalFooterCloseButton = (options: { modalId: string; text: string; 
     const className = `ui-button${variantClassName}${options.className ? ` ${options.className}` : ''}`.trim();
     const idAttr = uiAttributes({ id: options.id });
     const extraAttributes = renderExtraAttributes(options.attributes, RESERVED_CLOSE_ATTRIBUTES);
-    return uiHtml`<button type="button"${idAttr} class="${uiAttr(className)}" data-modal-close="${uiAttr(modalId)}"${renderModalFooterDismissAttribute()}${extraAttributes} aria-label="${uiAttr(ariaLabel)}" data-tooltip="${uiAttr(ariaLabel)}">${text}</button>`;
+    return uiHtml`<button type="button"${idAttr} class="${uiAttr(className)}" data-modal-close="${uiAttr(modalId)}"${renderModalFooterDismissAttribute()}${extraAttributes}${uiAttributes({ 'data-modal-localize': options.localize === false ? undefined : 'text aria-label data-tooltip', 'data-modal-localization-owner': options.localize === false ? 'session' : undefined })} aria-label="${uiAttr(ariaLabel)}" data-tooltip="${uiAttr(ariaLabel)}">${text}</button>`;
 };
 
-const renderModalFooterActionButton = (options: { text: string; ariaLabel?: string | undefined; id?: string | undefined; action?: string | undefined; variant?: FooterButtonVariant | undefined; className?: string | undefined; disabled?: boolean | undefined; ariaHidden?: boolean | undefined; attributes?: Readonly<Record<string, HtmlAttributeValue>> | undefined }): ReturnType<typeof uiHtml> => {
+const renderModalFooterActionButton = (options: { text: string; ariaLabel?: string | undefined; id?: string | undefined; action?: string | undefined; variant?: FooterButtonVariant | undefined; className?: string | undefined; disabled?: boolean | undefined; ariaHidden?: boolean | undefined; localize?: boolean | undefined; attributes?: Readonly<Record<string, HtmlAttributeValue>> | undefined }): ReturnType<typeof uiHtml> => {
     const text = String(options.text ?? '').trim();
     if (!text) {
         throw new Error('renderModalFooterActionButton requires non-empty text');
@@ -77,7 +79,17 @@ const renderModalFooterActionButton = (options: { text: string; ariaLabel?: stri
     const hiddenAttr = options.ariaHidden === true ? staticUiHtml` aria-hidden="true"` : EMPTY_UI_HTML;
     const extraAttributes = renderExtraAttributes(options.attributes, RESERVED_ACTION_ATTRIBUTES);
 
-    return uiHtml`<button type="button"${idAttr} class="${uiAttr(className)}"${actionAttr}${disabledAttr}${hiddenAttr}${extraAttributes} aria-label="${uiAttr(ariaLabel)}" data-tooltip="${uiAttr(ariaLabel)}">${text}</button>`;
+    return uiHtml`<button type="button"${idAttr} class="${uiAttr(className)}"${actionAttr}${disabledAttr}${hiddenAttr}${extraAttributes}${uiAttributes({ 'data-modal-localize': options.localize === false ? undefined : 'text aria-label data-tooltip', 'data-modal-localization-owner': options.localize === false ? 'session' : undefined })} aria-label="${uiAttr(ariaLabel)}" data-tooltip="${uiAttr(ariaLabel)}">${text}</button>`;
 };
 
-export { renderModalFooterActionButton, renderModalFooterCloseButton, renderModalFooterDismissAttribute };
+const setModalFooterButtonLabel = (button: HTMLButtonElement, text: string, options: { tooltip?: string | null } = {}): void => {
+    const label = text.trim();
+    if (!label) {
+        throw new Error('setModalFooterButtonLabel requires non-empty text');
+    }
+    dom.setText(button, label);
+    button.setAttribute('aria-label', label);
+    setTooltipText(button, options.tooltip === undefined ? label : options.tooltip);
+};
+
+export { renderModalFooterActionButton, renderModalFooterCloseButton, renderModalFooterDismissAttribute, setModalFooterButtonLabel };

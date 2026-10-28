@@ -7,7 +7,7 @@ interface ChatConversationSettingsManagerDependencies {
     host: ConversationSettingsHost;
 }
 
-type ConversationSettingsSection = 'rag' | 'mcp' | 'identityPrompts' | 'workspace';
+type ConversationSettingsSection = 'rag' | 'skills' | 'mcp' | 'identityPrompts' | 'workspace';
 
 type ConversationSettingsActionState = {
     hasChanges: boolean;
@@ -16,6 +16,8 @@ type ConversationSettingsActionState = {
 } | null;
 
 interface ConversationSettingsSectionState {
+    skillsDirty: boolean;
+    skillsValid: boolean;
     ragDirty: boolean;
     ragValid: boolean;
     mcpDirty: boolean;

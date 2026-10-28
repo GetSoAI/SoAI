@@ -115,11 +115,9 @@ class RuntimeStateSideEffects(RuntimeStatePublicationSideEffectsProtocol):
                 event.new_state,
                 event.authority,
             )
-        plugin_instance = await self._deps.orchestrator.plugin_manager.get_plugin_instance(
-            plugin_name,
-        )
-        is_persistent = bool(plugin_instance.PERSISTENT) if plugin_instance is not None else False
-        if event.new_state in INTERRUPTIBLE_IDLE_STATES and (not is_persistent):
+        if event.new_state in INTERRUPTIBLE_IDLE_STATES and not await self._is_persistent_plugin(
+            plugin_name
+        ):
             prioritize = coerce_bool_flag(
                 details.get("prioritize_for_eviction"),
                 logger=logger,
@@ -139,3 +137,9 @@ class RuntimeStateSideEffects(RuntimeStatePublicationSideEffectsProtocol):
                 )
             return
         await self._deps.state.pop_idle_plugin(plugin_name)
+
+    async def _is_persistent_plugin(self, plugin_name: str) -> bool:
+        plugin_instance = await self._deps.orchestrator.plugin_manager.get_plugin_instance(
+            plugin_name,
+        )
+        return bool(plugin_instance.PERSISTENT) if plugin_instance is not None else False

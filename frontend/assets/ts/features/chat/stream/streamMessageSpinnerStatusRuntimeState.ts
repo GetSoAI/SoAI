@@ -3,7 +3,7 @@
 
 import { requireNonNegativeIntegerAttribute } from '@core/dom/attributes.ts';
 import { applyStatusText, FADING_CLASS, finishStatusTextTransitionElement } from '@features/chat/stream/streamMessageSpinnerStatusRuntimeTransition.ts';
-import { STREAM_SPINNER_VISIBILITY_DELAY_MS, createSpinnerStatusState, setRuntimeStateByMessageId, type SpinnerStatusState } from '@features/chat/stream/streamMessageSpinnerStatusState.ts';
+import { STREAM_SPINNER_VISIBILITY_DELAY_MS, clearStateTimers, createSpinnerStatusState, setRuntimeStateByMessageId, type SpinnerStatusState } from '@features/chat/stream/streamMessageSpinnerStatusState.ts';
 import { chooseNextKey, getStatusMessageText } from '@features/chat/stream/streamMessageSpinnerStatusText.ts';
 import { STREAM_SPINNER_TRIGGER_USER_AT_MS_ATTRIBUTE } from '@features/chat/stream/streamMessageSpinnerStatusAttributes.ts';
 
@@ -21,6 +21,9 @@ type CreateSpinnerStatusRuntimeStateArguments = {
 };
 
 const bindSpinnerStatusState = (state: SpinnerStatusState, messageRoot: HTMLElement, statusElement: HTMLElement, labelElement: HTMLElement, textElement: HTMLElement, actionsElement: HTMLElement, spinnerElement: HTMLElement | null): void => {
+    if (state.actionsElement !== actionsElement || state.textElement !== textElement) {
+        clearStateTimers(state);
+    }
     state.messageRoot = messageRoot;
     state.statusElement = statusElement;
     state.labelElement = labelElement;

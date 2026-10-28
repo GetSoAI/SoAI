@@ -11,6 +11,7 @@ from core.types.json import JSONDict, JSONValue
 if TYPE_CHECKING:
     from core.agent.settings_types import AgentSettings
     from core.orchestrator.types import MCPToolContext
+    from core.skills.execution import SkillExecutionContext
     from features.agent.runtime.context_compaction.activity_result import (
         PreparedAutoCompactionSnapshot,
     )
@@ -33,5 +34,6 @@ class PreparedExecutionRequest:
     request_json: JSONDict = field(default_factory=dict[str, JSONValue])
     subagent_summaries: list[JSONDict] = field(default_factory=list[JSONDict])
     tool_context: MCPToolContext | None = None
+    skill_context: SkillExecutionContext | None = None
     final_payload: JSONDict = field(default_factory=dict[str, JSONValue])
     prepared_auto_compaction: PreparedAutoCompactionSnapshot | None = None

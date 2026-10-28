@@ -6,6 +6,9 @@ import type { ChatAttachment } from '@features/chat/ChatTypes.ts';
 
 const appendPhysicalAttachmentProviderStatus = (attachment: ChatAttachment, baseStatus: string): string => {
     const suffixes: string[] = [];
+    if (attachment.missingCapabilities?.includes('speech_to_text')) {
+        suffixes.push(i18n.t('speechSetup.notTranscribed'));
+    }
     if (attachment.providerMode === 'reference') {
         suffixes.push(i18n.t('chat.attachments.status.referenceOnly'));
     }

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exceptions import SoAIError
+from core.errors.public_projection import project_public_error
 from core.runtime.request_context_cloning import clone_request_context
 from core.timing.monotonic import monotonic_ms
 from core.users.user_id import coerce_user_id
@@ -89,7 +90,7 @@ async def handle_openai_audio_speech_session_start(
             connection,
             enqueue_warning_tracker,
             run_id,
-            str(coerced),
+            project_public_error(coerced).message,
             str(coerced.code),
         )
         return

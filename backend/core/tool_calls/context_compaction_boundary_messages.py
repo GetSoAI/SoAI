@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from core.openai.message_fields import OPENAI_MESSAGE_FIELDS_COMMON
 from core.openai.pinned_prefix import split_leading_pinned_prefix
 from core.serialization.json import normalize_for_json
+from core.skills.prompt_projection import is_skill_context_message
 from core.tool_calls.compaction_projections import normalize_boundary_projections
 from core.tool_calls.compaction_timeline_boundaries import (
     normalize_timeline_boundary_entries,
@@ -177,6 +178,8 @@ def normalize_context_compaction_boundary_messages(
 ) -> list[JSONDict]:
     normalized_messages: list[JSONDict] = []
     for message in messages:
+        if is_skill_context_message(message):
+            continue
         normalized_messages.extend(_normalize_boundary_entries_for_message(message))
     if not strip_leading_pinned_prefix:
         return normalized_messages

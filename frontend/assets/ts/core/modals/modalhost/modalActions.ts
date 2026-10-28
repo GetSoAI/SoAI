@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
+import { finishPresenceAnimations, isPresenceExiting } from '@core/animations/presence/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { getRequestAnimationFrame } from '@core/environment/public.ts';
 import { applyBehaviorAttributes, prepareModalLayoutState, setModalOpenState } from '@core/modals/render.ts';
@@ -56,7 +57,7 @@ const focusModalElement = (state: ModalHostState, modalId: string, layoutGenerat
     const element = isString(target) ? dom.resolve(target, modal) : target;
     if (element) {
         getRequestAnimationFrame()(() => {
-            if (!isModalLayoutCurrent(state, modalId, layoutGeneration)) return;
+            if (!isModalLayoutCurrent(state, modalId, layoutGeneration) || modal.contains(dom.getActiveElement())) return;
             focusNode(element);
         });
     }
@@ -102,6 +103,7 @@ const registerModal = (state: ModalHostState, id: string, options: ModalRegister
 const openModal = (state: ModalHostState, id: string, options: ModalOpenOptions = {}): boolean => {
     const modalId = normalizeModalId(id);
     const modal = state.ensureModalElement(modalId);
+    if (isPresenceExiting(modal)) finishPresenceAnimations(modal);
 
     const config = state.registry.getConfig(modalId);
     applyBehaviorAttributes(modal, config, options.layoutOverride);
@@ -132,52 +134,54 @@ const openModal = (state: ModalHostState, id: string, options: ModalOpenOptions 
     prepareModalLayoutState(modal);
 
     try {
-        const savedState = sanitizeSavedModalState(state.storage.getModalState(modalId));
-        let sizeResult = applySizeConstraints({
-            content,
-            config,
-            isMobileViewport: state.isMobileViewportState,
-            savedState,
-            layoutOverride: options.layoutOverride,
-            desktopOpenHeight: state.desktopOpenHeights.get(modalId)
-        });
-        if (sizeResult && !state.isMobileViewportState) {
-            const locked = lockModalContentHeight(content, sizeResult);
-            state.desktopOpenHeights.set(modalId, locked.desktopOpenHeight);
-            sizeResult = locked.sizeResult;
-        }
-        const sizeOverride = sizeResult ? { width: sizeResult.width, height: sizeResult.height } : null;
-        const centeredPosition = resolveCenteredPosition({
-            content,
-            sizeOverride
-        });
-        applyPosition(content, centeredPosition);
-
-        if (config.resizable) {
-            dom.addClass(content, 'resizable');
-            ensureResizeHandles(content);
-        } else {
-            dom.removeClass(content, 'resizable');
-        }
-
-        enforceBoundaries({
-            content,
-            sizeOverride
-        });
-
-        state.resources.requestAnimationFrame(() => {
-            if (!isModalLayoutCurrent(state, modalId, layoutGeneration)) {
-                return;
+        if (config.presentation === 'window') {
+            const savedState = sanitizeSavedModalState(state.storage.getModalState(modalId));
+            let sizeResult = applySizeConstraints({
+                content,
+                config,
+                isMobileViewport: state.isMobileViewportState,
+                savedState,
+                layoutOverride: options.layoutOverride,
+                desktopOpenHeight: state.desktopOpenHeights.get(modalId)
+            });
+            if (sizeResult && !state.isMobileViewportState) {
+                const locked = lockModalContentHeight(content, sizeResult);
+                state.desktopOpenHeights.set(modalId, locked.desktopOpenHeight);
+                sizeResult = locked.sizeResult;
             }
-            if (state.fullscreenState.has(modalId)) {
-                return;
+            const sizeOverride = sizeResult ? { width: sizeResult.width, height: sizeResult.height } : null;
+            const centeredPosition = resolveCenteredPosition({
+                content,
+                sizeOverride
+            });
+            applyPosition(content, centeredPosition);
+
+            if (config.resizable) {
+                dom.addClass(content, 'resizable');
+                ensureResizeHandles(content);
+            } else {
+                dom.removeClass(content, 'resizable');
             }
-            const rect = measureLayoutBox(content);
+
             enforceBoundaries({
                 content,
-                sizeOverride: rect.width > 0 ? { width: rect.width, height: rect.height } : null
+                sizeOverride
             });
-        });
+
+            state.resources.requestAnimationFrame(() => {
+                if (!isModalLayoutCurrent(state, modalId, layoutGeneration)) {
+                    return;
+                }
+                if (state.fullscreenState.has(modalId)) {
+                    return;
+                }
+                const rect = measureLayoutBox(content);
+                enforceBoundaries({
+                    content,
+                    sizeOverride: rect.width > 0 ? { width: rect.width, height: rect.height } : null
+                });
+            });
+        }
     } catch (error) {
         if (!wasOpen) {
             state.desktopOpenHeights.delete(modalId);
@@ -234,18 +238,19 @@ const closeModal = (state: ModalHostState, id: string, options: ModalCloseOption
     state.dragState.delete(modalId);
     state.resizeState.delete(modalId);
     const contentElement = dom.resolve('.modal-content', modal);
-    if (contentElement instanceof HTMLElement) {
-        dom.removeClass(contentElement, 'is-fullscreen');
-        dom.setStyle(contentElement, 'animation', '');
-        dom.setStyle(contentElement, 'opacity', '');
-        dom.setStyle(contentElement, 'transition', '');
-        resetSizeStyles(contentElement);
-        applyPosition(contentElement, { x: 0, y: 0 });
-    }
     state.fullscreenState.delete(modalId);
     state.layoutOverrides.delete(modalId);
     state.desktopOpenHeights.delete(modalId);
-    setModalOpenState(modal, false);
+    setModalOpenState(modal, false, () => {
+        if (contentElement instanceof HTMLElement && config.presentation === 'window') {
+            dom.removeClass(contentElement, 'is-fullscreen');
+            dom.setStyle(contentElement, 'animation', '');
+            dom.setStyle(contentElement, 'opacity', '');
+            dom.setStyle(contentElement, 'transition', '');
+            resetSizeStyles(contentElement);
+            applyPosition(contentElement, { x: 0, y: 0 });
+        }
+    });
     state.activeStack = state.activeStack.filter((value) => value !== modalId);
     synchronizeModalStackAccessibility(state);
     const replacement = options.replacementFocusTarget;

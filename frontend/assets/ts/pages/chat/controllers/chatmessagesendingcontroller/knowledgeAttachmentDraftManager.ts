@@ -5,17 +5,17 @@ import type { KnowledgeAttachmentCollectionResponse, KnowledgeAttachmentSummary 
 import { serializeKnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentSerialization.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { stableJsonStringify } from '@core/serialization/json.ts';
+import { isClaimableKnowledgeDraft } from '@features/chat/public.ts';
 
 type KnowledgeAttachmentSelection = {
     knowledgeAttachmentId: string;
     attachmentRevision: number;
 };
 
-const CLAIMABLE_PROCESSING_STATES = new Set(['ready', 'error', 'cancelled']);
 const NONTERMINAL_PROCESSING_STATES = new Set(['pending', 'running', 'cancelling']);
 
 const parseDraftKnowledgeAttachmentSelection = (summary: KnowledgeAttachmentSummary): KnowledgeAttachmentSelection | null => {
-    if (!CLAIMABLE_PROCESSING_STATES.has(summary.processingState)) {
+    if (!isClaimableKnowledgeDraft(summary)) {
         return null;
     }
     return {

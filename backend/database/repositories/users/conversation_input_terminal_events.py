@@ -5,10 +5,12 @@ from __future__ import annotations
 
 import sqlite3
 
-from core.errors.exceptions import StateError
+from core.errors.exceptions import StateError, ValidationError
 from core.events.domain_event_payload import build_domain_event_payload
 from core.serialization.json_parsing import parse_json_dict
+from core.validation.integers import is_strict_int
 from database.repositories.event_outbox.sync_ops import sync_ensure_domain_event_payload
+from database.repositories.skills.retention import sync_reconcile_skill_retention
 
 __all__ = (
     "sync_ensure_conversation_input_terminal_event",
@@ -29,6 +31,7 @@ def sync_ensure_conversation_input_terminal_event(
     terminal_code: str,
     created_at_ms: int,
 ) -> None:
+    sync_reconcile_skill_retention(conn, user_id, created_at_ms)
     event_id = f"conversation_input_terminal:{input_id}"
     payload = build_domain_event_payload(
         event_id=event_id,
@@ -67,7 +70,10 @@ def sync_require_existing_conversation_input_terminal_event(
     ).fetchone()
     if existing is None or existing[0] != EVENT_TYPE or not isinstance(existing[1], str):
         raise StateError("Conversation input terminal event is unavailable.")
-    payload = parse_json_dict(existing[1], field="Conversation input terminal event payload")
+    try:
+        payload = parse_json_dict(existing[1], field="Conversation input terminal event payload")
+    except ValidationError as exception:
+        raise StateError("Conversation input terminal event payload is invalid.") from exception
     expected_fields = {
         "event_id": event_id,
         "user_id": user_id,
@@ -77,5 +83,7 @@ def sync_require_existing_conversation_input_terminal_event(
         "terminal_code": terminal_code,
         "timestamp": created_at_ms / 1000.0,
     }
-    if any(payload.get(field_name) != value for field_name, value in expected_fields.items()):
+    if not is_strict_int(payload.get("user_id")) or any(
+        payload.get(field_name) != value for field_name, value in expected_fields.items()
+    ):
         raise StateError("Conversation input terminal event identity collided.")

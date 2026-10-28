@@ -17,9 +17,7 @@
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-panel.is-soaibench-stress-active .gpu-soaibench-state.warning {
-        animation:
-            assistant-weather-widget-pulse var(--duration-6000) var(--ease-in-out) infinite,
-            gpu-soaibench-state-alert-color var(--duration-6000) var(--ease-in-out) infinite;
+        animation: gpu-soaibench-state-alert-color var(--duration-6000) var(--ease-in-out) infinite;
     }
 
     @media (prefers-reduced-motion: reduce) {

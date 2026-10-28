@@ -3,9 +3,9 @@
 
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import { i18n } from '@core/i18n/index.ts';
 import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import type { CapturedAudioUtterance } from '@core/media/audioCaptureSupport.ts';
+import { toAudioCaptureFailure } from '@core/media/mediaCaptureErrors.ts';
 import type { VoiceCallRuntimeAssets } from '@core/media/voiceCallRuntimeAssets.ts';
 import { extractAudioSpeechFeatures } from '@core/media/audioSpeechFeatures.ts';
 import { scoreAudioSpeechFrame } from '@core/media/audioSpeechScoring.ts';
@@ -87,6 +87,7 @@ class VoiceCallAudioCapture {
         }
         this.#active = false;
         this.#token += 1;
+        const stoppedToken = this.#token;
         this.#finalizeToken.invalidate();
         this.#vadGate.reset();
         this.#utteranceBuffer.discardCapture();
@@ -97,7 +98,7 @@ class VoiceCallAudioCapture {
         if (audioGraph) {
             await audioGraph.stop();
         }
-        this.#utteranceBuffer.reset();
+        if (stoppedToken === this.#token) this.#utteranceBuffer.reset();
     }
 
     async pause(): Promise<void> {
@@ -177,7 +178,15 @@ class VoiceCallAudioCapture {
         if (!this.#isCurrentFinalizeToken(token, finalizeToken)) {
             return;
         }
-        const blob = await this.#requireWavEncoder().encode(frames, sampleRate);
+        let blob: Blob;
+        try {
+            blob = await this.#requireWavEncoder().encode(frames, sampleRate);
+        } catch (error) {
+            if (!this.#isCurrentFinalizeToken(token, finalizeToken)) {
+                return;
+            }
+            throw error;
+        }
         if (!this.#isCurrentFinalizeToken(token, finalizeToken) || blob.size < 1) {
             return;
         }
@@ -221,11 +230,10 @@ class VoiceCallAudioCapture {
         if (!this.#isCurrentToken(token)) {
             return;
         }
-        errorHandler.warn('VoiceCallAudioCapture', 'Voice call audio graph failed', ensureError(error));
         try {
             this.#host.onError(error);
         } finally {
-            await this.stop();
+            if (this.#isCurrentToken(token)) await this.stop();
         }
     }
 
@@ -233,8 +241,7 @@ class VoiceCallAudioCapture {
         if (!this.#isCurrentToken(token)) {
             return;
         }
-        errorHandler.warn('VoiceCallAudioCapture', 'Failed to finalize utterance recording', ensureError(error));
-        this.#host.onError(new Error(i18n.t('chat.audio.recordingFailed')));
+        this.#host.onError(toAudioCaptureFailure(ensureError(error), 'recording_failed'));
     }
 }
 

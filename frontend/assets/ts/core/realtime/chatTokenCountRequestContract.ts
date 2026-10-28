@@ -10,6 +10,7 @@ interface ChatTokenCountRequest {
     openAiRequest: JsonObject;
     draftUserText: string | null;
     draftAttachmentContent: JsonArray;
+    targetInputId?: string | null;
 }
 
 const serializeChatTokenCountRequest = (request: ChatTokenCountRequest): JsonObject => ({
@@ -17,6 +18,7 @@ const serializeChatTokenCountRequest = (request: ChatTokenCountRequest): JsonObj
     'conv_id': request.conversationId,
     'request_id': request.requestId,
     'openai_request': request.openAiRequest,
+    ...(request.targetInputId ? { 'target_input_id': request.targetInputId } : {}),
     ...(request.draftUserText ? { 'draft_user_text': request.draftUserText } : {}),
     ...(request.draftAttachmentContent.length > 0 ? { 'draft_attachment_content': request.draftAttachmentContent } : {})
 });

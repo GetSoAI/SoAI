@@ -7,6 +7,7 @@ import { isFiniteNumber } from '@core/typeGuards.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { rejectConversationIdleWaiters, resolveConversationIdleWaiters } from '@features/chat/chatstreamservice/controller/idleWaiters.ts';
 import { applyStreamingUiTransition, syncCurrentConversationStreamingControls } from '@features/chat/chatstreamservice/controller/streamUiState.ts';
+import type { ChatStreamTerminalRenderState } from '@features/chat/chatstreamservice/types.ts';
 import type { ChatStreamingControllerContext, ChatStreamingControllerDependencies, ChatStreamingControllerOptions, ConversationStreamState, PendingRender, StreamLifecyclePhase } from '@features/chat/chatstreamservice/controller/types.ts';
 import { resetConversationTerminalization, resolveAllConversationTerminalizationPromises, resolveConversationTerminalizationPromise } from '@features/chat/chatstreamservice/controller/terminalizationState.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
@@ -28,6 +29,7 @@ export function createChatStreamingControllerContext(dependencies: ChatStreaming
         timers: new ResourceTracker(),
         presentationActive: true,
         presentationGeneration: 0,
+        presentationAbort: new AbortController(),
         disposed: false
     };
 }
@@ -137,23 +139,20 @@ export function isConversationStreamingUiActive(context: ChatStreamingController
     return true;
 }
 
-export function isTerminalRenderPendingForMessage(context: ChatStreamingControllerContext, conversationId: string, message: ChatMessage): boolean {
+export function resolveTerminalRenderStateForMessage(context: ChatStreamingControllerContext, conversationId: string, message: ChatMessage): ChatStreamTerminalRenderState {
     const normalizedConversationId = normalizeConversationId(conversationId);
     if (!normalizedConversationId || message.role !== 'assistant') {
-        return false;
+        return 'none';
     }
     const state = context.streamStateByConversationId.get(normalizedConversationId);
-    if (!state || state.phase !== 'terminalizing' || state.terminalRenderSettled) {
-        return false;
+    if (!state || state.phase !== 'terminalizing') {
+        return 'none';
     }
     const assistantTimestamp = state.assistantTimestamp;
-    if (!isFiniteNumber(assistantTimestamp)) {
-        return false;
+    if (!isFiniteNumber(assistantTimestamp) || (message.timestamp !== assistantTimestamp && message.assistantTurnAtMs !== assistantTimestamp)) {
+        return 'none';
     }
-    if (message.timestamp === assistantTimestamp) {
-        return true;
-    }
-    return message.assistantTurnAtMs === assistantTimestamp;
+    return state.terminalRenderSettled ? 'settled' : 'pending';
 }
 
 export function setStreamPhase(context: ChatStreamingControllerContext, conversationId: string, phase: StreamLifecyclePhase): void {
@@ -256,6 +255,7 @@ export function reconcileInactiveSyncedConversation(context: ChatStreamingContro
 }
 
 export function disposeContext(context: ChatStreamingControllerContext): void {
+    context.presentationAbort.abort();
     context.disposed = true;
     context.presentationActive = false;
     context.presentationGeneration += 1;
@@ -279,6 +279,7 @@ export function disposeContext(context: ChatStreamingControllerContext): void {
 }
 
 export function suspendPresentationContext(context: ChatStreamingControllerContext): void {
+    context.presentationAbort.abort();
     context.presentationActive = false;
     context.presentationGeneration += 1;
     cancelScheduledStreamRender(context);

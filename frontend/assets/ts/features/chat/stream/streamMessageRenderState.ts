@@ -1,6 +1,7 @@
 /* SoAI - Chat feature stream message render state [frontend/assets/ts/features/chat/stream/streamMessageRenderState.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
 import type { RenderStreamingMessageContentArguments } from '@features/chat/stream/streamMessageRenderingContracts.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
 import { syncRunningActivitySummaryForMessageTextRoot, syncStreamingStatusPreviewAttributes } from '@features/chat/stream/streamMessagePassiveDomSync.ts';
@@ -23,9 +24,9 @@ const resetStreamingRenderCache = (cached: StreamingElementCache): void => {
     resetStreamingActivityCacheState(cached);
 };
 
-const syncStreamingMessagePassiveState = (inputArguments: { message: RenderStreamingMessageContentArguments['message']; target: HTMLElement; messageManager: RenderStreamingMessageContentArguments['messageManager']; cached?: StreamingElementCache | null }): boolean => {
+const syncStreamingMessagePassiveState = (inputArguments: { message: RenderStreamingMessageContentArguments['message']; target: HTMLElement; messageManager: RenderStreamingMessageContentArguments['messageManager']; cached?: StreamingElementCache | null; segments?: readonly MessageSegment[] | null }): boolean => {
     let updated = false;
-    if (syncStreamingStatusPreviewAttributes(inputArguments.message, inputArguments.target, true)) {
+    if (syncStreamingStatusPreviewAttributes(inputArguments.message, inputArguments.target, true, inputArguments.segments ?? undefined)) {
         updated = true;
     }
     const summary = inputArguments.messageManager.resolveRunningActivitySummary(inputArguments.message, serverEpochMs());

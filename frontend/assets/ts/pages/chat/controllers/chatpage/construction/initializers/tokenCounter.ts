@@ -32,6 +32,10 @@ interface ChatTokenCounterDependencies extends ChatComposerSurfaceRuntimeOwner, 
 
 const createChatTokenCounter = (page: ChatTokenCounterDependencies): ChatTokenCounterController => {
     const controller = new ChatTokenCounterController({
+        getSteeringTargetInputId: () => {
+            const conversationId = page.conversationState.currentConversationId;
+            return conversationId && page.turnRuntime.requireStreaming().canSteerConversationInput(conversationId) ? page.turnRuntime.requireConversationInputs().getSteeringTargetInputId(conversationId) : null;
+        },
         host: {
             pageDom: page.pageDom,
             feedback: page.feedback,

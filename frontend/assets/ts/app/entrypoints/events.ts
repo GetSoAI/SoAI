@@ -3,11 +3,10 @@
 
 import { getEventHub } from '@core/environment/public.ts';
 import { getStreamRuntime } from '@core/realtime/streammanager/public.ts';
-import { isPersistedPageHideEvent, registerPageTerminationListeners } from '@core/lifecycle/pageTermination.ts';
+import { isPersistedPageHideEvent } from '@core/lifecycle/pageTermination.ts';
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 
 const setupCleanupHandlers = (): void => {
-    registerPageTerminationListeners();
     const unsubscribeAll = (event: Event): void => {
         if (isPersistedPageHideEvent(event) || windowIdentity.isDetachedContext()) return;
         getStreamRuntime().subscriptions.unsubscribeAll();

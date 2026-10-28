@@ -30,11 +30,11 @@ interface FileDropAreaBinding {
 
 const renderFileDropArea = (config: FileDropAreaRenderConfig): TrustedHtml => {
     const icons = joinUiHtml(config.icons.map((iconName) => uiHtml`<span class="ui-file-drop-area-icon" aria-hidden="true">${getIconSync(iconName, { size: 20, strokeWidth: 1.5 })}</span>`));
-    return uiHtml`<button id="${uiAttr(config.id)}" class="ui-file-drop-area" type="button" aria-label="${uiAttr(config.title)}" data-tooltip="${uiAttr(config.title)}" data-action="${uiAttr(config.action)}">
+    return uiHtml`<button id="${uiAttr(config.id)}" class="ui-file-drop-area" type="button" aria-label="${uiAttr(config.title)}" data-tooltip="${uiAttr(config.title)}" data-action="${uiAttr(config.action)}" data-modal-localize="aria-label data-tooltip">
         <span class="ui-file-drop-area-icons">${icons}</span>
         <span class="ui-file-drop-area-copy">
-            <strong class="ui-file-drop-area-title">${config.title}</strong>
-            <span class="ui-file-drop-area-hint">${config.hint}</span>
+            <strong class="ui-file-drop-area-title" data-modal-localize="text">${config.title}</strong>
+            <span class="ui-file-drop-area-hint" data-modal-localize="text">${config.hint}</span>
         </span>
     </button>`;
 };

@@ -51,33 +51,33 @@
         isolation: isolate;
     }
 
-    .hardware-widget .hardware-widget__chart--core {
+    .hardware-widget .hardware-widget__chart-line.hardware-widget__chart--core {
         stroke: var(--hardware-widget-metric-core);
         stroke-opacity: 0.4;
     }
 
-    .hardware-widget .hardware-widget__chart--vram,
-    .hardware-widget .hardware-widget__chart--ram {
+    .hardware-widget .hardware-widget__chart-line.hardware-widget__chart--vram,
+    .hardware-widget .hardware-widget__chart-line.hardware-widget__chart--ram {
         stroke: var(--hardware-widget-metric-ram);
         stroke-opacity: 0.4;
     }
 
-    .hardware-widget .hardware-widget__chart--power {
+    .hardware-widget .hardware-widget__chart-line.hardware-widget__chart--power {
         stroke: var(--hardware-widget-metric-power);
         stroke-opacity: 0.4;
     }
 
-    .hardware-widget .hardware-widget__chart--temperature {
+    .hardware-widget .hardware-widget__chart-line.hardware-widget__chart--temperature {
         stroke: var(--hardware-widget-metric-temperature);
         stroke-opacity: 0.4;
     }
 
-    .hardware-widget .hardware-widget__chart--download {
+    .hardware-widget .hardware-widget__chart-line.hardware-widget__chart--download {
         stroke: var(--hardware-widget-metric-network-download);
         stroke-opacity: 0.4;
     }
 
-    .hardware-widget .hardware-widget__chart--upload {
+    .hardware-widget .hardware-widget__chart-line.hardware-widget__chart--upload {
         stroke: var(--hardware-widget-metric-network-upload);
         stroke-opacity: 0.4;
     }
@@ -241,5 +241,15 @@
             max-height: var(--hardware-widget-height);
             aspect-ratio: 1 / 1;
         }
+    }
+    .hardware-widget__chart-line,
+    .hardware-widget__chart-path {
+        transition: opacity var(--duration-400) var(--ease-emphasized);
+    }
+
+    .hardware-widget .ui-metric-value.hardware-observation-stale,
+    .hardware-widget__chart-line.hardware-observation-stale,
+    .hardware-widget__chart-path.hardware-observation-stale {
+        opacity: 0.5;
     }
 }

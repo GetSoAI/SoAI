@@ -6,9 +6,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
-from core.hardware.gpu_settings_contract import GPU_RESET_CLOCKS_FIELD
+from core.hardware.gpu_settings_contract import GPU_RESET_CLOCKS_FIELD, GPU_SETTING_FAN_SPEED_FIELD
 from hardware.gpu_tuning.service_parsing import coerce_gpu_setting_int
-from hardware.gpu_tuning.setting_capabilities import setting_descriptor_for_key
+from hardware.gpu_tuning.setting_capabilities import (
+    fan_capability_observes_configured_mode,
+    setting_descriptor_for_key,
+)
 from hardware.gpu_tuning.setting_modes import field_modes_match_current
 
 if TYPE_CHECKING:
@@ -29,13 +32,22 @@ def _caps_entry(capabilities: Mapping[str, JSONValue], setting_key: str) -> JSON
     return value if isinstance(value, dict) else {}
 
 
-def _setting_matches_caps(value: JSONValue, caps_entry: JSONDict) -> bool:
+def _setting_matches_caps(setting_key: str, value: JSONValue, caps_entry: JSONDict) -> bool:
+    observed_fan_policy = setting_key == GPU_SETTING_FAN_SPEED_FIELD and (
+        fan_capability_observes_configured_mode(caps_entry)
+    )
+    if observed_fan_policy and caps_entry.get("supported") is not True:
+        return False
     current = coerce_gpu_setting_int(caps_entry.get("current"), round_float_strings=True)
     default = coerce_gpu_setting_int(caps_entry.get("default"), round_float_strings=True)
     if isinstance(value, str) and value.lower() == "auto":
+        if observed_fan_policy:
+            return caps_entry.get("mode") == "auto"
         if caps_entry.get("auto_requires_apply") is True:
             return False
         return current is not None and default is not None and current == default
+    if observed_fan_policy and caps_entry.get("mode") != "manual":
+        return False
     desired = coerce_gpu_setting_int(value, round_float_strings=True)
     return desired is not None and current is not None and current == desired
 
@@ -59,7 +71,7 @@ def settings_values_match_current(
             continue
         if setting_descriptor_for_key(key) is None:
             return False
-        if not _setting_matches_caps(value, _caps_entry(capabilities, key)):
+        if not _setting_matches_caps(key, value, _caps_entry(capabilities, key)):
             return False
     return True
 
@@ -79,7 +91,7 @@ def settings_requiring_value_apply(
         if setting_descriptor_for_key(key) is None:
             pending[key] = value
             continue
-        if not _setting_matches_caps(value, _caps_entry(capabilities, key)):
+        if not _setting_matches_caps(key, value, _caps_entry(capabilities, key)):
             pending[key] = value
     return pending
 

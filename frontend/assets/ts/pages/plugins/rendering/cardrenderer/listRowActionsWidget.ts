@@ -1,6 +1,7 @@
 /* SoAI - Plugins page list row actions widget [frontend/assets/ts/pages/plugins/rendering/cardrenderer/listRowActionsWidget.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { canUpdatePluginBackend, hasPluginBackendUpdate } from '@core/plugins/backendUpdates.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { MODELS_ACTION_ADD_PROVIDER, MODELS_ACTION_DOWNLOAD_MODEL } from '@core/models/pageActions.ts';
 import { PLUGIN_STATUS_BACKEND_INSTALLING, PLUGIN_STATUS_BACKEND_NOT_INSTALLED, PLUGIN_STATUS_BACKEND_UNINSTALL_ERROR, PLUGIN_STATUS_BACKEND_UPDATING, PLUGIN_STATUS_DELETE_ERROR, PLUGIN_STATUS_INSTALL_ERROR, PLUGIN_STATUS_LOAD_ERROR, PLUGIN_STATUS_UPDATE_ERROR } from '@core/state/pluginStatus.ts';
@@ -46,6 +47,10 @@ const appendInstallPluginActions = (buttons: PluginListActionConfig[], plugin: P
         buttons.push({ action: PLUGINS_ACTION_INSTALL_BACKEND, className: 'ui-round-button ui-round-button--run-now', iconName: 'download', iconOptions: { strokeWidth: 1.5 }, label: i18n.t('plugins.actions.installBackend') });
         return;
     }
+    if (hasPluginBackendUpdate(plugin) && canUpdatePluginBackend(plugin, host.actions.backendUpdateAccess(plugin))) {
+        buttons.push({ action: PLUGINS_ACTION_MANAGE_BACKEND, className: 'ui-round-button ui-round-button--update', iconName: 'download', iconOptions: { strokeWidth: 1.5 }, label: i18n.t('plugins.modal.manageBackend.update') });
+        return;
+    }
     if (LOCAL_BACKEND_UNAVAILABLE_STATUSES.includes(status)) {
         return;
     }
@@ -61,7 +66,7 @@ const appendBackendManagementAction = (buttons: PluginListActionConfig[], plugin
     if (!supportsBackendManagement(plugin)) {
         return;
     }
-    buttons.push({ action: PLUGINS_ACTION_MANAGE_BACKEND, className: 'ui-round-button ui-round-button--edit', iconName: 'backend-manage', iconOptions: { strokeWidth: 1.5 }, label: i18n.t('plugins.actions.manageBackend') });
+    buttons.push({ action: PLUGINS_ACTION_MANAGE_BACKEND, className: 'ui-round-button ui-round-button--edit ui-round-button--modal-close', iconName: 'backend-manage', iconOptions: { strokeWidth: 1.5 }, label: i18n.t('plugins.actions.manageBackend') });
 };
 
 const appendTerminalPluginActions = (buttons: PluginListActionConfig[], plugin: PluginRecord, host: PluginCardHost): void => {

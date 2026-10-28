@@ -22,6 +22,7 @@ import { FILE_EXPLORER_METADATA_MODAL_ID } from '@features/fileexplorer/public.t
 import { FILE_EXPLORER_ACTION_CLEAR_HIGHLIGHT, FILE_EXPLORER_ACTION_NAVIGATE_HOME, FILE_EXPLORER_ACTION_NAVIGATE_NEXT, FILE_EXPLORER_ACTION_NAVIGATE_PATH, FILE_EXPLORER_ACTION_NAVIGATE_PREVIOUS, FILE_EXPLORER_ACTION_NAVIGATE_UP, FILE_EXPLORER_ACTION_OPEN_FOLDER_SETTINGS, FILE_EXPLORER_ACTION_PATH_EDIT_SAVE, FILE_EXPLORER_ACTION_PATH_EDIT_START, isFileExplorerChangeActionId, isFileExplorerClickActionId, isFileexplorerActionId } from '@pages/fileexplorer/actions.ts';
 import { createFileExplorerPageRuntime } from '@pages/fileexplorer/controllers/page/runtime.ts';
 import { awaitDirectoryListingTask } from '@pages/fileexplorer/controllers/page/DirectoryListingTaskSession.ts';
+import { awaitFileExplorerDeletionTask } from '@pages/fileexplorer/controllers/page/FileExplorerDeletionTaskSession.ts';
 import { renderFileExplorerPageView } from '@pages/fileexplorer/view.ts';
 import { hydrateFileExplorerSortState, type FileExplorerSortState } from '@pages/fileexplorer/controllers/page/fileExplorerPageControlsController.ts';
 
@@ -82,6 +83,10 @@ class FileExplorerPage extends StaticBasePage {
                 waitForTask: async (taskId, signal) => {
                     const streamRuntime = await this.streaming.ensureRuntime();
                     await awaitDirectoryListingTask((acceptedTaskId) => streamRuntime.tasks.trackAcceptedTask(acceptedTaskId), taskId, signal);
+                },
+                waitForDeletionTask: async (taskId, signal) => {
+                    const streamRuntime = await this.streaming.ensureRuntime();
+                    return await awaitFileExplorerDeletionTask(streamRuntime, taskId, signal);
                 }
             },
             {

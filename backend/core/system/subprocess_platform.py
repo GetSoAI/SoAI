@@ -28,7 +28,6 @@ __all__ = (
     "WINDOWS_CREATE_BREAKAWAY_FROM_JOB",
     "WINDOWS_CREATE_NEW_PROCESS_GROUP",
     "WINDOWS_CREATE_NO_WINDOW",
-    "WINDOWS_DETACHED_PROCESS",
     "resolve_subprocess_creationflags",
     "resolve_subprocess_environment",
     "resolve_subprocess_paths",
@@ -38,7 +37,6 @@ __all__ = (
     "windows_no_window_creationflags",
 )
 
-WINDOWS_DETACHED_PROCESS: int = 0x00000008
 WINDOWS_CREATE_NEW_PROCESS_GROUP: int = 0x00000200
 WINDOWS_CREATE_NO_WINDOW: int = 0x08000000
 WINDOWS_CREATE_BREAKAWAY_FROM_JOB: int = 0x01000000

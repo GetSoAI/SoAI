@@ -1,0 +1,2370 @@
+[
+  {
+    "harness": "Claude Code",
+    "name": "Read",
+    "soai_tools": [
+      "read_file",
+      "read_image",
+      "read_document"
+    ],
+    "status": "adapt",
+    "note": "Route by file type; text line ranges differ. PDF pages, image output and notebook cells need explicit conversion.",
+    "schema_types": [
+      "FileReadInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Write",
+    "soai_tools": [
+      "write_file"
+    ],
+    "status": "adapt",
+    "note": "Normalize overwrite behavior and preserve SoAI read-before-overwrite checks.",
+    "schema_types": [
+      "FileWriteInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Edit",
+    "soai_tools": [
+      "replace_in_file"
+    ],
+    "status": "adapt",
+    "note": "Normalize exact replacement, replace-all, stale reads and output diffs.",
+    "schema_types": [
+      "FileEditInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Glob",
+    "soai_tools": [
+      "glob_files"
+    ],
+    "status": "adapt",
+    "note": "Normalize cwd, patterns, ordering and result limits; absent by default on some current Claude builds.",
+    "schema_types": [
+      "GlobInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Grep",
+    "soai_tools": [
+      "grep_files"
+    ],
+    "status": "adapt",
+    "note": "Normalize regex options, paging, path context and output mode.",
+    "schema_types": [
+      "GrepInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Bash",
+    "soai_tools": [
+      "shell",
+      "shell_write_stdin",
+      "shell_output_read"
+    ],
+    "status": "adapt",
+    "note": "command becomes cmd; translate background sessions, output and timeouts. SoAI shell is not a Codex-style filesystem sandbox.",
+    "schema_types": [
+      "BashInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "PowerShell",
+    "soai_tools": [
+      "shell"
+    ],
+    "status": "compose",
+    "note": "Select an installed PowerShell executable and quote for that shell; platform and encoding behavior require validation.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "NotebookEdit",
+    "soai_tools": [
+      "shell",
+      "read_file",
+      "write_file"
+    ],
+    "status": "compose",
+    "note": "Use an available notebook-aware runtime to preserve cell IDs, metadata and outputs; JSON text replacement alone is insufficient.",
+    "schema_types": [
+      "NotebookEditInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "WebFetch",
+    "soai_tools": [
+      "web_fetch"
+    ],
+    "status": "adapt",
+    "note": "Normalize URL, extraction/summarization and citation output.",
+    "schema_types": [
+      "WebFetchInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "WebSearch",
+    "soai_tools": [
+      "web_search_duckduckgo",
+      "web_search_searxng",
+      "web_search_brave",
+      "web_search_tavily",
+      "web_search_serper",
+      "web_search_google"
+    ],
+    "status": "adapt",
+    "note": "Choose a configured search backend; provider rankings and citations are not identical.",
+    "schema_types": [
+      "WebSearchInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "TodoWrite",
+    "soai_tools": [
+      "todo_write"
+    ],
+    "status": "adapt",
+    "note": "Translate content/activeForm to step and retain canonical full-list replacement.",
+    "schema_types": [
+      "TodoWriteInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "AskUserQuestion",
+    "soai_tools": [
+      "ask_user"
+    ],
+    "status": "adapt",
+    "note": "Translate question/options schema; confirmation of permission is separate from clarification.",
+    "schema_types": [
+      "AskUserQuestionInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Skill",
+    "soai_tools": [
+      "skill_read",
+      "skill_materialize"
+    ],
+    "status": "adapt",
+    "note": "Resolve name to installed skill ID; activation does not execute scripts or grant tool permissions.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "SlashCommand",
+    "soai_tools": [
+      "skill_read",
+      "skill_materialize"
+    ],
+    "status": "compose",
+    "note": "Historical command invocation; translate only skill-backed commands. Host commands such as model/settings cannot become skills.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Task",
+    "soai_tools": [
+      "subagent_spawn",
+      "subagent_observe"
+    ],
+    "status": "adapt",
+    "note": "Historical name for agent launch. Resume, fork, team membership and nested spawn are not native SoAI matches.",
+    "schema_types": [
+      "AgentInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Agent",
+    "soai_tools": [
+      "subagent_spawn",
+      "subagent_observe"
+    ],
+    "status": "adapt",
+    "note": "Basic delegate-and-collect maps. SoAI lacks in-place resume/fork/peer-agent messaging and forbids nested subagent control.",
+    "schema_types": [
+      "AgentInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "BashOutput",
+    "soai_tools": [
+      "shell_write_stdin",
+      "shell_output_read",
+      "shell_output_search"
+    ],
+    "status": "adapt",
+    "note": "Historical shell-output reader; preserve cursor/filters rather than silently dropping unmatched output.",
+    "schema_types": [
+      "BashOutputInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "BashOutputTool",
+    "soai_tools": [
+      "shell_write_stdin",
+      "shell_output_read"
+    ],
+    "status": "adapt",
+    "note": "Historical alias consolidated into TaskOutput; shell task IDs require explicit mapping.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "AgentOutputTool",
+    "soai_tools": [
+      "subagent_observe"
+    ],
+    "status": "adapt",
+    "note": "Historical agent-output reader/alias. Terminal waiting uses subagent_observe mode=terminal.",
+    "schema_types": [
+      "AgentOutputInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "TaskOutput",
+    "soai_tools": [
+      "subagent_observe",
+      "shell_output_read",
+      "shell_write_stdin"
+    ],
+    "status": "adapt",
+    "note": "Dispatch by originating task type. Deprecated in 2.1.83; removed in 2.1.277.",
+    "schema_types": [
+      "TaskOutputInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "KillShell",
+    "soai_tools": [
+      "shell_write_stdin"
+    ],
+    "status": "partial",
+    "note": "Historical alias of TaskStop. Ctrl+C is cooperative interruption, not guaranteed process-tree termination.",
+    "schema_types": [
+      "KillShellInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "TaskStop",
+    "soai_tools": [
+      "subagent_cancel",
+      "shell_write_stdin"
+    ],
+    "status": "partial",
+    "note": "Cancel SoAI subagents or interrupt a tracked shell; confirm terminal state. No universal background-task stop equivalent.",
+    "schema_types": [
+      "TaskStopInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "TaskCreate",
+    "soai_tools": [
+      "todo_write",
+      "read_file",
+      "write_file"
+    ],
+    "status": "compose",
+    "note": "A shared Markdown task board can preserve IDs, dependencies, owners and status; todo_write alone has none of those. Requires an explicit concurrency protocol.",
+    "schema_types": [
+      "TaskCreateInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "TaskGet",
+    "soai_tools": [
+      "todo_write",
+      "read_file",
+      "write_file"
+    ],
+    "status": "compose",
+    "note": "A shared Markdown task board can preserve IDs, dependencies, owners and status; todo_write alone has none of those. Requires an explicit concurrency protocol.",
+    "schema_types": [
+      "TaskGetInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "TaskUpdate",
+    "soai_tools": [
+      "todo_write",
+      "read_file",
+      "write_file"
+    ],
+    "status": "compose",
+    "note": "A shared Markdown task board can preserve IDs, dependencies, owners and status; todo_write alone has none of those. Requires an explicit concurrency protocol.",
+    "schema_types": [
+      "TaskUpdateInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "TaskList",
+    "soai_tools": [
+      "todo_write",
+      "read_file",
+      "write_file"
+    ],
+    "status": "compose",
+    "note": "A shared Markdown task board can preserve IDs, dependencies, owners and status; todo_write alone has none of those. Requires an explicit concurrency protocol.",
+    "schema_types": [
+      "TaskListInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "EnterPlanMode",
+    "soai_tools": [
+      "plan_write",
+      "plan_get"
+    ],
+    "status": "partial",
+    "note": "Recording a plan does not change the enforced agent mode. User/app mode transition remains separate.",
+    "schema_types": [
+      "EnterPlanModeInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ExitPlanMode",
+    "soai_tools": [
+      "plan_write",
+      "ask_user"
+    ],
+    "status": "partial",
+    "note": "Present plan and request a decision; a response must not be treated as a permission or mode change that the host did not apply.",
+    "schema_types": [
+      "ExitPlanModeInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "EnterWorktree",
+    "soai_tools": [
+      "shell"
+    ],
+    "status": "compose",
+    "note": "Git worktree creation/selection requires authorized Git operations and explicit workspace routing; files alone provide no isolation.",
+    "schema_types": [
+      "EnterWorktreeInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ExitWorktree",
+    "soai_tools": [
+      "shell"
+    ],
+    "status": "partial",
+    "note": "Workspace return and disposal are host lifecycle actions; do not silently delete or switch worktrees.",
+    "schema_types": [
+      "ExitWorktreeInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "LSP",
+    "soai_tools": [
+      "shell",
+      "grep_files",
+      "read_file"
+    ],
+    "status": "partial",
+    "note": "Compiler/search or an installed language-server client can approximate tasks; no native LSP protocol or unsaved-editor-state equivalent.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ListMcpResourcesTool",
+    "soai_tools": [
+      "mcp_resources_list",
+      "mcp_resource_templates_list"
+    ],
+    "status": "adapt",
+    "note": "Translate server/resource IDs and pagination; templates are a separate SoAI tool.",
+    "schema_types": [
+      "ListMcpResourcesInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ReadMcpResourceTool",
+    "soai_tools": [
+      "mcp_resource_read"
+    ],
+    "status": "adapt",
+    "note": "Translate server and URI, then preserve content type and resource ownership.",
+    "schema_types": [
+      "ReadMcpResourceInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "MCPSearch",
+    "soai_tools": [],
+    "status": "partial",
+    "note": "Historical deferred-tool discovery name. SoAI exposes selected tools but has no matching catalog-search/load MCP tool.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ToolSearch",
+    "soai_tools": [],
+    "status": "partial",
+    "note": "Discover only tools actually available in the SoAI conversation. Tool discovery/loading requires adapter work, not a web search.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "WaitForMcpServers",
+    "soai_tools": [],
+    "status": "partial",
+    "note": "Connection readiness belongs to SoAI MCP lifecycle; no matching model-callable readiness waiter.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "SendMessage",
+    "soai_tools": [
+      "write_file",
+      "read_file",
+      "glob_files",
+      "wait"
+    ],
+    "status": "partial",
+    "note": "Cooperative shared-workspace mailbox can exchange text. It cannot natively inject into a running agent, wake/resume idle agents or reach other sessions.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ListAgents",
+    "soai_tools": [
+      "read_file",
+      "glob_files",
+      "subagent_observe"
+    ],
+    "status": "partial",
+    "note": "A maintained agent manifest can list agents the adapter launched; no native global/cross-session agent directory.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "TeamCreate",
+    "soai_tools": [
+      "write_file",
+      "subagent_spawn"
+    ],
+    "status": "compose",
+    "note": "Historical experimental team setup can become a shared workspace manifest. This does not create native team lifecycle semantics.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "TeamDelete",
+    "soai_tools": [
+      "read_file",
+      "write_file",
+      "subagent_cancel"
+    ],
+    "status": "partial",
+    "note": "Historical team teardown needs terminal-state reconciliation; deleting a manifest does not stop workers.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "SubagentHandback",
+    "soai_tools": [
+      "subagent_observe"
+    ],
+    "status": "partial",
+    "note": "SoAI already collects child final results, but does not reproduce Claude auto-mode report classification or its explicit handback call.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Workflow",
+    "soai_tools": [
+      "subagent_spawn",
+      "subagent_observe",
+      "subagent_cancel",
+      "read_file",
+      "write_file"
+    ],
+    "status": "partial",
+    "note": "Parent-driven orchestration is possible; no matching script runtime, nested spawn or workflow checkpoint/resume contract.",
+    "schema_types": [
+      "WorkflowInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Monitor",
+    "soai_tools": [
+      "shell",
+      "shell_write_stdin",
+      "shell_output_read"
+    ],
+    "status": "partial",
+    "note": "Tracked background scripts can monitor a source; arbitrary event injection and WebSocket-triggered agent turns need runtime support.",
+    "schema_types": [
+      "MonitorInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "CronCreate",
+    "soai_tools": [
+      "automation_create"
+    ],
+    "status": "partial",
+    "note": "SoAI rejects cron expressions and supports none/hourly/daily/weekly/monthly/yearly recurrences; minute-level and arbitrary cron jobs do not map. Session scope also differs.",
+    "schema_types": [
+      "CronCreateInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "CronList",
+    "soai_tools": [],
+    "status": "partial",
+    "note": "No automation-list MCP tool in the inspected catalog; a new operation or explicit UI/REST integration is required.",
+    "schema_types": [
+      "CronListInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "CronDelete",
+    "soai_tools": [
+      "automation_update"
+    ],
+    "status": "partial",
+    "note": "Disabling an automation can stop future runs; no deletion tool or identical session-cron contract.",
+    "schema_types": [
+      "CronDeleteInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ScheduleWakeup",
+    "soai_tools": [
+      "automation_create",
+      "automation_update",
+      "wait"
+    ],
+    "status": "partial",
+    "note": "A new scheduled run differs from resuming the same live session; wait only delays the current execution.",
+    "schema_types": [
+      "ScheduleWakeupInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "RemoteTrigger",
+    "soai_tools": [
+      "automation_create",
+      "automation_update",
+      "automation_run_enqueue",
+      "automation_run_get",
+      "automation_run_wait"
+    ],
+    "status": "partial",
+    "note": "Own-host scheduling/runs can replace the intent; Claude cloud task IDs, listing/deletion, credentials and execution environment do not transfer.",
+    "schema_types": [
+      "RemoteTriggerInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "PushNotification",
+    "soai_tools": [
+      "notify_user"
+    ],
+    "status": "partial",
+    "note": "SoAI persisted WebUI notification exists. Do not claim Anthropic mobile/desktop push delivery.",
+    "schema_types": [
+      "PushNotificationInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "SendUserMessage",
+    "soai_tools": [
+      "notify_user"
+    ],
+    "status": "partial",
+    "note": "Experimental primary-visible-output gateway. SoAI notification is not an assistant transcript message with file attachments.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Brief",
+    "soai_tools": [
+      "notify_user"
+    ],
+    "status": "partial",
+    "note": "Alias of SendUserMessage in the inspected runtime; same presentation and attachment gap.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "SendUserFile",
+    "soai_tools": [
+      "write_file",
+      "notify_user"
+    ],
+    "status": "partial",
+    "note": "Create workspace deliverable and expose its authorized download; no matching remote-client file-transfer tool.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Artifact",
+    "soai_tools": [
+      "write_file",
+      "browser_navigate"
+    ],
+    "status": "host-specific",
+    "note": "Local HTML/Markdown deliverables are possible; publishing, sharing and versioning on claude.ai require that service.",
+    "schema_types": [
+      "ArtifactInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ShareOnboardingGuide",
+    "soai_tools": [
+      "write_file"
+    ],
+    "status": "host-specific",
+    "note": "Can write ONBOARDING.md locally. No Claude-hosted sharing/session-onboarding equivalent.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "SendFeedback",
+    "soai_tools": [
+      "write_file"
+    ],
+    "status": "host-specific",
+    "note": "Draft a local report; do not submit to Anthropic or any other destination without explicit authorization.",
+    "schema_types": [
+      "SendFeedbackInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ReportFindings",
+    "soai_tools": [
+      "write_file"
+    ],
+    "status": "partial",
+    "note": "Can produce structured findings as an artifact. No identical review-card rendering contract.",
+    "schema_types": [
+      "ReportFindingsInput"
+    ],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "EndConversation",
+    "soai_tools": [
+      "stop_conversation"
+    ],
+    "status": "partial",
+    "note": "Can stop the SoAI conversation; source-host lockout/classifier semantics do not map automatically.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "StructuredOutput",
+    "soai_tools": [],
+    "status": "partial",
+    "note": "SDK-injected output-schema tool. Use a validated structured model response only if the selected SoAI request supports it; not a literal alias.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Sleep",
+    "soai_tools": [
+      "wait"
+    ],
+    "status": "adapt",
+    "note": "Source-declared experimental sleep name; duration/cancellation conversion required. Runtime availability is conditional.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ListPlugins",
+    "soai_tools": [],
+    "status": "host-specific",
+    "note": "Lists plugins enabled on the Claude account, not local SoAI backend plugins.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "AskQuestion",
+    "soai_tools": [
+      "ask_user"
+    ],
+    "status": "unverified-name",
+    "note": "Changelog uses this historical label; exact callable spelling and distinction from AskUserQuestion are unverified. Map question intent only.",
+    "schema_types": [],
+    "surface": "historical_label"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "MultipleChoiceQuestion",
+    "soai_tools": [
+      "ask_user"
+    ],
+    "status": "schema-only",
+    "note": "Historical question schema; runtime spelling not verified. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "MultipleChoiceQuestionInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "TimeMachine",
+    "soai_tools": [],
+    "status": "schema-only",
+    "note": "Historical rewind-and-restore schema. No safe equivalent through a file edit; must not perform automatic Git restoration. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "TimeMachineInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Config",
+    "soai_tools": [],
+    "status": "schema-only",
+    "note": "Historical host-setting read/write schema. Cannot rewrite Claude permissions/model settings into SoAI configuration silently. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "ConfigInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "REPL",
+    "soai_tools": [
+      "shell",
+      "shell_write_stdin"
+    ],
+    "status": "schema-only",
+    "note": "Persistent JS execution could use an available Node REPL, but tool dispatch/state/output contracts need an adapter. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "REPLInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "SubscribeMcpResource",
+    "soai_tools": [],
+    "status": "schema-only",
+    "note": "MCP resource-change subscription schema; no matching selected SoAI MCP tool. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "SubscribeMcpResourceInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "UnsubscribeMcpResource",
+    "soai_tools": [],
+    "status": "schema-only",
+    "note": "Resource-subscription cancellation schema; no matching selected SoAI MCP tool. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "UnsubscribeMcpResourceInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "SubscribePolling",
+    "soai_tools": [
+      "automation_create"
+    ],
+    "status": "schema-only",
+    "note": "Polling schema differs from server scheduling and mid-turn event delivery. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "SubscribePollingInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "UnsubscribePolling",
+    "soai_tools": [
+      "automation_update"
+    ],
+    "status": "schema-only",
+    "note": "Disabling a scheduled job differs from cancelling a live subscription. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "UnsubscribePollingInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ReadMcpResourceDir",
+    "soai_tools": [
+      "mcp_resources_list",
+      "mcp_resource_templates_list"
+    ],
+    "status": "schema-only",
+    "note": "Resource-directory schema; list results can be adapted when the server exposes the necessary resources. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "ReadMcpResourceDirInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "RefreshMcpTools",
+    "soai_tools": [],
+    "status": "schema-only",
+    "note": "Host-side server reconnect/catalog refresh schema; no selected SoAI tool with this operation. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "RefreshMcpToolsInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ClaudeDesign",
+    "soai_tools": [
+      "write_file",
+      "browser_navigate",
+      "generate_image"
+    ],
+    "status": "schema-only",
+    "note": "Claude Design account operations are service-specific; SoAI can create local visual artifacts. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "ClaudeDesignInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "Projects",
+    "soai_tools": [
+      "knowledge_search",
+      "read_file",
+      "write_file",
+      "memory_search"
+    ],
+    "status": "schema-only",
+    "note": "Account project knowledge and mutation schemas have different ownership, storage and sharing from local files. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "ProjectsInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ShowOnboardingRolePicker",
+    "soai_tools": [
+      "ask_user"
+    ],
+    "status": "schema-only",
+    "note": "Host onboarding UI schema; ask_user is only a question equivalent. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "ShowOnboardingRolePickerInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "OfferChromeSetup",
+    "soai_tools": [],
+    "status": "schema-only",
+    "note": "Host Chrome pairing UI schema; SoAI browser sessions use a different connection model. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "OfferChromeSetupInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ReadNotifications",
+    "soai_tools": [],
+    "status": "schema-only",
+    "note": "Notification inbox-read schema; notify_user only creates notifications and is not a reader. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "ReadNotificationsInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ProposeSkills",
+    "soai_tools": [
+      "write_file"
+    ],
+    "status": "schema-only",
+    "note": "Host skill-save proposal UI schema; writing a file does not install a SoAI skill in the library. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "ProposeSkillsInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "ProposeGoal",
+    "soai_tools": [
+      "plan_write",
+      "todo_write"
+    ],
+    "status": "schema-only",
+    "note": "Host persistent goal/evaluator schema; a plan is not an automatic evaluated goal loop. Exact callable spelling/rollout is unverified; the row identifies a published input schema.",
+    "schema_types": [
+      "ProposeGoalInput"
+    ],
+    "surface": "schema_candidate"
+  },
+  {
+    "harness": "Claude Code",
+    "name": "mcp__<server>__<tool>",
+    "soai_tools": [],
+    "status": "dynamic",
+    "note": "MCP tools are supplied by the configured server. Match by server identity and schema, or connect the same server. The name universe is open-ended.",
+    "schema_types": [
+      "McpInput"
+    ],
+    "surface": "dynamic_family"
+  },
+  {
+    "harness": "Codex",
+    "name": "read_file",
+    "soai_tools": [
+      "read_file"
+    ],
+    "status": "adapt",
+    "note": "Translate line/indentation modes and bounds; historical built-in, not a promise of current availability.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "grep_files",
+    "soai_tools": [
+      "grep_files"
+    ],
+    "status": "adapt",
+    "note": "Normalize regex and output/paging options; historical built-in.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "list_dir",
+    "soai_tools": [
+      "list_dir"
+    ],
+    "status": "adapt",
+    "note": "Normalize depth, pagination, ordering and ignored-file semantics.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "view_image",
+    "soai_tools": [
+      "read_image"
+    ],
+    "status": "adapt",
+    "note": "Normalize path/detail and image return blocks.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "apply_patch",
+    "soai_tools": [
+      "apply_patch"
+    ],
+    "status": "adapt",
+    "note": "Both use patch intent; validate exact grammar, paths, multi-file atomicity and stale-read checks before claiming parity.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "local_shell",
+    "soai_tools": [
+      "shell",
+      "shell_write_stdin"
+    ],
+    "status": "adapt",
+    "note": "Normalize argv versus command strings, workdir, session IDs and output. Never translate source sandbox escape fields into permission grants.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "shell",
+    "soai_tools": [
+      "shell",
+      "shell_write_stdin"
+    ],
+    "status": "adapt",
+    "note": "Normalize argv versus command strings, workdir, session IDs and output. Never translate source sandbox escape fields into permission grants.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "shell_command",
+    "soai_tools": [
+      "shell",
+      "shell_write_stdin"
+    ],
+    "status": "adapt",
+    "note": "Normalize argv versus command strings, workdir, session IDs and output. Never translate source sandbox escape fields into permission grants.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "unified_exec",
+    "soai_tools": [
+      "shell",
+      "shell_write_stdin"
+    ],
+    "status": "adapt",
+    "note": "Normalize argv versus command strings, workdir, session IDs and output. Never translate source sandbox escape fields into permission grants.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "exec_command",
+    "soai_tools": [
+      "shell",
+      "shell_write_stdin"
+    ],
+    "status": "adapt",
+    "note": "Normalize argv versus command strings, workdir, session IDs and output. Never translate source sandbox escape fields into permission grants.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "write_stdin",
+    "soai_tools": [
+      "shell_write_stdin"
+    ],
+    "status": "adapt",
+    "note": "Translate PTY IDs, chars, output waits and terminal results.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "update_plan",
+    "soai_tools": [
+      "todo_write",
+      "plan_write"
+    ],
+    "status": "adapt",
+    "note": "Codex step/status plan matches todo_write; use plan_write only for separate long-form Markdown plans.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "list_mcp_resources",
+    "soai_tools": [
+      "mcp_resources_list"
+    ],
+    "status": "adapt",
+    "note": "Translate cursor/server and resource descriptors.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "list_mcp_resource_templates",
+    "soai_tools": [
+      "mcp_resource_templates_list"
+    ],
+    "status": "adapt",
+    "note": "Translate cursor/server and URI-template descriptors.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "read_mcp_resource",
+    "soai_tools": [
+      "mcp_resource_read"
+    ],
+    "status": "adapt",
+    "note": "Translate server/URI and preserve MIME/content blocks.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "request_user_input",
+    "soai_tools": [
+      "ask_user"
+    ],
+    "status": "adapt",
+    "note": "Translate question IDs, choices and returned answers; preserve waiting semantics.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "request_user_input_async",
+    "soai_tools": [
+      "ask_user",
+      "notify_user"
+    ],
+    "status": "partial",
+    "note": "SoAI ask_user waits; notify_user does not collect an asynchronous structured answer. No identical nonblocking question tool.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "send_user_message_async",
+    "soai_tools": [
+      "notify_user"
+    ],
+    "status": "partial",
+    "note": "Attention notification is available; this is user-facing communication, not subagent messaging, and transcript delivery differs.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "send_message_to_user_async",
+    "soai_tools": [
+      "notify_user"
+    ],
+    "status": "partial",
+    "note": "Attention notification is available; this is user-facing communication, not subagent messaging, and transcript delivery differs.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "spawn_agent",
+    "soai_tools": [
+      "subagent_spawn"
+    ],
+    "status": "adapt",
+    "note": "Basic task/context/model/workspace delegation maps. Forked history, nested spawning and persistent agent lifecycle differ.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "wait",
+    "soai_tools": [
+      "subagent_observe"
+    ],
+    "status": "adapt",
+    "note": "Historical agent waiter: dispatch only when arguments identify agents. This is distinct from exec-cell wait and duration wait.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "wait_agent",
+    "soai_tools": [
+      "subagent_observe"
+    ],
+    "status": "adapt",
+    "note": "Translate terminal waiting, timeout and cancellation; SoAI addresses a known current-turn agent rather than waiting on an arbitrary mailbox.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "close_agent",
+    "soai_tools": [
+      "subagent_cancel"
+    ],
+    "status": "partial",
+    "note": "Cancellation exists; closing an agent and later resuming its conversation are different lifecycle actions.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "interrupt_agent",
+    "soai_tools": [
+      "subagent_cancel"
+    ],
+    "status": "partial",
+    "note": "Cancelling ends the current SoAI child run; it does not preserve an interruptible/resumable idle agent.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "send_input",
+    "soai_tools": [
+      "write_file",
+      "read_file",
+      "glob_files",
+      "wait"
+    ],
+    "status": "partial",
+    "note": "Cooperative Markdown mailboxes can carry text to active workers. No native injection, immediate interrupt or idle-agent wakeup.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "send_message",
+    "soai_tools": [
+      "write_file",
+      "read_file",
+      "glob_files",
+      "wait"
+    ],
+    "status": "partial",
+    "note": "Cooperative Markdown mailboxes can carry text to active workers. No native injection, immediate interrupt or idle-agent wakeup.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "assign_task",
+    "soai_tools": [
+      "subagent_spawn",
+      "read_file",
+      "write_file"
+    ],
+    "status": "partial",
+    "note": "A fresh child can read a prior handoff, but that is a new execution, not continuation of the same agent transcript or identity.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "followup_task",
+    "soai_tools": [
+      "subagent_spawn",
+      "read_file",
+      "write_file"
+    ],
+    "status": "partial",
+    "note": "A fresh child can read a prior handoff, but that is a new execution, not continuation of the same agent transcript or identity.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "resume_agent",
+    "soai_tools": [
+      "subagent_spawn",
+      "read_file",
+      "write_file"
+    ],
+    "status": "partial",
+    "note": "A fresh child can read a prior handoff, but that is a new execution, not continuation of the same agent transcript or identity.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "list_agents",
+    "soai_tools": [
+      "subagent_observe",
+      "read_file",
+      "glob_files"
+    ],
+    "status": "partial",
+    "note": "Adapter-maintained roster can track its own children; no general native agent-list tool.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "spawn_agents_on_csv",
+    "soai_tools": [
+      "subagent_spawn",
+      "subagent_observe",
+      "read_file",
+      "write_file"
+    ],
+    "status": "compose",
+    "note": "Parent can fan out rows and collect per-row results; needs bounded concurrency, durable row IDs, cancellation and explicit partial failures.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "report_agent_job_result",
+    "soai_tools": [
+      "write_file",
+      "subagent_observe"
+    ],
+    "status": "compose",
+    "note": "Child can publish one result file per row and parent reconciles it with actual terminal status.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "get_memory",
+    "soai_tools": [
+      "memory_recall",
+      "memory_search",
+      "read_file"
+    ],
+    "status": "adapt",
+    "note": "Map intent to user-owned SoAI memory; original memory IDs and scope are not transferable.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "js_repl",
+    "soai_tools": [
+      "shell",
+      "shell_write_stdin"
+    ],
+    "status": "partial",
+    "note": "An installed Node REPL provides JavaScript state, but not the Codex in-process tool bridge, reset contract or image helpers.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "js_repl_reset",
+    "soai_tools": [
+      "shell",
+      "shell_write_stdin"
+    ],
+    "status": "partial",
+    "note": "An installed Node REPL provides JavaScript state, but not the Codex in-process tool bridge, reset contract or image helpers.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "code_mode",
+    "soai_tools": [
+      "shell"
+    ],
+    "status": "partial",
+    "note": "Historical source spelling for tool-orchestration JavaScript. Rewriting calls can preserve intent, but arbitrary runtime helpers do not map.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "exec",
+    "soai_tools": [
+      "shell"
+    ],
+    "status": "partial",
+    "note": "Current code-mode wrapper has tools.*, store/load, yield and multimodal outputs. SoAI shell does not implement this JavaScript tool bridge.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "functions.wait",
+    "soai_tools": [
+      "shell_write_stdin"
+    ],
+    "status": "partial",
+    "note": "Waits on a yielded JavaScript cell, not a PTY or elapsed duration. Requires a code-runtime adapter and ID translation.",
+    "schema_types": [],
+    "surface": "qualified_tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "search_tool_bm25",
+    "soai_tools": [],
+    "status": "partial",
+    "note": "Tool discovery/suggestion is host catalog behavior. Do not substitute web search; preserve only selected and authorized tools.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "tool_search",
+    "soai_tools": [],
+    "status": "partial",
+    "note": "Tool discovery/suggestion is host catalog behavior. Do not substitute web search; preserve only selected and authorized tools.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "tool_suggest",
+    "soai_tools": [],
+    "status": "host-specific",
+    "note": "Historical connector/plugin install-or-enable suggestion gateway; distinct from tool search and from SoAI backend plugin distribution.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "list_available_plugins_to_install",
+    "soai_tools": [],
+    "status": "host-specific",
+    "note": "OpenAI installable plugin catalog differs from SoAI backend plugin distribution.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "request_plugin_install",
+    "soai_tools": [],
+    "status": "host-specific",
+    "note": "Host installation UI/authentication and plugin lifecycle cannot be reproduced by renaming.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "request_permissions",
+    "soai_tools": [],
+    "status": "host-specific",
+    "note": "Source sandbox permission grants have no safe name-only translation. Use actual SoAI authorization or actionable refusal.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "create_goal",
+    "soai_tools": [
+      "plan_write",
+      "plan_get",
+      "todo_write"
+    ],
+    "status": "partial",
+    "note": "Plan/checklist can record progress, but does not reproduce token budget, completion evaluator or automatic continuation.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "get_goal",
+    "soai_tools": [
+      "plan_write",
+      "plan_get",
+      "todo_write"
+    ],
+    "status": "partial",
+    "note": "Plan/checklist can record progress, but does not reproduce token budget, completion evaluator or automatic continuation.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "update_goal",
+    "soai_tools": [
+      "plan_write",
+      "plan_get",
+      "todo_write"
+    ],
+    "status": "partial",
+    "note": "Plan/checklist can record progress, but does not reproduce token budget, completion evaluator or automatic continuation.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "get_context_remaining",
+    "soai_tools": [],
+    "status": "partial",
+    "note": "No matching model-callable context-budget tool in the selected SoAI catalog.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "new_context",
+    "soai_tools": [],
+    "status": "partial",
+    "note": "Context-window reset/continuation is host-managed; writing a summary is not the same operation.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "wait_for_environment",
+    "soai_tools": [],
+    "status": "partial",
+    "note": "Execution-environment readiness is host infrastructure, not a timed sleep.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "clock.curr_time",
+    "soai_tools": [
+      "datetime_current"
+    ],
+    "status": "adapt",
+    "note": "Normalize timestamp format and timezone.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "clock.sleep",
+    "soai_tools": [
+      "wait"
+    ],
+    "status": "adapt",
+    "note": "Normalize duration units and interruption behavior.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "skills.list",
+    "soai_tools": [
+      "skill_read"
+    ],
+    "status": "partial",
+    "note": "SoAI supplies a skill discovery catalog in prompt context, but has no matching library-list MCP tool.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "skills.read",
+    "soai_tools": [
+      "skill_read"
+    ],
+    "status": "adapt",
+    "note": "Resolve package/installation handles to authorized SoAI skill ID and resource path.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "skills.installations",
+    "soai_tools": [],
+    "status": "partial",
+    "note": "Codex installation inventory differs from SoAI library ownership and receipts; no matching model-callable installer/listing tool.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "memories.add_ad_hoc_note",
+    "soai_tools": [
+      "memory_store"
+    ],
+    "status": "adapt",
+    "note": "Preserve user/agent scope and normalize handles, query options and output; original private memory storage is not reused.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "memories.read",
+    "soai_tools": [
+      "memory_recall"
+    ],
+    "status": "adapt",
+    "note": "Preserve user/agent scope and normalize handles, query options and output; original private memory storage is not reused.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "memories.search",
+    "soai_tools": [
+      "memory_search"
+    ],
+    "status": "adapt",
+    "note": "Preserve user/agent scope and normalize handles, query options and output; original private memory storage is not reused.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "memories.list",
+    "soai_tools": [
+      "memory_search"
+    ],
+    "status": "partial",
+    "note": "SoAI can search memories, but the catalog has no full memory-list tool or identical memory-document enumeration.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "history.list_windows",
+    "soai_tools": [
+      "memory_conversation_history"
+    ],
+    "status": "partial",
+    "note": "SoAI history access exists, but exact context-window/item IDs, cross-agent scope and search/cursors do not match.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "history.list_items",
+    "soai_tools": [
+      "memory_conversation_history"
+    ],
+    "status": "partial",
+    "note": "SoAI history access exists, but exact context-window/item IDs, cross-agent scope and search/cursors do not match.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "history.read_item",
+    "soai_tools": [
+      "memory_conversation_history"
+    ],
+    "status": "partial",
+    "note": "SoAI history access exists, but exact context-window/item IDs, cross-agent scope and search/cursors do not match.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "history.search_contents",
+    "soai_tools": [
+      "memory_conversation_history"
+    ],
+    "status": "partial",
+    "note": "SoAI history access exists, but exact context-window/item IDs, cross-agent scope and search/cursors do not match.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "notes.list_files_by_prefix",
+    "soai_tools": [
+      "glob_files",
+      "list_dir"
+    ],
+    "status": "compose",
+    "note": "Use a scoped workspace notes directory; virtual source paths require translation. Shared writes need conflict protection and are unavailable to Plan-mode children.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "notes.read_file",
+    "soai_tools": [
+      "read_file"
+    ],
+    "status": "compose",
+    "note": "Use a scoped workspace notes directory; virtual source paths require translation. Shared writes need conflict protection and are unavailable to Plan-mode children.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "notes.search_contents",
+    "soai_tools": [
+      "grep_files"
+    ],
+    "status": "compose",
+    "note": "Use a scoped workspace notes directory; virtual source paths require translation. Shared writes need conflict protection and are unavailable to Plan-mode children.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "notes.append_to_file",
+    "soai_tools": [
+      "read_file",
+      "write_file"
+    ],
+    "status": "compose",
+    "note": "Use a scoped workspace notes directory; virtual source paths require translation. Shared writes need conflict protection and are unavailable to Plan-mode children.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "notes.write_file",
+    "soai_tools": [
+      "write_file"
+    ],
+    "status": "compose",
+    "note": "Use a scoped workspace notes directory; virtual source paths require translation. Shared writes need conflict protection and are unavailable to Plan-mode children.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "{message_board_namespace}.create_channel",
+    "soai_tools": [
+      "write_file"
+    ],
+    "status": "compose",
+    "note": "Create a scoped directory/manifest without overwriting others.",
+    "schema_types": [],
+    "surface": "qualified_tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "{message_board_namespace}.get_channels",
+    "soai_tools": [
+      "glob_files",
+      "list_dir"
+    ],
+    "status": "compose",
+    "note": "List only channels in the agreed collaboration workspace.",
+    "schema_types": [],
+    "surface": "qualified_tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "{message_board_namespace}.list_threads",
+    "soai_tools": [
+      "glob_files",
+      "read_file"
+    ],
+    "status": "compose",
+    "note": "Represent threads with stable IDs and deterministic ordering.",
+    "schema_types": [],
+    "surface": "qualified_tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "{message_board_namespace}.search_posts",
+    "soai_tools": [
+      "grep_files"
+    ],
+    "status": "compose",
+    "note": "Keep search scoped to this collaboration and preserve paging limits.",
+    "schema_types": [],
+    "surface": "qualified_tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "{message_board_namespace}.read_thread",
+    "soai_tools": [
+      "glob_files",
+      "read_file"
+    ],
+    "status": "compose",
+    "note": "Combine immutable message files sharing a thread ID.",
+    "schema_types": [],
+    "surface": "qualified_tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "{message_board_namespace}.read_post",
+    "soai_tools": [
+      "read_file"
+    ],
+    "status": "compose",
+    "note": "Read an immutable message file by validated ID.",
+    "schema_types": [],
+    "surface": "qualified_tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "{message_board_namespace}.subscribe",
+    "soai_tools": [
+      "write_file"
+    ],
+    "status": "partial",
+    "note": "Can record subscription intent; no push delivery or agent wakeup.",
+    "schema_types": [],
+    "surface": "qualified_tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "{message_board_namespace}.unsubscribe",
+    "soai_tools": [
+      "read_file",
+      "write_file"
+    ],
+    "status": "partial",
+    "note": "Can record a cancellation; does not cancel already delivered work.",
+    "schema_types": [],
+    "surface": "qualified_tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "{message_board_namespace}.post",
+    "soai_tools": [
+      "write_file"
+    ],
+    "status": "partial",
+    "note": "Publish one immutable file per message; no automatic live-turn notification.",
+    "schema_types": [],
+    "surface": "qualified_tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "multi_env_copy_file",
+    "soai_tools": [
+      "shell",
+      "read_file",
+      "write_file"
+    ],
+    "status": "partial",
+    "note": "Same-workspace copies are possible. Cross-environment transfer needs a configured authenticated transport; text tools cannot copy arbitrary binary bytes.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "presentation_artifact",
+    "soai_tools": [
+      "shell",
+      "write_file",
+      "read_document"
+    ],
+    "status": "partial",
+    "note": "Local documents can be created with already available runtimes. Hosted artifact handles/rendering and specialized workbooks/slides need format-aware adapters.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "spreadsheet_artifact",
+    "soai_tools": [
+      "shell",
+      "write_file",
+      "read_document"
+    ],
+    "status": "partial",
+    "note": "Local documents can be created with already available runtimes. Hosted artifact handles/rendering and specialized workbooks/slides need format-aware adapters.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "artifacts",
+    "soai_tools": [
+      "shell",
+      "write_file",
+      "read_document"
+    ],
+    "status": "partial",
+    "note": "Local documents can be created with already available runtimes. Hosted artifact handles/rendering and specialized workbooks/slides need format-aware adapters.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "web_search",
+    "soai_tools": [
+      "web_search_duckduckgo",
+      "web_fetch"
+    ],
+    "status": "adapt",
+    "note": "Select configured SoAI web tools. Hosted reference IDs, search ranking and citations require conversion; web.run includes operation-specific gaps.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "web.run",
+    "soai_tools": [
+      "web_search_duckduckgo",
+      "web_fetch"
+    ],
+    "status": "adapt",
+    "note": "Select configured SoAI web tools. Hosted reference IDs, search ranking and citations require conversion; web.run includes operation-specific gaps.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "web_search_preview",
+    "soai_tools": [
+      "web_search_duckduckgo",
+      "web_fetch"
+    ],
+    "status": "unverified-name",
+    "note": "Verified legacy OpenAI API tool type; Codex harness use during this interval was not established. Kept as an explicitly uncertain adjacent API spelling.",
+    "schema_types": [],
+    "surface": "api_type_candidate"
+  },
+  {
+    "harness": "Codex",
+    "name": "image_generation",
+    "soai_tools": [
+      "generate_image"
+    ],
+    "status": "partial",
+    "note": "Text-to-image intent maps. SoAI tool schema lacks reference images, edit masks and transparency controls exposed by richer hosted variants.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "image_gen.imagegen",
+    "soai_tools": [
+      "generate_image"
+    ],
+    "status": "partial",
+    "note": "SoAI generate_image accepts a prompt and generation parameters, but no reference-image, edit or transparent-background fields. Full parity is absent.",
+    "schema_types": [],
+    "surface": "tool"
+  },
+  {
+    "harness": "Codex",
+    "name": "test_sync_tool",
+    "soai_tools": [],
+    "status": "exclude",
+    "note": "Test synchronization fixture, not a user-facing skill capability.",
+    "schema_types": [],
+    "surface": "test_fixture"
+  },
+  {
+    "harness": "Codex",
+    "name": "mcp__<server>__<tool>",
+    "soai_tools": [],
+    "status": "dynamic",
+    "note": "Arbitrary configured MCP/connector tools are an open family; map the same server or a verified service adapter, not merely a matching name.",
+    "schema_types": [],
+    "surface": "dynamic_family"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__javascript_tool",
+    "soai_tools": [
+      "browser_eval"
+    ],
+    "status": "adapt",
+    "note": "Translate tab and execution action; honor SoAI browser policy.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__read_page",
+    "soai_tools": [
+      "browser_snapshot"
+    ],
+    "status": "adapt",
+    "note": "Accessibility-tree formats and element IDs differ.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__find",
+    "soai_tools": [
+      "browser_snapshot",
+      "browser_eval"
+    ],
+    "status": "compose",
+    "note": "Resolve a description to a verified locator; no identical semantic-find tool.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__form_input",
+    "soai_tools": [
+      "browser_type",
+      "browser_select_option"
+    ],
+    "status": "adapt",
+    "note": "Route by control type and preserve event behavior.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__computer",
+    "soai_tools": [
+      "browser_click",
+      "browser_type",
+      "browser_scroll",
+      "browser_press_key",
+      "browser_hover",
+      "browser_drag",
+      "browser_screenshot",
+      "browser_wait_for"
+    ],
+    "status": "adapt",
+    "note": "Split by action; translate coordinates, tabs and screenshot IDs.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__navigate",
+    "soai_tools": [
+      "browser_navigate"
+    ],
+    "status": "adapt",
+    "note": "Translate tab identity and navigation policy.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__resize_window",
+    "soai_tools": [
+      "browser_resize"
+    ],
+    "status": "adapt",
+    "note": "Translate viewport versus browser-window geometry.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__gif_creator",
+    "soai_tools": [
+      "browser_screenshot",
+      "shell"
+    ],
+    "status": "compose",
+    "note": "Needs an available recording/encoding runtime; screenshots alone do not provide GIF capture.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__upload_image",
+    "soai_tools": [
+      "browser_upload_file"
+    ],
+    "status": "adapt",
+    "note": "Use an actual authorized image file; provider image handles require conversion.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__get_page_text",
+    "soai_tools": [
+      "browser_eval",
+      "browser_snapshot"
+    ],
+    "status": "adapt",
+    "note": "Extract visible page text and normalize truncation.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__tabs_context_mcp",
+    "soai_tools": [
+      "browser_tabs",
+      "browser_status"
+    ],
+    "status": "adapt",
+    "note": "SoAI browser session/tab IDs differ from the user Chrome tab group.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__tabs_create_mcp",
+    "soai_tools": [
+      "browser_tabs"
+    ],
+    "status": "adapt",
+    "note": "Create/select through the SoAI tab action schema.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__update_plan",
+    "soai_tools": [
+      "plan_write",
+      "ask_user"
+    ],
+    "status": "partial",
+    "note": "Chrome operation asks approval before browser actions; it is not Codex update_plan/todo_write.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__read_console_messages",
+    "soai_tools": [
+      "browser_console"
+    ],
+    "status": "adapt",
+    "note": "Translate severity, filters, cursors and tab IDs.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__read_network_requests",
+    "soai_tools": [
+      "browser_network"
+    ],
+    "status": "adapt",
+    "note": "Translate request filters and redacted output.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__shortcuts_list",
+    "soai_tools": [],
+    "status": "host-specific",
+    "note": "Claude-in-Chrome shortcut library is account/extension-specific.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__shortcuts_execute",
+    "soai_tools": [
+      "automation_run_enqueue"
+    ],
+    "status": "partial",
+    "note": "A translated SoAI automation can replace intent, not the original extension shortcut ID.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude Chrome",
+    "name": "mcp__claude-in-chrome__switch_browser",
+    "soai_tools": [
+      "browser_profiles"
+    ],
+    "status": "partial",
+    "note": "Profile selection differs from pairing a different running user Chrome instance.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude IDE",
+    "name": "mcp__ide__getDiagnostics",
+    "soai_tools": [
+      "shell"
+    ],
+    "status": "partial",
+    "note": "Compiler/linter checks cannot inspect the same live unsaved IDE buffer state.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Claude IDE",
+    "name": "mcp__ide__executeCode",
+    "soai_tools": [
+      "shell",
+      "shell_write_stdin"
+    ],
+    "status": "partial",
+    "note": "An existing Jupyter kernel is a separate service; running a new Python process loses notebook state.",
+    "schema_types": [],
+    "surface": "first_party_mcp"
+  },
+  {
+    "harness": "Codex web operations",
+    "name": "web.run:search_query",
+    "soai_tools": [
+      "web_search_duckduckgo",
+      "web_search_brave",
+      "web_search_tavily"
+    ],
+    "status": "adapt",
+    "note": "Use a configured search provider and rebuild citations.",
+    "schema_types": [],
+    "surface": "operation"
+  },
+  {
+    "harness": "Codex web operations",
+    "name": "web.run:image_query",
+    "soai_tools": [
+      "web_search_searxng",
+      "browser_navigate"
+    ],
+    "status": "partial",
+    "note": "SearXNG accepts categories, including an image category when configured, but SoAI search output lacks the dedicated image-result contract.",
+    "schema_types": [],
+    "surface": "operation"
+  },
+  {
+    "harness": "Codex web operations",
+    "name": "web.run:open",
+    "soai_tools": [
+      "web_fetch",
+      "browser_navigate"
+    ],
+    "status": "adapt",
+    "note": "Resolve original reference IDs to URLs before fetching.",
+    "schema_types": [],
+    "surface": "operation"
+  },
+  {
+    "harness": "Codex web operations",
+    "name": "web.run:click",
+    "soai_tools": [
+      "browser_click",
+      "browser_navigate"
+    ],
+    "status": "adapt",
+    "note": "A hosted numbered-link reference is not a live browser locator.",
+    "schema_types": [],
+    "surface": "operation"
+  },
+  {
+    "harness": "Codex web operations",
+    "name": "web.run:find",
+    "soai_tools": [
+      "web_fetch",
+      "grep_files",
+      "browser_eval"
+    ],
+    "status": "compose",
+    "note": "Fetch/store/search content; preserve offsets and reference identity.",
+    "schema_types": [],
+    "surface": "operation"
+  },
+  {
+    "harness": "Codex web operations",
+    "name": "web.run:screenshot",
+    "soai_tools": [
+      "browser_screenshot",
+      "read_document",
+      "shell"
+    ],
+    "status": "partial",
+    "note": "Browser captures exist; indexed PDF-page rendering needs a document renderer.",
+    "schema_types": [],
+    "surface": "operation"
+  },
+  {
+    "harness": "Codex web operations",
+    "name": "web.run:finance",
+    "soai_tools": [
+      "http_request",
+      "web_fetch"
+    ],
+    "status": "partial",
+    "note": "No finance quote/feed tool; requires a specified data source and freshness contract.",
+    "schema_types": [],
+    "surface": "operation"
+  },
+  {
+    "harness": "Codex web operations",
+    "name": "web.run:sports",
+    "soai_tools": [
+      "http_request",
+      "web_fetch"
+    ],
+    "status": "partial",
+    "note": "No native standings/schedule feed schema; requires a specified data source.",
+    "schema_types": [],
+    "surface": "operation"
+  },
+  {
+    "harness": "Codex web operations",
+    "name": "web.run:weather",
+    "soai_tools": [
+      "weather"
+    ],
+    "status": "adapt",
+    "note": "Normalize location, dates, units and forecast output.",
+    "schema_types": [],
+    "surface": "operation"
+  },
+  {
+    "harness": "Codex web operations",
+    "name": "web.run:time",
+    "soai_tools": [
+      "datetime_current"
+    ],
+    "status": "adapt",
+    "note": "Normalize requested UTC offsets and returned timestamps.",
+    "schema_types": [],
+    "surface": "operation"
+  }
+]

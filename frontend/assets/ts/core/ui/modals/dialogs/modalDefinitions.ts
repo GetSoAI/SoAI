@@ -25,12 +25,13 @@ const confirmationModalDefinition: ModalDefinition = {
         const header = renderStandardModalHeader({
             modalId,
             title: i18n.t('common.confirm'),
+            localizeTitle: false,
             closeLabel: i18n.t('common.close')
         });
         const body = renderModalBody(uiHtml`<div class="confirmation-body"><div id="${uiAttr(modalUiId(modalId, CONFIRMATION_UI_TOKENS.ICON))}" class="confirmation-icon u-hidden" aria-hidden="true"></div><div id="${uiAttr(modalUiId(modalId, CONFIRMATION_UI_TOKENS.MESSAGE))}" class="confirmation-message"></div><div id="${uiAttr(modalUiId(modalId, CONFIRMATION_UI_TOKENS.DESCRIPTION))}" class="confirmation-description u-hidden"></div></div>`);
         const footer = renderSplitModalFooter({
-            left: renderModalFooterCloseButton({ modalId, id: modalUiId(modalId, CONFIRMATION_UI_TOKENS.CANCEL), text: i18n.t('common.cancel') }),
-            right: uiHtml`${renderModalFooterActionButton({ id: modalUiId(modalId, CONFIRMATION_UI_TOKENS.ACTION_1), text: i18n.t('common.confirm'), variant: 'neutral', className: 'u-hidden', ariaHidden: true })}${renderModalFooterActionButton({ id: modalUiId(modalId, CONFIRMATION_UI_TOKENS.ACTION_2), text: i18n.t('common.confirm'), variant: 'primary', className: 'u-hidden', ariaHidden: true })}`
+            left: renderModalFooterCloseButton({ modalId, id: modalUiId(modalId, CONFIRMATION_UI_TOKENS.CANCEL), localize: false, text: i18n.t('common.cancel') }),
+            right: uiHtml`${renderModalFooterActionButton({ id: modalUiId(modalId, CONFIRMATION_UI_TOKENS.ACTION_1), text: i18n.t('common.confirm'), localize: false, variant: 'neutral', className: 'u-hidden', ariaHidden: true })}${renderModalFooterActionButton({ id: modalUiId(modalId, CONFIRMATION_UI_TOKENS.ACTION_2), text: i18n.t('common.confirm'), localize: false, variant: 'primary', className: 'u-hidden', ariaHidden: true })}`
         });
         return createModalElement({
             id: modalId,
@@ -51,12 +52,13 @@ const promptModalDefinition: ModalDefinition = {
         const header = renderStandardModalHeader({
             modalId,
             title: i18n.t('common.confirm'),
+            localizeTitle: false,
             closeLabel: i18n.t('common.close')
         });
         const body = renderModalBody(uiHtml`<p class="prompt-message" id="${uiAttr(modalUiId(modalId, PROMPT_UI_TOKENS.MESSAGE))}"></p><div class="form-group"><input type="text" id="${uiAttr(modalUiId(modalId, PROMPT_UI_TOKENS.INPUT))}" class="form-input" spellcheck="false" autocapitalize="off" autocomplete="off"></div>`);
         const footer = renderSplitModalFooter({
             left: renderModalFooterCloseButton({ modalId, id: modalUiId(modalId, PROMPT_UI_TOKENS.CANCEL), text: i18n.t('common.cancel') }),
-            right: renderModalFooterActionButton({ id: modalUiId(modalId, PROMPT_UI_TOKENS.CONFIRM), text: i18n.t('common.ok'), variant: 'accent' })
+            right: renderModalFooterActionButton({ id: modalUiId(modalId, PROMPT_UI_TOKENS.CONFIRM), text: i18n.t('common.ok'), localize: false, variant: 'accent' })
         });
         return createModalElement({
             id: modalId,
@@ -92,6 +94,7 @@ const passwordChangeModalDefinition: ModalDefinition = {
         const header = renderStandardModalHeader({
             modalId,
             title: i18n.t('common.confirm'),
+            localizeTitle: false,
             description: '',
             descriptionId: modalUiId(modalId, PASSWORD_CHANGE_UI_TOKENS.DESCRIPTION),
             closeLabel: i18n.t('common.close')

@@ -46,6 +46,7 @@
 
     :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card {
         border-radius: var(--border-radius);
+        container: prompt-card / inline-size;
         position: relative;
         width: 100%;
         aspect-ratio: 1;

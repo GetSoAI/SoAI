@@ -7,51 +7,51 @@ const buildGeneralIdentityMarkup = (inputArguments: { strings: ChatPageMarkupCon
     const { strings, uiIdAttr } = inputArguments;
     return `
   <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('user-name-input')}">${strings.userName}</label>
+    <label for="${uiIdAttr('user-name-input')}" data-modal-localize="text">${strings.userName}</label>
     <input
       type="text"
       id="${uiIdAttr('user-name-input')}"
       class="user-display-name-input form-input"
       placeholder="${strings.userNamePlaceholder}"
       data-setting="identity.user_display_name"
-    >
+     data-modal-localize="placeholder">
   </div>
 
   <div class="form-group setting-change-surface chat-config-span-2">
-    <label for="${uiIdAttr('assistant-name-input')}">${strings.assistantName}</label>
+    <label for="${uiIdAttr('assistant-name-input')}" data-modal-localize="text">${strings.assistantName}</label>
     <input
       type="text"
       id="${uiIdAttr('assistant-name-input')}"
       class="assistant-display-name-input form-input"
       placeholder="${strings.assistantNamePlaceholder}"
       data-setting="identity.assistant_display_name"
-    >
+     data-modal-localize="placeholder">
   </div>
 
   <div class="form-group setting-change-surface chat-config-span-2">
     <div class="chat-avatar-upload-grid">
       <div class="chat-avatar-upload-column">
         <div class="chat-config-field-header">
-          <span class="form-label">${strings.userAvatarLabel}</span>
+          <span class="form-label" data-modal-localize="text">${strings.userAvatarLabel}</span>
         </div>
         <div class="chat-avatar-upload-row">
           <div class="chat-avatar-preview user-avatar-preview message-avatar"></div>
-          <button type="button" class="ui-button ui-button--sm" data-action="chat:upload-user-avatar" aria-label="${strings.userAvatarUpload}" data-tooltip="${strings.userAvatarUpload}">${strings.userAvatarUpload}</button>
-          <button type="button" class="ui-button ui-button--sm ui-variant-danger user-avatar-remove-btn u-hidden" data-action="chat:remove-user-avatar" aria-label="${strings.userAvatarRemove}" data-tooltip="${strings.userAvatarRemove}">${strings.userAvatarRemove}</button>
+          <button type="button" class="ui-button ui-button--sm" data-action="chat:upload-user-avatar" aria-label="${strings.userAvatarUpload}" data-tooltip="${strings.userAvatarUpload}" data-modal-localize="text aria-label data-tooltip">${strings.userAvatarUpload}</button>
+          <button type="button" class="ui-button ui-button--sm ui-variant-danger user-avatar-remove-btn u-hidden" data-action="chat:remove-user-avatar" aria-label="${strings.userAvatarRemove}" data-tooltip="${strings.userAvatarRemove}" data-modal-localize="text aria-label data-tooltip">${strings.userAvatarRemove}</button>
         </div>
-        <span class="chat-configuration-hint">${strings.userAvatarHint}</span>
+        <span class="chat-configuration-hint" data-modal-localize="text">${strings.userAvatarHint}</span>
       </div>
 
       <div class="chat-avatar-upload-column">
         <div class="chat-config-field-header">
-          <span class="form-label">${strings.assistantAvatarLabel}</span>
+          <span class="form-label" data-modal-localize="text">${strings.assistantAvatarLabel}</span>
         </div>
         <div class="chat-avatar-upload-row">
           <div class="chat-avatar-preview assistant-avatar-preview message-avatar"></div>
-          <button type="button" class="ui-button ui-button--sm" data-action="chat:upload-assistant-avatar" aria-label="${strings.assistantAvatarUpload}" data-tooltip="${strings.assistantAvatarUpload}">${strings.assistantAvatarUpload}</button>
-          <button type="button" class="ui-button ui-button--sm ui-variant-danger assistant-avatar-remove-btn u-hidden" data-action="chat:remove-assistant-avatar" aria-label="${strings.assistantAvatarRemove}" data-tooltip="${strings.assistantAvatarRemove}">${strings.assistantAvatarRemove}</button>
+          <button type="button" class="ui-button ui-button--sm" data-action="chat:upload-assistant-avatar" aria-label="${strings.assistantAvatarUpload}" data-tooltip="${strings.assistantAvatarUpload}" data-modal-localize="text aria-label data-tooltip">${strings.assistantAvatarUpload}</button>
+          <button type="button" class="ui-button ui-button--sm ui-variant-danger assistant-avatar-remove-btn u-hidden" data-action="chat:remove-assistant-avatar" aria-label="${strings.assistantAvatarRemove}" data-tooltip="${strings.assistantAvatarRemove}" data-modal-localize="text aria-label data-tooltip">${strings.assistantAvatarRemove}</button>
         </div>
-        <span class="chat-configuration-hint">${strings.assistantAvatarHint}</span>
+        <span class="chat-configuration-hint" data-modal-localize="text">${strings.assistantAvatarHint}</span>
       </div>
     </div>
   </div>

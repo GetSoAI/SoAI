@@ -33,6 +33,7 @@ from database.repositories.users.conversation_attachment_knowledge_terminal_coun
 from database.repositories.users.conversation_attachment_rows import (
     format_knowledge_attachment_row,
 )
+from database.repositories.users.conversation_knowledge_extraction import KNOWLEDGE_SUMMARY_COLUMNS
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -115,7 +116,7 @@ def _mark_draft_attachment_unused(
     now = epoch_ms()
     row = sync_fetch_one_as_dict(
         conn.execute(
-            """
+            f"""
             UPDATE webui_conversation_knowledge_attachments
             SET state = ?,
                 conversation_input_id = NULL,
@@ -125,7 +126,7 @@ def _mark_draft_attachment_unused(
                 finalized_at_ms = COALESCE(?, finalized_at_ms),
                 attachment_revision = attachment_revision + 1
             WHERE conv_id = ? AND user_id = ? AND id = ? AND state = ?
-            RETURNING *
+            RETURNING {KNOWLEDGE_SUMMARY_COLUMNS}
             """,
             (
                 KNOWLEDGE_UNUSED_ATTACHMENT_STATE,
@@ -168,7 +169,7 @@ def _mark_active_draft_without_task_unused(
     )
     row = sync_fetch_one_as_dict(
         conn.execute(
-            """
+            f"""
             UPDATE webui_conversation_knowledge_attachments
             SET state = ?,
                 conversation_input_id = NULL,
@@ -179,7 +180,7 @@ def _mark_active_draft_without_task_unused(
                 finalized_at_ms = COALESCE(finalized_at_ms, ?),
                 attachment_revision = attachment_revision + 1
             WHERE conv_id = ? AND user_id = ? AND id = ? AND state = ?
-            RETURNING *
+            RETURNING {KNOWLEDGE_SUMMARY_COLUMNS}
             """,
             (
                 KNOWLEDGE_UNUSED_ATTACHMENT_STATE,

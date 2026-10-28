@@ -6,6 +6,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
+    from core.agent.prompt_replay import AgentTurnPromptReplaySnapshot
+    from core.conversations.assistant_turn_variant_identity import AssistantTurnVariantIdentity
     from core.database.requests import (
         ClaimAgentTurnStateRequest,
         WriteAgentTurnStateRequest,
@@ -41,6 +43,16 @@ class DatabaseAgentTurnProcessBoundaryProtocol(Protocol):
 
 
 class DatabaseAgentTurnsProtocol(Protocol):
+    async def get_prompt_replay_snapshot(
+        self,
+        *,
+        conv_id: str,
+        user_id: int,
+        turn_id: str,
+        input_id: str,
+        identity: AssistantTurnVariantIdentity,
+    ) -> AgentTurnPromptReplaySnapshot: ...
+
     async def write_turn_state(self, request: WriteAgentTurnStateRequest) -> JSONDict: ...
 
     async def claim_turn_state(self, request: ClaimAgentTurnStateRequest) -> JSONDict: ...

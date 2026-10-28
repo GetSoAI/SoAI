@@ -43,7 +43,7 @@
 
     .hardware-container:where([data-section='hardware'], [data-page-scope='hardware']) :is(.gpu-control-actions, .gpu-soaibench-actions) .ui-button {
         font-size: var(--font-size-compact-plus);
-        padding: var(--space-1) var(--space-25);
+        padding: var(--space-1) var(--space-2);
         min-height: auto;
     }
 
@@ -111,8 +111,8 @@
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-controls-container {
-        --gpu-panel-min: 280px;
-        --gpu-panel-max: 320px;
+        --gpu-panel-min: 320px;
+        --gpu-panel-max: var(--gpu-panel-min);
         display: grid;
         grid-auto-flow: column;
         grid-auto-columns: minmax(var(--gpu-panel-min), var(--gpu-panel-max));

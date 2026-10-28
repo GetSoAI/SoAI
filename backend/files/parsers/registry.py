@@ -235,12 +235,10 @@ def create_parser_registry(
             IMAGE_EXTENSIONS.difference(heif_extensions),
             image_parser,
         )
-    transcription_available = module_available("whisper") and module_available("torch")
     audio_parser = AudioParser(
         AudioParserDependencies(
             transcription_runtime=deps.transcription_runtime,
             config=deps.config,
-            transcription_available=transcription_available,
         ),
     )
     _register_extension_group(parsers, AUDIO_EXTENSIONS, audio_parser)
@@ -250,7 +248,6 @@ def create_parser_registry(
             ocr_runtime=deps.ocr_runtime,
             config=deps.config,
             storage_manager=deps.storage_manager,
-            transcription_available=transcription_available,
         ),
     )
     _register_extension_group(parsers, VIDEO_EXTENSIONS, video_parser)

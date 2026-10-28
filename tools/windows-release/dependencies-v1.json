@@ -18,9 +18,9 @@
       "version": "7.6.6"
     },
     "python": {
-      "package_sha256": "9ac15cfa6cab1115c83d48f2af55c554efa4d1bb044bbc4ab1c9d17ad426e16c",
-      "url": "https://www.nuget.org/api/v2/package/python/3.13.14",
-      "version": "3.13.14"
+      "package_sha256": "7369f7a35f261222a6ac8b3a87c1c88eeebee8af945d85346202591a64038dd3",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.13.18%2B20261026-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "version": "3.13.18"
     },
     "visual_cpp_redistributable": {
       "integrity": "authenticode-microsoft",

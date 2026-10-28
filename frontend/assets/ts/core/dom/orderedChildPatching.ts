@@ -11,6 +11,7 @@ type OrderedChildPatchArguments<KeyType extends string> = {
     patchChild: (existingChild: HTMLElement, createdChild: HTMLElement, key: KeyType) => boolean;
     removeChild: (child: HTMLElement) => void;
     replaceUnsupportedChildren: () => boolean;
+    isChildDetaching?: (child: HTMLElement) => boolean;
 };
 
 type OrderedChildren<KeyType extends string> = {
@@ -18,7 +19,9 @@ type OrderedChildren<KeyType extends string> = {
     children: HTMLElement[];
 };
 
-const collectOrderedChildren = <KeyType extends string>(parent: HTMLElement, resolveChildKey: (child: HTMLElement) => KeyType | null): OrderedChildren<KeyType> | null => {
+const isNeverDetaching = (): boolean => false;
+
+const collectOrderedChildren = <KeyType extends string>(parent: HTMLElement, resolveChildKey: (child: HTMLElement) => KeyType | null, isChildDetaching: (child: HTMLElement) => boolean): OrderedChildren<KeyType> | null => {
     const childrenByKey = new Map<KeyType, HTMLElement>();
     const children: HTMLElement[] = [];
     for (const child of Array.from(parent.childNodes)) {
@@ -27,6 +30,9 @@ const collectOrderedChildren = <KeyType extends string>(parent: HTMLElement, res
                 continue;
             }
             return null;
+        }
+        if (isChildDetaching(child)) {
+            continue;
         }
         const key = resolveChildKey(child);
         if (key === null || childrenByKey.has(key)) {
@@ -39,14 +45,23 @@ const collectOrderedChildren = <KeyType extends string>(parent: HTMLElement, res
 };
 
 const patchOrderedChildren = <KeyType extends string>(inputArguments: OrderedChildPatchArguments<KeyType>): boolean => {
-    const existing = collectOrderedChildren(inputArguments.existingParent, inputArguments.resolveChildKey);
-    const created = collectOrderedChildren(inputArguments.createdParent, inputArguments.resolveChildKey);
+    const isChildDetaching = inputArguments.isChildDetaching ?? isNeverDetaching;
+    const existing = collectOrderedChildren(inputArguments.existingParent, inputArguments.resolveChildKey, isChildDetaching);
+    const created = collectOrderedChildren(inputArguments.createdParent, inputArguments.resolveChildKey, isNeverDetaching);
     if (existing === null || created === null) {
         return inputArguments.replaceUnsupportedChildren();
     }
+    const pendingRemovals = new Set(Array.from(existing.childrenByKey).flatMap(([key, child]) => (created.childrenByKey.has(key) ? [] : [child])));
+    const skipDetachingChildren = (node: ChildNode | null): ChildNode | null => {
+        let current = node;
+        while (current instanceof HTMLElement && (isChildDetaching(current) || pendingRemovals.has(current))) {
+            current = current.nextSibling;
+        }
+        return current;
+    };
 
     let changed = false;
-    let anchor: ChildNode | null = inputArguments.existingParent.firstChild;
+    let anchor: ChildNode | null = skipDetachingChildren(inputArguments.existingParent.firstChild);
     const seenKeys = new Set<KeyType>();
 
     for (const createdChild of created.children) {
@@ -59,14 +74,14 @@ const patchOrderedChildren = <KeyType extends string>(inputArguments: OrderedChi
         if (!existingChild) {
             const inserted = inputArguments.insertChild(inputArguments.existingParent, createdChild, anchor);
             changed = true;
-            anchor = inserted.nextSibling;
+            anchor = skipDetachingChildren(inserted.nextSibling);
             continue;
         }
         if (anchor !== existingChild) {
             inputArguments.existingParent.insertBefore(existingChild, anchor);
             changed = true;
         }
-        anchor = existingChild.nextSibling;
+        anchor = skipDetachingChildren(existingChild.nextSibling);
         if (inputArguments.patchChild(existingChild, createdChild, key)) {
             changed = true;
         }

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
-import { MAX_CHAT_COMPOSER_TEXT_LENGTH } from '@core/chat/protocols.ts';
+import { CONVERSATION_INPUT_ACTIVE_STATES, CONVERSATION_INPUT_LIFECYCLE_STATES, MAX_CHAT_COMPOSER_TEXT_LENGTH, type ConversationInputActiveState, type ConversationInputLifecycleState } from '@core/chat/protocols.ts';
 import { unicodeCodePointLength } from '@core/primitives/text.ts';
 import { decodeWebuiMessageContentPart, type WebuiMessageContentPart } from '@core/api/contracts/webuiMessageContentPartContract.ts';
 import { readRequiredNonNegativeIntegerValue, readRequiredPositiveIntegerValue } from '@core/types/payloadNumberReaders.ts';
@@ -11,19 +11,21 @@ import { readRequiredBooleanValue, readRequiredEnumValue, readRequiredNonEmptySt
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 
 type ConversationInputType = 'prompt' | 'steer' | 'control';
-type ConversationInputState = 'pending' | 'materializing' | 'running' | 'input_required';
 
-interface ConversationInput {
+interface ConversationInputRecord<TState extends ConversationInputLifecycleState> {
     inputId: string;
     inputType: ConversationInputType;
     text: string;
     attachmentContent: WebuiMessageContentPart[];
     acceptedAtMs: number;
-    state: ConversationInputState;
+    state: TState;
     isRegeneration: boolean;
+    isHeld: boolean;
 }
 
-interface ConversationInputAdmission extends ConversationInput {
+type ConversationInput = ConversationInputRecord<ConversationInputActiveState>;
+
+interface ConversationInputAdmission extends ConversationInputRecord<ConversationInputLifecycleState> {
     isDispatchableHead: boolean;
 }
 
@@ -38,6 +40,7 @@ interface ConversationInputEnqueueRequest {
     attachmentContent: JsonObject[];
     clientId: string;
     clientRequestId: string;
+    fallbackToPrompt: boolean;
 }
 
 interface ConversationDraft {
@@ -72,8 +75,7 @@ const decodeAttachmentContent = (value: JsonValue | undefined, label: string): W
     return entries.map((entry, index) => decodeWebuiMessageContentPart(entry, `${label}[${String(index)}]`));
 };
 
-const decodeConversationInput = (value: JsonValue, index: number): ConversationInput => {
-    const label = `Conversation input response[${String(index)}]`;
+const decodeConversationInputRecord = <TState extends ConversationInputLifecycleState>(value: JsonValue, label: string, states: readonly TState[]): ConversationInputRecord<TState> => {
     const record = requireRecord(value, label);
     const text = readRequiredStringValue(record['text'], `${label}.text`);
     const attachmentContent = decodeAttachmentContent(record['attachment_content'], `${label}.attachment_content`);
@@ -85,20 +87,21 @@ const decodeConversationInput = (value: JsonValue, index: number): ConversationI
         text: text.trim(),
         attachmentContent: attachmentContent,
         acceptedAtMs: readRequiredPositiveIntegerValue(record['accepted_at_ms'], `${label}.accepted_at_ms`),
-        state: readRequiredEnumValue(record['state'], `${label}.state`, ['pending', 'materializing', 'running', 'input_required']),
-        isRegeneration
+        state: readRequiredEnumValue(record['state'], `${label}.state`, states),
+        isRegeneration,
+        isHeld: readRequiredBooleanValue(record['is_held'], `${label}.is_held`)
     };
 };
 
 const decodeConversationInputList = (value: ApiResponsePayload): ConversationInputListResponse => {
     const record = requireRecord(value, 'Conversation inputs list response');
-    return { items: readRequiredJsonObjectArrayValue(record['items'], 'Conversation inputs list response.items').map(decodeConversationInput) };
+    return { items: readRequiredJsonObjectArrayValue(record['items'], 'Conversation inputs list response.items').map((item, index) => decodeConversationInputRecord(item, `Conversation input response[${String(index)}]`, CONVERSATION_INPUT_ACTIVE_STATES)) };
 };
 
 const decodeConversationInputCreated = (value: ApiResponsePayload): ConversationInputAdmission => {
     const record = requireRecord(value, 'Conversation input create response');
     return {
-        ...decodeConversationInput(record, 0),
+        ...decodeConversationInputRecord(record, 'Conversation input create response', CONVERSATION_INPUT_LIFECYCLE_STATES),
         isDispatchableHead: readRequiredBooleanValue(record['is_dispatchable_head'], 'Conversation input create response.is_dispatchable_head')
     };
 };
@@ -140,7 +143,8 @@ const serializeConversationInputEnqueueRequest = (request: ConversationInputEnqu
     'prompt_history_text': request.promptHistoryText,
     'attachment_content': request.attachmentContent,
     'client_id': request.clientId,
-    'client_request_id': request.clientRequestId
+    'client_request_id': request.clientRequestId,
+    'fallback_to_prompt': request.fallbackToPrompt
 });
 
 const serializeConversationDraftSaveRequest = (request: ConversationDraftSaveRequest): JsonObject => ({
@@ -153,4 +157,4 @@ const serializeConversationDraftSaveRequest = (request: ConversationDraftSaveReq
 });
 
 export { decodeConversationDraftResponse, decodeConversationInputCreated, decodeConversationInputList, serializeConversationDraftSaveRequest, serializeConversationInputEnqueueRequest };
-export type { ConversationDraft, ConversationDraftResponse, ConversationDraftSaveRequest, ConversationInput, ConversationInputAdmission, ConversationInputEnqueueRequest, ConversationInputListResponse, ConversationInputState, ConversationInputType };
+export type { ConversationDraft, ConversationDraftResponse, ConversationDraftSaveRequest, ConversationInput, ConversationInputAdmission, ConversationInputEnqueueRequest, ConversationInputListResponse, ConversationInputType };

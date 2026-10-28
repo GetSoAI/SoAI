@@ -1,72 +1,142 @@
-"""SoAI - Upload cancellation cleanup helpers [backend/features/api/routes/file_explorer/upload_transfer_cleanup.py]"""
+"""SoAI - Receipt-bound upload cancellation cleanup [backend/features/api/routes/file_explorer/upload_transfer_cleanup.py]"""
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import asyncio
+import sys
+from collections.abc import AsyncGenerator, Sequence
+from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
 
-from core.errors.exception_logging import log_handled_exception
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from core.files.operations import async_remove_if_exists
-from core.files.protocols_explorer import (
-    FileExplorerCoreProtocol,
-    FileSystemRootScopeProtocol,
+from core.concurrency.cancellation_cleanup import shielded_cleanup, wait_for_task_completion
+from core.concurrency.ephemeral_tasks import create_ephemeral_task
+from core.errors.exceptions import SoAIError
+from core.errors.public_projection import project_public_error_code, project_public_exception
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
+from core.files.commit_receipt import (
+    FileCleanupIncompleteError,
+    FileCommitReceipt,
+    FilePublicationUncertainError,
 )
-from core.logging.protocols import LoggerProtocol
+from core.files.protocols_explorer import FileExplorerCoreProtocol, FileSystemRootScopeProtocol
+from core.files.upload_staging import cleanup_temp_files
+from core.filesystem.operation_errors import build_filesystem_operation_error
+from core.types.json import JSONDict
 
-__all__ = (
-    "cleanup_cancelled_upload_destination",
-    "cleanup_cancelled_upload_destinations",
+if TYPE_CHECKING:
+    from features.api.routes.file_explorer.upload_transfer_progress_pump import UploadProgressPump
+
+__all__ = ("cleanup_cancelled_upload_destinations",)
+
+_RESOURCE_CLEANUP_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    *HANDLED_RUNTIME_EXCEPTIONS,
+    asyncio.CancelledError,
 )
-
-OPERATION_FEATURES_API_ROUTES_FILE_EXPLORER_UPLOAD_TRANSFER_CLEANUP_CLEANUP_CANCELLED_UPLOAD_DESTINATION = (
-    "features.api.routes.file_explorer.upload_transfer_cleanup.cleanup_cancelled_upload_destination"
-)
-
-
-async def cleanup_cancelled_upload_destination(
-    *,
-    root_scope: FileSystemRootScopeProtocol,
-    file_explorer_core: FileExplorerCoreProtocol,
-    virtual_path: str | None,
-    real_path: str | None,
-    logger: LoggerProtocol,
-    operation: str,
-) -> None:
-    if virtual_path:
-        try:
-            await file_explorer_core.delete_entry(root_scope, virtual_path)
-            return
-        except RECOVERABLE_EXCEPTIONS as delete_error:
-            log_handled_exception(
-                logger,
-                delete_error,
-                message="Failed to remove cancelled upload destination (non-critical).",
-                operation=OPERATION_FEATURES_API_ROUTES_FILE_EXPLORER_UPLOAD_TRANSFER_CLEANUP_CLEANUP_CANCELLED_UPLOAD_DESTINATION,
-                details={"path": virtual_path, "operation": operation},
-                level="debug",
-            )
-    if real_path:
-        await async_remove_if_exists(real_path, logger=logger)
 
 
 async def cleanup_cancelled_upload_destinations(
     *,
     root_scope: FileSystemRootScopeProtocol,
     file_explorer_core: FileExplorerCoreProtocol,
-    virtual_paths: Sequence[str],
-    real_paths: Sequence[str],
-    logger: LoggerProtocol,
-    operation: str,
-) -> None:
-    for virtual_path in virtual_paths:
-        await cleanup_cancelled_upload_destination(
-            root_scope=root_scope,
-            file_explorer_core=file_explorer_core,
-            virtual_path=virtual_path,
-            real_path=None,
-            logger=logger,
-            operation=operation,
+    receipts: Sequence[FileCommitReceipt],
+) -> list[str]:
+    failures: list[JSONDict] = []
+    retained: list[str] = []
+    removed: list[str] = []
+    for receipt in receipts:
+        try:
+            await file_explorer_core.cleanup_upload_commit(root_scope, receipt)
+        except HANDLED_RUNTIME_EXCEPTIONS as exception:
+            retained.append(receipt.virtual_path)
+            public_error = project_public_exception(
+                build_filesystem_operation_error(exception)
+                if isinstance(exception, OSError)
+                else exception
+            )
+            failures.append({"path": receipt.virtual_path, "error": public_error.to_dict()})
+        else:
+            removed.append(receipt.virtual_path)
+    if retained:
+        error = FileCleanupIncompleteError(
+            "Some uploaded files could not be safely removed.",
+            details={"retained_paths": retained, "removed_paths": removed, "failures": failures},
         )
-    for real_path in real_paths:
-        await async_remove_if_exists(real_path, logger=logger)
+        error.public_details = {
+            "retained_paths": retained,
+            "removed_paths": removed,
+            "failures": failures,
+        }
+        raise error
+    return removed
+
+
+@asynccontextmanager
+async def settle_upload_resources(
+    progress: UploadProgressPump,
+    staged_paths: list[str],
+) -> AsyncGenerator[None]:
+    try:
+        yield
+    finally:
+        primary = sys.exception()
+        failures: list[JSONDict] = []
+        cancellation: asyncio.CancelledError | None = None
+        cleanup_cause: BaseException | None = None
+        for operation in (
+            progress.close(final_bytes_done=progress.latest_bytes_done or None),
+            cleanup_temp_files(staged_paths),
+        ):
+            try:
+                cleanup_task = create_ephemeral_task(
+                    operation, name="file-upload-resource-settlement"
+                )
+                try:
+                    await shielded_cleanup(cleanup_task)
+                except asyncio.CancelledError as cancel_error:
+                    cancellation = cancellation or cancel_error
+                    await wait_for_task_completion(
+                        cleanup_task, retain_resources_until_complete=True
+                    )
+                cleanup_task.result()
+            except _RESOURCE_CLEANUP_EXCEPTIONS as exception:
+                cleanup_cause = cleanup_cause or exception
+                if primary is not None:
+                    primary.add_note(f"Upload resource cleanup failed: {exception}")
+                failure = (
+                    project_public_error_code(
+                        code="cancelled", message="File cleanup was cancelled."
+                    )
+                    if isinstance(exception, asyncio.CancelledError)
+                    else project_public_exception(
+                        build_filesystem_operation_error(exception)
+                        if isinstance(exception, OSError)
+                        else exception
+                    )
+                )
+                failures.append({"code": failure.code, "message": failure.message})
+        if failures:
+            if isinstance(primary, FilePublicationUncertainError | FileCleanupIncompleteError):
+                primary.public_details = {
+                    **(primary.public_details or {}),
+                    "cleanup_incomplete": True,
+                    "cleanup_failures": failures,
+                }
+            else:
+                cleanup_error = FileCleanupIncompleteError(
+                    "Upload resource cleanup is incomplete.", cause=primary or cleanup_cause
+                )
+                primary_error = (
+                    primary.__cause__ if isinstance(primary, asyncio.CancelledError) else primary
+                )
+                primary_details = (
+                    primary_error.public_details if isinstance(primary_error, SoAIError) else None
+                )
+                cleanup_error.public_details = {
+                    **(primary_details or {}),
+                    "cleanup_incomplete": True,
+                    "cleanup_failures": failures,
+                }
+                raise cleanup_error from (primary or cleanup_cause)
+        if cancellation is not None and primary is None:
+            raise cancellation

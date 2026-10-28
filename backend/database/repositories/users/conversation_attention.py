@@ -13,7 +13,7 @@ from core.events.domain_event_payload import build_domain_event_payload
 from core.timing.epoch import epoch_ms
 from core.types.json import JSONDict
 from database.core.flags import FEATURE_PROMPTS
-from database.core.query_execution import query_to_dicts, sync_fetch_all_as_json_dicts
+from database.core.query_execution import query_to_dicts
 from database.core.row_materialization import sqlite_row_dicts_to_json_dicts
 from database.repositories.event_outbox.sync_ops import sync_enqueue_domain_event_payload
 from database.repositories.users.domain_event_outbox_dispatch_signal import (
@@ -28,7 +28,6 @@ __all__ = (
     "mark_conversation_attention_seen_method",
     "mark_conversation_attention_seen_through_method",
     "read_conversation_attention",
-    "sync_list_conversation_attention",
     "sync_mark_conversation_attention_seen",
     "sync_mark_conversation_attention_seen_through",
     "sync_replace_conversation_attention",
@@ -172,15 +171,6 @@ def sync_replace_conversation_attention(
         conv_id=conv_id,
         created_at_ms=created_at_ms,
     )
-
-
-def sync_list_conversation_attention(
-    conn: sqlite3.Connection,
-    *,
-    user_id: int,
-) -> list[JSONDict]:
-    cursor = conn.execute(ATTENTION_SNAPSHOT_SQL, (user_id,))
-    return sync_fetch_all_as_json_dicts(cursor)
 
 
 async def read_conversation_attention(

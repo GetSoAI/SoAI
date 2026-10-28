@@ -143,6 +143,10 @@ const resolveRenderableTableRows = (lines: readonly string[], lineIndex: number,
     return body.rows.length > 0 ? body : null;
 };
 
+const resolveRenderableTableEndIndex = (lines: readonly string[], lineIndex: number, tableMode: RichTextTableMode): number | null => {
+    return resolveRenderableTableRows(lines, lineIndex, tableMode)?.nextIndex ?? null;
+};
+
 const processTablesInText = (text: string, inlineRenderer: (value: string) => string, options: TableRenderingOptions): string => {
     const lines = text.split('\n');
     const processedLines: string[] = [];
@@ -193,4 +197,4 @@ const buildLineStartOffsets = (lines: readonly string[]): number[] => {
     return offsets;
 };
 
-export { processTablesInText, resolveLeadingClosedTableEnd, startsWithRenderableTable, TABLE_END_TOKEN, TABLE_START_TOKEN };
+export { processTablesInText, resolveLeadingClosedTableEnd, resolveRenderableTableEndIndex, startsWithRenderableTable, TABLE_END_TOKEN, TABLE_START_TOKEN };

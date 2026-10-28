@@ -171,6 +171,7 @@ async def rollback_clone_transaction(
     manager: PluginManagerRuntimeProtocol,
     *,
     task_id: str,
+    mutation_fencing_token: int | None = None,
 ) -> None:
     repository = manager.dependencies.databases.plugins.clone_transactions
     transaction = await repository.get(task_id)
@@ -180,10 +181,20 @@ async def rollback_clone_transaction(
         return
     current_phase = transaction.phase
     if current_phase == "recovery_required":
-        if not await repository.transition(task_id, "recovery_required", "rollback_pending"):
+        if not await repository.transition(
+            task_id,
+            "recovery_required",
+            "rollback_pending",
+            mutation_fencing_token=mutation_fencing_token,
+        ):
             raise StateError("Clone recovery could not resume rollback.")
     elif current_phase != "rollback_pending":
-        if not await repository.transition(task_id, current_phase, "rollback_pending"):
+        if not await repository.transition(
+            task_id,
+            current_phase,
+            "rollback_pending",
+            mutation_fencing_token=mutation_fencing_token,
+        ):
             raise StateError("Clone transaction could not enter rollback.")
     failures: list[str] = []
     for artifact in await repository.list_artifacts(task_id):
@@ -211,5 +222,10 @@ async def rollback_clone_transaction(
         if not await repository.mark_rollback_recovery_required(task_id, recovery_error):
             raise StateError("Clone rollback failure could not enter recovery-required state.")
         raise StateError(f"Clone rollback requires recovery: {recovery_error}")
-    if not await repository.transition(task_id, "rollback_pending", "rolled_back"):
+    if not await repository.transition(
+        task_id,
+        "rollback_pending",
+        "rolled_back",
+        mutation_fencing_token=mutation_fencing_token,
+    ):
         raise StateError("Clone transaction could not complete rollback.")

@@ -11,6 +11,7 @@ from fastapi import Request
 from starlette.responses import Response
 
 from core.errors.exceptions import StateError
+from core.errors.http_status_classification import resolve_openai_error_type_for_http_status
 from core.errors.status_mapping import error_type_to_status_code
 from core.events.types_models_streaming import (
     InferenceResultEvent,
@@ -20,10 +21,15 @@ from core.events.types_models_streaming import (
 from core.events.types_plugins import ErrorEvent
 from core.events.types_tasks import TaskCompleteEvent, TaskProgressEvent
 from core.files.upload_staging import cleanup_temp_files
-from core.openai.sse_events import format_openai_stream_error_chunk
-from core.openai.sse_frames import sse_keepalive_chunk
+from core.openai.openai_error_objects import (
+    build_openai_error_payload,
+    normalize_openai_error_code_subtype,
+)
+from core.openai.sse_events import format_openai_sse_bytes, format_openai_stream_error_chunk
+from core.openai.sse_frames import sse_done_chunk, sse_keepalive_chunk
 from core.tasks.finalization import finalize
 from features.api.openai.openai_error_responses import (
+    build_openai_error_json_response_for_soai_payload,
     build_openai_error_json_response_for_status,
 )
 from features.api.runtime.response_collection import process_command_reply
@@ -119,6 +125,23 @@ async def negotiate_audio_transcription_response(
                     task_id=task_id,
                 )
             if isinstance(event, ErrorEvent):
+                if event.public_error is not None:
+                    public_error = event.public_error
+                    details = dict(public_error.details or {})
+                    if public_error.param is not None:
+                        details["param"] = public_error.param
+                    return build_openai_error_json_response_for_soai_payload(
+                        status_code=public_error.http_status
+                        or error_type_to_status_code(event.error_type),
+                        message=public_error.message,
+                        soai_error_type=public_error.code,
+                        details=details,
+                        trace_id=public_error.trace_id or request.state.context.trace_id,
+                        headers=build_task_operation_headers(
+                            task_id=task_id,
+                            operation_id=request.state.context.trace_id,
+                        ),
+                    )
                 return build_openai_error_json_response_for_status(
                     status_code=error_type_to_status_code(event.error_type),
                     message=event.message or "Transcription request failed.",
@@ -170,6 +193,30 @@ async def _stream_transcription_events(
             if isinstance(event, StreamEndEvent):
                 break
             if isinstance(event, ErrorEvent):
+                if event.public_error is not None:
+                    public_error = event.public_error
+                    status_code = public_error.http_status or error_type_to_status_code(
+                        event.error_type
+                    )
+                    canonical_error_type = resolve_openai_error_type_for_http_status(status_code)
+                    param = public_error.param
+                    if param is None and public_error.details is not None:
+                        detail_param = public_error.details.get("param")
+                        if isinstance(detail_param, str):
+                            param = detail_param
+                    yield format_openai_sse_bytes(
+                        build_openai_error_payload(
+                            message=public_error.message,
+                            error_type=canonical_error_type,
+                            param=param,
+                            code=normalize_openai_error_code_subtype(
+                                code=str(public_error.code),
+                                canonical_error_type=canonical_error_type,
+                            ),
+                        )
+                    )
+                    yield sse_done_chunk()
+                    break
                 yield _format_stream_error(
                     event.message or "Transcription stream failed.",
                     event.error_type.value,

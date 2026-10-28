@@ -50,6 +50,7 @@
   !insertmacro ${ACTION}String "${PRODUCT_UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\soai.exe" $RegistrationPriorDisplayIcon
   !insertmacro ${ACTION}String "${PRODUCT_UNINSTALL_KEY}" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\"" $RegistrationPriorUninstallString
   !insertmacro ${ACTION}String "${PRODUCT_UNINSTALL_KEY}" "QuietUninstallString" "$\"$INSTDIR\Uninstall.exe$\" /S" $RegistrationPriorQuietUninstallString
+  !insertmacro ${ACTION}String "${PRODUCT_UNINSTALL_KEY}" "SoAIRecoveryDirectory" "" $RegistrationPriorRecoveryDirectory
   !insertmacro ${ACTION}Number "${PRODUCT_UNINSTALL_KEY}" "EstimatedSize" "${ESTIMATED_SIZE_KB}" $RegistrationPriorEstimatedSize
   !insertmacro ${ACTION}Number "${PRODUCT_UNINSTALL_KEY}" "NoModify" "1" $RegistrationPriorNoModify
   !insertmacro ${ACTION}Number "${PRODUCT_UNINSTALL_KEY}" "NoRepair" "1" $RegistrationPriorNoRepair
@@ -80,7 +81,9 @@ Function CreateWindowsIntegration
   ${EndIf}
 
   ClearErrors
-  WriteUninstaller "$INSTDIR\Uninstall.exe"
+  WriteUninstaller "$INSTDIR\installer-support\UninstallWorker.exe"
+  CopyFiles /SILENT "$INSTDIR\soai.exe" "$INSTDIR\Uninstall.exe"
+  CopyFiles /SILENT "$INSTDIR\soai.exe.config" "$INSTDIR\Uninstall.exe.config"
   ${If} ${Errors}
     !insertmacro FailInstallerStep "" "Setup could not create the SoAI uninstaller in $INSTDIR."
   ${EndIf}
@@ -96,6 +99,21 @@ Function CreateWindowsIntegration
   ${If} ${Errors}
     !insertmacro FailInstallerStep "" "Setup could not register SoAI with Windows."
   ${EndIf}
+
+  DetailPrint "Registering the SoAI background service..."
+  nsExec::ExecToStack '"$INSTDIR\soai.exe" --soai-register-service "$INSTDIR"'
+  Pop $0
+  Pop $1
+  ${If} $0 != 0
+    DetailPrint "$1"
+    !insertmacro FailInstallerStep "" "Setup could not register the SoAI background service."
+  ${EndIf}
+  StrCpy $IntegrationServiceCreated 0
+  StrCpy $2 $1 7
+  ${If} $2 == "created"
+    StrCpy $IntegrationServiceCreated 1
+  ${EndIf}
+  StrCpy $IntegrationStage 3
 
   DetailPrint "Creating Start Menu and Desktop shortcuts..."
   Push 98
@@ -146,6 +164,14 @@ FunctionEnd
 Function RevertWindowsIntegration
   ${If} $IntegrationStage < 1
     Return
+  ${EndIf}
+  ${If} $IntegrationStage >= 3
+  ${AndIf} $IntegrationServiceCreated == 1
+    nsExec::ExecToLog '"$PLUGINSDIR\soai-control.exe" --soai-unregister-service "$INSTDIR"'
+    Pop $0
+    ${If} $0 != 0
+      DetailPrint "The SoAI background service registered by this Setup could not be removed. The next Setup or uninstall run removes it."
+    ${EndIf}
   ${EndIf}
   ${If} $IntegrationStage >= 2
     ${If} $RegistrationProductKeyExisted == 1

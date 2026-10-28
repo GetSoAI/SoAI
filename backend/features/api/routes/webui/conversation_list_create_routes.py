@@ -164,6 +164,7 @@ def register_routes(routers: ApiRouters) -> None:
                 model_settings_payload,
                 False,
                 payload.id,
+                title_auto_update_allowed=payload.title_auto_update_allowed,
             )
         except ConflictError as exception:
             raise_conflict(request, str(exception))

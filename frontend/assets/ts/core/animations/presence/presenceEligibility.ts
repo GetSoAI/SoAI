@@ -4,7 +4,7 @@
 import { MODAL_ROOT_CLASS } from '@core/modals/guards.ts';
 
 const interactiveModals = new WeakSet<Element>();
-const PRESENCE_EXCLUDED_SURFACES = '.ui-round-button, .prompt-card, .plugin-card, .model-card, .hardware-network-card, .power-action-card';
+const PRESENCE_EXCLUDED_SURFACES = '.ui-round-button, .prompt-card, .plugin-card, .model-card, .hardware-network-card, .search-results .search-item, .file-explorer-rows-body';
 const PRESENCE_ATOMIC_ATTRIBUTE = 'data-presence-atomic';
 const PRESENCE_VISUAL_ONLY_ATTRIBUTE = 'data-presence-visual-only';
 const PRESENCE_MORPH_ATTRIBUTE = 'data-presence-morph';
@@ -16,7 +16,7 @@ const canAnimatePresence = (element: Element, options: { allowAtomicMorph?: bool
     const atomicChildRequestsMotion = (isPresenceAtomic(element) && element.hasAttribute('data-presence')) || element.hasAttribute(PRESENCE_VISUAL_ONLY_ATTRIBUTE) || (options.allowAtomicMorph === true && element.hasAttribute(PRESENCE_MORPH_ATTRIBUTE));
     if (element.closest('[data-presence-suspended]') || element.closest(PRESENCE_EXCLUDED_SURFACES) || (atomicParent && !atomicChildRequestsMotion)) return false;
     const modal = element.closest(`.${MODAL_ROOT_CLASS}`);
-    return !modal || (modal.getAttribute('data-modal-open') === 'true' && interactiveModals.has(modal));
+    return !modal || element === modal || (modal.getAttribute('data-modal-open') === 'true' && interactiveModals.has(modal));
 };
 
 const resetModalPresence = (modal: Element): void => {

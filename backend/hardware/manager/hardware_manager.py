@@ -8,11 +8,15 @@ import threading
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, override
 
+from core.concurrency.deadlines import deadline_after
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.lifecycle.protocols import Shutdownable
 from core.logging.protocols import TraceLogger
 from core.logging.trace import get_logger
+from core.runtime.platform import get_runtime_platform
 from core.types.protocols import HttpClientProtocol
 from hardware.cpu_rapl import RaplEnergyCache
+from hardware.info_gpu import get_gpu_info
 from hardware.info_network import get_network_info
 from hardware.manager.computed_config import (
     HardwareManagerComputedConfig,
@@ -22,12 +26,17 @@ from hardware.manager.dependencies import HardwareManagerDependencies
 from hardware.manager.historical_data_query import query_historical_data
 from hardware.manager.manager_state import HardwareManagerState
 from hardware.manager.monitoring_lifecycle import (
+    require_hardware_monitoring_start_ready,
     shutdown_hardware_monitoring,
     start_hardware_monitoring,
 )
-from hardware.manager.system_capabilities import sync_get_system_capabilities
+from hardware.manager.system_capability_acquisition import (
+    acquire_system_capabilities,
+    shutdown_system_capability_acquisition,
+)
 from hardware.manager.system_info_query import sync_query_system_info
 from hardware.manager.variant_support_context import build_variant_support_context
+from hardware.manager.windows_static_inventory import read_windows_static_inventory
 
 if TYPE_CHECKING:
     from core.events.protocols import EventBusProtocol
@@ -101,6 +110,7 @@ class HardwareManager(Shutdownable):
             deps.gpu_capabilities_service
         )
         self._nvidia_settings_controller = deps.nvidia_settings_controller
+        self._adl_runtime = deps.adl_runtime
         self._nvidia_nvml_gate: NvmlGateProtocol = deps.nvidia_nvml_gate
         self._nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol = (
             deps.nvidia_capabilities_cache_service
@@ -113,11 +123,23 @@ class HardwareManager(Shutdownable):
     def get_network_info(self) -> JSONDict:
         return get_network_info(self._executor)
 
+    def sync_get_gpu_info(self, detailed: bool = True) -> JSONDict:
+        return get_gpu_info(
+            self._executor,
+            detailed=detailed,
+            cache_service=self._gpu_info_cache_service,
+            vendor_detection_service=self._gpu_vendor_detection_service,
+            nvidia_nvml_gate=self._nvidia_nvml_gate,
+            nvidia_capabilities_cache_service=self._nvidia_capabilities_cache_service,
+            adl_runtime=self._adl_runtime,
+        )
+
     def sync_get_system_info(
         self,
         *,
         cache: bool,
         include_gpu_capabilities: bool = True,
+        components: Sequence[str] | None = None,
     ) -> JSONDict:
         return sync_query_system_info(
             state=self.state,
@@ -135,10 +157,16 @@ class HardwareManager(Shutdownable):
             nvidia_nvml_gate=self._nvidia_nvml_gate,
             nvidia_capabilities_cache_service=self._nvidia_capabilities_cache_service,
             rapl_energy_cache=self._rapl_energy_cache,
-            components=None,
+            components=components,
             cache=cache,
             include_gpu_capabilities=include_gpu_capabilities,
             nvidia_settings_controller=self._nvidia_settings_controller,
+            adl_runtime=self._adl_runtime,
+            windows_static_inventory=(
+                read_windows_static_inventory(self.state.windows_static_inventory)
+                if get_runtime_platform().is_windows
+                else None
+            ),
         )
 
     async def get_system_info(
@@ -168,22 +196,16 @@ class HardwareManager(Shutdownable):
             cache=cache,
             include_gpu_capabilities=include_gpu_capabilities,
             nvidia_settings_controller=self._nvidia_settings_controller,
+            adl_runtime=self._adl_runtime,
         )
 
     async def get_system_capabilities(self) -> JSONDict:
-        return await asyncio.to_thread(
-            sync_get_system_capabilities,
-            executor=self._executor,
+        return await acquire_system_capabilities(
+            state=self.state,
+            dependencies=self._deps,
             logger=self.logger,
-            monitoring_interval_ms=self.monitoring_interval_ms,
-            history_config=self.history_config,
             history_enabled=self._computed.history_enabled,
-            gpu_info_cache_service=self._gpu_info_cache_service,
-            gpu_vendor_detection_service=self._gpu_vendor_detection_service,
-            nvidia_nvml_gate=self._nvidia_nvml_gate,
-            nvidia_capabilities_cache_service=self._nvidia_capabilities_cache_service,
             rapl_energy_cache=self._rapl_energy_cache,
-            gpu_info=None,
         )
 
     async def get_gpu_capabilities(self) -> JSONDict:
@@ -244,30 +266,49 @@ class HardwareManager(Shutdownable):
             gpu_index=gpu_index,
             identifier=identifier,
             availability_metric=availability_metric,
+            adl_runtime=self._adl_runtime,
         )
 
     async def start_monitoring(self) -> bool:
-        started = start_hardware_monitoring(
-            manager=self,
-            min_specs_manager=self,
-            state=self.state,
-            enabled=self.enabled,
-            hw_gpu_tuning_set_main_loop=self.hw_gpu_tuning.set_main_loop,
-            cancellation_binder=self._deps.cancellation_binder,
-            finalizer_tracker=self._deps.finalizer_tracker,
-            executor=self._executor,
-            logger=self.logger,
-            rapl_energy_cache=self._rapl_energy_cache,
-            min_specs_enabled=self.min_specs_enabled,
-        )
-        self.main_loop = self.state.main_loop
-        return started
+        async with self.state.lifecycle_lock:
+            require_hardware_monitoring_start_ready(state=self.state)
+            self.state.system_capability_stopping = False
+            self._gpu_info_cache_service.start()
+            started = start_hardware_monitoring(
+                manager=self,
+                min_specs_manager=self,
+                state=self.state,
+                enabled=self.enabled,
+                hw_gpu_tuning_set_main_loop=self.hw_gpu_tuning.set_main_loop,
+                cancellation_binder=self._deps.cancellation_binder,
+                finalizer_tracker=self._deps.finalizer_tracker,
+                executor=self._executor,
+                logger=self.logger,
+                rapl_energy_cache=self._rapl_energy_cache,
+                min_specs_enabled=self.min_specs_enabled,
+            )
+            self.main_loop = self.state.main_loop
+            return started
 
     @override
-    async def shutdown(self) -> None:
-        if self._nvidia_settings_controller is not None:
-            await asyncio.to_thread(self._nvidia_settings_controller.close)
-        await shutdown_hardware_monitoring(state=self.state, logger=self.logger)
+    async def shutdown(self, *, timeout_sec: float | None = None) -> None:
+        deadline = deadline_after(timeout_sec) if timeout_sec else None
+        async with self.state.lifecycle_lock:
+            await shutdown_system_capability_acquisition(self.state)
+            await shutdown_hardware_monitoring(
+                state=self.state, logger=self.logger, deadline=deadline
+            )
+            await run_joined_thread_call(
+                self._gpu_info_cache_service.shutdown,
+                task_name="hardware-gpu-observation-shutdown",
+                retain_resources_until_complete=True,
+            )
+            if self._nvidia_settings_controller is not None:
+                await run_joined_thread_call(
+                    self._nvidia_settings_controller.close,
+                    task_name="hardware-nvidia-controller-close",
+                    retain_resources_until_complete=True,
+                )
 
     def set_disk_speed_cache(self, snapshot: JSONDict | None, *, cached_at: float) -> None:
         self.state.disk_speed_cache.set(snapshot, cached_at=cached_at)

@@ -84,6 +84,10 @@ class ChatComposerController implements ChatComposerContract {
         return this.#dependencies.runtime.turnRuntime.requireConversationInputs().cancelPrompt(conversationId, inputId);
     }
 
+    resumeConversationInputs(conversationId: string): Promise<void> {
+        return this.#dependencies.runtime.turnRuntime.requireConversationInputs().resumeHeldPrompts(conversationId);
+    }
+
     async retryConversationRegeneration(conversationId: string, inputId: string): Promise<void> {
         const conversation = this.#dependencies.state.conversationState.conversations.get(conversationId);
         const revision = conversation?.updatedAt;

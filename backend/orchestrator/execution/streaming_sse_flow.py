@@ -12,6 +12,7 @@ from core.errors.exceptions import ModelOutputContractError, StateError
 from core.logging.protocols import TraceLogger
 from core.openai.openai_error_objects import parse_openai_sse_error_frame
 from core.openai.openai_sse_error_escalation import raise_openai_streaming_error
+from core.openai.response_model_identity import normalize_response_frame_model_identity
 from core.openai.responses_stream_transcript import ResponsesStreamTranscript
 from core.openai.sse_frame_accumulator import OpenAISSEFrameAccumulator
 from core.openai.sse_progress import OpenAISSEProgressDetector
@@ -146,15 +147,19 @@ async def process_streaming_sse_flow(
                         provider_id=provider_id,
                         task_id=task.task_id,
                         trace_id=trace_id,
+                        request_payload=orchestration_context.request_payload,
                     )
-                frame_bytes = frame_text.encode("utf-8")
+                canonical_frame = normalize_response_frame_model_identity(
+                    frame_text, orchestration_context.virtual_model_name
+                )
+                frame_bytes = canonical_frame.encode("utf-8")
                 if usage_collector is not None:
-                    usage_collector.consume_frame(frame_text)
+                    usage_collector.consume_frame(canonical_frame)
                 if transcript is not None:
                     transcript.feed(frame_bytes)
                 if responses_transcript is not None:
                     terminal_before_frame = responses_transcript.terminal_observed
-                    responses_transcript.consume_frame(frame_text)
+                    responses_transcript.consume_frame(canonical_frame)
                     if not terminal_before_frame and responses_transcript.terminal_observed:
                         deferred_terminal_chunks.append(frame_bytes)
                         terminal_observed = True

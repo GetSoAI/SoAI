@@ -41,9 +41,11 @@ from features.api.streaming.types import StreamDependencies
 
 if TYPE_CHECKING:
     from core.events.types_base import Event
+    from core.openai.streaming_usage import OpenAIPublicUsageProjection
     from core.openai.token_accounting import PromptOccupancy
     from core.openai.usage.models import CanonicalUsage
     from core.runtime.protocols import RequestProtocol
+    from core.streaming.protocols import StreamGeneratorStateProtocol
     from core.types.json import JSONDict
     from features.agent.internal_protocols import AgentStreamingInferenceRunnerProtocol
     from features.agent.runtime.turn_iteration_policy_types import (
@@ -99,6 +101,8 @@ async def create_agentic_sse_stream_generator(
     initial_output_publication_mode: AgentOutputPublicationMode | None = None,
     first_iteration_cancellation_id: str | None = None,
     acknowledge_stream_consumption: bool = False,
+    stream_result_state: StreamGeneratorStateProtocol | None = None,
+    public_usage_projection: OpenAIPublicUsageProjection | None = None,
 ) -> AsyncGenerator[bytes]:
     logger = get_logger(LOGGER_NAME)
     done_chunk = sse_done_chunk()
@@ -177,6 +181,7 @@ async def create_agentic_sse_stream_generator(
             stream_generator_factory=overrides.create_stream_generator,
             cancellation_history=api_context.dependencies.cancellation_history,
             on_task_ready=on_iteration_task_ready,
+            public_error_state=stream_result_state,
         )
     )
     bridge = AgenticSseOutputBridge(
@@ -218,6 +223,8 @@ async def create_agentic_sse_stream_generator(
             initial_output_publication_mode=initial_output_publication_mode,
             detach_event=bridge.detach_event,
             push_bytes=bridge.push_bytes,
+            public_usage_projection=public_usage_projection,
+            stream_result_state=stream_result_state,
         )
 
     engine_task = spawn_tracked_task(

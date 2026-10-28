@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { extractSpeechTextFromHtml, setSpeakButtonLoading, setSpeakButtonMode } from '@features/chat/message/messageSpeech.ts';
+import { notifyTextToSpeechSetupFailure, resolveSpeechFailureMessage } from '@features/chat/tts/speechFailurePresentation.ts';
 import { serializeElementChildrenToHtml } from '@core/dom/html.ts';
 
 interface SpeakActionControllerDependencies {
@@ -94,8 +96,9 @@ class SpeakActionController {
                     }
                 });
             });
-        } catch {
-            this.#dependencies.showNotification(i18n.t('chat.message.speak.failed'), 'error');
+        } catch (error) {
+            const failure = ensureError(error);
+            if (!notifyTextToSpeechSetupFailure(failure)) this.#dependencies.showNotification(resolveSpeechFailureMessage(failure, i18n.t('chat.message.speak.failed')), 'error');
         } finally {
             if (this.#activeOperationId !== operationId) {
                 return;

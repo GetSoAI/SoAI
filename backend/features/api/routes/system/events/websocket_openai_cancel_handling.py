@@ -62,7 +62,7 @@ async def handle_openai_ws_cancel_with_lock[RuntimeT: RuntimeWithLockProtocol](
     enqueue_warning_tracker: EnqueueWarningTracker,
     require_run_id: Callable[[JSONDict], str],
     runtimes: dict[str, RuntimeT],
-    cancel_runtime: Callable[[RuntimeT, str], Awaitable[None]],
+    cancel_runtime: Callable[[RuntimeT, str], Awaitable[bool]],
     build_cancelled_event: Callable[[str, str], JSONDict],
     warn_label: str,
 ) -> None:
@@ -80,7 +80,8 @@ async def handle_openai_ws_cancel_with_lock[RuntimeT: RuntimeWithLockProtocol](
     async with runtime.lock:
         if runtimes.get(run_id) is not runtime:
             return
-        await cancel_runtime(runtime, reason)
+        if not await cancel_runtime(runtime, reason):
+            return
         if runtimes.get(run_id) is runtime:
             runtimes.pop(run_id, None)
     enqueue_event_or_warn(

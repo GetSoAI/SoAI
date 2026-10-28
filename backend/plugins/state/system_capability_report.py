@@ -112,7 +112,10 @@ async def build_system_capability_report(
         if result is not None and not result.is_valid:
             if report["status"] == "supported":
                 report["status"] = "unsupported"
-            messages.append(result.message)
+            if result.error is not None:
+                report["gpu_discovery"] = {"status": "unavailable", "error": result.error}
+            if result.message not in messages:
+                messages.append(result.message)
             details.append(to_detail_dict(result))
     if report["status"] != "supported":
         blocking_actions.extend(["install_backend", "update_backend", "download_model"])

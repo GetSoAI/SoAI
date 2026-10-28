@@ -99,6 +99,12 @@ const resolveRagStatus = (document: RagDocument): { label: string; className: st
         case 'embedding':
             return { label: i18n.t('chat.configuration.rag.status.embedding'), className: 'status-blue' };
         case 'completed':
+            if (document.missingCapabilities?.includes('speech_to_text')) {
+                return { label: i18n.t('chat.configuration.rag.status.noTranscript'), className: 'status-orange' };
+            }
+            if (document.statusDetails === 'degraded') {
+                return { label: i18n.t('chat.configuration.rag.status.partial'), className: 'status-orange' };
+            }
             return { label: i18n.t('chat.configuration.rag.status.completed'), className: 'status-green' };
         case 'error':
             if (document.statusDetails === 'unreadable') {
@@ -128,7 +134,7 @@ const selectFinalizedRagDocuments = (documents: RagDocument[]): RagDocument[] =>
 };
 
 const knowledgeDocumentsSignature = (finalizedDocuments: RagDocument[], page: RagDocumentsPage): string => {
-    const rows = finalizedDocuments.map((document) => `${document.id}:${document.status}:${document.errorMessage ?? ''}:${document.processedChunks ?? ''}/${document.totalChunks ?? ''}`).join('|');
+    const rows = finalizedDocuments.map((document) => `${document.id}:${document.status}:${document.statusDetails ?? ''}:${document.missingCapabilities?.join(',') ?? ''}:${document.errorMessage ?? ''}:${document.processedChunks ?? ''}/${document.totalChunks ?? ''}`).join('|');
     return `${rows}#${page.count}@${page.offset}@${page.limit}`;
 };
 

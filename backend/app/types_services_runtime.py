@@ -65,6 +65,7 @@ if TYPE_CHECKING:
     from orchestrator.execution.inference_executor import OrchestratorInferenceExecutor
     from orchestrator.execution.outcomes import OutcomeManager
     from orchestrator.handlers import OrchestratorHandlers
+    from plugins.manager.backend_update_reconciliation import BackendUpdateReconciliation
 
 __all__ = (
     "LifecycleServices",
@@ -108,12 +109,14 @@ class OrchestratorServices:
 
 @dataclass(slots=True, frozen=True)
 class PluginServices:
+    backend_update_reconciliation: BackendUpdateReconciliation
     plugin_manager: PluginManagerProtocol
     webui_manager: WebUIManagerProtocol
 
     def __post_init__(self) -> None:
         require_dependencies(
             owner="PluginServices",
+            backend_update_reconciliation=self.backend_update_reconciliation,
             plugin_manager=self.plugin_manager,
             webui_manager=self.webui_manager,
         )

@@ -6,9 +6,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, override
 
-from core.errors.exceptions import SoAIError, build_error_init_kwargs
+from core.errors.error_initialization import build_error_init_kwargs
+from core.errors.exceptions import SoAIError
 
 if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
     from core.types.json import JSONValue
 
 __all__ = ("ExternalServiceError", "MCPError")
@@ -24,6 +26,7 @@ class MCPError(ExternalServiceError):
     code: str | int = "mcp_error"
     http_status = 502
     is_transient = True
+    public_error: ErrorPublicPayload | None = None
 
     def __init__(
         self,

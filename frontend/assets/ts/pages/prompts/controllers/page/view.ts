@@ -72,6 +72,7 @@ const preparePromptPresentation = (host: PromptsPageViewHost, prompts: PromptRec
     return host.state.grouping.applyHeadings({
         items: prompts,
         grouped: sortBy !== DEFAULT_GROUP_KEY,
+        presentsHeadings: host.state.viewMode !== 'list',
         firstHeading: host.components.selectionController.isActive() ? i18n.t('prompts.selectionMode') : null,
         resolveItemId: (prompt) => host.operations.getItemCardId(prompt),
         resolveGroup: (prompt) => resolutions.get(prompt.id) ?? { key: null, heading: null }

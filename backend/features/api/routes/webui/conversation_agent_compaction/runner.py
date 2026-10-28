@@ -164,6 +164,7 @@ async def run_manual_compaction(
             source_messages=provider_source_messages,
             compaction_limit=compaction_limit,
             summarizer_budget=summarizer_budget,
+            summary_max_tokens=context_window_tokens - summarizer_budget,
             raise_if_cancelled=delta_streamer.raise_if_cancelled,
             on_text_delta=delta_streamer.on_text_delta,
         )

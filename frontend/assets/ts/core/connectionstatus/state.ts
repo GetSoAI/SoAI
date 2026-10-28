@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { INITIAL_RESTART_DELAY_MS } from '@core/connectionstatus/constants.ts';
+import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { createDefaultRestartInfo } from '@core/connectionstatus/health.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { ConnectionHold, RestartInfo, RestartSubscriber, StatusSubscriber, SystemInfo, Waiter } from '@core/connectionstatus/types.ts';
@@ -17,6 +18,7 @@ interface ConnectionStatusState {
     waiters: Waiter[];
     isStarting: boolean;
     streamStartTask: Promise<void> | null;
+    bootstrapSequence: SequenceToken;
     restartInfo: RestartInfo;
     bootstrapTracker: number | null;
     lastQueueDepth: number | null;
@@ -40,6 +42,7 @@ const createConnectionStatusState = (): ConnectionStatusState => ({
     waiters: [],
     isStarting: false,
     streamStartTask: null,
+    bootstrapSequence: new SequenceToken(),
     restartInfo: createDefaultRestartInfo(),
     bootstrapTracker: null,
     lastQueueDepth: null,

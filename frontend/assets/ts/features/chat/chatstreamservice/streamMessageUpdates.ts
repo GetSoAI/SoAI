@@ -6,24 +6,24 @@ import { serverEpochMs } from '@core/time/clock.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import type { ChatStreamSession } from '@features/chat/chatstreamservice/types.ts';
 import { calculateGenerationSpeed } from '@features/chat/conversationFormatting.ts';
-import { resolveAssistantSettledResponseDisplayDurationMs } from '@features/chat/message/assistantResponseDuration.ts';
+import { hasTerminalAssistantState } from '@features/chat/message/assistantTerminalState.ts';
+import { isContextCompactionBoundaryMessage } from '@features/chat/message/contextcompaction/detection.ts';
 
 const resolveAssistantGenerationLatencyMs = (message: ChatMessage, nowMs: number = serverEpochMs()): number | null => {
-    const durationMs = resolveAssistantSettledResponseDisplayDurationMs(message, nowMs);
-    if (!isNumber(durationMs) || !Number.isFinite(durationMs) || durationMs < 0) {
-        return null;
-    }
-    return Math.floor(durationMs);
+    if (!hasTerminalAssistantState(message) || isContextCompactionBoundaryMessage(message)) return null;
+    if (isNumber(message.generationLatencyMs) && Number.isFinite(message.generationLatencyMs) && message.generationLatencyMs >= 0) return Math.floor(message.generationLatencyMs);
+    const startedAtMs = message.assistantTurnAtMs;
+    return isNumber(startedAtMs) && Number.isFinite(startedAtMs) && Number.isFinite(nowMs) ? Math.max(0, Math.floor(nowMs - startedAtMs)) : null;
 };
 
-const applyGenerationMetrics = (session: ChatStreamSession): void => {
-    const generationLatencyMs = resolveAssistantGenerationLatencyMs(session.assistantMessage);
+const applyGenerationMetrics = (session: ChatStreamSession, terminalAtMs: number): void => {
+    const generationLatencyMs = resolveAssistantGenerationLatencyMs(session.assistantMessage, terminalAtMs);
     if (generationLatencyMs === null) {
         return;
     }
-    session.assistantMessage.generationLatencyMs = generationLatencyMs;
+    if (!isNumber(session.assistantMessage.generationLatencyMs) || !Number.isFinite(session.assistantMessage.generationLatencyMs) || session.assistantMessage.generationLatencyMs < 0) session.assistantMessage.generationLatencyMs = generationLatencyMs;
     const generationSpeed = calculateGenerationSpeed(session.assistantMessage.completionTokens, generationLatencyMs);
-    if (generationSpeed !== null) {
+    if (generationSpeed !== null && (!isNumber(session.assistantMessage.generationSpeedTokensPerSec) || !Number.isFinite(session.assistantMessage.generationSpeedTokensPerSec) || session.assistantMessage.generationSpeedTokensPerSec < 0)) {
         session.assistantMessage.generationSpeedTokensPerSec = generationSpeed;
     }
 };

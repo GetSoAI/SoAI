@@ -14,6 +14,9 @@ const DRAFT_ATTACHMENT_ID_ATTRIBUTE = 'data-draft-attachment-id';
 const DRAFT_ATTACHMENT_RENDER_SIGNATURE_ATTRIBUTE = 'data-draft-attachment-render-signature';
 
 const resolveDraftAttachmentStatusPresentation = (attachment: ChatAttachment): { label: string; className: string } => {
+    if (attachment.parseStatus === 'ready' && attachment.missingCapabilities?.includes('speech_to_text')) {
+        return { label: i18n.t('chat.configuration.rag.status.noTranscript'), className: 'status-orange' };
+    }
     if (attachment.parseStatus === 'ready') {
         return { label: resolveDraftAttachmentStatusLabel(attachment.parseStatus), className: 'status-green' };
     }
@@ -25,7 +28,7 @@ const resolveDraftAttachmentStatusPresentation = (attachment: ChatAttachment): {
 
 const resolveDraftAttachmentRenderSignature = (entry: ChatAttachDraftAttachmentListEntry): string => {
     const attachment = entry.attachment;
-    return JSON.stringify([attachment.name, attachment.parseStatus, attachment.parseError, attachment.mimeType, attachment.type, attachment.sizeBytes, attachment.size, attachment.isImage, entry.previewUrl, entry.iconName]);
+    return JSON.stringify([attachment.name, attachment.parseStatus, attachment.parseError, attachment.missingCapabilities, attachment.mimeType, attachment.type, attachment.sizeBytes, attachment.size, attachment.isImage, entry.previewUrl, entry.iconName]);
 };
 
 const resolveDraftAttachmentMetaText = (attachment: ChatAttachment): string => {
@@ -123,7 +126,8 @@ const createDraftAttachmentListRow = (documentRef: Document, entry: ChatAttachDr
     setTooltipText(removeButton, removeLabel);
     replaceChildrenFromTrustedHtml({ element: removeButton, html: getIconSync('close', { size: 14, strokeWidth: 1.5 }), context: removeButton });
     actions.append(removeButton);
-    row.append(createDraftAttachmentVisual(documentRef, entry), info, actions);
+    header.append(actions);
+    row.append(createDraftAttachmentVisual(documentRef, entry), info);
     return row;
 };
 

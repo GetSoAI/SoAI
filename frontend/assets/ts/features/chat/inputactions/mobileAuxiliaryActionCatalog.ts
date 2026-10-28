@@ -126,7 +126,7 @@ const resolveButtonLabel = (descriptor: ChatMobileAuxiliaryActionDescriptor): st
 const renderChatMobileAuxiliaryActionSelectOptions = (sanitizer: SanitizerApi): string => {
     return CHAT_MOBILE_AUXILIARY_ACTIONS.map((action) => {
         const actionDescriptor = resolveChatMobileAuxiliaryActionDescriptor(action);
-        return `<option value="${securityApi.escapeAttribute(actionDescriptor.id)}">${renderOptionLabel(sanitizer, actionDescriptor)}</option>`;
+        return `<option value="${securityApi.escapeAttribute(actionDescriptor.id)}" data-modal-localize="text">${renderOptionLabel(sanitizer, actionDescriptor)}</option>`;
     }).join('');
 };
 
@@ -170,10 +170,10 @@ const renderChatMobileAuxiliaryActionButton = (inputArguments: { descriptor: Cha
     }
     if (actionDescriptor.iconSlotType === 'agent_mode') {
         const iconMarkup = inputArguments.getIcon('chat', CHAT_ICON_SIZE_SM);
-        return toTrustedUiHtml(`<button type="button" class="chat-mobile-auxiliary-action ui-icon-button ${buttonClassNames}" data-mobile-auxiliary-action="${actionId}" data-agent-mode="chat"${actionDataAttribute} ${renderLabelAttributes(label)}><span class="agent-mode-cycle-icon ui-icon" aria-hidden="true">${iconMarkup.html}</span><span class="agent-mode-cycle-label">${securityApi.escapeHtml(i18n.t('chat.agent.mode.chat'))}</span></button>`);
+        return toTrustedUiHtml(`<button type="button" class="chat-mobile-auxiliary-action ui-icon-button ${buttonClassNames}" data-mobile-auxiliary-action="${actionId}" data-agent-mode="chat"${actionDataAttribute} ${renderLabelAttributes(label)}><span class="agent-mode-cycle-icon ui-icon" aria-hidden="true">${iconMarkup.html}</span><span class="agent-mode-cycle-label" data-modal-localize="text">${securityApi.escapeHtml(i18n.t('chat.agent.mode.chat'))}</span></button>`);
     }
     if (actionDescriptor.iconSlotType === 'token_counter') {
-        return toTrustedUiHtml(`<button type="button" class="chat-mobile-auxiliary-action ui-icon-button ${buttonClassNames}" data-mobile-auxiliary-action="${actionId}"${actionDataAttribute}${holdDescriptionAttribute} ${renderLabelAttributes(label)} aria-pressed="false"><span dir="ltr" class="chat-token-counter-label">${securityApi.escapeHtml(i18n.t('chat.tokenCounter.inactive'))}</span></button>`);
+        return toTrustedUiHtml(`<button type="button" class="chat-mobile-auxiliary-action ui-icon-button ${buttonClassNames}" data-mobile-auxiliary-action="${actionId}"${actionDataAttribute}${holdDescriptionAttribute} ${renderLabelAttributes(label)} aria-pressed="false"><span dir="ltr" class="chat-token-counter-label" data-modal-localize="text">${securityApi.escapeHtml(i18n.t('chat.tokenCounter.inactive'))}</span></button>`);
     }
     if (actionDescriptor.iconName === null) {
         throw new Error(`Chat mobile auxiliary action ${actionDescriptor.id} requires an icon`);

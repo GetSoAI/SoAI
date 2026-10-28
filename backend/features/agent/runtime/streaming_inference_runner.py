@@ -5,12 +5,16 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, override
 
 from core.errors.exceptions import StateError
+from core.errors.payload import ErrorPublicPayload
 from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
 from core.runtime.request_context import RequestContext
+from core.streaming.protocols import StreamGeneratorStateProtocol
+from core.tasks.enums import TaskStatus
+from core.tasks.task_public_fields import resolve_public_task_terminal_fields
 from features.agent.internal_protocols import (
     AgentStreamingInferenceOutcome,
     AgentStreamingInferenceRunnerProtocol,
@@ -74,6 +78,8 @@ class StreamingInferenceRunnerCallbacks(StreamingRunnerCallbackBases):
     should_skip_error_chunk: Callable[[str, tuple[str, str]], Awaitable[bool]]
     read_cancel_state: Callable[[str], Awaitable[tuple[bool, str | None]]]
     resolve_stream_id: Callable[[StreamingIterationSession, JSONDict | None], str | None]
+    public_error_state: StreamGeneratorStateProtocol | None = None
+    read_terminal_task: Callable[[str], Awaitable[Task | None]] | None = None
 
 
 @dataclass(slots=True)
@@ -181,21 +187,68 @@ class StreamingInferenceRunner(AgentStreamingInferenceRunnerProtocol):
         )
 
         async def should_skip_error_chunk(parsed_error: tuple[str, str]) -> bool:
+            if self.callbacks.read_terminal_task is not None:
+                terminal_task = await self.callbacks.read_terminal_task(iteration_task.task_id)
+                if (
+                    terminal_task is not None
+                    and terminal_task.status == TaskStatus.FAILED
+                    and terminal_task.error_type == "timeout_error"
+                ):
+                    return False
             return await self.callbacks.should_skip_error_chunk(
                 effective_cancellation_id,
                 parsed_error,
             )
 
+        async def deliver_bytes(chunk: bytes) -> None:
+            if (
+                self.callbacks.public_error_state is not None
+                and stream_state.public_error is not None
+            ):
+                self.callbacks.public_error_state.public_error = stream_state.public_error
+            delivery = on_bytes(chunk)
+            if delivery is not None:
+                await delivery
+
         finalized_payload, captured_error = await self.iteration_session.collect_payload(
             stream_generator,
             stream_transcript,
             stream_state,
-            on_bytes,
+            deliver_bytes,
             on_visible_deltas,
             on_tool_calls_detected,
             should_skip_error_chunk,
         )
         cancelled, cancel_reason = await self.callbacks.read_cancel_state(effective_cancellation_id)
+        if self.callbacks.read_terminal_task is not None:
+            terminal_task = await self.callbacks.read_terminal_task(iteration_task.task_id)
+            if terminal_task is not None and terminal_task.status in {
+                TaskStatus.COMPLETED,
+                TaskStatus.FAILED,
+            }:
+                cancelled = False
+                if terminal_task.status == TaskStatus.FAILED:
+                    stream_state.stream_successful = False
+                    terminal_fields = resolve_public_task_terminal_fields(terminal_task)
+                    if terminal_task.public_error_message is not None:
+                        stream_state.public_error = (
+                            replace(
+                                stream_state.public_error,
+                                message=terminal_task.public_error_message,
+                            )
+                            if stream_state.public_error is not None
+                            else ErrorPublicPayload(
+                                code=terminal_task.error_type or "server_error",
+                                message=terminal_task.public_error_message,
+                                http_status=terminal_task.error_code,
+                            )
+                        )
+                    elif stream_state.public_error is None:
+                        stream_state.public_error = ErrorPublicPayload(
+                            http_status=terminal_task.error_code or 500,
+                            code=terminal_task.error_type or "server_error",
+                            message=terminal_fields.error_message or "Inference failed.",
+                        )
         if cancelled:
             self.discard_latest_iteration()
             return build_cancelled_stream_outcome(
@@ -205,7 +258,10 @@ class StreamingInferenceRunner(AgentStreamingInferenceRunnerProtocol):
         error_message: str | None = None
         error_type: str | None = None
         if not stream_state.stream_successful:
-            if captured_error is not None:
+            if stream_state.public_error is not None:
+                error_message = stream_state.public_error.message
+                error_type = str(stream_state.public_error.code)
+            elif captured_error is not None:
                 error_message, error_type = captured_error
             else:
                 error_message = "Streaming inference failed."
@@ -227,4 +283,5 @@ class StreamingInferenceRunner(AgentStreamingInferenceRunnerProtocol):
             transcript=stream_transcript,
             error_message=error_message,
             error_type=error_type,
+            public_error=stream_state.public_error,
         )

@@ -15,11 +15,13 @@ import { ChatStreamHydrationSession, buildDefaultFetchStreamState, type FetchStr
 import { requestFollowerHydrationRecovery, type FollowerRecoveryReconcileRequest } from '@features/chat/chatstreamservice/followerHydrationRecovery.ts';
 import { ensureFollowerSessionForEnvelope } from '@features/chat/chatstreamservice/followerSessionResolution.ts';
 import type { ChatStreamApiClient } from '@features/chat/chatstreamservice/chatStreamApi.ts';
+import { isChatStreamSessionReplaced } from '@features/chat/chatstreamservice/activeStatusSessionState.ts';
 import { buildChatStreamIdentityKey, compareChatStreamIdentityToSession, requireChatStreamIdentityFromEnvelope, requireChatStreamIdentityFromSession, type ChatStreamIdentityKey } from '@features/chat/chatstreamservice/streamIdentity.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 
 type Sleep = (ms: number) => Promise<void>;
 type ShouldIgnoreEvent = (convId: string, requestId: string) => boolean;
+type FollowerEventPump = ReturnType<typeof createChatStreamEventPump>;
 
 class ChatStreamFollowerCoordinator {
     readonly #sessions: Map<string, ChatStreamSession>;
@@ -29,7 +31,7 @@ class ChatStreamFollowerCoordinator {
     readonly #shouldIgnoreEvent: ShouldIgnoreEvent | null;
     readonly #requestReconcile: FollowerRecoveryReconcileRequest | null;
     readonly #activeKeyByConversation = new Map<string, ChatStreamIdentityKey>();
-    readonly #pumpsByKey = new Map<ChatStreamIdentityKey, ReturnType<typeof createChatStreamEventPump>>();
+    readonly #pumpsByKey = new Map<ChatStreamIdentityKey, FollowerEventPump>();
     readonly #hydratorsByKey = new Map<ChatStreamIdentityKey, ChatStreamHydrationSession>();
 
     constructor(inputArguments: { apiClient: ChatStreamApiClient; sessions: Map<string, ChatStreamSession>; runtime: StreamRuntime; fetchStreamState?: FetchStreamState | null; sleep?: Sleep | null; shouldIgnoreEvent?: ShouldIgnoreEvent | null; requestReconcile?: FollowerRecoveryReconcileRequest | null }) {
@@ -58,7 +60,7 @@ class ChatStreamFollowerCoordinator {
         const session = this.#sessions.get(normalizedConvId);
         const key = this.#activeKeyByConversation.get(normalizedConvId) ?? null;
         if (key) {
-            this.#releaseFollowerSession(key, normalizedConvId, session ?? null);
+            this.#releaseFollowerSession(key, normalizedConvId, session ?? null, this.#pumpsByKey.get(key));
             return;
         }
         if (session && session.transportMode === 'follower') {
@@ -163,23 +165,26 @@ class ChatStreamFollowerCoordinator {
         });
     }
 
-    #ensureFollowerPump(key: ChatStreamIdentityKey, convId: string, session: ChatStreamSession): ReturnType<typeof createChatStreamEventPump> {
+    #ensureFollowerPump(key: ChatStreamIdentityKey, convId: string, session: ChatStreamSession): FollowerEventPump {
         const existing = this.#pumpsByKey.get(key);
         if (existing) {
             return existing;
         }
+        const isCurrentOwner = (): boolean => this.#pumpsByKey.get(key) === pump;
         const failProtocol = (message: string, errorCode: string | null | undefined = null, errorPayload: JsonValue | null = null): void => {
-            finalizeChatStreamProtocolFailure({
-                session,
-                runtime: this.#runtime,
-                message,
-                errorCode: optionalTrimmedString(errorCode),
-                errorPayload
-            });
-            this.#releaseFollowerSession(key, convId, session);
+            if (!isChatStreamSessionReplaced(this.#sessions, session)) {
+                finalizeChatStreamProtocolFailure({
+                    session,
+                    runtime: this.#runtime,
+                    message,
+                    errorCode: optionalTrimmedString(errorCode),
+                    errorPayload
+                });
+            }
+            this.#releaseFollowerSession(key, convId, session, pump);
         };
         const markDone = (): void => {
-            this.#releaseFollowerSession(key, convId, session);
+            this.#releaseFollowerSession(key, convId, session, pump);
         };
         const onMatchedStreamEvent = (): void => {
             if (!session.active) {
@@ -196,7 +201,8 @@ class ChatStreamFollowerCoordinator {
                     receivedSequence,
                     convId,
                     requestReconcile: this.#requestReconcile,
-                    failProtocol
+                    failProtocol,
+                    isCurrentOwner
                 });
                 return { action: 'pause' };
             }
@@ -245,16 +251,18 @@ class ChatStreamFollowerCoordinator {
         return hydrator;
     }
 
-    #releaseFollowerSession(key: ChatStreamIdentityKey, convId: string, session: ChatStreamSession | null): void {
+    #releaseFollowerSession(key: ChatStreamIdentityKey, convId: string, session: ChatStreamSession | null, owningPump: FollowerEventPump | undefined): void {
         const normalizedConvId = normalizeConversationId(convId);
-        if (normalizedConvId && this.#activeKeyByConversation.get(normalizedConvId) === key) {
-            this.#activeKeyByConversation.delete(normalizedConvId);
-        }
-        this.#pumpsByKey.delete(key);
-        const hydrator = this.#hydratorsByKey.get(key);
-        if (hydrator) {
-            hydrator.dispose();
-            this.#hydratorsByKey.delete(key);
+        if (this.#pumpsByKey.get(key) === owningPump) {
+            if (normalizedConvId && this.#activeKeyByConversation.get(normalizedConvId) === key) {
+                this.#activeKeyByConversation.delete(normalizedConvId);
+            }
+            this.#pumpsByKey.delete(key);
+            const hydrator = this.#hydratorsByKey.get(key);
+            if (hydrator) {
+                hydrator.dispose();
+                this.#hydratorsByKey.delete(key);
+            }
         }
         if (!session || session.transportMode !== 'follower') {
             return;

@@ -62,21 +62,13 @@
         border: var(--border-width-1) solid var(--text-field-border);
         border-radius: var(--border-radius);
         background: var(--text-field-bg);
-        color: var(--text-primary);
+        color: var(--text-field-color);
         font-size: var(--font-size-base);
         font-weight: 600;
         line-height: 1.25;
-        transition:
-            background var(--transition-fast),
-            border-color var(--transition-fast);
     }
 
     .ui-inline-text-edit__input:focus {
-        border-color: var(--accent-green);
-    }
-
-    .ui-inline-text-edit__input:hover:not(:focus) {
-        background: var(--text-field-bg-hover);
-        border-color: var(--text-field-border-hover);
+        border-color: var(--text-field-border-active);
     }
 }

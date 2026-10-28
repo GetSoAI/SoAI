@@ -9,8 +9,10 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
+from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.public_projection import project_public_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.runtime.soai_identifiers import build_soai_id
@@ -18,7 +20,7 @@ from core.tasks.asyncio_task_spawner import create_tracked_and_track_task
 from core.tasks.creation import create
 from core.tasks.enums import TaskStatus
 from core.tasks.finalization import finalize
-from core.tasks.type_catalog import TaskTypeId
+from core.tasks.type_catalog import TaskTypeId, requires_owner_terminal_settlement
 
 if TYPE_CHECKING:
     from core.tasks.protocols import (
@@ -74,6 +76,40 @@ async def start_file_explorer_background_task(
         "task_id": task.task_id,
         **details,
     }
+
+    async def settle_unfinished_worker(worker_task: asyncio.Task[None]) -> None:
+        if worker_task.cancelled():
+            await finalize(
+                task_registry,
+                task.task_id,
+                TaskStatus.CANCELLED,
+                error_message="Task worker was cancelled before terminal publication.",
+                status_message="Cancelled.",
+            )
+            return
+        exception = worker_task.exception()
+        if exception is not None:
+            coerced = coerce_to_soai_error(exception, trace_id=task.task_id)
+            public_error = project_public_exception(coerced, trace_id=task.task_id)
+            await finalize(
+                task_registry,
+                task.task_id,
+                TaskStatus.FAILED,
+                error_code=coerced.http_status,
+                error_type=str(coerced.code),
+                error_message=public_error.message,
+                status_message=public_error.message,
+                public_error=public_error,
+            )
+
+    def settle_finished_worker(worker_task: asyncio.Task[None]) -> None:
+        if worker_task.cancelled() or worker_task.exception() is not None:
+            finalization_task = create_ephemeral_task(
+                settle_unfinished_worker(worker_task),
+                name=f"{task_name_prefix}settle-{task.task_id}",
+            )
+            track_task(finalization_task)
+
     try:
         if on_task_created is not None:
             await on_task_created(task.task_id)
@@ -87,6 +123,11 @@ async def start_file_explorer_background_task(
             name=f"{task_name_prefix}{task.task_id}",
             logger=logger,
             metadata={"task_id": task.task_id, "operation": metadata_operation},
+            done_callback=(
+                settle_finished_worker
+                if requires_owner_terminal_settlement(task_type, owner_id=owner_id)
+                else None
+            ),
         )
     except asyncio.CancelledError:
         await uncancel_then_cleanup(

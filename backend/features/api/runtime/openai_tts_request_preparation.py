@@ -6,14 +6,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from core.errors.exceptions import ValidationError
+from core.openai.audio_model_selection import is_auto_audio_model_selector
 from core.openai.tts_media_types import resolve_tts_response_media_type
 from core.types.json import JSONDict
 from core.types.json_value import coerce_json_dict
 from features.api.runtime.context import ApiContext
-from features.api.runtime.openai_audio_model_resolution import (
-    is_auto_audio_model_selector,
-    resolve_audio_model_id,
-)
+from features.api.runtime.openai_audio_model_resolution import resolve_audio_model_id
 from features.api.schemas.openai_audio import (
     TextToSpeechRequest,
     WebuiTextToSpeechRequest,

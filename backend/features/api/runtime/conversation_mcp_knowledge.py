@@ -159,7 +159,7 @@ async def resolve_conversation_knowledge_mcp_state(
 
 def apply_knowledge_managed_mcp_overlay(
     normalized_mcp: NormalizedAgentMCPConfig,
-    knowledge_state: ConversationKnowledgeMCPState,
+    knowledge_state: ConversationMCPKnowledgeStateProtocol,
 ) -> NormalizedAgentMCPConfig:
     if not knowledge_state.auto_managed:
         return normalized_mcp

@@ -29,6 +29,7 @@ const mapPhysicalAttachmentResponse = (response: PhysicalAttachmentResponse): Ph
     providerMode: response.providerMode,
     providerTextTruncated: response.providerTextTruncated ?? false,
     parseState: requireParseState(response.parseState),
+    missingCapabilities: response.missingCapabilities ?? [],
     parseError: response.parseError,
     state: response.state,
     attachmentRevision: response.attachmentRevision,
@@ -57,6 +58,7 @@ const applyPhysicalAttachmentPayloadToChatAttachment = (attachment: ChatAttachme
     attachment.providerMode = payload.providerMode;
     attachment.providerTextTruncated = payload.providerTextTruncated;
     attachment.parseState = payload.parseState;
+    attachment.missingCapabilities = payload.missingCapabilities ?? [];
     attachment.state = payload.state;
     attachment.attachmentRevision = payload.attachmentRevision;
     attachment.createdAtMs = payload.createdAtMs;

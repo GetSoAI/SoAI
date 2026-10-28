@@ -1,12 +1,12 @@
 /* SoAI - Shared layout restart reminder manager [frontend/assets/ts/core/layout/header/RestartReminderManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { createHeaderActionController, type HeaderActionController } from '@core/headerActionBus.ts';
 import { HEADER_ACTION_IDS } from '@core/headeractions/constants.ts';
 import type { HeaderServiceResolver } from '@core/layout/HeaderInterface.ts';
 import { getRestartStateService } from '@core/restartStateService.ts';
 import type { RestartState } from '@core/restartStateGateway.ts';
+import { navigateToRestartTarget, type RestartTargetRouter } from '@core/restartTarget.ts';
 import { isFunction, isObject } from '@core/typeGuards.ts';
 
 export interface RestartReminderHost {
@@ -28,11 +28,7 @@ interface RestartReminderManagerOptions {
     header: RestartReminderHost;
 }
 
-interface RouterInterface {
-    navigate: (route: string) => Promise<void>;
-}
-
-const isRouterInterface = <T>(value: T): value is T & RouterInterface => isObject(value) && 'navigate' in value && isFunction(value.navigate);
+const isRouterInterface = <T>(value: T): value is T & RestartTargetRouter => isObject(value) && 'navigate' in value && isFunction(value.navigate) && 'navigateWithQuery' in value && isFunction(value.navigateWithQuery);
 
 export class RestartReminderManager {
     header: RestartReminderHost;
@@ -53,8 +49,7 @@ export class RestartReminderManager {
         this.actionController = null;
         this.destroyed = false;
         this.handleActionInvoke = (): void => {
-            const router = this.header.resolveService('core.router', isRouterInterface, 'Router');
-            terminateHandledPromise(router.navigate('power'));
+            navigateToRestartTarget(this.header.resolveService('core.router', isRouterInterface, 'Router'), getRestartStateService().getState());
         };
     }
 

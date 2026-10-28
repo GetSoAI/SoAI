@@ -3,6 +3,7 @@
 
 import { WEBSOCKET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/registry.ts';
 import type { ChatTokenCountErrorEvent, ChatTokenCountResultEvent, ConversationBoundEvent } from '@core/realtime/eventcontracts/chatControlContracts.ts';
+import type { ConversationSkillsChangedEvent } from '@core/realtime/eventcontracts/skillContracts.ts';
 import type { ConversationUpdatedEvent } from '@core/realtime/eventcontracts/conversationContracts.ts';
 import { createWebSocketContractBinding, subscribeManagedWebSocketContracts, type WebSocketEventBatchSubscribe } from '@core/realtime/websocketBatchSubscription.ts';
 
@@ -12,6 +13,7 @@ interface TokenCounterEventHandlers {
     conversationUpdated: (event: ConversationUpdatedEvent) => void;
     knowledgePromptStateChanged: (event: ConversationBoundEvent) => void;
     agentModeChanged: (event: ConversationBoundEvent) => void;
+    skillsChanged: (event: ConversationSkillsChangedEvent) => void;
 }
 
 type TokenCounterEventSubscriptionOptions = {
@@ -20,7 +22,7 @@ type TokenCounterEventSubscriptionOptions = {
 };
 
 const subscribeTokenCounterEvents = (options: TokenCounterEventSubscriptionOptions): (() => void) => {
-    const events = [createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.chat.tokenCountResult, handler: options.handlers.tokenCountResult }), createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.chat.tokenCountError, handler: options.handlers.tokenCountError }), createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.conversation.updated, handler: options.handlers.conversationUpdated }), createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.chat.knowledgePromptChangedIdentity, handler: options.handlers.knowledgePromptStateChanged }), createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.agent.modeChanged, handler: options.handlers.agentModeChanged })];
+    const events = [createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.skills.selectionChanged, handler: options.handlers.skillsChanged }), createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.chat.tokenCountResult, handler: options.handlers.tokenCountResult }), createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.chat.tokenCountError, handler: options.handlers.tokenCountError }), createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.conversation.updated, handler: options.handlers.conversationUpdated }), createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.chat.knowledgePromptChangedIdentity, handler: options.handlers.knowledgePromptStateChanged }), createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.agent.modeChanged, handler: options.handlers.agentModeChanged })];
     return subscribeManagedWebSocketContracts({ label: 'ChatTokenCounterController', events, ...(options.subscribe ? { subscribe: options.subscribe } : {}) });
 };
 

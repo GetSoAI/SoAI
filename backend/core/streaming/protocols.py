@@ -4,25 +4,20 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Protocol
 
 from core.config.protocols import ConfigProtocol
+from core.errors.payload import ErrorPublicPayload
 from core.events.protocols import EventBusProtocol
 from core.events.types_base import Event
-from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
-from core.runtime.protocols import RequestContextProtocol
 from core.tasks.protocols import (
     CancellationCoordinatorProtocol,
     CancellationHistoryProtocol,
     TaskRegistryProtocol,
 )
-from core.tasks.task import Task
 from core.types.json import JSONDict
 
 __all__ = (
-    "CreateAdditionalTaskCallback",
-    "CreateStreamGeneratorCallback",
     "StreamDependenciesProtocol",
     "StreamGeneratorStateProtocol",
     "StreamSubscriptionProtocol",
@@ -65,24 +60,4 @@ class StreamGeneratorStateProtocol(Protocol):
     done_sent: bool
     stream_successful: bool
     usage: JSONDict | None
-
-
-class CreateAdditionalTaskCallback(Protocol):
-    def __call__(
-        self,
-        payload: JSONDict,
-        iteration_context: RequestContextProtocol,
-        effective_cancellation_id: str,
-        on_bytes: Callable[[bytes], Awaitable[None] | None],
-    ) -> Awaitable[tuple[Task, asyncio.Queue[Event]]]: ...
-
-
-class CreateStreamGeneratorCallback(Protocol):
-    def __call__(
-        self,
-        reply_queue: asyncio.Queue[Event],
-        stream_context: RequestContextProtocol,
-        task: Task,
-        stream_state: StreamGeneratorStateProtocol,
-        stream_transcript: OpenAIStreamTranscript,
-    ) -> AsyncIterator[bytes]: ...
+    public_error: ErrorPublicPayload | None

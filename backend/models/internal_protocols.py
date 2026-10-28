@@ -13,20 +13,14 @@ if TYPE_CHECKING:
     from core.events.types_models_model_commands import ModelDeleteCommand
     from core.events.types_plugins import PurgeModelsForPluginCommand
     from core.orchestrator.routing_config import VirtualModelConfig
-    from core.state.protocols import StateAggregatorProtocol
     from core.types.json import JSONDict
 
 __all__ = (
     "AsyncParameterCacheProtocol",
-    "CacheInvalidator",
-    "ConstituentModelValidatorProtocol",
-    "InstalledPluginNamesAccessor",
     "ModelActionsServiceProtocol",
-    "ModelFingerprintServiceProtocol",
     "ModelMutationEffectsProtocol",
     "ModelParameterMutationServiceProtocol",
     "MutationCallable",
-    "RoutingPublisher",
     "VirtualModelCoordinatorProtocol",
 )
 
@@ -58,6 +52,14 @@ class ModelActionsServiceProtocol(Protocol):
         enabled: bool,
     ) -> None: ...
 
+    async def model_replace_openai_capability_overrides(
+        self,
+        universal_id: str,
+        disabled: dict[str, list[str]],
+        enabled: dict[str, list[str]],
+        expected: JSONDict,
+    ) -> None: ...
+
     async def model_reset_openai_capability_overrides(self, universal_id: str) -> None: ...
 
     async def model_purge_for_plugin(self, plugin_name: str) -> bool: ...
@@ -72,7 +74,12 @@ class AsyncParameterCacheProtocol(Protocol):
 
 
 class MutationCallable(Protocol):
-    def __call__(self, schema: JSONDict, old: JSONDict) -> tuple[JSONDict, bool, str] | None: ...
+    def __call__(
+        self,
+        plugin_name: str,
+        schema: JSONDict,
+        old: JSONDict,
+    ) -> tuple[JSONDict, bool, str] | None: ...
 
 
 class ModelParameterMutationServiceProtocol(Protocol):
@@ -121,27 +128,23 @@ class ModelMutationEffectsProtocol(Protocol):
 
     async def finalize_model_deletion(self, universal_id: str) -> None: ...
 
-    async def commit_parameter_changes(
+    async def persist_parameter_changes(
         self,
         *,
         universal_id: str,
         plugin_name: str,
         new_custom: JSONDict,
         reload_needed: bool,
-        reload_reason: str,
     ) -> None: ...
 
-
-class CacheInvalidator(Protocol):
-    async def __call__(self) -> None: ...
-
-
-class RoutingPublisher(Protocol):
-    async def __call__(self) -> None: ...
-
-
-class InstalledPluginNamesAccessor(Protocol):
-    def __call__(self) -> set[str]: ...
+    async def publish_parameter_changes(
+        self,
+        *,
+        universal_id: str,
+        plugin_name: str,
+        reload_needed: bool,
+        reload_reason: str,
+    ) -> None: ...
 
 
 class VirtualModelCoordinatorProtocol(Protocol):
@@ -161,15 +164,3 @@ class VirtualModelCoordinatorProtocol(Protocol):
     async def virtual_model_set_enabled(self, name: str, enabled: bool) -> VirtualModelConfig: ...
 
     async def virtual_model_delete(self, name: str) -> bool: ...
-
-
-class ConstituentModelValidatorProtocol(Protocol):
-    state_aggregator: StateAggregatorProtocol
-
-    async def model_get_info_batch(self, universal_ids: list[str]) -> dict[str, JSONDict]: ...
-
-    async def model_validate_parameters(self, universal_id: str, parameters: JSONDict) -> None: ...
-
-
-class ModelFingerprintServiceProtocol(Protocol):
-    def model_fingerprint_records(self, records: list[JSONDict]) -> str | None: ...

@@ -189,6 +189,7 @@ class ConfigSaveCoordinator:
                 previous_cached_snapshot=previous_cached_snapshot,
                 lock_path=lock_path,
                 previous_state=previous_state,
+                configuration_changed=before_plain != after_plain,
             )
             reload_event = ConfigReloadedEvent(
                 config_name=config_name,

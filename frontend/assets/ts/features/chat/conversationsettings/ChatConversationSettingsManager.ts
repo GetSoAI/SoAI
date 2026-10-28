@@ -5,7 +5,7 @@ import { terminateHandledPromise } from '@core/primitives/terminateHandledPromis
 import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
 import type { ModelData } from '@core/types/modelTypes.ts';
-import { canInteractivelyAdjustConversationTools, isChatConversationSettingsWritable } from '@features/chat/conversation/conversationSettingsEligibility.ts';
+import { canInteractivelyAdjustConversationTools } from '@features/chat/conversation/conversationSettingsEligibility.ts';
 import { resolveConversationSectionStateTransition } from '@features/chat/conversationsettings/actions.ts';
 import { syncAgentModeMcpToolsEnabledState } from '@features/chat/conversationsettings/agentModeMcpSync.ts';
 import { applyManagedModalVisibility } from '@features/chat/conversationsettings/managedModalVisibility.ts';
@@ -18,9 +18,10 @@ import { createDefaultSectionState } from '@features/chat/conversationsettings/s
 import type { ChatConversationSettingsManagerDependencies, ConversationSettingsSection, ConversationSettingsSectionState } from '@features/chat/conversationsettings/types.ts';
 import { CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID } from '@features/chat/modals/constants.ts';
 import type { ConversationModelSettingsUpdate } from '@core/chat/executionSettingsTypes.ts';
-import { reconcileMcpIntentAfterKnowledge, resolveMcpParameterDefaults } from '@features/chat/conversationsettings/mcpconversationsettingscontroller/mcpPresetStaging.ts';
+import { resolveMcpParameterDefaults } from '@features/chat/conversationsettings/mcpconversationsettingscontroller/mcpPresetStaging.ts';
 import type { ChatPresetSections } from '@core/api/contracts/webuiChatPresetContractTypes.ts';
 import type { ChatParameters } from '@core/chat/parameters/types.ts';
+import { buildConversationSettingsSavePlan } from '@features/chat/conversationsettings/conversationSettingsSavePlan.ts';
 import { resolveInitialToolTab } from '@features/chat/conversationsettings/mcpconversationsettingscontroller/actions.ts';
 
 class ChatConversationSettingsManager {
@@ -81,6 +82,7 @@ class ChatConversationSettingsManager {
         clearConversationSettingsHydration({ containers: [this.#modal, this.#defaultToolsModal].filter((element): element is Element => element !== null) });
         const controllers = this.#controllers;
         controllers?.workspacePathController.resetUI();
+        controllers?.skillsController.close();
         this.host.workflow.setConversationSettingsSavePlan(null);
     }
 
@@ -135,6 +137,11 @@ class ChatConversationSettingsManager {
         this.#requireControllers().mcpController.handleDefaultToolsModalOpen();
     }
 
+    refreshLocalization(): void {
+        this.#controllers?.mcpController.refreshWorkingPresentation();
+        this.#controllers?.skillsController.refreshWorkingPresentation();
+    }
+
     presetControllers(): ConversationSettingsControllerBundle {
         this.#ensureEventsBound();
         return this.#requireControllers();
@@ -156,7 +163,7 @@ class ChatConversationSettingsManager {
     }
 
     awaitPresetHydration(sections: ChatPresetSections): Promise<void> {
-        const requiresSettingsHydration = sections.files !== undefined || sections.knowledge !== undefined || sections.tools !== undefined;
+        const requiresSettingsHydration = sections.files !== undefined || sections.knowledge !== undefined || sections.skills !== undefined || sections.tools !== undefined;
         const settingsHydration = requiresSettingsHydration ? this.#hydrationOperation : Promise.resolve();
         const requiresModelHydration = typeof sections.general?.['model'] === 'string' || sections.voice !== undefined;
         const modelHydration = requiresModelHydration ? this.host.workflow.runWithBoundary('chat:presetModelCatalog', () => this.host.workflow.ensureModelStream()) : Promise.resolve();
@@ -182,6 +189,7 @@ class ChatConversationSettingsManager {
             this.#syncConfigurationActionState();
             return;
         }
+        controllers.skillsController.close();
         controllers.workspacePathController.setConversation(conversationId);
         if (this.#eventsBound) {
             controllers.workspacePathController.resetUI();
@@ -224,7 +232,7 @@ class ChatConversationSettingsManager {
                     this.#state.mcpCanonicalToolDefaults = defaults;
                 },
                 refreshKnowledgeManagedMcpState: () => this.#refreshKnowledgeManagedMcpState(),
-                setSectionDirtyState: (section, hasChanges) => this.#setSectionDirtyState(section, hasChanges),
+                setSectionDirtyState: (section, hasChanges, isValid) => this.#setSectionDirtyState(section, hasChanges, isValid),
                 syncConfigurationActionState: () => this.#syncConfigurationActionState()
             });
         }
@@ -244,60 +252,8 @@ class ChatConversationSettingsManager {
     }
 
     #syncConfigurationActionState(): void {
-        const controllers = this.#controllers;
         const presentationToken = this.#loadToken.value;
-        const isPresentationActive = (): boolean => this.#loadToken.isActive(presentationToken);
-        const identityDirty = this.#sectionState.identityPromptsDirty;
-        const workspaceDirty = this.#sectionState.workspaceDirty;
-        const knowledgeDirty = this.#sectionState.ragDirty;
-        const ragIntent = controllers?.ragController.workingConfig() ?? null;
-        const ragOperation = controllers?.ragController.prepareConfigApply(ragIntent, isPresentationActive) ?? null;
-        const capturedConversation = this.host.data.getCurrentConversation();
-        const workspaceOperation = workspaceDirty && controllers ? controllers.workspacePathController.prepareConversationSave(isPresentationActive) : null;
-        const mcpIntent = controllers?.mcpController.workingValues() ?? null;
-        const mcpBaseline = controllers?.mcpController.baselineConfig() ?? null;
-        const mcpConversationId = this.#state.conversationId;
-        const mcpAcceptedWritable = mcpConversationId !== null && capturedConversation?.id === mcpConversationId && isChatConversationSettingsWritable(capturedConversation);
-        const mcpOperation = controllers?.mcpController.prepareConfigApply(mcpIntent, mcpBaseline, mcpConversationId, isPresentationActive, mcpAcceptedWritable) ?? null;
-        this.host.workflow.setConversationSettingsSavePlan({
-            conversation:
-                identityDirty || workspaceDirty
-                    ? {
-                          hasChanges: true,
-                          isValid: controllers?.identityPromptsController.isValid() !== false && controllers?.workspacePathController.isValid() !== false,
-                          handler: async () => {
-                              if (!controllers) return;
-                              if (identityDirty && isPresentationActive() && this.host.data.getCurrentConversation() === capturedConversation) controllers.identityPromptsController.finalizeConversationSave();
-                              if (workspaceOperation && !(await workspaceOperation())) return { type: 'continue-degraded' };
-                              return;
-                          }
-                      }
-                    : null,
-            knowledge: knowledgeDirty ? { hasChanges: true, isValid: this.#sectionState.ragValid, handler: ragOperation ? async () => ((await ragOperation()) ? undefined : { type: 'continue-degraded' }) : null } : null,
-            tools: this.#sectionState.mcpDirty
-                ? {
-                      hasChanges: true,
-                      isValid: true,
-                      handler: controllers
-                          ? async () => {
-                                let intent = mcpIntent;
-                                let skipped = 0;
-                                let degraded = false;
-                                if (knowledgeDirty && intent && mcpBaseline) {
-                                    const refreshed = await controllers.mcpController.refreshKnowledgeManagedState(mcpConversationId);
-                                    const reconciled = reconcileMcpIntentAfterKnowledge(intent, mcpBaseline, refreshed.config, refreshed.tools);
-                                    intent = reconciled.values;
-                                    skipped = reconciled.skippedValues.length;
-                                    degraded = !(await controllers.mcpController.prepareConfigApply(intent, refreshed.config, mcpConversationId, isPresentationActive, mcpAcceptedWritable)());
-                                } else {
-                                    degraded = Boolean(mcpOperation && !(await mcpOperation()));
-                                }
-                                return skipped > 0 || degraded ? { type: 'continue-degraded' } : undefined;
-                            }
-                          : null
-                  }
-                : null
-        });
+        this.host.workflow.setConversationSettingsSavePlan(buildConversationSettingsSavePlan(this.host, this.#controllers, this.#sectionState, this.#state.conversationId, () => this.#loadToken.isActive(presentationToken)));
     }
 
     #applyManagedModalVisibility(): void {

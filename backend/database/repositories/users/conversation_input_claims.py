@@ -6,12 +6,15 @@ from __future__ import annotations
 import sqlite3
 from typing import TYPE_CHECKING
 
+import aiosqlite
+
 from core.errors.exceptions import StateError
-from database.core.query_execution import sync_fetch_one_as_dict
+from database.core.query_execution import query_one_to_dict, sync_fetch_one_as_dict
 from database.repositories.users.conversation_input_constants import (
-    CONVERSATION_INPUT_DISPATCH_RANK_SQL,
+    CONVERSATION_INPUT_HELD_DISPATCH_RANK,
     CONVERSATION_INPUT_PRECEDES_SQL,
     CONVERSATION_INPUT_RUNNING_ROOT_AVAILABLE_SQL,
+    build_conversation_input_dispatch_rank_sql,
 )
 from database.repositories.users.conversation_input_row_mapping import (
     format_conversation_input_row,
@@ -23,6 +26,7 @@ if TYPE_CHECKING:
 __all__ = (
     "attach_conversation_input_dispatch_state",
     "read_dispatchable_conversation_input_head",
+    "query_dispatchable_conversation_input_head",
     "sync_claim_next_conversation_input",
 )
 
@@ -45,16 +49,30 @@ def read_dispatchable_conversation_input_head(
     input_id: str | None = None,
     excluded_conversation_ids: tuple[str, ...] = (),
 ) -> tuple[str, str] | None:
+    sql, parameters = _dispatchable_head_query(input_id, excluded_conversation_ids)
+    row = sqlite_conn.execute(sql, parameters).fetchone()
+    if row is None:
+        return None
+    input_id, state = row
+    if not isinstance(input_id, str) or state != "pending":
+        raise StateError("Dispatchable conversation input row is invalid.")
+    return (input_id, state)
+
+
+def _dispatchable_head_query(
+    input_id: str | None,
+    excluded_conversation_ids: tuple[str, ...],
+) -> tuple[str, tuple[str | None, ...]]:
     exclusion_sql = ""
     exclusion_params: tuple[str, ...] = ()
     if excluded_conversation_ids:
         placeholders = ", ".join("?" for _ in excluded_conversation_ids)
         exclusion_sql = f" AND input.conv_id NOT IN ({placeholders})"
         exclusion_params = excluded_conversation_ids
-    row = sqlite_conn.execute(
+    return (
         f"""
         WITH ranked_inputs AS (
-            SELECT *, {CONVERSATION_INPUT_DISPATCH_RANK_SQL} AS dispatch_rank
+            SELECT *, {build_conversation_input_dispatch_rank_sql()} AS dispatch_rank
             FROM webui_conversation_inputs
         )
         SELECT input.input_id, input.state
@@ -64,6 +82,7 @@ def read_dispatchable_conversation_input_head(
          AND conversation.user_id = input.user_id
          AND conversation.input_generation = input.conversation_generation
         WHERE input.state = 'pending'
+          AND input.dispatch_rank != {CONVERSATION_INPUT_HELD_DISPATCH_RANK}
           AND (? IS NULL OR input.input_id = ?)
           {exclusion_sql}
           AND input.input_type IN ('prompt', 'steer')
@@ -84,13 +103,15 @@ def read_dispatchable_conversation_input_head(
         LIMIT 1
         """,
         (input_id, input_id, *exclusion_params),
-    ).fetchone()
-    if row is None:
-        return None
-    input_id, state = row
-    if not isinstance(input_id, str) or state != "pending":
-        raise StateError("Dispatchable conversation input row is invalid.")
-    return (input_id, state)
+    )
+
+
+async def query_dispatchable_conversation_input_head(
+    database: aiosqlite.Connection,
+    excluded_conversation_ids: tuple[str, ...] = (),
+) -> bool:
+    sql, parameters = _dispatchable_head_query(None, excluded_conversation_ids)
+    return await query_one_to_dict(database, sql, parameters) is not None
 
 
 def sync_claim_next_conversation_input(

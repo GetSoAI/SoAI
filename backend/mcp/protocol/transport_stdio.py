@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import asyncio
+from functools import partial
 from typing import TYPE_CHECKING
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import ValidationError
@@ -18,13 +20,12 @@ from core.serialization.json_parsing import parse_json_value
 from core.timing.constants import MODERATE_DELAY_SEC, RESPONSIVE_TIMEOUT_SEC
 from mcp.protocol.connection_request_state import (
     cancel_pending_request,
-    create_pending_request,
+    create_outbound_request,
 )
 from mcp.protocol.connection_state import MCPServerConnection
 from mcp.protocol.inbound_dispatch import dispatch_inbound_message_for_reader
 from mcp.protocol.inbound_reader_dependencies import MCPInboundReaderDependencies
 from mcp.protocol.internal_protocols import StdinDrainProtocol
-from mcp.protocol.jsonrpc import build_jsonrpc_notification, build_jsonrpc_request
 from mcp.protocol.types import MCPJSONRPCError, MCPServerStatus
 
 if TYPE_CHECKING:
@@ -47,6 +48,10 @@ OPERATION_MCP_TRANSPORT_STDIO_SEND_JSONRPC_REQUEST_TIMEOUT_NOTIFY = (
 )
 
 STDIN_DRAIN_EXCEPTIONS: tuple[type[BaseException], ...] = (TimeoutError, *RECOVERABLE_EXCEPTIONS)
+STDIO_CANCELLATION_NOTIFY_EXCEPTIONS: tuple[type[Exception], ...] = (
+    OSError,
+    *RECOVERABLE_EXCEPTIONS,
+)
 
 
 async def _cancel_stdin_drain_task(drain_task: asyncio.Task[None]) -> None:
@@ -99,9 +104,26 @@ async def send_stdio_request(
     params: JSONDict,
 ) -> JSONValue | None:
     logger = get_logger(LOGGER_NAME)
-    message_id, future = await create_pending_request(connection.request_state)
-    request = build_jsonrpc_request(message_id, method, params)
-    cancelled = False
+    outbound = await create_outbound_request(
+        connection.request_state,
+        method=method,
+        params=params,
+        send_notification=partial(send_stdio_message, connection),
+    )
+
+    async def cancel_request(reason: str, operation: str) -> None:
+        try:
+            await outbound.cancel(reason)
+        except STDIO_CANCELLATION_NOTIFY_EXCEPTIONS as exception:
+            log_handled_exception(
+                logger,
+                exception,
+                message="Failed to send cancellation notification (non-critical).",
+                operation=operation,
+                details={"method": method, "message_id": outbound.message_id},
+                level="debug",
+            )
+
     try:
         async with connection.io_lock:
             stdin_ref: StdinDrainProtocol | None = None
@@ -111,84 +133,57 @@ async def send_stdio_request(
                 if not connection.process or not connection.process.stdin:
                     cleanup_and_return = True
                 else:
-                    payload_text = serialize_json_compact_stable_strict(request)
+                    payload_text = serialize_json_compact_stable_strict(outbound.message)
                     if "\n" in payload_text or "\r" in payload_text:
                         invalid_payload = True
                     else:
                         connection.process.stdin.write((f"{payload_text}\n").encode())
                         stdin_ref = connection.process.stdin
             if cleanup_and_return:
-                await cancel_pending_request(connection.request_state, message_id)
+                await cancel_pending_request(connection.request_state, outbound.message_id)
                 return None
             if invalid_payload:
-                await cancel_pending_request(connection.request_state, message_id)
+                await cancel_pending_request(connection.request_state, outbound.message_id)
                 raise MCPJSONRPCError(-32600, "Request contains invalid newline characters")
             if stdin_ref is None:
-                await cancel_pending_request(connection.request_state, message_id)
+                await cancel_pending_request(connection.request_state, outbound.message_id)
                 return None
             try:
                 await _drain_stdin_with_timeout(stdin_ref, timeout_sec=RESPONSIVE_TIMEOUT_SEC)
             except RECOVERABLE_EXCEPTIONS as exception:
-                await cancel_pending_request(connection.request_state, message_id)
+                await cancel_pending_request(connection.request_state, outbound.message_id)
                 log_exception(
                     logger,
                     exception,
                     message="MCP request drain failed",
                     operation=OPERATION_MCP_TRANSPORT_STDIO_SEND_JSONRPC_REQUEST,
-                    details={"method": method, "message_id": message_id},
+                    details={"method": method, "message_id": outbound.message_id},
                     level="warning",
                 )
                 return None
-        return await asyncio.wait_for(future, timeout=connection.config.timeout_sec)
+        return await asyncio.wait_for(outbound.future, timeout=connection.config.timeout_sec)
     except asyncio.CancelledError:
-        cancelled = True
-    except TimeoutError:
-        await cancel_pending_request(connection.request_state, message_id)
-        if method != "initialize":
-            reason = "Request timed out"
-            notification = build_jsonrpc_notification(
-                "notifications/cancelled",
-                {"rpcId": message_id, "reason": reason},
+        await uncancel_then_cleanup(
+            cancel_request(
+                "Request cancelled by client",
+                OPERATION_MCP_TRANSPORT_STDIO_SEND_JSONRPC_REQUEST_CANCELLATION_NOTIFY,
             )
-            try:
-                await send_stdio_message(connection, notification)
-            except RECOVERABLE_EXCEPTIONS as exception:
-                log_handled_exception(
-                    logger,
-                    exception,
-                    message="Failed to send timeout notification (non-critical).",
-                    operation=OPERATION_MCP_TRANSPORT_STDIO_SEND_JSONRPC_REQUEST_TIMEOUT_NOTIFY,
-                    details={"method": method, "message_id": message_id},
-                    level="debug",
-                )
+        )
+        logger.debug("MCP request cancelled: %s", method)
+        raise
+    except TimeoutError:
+        await uncancel_then_cleanup(
+            cancel_request(
+                "Request timed out",
+                OPERATION_MCP_TRANSPORT_STDIO_SEND_JSONRPC_REQUEST_TIMEOUT_NOTIFY,
+            ),
+            propagate_cancellation=True,
+        )
         logger.warning("MCP request timed out: %s", method)
         return None
     except HANDLED_RUNTIME_EXCEPTIONS:
-        await cancel_pending_request(connection.request_state, message_id)
+        await cancel_pending_request(connection.request_state, outbound.message_id)
         raise
-    if cancelled:
-        await cancel_pending_request(connection.request_state, message_id)
-        if method != "initialize":
-            notification = build_jsonrpc_notification(
-                "notifications/cancelled",
-                {"rpcId": message_id, "reason": "Request cancelled by client"},
-            )
-            try:
-                await send_stdio_message(connection, notification)
-            except RECOVERABLE_EXCEPTIONS as exception:
-                log_handled_exception(
-                    logger,
-                    exception,
-                    message="Failed to send cancellation notification (non-critical).",
-                    operation=(
-                        OPERATION_MCP_TRANSPORT_STDIO_SEND_JSONRPC_REQUEST_CANCELLATION_NOTIFY
-                    ),
-                    details={"method": method, "message_id": message_id},
-                    level="debug",
-                )
-        logger.warning("MCP request cancelled: %s", method)
-        raise asyncio.CancelledError
-    return None
 
 
 async def stdio_reader(

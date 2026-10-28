@@ -13,6 +13,7 @@ interface CollectionViewportCallbacks {
     onEdge: (edge: CollectionEdge) => void;
     onUnderfill: () => void;
     onContainerReady: () => void;
+    onScroll?: () => void;
 }
 
 const resolveCollectionElement = (children: HTMLCollection, index: number): HTMLElement | null => {
@@ -47,6 +48,7 @@ class CollectionViewportCoordinator {
     #container: HTMLElement | null = null;
     #scrollRoot: CollectionScrollRoot | null = null;
     #removeScrollListener: (() => void) | null = null;
+    #removeVisibilityListener: (() => void) | null = null;
     #resizeObserver: ResizeObserver | null = null;
     #scrollFrame: number | null = null;
     #underfillFrame: number | null = null;
@@ -72,6 +74,10 @@ class CollectionViewportCoordinator {
         const previous = this.#container;
         this.#detach();
         this.#container = container;
+        this.#removeVisibilityListener = this.#resources.addEventListener(container.ownerDocument, 'visibilitychange', () => {
+            if (container.isConnected) this.#callbacks.onContainerReady();
+            this.scheduleUnderfillCheck();
+        });
         container.classList.add(EXPLICIT_ANCHOR_CLASS);
         this.#resizeObserver = new ResizeObserver(() => {
             this.#refreshScrollRoot();
@@ -156,6 +162,7 @@ class CollectionViewportCoordinator {
             const measurement = measureCollectionBoundaries(this.#container, this.#scrollRoot);
             const direction = resolveScrollDirection(this.#lastScrollPosition, measurement.position);
             this.#lastScrollPosition = measurement.position;
+            this.#callbacks.onScroll?.();
             if (!measurement.atEnd) this.#forwardArmed = true;
             if (!measurement.atStart) this.#backwardArmed = true;
             if (direction === 'forward' && measurement.atEnd && this.#forwardArmed) {
@@ -171,15 +178,19 @@ class CollectionViewportCoordinator {
     #refreshScrollRoot(): void {
         const nextRoot = this.#container?.isConnected === true ? resolveCollectionScrollRoot(this.#container) : null;
         if (this.#scrollRoot === nextRoot) return;
+        if (this.#scrollRoot instanceof HTMLElement && this.#scrollRoot !== this.#container) this.#resizeObserver?.unobserve(this.#scrollRoot);
         this.#removeScrollListener?.();
         this.#removeScrollListener = null;
         this.#scrollRoot = nextRoot;
         if (nextRoot === null) return;
+        if (nextRoot instanceof HTMLElement && nextRoot !== this.#container) this.#resizeObserver?.observe(nextRoot);
         this.#lastScrollPosition = readRootPosition(nextRoot);
         this.#removeScrollListener = this.#resources.addEventListener(nextRoot, 'scroll', () => this.#scheduleScrollCheck(), { passive: true });
     }
 
     #detach(): void {
+        this.#removeVisibilityListener?.();
+        this.#removeVisibilityListener = null;
         this.#container?.classList.remove(EXPLICIT_ANCHOR_CLASS);
         this.#removeScrollListener?.();
         this.#removeScrollListener = null;

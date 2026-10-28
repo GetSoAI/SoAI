@@ -24,13 +24,13 @@
         --space-16: 4rem;
         --toggle-width: 42px;
         --toggle-height: 20px;
-        --toggle-border-width: var(--border-width-2);
+        --toggle-border-width: var(--border-width-1);
         --toggle-handle-size: 14px;
-        --toggle-handle-offset: 1px;
+        --toggle-handle-offset: 2px;
         --toggle-handle-translate: 22px;
         --toggle-gap: 0.5rem;
         --toggle-track-bg-off: color-mix(in srgb, var(--glass-surface-darker) 60%, var(--glass-surface-light) 40%);
-        --toggle-track-border-off: color-mix(in srgb, var(--status-grey) 55%, var(--glass-border-strong) 45%);
+        --toggle-track-border-off: var(--glass-border-strong);
         --toggle-handle-bg-off: color-mix(in srgb, var(--status-grey) 40%, var(--color-white) 60%);
         --toggle-handle-bg-on: color-mix(in srgb, var(--status-grey) 50%, var(--color-white) 50%);
         --z-layer-backdrop: -2;

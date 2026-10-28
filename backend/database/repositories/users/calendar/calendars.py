@@ -37,7 +37,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "read_calendar",
-    "read_calendar_by_remote_href",
     "read_calendars",
     "sync_upsert_calendar",
 )
@@ -71,29 +70,6 @@ async def read_calendar(
         database,
         "SELECT * FROM calendar_calendars WHERE user_id = ? AND id = ? LIMIT 1",
         (require_user_id(user_id), require_calendar_calendar_id(calendar_id)),
-    )
-
-
-async def read_calendar_by_remote_href(
-    database: aiosqlite.Connection,
-    *,
-    user_id: int,
-    account_id: str,
-    remote_href: str,
-) -> SQLiteRowDict | None:
-    return await query_one_to_dict(
-        database,
-        """
-        SELECT *
-        FROM calendar_calendars
-        WHERE user_id = ? AND calendar_account_id = ? AND remote_href = ?
-        LIMIT 1
-        """,
-        (
-            require_user_id(user_id),
-            require_calendar_account_id(account_id),
-            require_text(remote_href, "remote_href"),
-        ),
     )
 
 

@@ -30,7 +30,6 @@ if TYPE_CHECKING:
     from orchestrator.execution.streaming_completion import StreamingCompletion
 
 __all__ = (
-    "EnsurePluginQueueCallbackProtocol",
     "EventWithContextAndReplyProtocol",
     "FailWaitersCallable",
     "GuardianRefProtocol",
@@ -39,7 +38,6 @@ __all__ = (
     "OrchestratorHandlersProtocol",
     "OrchestratorInferenceExecutorProtocol",
     "OrchestratorTaskOutcomesProtocol",
-    "PluginStateViewProtocol",
     "TransientFailureCooldownsProtocol",
     "VirtualModelHealthProtocol",
     "VirtualModelRotationProtocol",
@@ -240,20 +238,6 @@ class VirtualModelRotationProtocol(Protocol):
 
 class GuardianRefProtocol(Protocol):
     value: PluginGuardianProtocol | None
-
-
-class EnsurePluginQueueCallbackProtocol(Protocol):
-    async def __call__(
-        self,
-        *,
-        plugin_name: str,
-        plugin_limit: int,
-        plugin_count: int,
-    ) -> asyncio.Queue[Task]: ...
-
-
-class PluginStateViewProtocol(Protocol):
-    active_tasks: set[str]
 
 
 class EventWithContextAndReplyProtocol(Protocol):

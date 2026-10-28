@@ -19,7 +19,6 @@
     }
 
     .chat-sidebar .searchbar-container {
-        --searchbar-shadow: var(--glass-shadow-base);
         --searchbar-backdrop: var(--glass-blur-base);
         --searchbar-padding-inline: var(--space-25);
         margin-bottom: 0;

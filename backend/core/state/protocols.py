@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
-from core.state.circuit_breaker import CircuitBreakerState
+from core.events.publication_errors import AuthoritativePluginStateCompletion
 from core.state.protocols_publication import RuntimeStatePublicationSideEffectsProtocol
 
 if TYPE_CHECKING:
@@ -17,6 +17,10 @@ if TYPE_CHECKING:
         PluginRuntimeStateChangedEvent,
     )
     from core.events.types_system import SoAIMainState
+    from core.runtime.connection_transition import (
+        ConnectionTransition,
+        ConnectionTransitionScheme,
+    )
     from core.runtime.request_context import RequestContext
     from core.state.health_status import PluginHealthStatus
     from core.state.state_names import PluginRuntimeStateName
@@ -31,7 +35,6 @@ else:
 __all__ = (
     "AuthoritativePluginStateTransitionReceipt",
     "AuthoritativePluginStateTransitionsProtocol",
-    "CircuitBreakerProtocol",
     "RestartStateManagerProtocol",
     "SearchDataStoreProtocol",
     "StateAggregatorProtocol",
@@ -42,23 +45,9 @@ __all__ = (
 @dataclass(frozen=True, slots=True)
 class AuthoritativePluginStateTransitionReceipt:
     event: PluginInstallationStateChangedEvent | PluginRuntimeStateChangedEvent
-    completion_waiter: asyncio.Future[None]
+    completion_waiter: asyncio.Future[AuthoritativePluginStateCompletion]
 
     async def wait_for_completion(self, _deadline_monotonic: float) -> None: ...
-
-
-class CircuitBreakerProtocol(Protocol):
-    state: CircuitBreakerState
-
-    def check_and_attempt_recovery(self) -> tuple[bool, bool]: ...
-
-    def is_open(self) -> bool: ...
-
-    def allow_request(self) -> bool: ...
-
-    def record_failure(self) -> None: ...
-
-    def record_success(self) -> None: ...
 
 
 class RestartStateManagerProtocol(Protocol):
@@ -69,6 +58,18 @@ class RestartStateManagerProtocol(Protocol):
     async def check_and_clear_stale_state(self) -> bool: ...
 
     def get_restart_info(self) -> JSONDict: ...
+
+    async def record_connection_transition(self, transition: ConnectionTransition) -> bool: ...
+
+    async def record_unavailable_connection_transition(
+        self,
+        *,
+        configuration_revision: int,
+        current_scheme: ConnectionTransitionScheme,
+        requested_scheme: ConnectionTransitionScheme,
+    ) -> bool: ...
+
+    def get_connection_transition(self) -> ConnectionTransition | None: ...
 
 
 class SystemRestartRequesterProtocol(Protocol):

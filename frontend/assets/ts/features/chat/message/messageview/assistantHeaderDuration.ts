@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
-import { resolveAssistantResponseDurationState } from '@features/chat/message/assistantResponseDuration.ts';
+import { resolveAssistantResponseDurationState, type AssistantResponseDurationState } from '@features/chat/message/assistantResponseDuration.ts';
 import { renderInlineActivityDurationMarkup, resolveInlineActivityDurationLabel, resolveInlineActivityDurationReserveCharacters, type InlineActivityDurationArguments } from '@features/chat/message/messageview/inlineActivityDuration.ts';
 
-const resolveAssistantHeaderDurationArguments = (message: ChatMessage, nowMs: number): InlineActivityDurationArguments | null => {
-    const state = resolveAssistantResponseDurationState(message, nowMs);
+const resolveAssistantHeaderDurationArguments = (message: ChatMessage, nowMs: number, state: AssistantResponseDurationState = resolveAssistantResponseDurationState(message, nowMs)): InlineActivityDurationArguments | null => {
     if (state.durationFloorMs === null) {
         return null;
     }
@@ -24,8 +23,8 @@ const resolveAssistantHeaderDurationArguments = (message: ChatMessage, nowMs: nu
     };
 };
 
-const renderAssistantHeaderDuration = (escapeHtml: (value: string) => string, message: ChatMessage, nowMs: number, animateEntrance = false): string => {
-    const inputArguments = resolveAssistantHeaderDurationArguments(message, nowMs);
+const renderAssistantHeaderDuration = (escapeHtml: (value: string) => string, message: ChatMessage, nowMs: number, animateEntrance = false, state?: AssistantResponseDurationState): string => {
+    const inputArguments = resolveAssistantHeaderDurationArguments(message, nowMs, state);
     if (inputArguments === null) {
         return '';
     }

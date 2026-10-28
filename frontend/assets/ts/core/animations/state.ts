@@ -1,18 +1,18 @@
 /* SoAI - Shared animations state [frontend/assets/ts/core/animations/state.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { HeaderScrollInput, type HeaderScrollInputDirection } from '@core/animations/headerScrollInput.ts';
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { dom } from '@core/dom/dom.ts';
 import { dispatchCustomEvent, getCancelAnimationFrame, getRequestAnimationFrame } from '@core/environment/public.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
-import { HYSTERESIS_BUFFER, MARGIN_SAFETY, PAGE_HEADER_STATE_CHANGED_EVENT, PAGE_HEADER_STICKY_OFFSET_PROPERTY, SCROLL_THRESHOLD } from '@core/animations/constants.ts';
+import { HYSTERESIS_BUFFER, PAGE_HEADER_STATE_CHANGED_EVENT, PAGE_HEADER_STICKY_OFFSET_PROPERTY, SCROLL_THRESHOLD } from '@core/animations/constants.ts';
 import { type HeaderState } from '@core/animations/types.ts';
 
 class HeaderAnimator {
     container: HTMLElement | null;
     observer: ResizeObserver | null;
     header: HTMLElement | null;
-    headerResizeRafId: number | null;
     headerHeight: number;
     lastScroll: number;
     state: HeaderState;
@@ -22,12 +22,14 @@ class HeaderAnimator {
     handleScroll: () => void;
     #handleScrollImpl: () => void;
     #stickyOffset: number | null = null;
+    #scrollInput: HeaderScrollInput | null = null;
+    #scrollDirection: HeaderScrollInputDirection = null;
+    #transitionResetRafId: number | null = null;
 
     constructor(scrollContainer: HTMLElement, resizeObserver: ResizeObserver | null, autoHideEnabled: boolean = true) {
         this.container = scrollContainer;
         this.observer = resizeObserver;
         this.header = null;
-        this.headerResizeRafId = null;
         this.headerHeight = 0;
         this.lastScroll = 0;
         this.state = 'EXTENDED';
@@ -36,6 +38,7 @@ class HeaderAnimator {
         this.resources = new ResourceTracker();
 
         this.#handleScrollImpl = (): void => {
+            this.#scrollDirection = this.container ? (this.#scrollInput?.captureDirection(this.container.scrollTop - this.lastScroll) ?? null) : null;
             if (this.rafId) return;
 
             const requestAnimationFrame = getRequestAnimationFrame();
@@ -58,7 +61,13 @@ class HeaderAnimator {
 
                 const delta = scrollTop - this.lastScroll;
 
-                if (scrollTop <= this.headerHeight) {
+                if (this.#scrollDirection === null || (this.#scrollDirection === 'up' && delta >= 0) || (this.#scrollDirection === 'down' && delta <= 0)) {
+                    this.lastScroll = scrollTop;
+                    this.rafId = null;
+                    return;
+                }
+
+                if (delta !== 0 && scrollTop <= this.headerHeight) {
                     if (this.state !== 'EXTENDED') this.applyState('EXTENDED');
                 } else if (delta > SCROLL_THRESHOLD && scrollTop > this.headerHeight + HYSTERESIS_BUFFER) {
                     if (this.state !== 'FOLDED') this.applyState('FOLDED');
@@ -79,9 +88,11 @@ class HeaderAnimator {
         this.header = headerCandidate instanceof HTMLElement ? headerCandidate : null;
         if (!this.header) return false;
 
+        this.#scrollInput = new HeaderScrollInput(this.container, this.resources, () => this.reveal());
         this.updateHeaderHeight();
         this.resources.addEventListener(this.container, 'scroll', this.handleScroll, { passive: true });
-        this.observer?.observe(this.header);
+        this.resources.addEventListener(this.header, 'focusin', () => this.reveal());
+        this.observer?.observe(this.header, { box: 'border-box' });
 
         if (this.autoHideEnabled) {
             this.applyState('EXTENDED', true);
@@ -94,35 +105,20 @@ class HeaderAnimator {
         return true;
     }
 
-    queueHeaderHeightUpdate(): void {
-        if (this.headerResizeRafId) return;
-
-        const requestAnimationFrame = getRequestAnimationFrame();
-        this.headerResizeRafId = requestAnimationFrame(() => {
-            this.headerResizeRafId = null;
-            if (!this.header || !this.container) return;
-            this.updateHeaderHeight();
-        });
-    }
-
     updateHeaderHeight(): void {
         if (!this.header || !this.container) return;
         const rect = measureLayoutBox(this.header);
-        const marginBottom = parseFloat(getComputedStyle(this.header).marginBottom) || 0;
 
         this.headerHeight = rect.height;
-        dom.setStyle(this.header, '--header-measured-height', `${rect.height + marginBottom + MARGIN_SAFETY}px`);
         this.#syncStickyOffset();
-
-        if (this.container.scrollTop < this.headerHeight) {
-            this.applyState('EXTENDED', true);
-        }
     }
 
     setAutoHideEnabled(enabled: boolean): void {
         const next = enabled !== false;
         if (this.autoHideEnabled === next) return;
         this.autoHideEnabled = next;
+        this.#scrollInput?.clearScrollDirection();
+        this.#scrollDirection = null;
 
         if (!next) {
             this.lastScroll = this.container?.scrollTop || 0;
@@ -136,6 +132,12 @@ class HeaderAnimator {
         if (this.state === null) {
             this.applyState('EXTENDED', true);
         }
+    }
+
+    reveal(): void {
+        this.#scrollInput?.clearScrollDirection();
+        this.#scrollDirection = null;
+        if (this.autoHideEnabled) this.applyState('EXTENDED');
     }
 
     setScrollTopWithoutReaction(scrollTop: number): void {
@@ -153,9 +155,11 @@ class HeaderAnimator {
 
         const classList = this.header.classList;
 
-        if (noTransition) {
-            classList.add('page-header-panel--no-transition');
+        if (this.#transitionResetRafId !== null) {
+            this.resources.cancelAnimationFrame(this.#transitionResetRafId);
+            this.#transitionResetRafId = null;
         }
+        classList.toggle('page-header-panel--no-transition', noTransition);
 
         classList.remove('page-header-panel--extended', 'page-header-panel--folded');
         classList.add(`page-header-panel--${newState.toLowerCase()}`);
@@ -165,9 +169,9 @@ class HeaderAnimator {
 
         if (!noTransition) return;
 
-        const requestAnimationFrame = getRequestAnimationFrame();
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
+        this.#transitionResetRafId = this.resources.requestAnimationFrame(() => {
+            this.#transitionResetRafId = this.resources.requestAnimationFrame(() => {
+                this.#transitionResetRafId = null;
                 classList.remove('page-header-panel--no-transition');
             });
         });
@@ -194,23 +198,20 @@ class HeaderAnimator {
     destroy(): void {
         const cancelAnimationFrame = getCancelAnimationFrame();
 
-        if (this.headerResizeRafId) {
-            cancelAnimationFrame(this.headerResizeRafId);
-            this.headerResizeRafId = null;
-        }
         if (this.rafId) {
             cancelAnimationFrame(this.rafId);
             this.rafId = null;
         }
 
-        this.resources?.cleanup();
+        this.resources.cleanup();
+        this.#scrollInput = null;
+        this.#transitionResetRafId = null;
         if (this.header) {
             this.observer?.unobserve(this.header);
         }
         if (this.header) {
             this.header.classList.add('page-header-panel--no-transition');
             this.header.classList.remove('page-header-panel--extended', 'page-header-panel--folded');
-            dom.setStyle(this.header, '--header-measured-height', null);
             dom.setStyle(this.header, 'transform', null);
         }
         if (this.container) {

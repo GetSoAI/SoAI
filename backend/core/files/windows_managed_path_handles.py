@@ -17,7 +17,7 @@ from core.files.managed_storage_errors import FileStorageSecurityError
 from core.files.managed_storage_traversal import normalize_storage_relative_path
 from core.files.path_policy import is_same_path
 from core.files.windows_handle_operations import (
-    close_windows_handle,
+    close_windows_path_resources,
     convert_windows_handle_to_file_descriptor,
 )
 from core.filesystem.path_coercion import normalize_filesystem_path
@@ -67,7 +67,7 @@ class WindowsManagedPathHandles(AbstractContextManager["WindowsManagedPathHandle
         if self._leaf_file_descriptor < 0:
             raise FileStorageSecurityError("Managed Windows path handle is already closed.")
         descriptor = self._leaf_file_descriptor
-        _close_windows_path_resources(
+        close_windows_path_resources(
             self._handles,
             leaf_file_descriptor=-1,
             primary_exception=None,
@@ -78,7 +78,7 @@ class WindowsManagedPathHandles(AbstractContextManager["WindowsManagedPathHandle
     def close(self, primary_exception: BaseException | None = None) -> None:
         leaf_file_descriptor = self._leaf_file_descriptor
         self._leaf_file_descriptor = -1
-        _close_windows_path_resources(
+        close_windows_path_resources(
             self._handles,
             leaf_file_descriptor=leaf_file_descriptor,
             primary_exception=primary_exception,
@@ -164,7 +164,7 @@ def open_windows_managed_path_handles(
         return opened_path
     finally:
         if not completed:
-            _close_windows_path_resources(
+            close_windows_path_resources(
                 handles,
                 leaf_file_descriptor=leaf_file_descriptor,
                 primary_exception=sys.exception(),
@@ -232,33 +232,3 @@ def _require_64_bit_windows() -> None:
         raise FileStorageSecurityError(
             "Secure managed Windows path handles require a 64-bit runtime.",
         )
-
-
-def _close_windows_path_resources(
-    handles: list[int],
-    *,
-    leaf_file_descriptor: int,
-    primary_exception: BaseException | None,
-) -> None:
-    first_close_exception: OSError | None = None
-    if leaf_file_descriptor >= 0:
-        try:
-            os.close(leaf_file_descriptor)
-        except OSError as close_exception:
-            first_close_exception = close_exception
-    while handles:
-        try:
-            close_windows_handle(handles.pop())
-        except OSError as close_exception:
-            if first_close_exception is None:
-                first_close_exception = close_exception
-    if first_close_exception is None:
-        return
-    if primary_exception is not None:
-        primary_exception.add_note(
-            f"Failed to close managed Windows path handle: {first_close_exception}",
-        )
-        return
-    raise FileStorageSecurityError(
-        "Failed to close managed Windows path handle.",
-    ) from first_close_exception

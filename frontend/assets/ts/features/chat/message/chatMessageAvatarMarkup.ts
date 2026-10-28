@@ -64,7 +64,7 @@ const renderChatMessageAvatarContainer = (dependencies: ChatMessageAvatarMarkupD
     const avatarHtml = renderAvatarContent(dependencies, role, roleIconName, avatarUrl);
     const iconHiddenAttribute = isUploadableDefaultAvatar(role, avatarUrl) ? '' : ' aria-hidden="true"';
     const avatarLabelHtml = role === 'assistant' || role === 'user' ? `<span class="message-avatar-label">${renderRoleBadgeText(dependencies, senderLabel)}</span>` : '';
-    return `<div class="message-avatar"${avatarTitle}><span class="message-avatar-icon"${iconHiddenAttribute}>${avatarHtml}</span>${avatarLabelHtml}</div>`;
+    return `<div class="message-avatar" data-presence data-presence-atomic data-presence-visual-only${avatarTitle}><span class="message-avatar-icon"${iconHiddenAttribute}>${avatarHtml}</span>${avatarLabelHtml}</div>`;
 };
 
 export { renderChatMessageAvatarContainer, renderRoleBadgeText };

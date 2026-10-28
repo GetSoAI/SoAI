@@ -45,7 +45,10 @@ const renderFileExplorerParentRowMarkup = (parentPathValue: string, getIconSync:
 	    </tr>`;
 };
 
-const renderFileExplorerEmptyRowMarkup = (): TrustedHtml => uiHtml`<tr><td colspan="5" class="file-explorer-empty-row" data-action="${FILE_EXPLORER_ACTION_CLEAR_HIGHLIGHT}">${i18n.t('fileExplorer.status.empty')}</td></tr>`;
+const renderFileExplorerMessageRowMarkup = (message: string, tone: 'empty' | 'error'): TrustedHtml => {
+    const cellAttributes = uiAttributes({ class: tone === 'error' ? 'file-explorer-empty-row file-explorer-empty-row--error' : 'file-explorer-empty-row', role: tone === 'error' ? 'alert' : undefined });
+    return uiHtml`<tr><td colspan="5"${cellAttributes} data-action="${FILE_EXPLORER_ACTION_CLEAR_HIGHLIGHT}">${uiText(message)}</td></tr>`;
+};
 
 const renderFileExplorerLoadingRowMarkup = (label: string): TrustedHtml => uiHtml`<tr><td colspan="5" class="file-explorer-empty-row file-explorer-loading-row"><span class="loading-spinner" aria-hidden="true"></span><span>${uiText(label)}</span></td></tr>`;
 
@@ -60,4 +63,4 @@ const syncRowSelectionControls = (rowsBody: HTMLElement, selectedPaths: Readonly
     });
 };
 
-export { renderFileExplorerEmptyRowMarkup, renderFileExplorerEntryRowMarkup, renderFileExplorerLoadingRowMarkup, renderFileExplorerParentRowMarkup, syncRowSelectionControls };
+export { renderFileExplorerEntryRowMarkup, renderFileExplorerLoadingRowMarkup, renderFileExplorerMessageRowMarkup, renderFileExplorerParentRowMarkup, syncRowSelectionControls };

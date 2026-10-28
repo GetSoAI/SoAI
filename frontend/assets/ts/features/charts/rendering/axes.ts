@@ -3,7 +3,7 @@
 
 import { isArray, isString } from '@core/typeGuards.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { AXIS_FONT_SIZE, getXAxisFont, resolveVerticalContentInset } from '@features/charts/rendering/axisrendering/constants.ts';
+import { AXIS_FONT_SIZE, MIN_LABEL_GAP, Y_AXIS_LABEL_GAP, Y_AXIS_OUTER_PADDING, getXAxisFont, resolveVerticalContentInset } from '@features/charts/rendering/axisrendering/constants.ts';
 import { generateXAxisTicks, generateYAxisTicks } from '@features/charts/rendering/axisrendering/service.ts';
 import type { ChartRenderingScene } from '@features/charts/rendering/chartRenderingHost.ts';
 import { drawCoordinateLabel, requireThemeColor, resolveThemeColor } from '@features/charts/rendering/primitives.ts';
@@ -24,14 +24,14 @@ const getValueViewport = (scene: ChartValueViewportScene, dims: ChartDimensions 
 
 const computeAxisCache = (scene: ChartRenderingScene, context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, dims: ChartDimensions, geometry: RenderGeometry | null): AxisCache => {
     const scale = scene.state.scale;
-    const cacheKey = [scene.state.dataLength, scale.min, scale.max, dims.left, dims.chartWidth, dims.chartHeight, scene.state.options.scaleType, geometry?.rightEdgeTs, geometry?.msPerPx].join('|');
+    const yTicks = generateYAxisTicks(scene, dims, getValueViewport(scene, dims));
+    const cacheKey = [scene.state.dataLength, scale.min, scale.max, dims.left, dims.width, dims.chartWidth, dims.chartHeight, yTicks.map((tick) => tick.label).join('\u001f'), scene.state.options.scaleType, geometry?.rightEdgeTs, geometry?.msPerPx].join('|');
 
     const cachedAxis = scene.state.axisCache;
     if (cachedAxis && cachedAxis.key === cacheKey) {
         return cachedAxis;
     }
 
-    const yTicks = generateYAxisTicks(scene, dims, getValueViewport(scene, dims));
     const previousFont = context.font;
     context.font = getXAxisFont();
     const xTicks = geometry ? generateXAxisTicks(scene, context, dims, geometry) : [];
@@ -120,8 +120,8 @@ const drawAxes = (scene: ChartRenderingScene, context: CanvasRenderingContext2D,
     if (!isArray(yTicks)) {
         throw new TypeError('Axis cache yTicks must be an array');
     }
-    const yAxisX = left + chartWidth + 10;
-    const yAxisLabelWidth = max(1, dims.width - yAxisX - 6);
+    const yAxisX = left + chartWidth + Y_AXIS_LABEL_GAP;
+    const yAxisLabelWidth = max(1, dims.width - yAxisX - Y_AXIS_OUTER_PADDING);
 
     if (yTicks.length) {
         for (const tick of yTicks) {
@@ -140,7 +140,7 @@ const drawAxes = (scene: ChartRenderingScene, context: CanvasRenderingContext2D,
             textAlign: 'left',
             textBaseline: 'bottom'
         });
-        context.fillText(i18n.t('charts.manualScaleLabel'), yAxisX, top - 4);
+        context.fillText(i18n.t('charts.manualScaleLabel'), yAxisX, top - AXIS_FONT_SIZE / 2 - MIN_LABEL_GAP);
     }
 
     if (!geometry || scene.state.dataLength === 0) {

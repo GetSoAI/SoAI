@@ -9,7 +9,6 @@ from core.logging.protocols import LoggerProtocol
 from features.api.streaming.stream_cancel import schedule_streaming_task_cancel
 from features.api.streaming.websocket_openai_runtime import (
     OpenAiAudioSpeechRuntime,
-    OpenAiAudioTranscriptionRuntime,
     OpenAiImageGenerationRuntime,
 )
 
@@ -25,7 +24,7 @@ __all__ = (
 
 def cancel_openai_ws_active_task_runtime(
     *,
-    runtime: OpenAiAudioTranscriptionRuntime | OpenAiImageGenerationRuntime,
+    runtime: OpenAiImageGenerationRuntime,
     api_context: ApiContext,
     connection: WebsocketConnection,
     reason: str,

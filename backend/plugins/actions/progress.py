@@ -180,6 +180,8 @@ async def send_unexpected_error_completion_for_plugin_manager(
     reply_channel: asyncio.Queue[Event] | None,
     task_id: str | None,
     exception: Exception,
+    *,
+    mutation_fencing_token: int | None = None,
 ) -> None:
     error = coerce_to_soai_error(exception, trace_id=task_id)
     public_error = project_public_exception(error, trace_id=task_id)
@@ -197,6 +199,7 @@ async def send_unexpected_error_completion_for_plugin_manager(
         error_type=str(public_error.code),
         error_message=message,
         public_error=replace(public_error, message=message),
+        mutation_fencing_token=mutation_fencing_token,
         task_registry=manager.task_registry,
         send_task_complete_event_callable=manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
     )

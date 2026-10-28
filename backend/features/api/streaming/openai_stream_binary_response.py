@@ -11,6 +11,7 @@ from core.events.types_files import FileContentQuery
 from core.events.types_models_requests import TextToSpeechRequestReceived
 from core.runtime.request_context import RequestContext
 from features.api.openai.openai_error_responses import (
+    build_openai_error_json_response_for_soai_payload,
     build_openai_error_json_response_for_status,
 )
 from features.api.runtime.responses import (
@@ -53,6 +54,15 @@ async def build_binary_streaming_response(
         trace_id=trace_id,
     )
     if stream_preparation.stream is None:
+        if stream_preparation.public_error is not None:
+            return build_openai_error_json_response_for_soai_payload(
+                status_code=stream_preparation.status_code or 500,
+                message=stream_preparation.public_error.message,
+                soai_error_type=stream_preparation.public_error.code,
+                details=None,
+                trace_id=trace_id,
+                public_error=stream_preparation.public_error,
+            )
         return build_openai_error_json_response_for_status(
             status_code=stream_preparation.status_code or 500,
             message=stream_preparation.error_message or "Internal server error.",

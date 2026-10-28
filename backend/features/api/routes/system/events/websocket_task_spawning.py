@@ -27,6 +27,7 @@ def create_managed_task(
     finalizer_tracker: TaskFinalizerTrackerProtocol,
     cancellation_id: str,
     owner: str,
+    owner_observes_result: bool = False,
 ) -> asyncio.Task[None]:
     normalized_name = str(name or "").strip()
     if not normalized_name:
@@ -43,4 +44,5 @@ def create_managed_task(
         cancellation_id=cancellation_id_value,
         owner=owner_value,
         finalizer_tracker=finalizer_tracker,
+        owner_observes_result=owner_observes_result,
     )

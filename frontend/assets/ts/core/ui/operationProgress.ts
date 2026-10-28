@@ -20,7 +20,7 @@ const renderOperationProgress = ({ label, state, percent, detail, statusText }: 
     const detailMarkup = detail ? uiHtml`<div class="settings-operation-progress__detail" data-operation-progress="detail">${detail}</div>` : uiHtml``;
     const progressMarkup = typeof percent === 'number' ? renderDeterminateProgress(label, percent) : uiHtml``;
 
-    return uiHtml`<div class="settings-operation-progress settings-card-surface" data-state="${state}"><div class="settings-operation-progress__row">${badgeMarkup}<span class="settings-operation-progress__label" data-operation-progress="label">${label}</span></div>${progressMarkup}${detailMarkup}</div>`;
+    return uiHtml`<div class="settings-operation-progress settings-card-surface" data-state="${state}" data-presence data-presence-atomic><div class="settings-operation-progress__row">${badgeMarkup}<span class="settings-operation-progress__label" data-operation-progress="label">${label}</span></div>${progressMarkup}${detailMarkup}</div>`;
 };
 
 const renderDeterminateProgress = (label: string, percent: number): TrustedHtml => {

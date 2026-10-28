@@ -3,6 +3,18 @@
 
 type MediaCaptureFailure = 'permission' | 'missing_device' | 'busy_device' | 'insecure_context' | 'unknown';
 
+type AudioCaptureFailureType = MediaCaptureFailure | 'capture_unsupported' | 'audio_context_unavailable' | 'recording_unavailable' | 'recording_failed';
+
+class AudioCaptureFailure extends Error {
+    readonly failureType: AudioCaptureFailureType;
+
+    constructor(failureType: AudioCaptureFailureType, cause: Error | null = null) {
+        super(cause ? `Audio capture failed (${failureType}): ${cause.message}` : `Audio capture failed (${failureType})`, cause ? { cause } : undefined);
+        this.name = 'AudioCaptureFailure';
+        this.failureType = failureType;
+    }
+}
+
 const classifyMediaCaptureError = (error: Error): MediaCaptureFailure => {
     switch (error.name) {
         case 'NotAllowedError':
@@ -21,5 +33,13 @@ const classifyMediaCaptureError = (error: Error): MediaCaptureFailure => {
     }
 };
 
-export { classifyMediaCaptureError };
-export type { MediaCaptureFailure };
+const toAudioCaptureFailure = (error: Error, unclassifiedType: AudioCaptureFailureType = 'unknown'): AudioCaptureFailure => {
+    if (error instanceof AudioCaptureFailure) {
+        return error;
+    }
+    const classified = classifyMediaCaptureError(error);
+    return new AudioCaptureFailure(classified === 'unknown' ? unclassifiedType : classified, error);
+};
+
+export { AudioCaptureFailure, classifyMediaCaptureError, toAudioCaptureFailure };
+export type { AudioCaptureFailureType, MediaCaptureFailure };

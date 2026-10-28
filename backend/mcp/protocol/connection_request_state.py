@@ -6,10 +6,15 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 
-from core.types.json import JSONValue
+from core.timing.constants import CONTROL_TIMEOUT_SEC
+from core.types.json import JSONDict, JSONValue
+from mcp.protocol.internal_protocols import MCPNotificationSender
+from mcp.protocol.jsonrpc import build_jsonrpc_cancellation_notification, build_jsonrpc_request
 
 __all__ = (
     "cancel_pending_request",
+    "MCPOutboundRequest",
+    "create_outbound_request",
     "MCPConnectionRequestState",
     "cancel_all_pending_requests",
     "create_pending_request",
@@ -58,3 +63,44 @@ async def cancel_all_pending_requests(state: MCPConnectionRequestState) -> None:
     for future in pending:
         if not future.done():
             future.cancel()
+
+
+@dataclass(frozen=True, slots=True)
+class MCPOutboundRequest:
+    request_state: MCPConnectionRequestState
+    message_id: int
+    method: str
+    params: JSONDict
+    future: asyncio.Future[JSONValue]
+    send_notification: MCPNotificationSender
+
+    @property
+    def message(self) -> JSONDict:
+        return build_jsonrpc_request(self.message_id, self.method, self.params)
+
+    async def cancel(self, reason: str) -> None:
+        await cancel_pending_request(self.request_state, self.message_id)
+        if self.method == "initialize":
+            return
+        async with asyncio.timeout(CONTROL_TIMEOUT_SEC):
+            await self.send_notification(
+                message=build_jsonrpc_cancellation_notification(self.message_id, reason)
+            )
+
+
+async def create_outbound_request(
+    state: MCPConnectionRequestState,
+    *,
+    method: str,
+    params: JSONDict,
+    send_notification: MCPNotificationSender,
+) -> MCPOutboundRequest:
+    message_id, future = await create_pending_request(state)
+    return MCPOutboundRequest(
+        request_state=state,
+        message_id=message_id,
+        method=method,
+        params=params,
+        future=future,
+        send_notification=send_notification,
+    )

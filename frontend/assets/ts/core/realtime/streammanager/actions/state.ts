@@ -7,6 +7,8 @@ import type { StreamTaskRuntimeState } from '@core/realtime/streammanager/action
 
 const createStreamTaskRuntimeState = (): StreamTaskRuntimeState => ({
     generation: 0,
+    pendingTaskSnapshots: new Set(),
+    terminalTaskIds: new Set(),
     operationListeners: new Set(),
     operationHandlers: new Map(),
     keyedTaskAdmissions: new Map(),
@@ -21,6 +23,8 @@ const createStreamTaskRuntimeState = (): StreamTaskRuntimeState => ({
 
 const resetStreamTaskRuntimeState = (state: StreamTaskRuntimeState, safeInvoker: StreamTaskSafeInvoker): void => {
     state.generation += 1;
+    state.pendingTaskSnapshots.clear();
+    state.terminalTaskIds.clear();
     const supervisedMutationTasks = new Map(
         [...state.trackedTasks].filter(([taskId, metadata]) => {
             const operationKey = metadata['operationKey'];

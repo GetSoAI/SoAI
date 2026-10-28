@@ -3,7 +3,7 @@
 
 import { createDocumentScopedStringKeyMap } from '@core/dom/documentScopedStringKeyMap.ts';
 import { clearFadingTextTimers } from '@features/chat/stream/fadingTextScheduler.ts';
-import type { StreamStatusMessageKey } from '@features/chat/stream/streamMessageSpinnerStatusText.ts';
+import type { ChatStreamStatusMessagesTranslationKey } from '@core/i18n/translationkeys/chat/stream__statusMessages.generated.ts';
 
 const STREAM_SPINNER_VISIBILITY_DELAY_MS = 15_000;
 
@@ -21,16 +21,19 @@ interface SpinnerStatusState {
     visibilityRevealTimer: number | null;
     scheduledVisibilityRevealAtServerMs: number | null;
     visibilityFadeTimer: number | null;
+    visibilityRevealFrame: number | null;
+    visibilityTransitionSequence: number;
     firstRevealCleanupTimer: number | null;
     placeholderRotationTimer: number | null;
-    visibilitySuppressed: boolean;
+    terminalTransitionActive: boolean;
+    pendingSettledActions: (() => void) | null;
     checkpointTimer: number | null;
     fadeTimer: number | null;
     nextCheckpointAt: number;
     pendingText: string | null;
     realPreviewCooldownMs: number;
     lastRealPreviewTransitionStartedAtMs: number;
-    placeholderKey: StreamStatusMessageKey;
+    placeholderKey: ChatStreamStatusMessagesTranslationKey;
     lastShownText: string;
     lastReconcileSignature: string;
     hasShownRealPreview: boolean;
@@ -47,6 +50,11 @@ const clearSpinnerStatusTextTimers = (state: SpinnerStatusState): void => {
 
 const clearStateTimers = (state: SpinnerStatusState): void => {
     clearSpinnerStatusTextTimers(state);
+    state.visibilityTransitionSequence += 1;
+    if (state.visibilityRevealFrame !== null && state.view !== null) {
+        state.view.cancelAnimationFrame(state.visibilityRevealFrame);
+    }
+    state.visibilityRevealFrame = null;
     if (state.visibilityRevealTimer !== null && state.view !== null) {
         state.view.clearTimeout(state.visibilityRevealTimer);
         state.visibilityRevealTimer = null;
@@ -66,7 +74,7 @@ const clearStateTimers = (state: SpinnerStatusState): void => {
     state.placeholderRotationTimer = null;
 };
 
-const createSpinnerStatusState = (inputArguments: { messageId: string; messageRoot: HTMLElement; statusElement: HTMLElement; labelElement: HTMLElement; textElement: HTMLElement; actionsElement: HTMLElement; spinnerElement: HTMLElement | null; view: Window; visibilityRevealAtServerMs: number; placeholderKey: StreamStatusMessageKey; lastShownText: string; hasShownRealPreview: boolean }): SpinnerStatusState => {
+const createSpinnerStatusState = (inputArguments: { messageId: string; messageRoot: HTMLElement; statusElement: HTMLElement; labelElement: HTMLElement; textElement: HTMLElement; actionsElement: HTMLElement; spinnerElement: HTMLElement | null; view: Window; visibilityRevealAtServerMs: number; placeholderKey: ChatStreamStatusMessagesTranslationKey; lastShownText: string; hasShownRealPreview: boolean }): SpinnerStatusState => {
     return {
         messageId: inputArguments.messageId,
         messageRoot: inputArguments.messageRoot,
@@ -81,9 +89,12 @@ const createSpinnerStatusState = (inputArguments: { messageId: string; messageRo
         visibilityRevealTimer: null,
         scheduledVisibilityRevealAtServerMs: null,
         visibilityFadeTimer: null,
+        visibilityRevealFrame: null,
+        visibilityTransitionSequence: 0,
         firstRevealCleanupTimer: null,
         placeholderRotationTimer: null,
-        visibilitySuppressed: false,
+        terminalTransitionActive: false,
+        pendingSettledActions: null,
         checkpointTimer: null,
         fadeTimer: null,
         nextCheckpointAt: 0,

@@ -1,19 +1,23 @@
 /* SoAI - Shared auth runtime [frontend/assets/ts/core/auth/runtime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { SessionInvalidationResult } from '@core/auth/types.ts';
+import type { SessionInvalidationResult, SessionReconciliationResult } from '@core/auth/types.ts';
 import { resolveOptionalKernelService, resolveKernelService } from '@core/runtime/runtimeContext.ts';
 
 interface AuthManagerRuntime {
     isAuthenticated: boolean;
+    readonly authEpoch: number;
     invalidateSession: () => Promise<SessionInvalidationResult>;
     recoverRotatedSession: () => Promise<void>;
+    reconcileSession: (signal: AbortSignal) => Promise<SessionReconciliationResult>;
 }
 
 type AuthManagerRuntimeCandidate = {
     readonly isAuthenticated?: boolean;
+    readonly authEpoch?: number;
     readonly invalidateSession?: () => Promise<SessionInvalidationResult>;
     readonly recoverRotatedSession?: () => Promise<void>;
+    readonly reconcileSession?: (signal: AbortSignal) => Promise<SessionReconciliationResult>;
 };
 
 const isAuthManagerRuntimeCandidate = <T>(value: T): value is T & AuthManagerRuntimeCandidate => typeof value === 'object' && value !== null;
@@ -23,7 +27,7 @@ const isAuthManagerRuntime = <T>(value: T): value is T & AuthManagerRuntime => {
         return false;
     }
     const invalidateSessionValue = value.invalidateSession;
-    return typeof value.isAuthenticated === 'boolean' && typeof invalidateSessionValue === 'function' && typeof value.recoverRotatedSession === 'function';
+    return typeof value.isAuthenticated === 'boolean' && typeof value.authEpoch === 'number' && typeof invalidateSessionValue === 'function' && typeof value.recoverRotatedSession === 'function' && typeof value.reconcileSession === 'function';
 };
 
 const requireAuthManager = (): AuthManagerRuntime => {

@@ -1,6 +1,7 @@
 /* SoAI - Hardware feature widgets mapping [frontend/assets/ts/features/hardware/widgets/mappers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { HardwareCpuSnapshot, HardwareNetworkInterface, HardwareNetworkSpeed } from '@core/api/contracts/hardwareContractTypes.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
 import { toTrimmedStringOrNull } from '@core/normalize.ts';
@@ -11,8 +12,8 @@ import { resolveNetworkSpeedEntry } from '@features/hardware/models/networkSpeed
 import { getWindowsNetworkInventoryStatus, isVisibleNetworkInterfaceName } from '@features/hardware/models/networkVisibility.ts';
 import { resolveMemoryValuesMb, type MemoryValues } from '@features/hardware/widgets/metricValues.ts';
 import type { MetricChartNormalizer } from '@features/hardware/widgets/contracts.ts';
+import type { ChartPathValues } from '@features/hardware/widgets/basehardwarewidget/types.ts';
 import type { CPUDevice, CPUDeviceData, GPUDevice, GPUDeviceData, HardwareData, HardwareSnapshot, MemoryData, NetworkDevice, NetworkDeviceData } from '@features/hardware/widgets/internalContracts.ts';
-import type { CpuRaw, NetworkInterfaceRaw, NetworkSpeedEntry } from '@features/hardware/models/types.ts';
 import type { HardwareGpuSnapshot } from '@core/api/contracts/hardwareContracts.ts';
 
 interface ChartPoint {
@@ -29,16 +30,16 @@ const readFiniteNonNegativeInt = (value: number | null | undefined): number | nu
     return Math.max(0, Math.floor(value));
 };
 
-const resolveCpuName = (cpu: CpuRaw): string => {
+const resolveCpuName = (cpu: HardwareCpuSnapshot): string => {
     return resolveHardwareDeviceDisplayName(cpu) ?? readNonEmptyString(cpu.model) ?? 'CPU';
 };
 
-const resolveCpuSocketIndex = (cpu: CpuRaw, fallbackIndex: number): number => {
+const resolveCpuSocketIndex = (cpu: HardwareCpuSnapshot, fallbackIndex: number): number => {
     const socketId = typeof cpu.socketId === 'number' ? readFiniteNonNegativeInt(cpu.socketId) : null;
     return socketId ?? fallbackIndex;
 };
 
-const resolveCpuSocketsCount = (cpuArray: ReadonlyArray<CpuRaw>): number => {
+const resolveCpuSocketsCount = (cpuArray: ReadonlyArray<HardwareCpuSnapshot>): number => {
     return cpuArray.length > 0 ? cpuArray.length : 1;
 };
 
@@ -67,25 +68,28 @@ const resolveGpuName = (gpu: HardwareGpuSnapshot): string => {
 
 const resolveGpuIndex = (gpu: HardwareGpuSnapshot, fallbackIndex: number): number => (isFiniteNumber(gpu.index) ? Math.max(0, Math.floor(gpu.index)) : fallbackIndex);
 
+const resolveGpuWidgetKey = (gpu: GPUDevice): string | number => gpu.deviceId ?? gpu.index;
+
 const extractGpuDevices = (hardware: HardwareSnapshot | HardwareData): GPUDevice[] => {
     const gpuArray = getGpuDevices(hardware);
     return gpuArray.map((gpu, index) => ({
+        deviceId: readNonEmptyString(gpu.deviceId) ?? undefined,
         index: resolveGpuIndex(gpu, index),
         name: resolveGpuName(gpu),
         data: formatGpuData(gpu)
     }));
 };
 
-const finiteMetric = (value: number | undefined): number => (isFiniteNumber(value) ? value : 0);
+const finiteMetric = (value: number | undefined): number | undefined => (isFiniteNumber(value) ? Math.max(0, value) : undefined);
 
-const formatNetworkData = (networkData: NetworkInterfaceRaw, speedData: NetworkSpeedEntry): NetworkDeviceData => {
+const formatNetworkData = (networkData: HardwareNetworkInterface, speedData: HardwareNetworkSpeed): NetworkDeviceData => {
     const download = finiteMetric(speedData.downloadMbps);
     const upload = finiteMetric(speedData.uploadMbps);
     const linkSpeed = finiteMetric(networkData.linkSpeedMbps);
     return {
-        downloadMbps: Math.max(0, download),
-        uploadMbps: Math.max(0, upload),
-        linkSpeedMbps: Math.max(0, linkSpeed)
+        downloadMbps: download,
+        uploadMbps: upload,
+        linkSpeedMbps: linkSpeed
     };
 };
 
@@ -109,7 +113,7 @@ const extractNetworkDevices = (hardware: HardwareSnapshot | HardwareData): Netwo
     return devices;
 };
 
-const formatCpuData = (cpuData: CpuRaw, memoryData: MemoryData): CPUDeviceData => {
+const formatCpuData = (cpuData: HardwareCpuSnapshot, memoryData: MemoryData): CPUDeviceData => {
     const utilization = finiteMetric(cpuData.usagePercent);
     const temperature = finiteMetric(cpuData.temperatureCelsius);
     const powerWatts = finiteMetric(cpuData.powerDrawWatts);
@@ -126,32 +130,36 @@ const formatCpuData = (cpuData: CpuRaw, memoryData: MemoryData): CPUDeviceData =
 };
 
 const resolveGpuMemoryMb = (gpuData: HardwareGpuSnapshot): MemoryValues => {
-    const usedMb = gpuData.memoryUsedMb;
-    const totalMb = gpuData.memoryTotalMb;
+    const usedMb = gpuData.memoryUsedMb ?? (isFiniteNumber(gpuData.memoryUsedBytes) ? gpuData.memoryUsedBytes / 1024 ** 2 : undefined);
+    const totalMb = gpuData.memoryTotalMb ?? (isFiniteNumber(gpuData.memoryTotalBytes) ? gpuData.memoryTotalBytes / 1024 ** 2 : undefined);
     return {
-        usedMb: isFiniteNumber(usedMb) && usedMb >= 0 ? usedMb : 0,
-        totalMb: isFiniteNumber(totalMb) && totalMb > 0 ? totalMb : 0
+        usedMb: isFiniteNumber(usedMb) && usedMb >= 0 ? usedMb : undefined,
+        totalMb: isFiniteNumber(totalMb) && totalMb >= 0 ? totalMb : undefined
     };
 };
 
 const formatGpuData = (gpuData: HardwareGpuSnapshot): GPUDeviceData => {
-    if (gpuData.telemetryAvailable === false) {
+    const memoryValues = resolveGpuMemoryMb(gpuData);
+    if (gpuData.telemetryAvailable === false && gpuData.telemetryObservation?.status !== 'stale' && gpuData.telemetryUnavailableReason !== 'process_query_failed') {
         return {
-            utilization: 0,
-            memoryUsedMb: 0,
-            memoryTotalMb: 0,
-            powerWatts: 0,
-            temperature: 0,
-            powerLimit: 0,
+            telemetryObservation: gpuData.telemetryObservation,
+            memoryTotalObservation: gpuData.memoryTotalObservation,
+            utilization: undefined,
+            memoryUsedMb: memoryValues.usedMb,
+            memoryTotalMb: memoryValues.totalMb,
+            powerWatts: undefined,
+            temperature: undefined,
+            powerLimit: undefined,
             telemetryAvailable: false
         };
     }
     const utilization = finiteMetric(gpuData.utilization);
     const temperature = finiteMetric(gpuData.temperature);
-    const memoryValues = resolveGpuMemoryMb(gpuData);
     const powerWatts = finiteMetric(gpuData.powerDrawWatts);
     const powerLimit = finiteMetric(gpuData.powerLimitWatts);
     return {
+        telemetryObservation: gpuData.telemetryObservation,
+        memoryTotalObservation: gpuData.memoryTotalObservation,
         utilization,
         memoryUsedMb: memoryValues.usedMb,
         memoryTotalMb: memoryValues.totalMb,
@@ -162,9 +170,10 @@ const formatGpuData = (gpuData: HardwareGpuSnapshot): GPUDeviceData => {
     };
 };
 
-const buildChartSeries = (points: ReadonlyArray<{ timestamp: number; [key: string]: number }>, metric: string, now: number, windowDurationMs: number, viewBox: number, normalizeMetricValue: MetricChartNormalizer): ChartPoint[] => {
+const buildChartSeries = (points: ReadonlyArray<{ timestamp: number; [key: string]: number | undefined }>, metric: string, now: number, windowDurationMs: number, viewBox: number, normalizeMetricValue: MetricChartNormalizer): ChartPoint[] => {
     const windowStart = now - windowDurationMs;
     const normalized = points
+        .filter((point) => isFiniteNumber(point[metric]))
         .map((point) => ({
             x: ((point.timestamp - windowStart) / windowDurationMs) * viewBox,
             y: viewBox - (clampNumber(normalizeMetricValue(point[metric] ?? 0, metric), 0, 100) / 100) * viewBox
@@ -187,11 +196,23 @@ const buildChartSeries = (points: ReadonlyArray<{ timestamp: number; [key: strin
     if (first.x > 0) {
         withBounds.unshift({ x: 0, y: first.y });
     }
-    if (last.x < viewBox) {
-        withBounds.push({ x: viewBox, y: last.y });
-    }
 
     return withBounds;
+};
+
+const appendSmoothSegments = (path: string[], points: ReadonlyArray<ChartPoint>, pathType: 'path' | 'line'): void => {
+    for (let index = 0; index < points.length - 1; index += 1) {
+        const current = points[index];
+        if (!current) {
+            throw new Error(`Smooth ${pathType} point ${index} is missing`);
+        }
+        const next = points[index + 1];
+        if (!next) {
+            throw new Error(`Smooth ${pathType} point ${index + 1} is missing`);
+        }
+        const delta = next.x - current.x;
+        path.push(`C ${current.x + delta / 3},${current.y} ${current.x + (2 * delta) / 3},${next.y} ${next.x},${next.y}`);
+    }
 };
 
 const createSmoothPath = (points: ReadonlyArray<ChartPoint>, viewBox: number): string => {
@@ -204,20 +225,7 @@ const createSmoothPath = (points: ReadonlyArray<ChartPoint>, viewBox: number): s
     }
     const path = [`M 0 ${viewBox}`];
     path.push(`L ${first.x} ${first.y}`);
-
-    for (let index = 0; index < points.length - 1; index += 1) {
-        const current = points[index];
-        if (!current) {
-            throw new Error(`Smooth path point ${index} is missing`);
-        }
-        const next = points[index + 1];
-        if (!next) {
-            throw new Error(`Smooth path point ${index + 1} is missing`);
-        }
-        const delta = next.x - current.x;
-        path.push(`C ${current.x + delta / 3},${current.y} ${current.x + (2 * delta) / 3},${next.y} ${next.x},${next.y}`);
-    }
-
+    appendSmoothSegments(path, points, 'path');
     const last = points[points.length - 1];
     if (!last) {
         throw new Error('Smooth path requires a last point when length > 0');
@@ -236,21 +244,28 @@ const createSmoothLine = (points: ReadonlyArray<ChartPoint>): string => {
         throw new Error('Smooth line requires at least one point');
     }
     const path = [`M ${first.x} ${first.y}`];
-
-    for (let index = 0; index < points.length - 1; index += 1) {
-        const current = points[index];
-        if (!current) {
-            throw new Error(`Smooth line point ${index} is missing`);
-        }
-        const next = points[index + 1];
-        if (!next) {
-            throw new Error(`Smooth line point ${index + 1} is missing`);
-        }
-        const delta = next.x - current.x;
-        path.push(`C ${current.x + delta / 3},${current.y} ${current.x + (2 * delta) / 3},${next.y} ${next.x},${next.y}`);
-    }
-
+    appendSmoothSegments(path, points, 'line');
     return path.join(' ');
 };
 
-export { readNonEmptyString, readFiniteNonNegativeInt, resolveCpuName, resolveCpuSocketIndex, resolveCpuSocketsCount, resolveGpuName, resolveGpuIndex, extractCpuDevices, extractGpuDevices, extractNetworkDevices, formatCpuData, formatGpuData, formatNetworkData, buildChartSeries, createSmoothPath, createSmoothLine };
+const createSmoothPathValues = (points: ReadonlyArray<ChartPoint>, viewBox: number): ChartPathValues => {
+    if (points.length === 0) {
+        return { areaPath: '', linePath: '' };
+    }
+    const first = points[0];
+    if (!first) {
+        throw new Error('Smooth path requires at least one point');
+    }
+    const path = [`${first.x} ${first.y}`];
+    appendSmoothSegments(path, points, 'path');
+    const last = points[points.length - 1];
+    if (!last) {
+        throw new Error('Smooth path requires a last point when length > 0');
+    }
+    const segments = path.join(' ');
+    return { areaPath: `M 0 ${viewBox} L ${segments} L ${last.x} ${viewBox} Z`, linePath: `M ${segments}` };
+};
+
+export { readNonEmptyString, readFiniteNonNegativeInt, resolveCpuName, resolveCpuSocketIndex, resolveCpuSocketsCount, resolveGpuName, resolveGpuIndex, resolveGpuWidgetKey, extractCpuDevices, extractGpuDevices, extractNetworkDevices, formatCpuData, formatGpuData, formatNetworkData, buildChartSeries, createSmoothPath, createSmoothLine, createSmoothPathValues };
+
+export type { ChartPoint };

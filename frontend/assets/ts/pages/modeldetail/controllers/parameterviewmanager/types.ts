@@ -25,7 +25,7 @@ interface ParameterViewHost extends PageDomOwnerHost, PageResourcesOwnerHost {
     $: (selector: string, context?: Element) => Element | null;
     $$: (selector: string, context?: Element) => Element[];
     storage: PageControlsStorageInput;
-    setUIValue: (element: Element, value: string, options?: { attribute?: string }) => void;
+    setUIValue: (element: Element, value: string, options?: { attribute?: string; skipChangeEvent?: boolean }) => void;
     getIconSync: (name: IconName, options?: IconOptions) => TrustedHtml;
     dom: {
         getData: (element: Element | null, key: string) => string | null | undefined;

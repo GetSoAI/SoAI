@@ -6,9 +6,8 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from playwright.async_api import Error
-
 from mcp.tools.browser.http_auth_support import build_playwright_http_credentials
+from mcp.tools.browser.navigation_fallback_goto import goto_with_http_fallback
 from mcp.tools.browser.navigation_validation import build_navigation_url_candidates
 from mcp.tools.browser.security_policy import enforce_browser_navigation_policy
 from mcp.tools.browser.session_access import (
@@ -59,16 +58,21 @@ async def recreate_context_and_navigate_with_http_credentials(
         await sync_session_state(utility_tools.config, state)
         mark_page_load(state)
         page = require_current_page(state)
+
+    async def _enforce_alternative_url_policy(alternative_url: str) -> None:
+        await enforce_browser_navigation_policy(
+            utility_tools.config,
+            utility_tools.runtime_flags,
+            url=alternative_url,
+            source="MCP browser HTTP auth navigation (http alternative)",
+        )
+
     async with asyncio.timeout((float(timeout_ms) / 1000.0) + 10.0):
-        try:
-            await page.goto(primary_url, wait_until="domcontentloaded", timeout=timeout_ms)
-        except (Error, TimeoutError):
-            if fallback_url is None:
-                raise
-            await enforce_browser_navigation_policy(
-                utility_tools.config,
-                utility_tools.runtime_flags,
-                url=fallback_url,
-                source="MCP browser HTTP auth navigation (http alternative)",
-            )
-            await page.goto(fallback_url, wait_until="domcontentloaded", timeout=timeout_ms)
+        await goto_with_http_fallback(
+            page,
+            primary_url=primary_url,
+            fallback_url=fallback_url,
+            wait_until="domcontentloaded",
+            timeout=timeout_ms,
+            enforce_fallback_policy=_enforce_alternative_url_policy,
+        )

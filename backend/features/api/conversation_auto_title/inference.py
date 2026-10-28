@@ -11,14 +11,21 @@ from typing import TYPE_CHECKING
 
 from fastapi.responses import JSONResponse
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup, wait_for_task_completion
+from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.conversations.default_title_resolution import resolve_first_text_content_part
 from core.errors.exceptions import StateError
 from core.events.types_models_requests import InferenceRequestReceived
+from core.models.context_window import MODEL_PARAM_STANDARDIZED_NAME
 from core.prompts.system_prompts import get_text_prompt_v1
 from core.runtime.request_context import RequestContext
 from core.runtime.request_sources import REQUEST_SOURCE_SYSTEM
-from core.runtime.soai_identifiers import create_request_id, create_system_id
-from core.validation.integers import is_strict_int
+from core.runtime.soai_identifiers import (
+    create_prefixed_hex_id,
+    create_request_id,
+    create_system_id,
+)
+from core.tasks.task_cancellation import cancel
 from features.api.conversation_auto_title.prompt_template import build_auto_title_prompt
 from features.api.conversation_auto_title.title_parser import parse_auto_title
 from features.api.routes.openai.chat.non_streaming.runner import (
@@ -33,6 +40,8 @@ from features.assistant_timeline.models import AssistantTimelineRuntime
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
+    from core.events.types_base import Event
+    from core.tasks.task import Task
     from core.types.json import JSONDict
     from features.api.runtime.container.types import ApiDependencies
 
@@ -78,9 +87,6 @@ async def generate_auto_title(
     user_message: JSONDict,
     assistant_message: JSONDict,
 ) -> str | None:
-    context_window_tokens = runtime.usage_preview_context_window_tokens
-    if not is_strict_int(context_window_tokens) or context_window_tokens <= 0:
-        return None
     api_context = AutoTitleApiContext(dependencies=api_dependencies)
     request_context = RequestContext(
         trace_id=create_request_id(prefix="auto-title"),
@@ -112,8 +118,9 @@ async def generate_auto_title(
         "temperature": 0.2,
         "timeout": 15,
         "reasoning_effort": "none",
-        "context_window_tokens": context_window_tokens,
     }
+    if runtime.execution_context_window_override_tokens is not None:
+        payload[MODEL_PARAM_STANDARDIZED_NAME] = runtime.execution_context_window_override_tokens
     quota = InferenceQuotaContext(
         api_context=api_context,
         key_id=None,
@@ -122,8 +129,9 @@ async def generate_auto_title(
         operation_prefix="conversation_auto_title",
     )
     stream_dependencies = build_stream_dependencies(api_dependencies)
-    async with asyncio.timeout(_AUTO_TITLE_TIMEOUT_SECONDS):
-        task, reply_queue = await accept_chat_inference_task(
+    task_id = create_prefixed_hex_id("task")
+    admission = create_ephemeral_task(
+        accept_chat_inference_task(
             api_context=api_context,
             context=request_context,
             quota=quota,
@@ -140,20 +148,53 @@ async def generate_auto_title(
             async_accept_requested=False,
             is_streaming=False,
             request_source=REQUEST_SOURCE_SYSTEM,
-        )
-        if reply_queue is None:
-            raise StateError("Auto-title inference did not return a reply queue.")
-        response = await wait_for_non_streaming_inference_result(
-            api_context,
-            stream_dependencies=stream_dependencies,
-            registry=api_dependencies.task_registry,
-            task=task,
-            reply_queue=reply_queue,
-            context=request_context,
-            request_json=payload,
-            required_capabilities=(),
-        )
+            task_id=task_id,
+        ),
+        name=f"conversation-auto-title-admission-{runtime.conv_id}",
+        log_exceptions=False,
+    )
+    inference_scope = asyncio.timeout(_AUTO_TITLE_TIMEOUT_SECONDS)
+    inference_completed = False
+    try:
+        async with inference_scope:
+            task, reply_queue = await asyncio.shield(admission)
+            if reply_queue is None:
+                raise StateError("Auto-title inference did not return a reply queue.")
+            response = await wait_for_non_streaming_inference_result(
+                api_context,
+                stream_dependencies=stream_dependencies,
+                registry=api_dependencies.task_registry,
+                task=task,
+                reply_queue=reply_queue,
+                context=request_context,
+                request_json=payload,
+                required_capabilities=(),
+            )
+        if inference_scope.expired():
+            raise TimeoutError("Auto-title inference completed after its deadline.")
+        inference_completed = True
+    finally:
+        if not inference_completed:
+            await uncancel_then_cleanup(
+                _cancel_unsettled_title_task(api_dependencies, admission, task_id)
+            )
     return parse_auto_title_response(response)
+
+
+async def _cancel_unsettled_title_task(
+    api_dependencies: ApiDependencies,
+    admission: asyncio.Task[tuple[Task, asyncio.Queue[Event] | None]],
+    task_id: str,
+) -> None:
+    await wait_for_task_completion(admission, retain_resources_until_complete=True)
+    try:
+        admission.result()
+    finally:
+        await cancel(
+            api_dependencies.task_registry,
+            task_id,
+            reason="Conversation auto-title stopped before completion.",
+        )
 
 
 def parse_auto_title_response(response: JSONResponse) -> str | None:

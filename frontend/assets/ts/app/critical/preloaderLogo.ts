@@ -69,7 +69,7 @@ const preloadLogo = (src: string): Promise<HTMLImageElement> => {
 
 const getLogoElement = (): HTMLImageElement | null => document.querySelector<HTMLImageElement>(PRELOADER_LOGO_SELECTOR);
 
-const alignAnimationsToTimeline = (selectors: readonly string[], origin: number | null): void => {
+const alignAnimationsToTimeline = (selectors: readonly string[], origin: number | null, subtree = false): void => {
     if (origin === null) {
         return;
     }
@@ -82,7 +82,7 @@ const alignAnimationsToTimeline = (selectors: readonly string[], origin: number 
         if (!element || typeof element.getAnimations !== 'function') {
             continue;
         }
-        for (const animation of element.getAnimations()) {
+        for (const animation of element.getAnimations({ subtree })) {
             animation.currentTime = elapsed;
         }
     }
@@ -126,7 +126,7 @@ const initializePreloaderLogo = async (): Promise<void> => {
     }
     const handoff = resolveDesktopLauncherBootHandoff();
     const logoAt = handoff ? handoff.startedAt + REVEAL_DELAY_MS : null;
-    alignAnimationsToTimeline([PRELOADER_SPINNER_SELECTOR], handoff ? handoff.startedAt : null);
+    alignAnimationsToTimeline([PRELOADER_SPINNER_SELECTOR], handoff ? handoff.startedAt : null, true);
 
     const imagePromise = preloadLogo(logoPath);
     const [loadedImage] = await Promise.all([imagePromise, waitForDelay(logoAt === null ? REVEAL_DELAY_MS : Math.max(0, logoAt - Date.now()))]);

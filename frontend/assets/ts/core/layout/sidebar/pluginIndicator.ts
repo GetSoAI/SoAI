@@ -5,27 +5,34 @@ import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isFirstRunModalPending, normalizeFirstRunModalStateMap } from '@core/firstrun/state.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { isFunction, isObject } from '@core/typeGuards.ts';
-import { syncSidebarLinkIndicator } from '@core/layout/sidebar/linkIndicator.ts';
+import { SidebarLinkIndicatorController } from '@core/layout/sidebar/linkIndicator.ts';
 
 interface SidebarStoragePluginIndicatorContract {
     get?: ((key: string, defaultValue?: JsonValue) => JsonValue) | undefined;
 }
 
 interface SidebarPluginIndicatorHost {
+    canManagePlugins(): boolean;
     getPluginsLink: () => HTMLElement | null;
     resolveStorage: () => Promise<SidebarStoragePluginIndicatorContract | null>;
 }
 
 class SidebarPluginIndicatorController {
     readonly #host: SidebarPluginIndicatorHost;
-    #visible: boolean = false;
+    readonly #indicator: SidebarLinkIndicatorController;
+    #introVisible = false;
+    #updateAvailable = false;
 
     constructor(host: SidebarPluginIndicatorHost) {
         this.#host = host;
+        this.#indicator = new SidebarLinkIndicatorController({ host: { getLink: host.getPluginsLink }, indicatorClassName: 'sidebar-plugin-indicator' });
     }
 
     updateIndicator(): void {
-        syncSidebarLinkIndicator(this.#host.getPluginsLink(), 'sidebar-plugin-indicator', this.#visible);
+        const updateAvailable = this.#updateAvailable && this.#host.canManagePlugins();
+        this.#indicator.setVariantClassName(updateAvailable ? 'sidebar-plugin-indicator--update' : null);
+        this.#indicator.setVisible(this.#introVisible || updateAvailable);
+        this.#indicator.updateIndicator();
     }
 
     async refreshFromStorage(): Promise<void> {
@@ -42,9 +49,15 @@ class SidebarPluginIndicatorController {
         this.setVisible(pending);
     }
 
+    setUpdateAvailable(available: boolean): void {
+        if (this.#updateAvailable === available) return;
+        this.#updateAvailable = available;
+        this.updateIndicator();
+    }
+
     setVisible(visible: boolean): void {
-        if (this.#visible === visible) return;
-        this.#visible = visible;
+        if (this.#introVisible === visible) return;
+        this.#introVisible = visible;
         this.updateIndicator();
     }
 }

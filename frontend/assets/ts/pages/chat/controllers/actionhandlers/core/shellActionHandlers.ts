@@ -19,7 +19,40 @@ interface ChatShellActionsHost {
     toolbar: ChatToolbarActionPort;
 }
 
-type ChatShellActionId = typeof CHAT_ACTIONS.NEW_CONVERSATION | typeof CHAT_ACTIONS.TOGGLE_SIDEBAR | typeof CHAT_ACTIONS.TOGGLE_FAVORITES_AT_TOP | typeof CHAT_ACTIONS.TOGGLE_CONFIGURATION | typeof CHAT_ACTIONS.OPEN_FILES_FOLDER_SETTINGS | typeof CHAT_ACTIONS.OPEN_MEMORY_PROFILE | typeof CHAT_ACTIONS.REFRESH_MEMORY | typeof CHAT_ACTIONS.EXPORT_CONVERSATION | typeof CHAT_ACTIONS.GOTO_PROMPTS | typeof CHAT_ACTIONS.GOTO_SETTINGS_MCP | typeof CHAT_ACTIONS.GOTO_MODEL_SETTINGS | typeof CHAT_ACTIONS.GOTO_MODELS_DOWNLOAD | typeof CHAT_ACTIONS.REFRESH_PRESETS | typeof CHAT_ACTIONS.RESET_PRESETS | typeof CHAT_ACTIONS.NEW_PRESET | typeof CHAT_ACTIONS.APPLY_PRESET | typeof CHAT_ACTIONS.REPLACE_PRESET | typeof CHAT_ACTIONS.RENAME_PRESET | typeof CHAT_ACTIONS.REMOVE_PRESET | typeof CHAT_ACTIONS.SUBMIT_PRESET_EDITOR | typeof CHAT_ACTIONS.CANCEL_PRESET_EDITOR | typeof CHAT_ACTIONS.REVIEW_PRESET_EDITOR | typeof CHAT_ACTIONS.RESTORE_PARAMETER_DEFAULTS | typeof CHAT_ACTIONS.OPEN_MODEL_DETAIL;
+type ChatShellActionId =
+    | typeof CHAT_ACTIONS.ADD_MEMORY
+    | typeof CHAT_ACTIONS.VIEW_MEMORY
+    | typeof CHAT_ACTIONS.EDIT_MEMORY
+    | typeof CHAT_ACTIONS.MANAGE_MEMORY
+    | typeof CHAT_ACTIONS.DELETE_MEMORY
+    | typeof CHAT_ACTIONS.EDIT_MEMORY_OBSERVATION
+    | typeof CHAT_ACTIONS.DELETE_MEMORY_OBSERVATION
+    | typeof CHAT_ACTIONS.EDIT_MEMORY_RELATION
+    | typeof CHAT_ACTIONS.DELETE_MEMORY_RELATION
+    | typeof CHAT_ACTIONS.NEW_CONVERSATION
+    | typeof CHAT_ACTIONS.TOGGLE_SIDEBAR
+    | typeof CHAT_ACTIONS.TOGGLE_FAVORITES_AT_TOP
+    | typeof CHAT_ACTIONS.TOGGLE_CONFIGURATION
+    | typeof CHAT_ACTIONS.OPEN_FILES_FOLDER_SETTINGS
+    | typeof CHAT_ACTIONS.OPEN_MEMORY_PROFILE
+    | typeof CHAT_ACTIONS.REFRESH_MEMORY
+    | typeof CHAT_ACTIONS.EXPORT_CONVERSATION
+    | typeof CHAT_ACTIONS.GOTO_PROMPTS
+    | typeof CHAT_ACTIONS.GOTO_SETTINGS_MCP
+    | typeof CHAT_ACTIONS.GOTO_MODEL_SETTINGS
+    | typeof CHAT_ACTIONS.GOTO_MODELS_DOWNLOAD
+    | typeof CHAT_ACTIONS.REFRESH_PRESETS
+    | typeof CHAT_ACTIONS.RESET_PRESETS
+    | typeof CHAT_ACTIONS.NEW_PRESET
+    | typeof CHAT_ACTIONS.APPLY_PRESET
+    | typeof CHAT_ACTIONS.REPLACE_PRESET
+    | typeof CHAT_ACTIONS.RENAME_PRESET
+    | typeof CHAT_ACTIONS.REMOVE_PRESET
+    | typeof CHAT_ACTIONS.SUBMIT_PRESET_EDITOR
+    | typeof CHAT_ACTIONS.CANCEL_PRESET_EDITOR
+    | typeof CHAT_ACTIONS.REVIEW_PRESET_EDITOR
+    | typeof CHAT_ACTIONS.RESTORE_PARAMETER_DEFAULTS
+    | typeof CHAT_ACTIONS.OPEN_MODEL_DETAIL;
 
 const resolveEncodedModelPath = (modelId: string | null): string | null => {
     const normalizedId = toTrimmedString(modelId);
@@ -79,6 +112,15 @@ const createChatShellActionHandlers = (host: ChatShellActionsHost): Record<ChatS
             [CHAT_ACTIONS.GOTO_MODELS_DOWNLOAD]: () => host.navigation.navigateWithQuery('models', { action: MODELS_ACTION_DOWNLOAD_MODEL }),
             [CHAT_ACTIONS.RESTORE_PARAMETER_DEFAULTS]: () => host.execution.run('chat:restoreParameterDefaultsAction', () => host.configuration.restoreDefaults())
         }),
+        [CHAT_ACTIONS.ADD_MEMORY]: (element) => host.configuration.memoryAction(element),
+        [CHAT_ACTIONS.VIEW_MEMORY]: (element) => host.configuration.memoryAction(element),
+        [CHAT_ACTIONS.EDIT_MEMORY]: (element) => host.configuration.memoryAction(element),
+        [CHAT_ACTIONS.MANAGE_MEMORY]: (element) => host.configuration.memoryAction(element),
+        [CHAT_ACTIONS.DELETE_MEMORY]: (element) => host.configuration.memoryAction(element),
+        [CHAT_ACTIONS.EDIT_MEMORY_OBSERVATION]: (element) => host.configuration.memoryAction(element),
+        [CHAT_ACTIONS.DELETE_MEMORY_OBSERVATION]: (element) => host.configuration.memoryAction(element),
+        [CHAT_ACTIONS.EDIT_MEMORY_RELATION]: (element) => host.configuration.memoryAction(element),
+        [CHAT_ACTIONS.DELETE_MEMORY_RELATION]: (element) => host.configuration.memoryAction(element),
         [CHAT_ACTIONS.REFRESH_MEMORY]: () => host.execution.run('chat:refreshMemory', () => host.configuration.refreshMemory()),
         [CHAT_ACTIONS.REFRESH_PRESETS]: () => host.configuration.refreshPresets(),
         [CHAT_ACTIONS.RESET_PRESETS]: () => host.configuration.resetPresets(),

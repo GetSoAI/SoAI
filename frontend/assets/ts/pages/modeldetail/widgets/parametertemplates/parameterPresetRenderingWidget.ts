@@ -32,7 +32,7 @@ const renderPlaceholderAttribute = (placeholder: string | undefined): string => 
 
 const renderNumericInput = (_context: ParameterTemplateContext, props: NumericInputProps): string => {
     const { id, key, value, minimum, maximum, numericType, placeholder } = props;
-    const step = numericType === 'integer' ? 1 : 0.01;
+    const step = numericType === 'integer' ? '1' : 'any';
     const normalizedValue = value === null || value === undefined ? '' : String(value);
     const minMarkup = minimum !== undefined ? ` min="${securityApi.escapeAttribute(minimum)}"` : '';
     const maxMarkup = maximum !== undefined ? ` max="${securityApi.escapeAttribute(maximum)}"` : '';

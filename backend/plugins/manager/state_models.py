@@ -10,6 +10,7 @@ from core.concurrency.lock_registry import TTLAsyncLockRegistry
 from core.plugins.protocols_instance import PluginInstanceProtocol
 from core.runtime.startup_status import StartupPhaseResult
 from core.types.json import JSONDict
+from plugins.protocols_internal.state.catalog_reads import PluginCatalogReadState
 from plugins.protocols_internal.state.internal_protocols import (
     PluginAliasHydratorProtocol,
     PluginCatalogStateProtocol,
@@ -59,6 +60,12 @@ class PluginManagerCatalogState:
     alias_map: dict[str, str]
     known_plugins: set[str]
     backend_variant_count_locks: TTLAsyncLockRegistry[str]
+    backend_update_wake: asyncio.Event
+    backend_update_publication_pending: bool
+    backend_update_degraded: bool
+    model_catalog_reads: dict[int, PluginCatalogReadState] = dataclasses.field(
+        default_factory=dict[int, PluginCatalogReadState]
+    )
 
 
 @dataclasses.dataclass(slots=True)

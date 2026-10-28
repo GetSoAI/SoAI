@@ -189,7 +189,7 @@ async def create_software_update_task(
         cancellation_id=build_soai_id(
             ("sys", "software_update", safe_or_hashed_segment(task_id)),
         ),
-        metadata=metadata,
+        metadata={**metadata, "cancelable": False},
     )
 
 
@@ -285,7 +285,9 @@ async def reconcile_software_update_result(
         )
     if terminal_task is None or terminal_task.status != expected_status:
         raise StateError("Software update task terminal state conflicts with its durable result.")
-    if expected_status != TaskStatus.CANCELLED:
+    if expected_status != TaskStatus.CANCELLED and not (
+        expected_status == TaskStatus.COMPLETED and record.from_version == record.to_version
+    ):
         publish_software_update_notice(
             base_path,
             task_id=task_id,

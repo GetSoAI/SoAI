@@ -92,6 +92,8 @@ soai_install__run_target_install_deps() {
 
 soai_install__install_to_target() {
     local target="$1"
+    SOAI_INSTALL_PREVIOUS_DIRECTORY=""
+    SOAI_INSTALL_EXISTING_INSTALLATION=0
     shift
     local target_name
     target_name="$(basename "$target")"
@@ -122,52 +124,72 @@ soai_install__install_to_target() {
         soai_install__release_install_lock
         return 1
     fi
+    if [ -f "${target}/backend/main.py" ] || [ -f "${target}/.soai_install_manifest.json" ]; then
+        SOAI_INSTALL_EXISTING_INSTALLATION=1
+    fi
     soai_install__write_in_progress_marker "$target" || {
         soai_install__release_install_lock
         return 1
     }
     soai_install__emit_stage "$target" "install" "copy" "started" "Installing SoAI application files to ${target}..." || {
+        soai_install__rollback_payload "$target" || return 1
         soai_install__clear_in_progress_marker "$target"
         soai_install__release_install_lock
         return 1
     }
     if ! soai_install__copy_tree "$SCRIPT_DIR" "$target"; then
         soai_install__emit_stage "$target" "install" "copy" "failed" "SoAI application file install failed for ${target}." || true
+        soai_install__rollback_payload "$target" || return 1
         soai_install__clear_in_progress_marker "$target"
         soai_install__release_install_lock
         return 1
     fi
     soai_install__emit_stage "$target" "install" "copy" "completed" "SoAI application files are installed at ${target}." || {
+        soai_install__rollback_payload "$target" || return 1
         soai_install__clear_in_progress_marker "$target"
         soai_install__release_install_lock
         return 1
     }
     soai_install__emit_stage "$target" "install" "dependencies" "started" "Provisioning SoAI runtime dependencies in ${target}..." || {
+        soai_install__rollback_payload "$target" || return 1
         soai_install__clear_in_progress_marker "$target"
         soai_install__release_install_lock
         return 1
     }
     if ! soai_install__run_target_install_deps "$target" "$@"; then
         soai_install__emit_stage "$target" "install" "dependencies" "failed" "SoAI runtime dependency provisioning failed in ${target}." || true
+        soai_install__rollback_payload "$target" || {
+            soai_install__release_install_lock
+            return 1
+        }
         soai_install__clear_in_progress_marker "$target"
         soai_install__release_install_lock
         return 1
     fi
     soai_install__emit_stage "$target" "install" "dependencies" "completed" "SoAI runtime dependencies are ready in ${target}." || {
+        soai_install__rollback_payload "$target" || return 1
         soai_install__clear_in_progress_marker "$target"
         soai_install__release_install_lock
         return 1
     }
     soai_install__write_manifest "$target" "$SCRIPT_DIR" || {
+        soai_install__rollback_payload "$target" || return 1
         soai_install__clear_in_progress_marker "$target"
+        soai_install__release_install_lock
+        return 1
+    }
+    soai_install__upgrade_operation "$target" finish || {
+        soai_install__rollback_payload "$target" || return 1
+        soai_install__release_install_lock
+        return 1
+    }
+    soai_install__commit_payload "$target" || {
         soai_install__release_install_lock
         return 1
     }
     soai_install__release_install_lock
     if [ "${SOAI_INSTALL_FAST:-0}" = "1" ]; then
-        if ! soai_install__post_install_fast "$target"; then
-            return 1
-        fi
+        soai_install__post_install_fast "$target" || return 1
     fi
     soai_install__emit_stage "$target" "install" "complete" "completed" "SoAI install completed successfully at ${target}." || {
         return 1

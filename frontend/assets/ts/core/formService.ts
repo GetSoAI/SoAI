@@ -90,7 +90,7 @@ class FormManager {
                     value = this.extractElementValue(htmlElement);
                 } catch (error) {
                     const runtimeError = ensureError(error);
-                    errorHandler?.warn?.('FormService', 'Failed to read form value', runtimeError);
+                    errorHandler.debug('FormService', 'Form value validation failed', runtimeError);
                     setControlValidity(htmlElement, false, SETTINGS_VALIDITY_OWNER_SELECTOR);
                     this.notifyChange({ element: htmlElement, path, value: undefined, hasChanges: configManager.hasChanges, valid: false });
                     return;

@@ -6,7 +6,7 @@ import { createSaveController, SAVE_HEADER_PRIORITY_MODAL, type SaveController }
 import type { ChatParameters, ConversationSettingsSavePlanInput } from '@features/chat/public.ts';
 import { FieldStateTracker } from '@core/forms/fieldStateTracker.ts';
 import { ConfigurationEditSessionStateManager, type EditableConfigurationSessionState } from '@pages/chat/controllers/chatconfigurationcontroller/ConfigurationEditSessionStateManager.ts';
-import { cancelConfigurationEditState, commitConfigurationEditState, createConfigurationEditSession, hasPendingConfigurationParameterChanges } from '@pages/chat/controllers/chatconfigurationcontroller/effects.ts';
+import { commitConfigurationEditState, createConfigurationEditSession, hasPendingConfigurationParameterChanges } from '@pages/chat/controllers/chatconfigurationcontroller/effects.ts';
 import { applyConfigurationCommitSideEffects, applyConfigurationParameterSideEffects, refreshConfigurationParameterUi, type ConfigurationProjectionEffect } from '@pages/chat/controllers/chatconfigurationcontroller/service.ts';
 import type { ConfigurationControllerHost, ConfigurationControllerStateAccess, ConversationSettingsSavePlan } from '@pages/chat/controllers/chatconfigurationcontroller/types.ts';
 import { ConfigurationOperationGate } from '@pages/chat/controllers/chatconfigurationcontroller/configurationOperationGateDomain.ts';
@@ -30,7 +30,7 @@ class ChatConfigurationController implements EditableConfigurationSessionState {
     #state: ConfigurationControllerStateAccess;
     #isDestroyed = false;
     #activeTab: string = 'general';
-    #settingsPlan: ConversationSettingsSavePlan = { conversation: null, knowledge: null, tools: null };
+    #settingsPlan: ConversationSettingsSavePlan = { conversation: null, knowledge: null, skills: null, tools: null };
     #parameterChangeTracker: FieldStateTracker | null = null;
     readonly #save: SaveController;
     readonly #operationGate = new ConfigurationOperationGate();
@@ -104,7 +104,7 @@ class ChatConfigurationController implements EditableConfigurationSessionState {
                 commitAllCore: async () => (this.#isDestroyed ? false : await this.commitConfigurationEdit()),
                 retryProjectionEffects: async () => (this.#isDestroyed ? false : await this.#retryProjectionEffects()),
                 stop: (error, unitId) => {
-                    this.#saveOutcome.fail(unitId);
+                    this.#saveOutcome.fail(unitId, ensureError(error));
                     errorHandler.error('ChatConfigurationController', `Chat configuration ${unitId} save failed`, ensureError(error));
                     return { type: 'stop' };
                 },
@@ -220,9 +220,7 @@ class ChatConfigurationController implements EditableConfigurationSessionState {
             this.updateConfigurationSaveState();
             return;
         }
-        cancelConfigurationEditState({
-            parameterChangeTracker: this.#parameterChangeTracker
-        });
+        this.#parameterChangeTracker?.clearAll();
         ConfigurationEditSessionStateManager.clearConfigurationEditSessionState(this, (tracker) => {
             this.#parameterChangeTracker = tracker;
         });
@@ -236,7 +234,8 @@ class ChatConfigurationController implements EditableConfigurationSessionState {
         const commitState = commitConfigurationEditState({
             stateAccess: this.#state,
             host: this.#host,
-            editingParameters: this.editingParameters
+            editingParameters: this.editingParameters,
+            parameterEditBaseline: this.parameterEditBaseline
         });
         if (commitState.committed) {
             this.model.rebase();

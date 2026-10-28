@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { errorHandler } from '@core/errorHandler.ts';
+import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { monotonicMs } from '@core/time/clock.ts';
 import { normalizeConversationId, type RagIngestionAttachmentSource, type RagIngestionStatus } from '@features/chat/public.ts';
 import type { RagIngestionBatchStateUpdate } from '@features/chat/ragingestion/batchupload/state.ts';
 import { cancelRagIngestionFlow } from '@features/chat/ragingestion/cancellation/service.ts';
-import { resolveCompletedRagIngestionStatus } from '@features/chat/ragingestion/finalization/state.ts';
+import { isRagIngestionTerminal, resolveCompletedRagIngestionStatus } from '@features/chat/ragingestion/finalization/state.ts';
+import { knowledgeSummaryMatchesIngestion, selectLatestKnowledgeAttachmentSummary } from '@features/chat/knowledgeAttachmentPresentation.ts';
 import { uploadRagIngestionBatch } from '@features/chat/ragingestion/service.ts';
 import type { RagIngestionControllerDependencies, RagQueuedIngestionFile, StartIngestionArguments } from '@features/chat/ragingestion/contracts.ts';
 import { RagIngestionPauseController } from '@features/chat/ragingestion/RagIngestionPauseController.ts';
@@ -81,6 +83,16 @@ class RagIngestionController {
         });
     }
 
+    reconcileKnowledgeAttachment(summary: KnowledgeAttachmentSummary): void {
+        const current = this.#status;
+        if (this.#disposed || current === null || current.conversationId !== summary.convId || !knowledgeSummaryMatchesIngestion(summary, current)) return;
+        const latest = current.knowledgeAttachment === null ? summary : selectLatestKnowledgeAttachmentSummary(current.knowledgeAttachment, summary);
+        const uploadSettled = isRagIngestionTerminal(current) && this.#queue.length === 0 && this.#inFlight === 0;
+        if (current.knowledgeAttachment === latest && !uploadSettled) return;
+        this.#status = uploadSettled ? null : { ...current, knowledgeAttachment: latest };
+        this.#dependencies.onStatusChange(this.#status);
+    }
+
     async start(inputArguments: StartIngestionArguments): Promise<void> {
         if (this.#disposed) {
             throw new Error('RAG ingestion controller has been disposed');
@@ -98,7 +110,7 @@ class RagIngestionController {
             throw new Error('No valid files were selected for knowledge ingestion');
         }
         const existing = this.#status;
-        if (existing && existing.state !== 'submitted' && existing.state !== 'cancelled' && existing.conversationId !== conversationId) {
+        if (existing && !isRagIngestionTerminal(existing) && existing.conversationId !== conversationId) {
             throw new Error('A knowledge ingestion job is already running for another conversation');
         }
 
@@ -145,7 +157,7 @@ class RagIngestionController {
         if (this.#cancelRequested) {
             return;
         }
-        if (current.state === 'cancelled' || current.state === 'submitted') {
+        if (isRagIngestionTerminal(current)) {
             return;
         }
         const now = monotonicMs();
@@ -192,6 +204,7 @@ class RagIngestionController {
         if (completed !== null) {
             this.#status = completed;
             this.#dependencies.onStatusChange(this.#status);
+            if (completed.knowledgeAttachment !== null) this.reconcileKnowledgeAttachment(completed.knowledgeAttachment);
         }
     }
 

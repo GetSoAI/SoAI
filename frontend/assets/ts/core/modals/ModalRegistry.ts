@@ -7,6 +7,7 @@ import type { ModalConfig, ModalRegisterOptions } from '@core/modals/types.ts';
 import { isFunction, isObject } from '@core/typeGuards.ts';
 
 const STANDARD_MODAL_BEHAVIOR: Readonly<Omit<ModalConfig, 'size' | 'minWidth' | 'minHeight' | 'onOpen' | 'onClose'>> = Object.freeze({
+    presentation: 'window',
     closeOnEsc: true,
     closeOnOverlay: true,
     restoreFocus: true,
@@ -66,6 +67,7 @@ class ModalRegistry {
         const config: ModalConfig = {
             ...STANDARD_MODAL_BEHAVIOR,
             ...contract,
+            presentation: options.presentation ?? 'window',
             resizable: normalizeOptionalBoolean(options.resizable, STANDARD_MODAL_BEHAVIOR.resizable, 'resizable'),
             allowFullscreen: normalizeOptionalBoolean(options.allowFullscreen, STANDARD_MODAL_BEHAVIOR.allowFullscreen, 'allowFullscreen'),
             initialFocusSelector,
@@ -73,6 +75,11 @@ class ModalRegistry {
             onClose: lifecycle.onClose
         };
 
+        if (config.presentation === 'viewport') {
+            config.resizable = false;
+            config.allowFullscreen = false;
+            config.closeOnOverlay = false;
+        }
         this.#configs.set(id, config);
         return config;
     }

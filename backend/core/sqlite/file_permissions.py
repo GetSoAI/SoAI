@@ -7,6 +7,7 @@ import os
 import stat
 
 from core.errors.exceptions import SecurityError
+from core.filesystem.descriptor_io import open_descriptor
 
 __all__ = ("secure_sqlite_file_permissions",)
 
@@ -25,7 +26,7 @@ def _open_existing_no_follow(path: str) -> int | None:
     if os.name != "nt":
         flags |= os.O_NOFOLLOW
     try:
-        return os.open(path, flags)
+        return open_descriptor(path, flags)
     except FileNotFoundError:
         return None
     except OSError as exception:
@@ -37,7 +38,7 @@ def _create_sqlite_file_if_missing(path: str) -> None:
     if os.name != "nt":
         flags |= os.O_NOFOLLOW
     try:
-        descriptor = os.open(path, flags, _SQLITE_FILE_MODE)
+        descriptor = open_descriptor(path, flags, _SQLITE_FILE_MODE)
     except FileExistsError:
         return
     except OSError as exception:

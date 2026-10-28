@@ -11,6 +11,7 @@ from typing import NoReturn
 from core.files.managed_storage_errors import FileStorageSecurityError
 from core.files.windows_managed_path_handles import open_windows_managed_path_handles
 from core.files.windows_reparse_points import is_windows_reparse_point
+from core.filesystem.descriptor_io import open_descriptor
 
 __all__ = (
     "WorkspaceEntryDescriptor",
@@ -114,7 +115,7 @@ def open_workspace_directory_fd(
     if not stat.S_ISDIR(stat_before.st_mode):
         _raise(error_cls, "SoAI path parent segment is not a directory.")
     try:
-        descriptor = os.open(segment, _directory_open_flags(), dir_fd=dir_fd)
+        descriptor = open_descriptor(segment, _directory_open_flags(), dir_fd=dir_fd)
     except OSError as exception:
         raise error_cls("SoAI path parent segment could not be opened.") from exception
     try:
@@ -277,7 +278,7 @@ def open_workspace_file_descriptor(
             _raise(error_cls, "SoAI path target must be a regular file.")
         descriptor = -1
         try:
-            descriptor = os.open(leaf, _file_open_flags(), dir_fd=stack[-1])
+            descriptor = open_descriptor(leaf, _file_open_flags(), dir_fd=stack[-1])
         except OSError as exception:
             raise error_cls("SoAI path target could not be opened.") from exception
         completed = False

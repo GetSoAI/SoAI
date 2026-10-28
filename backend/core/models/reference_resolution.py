@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -28,6 +28,7 @@ __all__ = (
     "load_model_info_records",
     "resolve_context_window_tokens_for_reference",
     "resolve_model_reference",
+    "resolve_stored_model_references",
 )
 
 
@@ -98,6 +99,50 @@ async def resolve_model_reference(
         is_virtual=False,
         is_enabled=True,
     )
+
+
+async def resolve_stored_model_references(
+    *,
+    model_names: Iterable[str],
+    model_resolution_service: ModelResolutionServiceProtocol,
+    model_information_service: ModelInformationServiceProtocol,
+) -> dict[str, str]:
+    normalized_names = tuple(
+        dict.fromkeys(
+            name for raw_name in model_names if (name := coerce_optional_trimmed_str(raw_name))
+        ),
+    )
+    if not normalized_names:
+        return {}
+    catalog_id_by_universal_id: dict[str, str] = {}
+    universal_id_by_catalog_id: dict[str, str] = {}
+    ambiguous_catalog_ids: set[str] = set()
+    for entries in (await model_information_service.model_get_formatted_list()).values():
+        for entry in entries:
+            catalog_id = coerce_optional_trimmed_str(entry.get("id"))
+            universal_id = coerce_optional_trimmed_str(entry.get("universal_id"))
+            if catalog_id is None or universal_id is None:
+                continue
+            if universal_id not in catalog_id_by_universal_id:
+                catalog_id_by_universal_id[universal_id] = catalog_id
+            if universal_id_by_catalog_id.get(catalog_id, universal_id) != universal_id:
+                ambiguous_catalog_ids.add(catalog_id)
+            universal_id_by_catalog_id[catalog_id] = universal_id
+    stored_references: dict[str, str] = {}
+    for name in normalized_names:
+        universal_id = await model_resolution_service.model_resolve_to_universal_id(name)
+        if universal_id is None and name not in ambiguous_catalog_ids:
+            universal_id = universal_id_by_catalog_id.get(name)
+        if universal_id is None or universal_id not in catalog_id_by_universal_id:
+            continue
+        catalog_id = catalog_id_by_universal_id[universal_id]
+        catalog_id_resolves = (
+            catalog_id not in ambiguous_catalog_ids
+            and await model_resolution_service.model_resolve_to_universal_id(catalog_id)
+            == universal_id
+        )
+        stored_references[name] = catalog_id if catalog_id_resolves else universal_id
+    return stored_references
 
 
 async def load_model_info_records(

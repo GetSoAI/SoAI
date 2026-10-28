@@ -14,8 +14,8 @@ import type { AiSetupActionId } from '@pages/wizard/actions.ts';
 import type { AiSetupController } from '@pages/wizard/services/aisetup/AiSetupController.ts';
 import { resolveSearchPluginName } from '@pages/wizard/services/aisetup/facts/service.ts';
 import type { ProviderDraft } from '@pages/wizard/services/aisetup/AiSetupCloudConnectionSession.ts';
-import { readBackendRowPlugin } from '@pages/wizard/services/aisetup/progress/mappers.ts';
-import { activeProvider, withBackendExcluded, withCloudSelection, withEngineChoice, withFirstChat, withItemExcluded, withLocalSelection, withSources, type LocalModelPick } from '@pages/wizard/services/aisetup/state.ts';
+import { readBackendRowPlugin, isLocalDownloadComplete } from '@pages/wizard/services/aisetup/progress/mappers.ts';
+import { activeProvider, readLocalModelPick, withBackendExcluded, withCloudSelection, withEngineChoice, withFirstChat, withItemExcluded, withLocalSelection, withSources, type LocalModelPick } from '@pages/wizard/services/aisetup/state.ts';
 import { findModelCatalogEntry } from '@pages/wizard/services/aisetup/catalog/constants.ts';
 
 interface AiSetupInteractionsFlowPort {
@@ -28,11 +28,11 @@ interface AiSetupInteractionsControllerHost {
     controller: AiSetupController;
     flow: AiSetupInteractionsFlowPort;
     goToStep(stepId: AiSetupWizardStepId): void;
+    skip(): void;
     syncSteps(): void;
     syncNavigation(): void;
     focusCloudError(): void;
     openModelSearch(): void;
-    revealSearchVariants(): void;
     requireContent(): HTMLElement;
 }
 
@@ -40,8 +40,6 @@ const readFormValue = (form: HTMLFormElement, name: string): string => {
     const field = form.elements.namedItem(name);
     return field instanceof HTMLInputElement || field instanceof HTMLSelectElement ? field.value : '';
 };
-
-const readLocalPicks = (setup: AiSetupState): LocalModelPick[] => setup.models.flatMap((model) => (model.source === 'local' && !model.excluded && model.repositoryId !== null && model.artifactReference !== null ? [{ catalogId: model.catalogId, pluginName: model.pluginName, repositoryId: model.repositoryId, artifactReference: model.artifactReference, artifactName: model.artifactName ?? model.artifactReference }] : []));
 
 const resolveSelectionItemId = (setup: AiSetupState, key: string): string | null => {
     const { type, value } = parseSelectionKey(key);
@@ -165,26 +163,25 @@ class AiSetupInteractionsController {
             this.#applySelection(() => controller.updateSetup((state) => withCloudSelection(state, selected ? [...current, { pluginName: provider.pluginName, modelId: value }] : current)));
             return;
         }
-        const picks = readLocalPicks(setup);
+        if (isLocalDownloadComplete(controller.requireSetup(), controller.operations.observations)) return;
         const entry = type === 'catalog' ? findModelCatalogEntry(value) : null;
-        const pick: LocalModelPick | null = entry === null ? null : { catalogId: entry.id, pluginName: entry.pluginName, repositoryId: entry.repository, artifactReference: entry.file, artifactName: entry.file };
-        const itemId = resolveSelectionItemId(setup, key);
-        const item = setup.models.find((model) => model.itemId === itemId) ?? null;
-        const remaining = picks.filter((candidate) => item === null || candidate.repositoryId !== item.repositoryId || candidate.artifactReference !== item.artifactReference);
-        this.#applySelection(() => controller.updateSetup((state) => withLocalSelection(state, selected && pick !== null ? [...remaining, pick] : remaining)));
+        const item = setup.models.find((model) => model.itemId === value) ?? null;
+        const pick: LocalModelPick | null = entry !== null ? { catalogId: entry.id, pluginName: entry.pluginName, repositoryId: entry.repository, artifactReference: entry.file, artifactName: entry.file } : item === null ? null : readLocalModelPick(item);
+        this.#applySelection(() => controller.updateSetup((state) => withLocalSelection(state, selected && pick !== null ? [pick] : [])));
     }
 
     #addVariant(index: number): void {
         const controller = this.#host.controller;
         const pick = controller.search.readVariantPick(this.#searchPluginName(), index);
-        if (pick === null) return;
-        this.#applySelection(() => controller.updateSetup((state) => withLocalSelection(state, [...readLocalPicks(state), pick])));
+        if (pick === null || isLocalDownloadComplete(controller.requireSetup(), controller.operations.observations)) return;
+        this.#applySelection(() => controller.updateSetup((state) => withLocalSelection(state, [pick])));
         this.#refresh();
     }
 
     #applySelection(apply: () => void): void {
         try {
             apply();
+            this.#host.controller.operations.reconcile();
         } catch (error) {
             const runtimeError = ensureError(error);
             if (!(runtimeError instanceof RangeError)) throw runtimeError;
@@ -199,10 +196,14 @@ class AiSetupInteractionsController {
         const backendPlugin = readBackendRowPlugin(rowKey);
         if (action === 'skip') {
             controller.updateSetup((state) => (backendPlugin === null ? withItemExcluded(state, rowKey) : withBackendExcluded(state, backendPlugin)));
+            if (!controller.requireSetup().models.some((model) => !model.excluded)) {
+                this.#host.skip();
+                return;
+            }
+        } else if (action === 'repair_runtime' && item?.test.failure?.code === 'openvino_tensor_shape_incompatible') {
+            controller.operations.startInstall(item.pluginName, 'cpu', 'plugin_backend_update');
         } else if (action === 'retry_installation') {
             controller.operations.retryInstall(backendPlugin ?? item?.pluginName ?? '');
-        } else if (action === 'check_again' && item !== null) {
-            controller.operations.checkAgain(item.itemId);
         } else if (action === 'retry' && item !== null && item.test.status !== 'failed') {
             controller.operations.retryDownload(item.itemId);
         } else if (item !== null) {
@@ -219,7 +220,6 @@ class AiSetupInteractionsController {
     async #selectSearchResult(index: number): Promise<void> {
         await this.#host.controller.search.selectResult(this.#searchPluginName(), index);
         this.#host.flow.refreshNow();
-        this.#host.revealSearchVariants();
     }
 
     #searchPluginName(): string {

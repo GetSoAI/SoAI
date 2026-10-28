@@ -94,6 +94,9 @@ const loadWindowResponse = async (manager: ChatMessageWindowRuntime, conversatio
         if (!conversation) {
             return null;
         }
+        if (options.isCurrentOperation !== undefined && !options.isCurrentOperation()) {
+            return null;
+        }
         const expectedMessageCount = normalizeExpectedMessageCount(options.expectedMessageCount);
         if (!isWindowResponseApplicable(conversation, expectedMessageCount, readResult.totalCount, readResult.lastModifiedAtMs, options.force === true, options.allowAuthoritativeCountDecrease === true)) {
             return null;
@@ -106,6 +109,9 @@ const loadWindowResponse = async (manager: ChatMessageWindowRuntime, conversatio
 };
 
 async function loadConversationMessages(manager: ChatMessageWindowRuntime, conversationId: string, options: LoadConversationMessagesOptions = {}): Promise<void> {
+    if (options.isCurrentOperation !== undefined && !options.isCurrentOperation()) {
+        return;
+    }
     const normalizedConversationId = requireConversationId(conversationId, 'Conversation');
     const conversation = manager.state.getConversations().get(normalizedConversationId);
     if (!conversation) {
@@ -116,6 +122,8 @@ async function loadConversationMessages(manager: ChatMessageWindowRuntime, conve
         if (direction === 'tail' || direction === 'around') {
             manager.messageWindowRequests.invalidateConversation(normalizedConversationId);
             await loadWindowResponse(manager, normalizedConversationId, options, direction);
+            if (options.isCurrentOperation !== undefined && !options.isCurrentOperation()) return;
+            if (conversation.history?.totalCount === 0) return;
             await refreshRunningActivitySnapshotForHydratedWindow(manager, normalizedConversationId, options.signal);
             return;
         }

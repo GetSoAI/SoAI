@@ -9,11 +9,11 @@ import { interruptActiveStreamForConversation } from '@features/chat/chatstreams
 import { streamResponse } from '@features/chat/chatstreamservice/controller/actions/streamResponse.ts';
 import { refreshCurrentConversationActivityClock } from '@features/chat/chatstreamservice/controller/activityClock.ts';
 import { handleServiceUpdate } from '@features/chat/chatstreamservice/controller/serviceUpdates.ts';
-import { createChatStreamingControllerContext, disposeContext, getConversationStreamState, invalidateMatchingStreamingElementCache, isConversationStreamingUiActive, isTerminalRenderPendingForMessage, reconcileInactiveSyncedConversation, requireConversationStreamState, requireScheduleStreamRender, suspendPresentationContext } from '@features/chat/chatstreamservice/controller/state.ts';
+import { createChatStreamingControllerContext, disposeContext, getConversationStreamState, invalidateMatchingStreamingElementCache, isConversationStreamingUiActive, reconcileInactiveSyncedConversation, requireConversationStreamState, requireScheduleStreamRender, resolveTerminalRenderStateForMessage, suspendPresentationContext } from '@features/chat/chatstreamservice/controller/state.ts';
 import { waitForTerminalReconciliation } from '@features/chat/chatstreamservice/controller/terminalizationState.ts';
 import { buildTurnAdmissionSnapshot, resolveSyncedTurnAdmissionSnapshot } from '@features/chat/chatstreamservice/controller/turnAdmission.ts';
 import type { ChatStreamingControllerContext, ChatStreamingControllerDependencies, ChatStreamingControllerOptions, ChatStreamingControllerState, ChatStreamResponseOptions, StreamUpdate } from '@features/chat/chatstreamservice/controller/types.ts';
-import type { ChatStreamLifecycle, ChatStreamStartAdmission, ChatStreamStopOptions, ChatTurnAdmissionSnapshot, ChatTurnAdmissionStreamIdentity, StreamListener } from '@features/chat/chatstreamservice/types.ts';
+import type { ChatStreamLifecycle, ChatStreamStartAdmission, ChatStreamStopOptions, ChatStreamTerminalRenderState, ChatTurnAdmissionSnapshot, ChatTurnAdmissionStreamIdentity, StreamListener } from '@features/chat/chatstreamservice/types.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 import { createAbortSignalScope, isAbortError } from '@core/errors/abort.ts';
 import { TimeoutTimer } from '@core/timers/timeoutTimer.ts';
@@ -54,6 +54,8 @@ class ChatStreamingController {
         if (this.#context.disposed) {
             throw new Error('Cannot resume a disposed Chat streaming presentation');
         }
+        this.#context.presentationAbort.abort();
+        this.#context.presentationAbort = new AbortController();
         this.#context.presentationGeneration += 1;
         this.#context.presentationActive = true;
     }
@@ -197,8 +199,8 @@ class ChatStreamingController {
         return isConversationStreamingUiActive(this.#context, conversationId);
     }
 
-    isTerminalRenderPending(conversationId: string, message: ChatMessage): boolean {
-        return isTerminalRenderPendingForMessage(this.#context, conversationId, message);
+    resolveTerminalRenderState(conversationId: string, message: ChatMessage): ChatStreamTerminalRenderState {
+        return resolveTerminalRenderStateForMessage(this.#context, conversationId, message);
     }
 
     canQueueConversationInput(conversationId: string): boolean {

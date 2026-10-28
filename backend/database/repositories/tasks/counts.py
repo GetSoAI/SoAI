@@ -8,12 +8,13 @@ from typing import TYPE_CHECKING
 import aiosqlite
 
 from core.tasks.status_policy import (
-    ACTIVE_TASK_STATUS_VALUES,
     RUNNING_TASK_STATUS_VALUES,
-    active_task_status_placeholders,
     running_task_status_placeholders,
 )
-from core.tasks.type_catalog import orchestrated_inference_task_type_values
+from core.tasks.type_catalog import (
+    TASK_TYPE_CHAT_COMPLETION,
+    orchestrated_inference_task_type_values,
+)
 from database.core.query_execution import query_one_to_dict
 from database.core.sqlite_numbers import coerce_required_int_from_sqlite_row
 from database.repositories.tasks.filters import (
@@ -26,7 +27,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "build_unified_task_count",
-    "count_active_unified_tasks_query",
     "count_running_orchestrated_inference_tasks_for_owner_query",
     "count_unified_tasks_visible_to_user_query",
 )
@@ -36,25 +36,6 @@ def _count_from_row(row: SQLiteRowDict | None) -> int:
     if row is None:
         return 0
     return coerce_required_int_from_sqlite_row(row, "count")
-
-
-async def count_active_unified_tasks_query(
-    database: aiosqlite.Connection,
-    owner_type: str,
-    owner_id: str,
-) -> int:
-    row = await query_one_to_dict(
-        database,
-        f"""
-        SELECT COUNT(*) AS count FROM unified_tasks
-        WHERE owner_type = ?
-          AND owner_id = ?
-          AND status IN ({active_task_status_placeholders()})
-          AND cancellation_requested_at_ms IS NULL
-        """,
-        (owner_type, owner_id, *ACTIVE_TASK_STATUS_VALUES),
-    )
-    return _count_from_row(row)
 
 
 async def count_running_orchestrated_inference_tasks_for_owner_query(
@@ -72,12 +53,18 @@ async def count_running_orchestrated_inference_tasks_for_owner_query(
           AND task_type IN ({task_type_placeholders})
           AND status IN ({running_task_status_placeholders()})
           AND cancellation_requested_at_ms IS NULL
+          AND NOT (
+              task_type = ?
+              AND COALESCE(json_extract(metadata, '$.event_type'), '') = ?
+          )
         """,
         (
             owner_type,
             owner_id,
             *task_type_values,
             *RUNNING_TASK_STATUS_VALUES,
+            TASK_TYPE_CHAT_COMPLETION,
+            "agentic_async_loop",
         ),
     )
     return _count_from_row(row)

@@ -62,14 +62,14 @@
         --ui-round-button-surface-hover: var(--control-round-button-neutral-bg-hover);
 
         background: var(--control-round-button-neutral-bg);
-        border-color: var(--ui-round-button-border-color);
+        border-color: color-mix(in srgb, var(--ui-round-button-border-color) var(--control-button-border-strength), transparent);
         color: var(--control-round-button-foreground);
     }
 
     :where(.chat-container, .archived-conversations-modal) .chat-color-picker-actions .chat-color-option:hover,
     :where(.chat-container, .archived-conversations-modal) .chat-color-picker-actions .chat-color-option:focus-visible {
         transform: none;
-        border-color: var(--ui-round-button-border-color);
+        border-color: color-mix(in srgb, var(--ui-round-button-border-color) var(--control-button-border-strength), transparent);
         background: var(--ui-round-button-surface-hover);
     }
 

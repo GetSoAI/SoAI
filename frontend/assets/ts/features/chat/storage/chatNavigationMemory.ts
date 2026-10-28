@@ -17,6 +17,7 @@ const CONVERSATION_SCROLL_SNAPSHOT_LIMIT = 100;
 type ConversationScrollSnapshot = Readonly<{
     cursor: MessageCursor;
     renderAnchor: MessageWindowScrollAnchor;
+    followLatest: boolean;
 }>;
 
 interface ChatNavigationMemory {
@@ -103,7 +104,7 @@ const readStoredScrollSnapshots = (userId: string): Map<string, ConversationScro
         const cursor = decodeMessageCursor(entry['cursor']);
         const renderAnchor = decodeRenderAnchor(entry['renderAnchor']);
         if (conversationId === null || cursor === null || renderAnchor === null) continue;
-        setMostRecentScrollSnapshot(snapshots, conversationId, { cursor, renderAnchor });
+        setMostRecentScrollSnapshot(snapshots, conversationId, { cursor, renderAnchor, followLatest: entry['followLatest'] === true });
     }
     return snapshots;
 };
@@ -114,7 +115,8 @@ const encodeScrollSnapshots = (snapshots: ReadonlyMap<string, ConversationScroll
         entries.push({
             conversationId,
             cursor: { createdAtMs: snapshot.cursor.createdAtMs, id: snapshot.cursor.id },
-            renderAnchor: { messageId: snapshot.renderAnchor.messageId, assistantTurnTimestamp: snapshot.renderAnchor.assistantTurnTimestamp, offsetTopWithinMessage: snapshot.renderAnchor.offsetTopWithinMessage }
+            renderAnchor: { messageId: snapshot.renderAnchor.messageId, assistantTurnTimestamp: snapshot.renderAnchor.assistantTurnTimestamp, offsetTopWithinMessage: snapshot.renderAnchor.offsetTopWithinMessage },
+            followLatest: snapshot.followLatest
         });
     }
     return entries;
@@ -172,7 +174,7 @@ const createChatNavigationMemory = (options: ChatNavigationMemoryOptions): ChatN
         },
         getConversationScrollSnapshot: (conversationId: string): ConversationScrollSnapshot | null => state.scrollSnapshots.get(conversationId) ?? null,
         rememberConversationScrollSnapshot: (conversationId: string, snapshot: ConversationScrollSnapshot): void => {
-            const storedSnapshot: ConversationScrollSnapshot = { cursor: { ...snapshot.cursor }, renderAnchor: { ...snapshot.renderAnchor } };
+            const storedSnapshot: ConversationScrollSnapshot = { cursor: { ...snapshot.cursor }, renderAnchor: { ...snapshot.renderAnchor }, followLatest: snapshot.followLatest };
             setMostRecentScrollSnapshot(state.scrollSnapshots, conversationId, storedSnapshot);
             state.unpersistedScrollSnapshots.set(conversationId, storedSnapshot);
         },

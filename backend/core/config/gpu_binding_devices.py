@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -28,6 +28,7 @@ __all__ = (
     "collect_gpu_binding_available_entries",
     "GpuBindingVisibilityTokens",
     "is_gpu_binding_eligible_entry",
+    "resolve_gpu_binding_selected_entries",
     "resolve_gpu_binding_visibility_tokens",
     "validate_gpu_binding_device_ids",
     "validate_gpu_binding_runtime",
@@ -65,7 +66,7 @@ def validate_gpu_binding_device_ids(binding: JSONDict, snapshot: JSONDict) -> No
     selected_ids = gpu_binding_selected_device_ids(binding)
     if not selected_ids:
         return
-    _selected_gpu_entries(snapshot, selected_ids)
+    resolve_gpu_binding_selected_entries(snapshot, selected_ids)
 
 
 def validate_gpu_binding_runtime(
@@ -80,7 +81,7 @@ def validate_gpu_binding_runtime(
         raise ValidationError(
             "GPU_BINDING selected GPUs, but the installed backend runtime does not support GPU binding.",
         )
-    selected_gpus = _selected_gpu_entries(snapshot, selected_ids)
+    selected_gpus = resolve_gpu_binding_selected_entries(snapshot, selected_ids)
     if runtime_family in {GPU_BINDING_RUNTIME_CUDA, GPU_BINDING_RUNTIME_CUDA_INDEX}:
         resolve_gpu_binding_visibility_tokens(selected_gpus, runtime_family)
         return
@@ -153,29 +154,31 @@ def resolve_gpu_binding_visibility_tokens(
     )
 
 
-def _selected_gpu_entries(snapshot: JSONDict, selected_ids: list[str]) -> list[JSONDict]:
-    entries = _available_gpu_entries(snapshot)
-    available_ids: set[str] = set()
+def resolve_gpu_binding_selected_entries(
+    snapshot: Mapping[str, JSONValue],
+    selected_ids: Sequence[str],
+) -> list[JSONDict]:
+    entries = collect_gpu_binding_available_entries(snapshot)
     by_device_id: dict[str, JSONDict] = {}
     for entry in entries:
         device_id = _entry_device_id(entry)
         if device_id is None:
             continue
-        available_ids.add(device_id)
+        if device_id in selected_ids and device_id in by_device_id:
+            raise ValidationError(
+                "GPU_BINDING cannot resolve a GPU with duplicate device identity.",
+                details={"reason": "gpu_binding_identity_conflict", "device_id": device_id},
+            )
         by_device_id[device_id] = entry
-    if not available_ids:
+    if not by_device_id:
         raise ValidationError("GPU_BINDING selected GPUs, but no GPUs are currently available.")
-    missing_ids = [device_id for device_id in selected_ids if device_id not in available_ids]
+    missing_ids = [device_id for device_id in selected_ids if device_id not in by_device_id]
     if missing_ids:
         missing = ", ".join(sorted(missing_ids))
         raise ValidationError(
             f"GPU_BINDING references unavailable GPU device IDs: {missing}",
         )
     return [by_device_id[device_id] for device_id in selected_ids]
-
-
-def _available_gpu_entries(snapshot: JSONDict) -> list[JSONDict]:
-    return collect_gpu_binding_available_entries(snapshot)
 
 
 def _entry_device_id(entry: JSONDict) -> str | None:

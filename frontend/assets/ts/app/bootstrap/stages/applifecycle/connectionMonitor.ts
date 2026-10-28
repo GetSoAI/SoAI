@@ -5,6 +5,7 @@ import type { MainStateIndicatorApi, MaintenanceCoordinatorApi, RestartOverlayAp
 import { requireAuthManager } from '@core/auth/runtime.ts';
 import type { ConnectionStatus } from '@core/connectionstatus/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { isPageTerminating } from '@core/lifecycle/pageTermination.ts';
 import { createWebSocketContractBinding, subscribeManagedWebSocketContracts } from '@core/realtime/websocketBatchSubscription.ts';
@@ -108,13 +109,15 @@ const monitorLifecycleConnectionStatus = ({ connectionStatus, restartOverlay, ma
                 handler: (payload) => {
                     if (payload.sessionClosure === 'rotate') {
                         invalidateConnectedRecovery();
-                        void requireAuthManager()
+                        const auth = requireAuthManager();
+                        const authEpoch = auth.authEpoch;
+                        void auth
                             .recoverRotatedSession()
                             .then(() => {
-                                if (isMonitoring) wsClient.resumeAfterSessionRotation();
+                                if (isMonitoring && auth.isAuthenticated) wsClient.resumeAfterSessionRotation();
                             })
                             .catch((error) => {
-                                if (!isMonitoring) return;
+                                if (!isMonitoring || auth.authEpoch !== authEpoch || isAbortError(error)) return;
                                 mainStateIndicator.setConnectionInterrupted(true);
                                 errorHandler.warn('AppLifecycle', 'Rotated session recovery failed', ensureError(error));
                             });
@@ -125,9 +128,19 @@ const monitorLifecycleConnectionStatus = ({ connectionStatus, restartOverlay, ma
                         clearConnectionLossTimer();
                         mainStateIndicator.setConnectionInterrupted(false);
                         hideConnectionLostOverlay();
+                        const auth = requireAuthManager();
+                        let authEpoch = auth.authEpoch;
                         void Promise.resolve()
-                            .then(() => requireAuthManager().invalidateSession())
-                            .catch((error) => errorHandler.warn('AppLifecycle', 'Revoked session cleanup failed', ensureError(error)));
+                            .then(() => {
+                                if (!isMonitoring || auth.authEpoch !== authEpoch) return;
+                                const invalidation = auth.invalidateSession();
+                                authEpoch = auth.authEpoch;
+                                return invalidation;
+                            })
+                            .catch((error) => {
+                                if (!isMonitoring || auth.authEpoch !== authEpoch || isAbortError(error)) return;
+                                errorHandler.warn('AppLifecycle', 'Revoked session cleanup failed', ensureError(error));
+                            });
                         return;
                     }
                     if (payload.reason === 'maintenance') {

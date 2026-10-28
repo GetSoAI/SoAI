@@ -42,8 +42,8 @@ def validate_turn_write_against_existing_row(
         request,
         allow_execution_token_rotation=False,
     )
-    validate_monotonic_progress(persisted.progress, request)
     _validate_terminal_turn_replay(persisted, request)
+    validate_monotonic_progress(persisted.progress, request)
 
 
 def validate_turn_claim_against_existing_row(

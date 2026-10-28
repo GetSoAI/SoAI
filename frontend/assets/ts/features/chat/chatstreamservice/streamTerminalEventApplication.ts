@@ -1,6 +1,7 @@
 /* SoAI - Chat stream terminal event application [frontend/assets/ts/features/chat/chatstreamservice/streamTerminalEventApplication.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { CHAT_STREAM_STEER_INTERRUPTED_CODE } from '@core/chat/protocols.ts';
 import type { AssistantTimelinePayload } from '@core/realtime/eventcontracts/assistantTimelineTypes.ts';
 import { resolveLatestLoadingActivityFromTimeline } from '@features/chat/assistanteventtimeline/activityState.ts';
 import type { StreamRuntime } from '@features/chat/chatstreamservice/contracts.ts';
@@ -9,8 +10,6 @@ import { finalizeChatStreamServerCancellation, finalizeChatStreamServerComplete,
 import type { ChatStreamSession } from '@features/chat/chatstreamservice/types.ts';
 
 type TerminalStreamEventType = 'completed' | 'cancelled' | 'error';
-
-const STEER_INTERRUPTED_CODE = 'steer_interrupted';
 
 const requireTerminalLoadingActivity = (session: ChatStreamSession, eventType: TerminalStreamEventType, failProtocol: (message: string) => void): boolean => {
     const loadingActivity = resolveLatestLoadingActivityFromTimeline(session.assistantMessage.assistantEventTimeline);
@@ -21,7 +20,7 @@ const requireTerminalLoadingActivity = (session: ChatStreamSession, eventType: T
     return false;
 };
 
-const applyCompletedStreamEvent = (inputArguments: { session: ChatStreamSession; runtime: StreamRuntime; payload: AssistantTimelinePayload; assistantRevision: number; failProtocol: (message: string) => void; markDone: () => void; notifyUser: boolean }): void => {
+const applyCompletedStreamEvent = (inputArguments: { session: ChatStreamSession; runtime: StreamRuntime; payload: AssistantTimelinePayload; assistantRevision: number; failProtocol: (message: string) => void; markDone: () => void; notifyUser: boolean; hydrated?: boolean }): void => {
     if (!requireTerminalLoadingActivity(inputArguments.session, 'completed', inputArguments.failProtocol)) {
         return;
     }
@@ -38,12 +37,13 @@ const applyCompletedStreamEvent = (inputArguments: { session: ChatStreamSession;
         session: inputArguments.session,
         runtime: inputArguments.runtime,
         finishReason: inputArguments.payload.finishReason ?? null,
+        hydrated: inputArguments.hydrated === true,
         notifyUser: inputArguments.notifyUser
     });
     inputArguments.markDone();
 };
 
-const applyCancelledStreamEvent = (inputArguments: { session: ChatStreamSession; runtime: StreamRuntime; payload: AssistantTimelinePayload; assistantRevision: number; failProtocol: (message: string) => void; markDone: () => void; notifyUser: boolean }): void => {
+const applyCancelledStreamEvent = (inputArguments: { session: ChatStreamSession; runtime: StreamRuntime; payload: AssistantTimelinePayload; assistantRevision: number; failProtocol: (message: string) => void; markDone: () => void; notifyUser: boolean; hydrated?: boolean }): void => {
     const reason = inputArguments.payload.reason;
     const code = inputArguments.payload.code;
     if (!reason || !code) {
@@ -60,12 +60,13 @@ const applyCancelledStreamEvent = (inputArguments: { session: ChatStreamSession;
     finalizeChatStreamServerCancellation({
         session: inputArguments.session,
         runtime: inputArguments.runtime,
-        notifyUser: inputArguments.notifyUser && code !== STEER_INTERRUPTED_CODE
+        hydrated: inputArguments.hydrated === true,
+        notifyUser: inputArguments.notifyUser && code !== CHAT_STREAM_STEER_INTERRUPTED_CODE
     });
     inputArguments.markDone();
 };
 
-const applyErrorStreamEvent = (inputArguments: { session: ChatStreamSession; runtime: StreamRuntime; payload: AssistantTimelinePayload; assistantRevision: number; failProtocol: (message: string) => void; markDone: () => void; notifyUser: boolean }): void => {
+const applyErrorStreamEvent = (inputArguments: { session: ChatStreamSession; runtime: StreamRuntime; payload: AssistantTimelinePayload; assistantRevision: number; failProtocol: (message: string) => void; markDone: () => void; notifyUser: boolean; hydrated?: boolean }): void => {
     const messageText = inputArguments.payload.message;
     const code = inputArguments.payload.code;
     const referenceId = inputArguments.payload.referenceId;
@@ -78,7 +79,7 @@ const applyErrorStreamEvent = (inputArguments: { session: ChatStreamSession; run
     }
     inputArguments.session.assistantRevision = inputArguments.assistantRevision;
     const previewContract = inputArguments.payload.previewContract ?? null;
-    const presentation = buildChatStreamServerErrorPresentation({ code, technicalMessage: messageText, referenceId, previewContract });
+    const presentation = buildChatStreamServerErrorPresentation({ code, technicalMessage: messageText, referenceId, previewContract, explanation: inputArguments.payload.explanation, parameterName: inputArguments.payload['param'], details: inputArguments.payload.details, trustedSummary: true });
     finalizeChatStreamServerError({
         session: inputArguments.session,
         runtime: inputArguments.runtime,
@@ -86,6 +87,7 @@ const applyErrorStreamEvent = (inputArguments: { session: ChatStreamSession; run
         errorMessage: presentation.timelineMessage,
         errorCode: code,
         referenceId,
+        hydrated: inputArguments.hydrated === true,
         notifyUser: inputArguments.notifyUser
     });
     inputArguments.markDone();

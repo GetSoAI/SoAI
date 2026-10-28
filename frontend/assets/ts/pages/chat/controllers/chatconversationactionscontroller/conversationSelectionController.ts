@@ -53,8 +53,8 @@ const activateConversationById = async (runtime: ChatConversationActionsControll
     try {
         cancelConversationRenameState(runtime.host, runtime.state);
         commitConversationSwitchOperation(createOperationDependencies(runtime), conversationId);
-        const shouldHydrate = prepareSelectedConversationHydrationState(runtime, conversationId, isVisualActivation);
-        draftTransfer = runtime.getComposerDraftManager()?.beginComposerTransfer(conversationId, { mode: options.transferMode ?? 'restore', signal: activation.signal }) ?? null;
+        const shouldHydrate = prepareSelectedConversationHydrationState(runtime, conversationId, isVisualActivation, options.knownEmpty !== true);
+        draftTransfer = runtime.getComposerDraftManager()?.beginComposerTransfer(conversationId, { mode: options.transferMode ?? 'restore', signal: activation.signal, knownEmpty: options.knownEmpty === true }) ?? null;
         if (!isConversationActivationCurrent(runtime, conversationId, activation)) return;
         if (isVisualActivation) {
             runtime.host.view.invalidateChatMarkup('current');
@@ -128,7 +128,7 @@ const createConversation = async (runtime: ChatConversationActionsControllerRunt
     }
     runtime.storageManager.saveChatState();
     if (!runtime.concurrencyScope.isConversationActivationSnapshotLive(activation)) return null;
-    await activateConversationById(runtime, conversation.id, options, activation);
+    await activateConversationById(runtime, conversation.id, { ...options, knownEmpty: true }, activation);
     return isConversationActivationCurrent(runtime, conversation.id, activation) ? conversation : null;
 };
 

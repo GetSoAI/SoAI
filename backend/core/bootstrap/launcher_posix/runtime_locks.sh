@@ -88,7 +88,7 @@ soai_managed_runtime__lock_dir_is_process_owned() {
     local lock_dir="$1"
     local expected_pid="$2"
     local pid_file="${lock_dir}/pid"
-    if [ -z "$expected_pid" ] || [ ! -f "$pid_file" ]; then
+    if [ -z "$expected_pid" ] || [ -L "$lock_dir" ] || [ -L "$pid_file" ] || [ ! -f "$pid_file" ]; then
         return 1
     fi
     local existing_pid
@@ -97,6 +97,12 @@ soai_managed_runtime__lock_dir_is_process_owned() {
         return 0
     fi
     return 1
+}
+
+soai_managed_runtime__inherited_install_lock_is_parent_owned() {
+    local lock_dir="$1"
+    [ "${SOAI_INSTALL_LOCK_HELD_PATH:-}" = "$lock_dir" ] \
+        && soai_managed_runtime__lock_dir_is_process_owned "$lock_dir" "$PPID"
 }
 
 soai_managed_runtime__lock_dir_has_live_owner() {

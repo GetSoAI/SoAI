@@ -5,6 +5,7 @@ import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { resolveAudioCaptureFailureMessage } from '@core/media/audioCaptureSupport.ts';
 
 interface VoiceCallPauseAudioCapture {
     pause(): Promise<void>;
@@ -153,7 +154,7 @@ class VoiceCallPauseController {
             this.#uiState.setPaused(false);
             this.#capturePaused = false;
             errorHandler.warn('VoiceCallPauseController', 'Voice call pause transition failed', runtimeError);
-            this.#onFailure(i18n.t('chat.voiceCall.pauseFailed'));
+            this.#onFailure(resolveAudioCaptureFailureMessage(runtimeError) ?? i18n.t('chat.voiceCall.pauseFailed'));
         } finally {
             if (this.#transitionToken.isActive(token)) {
                 this.#transitioning = false;

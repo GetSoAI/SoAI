@@ -10,6 +10,7 @@ from core.errors.exceptions import StateError, ValidationError
 from core.mcp.schema import is_auto_embedding_model_sentinel
 from core.models.model_info_fields import is_model_info_active_and_enabled
 from core.openai.capability_checks import is_openai_capability_enabled
+from core.rag.availability_errors import build_embedding_model_unavailable_error
 from core.serialization.json_parsing import parse_json_value
 from core.validation.strings import coerce_optional_trimmed_str
 from mcp.storage.internal_protocols import MCPStorageProtocol
@@ -121,6 +122,15 @@ async def _is_embedding_model_candidate_with_hint_requirement(
     return True
 
 
+def _is_automatic_embedding_model(
+    model_id: str, model_info: JSONDict, openai_capabilities: JSONDict
+) -> bool:
+    return _model_has_embedding_hint(model_id, model_info) or not any(
+        is_openai_capability_enabled(openai_capabilities, "endpoints", endpoint)
+        for endpoint in ("chat_completions", "completions", "responses")
+    )
+
+
 async def is_embedding_model_available(self: MCPStorageProtocol, model_id: str) -> bool:
     _require_embedding_model_services(self)
     normalized_model_id = coerce_optional_trimmed_str(model_id)
@@ -165,9 +175,7 @@ async def ensure_any_embedding_model_available(self: MCPStorageProtocol) -> str:
             normalized_installed_plugins.append(normalized_plugin_name)
     normalized_installed_plugins = list(dict.fromkeys(normalized_installed_plugins))
     if not normalized_installed_plugins:
-        raise ValidationError(
-            "No embedding plugin available. Install or enable a plugin that supports the OpenAI embeddings endpoint.",
-        )
+        raise build_embedding_model_unavailable_error()
     plugin_profiles = await asyncio.gather(
         *[
             model_information_service.model_get_plugin_capability_profile(plugin_name)
@@ -185,14 +193,12 @@ async def ensure_any_embedding_model_available(self: MCPStorageProtocol) -> str:
         )
     ]
     if not embedding_plugins:
-        raise ValidationError(
-            "No embedding plugin available. Install or enable a plugin that supports the OpenAI embeddings endpoint.",
-        )
+        raise build_embedding_model_unavailable_error()
     available_models = await model_information_service.model_get_available()
     if not isinstance(available_models, list):
         raise StateError("model_get_available returned an invalid result.")
-    embedding_capable_models: list[str] = []
     auto_candidates: list[str] = []
+    embedding_only_candidates: list[str] = []
     for model in available_models:
         if not isinstance(model, dict):
             continue
@@ -211,13 +217,10 @@ async def ensure_any_embedding_model_available(self: MCPStorageProtocol) -> str:
         model_id = coerce_optional_trimmed_str(model_id_value)
         if model_id is None:
             continue
-        embedding_capable_models.append(model_id)
         if _model_has_embedding_hint(model_id, model):
             auto_candidates.append(model_id)
-    if not embedding_capable_models:
-        raise ValidationError(
-            "No embedding models available. Download an embedding model, or select a specific embedding model in Chat Settings \u2192 TOOLS.RAG.",
-        )
-    if auto_candidates:
-        return auto_candidates[0]
-    return embedding_capable_models[0]
+        elif _is_automatic_embedding_model(model_id, model, openai_caps):
+            embedding_only_candidates.append(model_id)
+    if not auto_candidates and not embedding_only_candidates:
+        raise build_embedding_model_unavailable_error()
+    return (auto_candidates or embedding_only_candidates)[0]

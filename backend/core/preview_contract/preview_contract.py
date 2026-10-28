@@ -20,11 +20,8 @@ __all__ = (
     "PreviewReferenceType",
     "allowed_preview_reference_types",
     "analyze_preview_contract_syntax",
-    "build_preview_contract_requirement_system_message",
     "build_preview_reference",
-    "is_preview_contract_compliant",
     "parse_preview_references",
-    "parse_renderable_preview_references",
     "render_preview_references_as_plain_text",
 )
 
@@ -155,13 +152,6 @@ def _contains_preview_reference_inside_html_tag(
     return False
 
 
-def parse_renderable_preview_references(text: str) -> tuple[PreviewReference, ...]:
-    renderable = coerce_renderable_preview_contract_text(text)
-    if not renderable:
-        return ()
-    return parse_preview_references(renderable)
-
-
 def build_preview_reference(
     *,
     reference_type: PreviewReferenceType,
@@ -227,40 +217,3 @@ def analyze_preview_contract_syntax(assistant_text: str) -> PreviewContractSynta
         references=references,
         reason_code=None,
     )
-
-
-def is_preview_contract_compliant(assistant_text: str) -> bool:
-    return analyze_preview_contract_syntax(assistant_text).compliant
-
-
-def build_preview_contract_requirement_system_message() -> str:
-    lines = [
-        _PREVIEW_CONTRACT_PREFIX,
-        "This turn requires the SoAI WebUI preview contract.",
-        "If you present inspectable media or files, emit canonical preview references only in the visible assistant response body.",
-        "Each reference has exactly one of two shapes.",
-        "Without a label: [[preview:<type>:<target>]]",
-        "With a label:    [[preview:<type>:<target>|<label>]]",
-        "Concrete examples per type, without a label:",
-        "- [[preview:absolute_path:/srv/files/report.pdf]]",
-        "- [[preview:virtual_path:/folder/file.txt]]",
-        "- [[preview:remote_url:https://example.com/page]]",
-        "Concrete examples per type, with a label:",
-        "- [[preview:absolute_path:/srv/files/report.pdf|Quarterly report]]",
-        "- [[preview:virtual_path:/folder/file.txt|Notes]]",
-        "- [[preview:remote_url:https://example.com/page|Example page]]",
-        "Structural rule: every reference ends with the literal two characters ]] as its final two characters. The | separator, when used, sits inside the brackets between the target and the label. Never write ] between the target and the |, and never end a reference with a single ].",
-        "Wrong: [[preview:remote_url:https://example.com/page]|Example page]",
-        "Right: [[preview:remote_url:https://example.com/page|Example page]]",
-        "Use absolute_path only for real absolute OS filesystem paths on the SoAI host, such as /srv/files/report.pdf.",
-        "Use virtual_path only for File Explorer virtual paths rooted at /, such as /folder/file.txt.",
-        "Do not put an OS filesystem path into virtual_path. If the File Explorer root is /srv/files, the OS path /srv/files/reports/a.md maps to virtual_path /reports/a.md.",
-        "Never use a plain URL for links or media you intend the user to open or inspect in the SoAI WebUI.",
-        "URLs are allowed only inside fenced code blocks when you are writing code examples. Do not put plain URLs in prose or inside backticks.",
-        "Do not rely on plain URLs, Markdown images, or HTML image tags as preview output.",
-        "Do not put preview references in tool calls, tool arguments, tool results, notifications, or any other side channel.",
-        "Do not place preview references inside fenced code blocks or backticks. Emit them only in normal assistant prose at the end of the final assistant response to render.",
-        "Do not claim content is shown, displayed, previewed, or visible unless your response includes valid canonical preview references.",
-        "</soai_preview_contract>",
-    ]
-    return "\n".join(lines)

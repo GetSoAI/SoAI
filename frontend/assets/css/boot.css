@@ -6,6 +6,7 @@
 @layer foundations {
     :root {
         --boot-radius: 12px;
+        --color-black: #000;
         --boot-spinner-size: clamp(40px, calc(15 * var(--ui-viewport-width-unit)), 78px);
         --boot-spinner-ring: max(2px, calc(var(--boot-spinner-size) * 0.05));
         --preloader-exit-duration: 300ms;
@@ -87,12 +88,6 @@
             --duration-500: 0ms;
             --duration-900: 0ms;
             --duration-1000: 0ms;
-        }
-    }
-
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
         }
     }
 
@@ -211,21 +206,68 @@
         animation: preloader-content-exit var(--preloader-exit-duration) var(--preloader-exit-easing) both;
     }
 
+    @keyframes spinner-trail-rotate {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    @property --soai-spinner-angle {
+        syntax: '<angle>';
+        inherits: false;
+        initial-value: 0deg;
+    }
+
+    @keyframes spin {
+        to {
+            --soai-spinner-angle: 360deg;
+        }
+    }
+
     .page-preloader-spinner {
-        --motion-essential-duration: var(--spinner-duration-1000), 0ms;
+        position: relative;
+
+        --soai-spinner-stroke: var(--boot-spinner-ring);
+        --motion-essential-duration: 0ms;
         display: inline-block;
         flex-shrink: 0;
         width: var(--boot-spinner-size);
         height: var(--boot-spinner-size);
         border: none;
-        border-radius: var(--border-round);
+        border-radius: 0;
         color: #86b31e;
         background-color: color-mix(in srgb, var(--text-primary) 15%, transparent);
-        background-image: conic-gradient(from 0deg, transparent 0deg 28deg, color-mix(in srgb, currentcolor 1%, transparent) 54deg, color-mix(in srgb, currentcolor 2%, transparent) 78deg, color-mix(in srgb, currentcolor 4%, transparent) 102deg, color-mix(in srgb, currentcolor 7%, transparent) 126deg, color-mix(in srgb, currentcolor 11%, transparent) 150deg, color-mix(in srgb, currentcolor 17%, transparent) 174deg, color-mix(in srgb, currentcolor 24%, transparent) 198deg, color-mix(in srgb, currentcolor 33%, transparent) 222deg, color-mix(in srgb, currentcolor 44%, transparent) 246deg, color-mix(in srgb, currentcolor 57%, transparent) 270deg, color-mix(in srgb, currentcolor 70%, transparent) 292deg, color-mix(in srgb, currentcolor 82%, transparent) 312deg, color-mix(in srgb, currentcolor 91%, transparent) 330deg, color-mix(in srgb, currentcolor 97%, transparent) 346deg, currentcolor 360deg);
-        mask: radial-gradient(farthest-side, transparent calc(100% - var(--boot-spinner-ring)), #000 calc(100% - var(--boot-spinner-ring) + 0.5px));
-        animation:
-            spin var(--spinner-duration-1000) var(--ease-linear) infinite,
-            preloader-spinner-fade-in var(--duration-1000) var(--ease-out) both;
+        background-image: none;
+        mask: radial-gradient(farthest-side, transparent calc(100% - var(--soai-spinner-stroke) - 1px), var(--color-black) calc(100% - var(--soai-spinner-stroke)), var(--color-black) calc(100% - 1px), transparent 100%);
+        animation: preloader-spinner-fade-in var(--duration-1000) var(--ease-out) both;
+
+        --soai-spinner-trail: conic-gradient(from var(--soai-spinner-angle), transparent 0deg 28deg, color-mix(in srgb, currentcolor 1%, transparent) 54deg, color-mix(in srgb, currentcolor 2%, transparent) 78deg, color-mix(in srgb, currentcolor 4%, transparent) 102deg, color-mix(in srgb, currentcolor 7%, transparent) 126deg, color-mix(in srgb, currentcolor 11%, transparent) 150deg, color-mix(in srgb, currentcolor 17%, transparent) 174deg, color-mix(in srgb, currentcolor 24%, transparent) 198deg, color-mix(in srgb, currentcolor 33%, transparent) 222deg, color-mix(in srgb, currentcolor 44%, transparent) 246deg, color-mix(in srgb, currentcolor 57%, transparent) 270deg, color-mix(in srgb, currentcolor 70%, transparent) 292deg, color-mix(in srgb, currentcolor 82%, transparent) 312deg, color-mix(in srgb, currentcolor 91%, transparent) 330deg, color-mix(in srgb, currentcolor 97%, transparent) 346deg, currentcolor 360deg);
+        --soai-spinner-duration: var(--spinner-duration-1000);
+        --soai-spinner-easing: var(--ease-linear);
+        --soai-spinner-angle: 0deg;
+        overflow: clip;
+    }
+
+    .page-preloader-spinner::before {
+        content: '';
+        position: absolute;
+        inset: -25%;
+        background-image: var(--soai-spinner-trail);
+        animation: spinner-trail-rotate var(--soai-spinner-duration) var(--soai-spinner-easing) infinite;
+    }
+
+    @media (resolution < 1dppx) {
+        .page-preloader-spinner {
+            --motion-essential-duration: var(--spinner-duration-1000), 0ms;
+            background-image: var(--soai-spinner-trail);
+            animation:
+                spin var(--soai-spinner-duration) var(--soai-spinner-easing) infinite,
+                preloader-spinner-fade-in var(--duration-1000) var(--ease-out) both;
+        }
+
+        .page-preloader-spinner::before {
+            content: none;
+            animation: none;
+        }
     }
 
     :root.theme-light .page-preloader-spinner {

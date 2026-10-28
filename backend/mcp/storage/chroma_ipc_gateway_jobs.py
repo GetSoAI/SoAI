@@ -21,6 +21,7 @@ from mcp.storage.chroma_ipc_gateway_ipc import (
     touch_cancel_file,
 )
 from mcp.storage.chroma_ipc_gateway_shards import ChromaIpcShardPool, ShardRuntime
+from mcp.storage.chroma_ipc_worker_launch import spawn_chroma_shard_worker
 
 if TYPE_CHECKING:
     from core.concurrency.protocols import CancellationTokenProtocol
@@ -212,4 +213,9 @@ class ChromaIpcJobRunner:
         startup_timeout = float(self._config.get_int("TOOLS.RAG.CHROMA_IPC_STARTUP_TIMEOUT_SEC"))
         if startup_timeout < 1.0:
             raise ValidationError("TOOLS.RAG.CHROMA_IPC_STARTUP_TIMEOUT_SEC must be >= 1.")
-        await runtime.worker.spawn(server=self._pool.server, startup_timeout_sec=startup_timeout)
+        await spawn_chroma_shard_worker(
+            runtime.worker,
+            server=self._pool.server,
+            shard_id=runtime.shard_id,
+            startup_timeout_sec=startup_timeout,
+        )

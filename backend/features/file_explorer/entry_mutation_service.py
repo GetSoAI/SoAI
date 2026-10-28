@@ -6,8 +6,10 @@ from __future__ import annotations
 import asyncio
 import os
 import stat
+from functools import partial
 from typing import TYPE_CHECKING
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.concurrency.path_tree_lock import AsyncPathTreeLock
 from core.errors.exceptions import NotFoundError, ValidationError
 from core.events.types_file_explorer import (
@@ -81,12 +83,16 @@ async def write_text_file(
             },
         ) as reservation:
             with claim_reserved_write(reservation, size_bytes=len(encoded_content)):
-                await asyncio.to_thread(
-                    secure_ops.write_text_atomic,
-                    real_path,
-                    content,
-                    temp_dir=temp_dir,
-                    root_path=root_scope.root_path,
+                await run_joined_thread_call(
+                    partial(
+                        secure_ops.write_text_atomic,
+                        real_path,
+                        content,
+                        temp_dir=temp_dir,
+                        root_path=root_scope.root_path,
+                    ),
+                    task_name="file-explorer-write",
+                    retain_resources_until_complete=True,
                 )
         event = FileSystemChangedEvent(
             operation=FileExplorerOperation.UPDATE if existed else FileExplorerOperation.CREATE,
@@ -136,7 +142,12 @@ async def create_directory(
                 },
             ) as reservation:
                 with claim_reserved_write(reservation, size_bytes=required_bytes):
-                    await asyncio.to_thread(secure_ops.create_directory, real_path)
+                    await run_joined_thread_call(
+                        secure_ops.create_directory,
+                        real_path,
+                        task_name="file-explorer-mkdir",
+                        retain_resources_until_complete=True,
+                    )
         except (FileExistsError, NotADirectoryError) as exception:
             raise ValidationError(
                 "Cannot create directory because the parent path is not a directory.",
@@ -179,14 +190,24 @@ async def delete_entry(
                 database_path,
                 operation="file_explorer.delete_entry",
             )
-            await asyncio.to_thread(secure_ops.remove_directory_recursive, real_path)
+            await run_joined_thread_call(
+                secure_ops.remove_directory_recursive,
+                real_path,
+                task_name="file-explorer-delete-directory",
+                retain_resources_until_complete=True,
+            )
         else:
             ensure_not_protected_sqlite_runtime_file(
                 real_path,
                 database_path,
                 operation="file_explorer.delete_entry",
             )
-            await asyncio.to_thread(secure_ops.remove_file, real_path)
+            await run_joined_thread_call(
+                secure_ops.remove_file,
+                real_path,
+                task_name="file-explorer-delete-file",
+                retain_resources_until_complete=True,
+            )
         event = FileSystemChangedEvent(
             operation=FileExplorerOperation.DELETE,
             virtual_path=virtual_path,

@@ -7,15 +7,16 @@ import os
 
 from app.updater.software_update.activation_state import (
     persist_committed_activation_result,
+    read_update_activation_identity,
 )
-from app.updater.software_update.install_transaction_inventory import (
-    prepare_update_rollback,
-    require_rollback_inventory,
-)
+from app.updater.software_update.install_transaction_cleanup import cleanup_update_transaction
+from app.updater.software_update.install_transaction_inventory import require_rollback_inventory
 from app.updater.software_update.install_transaction_managed_data import (
     install_staged_managed_data,
 )
+from app.updater.software_update.install_transaction_preparation import prepare_update_rollback
 from app.updater.software_update.install_transaction_recovery import (
+    recover_unarmed_update_transaction,
     restore_transaction,
 )
 from app.updater.software_update.install_transaction_state import (
@@ -28,7 +29,6 @@ from app.updater.software_update.install_transaction_state import (
     AppliedUpdateTransaction,
     UpdateTransactionPaths,
     build_rollback_top_level_ignore_patterns,
-    cleanup_update_transaction,
     marker_path,
     paths_from_transaction_directory,
     remove_marker,
@@ -38,6 +38,7 @@ from app.updater.software_update.install_transaction_state import (
 from app.updater.software_update.install_transaction_state_transfer import (
     install_persisted_update_directories,
 )
+from core.bootstrap.filename_normalization import validate_filename_destinations
 from core.bootstrap.install_payload_transaction import replace_install_entry
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import (
@@ -78,7 +79,6 @@ def commit_staged_update(
     paths: UpdateTransactionPaths,
     top_level_ignore_patterns: tuple[str, ...],
     logger: LoggerProtocol,
-    edition: str,
     state_files: tuple[str, ...] = (),
     state_directories: tuple[str, ...] = (),
     staged_directories: dict[str, str] | None = None,
@@ -86,7 +86,7 @@ def commit_staged_update(
     try:
         prepare_update_rollback(
             paths,
-            edition=edition,
+            identity=read_update_activation_identity(paths),
             state_files=state_files,
             state_directories=state_directories,
         )
@@ -112,7 +112,7 @@ def commit_staged_update(
             base_path=paths.base_path,
             transaction_path=paths.transaction_path,
         )
-    except TRANSACTION_COMMIT_EXCEPTIONS:
+    except TRANSACTION_COMMIT_EXCEPTIONS as exception:
         if os.path.exists(marker_path(paths.transaction_path, ROLLBACK_REQUIRED_MARKER)):
             restore_transaction(
                 paths=paths,
@@ -120,7 +120,7 @@ def commit_staged_update(
                 logger=logger,
             )
         else:
-            cleanup_update_transaction(paths, logger)
+            recover_unarmed_update_transaction(paths, logger, cause=exception)
         raise
 
 
@@ -138,9 +138,9 @@ def _finalize_successful_transaction(
         if os.path.exists(marker_path(paths.transaction_path, ROLLBACK_COMPLETE_MARKER)):
             raise StateError("A restored update cannot be committed as an activated candidate.")
         if os.path.exists(marker_path(paths.transaction_path, SUCCESS_COMPLETE_MARKER)):
+            committed = True
             persist_committed_activation_result(paths)
-            if cleanup_after_commit:
-                cleanup_update_transaction(paths, logger)
+            cleanup_update_transaction(paths, logger, retain_storage=not cleanup_after_commit)
             return True
         if not all(
             os.path.exists(marker_path(paths.transaction_path, marker))
@@ -148,12 +148,14 @@ def _finalize_successful_transaction(
         ):
             raise StateError("Update replacement is incomplete; commit evidence was preserved.")
         require_rollback_inventory(paths, old_complete=True, verify_content=False)
+        validate_filename_destinations(
+            paths.base_path, paths.base_path, previous_root=paths.rollback_old_path
+        )
         write_marker(paths.transaction_path, SUCCESS_COMPLETE_MARKER)
         committed = True
         persist_committed_activation_result(paths)
         remove_marker(paths.transaction_path, ROLLBACK_REQUIRED_MARKER)
-        if cleanup_after_commit:
-            cleanup_update_transaction(paths, logger)
+        cleanup_update_transaction(paths, logger, retain_storage=not cleanup_after_commit)
         return True
     except TRANSACTION_CLEANUP_EXCEPTIONS as exception:
         if committed:

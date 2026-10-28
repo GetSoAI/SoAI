@@ -9,7 +9,6 @@ from core.errors.error_types import ErrorType
 from core.logging.trace import get_logger
 from core.models.model_info_fields import coerce_plugin_name
 from core.orchestrator.routing_config import VirtualModelConfig
-from core.tasks.enums import TaskStatus
 from orchestrator.queueing.deferred_task_context_repair import (
     try_repair_deferred_task_context,
 )
@@ -32,6 +31,7 @@ from orchestrator.scheduling.virtual_model_evaluation import (
 
 if TYPE_CHECKING:
     from core.state.protocols import ImmutablePluginStates
+    from core.tasks.task import Task
     from core.types.json import JSONDict
 
 __all__ = ("SchedulerActionGeneration",)
@@ -57,7 +57,7 @@ class SchedulerActionGeneration:
         self,
         routing_keys_to_evaluate: set[str],
         prefetched_data: SchedulerPrefetchData,
-    ) -> tuple[list[SchedulerAction], dict[str, PluginActionFailure]]:
+    ) -> tuple[list[SchedulerAction], dict[str, PluginActionFailure], list[Task]]:
         all_states = prefetched_data.all_states
         plugin_persistence = prefetched_data.plugin_persistence
         lifecycle_locks = prefetched_data.lifecycle_locks
@@ -65,6 +65,7 @@ class SchedulerActionGeneration:
         virtual_model_map = prefetched_data.virtual_model_map
         actions: list[SchedulerAction] = []
         failures_to_process: dict[str, PluginActionFailure] = {}
+        cancelled_tasks: list[Task] = []
         for key in routing_keys_to_evaluate:
             if key in failures_to_process:
                 continue
@@ -81,7 +82,9 @@ class SchedulerActionGeneration:
                 actions.append(result.action)
             if result.failure is not None:
                 failures_to_process[result.pending_key] = result.failure
-        return (actions, failures_to_process)
+            if result.cancelled_task is not None:
+                cancelled_tasks.append(result.cancelled_task)
+        return (actions, failures_to_process, cancelled_tasks)
 
     async def _evaluate_single_routing_key(
         self,
@@ -96,11 +99,15 @@ class SchedulerActionGeneration:
         task, _, task_status = await self._deps.queue.tracking.peek_pending_task(key)
         if not task:
             return _EvaluationResult(pending_key=key)
-        if task_status == TaskStatus.CANCELLED:
-            return _EvaluationResult(
-                pending_key=key,
-                failure=_make_server_failure("Task cancelled while pending."),
-            )
+        if (
+            task_status is not None
+            and task_status.is_terminal()
+            and not task.execution_timeout_pending
+        ):
+            await self._deps.queue.tracking.unregister_pending_task_token_for_key(task, key)
+            return _EvaluationResult(pending_key=key)
+        if await self._deps.queue.is_task_cancelled(task):
+            return _EvaluationResult(pending_key=key, cancelled_task=task)
         context = self._deps.queue.require_orchestration_context(task)
         if context.event is None:
             return _EvaluationResult(
@@ -117,6 +124,17 @@ class SchedulerActionGeneration:
         if vm_result.status == "on_cooldown":
             return _EvaluationResult(pending_key=key)
         if vm_result.status == "unavailable":
+            if vm_result.public_error is not None:
+                return _EvaluationResult(
+                    pending_key=key,
+                    failure=PluginActionFailure(
+                        message=vm_result.public_error.message,
+                        operator_reason=vm_result.failure_reason or vm_result.public_error.message,
+                        error_type=ErrorType.INVALID_REQUEST,
+                        public_error=vm_result.public_error,
+                        rejected_task=task,
+                    ),
+                )
             vm_failure = (
                 _make_server_failure(vm_result.failure_reason)
                 if vm_result.failure_reason is not None
@@ -223,14 +241,16 @@ def _make_server_failure(message: str) -> PluginActionFailure:
 
 
 class _EvaluationResult:
-    __slots__ = ("action", "failure", "pending_key")
+    __slots__ = ("action", "cancelled_task", "failure", "pending_key")
 
     def __init__(
         self,
         pending_key: str,
         action: SchedulerAction | None = None,
         failure: PluginActionFailure | None = None,
+        cancelled_task: Task | None = None,
     ) -> None:
         self.pending_key = pending_key
         self.action = action
         self.failure = failure
+        self.cancelled_task = cancelled_task

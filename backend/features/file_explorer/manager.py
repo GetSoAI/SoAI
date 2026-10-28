@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import asyncio
 
+from core.concurrency.bounded_blocking import BoundedBlockingPool
 from core.concurrency.protocols import CancellationTokenProtocol
 from core.errors.exceptions import ValidationError
+from core.files.commit_receipt import FileCommitReceipt
 from core.files.explorer_models import FileMetadata, ListDirectoryResult
 from core.files.protocols_explorer import FileSystemRootScopeProtocol
 from core.logging.trace import get_logger
@@ -235,7 +237,6 @@ class FileExplorerManager:
     ) -> str:
         return resolve_upload_destination(
             root_scope,
-            self._secure_ops,
             virtual_path,
             create_missing_parents=create_missing_parents,
         )
@@ -246,22 +247,36 @@ class FileExplorerManager:
         root_scope: FileSystemRootScopeProtocol,
         temp_path: str,
         expected_size: int,
+        expected_sha256: str,
+        file_content_pool: BoundedBlockingPool,
         virtual_destination: str,
         token: CancellationTokenProtocol,
         create_missing_parents: bool,
-    ) -> str:
+    ) -> FileCommitReceipt:
         return await upload_mutation_service.move_staged_upload(
             root_scope=root_scope,
-            secure_ops=self._secure_ops,
             mutation_locks=self._mutation_locks,
             storage_manager=self._storage_manager,
             temp_path=temp_path,
             expected_size=expected_size,
+            expected_sha256=expected_sha256,
+            file_content_pool=file_content_pool,
             virtual_destination=virtual_destination,
             token=token,
             create_missing_parents=create_missing_parents,
             database_path=self._database_path,
             allow_symlinks=self._allow_symlinks,
+        )
+
+    async def cleanup_upload_commit(
+        self,
+        root_scope: FileSystemRootScopeProtocol,
+        receipt: FileCommitReceipt,
+    ) -> None:
+        await upload_mutation_service.cleanup_upload_commit(
+            root_scope=root_scope,
+            receipt=receipt,
+            mutation_locks=self._mutation_locks,
         )
 
     async def notify_upload_complete(

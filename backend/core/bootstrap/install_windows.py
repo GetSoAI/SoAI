@@ -10,8 +10,6 @@ from collections.abc import Callable
 from contextlib import ExitStack
 from typing import TYPE_CHECKING
 
-import psutil
-
 from core.bootstrap.disk_reservation_provider import (
     create_bootstrap_disk_reservation_provider,
 )
@@ -22,13 +20,11 @@ from core.bootstrap.install_lock_recovery import (
     recover_windows_startup_install_lock,
 )
 from core.bootstrap.install_locks import (
-    INSTALL_LOCK_ENV,
-    INSTALL_LOCK_OWNER_START_ENV,
-    INSTALL_LOCK_TOKEN_ENV,
     LOCK_TIMEOUT_SECONDS,
     acquire_lock_dir,
+    build_install_lock_environment,
     guard_windows_installer_gate,
-    read_lock_token,
+    lock_dir_has_live_owner,
     release_lock_dir,
 )
 from core.bootstrap.install_payload import validate_existing_install_edition
@@ -44,10 +40,16 @@ from core.bootstrap.install_target_windows import (
     validate_windows_launcher_configuration,
 )
 from core.bootstrap.lock import INSTALLATION_TRANSACTION_LOCK_FILENAME, acquire_interprocess_lock
-from core.errors.exceptions import ConflictError, SoAIError, SoAITimeoutError, ValidationError
+from core.bootstrap.windows_installation_diagnostics import stage_windows_installation_diagnostics
+from core.errors.exceptions import (
+    ConflictError,
+    SoAIError,
+    SoAITimeoutError,
+    StateError,
+    ValidationError,
+)
 from core.filesystem.path_coercion import normalize_filesystem_path
 from core.meta.paths import join_data_abs
-from core.runtime.process_identity_signals import read_process_create_time_ms
 from core.system.process_launcher import spawn_managed_process
 from core.timing.sleep import sleep_seconds
 
@@ -102,7 +104,13 @@ def wait_for_windows_install_to_finish(
             available = recover_windows_startup_install_lock(
                 repo_root_path, check_transaction_admission
             )
-        except ConflictError:
+        except ConflictError as exception:
+            if not lock_dir_has_live_owner(lock_dir):
+                raise StateError(
+                    "An interrupted SoAI installation or update requires recovery. Run the SoAI installer again before starting.",
+                    details={"marker_path": marker_path, "lock_dir": lock_dir},
+                    operation="bootstrap.install.wait_for_install_to_finish",
+                ) from exception
             sleep_seconds(1.0)
             continue
         if not available:
@@ -113,6 +121,9 @@ def install_to_target(
     source_root: str,
     parsed_args: ParsedInstallArguments,
     check_transaction_admission: Callable[[str], None],
+    prepare_staging: Callable[[str], None] | None = None,
+    finish_installation: Callable[[], None] | None = None,
+    rollback_installation: Callable[[], None] | None = None,
 ) -> None:
     source_version = _read_source_version(source_root)
     target_root = normalize_windows_install_target(parsed_args.target)
@@ -163,6 +174,7 @@ def install_to_target(
             mutation_scope.close()
     lock_dir = lock.path
     copy_succeeded = False
+    installation_stage = "copy"
     try:
         reject_running_windows_target(target_root, expected_edition="soai-core")
         validate_existing_install_edition(target_root, "soai-core")
@@ -175,6 +187,52 @@ def install_to_target(
             state="started",
             message=f"Installing SoAI application files to {target_root}...",
         )
+
+        def prepare_payload(staging_root: str) -> None:
+            stage_windows_installation_diagnostics(target_root, staging_root, reservation_provider)
+            if prepare_staging is not None:
+                prepare_staging(staging_root)
+
+        def complete_installation() -> None:
+            nonlocal installation_stage
+            reporter.emit_stage(
+                install_root=target_root,
+                operation="install",
+                stage="copy",
+                state="completed",
+                message=f"SoAI application files are installed at {target_root}.",
+            )
+            installation_stage = "dependencies"
+            reporter.emit_stage(
+                install_root=target_root,
+                operation="install",
+                stage="dependencies",
+                state="started",
+                message=f"Provisioning SoAI runtime dependencies in {target_root}...",
+            )
+            try:
+                run_target_install_deps(target_root, parsed_args, lock_dir)
+            except (OSError, SoAIError, ValueError, subprocess.SubprocessError):
+                reporter.emit_stage(
+                    install_root=target_root,
+                    operation="install",
+                    stage="dependencies",
+                    state="failed",
+                    message=f"SoAI runtime dependency provisioning failed in {target_root}.",
+                )
+                _remove_in_progress_marker(target_root)
+                raise
+            reporter.emit_stage(
+                install_root=target_root,
+                operation="install",
+                stage="dependencies",
+                state="completed",
+                message=f"SoAI runtime dependencies are ready in {target_root}.",
+            )
+            installation_stage = "complete"
+            if finish_installation is not None:
+                finish_installation()
+
         try:
             copy_managed_payload(
                 source_root,
@@ -183,51 +241,22 @@ def install_to_target(
                 edition="soai-core",
                 product_version=source_version,
                 core_version=source_version,
+                prepare_staging=prepare_payload,
+                complete_installation=complete_installation,
+                rollback_installation=rollback_installation,
             )
             copy_succeeded = True
-        except (OSError, SoAIError, ValueError):
-            reporter.emit_stage(
-                install_root=target_root,
-                operation="install",
-                stage="copy",
-                state="failed",
-                message=f"SoAI application file install failed for {target_root}.",
-            )
-            _remove_in_progress_marker(target_root)
-            raise
-        reporter.emit_stage(
-            install_root=target_root,
-            operation="install",
-            stage="copy",
-            state="completed",
-            message=f"SoAI application files are installed at {target_root}.",
-        )
-        reporter.emit_stage(
-            install_root=target_root,
-            operation="install",
-            stage="dependencies",
-            state="started",
-            message=f"Provisioning SoAI runtime dependencies in {target_root}...",
-        )
-        try:
-            run_target_install_deps(target_root, parsed_args, lock_dir)
         except (OSError, SoAIError, ValueError, subprocess.SubprocessError):
-            reporter.emit_stage(
-                install_root=target_root,
-                operation="install",
-                stage="dependencies",
-                state="failed",
-                message=f"SoAI runtime dependency provisioning failed in {target_root}.",
-            )
+            if installation_stage != "dependencies":
+                reporter.emit_stage(
+                    install_root=target_root,
+                    operation="install",
+                    stage=installation_stage,
+                    state="failed",
+                    message=f"SoAI installation {installation_stage} failed for {target_root}.",
+                )
             _remove_in_progress_marker(target_root)
             raise
-        reporter.emit_stage(
-            install_root=target_root,
-            operation="install",
-            stage="dependencies",
-            state="completed",
-            message=f"SoAI runtime dependencies are ready in {target_root}.",
-        )
         reporter.emit_stage(
             install_root=target_root,
             operation="install",
@@ -261,12 +290,7 @@ def run_target_install_deps(
         command.append("--silent")
     command.extend(parsed_args.passthrough_args)
     env = dict(os.environ)
-    env[INSTALL_LOCK_ENV] = lock_dir
-    lock_token = read_lock_token(lock_dir)
-    if lock_token is None:
-        raise ValidationError("SoAI install lock handoff token is missing or invalid.")
-    env[INSTALL_LOCK_TOKEN_ENV] = lock_token
-    env[INSTALL_LOCK_OWNER_START_ENV] = str(read_process_create_time_ms(psutil.Process()))
+    env.update(build_install_lock_environment(lock_dir))
     with spawn_managed_process(command, cwd=target_root, env=env) as process:
         exit_code = process.wait()
     if exit_code != 0:

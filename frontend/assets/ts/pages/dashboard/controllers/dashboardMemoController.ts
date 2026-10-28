@@ -5,9 +5,8 @@ import { i18n } from '@core/i18n/index.ts';
 import { normalizeNonBlankStringOrNull } from '@core/storage/normalization.ts';
 import { createSaveController, SAVE_HEADER_PRIORITY_PAGE, type SaveController } from '@core/save/public.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
-import { uiAttr, uiHtml } from '@core/security/uiHtml.ts';
-import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
-import { renderIconSlot } from '@core/ui/icons/view.ts';
+import { uiHtml } from '@core/security/uiHtml.ts';
+import { renderDashboardTitlebarButton } from '@pages/dashboard/rendering/titlebar/view.ts';
 import { DASHBOARD_ACTION_MEMO_CANCEL, DASHBOARD_ACTION_MEMO_EDIT, DASHBOARD_ACTION_MEMO_SAVE } from '@pages/dashboard/actions.ts';
 import type { DashboardHost } from '@core/edition/dashboardContribution.ts';
 
@@ -38,11 +37,11 @@ class DashboardMemoController {
 
     buildControlsMarkup(): TrustedHtml {
         if (this.#editing) {
-            const save = this.#buildButton('dashboard-memo-save', DASHBOARD_ACTION_MEMO_SAVE, i18n.t('common.save'), 'save', 'ui-variant-accent');
-            const cancel = this.#buildButton('dashboard-memo-cancel', DASHBOARD_ACTION_MEMO_CANCEL, i18n.t('common.cancel'), 'close', 'ui-variant-neutral');
+            const save = renderDashboardTitlebarButton({ id: 'dashboard-memo-save', action: DASHBOARD_ACTION_MEMO_SAVE, label: i18n.t('common.save'), icon: 'save', variant: 'ui-variant-accent' });
+            const cancel = renderDashboardTitlebarButton({ id: 'dashboard-memo-cancel', action: DASHBOARD_ACTION_MEMO_CANCEL, label: i18n.t('common.cancel'), icon: 'close' });
             return uiHtml`${save}${cancel}`;
         }
-        return this.#buildButton('dashboard-memo-edit', DASHBOARD_ACTION_MEMO_EDIT, i18n.t('common.edit'), 'edit');
+        return renderDashboardTitlebarButton({ id: 'dashboard-memo-edit', action: DASHBOARD_ACTION_MEMO_EDIT, label: i18n.t('common.edit'), icon: 'edit' });
     }
 
     renderSection(): void {
@@ -142,11 +141,6 @@ class DashboardMemoController {
         }
         textarea.value = this.#baselineText;
         wrapper.appendChild(textarea);
-    }
-
-    #buildButton(id: string, action: string, label: string, icon: 'close' | 'edit' | 'save', variant = 'ui-variant-neutral'): TrustedHtml {
-        const iconMarkup = getIconSync(icon, { size: 14, strokeWidth: 1.6 });
-        return uiHtml`<button type="button" class="ui-icon-button ui-icon-button--titlebar ${uiAttr(variant)}" id="${uiAttr(id)}" data-action="${uiAttr(action)}" aria-label="${uiAttr(label)}" data-tooltip="${uiAttr(label)}">${renderIconSlot(iconMarkup)}</button>`;
     }
 
     #ensureSaveController(): SaveController {

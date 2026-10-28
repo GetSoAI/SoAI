@@ -1,6 +1,7 @@
 /* SoAI - Chat feature render message header role markup [frontend/assets/ts/features/chat/message/messageview/renderMessageHeaderRoleMarkup.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { AssistantResponseDurationState } from '@features/chat/message/assistantResponseDuration.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
@@ -17,6 +18,7 @@ export const renderMessageHeaderRoleMarkup = (
         escapeAttribute: (value: string) => string;
         getIconHtml: (name: IconName, options?: IconOptions) => string;
         nowMs: () => number;
+        resolveAssistantResponseDuration(message: ChatMessage, nowMs: number): AssistantResponseDurationState;
         getActivityDurationDisplayMode: () => ChatActivityDurationDisplayMode;
     },
     inputArguments: {
@@ -36,6 +38,7 @@ export const renderMessageHeaderRoleMarkup = (
                       escapeAttribute: dependencies.escapeAttribute,
                       getIconHtml: dependencies.getIconHtml,
                       nowMs: dependencies.nowMs,
+                      resolveAssistantResponseDuration: dependencies.resolveAssistantResponseDuration,
                       getActivityDurationDisplayMode: dependencies.getActivityDurationDisplayMode
                   },
                   inputArguments.senderLabel,

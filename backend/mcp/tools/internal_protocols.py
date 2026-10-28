@@ -14,6 +14,7 @@ from core.automation.protocols_database import (
     DatabaseAutomationRunsProtocol,
     DatabaseAutomationsProtocol,
 )
+from core.concurrency.bounded_blocking import BoundedBlockingPool
 from core.config.protocols import ConfigProtocol
 from core.conversations.protocols_database_agents import (
     DatabaseAgentEventSequencesProtocol,
@@ -61,6 +62,7 @@ from core.plugins.protocols_database import DatabasePluginsProtocol
 from core.read_video.protocols_database import DatabaseReadVideoJobsProtocol
 from core.runtime.request_context import RequestContext
 from core.secrets.handle_store import SecretHandleStore
+from core.skills.protocols import SkillRepositoryProtocol
 from core.tasks.protocols import TaskCancellationBinderProtocol, TaskRegistryProtocol
 from core.terminal.protocols import TerminalServiceProtocol
 from core.tool_calls.current_tool_call import CurrentToolCallIdentity
@@ -70,6 +72,7 @@ from mcp.shared_persistence_dependencies import MCPSharedPersistence
 
 if TYPE_CHECKING:
     from core.agent.protocols import AgentSubagentServiceProtocol
+    from core.math.symbolic_process import SymbolicMathRunner
     from core.models.protocols import (
         ModelInformationServiceProtocol,
         ModelResolutionServiceProtocol,
@@ -96,6 +99,7 @@ __all__ = (
 
 
 class MCPUtilityToolsDependenciesProtocol(Protocol):
+    numeric_math_pool: BoundedBlockingPool
     config: ConfigProtocol
     storage_manager: StorageManagerProtocol
     hardware_manager: HardwareManagerProtocol
@@ -117,6 +121,7 @@ class MCPUtilityToolsDependenciesProtocol(Protocol):
     database_agent_todo_state: DatabaseAgentTodoStateProtocol
     database_agent_plan: DatabaseAgentPlanProtocol
     database_conversations: DatabaseConversationsProtocol
+    database_skills: SkillRepositoryProtocol
     database_messages: DatabaseMessagesProtocol
     database_notifications: DatabaseNotificationsProtocol
     conversation_attention: ConversationAttentionCoordinatorProtocol
@@ -161,6 +166,7 @@ class MCPUtilityToolsDependencies(
     MCPSharedPersistence,
     MCPUtilityToolsDependenciesProtocol,
 ):
+    numeric_math_pool: BoundedBlockingPool
     config: ConfigProtocol
     storage_manager: StorageManagerProtocol
     hardware_manager: HardwareManagerProtocol
@@ -182,6 +188,7 @@ class MCPUtilityToolsDependencies(
     database_agent_todo_state: DatabaseAgentTodoStateProtocol
     database_agent_plan: DatabaseAgentPlanProtocol
     database_conversations: DatabaseConversationsProtocol
+    database_skills: SkillRepositoryProtocol
     database_messages: DatabaseMessagesProtocol
     database_notifications: DatabaseNotificationsProtocol
     conversation_attention: ConversationAttentionCoordinatorProtocol
@@ -207,6 +214,7 @@ class MCPUtilityToolsDependencies(
     def __post_init__(self) -> None:
         require_dependencies(
             owner="MCPUtilityToolsDependencies",
+            numeric_math_pool=self.numeric_math_pool,
             browser_sessions=self.browser_sessions,
             config=self.config,
             storage_manager=self.storage_manager,
@@ -219,6 +227,7 @@ class MCPUtilityToolsDependencies(
             database_agent_event_sequences=self.database_agent_event_sequences,
             database_agent_plan=self.database_agent_plan,
             database_conversations=self.database_conversations,
+            database_skills=self.database_skills,
             database_messages=self.database_messages,
             database_plugins=self.database_plugins,
             database_users=self.database_users,
@@ -247,6 +256,7 @@ class MCPUtilityToolsDependencies(
 
 class MCPUtilityToolsProtocol(MCPUtilityToolsDependenciesProtocol, Protocol):
     generate_image_horde_rate_gate: AnonymousHordeRateGate
+    symbolic_math_runner: SymbolicMathRunner
     news_provider_control: NewsProviderAccessController
     news_cache: NewsResponseCache
 

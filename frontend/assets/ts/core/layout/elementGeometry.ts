@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isDocument } from '@core/dom/domEnvironment.ts';
-import { getDocumentElement } from '@core/environment/public.ts';
+import { getComputedStyleStrict, getDocumentElement } from '@core/environment/public.ts';
 import { interfaceScaleFactorFromRoot } from '@core/layout/interfaceScale.ts';
 
 interface GeometryBox {
@@ -92,6 +92,15 @@ const measureLayoutBox = (measurable: GeometryMeasurable): GeometryBox => {
     return createGeometryBox(measurable.getBoundingClientRect(), interfaceScaleFactorFromRoot(root));
 };
 
+const GRID_LINE_NAMES_PATTERN = /\[[^\]]*\]/g;
+const RESOLVED_GRID_TRACK_PATTERN = /^\d+(?:\.\d+)?px$/;
+
+const measureGridColumnCount = (element: Element): number | null => {
+    if (!element.isConnected) return null;
+    const tracks = getComputedStyleStrict(element).gridTemplateColumns.replace(GRID_LINE_NAMES_PATTERN, ' ').trim().split(/\s+/);
+    return tracks.length > 0 && tracks.every((track) => RESOLVED_GRID_TRACK_PATTERN.test(track)) ? tracks.length : null;
+};
+
 const measureViewportPoint = (event: PointerGeometryEvent): GeometryPoint => ({ x: event.clientX, y: event.clientY });
 
 const measureLayoutPoint = (event: PointerGeometryEvent, scope: Document | Element = getDocumentElement()): GeometryPoint => ({
@@ -106,5 +115,5 @@ const measureLayoutTouchPoint = (touch: Touch, scope: Document | Element = getDo
     y: toLayoutPixels(touch.clientY, scope)
 });
 
-export { measureElementLayoutDimensions, measureLayoutBox, measureLayoutPoint, measureLayoutTouchPoint, measureLayoutViewport, measureScrollbarInlineSize, measureViewportBox, measureViewportPoint, measureViewportTouchPoint, toLayoutPixels };
+export { measureElementLayoutDimensions, measureGridColumnCount, measureLayoutBox, measureLayoutPoint, measureLayoutTouchPoint, measureLayoutViewport, measureScrollbarInlineSize, measureViewportBox, measureViewportPoint, measureViewportTouchPoint, toLayoutPixels };
 export type { GeometryBox, GeometryDimensions, GeometryMeasurable, GeometryPoint, PointerGeometryEvent };

@@ -11,7 +11,9 @@ import httpx2
 
 from core.agent.protocols import AgentChronologySequencerProtocol, AgentStateServiceProtocol
 from core.app.protocols import ApplicationControlProtocol
+from core.browser.playwright_session_resources import PlaywrightSessionResources
 from core.calendar.protocols import CalendarServiceProtocol
+from core.concurrency.bounded_blocking import BoundedBlockingPool
 from core.concurrency.protocols import AsyncLockRegistryProtocol
 from core.config.protocols import ConfigProtocol
 from core.di.validation import require_dependencies
@@ -112,6 +114,7 @@ __all__ = ("ApiDependencies",)
 
 @dataclass(frozen=True, slots=True)
 class ApiDependencies(ApiDatabaseDependencies):
+    playwright_sessions: PlaywrightSessionResources
     licensing_policy: EditionLicensingPolicy
     licensing_service: LicensingStatusProtocol
     licensing_trust_material: ReleaseTrustMaterial
@@ -182,6 +185,9 @@ class ApiDependencies(ApiDatabaseDependencies):
     soai_link_resolve_limiter: SoaiLinkResolveConcurrencyLimiter
     enqueue_warning_tracker: EnqueueWarningTracker
     multipart_parser_semaphore: asyncio.Semaphore
+    file_content_pool: BoundedBlockingPool
+    skill_import_pool: BoundedBlockingPool
+    setup_status_connection_semaphore: asyncio.Semaphore
     provider_video_projection_semaphore: asyncio.Semaphore
     stream_channel_registry: TaskStreamChannelRegistryProtocol
     chat_stream_registry: ChatStreamRegistryProtocol
@@ -266,10 +272,14 @@ class ApiDependencies(ApiDatabaseDependencies):
             model_resolution_service=self.model_resolution_service,
             model_virtual_model_service=self.model_virtual_model_service,
             multipart_parser_semaphore=self.multipart_parser_semaphore,
+            skill_import_pool=self.skill_import_pool,
+            file_content_pool=self.file_content_pool,
+            setup_status_connection_semaphore=self.setup_status_connection_semaphore,
             provider_video_projection_semaphore=self.provider_video_projection_semaphore,
             orchestrator_control=self.orchestrator_control,
             orchestrator_lifecycle=self.orchestrator_lifecycle,
             parser_registry_factory=self.parser_registry_factory,
+            playwright_sessions=self.playwright_sessions,
             plugin_manager=self.plugin_manager,
             power_operation_supervisor=self.power_operation_supervisor,
             prompt_token_counter=self.prompt_token_counter,

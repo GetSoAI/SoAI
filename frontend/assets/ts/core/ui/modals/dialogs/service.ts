@@ -18,7 +18,7 @@ import { CONFIRMATION_MODAL_ID, DIALOGS_SERVICE_ID, PASSWORD_CHANGE_MODAL_ID, PR
 
 interface DialogsServiceApi {
     showConfirmation: (options: ConfirmationOptions) => Promise<boolean>;
-    showNotice: (options: NoticeOptions) => Promise<void>;
+    showNotice: (options: NoticeOptions) => Promise<boolean>;
     showExternalLinkModal: (options?: ExternalLinkOptions | undefined) => Promise<boolean>;
     showChatExternalLinkModal: (options?: ExternalLinkOptions | undefined) => Promise<boolean>;
     showLocalFolderOpenModal: (options: LocalFolderOpenOptions) => Promise<boolean>;
@@ -88,22 +88,29 @@ const createDialogsService = (): DialogsServiceApi => {
             description: isString(config.description) && config.description ? config.description : null,
             allowMessageHtml: config.messageAllowHTML === true,
             allowDescriptionHtml: config.descriptionAllowHTML === true,
+            advisory: config.advisory,
+            fields: config.fields,
             cancelText: config.cancelText || defaults.cancelText,
             actions
         });
     };
 
-    const showNotice = async (options: NoticeOptions): Promise<void> => {
-        await confirmationFlow.show({
+    const showNotice = async (options: NoticeOptions): Promise<boolean> => {
+        return await confirmationFlow.show({
+            signal: options.signal,
+            closeCompletes: true,
+            advisory: options.advisory,
+            sections: options.sections,
+            actionErrorText: options.actionErrorText,
             title: options.title,
-            typeTokens: ['confirmation', 'notice', options.variant],
+            typeTokens: ['confirmation', 'notice', options.variant, ...(options.sections?.length ? ['notice-details'] : [])],
             icon: resolveVariantIcon(options.variant),
             message: options.message,
             description: options.description ?? null,
             allowMessageHtml: false,
             allowDescriptionHtml: false,
             cancelText: options.closeText ?? i18n.t('common.close'),
-            actions: Object.freeze({ first: null, second: null })
+            actions: Object.freeze({ first: options.action ?? null, second: null })
         });
     };
 

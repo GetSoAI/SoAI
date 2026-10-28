@@ -26,9 +26,9 @@ const renderEmptyState = (options: EmptyStateRenderOptions): TrustedHtml => {
     const className = options.className?.trim() || 'ui-empty-state';
     const iconClassName = options.iconClassName?.trim() || 'ui-empty-state__icon';
     const iconMarkup = renderTrustedOrText(options.icon);
-    const messageMarkup = options.message ? `<p>${securityApi.escapeHtml(options.message)}</p>` : '';
+    const messageMarkup = options.message ? `<p data-modal-localize="text">${securityApi.escapeHtml(options.message)}</p>` : '';
     const actionsMarkup = options.actions ? `<div class="ui-empty-state__actions">${options.actions.html}</div>` : '';
-    return toTrustedUiHtml(`<div class="${securityApi.escapeAttribute(className)}">${iconMarkup ? `<div class="${securityApi.escapeAttribute(iconClassName)}">${iconMarkup}</div>` : ''}<h3>${securityApi.escapeHtml(options.title)}</h3>${messageMarkup}${actionsMarkup}</div>`);
+    return toTrustedUiHtml(`<div class="${securityApi.escapeAttribute(className)}">${iconMarkup ? `<div class="${securityApi.escapeAttribute(iconClassName)}">${iconMarkup}</div>` : ''}<h3 data-modal-localize="text">${securityApi.escapeHtml(options.title)}</h3>${messageMarkup}${actionsMarkup}</div>`);
 };
 
 export { renderEmptyState };

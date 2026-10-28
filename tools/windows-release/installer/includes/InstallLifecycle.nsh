@@ -1,9 +1,9 @@
 ; SoAI - Windows installer lifecycle [tools/windows-release/installer/includes/InstallLifecycle.nsh]
 ; SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-!define SOAI_RESTORE_UPGRADE_COMMAND '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$PLUGINSDIR\Preserve-SoAIUpgrade.ps1" -InstallRoot "$INSTDIR" -BackupRoot "$UpgradeBackupRoot" -Mode Restore -CandidateManifestPath "$PLUGINSDIR\installed-files.txt" -ControlLauncherPath "$PLUGINSDIR\soai-control.exe"'
-!define SOAI_CLEANUP_UPGRADE_BACKUP_COMMAND '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$PLUGINSDIR\Preserve-SoAIUpgrade.ps1" -InstallRoot "$INSTDIR" -BackupRoot "$UpgradeBackupRoot" -Mode Cleanup'
-!define SOAI_REMOVE_FAILED_INSTALL_COMMAND '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$PLUGINSDIR\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Uninstall -ControlLauncherPath "$PLUGINSDIR\soai-control.exe" -ManifestPath "$PLUGINSDIR\installed-files.txt" -RemoveApplicationData -InstallerRollback'
+!define SOAI_RESTORE_UPGRADE_COMMAND '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$PLUGINSDIR\Preserve-SoAIUpgrade.ps1" -InstallRoot "$INSTDIR" -BackupRoot "$UpgradeBackupRoot" -Mode Restore -StageRoot "$InstallerCandidateStage" -CandidateManifestPath "$PLUGINSDIR\installed-files.txt" -ControlLauncherPath "$PLUGINSDIR\soai-control.exe"'
+!define SOAI_CLEANUP_UPGRADE_BACKUP_COMMAND '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$PLUGINSDIR\Preserve-SoAIUpgrade.ps1" -InstallRoot "$INSTDIR" -BackupRoot "$UpgradeBackupRoot" -Mode Cleanup -ControlLauncherPath "$PLUGINSDIR\soai-control.exe"'
+!define SOAI_REMOVE_FAILED_INSTALL_COMMAND '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$PLUGINSDIR\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Uninstall -ControlLauncherPath "$PLUGINSDIR\soai-control.exe" -ManifestPath "$PLUGINSDIR\installed-files.txt"$InstallerFailureDataArgument -InstallerRollback'
 
 !macro RemoveInstallerDataSkeleton PREFIX
   System::Call 'kernel32::DeleteFileW(w "$InstallerFilesystemRoot\data\locks\soai.installation.transaction.lock")'
@@ -30,6 +30,7 @@ Function .onInit
   StrCpy $InstallerDiagnosticsRetained 0
   StrCpy $UpgradeFilesRestored 0
   StrCpy $IntegrationStage 0
+  StrCpy $IntegrationServiceCreated 0
   StrCpy $RuntimePrepPhase ""
   StrCpy $RuntimeTaskState ""
   StrCpy $RuntimeAbortPrompt 0
@@ -256,6 +257,7 @@ Function RecoverFailedInstallation
   SetDetailsPrint both
   Call BeginInstallationRecovery
   ${If} $UpgradePrepared == 1
+  ${AndIf} $InstallMutationStarted == 1
     Call RestoreExistingInstallRoot
   ${ElseIf} $InstallMutationStarted == 1
     Call CleanupFailedFreshInstall
@@ -263,6 +265,10 @@ Function RecoverFailedInstallation
   Call FinishInstallationRecovery
 FunctionEnd
 Function BeginInstallationRecovery
+  StrCpy $InstallerFailureDataArgument " -RemoveApplicationData"
+  ${If} $InstallerTargetClassification == "retained-data"
+    StrCpy $InstallerFailureDataArgument ""
+  ${EndIf}
   SetOutPath "$TEMP"
   Call ReleaseInstallerPayloadDirectories
   Call RevertWindowsIntegration
@@ -326,7 +332,10 @@ Function ComposeInstallFailurePage
       StrCpy $InstallerDiagnosticsRetained 0
     ${EndIf}
   ${ElseIf} $UpgradePrepared == 1
+  ${AndIf} $InstallMutationStarted == 1
     StrCpy $0 "Setup could not fully restore the previous SoAI installation. Restart Windows before running Setup again. User data was not removed."
+  ${ElseIf} $InstallerTargetClassification == "retained-data"
+    StrCpy $0 "Application data was kept. Run Setup again to complete the SoAI installation."
   ${ElseIf} $InstallerTargetClassification == "existing"
     StrCpy $0 "The existing SoAI installation was not changed."
     ${If} $InstallCanceled == 1
@@ -445,6 +454,10 @@ Function un.onInit
   SetShellVarContext all
   SetRegView 64
   ReadRegStr $0 HKLM "${PRODUCT_REGKEY}" "InstallDir"
+  ReadEnvStr $1 "SOAI_UNINSTALL_ROOT"
+  ${If} $1 != ""
+    StrCpy $0 "$1"
+  ${EndIf}
   ${If} $0 != ""
     StrCpy $INSTDIR "$0"
   ${Else}
@@ -493,37 +506,13 @@ Function StopExistingSoAI
     ${EndIf}
   done:
 FunctionEnd
-Function StartUpdateProgressWindow
-  FindFirst $0 $1 "$INSTDIR\.soai_update_transaction_*"
-  FindClose $0
-  ${If} $1 == ""
-    Return
-  ${EndIf}
-  StrCpy $2 "$INSTDIR\data\state\update-progress"
-  ClearErrors
-  CreateDirectory "$2"
-  SetOutPath "$2"
-  SetOverwrite try
-  File /oname=soai.exe "${PAYLOAD_DIR}\soai.exe"
-  File /oname=soai.exe.config "${PAYLOAD_DIR}\soai.exe.config"
-  File /oname=Microsoft.Web.WebView2.Core.dll "${PAYLOAD_DIR}\Microsoft.Web.WebView2.Core.dll"
-  File /oname=Microsoft.Web.WebView2.WinForms.dll "${PAYLOAD_DIR}\Microsoft.Web.WebView2.WinForms.dll"
-  File /oname=soai-app.ico "${PAYLOAD_DIR}\soai-app.ico"
-  File /oname=soai-logo-dark.png "${PAYLOAD_DIR}\frontend\assets\img\soai\soai-logo-dark.png"
-  File /oname=soai-logo-light.png "${PAYLOAD_DIR}\frontend\assets\img\soai\soai-logo-light.png"
-  SetOverwrite on
-  ${If} ${Errors}
-    DetailPrint "The update progress window could not be prepared; the update continues without it."
-    Return
-  ${EndIf}
-  Exec '"$2\soai.exe" --soai-update-progress "$INSTDIR" "${PRODUCT_VERSION}"'
-FunctionEnd
 Function PrepareInstallerTransactionTools
   InitPluginsDir
   SetOutPath "$PLUGINSDIR"
   ClearErrors
   SetOverwrite try
   File /oname=Remove-SoAI.ps1 "${PAYLOAD_DIR}\installer-support\Remove-SoAI.ps1"
+  File /oname=Shared-SoAIResourceOwnership.ps1 "${PAYLOAD_DIR}\installer-support\Shared-SoAIResourceOwnership.ps1"
   File /oname=soai-control.exe "${PAYLOAD_DIR}\soai.exe"
   File /oname=Preserve-SoAIUpgrade.ps1 "${PAYLOAD_DIR}\installer-support\Preserve-SoAIUpgrade.ps1"
   File /oname=installed-files.txt "${PAYLOAD_DIR}\installer-support\installed-files.txt"
@@ -531,6 +520,115 @@ Function PrepareInstallerTransactionTools
   ${If} ${Errors}
     !insertmacro FailInstallerStep "" "Setup could not prepare its installation tools in $PLUGINSDIR."
   ${EndIf}
+FunctionEnd
+Function ReadInstallerFileIdentity
+  Exch $0
+  Push $1
+  Push $2
+  Push $3
+  Push $4
+  Push $5
+  Push $6
+  System::Call 'kernel32::CreateFileW(w r0,i 0x80,i 7,p 0,i 3,i 0x02200000,p 0) p .r1'
+  StrCpy $0 ""
+  ${If} $1 != -1
+    System::Call '*(i,l,l,l,i,i,i,i,i,i) p .r2'
+    ${If} $2 != 0
+      System::Call 'kernel32::GetFileInformationByHandle(p r1,p r2) i .r3'
+      ${If} $3 != 0
+        System::Call '*$2(i .r3,l,l,l,i .r4,i,i,i,i .r5,i .r6)'
+        IntOp $3 $3 & 0x410
+        StrCpy $0 "$4:$5:$6:$3"
+      ${EndIf}
+      System::Free $2
+    ${EndIf}
+    System::Call 'kernel32::CloseHandle(p r1)'
+  ${EndIf}
+  Pop $6
+  Pop $5
+  Pop $4
+  Pop $3
+  Pop $2
+  Pop $1
+  Exch $0
+FunctionEnd
+Function MoveInstallerFileWithSharingRetry
+  Exch $R2
+  Exch
+  Exch $R1
+  Exch 2
+  Exch $R0
+  Push $R3
+  Push $R4
+  Push $R5
+  Push $R6
+  Push $R7
+  Push $R8
+  Push $R9
+  IntOp $R3 $R2 * 60000
+  IntOp $R3 $R3 + 30000
+  System::Call 'kernel32::GetTickCount64() l .R4'
+  Push $R0
+  Call ReadInstallerFileIdentity
+  Pop $R5
+  StrCpy $R6 250
+  StrCpy $R9 0
+  ${If} $R5 == ""
+    Goto done
+  ${EndIf}
+  attempt:
+    System::Call 'kernel32::MoveFileExW(w R0,w R1,i 9) i .R7 ?e'
+    Pop $R8
+    ${If} $R7 != 0
+      StrCpy $R9 1
+      Goto done
+    ${EndIf}
+    ${If} $R8 <> 32
+    ${AndIf} $R8 <> 33
+      Goto done
+    ${EndIf}
+    System::Call 'kernel32::GetTickCount64() l .R7'
+    System::Int64Op $R7 - $R4
+    Pop $R7
+    IntOp $R7 $R3 - $R7
+    ${If} $R7 <= 0
+      Goto done
+    ${EndIf}
+    System::Call 'kernel32::GetTickCount() i .R8'
+    IntOp $R8 $R8 & 0x7FFFFFFF
+    IntOp $R2 $R6 / 10
+    IntOp $R2 $R2 + 1
+    IntOp $R8 $R8 % $R2
+    IntOp $R8 $R8 + $R6
+    ${If} $R8 > $R7
+      StrCpy $R8 $R7
+    ${EndIf}
+    Sleep $R8
+    IntOp $R6 $R6 * 2
+    ${If} $R6 > 2000
+      StrCpy $R6 2000
+    ${EndIf}
+    Push $R0
+    Call ReadInstallerFileIdentity
+    Pop $R8
+    ${If} $R8 != $R5
+      Goto done
+    ${EndIf}
+    Goto attempt
+  done:
+    StrCpy $R0 $R9
+    Pop $R9
+    Pop $R8
+    Pop $R7
+    Pop $R6
+    Pop $R5
+    Pop $R4
+    Pop $R3
+    Exch $R0
+    Exch
+    Pop $R2
+    Exch
+    Pop $R1
 FunctionEnd
 !define SOAI_LAUNCHER_INSTALL_FAILURE "Setup could not install the SoAI launcher in $INSTDIR."
 Function InstallCandidateLauncher
@@ -565,7 +663,11 @@ Function InstallCandidateLauncher
   ${OrIf} $2 == 0
     !insertmacro FailInstallerStep "" "${SOAI_LAUNCHER_INSTALL_FAILURE}"
   ${EndIf}
-  System::Call 'kernel32::MoveFileEx(w "$InstallerFilesystemRoot\installer-support\.soai-launcher.pending", w "$InstallerFilesystemRoot\soai.exe", i 9) i .r0'
+  Push "$InstallerFilesystemRoot\installer-support\.soai-launcher.pending"
+  Push "$InstallerFilesystemRoot\soai.exe"
+  Push 1
+  Call MoveInstallerFileWithSharingRetry
+  Pop $0
   ${If} $0 == 0
     !insertmacro FailInstallerStep "" "${SOAI_LAUNCHER_INSTALL_FAILURE}"
   ${EndIf}
@@ -583,13 +685,31 @@ Function InstallCandidateLauncher
   ${OrIf} $2 == 0
     !insertmacro FailInstallerStep "" "${SOAI_LAUNCHER_INSTALL_FAILURE}"
   ${EndIf}
-  System::Call 'kernel32::MoveFileExW(w "$InstallerFilesystemRoot\installer-support\.soai-launcher-config.pending",w "$InstallerFilesystemRoot\soai.exe.config",i 9) i .r0'
+  Push "$InstallerFilesystemRoot\installer-support\.soai-launcher-config.pending"
+  Push "$InstallerFilesystemRoot\soai.exe.config"
+  Push 0
+  Call MoveInstallerFileWithSharingRetry
+  Pop $0
   ${If} $0 == 0
     !insertmacro FailInstallerStep "" "${SOAI_LAUNCHER_INSTALL_FAILURE}"
   ${EndIf}
 FunctionEnd
+Function StageInstallerCandidate
+  StrCpy $InstallerCandidateStage "$PLUGINSDIR\candidate"
+  CreateDirectory "$InstallerCandidateStage"
+  Push '"$EXEPATH" /S /PrepareUpdate="$InstallerCandidateStage"'
+  Push "$PLUGINSDIR"
+  Call RunInstallerChild
+  Pop $0
+  ${If} $0 != 0
+    !insertmacro FailInstallerScript "" "The candidate application could not be staged" "The previous installation has been retained."
+  ${EndIf}
+FunctionEnd
 Function PrepareExistingInstallRoot
   ${If} $InstallerTargetClassification == "fresh"
+    Return
+  ${EndIf}
+  ${If} $InstallerTargetClassification == "retained-data"
     Return
   ${EndIf}
   ${If} $InstallerTargetClassification != "existing"
@@ -600,7 +720,13 @@ Function PrepareExistingInstallRoot
   ${If} $InstallFailed == 1
     Return
   ${EndIf}
+  nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$PLUGINSDIR\Preserve-SoAIUpgrade.ps1" -InstallRoot "$INSTDIR" -BackupRoot "$UpgradeBackupRoot" -StageRoot "$InstallerCandidateStage" -Mode Prepare -ControlLauncherPath "$PLUGINSDIR\soai-control.exe"'
+  Pop $0
+  ${If} $0 != 0
+    !insertmacro FailInstallerScript "" "The original installation could not be protected before replacement" "The previous installation has been retained."
+  ${EndIf}
   DetailPrint "Cleaning files from the previous SoAI installation..."
+  StrCpy $InstallMutationStarted 1
   nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$PLUGINSDIR\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Upgrade -ControlLauncherPath "$PLUGINSDIR\soai-control.exe"'
   Pop $0
   ${If} $0 != 0
@@ -613,7 +739,7 @@ Function PreserveExistingInstallRoot
   StrCpy $UpgradeBackupRoot "$UpgradeBackupRoot-SoAI-Upgrade-${PRODUCT_VERSION}"
   CreateDirectory "$UpgradeBackupRoot"
   DetailPrint "Preserving the current SoAI application files for rollback..."
-  nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$PLUGINSDIR\Preserve-SoAIUpgrade.ps1" -InstallRoot "$INSTDIR" -BackupRoot "$UpgradeBackupRoot" -Mode Backup'
+  nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$PLUGINSDIR\Preserve-SoAIUpgrade.ps1" -InstallRoot "$INSTDIR" -BackupRoot "$UpgradeBackupRoot" -Mode Backup -ControlLauncherPath "$PLUGINSDIR\soai-control.exe"'
   Pop $0
   ${If} $0 != 0
     RMDir /r "$UpgradeBackupRoot"
@@ -621,6 +747,7 @@ Function PreserveExistingInstallRoot
     !insertmacro FailInstallerScript "" "The current SoAI installation could not be preserved for rollback" "Setup has not changed it."
   ${EndIf}
   StrCpy $UpgradePrepared 1
+  System::Call 'kernel32::SetEnvironmentVariableW(w "SOAI_INSTALL_RETAINED_ROOT", w "$UpgradeBackupRoot")'
 FunctionEnd
 Function RestoreExistingInstallRoot
   DetailPrint "Restoring the previous SoAI application files..."

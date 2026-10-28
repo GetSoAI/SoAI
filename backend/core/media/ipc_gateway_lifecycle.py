@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Never
@@ -18,6 +19,7 @@ from core.ipc.protocols import ManagedIpcWorkerProtocol
 from core.ipc.server import LocalIpcServer
 from core.ipc.settings import resolve_ipc_max_message_bytes
 from core.media.protocols import MediaIpcServerLifecycleProtocol
+from core.system.native_runtime_probes import interpreter_probe_budget, native_phase_seconds
 from core.timing.constants import EXTENDED_TIMEOUT_SEC
 
 __all__ = (
@@ -142,9 +144,15 @@ async def _start_media_gateway(
     try:
         await server.start()
         worker = worker_builder()
+        startup_budget = await asyncio.to_thread(
+            interpreter_probe_budget,
+            sys.executable,
+            ordinary_seconds=EXTENDED_TIMEOUT_SEC,
+            environment=True,
+        )
         await worker.spawn(
             server=server,
-            startup_timeout_sec=EXTENDED_TIMEOUT_SEC,
+            startup_timeout_sec=native_phase_seconds(startup_budget),
         )
     except asyncio.CancelledError as exception:
         await cleanup_failed_media_gateway_start(

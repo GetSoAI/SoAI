@@ -69,7 +69,8 @@ async def shutdown_application(
     process_exit_deadline.begin_finalization()
     if application_context.runtime.restart_requested:
         lifecycle_logger.debug(
-            "Graceful shutdown complete. Re-executing the application process for restart.",
+            "Re-executing the application process for requested restart; shutdown exit code: %s.",
+            application_context.runtime.exit_code or exit_code,
         )
         relaunch_application(
             base_dir=base_dir,

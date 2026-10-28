@@ -25,7 +25,7 @@ def resolve_cached_task_locked(
     cached_terminal: Task | None = None
     if terminal_entry is not None:
         terminal_task, cached_at = terminal_entry
-        if now - cached_at < registry.terminal_cache_ttl:
+        if terminal_task.execution_timeout_pending or now - cached_at < registry.terminal_cache_ttl:
             cached_terminal = terminal_task
         else:
             del registry.terminal_cache[task_id]

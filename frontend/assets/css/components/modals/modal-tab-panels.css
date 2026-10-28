@@ -51,16 +51,12 @@
     }
 
     .ui-modal-tab-panel .ui-modal-manual-path-input {
-        color: var(--text-tertiary);
-        background: var(--glass-surface-medium);
+        color: var(--text-field-color);
+        background: var(--text-field-bg);
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
-        border-color: var(--glass-border-strong);
-        box-shadow: var(--glass-shadow-base);
+        border-color: var(--text-field-border);
+        box-shadow: var(--text-field-shadow);
         pointer-events: none;
-    }
-
-    .ui-modal-tab-panel .ui-modal-manual-path-input:hover {
-        border-color: var(--glass-border-strong);
     }
 }

@@ -3,14 +3,20 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import httpx2
 
-from core.errors.exceptions import ApiError, IpcRemoteRequestError
+from core.errors.exceptions import ApiError, IpcRemoteRequestError, SoAIError
 from core.errors.external_service_exception import ExternalServiceError
+from core.openai.provider_error_explanations import (
+    UpstreamFailureType,
+    resolve_upstream_failure_type,
+)
 from core.timing.retry_backoff import (
     compute_exponential_backoff_seconds,
+    normalize_retry_after_header,
     parse_retry_after_seconds,
 )
 from orchestrator.execution.upstream_error_metadata import (
@@ -43,41 +49,35 @@ class ExecutionRetryDecision:
 
 
 def _resolve_retry_after_header(exception: Exception) -> str | None:
+    headers: Mapping[str, str] | None = (
+        exception.headers if isinstance(exception, SoAIError) else None
+    )
     if isinstance(exception, httpx2.HTTPStatusError):
         response = exception.response
         if response is not None:
-            value = response.headers.get("Retry-After")
-            return value.strip() if isinstance(value, str) and value.strip() else None
-    if isinstance(exception, ExternalServiceError | IpcRemoteRequestError):
-        if exception.headers is not None:
-            value = exception.headers.get("Retry-After")
-            if isinstance(value, str) and value.strip():
-                return value.strip()
+            headers = response.headers
+    if headers:
+        lowered = {name.lower(): value for name, value in headers.items()}
+        guidance = normalize_retry_after_header(lowered.get("retry-after"))
+        if guidance is not None:
+            return guidance
+        guidance = normalize_retry_after_header(lowered.get("retry-after-ms"), milliseconds=True)
+        if guidance is not None:
+            return guidance
+    if isinstance(exception, SoAIError):
         return resolve_upstream_retry_after(exception)
-    if isinstance(exception, ApiError) and exception.headers is not None:
-        value = exception.headers.get("Retry-After")
-        return value.strip() if isinstance(value, str) and value.strip() else None
     return None
 
 
 def _resolve_delay_seconds(exception: Exception, attempt: int) -> float:
     retry_after = _resolve_retry_after_header(exception)
-    if retry_after is not None:
-        return float(
-            min(
-                int(_MAX_BACKOFF_SECONDS),
-                parse_retry_after_seconds(
-                    retry_after,
-                    default_seconds=int(_BASE_BACKOFF_SECONDS),
-                ),
-            ),
-        )
-    return compute_exponential_backoff_seconds(
+    local_backoff = compute_exponential_backoff_seconds(
         max(0, attempt - 1),
         base_seconds=_BASE_BACKOFF_SECONDS,
         maximum_seconds=_MAX_BACKOFF_SECONDS,
         jitter_ratio=_JITTER_RATIO,
     )
+    return max(local_backoff, float(parse_retry_after_seconds(retry_after, round_up=True)))
 
 
 def _is_provider_rate_limit(exception: Exception) -> bool:
@@ -115,21 +115,39 @@ def resolve_execution_retry_decision(
     exception: Exception,
     *,
     attempt: int,
+    remaining_seconds: float | None = None,
 ) -> ExecutionRetryDecision:
-    if _is_provider_rate_limit(exception):
+    failure_type = (
+        resolve_upstream_failure_type(exception.details or {})
+        if isinstance(exception, SoAIError)
+        else None
+    )
+    if failure_type is not None and failure_type not in {
+        UpstreamFailureType.RATE_LIMIT,
+        UpstreamFailureType.TIMEOUT,
+        UpstreamFailureType.PROVIDER_OUTAGE,
+    }:
+        return ExecutionRetryDecision(False, 1, 0.0, "not_retryable")
+    if failure_type is UpstreamFailureType.RATE_LIMIT or (
+        failure_type is None and _is_provider_rate_limit(exception)
+    ):
         should_retry = attempt < PROVIDER_RATE_LIMIT_RETRY_ATTEMPTS
+        delay = _resolve_delay_seconds(exception, attempt)
         return ExecutionRetryDecision(
-            should_retry=should_retry,
+            should_retry=should_retry and (remaining_seconds is None or delay < remaining_seconds),
             max_attempts=PROVIDER_RATE_LIMIT_RETRY_ATTEMPTS,
-            delay_seconds=_resolve_delay_seconds(exception, attempt),
+            delay_seconds=delay,
             reason="provider_rate_limited",
         )
-    if _is_default_retryable(exception):
+    if failure_type in {UpstreamFailureType.TIMEOUT, UpstreamFailureType.PROVIDER_OUTAGE} or (
+        failure_type is None and _is_default_retryable(exception)
+    ):
         should_retry = attempt < DEFAULT_EXECUTION_RETRY_ATTEMPTS
+        delay = _resolve_delay_seconds(exception, attempt)
         return ExecutionRetryDecision(
-            should_retry=should_retry,
+            should_retry=should_retry and (remaining_seconds is None or delay < remaining_seconds),
             max_attempts=DEFAULT_EXECUTION_RETRY_ATTEMPTS,
-            delay_seconds=_resolve_delay_seconds(exception, attempt),
+            delay_seconds=delay,
             reason="transient_inference_failure",
         )
     return ExecutionRetryDecision(

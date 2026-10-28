@@ -25,6 +25,7 @@ const PLUGINS_ACTION_DOWNLOAD_MANUAL_OPEN_FILE_EXPLORER = 'plugins.download.manu
 const PLUGINS_ACTION_DOWNLOAD_MANUAL_RESTART = 'plugins.download.manual.restart';
 const PLUGINS_ACTION_CONFIG_SAVE = 'plugins.config.save';
 const PLUGINS_ACTION_INFO_COPY = 'plugins.info.copy';
+const PLUGINS_ACTION_BACKEND_VARIANTS_RETRY = 'plugins.backend.variants.retry';
 const PLUGINS_ACTION_BACKEND_INSTALL_START = 'plugins.backend.install.start';
 const PLUGINS_ACTION_BACKEND_UPDATE_CHECK = 'plugins.backend.update.check';
 const PLUGINS_ACTION_BACKEND_UNINSTALL = 'plugins.backend.uninstall';
@@ -36,6 +37,7 @@ const PLUGINS_ACTION_CONCURRENT_VALUE_INPUT = 'plugins.concurrent.valueInput';
 const PLUGINS_ACTION_DOWNLOAD_FILE_CHANGE = 'plugins.download.fileChange';
 
 export {
+    PLUGINS_ACTION_BACKEND_VARIANTS_RETRY,
     PLUGINS_ACTION_BACKEND_INSTALL_START,
     PLUGINS_ACTION_BACKEND_UNINSTALL,
     PLUGINS_ACTION_BACKEND_UPDATE_CHECK,

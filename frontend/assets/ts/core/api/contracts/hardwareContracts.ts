@@ -8,6 +8,7 @@ import { decodeHardwareCapabilities, decodeHardwareSnapshot } from '@core/api/co
 import { decodeGpuSoAIBenchHistoryRun } from '@core/api/contracts/hardwareSoAIBenchHistoryContracts.ts';
 import { decodeGpuSoAIBenchRun, serializeGpuSoAIBenchRun } from '@core/api/contracts/hardwareSoAIBenchRunContracts.ts';
 import { decodeOptionalHistoryAvailability } from '@core/realtime/historyAvailabilityContracts.ts';
+import { decodeHardwareComponentObservation } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
 import { readNullableFiniteNumberValue, readRequiredFiniteIntegerValue, readRequiredFiniteNumberValue } from '@core/types/payloadNumberReaders.ts';
 import { readNullableTrimmedStringValue, readRequiredBooleanValue, readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
@@ -149,6 +150,7 @@ const decodeHardwareHistory = (value: ApiResponsePayload): HardwareHistoryRespon
         data,
         sampleCounts,
         metadata: {
+            ...(metadataRecord['identity_observation'] !== undefined ? { identityObservation: decodeHardwareComponentObservation(metadataRecord['identity_observation'], 'Hardware history.metadata.identity_observation') } : {}),
             aggregation: readRequiredTrimmedStringValue(metadataRecord['aggregation'], 'Hardware history.metadata.aggregation'),
             intervalMs: readRequiredFiniteNumberValue(metadataRecord['interval_ms'], 'Hardware history.metadata.interval_ms'),
             requestedIntervalMs: readNullableFiniteNumberValue(metadataRecord['requested_interval_ms'], 'Hardware history.metadata.requested_interval_ms'),

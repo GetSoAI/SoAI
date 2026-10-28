@@ -1,10 +1,11 @@
 /* SoAI - Plugins page rendering layer card renderer implementation [frontend/assets/ts/pages/plugins/rendering/cardrenderer/rendering.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { canUpdatePluginBackend, hasPluginBackendUpdate } from '@core/plugins/backendUpdates.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { MODELS_ACTION_ADD_PROVIDER, MODELS_ACTION_DOWNLOAD_MODEL } from '@core/models/pageActions.ts';
 import { renderActionToggleSwitch } from '@core/toggleSwitch.ts';
-import { PLUGIN_STATUS_BACKEND_NOT_INSTALLED, PLUGIN_STATUS_BACKEND_UPDATING, PLUGIN_STATUS_DELETE_ERROR, PLUGIN_STATUS_INSTALL_ERROR, PLUGIN_STATUS_LOAD_ERROR, PLUGIN_STATUS_BACKEND_UNINSTALL_ERROR, PLUGIN_STATUS_UPDATE_ERROR } from '@core/state/pluginStatus.ts';
+import { isPluginModelUnavailableStatus, PLUGIN_STATUS_BACKEND_NOT_INSTALLED, PLUGIN_STATUS_BACKEND_UPDATING, PLUGIN_STATUS_DELETE_ERROR, PLUGIN_STATUS_INSTALL_ERROR, PLUGIN_STATUS_LOAD_ERROR, PLUGIN_STATUS_BACKEND_UNINSTALL_ERROR, PLUGIN_STATUS_UPDATE_ERROR } from '@core/state/pluginStatus.ts';
 import { isArray, isObject, isString } from '@core/typeGuards.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import { getBadgeColorClass } from '@core/ui/badgeColors.ts';
@@ -12,7 +13,7 @@ import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
 import { renderIconSlot } from '@core/ui/icons/view.ts';
 import { renderLabelAttributes } from '@core/security/public.ts';
 import { PROVIDER_MODE, resolveProviderMode } from '@features/catalog/public.ts';
-import { PLUGINS_ACTION_INSTALL_BACKEND, PLUGINS_ACTION_METRIC_BADGE, PLUGINS_ACTION_TOGGLE_ENABLED } from '@features/plugins/public.ts';
+import { PLUGINS_ACTION_MANAGE_BACKEND, PLUGINS_ACTION_INSTALL_BACKEND, PLUGINS_ACTION_METRIC_BADGE, PLUGINS_ACTION_TOGGLE_ENABLED } from '@features/plugins/public.ts';
 import type { PluginCardHost } from '@pages/plugins/rendering/cardrenderer/types.ts';
 
 interface BackendStatuses {
@@ -80,6 +81,11 @@ function getBackendStatus(plugin: PluginRecord, host: PluginCardHost): string {
     return host.status.getBackendStatus(plugin);
 }
 
+function showBackendUpdateBadge(plugin: PluginRecord, host: PluginCardHost): boolean {
+    const status = host.status.getPluginStatus(plugin);
+    return plugin.capabilities?.supportsBackendInstallation !== false && host.actions.backendUpdateAccess(plugin).catalogFresh && hasPluginBackendUpdate(plugin) && !host.compatibility.isPluginPermanentlyDisabled(plugin) && !host.compatibility.requiresCompatibilityOverride(plugin) && !isPluginModelUnavailableStatus(status) && !host.status.presenter.isError(status) && !host.status.presenter.isTransitioning(status);
+}
+
 function getBackendBadgeValue(plugin: PluginRecord, host: PluginCardHost): string {
     if (host.compatibility.isPluginPermanentlyDisabled(plugin)) {
         return getBackendStatus(plugin, host);
@@ -89,6 +95,7 @@ function getBackendBadgeValue(plugin: PluginRecord, host: PluginCardHost): strin
         const availableCount = host.status.getBackendAvailableVariantCount(plugin);
         return availableCount === null ? getBackendStatus(plugin, host) : i18n.t('plugins.badges.availableBackends', { count: availableCount });
     }
+    if (showBackendUpdateBadge(plugin, host)) return i18n.t('plugins.modal.manageBackend.update_available');
     return i18n.t('plugins.badges.manageBackend');
 }
 
@@ -111,7 +118,8 @@ function renderSecondBadge(plugin: PluginRecord, backendStatusAttr: string, host
     }
 
     if (capabilities.supportsBackendInstallation !== false) {
-        const backendAttr = backendStatusAttr ? ` ${backendStatusAttr}` : '';
+        const updateAvailable = showBackendUpdateBadge(plugin, host);
+        const backendAttr = `${backendStatusAttr ? ` ${backendStatusAttr}` : ''}${updateAvailable ? ' data-backend-update="available"' : ''}`;
         const backendLabel = i18n.t('plugins.badges.backend');
         return `<div class="ui-metric-item"><button type="button" class="ui-metric-badge ui-metric-badge--secondary" data-action="${PLUGINS_ACTION_METRIC_BADGE}" data-metric-key="backend"${backendAttr} ${renderLabelAttributes(backendLabel)}><span class="ui-metric-label">${backendLabel}</span><span dir="auto" class="ui-metric-value">${getBackendBadgeValue(plugin, host)}</span></button></div>`;
     }
@@ -126,12 +134,12 @@ function renderInstallButton(plugin: PluginRecord, host: PluginCardHost, statuse
     }
     const capabilities = isObject(plugin.capabilities) ? plugin.capabilities : {};
     const status = host.status.getPluginStatus(plugin);
-    if (host.compatibility.isPluginPermanentlyDisabled(plugin) || (status !== statuses.backendNotInstalled && status !== PLUGIN_STATUS_INSTALL_ERROR) || capabilities.supportsBackendInstallation === false) {
-        return '';
-    }
-    const label = i18n.t('plugins.actions.installBackend');
+    if (host.compatibility.isPluginPermanentlyDisabled(plugin) || capabilities.supportsBackendInstallation === false) return '';
+    const install = status === statuses.backendNotInstalled || status === PLUGIN_STATUS_INSTALL_ERROR;
+    if (!install && !(hasPluginBackendUpdate(plugin) && canUpdatePluginBackend(plugin, host.actions.backendUpdateAccess(plugin)))) return '';
+    const label = install ? i18n.t('plugins.actions.installBackend') : i18n.t('plugins.modal.manageBackend.update');
     const icon = renderIconSlot(getIconSync('download', { size: 12, strokeWidth: 1.5 }));
-    return `<button type="button" class="ui-button ui-button--sm ui-variant-accent status-install-button" data-action="${PLUGINS_ACTION_INSTALL_BACKEND}" ${renderLabelAttributes(label)}>${icon}<span>${label}</span></button>`;
+    return `<button type="button" class="ui-button ui-button--sm ${install ? 'ui-variant-accent' : 'ui-variant-primary'} status-install-button" data-action="${install ? PLUGINS_ACTION_INSTALL_BACKEND : PLUGINS_ACTION_MANAGE_BACKEND}" ${renderLabelAttributes(label)}>${icon}<span>${label}</span></button>`;
 }
 
 function renderDownloadModelButton(plugin: PluginRecord, host: PluginCardHost, statuses: BackendStatuses): string {
@@ -179,4 +187,4 @@ function renderModelTypeBadges(plugin: PluginRecord): string {
     return badges ? `<div class="ui-model-type-badges ui-model-type-badges--inline">${badges}</div>` : '';
 }
 
-export { resolveToggleLabelText, buildPluginEnabledToggle, renderSecondBadge, renderInstallButton, renderDownloadModelButton, renderModelTypeBadges };
+export { showBackendUpdateBadge, resolveToggleLabelText, buildPluginEnabledToggle, renderSecondBadge, renderInstallButton, renderDownloadModelButton, renderModelTypeBadges };

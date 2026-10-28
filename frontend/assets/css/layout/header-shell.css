@@ -117,7 +117,7 @@
     .settings-dropdown,
     .user-dropdown {
         position: absolute;
-        top: calc(100% + 8px);
+        top: calc(50% + var(--header-height) / 2 + var(--header-menu-gap));
         inset-inline-end: 0;
         z-index: var(--z-dropdown);
         min-width: 200px;
@@ -170,6 +170,7 @@
     }
 
     .task-name-text {
+        color: var(--text-primary);
         display: inline-flex;
         align-items: center;
         min-width: 0;

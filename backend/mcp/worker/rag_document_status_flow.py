@@ -12,6 +12,7 @@ from core.rag.job_operations import (
 from mcp.worker.processing.durable_job_runtime import renew_durable_processing_lease
 
 if TYPE_CHECKING:
+    from core.types.json import JSONDict
     from mcp.worker.internal_protocols import MCPWorkerProtocol
 
 __all__ = ("update_worker_rag_document_status",)
@@ -32,6 +33,7 @@ async def update_worker_rag_document_status(
     effective_embedding_model: str | None = None,
     embedding_dimensions: int | None = None,
     error_message: str | None = None,
+    extraction_summary: JSONDict | None = None,
 ) -> None:
     status_update = RAGDocumentStatusUpdateRequest(
         doc_id=document_id,
@@ -44,6 +46,7 @@ async def update_worker_rag_document_status(
         effective_embedding_model=effective_embedding_model,
         embedding_dimensions=embedding_dimensions,
         error_message=error_message,
+        extraction_summary=extraction_summary,
     )
     if job_id and lease_token:
         await renew_durable_processing_lease(worker, job_id=job_id, lease_token=lease_token)

@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from core.config.numeric import coerce_positive_float
+from core.tasks.execution_budget import ExecutionLimit, resolve_execution_limit
 from core.tasks.prompt_token_metadata import resolve_task_prompt_tokens
 from core.tasks.task import Task
 from core.timing.constants import LONG_REQUEST_TIMEOUT_SEC
@@ -17,7 +18,7 @@ __all__ = (
     "resolve_streaming_first_chunk_timeout",
 )
 
-DEFAULT_STREAMING_PREFILL_MIN_TOKENS_PER_SEC: float = 50.0
+DEFAULT_STREAMING_PREFILL_MIN_TOKENS_PER_SEC: float = 8.0
 DEFAULT_STREAMING_PREFILL_OVERHEAD_SEC: float = 60.0
 STREAMING_TIMEOUT_MINIMUM: float = 1.0
 
@@ -50,7 +51,7 @@ def resolve_streaming_first_chunk_timeout(
     *,
     task: Task,
     health_check_config: Mapping[str, JSONValue],
-) -> float:
+) -> ExecutionLimit:
     base_timeout = _resolve_health_float(
         health_check_config,
         "NON_STREAMING_TIMEOUT_SEC",
@@ -74,6 +75,7 @@ def resolve_streaming_first_chunk_timeout(
         )
         resolved_timeout = max(base_timeout, prompt_prefill_timeout)
     explicit_timeout = _resolve_explicit_request_timeout(task)
-    if explicit_timeout is None:
-        return resolved_timeout
-    return min(resolved_timeout, max(STREAMING_TIMEOUT_MINIMUM, explicit_timeout))
+    return resolve_execution_limit(
+        resolved_timeout,
+        None if explicit_timeout is None else max(STREAMING_TIMEOUT_MINIMUM, explicit_timeout),
+    )

@@ -106,10 +106,14 @@ export class HeaderSearchManager {
         return this.expanded && token === this.searchToken;
     }
 
-    resetResults(): void {
+    cancelPendingSearch(): void {
         this.cancelScheduledSearch();
         this.abortSearchRequest();
         this.advanceSearchToken();
+    }
+
+    resetResults(): void {
+        this.cancelPendingSearch();
         this.resetDropdown();
     }
 

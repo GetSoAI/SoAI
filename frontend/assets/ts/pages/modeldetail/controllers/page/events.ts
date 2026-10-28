@@ -4,6 +4,7 @@
 import { ensureError } from '@core/errors/coerce.ts';
 import { METRICS, MODELS, PLUGINS } from '@core/realtime/streammanager/resources/ids.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
+import { WEBSOCKET_LIFECYCLE_EVENT_TYPES } from '@core/websocketEvents.ts';
 import type { PageStreamingOwnerHost } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
 import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { ModelDetailSession } from '@pages/modeldetail/state/ModelDetailSession.ts';
@@ -12,6 +13,9 @@ interface ModelDetailRealtimeDependencies extends PageStreamingOwnerHost, PageRe
     handleModelUpdate: (value: JsonValue | null) => void;
     handleMetricsUpdate: (value: JsonValue | null) => void;
     handlePluginCollectionUpdate: (value: JsonValue | null) => void;
+    connection: { subscribeEvents: (listener: (eventType: string) => void) => () => void; subscribeConnected: (listener: () => void) => () => void };
+    handleTransportDisconnected: () => void;
+    handleTransportConnected: () => void;
     logRealtimeWarning: (message: string, error: Error) => void;
 }
 
@@ -42,6 +46,16 @@ const setupModelDetailRealtimeCollectionSubscriptions = (host: ModelDetailRealti
         [METRICS, (value: JsonValue | null) => host.handleMetricsUpdate(value)],
         [PLUGINS, (value: JsonValue | null) => host.handlePluginCollectionUpdate(value)]
     ];
+    try {
+        host.pageResources.track(
+            host.connection.subscribeEvents((eventType: string) => {
+                if (eventType === WEBSOCKET_LIFECYCLE_EVENT_TYPES.DISCONNECTED) host.handleTransportDisconnected();
+            })
+        );
+        host.pageResources.track(host.connection.subscribeConnected(() => host.handleTransportConnected()));
+    } catch (error) {
+        host.logRealtimeWarning('Failed to subscribe to connection state', ensureError(error));
+    }
     subscriptions.forEach(([resource, handler]: [string, (value: JsonValue | null) => void]) => {
         try {
             const unsubscribe = host.streaming.subscribeResourceValue(resource, handler);

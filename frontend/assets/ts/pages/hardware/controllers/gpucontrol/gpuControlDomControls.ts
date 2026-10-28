@@ -1,6 +1,8 @@
 /* SoAI - Hardware page GPU control DOM controls [frontend/assets/ts/pages/hardware/controllers/gpucontrol/gpuControlDomControls.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { applyTextContent } from '@core/dom/textContent.ts';
+
 import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
@@ -10,8 +12,9 @@ import { GPU_CONTROL_TYPES, GPU_CONTROLS_CONFIG } from '@pages/hardware/controll
 import { getDataAttribute, setDataAttribute } from '@pages/hardware/controllers/gpucontrol/gpucontrolmanager/dom.ts';
 import { isControlSupported, isGpuControlType } from '@pages/hardware/controllers/gpucontrol/gpucontrolmanager/guards.ts';
 import { getOffsetControlContext } from '@pages/hardware/controllers/gpucontrol/gpuControlNormalization.ts';
+import { resolveClockDomain } from '@pages/hardware/controllers/gpucontrol/gpuClockDomain.ts';
 import type { GpuCapabilitiesByIndex } from '@core/realtime/streammanager/resources/gpuCapabilitiesContracts.ts';
-import type { GpuSnapshot, GpuUiState, SliderElements } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
+import type { GpuSnapshot, GpuSnapshotControl, GpuUiState, SliderElements } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 
 const str = String;
 
@@ -42,6 +45,39 @@ const closestSupportedValue = (values: readonly JsonValue[], target: number): nu
     return closest;
 };
 
+const getSupportedClockValues = (capabilitiesByIndex: GpuCapabilitiesByIndex | null, index: string | number, type: string): readonly JsonValue[] => {
+    const capabilities = capabilitiesByIndex?.[String(index)];
+    const clockInfo = type === 'core' ? capabilities?.coreClockMhz : type === 'memory' ? capabilities?.memClockMhz : null;
+    if (!clockInfo) return [];
+    const domain = resolveClockDomain(clockInfo);
+    return domain.type === 'discrete' ? domain.values : [];
+};
+
+export const getSupportedSliderKeyboardValue = (capabilitiesByIndex: GpuCapabilitiesByIndex | null, index: string | number, type: string, slider: HTMLInputElement, key: string): number | null => {
+    if (type !== 'core' && type !== 'memory') return null;
+    if (!isControlSupported(capabilitiesByIndex, index, type, 'manual')) return null;
+    let direction: number;
+    if (key === 'ArrowLeft' || key === 'ArrowDown') direction = -1;
+    else if (key === 'ArrowRight' || key === 'ArrowUp') direction = 1;
+    else return null;
+    if ((key === 'ArrowLeft' || key === 'ArrowRight') && getComputedStyle(slider).direction === 'rtl') direction *= -1;
+    const offsetContext = getOffsetControlContext(capabilitiesByIndex, index, type);
+    const current = readCoercedFiniteNumberOrNullValue(slider.value);
+    const minimum = readCoercedFiniteNumberOrNullValue(slider.min);
+    const maximum = readCoercedFiniteNumberOrNullValue(slider.max);
+    if (current === null || minimum === null || maximum === null) return null;
+    const defaultAbs = offsetContext?.defaultAbs ?? 0;
+    const supportedValues = getSupportedClockValues(capabilitiesByIndex, index, type).flatMap((value) => {
+        const absolute = readCoercedFiniteNumberOrNullValue(value);
+        if (absolute === null) return [];
+        const displayed = absolute - defaultAbs;
+        return displayed >= minimum && displayed <= maximum ? [displayed] : [];
+    });
+    if (!supportedValues.length) return null;
+    supportedValues.sort((firstValue, secondValue) => (firstValue - secondValue) * direction);
+    return supportedValues.find((value) => (value - current) * direction > 0) ?? current;
+};
+
 export const getSliderElements = (_document: Document, index: string | number, type: string): SliderElements => {
     const slider = dom.resolve(`#gpu-${index}-${type}-slider`);
     if (!(slider instanceof HTMLInputElement)) return {};
@@ -55,12 +91,16 @@ export const getSliderElements = (_document: Document, index: string | number, t
     if (valueLabel instanceof HTMLElement) result.valueLabel = valueLabel;
     if (toggleInput) result.toggle = toggleInput;
     if (toggleLabel instanceof HTMLElement) result.toggleLabel = toggleLabel;
+    const valueInput = toggleLabel ? dom.resolve('.gpu-slider-value-input', toggleLabel) : null;
+    const valueTrigger = toggleLabel ? dom.resolve('.ui-inline-text-edit__trigger', toggleLabel) : null;
+    if (valueInput instanceof HTMLInputElement) result.valueInput = valueInput;
+    if (valueTrigger instanceof HTMLButtonElement) result.valueTrigger = valueTrigger;
     if (container instanceof HTMLElement) result.container = container;
     return result;
 };
 
 export const getSliderSnapshot = (document: Document, capabilitiesByIndex: GpuCapabilitiesByIndex | null, index: string | number): GpuSnapshot => {
-    const resolve = (currentTime: string): { mode: 'auto' | 'manual'; value: number | null } => {
+    const resolve = (currentTime: string): GpuSnapshotControl => {
         if (!isControlSupported(capabilitiesByIndex, index, currentTime)) {
             return { mode: 'auto', value: null };
         }
@@ -68,12 +108,10 @@ export const getSliderSnapshot = (document: Document, capabilitiesByIndex: GpuCa
         if (!slider || !toggle) {
             throw new Error(`GPU control UI is missing for ${currentTime} (index ${String(index)})`);
         }
-        return {
-            mode: toggle.checked ? 'auto' : 'manual',
-            value: readCoercedFiniteNumberOrNullValue(slider.value)
-        };
+        const mode = readGpuControlFieldMode(slider, toggle);
+        return { mode, value: mode === null ? null : readCoercedFiniteNumberOrNullValue(slider.value) };
     };
-    const controlValues: Record<string, { mode: 'auto' | 'manual'; value: number | null }> = {};
+    const controlValues: Record<string, GpuSnapshotControl> = {};
     GPU_CONTROL_TYPES.forEach((currentTime) => {
         controlValues[currentTime] = resolve(currentTime);
     });
@@ -85,15 +123,21 @@ export const getSliderSnapshot = (document: Document, capabilitiesByIndex: GpuCa
     };
 };
 
+export const readGpuControlFieldMode = (slider: HTMLInputElement, toggle: HTMLInputElement): GpuSnapshotControl['mode'] => {
+    return getDataAttribute(slider, 'field-mode') === 'unknown' ? null : toggle.checked ? 'auto' : 'manual';
+};
+
 const updateSliderUi = (context: DomContext, index: string | number, type: string, isAuto: boolean, value: number | string): void => {
     if (!isControlSupported(context.capabilitiesByIndex, index, type)) {
         return;
     }
-    const { slider, toggleLabel, container } = getSliderElements(context.document, index, type);
-    if (!slider || !toggleLabel) {
+    const { slider, toggle, valueTrigger, container } = getSliderElements(context.document, index, type);
+    if (!slider || !valueTrigger) {
         throw new Error(`GPU control UI is missing for ${type} (index ${String(index)})`);
     }
     setRangeValue(slider, str(value));
+    setDataAttribute(slider, 'field-mode', isAuto ? 'auto' : 'manual');
+    if (toggle && !isControlSupported(context.capabilitiesByIndex, index, type, isAuto ? 'manual' : 'auto')) toggle.disabled = true;
     if (container) container.classList.toggle('gpu-slider-container--auto', isAuto);
     const unit = getDataAttribute(slider, 'unit');
     let label: string;
@@ -111,11 +155,12 @@ const updateSliderUi = (context: DomContext, index: string | number, type: strin
             label = `${value}${unit ? ` ${unit}` : ''}`;
         }
     }
-    toggleLabel.textContent = label;
+    applyTextContent(valueTrigger, label);
+    valueTrigger.classList.toggle('u-ltr-inline', !isAuto);
 };
 
 export const setSliderToAuto = (context: DomContext, index: string | number, type: string, explicitDefault: string | number | null = null, { preserveManual = false }: { preserveManual?: boolean } = {}): void => {
-    if (!isControlSupported(context.capabilitiesByIndex, index, type)) {
+    if (!isControlSupported(context.capabilitiesByIndex, index, type, 'auto')) {
         return;
     }
     const { slider, toggle } = getSliderElements(context.document, index, type);
@@ -131,8 +176,8 @@ export const setSliderToAuto = (context: DomContext, index: string | number, typ
     updateSliderUi(context, index, type, true, nextValue);
 };
 
-export const setSliderToManual = (context: DomContext, index: string | number, type: string, manualValue: string | number | null = null): void => {
-    if (!isControlSupported(context.capabilitiesByIndex, index, type)) {
+export const setSliderToManual = (context: DomContext, index: string | number, type: string, manualValue: string | number | null = null, { alignToSupportedValue = true }: { alignToSupportedValue?: boolean } = {}): void => {
+    if (!isControlSupported(context.capabilitiesByIndex, index, type, 'manual')) {
         return;
     }
     const { slider, toggle } = getSliderElements(context.document, index, type);
@@ -147,19 +192,20 @@ export const setSliderToManual = (context: DomContext, index: string | number, t
     const capabilityKey = isGpuControlType(type) ? GPU_CONTROLS_CONFIG[type].capabilityKey : null;
     const info = capabilityKey ? caps?.[capabilityKey] : null;
 
-    if (isOffsetControl && numeric !== null && isFiniteNumber(offsetContext?.defaultAbs) && (type === 'core' || type === 'memory')) {
-        const levelsRaw = isObject(info) && 'levels' in info ? info['levels'] : null;
-        if (Array.isArray(levelsRaw) && levelsRaw.length) {
+    if (alignToSupportedValue && isOffsetControl && numeric !== null && isFiniteNumber(offsetContext?.defaultAbs) && (type === 'core' || type === 'memory')) {
+        const supportedClocks = getSupportedClockValues(context.capabilitiesByIndex, index, type);
+        if (supportedClocks.length) {
             const defaultAbs = offsetContext.defaultAbs;
             const targetAbs = defaultAbs + numeric;
-            const levelValues = levelsRaw.flatMap((entry) => (isObject(entry) ? [entry['mhz']] : []));
-            const closestMhz = closestSupportedValue(levelValues, targetAbs) ?? defaultAbs;
+            const closestMhz = closestSupportedValue(supportedClocks, targetAbs) ?? defaultAbs;
             const snappedOffset = closestMhz - defaultAbs;
             if (isFiniteNumber(snappedOffset)) {
                 raw = str(snappedOffset);
             }
         }
-    } else if (numeric !== null && isObject(info) && Array.isArray(info['allowedValues'])) {
+    } else if (alignToSupportedValue && numeric !== null && (type === 'core' || type === 'memory')) {
+        raw = str(closestSupportedValue(getSupportedClockValues(context.capabilitiesByIndex, index, type), numeric) ?? numeric);
+    } else if (alignToSupportedValue && numeric !== null && isObject(info) && Array.isArray(info['allowedValues'])) {
         raw = str(closestSupportedValue(info['allowedValues'], numeric) ?? numeric);
     }
 
@@ -172,12 +218,16 @@ export const updateSliderAutoState = (context: DomContext, index: string | numbe
     if (!isControlSupported(context.capabilitiesByIndex, index, type)) {
         return;
     }
-    const { slider } = getSliderElements(context.document, index, type);
-    if (!slider) {
+    const { slider, toggle, container } = getSliderElements(context.document, index, type);
+    if (!slider || !toggle || !container) {
         throw new Error(`GPU control UI is missing for ${type} (index ${String(index)})`);
     }
+    if (!isControlSupported(context.capabilitiesByIndex, index, type, isAuto ? 'auto' : 'manual')) {
+        toggle.checked = container.classList.contains('gpu-slider-container--auto');
+        return;
+    }
     if (isAuto) {
-        setSliderToAuto(context, index, type, getDataAttribute(slider, 'default'), { preserveManual: true });
+        setSliderToAuto(context, index, type, getDataAttribute(slider, 'default'));
     } else {
         setSliderToManual(context, index, type, getDataAttribute(slider, 'last-manual'));
     }
@@ -189,7 +239,7 @@ export const markGpuStateHydrated = (ensureUiState: (index: string | number) => 
 
 export const resetGpuUiControls = (context: DomContext, index: string | number): void => {
     GPU_CONTROL_TYPES.forEach((currentTime: string) => {
-        if (!isControlSupported(context.capabilitiesByIndex, index, currentTime)) {
+        if (!isControlSupported(context.capabilitiesByIndex, index, currentTime, 'auto')) {
             return;
         }
         const { slider } = getSliderElements(context.document, index, currentTime);

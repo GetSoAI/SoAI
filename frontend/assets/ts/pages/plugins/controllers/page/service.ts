@@ -19,6 +19,9 @@ import { sortPluginsListFromHeader, type PluginsListSortHost } from '@pages/plug
 import { createPluginsPagePrimaryRuntime, type CreatePluginsPageRuntimeDependencies } from '@pages/plugins/controllers/page/runtime.ts';
 import { createPluginsRootEventController, type PluginsRootEventController } from '@pages/plugins/controllers/pluginsRootEventController.ts';
 import { PluginsProgressController } from '@pages/plugins/controllers/progressController.ts';
+import { i18n } from '@core/i18n/index.ts';
+import { hasWebuiAction } from '@core/access/webuiPermissions.ts';
+import { PLUGIN_STATUS_DISABLED } from '@core/state/pluginStatus.ts';
 import { PluginsStateActionsController } from '@pages/plugins/controllers/stateActionsController.ts';
 import type { PluginsActionId } from '@pages/plugins/actions.ts';
 import type { PluginCardRenderer } from '@pages/plugins/rendering/cardrenderer/service.ts';
@@ -179,12 +182,30 @@ const createPluginsPageRuntime = (dependencies: CreatePluginsPageRuntimeDependen
             reapplyCollection: (options): void => collection.collections.reapply(options)
         },
         services: {
+            refreshBackendUpdatePermissions: () => session.refreshBackendUpdatePermissions(),
             getCatalogStore: () => ({
                 ensureLoaded: (options: { force: boolean }): Promise<ReadonlyArray<PluginRecord>> => session.catalogStore.ensureLoaded(options)
             }),
             getCatalogSubscriptionManager: () => primaryRuntime.catalogSubscriptions,
             getFirstRunModals: () => pageDependencies.firstRunModals,
             openDownloadPluginModal: (): void => primaryRuntime.modalManagers.downloadModalManager.openDownloadPluginModal(),
+            openSpeechSetupAction: async (pluginName, enable): Promise<void> => {
+                if (!(await hasWebuiAction('PLUGIN_ADMIN'))) {
+                    showNotification(i18n.t('speechSetup.askAdministrator'), 'warning');
+                    return;
+                }
+                const plugin = session.catalogStore.getPlugin(pluginName);
+                if (plugin === null) {
+                    showNotification(i18n.t('models.modal.pluginUnavailableReason.notDetected'), 'warning');
+                    return;
+                }
+                if (!primaryRuntime.coreControllers.dataController.canExecutePluginAction(plugin)) return;
+                if (enable) {
+                    if (plugin.state === PLUGIN_STATUS_DISABLED) await stateActionsController.togglePluginEnabled(plugin);
+                    return;
+                }
+                primaryRuntime.modalManagers.manageBackendModalManager.openInstallBackendModal(plugin);
+            },
             clearInitialQuery: (keys): void => {
                 infrastructure.router.replaceCurrentRoute(buildRouteWithoutQueryParameters('plugins', infrastructure.router.getRouteParameters(), keys));
             }

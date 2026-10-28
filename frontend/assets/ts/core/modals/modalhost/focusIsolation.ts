@@ -1,6 +1,7 @@
 /* SoAI - Frontend modal focus and stacked dialog isolation [frontend/assets/ts/core/modals/modalhost/focusIsolation.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { getMutationObserverCtor } from '@core/environment/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import type { ModalHostState } from '@core/modals/modalhost/contracts.ts';
 
@@ -56,7 +57,35 @@ const handleModalTabNavigation = (state: ModalHostState, event: KeyboardEvent): 
     return true;
 };
 
+const synchronizeViewportIsolation = (state: ModalHostState): void => {
+    const viewportOpen = state.activeStack.some((modalId) => state.resolveModalElement(modalId)?.getAttribute('data-modal-presentation') === 'viewport');
+    if (!viewportOpen) {
+        if (state.viewportBodyObserver !== null) {
+            state.viewportBodyObserver.disconnect();
+            state.resources.untrack(state.viewportBodyObserver);
+            state.viewportBodyObserver = null;
+        }
+        for (const [element, wasInert] of state.viewportInertSnapshots) element.toggleAttribute('inert', wasInert);
+        state.viewportInertSnapshots.clear();
+        return;
+    }
+    if (state.viewportBodyObserver === null) {
+        const Observer = getMutationObserverCtor();
+        const observer = new Observer(() => synchronizeModalStackAccessibility(state));
+        observer.observe(dom.getBody(), { childList: true });
+        state.resources.track(observer);
+        state.viewportBodyObserver = observer;
+    }
+    const activeModals = state.activeStack.map((modalId) => state.resolveModalElement(modalId));
+    for (const child of dom.getBody().children) {
+        if (!(child instanceof HTMLElement) || activeModals.some((modal) => modal !== null && child.contains(modal))) continue;
+        if (!state.viewportInertSnapshots.has(child)) state.viewportInertSnapshots.set(child, child.hasAttribute('inert'));
+        child.setAttribute('inert', '');
+    }
+};
+
 const synchronizeModalStackAccessibility = (state: ModalHostState): void => {
+    synchronizeViewportIsolation(state);
     const topModalId = state.activeStack[state.activeStack.length - 1] ?? null;
     state.activeStack.forEach((modalId) => {
         const modal = state.resolveModalElement(modalId);

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { setModalFooterButtonLabel } from '@core/modals/footerButtons.ts';
 import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
 import { runModalSession } from '@core/modals/modalSession.ts';
 import { resolvePromptDom } from '@core/ui/modals/dialogs/promptDom.ts';
@@ -42,10 +43,10 @@ const createPromptFlow = (dependencies: { modalId: string }): PromptFlowApi => {
                 inputElement.type = request.inputType;
                 inputElement.setAttribute('autocomplete', request.autocomplete);
 
-                dom.setText(cancelButton, request.cancelText);
+                setModalFooterButtonLabel(cancelButton, request.cancelText);
                 cancelButton.disabled = false;
 
-                dom.setText(confirmButton, request.confirmText);
+                setModalFooterButtonLabel(confirmButton, request.confirmText);
                 confirmButton.disabled = false;
 
                 const validate = request.validate ?? null;

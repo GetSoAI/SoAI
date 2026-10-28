@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { AuthManager } from '@core/auth/public.ts';
+import { animateShellEntrance } from '@core/layout/shellEntrance.ts';
+import { requireRootHTMLElement } from '@core/dom/typedElementResolver.ts';
+
 import { getBranding } from '@core/branding/public.ts';
 import { bindPageActionDispatcher } from '@core/dom/dataActionBinding.ts';
-import { dispatchCustomEvent } from '@core/environment/public.ts';
+import { dispatchCustomEvent, requireDocument } from '@core/environment/public.ts';
 import type { LanguageService } from '@core/routing/pages/pagetypes/public.ts';
 import type { LicenseServiceInterface } from '@core/licenseservice/types.ts';
 import type { PageContext } from '@core/pagecontext/public.ts';
@@ -38,6 +41,7 @@ import { getApiClient } from '@core/api/service.ts';
 import { downloadAuthenticatedResponse } from '@core/api/authenticatedDownload.ts';
 import { createAbortError } from '@core/errors/abort.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { SetupStatusSubscription } from '@core/realtime/setupStatusSubscription.ts';
 
 const wizardLogger = createModuleLogger('WizardPage', { defaultLevel: 'warn' });
 
@@ -65,6 +69,8 @@ class WizardPageDomain {
     readonly #aiSetup: AiSetupFlowController;
     readonly #service: WizardPageService;
     readonly #licensing: WizardLicensingRequestsController;
+    readonly #setupStatus: SetupStatusSubscription;
+    #setupCompleteObserved = false;
 
     constructor(dependencies: WizardPageDomainDependencies) {
         this.#dependencies = dependencies;
@@ -76,14 +82,19 @@ class WizardPageDomain {
         this.#licensing = new WizardLicensingRequestsController({
             licenseService: dependencies.licenseService,
             onPolledStatus: (status) => void this.#service.applyObservedStatus(status).catch((error) => wizardLogger('error', 'WizardPage: apply polled licensing status', error)),
-            onPollFailure: () => this.#dependencies.feedback.show(i18n.t('wizard.productAccess.pollUnavailable'), 'warning')
+            onPollFailure: () => this.#dependencies.feedback.show(i18n.t('wizard.productAccess.pollUnavailable'), 'warning'),
+            onSetupComplete: () => this.#observeSetupCompletion()
         });
         this.#service = this.#createService();
+        this.#setupStatus = new SetupStatusSubscription((snapshot) => {
+            if (!snapshot.setupNeeded && snapshot.hasUsers) this.#observeSetupCompletion();
+        });
     }
 
     async loadStatus(): Promise<void> {
+        if (!this.#dependencies.auth.isAuthenticated) this.#setupStatus.connect();
         const status = await ensureWizardStatusSnapshot(this.#effects);
-        if (status !== null) this.#applyStatus(status);
+        if (status !== null && !this.#setupCompleteObserved) this.#applyStatus(status);
     }
 
     async resolveVisibility(parameters: JsonObject): Promise<void> {
@@ -119,6 +130,7 @@ class WizardPageDomain {
             service: this.#service,
             state: this.state,
             languageService: this.#dependencies.languageService,
+            handleLanguageError: (error) => this.#dependencies.feedback.handle(error, 'Wizard language update'),
             logError: (operation, error) => wizardLogger('error', `WizardPage: ${operation}`, error)
         });
         bindPageActionDispatcher({
@@ -145,6 +157,7 @@ class WizardPageDomain {
     }
 
     destroy(): void {
+        this.#setupStatus.destroy();
         this.#service.destroy();
         this.#licensing.destroy();
         this.#dependencies.pageLifecycle.abortListeners('wizard-destroy');
@@ -169,6 +182,7 @@ class WizardPageDomain {
             syncSteps: () => this.#syncAiSetupSteps(),
             syncNavigation: () => this.#syncCurrentNavigation(),
             goToStep: (stepId) => void this.#service.aiNavigator.showStep(stepId).catch((error) => wizardLogger('error', 'WizardPage: AI setup navigation failed', error)),
+            skip: () => void this.#service.aiNavigator.skip().catch((error) => wizardLogger('error', 'WizardPage: AI setup skip failed', error)),
             notify: (message, type) => this.#dependencies.feedback.show(message, type)
         });
     }
@@ -207,6 +221,7 @@ class WizardPageDomain {
     #createService(): WizardPageService {
         return new WizardPageService({
             view: {
+                getAbortSignal: () => this.#dependencies.pageLifecycle.signal(),
                 state: this.state,
                 requireUi: () => this.#ui.ensureUi(),
                 requireAccountUi: () => this.#ui.requireAccountUi(),
@@ -254,6 +269,7 @@ class WizardPageDomain {
             },
             aiSetup: this.#aiSetup,
             completion: {
+                reconcileSetupCompletion: () => this.#reconcileSetupCompletion(),
                 dispatchWizardCompleted: () => dispatchCustomEvent('soai:wizard:completed', {}),
                 navigateAfterCompletion: (isSessionActivationRequired, destination) => this.#navigateAfterCompletion(isSessionActivationRequired, destination),
                 refreshLogos: () => getBranding().updateAllLogos(),
@@ -265,6 +281,7 @@ class WizardPageDomain {
     }
 
     #applyStatus(status: NonNullable<WizardState['status']>): void {
+        if (this.#setupCompleteObserved && !this.state.accountSubmissionPending) return;
         this.state.status = status;
         this.state.completedSummary = status.completedSummary;
         this.state.declarationSelection = status.declaration;
@@ -273,6 +290,17 @@ class WizardPageDomain {
         this.state.requiresProductAccess = status.declaration !== null && !(status.edition === 'soai-core' && status.declaration === 'personal');
         syncWizardSteps(this.state);
         this.#licensing.observeStatus(status);
+    }
+
+    #observeSetupCompletion(): void {
+        this.#setupCompleteObserved = true;
+        this.#licensing.invalidateStatusObservation();
+        this.#reconcileSetupCompletion();
+    }
+
+    #reconcileSetupCompletion(): void {
+        if (!this.#setupCompleteObserved || this.state.accountSubmissionPending || this.state.adminUser !== null || this.#dependencies.auth.isAuthenticated || this.#dependencies.pageLifecycle.isDestroyed) return;
+        void this.#dependencies.router.navigate(AUTH_ROUTE_LOGIN).catch((error) => wizardLogger('warn', 'WizardPage: setup completion sign-in navigation failed', error));
     }
 
     #startIndex(): number {
@@ -297,6 +325,7 @@ class WizardPageDomain {
             return;
         }
         await this.#dependencies.router.navigate(destination === 'chat' ? buildAiSetupHandoffRoute() : this.#dependencies.router.getDefaultRoute());
+        animateShellEntrance(['.header', '.sidebar'].map((selector) => requireRootHTMLElement(requireDocument(), selector, 'Authenticated shell surface')));
     }
 }
 

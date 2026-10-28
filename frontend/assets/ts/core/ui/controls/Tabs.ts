@@ -3,6 +3,8 @@
 
 import { BaseComponent } from '@core/BaseComponent.ts';
 import { dom } from '@core/dom/dom.ts';
+import { syncTextContent } from '@core/dom/patching.ts';
+import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { clearNotifyBadges, resolveActiveTabAfterRemoval, setRightButtonVisibility, setTabDisabled, updateTabBadge, updateTabNotifyBadge } from '@core/ui/controls/tabs/actions.ts';
 import { renderRightButtons, resolveTabsNav, scrollTabIntoView, updateActiveTabState } from '@core/ui/controls/tabs/effects.ts';
 import { findRightButtonConfig, normalizeTabsOptions } from '@core/ui/controls/tabs/service.ts';
@@ -54,6 +56,24 @@ class TabsComponent extends BaseComponent<TabsOptions> {
 
     private getClassName(): string {
         return this.options.className ?? 'tabs';
+    }
+
+    updateTabLabels(labels: readonly Pick<TabConfig, 'id' | 'label'>[]): void {
+        const updates = labels.map((entry) => {
+            const tab = this.tabs.find((candidate) => candidate.id === entry.id);
+            const button = this.getUI(`[data-tab="${entry.id}"]`);
+            const label = button ? dom.resolve(`.${this.getClassName()}-tab-label`, button) : null;
+            if (!tab || !(button instanceof HTMLElement) || !(label instanceof HTMLElement)) throw new Error(`Tab label is unavailable: ${entry.id}`);
+            return { tab, button, label, text: entry.label };
+        });
+        for (const update of updates) {
+            update.tab.label = update.text;
+            syncTextContent(update.label, update.text);
+            if (update.button.getAttribute('aria-disabled') !== 'true') {
+                update.button.setAttribute('aria-label', update.text);
+                setTooltipText(update.button, update.text);
+            }
+        }
     }
 
     render(): void {

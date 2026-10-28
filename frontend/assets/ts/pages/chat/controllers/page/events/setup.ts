@@ -3,6 +3,7 @@
 
 import { bindDataActionListener } from '@core/dom/dataActionBinding.ts';
 import { bindEventGroup } from '@core/dom/eventBindingGroup.ts';
+import { bindBoundedVerticalResize } from '@core/dom/boundedVerticalResize.ts';
 import { isChatActionId } from '@features/chat/public.ts';
 import type { ChatRootEventsHost } from '@pages/chat/controllers/page/events/contracts.ts';
 import { handleRootActionClick, handleRootBlur, handleRootChange, handleRootInput, handleRootPointerDown, handleRootPointerOut, handleRootPointerOver } from '@pages/chat/controllers/page/events/handlers.ts';
@@ -24,6 +25,7 @@ const setupChatRootEvents = (host: ChatRootEventsHost, signal: AbortSignal, opti
     const root = host.shell.ensureRootElement();
     const includeClick = options.includeClick !== false;
     bindChatHoldShortcuts(host, root, signal);
+    bindBoundedVerticalResize(root, '.inline-activity[data-collapsed="false"] > .inline-activity-details', signal);
     const handlePointerOver = (event: Event): void => handleRootPointerOver(host, event);
     const handlePointerOut = (event: Event): void => handleRootPointerOut(host, event);
     const handlePointerDown = (event: Event): void => handleRootPointerDown(host, event);

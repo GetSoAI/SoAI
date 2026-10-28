@@ -15,6 +15,7 @@ from core.timing.startup_timings import StartupTimingsRecorder
 
 if TYPE_CHECKING:
     from app.application_host_instance import ApplicationHostInstance
+    from app.lifecycle.results import LifecycleFailure
 
 __all__ = ("HostService", "HostServiceDependencies")
 
@@ -26,7 +27,7 @@ class HostServiceDependencies:
     start_unified_server: Callable[[ApplicationHostInstance], Awaitable[None]]
     start_discovery_server: Callable[[], Awaitable[None]]
     publish_runtime_endpoint: Callable[[], None]
-    shutdown_server_runtime: Callable[[float], Awaitable[None]]
+    shutdown_server_runtime: Callable[[float], Awaitable[list[LifecycleFailure]]]
     stop_discovery_server_runtime: Callable[[], Awaitable[None]]
     startup_timings: StartupTimingsRecorder
 
@@ -71,8 +72,8 @@ class HostService:
             "SERVER.HTTP is disabled; skipping discovery server startup.",
         )
 
-    async def shutdown_servers(self, timeout_sec: float) -> None:
-        await self._deps.shutdown_server_runtime(timeout_sec)
+    async def shutdown_servers(self, timeout_sec: float) -> list[LifecycleFailure]:
+        return await self._deps.shutdown_server_runtime(timeout_sec)
 
     async def stop_discovery_server(self) -> None:
         await self._deps.stop_discovery_server_runtime()

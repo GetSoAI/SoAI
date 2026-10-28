@@ -6,8 +6,7 @@ import { readNullableTrimmedStringValue, readRequiredBooleanValue, readRequiredE
 import { readRequiredPositiveIntegerValue } from '@core/types/payloadNumberReaders.ts';
 import { readNullableJsonObjectValue, requireRecord } from '@core/types/payloadRecordReaders.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
-
-type ConversationRegenerationState = 'pending' | 'materializing' | 'running' | 'input_required' | 'completed' | 'failed' | 'cancelled' | 'effect_unknown';
+import { CONVERSATION_INPUT_LIFECYCLE_STATES, type ConversationInputLifecycleState } from '@core/chat/protocols.ts';
 
 interface ConversationRegenerationRequest {
     clientId: string;
@@ -26,7 +25,7 @@ interface ConversationRegenerationReceipt {
     assistantTurnAtMs: number;
     acceptedAtMs: number;
     lastModifiedAtMs: number;
-    state: ConversationRegenerationState;
+    state: ConversationInputLifecycleState;
     isDispatchableHead: boolean;
     hasAssistantReplacement: boolean;
     isRetryable: boolean;
@@ -66,7 +65,7 @@ const decodeConversationRegenerationReceipt = (value: ApiResponsePayload): Conve
         assistantTurnAtMs: readRequiredPositiveIntegerValue(record['assistant_turn_at_ms'], 'Conversation regeneration response.assistant_turn_at_ms'),
         acceptedAtMs: readRequiredPositiveIntegerValue(record['accepted_at_ms'], 'Conversation regeneration response.accepted_at_ms'),
         lastModifiedAtMs: readRequiredPositiveIntegerValue(record['last_modified_at_ms'], 'Conversation regeneration response.last_modified_at_ms'),
-        state: readRequiredEnumValue(record['state'], 'Conversation regeneration response.state', ['pending', 'materializing', 'running', 'input_required', 'completed', 'failed', 'cancelled', 'effect_unknown']),
+        state: readRequiredEnumValue(record['state'], 'Conversation regeneration response.state', CONVERSATION_INPUT_LIFECYCLE_STATES),
         isDispatchableHead: readRequiredBooleanValue(record['is_dispatchable_head'], 'Conversation regeneration response.is_dispatchable_head'),
         hasAssistantReplacement: readRequiredBooleanValue(record['has_assistant_replacement'], 'Conversation regeneration response.has_assistant_replacement'),
         isRetryable: readRequiredBooleanValue(record['is_retryable'], 'Conversation regeneration response.is_retryable'),
@@ -85,4 +84,4 @@ const decodeConversationLatestRegenerationStatus = (value: ApiResponsePayload): 
 };
 
 export { decodeConversationLatestRegenerationStatus, decodeConversationRegenerationReceipt, serializeConversationRegenerationRequest };
-export type { ConversationLatestRegenerationStatus, ConversationRegenerationReceipt, ConversationRegenerationRequest, ConversationRegenerationState };
+export type { ConversationLatestRegenerationStatus, ConversationRegenerationReceipt, ConversationRegenerationRequest };

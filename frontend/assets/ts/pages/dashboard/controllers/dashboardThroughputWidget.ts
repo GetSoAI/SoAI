@@ -3,6 +3,8 @@
 
 import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { narrowHTMLElement } from '@core/dom/narrowElement.ts';
+import { createRingGauge, updateRingGauge } from '@core/ui/icons/ringGauge.ts';
+import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { formatCompactNumber } from '@core/primitives/compactNumber.ts';
 import { isFiniteNumber, isObject } from '@core/typeGuards.ts';
@@ -81,7 +83,7 @@ class DashboardThroughputController {
         const wrapper = narrowHTMLElement(this.#host.createElement('div', { className: 'dashboard-throughput' }), 'dashboard throughput wrapper');
         const shell = narrowHTMLElement(this.#host.createElement('div', { className: 'dashboard-throughput-ring-shell' }), 'dashboard throughput ring shell');
         const ring = narrowHTMLElement(this.#host.createElement('div', { className: 'dashboard-throughput-ring', dataset: { throughputRing: 'true' } }), 'dashboard throughput ring');
-        const arc = narrowHTMLElement(this.#host.createElement('div', { className: 'dashboard-throughput-ring-arc' }), 'dashboard throughput ring arc');
+        const arc = createRingGauge({ className: 'dashboard-throughput-ring-arc', strokeWidth: 11, startAngle: -90, track: true });
         const face = narrowHTMLElement(this.#host.createElement('div', { className: 'dashboard-throughput-ring-face' }), 'dashboard throughput ring face');
         const center = narrowHTMLElement(this.#host.createElement('div', { className: 'dashboard-throughput-center' }), 'dashboard throughput center');
         const value = narrowHTMLElement(this.#host.createElement('div', { className: 'dashboard-throughput-value', dataset: { throughputValue: 'true' } }, '0'), 'dashboard throughput value');
@@ -148,7 +150,8 @@ class DashboardThroughputController {
         }
         if (ring) {
             const intensity = currentRate / (currentRate + THROUGHPUT_HALF_SATURATION_RATE);
-            ring.style.setProperty('--throughput-arc', `${(intensity * 100).toFixed(2)}%`);
+            const arc = dom.resolve('.dashboard-throughput-ring-arc', ring);
+            if (arc instanceof SVGElement) updateRingGauge(arc, intensity * 100);
             ring.style.setProperty('--throughput-intensity', intensity.toFixed(3));
         }
     }

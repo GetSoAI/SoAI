@@ -72,7 +72,7 @@
         --ui-button-color: var(--accent-primary);
         --ui-button-color-hover: var(--variant-color-hover);
         --ui-button-focus-ring: color-mix(in srgb, var(--accent-primary) 35%, transparent);
-        border-color: var(--ui-button-border);
+        border-color: color-mix(in srgb, var(--ui-button-border) var(--control-button-border-strength), transparent);
         color: var(--ui-button-color);
         background-color: var(--ui-button-bg);
     }

@@ -9,6 +9,8 @@ const LOG_SAFE_MIN = 1e-9;
 const DEFAULT_Y_TICK_COUNT = 6;
 const MIN_LABEL_GAP = 6;
 const AXIS_FONT_SIZE = 12;
+const Y_AXIS_LABEL_GAP = 10;
+const Y_AXIS_OUTER_PADDING = 14;
 const X_AXIS_PADDING = 8;
 const X_AXIS_GAP_RATIO = 0.45;
 
@@ -43,4 +45,4 @@ const determineXAxisLabelBudget = (width: number): number => {
 
 const getXAxisFont = (): string => '12px sans-serif';
 
-export { LOG_SAFE_MIN, DEFAULT_Y_TICK_COUNT, MIN_LABEL_GAP, AXIS_FONT_SIZE, X_AXIS_PADDING, X_AXIS_GAP_RATIO, resolveVerticalContentInset, determineXAxisLabelBudget, getXAxisFont };
+export { LOG_SAFE_MIN, DEFAULT_Y_TICK_COUNT, MIN_LABEL_GAP, AXIS_FONT_SIZE, Y_AXIS_LABEL_GAP, Y_AXIS_OUTER_PADDING, X_AXIS_PADDING, X_AXIS_GAP_RATIO, resolveVerticalContentInset, determineXAxisLabelBudget, getXAxisFont };

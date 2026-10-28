@@ -1,6 +1,7 @@
 /* SoAI - Charts feature axis rendering service [frontend/assets/ts/features/charts/rendering/axisrendering/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { formatYAxisLabels } from '@features/charts/rendering/axisrendering/valueLabels.ts';
 import { isString } from '@core/typeGuards.ts';
 import { timeToX } from '@features/charts/viewport/timeViewport.ts';
 import { DEFAULT_Y_TICK_COUNT, LOG_SAFE_MIN, MIN_LABEL_GAP, X_AXIS_GAP_RATIO, X_AXIS_PADDING, determineXAxisLabelBudget } from '@features/charts/rendering/axisrendering/constants.ts';
@@ -134,13 +135,14 @@ const generateYAxisTicks = (scene: ChartRenderingScene, dims: ChartDimensions, v
     const top = isFin(viewport.top) ? viewport.top : Number(dims['top']) || 0;
     const result: YAxisTick[] = [];
 
-    for (const value of values) {
+    const labels = formatYAxisLabels(values, scene.format.formatValue, dims.width);
+    for (const [index, value] of values.entries()) {
         if (!isFin(value)) {
             continue;
         }
         const yCoordinate = scene.format.valueToPixel(value, height, top);
         if (isFin(yCoordinate)) {
-            result.push({ value, label: scene.format.formatValue(value), y: yCoordinate });
+            result.push({ value, label: labels[index] ?? scene.format.formatValue(value), y: yCoordinate });
         }
     }
     return result;

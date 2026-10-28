@@ -52,6 +52,7 @@ def prepare_task_for_requeue(
             startup_param_fingerprint=None,
             plugin_name=None,
             routing_key=next_routing_key,
+            execution_generation=context.execution_generation + 1,
         )
     context = replace(context, is_requeued=True)
     context = context.with_reset_delivery_state()

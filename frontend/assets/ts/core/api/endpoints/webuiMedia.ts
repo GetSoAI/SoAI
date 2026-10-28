@@ -15,6 +15,10 @@ interface WebuiMediaTransportOptions {
     timeoutMs?: number | undefined;
 }
 
+interface WebuiTranscriptionTransportOptions extends WebuiMediaTransportOptions {
+    onDeadlineSettlement?: (() => void) | undefined;
+}
+
 const WEBUI_MEDIA_REQUEST_TIMEOUT_MS = minutesToMs(5);
 
 const buildWebuiMediaRequestOptions = (options: WebuiMediaTransportOptions): RequestOptions => ({
@@ -28,7 +32,7 @@ const createWebuiMediaEndpoints = () => ({
     },
     audio: {
         transcriptions: {
-            create: async (payload: FormData, options: WebuiMediaTransportOptions = {}): Promise<OpenAiTranscriptionResponse> => transcribeAudioOverWebSocket(payload, buildWebuiMediaRequestOptions(options))
+            create: async (payload: FormData, options: WebuiTranscriptionTransportOptions = {}): Promise<OpenAiTranscriptionResponse> => transcribeAudioOverWebSocket(payload, { ...buildWebuiMediaRequestOptions(options), onDeadlineSettlement: options.onDeadlineSettlement })
         },
         speech: {
             create: async (payload: JsonObject, options: WebuiMediaTransportOptions = {}): Promise<Response> => generateSpeechOverWebSocket(payload, buildWebuiMediaRequestOptions(options)),
@@ -42,4 +46,4 @@ const createWebuiMediaEndpoints = () => ({
 });
 
 export { createWebuiMediaEndpoints };
-export type { WebuiMediaTransportOptions };
+export type { WebuiMediaTransportOptions, WebuiTranscriptionTransportOptions };

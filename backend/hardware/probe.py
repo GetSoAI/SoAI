@@ -24,6 +24,7 @@ from hardware.gpu_capabilities.aggregate_payloads import (
     build_capabilities_aggregate_payload,
     build_probe_error_payload,
     collect_control_backends,
+    project_inventory_capability_identity,
 )
 from hardware.gpu_capabilities.payloads import (
     CONTROL_CAPABILITY_KEYS,
@@ -50,6 +51,7 @@ from hardware.vendors.vendor_types import AMD_VENDOR, INTEL_VENDOR, NVIDIA_VENDO
 if TYPE_CHECKING:
     from core.system.protocols import CommandExecutorProtocol
     from core.types.json import JSONDict
+    from hardware.vendors.amd.adl_session import AdlRuntime
 
 __all__ = (
     "async_get_raw_capabilities",
@@ -71,7 +73,9 @@ def sync_get_raw_capabilities(
     nvidia_settings_controller: NvidiaSettingsController | None,
     gpu_info: JSONDict | None = None,
     logger: TraceLogger | None = None,
+    adl_runtime: AdlRuntime | None = None,
 ) -> JSONDict:
+    inventory_revision = gpu_info_cache_service.revision()
     all_gpu_info = resolve_gpu_info(
         executor,
         gpu_info_cache_service=gpu_info_cache_service,
@@ -79,6 +83,7 @@ def sync_get_raw_capabilities(
         nvidia_nvml_gate=nvidia_nvml_gate,
         nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
         gpu_info=gpu_info,
+        adl_runtime=adl_runtime,
     )
     compute_drivers = coerce_json_dict_or_empty(all_gpu_info.get("compute_drivers"))
     capabilities = build_capabilities_aggregate_payload(
@@ -86,16 +91,27 @@ def sync_get_raw_capabilities(
         total_vram_gb=sum_vram_gb(all_gpu_info),
     )
     optional_deadline = deadline_after(10.0)
-    vendor_map: dict[str, Callable[[int], JSONDict]] = {
-        AMD_VENDOR: lambda vendor_id: sync_get_amd_capabilities(executor, logger, vendor_id),
-        INTEL_VENDOR: lambda vendor_id: sync_get_intel_capabilities(executor, logger, vendor_id),
-        NVIDIA_VENDOR: lambda vendor_id: sync_get_nvidia_capabilities(
+    vendor_map: dict[str, Callable[[int, JSONDict], JSONDict]] = {
+        AMD_VENDOR: lambda vendor_id, selected_gpu: sync_get_amd_capabilities(
+            executor,
+            logger,
+            vendor_id,
+            selected_gpu=selected_gpu,
+            adl_runtime=adl_runtime,
+            runtime_platform=runtime_platform,
+        ),
+        INTEL_VENDOR: lambda vendor_id, selected_gpu: sync_get_intel_capabilities(
+            executor, logger, vendor_id, selected_gpu=selected_gpu
+        ),
+        NVIDIA_VENDOR: lambda vendor_id, selected_gpu: sync_get_nvidia_capabilities(
             logger,
             vendor_id,
             nvml_gate=nvidia_nvml_gate,
             capabilities_cache_service=nvidia_capabilities_cache_service,
             controller=nvidia_settings_controller,
             deadline=optional_deadline,
+            executor=executor,
+            selected_gpu=selected_gpu,
         ),
     }
     runtime_platform = get_runtime_platform()
@@ -118,46 +134,50 @@ def sync_get_raw_capabilities(
         if not isinstance(vendor_type, str):
             continue
         getter = vendor_map.get(vendor_type)
-        if not getter:
-            continue
         vendor_id_value = normalize_gpu_index(gpu.get("vendor_id"))
-        if vendor_id_value is None:
-            continue
-        if gpu.get("telemetry_available") is False:
+        if getter is None:
             caps_payload = build_default_gpu_capabilities(str(gpu.get("name") or "GPU"))
-            mark_all_control_capabilities_unsupported(
-                caps_payload,
-                _resolve_inventory_runtime_reason(gpu, vendor_type) or "device_unavailable",
-                force=True,
-            )
         else:
-            try:
-                caps_payload = getter(vendor_id_value)
-            except RECOVERABLE_EXCEPTIONS as exception:
-                if logger is not None:
-                    log_handled_exception(
-                        logger,
-                        exception,
-                        message="GPU capability probe failed for one device (non-critical).",
-                        operation=OPERATION_HARDWARE_PROBE_VENDOR_CAPABILITIES,
-                        details={"vendor": vendor_type, "vendor_id": vendor_id_value},
-                        level="warning",
-                    )
+            if vendor_id_value is None:
+                continue
+            if gpu.get("telemetry_available") is False and vendor_type not in (
+                AMD_VENDOR,
+                INTEL_VENDOR,
+            ):
                 caps_payload = build_default_gpu_capabilities(str(gpu.get("name") or "GPU"))
-                caps_payload["error"] = ErrorPublicPayload(
-                    code="gpu_probe_failed",
-                    message="GPU capability probe failed for this device.",
-                    details={
-                        "vendor": vendor_type,
-                        "vendor_id": vendor_id_value,
-                        "reason": "device_unavailable",
-                    },
-                ).to_dict()
                 mark_all_control_capabilities_unsupported(
                     caps_payload,
-                    "device_unavailable",
+                    _resolve_inventory_runtime_reason(gpu, vendor_type) or "device_unavailable",
                     force=True,
                 )
+            else:
+                try:
+                    caps_payload = getter(vendor_id_value, gpu)
+                except RECOVERABLE_EXCEPTIONS as exception:
+                    if logger is not None:
+                        log_handled_exception(
+                            logger,
+                            exception,
+                            message="GPU capability probe failed for one device (non-critical).",
+                            operation=OPERATION_HARDWARE_PROBE_VENDOR_CAPABILITIES,
+                            details={"vendor": vendor_type, "vendor_id": vendor_id_value},
+                            level="warning",
+                        )
+                    caps_payload = build_default_gpu_capabilities(str(gpu.get("name") or "GPU"))
+                    caps_payload["error"] = ErrorPublicPayload(
+                        code="gpu_probe_failed",
+                        message="GPU capability probe failed for this device.",
+                        details={
+                            "vendor": vendor_type,
+                            "vendor_id": vendor_id_value,
+                            "reason": "device_unavailable",
+                        },
+                    ).to_dict()
+                    mark_all_control_capabilities_unsupported(
+                        caps_payload,
+                        "device_unavailable",
+                        force=True,
+                    )
         if not isinstance(caps_payload, dict):
             continue
         if vendor_type == NVIDIA_VENDOR and optional_deadline.remaining_seconds() < 1:
@@ -167,7 +187,7 @@ def sync_get_raw_capabilities(
             capabilities["error"] = ErrorPublicPayload(
                 code="timeout", message="Optional GPU capability discovery is incomplete."
             ).to_dict()
-        caps_copy = copy.deepcopy(caps_payload)
+        caps_copy = project_inventory_capability_identity(gpu, caps_payload)
         _apply_inventory_runtime_reasons(caps_copy, gpu, vendor_type)
         driver = resolve_driver_version(compute_drivers, vendor_type)
         caps_copy["name"] = select_gpu_display_name(gpu.get("name"), caps_copy.get("name")) or str(
@@ -177,17 +197,23 @@ def sync_get_raw_capabilities(
         caps_copy.update(
             {
                 "index": gpu.get("index"),
-                "device_id": gpu.get("device_id"),
-                "vendor": vendor_type,
-                "type": vendor_type,
+                "device_id": caps_payload.get("device_id", gpu.get("device_id")),
+                "vendor": caps_payload.get("vendor", vendor_type),
+                "type": caps_payload.get("type", vendor_type),
                 "vendor_id": vendor_id_value,
-                "pci_bdf": gpu.get("pci_bdf"),
+                "pci_bdf": caps_payload.get("pci_bdf", gpu.get("pci_bdf")),
                 "os": runtime_platform.os_name,
                 "driver": driver,
             },
         )
+        if "pci_bdf" not in caps_payload and "pci_bdf_observations" not in caps_payload:
+            caps_copy["pci_bdf_observations"] = []
         if not isinstance(caps_copy.get("control_backends"), list):
             caps_copy["control_backends"] = collect_control_backends(caps_copy)
+        for caps_key in CONTROL_CAPABILITY_KEYS:
+            section = caps_copy.get(caps_key)
+            if isinstance(section, dict) and section.get("mode") is None:
+                section.pop("mode", None)
         index = normalize_gpu_index(gpu.get("index"))
         if index is not None:
             index_key = str(index)
@@ -199,7 +225,10 @@ def sync_get_raw_capabilities(
             caps_by_device = capabilities.get("gpus_by_device_id")
             if isinstance(caps_by_device, dict):
                 caps_by_device[device_id] = copy.deepcopy(caps_copy)
-    if probe_generation != nvidia_capabilities_cache_service.revision():
+    if (
+        inventory_revision != gpu_info_cache_service.revision()
+        or probe_generation != nvidia_capabilities_cache_service.revision()
+    ):
         return build_probe_error_payload(
             "stale_probe", "GPU inventory changed while probing capabilities."
         )
@@ -233,12 +262,19 @@ def _apply_inventory_runtime_reasons(
         section = read_control_capability_section(caps, caps_key)
         if section.get("supported") is True:
             continue
+        if (
+            vendor_type == INTEL_VENDOR
+            and caps_key == "core_clock_mhz"
+            and section.get("unsupported_reason")
+            in ("permission_denied", "i915_unavailable", "i915_invalid")
+        ):
+            continue
         mark_control_capability_unsupported(caps, caps_key, reason, force=True)
 
 
 def _resolve_inventory_runtime_reason(gpu: JSONDict, vendor_type: str) -> str | None:
     if vendor_type == AMD_VENDOR:
-        return "tool_missing"
+        return None
     if vendor_type == INTEL_VENDOR:
         return "tool_missing"
     if vendor_type != NVIDIA_VENDOR:
@@ -267,6 +303,7 @@ async def async_get_raw_capabilities(
     nvidia_settings_controller: NvidiaSettingsController | None,
     gpu_info: JSONDict | None = None,
     logger: TraceLogger | None = None,
+    adl_runtime: AdlRuntime | None = None,
 ) -> JSONDict:
     return await asyncio.to_thread(
         sync_get_raw_capabilities,
@@ -278,4 +315,5 @@ async def async_get_raw_capabilities(
         gpu_info=gpu_info,
         nvidia_settings_controller=nvidia_settings_controller,
         logger=logger,
+        adl_runtime=adl_runtime,
     )

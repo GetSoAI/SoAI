@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from core.browser_adblock.protocols import EasyListAdblockServiceProtocol
 from core.concurrency.task_groups import ManagedTaskGroup
-from core.errors.exception_logging import log_exception
+from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.protocols import LoggerProtocol
@@ -75,6 +75,7 @@ def create_mcp_server_intermediate_services(
         deps.config,
         deps.runtime_flags,
         deps.storage_manager,
+        playwright_sessions=deps.playwright_sessions,
         parser_registry_factory=deps.parser_registry_factory,
         adblock_service=adblock_service,
     )
@@ -114,6 +115,7 @@ def create_mcp_server_intermediate_services(
     state.mcp_search_api_keys = mcp_search_api_keys
     step_started_ms = monotonic_ms()
     utility_tools = create_utility_tools(
+        numeric_math_pool=deps.numeric_math_pool,
         http_client=http_client,
         web_fetcher=web_fetcher,
         config=deps.config,
@@ -144,6 +146,7 @@ def create_mcp_server_intermediate_services(
         database_automation_runs=deps.database_automation_runs,
         database_tool_calls=deps.database_tool_calls,
         database_read_video=deps.database_read_video,
+        database_skills=deps.database_skills,
         task_registry=deps.task_registry,
         cancellation_binder=deps.cancellation_binder,
         model_resolution_service=deps.model_resolution_service,
@@ -193,7 +196,7 @@ async def _refresh_adblock_service(
     try:
         await adblock_service.refresh_from_remote()
     except ADBLOCK_REFRESH_EXCEPTIONS as exception:
-        log_exception(
+        log_handled_exception(
             logger,
             exception,
             message="Browser adblock refresh failed; keeping existing matcher.",

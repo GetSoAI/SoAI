@@ -47,6 +47,9 @@ const stableModelFingerprint = (candidate: JsonValue): string => {
         sizeBytes: isNumber(candidate['sizeBytes']) ? candidate['sizeBytes'] : null,
         contextWindowTokens: isNumber(candidate['contextWindowTokens']) ? candidate['contextWindowTokens'] : null,
         openaiCapabilities: capabilities,
+        openaiBaseProfile: candidate['openaiBaseProfile'] ?? null,
+        openaiCapabilitiesOverrides: candidate['openaiCapabilitiesOverrides'] ?? null,
+        openaiCapabilityEvidence: candidate['openaiCapabilityEvidence'] ?? null,
         modalities,
         constituents,
         models: virtualMembers

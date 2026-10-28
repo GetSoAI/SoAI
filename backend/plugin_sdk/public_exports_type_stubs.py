@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import io
 from collections.abc import Sequence
 from contextlib import AbstractAsyncContextManager
@@ -11,21 +12,13 @@ from typing import ClassVar, override
 
 from core.config.protocols import ConfigProtocol
 from core.events.protocols import EventBusProtocol
-from core.metrics.protocols import MetricsManagerProtocol
 from core.models.remote_model_search_types import RemoteModelSearchResult
-from core.plugins.protocols import PluginManagerProtocol
 from core.plugins.protocols_instance import FilesProtocol
-from core.plugins.protocols_runtime import (
-    PluginHardwareRuntimeProtocol,
-    PluginModelRegistryRuntimeProtocol,
-    PluginRuntimeFailureReporterProtocol,
-    PluginStorageRuntimeProtocol,
-)
 from core.plugins.runtime_services import PluginRuntimeServices
 from core.runtime.protocols import RuntimeFlagsViewProtocol
 from core.runtime.request_context import RequestContext
 from core.types.json import JSONDict
-from core.types.protocols import HttpClientProtocol
+from plugin_sdk.protocols import PluginSdkRuntimeAttributesProtocol
 from plugin_sdk.runtime import ModelContext
 
 __all__ = (
@@ -77,23 +70,7 @@ class _NullAsyncContextManager(AbstractAsyncContextManager[None]):
         return None
 
 
-class BasePlugin:
-    plugin_name: str
-    config: ConfigProtocol
-    event_bus: EventBusProtocol
-    metrics: MetricsManagerProtocol
-    model_registry: PluginModelRegistryRuntimeProtocol
-    plugin_manager: PluginManagerProtocol
-    runtime_reporter: PluginRuntimeFailureReporterProtocol
-    hw_manager: PluginHardwareRuntimeProtocol | None
-    storage_manager: PluginStorageRuntimeProtocol
-    runtime_flags: RuntimeFlagsViewProtocol
-    files: FilesProtocol
-    plugin_config: JSONDict
-    http_client: HttpClientProtocol
-    install_path: str
-    temp_directory: str
-    openai_capabilities: JSONDict
+class BasePlugin(PluginSdkRuntimeAttributesProtocol):
     AUTHOR_SOAIPLUGIN: ClassVar[str]
     DESCRIPTION_SOAIPLUGIN: ClassVar[str]
     EXTERNAL_PROVIDER_DEFAULTS: ClassVar[JSONDict]
@@ -116,6 +93,13 @@ class BasePlugin:
 
     def get_models_directory(self) -> str:
         return ""
+
+    @property
+    def backend_lifecycle_shutdown_event(self) -> asyncio.Event | None:
+        return None
+
+    def raise_if_backend_lifecycle_cancelled(self) -> None:
+        del self
 
     async def refresh_runtime_configuration(self) -> JSONDict:
         return {}

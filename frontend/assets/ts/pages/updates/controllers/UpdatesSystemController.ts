@@ -1,6 +1,7 @@
 /* SoAI - Updates page system controller [frontend/assets/ts/pages/updates/controllers/UpdatesSystemController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { ApplicationUpdateHistoryController } from '@pages/updates/controllers/applicationUpdateHistoryController.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { showOperationFailureNotification } from '@core/ui/notifications/operationFailure.ts';
@@ -9,16 +10,14 @@ import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import { requestUpdatesSystemPayload } from '@pages/updates/controllers/updatesSystemCheckRequestController.ts';
 import type { SystemUiRefs, UpdatesSystemControllerHost } from '@pages/updates/controllers/UpdatesSystemControllerContract.ts';
 import type { SoftwareUpdateCheckResponse } from '@core/api/contracts/softwareContracts.ts';
-import { buildUpdatesReleaseNotesMarkup, buildUpdatesSummaryMarkup } from '@pages/updates/controllers/UpdatesSystemMarkupBuilder.ts';
 import { normalizeUpdatePayload, normalizeUpdatesSystemErrorMessage } from '@pages/updates/controllers/UpdatesSystemPayloadParser.ts';
-import { clearUpdatesSystemDetails, setUpdatesSystemStatus } from '@pages/updates/controllers/UpdatesSystemStatusView.ts';
+import { clearUpdatesSystemDetails, renderUpdatesSystemDetails, setUpdatesSystemStatus } from '@pages/updates/controllers/UpdatesSystemStatusView.ts';
 import type { UpdatesInstallOutcome, UpdatesOperationOutcome } from '@core/edition/updatesContribution.ts';
 
 const logger = createModuleLogger('UpdatesSystemController', { defaultLevel: 'warn' });
 const MAX_CHECK_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 600;
 const MAX_ERROR_MESSAGE_LENGTH = 280;
-const INSTALL_ICON_OPTIONS = Object.freeze({ size: 12, strokeWidth: 1.2 });
 const GENERIC_UPDATE_FAILURE_MESSAGES = Object.freeze(['update check failed.', 'failed to check for updates']);
 
 interface UpdatesSystemCheckOptions {
@@ -32,9 +31,11 @@ interface UpdatesSystemInstallOutcome extends UpdatesInstallOutcome {
 
 class UpdatesSystemController {
     #host: UpdatesSystemControllerHost;
+    readonly #history: ApplicationUpdateHistoryController;
     #ui: SystemUiRefs;
     #checkButton: HTMLButtonElement | null = null;
     #currentUpdate: ReturnType<typeof normalizeUpdatePayload> = null;
+    #hasFreshCheck = false;
     #isChecking = false;
     #updateInProgress = false;
     #lifecycleVersion = 0;
@@ -42,24 +43,50 @@ class UpdatesSystemController {
     constructor(dependencies: { host: UpdatesSystemControllerHost; ui: SystemUiRefs }) {
         this.#host = dependencies.host;
         this.#ui = dependencies.ui;
+        this.#history = new ApplicationUpdateHistoryController({
+            storage: dependencies.host.storage,
+            element: dependencies.ui.historyText,
+            updateText: dependencies.host.updateText,
+            toggleHidden: dependencies.host.toggleHidden,
+            notify: dependencies.host.notify
+        });
     }
 
     initialize(checkButton: HTMLButtonElement): void {
+        this.#hasFreshCheck = false;
         this.#checkButton = checkButton;
         checkButton.dataset['loadingText'] = i18n.t('updates.status.fetching');
         checkButton.dataset['idleText'] = i18n.t('updates.actions.checkUpdates');
+        this.#host.toggleHidden(this.#ui.statusSection, true);
         this.#setStatus({ heading: i18n.t('updates.application.status.idle'), detail: '' });
         clearUpdatesSystemDetails({
             ui: this.#ui,
             toggleHidden: this.#host.toggleHidden,
             updateHTML: this.#host.updateHTML
         });
+        const history = this.#history.restore();
+        if (history.type === 'unavailable') {
+            this.#host.toggleHidden(this.#ui.statusSection, false);
+            this.#setStatus({ heading: i18n.t('updates.history.unavailable'), detail: '', error: true });
+            return;
+        }
+        if (history.payload) this.#applyUpdatePayload(history.payload, true);
+        if (this.#history.hasHistory) {
+            this.#host.toggleHidden(this.#ui.statusSection, false);
+            if (history.payload === null) this.#setStatus({ heading: i18n.t('updates.history.restored'), detail: '' });
+        }
+        if (history.failure) this.#setStatus({ heading: i18n.t('updates.notifications.checkFailed'), detail: history.failure, error: true });
+    }
+
+    get hasHistory(): boolean {
+        return this.#history.hasHistory;
     }
 
     destroy(): void {
         this.#lifecycleVersion += 1;
         this.#checkButton = null;
         this.#currentUpdate = null;
+        this.#hasFreshCheck = false;
         this.#isChecking = false;
         this.#updateInProgress = false;
     }
@@ -76,6 +103,8 @@ class UpdatesSystemController {
         const manageButtonLoading = options?.manageButtonLoading !== false;
         const lifecycle = this.#lifecycleVersion;
         this.#isChecking = true;
+        this.#hasFreshCheck = false;
+        this.#host.toggleHidden(this.#ui.statusSection, false);
         try {
             this.#setStatus({ heading: i18n.t('updates.status.fetching'), detail: '', loading: true });
             this.#host.toggleHidden(this.#ui.detailsSection, true);
@@ -92,16 +121,24 @@ class UpdatesSystemController {
                 return { type: 'skipped', message: '', updatesCount: 0 };
             }
             if (response.payload) {
-                return this.#applyUpdatePayload(response.payload);
+                const outcome = this.#applyUpdatePayload(response.payload);
+                this.#hasFreshCheck = outcome.type !== 'error';
+                await this.#history.record(outcome.type === 'error' ? null : response.payload, outcome.type === 'error' ? outcome.message : null);
+                return outcome;
             }
-            return this.#handleCheckFailure(response.error, options?.notifyOnFailure !== false);
+            const outcome = this.#handleCheckFailure(response.error, options?.notifyOnFailure !== false);
+            await this.#history.record(null, outcome.message);
+            return outcome;
         } catch (error) {
             if (lifecycle !== this.#lifecycleVersion) {
                 return { type: 'skipped', message: '', updatesCount: 0 };
             }
-            return this.#handleCheckFailure(ensureError(error), options?.notifyOnFailure !== false);
+            const outcome = this.#handleCheckFailure(ensureError(error), options?.notifyOnFailure !== false);
+            await this.#history.record(null, outcome.message);
+            return outcome;
         } finally {
             this.#isChecking = false;
+            this.#syncInstallButtonState();
             if (manageButtonLoading) {
                 this.#host.setButtonLoading(checkButton, false);
             }
@@ -109,7 +146,7 @@ class UpdatesSystemController {
     }
 
     async installSystemUpdate(button: HTMLElement): Promise<UpdatesSystemInstallOutcome> {
-        if (this.#updateInProgress || this.#isChecking || !this.#currentUpdate || !this.#currentUpdate.updateAvailable || !this.#currentUpdate.installSupported) {
+        if (this.#updateInProgress || this.#isChecking || !this.#hasFreshCheck || !this.#currentUpdate || !this.#currentUpdate.updateAvailable || !this.#currentUpdate.installSupported) {
             return { type: 'skipped', message: '', operationRevision: null };
         }
         const lifecycle = this.#lifecycleVersion;
@@ -184,7 +221,7 @@ class UpdatesSystemController {
         }
     }
 
-    #applyUpdatePayload(payload: SoftwareUpdateCheckResponse): UpdatesOperationOutcome {
+    #applyUpdatePayload(payload: SoftwareUpdateCheckResponse, saved = false): UpdatesOperationOutcome {
         this.#currentUpdate = normalizeUpdatePayload(payload);
         if (!this.#currentUpdate || (!this.#currentUpdate.currentVersion && !this.#currentUpdate.latestVersion)) {
             const message = this.#resolveFailureDetail(this.#currentUpdate?.message ?? '');
@@ -205,12 +242,11 @@ class UpdatesSystemController {
         const latestVersion = this.#currentUpdate.latestVersion || i18n.t('updates.unknown');
         const detail = hasUpdate ? `${i18n.t('updates.metadata.latest_version')} ${latestVersion}` : this.#currentUpdate.message || `${i18n.t('updates.metadata.latest_version')} ${latestVersion}`;
         this.#setStatus({
-            heading: hasUpdate ? i18n.t('updates.sections.system.updatesAvailable', { count: 1 }) : i18n.t('updates.sections.system.upToDate'),
+            heading: saved ? `${i18n.t('updates.history.saved')}: ${hasUpdate ? i18n.t('updates.sections.system.updatesAvailable', { count: 1 }) : i18n.t('updates.sections.system.upToDate')}` : hasUpdate ? i18n.t('updates.sections.system.updatesAvailable', { count: 1 }) : i18n.t('updates.sections.system.upToDate'),
             detail
         });
         this.#host.toggleHidden(this.#ui.detailsSection, false);
-        this.#renderSummary(this.#currentUpdate);
-        this.#renderReleaseNotes(this.#currentUpdate);
+        renderUpdatesSystemDetails(this.#host, this.#ui, this.#currentUpdate, saved);
         this.#syncInstallButtonState();
         return {
             type: hasUpdate ? 'updatesFound' : 'noUpdates',
@@ -219,45 +255,12 @@ class UpdatesSystemController {
         };
     }
 
-    #renderSummary(update: NonNullable<ReturnType<typeof normalizeUpdatePayload>>): void {
-        const markup = buildUpdatesSummaryMarkup({
-            update,
-            unknownLabel: i18n.t('updates.unknown'),
-            updatesAvailableLabel: i18n.t('updates.sections.system.updatesAvailable', { count: 1 }),
-            upToDateLabel: i18n.t('updates.badges.upToDate'),
-            sectionTitle: i18n.t('updates.sections.system.title'),
-            currentVersionLabel: i18n.t('updates.sections.system.current_version'),
-            latestVersionLabel: i18n.t('updates.metadata.latest_version'),
-            publishedLabel: i18n.t('updates.metadata.published'),
-            releaseLinkLabel: i18n.t('updates.metadata.viewRelease'),
-            installActionLabel: i18n.t('updates.actions.installUpdate'),
-            installActionAriaLabel: i18n.t('updates.ariaLabels.installUpdate'),
-            sanitizeHtml: this.#host.sanitizeHtml,
-            sanitizeAttribute: this.#host.sanitizeAttribute,
-            sanitizeUrl: this.#host.sanitizeUrl,
-            getIconSync: this.#host.getIconSync,
-            iconOptions: INSTALL_ICON_OPTIONS
-        });
-        this.#host.updateHTML(this.#ui.summaryContainer, markup, { escape: false });
-    }
-
-    #renderReleaseNotes(update: NonNullable<ReturnType<typeof normalizeUpdatePayload>>): void {
-        const markup = buildUpdatesReleaseNotesMarkup({
-            update,
-            sanitizeHtml: this.#host.sanitizeHtml,
-            renderMarkdown: this.#host.renderMarkdown,
-            partialLabel: i18n.t('updates.notes.partial')
-        });
-        this.#host.updateHTML(this.#ui.notesBody, markup.html, { escape: false });
-        this.#host.toggleHidden(this.#ui.notesContainer, !markup.hasNotes);
-    }
-
     #syncInstallButtonState(): void {
         const installButton = this.#host.resolveInstallButton();
         if (!installButton) {
             return;
         }
-        this.#host.updateProperty(installButton, 'disabled', !this.#currentUpdate?.updateAvailable || !this.#currentUpdate.installSupported || this.#updateInProgress);
+        this.#host.updateProperty(installButton, 'disabled', this.#isChecking || !this.#hasFreshCheck || !this.#currentUpdate?.updateAvailable || !this.#currentUpdate.installSupported || this.#updateInProgress);
     }
 
     #handleCheckFailure(error: Error | null, notify = true): UpdatesOperationOutcome {

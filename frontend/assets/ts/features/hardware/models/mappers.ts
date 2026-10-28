@@ -1,45 +1,47 @@
 /* SoAI - Hardware feature models mapping [frontend/assets/ts/features/hardware/models/mappers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { HardwareCpuSnapshot, HardwareGpuSnapshot, HardwareNetworkInterface, HardwareVolumeSnapshot } from '@core/api/contracts/hardwareContractTypes.ts';
+import { resolveHardwareObservation } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
 import { clampPercent } from '@core/primitives/clampNumber.ts';
 import { isFiniteNumber, isPlainObject, isString } from '@core/typeGuards.ts';
 import { DEFAULT_IGNORED_FILESYSTEMS, DEFAULT_IGNORED_MOUNTS, DEFAULT_MIN_VOLUME_CAPACITY_GB } from '@features/hardware/models/constants.ts';
 import { formatBytesValue } from '@features/hardware/Formatters.ts';
-import type { CpuRaw, GPURaw, HardwareSnapshot, NetworkInterfaceRaw, VolumeModel, VolumeOptions, VolumeRaw } from '@features/hardware/models/types.ts';
+import type { HardwareSnapshot, VolumeModel, VolumeOptions } from '@features/hardware/models/types.ts';
 
-const getStorageVolumes = (snapshot: HardwareSnapshot | null | undefined): VolumeRaw[] => {
+const getStorageVolumes = (snapshot: HardwareSnapshot | null | undefined): HardwareVolumeSnapshot[] => {
     const disk = snapshot?.disk;
     return Array.isArray(disk) ? disk : [];
 };
 
 const isHardwareSnapshot = <T>(value: T): value is T & HardwareSnapshot => isPlainObject(value);
 
-const getGpuOptionId = (gpu: GPURaw | null | undefined, fallbackIndex = 0): number => Number(gpu?.index ?? fallbackIndex);
+const getGpuOptionId = (gpu: HardwareGpuSnapshot | null | undefined, fallbackIndex = 0): number => Number(gpu?.index ?? fallbackIndex);
 
-const getCpuDevices = (snapshot: HardwareSnapshot | null | undefined): CpuRaw[] => {
-    return Array.isArray(snapshot?.cpus) ? snapshot.cpus : [];
+const getCpuDevices = (snapshot: HardwareSnapshot | null | undefined): HardwareCpuSnapshot[] => {
+    return Array.isArray(snapshot?.cpus) && snapshot.cpus.length ? snapshot.cpus : snapshot?.cpu ? [snapshot.cpu] : [];
 };
 
-const isComputeGpuDevice = (gpu: GPURaw): boolean => {
+const isComputeGpuDevice = (gpu: HardwareGpuSnapshot): boolean => {
     const displayAdapterType = gpu.displayAdapterType;
     return gpu.computeCapable !== false && !(isString(displayAdapterType) && displayAdapterType.trim());
 };
 
-const getGpuDevices = (snapshot: HardwareSnapshot | null | undefined): GPURaw[] => {
+const getGpuDevices = (snapshot: HardwareSnapshot | null | undefined): HardwareGpuSnapshot[] => {
     return (Array.isArray(snapshot?.gpu?.gpus) ? snapshot.gpu.gpus : []).filter(isComputeGpuDevice);
 };
 
-const getNetworkInterfaces = (snapshot: HardwareSnapshot | null | undefined): NetworkInterfaceRaw[] => {
+const getNetworkInterfaces = (snapshot: HardwareSnapshot | null | undefined): HardwareNetworkInterface[] => {
     return Array.isArray(snapshot?.network?.interfaces) ? snapshot.network.interfaces : [];
 };
 
-const isZfsVolume = (volume: VolumeRaw): boolean => {
+const isZfsVolume = (volume: HardwareVolumeSnapshot): boolean => {
     const backend = isString(volume.storageBackend) ? volume.storageBackend.trim().toLowerCase() : '';
     const filesystemType = isString(volume.fstype) ? volume.fstype.trim().toLowerCase() : '';
     return backend === 'zfs' || filesystemType === 'zfs';
 };
 
-const buildVolumeModel = (volume: VolumeRaw, { ignoredFilesystems = DEFAULT_IGNORED_FILESYSTEMS, ignoredMounts = DEFAULT_IGNORED_MOUNTS, minCapacityGb = DEFAULT_MIN_VOLUME_CAPACITY_GB }: VolumeOptions = {}): VolumeModel | null => {
+const buildVolumeModel = (volume: HardwareVolumeSnapshot, { ignoredFilesystems = DEFAULT_IGNORED_FILESYSTEMS, ignoredMounts = DEFAULT_IGNORED_MOUNTS, minCapacityGb = DEFAULT_MIN_VOLUME_CAPACITY_GB }: VolumeOptions = {}): VolumeModel | null => {
     const deviceId = volume?.deviceId;
     const filesystem = volume?.filesystem;
     const mount = volume?.mount;
@@ -79,6 +81,7 @@ const buildVolumeModel = (volume: VolumeRaw, { ignoredFilesystems = DEFAULT_IGNO
     const normalizedPercent = isFiniteNumber(percentUsed) ? clampPercent(percentUsed) : 0;
 
     return {
+        observationStatus: volume.observationStatus,
         deviceId: deviceId.trim(),
         filesystem: filesystem.trim(),
         mount: mount.trim(),
@@ -99,7 +102,7 @@ const buildVolumeModel = (volume: VolumeRaw, { ignoredFilesystems = DEFAULT_IGNO
 
 const buildVolumeModels = (snapshot: HardwareSnapshot | null | undefined, options: VolumeOptions = {}): VolumeModel[] =>
     getStorageVolumes(snapshot)
-        .map((volume) => buildVolumeModel(volume, options))
+        .map((volume) => buildVolumeModel({ ...volume, observationStatus: snapshot ? resolveHardwareObservation(snapshot, 'disk', volume.observationStatus) : volume.observationStatus }, options))
         .filter((volume): volume is VolumeModel => volume !== null)
         .sort((firstValue, secondValue) => secondValue.sizeGb - firstValue.sizeGb);
 

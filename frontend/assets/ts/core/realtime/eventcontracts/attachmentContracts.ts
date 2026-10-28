@@ -6,6 +6,7 @@ import { decodeKnowledgeAttachmentChangedEvent, type KnowledgeAttachmentSummary 
 import { readRequiredFiniteNumberValue, readRequiredNonNegativeIntegerValue, readRequiredPositiveIntegerValue } from '@core/types/payloadNumberReaders.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
 import { readNullableTrimmedStringValue, readOptionalBooleanValue, readRequiredEnumValue, readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
+import { readTrimmedStringArrayOrEmptyValue } from '@core/types/payloadArrayReaders.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { WEBSOCKET_EVENT_TYPES } from '@core/websocketEvents.ts';
 
@@ -22,6 +23,7 @@ interface PhysicalAttachmentPayload {
     providerTextTruncated: boolean;
     parseState: PhysicalAttachmentParseState;
     parseError: string | null;
+    missingCapabilities?: string[];
     state: string;
     attachmentRevision: number;
     createdAtMs: number;
@@ -55,6 +57,7 @@ const decodePhysicalAttachmentRecord = (value: JsonValue | undefined): PhysicalA
         previewType: readRequiredTrimmedStringValue(record['preview_type'], 'Physical attachment.preview_type'),
         providerMode: readNullableTrimmedStringValue(record['provider_mode'], 'Physical attachment.provider_mode'),
         providerTextTruncated: readOptionalBooleanValue(record['provider_text_truncated'], 'Physical attachment.provider_text_truncated') ?? false,
+        missingCapabilities: readTrimmedStringArrayOrEmptyValue(record['missing_capabilities'], 'Physical attachment.missing_capabilities'),
         parseState: readRequiredEnumValue(record['parse_state'], 'Physical attachment.parse_state', ['failed', 'pending', 'ready']),
         parseError: readNullableTrimmedStringValue(record['parse_error'], 'Physical attachment.parse_error'),
         state: readRequiredTrimmedStringValue(record['state'], 'Physical attachment.state'),

@@ -64,7 +64,7 @@ const renderFolderRows = (entries: readonly FileBrowserEntry[], currentPath: str
     const renderRow = (inputArguments: { action: 'folder-picker-open' | 'folder-picker-up'; path: string; label: string; ariaLabel: string; iconHtml: string }): string => {
         const escapedPath = securityApi.escapeAttribute(inputArguments.path);
         const escapedAriaLabel = securityApi.escapeAttribute(inputArguments.ariaLabel);
-        return `<tr><td class="folder-picker-name-cell"><button type="button" class="folder-picker-open-btn" data-action="${inputArguments.action}" data-path="${escapedPath}" aria-label="${escapedAriaLabel}" data-tooltip="${escapedAriaLabel}"><span class="folder-picker-entry-icon" aria-hidden="true">${inputArguments.iconHtml}</span>${securityApi.escapeHtml(inputArguments.label)}</button></td></tr>`;
+        return `<tr><td class="folder-picker-name-cell"><button type="button" class="folder-picker-open-btn" data-action="${inputArguments.action}" data-path="${escapedPath}" aria-label="${escapedAriaLabel}" data-tooltip="${escapedAriaLabel}" data-modal-localize="aria-label data-tooltip"><span class="folder-picker-entry-icon" aria-hidden="true">${inputArguments.iconHtml}</span>${securityApi.escapeHtml(inputArguments.label)}</button></td></tr>`;
     };
 
     const parentRow = currentPath === '/' ? '' : renderRow({ action: 'folder-picker-up', path: parentVirtualPath(currentPath), label: '..', ariaLabel: labels.up, iconHtml: upIcon });
@@ -89,12 +89,12 @@ const resolveFolderPickerStatusText = (state: { isLoading: boolean; errorMessage
 };
 
 const renderFolderPickerInitialStatus = (labels: FolderPickerLabels): TrustedHtml => {
-    return uiHtml`<span class="loading-spinner inline-loading-status-spinner" aria-hidden="true"></span><span class="inline-loading-status-text">${labels.loading}</span>`;
+    return uiHtml`<span class="loading-spinner inline-loading-status-spinner" aria-hidden="true"></span><span class="inline-loading-status-text" data-modal-localize="text">${labels.loading}</span>`;
 };
 
 const renderFolderPickerManualInput = (modalId: string, labels: FolderPickerLabels, editable: boolean): TrustedHtml => {
     const readonlyAttributes = editable ? EMPTY_UI_HTML : uiHtml` readonly aria-readonly="true"`;
-    return uiHtml`<div class="form-group folder-picker-manual-group"><label for="${uiAttr(modalUiId(modalId, 'manual'))}">${labels.manualPath}</label><input id="${uiAttr(modalUiId(modalId, 'manual'))}" class="form-input" type="text" value=""${readonlyAttributes}></div>`;
+    return uiHtml`<div class="form-group folder-picker-manual-group"><label for="${uiAttr(modalUiId(modalId, 'manual'))}" data-modal-localize="text">${labels.manualPath}</label><input id="${uiAttr(modalUiId(modalId, 'manual'))}" class="form-input" type="text" value=""${readonlyAttributes}></div>`;
 };
 
 const renderFolderPickerResetButton = (labels: FolderPickerLabels, modalId: string): TrustedHtml => {
@@ -109,14 +109,14 @@ const renderFolderPickerModalMarkup = (options: { modalId: string; labels: Folde
     const resetButtonMarkup = renderFolderPickerResetButton(options.labels, options.modalId);
     const footerLeft = uiHtml`${renderModalFooterCloseButton({ modalId: options.modalId, id: modalUiId(options.modalId, 'cancel'), text: options.labels.cancel })}${resetButtonMarkup}`;
     const footerRight = renderModalFooterActionButton({ id: modalUiId(options.modalId, 'confirm'), text: options.labels.chooseCurrent, variant: 'accent' });
-    const rootSelector = options.hostMode ? uiHtml`<div class="form-col-secondary"><label for="${uiAttr(modalUiId(options.modalId, 'root'))}">${options.labels.filesystemRoot}</label><select id="${uiAttr(modalUiId(options.modalId, 'root'))}" class="form-input"></select></div>` : EMPTY_UI_HTML;
+    const rootSelector = options.hostMode ? uiHtml`<div class="form-col-secondary"><label for="${uiAttr(modalUiId(options.modalId, 'root'))}" data-modal-localize="text">${options.labels.filesystemRoot}</label><select id="${uiAttr(modalUiId(options.modalId, 'root'))}" class="form-input"></select></div>` : EMPTY_UI_HTML;
 
     const body = uiHtml`
         <div class="folder-picker-panel">
             <div class="folder-picker-toolbar">
                 <div class="form-row-split manual-path-row folder-picker-current">
                     <div class="form-col-main">
-                        <label for="${uiAttr(modalUiId(options.modalId, 'current'))}">${options.labels.currentFolder}</label>
+                        <label for="${uiAttr(modalUiId(options.modalId, 'current'))}" data-modal-localize="text">${options.labels.currentFolder}</label>
                         <input dir="ltr" id="${uiAttr(modalUiId(options.modalId, 'current'))}" class="form-input manual-models-path folder-picker-current-path" type="text" value="" readonly spellcheck="false" autocapitalize="off" autocomplete="off">
                     </div>
                     ${rootSelector}
@@ -124,14 +124,14 @@ const renderFolderPickerModalMarkup = (options: { modalId: string; labels: Folde
             </div>
             ${manualInputMarkup}
             <div class="form-group folder-picker-search-group">
-                <label for="${uiAttr(modalUiId(options.modalId, 'search'))}">${options.labels.search}</label>
+                <label for="${uiAttr(modalUiId(options.modalId, 'search'))}" data-modal-localize="text">${options.labels.search}</label>
                 <div class="searchbar-container searchbar-container--collection folder-picker-searchbar">
-                    <input id="${uiAttr(modalUiId(options.modalId, 'search'))}" class="form-input searchbar-input" type="search" placeholder="${uiAttr(options.labels.searchPlaceholder)}">
+                    <input id="${uiAttr(modalUiId(options.modalId, 'search'))}" class="form-input searchbar-input" type="search" placeholder="${uiAttr(options.labels.searchPlaceholder)}" data-modal-localize="placeholder">
                     ${renderSearchFieldActions()}
                 </div>
             </div>
             <div class="folder-picker-status-slot">
-                <div id="${uiAttr(modalUiId(options.modalId, 'status'))}" class="chat-configuration-hint folder-picker-status inline-loading-status is-loading">${renderFolderPickerInitialStatus(options.labels)}</div>
+                <div id="${uiAttr(modalUiId(options.modalId, 'status'))}" class="chat-configuration-hint folder-picker-status inline-loading-status is-loading" data-modal-localize="text">${renderFolderPickerInitialStatus(options.labels)}</div>
             </div>
             <div class="folder-picker-table-scope">
                 <div class="data-table-wrapper folder-picker-table-wrap">

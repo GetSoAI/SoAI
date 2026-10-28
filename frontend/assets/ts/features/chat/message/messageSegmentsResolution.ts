@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isArray, isNumber } from '@core/typeGuards.ts';
+import { resolveLoadingActivityErrorText } from '@features/chat/assistanteventtimeline/loadingActivityErrorText.ts';
 import { createAssistantTimelineIndexState, type AssistantTimelineIndexState } from '@features/chat/assistanteventtimeline/timelineIndexState.ts';
 import { updateAssistantTimelineIndexState } from '@features/chat/assistanteventtimeline/timelineIndexUpdate.ts';
 import { resolveAssistantMessageSegmentsFromTimeline } from '@features/chat/message/assistantMessageSegmentResolution.ts';
@@ -41,12 +42,14 @@ const resolveMessageContentSegmentsForRendering = (message: ChatMessage, depende
     if (dependencies.timelineIndexAlreadyUpdated !== true) {
         updateAssistantTimelineIndexState(timelineIndexState, message);
     }
-    return resolveAssistantMessageSegmentsFromTimeline({
+    const resolved = resolveAssistantMessageSegmentsFromTimeline({
         cancelledPlaceholderText: dependencies.cancelledPlaceholderText,
         message,
         baseSegments: segments,
         timelineIndexState
     });
+    const errorText = resolveLoadingActivityErrorText(message);
+    return errorText === null ? resolved : resolved.map((segment) => (segment.type === 'inline_loading_activity' && segment.status === 'error' ? { ...segment, reason: errorText } : segment));
 };
 
 export { resolveAssistantMessageRevisionNumberFromMessage, resolveAssistantRevisionFromMessage, resolveMessageContentSegmentsForRendering };

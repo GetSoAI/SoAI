@@ -54,7 +54,7 @@ export const syncGpuUiState = ({ index, capabilities, savedSettings, uiStateStor
         }
     }
 
-    if (!state.previewSlot) {
+    if (!state.previewSlot && state.previewSource !== 'recovered') {
         state.previewSettings = null;
         state.previewSource = 'live';
     }

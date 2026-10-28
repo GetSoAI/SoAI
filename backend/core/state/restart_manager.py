@@ -11,10 +11,12 @@ from typing import TYPE_CHECKING
 
 from core.di.validation import require_dependencies
 from core.logging.protocols import LoggerProtocol
+from core.runtime.connection_transition import ConnectionTransition
 from core.timing.constants import LONG_IDLE_TIMEOUT_SEC
 from core.timing.epoch import epoch_seconds_float
 
 if TYPE_CHECKING:
+    from core.runtime.connection_transition import ConnectionTransitionScheme
     from core.types.json import JSONDict
 
 __all__ = (
@@ -48,6 +50,8 @@ class RestartStateManager:
         self._last_reminder_monotonic: float | None = None
         self._reasons: list[str] = []
         self._notifications: list[JSONDict] = []
+        self._connection_transition: ConnectionTransition | None = None
+        self._connection_transition_revision = 0
         self._lock = asyncio.Lock()
 
     async def require_restart(self, reason: str, source: str = "unknown") -> None:
@@ -69,6 +73,42 @@ class RestartStateManager:
                 changed_path=source,
                 timestamp=epoch_seconds_float(),
             )
+
+    async def record_connection_transition(self, transition: ConnectionTransition) -> bool:
+        async with self._lock:
+            if transition.configuration_revision <= self._connection_transition_revision:
+                return False
+            self._connection_transition_revision = transition.configuration_revision
+            self._connection_transition = transition
+            return True
+
+    async def record_unavailable_connection_transition(
+        self,
+        *,
+        configuration_revision: int,
+        current_scheme: ConnectionTransitionScheme,
+        requested_scheme: ConnectionTransitionScheme,
+    ) -> bool:
+        async with self._lock:
+            if configuration_revision <= self._connection_transition_revision:
+                return False
+            self._connection_transition_revision = configuration_revision
+            previous = self._connection_transition
+            self._connection_transition = (
+                None
+                if previous is None
+                else ConnectionTransition(
+                    configuration_revision=configuration_revision,
+                    instance_id=previous.instance_id,
+                    current_scheme=current_scheme,
+                    requested_scheme=requested_scheme,
+                    destination="manual",
+                )
+            )
+            return True
+
+    def get_connection_transition(self) -> ConnectionTransition | None:
+        return self._connection_transition
 
     def _clear_restart_state_internal(self, reason: str) -> None:
         if self._restart_pending.is_set():
@@ -147,10 +187,12 @@ class RestartStateManager:
         pid = self._restart_pid
         reasons = list(self._reasons)
         notifications = [entry.copy() for entry in self._notifications]
+        transition = self._connection_transition
         return {
             "required": required,
             "timestamp": timestamp,
             "pid": pid,
             "reasons": reasons,
             "notifications": notifications,
+            "connection_transition": None if transition is None else transition.to_public_payload(),
         }

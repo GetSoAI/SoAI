@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
+from core.hardware.compute_driver_observations import read_compute_driver_observation
 from core.plugins.backend_variant_ids import (
     AUTO_BACKEND_VARIANT_ID,
     normalize_backend_variant_id,
@@ -27,7 +28,6 @@ __all__ = (
     "AUTO_BACKEND_VARIANT_ID",
     "build_auto_backend_variant_option",
     "count_available_backend_variant_options",
-    "has_explicit_backend_variant_option",
     "is_backend_variant_available",
     "normalize_backend_variant_id",
     "normalize_backend_variant_options",
@@ -48,14 +48,6 @@ def count_available_backend_variant_options(options: list[JSONDict]) -> int:
             continue
         available_non_auto_count += 1
     return available_non_auto_count if available_non_auto_count > 0 else 1
-
-
-def has_explicit_backend_variant_option(options: list[JSONDict]) -> bool:
-    for option in options:
-        variant_id = normalize_backend_variant_id(option.get("id"))
-        if variant_id is not None and variant_id != AUTO_BACKEND_VARIANT_ID:
-            return True
-    return False
 
 
 def require_known_backend_variant_id(variant_id: JSONValue, options: list[JSONDict]) -> str:
@@ -100,37 +92,18 @@ def resolve_cuda_backend_availability(
         for driver_name, driver_payload in compute_drivers_value.items():
             if isinstance(driver_name, str):
                 compute_drivers[driver_name] = driver_payload
-    driver_names = {str(driver_name).lower() for driver_name in compute_drivers}
-    if "cuda" not in gpu_features and "cuda" not in driver_names:
+    observation = read_compute_driver_observation(compute_drivers, "cuda")
+    if "cuda" not in gpu_features and not observation.family_present:
         return False, "No CUDA GPU feature or driver detected."
-    cuda_version = _cuda_driver_runtime_version(compute_drivers)
-    if cuda_version is None:
+    cuda_version = observation.version
+    if cuda_version is None and observation.reported_version is None:
         return False, "CUDA driver runtime version was not reported."
-    if not _cuda_driver_satisfies_required_major(cuda_version, required_cuda_major):
+    if cuda_version is None or cuda_version.major < required_cuda_major:
         return (
             False,
             (
-                f"Detected CUDA driver runtime {cuda_version}; "
+                f"Detected CUDA driver runtime {observation.reported_version}; "
                 f"{torch_requirement_label} requires CUDA {required_cuda_major}.x."
             ),
         )
     return True, ""
-
-
-def _cuda_driver_runtime_version(compute_drivers: Mapping[str, JSONValue]) -> str | None:
-    for driver_name, driver_payload in compute_drivers.items():
-        if driver_name.lower() != "cuda" or not isinstance(driver_payload, Mapping):
-            continue
-        version_value = driver_payload.get("version")
-        if isinstance(version_value, str) and version_value.strip():
-            return version_value.strip()
-    return None
-
-
-def _cuda_driver_satisfies_required_major(version: str, required_cuda_major: int) -> bool:
-    major_value = version.split(".", 1)[0].strip()
-    try:
-        major = int(major_value)
-    except ValueError:
-        return False
-    return major >= required_cuda_major

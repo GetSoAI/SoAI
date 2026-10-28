@@ -7,7 +7,6 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from core.events.types_base import Event
-from core.models.model_info_fields import coerce_plugin_name
 from core.models.reference_validation import validate_active_model_reference
 from core.runtime.request_context import RequestContext
 from orchestrator.control.inference_request_primitives import (
@@ -25,7 +24,6 @@ if TYPE_CHECKING:
 __all__ = (
     "build_inference_event",
     "build_inference_task_request_context",
-    "resolve_plugin_name",
     "resolve_reply_queue",
     "serialize_request_context",
     "serialize_request_context_payload",
@@ -102,13 +100,3 @@ async def validate_model_reference(
     if validated.is_virtual:
         return ({validated.routing_key}, None)
     return (set(), validated.routing_key)
-
-
-async def resolve_plugin_name(
-    control: OrchestratorControlInferenceAdmissionProtocol,
-    universal_id: str | None,
-) -> str | None:
-    if universal_id is None:
-        return None
-    model_info = await control.deps.model_information_service.model_get_info(universal_id)
-    return coerce_plugin_name(model_info if isinstance(model_info, dict) else None)

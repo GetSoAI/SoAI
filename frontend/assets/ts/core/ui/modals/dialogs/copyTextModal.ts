@@ -22,7 +22,7 @@ const createCopyTextModal = (dependencies: { confirmationFlow: ConfirmationFlowA
             copyText: i18n.t('common.copy'),
             copyVariant: 'ui-variant-primary',
             variant: 'info',
-            icon: 'copy',
+            icon: 'copy-modal',
             ...options
         };
 

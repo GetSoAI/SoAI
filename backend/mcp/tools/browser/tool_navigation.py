@@ -247,6 +247,7 @@ async def tool_browser_navigate(
                 state,
                 exception=exception,
                 attempted_url=primary_url,
+                wait_until=wait_until,
             )
 
         download_result_fields: JSONDict = {}

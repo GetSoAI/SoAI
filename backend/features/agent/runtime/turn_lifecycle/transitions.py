@@ -19,8 +19,11 @@ from features.agent.runtime.turn_state_reconciliation import (
 from features.agent.runtime.turn_state_resume import resume_existing_turn_state
 
 if TYPE_CHECKING:
+    from core.agent.prompt_replay import AgentTurnPromptReplaySnapshot
     from core.agent.todo_state_models import AgentTurnTodoState
+    from core.conversations.input_claim import ConversationInputClaim
     from core.conversations.protocols_database_agents import DatabaseAgentTurnsProtocol
+    from core.skills.checkpoint import SkillActivationCheckpoint
     from core.tasks.protocols import TokenCollectionProtocol
     from core.tasks.protocols_query import TaskRegistryQueryView
     from core.tool_calls.protocols import DatabaseToolCallsProtocol
@@ -48,6 +51,9 @@ async def start_new_turn_state(
     initial_active_inference_cancellation_id: str | None,
     todo_state: AgentTurnTodoState,
     header: TurnStateHeader,
+    skill_activation: SkillActivationCheckpoint | None = None,
+    skill_input_claim: ConversationInputClaim | None = None,
+    skill_parent_execution_token: str | None = None,
 ) -> JSONDict:
     (
         normalized_conv_id,
@@ -79,11 +85,14 @@ async def start_new_turn_state(
         active_inference_cancellation_id=normalized_active_inference_cancellation_id,
         todo_state=todo_state,
         started_at_ms=now,
+        skill_activation=skill_activation,
     )
     try:
         return await database_agent_turns.claim_turn_state(
             ClaimAgentTurnStateRequest(
                 turn_state=turn_state,
+                skill_input_claim=skill_input_claim,
+                skill_parent_execution_token=skill_parent_execution_token,
                 stale_running_turns=await collect_stale_running_turn_claims(
                     database_agent_turns=database_agent_turns,
                     database_tool_calls=database_tool_calls,
@@ -112,6 +121,7 @@ async def start_or_resume_turn_state(
     initial_active_inference_cancellation_id: str | None,
     todo_state: AgentTurnTodoState,
     existing_execution_token: str | None = None,
+    prompt_replay_snapshot: AgentTurnPromptReplaySnapshot | None = None,
     turn_scope: str = TURN_SCOPE_ROOT,
     parent_turn_id: str | None = None,
     parent_tool_call_id: str | None = None,
@@ -119,6 +129,9 @@ async def start_or_resume_turn_state(
     display_name: str | None = None,
     requested_model: str | None = None,
     owner_task_id: str | None = None,
+    skill_activation: SkillActivationCheckpoint | None = None,
+    skill_input_claim: ConversationInputClaim | None = None,
+    skill_parent_execution_token: str | None = None,
 ) -> JSONDict:
     (
         normalized_conv_id,
@@ -155,6 +168,7 @@ async def start_or_resume_turn_state(
         max_iterations=normalized_max_iterations,
         active_inference_cancellation_id=normalized_active_inference_cancellation_id,
         existing_execution_token=existing_execution_token,
+        prompt_replay_snapshot=prompt_replay_snapshot,
         header=header,
     )
     if resumed_turn is not None:
@@ -173,4 +187,7 @@ async def start_or_resume_turn_state(
         initial_active_inference_cancellation_id=initial_active_inference_cancellation_id,
         todo_state=todo_state,
         header=header,
+        skill_activation=skill_activation,
+        skill_input_claim=skill_input_claim,
+        skill_parent_execution_token=skill_parent_execution_token,
     )

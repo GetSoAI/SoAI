@@ -10,9 +10,7 @@ from core.assistant_timeline.tool_sequence_ownership import (
     register_tool_call_sequence_index_owner,
 )
 from core.errors.exceptions import ValidationError
-from core.openai.tool_call_arguments import (
-    serialize_openai_tool_call_arguments_for_prompt,
-)
+from core.openai.agent_tool_messages import build_assistant_tool_message
 from core.serialization.json import serialize_json_compact_stable
 from core.tool_calls.status_values import (
     is_terminal_tool_call_status,
@@ -81,22 +79,16 @@ def _build_compaction_marker_message(
 
 
 def _build_tool_call_message(tool_call: Mapping[str, JSONValue]) -> JSONDict:
-    message: JSONDict = {
-        "role": "assistant",
-        "content": "",
-        "tool_calls": [
+    message = build_assistant_tool_message(
+        tool_calls=[
             {
                 "id": str(tool_call.get("call_id") or ""),
-                "type": "function",
-                "function": {
-                    "name": str(tool_call.get("tool_name") or ""),
-                    "arguments": serialize_openai_tool_call_arguments_for_prompt(
-                        tool_call.get("arguments"),
-                    ),
-                },
-            },
+                "name": str(tool_call.get("tool_name") or ""),
+                "arguments": tool_call.get("arguments"),
+            }
         ],
-    }
+        content="",
+    )
     assistant_at_ms = tool_call.get("assistant_at_ms")
     if is_strict_int(assistant_at_ms):
         message["timestamp"] = int(assistant_at_ms)

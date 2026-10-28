@@ -6,6 +6,7 @@ from __future__ import annotations
 import dataclasses
 
 from core.errors.exceptions import ValidationError
+from core.tasks.execution_budget import earliest_execution_budget
 from core.tasks.task import Task
 
 __all__ = ("merge_task_state",)
@@ -16,6 +17,28 @@ def merge_task_state(*, cached: Task | None, incoming: Task) -> Task:
         return incoming
     if cached.task_id != incoming.task_id:
         raise ValidationError("Cannot merge tasks with different task_id values.")
+    cached_context = cached.orchestration_context
+    incoming_context = incoming.orchestration_context
+    if (
+        incoming_context is not None
+        and cached_context is not None
+        and (incoming_context.execution_generation > cached_context.execution_generation)
+    ):
+        cached = cached.with_orchestration_context(incoming_context, mark_updated=False)
+        cached_context = incoming_context
+    if incoming_context is not None and incoming_context.execution_budget is not None:
+        budget = earliest_execution_budget(
+            cached_context.execution_budget if cached_context is not None else None,
+            incoming_context.execution_budget,
+        )
+        if cached_context is None or budget != cached_context.execution_budget:
+            cached = cached.with_orchestration_context(
+                dataclasses.replace(
+                    cached_context or incoming_context,
+                    execution_budget=budget,
+                ),
+                mark_updated=False,
+            )
     cached_terminal = cached.status.is_terminal()
     incoming_terminal = incoming.status.is_terminal()
     if cached_terminal and (not incoming_terminal):
@@ -41,10 +64,31 @@ def _apply_non_persisted_fields(*, base: Task, cached: Task) -> Task:
     cached_context = cached.orchestration_context
     orchestration_context = base_context if base_context is not None else cached_context
     if base_context is not None and cached_context is not None:
+        if base_context.execution_generation < cached_context.execution_generation:
+            base_context = cached_context
+            orchestration_context = cached_context
         base_event = base_context.event
         cached_event = cached_context.event
-        if base_event is None and cached_event is not None:
-            orchestration_context = dataclasses.replace(base_context, event=cached_event)
+        event = base_event if base_event is not None else cached_event
+        budget = earliest_execution_budget(
+            base_context.execution_budget,
+            cached_context.execution_budget,
+        )
+        timeout_claim = base_context.execution_timeout_claim
+        cached_claim = cached_context.execution_timeout_claim
+        if cached_claim is not None and (timeout_claim is None or cached_claim.delivery_started):
+            timeout_claim = cached_claim
+        if (
+            event is not base_event
+            or budget != base_context.execution_budget
+            or timeout_claim != base_context.execution_timeout_claim
+        ):
+            orchestration_context = dataclasses.replace(
+                base_context,
+                event=event,
+                execution_budget=budget,
+                execution_timeout_claim=timeout_claim,
+            )
     return dataclasses.replace(
         base,
         reply_queue=reply_queue,

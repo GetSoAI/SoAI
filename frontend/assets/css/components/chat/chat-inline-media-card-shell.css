@@ -21,6 +21,15 @@
         color: var(--text-primary);
     }
 
+    .chat-inline-media-reference {
+        padding: var(--space-05) var(--space-15);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+        font-family: var(--font-family-mono);
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        color: var(--text-primary);
+    }
+
     .chat-inline-media-card__footer {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;

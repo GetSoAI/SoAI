@@ -19,8 +19,8 @@ import { syncFlagSelect } from '@core/ui/dropdown/flagSelect.ts';
 import { UI_IDS } from '@features/settings/public.ts';
 import type { UiPreferenceKey } from '@core/settings/settingsFieldKeys.ts';
 import { buildLanguageOptions } from '@pages/settings/controllers/preferences/service.ts';
-import { createPreferenceSliderDefinitions, type PreferenceSliderDefinition } from '@pages/settings/controllers/preferences/preferenceSlidersDomain.ts';
-import { createPreferenceToggleDefinitions, getPreferenceStateLabels, type PreferenceToggleDefinition } from '@pages/settings/controllers/preferences/toggles.ts';
+import { createPreferenceSliderDefinitions } from '@pages/settings/controllers/preferences/preferenceSlidersDomain.ts';
+import { createPreferenceToggleDefinitions, getPreferenceStateLabels } from '@pages/settings/controllers/preferences/toggles.ts';
 import type { PreferencesManagerDependencies, PreferencesManagerHost } from '@pages/settings/controllers/preferences/types.ts';
 import { renderOcrLanguageControl, renderPreferencesSection } from '@pages/settings/controllers/preferences/view.ts';
 import { requireUiPrefsClockFormat, requireUiPrefsDateFormat, requireUiPrefsLanguage, requireUiPrefsMeasurementUnits, requireUiPrefsRegionalLocale } from '@pages/settings/controllers/uiprefs/guards.ts';
@@ -47,7 +47,7 @@ class PreferencesManager {
         this.#ocrConfig.initialize({ language: 'eng' });
     }
 
-    render(identityContent = ''): TrustedHtml {
+    render(identityContent = '', speechContent = ''): TrustedHtml {
         const languageService = this.#host.languageService;
         const currentLanguage = requireUiPrefsLanguage(this.#host.getUiPrefValue('language'));
         const languageCandidates = languageService.getAvailableLanguages();
@@ -60,6 +60,7 @@ class PreferencesManager {
         return toTrustedUiHtml(
             renderPreferencesSection({
                 identityContent,
+                speechContent,
                 languageOptions: buildLanguageOptions(languageCandidates, currentLanguage),
                 currentLanguage,
                 ocrOptions: this.#ocrOptions(),
@@ -70,9 +71,9 @@ class PreferencesManager {
                 regionalLocale: regionalLocaleValue,
                 dateFormat: dateFormatValue,
                 measurementUnits: measurementUnitsValue,
-                preferenceSliders: this.#getPreferenceSliderDefinitions(),
+                preferenceSliders: createPreferenceSliderDefinitions(this.#host),
                 preferenceLabels: getPreferenceStateLabels(),
-                preferenceToggles: this.#getPreferenceToggleDefinitions().map((toggle) => ({
+                preferenceToggles: createPreferenceToggleDefinitions(this.#host).map((toggle) => ({
                     id: toggle.id,
                     uiPrefKey: toggle.uiPrefKey,
                     label: toggle.getLabel(),
@@ -139,7 +140,7 @@ class PreferencesManager {
     }
 
     #bindPreferenceSliders(): void {
-        for (const sliderDefinition of this.#getPreferenceSliderDefinitions()) {
+        for (const sliderDefinition of createPreferenceSliderDefinitions(this.#host)) {
             const sliderCandidate = this.#host.pageDom.optional(sliderDefinition.id);
             if (!sliderCandidate) {
                 continue;
@@ -163,7 +164,7 @@ class PreferencesManager {
     }
 
     #bindPreferenceToggles(): void {
-        for (const toggleConfig of this.#getPreferenceToggleDefinitions()) {
+        for (const toggleConfig of createPreferenceToggleDefinitions(this.#host)) {
             const elementCandidate = this.#host.pageDom.optional(toggleConfig.id);
             if (!elementCandidate) {
                 continue;
@@ -183,14 +184,6 @@ class PreferencesManager {
             this.#disposers.push(disposeToggle);
         }
         this.#syncClockSecondsToggle();
-    }
-
-    #getPreferenceToggleDefinitions(): PreferenceToggleDefinition[] {
-        return createPreferenceToggleDefinitions(this.#host);
-    }
-
-    #getPreferenceSliderDefinitions(): PreferenceSliderDefinition[] {
-        return createPreferenceSliderDefinitions(this.#host);
     }
 
     #syncClockSecondsToggle(): void {

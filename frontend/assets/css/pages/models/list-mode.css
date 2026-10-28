@@ -3,7 +3,7 @@
 
 @layer pages {
     :where([data-section='models'], [data-page-scope='models']) .models-list-table {
-        --layout-collection-list-columns: minmax(160px, 2fr) minmax(60px, 0.6fr) minmax(80px, 1fr) minmax(100px, 1fr) minmax(100px, 1.35fr) minmax(90px, 0.8fr) minmax(128px, 0.8fr);
+        --layout-collection-list-columns: minmax(160px, 2fr) minmax(60px, 0.6fr) minmax(80px, 1fr) minmax(100px, 1fr) minmax(100px, 1.35fr) minmax(128px, 0.8fr) minmax(128px, 0.8fr);
     }
 
     :where([data-section='models'], [data-page-scope='models']) .models-list-open {

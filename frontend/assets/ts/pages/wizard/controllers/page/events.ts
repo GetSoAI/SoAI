@@ -1,9 +1,11 @@
 /* SoAI - Wizard page controller events [frontend/assets/ts/pages/wizard/controllers/page/events.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { WizardMotionController } from '@pages/wizard/controllers/WizardMotionController.ts';
 import { bindFormSubmit } from '@core/dom/formSubmit.ts';
 import { readTrimmedSelectValue } from '@core/dom/formValues.ts';
 import { syncFlagSelect } from '@core/ui/dropdown/flagSelect.ts';
+import { LatestRequestController } from '@core/concurrency/latestRequest.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import type { WizardState } from '@features/wizard/public.ts';
 import { AI_PROVIDER_FORM_ID } from '@pages/wizard/rendering/aisetup/connect/view.ts';
@@ -22,9 +24,14 @@ interface WizardRootEventHost {
     state: WizardState;
     languageService: WizardLanguageHost;
     logError: (operation: string, error: Error) => void;
+    handleLanguageError: (error: Error) => void;
 }
 
 const wireWizardRootEvents = (host: WizardRootEventHost): void => {
+    new WizardMotionController(host.root, host.signal);
+    const languageRequests = new LatestRequestController();
+    const cancelLanguageRequests = (): void => languageRequests.invalidate();
+    host.signal.addEventListener('abort', cancelLanguageRequests, { once: true });
     bindFormSubmit({
         root: host.root,
         signal: host.signal,
@@ -51,7 +58,7 @@ const wireWizardRootEvents = (host: WizardRootEventHost): void => {
         host.service.handleInput(target);
     };
     host.root.addEventListener('input', handleInput, { signal: host.signal, capture: true });
-    const handleChange = (event: Event): void => handleWizardRootChange(host, event);
+    const handleChange = (event: Event): void => handleWizardRootChange(host, event, languageRequests);
     host.root.addEventListener('change', handleChange, { signal: host.signal, capture: true });
 };
 
@@ -61,7 +68,7 @@ const handleWizardRootSubmit = (host: WizardRootEventHost): void => {
     });
 };
 
-const handleWizardRootChange = (host: WizardRootEventHost, event: Event): void => {
+const handleWizardRootChange = (host: WizardRootEventHost, event: Event, languageRequests: LatestRequestController): void => {
     const target = event.target;
     if (target instanceof HTMLInputElement && (target.name === 'wizard-product-access' || target.id === 'wizard-offline-certificate')) {
         host.service.handleInput(target);
@@ -82,14 +89,20 @@ const handleWizardRootChange = (host: WizardRootEventHost, event: Event): void =
         return;
     }
 
-    const current = host.languageService.getLanguage();
-    if (nextLanguage === current) {
-        return;
-    }
-
-    void host.languageService.setLanguage(nextLanguage).catch((error) => {
-        host.logError('language update failed', ensureError(error));
-    });
+    void languageRequests
+        .runLatest(async (request) => {
+            try {
+                await host.languageService.setLanguage(nextLanguage);
+            } catch (error) {
+                if (!request.isCurrent()) return;
+                if (target.isConnected) {
+                    target.value = host.languageService.getLanguage();
+                    syncFlagSelect(target);
+                }
+                throw error;
+            }
+        })
+        .catch((error) => host.handleLanguageError(ensureError(error)));
 };
 
 export { wireWizardRootEvents };

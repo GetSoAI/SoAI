@@ -54,6 +54,7 @@ def execute_memory_workload(
         element_count=MEMORY_ELEMENT_COUNT,
         initialization_kernel_name="soaibench_memory_initialize",
         require_exact_element_count=True,
+        synchronize_each_repeat=True,
         session=session,
     )
 

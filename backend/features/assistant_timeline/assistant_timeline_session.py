@@ -19,6 +19,7 @@ from core.timing.constants import BACKGROUND_TIMEOUT_SEC
 from features.assistant_timeline.activity_ticker_tasks import (
     take_activity_ticker_exception,
 )
+from features.assistant_timeline.assistant_text import flush_pending_assistant_text_delta_locked
 from features.assistant_timeline.assistant_timeline_shutdown import (
     stop_timeline_session_tickers,
 )
@@ -108,6 +109,7 @@ class AssistantTimelineSession:
         self.stream_transcript = OpenAIStreamTranscript(
             model_hint=runtime.model_id,
             collect_tool_calls=self.collect_tool_calls,
+            error_origin="local_terminal",
         )
         self.thinking_phases = []
         runtime.thinking_phases = self.thinking_phases
@@ -116,6 +118,14 @@ class AssistantTimelineSession:
         )
 
     def start(self) -> None:
+        async def flush_pending_text_locked() -> bool:
+            return await flush_pending_assistant_text_delta_locked(
+                runtime=self.runtime,
+                database_messages=self.database_messages,
+                event_bus=self.event_bus,
+                force_publish=True,
+            )
+
         _, self._unsubscribe = subscribe_tool_events_for_stream(
             event_bus=self.event_bus,
             runtime=self.runtime,
@@ -134,6 +144,7 @@ class AssistantTimelineSession:
             event_bus=self.event_bus,
             database_messages=self.database_messages,
             track_background_task=self.track_background_task,
+            flush_pending_text_locked=flush_pending_text_locked,
         )
         self.status_preview_tick_task = start_status_preview_scheduler(
             runtime=self.runtime,

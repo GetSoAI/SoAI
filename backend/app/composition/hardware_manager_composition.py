@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from app.lifecycle.coordinator import LifecycleCoordinator
+from core.concurrency.bounded_blocking import create_bounded_thread_pool
 from core.config.clamped_numeric import read_config_nonnegative_int
 from core.errors.exceptions import ValidationError
 from core.events.protocols import EventBusProtocol
@@ -35,6 +36,7 @@ from hardware.monitor import (
     HardwareMonitoringCoordinatorDependencies,
 )
 from hardware.vendor_detection_service import GPUVendorDetectionService
+from hardware.vendors.amd.adl_session import AdlRuntime
 from hardware.vendors.nvidia.smi import NvidiaSettingsController
 
 __all__ = ("build_hardware_manager",)
@@ -61,6 +63,7 @@ def build_hardware_manager(
     command_executor: CommandExecutor,
     hardware_logger: TraceLogger,
     lifecycle_coordinator: LifecycleCoordinator,
+    adl_runtime: AdlRuntime | None = None,
 ) -> HardwareManager:
     history_config_obj = coerce_json_dict(hardware_manager_settings.history_config)
     if history_config_obj is None:
@@ -102,9 +105,16 @@ def build_hardware_manager(
             gpu_capabilities_service=gpu_capabilities_service,
             nvidia_nvml_gate=nvidia_nvml_gate,
             nvidia_settings_controller=nvidia_settings_controller,
+            adl_runtime=adl_runtime,
             nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
             settings=hardware_manager_settings,
             command_executor=command_executor,
+            system_capability_pool_factory=lambda: create_bounded_thread_pool(
+                label="hardware-system-capabilities",
+                thread_name_prefix="soai-system-capabilities",
+                max_workers=1,
+                max_in_flight=1,
+            ),
         ),
     )
     lifecycle_coordinator.register_actor(hardware_manager)

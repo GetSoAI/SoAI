@@ -11,7 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from core.concurrency.deadlines import MonotonicDeadline
-from core.config.byte_sizes import MIB_BYTES
+from core.config.byte_sizes import GIB_BYTES, MIB_BYTES
 from core.database.vacuum_result import DatabaseVacuumResult, DatabaseVacuumStatusValue
 from core.sqlite.connections import connect_sqlite
 from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
@@ -22,6 +22,7 @@ __all__ = ("VacuumExecution", "sync_vacuum")
 VACUUM_PROGRESS_HANDLER_INSTRUCTION_COUNT = 1000
 VACUUM_MINIMUM_RECLAIMABLE_BYTES = 64 * MIB_BYTES
 VACUUM_MINIMUM_FREE_PERCENT = 20
+VACUUM_PERCENTAGE_OVERRIDE_BYTES = GIB_BYTES
 
 
 @dataclass(slots=True)
@@ -133,7 +134,10 @@ def sync_vacuum(
                 return _result(interruption)
             if execution.require_reclaimable_space and (
                 reclaimable_bytes < VACUUM_MINIMUM_RECLAIMABLE_BYTES
-                or free_pages * 100 < page_count * VACUUM_MINIMUM_FREE_PERCENT
+                or (
+                    free_pages * 100 < page_count * VACUUM_MINIMUM_FREE_PERCENT
+                    and reclaimable_bytes < VACUUM_PERCENTAGE_OVERRIDE_BYTES
+                )
             ):
                 return _result(DatabaseVacuumStatusValue.INSUFFICIENT_RECLAIMABLE_SPACE)
             vacuum_connection.execute("VACUUM")

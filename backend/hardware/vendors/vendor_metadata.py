@@ -134,7 +134,9 @@ def resolve_driver_version(compute_drivers: JSONDict, vendor_type: str) -> str |
         normalized_driver_name = driver_name.lower()
         if not any(vendor_key in normalized_driver_name for vendor_key in vendor_keys):
             continue
-        version_value = driver_value.get("driver_version") or driver_value.get("version")
+        version_value = driver_value.get("driver_version")
+        if not version_value and normalized_driver_name == "amdgpu":
+            version_value = driver_value.get("version")
         if isinstance(version_value, str) and version_value:
             return version_value
     return None

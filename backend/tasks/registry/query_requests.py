@@ -5,14 +5,11 @@ from __future__ import annotations
 
 from core.database.task_requests import UnifiedTaskQueryRequest
 from core.tasks.enums import TaskStatus
-from core.tasks.requests import TaskRegistryFilteredQueryRequest
 from core.tasks.type_catalog import TaskTypeId
 
 __all__ = (
     "build_active_query_request",
-    "build_filtered_query_request",
     "build_owner_query_request",
-    "build_user_query_request",
     "enum_value",
 )
 
@@ -23,23 +20,6 @@ def enum_value(enum_obj: TaskStatus | TaskTypeId | None) -> str | None:
     if isinstance(enum_obj, TaskStatus):
         return enum_obj.value
     return enum_obj
-
-
-def build_user_query_request(
-    *,
-    user_id: int,
-    status: TaskStatus | None,
-    task_type: TaskTypeId | None,
-    limit: int,
-    offset: int,
-) -> UnifiedTaskQueryRequest:
-    return UnifiedTaskQueryRequest(
-        user_id=user_id,
-        status=enum_value(status),
-        task_type=enum_value(task_type),
-        limit=limit,
-        offset=offset,
-    )
 
 
 def build_owner_query_request(
@@ -56,21 +36,6 @@ def build_owner_query_request(
         status=enum_value(status),
         limit=limit,
         offset=offset,
-    )
-
-
-def build_filtered_query_request(
-    request: TaskRegistryFilteredQueryRequest,
-) -> UnifiedTaskQueryRequest:
-    return UnifiedTaskQueryRequest(
-        user_id=request.user_id,
-        status=enum_value(request.status),
-        task_type=enum_value(request.task_type),
-        owner_type=request.owner_type,
-        owner_id=request.owner_id,
-        cancellation_id=request.cancellation_id,
-        limit=request.limit,
-        offset=request.offset,
     )
 
 

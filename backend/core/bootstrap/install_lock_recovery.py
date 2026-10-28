@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 from collections.abc import Callable
 from contextlib import ExitStack
@@ -13,6 +14,7 @@ from core.bootstrap.lock import INSTALLATION_TRANSACTION_LOCK_FILENAME, acquire_
 from core.errors.exceptions import StateError
 from core.meta.paths import join_data_abs
 from core.system.commands import run_argv_capture
+from core.system.native_image_budget import native_image_allowance
 from core.timing.constants import CONTROL_TIMEOUT_SEC, EXTENDED_TIMEOUT_SEC
 
 __all__ = ("recover_windows_install_lock", "recover_windows_startup_install_lock")
@@ -21,10 +23,11 @@ __all__ = ("recover_windows_install_lock", "recover_windows_startup_install_lock
 def recover_windows_install_lock(lock_dir: str, launcher_path: str) -> bool:
     if os.name != "nt":
         return False
+    allowance = native_image_allowance(EXTENDED_TIMEOUT_SEC, roots=(launcher_path,))
     result = run_argv_capture(
         [launcher_path, "--recover-install-lock", lock_dir],
         check=True,
-        timeout=EXTENDED_TIMEOUT_SEC,
+        timeout=math.ceil(allowance.seconds),
         encoding="utf-8",
         errors="strict",
     )
@@ -43,11 +46,15 @@ def recover_windows_startup_install_lock(
                 timeout_sec=CONTROL_TIMEOUT_SEC,
             )
         )
-        check_transaction_admission(repo_root_path)
         lock_dir = join_data_abs(repo_root_path, "state", "locks", "soai.install.lock.d")
         recover_windows_install_lock(lock_dir, os.path.join(repo_root_path, "soai.exe"))
         if os.path.isdir(lock_dir):
             return False
+        runtime_lock_dir = join_data_abs(repo_root_path, "state", "locks", "soai.runtime.lock.d")
+        recover_windows_install_lock(runtime_lock_dir, os.path.join(repo_root_path, "soai.exe"))
+        if os.path.lexists(runtime_lock_dir):
+            return False
+        check_transaction_admission(repo_root_path)
         marker_path = os.path.join(repo_root_path, ".soai_install_in_progress")
         if os.path.isfile(marker_path):
             raise StateError(

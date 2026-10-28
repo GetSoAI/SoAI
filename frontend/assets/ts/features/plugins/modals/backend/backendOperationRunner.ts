@@ -1,6 +1,7 @@
 /* SoAI - Plugins feature backend operation runner [frontend/assets/ts/features/plugins/modals/backend/backendOperationRunner.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { StreamActionHandle } from '@core/routing/pages/pagetypes/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -21,6 +22,7 @@ interface ExecuteBackendOperationConfig {
     loadingMessage: string;
     failMessage: string;
     onAccepted?: (taskId: string) => void;
+    onStarted?: (stream: StreamActionHandle) => void;
 }
 
 interface RunBackendOperationConfig extends ExecuteBackendOperationConfig {
@@ -84,6 +86,7 @@ const executeBackendOperation = async (host: BackendOperationHost, plugin: Plugi
                     }
                 }
             );
+            config.onStarted?.(stream);
             if (!stream.accepted) throw new Error('Backend task did not expose accepted task ownership');
             return { stream, taskId: await stream.accepted };
         });
@@ -117,9 +120,9 @@ const executeBackendOperation = async (host: BackendOperationHost, plugin: Plugi
 
 const runBackendOperation = async (host: BackendOperationHost, plugin: PluginRecord, config: RunBackendOperationConfig): Promise<void> => {
     requirePluginName(plugin);
-    if (config.onBefore) config.onBefore();
     let outcome: BackendOperationOutcome;
     try {
+        if (config.onBefore) config.onBefore();
         outcome = await executeBackendOperation(host, plugin, config);
         if (outcome.status === 'failed' && outcome.error !== null) {
             showOperationFailureNotification({

@@ -59,6 +59,7 @@ class ConversationListPresentationController {
             resolveEmptyState: () => this.#resolveEmptyState(),
             resolveItemIdentifier: (element) => element.dataset['id'] ?? null,
             renderItem: (presentation) => this.#renderRow(presentation),
+            patchMountedItems: true,
             loadingLabel: () => i18n.t('chat.conversation.loadingMore'),
             onCommit: (context) => this.#commitPresentation(context),
             onError: (error) => this.#handleFailure(error)

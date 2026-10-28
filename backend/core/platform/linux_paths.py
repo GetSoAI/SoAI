@@ -8,6 +8,7 @@ from os import sep
 __all__ = (
     "linux_default_home_root",
     "linux_default_login_shell",
+    "linux_user_runtime_root",
     "soai_mount_base_path",
 )
 
@@ -18,6 +19,10 @@ def linux_default_home_root() -> str:
 
 def linux_default_login_shell() -> str:
     return f"{sep}bin{sep}bash"
+
+
+def linux_user_runtime_root() -> str:
+    return f"{sep}run{sep}user"
 
 
 def soai_mount_base_path() -> str:

@@ -7,13 +7,16 @@ import asyncio
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
+from core.concurrency.bounded_blocking import shutdown_bounded_pool_executor
 from core.concurrency.locks import AsyncRWLock
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ValidationError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
+from core.hardware.opencl_runtime_types import OpenCLRuntimeSnapshot
 from core.hardware.soaibench_persistence import SoAIBenchMutationOutcome
 from core.history.reset_notification import HistoryResetOutcome
+from core.system.protocols import CommandExecutorProtocol
 from core.tasks.task_cancellation import mark_task_cancellation_requested
 from core.timing.epoch import epoch_ms
 from hardware.soaibench.active_runs import ActiveSoAIBenchRuns
@@ -26,6 +29,7 @@ from hardware.soaibench.gpu_identity import (
 )
 from hardware.soaibench.history_reset import reset_soaibench_history
 from hardware.soaibench.history_service import (
+    delete_soaibench_local_run,
     export_soaibench_history_csv,
     list_soaibench_history,
     list_soaibench_runs,
@@ -36,6 +40,7 @@ from hardware.soaibench.runtime import (
     parse_profile,
     parse_temperature_limit_celsius,
 )
+from hardware.soaibench.runtime_discovery import acquire_opencl_runtime_snapshot
 from hardware.soaibench.service_cancellation import cancel_active_soaibench_runs
 from hardware.soaibench.service_support import unsupported_response
 from hardware.soaibench.start_flow import start_soaibench_run
@@ -58,7 +63,6 @@ __all__ = (
 )
 
 SHUTDOWN_OPERATION = "hardware.soaibench.shutdown"
-LOCAL_DELETION_EVENT_OPERATION = "hardware.soaibench.local_deletion_event"
 
 
 class SoAIBenchService:
@@ -84,12 +88,26 @@ class SoAIBenchService:
                 await cancel_active_soaibench_runs(
                     deps=self._deps,
                     active_runs=self._active_runs,
-                    reason="SoAIBench backend shutdown",
+                    reason="SoAI Bench backend shutdown",
                     operation=SHUTDOWN_OPERATION,
-                    cancelled_message="SoAIBench worker cancelled during shutdown.",
+                    cancelled_message="SoAI Bench worker cancelled during shutdown.",
                 )
         finally:
-            await self._deps.opencl_pool.shutdown()
+            try:
+                await self._deps.opencl_pool.shutdown()
+            finally:
+                shutdown_bounded_pool_executor(self._deps.telemetry_pool)
+
+    async def discover_opencl_runtime(
+        self, *, command_executor: CommandExecutorProtocol, timeout_sec: float = 10.0
+    ) -> OpenCLRuntimeSnapshot:
+        self._require_ready()
+        return await acquire_opencl_runtime_snapshot(
+            self._deps.opencl_pool,
+            command_executor,
+            timeout_sec=timeout_sec,
+            logger=self._deps.logger,
+        )
 
     async def reset_history(self, *, reset_genesis_uptime: bool) -> HistoryResetOutcome:
         self._require_ready()
@@ -156,7 +174,7 @@ class SoAIBenchService:
                 run_id=run_id,
             )
             if run is None:
-                raise ValidationError("SoAIBench run was not found.")
+                raise ValidationError("SoAI Bench run was not found.")
             await attach_existing_task_id(self._deps.task_registry, run)
             return run_response(
                 run,
@@ -170,7 +188,7 @@ class SoAIBenchService:
                 run_id=run_id,
             )
             if run is None:
-                raise ValidationError("SoAIBench run was not found.")
+                raise ValidationError("SoAI Bench run was not found.")
             if run.get("status") != SoAIBenchRunStatus.RUNNING.value:
                 await attach_existing_task_id(self._deps.task_registry, run)
                 return run_response(run, accepted=False)
@@ -184,7 +202,7 @@ class SoAIBenchService:
                     await attach_existing_task_id(self._deps.task_registry, refreshed)
                     return run_response(refreshed, accepted=False)
                 raise SoAIBenchRunningWithoutOwner(
-                    "SoAIBench running run has no active worker owner.",
+                    "SoAI Bench running run has no active worker owner.",
                 )
             stop_result = await self._deps.database_hardware.request_soaibench_stop(
                 user_id=user_id,
@@ -193,7 +211,7 @@ class SoAIBenchService:
             )
             stopped_run = stop_result.run
             if stopped_run is None:
-                raise ValidationError("SoAIBench run was not found at stop mutation.")
+                raise ValidationError("SoAI Bench run was not found at stop mutation.")
             if stop_result.outcome == SoAIBenchMutationOutcome.ACCEPTED:
                 try:
                     await publish_soaibench_run_update(
@@ -211,7 +229,7 @@ class SoAIBenchService:
                     log_exception(
                         self._deps.logger,
                         coerced_exception,
-                        message="SoAIBench stop-request publication failed.",
+                        message="SoAI Bench stop-request publication failed.",
                         operation=STOP_EVENT_OPERATION,
                         details={"run_id": run_id, "task_id": active.task_id},
                         level="warning",
@@ -264,37 +282,12 @@ class SoAIBenchService:
 
     async def delete_local_run(self, *, run_id: str, user_id: int) -> JSONDict:
         self._require_ready()
-        async with self._history_reset_lock.write_lock():
-            run = await self._deps.database_hardware.get_soaibench_run_for_user(
-                user_id=user_id,
-                run_id=run_id,
-            )
-            if run is None:
-                raise ValidationError("SoAIBench run was not found.")
-            await self._deps.database_hardware.delete_soaibench_local_run(
-                run_id=run_id, user_id=user_id
-            )
-            try:
-                await publish_soaibench_run_update(
-                    event_bus=self._deps.event_bus,
-                    logger=self._deps.logger,
-                    run=run,
-                    update_type="local_deleted",
-                )
-            except HANDLED_RUNTIME_EXCEPTIONS as exception:
-                coerced_exception = coerce_to_soai_error(
-                    exception,
-                    operation=LOCAL_DELETION_EVENT_OPERATION,
-                )
-                log_exception(
-                    self._deps.logger,
-                    coerced_exception,
-                    message="SoAIBench local-deletion publication failed.",
-                    operation=LOCAL_DELETION_EVENT_OPERATION,
-                    details={"run_id": run_id},
-                    level="warning",
-                )
-        return {"success": True, "run_id": run_id, "state": "local_history_deleted"}
+        return await delete_soaibench_local_run(
+            deps=self._deps,
+            history_reset_lock=self._history_reset_lock,
+            run_id=run_id,
+            user_id=user_id,
+        )
 
     async def preview_publication(self, *, run_id: str, user_id: int) -> JSONDict:
         self._require_ready()
@@ -328,4 +321,4 @@ class SoAIBenchService:
     def _require_ready(self) -> None:
         if self._ready.is_set():
             return
-        raise ValidationError("SoAIBench startup reconciliation has not completed.")
+        raise ValidationError("SoAI Bench startup reconciliation has not completed.")

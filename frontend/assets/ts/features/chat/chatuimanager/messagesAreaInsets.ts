@@ -4,18 +4,22 @@
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
 import { dom } from '@core/dom/dom.ts';
+import { parsePositiveCssPixelValue } from '@core/dom/attributes.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 import { acquireMainTimelineCoordinator } from '@features/chat/mainTimelineCoordinator.ts';
+import { writeMainTimelineScrollOffset } from '@features/chat/mainTimelineScroll.ts';
+import { isConversationScrollRestoreActive } from '@features/chat/chatuimanager/conversationScrollRestoration.ts';
 
 const CSS_VAR_MESSAGES_PADDING_BOTTOM = '--chat-messages-padding-bottom';
+const CSS_VAR_MESSAGES_PADDING_TOP = '--chat-messages-padding-top';
 const CSS_VAR_FLOATING_INPUT_INSET = '--chat-floating-input-inset';
-const CSS_VAR_CONVERSATION_HEADER_HEIGHT = '--chat-conversation-header-height';
 const CSS_VAR_PLAN_OVERLAY_HEIGHT = '--chat-plan-overlay-height';
 const CSS_VAR_PLAN_HEADER_HEIGHT = '--chat-plan-header-height';
 const CSS_VAR_PLAN_DIVIDER_HEIGHT = '--chat-plan-divider-height';
 const CSS_VAR_NATIVE_SCROLLBAR_GUTTER = '--chat-native-scrollbar-gutter-width';
+const CSS_VAR_AVATAR_TOP_INSET = '--chat-messages-avatar-top-inset';
 const INPUT_WRAPPER_SELECTOR = '.chat-input-wrapper';
 const CONVERSATION_HEADER_SELECTOR = '.chat-conversation-header';
 const PLAN_OVERLAY_SELECTOR = '.agent-todo-panel-container';
@@ -64,24 +68,20 @@ export const setupMessagesAreaInsets = (context: ChatUIManagerContext): (() => v
     }
     const coordinator = acquireMainTimelineCoordinator(messagesArea, messagesRoot);
 
-    const baselinePaddingBottomPx = (() => {
-        const computed = win.getComputedStyle(messagesArea);
-        const parsed = Number.parseFloat(computed.paddingBottom);
-        return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
-    })();
+    const baselinePaddingBottomPx = parsePositiveCssPixelValue(win.getComputedStyle(messagesArea).paddingBottom, 0);
     const messageGapPx = (() => {
         if (!messagesRoot.isConnected) {
             return 0;
         }
         const computed = win.getComputedStyle(messagesRoot);
-        const parsed = Number.parseFloat(computed.rowGap || computed.gap);
-        return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+        return parsePositiveCssPixelValue(computed.rowGap || computed.gap, 0);
     })();
 
     const clearInsetStyles = (): void => {
         context.dependencies.dom.setStyle(messagesArea, CSS_VAR_MESSAGES_PADDING_BOTTOM, null);
+        context.dependencies.dom.setStyle(messagesArea, CSS_VAR_MESSAGES_PADDING_TOP, null);
         context.dependencies.dom.setStyle(messagesArea, CSS_VAR_FLOATING_INPUT_INSET, null);
-        context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_CONVERSATION_HEADER_HEIGHT, null);
+        context.dependencies.dom.setStyle(messagesArea, CSS_VAR_AVATAR_TOP_INSET, null);
         context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_OVERLAY_HEIGHT, null);
         context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_HEADER_HEIGHT, null);
         context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_DIVIDER_HEIGHT, null);
@@ -93,15 +93,13 @@ export const setupMessagesAreaInsets = (context: ChatUIManagerContext): (() => v
             clearInsetStyles();
             return;
         }
+        const scrollTopBeforeInsets = messagesArea.scrollTop;
+        const paddingTopBeforeInsets = parsePositiveCssPixelValue(win.getComputedStyle(messagesArea).paddingTop, 0);
+        const preservesNativeGesture = coordinator.isNativeGestureActive() && !context.state.autoScrollEnabled && scrollTopBeforeInsets > 0;
+        context.dependencies.dom.setStyle(messagesArea, CSS_VAR_MESSAGES_PADDING_TOP, preservesNativeGesture ? `${paddingTopBeforeInsets}px` : null);
         const measuredScrollbarGutterPx = Math.max(0, Math.round(messagesArea.offsetWidth - messagesArea.clientWidth));
         const nativeScrollbarGutterPx = measuredScrollbarGutterPx > 0 ? measuredScrollbarGutterPx : OVERLAY_SCROLLBAR_GUTTER_FALLBACK_PX;
         context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_NATIVE_SCROLLBAR_GUTTER, `${nativeScrollbarGutterPx}px`);
-        if (conversationHeader && conversationHeader.isConnected) {
-            const headerRect = measureLayoutBox(conversationHeader);
-            if (headerRect.height > 0) {
-                context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_CONVERSATION_HEADER_HEIGHT, `${Math.round(headerRect.height)}px`);
-            }
-        }
         if (planOverlay && planOverlay.isConnected) {
             const planRect = measureLayoutBox(planOverlay);
             const panelHeightPx = Math.max(0, planRect.height);
@@ -124,6 +122,9 @@ export const setupMessagesAreaInsets = (context: ChatUIManagerContext): (() => v
             context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_DIVIDER_HEIGHT, '0px');
         }
         const areaRect = measureLayoutBox(messagesArea);
+        const sidebarToggle = conversationHeader === null ? null : dom.resolve(CHAT_SELECTORS.SIDEBAR_TOGGLE, conversationHeader);
+        const avatarTopInset = sidebarToggle instanceof HTMLElement && sidebarToggle.isConnected ? Math.max(0, measureLayoutBox(sidebarToggle).top - areaRect.top) : null;
+        context.dependencies.dom.setStyle(messagesArea, CSS_VAR_AVATAR_TOP_INSET, avatarTopInset === null ? null : `${avatarTopInset}px`);
         const overlayTops: number[] = [];
         const inputRect = measureLayoutBox(inputWrapper);
         overlayTops.push(inputRect.top);
@@ -138,6 +139,11 @@ export const setupMessagesAreaInsets = (context: ChatUIManagerContext): (() => v
         context.dependencies.dom.setStyle(messagesArea, CSS_VAR_FLOATING_INPUT_INSET, `${Math.round(clampedOverlapPx)}px`);
         const padded = Math.max(baselinePaddingBottomPx, clampedOverlapPx + messageGapPx);
         context.dependencies.dom.setStyle(messagesArea, CSS_VAR_MESSAGES_PADDING_BOTTOM, `${Math.round(padded)}px`);
+        const maximumScrollTop = Math.max(0, messagesArea.scrollHeight - messagesArea.clientHeight);
+        const paddingTopAfterInsets = parsePositiveCssPixelValue(win.getComputedStyle(messagesArea).paddingTop, 0);
+        const readingScrollTop = scrollTopBeforeInsets <= 0 ? 0 : scrollTopBeforeInsets + paddingTopAfterInsets - paddingTopBeforeInsets;
+        const targetScrollTop = context.state.autoScrollEnabled ? maximumScrollTop : clampNumber(readingScrollTop, 0, maximumScrollTop);
+        if (!isConversationScrollRestoreActive(context)) writeMainTimelineScrollOffset(messagesArea, targetScrollTop - messagesArea.scrollTop, scrollTopBeforeInsets);
     };
 
     const scheduleApply = (): void => {
@@ -168,12 +174,16 @@ export const setupMessagesAreaInsets = (context: ChatUIManagerContext): (() => v
 
     const windowDisposer = context.dependencies.runtime.on(win, 'resize', () => scheduleApply());
     const scaleDisposer = context.dependencies.runtime.on(win, INTERFACE_SCALE_CHANGED_EVENT, () => scheduleApply());
+    const scrollDisposer = context.dependencies.runtime.on(messagesArea, 'scroll', scheduleApply, { passive: true });
+    const gestureSettledDisposer = coordinator.subscribeNativeGestureSettled(scheduleApply);
 
     apply();
 
     return () => {
         windowDisposer();
         scaleDisposer();
+        scrollDisposer();
+        gestureSettledDisposer();
         mutationObserver.disconnect();
         resizeSubscriptionDisposer();
         for (const disposeResizeObservation of resizeObservationDisposers) {

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from core.hardware.soaibench_workloads import (
+    ELEMENT_ALIGNMENT,
     MATRIX_BATCH_DISPATCHES,
     MATRIX_MAXIMUM_ELEMENTS,
     MATRIX_ROUNDS,
@@ -71,6 +72,8 @@ def execute_matrix_workload(
         repeats=STANDARD_MATRIX_REPEATS,
         summary_prefix="matrix",
         element_count=MATRIX_ELEMENT_COUNT,
+        synchronize_each_repeat=True,
+        maximum_dispatch_elements=ELEMENT_ALIGNMENT,
         session=session,
     )
 

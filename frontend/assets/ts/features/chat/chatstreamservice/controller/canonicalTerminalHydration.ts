@@ -11,7 +11,7 @@ import { resolveChatComparisonTurnMeta } from '@features/chat/comparisonTurnMeta
 import type { ChatStreamMessageSavedReconciliation } from '@features/chat/chatstreamservice/messageSavedReconciliation.ts';
 import { isChatMessage } from '@features/chat/message/chatMessageGuards.ts';
 import { flattenTextFragments } from '@features/chat/message/messageTextFlattening.ts';
-import type { Conversation } from '@features/chat/storage/storageModels.ts';
+import type { Conversation, LoadConversationMessagesOptions } from '@features/chat/storage/storageModels.ts';
 import type { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { findCanonicalAssistantMessage } from '@features/chat/chatstreamservice/controller/canonicalAssistantIdentity.ts';
 import { isChatTurnSuperseded, type SupersedingStreamIdentityLookup } from '@features/chat/chatstreamservice/controller/turnSupersession.ts';
@@ -28,7 +28,7 @@ interface CanonicalTerminalHydrationContext {
             syncConversationStatus(conversationId: string): Promise<ChatStreamMessageSavedReconciliation>;
             isStreaming(conversationId: string): boolean;
         };
-        storageManager: { loadConversationMessages(conversationId: string, options: { force: boolean; mergeStreamingAssistants: boolean }): Promise<void> };
+        storageManager: { loadConversationMessages(conversationId: string, options: LoadConversationMessagesOptions): Promise<void> };
         conversations: Map<string, Conversation>;
         messageManager: { invalidateMessageCache(message: ChatMessage): void };
     };
@@ -151,7 +151,7 @@ const loadCanonicalTerminalMessages = async (context: CanonicalTerminalHydration
     let attempt = 0;
     while (true) {
         try {
-            await context.dependencies.storageManager.loadConversationMessages(conversationId, { force: true, mergeStreamingAssistants: false });
+            await context.dependencies.storageManager.loadConversationMessages(conversationId, { force: true, mergeStreamingAssistants: false, isCurrentOperation: request.isCurrentTerminalization });
         } catch (error) {
             const runtimeError = ensureError(error);
             if (!isRetryableCanonicalReadError(runtimeError) || attempt === RECONCILIATION_MAX_ATTEMPTS - 1) throw runtimeError;

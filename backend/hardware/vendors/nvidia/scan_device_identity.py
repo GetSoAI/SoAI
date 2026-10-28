@@ -11,6 +11,7 @@ import pynvml
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.hardware.gpu_identity_normalization import normalize_observed_full_pci_bdf
 from hardware.gpu_inventory.identity import normalize_pci_bdf
 from hardware.operations import create_device_id
 from hardware.vendors.nvidia.discovery import normalize_gpu_name
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "read_gpu_name",
-    "read_pci_bdf",
+    "read_pci_identity",
     "read_primary_device_id",
 )
 
@@ -44,18 +45,18 @@ def read_gpu_name(handle: ctypes.c_void_p) -> str:
     return gpu_name
 
 
-def read_pci_bdf(
+def read_pci_identity(
     handle: ctypes.c_void_p,
     *,
     logger: TraceLogger,
     device_index: int,
-) -> str | None:
+) -> tuple[str | None, str | None, list[str]]:
     try:
         device_get_pci_info = pynvml.nvmlDeviceGetPciInfo
     except AttributeError:
         device_get_pci_info = None
     if not isinstance(device_get_pci_info, NvmlDeviceGetPciInfoProtocol):
-        return None
+        return (None, None, [])
     try:
         pci_info = device_get_pci_info(handle)
         bus_id = pci_info.busId
@@ -63,7 +64,8 @@ def read_pci_bdf(
             bus_id.decode("utf-8", errors="replace") if isinstance(bus_id, bytes) else bus_id
         )
         pci_bdf = normalize_pci_bdf(bus_id_text)
-        return pci_bdf or None
+        pci_bdf_full = bus_id_text if normalize_observed_full_pci_bdf(bus_id_text) else None
+        return (pci_bdf or None, pci_bdf_full, [bus_id_text] if bus_id_text else [])
     except RECOVERABLE_EXCEPTIONS as exception:
         log_handled_exception(
             logger,
@@ -73,7 +75,7 @@ def read_pci_bdf(
             details={"device_index": device_index},
             level="trace",
         )
-        return None
+        return (None, None, [])
 
 
 def read_primary_device_id(

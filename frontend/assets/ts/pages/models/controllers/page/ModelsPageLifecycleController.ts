@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isJsonValue, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
-import { signalAborted } from '@core/lifecycle/abortSignals.ts';
-import { handleModelsInitialAction, type ModelsInitialActionHost } from '@pages/models/controllers/modelsPageInitialActions.ts';
 import type { ModelsLifecycleRuntimeDependencies } from '@pages/models/controllers/page/contracts.ts';
 import { initializeModelsPageShell, loadModelsPageData } from '@pages/models/controllers/page/effects.ts';
 import { refreshModelsPageRealtimeState, type ModelsRealtimeRefreshHost } from '@pages/models/controllers/page/realtimeRefreshController.ts';
@@ -12,7 +10,6 @@ import { initializeModelsViewMode, type ModelsViewModeHost } from '@pages/models
 interface ModelsPageLifecycleDependencies {
     runtime: ModelsLifecycleRuntimeDependencies;
     cardController: { showLoading(): void; setDataInitialized(): void };
-    initialActionHost: ModelsInitialActionHost;
     viewModeHost: ModelsViewModeHost;
     populateProviderFilter(): void;
     updateStats(): void;
@@ -47,8 +44,6 @@ class ModelsPageLifecycleController {
             parameters,
             context
         );
-        if (signalAborted(context.signal ?? null)) return;
-        await handleModelsInitialAction(this.#dependencies.initialActionHost, parameters ?? null);
     }
 
     initializeShell(): void {
@@ -58,9 +53,8 @@ class ModelsPageLifecycleController {
         initializeModelsViewMode(this.#dependencies.viewModeHost, ui);
     }
 
-    async refresh(parameters: JsonObject | null): Promise<void> {
+    async refresh(): Promise<void> {
         await refreshModelsPageRealtimeState(this.#realtimeHost());
-        await handleModelsInitialAction(this.#dependencies.initialActionHost, parameters);
     }
 
     async show(): Promise<void> {

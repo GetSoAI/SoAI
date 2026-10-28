@@ -74,8 +74,26 @@
         text-transform: var(--text-case-label);
     }
 
-    .hardware-resource-value:is(.progress-red, .progress-orange, .progress-yellow, .progress-green) {
+    .hardware-storage-usage {
         color: var(--soai-progress-color);
+        inline-size: var(--control-progress-percentage-width);
+        flex-shrink: 0;
+        text-align: end;
+        font-variant-numeric: tabular-nums lining-nums;
+        white-space: nowrap;
+    }
+
+    .hardware-storage-row-header {
+        flex-wrap: nowrap;
+        align-items: baseline;
+    }
+
+    .hardware-network-row {
+        grid-template-rows: minmax(var(--space-6), max-content) min-content minmax(0, 1fr);
+    }
+
+    .hardware-network-row-header {
+        height: auto;
     }
 
     .hardware-resource-speed-segment {
@@ -120,6 +138,7 @@
         .hardware-resource-row-header {
             align-items: flex-start;
             flex-wrap: wrap;
+            height: auto;
         }
 
         .hardware-resource-value {
@@ -141,5 +160,25 @@
         .hardware-network-row .hardware-network-speed {
             flex-basis: 100%;
         }
+    }
+    .hardware-storage-row .hardware-storage-stat-value,
+    .hardware-storage-row .hardware-storage-bar,
+    .hardware-network-row .hardware-network-speed-value,
+    .hardware-network-row .hardware-network-bar {
+        transition: opacity var(--duration-400) var(--ease-emphasized);
+    }
+
+    .hardware-storage-row .hardware-storage-usage {
+        transition:
+            opacity var(--duration-400) var(--ease-emphasized),
+            color var(--transition-slow);
+    }
+
+    .hardware-storage-row.hardware-observation-stale .hardware-storage-usage,
+    .hardware-storage-row.hardware-observation-stale .hardware-storage-stat-value,
+    .hardware-storage-row.hardware-observation-stale .hardware-storage-bar,
+    .hardware-network-row.hardware-observation-stale .hardware-network-speed-value,
+    .hardware-network-row.hardware-observation-stale .hardware-network-bar {
+        opacity: 0.5;
     }
 }

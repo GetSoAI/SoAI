@@ -1,0 +1,53 @@
+/* SoAI - GPU value editors preserving slider geometry [frontend/assets/css/pages/hardware/gpu-control-value-editor.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-value-editor {
+        position: relative;
+        display: block;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-value-editor .ui-inline-text-edit__trigger {
+        display: block;
+        width: 100%;
+        max-width: none;
+        padding: 0;
+        font: inherit;
+        letter-spacing: inherit;
+        text-align: start;
+        text-transform: inherit;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-value-input {
+        position: absolute;
+        inset: 0;
+        display: none;
+        width: 100%;
+        min-width: 0;
+        height: 100%;
+        padding: 0;
+        padding-inline: var(--space-1);
+        border: none;
+        color: var(--text-primary);
+        font: inherit;
+        letter-spacing: inherit;
+        text-align: start;
+        appearance: textfield;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-value-input::-webkit-inner-spin-button,
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-value-input::-webkit-outer-spin-button {
+        appearance: none;
+        margin: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-value-editor.is-editing .ui-inline-text-edit__trigger {
+        visibility: hidden;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-value-editor.is-editing .gpu-slider-value-input {
+        display: block;
+    }
+}

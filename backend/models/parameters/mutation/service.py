@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
+from core.concurrency.cancellation_cleanup import cancellation_cleanup
 from core.concurrency.lock_registry import (
     TTLAsyncLockRegistry,
     TTLAsyncLockRegistryDependencies,
@@ -189,6 +190,26 @@ class ParameterMutationService:
         order: int | None = None,
     ) -> None:
         future: asyncio.Future[None] = asyncio.get_running_loop().create_future()
+        admitted = False
+        try:
+            await self._admit_mutation(
+                universal_id,
+                (metric_key, metric_value, mutation, order),
+                future,
+            )
+            admitted = True
+        finally:
+            if not admitted and order is not None:
+                self._order_tracker.revoke_expected_order(universal_id, order)
+        await cancellation_cleanup(future)
+
+    async def _admit_mutation(
+        self,
+        universal_id: str,
+        request: tuple[str, int | None, MutationCallable, int | None],
+        future: asyncio.Future[None],
+    ) -> None:
+        metric_key, metric_value, mutation, order = request
         strict_order = order is not None
         normalized = self._order_tracker.normalize_mutation_callable(mutation)
         queue: asyncio.PriorityQueue[MutationQueueItem] | None = None
@@ -209,30 +230,21 @@ class ParameterMutationService:
                 queue.put_nowait((key, strict_order, metric_key, metric_value, normalized, future))
                 if strict_order and self._order_tracker.get_expected_order(universal_id) == key[0]:
                     self._order_tracker.notify_order_ready(universal_id)
-        if should_start_worker:
-            semaphore_acquired = False
-            worker_started = False
-            try:
-                await self._mutation_worker_semaphore.acquire()
-                semaphore_acquired = True
-                async with self._lifecycle_lock:
-                    if not self._accepting_mutations:
-                        raise ServiceUnavailableError("Parameter mutation service is shut down.")
-                    async with self._mutation_queue_locks.lock(universal_id):
+                return
+        semaphore_acquired = False
+        worker_started = False
+        try:
+            await self._mutation_worker_semaphore.acquire()
+            semaphore_acquired = True
+            async with self._lifecycle_lock:
+                if not self._accepting_mutations:
+                    raise ServiceUnavailableError("Parameter mutation service is shut down.")
+                async with self._mutation_queue_locks.lock(universal_id):
+                    async with self._mutation_tasks_lock:
                         queue = self._mutation_queues.get(universal_id)
                         if queue is None:
                             queue = asyncio.PriorityQueue()
                             self._mutation_queues[universal_id] = queue
-                        key = self._order_tracker.determine_order(universal_id, order)
-                        queue.put_nowait(
-                            (key, strict_order, metric_key, metric_value, normalized, future),
-                        )
-                        if (
-                            strict_order
-                            and self._order_tracker.get_expected_order(universal_id) == key[0]
-                        ):
-                            self._order_tracker.notify_order_ready(universal_id)
-                    async with self._mutation_tasks_lock:
                         existing_task = self._mutation_tasks.get(universal_id)
                         if existing_task is None or existing_task.done():
                             self._mutation_tasks[universal_id] = self._spawn_tracked_task(
@@ -253,10 +265,18 @@ class ParameterMutationService:
                                 finalizer_tracker=self._finalizer_tracker,
                             )
                             worker_started = True
-            finally:
-                if semaphore_acquired and not worker_started:
-                    self._mutation_worker_semaphore.release()
-        await future
+                        key = self._order_tracker.determine_order(universal_id, order)
+                        queue.put_nowait(
+                            (key, strict_order, metric_key, metric_value, normalized, future),
+                        )
+                        if (
+                            strict_order
+                            and self._order_tracker.get_expected_order(universal_id) == key[0]
+                        ):
+                            self._order_tracker.notify_order_ready(universal_id)
+        finally:
+            if semaphore_acquired and not worker_started:
+                self._mutation_worker_semaphore.release()
 
     async def _bounded_mutation_worker(
         self,

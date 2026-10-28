@@ -11,6 +11,7 @@ import type { InlineToolActivitySegment } from '@features/chat/message/messagevi
 const WEATHER_LOCATION_KEYS = ['location', 'city', 'place'];
 const WEATHER_FORECAST_DAYS_KEYS = ['forecast_days', 'days'];
 const DATETIME_RESULT_KEYS = ['datetime_formatted', 'datetime_iso'];
+const SKILL_PACKAGE_TOOL_LEAF_NAMES: ReadonlySet<string> = new Set(['skill_read', 'skill_materialize']);
 
 type InlineToolHeaderPreviewResolver = (segment: InlineToolActivitySegment, toolLeafName: string) => string | null;
 
@@ -140,7 +141,25 @@ const resolveWriteStdinHeaderPreview = (segment: InlineToolActivitySegment, tool
     return '';
 };
 
-const TOOL_HEADER_PREVIEW_RESOLVERS: readonly InlineToolHeaderPreviewResolver[] = [resolveWaitHeaderPreview, resolveWeatherToolHeaderPreview, resolveApplyPatchHeaderPreview, resolveDatetimeCurrentHeaderPreview, resolveListDirHeaderPreview, resolveUnitConvertHeaderPreview, resolveWriteStdinHeaderPreview];
+const resolveSkillPackageHeaderPreview = (segment: InlineToolActivitySegment, toolLeafName: string): string | null => {
+    if (!SKILL_PACKAGE_TOOL_LEAF_NAMES.has(toolLeafName)) {
+        return null;
+    }
+    const resultRecord = segment.result !== undefined && segment.result !== null ? tryExtractRecord(segment.result) : null;
+    const argumentsRecord = segment.inputArguments !== undefined && segment.inputArguments !== null ? resolvePayloadRecord(segment.inputArguments) : null;
+    const skillName = resultRecord ? tryResolveCompactStringField(resultRecord, 'skill_name') : null;
+    const resourcePath = argumentsRecord ? tryResolveCompactStringField(argumentsRecord, 'path') : null;
+    const previewParts: string[] = [];
+    if (skillName) {
+        previewParts.push(skillName);
+    }
+    if (resourcePath) {
+        previewParts.push(resourcePath);
+    }
+    return previewParts.length > 0 ? clampToolHeaderPreview(previewParts.join(' - ')) : '';
+};
+
+const TOOL_HEADER_PREVIEW_RESOLVERS: readonly InlineToolHeaderPreviewResolver[] = [resolveSkillPackageHeaderPreview, resolveWaitHeaderPreview, resolveWeatherToolHeaderPreview, resolveApplyPatchHeaderPreview, resolveDatetimeCurrentHeaderPreview, resolveListDirHeaderPreview, resolveUnitConvertHeaderPreview, resolveWriteStdinHeaderPreview];
 
 const resolveToolSpecificHeaderPreview = (segment: InlineToolActivitySegment, toolLeafName: string): string | null => {
     for (const resolver of TOOL_HEADER_PREVIEW_RESOLVERS) {

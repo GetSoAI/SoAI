@@ -19,6 +19,7 @@ from app.backup.copy_no_symlinks.tree_hash_format import (
 )
 from core.errors.exceptions import ValidationError
 from core.filesystem.atomic_write_primitives import fsync_directory
+from core.filesystem.directory_walk import raise_directory_walk_error
 from core.filesystem.path_coercion import normalize_filesystem_path
 from files.archive import sync_raise_if_symlink
 
@@ -44,6 +45,7 @@ def sync_fsync_directory_tree(root_path: str) -> None:
         normalize_filesystem_path(root_path),
         topdown=False,
         followlinks=False,
+        onerror=raise_directory_walk_error,
     ):
         relative_root = os.path.relpath(filesystem_root, normalize_filesystem_path(root_path))
         current_root = root_path if relative_root == "." else os.path.join(root_path, relative_root)
@@ -114,7 +116,10 @@ def sync_copy_directory_and_hash_no_symlinks(
     total_bytes = 0
     filesystem_source = normalize_filesystem_path(source_root)
     for filesystem_root, dir_names, file_names in os.walk(
-        filesystem_source, topdown=True, followlinks=False
+        filesystem_source,
+        topdown=True,
+        followlinks=False,
+        onerror=raise_directory_walk_error,
     ):
         relative_path = os.path.relpath(filesystem_root, filesystem_source)
         root = source_root if relative_path == "." else os.path.join(source_root, relative_path)
@@ -173,7 +178,10 @@ def sync_copy_tree_no_symlinks(
 
     filesystem_source = normalize_filesystem_path(source_root)
     for filesystem_root, dir_names, file_names in os.walk(
-        filesystem_source, topdown=True, followlinks=False
+        filesystem_source,
+        topdown=True,
+        followlinks=False,
+        onerror=raise_directory_walk_error,
     ):
         relative_path = os.path.relpath(filesystem_root, filesystem_source)
         root = source_root if relative_path == "." else os.path.join(source_root, relative_path)

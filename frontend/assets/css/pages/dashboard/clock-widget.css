@@ -31,7 +31,7 @@
         inline-size: 100%;
         block-size: 100%;
         min-block-size: 0;
-        padding: calc(var(--space-3) + var(--space-2)) var(--space-3) var(--space-3);
+        padding: var(--dashboard-dial-padding-block-start) var(--space-3) var(--space-3);
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-meta {
@@ -91,6 +91,7 @@
         --dashboard-clock-hour-angle: 0deg;
         --dashboard-clock-minute-angle: 0deg;
         --dashboard-clock-second-angle: 0deg;
+        align-self: start;
         position: relative;
         display: grid;
         place-items: center;

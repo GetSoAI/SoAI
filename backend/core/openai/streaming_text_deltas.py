@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 from core.openai.sse_frame_payloads import parse_openai_sse_frame_payloads
 from core.openai.stream_transcript.payload_segments import (
     build_choice_text_source,
-    extract_reasoning_text_from_source,
     iter_choice_tool_call_sources,
     iter_text_segments_from_payload,
 )
@@ -17,11 +16,9 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
 
 __all__ = (
-    "extract_openai_streaming_all_output_deltas",
     "extract_openai_streaming_event_id",
     "extract_openai_streaming_event_object",
     "extract_openai_streaming_output_deltas",
-    "extract_openai_streaming_text_deltas",
 )
 
 
@@ -82,25 +79,6 @@ def extract_openai_streaming_event_object(sse_frame: str) -> str | None:
     return None
 
 
-def extract_openai_streaming_text_deltas(sse_frame: str) -> tuple[str, ...]:
-    if not sse_frame:
-        return ()
-    deltas: list[str] = []
-    for decoded_dict in parse_openai_sse_frame_payloads(sse_frame):
-        choices_value = decoded_dict.get("choices")
-        choices = choices_value if isinstance(choices_value, list) else []
-        for choice_item in choices:
-            if not isinstance(choice_item, dict):
-                continue
-            text_source = build_choice_text_source(choice_item)
-            if text_source is None or "content" not in text_source:
-                continue
-            for segment in iter_text_segments_from_payload(text_source.get("content")):
-                if segment.channel == "visible" and segment.text:
-                    deltas.append(segment.text)
-    return tuple(deltas)
-
-
 def extract_openai_streaming_output_deltas(
     sse_frame: str,
     *,
@@ -120,39 +98,6 @@ def extract_openai_streaming_output_deltas(
                 for segment in iter_text_segments_from_payload(text_source.get("content")):
                     if segment.channel == "visible" and segment.text:
                         deltas.append(segment.text)
-            delta_value = choice_item.get("delta")
-            if isinstance(delta_value, dict):
-                refusal_value = delta_value.get("refusal")
-                if isinstance(refusal_value, str) and refusal_value:
-                    deltas.append(refusal_value)
-            if include_tool_calls:
-                deltas.extend(_extract_tool_call_output_deltas(choice_item))
-    return tuple(deltas)
-
-
-def extract_openai_streaming_all_output_deltas(
-    sse_frame: str,
-    *,
-    include_tool_calls: bool = True,
-) -> tuple[str, ...]:
-    if not sse_frame:
-        return ()
-    deltas: list[str] = []
-    for decoded_dict in parse_openai_sse_frame_payloads(sse_frame):
-        choices_value = decoded_dict.get("choices")
-        choices = choices_value if isinstance(choices_value, list) else []
-        for choice_item in choices:
-            if not isinstance(choice_item, dict):
-                continue
-            text_source = build_choice_text_source(choice_item)
-            if text_source is not None:
-                reasoning_text = extract_reasoning_text_from_source(text_source)
-                if reasoning_text:
-                    deltas.append(reasoning_text)
-                if "content" in text_source:
-                    for segment in iter_text_segments_from_payload(text_source.get("content")):
-                        if segment.text:
-                            deltas.append(segment.text)
             delta_value = choice_item.get("delta")
             if isinstance(delta_value, dict):
                 refusal_value = delta_value.get("refusal")

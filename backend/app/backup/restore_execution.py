@@ -24,9 +24,9 @@ from app.backup.validated_manifest_entries import (
     ValidatedManifestEntry,
     build_validated_manifest_entries,
 )
+from core.concurrency.cancellation_cleanup import wait_for_task_completion
 from core.concurrency.deadlines import deadline_after
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
-from core.concurrency.task_finalization import cancel_and_await_task
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import StateError
 from core.errors.public_projection import project_public_exception
@@ -216,7 +216,7 @@ async def _stage_verified_entry(
         stage_succeeded = True
     except asyncio.CancelledError:
         stage_task.cancel()
-        await cancel_and_await_task(stage_task)
+        await wait_for_task_completion(stage_task, retain_resources_until_complete=True)
         raise
     finally:
         if not stage_succeeded:

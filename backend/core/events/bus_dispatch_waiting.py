@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 
+from core.concurrency.task_groups import DEFAULT_CANCELLATION_TIMEOUT_SEC
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
@@ -15,10 +16,18 @@ from core.logging.protocols import LoggerProtocol
 
 __all__ = (
     "await_cancelled_callback_tasks",
+    "resolve_cancellation_wait_timeout",
+    "wait_for_owned_callback_tasks",
     "wait_until_done",
 )
 
 _EVENT_BUS_DISPATCH_WAIT_OPERATION = "event_bus.dispatch.wait_cleanup"
+
+
+def resolve_cancellation_wait_timeout(dispatch_timeout: float | None) -> float:
+    if dispatch_timeout is None:
+        return DEFAULT_CANCELLATION_TIMEOUT_SEC
+    return max(float(dispatch_timeout), DEFAULT_CANCELLATION_TIMEOUT_SEC)
 
 
 async def wait_until_done[T](task: asyncio.Task[T], timeout: float) -> bool:
@@ -79,3 +88,27 @@ async def await_cancelled_callback_tasks(
             cancellation_wait_timeout,
             type(event).__name__,
         )
+
+
+async def wait_for_owned_callback_tasks(
+    *,
+    tasks: list[asyncio.Task[Exception | None]],
+    callbacks: list[Callable[[Event], Awaitable[None]]],
+    event: Event,
+    logger: LoggerProtocol,
+    dispatch_timeout: float | None,
+) -> set[asyncio.Task[Exception | None]]:
+    try:
+        _completed_tasks, pending_tasks = await asyncio.wait(tasks, timeout=dispatch_timeout)
+    except asyncio.CancelledError:
+        for task in tasks:
+            task.cancel()
+        await await_cancelled_callback_tasks(
+            tasks=tasks,
+            callbacks=callbacks,
+            event=event,
+            logger=logger,
+            cancellation_wait_timeout=resolve_cancellation_wait_timeout(dispatch_timeout),
+        )
+        raise
+    return pending_tasks

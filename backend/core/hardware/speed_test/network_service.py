@@ -1,4 +1,4 @@
-"""SoAI - Network speed test service [backend/core/hardware/speed_test/network_service.py]"""
+"""SoAI - Network speed tests with bounded complete samples [backend/core/hardware/speed_test/network_service.py]"""
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 from __future__ import annotations
@@ -99,12 +99,15 @@ class NetworkSpeedTestService:
 
             start_time = time.perf_counter()
             total_bytes = 0
-            async with http_client.stream(
-                "GET",
-                effective_url,
-                follow_redirects=True,
-                timeout=self._default_timeout,
-            ) as response:
+            async with (
+                asyncio.timeout(self._default_timeout),
+                http_client.stream(
+                    "GET",
+                    effective_url,
+                    follow_redirects=True,
+                    timeout=self._default_timeout,
+                ) as response,
+            ):
                 response.raise_for_status()
                 async for chunk in response.aiter_bytes():
                     if not chunk:

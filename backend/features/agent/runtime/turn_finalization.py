@@ -20,6 +20,7 @@ from features.agent.runtime.turn_engine import AgentTurnResult
 if TYPE_CHECKING:
     from core.agent.turn_state_writer import TurnStateWriter
     from core.conversations.protocols_database_agents import DatabaseAgentTurnsProtocol
+    from core.errors.payload import ErrorPublicPayload
     from core.events.types_base import Event
     from core.openai.usage.models import CanonicalUsage
     from core.tasks.protocols_registry import TaskRegistryProtocol
@@ -158,6 +159,7 @@ def build_agent_turn_result(
     final_payload: JSONDict,
     usage_aggregate: CanonicalUsage | None,
     reached_max_iterations: bool,
+    public_error: ErrorPublicPayload | None = None,
 ) -> AgentTurnResult:
     if usage_aggregate is not None:
         final_payload["usage"] = {
@@ -169,4 +171,5 @@ def build_agent_turn_result(
     return AgentTurnResult(
         final_payload=final_payload,
         reached_max_iterations=reached_max_iterations,
+        public_error=public_error,
     )

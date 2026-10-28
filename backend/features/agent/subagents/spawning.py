@@ -17,6 +17,7 @@ from core.runtime.cancellation_ids import (
 )
 from core.runtime.request_context import RequestContext
 from core.runtime.request_context_cloning import clone_request_context
+from core.skills.checkpoint import SkillActivationCheckpoint
 from core.tasks.cancellation_ids import normalize_cancellation_id
 from core.tool_calls.current_tool_call import CurrentToolCallIdentity
 from features.agent.runtime.execution_preparation import (
@@ -86,6 +87,7 @@ async def plan_subagent_spawn(
         parent_tool_context,
         subagent_mode=subagent_mode,
         requested_tools=tools,
+        skill_context=parent_context.skill_execution_context,
     )
     subagent_id = create_turn_id()
     parent_cancellation_id = normalize_cancellation_id(parent_context.cancellation_id)
@@ -165,6 +167,13 @@ async def claim_subagent_spawn(
         display_name=display_name,
         requested_model=spawn_plan.requested_model,
         owner_task_id=coordinator_task_id,
+        skill_activation=(
+            SkillActivationCheckpoint.from_execution(subagent_context.skill_execution_context)
+            if subagent_context.skill_execution_context is not None
+            and subagent_context.skill_execution_context.snapshot.available
+            else None
+        ),
+        skill_parent_execution_token=parent_context.agent_turn_execution_token,
     )
     subagent_context.agent_turn_execution_token = require_turn_execution_token(
         claimed_turn,

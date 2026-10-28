@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Coroutine
+import asyncio
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_exception, log_handled_exception
@@ -18,10 +19,16 @@ from core.logging.trace import get_logger
 from core.tasks.cancellation_ids import require_cancellation_id
 from core.tasks.errors import TaskIDCollisionError
 from plugins.actions.backend_lifecycle_execution import execute_lifecycle_task
-from plugins.actions.backend_lifecycle_stop import stop_plugin_if_running
+from plugins.actions.backend_lifecycle_stop import build_stop_running_plugin_pre_execute_hook
 from plugins.actions.backend_lifecycle_validation import validate_action_for_state_async
+from plugins.actions.backend_update_checkpoints import prepare_backend_update
 from plugins.actions.progress import send_completion_with_task
 from plugins.lifecycle_advisory_lock import plugin_lifecycle_advisory_lock
+from plugins.manager.backend_update_automatic import (
+    automatic_backend_update_ready,
+    backend_update_availability,
+)
+from plugins.manager.backend_update_network import backend_update_network_scope
 from plugins.manager.backend_variant_counts import refresh_backend_variant_count
 from plugins.manager.load_serialization import serialized_plugin_load_scope
 from plugins.protocols_internal.runtime.internal_protocols import (
@@ -30,9 +37,6 @@ from plugins.protocols_internal.runtime.internal_protocols import (
 from plugins.state.task_collisions import handle_plugin_manager_task_id_collision
 
 if TYPE_CHECKING:
-    import asyncio
-
-    from core.events.types_base import Event
     from core.types.json import JSONDict
 
 __all__ = (
@@ -48,27 +52,7 @@ OPERATION_BACKEND_VARIANT_COUNT_REFRESH_AFTER_REMOVE = (
 )
 
 
-def _build_stop_running_plugin_pre_execute_hook(
-    manager: PluginManagerRuntimeProtocol,
-    plugin_name: str,
-    reply_channel: asyncio.Queue[Event] | None,
-) -> Callable[[str | None, str], Awaitable[None]]:
-    def pre_execute_hook(
-        task_id: str | None,
-        current_cancellation_id: str,
-    ) -> Coroutine[None, None, None]:
-        excluded_cancellation_ids = {current_cancellation_id}
-        if isinstance(task_id, str) and task_id.strip():
-            excluded_cancellation_ids.add(task_id.strip())
-        return stop_plugin_if_running(
-            manager,
-            plugin_name,
-            reply_channel,
-            task_id=task_id,
-            exclude_cancellation_ids=frozenset(excluded_cancellation_ids),
-        )
-
-    return pre_execute_hook
+AUTOMATIC_BACKEND_UPDATE_WAIT_SECONDS = 7200
 
 
 async def _process_backend_action_async(
@@ -97,6 +81,16 @@ async def _process_backend_action_async(
                 )
                 if persisted_task is not None and persisted_task.status.is_terminal():
                     return
+            recovering_update = (
+                isinstance(command, UpdatePluginBackendCommand)
+                and command.mutation_claim is not None
+                and (
+                    command.mutation_claim.execution_phase != "accepted"
+                    or command.mutation_claim.attempt_count != 1
+                )
+            )
+            if recovering_update and isinstance(command, UpdatePluginBackendCommand):
+                await prepare_backend_update(manager, command)
             if not await validate_action_for_state_async(
                 manager,
                 plugin_name,
@@ -104,6 +98,7 @@ async def _process_backend_action_async(
                 reply_channel,
                 task_id,
                 mutation_fencing_token=mutation_fencing_token,
+                recovering_update=recovering_update,
             ):
                 return
             instance = await manager.require_loaded_plugin(plugin_name, auto_load=True)
@@ -124,6 +119,8 @@ async def _process_backend_action_async(
                     send_task_complete_event_callable=manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
                 )
                 return
+            if isinstance(command, UpdatePluginBackendCommand) and not recovering_update:
+                await prepare_backend_update(manager, command)
             if pre_execute_hook:
                 await pre_execute_hook(
                     task_id,
@@ -177,7 +174,7 @@ async def _run_backend_lifecycle_command(
     capability_error_message: str,
     metadata: JSONDict | None = None,
     pre_execute_hook: Callable[[str | None, str], Awaitable[None]] | None = None,
-) -> None:
+) -> bool:
     plugin_name = command.plugin_name
     context = command.context
     reply_channel = command.reply_channel
@@ -200,14 +197,21 @@ async def _run_backend_lifecycle_command(
     if metadata:
         lifecycle_metadata.update(metadata)
     try:
-        async with plugin_lifecycle_advisory_lock(
-            manager,
-            plugin_name,
-            mutation_task_id=task_id_value,
-            mutation_fencing_token=(
-                context.mutation_fencing_token if context is not None else None
+        async with (
+            plugin_lifecycle_advisory_lock(
+                manager,
+                plugin_name,
+                mutation_task_id=task_id_value,
+                mutation_fencing_token=(
+                    context.mutation_fencing_token if context is not None else None
+                ),
             ),
+            serialized_plugin_load_scope(manager, plugin_name),
         ):
+            if isinstance(
+                command, UpdatePluginBackendCommand
+            ) and not await automatic_backend_update_ready(manager, command):
+                return False
             async with manager.dependencies.infrastructure.lifecycle.lifecycle_scope(
                 service_name="Plugin manager",
                 task_type=action_name,
@@ -230,6 +234,7 @@ async def _run_backend_lifecycle_command(
                 )
     except TaskIDCollisionError as exception:
         await handle_plugin_manager_task_id_collision(manager, exception, reply_channel)
+    return True
 
 
 async def process_install_command_async(
@@ -258,17 +263,29 @@ async def process_update_command_async(
         command.backend_variant_id = await manager.snapshot_backend_variant_selection(
             command.plugin_name,
         )
-    await _run_backend_lifecycle_command(
-        manager,
-        command,
-        action_name="update_backend",
-        capability_error_message="does not support backend updates",
-        pre_execute_hook=_build_stop_running_plugin_pre_execute_hook(
-            manager,
-            command.plugin_name,
-            command.reply_channel,
-        ),
-    )
+    async with (
+        backend_update_availability(manager) as wake,
+        asyncio.timeout(AUTOMATIC_BACKEND_UPDATE_WAIT_SECONDS),
+    ):
+        while True:
+            wake.clear()
+            async with backend_update_network_scope(
+                manager,
+                mutation_task_id=command.mutation_claim.task_id if command.mutation_claim else None,
+            ):
+                if await _run_backend_lifecycle_command(
+                    manager,
+                    command,
+                    action_name="update_backend",
+                    capability_error_message="does not support backend updates",
+                    pre_execute_hook=build_stop_running_plugin_pre_execute_hook(
+                        manager,
+                        command.plugin_name,
+                        command.reply_channel,
+                    ),
+                ):
+                    return
+            await wake.wait()
 
 
 async def process_remove_command_async(
@@ -281,7 +298,7 @@ async def process_remove_command_async(
         action_name="remove_backend",
         capability_error_message="does not support backend removal",
         metadata={"delete_models": bool(command.delete_models)},
-        pre_execute_hook=_build_stop_running_plugin_pre_execute_hook(
+        pre_execute_hook=build_stop_running_plugin_pre_execute_hook(
             manager,
             command.plugin_name,
             command.reply_channel,

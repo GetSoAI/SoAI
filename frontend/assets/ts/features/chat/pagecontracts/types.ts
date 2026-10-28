@@ -147,6 +147,7 @@ interface ChatConversationInputQueueApi {
     list: (conversationId: string) => Promise<ConversationInputListResponse>;
     enqueue: (conversationId: string, payload: ConversationInputEnqueueRequest) => Promise<ConversationInputAdmission>;
     cancel: (conversationId: string, inputId: string) => Promise<void>;
+    resume: (conversationId: string) => Promise<void>;
 }
 
 interface ChatConversationDraftApi {
@@ -221,6 +222,7 @@ interface ChatWebuiChatApi {
     agent: ChatConversationAgentApi;
     inputQueue: ChatConversationInputQueueApi;
     presets: WebuiChatEndpoints['chat']['presets'];
+    skills: WebuiChatEndpoints['chat']['skills'];
     draft: ChatConversationDraftApi;
     interactions: ChatConversationInteractionsApi;
     assistantMessages: ChatConversationAssistantMessagesApi;

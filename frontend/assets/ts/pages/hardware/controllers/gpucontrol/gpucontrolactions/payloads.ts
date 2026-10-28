@@ -17,10 +17,10 @@ const toStrictInt = (value: number | null): number | null => {
     return Number.isInteger(numeric) ? numeric : Math.round(numeric);
 };
 
-const buildSettingsPayload = (capabilitiesByIndex: ControlContext['capabilitiesByIndex'], index: string | number, normalized: GpuSettingsState, baseline: GpuSettingsState | null): GpuSettingsUpdatePayload => {
+const buildSettingsPayloadFromNormalized = (capabilitiesByIndex: ControlContext['capabilitiesByIndex'], index: string | number, normalized: GpuSettingsState, baseline: GpuSettingsState | null = null): GpuSettingsUpdatePayload => {
     const payload: GpuSettingsUpdatePayload = {};
     const assign = (key: GpuSettingKey): void => {
-        if (!isGpuSettingSupported(capabilitiesByIndex, index, key)) {
+        if (normalized[key].mode === null || !isGpuSettingSupported(capabilitiesByIndex, index, key, normalized[key].mode)) {
             return;
         }
         const setting = normalized[key];
@@ -47,10 +47,10 @@ const buildSettingsPayload = (capabilitiesByIndex: ControlContext['capabilitiesB
 const buildFieldModesPayload = (capabilitiesByIndex: ControlContext['capabilitiesByIndex'], index: string | number, normalized: GpuSettingsState): GpuSlotStorePayload['fieldModes'] => {
     const fieldModes: GpuSlotStorePayload['fieldModes'] = {};
     const assign = (key: GpuSettingKey): void => {
-        if (!isGpuSettingSupported(capabilitiesByIndex, index, key)) {
+        const setting = normalized[key];
+        if (setting.mode === null || !isGpuSettingSupported(capabilitiesByIndex, index, key, setting.mode)) {
             return;
         }
-        const setting = normalized[key];
         fieldModes[key] = setting.mode;
     };
     assign('powerLimit');
@@ -61,17 +61,13 @@ const buildFieldModesPayload = (capabilitiesByIndex: ControlContext['capabilitie
 };
 
 const buildDirectPayloadFromSnapshot = (capabilitiesByIndex: ControlContext['capabilitiesByIndex'], index: string | number, snapshot: GpuSnapshot, liveSettings: GpuSettingsState | null): GpuSettingsUpdatePayload => {
-    return buildSettingsPayload(capabilitiesByIndex, index, normalizeSnapshotForIndex(capabilitiesByIndex, index, snapshot), liveSettings);
-};
-
-const buildSettingsPayloadFromNormalized = (capabilitiesByIndex: ControlContext['capabilitiesByIndex'], index: string | number, normalized: GpuSettingsState): GpuSettingsUpdatePayload => {
-    return buildSettingsPayload(capabilitiesByIndex, index, normalized, null);
+    return buildSettingsPayloadFromNormalized(capabilitiesByIndex, index, normalizeSnapshotForIndex(capabilitiesByIndex, index, snapshot), liveSettings);
 };
 
 const buildSlotStorePayloadFromSnapshot = (capabilitiesByIndex: ControlContext['capabilitiesByIndex'], index: string | number, snapshot: GpuSnapshot): GpuSlotStorePayload => {
     const normalized = normalizeSnapshotForIndex(capabilitiesByIndex, index, snapshot);
     return {
-        settings: buildSettingsPayload(capabilitiesByIndex, index, normalized, null),
+        settings: buildSettingsPayloadFromNormalized(capabilitiesByIndex, index, normalized),
         fieldModes: buildFieldModesPayload(capabilitiesByIndex, index, normalized)
     };
 };
@@ -80,6 +76,7 @@ const applySlotToControls = (context: Pick<ControlContext, 'setSliderToAuto' | '
     GPU_CONTROL_TYPES.forEach((controlType) => {
         const config = GPU_CONTROLS_CONFIG[controlType];
         const setting = normalized[config.settingKey];
+        if (setting.mode === null) return;
         if (setting.mode === 'auto') {
             context.setSliderToAuto(index, controlType);
             return;
@@ -94,7 +91,7 @@ const handleGpuBootToggle = (context: Pick<ControlContext, 'ensureUiState' | 're
     }
     const key = str(index);
     const state = context.ensureUiState(key);
-    if (!state.previewSlot || context.isCertifiedRunLocked(key)) {
+    if (state.pending || !state.previewSlot || context.isCertifiedRunLocked(key)) {
         context.renderGpuControls({ only: [key] });
         return;
     }

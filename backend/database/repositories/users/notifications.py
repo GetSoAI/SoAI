@@ -125,6 +125,7 @@ class DatabaseNotifications:
         aggregate_param_name: str | None,
         source: str | None,
         cooldown_seconds: int,
+        once_per_identity: bool = False,
     ) -> int:
         return await create_template_admin_alert_if_due_method(
             core=self.core,
@@ -139,6 +140,7 @@ class DatabaseNotifications:
             aggregate_param_name=aggregate_param_name,
             source=source,
             cooldown_seconds=cooldown_seconds,
+            once_per_identity=once_per_identity,
         )
 
     async def open_notification(

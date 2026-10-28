@@ -1,13 +1,12 @@
 /* SoAI - Page-owned chat activity duration lifecycle [frontend/assets/ts/pages/chat/controllers/chatpage/lifecycle/activityDurationLifecycleRuntime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX, CHAT_SELECTORS, resolveActivityDurationDisplayMode } from '@features/chat/public.ts';
+import { CHAT_SELECTORS, resolveActivityDurationDisplayMode } from '@features/chat/public.ts';
 import type { ChatConversationStateHost } from '@pages/chat/state/ChatConversationStateManager.ts';
 import type { ChatRuntimeServices } from '@pages/chat/state/ChatRuntimeServiceManager.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 import { disposeActivityDurationRegistry, initializeActivityDurationRegistry } from '@pages/chat/controllers/page/durations/service.ts';
 import type { ChatSettingsStateHost } from '@pages/chat/state/ChatSettingsStateManager.ts';
-import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
 
 interface ActivityDurationDisposalHost extends ChatConversationStateHost, PageDomOwnerHost {}
 
@@ -55,7 +54,7 @@ const reconcileActivityDurationLifecycle = (host: ActivityDurationLifecycleHost)
             setTimer: (callback, delayMs) => host.runtimeServices.timers.setTimer(callback, delayMs),
             clearTimer: (timerId) => host.runtimeServices.timers.clearTimer(timerId)
         },
-        getDisplayMode: () => resolveActivityDurationDisplayMode(measureLayoutViewport(viewport).width, CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX, host.settings.showActivityElapsedTimeEnabled())
+        getDisplayMode: () => resolveActivityDurationDisplayMode(host.settings.showActivityElapsedTimeEnabled())
     });
 };
 

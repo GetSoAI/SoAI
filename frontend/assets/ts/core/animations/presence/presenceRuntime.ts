@@ -3,8 +3,8 @@
 
 import { isLayoutParentRendered, isRendered, readComputedStyle } from '@core/animations/presence/presenceGeometry.ts';
 import { animatePresenceMorph, finishPresenceAnimations, isPresenceAnimating, isPresenceMorphing, measurePresenceSize, stopPresenceAnimation, type PresenceSize } from '@core/animations/presence/presenceMotion.ts';
-import { consumePresenceEnterRequest, exitWithPresence, isPresenceExiting, prepareEnterWithPresence } from '@core/animations/presence/presenceTransitions.ts';
-import { recordModalPresenceInteraction, resetModalPresence } from '@core/animations/presence/presenceEligibility.ts';
+import { consumeCompletedHiddenExit, consumePresenceEnterRequest, exitWithPresence, isPresenceExiting, prepareEnterWithPresence } from '@core/animations/presence/presenceTransitions.ts';
+import { canAnimatePresence, recordModalPresenceInteraction, resetModalPresence } from '@core/animations/presence/presenceEligibility.ts';
 import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { dom } from '@core/dom/dom.ts';
 const PRESENCE_TARGET_SELECTOR = "button, [role='button'], [data-presence]";
@@ -59,10 +59,11 @@ const collectReplacedIdentities = (records: MutationRecord[]): Map<Node, Map<str
 };
 
 const consumeReplacedIdentity = (identities: Map<string, number> | undefined, target: HTMLElement): boolean => {
+    if (identities === undefined || identities.size === 0) return false;
     const identity = readPresenceIdentity(target);
-    const count = identities?.get(identity) ?? 0;
+    const count = identities.get(identity) ?? 0;
     if (count <= 0) return false;
-    identities?.set(identity, count - 1);
+    identities.set(identity, count - 1);
     return true;
 };
 
@@ -72,7 +73,7 @@ class PresenceRuntime implements PresenceRuntimeService {
     #morphObserver: MutationObserver | null = null;
     #morphSizeObserver: ResizeObserver | null = null;
     #knownTargets = new WeakSet<Element>();
-    #knownMorphTargets = new WeakSet<Element>();
+    #knownMorphTargets = new Set<HTMLElement>();
     readonly #morphSizes = new WeakMap<Element, PresenceSize>();
 
     constructor(documentRef: Document) {
@@ -111,13 +112,13 @@ class PresenceRuntime implements PresenceRuntimeService {
         this.#morphObserver = null;
         this.#morphSizeObserver = null;
         this.#knownTargets = new WeakSet<Element>();
-        this.#knownMorphTargets = new WeakSet<Element>();
+        this.#knownMorphTargets = new Set<HTMLElement>();
     }
 
     #handleModalSession = (event: Event): void => {
         if (event.target instanceof Element) {
             resetModalPresence(event.target);
-            finishPresenceAnimations(event.target);
+            for (const child of event.target.children) finishPresenceAnimations(child);
         }
     };
 
@@ -128,6 +129,7 @@ class PresenceRuntime implements PresenceRuntimeService {
     };
 
     #handleVisibilityRecords = (records: MutationRecord[]): void => {
+        const retainedMorphRecords = records.some((record) => record.type === 'childList' && Array.from(record.removedNodes).some((node) => node instanceof HTMLElement)) ? this.#releaseDetachedMorphTargets() : [];
         const changes = new Map<HTMLElement, PresenceVisibilityChange>();
         const pending = new Map<HTMLElement, { hidden: boolean; visualOnly: boolean; animate: boolean }>();
         const replacedIdentities = collectReplacedIdentities(records);
@@ -173,6 +175,10 @@ class PresenceRuntime implements PresenceRuntimeService {
                 return;
             }
             if (isPresenceTarget(element)) {
+                if (!hidden && isPresenceExiting(element)) {
+                    consumePresenceEnterRequest(element);
+                    return;
+                }
                 pending.set(element, { hidden, visualOnly: false, animate: pending.get(element)?.animate ?? (!hidden ? consumePresenceEnterRequest(element) : undefined) ?? true });
             }
         });
@@ -194,17 +200,19 @@ class PresenceRuntime implements PresenceRuntimeService {
             for (let parent = element.parentElement; parent; parent = parent.parentElement) {
                 if (pending.get(parent)?.hidden === false) return;
             }
-            const canAnimate = animate && this.#documentRef.visibilityState === 'visible' && isRendered(element);
+            const canAnimate = animate && this.#documentRef.visibilityState === 'visible' && canAnimatePresence(element) && isRendered(element);
             enters.push(prepareEnterWithPresence(element, canAnimate, visualOnly));
         });
         enters.forEach((start) => start());
+        if (retainedMorphRecords.length > 0) this.#handleMorphRecords(retainedMorphRecords);
     };
 
     #exit(element: HTMLElement): void {
+        if (consumeCompletedHiddenExit(element)) return;
         if (isPresenceExiting(element)) {
             return;
         }
-        const heldDisplay = this.#documentRef.visibilityState === 'visible' ? this.#readShownDisplay(element) : null;
+        const heldDisplay = this.#documentRef.visibilityState === 'visible' && canAnimatePresence(element) ? this.#readShownDisplay(element) : null;
         if (!heldDisplay) {
             stopPresenceAnimation(element);
             return;
@@ -243,13 +251,27 @@ class PresenceRuntime implements PresenceRuntimeService {
     }
 
     #registerMorphTarget(target: HTMLElement): void {
-        if (this.#knownMorphTargets.has(target) || !this.#morphObserver || !this.#morphSizeObserver) {
+        if (!target.isConnected || this.#knownMorphTargets.has(target) || !this.#morphObserver || !this.#morphSizeObserver) {
             return;
         }
         this.#knownMorphTargets.add(target);
         this.#morphObserver.observe(target, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] });
         this.#morphSizeObserver.observe(target);
         this.#recordMorphSize(target);
+    }
+
+    #releaseDetachedMorphTargets(): MutationRecord[] {
+        const detached = Array.from(this.#knownMorphTargets).filter((target) => !target.isConnected);
+        if (detached.length === 0 || !this.#morphObserver) return [];
+        const retained = this.#morphObserver.takeRecords().filter((record) => record.target.isConnected);
+        this.#morphObserver.disconnect();
+        for (const target of detached) {
+            this.#morphSizeObserver?.unobserve(target);
+            this.#knownMorphTargets.delete(target);
+            this.#morphSizes.delete(target);
+        }
+        for (const target of this.#knownMorphTargets) this.#morphObserver.observe(target, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+        return retained;
     }
 
     #recordMorphSize(target: HTMLElement): PresenceSize | null {
@@ -284,7 +306,7 @@ class PresenceRuntime implements PresenceRuntimeService {
     };
     #handleMorphResize = (entries: ResizeObserverEntry[]): void => {
         entries.forEach((entry) => {
-            if (entry.target instanceof HTMLElement && !isPresenceAnimating(entry.target)) {
+            if (entry.target instanceof HTMLElement && this.#knownMorphTargets.has(entry.target) && !isPresenceAnimating(entry.target)) {
                 this.#recordMorphSize(entry.target);
             }
         });

@@ -34,11 +34,11 @@ const normalizeOptionalContentPreviewOpenUrl = (value: string | null, label: str
 
 const normalizeRequestSourceReference = (sourceReference: ContentPreviewSourceReference | null): ContentPreviewSourceReference | null => normalizeContentPreviewSourceReference(sourceReference);
 
-const normalizeRequestTextBaseline = (baseline: ContentPreviewTextBaseline): ContentPreviewTextBaseline => {
+const normalizeRequestTextBaseline = (baseline: ContentPreviewTextBaseline, isUnsavedDraft: boolean): ContentPreviewTextBaseline => {
     const normalized = normalizeContentPreviewTextBaseline(baseline);
     return Object.freeze({
         ...normalized,
-        title: requireContentPreviewNonEmpty(normalized.title, 'title')
+        title: isUnsavedDraft ? normalized.title.trim() : requireContentPreviewNonEmpty(normalized.title, 'title')
     });
 };
 
@@ -61,7 +61,7 @@ const normalizeTextRequest = (request: ContentPreviewTextRequest): ContentPrevie
     Object.freeze({
         ...request,
         headerDescription: normalizeOptionalContentPreviewText(request.headerDescription),
-        baseline: normalizeRequestTextBaseline(request.baseline),
+        baseline: normalizeRequestTextBaseline(request.baseline, request.isUnsavedDraft),
         sourceReference: normalizeRequestSourceReference(request.sourceReference),
         onSaveComplete: request.onSaveComplete ?? null,
         onRequestAttach: request.onRequestAttach ?? null,

@@ -11,6 +11,7 @@ import httpx2
 
 from core.config.protocols import ConfigProtocol
 from core.di.validation import require_dependencies
+from core.errors.error_types import ErrorType
 from core.errors.exceptions import IpcRemoteRequestError
 from core.errors.external_service_exception import ExternalServiceError
 from core.openai.chat_template_role_policy import (
@@ -28,6 +29,10 @@ from core.openai.chat_template_role_rejection import (
     is_chat_template_role_error_message,
 )
 from core.openai.openai_sse_error_escalation import OpenAIStreamError
+from core.openai.provider_error_explanations import (
+    UpstreamFailureType,
+    resolve_upstream_failure_type,
+)
 from core.types.json_value import copy_json_dict
 
 if TYPE_CHECKING:
@@ -135,6 +140,26 @@ def is_chat_template_role_policy_rejection(exception: Exception) -> bool:
 def _is_chat_template_role_policy_soai_error(
     exception: ExternalServiceError | IpcRemoteRequestError | OpenAIStreamError,
 ) -> bool:
+    if exception.code in {
+        "authentication_error",
+        "forbidden_error",
+        "rate_limit_error",
+        "timeout_error",
+        "plugin_unavailable_error",
+        "overloaded_error",
+    }:
+        return False
+    if (
+        isinstance(exception, OpenAIStreamError)
+        and exception.code == ErrorType.SERVICE_UNAVAILABLE.value
+    ):
+        return False
+    failure_type = resolve_upstream_failure_type(exception.details or {})
+    if failure_type is not None and failure_type not in {
+        UpstreamFailureType.INVALID_REQUEST,
+        UpstreamFailureType.PROVIDER_OUTAGE,
+    }:
+        return False
     if is_chat_template_role_error_message(exception.message):
         return True
     details = exception.details

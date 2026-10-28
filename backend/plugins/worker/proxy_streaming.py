@@ -6,15 +6,17 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterable
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.concurrency.task_groups import cancel_and_await
+from core.errors.backend_lifecycle import IpcCancellationCleanupError
 from core.errors.exceptions import ValidationError
 from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
 from core.types.json import JSONDict
 from plugins.worker.proxy_payloads import payload_from_message, require_json_response_value
 from plugins.worker.stream_protocol import is_stream_response_payload
 
-__all__ = ("prepare_stream_or_json_response", "stream_queue")
+__all__ = ("prepare_stream_or_json_response", "settle_response_task", "stream_queue")
 
 
 async def prepare_stream_or_json_response(
@@ -107,11 +109,18 @@ async def stream_queue(
                 (chunk_task,),
                 task_label="plugin proxy stream chunk wait",
             )
-        if not response_task.done():
-            await cancel_and_await(
-                (response_task,),
-                task_label="plugin proxy stream response",
-            )
+        await settle_response_task(response_task)
+
+
+async def settle_response_task(response_task: asyncio.Task[JSONDict]) -> None:
+    if not response_task.done():
+        response_task.cancel()
+        await uncancel_then_cleanup(asyncio.wait((response_task,)))
+    if not response_task.done() or response_task.cancelled():
+        return
+    exception = response_task.exception()
+    if isinstance(exception, IpcCancellationCleanupError):
+        raise exception
 
 
 def _validate_stream_response(response: JSONDict) -> None:

@@ -3,19 +3,24 @@
 
 from __future__ import annotations
 
-from core.errors.exceptions import ConfigurationError
+from core.errors.exceptions import ConfigurationError, ValidationError
+from core.hardware.gpu_physical_identity import (
+    GPUPhysicalBindingState,
+    compare_gpu_physical_identities,
+)
+from core.hardware.gpu_physical_observations import read_gpu_physical_identity
 from core.types.json import JSONDict, is_json_dict
 from core.validation.numbers import coerce_int_from_json
 from plugin_sdk.contracts.accelerator_device_identity import (
     accelerator_field_value,
-    accelerator_string_field,
     normalize_accelerator_hex_id,
-    normalize_accelerator_identity,
-    optional_accelerator_pci_bdf,
 )
+from plugin_sdk.contracts.accelerator_vulkan_acquisition import VulkanDeviceAcquisition
 from plugin_sdk.contracts.accelerator_vulkan_devices import (
+    VulkanBindingFailure,
     VulkanPhysicalDevice,
-    query_vulkan_devices,
+    hex_identity_pair,
+    vulkan_binding_error,
 )
 
 __all__ = ("resolve_vulkan_visible_devices",)
@@ -25,15 +30,23 @@ def resolve_vulkan_visible_devices(gpus: list[JSONDict]) -> list[str]:
     embedded_indices = _embedded_vulkan_indices(gpus)
     if len(embedded_indices) == len(gpus):
         return embedded_indices
-    vulkan_devices = query_vulkan_devices()
-    if not vulkan_devices:
-        raise ConfigurationError(
-            "Selected GPU binding requires Vulkan device mapping, but vulkaninfo did not return physical devices.",
-        )
-    visible_devices: list[str] = []
-    for gpu in gpus:
-        visible_devices.append(str(_match_vulkan_device(gpu, vulkan_devices).index))
-    return visible_devices
+    acquisition = VulkanDeviceAcquisition()
+    unresolved: ConfigurationError | None = None
+    for vulkan_devices in acquisition.rosters():
+        if not vulkan_devices:
+            raise vulkan_binding_error(VulkanBindingFailure.DEVICE_UNAVAILABLE)
+        visible_devices: list[str] = []
+        for gpu in gpus:
+            device = _match_vulkan_device(gpu, vulkan_devices)
+            if device is None:
+                unresolved = vulkan_binding_error(
+                    VulkanBindingFailure.IDENTITY_UNAVAILABLE, label=_gpu_label(gpu)
+                )
+                break
+            visible_devices.append(str(device.index))
+        else:
+            return visible_devices
+    raise acquisition.failure(unresolved)
 
 
 def _embedded_vulkan_indices(gpus: list[JSONDict]) -> list[str]:
@@ -49,60 +62,91 @@ def _embedded_vulkan_indices(gpus: list[JSONDict]) -> list[str]:
     return indices
 
 
+def _gpu_label(gpu: JSONDict) -> str:
+    device_id = gpu.get("device_id")
+    return device_id if isinstance(device_id, str) and device_id else str(gpu.get("name") or "GPU")
+
+
 def _match_vulkan_device(
     gpu: JSONDict,
     devices: list[VulkanPhysicalDevice],
-) -> VulkanPhysicalDevice:
-    pci_bdf = optional_accelerator_pci_bdf(
-        accelerator_string_field(gpu, ("pci_bdf", "pci_bdf_full")),
-    )
-    if pci_bdf is not None:
-        pci_matches = [device for device in devices if device.pci_bdf == pci_bdf]
-        if len(pci_matches) == 1:
-            return pci_matches[0]
-    vendor_device_key = _gpu_vendor_device_key(gpu)
-    if vendor_device_key is not None:
-        vendor_device_matches = [
-            device for device in devices if _vulkan_vendor_device_key(device) == vendor_device_key
-        ]
-        if len(vendor_device_matches) == 1:
-            return vendor_device_matches[0]
-    match_key = _gpu_match_key(gpu)
-    if match_key is not None:
-        key_matches = [device for device in devices if _vulkan_match_key(device) == match_key]
-        if len(key_matches) == 1:
-            return key_matches[0]
-    device_id = gpu.get("device_id")
-    label = device_id if isinstance(device_id, str) and device_id else str(gpu.get("name") or "GPU")
-    raise ConfigurationError(
-        f"Selected GPU '{label}' cannot be mapped to a unique Vulkan physical device.",
-    )
-
-
-def _gpu_match_key(gpu: JSONDict) -> tuple[str | None, str | None, str | None] | None:
-    name_key = normalize_accelerator_identity(accelerator_string_field(gpu, ("name",)))
-    vendor_id = normalize_accelerator_hex_id(accelerator_field_value(gpu, ("pci_vendor_id",)))
-    device_id = normalize_accelerator_hex_id(accelerator_field_value(gpu, ("pci_device_id",)))
-    if name_key is None and vendor_id is None and device_id is None:
+) -> VulkanPhysicalDevice | None:
+    label = _gpu_label(gpu)
+    try:
+        selected_identity = read_gpu_physical_identity(gpu)
+    except ValidationError as exception:
+        raise vulkan_binding_error(VulkanBindingFailure.IDENTITY_CONFLICT, label=label) from (
+            exception
+        )
+    if selected_identity is None:
+        raise vulkan_binding_error(VulkanBindingFailure.IDENTITY_UNAVAILABLE, label=label)
+    selected_vendor_device = _gpu_vendor_device_key(gpu)
+    matches: list[VulkanPhysicalDevice] = []
+    incomparable = False
+    for device in devices:
+        device_identity = device.physical_identity()
+        relation = (
+            GPUPhysicalBindingState.IDENTITY_UNAVAILABLE
+            if device_identity is None
+            else compare_gpu_physical_identities(selected_identity, device_identity)
+        )
+        device_vendor_device = device.vendor_device_key()
+        if (
+            relation == GPUPhysicalBindingState.BOUND
+            and selected_vendor_device is not None
+            and device_vendor_device is not None
+            and device_vendor_device != selected_vendor_device
+        ):
+            relation = GPUPhysicalBindingState.IDENTITY_CONFLICT
+        if relation == GPUPhysicalBindingState.IDENTITY_CONFLICT:
+            raise vulkan_binding_error(VulkanBindingFailure.IDENTITY_CONFLICT, label=label)
+        if relation == GPUPhysicalBindingState.IDENTITY_UNAVAILABLE:
+            incomparable = True
+        elif relation == GPUPhysicalBindingState.BOUND:
+            matches.append(device)
+    distinct_matches = _distinct_vulkan_observations(matches)
+    if len(distinct_matches) > 1:
+        raise vulkan_binding_error(
+            VulkanBindingFailure.DEVICE_AMBIGUOUS,
+            label=label,
+            indices=tuple(device.index for device in distinct_matches),
+        )
+    if distinct_matches:
+        return distinct_matches[0]
+    if incomparable:
         return None
-    return (vendor_id, device_id, name_key)
+    raise vulkan_binding_error(VulkanBindingFailure.DEVICE_UNAVAILABLE, label=label)
 
 
-def _gpu_vendor_device_key(gpu: JSONDict) -> tuple[str, str] | None:
-    vendor_id = normalize_accelerator_hex_id(accelerator_field_value(gpu, ("pci_vendor_id",)))
-    device_id = normalize_accelerator_hex_id(accelerator_field_value(gpu, ("pci_device_id",)))
-    if vendor_id is None or device_id is None:
-        return None
-    return (vendor_id, device_id)
+def _distinct_vulkan_observations(
+    devices: list[VulkanPhysicalDevice],
+) -> list[VulkanPhysicalDevice]:
+    distinct: list[VulkanPhysicalDevice] = []
+    for device in sorted(devices, key=lambda observation: observation.index):
+        if not any(
+            device.driver_identity
+            and _vulkan_observation_key(device) == _vulkan_observation_key(retained)
+            for retained in distinct
+        ):
+            distinct.append(device)
+    return distinct
 
 
-def _vulkan_match_key(
+def _vulkan_observation_key(
     device: VulkanPhysicalDevice,
-) -> tuple[str | None, str | None, str | None]:
-    return (device.vendor_id, device.device_id, device.name_key)
+) -> tuple[str | None, str | None, str | None, str | None, str | None, tuple[str, ...]]:
+    return (
+        device.uuid,
+        device.pci_bdf_full,
+        device.vendor_id,
+        device.device_id,
+        device.name_key,
+        device.driver_identity,
+    )
 
 
-def _vulkan_vendor_device_key(device: VulkanPhysicalDevice) -> tuple[str, str] | None:
-    if device.vendor_id is None or device.device_id is None:
-        return None
-    return (device.vendor_id, device.device_id)
+def _gpu_vendor_device_key(gpu: JSONDict) -> tuple[int, int] | None:
+    return hex_identity_pair(
+        normalize_accelerator_hex_id(accelerator_field_value(gpu, ("pci_vendor_id",))),
+        normalize_accelerator_hex_id(accelerator_field_value(gpu, ("pci_device_id",))),
+    )

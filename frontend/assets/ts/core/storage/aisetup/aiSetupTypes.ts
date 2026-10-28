@@ -1,6 +1,8 @@
 /* SoAI - Shared storage AI setup state contracts [frontend/assets/ts/core/storage/aisetup/aiSetupTypes.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ModelTestFailureMetadata } from '@core/openai/modelTestStreamOutcome.ts';
+
 type AiSetupDisposition = 'in_progress' | 'handed_off' | 'finished_later' | 'skipped' | 'completed';
 type AiSetupStep = 'ai_sources' | 'ai_connect' | 'ai_models' | 'ai_progress' | 'complete';
 type AiSetupEngineMode = 'automatic' | 'manual';
@@ -39,6 +41,7 @@ interface AiSetupModelTest {
     outcome: AiSetupTestOutcome | null;
     configurationFingerprint: string | null;
     testedAtMs: number | null;
+    failure: ModelTestFailureMetadata | null;
 }
 
 interface AiSetupModel {
@@ -56,6 +59,8 @@ interface AiSetupModel {
 }
 
 interface AiSetupState {
+    committedLocalItemId: string | null;
+    lastLocalDownloadTaskId: string | null;
     disposition: AiSetupDisposition;
     step: AiSetupStep;
     sources: { local: boolean; cloud: boolean };

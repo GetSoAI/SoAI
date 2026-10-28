@@ -1,6 +1,7 @@
 /* SoAI - Application lifecycle service and boot contracts [frontend/assets/ts/app/bootstrap/stages/applifecycle/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { UpdateHistoryStorage } from '@core/updates/updateHistory.ts';
 import type { ApiClient } from '@core/api/service.ts';
 import type { AuthManager } from '@core/auth/public.ts';
 import type { ComponentRegistry } from '@core/componentsupport/public.ts';
@@ -47,7 +48,7 @@ export interface MaintenanceCoordinatorApi {
     getState: () => MaintenanceState;
 }
 
-export interface StorageService {
+export interface StorageService extends UpdateHistoryStorage {
     ready: Promise<void>;
     getRedirectAfterLogin: () => string | null;
     clearRedirectAfterLogin: () => void;

@@ -1,0 +1,4 @@
+/* SoAI - Frontend core Translation declarations for key group `speechSetup.errors` [frontend/assets/ts/core/i18n/translationkeys/speechsetup/errors.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type SpeechSetupErrorsTranslationKey = 'speechSetup.errors.backendNotInstalled' | 'speechSetup.errors.configuredModelMissing' | 'speechSetup.errors.mediaDependencyUnavailable' | 'speechSetup.errors.modelDisabled' | 'speechSetup.errors.noModel' | 'speechSetup.errors.noPlugin' | 'speechSetup.errors.noTextToSpeechModel' | 'speechSetup.errors.notLocal' | 'speechSetup.errors.noVoiceModel' | 'speechSetup.errors.pluginDisabled' | 'speechSetup.errors.textToSpeechBackendNotInstalled' | 'speechSetup.errors.textToSpeechModelDisabled' | 'speechSetup.errors.textToSpeechPluginDisabled' | 'speechSetup.errors.translationUnsupported' | 'speechSetup.errors.unsupportedOption' | 'speechSetup.errors.unsupportedOptionSelected';

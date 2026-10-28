@@ -14,6 +14,9 @@ from core.conversations.conversation_message_write_result import (
 )
 from core.timing.epoch import epoch_ms
 from core.types.json import JSONDict
+from database.repositories.users.assistant_timeline_overwrite_sync import (
+    sync_assistant_timelines_from_messages,
+)
 from database.repositories.users.conversation_attachment_message_sync import (
     sync_apply_append_attachment_references,
     sync_apply_overwrite_attachment_references,
@@ -35,6 +38,7 @@ from database.repositories.users.message_input_mutation_fence import (
     require_message_mutation_allowed,
 )
 from database.repositories.users.message_overwrite_reconciliation import (
+    sync_finalize_rebuilt_assistant_event_timelines,
     sync_reconcile_overwritten_message_auxiliary_tables,
 )
 from database.repositories.users.message_storage_rows import (
@@ -173,10 +177,24 @@ def sync_append_messages(
         conv_id=conv_id,
         validated_messages=validated_messages,
         finalized_at_ms=now,
-        defer_assistant_event_timeline_finalization=False,
+        defer_assistant_event_timeline_finalization=True,
     )
     if storage_rows.rows:
         conn.executemany(MESSAGE_INSERT_SQL, storage_rows.rows)
+        sync_assistant_timelines_from_messages(
+            conn,
+            conv_id=conv_id,
+            validated_messages=validated_messages,
+            created_at_ms=now,
+        )
+        sync_finalize_rebuilt_assistant_event_timelines(
+            conn,
+            conv_id=conv_id,
+            assistant_timestamps_to_finalize=(
+                storage_rows.deferred_assistant_finalization_timestamps
+            ),
+            finalized_at_ms=now,
+        )
         last_modified_at_ms = sync_bump_conversation_last_modified_at_ms(conn, conv_id)
     else:
         last_modified_at_ms = sync_load_conversation_last_modified_at_ms(conn, conv_id)

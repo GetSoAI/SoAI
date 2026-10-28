@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-DISCOVERY_PORT_START: int = 7950
-DISCOVERY_PORT_STOP: int = 7960
 DISCOVERY_PORTS: tuple[int, ...] = (
     7950,
     7951,
@@ -19,8 +17,4 @@ DISCOVERY_PORTS: tuple[int, ...] = (
     7960,
 )
 
-__all__ = (
-    "DISCOVERY_PORTS",
-    "DISCOVERY_PORT_START",
-    "DISCOVERY_PORT_STOP",
-)
+__all__ = ("DISCOVERY_PORTS",)

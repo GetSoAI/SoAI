@@ -3,53 +3,45 @@
 
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { isLifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { modelActions } from '@core/modelactions/public.ts';
 import { normalizeOperationError } from '@core/operationErrorNotifier.ts';
 import { taskProgressPayloadToOperationProgress } from '@core/operationprogress/taskProgressAdapter.ts';
 import { MODELS } from '@core/realtime/streammanager/resources/ids.ts';
-import type { PageStreamingContract } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
-import type { AiSetupModel, AiSetupState } from '@core/storage/aisetup/aiSetupTypes.ts';
-import { settleTrackedTaskStream } from '@core/tasks/trackedTaskStream.ts';
-import { requireTaskOperationsApi } from '@core/tasks/serviceAccess.ts';
-import type { StreamActionHandle } from '@core/routing/pages/pagetypes/public.ts';
+import type { AiSetupOperationsManagerHost } from '@pages/wizard/services/aisetup/contracts.ts';
+import type { AiSetupModel } from '@core/storage/aisetup/aiSetupTypes.ts';
+import { AiSetupTaskLifecycleController } from '@pages/wizard/services/aisetup/AiSetupTaskLifecycleController.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
-import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import { WEBSOCKET_MESSAGE_TYPES } from '@core/websocketEvents.ts';
 import { requireCatalogStore } from '@features/catalog/public.ts';
-import { findActiveModelDownloadOperation, MODEL_DOWNLOAD_OPERATION_TYPE, runModelDownload, type ModelDownloadOutcome } from '@features/models/public.ts';
+import { findActiveModelDownloadOperation, MODEL_DOWNLOAD_OPERATION_TYPE, runModelDownload } from '@features/models/public.ts';
 import { createBackendStreamPorts, executeBackendOperation, type BackendOperationHost } from '@features/plugins/public.ts';
-import { findItemModel } from '@pages/wizard/services/aisetup/catalog/mappers.ts';
+import { findItemModel, readAiSetupDownloadRequest } from '@pages/wizard/services/aisetup/catalog/mappers.ts';
 import { AiSetupDiscoveryWatchController } from '@pages/wizard/services/aisetup/AiSetupDiscoveryWatchController.ts';
-import { readEngineName, type AiSetupFacts } from '@pages/wizard/services/aisetup/facts/service.ts';
-import { backendRowKey, resolveEngineState, type TaskObservation } from '@pages/wizard/services/aisetup/progress/mappers.ts';
-import { withBackendTask, withModelTask } from '@pages/wizard/services/aisetup/state.ts';
-import type { ModelData } from '@core/types/modelTypes.ts';
-import { findModelCatalogEntry } from '@pages/wizard/services/aisetup/catalog/constants.ts';
+import { readEngineName, resolveItemEngine, isEngineInstalled } from '@pages/wizard/services/aisetup/facts/service.ts';
+import { backendRowKey, readBackendRowPlugin, resolveEngineState, readDownloadResult, type SettledTaskResult, type TaskObservation } from '@pages/wizard/services/aisetup/progress/mappers.ts';
+import { isDownloadCommitted, withBackendRepaired, withBackendTask, withCompletedLocalDownload, withItemExcluded, withModelTask } from '@pages/wizard/services/aisetup/state.ts';
 
 const BACKEND_INSTALL_OPERATION_TYPE = 'backend-install';
-
-interface AiSetupOperationsManagerHost {
-    streaming: PageStreamingContract;
-    getSetup(): AiSetupState;
-    updateSetup(update: (setup: AiSetupState) => AiSetupState): void;
-    getFacts(): AiSetupFacts | null;
-    getModels(): readonly ModelData[];
-    onEngineInstalled(pluginName: string): Promise<void>;
-    onChange(): void;
-    notify(message: string, type: NotificationType): void;
-}
 
 class AiSetupOperationsManager {
     readonly #host: AiSetupOperationsManagerHost;
     readonly #observations = new Map<string, TaskObservation>();
+    readonly #attempts = new AiSetupTaskLifecycleController();
     readonly #inFlight = new Set<string>();
     readonly #discovery: AiSetupDiscoveryWatchController;
     #disposed = false;
 
     constructor(host: AiSetupOperationsManagerHost) {
         this.#host = host;
-        this.#discovery = new AiSetupDiscoveryWatchController(() => this.#host.onChange());
+        this.#discovery = new AiSetupDiscoveryWatchController(
+            () => this.#host.onChange(),
+            async () => {
+                await this.#host.streaming.runtime().resources.refresh(MODELS, { allowDiscovery: true });
+            }
+        );
     }
 
     get observations(): ReadonlyMap<string, TaskObservation> {
@@ -63,19 +55,29 @@ class AiSetupOperationsManager {
     dispose(): void {
         this.#disposed = true;
         this.#discovery.dispose();
+        this.#attempts.dispose();
     }
 
     reconcile(): void {
         const setup = this.#host.getSetup();
+        for (const key of this.#inFlight) {
+            if (readBackendRowPlugin(key) !== null || setup.models.some((item) => item.itemId === key && !item.excluded)) continue;
+            this.#cancelInBackground(key);
+        }
         for (const backend of setup.engine.backends) {
             if (!backend.excluded && backend.taskId !== null && !this.#observations.has(backendRowKey(backend.pluginName))) this.#attachInstall(backend.pluginName, backend.taskId);
         }
         const models = this.#host.getModels();
         for (const item of setup.models) {
+            if (item.excluded && item.source === 'local' && item.downloadTaskId !== null && !this.#observations.has(item.itemId)) {
+                this.#attachDownload(item, item.downloadTaskId);
+                this.#cancelInBackground(item.itemId);
+            }
             if (item.excluded || item.source !== 'local' || findItemModel(models, item) !== null) {
                 this.#discovery.clear(item.itemId);
                 continue;
             }
+            if (item.modelId !== null) this.#discovery.arm(item.itemId);
             if (item.downloadTaskId !== null && !this.#observations.has(item.itemId)) this.#attachDownload(item, item.downloadTaskId);
         }
         if (isDownloadCommitted(setup)) this.startPendingDownloads();
@@ -83,15 +85,18 @@ class AiSetupOperationsManager {
 
     startPendingDownloads(): void {
         const setup = this.#host.getSetup();
+        const local = setup.models.filter((item) => item.source === 'local' && !item.excluded);
+        if (local.length !== 1 || [...this.#inFlight].some((key) => readBackendRowPlugin(key) === null)) return;
+        if (setup.models.some((item) => item.source === 'local' && item.excluded && (item.modelId !== null || this.#observations.get(item.itemId)?.status === 'succeeded'))) return;
         const models = this.#host.getModels();
         const engineContext = { setup, facts: this.#host.getFacts(), observations: this.#observations };
         for (const item of setup.models) {
-            if (item.excluded || item.source !== 'local' || item.downloadTaskId !== null || this.#observations.has(item.itemId) || findItemModel(models, item) !== null) continue;
+            if (item.itemId !== setup.committedLocalItemId || item.excluded || item.source !== 'local' || item.modelId !== null || item.downloadTaskId !== null || this.#observations.has(item.itemId) || findItemModel(models, item) !== null) continue;
             if (resolveEngineState(engineContext, item.pluginName) === 'ready') this.#startDownload(item);
         }
     }
 
-    startInstall(pluginName: string, variantId: string): void {
+    startInstall(pluginName: string, variantId: string, commandType: 'plugin_backend_install' | 'plugin_backend_update' = WEBSOCKET_MESSAGE_TYPES.PLUGIN_BACKEND_INSTALL): void {
         const key = backendRowKey(pluginName);
         if (this.#inFlight.has(key)) return;
         const plugin = requireCatalogStore().getPlugin(pluginName);
@@ -100,54 +105,66 @@ class AiSetupOperationsManager {
             return;
         }
         this.#inFlight.add(key);
+        this.#attempts.begin(key);
         this.#observe(key, { status: 'running', taskId: null, progress: null });
         void executeBackendOperation(this.#createBackendHost(key), plugin, {
-            commandType: WEBSOCKET_MESSAGE_TYPES.PLUGIN_BACKEND_INSTALL,
+            commandType,
             backendVariantId: variantId,
-            operationMeta: { type: BACKEND_INSTALL_OPERATION_TYPE },
+            operationMeta: { type: commandType === WEBSOCKET_MESSAGE_TYPES.PLUGIN_BACKEND_UPDATE ? 'backend-update' : BACKEND_INSTALL_OPERATION_TYPE },
             loadingMessage: i18n.t('plugins.loading.installingBackend'),
             failMessage: i18n.t('plugins.notifications.backendInstallFailed'),
+            onStarted: (stream) => this.#attempts.attach(key, stream),
             onAccepted: (taskId) => {
                 this.#host.updateSetup((setup) => withBackendTask(setup, pluginName, variantId, taskId));
-                this.#observe(key, { status: 'running', taskId, progress: null });
+                const observation = this.#observations.get(key);
+                this.#observe(key, observation?.status === 'cancelling' ? { status: 'cancelling', taskId } : { status: 'running', taskId, progress: null });
             }
         })
             .then((outcome) => {
+                if (outcome.status === 'succeeded' && commandType === WEBSOCKET_MESSAGE_TYPES.PLUGIN_BACKEND_UPDATE) this.#host.updateSetup((setup) => withBackendRepaired(setup, pluginName));
                 this.#inFlight.delete(key);
-                this.#settleInstall(pluginName, outcome.status === 'succeeded' ? 'succeeded' : outcome.status === 'detached' ? 'detached' : 'failed');
+                this.#settleInstall(pluginName, outcome.status === 'succeeded' ? 'succeeded' : outcome.status === 'detached' ? 'detached' : outcome.status === 'cancelled' ? 'cancelled' : 'failed');
             })
             .catch((error) => this.#reportSettlementFailure(key, error));
     }
 
     retryInstall(pluginName: string): void {
         const backend = this.#host.getSetup().engine.backends.find((entry) => entry.pluginName === pluginName) ?? null;
-        const variantId = backend?.variantId ?? this.#resolveInstallVariant(pluginName);
+        const facts = this.#host.getFacts();
+        const engine = facts === null ? null : resolveItemEngine(facts, pluginName);
+        const variantId = backend?.variantId ?? (engine?.status === 'install' ? engine.variantId : null);
         if (variantId === null) return;
         this.#observations.delete(backendRowKey(pluginName));
-        this.startInstall(pluginName, variantId);
+        this.startInstall(pluginName, variantId, facts !== null && isEngineInstalled(facts, pluginName) ? WEBSOCKET_MESSAGE_TYPES.PLUGIN_BACKEND_UPDATE : WEBSOCKET_MESSAGE_TYPES.PLUGIN_BACKEND_INSTALL);
     }
 
     retryDownload(itemId: string): void {
         const item = this.#host.getSetup().models.find((entry) => entry.itemId === itemId) ?? null;
-        if (item === null || item.source !== 'local' || this.#inFlight.has(itemId)) return;
+        if (item === null || item.excluded || item.source !== 'local' || this.#inFlight.has(itemId)) return;
         this.#observations.delete(itemId);
         this.#host.updateSetup((setup) => withModelTask(setup, itemId, null));
         this.#startDownload(item);
     }
 
-    checkAgain(itemId: string): void {
-        this.#discovery.restart(itemId);
-        this.#host.onChange();
-        void this.#host.streaming
-            .runtime()
-            .resources.refresh(MODELS, { allowDiscovery: true })
-            .catch((error) => errorHandler.warn('WizardAiSetup', 'Model catalog refresh failed', ensureError(error)));
-    }
-
     async cancel(rowKey: string): Promise<void> {
         const observation = this.#observations.get(rowKey);
-        if (observation?.status !== 'running' || observation.taskId === null) return;
-        await requireTaskOperationsApi().cancelOperationById(observation.taskId);
+        if (observation === undefined) {
+            this.#host.updateSetup((setup) => withItemExcluded(setup, rowKey));
+            this.#host.onChange();
+            return;
+        }
+        if (observation.status !== 'running' && observation.status !== 'checking') return;
+        this.#observe(rowKey, { status: 'cancelling', taskId: observation.taskId });
+        try {
+            await this.#attempts.cancel(rowKey);
+        } catch (error) {
+            if (this.#observations.get(rowKey)?.status === 'cancelling') this.#observe(rowKey, observation);
+            throw error;
+        }
+    }
+
+    #cancelInBackground(key: string): void {
+        void this.cancel(key).catch((error) => this.#host.notify(normalizeOperationError(ensureError(error))?.message ?? i18n.t('common.cancellation.failed'), 'warning'));
     }
 
     #createBackendHost(key: string): BackendOperationHost {
@@ -162,18 +179,16 @@ class AiSetupOperationsManager {
         };
     }
 
-    #resolveInstallVariant(pluginName: string): string | null {
-        const option = this.#host.getFacts()?.engineOptions.find((entry) => entry.pluginName === pluginName) ?? null;
-        return option !== null && option.engine.status === 'install' ? option.engine.variantId : null;
-    }
-
     #attachInstall(pluginName: string, taskId: string): void {
         const key = backendRowKey(pluginName);
         if (this.#inFlight.has(key)) return;
         this.#inFlight.add(key);
         this.#observe(key, { status: 'checking', taskId });
+        this.#attempts.begin(key);
         const stream = this.#host.streaming.runtime().tasks.trackAcceptedTask(taskId, { handlers: this.#host.streaming.handlers({ onProgress: (data) => this.#updateProgress(key, data) }), operation: { type: BACKEND_INSTALL_OPERATION_TYPE, pluginName } });
-        void this.#settleStream(stream, BACKEND_INSTALL_OPERATION_TYPE, i18n.t('plugins.notifications.backendInstallFailed'))
+        this.#attempts.attach(key, stream);
+        void this.#attempts
+            .settle(stream, BACKEND_INSTALL_OPERATION_TYPE, i18n.t('plugins.notifications.backendInstallFailed'), this.#host.streaming.pageTracker)
             .then((result) => {
                 this.#inFlight.delete(key);
                 this.#settleInstall(pluginName, result === 'failed_disk' ? 'failed' : result);
@@ -181,9 +196,14 @@ class AiSetupOperationsManager {
             .catch((error) => this.#reportSettlementFailure(key, error));
     }
 
-    #settleInstall(pluginName: string, result: 'succeeded' | 'failed' | 'detached'): void {
+    #settleInstall(pluginName: string, result: 'succeeded' | 'failed' | 'cancelled' | 'detached'): void {
         if (this.#disposed || result === 'detached') return;
         const key = backendRowKey(pluginName);
+        this.#attempts.finish(key);
+        if (result === 'cancelled') {
+            this.#observe(key, { status: 'cancelled' });
+            return;
+        }
         if (result === 'failed') {
             this.#observe(key, { status: 'failed', insufficientDiskSpace: false });
             return;
@@ -196,33 +216,47 @@ class AiSetupOperationsManager {
                 if (isDownloadCommitted(this.#host.getSetup())) this.startPendingDownloads();
                 this.#host.onChange();
             })
-            .catch((error) => errorHandler.warn('WizardAiSetup', `Engine facts refresh after installing ${pluginName} failed`, ensureError(error)));
+            .catch((error) => {
+                const runtimeError = ensureError(error);
+                if (!this.#disposed && !isAbortError(runtimeError) && !isLifecycleCancellationError(runtimeError)) errorHandler.warn('WizardAiSetup', `Engine facts refresh after installing ${pluginName} failed`, runtimeError);
+            });
     }
 
     #startDownload(item: AiSetupModel): void {
-        if (item.repositoryId === null || item.artifactReference === null || this.#inFlight.has(item.itemId)) return;
+        const request = readAiSetupDownloadRequest(this.#host.getSetup(), item);
+        if (request === null || this.#inFlight.has(item.itemId)) return;
         const itemId = item.itemId;
-        const request = { plugin: item.pluginName, modelId: item.repositoryId, quantization: item.artifactReference, displayName: findModelCatalogEntry(item.catalogId)?.name ?? item.artifactName ?? item.artifactReference };
         this.#inFlight.add(itemId);
+        const attempt = this.#attempts.begin(itemId);
         this.#observe(itemId, { status: 'running', taskId: null, progress: null });
         void runModelDownload({
             request,
+            signal: attempt.controller.signal,
             startDownload: (downloadRequest, options) => modelActions.startDownload(downloadRequest, options),
             handlers: this.#host.streaming.handlers({ onProgress: (data) => this.#updateProgress(itemId, data) }),
             tracker: this.#host.streaming.pageTracker,
             failMessage: i18n.t('models.notifications.downloadFailed'),
-            onStarted: (stream) => this.#recordDownloadTask(itemId, stream)
+            onStarted: (stream) => {
+                this.#attempts.attach(itemId, stream, (taskId) => this.#host.updateSetup((setup) => withModelTask(setup, itemId, taskId, true)));
+            }
         })
-            .then((outcome) => {
+            .then(async (outcome) => {
                 this.#inFlight.delete(itemId);
+                this.#attempts.finish(itemId);
                 if (outcome.status === 'rejected') {
                     this.#handleRejectedDownload(item, outcome.reason, findActiveModelDownloadOperation(request)?.id ?? null);
                     return;
                 }
+                if (outcome.status === 'failed' && (await this.#attempts.recoverDownload(outcome.error, itemId, this.#host, this.#attachRecoveredDownload, attempt.controller.signal.aborted))) return;
                 this.#settleDownload(itemId, readDownloadResult(outcome));
             })
             .catch((error) => this.#reportSettlementFailure(itemId, error));
     }
+
+    readonly #attachRecoveredDownload = (item: AiSetupModel, taskId: string, cancel: boolean): void => {
+        this.#attachDownload(item, taskId);
+        if (cancel) this.#cancelInBackground(item.itemId);
+    };
 
     #handleRejectedDownload(item: AiSetupModel, reason: 'max_concurrent' | 'already_downloading', existingTaskId: string | null): void {
         if (reason === 'already_downloading' && existingTaskId !== null) {
@@ -236,18 +270,9 @@ class AiSetupOperationsManager {
 
     #reportSettlementFailure(key: string, error: Error | JsonValue | null | undefined): void {
         this.#inFlight.delete(key);
+        this.#attempts.finish(key);
         errorHandler.error('WizardAiSetup', `AI setup operation ${key} could not be settled`, ensureError(error));
         this.#observe(key, { status: 'failed', insufficientDiskSpace: false });
-    }
-
-    #recordDownloadTask(itemId: string, stream: StreamActionHandle): void {
-        void stream.accepted
-            ?.then((taskId) => {
-                this.#host.updateSetup((setup) => withModelTask(setup, itemId, taskId));
-                const observation = this.#observations.get(itemId);
-                if (observation?.status === 'running') this.#observe(itemId, { ...observation, taskId });
-            })
-            .catch((error) => errorHandler.warn('WizardAiSetup', 'Model download acceptance was not confirmed', ensureError(error)));
     }
 
     #attachDownload(item: AiSetupModel, taskId: string): void {
@@ -255,8 +280,11 @@ class AiSetupOperationsManager {
         if (this.#inFlight.has(itemId)) return;
         this.#inFlight.add(itemId);
         this.#observe(itemId, { status: 'checking', taskId });
+        this.#attempts.begin(itemId);
         const stream = this.#host.streaming.runtime().tasks.trackAcceptedTask(taskId, { handlers: this.#host.streaming.handlers({ onProgress: (data) => this.#updateProgress(itemId, data) }), operation: { type: MODEL_DOWNLOAD_OPERATION_TYPE, pluginName: item.pluginName } });
-        void this.#settleStream(stream, MODEL_DOWNLOAD_OPERATION_TYPE, i18n.t('models.notifications.downloadFailed'))
+        this.#attempts.attach(itemId, stream);
+        void this.#attempts
+            .settle(stream, MODEL_DOWNLOAD_OPERATION_TYPE, i18n.t('models.notifications.downloadFailed'), this.#host.streaming.pageTracker)
             .then((result) => {
                 this.#inFlight.delete(itemId);
                 this.#settleDownload(itemId, result);
@@ -264,24 +292,20 @@ class AiSetupOperationsManager {
             .catch((error) => this.#reportSettlementFailure(itemId, error));
     }
 
-    async #settleStream(stream: StreamActionHandle, keyPrefix: string, failMessage: string): Promise<SettledTaskResult> {
-        try {
-            const settled = await settleTrackedTaskStream({ tracker: this.#host.streaming.pageTracker, stream, keyPrefix, failMessage });
-            if (settled.detached) return 'detached';
-            return settled.cancelled ? 'failed' : 'succeeded';
-        } catch (error) {
-            const runtimeError = ensureError(error);
-            errorHandler.warn('WizardAiSetup', `Tracked ${keyPrefix} task did not complete`, runtimeError);
-            return normalizeOperationError(runtimeError)?.isInsufficientDiskSpace === true ? 'failed_disk' : 'failed';
-        }
-    }
-
     #settleDownload(itemId: string, result: SettledTaskResult): void {
+        this.#attempts.finish(itemId);
         if (this.#disposed || result === 'detached') return;
-        if (result !== 'succeeded') {
-            this.#observe(itemId, { status: 'failed', insufficientDiskSpace: result === 'failed_disk' });
+        if (result === 'cancelled') {
+            this.#observe(itemId, { status: 'cancelled' });
+            this.startPendingDownloads();
             return;
         }
+        if (result !== 'succeeded') {
+            this.#observe(itemId, { status: 'failed', insufficientDiskSpace: result === 'failed_disk' });
+            this.startPendingDownloads();
+            return;
+        }
+        this.#host.updateSetup((setup) => withCompletedLocalDownload(setup, itemId));
         this.#observe(itemId, { status: 'succeeded' });
         this.#discovery.arm(itemId);
         void this.#host.streaming
@@ -303,15 +327,5 @@ class AiSetupOperationsManager {
     }
 }
 
-type SettledTaskResult = 'succeeded' | 'failed' | 'failed_disk' | 'detached';
-
-const readDownloadResult = (outcome: Exclude<ModelDownloadOutcome, { status: 'rejected' }>): SettledTaskResult => {
-    if (outcome.status === 'finished') return 'succeeded';
-    if (outcome.status === 'detached') return 'detached';
-    return outcome.status === 'failed' && outcome.insufficientDiskSpace ? 'failed_disk' : 'failed';
-};
-
-const isDownloadCommitted = (setup: AiSetupState): boolean => setup.step === 'ai_progress';
-
-export { AiSetupOperationsManager, BACKEND_INSTALL_OPERATION_TYPE, isDownloadCommitted };
+export { AiSetupOperationsManager, BACKEND_INSTALL_OPERATION_TYPE };
 export type { AiSetupOperationsManagerHost };

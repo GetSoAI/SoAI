@@ -6,6 +6,7 @@ import { resolveCanvasRenderPixelRatio } from '@core/layout/canvasGeometry.ts';
 
 type CanvasSize = Readonly<{ width: number; height: number }>;
 type CanvasRgb = Readonly<{ red: number; green: number; blue: number }>;
+type ResizedCanvas = Readonly<{ context: CanvasRenderingContext2D; size: CanvasSize }>;
 type PreparedCanvas = Readonly<{ context: CanvasRenderingContext2D; size: CanvasSize; color: CanvasRgb }>;
 
 const EMPTY_HEIGHT = 120;
@@ -19,7 +20,7 @@ const resolveCanvasCssSize = (canvas: HTMLCanvasElement): CanvasSize => {
     return Object.freeze({ width, height });
 };
 
-const resizeCanvas = (canvas: HTMLCanvasElement): CanvasRenderingContext2D => {
+const resizeCanvas = (canvas: HTMLCanvasElement): ResizedCanvas => {
     const context = canvas.getContext('2d');
     if (!context) {
         throw new Error('Audio visualizer requires a 2D canvas context');
@@ -28,12 +29,13 @@ const resizeCanvas = (canvas: HTMLCanvasElement): CanvasRenderingContext2D => {
     const pixelRatio = resolveCanvasRenderPixelRatio(canvas);
     const width = Math.max(1, Math.round(size.width * pixelRatio));
     const height = Math.max(1, Math.round(size.height * pixelRatio));
-    if (canvas.width !== width || canvas.height !== height) {
+    const backingSizeChanged = canvas.width !== width || canvas.height !== height;
+    if (backingSizeChanged) {
         canvas.width = width;
         canvas.height = height;
     }
     context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-    return context;
+    return { context, size: backingSizeChanged ? resolveCanvasCssSize(canvas) : size };
 };
 
 const resolveAccentColor = (canvas: HTMLCanvasElement): CanvasRgb => {
@@ -52,8 +54,7 @@ const resolveAccentColor = (canvas: HTMLCanvasElement): CanvasRgb => {
 };
 
 const configureCanvas = (canvas: HTMLCanvasElement): PreparedCanvas => {
-    const context = resizeCanvas(canvas);
-    const size = resolveCanvasCssSize(canvas);
+    const { context, size } = resizeCanvas(canvas);
     const color = resolveAccentColor(canvas);
     context.globalCompositeOperation = 'source-over';
     context.globalAlpha = 1;

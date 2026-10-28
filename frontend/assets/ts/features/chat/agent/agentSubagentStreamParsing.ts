@@ -1,6 +1,7 @@
 /* SoAI - Chat feature agent subagent stream parsing [frontend/assets/ts/features/chat/agent/agentSubagentStreamParsing.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { readRequiredPresentStringValue } from '@core/types/payloadValueReaders.ts';
 import { parseCodeDiffArrayLenient } from '@core/chat/codeDiffParsing.ts';
 import { isBoolean, isString } from '@core/typeGuards.ts';
 import { isJsonObject, isJsonValue, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
@@ -57,7 +58,7 @@ const decodeSubagentStreamTextBlock = (value: JsonValue | null, index: number): 
         throw new Error(`Subagent stream text block ${index} must be an object.`);
     }
     return {
-        text: readRequiredText(value['text'], `Subagent stream text block ${index}.text`),
+        text: readRequiredPresentStringValue(value['text'], `Subagent stream text block ${index}.text`),
         startedAtMs: readRequiredNonNegativeInteger(value['started_at_ms'], `Subagent stream text block ${index}.started_at_ms`),
         blockIndex: readRequiredNonNegativeInteger(value['block_index'], `Subagent stream text block ${index}.block_index`),
         streamOrder: readRequiredNonNegativeInteger(value['stream_order'], `Subagent stream text block ${index}.stream_order`)

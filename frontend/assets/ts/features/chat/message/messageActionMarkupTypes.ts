@@ -1,6 +1,7 @@
 /* SoAI - Chat message action markup contracts [frontend/assets/ts/features/chat/message/messageActionMarkupTypes.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { AssistantResponseDurationState } from '@features/chat/message/assistantResponseDuration.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import type { MessageActionButtonRenderContext } from '@features/chat/message/messageActionButtons.ts';
 import type { ConversationRunningActivitySnapshot } from '@features/chat/storage/storageModels.ts';
@@ -11,6 +12,7 @@ interface MessageActionMarkupContext extends MessageActionButtonRenderContext {
     isConversationExecuting(conversationId: string): boolean;
     getCurrentConversationId(): string | null;
     getCurrentRunningActivitySnapshot(): ConversationRunningActivitySnapshot | null;
+    resolveAssistantResponseDuration(message: ChatMessage, nowMs: number): AssistantResponseDurationState;
     resolveRunningActivitySummaryForMarkup(message: ChatMessage, nowMs: number): RunningActivitySummary;
 }
 

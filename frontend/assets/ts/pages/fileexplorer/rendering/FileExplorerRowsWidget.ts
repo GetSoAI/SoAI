@@ -6,13 +6,14 @@ import { createHtmlTableRow } from '@core/dom/html.ts';
 import { parentVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
 import type { FileBrowserEntry } from '@core/fileexplorerbrowser/types.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { TimeoutTimer } from '@core/timers/timeoutTimer.ts';
 import { createDeferred, type Deferred } from '@core/runtime/deferred.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
-import { renderFileExplorerEmptyRowMarkup, renderFileExplorerEntryRowMarkup, renderFileExplorerLoadingRowMarkup, renderFileExplorerParentRowMarkup } from '@pages/fileexplorer/rendering/FileExplorerTableRowsWidget.ts';
+import { renderFileExplorerEntryRowMarkup, renderFileExplorerLoadingRowMarkup, renderFileExplorerMessageRowMarkup, renderFileExplorerParentRowMarkup } from '@pages/fileexplorer/rendering/FileExplorerTableRowsWidget.ts';
 
-type FileExplorerRenderedRow = { id: string; variant: 'empty' } | { id: string; variant: 'entry'; entry: FileBrowserEntry } | { id: string; variant: 'loading'; label: string } | { id: string; variant: 'parent'; path: string };
+type FileExplorerRenderedRow = { id: string; variant: 'empty' } | { id: string; variant: 'error'; message: string } | { id: string; variant: 'entry'; entry: FileBrowserEntry } | { id: string; variant: 'loading'; label: string } | { id: string; variant: 'parent'; path: string };
 
 interface FileExplorerRowsWidgetOptions {
     rowsBody: HTMLTableSectionElement;
@@ -28,14 +29,19 @@ interface FileExplorerRowsUpdate {
     entries: readonly FileBrowserEntry[];
     currentPath: string;
     isLoading: boolean;
+    sessionRevision?: number;
     isLoadingMore: boolean;
     loadingLabel: string;
     resetScroll: boolean;
+    animateLayout?: boolean | undefined;
+    errorMessage?: string | null | undefined;
 }
 
 const EMPTY_ROW_ID = 'file-explorer:empty';
+const ERROR_ROW_ID = 'file-explorer:error';
 const LOADING_ROW_ID = 'file-explorer:loading';
 const PARENT_ROW_ID = 'file-explorer:parent';
+const LOADING_ROW_DELAY_MS = 250;
 const entryRowId = (path: string): string => `file-explorer:entry:${path}`;
 
 class FileExplorerRowsWidget {
@@ -49,6 +55,10 @@ class FileExplorerRowsWidget {
     #loadedEndRendered = false;
     #loadedEndWaiter: Deferred<boolean> | null = null;
     #networkLoader: HTMLElement | null = null;
+    #loadingRowTimer: TimeoutTimer | null = null;
+    #showLoadingRow = false;
+    #loadingSessionRevision: number | null = null;
+    #latestUpdate: FileExplorerRowsUpdate | null = null;
     #renderedPath: string | null = null;
     #revealOnCommit = false;
     #rowIds: readonly string[] = [];
@@ -87,7 +97,18 @@ class FileExplorerRowsWidget {
     }
 
     update(input: FileExplorerRowsUpdate): void {
+        this.#latestUpdate = input;
         if (input.isLoading) this.#settleLoadedEndWaiter(false);
+        if (input.isLoading) {
+            if (input.sessionRevision !== undefined && this.#loadingSessionRevision !== input.sessionRevision) {
+                this.#cancelLoadingRow();
+                this.#loadingSessionRevision = input.sessionRevision;
+            }
+            this.#scheduleLoadingRow();
+        } else {
+            this.#cancelLoadingRow();
+            this.#loadingSessionRevision = null;
+        }
         if (this.#renderedPath !== input.currentPath) {
             this.#renderedPath = input.currentPath;
             this.#revealOnCommit = true;
@@ -111,7 +132,8 @@ class FileExplorerRowsWidget {
             ids: rowIds,
             lookup: new Map(rows.map((row) => [row.id, row])),
             dirtyIds,
-            resetScroll: input.resetScroll
+            resetScroll: input.resetScroll,
+            animateLayout: input.animateLayout === true
         });
         this.#syncNetworkLoader();
     }
@@ -136,17 +158,20 @@ class FileExplorerRowsWidget {
     }
 
     dispose(): void {
+        this.#cancelLoadingRow();
         this.#settleLoadedEndWaiter(false);
         this.#removeNetworkLoader();
         this.#renderer.dispose();
         this.#rowIds = [];
         this.#rowSignatures = new Map();
+        this.#latestUpdate = null;
+        this.#loadingSessionRevision = null;
         this.#renderedPath = null;
         this.#revealOnCommit = false;
     }
 
     #buildRows(input: FileExplorerRowsUpdate): FileExplorerRenderedRow[] {
-        if (input.isLoading) return [{ id: LOADING_ROW_ID, variant: 'loading', label: input.loadingLabel }];
+        if (input.isLoading) return this.#showLoadingRow ? [{ id: LOADING_ROW_ID, variant: 'loading', label: input.loadingLabel }] : [];
         const rows: FileExplorerRenderedRow[] = [];
         if (input.currentPath !== '/') {
             rows.push({
@@ -158,10 +183,31 @@ class FileExplorerRowsWidget {
         for (const entry of input.entries) {
             rows.push({ id: entryRowId(entry.path), variant: 'entry', entry });
         }
-        if (input.entries.length === 0 && input.currentPath === '/') {
+        if (input.entries.length === 0 && input.errorMessage) {
+            rows.push({ id: ERROR_ROW_ID, variant: 'error', message: input.errorMessage });
+        } else if (input.entries.length === 0 && input.currentPath === '/') {
             rows.push({ id: EMPTY_ROW_ID, variant: 'empty' });
         }
         return rows;
+    }
+
+    #scheduleLoadingRow(): void {
+        if (this.#showLoadingRow || this.#loadingRowTimer !== null) return;
+        this.#loadingRowTimer = new TimeoutTimer(LOADING_ROW_DELAY_MS, () => {
+            this.#loadingRowTimer = null;
+            if (!this.#latestUpdate?.isLoading) return;
+            this.#showLoadingRow = true;
+            this.update(this.#latestUpdate);
+        });
+        this.#loadingRowTimer.start();
+    }
+
+    #cancelLoadingRow(): void {
+        if (this.#loadingRowTimer !== null) {
+            this.#loadingRowTimer.stop();
+            this.#loadingRowTimer = null;
+        }
+        this.#showLoadingRow = false;
     }
 
     #renderRow(row: FileExplorerRenderedRow): HTMLTableRowElement {
@@ -172,8 +218,10 @@ class FileExplorerRowsWidget {
             markup = renderFileExplorerParentRowMarkup(row.path, this.#getIconSync);
         } else if (row.variant === 'loading') {
             markup = renderFileExplorerLoadingRowMarkup(row.label);
+        } else if (row.variant === 'error') {
+            markup = renderFileExplorerMessageRowMarkup(row.message, 'error');
         } else {
-            markup = renderFileExplorerEmptyRowMarkup();
+            markup = renderFileExplorerMessageRowMarkup(i18n.t('fileExplorer.status.empty'), 'empty');
         }
         const element = createHtmlTableRow({
             documentRef: this.#rowsBody.ownerDocument,
@@ -210,6 +258,7 @@ class FileExplorerRowsWidget {
             return JSON.stringify([entry.name, entry.isDirectory, entry.size, entry.modifiedAt, entry.modifiedAtTimestamp, entry.mimeType, entry.permissions, this.#isRecentEntry(entry)]);
         }
         if (row.variant === 'parent') return row.path;
+        if (row.variant === 'error') return `${row.variant}:${row.message}`;
         return row.variant === 'loading' ? `${row.variant}:${row.label}` : row.variant;
     }
 }

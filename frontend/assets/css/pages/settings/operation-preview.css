@@ -4,6 +4,8 @@
 @layer pages {
     :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress {
         --settings-operation-progress-color: var(--status-orange);
+        --presence-scale-from: 1;
+        --presence-blur-from: 0;
 
         display: flex;
         width: min(100%, 32rem);
@@ -16,12 +18,9 @@
         display: none;
     }
 
-    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress-slot:not(:empty) {
-        margin-bottom: var(--space-4);
-    }
-
     :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress-slot > .settings-operation-progress {
         width: 100%;
+        margin-bottom: var(--space-4);
     }
 
     :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress__row {

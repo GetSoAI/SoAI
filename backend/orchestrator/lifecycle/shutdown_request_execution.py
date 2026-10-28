@@ -13,7 +13,7 @@ from core.errors.error_types import ErrorType
 from core.errors.exception_logging import log_exception
 from core.errors.public_projection import project_public_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from core.events.completion_waiting import publication_completion_deadline
+from core.events.completion_waiting import await_publication_receipt
 from core.logging.trace import get_logger
 from core.orchestrator.stop_outcome import PluginStopOutcome
 from core.runtime.backend_process_tracking_db import (
@@ -60,7 +60,6 @@ async def execute_stop_plugin_request(
 ) -> PluginStopOutcome:
     logger = get_logger(LOGGER_NAME)
     plugin_name = request.plugin_name
-    state_change_deadline = publication_completion_deadline()
     registry: TaskRegistryProtocol | None = None
     if (
         request.reply_channel is not None
@@ -241,8 +240,8 @@ async def execute_stop_plugin_request(
                     registry=resolve_registry(deps, registry),
                 )
         return pre_stop_outcome
-    if request.wait_for_state_changes and starting_receipt is not None:
-        await starting_receipt.wait_for_completion(state_change_deadline)
+    if request.wait_for_state_changes:
+        await await_publication_receipt(starting_receipt)
     try:
         stop_outcome = await perform_plugin_stop_logic(plugin_name)
         if request.publish_state_changes:
@@ -257,8 +256,8 @@ async def execute_stop_plugin_request(
                 final_state,
                 final_reason,
             )
-            if request.wait_for_state_changes and final_receipt is not None:
-                await final_receipt.wait_for_completion(state_change_deadline)
+            if request.wait_for_state_changes:
+                await await_publication_receipt(final_receipt)
         if request.reply_channel is not None:
             completion_message = (
                 f"Plugin '{plugin_name}' has been stopped."

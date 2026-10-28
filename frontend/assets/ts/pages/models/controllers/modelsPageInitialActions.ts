@@ -6,7 +6,7 @@ import { MODELS_ACTION_ADD_PROVIDER, MODELS_ACTION_DOWNLOAD_MODEL, MODELS_ACTION
 import { toTrimmedString } from '@core/normalize.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 
-type InitialActionContext = { action: string; plugin?: string; vm?: string };
+type InitialActionContext = { action: string; plugin?: string; vm?: string; search?: string };
 type InitialActionParameters = JsonObject;
 type InitialActionExecutor = (host: ModelsInitialActionHost, parameters?: InitialActionParameters) => void | Promise<void>;
 
@@ -55,10 +55,11 @@ const setModelsInitialActionContext = (host: ModelsInitialActionHost, context: I
     }
     const plugin = toTrimmedString(initialActionContext['plugin']);
     const vm = toTrimmedString(initialActionContext['vm']);
-    host.setInitialActionContext({ action, ...(plugin ? { plugin } : {}), ...(vm ? { vm } : {}) });
+    const search = toTrimmedString(initialActionContext['search']);
+    host.setInitialActionContext({ action, ...(plugin ? { plugin } : {}), ...(vm ? { vm } : {}), ...(search ? { search } : {}) });
 };
 
-const clearInitialActionQuery = (host: ModelsInitialActionHost, keys: string[] = ['action', 'plugin', 'vm']): void => {
+const clearInitialActionQuery = (host: ModelsInitialActionHost, keys: string[] = ['action', 'plugin', 'vm', 'search']): void => {
     const currentRoute = host.router.getCurrentRoute();
     if (!currentRoute) {
         throw new Error('Models initial action cleanup requires a current route');
@@ -95,7 +96,8 @@ const handleModelsInitialAction = async (host: ModelsInitialActionHost, paramete
     if (INITIAL_PLUGIN_ACTIONS.has(action)) {
         setModelsInitialActionContext(host, {
             action,
-            plugin: toTrimmedString(parametersObject ? parametersObject['plugin'] : null)
+            plugin: toTrimmedString(parametersObject ? parametersObject['plugin'] : null),
+            search: toTrimmedString(parametersObject ? parametersObject['search'] : null)
         });
     } else {
         setModelsInitialActionContext(host, null);

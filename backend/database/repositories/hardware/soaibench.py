@@ -254,7 +254,7 @@ def _require_materialized_run(conn: sqlite3.Connection, run_id: str) -> JSONDict
     run = _materialized_run(conn, run_id)
     if run is None:
         raise DatabaseError(
-            "SoAIBench persisted row was not materialized.",
+            "SoAI Bench persisted row was not materialized.",
             operation="hardware.soaibench.persistence",
         )
     return run

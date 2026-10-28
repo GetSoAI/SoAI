@@ -43,28 +43,11 @@ __all__ = (
     "flush_assistant_visible_chronology",
     "flush_assistant_visible_chronology_locked",
     "flush_pending_assistant_text_and_finalize_processing_locked",
-    "flush_pending_assistant_text_delta",
     "flush_pending_assistant_text_delta_locked",
-    "flush_streaming_assistant_content_if_due",
     "flush_streaming_assistant_content_if_due_locked",
     "persist_and_publish_assistant_text_delta",
     "persist_and_publish_assistant_text_delta_locked",
 )
-
-
-async def flush_streaming_assistant_content_if_due(
-    *,
-    runtime: AssistantTimelineRuntime,
-    database_messages: DatabaseStreamingMessagesProtocol,
-    force: bool = False,
-) -> bool:
-    lock = ensure_chat_stream_publish_lock(runtime)
-    async with lock:
-        return await flush_streaming_assistant_content_if_due_locked(
-            runtime=runtime,
-            database_messages=database_messages,
-            force=force,
-        )
 
 
 async def flush_streaming_assistant_content_if_due_locked(
@@ -160,7 +143,6 @@ async def flush_pending_assistant_text_delta_locked(
         database_messages=database_messages,
         status=TIMELINE_ACTIVITY_STATUS_COMPLETED,
     )
-    runtime.assistant_visible_output_started = True
     note_visible_activity_locked(runtime, now_ms=now_ms)
     await publish_chat_stream_event_locked(
         event_bus,
@@ -240,20 +222,3 @@ async def flush_pending_assistant_text_and_finalize_processing_locked(
     if not flushed:
         return None
     return runtime.assistant_visible_chars
-
-
-async def flush_pending_assistant_text_delta(
-    *,
-    runtime: AssistantTimelineRuntime,
-    database_messages: DatabaseStreamingMessagesProtocol,
-    event_bus: EventBusProtocol,
-) -> bool:
-    lock = ensure_chat_stream_publish_lock(runtime)
-    async with lock:
-        result = await flush_pending_assistant_text_delta_locked(
-            runtime=runtime,
-            database_messages=database_messages,
-            event_bus=event_bus,
-            force_publish=True,
-        )
-    return result

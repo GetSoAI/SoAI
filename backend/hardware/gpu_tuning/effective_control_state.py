@@ -15,6 +15,8 @@ from hardware.gpu_tuning.direct_control_state import (
 )
 from hardware.gpu_tuning.service_parsing import coerce_gpu_setting_int
 from hardware.gpu_tuning.setting_capabilities import (
+    clock_capability_requires_current_observation,
+    fan_capability_observes_configured_mode,
     gpu_setting_descriptors,
     setting_descriptor_for_key,
 )
@@ -86,6 +88,8 @@ def build_effective_capabilities(
             continue
         caps_entry = effective.get(descriptor.caps_key)
         if not isinstance(caps_entry, dict):
+            continue
+        if clock_capability_requires_current_observation(caps_entry):
             continue
         next_entry = dict(caps_entry)
         next_entry["current"] = applied_value
@@ -178,6 +182,10 @@ def _resolve_automatic_defaults(
             continue
         caps_entry = resolved.get(descriptor.caps_key)
         if not isinstance(caps_entry, dict):
+            continue
+        if descriptor.request_key == "fan_speed" and fan_capability_observes_configured_mode(
+            caps_entry
+        ):
             continue
         if coerce_gpu_setting_int(caps_entry.get("default"), round_float_strings=True) is not None:
             continue

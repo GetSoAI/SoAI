@@ -36,10 +36,10 @@
         cursor: pointer;
         user-select: none;
         padding: var(--space-15) var(--space-2);
-        border: var(--border-width-1) solid var(--glass-border-strong);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--ui-button-neutral-color) var(--control-button-border-strength), transparent);
         border-radius: var(--border-radius);
-        background: var(--glass-surface-light);
-        color: var(--text-primary);
+        background: var(--ui-button-neutral-bg);
+        color: var(--ui-button-neutral-color);
         max-width: 100%;
         min-width: 12rem;
         transition:
@@ -48,12 +48,13 @@
     }
 
     :where(.chat-container) .ask-user-option:hover {
-        border-color: color-mix(in srgb, var(--accent-blue) 35%, var(--glass-border-strong));
-        background: color-mix(in srgb, var(--glass-surface-light) 92%, var(--accent-blue) 8%);
+        border-color: color-mix(in srgb, var(--ui-button-neutral-color-hover) var(--control-button-border-strength), transparent);
+        background: var(--ui-button-neutral-bg-hover);
+        color: var(--ui-button-neutral-color-hover);
     }
 
     :where(.chat-container) .ask-user-option.is-selected {
-        border-color: var(--ui-tone-green-border-selected);
+        border-color: color-mix(in srgb, var(--ui-tone-green-border-selected) var(--control-button-border-strength), transparent);
         background: var(--ui-tone-green-surface-selected);
     }
 

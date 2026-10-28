@@ -10,7 +10,6 @@ from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.hardware.gpu_settings_contract import (
     GPU_SETTING_CORE_CLOCK_FIELD,
     GPU_SETTING_FAN_SPEED_FIELD,
-    GPU_SETTING_MEM_CLOCK_FIELD,
 )
 from core.validation.coercion import coerce_int_from_scalar
 from hardware.gpu_tuning.service_parsing import (
@@ -133,24 +132,19 @@ def apply_nvidia_settings_clock_offsets(
     messages: list[str],
     operation: str,
 ) -> bool:
+    if mem_clock is not None and not (isinstance(mem_clock, str) and mem_clock.lower() == "auto"):
+        errors.append("Absolute memory clock conversion is unavailable.")
+        return False
     try:
         core_perf_level = _read_capability_perf_level(caps, "core_clock_mhz")
         mem_perf_level = _read_capability_perf_level(caps, "mem_clock_mhz")
         core_default: int | None = None
-        mem_default: int | None = None
         if core_clock is not None and not (
             isinstance(core_clock, str) and core_clock.lower() == "auto"
         ):
             core_default = read_capability_setting_int(caps, "core_clock_mhz")
             if core_default is None:
                 errors.append("Default core clock is unavailable.")
-                return False
-        if mem_clock is not None and not (
-            isinstance(mem_clock, str) and mem_clock.lower() == "auto"
-        ):
-            mem_default = read_capability_setting_int(caps, "mem_clock_mhz")
-            if mem_default is None:
-                errors.append("Default memory clock is unavailable.")
                 return False
         applied_parts: list[str] = []
         if core_clock is not None:
@@ -179,27 +173,13 @@ def apply_nvidia_settings_clock_offsets(
                 errors.append(f"Core clock setting failed: {core_output}")
                 return True
         if mem_clock is not None:
-            if isinstance(mem_clock, str) and mem_clock.lower() == "auto":
-                mem_offset = 0
-            else:
-                mem_value = coerce_gpu_setting_int_for_apply(
-                    mem_clock,
-                    GPU_SETTING_MEM_CLOCK_FIELD,
-                    errors,
-                )
-                if mem_value is None:
-                    return False
-                if mem_default is None:
-                    errors.append("Default memory clock is unavailable.")
-                    return False
-                mem_offset = mem_value - mem_default
             mem_success, mem_output = controller.set_memory_offset(
-                mem_offset,
+                0,
                 vendor_id,
                 mem_perf_level,
             )
             if mem_success:
-                applied_parts.append(f"Memory: {mem_offset:+d}MHz")
+                applied_parts.append("Memory: +0MHz")
             else:
                 errors.append(f"Memory clock setting failed: {mem_output}")
         if applied_parts:

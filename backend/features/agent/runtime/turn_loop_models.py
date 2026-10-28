@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from core.errors.payload import ErrorPublicPayload
 from core.openai.usage.models import CanonicalUsage
 from core.types.json import JSONDict
 from features.agent.runtime.turn_terminal_state import (
@@ -57,8 +58,10 @@ class TurnLoopInferenceResult:
     tool_calls: list[JSONDict]
     visible_text_chars: int
     thinking_text_chars: int
+    reasoning_text: str = ""
     error_details: JSONDict | None = None
     detected_tool_calls: list[JSONDict] = field(default_factory=list[JSONDict])
+    public_error: ErrorPublicPayload | None = None
 
 
 if TYPE_CHECKING:

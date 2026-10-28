@@ -43,30 +43,30 @@ const isDecodedSoAIBenchRun = (value: JsonValue | null | undefined): value is De
 
 const requireDecodedSoAIBenchRun = (value: JsonValue | null | undefined, label: string): DecodedSoAIBenchRun => {
     if (!isDecodedSoAIBenchRun(value)) {
-        throw new TypeError(`${label} must be a decoded SoAIBench run`);
+        throw new TypeError(`${label} must be a decoded SoAI Bench run`);
     }
     return value;
 };
 
 const normalizeRun = (value: JsonValue | undefined): DecodedSoAIBenchRun => {
     if (value === undefined) {
-        throw new TypeError('SoAIBench run payload must be an object');
+        throw new TypeError('SoAI Bench run payload must be an object');
     }
-    const decoded = decodeGpuSoAIBenchRun(value, 'SoAIBench run payload');
+    const decoded = decodeGpuSoAIBenchRun(value, 'SoAI Bench run payload');
     const runId = toTrimmedString(decoded.runId);
     const deviceId = toTrimmedString(decoded.deviceId);
     const status = toTrimmedString(decoded.status);
     if (!runId) {
-        throw new TypeError('SoAIBench run payload must include run_id');
+        throw new TypeError('SoAI Bench run payload must include run_id');
     }
     if (!deviceId) {
-        throw new TypeError('SoAIBench run payload must include device_id');
+        throw new TypeError('SoAI Bench run payload must include device_id');
     }
     if (!status) {
-        throw new TypeError('SoAIBench run payload must include status');
+        throw new TypeError('SoAI Bench run payload must include status');
     }
     if (decoded.updateSeq === undefined) {
-        throw new TypeError('SoAIBench run payload must include update_seq');
+        throw new TypeError('SoAI Bench run payload must include update_seq');
     }
     const run = toJsonCompatibleValue({
         ...decoded,
@@ -75,7 +75,7 @@ const normalizeRun = (value: JsonValue | undefined): DecodedSoAIBenchRun => {
         status,
         updateSeq: decoded.updateSeq
     });
-    return requireDecodedSoAIBenchRun(run, 'SoAIBench run payload');
+    return requireDecodedSoAIBenchRun(run, 'SoAI Bench run payload');
 };
 
 const buildState = (runs: DecodedSoAIBenchRun[], deletedSeqByRunId: Record<string, number> = {}): SoAIBenchRunsState => {
@@ -98,14 +98,14 @@ const buildState = (runs: DecodedSoAIBenchRun[], deletedSeqByRunId: Record<strin
 const normalizeSnapshot = (payload: JsonValue | null | undefined, previousValue: JsonValue | null | undefined): SoAIBenchRunsState => {
     const record = isPlainObject(payload) ? payload : null;
     if (!record) {
-        throw new TypeError('SoAIBench runs snapshot must be an object');
+        throw new TypeError('SoAI Bench runs snapshot must be an object');
     }
     if (record['success'] === false) {
-        throw new Error('SoAIBench runs snapshot failed');
+        throw new Error('SoAI Bench runs snapshot failed');
     }
     const rawRuns = record['runs'];
     if (!isArray(rawRuns)) {
-        throw new TypeError('SoAIBench runs snapshot must include runs');
+        throw new TypeError('SoAI Bench runs snapshot must include runs');
     }
     const previous = isSoAIBenchRunsState(previousValue) ? previousValue : createEmptyState();
     const decodedRuns = rawRuns.map((run) => normalizeRun(run));
@@ -123,7 +123,7 @@ const normalizeSnapshot = (payload: JsonValue | null | undefined, previousValue:
 const normalizePush = (payload: JsonValue | null | undefined, previousValue: JsonValue | null | undefined): SoAIBenchRunsState => {
     const event = isPlainObject(payload) ? payload : null;
     if (!event || !hasOwn(event, 'run')) {
-        throw new TypeError('SoAIBench run update must include run');
+        throw new TypeError('SoAI Bench run update must include run');
     }
     const run = normalizeRun(event['run']);
     const previous = isSoAIBenchRunsState(previousValue) ? previousValue : createEmptyState();

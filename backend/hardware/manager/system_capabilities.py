@@ -3,16 +3,20 @@
 
 from __future__ import annotations
 
-import ctypes
 import platform
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_handled_exception
+from core.errors.exceptions import SoAIError
+from core.errors.public_projection import project_public_error
+from core.hardware.gpu_inventory_errors import GPUObservationUnavailableError
 from core.hardware.protocols import (
     NvidiaCapabilitiesCacheServiceProtocol,
     NvmlGateProtocol,
 )
+from core.hardware.vulkan_physical_acquisition import load_vulkan_library
 from core.history.config_view import build_history_config_view
 from core.logging.protocols import TraceLogger
 from core.runtime.platform import (
@@ -22,15 +26,12 @@ from core.runtime.platform import (
     normalize_os_id,
 )
 from core.system.protocols import CommandExecutorProtocol
-from core.validation.numbers import (
-    coerce_float_from_json,
-    coerce_int_from_json,
-)
+from core.types.json import JSONDict
+from core.validation.numbers import coerce_float_from_json
+from hardware.cpu_inventory.topology_totals import total_cpu_count
 from hardware.cpu_rapl import RaplEnergyCache
-from hardware.gpu_info_resolution import (
-    build_gpu_info_service_dependencies,
-    resolve_gpu_info_for_services,
-)
+from hardware.gpu_info_resolution import get_gpu_observation_for_services
+from hardware.gpu_inventory.physical_observations import require_gpu_discovery_available
 from hardware.info_cpu import get_cpu_info
 from hardware.info_memory import get_memory_info
 from hardware.internal_protocols import (
@@ -39,15 +40,27 @@ from hardware.internal_protocols import (
 )
 from hardware.manager.cpu_feature_detection import detect_cpu_instruction_features
 from hardware.manager.gpu_primary_selection import select_primary_gpu
-from hardware.operations import sum_vram_gb
+from hardware.manager.system_info_cache import build_summary
+from hardware.vendors.amd.adl_session import AdlRuntime
 from hardware.vendors.vendor_metadata import gpu_feature_names_from_compute_drivers
 
 if TYPE_CHECKING:
-    from core.types.json import JSONDict, JSONValue
+    from core.types.json import JSONValue
 
-__all__ = ("sync_get_system_capabilities",)
+__all__ = (
+    "SystemCapabilityEnvironment",
+    "build_sampled_system_capabilities",
+    "read_system_capability_environment",
+    "sync_get_system_capabilities",
+)
 
 OPERATION_HARDWARE_SYSTEM_CAPABILITIES_VULKAN = "hardware.system_capabilities.vulkan"
+
+
+@dataclass(frozen=True, slots=True)
+class SystemCapabilityEnvironment:
+    capabilities: JSONDict
+    vulkan_available: bool
 
 
 def sync_get_system_capabilities(
@@ -63,71 +76,89 @@ def sync_get_system_capabilities(
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
     rapl_energy_cache: RaplEnergyCache,
     gpu_info: JSONDict | None = None,
+    sampled_snapshot: Mapping[str, JSONValue] | None = None,
+    adl_runtime: AdlRuntime | None = None,
 ) -> JSONDict:
-    runtime_platform = get_runtime_platform()
+    gpu_discovery: JSONDict | None = None
+    snapshot: JSONDict = (
+        dict(sampled_snapshot)
+        if sampled_snapshot is not None
+        else {
+            "memory": get_memory_info(),
+            "cpus": get_cpu_info(executor, rapl_energy_cache=rapl_energy_cache),
+        }
+    )
+    try:
+        if sampled_snapshot is not None:
+            gpu_payload = sampled_snapshot.get("gpu")
+        elif gpu_info is not None:
+            gpu_payload = gpu_info
+        else:
+            observation = get_gpu_observation_for_services(
+                executor,
+                detailed=False,
+                gpu_info_cache_service=gpu_info_cache_service,
+                gpu_vendor_detection_service=gpu_vendor_detection_service,
+                nvidia_nvml_gate=nvidia_nvml_gate,
+                nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
+                adl_runtime=adl_runtime,
+            )
+            if observation.refresh_failed or not observation.coverage_complete:
+                require_gpu_discovery_available(observation.payload)
+                if observation.refresh_error is not None:
+                    raise observation.refresh_error
+                raise GPUObservationUnavailableError(
+                    "Complete current GPU observation is unavailable for discovery."
+                )
+            gpu_payload = observation.payload
+        if isinstance(gpu_payload, dict):
+            require_gpu_discovery_available(gpu_payload)
+            snapshot["gpu"] = gpu_payload
+    except SoAIError as error:
+        if error.code not in (
+            "gpu_inventory_timeout",
+            "gpu_inventory_query_failed",
+            "gpu_inventory_busy",
+            "gpu_observation_unavailable",
+        ):
+            raise
+        snapshot.pop("gpu", None)
+        gpu_discovery = {"status": "unavailable", "error": project_public_error(error).to_dict()}
+    environment = read_system_capability_environment(
+        executor=executor,
+        logger=logger,
+        monitoring_interval_ms=monitoring_interval_ms,
+        history_config=history_config,
+        history_enabled=history_enabled,
+    )
+    capabilities = build_sampled_system_capabilities(environment, snapshot)
+    if gpu_discovery is not None:
+        capabilities["gpu_discovery"] = gpu_discovery
+    return capabilities
 
+
+def read_system_capability_environment(
+    *,
+    executor: CommandExecutorProtocol,
+    logger: TraceLogger,
+    monitoring_interval_ms: int,
+    history_config: Mapping[str, JSONValue],
+    history_enabled: bool,
+) -> SystemCapabilityEnvironment:
+    runtime_platform = get_runtime_platform()
     caps: JSONDict = {
         "platform": _runtime_platform_os_id(runtime_platform),
         "arch": _runtime_platform_arch_id(runtime_platform),
         "platform_id": _runtime_platform_id(runtime_platform),
-        "cpu_features": [],
-        "gpu_features": [],
-        "gpu": {"vendor": "none", "vram_gb": 0, "name": "N/A"},
-        "compute_drivers": {},
     }
-    mem_info = get_memory_info()
-    cpu_info_list = [
-        item
-        for item in get_cpu_info(executor, rapl_energy_cache=rapl_energy_cache)
-        if isinstance(item, dict)
-    ]
-    total_physical_cores = sum(
-        coerce_int_from_json(cpu.get("physical_cores", 0), default=0, allow_bool=True) or 0
-        for cpu in cpu_info_list
-    )
-    total_logical_cores = sum(
-        coerce_int_from_json(cpu.get("logical_cores", 0), default=0, allow_bool=True) or 0
-        for cpu in cpu_info_list
-    )
-    system_ram_gb = coerce_float_from_json(
-        mem_info.get("total_gb", 0),
-        default=0.0,
-        allow_bool=True,
-    )
-    if system_ram_gb is None:
-        system_ram_gb = 0.0
-    caps.update(
-        {
-            "system_ram_gb": system_ram_gb,
-            "cpu_physical_cores": total_physical_cores,
-            "cpu_logical_cores": total_logical_cores,
-        },
-    )
-    cpu_features_set = {platform.machine().lower()}
-    cpu_features_set.update(
-        detect_cpu_instruction_features(
-            executor,
-            runtime_platform=runtime_platform,
-            logger=logger,
-        ),
-    )
-    caps["cpu_features"] = sorted(list(cpu_features_set))
-    gpu_info_services = build_gpu_info_service_dependencies(
-        gpu_info_cache_service=gpu_info_cache_service,
-        gpu_vendor_detection_service=gpu_vendor_detection_service,
-        nvidia_nvml_gate=nvidia_nvml_gate,
-        nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
-    )
-    full_gpu_info = resolve_gpu_info_for_services(
+    cpu_instruction_features = detect_cpu_instruction_features(
         executor,
-        deps=gpu_info_services,
-        gpu_info=gpu_info,
+        runtime_platform=runtime_platform,
+        logger=logger,
     )
-    total_vram_gb = float(sum_vram_gb(full_gpu_info))
-    gpus_value = full_gpu_info.get("gpus")
-    gpus_present = isinstance(gpus_value, list) and any(isinstance(gpu, dict) for gpu in gpus_value)
-    caps["total_vram_gb"] = total_vram_gb
-    caps["total_system_memory_gb"] = round(system_ram_gb + total_vram_gb, 2)
+    cpu_features_set = {platform.machine().lower(), *cpu_instruction_features.features}
+    caps["cpu_features"] = sorted(cpu_features_set)
+    caps["cpu_features_observation"] = cpu_instruction_features.observation
     history_view = build_history_config_view(
         history_config,
         enabled_default=history_enabled,
@@ -157,38 +188,59 @@ def sync_get_system_capabilities(
         "components": history_components,
     }
     caps["history_config"] = history_payload
-    gpu_features_set: set[str] = set()
-    compute_drivers_value = full_gpu_info.get("compute_drivers")
-    compute_drivers = compute_drivers_value if isinstance(compute_drivers_value, dict) else {}
-    if compute_drivers:
+    vulkan_available = False
+    try:
+        load_vulkan_library()
+        vulkan_available = True
+    except (OSError, TypeError) as exception:
+        log_handled_exception(
+            logger,
+            exception,
+            message="Vulkan loader is unavailable.",
+            operation=OPERATION_HARDWARE_SYSTEM_CAPABILITIES_VULKAN,
+            level="trace",
+        )
+    return SystemCapabilityEnvironment(caps, vulkan_available)
+
+
+def build_sampled_system_capabilities(
+    environment: SystemCapabilityEnvironment,
+    sampled_snapshot: Mapping[str, JSONValue],
+) -> JSONDict:
+    caps = dict(environment.capabilities)
+    cpu_sample = sampled_snapshot.get("cpus")
+    if isinstance(cpu_sample, list):
+        cpu_info_list = [item for item in cpu_sample if isinstance(item, dict)]
+        caps["cpu_physical_cores"] = total_cpu_count(cpu_info_list, "physical_cores")
+        caps["cpu_logical_cores"] = total_cpu_count(cpu_info_list, "logical_cores")
+    sampled_summary = build_summary(base_snapshot=sampled_snapshot)
+    if "total_system_ram_gb" in sampled_summary:
+        caps["system_ram_gb"] = coerce_float_from_json(
+            sampled_summary["total_system_ram_gb"], default=0.0, allow_bool=True
+        )
+    if "total_system_memory_gb" in sampled_summary:
+        caps["total_system_memory_gb"] = sampled_summary["total_system_memory_gb"]
+    gpu_sample = sampled_snapshot.get("gpu")
+    if isinstance(gpu_sample, dict):
+        compute_drivers_value = gpu_sample.get("compute_drivers")
+        compute_drivers = compute_drivers_value if isinstance(compute_drivers_value, dict) else {}
         caps["compute_drivers"] = compute_drivers
-        gpu_features_set.update(gpu_feature_names_from_compute_drivers(compute_drivers))
-    primary_gpu = select_primary_gpu(full_gpu_info, compute_drivers)
-    caps["gpu"] = {
-        "vendor": primary_gpu.vendor,
-        "vram_gb": primary_gpu.vram_gb,
-        "name": primary_gpu.name,
-    }
-    vulkan_lib_name = {
-        "Linux": "libvulkan.so.1",
-        "Windows": "vulkan-1.dll",
-        "Darwin": "libvulkan.1.dylib",
-    }.get(platform.system())
-    if gpus_present and vulkan_lib_name:
-        try:
-            loader_cls = ctypes.CDLL
-            loader_cls(vulkan_lib_name)
-            gpu_features_set.add("vulkan")
-        except (OSError, TypeError) as exception:
-            log_handled_exception(
-                logger,
-                exception,
-                message="Failed to load Vulkan library.",
-                operation=OPERATION_HARDWARE_SYSTEM_CAPABILITIES_VULKAN,
-                details={"library": vulkan_lib_name},
-                level="trace",
-            )
-    caps["gpu_features"] = sorted(list(gpu_features_set))
+        gpu_features = gpu_feature_names_from_compute_drivers(compute_drivers)
+        gpus_value = gpu_sample.get("gpus")
+        if isinstance(gpus_value, list) and any(
+            isinstance(gpu, dict)
+            and gpu.get("vulkan_supported") is True
+            and gpu.get("vulkan_enumeration_state") == "observed"
+            for gpu in gpus_value
+        ):
+            gpu_features.add("vulkan")
+        caps["gpu_features"] = sorted(gpu_features)
+        primary_gpu = select_primary_gpu(gpu_sample, compute_drivers)
+        primary_payload: JSONDict = {"vendor": primary_gpu.vendor, "name": primary_gpu.name}
+        if "total_vram_gb" in sampled_summary:
+            caps["total_vram_gb"] = sampled_summary["total_vram_gb"]
+            primary_payload["vram_gb"] = primary_gpu.vram_gb
+        caps["gpu"] = primary_payload
     return caps
 
 

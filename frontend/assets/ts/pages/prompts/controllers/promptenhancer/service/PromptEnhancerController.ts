@@ -4,11 +4,13 @@
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { readTrimmedSelectValue } from '@core/dom/formValues.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { drainCleanupStack } from '@core/lifecycle/cleanup.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { toTrimmedString } from '@core/normalize.ts';
-import { createDeferred } from '@core/runtime/deferred.ts';
+import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
+import { LifecycleScope } from '@core/lifecycle/lifecycleScope.ts';
 import { createSaveController, SAVE_HEADER_PRIORITY_MODAL, type SaveController } from '@core/save/public.ts';
 import { setAriaBusy } from '@core/ui/controls/ariaBusy.ts';
 import { isPromptRecord, PROMPTS_ENHANCER_MODAL_ID, type PromptRecord } from '@features/prompts/public.ts';
@@ -21,7 +23,7 @@ import type { PromptEnhancerDependencies, PromptEnhancerModelCatalogState, Promp
 class PromptEnhancerController {
     private readonly host: PromptEnhancerDependencies['host'];
     private readonly syntaxHighlighter: PromptEnhancerDependencies['syntaxHighlighter'];
-    private readonly resources: PromptEnhancerDependencies['resources'];
+    readonly #openingScope = new LifecycleScope();
     private readonly disposers: Array<() => void> = [];
     private readonly promptCreatedListeners = new Set<(promptId: string) => void>();
     private readonly runner: PromptEnhancerRunner;
@@ -45,7 +47,7 @@ class PromptEnhancerController {
     constructor({ host, syntaxHighlighter, resources }: PromptEnhancerDependencies) {
         this.host = host;
         this.syntaxHighlighter = syntaxHighlighter;
-        this.resources = resources;
+        resources.track(() => this.#openingScope.abort('prompt-enhancer-resource-cleanup'));
         this.runner = new PromptEnhancerRunner({
             host,
             resources,
@@ -128,12 +130,14 @@ class PromptEnhancerController {
     }
 
     closeModal(): void {
+        this.#openingScope.abort('prompt-enhancer-closed');
         this.runner.stopStreaming();
         delete this.host.modals.requireElement(PROMPTS_ENHANCER_MODAL_ID).dataset['promptColor'];
         this.#resetState();
     }
 
     dispose(): void {
+        this.#openingScope.abort('prompt-enhancer-disposed');
         this.runner.stopStreaming();
         this.disposeListeners();
         this.#resetState();
@@ -191,6 +195,7 @@ class PromptEnhancerController {
             return;
         }
         const promptName = prompt.name || i18n.t('prompts.untitled');
+        const opening = this.#openingScope.begin('prompt-enhancer-open-superseded');
         this.state = {
             source: this.#createSnapshot(prompt),
             modelId: this.host.getPromptEnhancerModel(),
@@ -215,12 +220,12 @@ class PromptEnhancerController {
         }
         this.host.closePromptView();
         this.host.modals.open(PROMPTS_ENHANCER_MODAL_ID);
-        const animationFrameReady = createDeferred<void>();
-        this.resources.requestAnimationFrame((): void => {
-            animationFrameReady.resolve();
-        });
-        await animationFrameReady.promise;
-        this.#renderState();
+        try {
+            await awaitPresentationFrame(opening.signal, 'Prompt enhancer opening was cancelled');
+            if (this.#openingScope.isCurrent(opening) && this.#isEnhancerModalOpen()) this.#renderState();
+        } catch (error) {
+            if (!isAbortError(error)) throw ensureError(error);
+        }
     }
 
     async runEnhancement(): Promise<void> {
@@ -261,6 +266,7 @@ class PromptEnhancerController {
     }
 
     closeEnhancerModal(): void {
+        this.#openingScope.abort('prompt-enhancer-closed');
         this.host.modals.close(PROMPTS_ENHANCER_MODAL_ID);
     }
 

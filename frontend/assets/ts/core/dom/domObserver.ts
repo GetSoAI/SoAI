@@ -3,6 +3,8 @@
 
 import { getDomDocument, getDomWindow } from '@core/dom/domEnvironment.ts';
 import { getRequestAnimationFrame } from '@core/environment/public.ts';
+import { createAbortError, throwIfAborted } from '@core/errors/abort.ts';
+import { monotonicMs } from '@core/time/clock.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { isFiniteNumber, isNode } from '@core/typeGuards.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -12,46 +14,45 @@ interface ObserveMutationsOptions {
     timeout?: number;
     rejectionMessage?: string;
     includeAttributes?: boolean;
+    signal?: AbortSignal | null;
 }
 
-const observeMutationsUntil = <T>(evaluator: () => T | null | undefined | false, { root = getDomDocument(), timeout = 0, rejectionMessage = 'Timeout waiting for condition', includeAttributes = false }: ObserveMutationsOptions = {}): Promise<T> => {
+const observeMutationsUntil = <T>(evaluator: () => T | null | undefined | false, { root = getDomDocument(), timeout = 0, rejectionMessage = 'Timeout waiting for condition', includeAttributes = false, signal = null }: ObserveMutationsOptions = {}): Promise<T> => {
     return new Promise((resolvePromise, rejectPromise) => {
-        const target = root;
+        throwIfAborted(signal);
         let timerId: number | null = null;
         let active = true;
-
+        const deadline = isFiniteNumber(timeout) && timeout > 0 ? monotonicMs() + timeout : null;
         const finalize = (callback: () => void): void => {
+            if (!active) return;
             active = false;
             observer.disconnect();
-            if (timerId) {
-                clearTimeout(timerId);
-            }
+            signal?.removeEventListener('abort', onAbort);
+            if (timerId !== null) getDomWindow().clearTimeout(timerId);
             callback();
         };
-
-        const observer = new MutationObserver(() => {
+        const onAbort = (): void => finalize(() => rejectPromise(createAbortError()));
+        const evaluate = (): void => {
             if (!active) return;
-            let result: T | null | undefined | false;
-            try {
-                result = evaluator();
-            } catch (error) {
-                finalize(() => rejectPromise(error));
-                throw ensureError(error);
-            }
-            if (result === null || result === undefined || result === false) return;
-            finalize(() => resolvePromise(result));
-        });
-
-        observer.observe(target, {
-            childList: true,
-            subtree: true,
-            attributes: includeAttributes
-        });
-
-        if (isFiniteNumber(timeout) && timeout > 0) {
-            timerId = getDomWindow().setTimeout(() => {
+            if (deadline !== null && monotonicMs() >= deadline) {
                 finalize(() => rejectPromise(new Error(rejectionMessage)));
-            }, timeout);
+                return;
+            }
+            try {
+                const result = evaluator();
+                if (result !== null && result !== undefined && result !== false) finalize(() => resolvePromise(result));
+            } catch (error) {
+                finalize(() => rejectPromise(ensureError(error)));
+            }
+        };
+        const observer = new MutationObserver(evaluate);
+        try {
+            observer.observe(root, { childList: true, subtree: true, attributes: includeAttributes });
+            signal?.addEventListener('abort', onAbort, { once: true });
+            if (deadline !== null) timerId = getDomWindow().setTimeout(() => finalize(() => rejectPromise(new Error(rejectionMessage))), timeout);
+            evaluate();
+        } catch (error) {
+            finalize(() => rejectPromise(ensureError(error)));
         }
     });
 };

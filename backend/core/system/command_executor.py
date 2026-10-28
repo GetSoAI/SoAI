@@ -62,7 +62,12 @@ class CommandExecutor:
                         "sudo is required for privileged operations but is not installed.",
                     )
                     self._sudo_missing_logged = True
-                return CommandResult(stdout="", return_code=127, stderr="sudo unavailable")
+                return CommandResult(
+                    stdout="",
+                    return_code=127,
+                    stderr="sudo unavailable",
+                    startup_failure="not_found",
+                )
             argv = ["sudo", *argv]
         return run_argv_capture(
             argv,

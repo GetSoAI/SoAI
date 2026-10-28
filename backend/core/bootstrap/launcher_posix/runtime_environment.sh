@@ -511,17 +511,4 @@ soai_managed_runtime__ensure_env_uses_system_ca() {
         rm -f "$link_path" >/dev/null 2>&1 || true
         cp -f "$ca_bundle_path" "$link_path" >/dev/null 2>&1 || true
     done
-    if [ -x "${env_dir}/bin/python" ]; then
-        local certifi_ca_file=""
-        certifi_ca_file="$("${env_dir}/bin/python" -c "import certifi; print(certifi.where())" 2>/dev/null || true)"
-        case "$certifi_ca_file" in
-            "$env_dir"/*)
-                if [ -n "$certifi_ca_file" ] && [ -e "$certifi_ca_file" ] && [ ! -d "$certifi_ca_file" ]; then
-                    rm -f "$certifi_ca_file" >/dev/null 2>&1 || true
-                    cp -f "$ca_bundle_path" "$certifi_ca_file" >/dev/null 2>&1 || true
-                fi
-                ;;
-            *) ;;
-        esac
-    fi
 }

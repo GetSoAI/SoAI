@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { HardwareCapabilitiesResponse, HardwareSnapshotResponse } from '@core/api/contracts/hardwareContracts.ts';
+import { i18n } from '@core/i18n/index.ts';
 import { formatCompactDurationFromMs } from '@core/primitives/duration.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
 import { formatGigabytes, getCpuDevices } from '@features/hardware/public.ts';
@@ -50,7 +51,8 @@ export const buildHardwareHeaderStats = (input: HardwareHeaderStatsInput): Hardw
     const summary = input.snapshot.summary;
     const capabilities = input.capabilities;
     const cpus = getCpuDevices(input.snapshot);
-    const avgCpu = cpus.length ? cpus.reduce((acc, cpu) => acc + (Number(cpu.usagePercent) || 0), 0) / cpus.length : 0;
+    const usages = cpus.map((cpu) => cpu.usagePercent).filter((value): value is number => isFiniteNumber(value));
+    const avgCpu = usages.length ? usages.reduce((sum, value) => sum + value, 0) / usages.length : null;
 
     const totalRamRaw = summary.totalSystemRamGb ?? capabilities.systemRamGb;
     const totalVramRaw = summary.totalVramGb ?? capabilities.totalVramGb;
@@ -64,7 +66,7 @@ export const buildHardwareHeaderStats = (input: HardwareHeaderStatsInput): Hardw
 
     return {
         processes: String(input.processCount),
-        cpu: avgCpu > 0 ? `${Math.round(avgCpu)}%` : '—',
+        cpu: avgCpu !== null ? `${Math.round(avgCpu)}%` : i18n.t('common.notAvailableShort'),
         totalRam: totalRamLabel,
         totalVram: totalVramLabel,
         totalMemory: totalMemoryLabel,

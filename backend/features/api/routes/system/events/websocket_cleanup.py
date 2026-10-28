@@ -17,13 +17,16 @@ from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.events.protocols import EventBusProtocol
 from core.events.types_base import Event
-from core.files.upload_staging import cleanup_temp_file
 from core.logging.trace import get_logger
 from features.api.routes.system.events.chat_stream.cancel import (
     schedule_ws_chat_stream_cancel,
 )
 from features.api.routes.system.events.websocket_model_test_stream.runner import (
     schedule_ws_model_test_stream_cancel,
+)
+from features.api.routes.system.events.websocket_openai_audio.runtime import (
+    discard_transcription_upload,
+    request_transcription_cancellation,
 )
 from features.api.routes.system.events.websocket_openai_audio.speech_session_cancellation import (
     cancel_openai_audio_speech_session_runtime,
@@ -43,7 +46,7 @@ from features.chat.conversation_input_disconnect import (
     cancel_running_chat_input_for_disconnected_client,
 )
 
-__all__ = ("cleanup_websocket_connection",)
+__all__ = ("cleanup_websocket_connection", "disconnect_websocket_connection")
 
 LOGGER_NAME = "SoAI.features.api.websocket_cleanup"
 OPERATION_API_SYSTEM_WEBSOCKET_SYSTEM_EVENTS_CLEANUP_CLOSE_PTY_SESSION = (
@@ -57,7 +60,6 @@ OPERATION_API_SYSTEM_WEBSOCKET_SYSTEM_EVENTS_CLEANUP_WEBSOCKET_CLOSE = (
 )
 OPERATION_CHAT_INPUT_DISCONNECT = "api_system.websocket.chat_input_disconnect"
 OPERATION_WS_OPENAI_AUDIO_SPEECH_DISCONNECT = "ws_openai_audio.speech.disconnect"
-OPERATION_WS_OPENAI_AUDIO_TRANSCRIPTION_DISCONNECT = "ws_openai_audio.transcription.disconnect"
 OPERATION_WS_OPENAI_IMAGES_DISCONNECT = "ws_openai_images.disconnect"
 
 
@@ -72,24 +74,12 @@ async def cleanup_websocket_connection(
 ) -> None:
     logger = get_logger(LOGGER_NAME)
     track_background_task = api_context.dependencies.application_control.track_background_task
-    unsubscribed_count = 0
-    for event_type in connection.subscribed_types:
-        try:
-            event_bus.unsubscribe(event_type, event_handler)
-            unsubscribed_count += 1
-        except RECOVERABLE_EXCEPTIONS as unsubscribe_exception:
-            log_handled_exception(
-                get_logger(LOGGER_NAME),
-                unsubscribe_exception,
-                message="Event unsubscribe failed during WebSocket cleanup.",
-                operation=OPERATION_API_SYSTEM_WEBSOCKET_SYSTEM_EVENTS_CLEANUP_UNSUBSCRIBE,
-                details={"event_type": _describe_event_type(event_type)},
-                level="debug",
-            )
-    logger.debug(
-        "Unregistered %s WebSocket event subscriptions for %s.",
-        unsubscribed_count,
-        connection.user.get("username", "unknown"),
+    await disconnect_websocket_connection(
+        event_bus=event_bus,
+        connection=connection,
+        websocket=websocket,
+        event_handler=event_handler,
+        trace_id=trace_id,
     )
     snapshot_tasks = list(connection.snapshot_tasks.values())
     if snapshot_tasks:
@@ -153,25 +143,21 @@ async def cleanup_websocket_connection(
             del connection.model_test_streams[run_id]
     for run_id, transcription_runtime in list(connection.openai_audio_transcriptions.items()):
         async with transcription_runtime.lock:
-            transcription_runtime.state = "cancelled"
+            if transcription_runtime.runner_task is None:
+                await discard_transcription_upload(
+                    run_id=run_id,
+                    runtime=transcription_runtime,
+                    transcriptions=connection.openai_audio_transcriptions,
+                    state="cancelled",
+                )
+                continue
             if transcription_runtime.detach_event is not None:
                 transcription_runtime.detach_event.set()
-            if (
-                transcription_runtime.runner_task is not None
-                and not transcription_runtime.runner_task.done()
-            ):
-                transcription_runtime.runner_task.cancel()
-            if transcription_runtime.active_task_id:
-                _ = schedule_streaming_task_cancel(
-                    registry=api_context.dependencies.task_registry,
-                    task_id=transcription_runtime.active_task_id,
-                    reason="WebSocket disconnected.",
-                    context=connection.request.state.context,
-                    logger=logger,
-                    operation=OPERATION_WS_OPENAI_AUDIO_TRANSCRIPTION_DISCONNECT,
-                    track_background_task=track_background_task,
-                )
-            await cleanup_temp_file(transcription_runtime.temp_path)
+            request_transcription_cancellation(
+                transcription_runtime,
+                cause="disconnect",
+                reason="WebSocket disconnected.",
+            )
             existing_transcription_runtime = connection.openai_audio_transcriptions.get(run_id)
             if existing_transcription_runtime is transcription_runtime:
                 del connection.openai_audio_transcriptions[run_id]
@@ -252,6 +238,38 @@ async def cleanup_websocket_connection(
                 level="debug",
             )
         connection.pty_session_id = None
+
+
+async def disconnect_websocket_connection(
+    *,
+    event_bus: EventBusProtocol,
+    connection: WebsocketConnection,
+    websocket: WebSocket,
+    event_handler: Callable[[Event], Awaitable[None]],
+    trace_id: str | None,
+) -> None:
+    logger = get_logger(LOGGER_NAME)
+    connection.authorization.close()
+    unsubscribed_count = 0
+    for event_type in tuple(connection.subscribed_types):
+        try:
+            event_bus.unsubscribe(event_type, event_handler)
+            connection.subscribed_types.discard(event_type)
+            unsubscribed_count += 1
+        except RECOVERABLE_EXCEPTIONS as unsubscribe_exception:
+            log_handled_exception(
+                get_logger(LOGGER_NAME),
+                unsubscribe_exception,
+                message="Event unsubscribe failed during WebSocket cleanup.",
+                operation=OPERATION_API_SYSTEM_WEBSOCKET_SYSTEM_EVENTS_CLEANUP_UNSUBSCRIBE,
+                details={"event_type": _describe_event_type(event_type)},
+                level="debug",
+            )
+    logger.debug(
+        "Unregistered %s WebSocket event subscriptions for %s.",
+        unsubscribed_count,
+        connection.user.get("username", "unknown"),
+    )
     try:
         if should_close_websocket_application_state(websocket):
             await websocket.close(code=connection.close_code, reason=connection.close_reason)

@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.protocols import LoggerProtocol
@@ -32,7 +33,14 @@ async def run_periodic_min_specs_check(
 ) -> None:
     while True:
         try:
-            await asyncio.to_thread(check_minimum_specs, manager, executor, rapl_energy_cache)
+            await run_joined_thread_call(
+                check_minimum_specs,
+                manager,
+                executor,
+                rapl_energy_cache,
+                task_name="hardware-min-specs-check",
+                retain_resources_until_complete=True,
+            )
         except RECOVERABLE_EXCEPTIONS as exception:
             log_exception(
                 logger,

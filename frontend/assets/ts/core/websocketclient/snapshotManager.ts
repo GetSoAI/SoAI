@@ -1,7 +1,7 @@
 /* SoAI - Shared frontend WebSocket client snapshot manager [frontend/assets/ts/core/websocketclient/snapshotManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
+import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { SNAPSHOT_TIMEOUT_MS, SNAPSHOT_TIMEOUT_MESSAGE_PREFIX } from '@core/websocketclient/constants.ts';
 import { resolveSnapshotErrorMessage, resolveSnapshotId, resolveSnapshotTraceId, serializeSnapshotRequest } from '@core/websocketclient/events.ts';
 import { type PendingSnapshot, type SnapshotRequestOptions, type SnapshotResponseEnvelope, type WebSocketMessageData } from '@core/websocketclient/types.ts';
@@ -10,6 +10,7 @@ import { createAbortError } from '@core/errors/abort.ts';
 import { generateSecureId } from '@core/primitives/idGenerator.ts';
 
 class SnapshotError extends Error {
+    code: string | undefined;
     payload: JsonValue | undefined;
     traceId: string | undefined;
 
@@ -17,6 +18,8 @@ class SnapshotError extends Error {
         super(message);
         this.name = 'SnapshotError';
         this.payload = payload;
+        const error = isJsonObject(payload) ? payload : null;
+        this.code = error && typeof error['code'] === 'string' ? error['code'] : undefined;
         this.traceId = traceId;
     }
 }

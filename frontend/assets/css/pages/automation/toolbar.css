@@ -201,7 +201,7 @@
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-zone-chip:hover {
-        border-color: color-mix(in srgb, var(--automation-zone-accent) 45%, var(--ui-button-border-hover));
+        border-color: color-mix(in srgb, color-mix(in srgb, var(--automation-zone-accent) 45%, var(--ui-button-border-hover)) var(--control-button-border-strength), transparent);
         background: color-mix(in srgb, var(--automation-zone-accent) 12%, var(--button-surface-hover));
     }
 

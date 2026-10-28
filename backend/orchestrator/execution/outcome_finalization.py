@@ -13,6 +13,7 @@ from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
+from core.tasks.execution_timeout_claim import settle_execution_timeout_delivery
 from orchestrator.execution.outcome_metrics import increment_outcome_metrics
 from orchestrator.execution.postprocessing import propagate_dedup_result
 from orchestrator.execution.streaming_completion import (
@@ -120,6 +121,12 @@ class PersistedOutcomeFinalizer:
             )
         )
         self._finalized = True
+        if task.execution_timeout_pending:
+            await uncancel_then_cleanup(
+                settle_execution_timeout_delivery(
+                    dependencies.task_registry, task.task_id, self.delivery_version
+                )
+            )
 
     async def abandon_unpersisted_claim(self) -> None:
         if self.persisted:

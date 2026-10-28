@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
@@ -19,6 +20,7 @@ from features.agent.runtime.openai_payload import (
 )
 from features.agent.runtime.streaming_inference_step import stream_inference_step
 from features.agent.runtime.streaming_turn_completion import (
+    bind_public_usage_projection,
     emit_streaming_turn_completion,
 )
 from features.agent.runtime.streaming_usage_resolution import (
@@ -32,10 +34,12 @@ from features.agent.runtime.turn_runtime_execution import execute_agent_turn_run
 
 if TYPE_CHECKING:
     from core.agent.settings_types import AgentSettings
+    from core.openai.streaming_usage import OpenAIPublicUsageProjection
     from core.openai.token_accounting import PromptOccupancy
     from core.openai.usage.models import CanonicalUsage
     from core.orchestrator.types import MCPToolContext
     from core.runtime.request_context import RequestContext
+    from core.streaming.protocols import StreamGeneratorStateProtocol
     from core.types.json import JSONDict
     from features.agent.internal_protocols import AgentStreamingInferenceRunnerProtocol
     from features.agent.runtime.context_compaction.activity_result import (
@@ -75,6 +79,7 @@ async def run_streaming_turn(
     include_usage: bool,
     summarize_messages: Callable[[list[JSONDict]], Awaitable[str]] | None,
     include_usage_in_result: bool = False,
+    shutdown_event: asyncio.Event | None = None,
     first_iteration_cancellation_id: str | None = None,
     prepared_auto_compaction: PreparedAutoCompactionSnapshot | None = None,
     turn_id: str | None = None,
@@ -86,7 +91,11 @@ async def run_streaming_turn(
         | None
     ) = None,
     initial_output_publication_mode: AgentOutputPublicationMode | None = None,
+    public_usage_projection: OpenAIPublicUsageProjection | None = None,
+    stream_result_state: StreamGeneratorStateProtocol | None = None,
 ) -> AgentTurnResult:
+    inference_on_bytes = bind_public_usage_projection(on_bytes, public_usage_projection)
+
     def reserve_streaming_tool_sequence_indexes(
         reservation: ToolSequenceIndexReservation,
     ) -> None:
@@ -168,7 +177,7 @@ async def run_streaming_turn(
             payload=request_payload,
             streaming_inference_runner=streaming_inference_runner,
             next_action_sequence=bootstrap.sequence_tracker.next_sequence,
-            on_bytes=on_bytes,
+            on_bytes=inference_on_bytes,
             on_visible_deltas=on_visible_deltas,
             validate_buffered_output=validate_visible_assistant_output,
             output_publication_mode=output_publication_mode,
@@ -205,8 +214,14 @@ async def run_streaming_turn(
             successful=bool(outcome.stream_successful),
             error_message=outcome.error_message,
             error_type=outcome.error_type,
-            error_details=None,
+            error_details=(
+                dict(outcome.public_error.details)
+                if outcome.public_error is not None and outcome.public_error.details is not None
+                else None
+            ),
+            public_error=outcome.public_error,
             assistant_output_published=step_result.assistant_output_published,
+            reasoning_text=step_result.reasoning_text,
             tool_calls=resolved_tool_calls,
             detected_tool_calls=[dict(tool_call) for tool_call in step_result.detected_tool_calls],
             visible_text_chars=resolved_visible_text_chars,
@@ -228,6 +243,7 @@ async def run_streaming_turn(
         run_inference=run_inference,
         operation="agent.streaming_turn.run_streaming_turn",
         include_usage_in_result=include_usage_in_result,
+        shutdown_event=shutdown_event,
         on_tool_sequence_indexes_reserved=reserve_streaming_tool_sequence_indexes,
         on_pre_compaction_prompt_occupancy=on_pre_compaction_prompt_occupancy,
         on_compacted_prompt_occupancy=on_compacted_prompt_occupancy,
@@ -241,6 +257,9 @@ async def run_streaming_turn(
         usage_aggregate=runtime_execution.usage_aggregate,
         stream_id=runtime_execution.stream_id,
         base_request_payload=base_request_payload,
+        turn_status=runtime_execution.final_status,
         on_bytes=on_bytes,
+        public_usage_projection=public_usage_projection,
+        stream_result_state=stream_result_state,
     )
     return runtime_execution.result

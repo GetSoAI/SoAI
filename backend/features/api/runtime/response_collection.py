@@ -19,13 +19,18 @@ from core.events.non_streaming_hard_deadline import (
 )
 from core.events.types_base import Event, PayloadEvent
 from core.events.types_models_streaming import InferenceResultEvent
+from core.events.types_plugins import ErrorEvent
 from core.events.types_tasks import TaskCompleteEvent, TaskProgressEvent
 from core.logging.trace import get_logger
 from core.serialization.json import normalize_for_json
 from core.state.command_results import normalize_command_result
 from core.tasks.finalization import finalize
 from core.tasks.protocols import TaskRegistryProtocol
-from features.api.runtime.errors import raise_action_failed, raise_error_type
+from features.api.runtime.errors import (
+    raise_action_failed,
+    raise_error_type,
+    raise_public_error,
+)
 from features.api.runtime.response_terminal_events import (
     handle_generic_event,
     handle_inference_result_event,
@@ -50,6 +55,8 @@ def process_command_reply(request: Request, reply_event: Event) -> None:
     view = normalize_command_result(reply_event)
     if view.result_type == "error":
         error_type = view.error_type or ErrorType.SERVER_ERROR
+        if isinstance(reply_event, ErrorEvent) and reply_event.public_error is not None:
+            raise_public_error(reply_event.public_error, error_type=error_type)
         raise_error_type(request, error_type, view.message or "Command execution failed.")
     elif view.result_type == "task" and view.success is False:
         raise_action_failed(request, view.message or "Command execution failed.")

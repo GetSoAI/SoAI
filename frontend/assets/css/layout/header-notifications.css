@@ -4,7 +4,7 @@
 @layer layout {
     .header-notification-center {
         position: absolute;
-        top: calc(100% + 8px);
+        top: calc(50% + var(--header-height) / 2 + var(--header-menu-gap));
         inset-inline-end: 0;
 
         --notification-item-overlay-strong: 18%;
@@ -108,8 +108,8 @@
         min-height: 0;
         transition:
             grid-template-rows var(--transition-panel),
-            opacity var(--transition-fast),
-            transform var(--transition-fast);
+            opacity var(--transition-panel),
+            transform var(--transition-panel);
     }
 
     .header-notification-manager--expanded .header-notification-manager-panel {
@@ -188,6 +188,19 @@
             border-color var(--transition-fast);
     }
 
+    .header-notification-center :is(.notification-item, .task-item, .task-list-empty) {
+        --presence-scale-from: 1;
+        --presence-blur-from: 0;
+        --presence-enter-duration: var(--duration-350);
+        --presence-exit-duration: var(--duration-300);
+        --presence-enter-ease: var(--ease-emphasized);
+        --presence-exit-ease: var(--ease-in-out);
+    }
+
+    .header-notification-center :is(.notification-item, .task-item) {
+        --presence-translate-from: calc(100% * var(--dir-sign)) 0;
+    }
+
     .notification-item.dropdown-item.checkerboard-light {
         --notification-item-row-surface: var(--alternating-grey-light);
     }
@@ -257,7 +270,7 @@
     @container ui-viewport (width <= 480px) {
         .header-notification-center {
             position: fixed;
-            top: calc(var(--header-height) + var(--space-2));
+            top: calc(var(--header-height) + var(--header-menu-gap));
             inset-inline-end: calc(var(--space-3) + var(--ui-safe-area-inset-inline-end));
             inset-inline-start: calc(var(--space-3) + var(--ui-safe-area-inset-inline-start));
             width: auto;

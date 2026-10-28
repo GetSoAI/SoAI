@@ -1,0 +1,29 @@
+/* SoAI - Shared text field hover overlay [frontend/assets/css/utilities/text-field-interactions.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    @property --text-field-hover-progress {
+        syntax: '<percentage>';
+        inherits: false;
+        initial-value: 0%;
+    }
+
+    :where(input:not([type='button'], [type='submit'], [type='reset'], [type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='image'], [type='hidden']), textarea:not(.chat-input), [contenteditable=''], [contenteditable='true'], [contenteditable='plaintext-only']) {
+        --text-field-hover-layer: color-mix(in srgb, var(--text-field-hover-overlay) var(--text-field-hover-progress), transparent);
+        background-image: linear-gradient(var(--text-field-hover-layer), var(--text-field-hover-layer));
+    }
+
+    @media (hover: hover) {
+        :where(input:not([type='button'], [type='submit'], [type='reset'], [type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='image'], [type='hidden']), textarea:not(.chat-input), [contenteditable=''], [contenteditable='true'], [contenteditable='plaintext-only']):hover:not(:focus, :disabled, [aria-disabled='true']),
+        .searchbar-container:hover .searchbar-input:not(:focus, :disabled, [aria-disabled='true']) {
+            --text-field-hover-progress: 100%;
+            border-color: var(--text-field-border-hover);
+        }
+
+        :where(input):is(:autofill, :-webkit-autofill):hover:not(:focus, :disabled, [aria-disabled='true']) {
+            box-shadow:
+                0 0 0 1000px color-mix(in srgb, var(--text-field-bg) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate)) inset,
+                var(--text-field-shadow);
+        }
+    }
+}

@@ -24,7 +24,10 @@ from core.platform.os import is_windows
 from core.plugins.protocols_runtime import PluginRuntimeFailureReporterProtocol
 from core.timing.constants import ASYNC_POLL_SLICE_SEC, LOCAL_IO_TIMEOUT_SEC, STANDARD_DELAY_SEC
 from core.timing.retry_backoff import compute_exponential_backoff_seconds
-from plugin_sdk.contracts.process_diagnostics import read_recent_process_log
+from plugin_sdk.contracts.process_diagnostics import (
+    read_recent_process_log,
+    wait_for_process_output_drained,
+)
 from plugin_sdk.contracts.process_sessions import ManagedProcessSession, terminate_logged_process
 
 __all__ = ("ServerObservation", "ServerObservationDependencies")
@@ -41,6 +44,7 @@ class ServerObservationDependencies:
     label: str
     component: str
     log_path: str | None
+    startup_failure: Callable[[], BaseException | None] | None = None
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -62,6 +66,7 @@ class ServerObservation:
         self.expected_stop = False
         self.task: asyncio.Task[None] | None = None
         self.failure_exception: BaseException | None = None
+        self._failure_classified = False
         self._health_failures = 0
 
     @property
@@ -81,6 +86,7 @@ class ServerObservation:
             exception = task.exception()
             if exception is not None:
                 self.failure_exception = exception
+                self.failure.set()
 
     async def _observe_health(self) -> None:
         while not self.ready:
@@ -116,15 +122,24 @@ class ServerObservation:
             await asyncio.sleep(ASYNC_POLL_SLICE_SEC)
 
     async def _classify_startup_failure(self) -> None:
+        dependencies = self._dependencies
+        if dependencies.startup_failure is not None:
+            await wait_for_process_output_drained(dependencies.session.log_consumer_tasks)
+            observed_failure = dependencies.startup_failure()
+            if observed_failure is not None:
+                self.failure_exception = observed_failure
+                self._failure_classified = True
+                return
         diagnostic = await read_recent_process_log(
-            self._dependencies.log_path,
-            logger=self._dependencies.logger,
-            log_consumer_tasks=self._dependencies.session.log_consumer_tasks,
+            dependencies.log_path,
+            logger=dependencies.logger,
+            log_consumer_tasks=dependencies.session.log_consumer_tasks,
         )
         try:
             raise_for_memory_exhaustion(diagnostic)
         except (AcceleratorMemoryExhaustedError, SystemMemoryExhaustedError) as exception:
             self.failure_exception = exception
+            self._failure_classified = True
 
     async def _observe(self) -> None:
         dependencies = self._dependencies
@@ -160,17 +175,19 @@ class ServerObservation:
             if self.expected_stop:
                 return
             self.failure.set()
-            dependencies.logger.error(
+            log_failure = (
+                dependencies.logger.warning
+                if self._failure_classified
+                else dependencies.logger.error
+            )
+            log_failure(
                 "Managed server failure: component=%s code=%s exit_status=%s ready=%s",
                 dependencies.component,
                 failure_code,
                 exit_status,
                 self.ready,
             )
-            if not isinstance(
-                self.failure_exception,
-                AcceleratorMemoryExhaustedError | SystemMemoryExhaustedError,
-            ):
+            if not self._failure_classified:
                 await dependencies.runtime_reporter.report_runtime_failure(
                     component=dependencies.component,
                     failure_code=failure_code,
@@ -206,6 +223,7 @@ class ServerObservation:
                 task_label=f"{dependencies.label} observation tasks",
                 timeout_sec=LOCAL_IO_TIMEOUT_SEC,
             )
+            terminated = True
             if terminal_failure:
                 terminated = await terminate_logged_process(
                     dependencies.session,
@@ -215,12 +233,19 @@ class ServerObservation:
                     kill_wait_sec=LOCAL_IO_TIMEOUT_SEC,
                     use_process_group=not is_windows(),
                 )
-                if not terminated:
-                    raise ExternalServiceError(
-                        "The failed backend could not release all process resources."
+            if not terminated or pending_count:
+                if self._failure_classified:
+                    await dependencies.runtime_reporter.report_runtime_failure(
+                        component=dependencies.component,
+                        failure_code="cleanup_failed",
+                        exit_status=dependencies.session.process.returncode,
                     )
-            if pending_count:
-                raise ExternalServiceError("The backend observation tasks could not stop.")
+                message = (
+                    "The failed backend could not release all process resources."
+                    if not terminated
+                    else "The backend observation tasks could not stop."
+                )
+                raise ExternalServiceError(message)
 
     async def wait_until_ready(self, readiness: Coroutine[None, None, None]) -> None:
         dependencies = self._dependencies
@@ -244,6 +269,8 @@ class ServerObservation:
             if pending_count:
                 raise ExternalServiceError("The backend startup tasks could not stop.")
         if self.failure.is_set():
+            if self.task is not None:
+                await asyncio.shield(self.task)
             if self.failure_exception is not None:
                 raise self.failure_exception
             error = ExternalServiceError(

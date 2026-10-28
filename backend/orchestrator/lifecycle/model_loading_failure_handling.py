@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 
 from core.errors.error_types import ErrorType
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import SoAIError, SoAITimeoutError
-from core.errors.public_projection import project_public_error
+from core.errors.exceptions import SoAITimeoutError
+from core.errors.public_projection import project_specific_public_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.state.state_names import ORCH_STATE_ERROR, ORCH_STATE_STOPPED
 from core.timing.constants import RESPONSIVE_TIMEOUT_SEC
@@ -80,11 +80,7 @@ async def handle_model_loading_exception(
         )
         return ModelLoadingResult.deferred()
     classification = classify_model_load_failure(exception)
-    public_error = (
-        project_public_error(exception)
-        if isinstance(exception, SoAIError) and exception.public_message is not None
-        else None
-    )
+    public_error = project_specific_public_exception(exception)
     failure_context = "model-scoped load" if classification.model_scoped else "start/load"
     if deps.shutdown_event.is_set():
         await _terminate_model_load_backend(

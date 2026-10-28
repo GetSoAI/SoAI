@@ -21,26 +21,6 @@ async def enter_plugin_lifecycle_locks(
         )
 
 
-async def enter_available_plugin_lifecycle_locks(
-    exit_stack: AsyncExitStack,
-    plugin_lifecycle: PluginLifecycleProtocol,
-    plugin_names: Iterable[str],
-    *,
-    timeout_seconds: float,
-) -> set[str]:
-    acquired_plugin_names: set[str] = set()
-    for plugin_name in sorted(set(plugin_names)):
-        lock_result = await exit_stack.enter_async_context(
-            plugin_lifecycle.bounded_plugin_lock_scope(
-                plugin_name,
-                timeout_seconds=timeout_seconds,
-            ),
-        )
-        if lock_result.acquired:
-            acquired_plugin_names.add(plugin_name)
-    return acquired_plugin_names
-
-
 async def enter_model_record_locks(
     exit_stack: AsyncExitStack,
     model_record_locks: AsyncLockRegistryProtocol[str],
@@ -65,7 +45,6 @@ async def catalog_mutation_lock_scope(
 
 __all__ = (
     "catalog_mutation_lock_scope",
-    "enter_available_plugin_lifecycle_locks",
     "enter_model_record_locks",
     "enter_plugin_lifecycle_locks",
 )

@@ -15,7 +15,6 @@ type RegisteredActivity = {
 const RUNNING_ACTIVITY_SELECTOR = '.inline-activity.inline-activity-status-running[data-started-at-ms]:not(.message-role-activity)';
 const RUNNING_ASSISTANT_HEADER_SELECTOR = '.message-role-activity.inline-activity-status-running[data-assistant-started-at-ms]';
 const INLINE_ACTIVITY_SELECTOR = '.inline-activity';
-const EXPANDABLE_ACTIVITY_SELECTOR = '.inline-activity:is(.inline-activity-type-tool, .inline-activity-type-thinking)';
 
 const resolveStartedAtMs = (activity: HTMLElement): number | null => {
     const attributeName = activity.matches(RUNNING_ASSISTANT_HEADER_SELECTOR) ? 'data-assistant-started-at-ms' : 'data-started-at-ms';
@@ -27,32 +26,10 @@ const resolveStartedAtMs = (activity: HTMLElement): number | null => {
     return Number.isInteger(startedAtMs) && isEpochMsNumber(startedAtMs) ? startedAtMs : null;
 };
 
-const isInlineActivityExpanded = (activity: HTMLElement): boolean => {
-    if (!activity.matches(EXPANDABLE_ACTIVITY_SELECTOR) || activity.hasAttribute('data-collapsing')) {
-        return false;
-    }
-    const header = activity.firstElementChild;
-    if (!(header instanceof HTMLElement) || header.getAttribute('aria-disabled') !== 'false') {
-        return false;
-    }
-    return activity.getAttribute('data-collapsed') === 'false' || activity.getAttribute('data-details-open-requested') === 'true' || activity.getAttribute('data-details-open-pending') === 'true' || activity.getAttribute('data-details-loading') === 'true';
-};
-
-const isActivityDurationEligible = (activity: HTMLElement, displayMode: ChatActivityDurationDisplayMode): boolean => {
-    if (displayMode === 'all') {
-        return true;
-    }
-    if (displayMode === 'settledOnly') {
-        return false;
-    }
-    if (activity.matches(RUNNING_ASSISTANT_HEADER_SELECTOR) || activity.classList.contains('message-role-activity')) {
-        return false;
-    }
-    return isInlineActivityExpanded(activity);
-};
+const isActivityDurationEligible = (displayMode: ChatActivityDurationDisplayMode): boolean => displayMode === 'all';
 
 const isRunningActivity = (element: Element, displayMode: ChatActivityDurationDisplayMode = 'all'): element is HTMLElement => {
-    return element instanceof HTMLElement && (element.matches(RUNNING_ACTIVITY_SELECTOR) || element.matches(RUNNING_ASSISTANT_HEADER_SELECTOR)) && isActivityDurationEligible(element, displayMode);
+    return element instanceof HTMLElement && (element.matches(RUNNING_ACTIVITY_SELECTOR) || element.matches(RUNNING_ASSISTANT_HEADER_SELECTOR)) && isActivityDurationEligible(displayMode);
 };
 
 const collectRunningActivities = (root: Element, displayMode: ChatActivityDurationDisplayMode = 'all'): HTMLElement[] => {
@@ -61,7 +38,7 @@ const collectRunningActivities = (root: Element, displayMode: ChatActivityDurati
         activities.push(root);
     }
     for (const element of dom.resolveAll(`${RUNNING_ACTIVITY_SELECTOR}, ${RUNNING_ASSISTANT_HEADER_SELECTOR}`, root)) {
-        if (element instanceof HTMLElement && isActivityDurationEligible(element, displayMode)) {
+        if (element instanceof HTMLElement && isActivityDurationEligible(displayMode)) {
             activities.push(element);
         }
     }
@@ -87,5 +64,5 @@ const intersectsViewport = (activity: HTMLElement, viewport: HTMLElement): boole
     return activityRect.bottom > viewportRect.top && activityRect.top < viewportRect.bottom && activityRect.right > viewportRect.left && activityRect.left < viewportRect.right;
 };
 
-export { RUNNING_ASSISTANT_HEADER_SELECTOR, collectInlineActivities, collectRunningActivities, intersectsViewport, isActivityDurationEligible, isRunningActivity, resolveStartedAtMs };
+export { RUNNING_ASSISTANT_HEADER_SELECTOR, collectInlineActivities, collectRunningActivities, intersectsViewport, isRunningActivity, resolveStartedAtMs };
 export type { RegisteredActivity };

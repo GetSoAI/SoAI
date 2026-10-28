@@ -1,10 +1,11 @@
 /* SoAI - Shared realtime handle task WebSocket event [frontend/assets/ts/core/realtime/streammanager/actions/handleTaskWebSocketEvent.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { softwareUpdateTaskProgress } from '@core/tasks/softwareUpdateProgress.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { normalizeProgressPercent } from '@core/primitives/progress.ts';
 import { buildTerminalTaskPayload, finalizeTrackedTask } from '@core/realtime/streammanager/actions/completion.ts';
-import { buildTaskOperation, buildTrackedTaskOperation } from '@core/realtime/streammanager/actions/taskOperations.ts';
+import { applyMeasuredTaskProgress, buildTaskOperation, buildTrackedTaskOperation } from '@core/realtime/streammanager/actions/taskOperations.ts';
 import type { OperationMetadata } from '@core/realtime/streammanager/types.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import { isFiniteNumber, isObject } from '@core/typeGuards.ts';
@@ -70,6 +71,7 @@ const handleTaskWebSocketEvent = (options: HandleTaskWebSocketEventOptions): voi
         }
         const meta = trackedTasks.get(taskId);
         if (!meta) {
+            recoverUnknownTask(taskId, {});
             return;
         }
         const statusValue = toTrimmedString(payload['new_status']);
@@ -77,7 +79,7 @@ const handleTaskWebSocketEvent = (options: HandleTaskWebSocketEventOptions): voi
         const nextMeta = {
             ...meta,
             ...(statusValue ? { taskStatus: statusValue } : {}),
-            ...(statusMessageValue ? { statusMessage: statusMessageValue } : {})
+            ...(statusMessageValue && meta.type !== 'software-update' ? { statusMessage: statusMessageValue } : {})
         };
         trackedTasks.set(taskId, nextMeta);
         const operationType = toTrimmedString(nextMeta.type) || 'unknown';
@@ -103,15 +105,18 @@ const handleTaskWebSocketEvent = (options: HandleTaskWebSocketEventOptions): voi
         };
 
         const meta = trackedTasks.get(taskId);
+        const projectedData = meta?.type === 'software-update' ? softwareUpdateTaskProgress(taskId, details) : normalizedData;
         if (meta) {
             const operationType = toTrimmedString(meta.type) || 'unknown';
             if (operationType !== 'unknown') {
-                emitOperation(taskId, operationType, 'progress', meta, normalizedData);
+                const nextMeta = operationType === 'software-update' ? { ...meta, ...projectedData, statusMessage: projectedData['message'] ?? '' } : applyMeasuredTaskProgress(meta, progress);
+                trackedTasks.set(taskId, nextMeta);
+                emitOperation(taskId, operationType, 'progress', nextMeta, projectedData);
             }
         } else {
             recoverUnknownTask(taskId, normalizedData);
         }
-        notifyTaskProgress(taskId, { type: eventType, taskId, ...normalizedData });
+        notifyTaskProgress(taskId, { type: eventType, taskId, ...projectedData });
         return;
     }
 

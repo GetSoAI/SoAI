@@ -52,14 +52,14 @@ class SoAIBenchHistoryModal {
     }
 
     handleSortAction(header: HTMLElement): void {
-        const sortColumn = requireSortableColumn(HISTORY_SORT_COLUMNS, header.dataset['sort'] ?? '', 'SoAIBench history');
+        const sortColumn = requireSortableColumn(HISTORY_SORT_COLUMNS, header.dataset['sort'] ?? '', 'SoAI Bench history');
         this.#sortState = resolveNextHistorySortState(this.#sortState, sortColumn);
         const modalRoot = this.host.modals.requireElement(this.modalId);
         if (!this.#runs.length) {
             syncSortIndicators(this.host, modalRoot, this.#sortState);
             return;
         }
-        this.#renderRows(modalRoot);
+        this.#renderRows(modalRoot, true);
     }
 
     async open(request: SoAIBenchHistoryOpenRequest): Promise<void> {
@@ -79,7 +79,7 @@ class SoAIBenchHistoryModal {
                     return;
                 }
                 this.#runs = normalizeHistoryRuns(result);
-                this.#renderRows(modalRoot);
+                this.#renderRows(modalRoot, false);
                 setLoadingVisible(this.host, modalRoot, false);
                 setFooterActionsDisabled(this.host, modalRoot, false);
             } catch (error) {
@@ -105,7 +105,7 @@ class SoAIBenchHistoryModal {
                 await this.#deleteLocalRun(runId);
                 if (this.#request !== request) return;
                 this.#runs = this.#runs.filter((run) => run.runId !== runId);
-                this.#renderRows(modalRoot);
+                this.#renderRows(modalRoot, false);
             } finally {
                 this.#setRunBusy(modalRoot, runId, false);
             }
@@ -188,8 +188,8 @@ class SoAIBenchHistoryModal {
         setRunActionsDisabled(modalRoot, runId, busy);
     }
 
-    #renderRows(modalRoot: HTMLElement): void {
-        renderHistoryRows(this.host, modalRoot, formatHistoryRows(this.#getSortedRuns()), this.#sortState, this.#busyRunIds);
+    #renderRows(modalRoot: HTMLElement, animateReorder: boolean): void {
+        renderHistoryRows(this.host, modalRoot, formatHistoryRows(this.#getSortedRuns()), this.#sortState, this.#busyRunIds, animateReorder);
     }
 
     #getSortedRuns(): SoAIBenchHistoryRun[] {

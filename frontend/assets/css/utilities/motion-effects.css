@@ -27,23 +27,23 @@
         animation: effect-lateral-enter var(--effect-notification-enter-duration) var(--ease-smooth) forwards;
     }
 
-    html[data-modal-animation='fade'] .modal-content {
+    html[data-modal-animation='fade'] :where(.ui-modal:is([data-modal-open='true'], [data-presence-state='exiting']):not([data-modal-presentation='viewport'])) > .modal-content {
         animation: modal-fade-enter var(--effect-modal-enter-duration) var(--ease-smooth);
     }
 
-    html[data-modal-animation='slide'] .modal-content {
+    html[data-modal-animation='slide'] :where(.ui-modal:is([data-modal-open='true'], [data-presence-state='exiting']):not([data-modal-presentation='viewport'])) > .modal-content {
         animation: modal-slide-enter var(--effect-modal-enter-duration) var(--ease-smooth);
     }
 
-    html[data-modal-animation='scale'] .modal-content {
+    html[data-modal-animation='scale'] :where(.ui-modal:is([data-modal-open='true'], [data-presence-state='exiting']):not([data-modal-presentation='viewport'])) > .modal-content {
         animation: modal-scale-enter calc(var(--effect-modal-enter-duration) * var(--effect-scale-duration-factor)) var(--ease-smooth);
     }
 
-    html[data-modal-animation='zoom'] .modal-content {
+    html[data-modal-animation='zoom'] :where(.ui-modal:is([data-modal-open='true'], [data-presence-state='exiting']):not([data-modal-presentation='viewport'])) > .modal-content {
         animation: modal-zoom-enter var(--effect-modal-enter-duration) var(--ease-spring);
     }
 
-    html[data-modal-animation='lateral'] .modal-content {
+    html[data-modal-animation='lateral'] :where(.ui-modal:is([data-modal-open='true'], [data-presence-state='exiting']):not([data-modal-presentation='viewport'])) > .modal-content {
         animation: modal-lateral-enter var(--effect-modal-enter-duration) var(--ease-smooth);
     }
 

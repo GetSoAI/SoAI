@@ -18,7 +18,11 @@ from app.cli.instance_control_waits import (
 )
 from app.cli.restart_launcher import spawn_replacement_application
 from app.cli.status.display import display_enhanced_status
-from app.cli.windows_lifecycle_request import write_windows_lifecycle_request
+from app.cli.windows_lifecycle_request import (
+    complete_instance_stop,
+    constrain_windows_stop_deadline,
+    write_windows_lifecycle_request,
+)
 from core.concurrency.deadlines import deadline_after
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
@@ -260,12 +264,15 @@ def handle_stop(
     *,
     expected_edition: str,
 ) -> int:
+    deadline = constrain_windows_stop_deadline(deadline_after(STOP_TOTAL_TIMEOUT_SECONDS), logger)
+    if deadline is None:
+        return 1
+    windows = is_windows()
     process = read_running_process(base_dir, logger, expected_edition=expected_edition)
     if process is None:
         logger.error("No running SoAI instance found. Cannot stop.")
         return 1
     pid = process.pid
-    windows = is_windows()
     stop_request_description = "lifecycle stop request" if windows else "SIGTERM"
     if windows:
         request_path = write_windows_lifecycle_request(base_dir, process, "stop", logger)
@@ -280,7 +287,6 @@ def handle_stop(
         if not _send_signal(process, signal.SIGTERM, logger):
             return 1
         logger.info("SIGTERM sent to SoAI (PID %s). Waiting for API shutdown...", pid)
-    deadline = deadline_after(STOP_TOTAL_TIMEOUT_SECONDS)
     api_down_timeout = deadline.remaining_seconds()
     if not wait_for_stop_api_down(
         base_dir,
@@ -289,23 +295,22 @@ def handle_stop(
         timeout_seconds=api_down_timeout,
     ):
         logger.warning(
-            "SoAI API did not go down within %s seconds after %s (PID %s).",
+            "SoAI API did not go down within %s seconds after %s (PID %s). Shutdown evidence was retained; inspect the logs before retrying stop.",
             int(STOP_TOTAL_TIMEOUT_SECONDS),
             stop_request_description,
             pid,
         )
-        return 0 if _wait_for_forced_termination(process, logger) else 1
+        return 1 if windows else (0 if _wait_for_forced_termination(process, logger) else 1)
     logger.info("SoAI API is down. Waiting for process shutdown (PID %s)...", pid)
     process_exit_timeout = deadline.remaining_seconds()
     if not wait_for_process_exit(process, timeout_seconds=process_exit_timeout):
         logger.warning(
-            "SoAI instance (PID %s) did not stop within %s seconds.",
+            "SoAI instance (PID %s) did not stop within %s seconds. Shutdown evidence was retained; inspect the logs before retrying stop.",
             pid,
             int(STOP_TOTAL_TIMEOUT_SECONDS),
         )
-        return 0 if _wait_for_forced_termination(process, logger) else 1
-    logger.info("SoAI instance (PID %s) has stopped.", pid)
-    return 0
+        return 1 if windows else (0 if _wait_for_forced_termination(process, logger) else 1)
+    return complete_instance_stop(base_dir, pid, logger)
 
 
 def handle_status(

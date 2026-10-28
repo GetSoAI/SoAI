@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ChatRagIngestionServiceContract, ChatRagIngestionStartArguments } from '@core/chat/protocols.ts';
+import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import { ChangeNotificationSource } from '@core/primitives/changeNotificationSource.ts';
 import type { ChatPageApi, RagIngestionStatus } from '@features/chat/public.ts';
 import { RagIngestionController } from '@features/chat/ragingestion/RagIngestionController.ts';
@@ -37,6 +38,10 @@ class ChatRagIngestionService implements ChatRagIngestionServiceContract {
 
     async cancel(conversationId: string): Promise<void> {
         await this.#controller.cancel(conversationId);
+    }
+
+    reconcileKnowledgeAttachment(summary: KnowledgeAttachmentSummary): void {
+        this.#controller.reconcileKnowledgeAttachment(summary);
     }
 
     subscribe(handler: () => void): () => void {

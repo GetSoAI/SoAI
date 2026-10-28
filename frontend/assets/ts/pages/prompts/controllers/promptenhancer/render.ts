@@ -25,7 +25,9 @@ const renderRunButton = (host: PromptEnhancerHost, modalRoot: HTMLElement, state
         throw new TypeError('Prompt enhancer run button is missing');
     }
     const isStreaming = state.status === 'streaming';
-    candidate.textContent = isStreaming ? i18n.t('prompts.enhancer.actions.stop') : i18n.t('prompts.enhancer.actions.run');
+    const label = isStreaming ? i18n.t('prompts.enhancer.actions.stop') : i18n.t('prompts.enhancer.actions.run');
+    candidate.textContent = label;
+    candidate.setAttribute('aria-label', label);
     candidate.classList.toggle('ui-variant-danger', isStreaming);
     candidate.classList.toggle('ui-variant-warning', false);
     candidate.classList.toggle('ui-variant-violet', !isStreaming);
@@ -44,6 +46,7 @@ const updateStatusBadge = (host: PromptEnhancerHost, modalRoot: HTMLElement, sta
     ledColors.forEach((className) => led.classList.remove(className));
 
     const { status } = state;
+    setTooltipText(badge, status === 'aborted' ? i18n.t('prompts.enhancer.errors.aborted') : state.statusMessage);
     if (status === 'success') {
         badge.classList.add('success');
         led.classList.add('green');

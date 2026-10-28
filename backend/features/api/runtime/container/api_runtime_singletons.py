@@ -36,12 +36,15 @@ class ApiRuntimeSingletons:
     security_runtime_state: SecurityRuntimeState
     login_attempt_locks: TTLAsyncLockRegistry[str]
     login_password_pool: BoundedBlockingPool
+    file_content_pool: BoundedBlockingPool
+    skill_import_pool: BoundedBlockingPool
     login_password_service: PasswordServiceProtocol
     prompts_update_locks: TTLAsyncLockRegistry[int]
     conversation_rag_ingest_locks: TTLAsyncLockRegistry[str]
     conversation_agent_settings_locks: TTLAsyncLockRegistry[tuple[int, str]]
     enqueue_warning_tracker: EnqueueWarningTracker
     multipart_parser_semaphore: asyncio.Semaphore
+    setup_status_connection_semaphore: asyncio.Semaphore
     provider_video_projection_semaphore: asyncio.Semaphore
     stream_channel_registry: TaskStreamChannelRegistry
     chat_stream_registry: ChatStreamRegistry
@@ -57,12 +60,15 @@ class ApiRuntimeSingletons:
             security_runtime_state=self.security_runtime_state,
             login_attempt_locks=self.login_attempt_locks,
             login_password_pool=self.login_password_pool,
+            skill_import_pool=self.skill_import_pool,
+            file_content_pool=self.file_content_pool,
             login_password_service=self.login_password_service,
             prompts_update_locks=self.prompts_update_locks,
             conversation_rag_ingest_locks=self.conversation_rag_ingest_locks,
             conversation_agent_settings_locks=self.conversation_agent_settings_locks,
             enqueue_warning_tracker=self.enqueue_warning_tracker,
             multipart_parser_semaphore=self.multipart_parser_semaphore,
+            setup_status_connection_semaphore=self.setup_status_connection_semaphore,
             provider_video_projection_semaphore=self.provider_video_projection_semaphore,
             stream_channel_registry=self.stream_channel_registry,
             chat_stream_registry=self.chat_stream_registry,

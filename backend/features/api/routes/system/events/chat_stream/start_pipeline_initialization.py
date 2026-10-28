@@ -11,6 +11,7 @@ from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import ValidationError
+from core.errors.public_projection import project_public_error
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.openai.request_field_filtering import build_inference_request_payload
 from core.types.json_value import copy_json_dict
@@ -151,7 +152,7 @@ async def initialize_ws_chat_stream_runtime_or_error(
             runtime=runtime,
             placeholder_persisted=placeholder_persisted,
             error_code=str(coerced.code),
-            error_message=str(coerced),
+            error_message=project_public_error(coerced).message,
         )
         placeholder_persisted = True
         failure_finalized = True

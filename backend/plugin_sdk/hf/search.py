@@ -175,20 +175,46 @@ async def hf_model_search(
         if not catalog_tasks:
             return []
 
+        semaphore = asyncio.Semaphore(6)
+
         async def enrich(repo_id: str, entry: JSONDict) -> RemoteModelSearchResult | None:
             variants: list[RemoteModelSearchVariant] = []
-            try:
-                variants = await hf_fetch_repo_variants(
-                    client,
-                    repo_id,
-                    headers,
-                    branch=branch,
-                    file_extensions=extensions,
-                    preference_order=preference,
-                    timeout=timeout,
-                    max_variants=max_variants_per_repo,
-                    logger=trace_logger,
+            siblings = entry.get("siblings")
+            if (
+                branch == "main"
+                and extensions
+                and isinstance(siblings, list)
+                and siblings
+                and all(
+                    isinstance(sibling, dict) and isinstance(sibling.get("rfilename"), str)
+                    for sibling in siblings
                 )
+            ):
+                filenames = [
+                    filename
+                    for sibling in siblings
+                    if isinstance(sibling, dict)
+                    and isinstance(filename := sibling.get("rfilename"), str)
+                ]
+                if not any(
+                    filename.lower().endswith(extension.lower())
+                    for filename in filenames
+                    for extension in extensions
+                ):
+                    return None
+            try:
+                async with semaphore:
+                    variants = await hf_fetch_repo_variants(
+                        client,
+                        repo_id,
+                        headers,
+                        branch=branch,
+                        file_extensions=extensions,
+                        preference_order=preference,
+                        timeout=timeout,
+                        max_variants=max_variants_per_repo,
+                        logger=trace_logger,
+                    )
             except RemoteModelSearchError as exception:
                 if exception.status_code in (401, 403):
                     raise

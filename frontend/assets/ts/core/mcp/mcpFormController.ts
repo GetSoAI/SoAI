@@ -33,6 +33,7 @@ interface McpFormControllerOptions {
     toolModes: readonly McpToolMode[];
     initialToolMode: McpToolMode;
     getIconSync: (icon: IconName, options?: IconOptions) => TrustedHtml;
+    onConfigurationChanged: (control: HTMLInputElement) => void;
 }
 
 const MCP_FORM_EVENT_TYPES: readonly ('change' | 'click' | 'input')[] = ['change', 'click', 'input'];
@@ -157,25 +158,7 @@ class McpFormController {
         if (eventType === 'change' && element instanceof HTMLInputElement) {
             this.#hasExplicitValues = true;
             updateToggleLabel(element, { checked: element.checked });
-            if (action === actions.serverToggle) {
-                const serverId = requireTrimmedDataAttribute(element, 'serverId', 'MCP server toggle');
-                this.#config.serverConfigs[serverId] = element.checked;
-                this.#applyAvailability(this.#config.serverConfigs);
-            } else if (element.classList.contains('mcp-tool-toggle') && action === actions.toolToggle) {
-                const name = requireTrimmedDataAttribute(element, 'toolName', 'MCP tool toggle');
-                const mode = requireTrimmedDataAttribute(element, 'toolMode', 'MCP tool toggle');
-                if (mode !== 'default' && mode !== 'plan' && mode !== 'execute') throw new Error('MCP tool toggle has an invalid mode');
-                const selected = mode === 'default' ? this.#config.defaultTools : mode === 'plan' ? this.#config.planTools : this.#config.executeTools;
-                const next = selected.filter((tool) => tool !== name);
-                if (element.checked) next.push(name);
-                if (mode === 'default') this.#config.defaultTools = next;
-                if (mode === 'plan') this.#config.planTools = next;
-                if (mode === 'execute') this.#config.executeTools = next;
-            } else if (element.classList.contains('mcp-tools-enabled-toggle')) {
-                this.#config.toolsEnabled = element.checked;
-            } else if (element.classList.contains('mcp-tool-approval-required-toggle')) {
-                this.#config.toolApprovalRequired = element.checked;
-            }
+            if (this.#commitInputChange(action, element)) this.#options.onConfigurationChanged(element);
             return;
         }
         if (eventType === 'click' && action === actions.toolModeSelect) {
@@ -192,6 +175,37 @@ class McpFormController {
             return;
         }
         if (eventType === 'input' && action === actions.toolSearch) filterMcpToolGroupTools(element);
+    }
+
+    #commitInputChange(action: string, element: HTMLInputElement): boolean {
+        const actions = this.#options.actions;
+        if (action === actions.serverToggle) {
+            const serverId = requireTrimmedDataAttribute(element, 'serverId', 'MCP server toggle');
+            this.#config.serverConfigs[serverId] = element.checked;
+            this.#applyAvailability(this.#config.serverConfigs);
+            return true;
+        }
+        if (element.classList.contains('mcp-tool-toggle') && action === actions.toolToggle) {
+            const name = requireTrimmedDataAttribute(element, 'toolName', 'MCP tool toggle');
+            const mode = requireTrimmedDataAttribute(element, 'toolMode', 'MCP tool toggle');
+            if (mode !== 'default' && mode !== 'plan' && mode !== 'execute') throw new Error('MCP tool toggle has an invalid mode');
+            const selected = mode === 'default' ? this.#config.defaultTools : mode === 'plan' ? this.#config.planTools : this.#config.executeTools;
+            const next = selected.filter((tool) => tool !== name);
+            if (element.checked) next.push(name);
+            if (mode === 'default') this.#config.defaultTools = next;
+            if (mode === 'plan') this.#config.planTools = next;
+            if (mode === 'execute') this.#config.executeTools = next;
+            return true;
+        }
+        if (element.classList.contains('mcp-tools-enabled-toggle')) {
+            this.#config.toolsEnabled = element.checked;
+            return true;
+        }
+        if (element.classList.contains('mcp-tool-approval-required-toggle')) {
+            this.#config.toolApprovalRequired = element.checked;
+            return true;
+        }
+        return false;
     }
 
     #buildToggle = (options: { id: string; checked: boolean; disabled?: boolean; className: string; data?: Record<string, string> }): HTMLElement => {

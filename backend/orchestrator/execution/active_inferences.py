@@ -12,6 +12,7 @@ from core.di.validation import require_dependencies
 from core.events.types_base import Event
 
 if TYPE_CHECKING:
+    from core.tasks.execution_budget import ExecutionBudget
     from core.types.json import JSONDict
 
 __all__ = (
@@ -41,6 +42,8 @@ class ActiveInferenceInfoBase(TypedDict):
 class ActiveInferenceInfo(ActiveInferenceInfoBase, total=False):
     dispatch_time: float
     request_timeout_sec: float
+    health_watchdog_sec: float
+    execution_budget: ExecutionBudget
 
 
 PROGRESS_UPDATE_THROTTLE_SECONDS: float = 0.1
@@ -97,11 +100,21 @@ class ActiveInferenceRegistry:
             if info is not None:
                 info["dispatch_time"] = dispatch_time
 
-    async def set_request_timeout(self, tracking_id: str, timeout: float) -> None:
+    async def set_execution_limits(
+        self,
+        tracking_id: str,
+        *,
+        request_timeout: float,
+        health_watchdog: float,
+        execution_budget: ExecutionBudget | None = None,
+    ) -> None:
         async with self.lock:
             info = self._active.get(tracking_id)
             if info is not None:
-                info["request_timeout_sec"] = timeout
+                info["request_timeout_sec"] = request_timeout
+                info["health_watchdog_sec"] = health_watchdog
+                if execution_budget is not None:
+                    info["execution_budget"] = execution_budget
 
     async def get_dispatch_time(self, tracking_id: str) -> float | None:
         async with self.lock:
@@ -148,7 +161,19 @@ class ActiveInferenceRegistry:
                 if dispatch_time is not None:
                     snapshot["dispatch_time"] = dispatch_time
                 request_timeout = info.get("request_timeout_sec")
-                if request_timeout is not None:
+                health_watchdog = info.get("health_watchdog_sec")
+                if request_timeout is not None and health_watchdog is not None:
                     snapshot["request_timeout_sec"] = request_timeout
+                    snapshot["health_watchdog_sec"] = health_watchdog
+                budget = info.get("execution_budget")
+                if budget is not None:
+                    snapshot["initial_output_deadline_monotonic"] = (
+                        budget.deadline.deadline_monotonic
+                    )
+                    snapshot["execution_budget_source"] = budget.source.value
+                    if budget.health_check_config is not None:
+                        idle_timeout = budget.health_check_config.get("STREAMING_IDLE_TIMEOUT_SEC")
+                        if isinstance(idle_timeout, int | float):
+                            snapshot["streaming_idle_timeout_sec"] = idle_timeout
                 snapshots.append(snapshot)
             return snapshots

@@ -3,269 +3,165 @@
 
 from __future__ import annotations
 
-import asyncio
+import copy
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
-from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ValidationError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from core.events.protocols import EventBusProtocol
-from core.files.operations import async_remove
-from core.hardware.protocols import GpuSlotStorageManagerProtocol
-from core.logging.protocols import TraceLogger
-from core.tasks.protocols import (
-    TaskCancellationBinderProtocol,
-    TaskFinalizerTrackerProtocol,
+from core.hardware.gpu_control_types import GPUSlotWriteError, GPUSlotWriteFailure
+from core.hardware.gpu_recovery_records import (
+    GPUStartupLegacyRecoveryRecord,
+    GPUStartupRecoveryRecord,
 )
-from core.timing.formatting import utc_now_iso
-from hardware.gpu_capabilities.aggregate_payloads import get_capabilities_for_device
-from hardware.gpu_tuning.effective_control_state import (
-    build_apply_settings_for_modes,
-    control_state_active_for_request,
-    settings_values_match_effective,
+from hardware.gpu_tuning.control_recovery_records import require_current_recovery_record
+from hardware.gpu_tuning.control_worker_results import GPU_CONTROL_WORKER_EXCEPTIONS
+from hardware.gpu_tuning.native_backend_observations import read_startup_record_goal
+from hardware.gpu_tuning.native_control_results import reduce_gpu_control_result
+from hardware.gpu_tuning.startup_reconciliation_authority import commit_startup_legacy_state
+from hardware.gpu_tuning.startup_scope_types import GPUStartupRecordedGoal, GPUStartupScopeReadback
+from hardware.gpu_tuning.vendor_backend_apply import (
+    apply_vendor_backend_settings,
+    restore_vendor_backend_originals,
 )
-from hardware.gpu_tuning.event_publish import emit_gpu_startup_warning
-from hardware.gpu_tuning.events import (
-    SlotStateEventDependencies,
-    emit_active_slot_event,
-    emit_slot_and_boot_events_and_clear_active,
-)
-from hardware.gpu_tuning.gpu_settings import (
-    GpuSettingsApplyDependencies,
-    async_set_gpu_settings,
-)
-from hardware.gpu_tuning.result_flags import is_success_result
-from hardware.gpu_tuning.service_dependencies import GpuServiceDependencies
-from hardware.gpu_tuning.setting_modes import normalize_field_modes_for_settings
-from hardware.gpu_tuning.startup import (
-    sync_finalize_startup_apply,
-    sync_handle_dirty_startup,
-)
-from hardware.gpu_tuning.startup_recovery_resets import apply_dirty_recovery_gpu_resets
-from hardware.presets.slot_mutations import touch_dirty_flag
 
 if TYPE_CHECKING:
-    from core.system.protocols import CommandExecutorProtocol
-    from core.types.json import JSONDict
+    from core.concurrency.protocols import CancellationTokenProtocol
+    from core.hardware.gpu_control_types import (
+        GPUControlCommitAcknowledgement,
+        GPUControlResult,
+        GPUPreparedControl,
+    )
+    from core.hardware.gpu_physical_identity import GPUPhysicalDevice
+    from core.hardware.gpu_recovery_records import GPURecoveryRecord
+    from hardware.gpu_tuning.dependencies import GpuSettingsApplyDependencies
+    from hardware.gpu_tuning.startup_scope_types import GPUStartupRecordedScope
+
 
 __all__ = (
-    "apply_dirty_startup_recovery",
-    "apply_startup_instructions",
+    "GPUStartupNativeStep",
+    "apply_startup_recorded_goal",
+    "apply_startup_planned_legacy",
+    "complete_startup_native_step",
 )
 
-OPERATION = "hardware_presets.apply_startup_gpu_settings"
+
+@dataclass(frozen=True, slots=True)
+class GPUStartupNativeStep:
+    readback: GPUStartupScopeReadback
+    acknowledgement: GPUControlCommitAcknowledgement | None
+    failure: Exception | None
+    persistence_uncertain: bool
 
 
-async def apply_dirty_startup_recovery(
-    *,
-    event_bus: EventBusProtocol | None,
-    main_loop: asyncio.AbstractEventLoop | None,
-    cancellation_binder: TaskCancellationBinderProtocol,
-    finalizer_tracker: TaskFinalizerTrackerProtocol,
-    dirty_flag_path: str,
-    slot_state_deps: SlotStateEventDependencies | None,
-    settings_deps: GpuSettingsApplyDependencies,
-) -> bool:
-    logger = settings_deps.logger
-    logger.critical(
-        "Unclean shutdown detected. GPU settings are being reset to safe defaults and boot preferences will be disabled until reapplied.",
+def apply_startup_recorded_goal(
+    deps: GpuSettingsApplyDependencies,
+    row: GPUStartupRecordedScope,
+    cancellation_token: CancellationTokenProtocol,
+) -> GPUStartupNativeStep:
+    cancellation_token.raise_if_cancelled()
+    target = row.target
+    if target is None:
+        raise ValidationError("GPU startup native goal lacks its bound physical target.")
+    recovery = deps.native_control_recovery
+    prepared = recovery.resume_startup_recorded(
+        target, operation_id=row.record.operation_id, goal=row.goal
     )
-    await apply_dirty_recovery_gpu_resets(
-        settings_deps=settings_deps,
+    with deps.storage.lock:
+        record = require_current_recovery_record(deps.storage.read_payload(), prepared)
+    if row.goal == GPUStartupRecordedGoal.ORIGINAL:
+        result, prepared = restore_vendor_backend_originals(
+            executor=deps.executor,
+            logger=deps.logger,
+            nvidia_settings_controller=deps.nvidia_settings_controller,
+            gpu_services=deps.gpu_services,
+            target=target,
+            record=record,
+            prepared=prepared,
+            recovery=recovery,
+            cancellation_token=cancellation_token,
+        )
+    else:
+        result = read_startup_record_goal(
+            record,
+            prepared,
+            row.goal,
+            executor=deps.executor,
+            logger=deps.logger,
+            gpu_services=deps.gpu_services,
+        )
+        prepared = recovery.record_result(prepared, result)
+    return complete_startup_native_step(deps, target, prepared, record, result, row.goal)
+
+
+def apply_startup_planned_legacy(
+    deps: GpuSettingsApplyDependencies,
+    target: GPUPhysicalDevice,
+    prepared: GPUPreparedControl,
+    cancellation_token: CancellationTokenProtocol,
+) -> GPUStartupNativeStep:
+    cancellation_token.raise_if_cancelled()
+    with deps.storage.lock:
+        record = require_current_recovery_record(deps.storage.read_payload(), prepared)
+    result, prepared = apply_vendor_backend_settings(
+        executor=deps.executor,
+        logger=deps.logger,
+        nvidia_settings_controller=deps.nvidia_settings_controller,
+        gpu_services=deps.gpu_services,
+        target=target,
+        record=record,
+        prepared=prepared,
+        recovery=deps.native_control_recovery,
+        cancellation_token=cancellation_token,
     )
-    affected_entries: dict[str, JSONDict] = await asyncio.to_thread(
-        sync_handle_dirty_startup,
-        executor=settings_deps.executor,
-        storage=settings_deps.storage,
-        detailed_gpu_info=settings_deps.detailed_gpu_info,
-        logger=logger,
-        gpu_services=settings_deps.gpu_services,
+    return complete_startup_native_step(
+        deps, target, prepared, record, result, GPUStartupRecordedGoal.UNCOMMITTED_LEGACY
+    )
+
+
+def complete_startup_native_step(
+    deps: GpuSettingsApplyDependencies,
+    target: GPUPhysicalDevice,
+    prepared: GPUPreparedControl,
+    record: GPURecoveryRecord,
+    result: GPUControlResult,
+    goal: GPUStartupRecordedGoal,
+) -> GPUStartupNativeStep:
+    acknowledgement = None
+    failure: Exception | None = None
+    uncertain = False
+    reduction = reduce_gpu_control_result(result, prepared=prepared)
+    selected = replace(
+        copy.deepcopy(record), members=tuple(member.recovery_member for member in result.members)
     )
     try:
-        await async_remove(dirty_flag_path)
-    except OSError as error:
-        log_exception(
-            logger,
-            error,
-            message="Failed to clear GPU dirty flag after reset",
-            operation=OPERATION,
-            level="warning",
-        )
-    emit_slot_and_boot_events_and_clear_active(
-        slot_state_deps,
-        entries_by_device_id=affected_entries,
-        cleared_device_ids=list(affected_entries.keys()),
-    )
-    emit_gpu_startup_warning(
-        event_bus=event_bus,
-        main_loop=main_loop,
-        cancellation_binder=cancellation_binder,
-        finalizer_tracker=finalizer_tracker,
-        logger=logger,
-        device_ids=list(affected_entries.keys()),
-    )
-    return True
-
-
-async def apply_startup_instructions(
-    *,
-    instructions: list[JSONDict],
-    capabilities: JSONDict,
-    settings_deps: GpuSettingsApplyDependencies,
-    logger: TraceLogger,
-    event_bus: EventBusProtocol | None,
-    main_loop: asyncio.AbstractEventLoop | None,
-    cancellation_binder: TaskCancellationBinderProtocol,
-    finalizer_tracker: TaskFinalizerTrackerProtocol,
-    slot_state_deps: SlotStateEventDependencies | None,
-    dirty_flag_path: str,
-    executor: CommandExecutorProtocol,
-    storage: GpuSlotStorageManagerProtocol,
-    detailed_gpu_info: bool,
-    gpu_services: GpuServiceDependencies,
-) -> dict[str, JSONDict]:
-    apply_results: list[JSONDict] = []
-    dirty_required = False
-    for instruction in instructions:
-        device_id_value = instruction.get("device_id")
-        gpu_index_value = instruction.get("gpu_index")
-        slot_id_value = instruction.get("slot_id")
-        settings_value = instruction.get("settings")
-        field_modes_value = instruction.get("field_modes")
-        current_field_modes_value = instruction.get("current_field_modes")
-        applied_settings_value = instruction.get("applied_settings")
-        signature_value = instruction.get("signature")
-        if not (
-            isinstance(device_id_value, str)
-            and isinstance(gpu_index_value, int)
-            and isinstance(slot_id_value, str)
-            and isinstance(settings_value, dict)
-            and isinstance(signature_value, str)
-            and signature_value
-        ):
-            continue
-        device_id = device_id_value
-        gpu_index = gpu_index_value
-        slot_id = slot_id_value
-        settings = settings_value
-        field_modes = field_modes_value if isinstance(field_modes_value, dict) else None
-        current_field_modes = (
-            current_field_modes_value if isinstance(current_field_modes_value, dict) else None
-        )
-        applied_settings = (
-            applied_settings_value if isinstance(applied_settings_value, dict) else {}
-        )
-        signature = signature_value
-        requested_field_modes = normalize_field_modes_for_settings(settings, field_modes)
-        try:
-            apply_settings = build_apply_settings_for_modes(settings, requested_field_modes)
-        except ValidationError as error:
-            log_exception(
-                logger,
-                error,
-                message="Failed to normalize GPU startup slot settings.",
-                operation=OPERATION,
-                details={"slot_id": slot_id, "device_id": device_id},
+        with deps.storage.lock:
+            read = deps.storage.read_payload()
+            selected = copy.deepcopy(require_current_recovery_record(read, prepared))
+            retained = next(
+                item for item in read.recovery_records if item.device_id == target.device_id
             )
-            continue
-        device_entry: JSONDict = {
-            "field_modes": current_field_modes or {},
-            "applied_settings": applied_settings,
-        }
-        capabilities_entry = get_capabilities_for_device(capabilities, device_id, gpu_index)
-        if control_state_active_for_request(
-            device_entry=device_entry,
-            settings=settings,
-            requested_field_modes=requested_field_modes,
-        ) and settings_values_match_effective(
-            apply_settings,
-            capabilities_entry,
-            device_entry=device_entry,
-            requested_field_modes=requested_field_modes,
-        ):
-            boot_state_value = instruction.get("boot_state")
-            boot_state = boot_state_value if isinstance(boot_state_value, dict) else {}
-            applied_at_value = boot_state.get("applied_at") or instruction.get("last_applied_at")
-            existing_applied_at = applied_at_value if isinstance(applied_at_value, str) else None
-            apply_results.append(
-                {
-                    "device_id": device_id,
-                    "slot_id": slot_id,
-                    "signature": signature,
-                    "applied_at": None,
-                    "boot_applied_at": existing_applied_at,
-                },
-            )
-            if slot_state_deps is not None:
-                emit_active_slot_event(
-                    event_bus=event_bus,
-                    main_loop=main_loop,
-                    cancellation_binder=cancellation_binder,
-                    finalizer_tracker=finalizer_tracker,
-                    logger=logger,
-                    device_id=device_id,
-                    slot_id=slot_id,
-                    signature=signature,
-                    applied_at=existing_applied_at,
+            if goal != GPUStartupRecordedGoal.ORIGINAL and reduction.persistence_eligible:
+                if not isinstance(
+                    retained, GPUStartupRecoveryRecord | GPUStartupLegacyRecoveryRecord
+                ):
+                    raise ValidationError(
+                        "GPU startup target completion lacks its retained tagged slot."
+                    )
+                acknowledgement = commit_startup_legacy_state(
+                    deps.storage,
+                    pending=deps.native_control_recovery.startup_scope.pending,
+                    record=retained,
+                    prepared=prepared,
+                    result=result,
                 )
-            continue
-        logger.trace("Applying GPU slot %s for %s during startup.", slot_id, device_id)
-        try:
-            result = await async_set_gpu_settings(
-                settings_deps,
-                gpu_id=gpu_index,
-                settings=settings,
-                field_modes=requested_field_modes,
-            )
-        except RECOVERABLE_EXCEPTIONS as error:
-            log_exception(
-                logger,
-                error,
-                message="Failed to apply GPU slot during startup",
-                operation=OPERATION,
-                details={"slot_id": slot_id, "device_id": device_id},
-            )
-            continue
-        if not is_success_result(
-            result,
-            logger=logger,
-            operation="hardware.gpu_tuning.startup_apply_flow.is_success_result",
-        ):
-            logger.warning("GPU slot %s for %s did not apply successfully.", slot_id, device_id)
-            continue
-        applied_at = utc_now_iso()
-        apply_results.append(
-            {
-                "device_id": device_id,
-                "slot_id": slot_id,
-                "signature": signature,
-                "applied_at": applied_at,
-            },
-        )
-        dirty_required = True
-        if slot_state_deps is not None:
-            emit_active_slot_event(
-                event_bus=event_bus,
-                main_loop=main_loop,
-                cancellation_binder=cancellation_binder,
-                finalizer_tracker=finalizer_tracker,
-                logger=logger,
-                device_id=device_id,
-                slot_id=slot_id,
-                signature=signature,
-                applied_at=applied_at,
-            )
-    updated_entries: dict[str, JSONDict] = {}
-    if apply_results:
-        updated_entries = await asyncio.to_thread(
-            sync_finalize_startup_apply,
-            executor=executor,
-            storage=storage,
-            detailed_gpu_info=detailed_gpu_info,
-            logger=logger,
-            results=apply_results,
-            gpu_services=gpu_services,
-        )
-    if dirty_required:
-        await asyncio.to_thread(touch_dirty_flag, dirty_flag_path=dirty_flag_path, logger=logger)
-    return updated_entries
+    except GPUSlotWriteError as exception:
+        failure = exception
+        uncertain = exception.reason == GPUSlotWriteFailure.PERSISTENCE_UNCERTAIN
+    except GPU_CONTROL_WORKER_EXCEPTIONS as exception:
+        failure = exception
+    return GPUStartupNativeStep(
+        GPUStartupScopeReadback(selected, goal, result, prepared),
+        acknowledgement,
+        failure,
+        uncertain,
+    )

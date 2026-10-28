@@ -49,8 +49,8 @@ const formatSuccessDetail = (source: 'application' | 'product', label: string, o
     return '';
 };
 
-const applyInitialUpdatesNotice = (host: NoticeHost, ui: NoticeUiRefs): void => {
-    setUpdatesNotice(host, ui, 'grey', i18n.t('updates.status.idle'));
+const applyInitialUpdatesNotice = (host: NoticeHost, ui: NoticeUiRefs, saved = false): void => {
+    setUpdatesNotice(host, ui, 'grey', saved ? i18n.t('updates.history.restored') : i18n.t('updates.status.idle'));
 };
 
 const applyCheckingUpdatesNotice = (host: NoticeHost, ui: NoticeUiRefs): void => {

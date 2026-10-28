@@ -7,14 +7,16 @@ import asyncio
 import io
 import os
 from collections.abc import AsyncGenerator, Sequence
-from contextlib import asynccontextmanager
+from contextlib import ExitStack, asynccontextmanager
 from typing import TYPE_CHECKING
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.config.protocols import ConfigProtocol
 from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.files.operations import ensure_parent_dirs_exist
 from core.filesystem.hashing import calculate_directory_hash, calculate_file_hash
+from core.filesystem.open_files import open_binary
 from core.filesystem.size_calculation import get_path_size
 from core.logging.trace import get_logger
 from core.plugins.protocols_instance import FilesProtocol
@@ -62,14 +64,27 @@ async def open_log_file(
         )
     path = files.resolve_path(os.path.join(plugin_logs_path, f"{plugin_name}.log"))
     await ensure_parent_dirs_exist([path])
-    handle = await asyncio.to_thread(open, path, "ab")
     header = f"\n--- NEW SESSION: {utc_now_iso()} ---\n"
     if command:
         header += f"CMD: {' '.join(command)}\n"
     header += "---\n"
-    await asyncio.to_thread(handle.write, header.encode())
-    await asyncio.to_thread(handle.flush)
-    return handle
+    return await run_joined_thread_call(
+        _open_plugin_log_session,
+        path,
+        header.encode(),
+        task_name=f"plugin-log:{plugin_name}",
+        retain_resources_until_complete=True,
+        cancelled_result_cleanup=lambda handle: handle.close(),
+    )
+
+
+def _open_plugin_log_session(path: str, header: bytes) -> io.BufferedIOBase:
+    with ExitStack() as resources:
+        handle = resources.enter_context(open_binary(path, mode="ab"))
+        handle.write(header)
+        handle.flush()
+        resources.pop_all()
+        return handle
 
 
 @asynccontextmanager

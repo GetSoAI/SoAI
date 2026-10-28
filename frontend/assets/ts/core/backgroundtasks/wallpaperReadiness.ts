@@ -8,6 +8,7 @@ import { normalizeOverlayValue } from '@core/backgroundtasks/state.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { sleepMs } from '@core/primitives/sleepMs.ts';
+import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
 import { withTimeout } from '@core/primitives/withTimeout.ts';
 import { removeStorageKey, readStorageJson, writeStorageJson } from '@core/storage/ttlStorageCache.ts';
 import { isFiniteNumber, isObject, isString } from '@core/typeGuards.ts';
@@ -90,12 +91,6 @@ const preloadWallpaperImage = (url: string): Promise<void> => {
     });
 };
 
-const waitForAnimationFrame = async (): Promise<void> => {
-    await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => resolve());
-    });
-};
-
 const setRootEarlyWallpaperReady = (): void => {
     document.documentElement.removeAttribute(EARLY_WALLPAPER_PENDING_ATTRIBUTE);
     document.documentElement.setAttribute(EARLY_WALLPAPER_READY_ATTRIBUTE, 'true');
@@ -162,7 +157,7 @@ const waitForActiveWallpaperReadiness = async (): Promise<void> => {
             timeoutMessage: 'Wallpaper readiness timed out'
         });
         await sleepMs(CONTENT_CHECK_DELAY_MS);
-        await waitForAnimationFrame();
+        await awaitPresentationFrame(null, 'Wallpaper presentation aborted.');
     } catch (error) {
         const runtimeError = ensureError(error);
         errorHandler.warn(WALLPAPER_READINESS_MODULE_ID, 'Wallpaper readiness failed before preloader finalization', runtimeError);

@@ -7,11 +7,15 @@ import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from core.errors.exceptions import StateError
+from core.concurrency.deadlines import MonotonicDeadline
+from core.errors.exceptions import ProcessError, StateError
 from core.filesystem.path_coercion import coerce_path, remove_windows_path_namespace
 from core.platform.os import is_windows
 from core.serialization.json_parsing import parse_json_str_list
-from core.system.commands import run_argv_capture
+from core.system.native_runtime_probes import (
+    capture_native_probe,
+    interpreter_probe_budget,
+)
 from core.system.subprocess_platform import resolve_windows_process_path
 from core.timing.constants import CONTROL_TIMEOUT_SEC
 from core.validation.strings import coerce_required_non_empty_str
@@ -48,18 +52,28 @@ def resolve_playwright_driver_command(
     return [executable, entrypoint, *arguments]
 
 
-def build_playwright_install_command(*, python_executable: str) -> PlaywrightInstallCommand:
+def build_playwright_install_command(
+    *, python_executable: str, ceiling: MonotonicDeadline | None = None
+) -> PlaywrightInstallCommand:
     if not is_windows():
         return PlaywrightInstallCommand(
             [python_executable, "-m", "playwright", "install", "chromium"], {}
         )
-    result = run_argv_capture(
+    result = capture_native_probe(
         [python_executable, "-c", _DRIVER_PATH_PROBE],
+        budget=interpreter_probe_budget(
+            python_executable, ordinary_seconds=CONTROL_TIMEOUT_SEC, ceiling=ceiling
+        ),
+        subject="Playwright driver discovery",
         encoding="utf-8",
         errors="replace",
-        timeout=CONTROL_TIMEOUT_SEC,
-        check=True,
     )
+    if result.return_code != 0:
+        raise ProcessError(
+            f"Playwright driver discovery failed with code {result.return_code}.",
+            operation="core.browser.playwright_driver_commands.discover_driver",
+            details={"stderr": (result.stderr or "").strip()},
+        )
 
     paths = parse_json_str_list(result.stdout, field="Playwright driver paths")
     if len(paths) != 5:

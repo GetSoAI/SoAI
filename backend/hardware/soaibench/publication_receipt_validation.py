@@ -26,11 +26,11 @@ def validate_publication_receipt(receipt: JSONDict, expected_score: int) -> JSON
         require_exact_json_fields(
             receipt,
             allowed_fields=fields,
-            label="SoAIBench publication response",
+            label="SoAI Bench publication response",
         )
     except ValidationError as exception:
         raise ApiError(
-            "SoAIBench publication response is invalid.",
+            "SoAI Bench publication response is invalid.",
             code="soaibench_publication_invalid_response",
             http_status=502,
         ) from exception
@@ -52,7 +52,7 @@ def validate_publication_receipt(receipt: JSONDict, expected_score: int) -> JSON
     has_valid_delivery = isinstance(duplicate, bool)
     if not has_valid_identity or not has_valid_score or not has_valid_delivery:
         raise ApiError(
-            "SoAIBench publication response is inconsistent.",
+            "SoAI Bench publication response is inconsistent.",
             code="soaibench_publication_invalid_response",
             http_status=502,
         )

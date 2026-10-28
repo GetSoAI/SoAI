@@ -6,8 +6,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from core.types.json_value import coerce_json_dict, filter_json_dict_list
+from core.errors.exceptions import ValidationError
+from core.types.json_value import filter_json_dict_list, require_json_dict
 from core.validation.coercion import coerce_int_from_numberish
+from core.validation.strict_integer import is_strict_int
 from core.validation.text_numbers import coerce_int_from_text
 
 if TYPE_CHECKING:
@@ -17,6 +19,7 @@ __all__ = (
     "IntelFrequencyCapability",
     "extract_intel_config_device",
     "extract_intel_dump_device",
+    "extract_intel_dump_devices",
     "parse_frequency_options",
     "resolve_intel_frequency_capability",
 )
@@ -31,21 +34,36 @@ class IntelFrequencyCapability:
 
 
 def extract_intel_config_device(payload: JSONValue) -> JSONDict:
-    if isinstance(payload, dict):
-        return dict(payload)
-    if isinstance(payload, list):
-        for entry in payload:
-            device = coerce_json_dict(entry)
-            if device is not None:
-                return device
-    return {}
+    rows = payload if isinstance(payload, list) else [payload]
+    if not rows:
+        return {}
+    if len(rows) != 1:
+        raise ValidationError("Intel selected configuration roster is ambiguous.")
+    device = require_json_dict(rows[0], label="Intel configuration device")
+    device_id = device.get("device_id")
+    if not is_strict_int(device_id) or device_id < 0:
+        raise ValidationError("Intel configuration device locator is invalid.")
+    return dict(device)
+
+
+def extract_intel_dump_devices(payload: JSONValue) -> list[JSONDict]:
+    root = require_json_dict(payload, label="Intel telemetry response")
+    devices = root.get("devices")
+    if not isinstance(devices, list):
+        raise ValidationError("Intel telemetry devices roster is missing or invalid.")
+    observations = [require_json_dict(device, label="Intel telemetry device") for device in devices]
+    for device in observations:
+        if "device_id" in device:
+            device_id = device["device_id"]
+            if not is_strict_int(device_id) or device_id < 0:
+                raise ValidationError("Intel telemetry device locator is invalid.")
+    return observations
 
 
 def extract_intel_dump_device(payload: JSONValue) -> JSONDict:
-    root = coerce_json_dict(payload)
-    if root is None:
-        return {}
-    devices = filter_json_dict_list(root.get("devices"))
+    devices = extract_intel_dump_devices(payload)
+    if len(devices) > 1:
+        raise ValidationError("Intel selected telemetry roster is ambiguous.")
     return devices[0] if devices else {}
 
 

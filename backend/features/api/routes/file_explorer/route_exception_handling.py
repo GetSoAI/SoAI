@@ -17,7 +17,13 @@ from core.errors.exceptions import (
     StateError,
     ValidationError,
 )
+from core.errors.external_service_exception import ExternalServiceError
+from core.errors.public_projection import (
+    project_public_exception,
+    project_specific_public_exception,
+)
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.files.managed_storage_errors import FileInUseError
 from features.api.runtime.context import raise_api_error
 from features.api.runtime.errors import (
     raise_conflict,
@@ -75,9 +81,18 @@ async def handle_file_explorer_route_exception(
     if handle_validation_error and isinstance(exception, ValidationError):
         raise_invalid_request(request, exception.message)
     if isinstance(exception, NotFoundError):
-        raise_not_found(request, exception.message)
+        raise_not_found(request, exception.message, error_type=str(exception.code))
+    if isinstance(exception, ExternalServiceError):
+        projected = project_specific_public_exception(exception, trace_id=log_trace_id)
+        if projected is not None:
+            raise_api_error(request, exception.http_status, str(projected.code), projected.message)
+    if isinstance(exception, FileInUseError):
+        public_error = project_public_exception(exception, trace_id=log_trace_id)
+        raise_api_error(
+            request, exception.http_status, str(public_error.code), public_error.message
+        )
     if isinstance(exception, ConflictError):
-        raise_conflict(request, exception.message)
+        raise_conflict(request, exception.message, error_type=str(exception.code))
     if handle_disk_space and isinstance(exception, InsufficientDiskSpaceError):
         await raise_disk_space_api_error(
             request=request,

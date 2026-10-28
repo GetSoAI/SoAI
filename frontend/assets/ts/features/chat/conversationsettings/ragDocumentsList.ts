@@ -16,6 +16,7 @@ import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { sanitizeTitle } from '@features/chat/conversationFormatting.ts';
 import { isRagDocumentProcessingStatus } from '@features/chat/conversationsettings/ragDocumentStatus.ts';
 import type { RagDocument } from '@features/chat/conversationsettings/settingsModels.ts';
+import { renderSpeechSetupPlaceholder } from '@core/speechsetup/presentation.ts';
 
 interface DomService {
     getDocument(): Document;
@@ -49,6 +50,8 @@ interface RenderRagDocumentsDependencies {
     ragDocumentProgress: Map<string, number>;
     resolveRagStatus: (document: RagDocument) => RagStatusInfo;
 }
+
+const RAG_DEGRADED_STATUS_DETAIL = 'degraded';
 
 const setRagDocumentProgressStyle = (host: ConversationSettingsUiHost, element: Element, property: string, value: string): void => {
     if (!(element instanceof HTMLElement)) {
@@ -84,7 +87,7 @@ const renderRagDocumentsList = ({ host, container, emptyState, documents, count,
     const documentRef = host.dom.getDocument();
     const fragment = documentRef.createDocumentFragment();
     documents.forEach((item) => {
-        const row = host.createElement('div', { class: 'rag-document-item' });
+        const row = host.createElement('div', { class: 'rag-document-item', 'data-doc-id': item.id, 'data-presence': '', 'data-presence-atomic': '' });
         const leadingIcon = host.createElement('span', { class: 'file-preview-leading-icon rag-document-leading-icon', 'aria-hidden': 'true' });
         replaceChildrenFromTrustedHtml({ element: leadingIcon, html: getIconSync(resolveFileEntryIconName({ name: item.filename, isDirectory: false }), { size: 20, strokeWidth: 1.5 }), context: leadingIcon });
         const info = host.createElement('div', { class: 'rag-document-info' });
@@ -97,6 +100,11 @@ const renderRagDocumentsList = ({ host, container, emptyState, documents, count,
         host.appendToElement(header, name);
         host.appendToElement(header, badge);
         host.appendToElement(info, header);
+        if (item.missingCapabilities?.includes('speech_to_text')) {
+            const note = host.createElement('div', { class: 'rag-document-detail' });
+            replaceChildrenFromTrustedHtml({ element: note, html: renderSpeechSetupPlaceholder(true, 'labelled'), context: note });
+            host.appendToElement(info, note);
+        }
 
         const meta = host.createElement('div', { class: 'rag-document-meta' });
         const metaParts: string[] = [];
@@ -128,6 +136,9 @@ const renderRagDocumentsList = ({ host, container, emptyState, documents, count,
             const progressContainer = host.createElement('div', {
                 class: 'rag-document-progress',
                 role: 'progressbar',
+                'data-presence': '',
+                'data-presence-atomic': '',
+                'data-doc-id': item.id,
                 'aria-valuemin': '0',
                 'aria-valuemax': '100'
             });
@@ -155,7 +166,7 @@ const renderRagDocumentsList = ({ host, container, emptyState, documents, count,
         }
 
         const detailText = item.status === 'error' ? (item.errorMessage ?? item.statusDetails) : item.statusDetails;
-        if (isString(detailText) && detailText) {
+        if (isString(detailText) && detailText && detailText !== RAG_DEGRADED_STATUS_DETAIL) {
             const detail = host.createElement('div', { class: 'rag-document-detail' });
             host.updateText(detail, detailText);
             host.appendToElement(info, detail);

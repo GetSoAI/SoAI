@@ -121,6 +121,7 @@
     }
 
     :where(.chat-container) .message-text table.markdown-table {
+        --table-cell-padding-inline: var(--space-3);
         width: 100%;
         border-collapse: separate;
         border-spacing: 0;
@@ -139,10 +140,22 @@
     :where(.chat-container) .message-text table.markdown-table :is(th, td) {
         border-inline-end: var(--border-width-1) solid var(--glass-border-strong);
         border-bottom: var(--border-width-1) solid var(--glass-border-strong);
-        padding: var(--space-2) var(--space-3);
+        padding: var(--space-2) var(--table-cell-padding-inline);
+        direction: inherit;
+        unicode-bidi: plaintext;
         text-align: start;
-        overflow-wrap: anywhere;
-        word-break: break-word;
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table :is(th, td):dir(ltr) {
+        /* direction: physical — align plaintext cells to their resolved table direction */
+        text-align: left;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table :is(th, td):dir(rtl) {
+        /* direction: physical — align plaintext cells to their resolved table direction */
+        text-align: right;
     }
 
     :where(.chat-container) .message-text table.markdown-table th {
@@ -194,7 +207,6 @@
         :where(.chat-container) .message-text table.markdown-table :is(th, td) {
             min-width: 8rem;
             overflow-wrap: normal;
-            word-break: normal;
             hyphens: auto;
         }
     }

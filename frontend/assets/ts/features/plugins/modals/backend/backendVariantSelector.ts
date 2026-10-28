@@ -8,9 +8,10 @@ import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { resolveBackendVariantGuidance } from '@core/plugins/backendVariantGuidance.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
-import { normalizeBackendVariantOptions, type BackendVariantOption } from '@features/plugins/modals/backend/backendVariantOptions.ts';
+import { hasResolvedBackendInstallation, normalizeBackendVariantOptions, type BackendVariantOption } from '@features/plugins/modals/backend/backendVariantOptions.ts';
 import type { BackendManagerSecurity } from '@features/plugins/modals/backend/backendTypes.ts';
 
 interface BackendVariantSelectorViewPort {
@@ -23,7 +24,7 @@ interface BackendVariantSelectorViewPort {
 
 interface BackendVariantSelectorOperationsPort {
     showNotification(message: string, type?: NotificationType, duration?: number): void;
-    getBackendVariants(pluginName: string): Promise<BackendVariantsResponse>;
+    getBackendVariants(pluginName: string, options?: { signal?: AbortSignal }): Promise<BackendVariantsResponse>;
     saveBackendVariantSelection(pluginName: string, variantId: string): Promise<BackendVariantsResponse>;
 }
 
@@ -38,35 +39,50 @@ interface BackendVariantSelectorDependencies {
 }
 
 interface BackendVariantSelectorLoadOptions {
+    signal?: AbortSignal;
     disabled: boolean;
     isCurrent(): boolean;
+    onSavingChange(saving: boolean, installationResolved: boolean): void;
+    onSelectionSettled?(): void;
 }
 
 const renderOptions = (dependencies: BackendVariantSelectorDependencies, options: BackendVariantOption[], selected: string, installed: string | null): string => {
     const esc = (value: string): string => dependencies.security.escapeHtml(value);
     const attr = (value: string): string => dependencies.security.escapeAttribute(value);
+    const installedLabel = options.find((option) => option.id === installed)?.label ?? null;
     return options
         .map((option) => {
             const selectedAttr = option.id === selected ? ' selected' : '';
             const disabledAttr = option.selectable ? '' : ' disabled';
             const tooltip = option.unavailableReason || option.description;
             const title = tooltip ? ` data-tooltip="${attr(tooltip)}"` : '';
-            const label = option.id === installed ? i18n.t('plugins.modal.backendVariants.installedOption', { variant: option.label }) : option.label;
+            const label = option.id === installed ? i18n.t('plugins.modal.backendVariants.installedOption', { variant: option.label }) : option.id === 'auto' && selected === 'auto' && installedLabel ? `${option.label} · ${i18n.t('plugins.modal.backendVariants.installedOption', { variant: installedLabel })}` : option.label;
             return [`<option value="${attr(option.id)}"${selectedAttr}${disabledAttr}${title}>`, esc(label), '</option>'].join('');
         })
         .join('');
 };
 
-const renderSelector = (dependencies: BackendVariantSelectorDependencies, target: HTMLElement, payload: BackendVariantsResponse, disabled: boolean): void => {
+const resolveSelectorPresentation = (payload: BackendVariantsResponse) => {
     const normalized = normalizeBackendVariantOptions(payload);
-    const disabledAttr = disabled ? ' disabled' : '';
+    return {
+        ...normalized,
+        displayedSelection: normalized.selected === 'auto' && normalized.installed !== null ? normalized.installed : normalized.selected,
+        guidance: !hasResolvedBackendInstallation(payload) ? i18n.t('plugins.modal.backendVariants.loadFailed') : payload.installedVariantId === null ? resolveBackendVariantGuidance(payload) : null
+    };
+};
+
+const renderSelector = (dependencies: BackendVariantSelectorDependencies, target: HTMLElement, payload: BackendVariantsResponse, disabled: boolean): void => {
+    const presentation = resolveSelectorPresentation(payload);
+    const unresolved = !hasResolvedBackendInstallation(payload);
+    const disabledAttr = disabled || unresolved || payload.installedVariantId !== null ? ' disabled' : '';
     const selectorHtml = toTrustedUiHtml(`
         <span class="plugin-info-details backend-variant-selector">
         <span class="dropdown-select backend-variant-select-shell">
         <select class="backend-variant-select"${disabledAttr}>
-        ${renderOptions(dependencies, normalized.options, normalized.selected, normalized.installed)}
+        ${renderOptions(dependencies, presentation.options, presentation.displayedSelection, presentation.installed)}
         </select>
         </span>
+        <span class="form-disclaimer backend-variant-compatibility">${presentation.guidance ? dependencies.security.escapeHtml(presentation.guidance) : ''}</span>
         </span>
     `);
     dependencies.host.view.updateHTML(target, selectorHtml, { escape: false });
@@ -77,7 +93,7 @@ const loadBackendVariantSelector = async (dependencies: BackendVariantSelectorDe
     const loadingHtml = toTrustedUiHtml(`<div class="plugin-info-details">${i18n.t('plugins.modal.backendVariants.loading')}</div>`);
     dependencies.host.view.updateHTML(target, loadingHtml, { escape: false });
     try {
-        const payload = await dependencies.host.operations.getBackendVariants(pluginName);
+        const payload = await dependencies.host.operations.getBackendVariants(pluginName, options.signal ? { signal: options.signal } : undefined);
         if (!options.isCurrent()) {
             return null;
         }
@@ -86,11 +102,14 @@ const loadBackendVariantSelector = async (dependencies: BackendVariantSelectorDe
         if (!(select instanceof HTMLSelectElement)) {
             throw new Error('Backend variant selector did not render a select element');
         }
+        select.dataset['backendInstalled'] = payload.installedVariantId !== null ? 'true' : 'false';
+        select.dataset['installationUnresolved'] = String(!hasResolvedBackendInstallation(payload));
+        select.dataset['selectedVariant'] = normalizeBackendVariantOptions(payload).selected;
         select.dataset['previousValue'] = select.value;
         select.dataset['operationDisabled'] = options.disabled ? 'true' : 'false';
         select.dataset['saving'] = 'false';
         dependencies.host.view.on(select, 'change', (): void => {
-            terminateHandledPromise(saveBackendVariantSelection(dependencies, select, pluginName, options.isCurrent));
+            terminateHandledPromise(saveBackendVariantSelection(dependencies, select, pluginName, options));
         });
         return payload;
     } catch (error) {
@@ -104,16 +123,26 @@ const loadBackendVariantSelector = async (dependencies: BackendVariantSelectorDe
     }
 };
 
-const saveBackendVariantSelection = async (dependencies: BackendVariantSelectorDependencies, select: HTMLSelectElement, pluginName: string, isCurrent: () => boolean): Promise<void> => {
+const saveBackendVariantSelection = async (dependencies: BackendVariantSelectorDependencies, select: HTMLSelectElement, pluginName: string, options: BackendVariantSelectorLoadOptions): Promise<void> => {
+    const { isCurrent } = options;
+    if (!isCurrent() || select.dataset['saving'] === 'true' || select.dataset['operationDisabled'] === 'true' || select.dataset['backendInstalled'] === 'true' || select.dataset['installationUnresolved'] === 'true') return;
     const previousValue = select.dataset['previousValue'] || select.value;
     const nextValue = select.value;
     select.dataset['previousValue'] = previousValue;
     select.dataset['saving'] = 'true';
     dependencies.host.view.updateProperty(select, 'disabled', true);
     try {
-        await dependencies.host.operations.saveBackendVariantSelection(pluginName, nextValue);
+        options.onSavingChange(true, false);
+        const payload = await dependencies.host.operations.saveBackendVariantSelection(pluginName, nextValue);
         if (isCurrent()) {
-            select.dataset['previousValue'] = nextValue;
+            select.dataset['backendInstalled'] = payload.installedVariantId !== null ? 'true' : 'false';
+            select.dataset['installationUnresolved'] = String(!hasResolvedBackendInstallation(payload));
+            const presentation = resolveSelectorPresentation(payload);
+            select.value = presentation.displayedSelection;
+            select.dataset['selectedVariant'] = presentation.selected;
+            select.dataset['previousValue'] = select.value;
+            const hint = dependencies.host.view.optionalHTMLElement('.backend-variant-compatibility', select.parentElement?.parentElement ?? select);
+            if (hint) hint.textContent = presentation.guidance ?? '';
         }
     } catch (error) {
         errorHandler.error('BackendVariantSelector', 'Failed to save backend variant', ensureError(error));
@@ -124,7 +153,9 @@ const saveBackendVariantSelection = async (dependencies: BackendVariantSelectorD
     } finally {
         if (isCurrent()) {
             select.dataset['saving'] = 'false';
-            dependencies.host.view.updateProperty(select, 'disabled', select.dataset['operationDisabled'] === 'true');
+            options.onSavingChange(false, select.dataset['installationUnresolved'] !== 'true');
+            dependencies.host.view.updateProperty(select, 'disabled', select.dataset['operationDisabled'] === 'true' || select.dataset['backendInstalled'] === 'true' || select.dataset['installationUnresolved'] === 'true');
+            options.onSelectionSettled?.();
         }
     }
 };
@@ -133,7 +164,7 @@ const setBackendVariantSelectorDisabled = (host: BackendVariantSelectorHost, mod
     const select = host.view.optionalHTMLElement(`${modalUiSelector(modalId, 'variant-selector')} .backend-variant-select`, modalRoot);
     if (select) {
         select.dataset['operationDisabled'] = disabled ? 'true' : 'false';
-        host.view.updateProperty(select, 'disabled', disabled || select.dataset['saving'] === 'true');
+        host.view.updateProperty(select, 'disabled', disabled || select.dataset['saving'] === 'true' || select.dataset['backendInstalled'] === 'true' || select.dataset['installationUnresolved'] === 'true');
     }
 };
 
@@ -142,7 +173,10 @@ const requireBackendVariantSelectorValue = (host: BackendVariantSelectorHost, mo
     if (!(select instanceof HTMLSelectElement)) {
         throw new TypeError('Backend variant selector requires an HTMLSelectElement');
     }
-    return select.value;
+    if (select.dataset['saving'] === 'true') throw new Error('Backend variant selection is still being saved');
+    const selectedVariant = select.dataset['selectedVariant'];
+    if (!selectedVariant) throw new Error('Backend variant selection has not loaded');
+    return selectedVariant;
 };
 
 export { loadBackendVariantSelector, requireBackendVariantSelectorValue, setBackendVariantSelectorDisabled };

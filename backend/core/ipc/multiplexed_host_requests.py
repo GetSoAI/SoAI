@@ -7,8 +7,8 @@ from collections.abc import Awaitable, Callable
 
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import SoAIError, ValidationError
-from core.errors.public_projection import project_public_error
+from core.errors.exceptions import InsufficientDiskSpaceError, SoAIError, ValidationError
+from core.ipc.error_payload import build_ipc_error_payload
 from core.ipc.multiplexed_support import MultiplexedConnection
 from core.ipc.ndjson import NdjsonCodec
 from core.logging.trace import get_logger
@@ -84,18 +84,19 @@ async def _call_handler(
             operation=OPERATION_HOST_REQUEST_HANDLER,
             details={"worker_id": int(connection.worker_id), "method": method},
         )
-        log_exception(
-            get_logger(LOGGER_NAME),
-            error,
-            message="IPC host request handler failed.",
-            operation=OPERATION_HOST_REQUEST_HANDLER,
-            details={"worker_id": int(connection.worker_id), "method": method},
-            level="warning",
-        )
+        if error.code != InsufficientDiskSpaceError.code:
+            log_exception(
+                get_logger(LOGGER_NAME),
+                error,
+                message="IPC host request handler failed.",
+                operation=OPERATION_HOST_REQUEST_HANDLER,
+                details={"worker_id": int(connection.worker_id), "method": method},
+                level="warning",
+            )
         return _response(
             request_id=request_id,
             ok=False,
-            payload=project_public_error(error).to_dict(),
+            payload={"type": error.code, **build_ipc_error_payload(error)},
         )
     return _response(request_id=request_id, ok=True, payload=dict(payload_result))
 

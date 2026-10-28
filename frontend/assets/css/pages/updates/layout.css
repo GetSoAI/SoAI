@@ -2,6 +2,46 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer pages {
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-history {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-page-notice .status-copy {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        column-gap: var(--space-4);
+        width: 100%;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-page-notice .status-detail {
+        grid-column: 2;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-layout [data-presence] {
+        --presence-scale-from: 1;
+        --presence-blur-from: 0;
+        --presence-translate-from: 0 var(--space-3);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .page-actions:not(.page-actions--dropdown) .page-actions__menu > .updates-check-button.ui-button {
+        width: auto;
+        min-width: var(--control-height);
+        padding: var(--control-padding-block-sm) var(--control-padding-inline);
+        aspect-ratio: auto;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .page-actions__menu > .updates-check-button.ui-button > [data-button-text] {
+        display: inline;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .page-actions:not(.page-actions--dropdown) .page-actions__menu > .updates-check-button.ui-button > :is(svg, .ui-icon) {
+        position: static;
+        margin: 0;
+    }
+
     @container ui-viewport (width <= 768px) {
         :where([data-section='updates'], [data-page-scope='updates']) .update-summary-card {
             padding: var(--space-5);

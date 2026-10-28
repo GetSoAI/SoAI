@@ -71,6 +71,11 @@ const sessionMatchesActiveStatus = (session: ChatStreamSession, status: ActiveCh
     return session.requestId === status.requestId && session.assistantTimestamp === status.assistantTimestamp && session.assistantTurnTimestamp === status.assistantTurnTimestamp && session.modelVariantIndex === status.modelVariantIndex;
 };
 
+const isChatStreamSessionReplaced = (sessions: Map<string, ChatStreamSession>, session: ChatStreamSession): boolean => {
+    const currentSession = sessions.get(session.conversationId);
+    return currentSession !== undefined && currentSession !== session;
+};
+
 const applyAssistantMessageSnapshot = (session: ChatStreamSession, assistantMessage: ChatMessage): void => {
     const prepared = prepareAssistantSnapshot(session, assistantMessage);
     if (prepared !== null) commitAssistantSnapshot(session, prepared);
@@ -99,4 +104,4 @@ const applyStatusPreviewSnapshot = (status: ActiveChatStreamStatus, assistantMes
     });
 };
 
-export { applyAssistantMessageSnapshot, applyStatusPreviewSnapshot, createActiveFollowerSession, fetchFollowerMessageSnapshot, sessionMatchesActiveStatus };
+export { applyAssistantMessageSnapshot, applyStatusPreviewSnapshot, createActiveFollowerSession, fetchFollowerMessageSnapshot, isChatStreamSessionReplaced, sessionMatchesActiveStatus };

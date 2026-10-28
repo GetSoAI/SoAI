@@ -9,7 +9,7 @@ import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } fr
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 import { CHAT_MEMORY_PROFILE_MODAL_ID } from '@features/chat/modals/constants.ts';
-import { CHAT_MEMORY_PROFILE_VISIBLE_FIELD_NAMES, type ChatMemoryProfileFieldDefinition, type ChatMemoryProfileFieldName, resolveChatMemoryProfileFieldDefinition } from '@features/chat/modals/chatMemoryProfileFields.ts';
+import { CHAT_MEMORY_PROFILE_FIELD_NAMES, CHAT_MEMORY_PROFILE_VISIBLE_FIELD_NAMES, type ChatMemoryProfileFieldDefinition, type ChatMemoryProfileFieldName, resolveChatMemoryProfileFieldDefinition } from '@features/chat/modals/chatMemoryProfileFields.ts';
 
 const translateChatMemoryProfileFieldLabel = (fieldName: ChatMemoryProfileFieldName): string => {
     switch (fieldName) {
@@ -72,19 +72,19 @@ const buildTextFieldMarkup = (definition: ChatMemoryProfileFieldDefinition, labe
     const fieldIdText = modalUiId(modalId, definition.uiToken);
     const fieldId = uiAttr(fieldIdText);
     const maxLength = definition.maxLength ?? 50;
-    return `<div class="form-group"><label for="${fieldId}">${label}</label><input type="text" id="${fieldId}" class="form-input chat-memory-profile-input" data-field="${uiAttr(definition.name)}" maxlength="${uiAttr(String(maxLength))}" placeholder="${uiAttr(placeholder)}"></div>`;
+    return `<div class="form-group setting-change-surface" data-profile-field="${uiAttr(definition.name)}"${CHAT_MEMORY_PROFILE_VISIBLE_FIELD_NAMES.includes(definition.name) ? '' : ' hidden'}><label for="${fieldId}" data-modal-localize="text">${label}</label><input type="text" id="${fieldId}" class="form-input chat-memory-profile-input" data-field="${uiAttr(definition.name)}" maxlength="${uiAttr(String(maxLength))}" placeholder="${uiAttr(placeholder)}" data-modal-localize="placeholder"></div>`;
 };
 
 const buildTextareaFieldMarkup = (definition: ChatMemoryProfileFieldDefinition, label: string, placeholder: string, modalId: string): string => {
     const fieldIdText = modalUiId(modalId, definition.uiToken);
     const fieldId = uiAttr(fieldIdText);
     const rows = definition.rows ?? 3;
-    return `<div class="form-group"><label for="${fieldId}">${label}</label><textarea id="${fieldId}" class="form-input chat-memory-profile-input" data-field="${uiAttr(definition.name)}" rows="${uiAttr(String(rows))}" placeholder="${uiAttr(placeholder)}"></textarea></div>`;
+    return `<div class="form-group setting-change-surface" data-profile-field="${uiAttr(definition.name)}"${CHAT_MEMORY_PROFILE_VISIBLE_FIELD_NAMES.includes(definition.name) ? '' : ' hidden'}><label for="${fieldId}" data-modal-localize="text">${label}</label><textarea id="${fieldId}" class="form-input chat-memory-profile-input" data-field="${uiAttr(definition.name)}" rows="${uiAttr(String(rows))}" placeholder="${uiAttr(placeholder)}" data-modal-localize="placeholder"></textarea></div>`;
 };
 
 const createChatMemoryProfileModalElement = (): HTMLElement => {
     const modalId = CHAT_MEMORY_PROFILE_MODAL_ID;
-    const fieldsMarkup = toTrustedUiHtml(CHAT_MEMORY_PROFILE_VISIBLE_FIELD_NAMES.map((fieldName) => buildFieldMarkup(fieldName)).join(''));
+    const fieldsMarkup = toTrustedUiHtml(CHAT_MEMORY_PROFILE_FIELD_NAMES.map((fieldName) => buildFieldMarkup(fieldName)).join(''));
     const header = renderStandardModalHeader({
         modalId,
         title: i18n.t('chat.memory.profile.title'),
@@ -92,8 +92,8 @@ const createChatMemoryProfileModalElement = (): HTMLElement => {
         closeLabel: i18n.t('common.close')
     });
     const body = renderModalBody(uiHtml`
-        <div class="chat-memory-profile-copy">${i18n.t('chat.memory.profile.description')}</div>
-        <div id="${modalUiId(modalId, 'load-error')}" class="chat-memory-profile-load-error u-hidden" role="alert"><span>${i18n.t('chat.memory.profile.loadFailed')}</span><button type="button" id="${modalUiId(modalId, 'retry')}" class="ui-button ui-button--sm ui-variant-neutral" aria-label="${uiAttr(i18n.t('chat.memory.profile.retry'))}" data-tooltip="${uiAttr(i18n.t('chat.memory.profile.retry'))}">${i18n.t('chat.memory.profile.retry')}</button></div>
+        <div class="chat-memory-profile-copy" data-modal-localize="text">${i18n.t('chat.memory.profile.description')}</div>
+        <div id="${modalUiId(modalId, 'load-error')}" class="chat-memory-profile-load-error u-hidden" role="alert"><span data-modal-localize="text">${i18n.t('chat.memory.profile.loadFailed')}</span><button type="button" id="${modalUiId(modalId, 'retry')}" class="ui-button ui-button--sm ui-variant-neutral" aria-label="${uiAttr(i18n.t('chat.memory.profile.retry'))}" data-tooltip="${uiAttr(i18n.t('chat.memory.profile.retry'))}" data-modal-localize="text aria-label data-tooltip">${i18n.t('chat.memory.profile.retry')}</button></div>
         <div class="chat-memory-profile-grid">${fieldsMarkup}</div>
     `);
     const skipText = i18n.t('chat.memory.profile.skip');
@@ -111,4 +111,4 @@ const createChatMemoryProfileModalElement = (): HTMLElement => {
     });
 };
 
-export { createChatMemoryProfileModalElement };
+export { createChatMemoryProfileModalElement, translateChatMemoryProfileFieldLabel };

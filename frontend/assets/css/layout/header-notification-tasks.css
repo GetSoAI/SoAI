@@ -76,7 +76,7 @@
         min-width: var(--space-5);
         min-height: var(--space-5);
         line-height: 0;
-        color: var(--text-primary);
+        color: var(--ui-button-color);
         align-items: center;
         justify-content: center;
     }
@@ -121,8 +121,8 @@
         border-top: none;
         transition:
             grid-template-rows var(--transition-panel),
-            opacity var(--transition-fast),
-            transform var(--transition-fast);
+            opacity var(--transition-panel),
+            transform var(--transition-panel);
     }
 
     .header-notification-tasks .header-task-manager--expanded .header-task-manager-panel {
@@ -149,6 +149,23 @@
         gap: var(--space-2);
         background-color: var(--task-item-row-bg);
         transition: background-color var(--transition-fast);
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-item .active-task-info {
+        align-items: flex-start;
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-item .plugin-status {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        block-size: 1lh;
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-item .status-indicator {
+        transition:
+            background-color var(--transition-normal),
+            box-shadow var(--transition-normal);
     }
 
     .header-notification-tasks .header-task-manager-panel .dropdown-item.task-item.checkerboard-light {
@@ -184,11 +201,15 @@
         background: linear-gradient(90deg, var(--accent-green), var(--accent-green-light));
         animation: task-progress-indeterminate var(--duration-1600) var(--ease-in-out) infinite;
         transform-origin: var(--inline-start-percent) center;
+        border-radius: inherit;
     }
 
-    .header-notification-tasks .header-task-manager-panel .task-progress--operation .task-progress-bar {
+    .header-notification-tasks .header-task-manager-panel .task-progress--operation:not(.task-progress--indeterminate) .task-progress-bar {
         animation: none;
         background: var(--soai-progress-color);
+        transition:
+            width var(--transition-slow),
+            background-color var(--transition-slow);
     }
 
     .header-notification-tasks .header-task-manager-panel .task-progress-bar--determinate {
@@ -237,7 +258,7 @@
         cursor: pointer;
         background: transparent;
         border-radius: var(--border-radius);
-        color: var(--text-primary);
+        color: var(--ui-button-color);
         flex-shrink: 0;
         transition:
             color var(--transition-fast),

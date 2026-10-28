@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { WebuiPermissionsUnavailableError } from '@core/access/permissionFailure.ts';
+import { captureReorderMotion } from '@core/animations/reorderMotion.ts';
 import { renderReloadFailure, bindReloadFailure } from '@core/ui/reloadFailure.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
@@ -13,7 +14,7 @@ import { setHeaderDropdownState } from '@core/layout/header/dropdownController.t
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { scrollElementIntoView } from '@core/scroll.ts';
 import { normalizeSearchCategory } from '@core/search/searchCategory.ts';
-import { readSearchResultDataset, resolveSearchResultNavigation } from '@core/search/searchResultActivation.ts';
+import { SEARCH_RESULT_DATASET_ATTRIBUTES, readSearchResultDataset, resolveSearchResultNavigation } from '@core/search/searchResultActivation.ts';
 import { normalizeSearchDisplayQuery } from '@core/search/searchQuery.ts';
 import type { SearchItem } from '@core/search/searchTypes.ts';
 import { EMPTY_UI_HTML } from '@core/security/uiHtml.ts';
@@ -132,15 +133,30 @@ const handleSearchItemNavigation = async (manager: SearchEffectsRuntime, node: H
     }
 };
 
+const SEARCH_MOTION_TARGET_SELECTOR = '.search-category > .section-header, .search-item, .search-category-state, .search-no-results, .search-loading, .search-error, .reload-failure';
+
+const resolveSearchMotionKey = (element: HTMLElement): string | null => {
+    if (element.classList.contains('search-item')) return SEARCH_RESULT_DATASET_ATTRIBUTES.map(({ attribute }) => element.getAttribute(attribute) ?? '').join('\u0000');
+    if (element.classList.contains('section-header')) return element.parentElement?.getAttribute('data-search-category') ?? null;
+    return null;
+};
+
+const replaceSearchDropdownContent = (manager: SearchMessageRuntime, markup: TrustedHtml): void => {
+    const { dropdown } = manager.requireDom();
+    const motion = dropdown.classList.contains('u-hidden') ? null : captureReorderMotion(dropdown, resolveSearchMotionKey, [], SEARCH_MOTION_TARGET_SELECTOR);
+    manager.header.updateHTML(dropdown, markup, { escape: false });
+    manager.header.removeClassName(dropdown, 'u-hidden');
+    manager.selectedIndex = -1;
+    motion?.play();
+};
+
 const showSearchMessage = (manager: SearchMessageRuntime, markup: TrustedHtml): boolean => {
-    const { button, dropdown } = manager.requireDom();
+    const { button } = manager.requireDom();
     const styles = getComputedStyle(button);
     if (styles.display === 'none' || button.classList.contains('u-hidden')) {
         return false;
     }
-    manager.header.updateHTML(dropdown, markup, { escape: false });
-    manager.header.removeClassName(dropdown, 'u-hidden');
-    manager.selectedIndex = -1;
+    replaceSearchDropdownContent(manager, markup);
     return true;
 };
 
@@ -166,10 +182,7 @@ const wireSearchResultItems = (manager: SearchEffectsRuntime): void => {
 };
 
 const renderSearchMarkup = (manager: SearchEffectsRuntime, markup: TrustedHtml): void => {
-    const { dropdown } = manager.requireDom();
-    manager.header.updateHTML(dropdown, markup, { escape: false });
-    manager.header.removeClassName(dropdown, 'u-hidden');
-    manager.selectedIndex = -1;
+    replaceSearchDropdownContent(manager, markup);
     wireSearchResultItems(manager);
 };
 

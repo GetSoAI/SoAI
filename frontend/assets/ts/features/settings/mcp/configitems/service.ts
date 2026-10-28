@@ -11,6 +11,7 @@ import { readJsonObjectDottedPathValue } from '@core/types/payloadPathReader.ts'
 import { formatSettingLabel } from '@features/settings/actions.ts';
 import { createSettingInputId } from '@features/settings/configControlDescriptors.ts';
 import { resolveMcpConfigHelpText } from '@features/settings/mcp/configitems/helpText.ts';
+import { SPEECH_MODEL_SETTING_PATH } from '@core/speechsetup/presentation.ts';
 
 const renderScalarControl = (value: JsonValue, path: string): string => {
     const inputId = createSettingInputId(path, 'mcp');
@@ -47,20 +48,20 @@ const renderScalarControl = (value: JsonValue, path: string): string => {
     return `<textarea dir="ltr" id="${inputId}" class="setting-textarea setting-json" data-path="${escapedPath}" rows="6">${escapedJson}</textarea>`;
 };
 
-const renderConfigItem = (key: string, value: JsonValue, path: string): string => {
-    return renderSettingItem({
+const renderConfigItem = (key: string, value: JsonValue, path: string): string =>
+    renderSettingItem({
         label: formatSettingLabel(key),
         help: resolveMcpConfigHelpText(path, key, value),
         control: renderScalarControl(value, path),
         dataset: { path }
     });
-};
 
 const renderConfigRecord = (record: JsonObject, basePath: string): string => {
     const items: string[] = [];
     const groups: string[] = [];
     for (const [key, value] of Object.entries(record)) {
         const path = `${basePath}.${key}`;
+        if (path === SPEECH_MODEL_SETTING_PATH) continue;
         if (isJsonObject(value) && Object.keys(value).length > 0) {
             groups.push(`<div class="settings-config-group"><h3 class="subgroup-title">${securityApi.escapeHtml(formatSettingLabel(key))}</h3>${renderConfigRecord(value, path)}</div>`);
             continue;

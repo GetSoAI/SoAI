@@ -18,6 +18,9 @@ import { getLocation } from '@core/environment/public.ts';
 import { telemetry } from '@core/telemetry/service.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isString } from '@core/typeGuards.ts';
+import { RouterLocalizationRefreshController } from '@core/routing/router/localizationRefresh.ts';
+import { getLanguageService } from '@core/languageservice/service.ts';
+import { reportNavigationEventFailure } from '@core/routing/router/events.ts';
 
 const emitRouterEvent = (stage: string, data: Record<string, JsonValue | null | undefined> = {}, severity: string = 'info'): void => {
     telemetry.emit({ module: 'Router', stage, severity, message: stage, data });
@@ -30,7 +33,8 @@ const createRouterComposition = (router: RouterHost, dependencies: RouterDepende
         emitEvent: emitRouterEvent,
         onPreservedPageFailure: () => pageContext.notifications.error(i18n.t('common.errors.operationFailed')),
         onRetry: () => terminateHandledPromise(router.reload()),
-        pageRegistry
+        pageRegistry,
+        spinnerWorkerUrl: dependencies.spinnerWorkerUrl
     });
     const resources = new ResourceTracker();
     const routerBoundary = new ErrorBoundary('Router');
@@ -65,6 +69,16 @@ const createRouterComposition = (router: RouterHost, dependencies: RouterDepende
         queryUI: (selector: string) => dom.resolveAll(selector),
         emitRouterEvent
     });
+    const localization = new RouterLocalizationRefreshController({
+        getLanguage: () => getLanguageService().getLanguage(),
+        getCurrentRoute: () => router.getCurrentRoute(),
+        getHashRoute: () => router.getRouteFromHash(),
+        getNavigationCompletion: () => router.getLatestNavigationCompletion(),
+        canRefresh: () => router.initialized && !router.isBrowserNavigationSuspended(),
+        hasOpenModals: () => modalPresenter.hasOpenModals(),
+        navigate: (route) => router.navigate(route, { pushState: false, force: true }),
+        reportFailure: (error) => reportNavigationEventFailure({ errorHandler }, 'Navigation failed on language change', error)
+    });
     registerCoreNavigationMiddleware(
         {
             auth,
@@ -93,6 +107,7 @@ const createRouterComposition = (router: RouterHost, dependencies: RouterDepende
         componentRegistry,
         getSidebarService,
         componentLoader,
+        localization,
         lifecycleDependencies
     };
 };

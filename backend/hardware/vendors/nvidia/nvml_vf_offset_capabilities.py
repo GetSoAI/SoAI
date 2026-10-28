@@ -8,9 +8,12 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_exception, log_handled_exception
+from core.errors.exceptions import ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.imports.availability import module_available
+from core.validation.strict_integer import is_strict_int
 from hardware.gpu_capabilities.payloads import update_control_capability_section
+from hardware.vendors.nvidia.nvml_clock_offset_abi import NvmlClockOffsetError
 from hardware.vendors.nvidia.nvml_clock_offset_sanitize import resolve_offset_bounds
 from hardware.vendors.nvidia.nvml_metric_reading import is_nvml_error_not_supported
 from hardware.vendors.nvidia.nvml_modern_clock_offsets import read_modern_clock_offset
@@ -45,7 +48,7 @@ def apply_vf_offset_capabilities(
     caps_key: str,
     operation: str,
 ) -> None:
-    if pynvml_module is None or default_clock is None:
+    if pynvml_module is None or not is_strict_int(default_clock) or default_clock < 0:
         return
     raw = _resolve_raw_offsets(
         handle=handle,
@@ -63,6 +66,25 @@ def apply_vf_offset_capabilities(
     if bounds is None:
         return
     offset_min, offset_max = bounds
+    if not is_strict_int(current_offset) or not offset_min <= current_offset <= offset_max:
+        _log_offset_query_failure(
+            logger,
+            ValidationError("NVML current offset conflicts with actual signed bounds."),
+            operation,
+        )
+        return
+    if caps_key == "mem_clock_mhz":
+        update_control_capability_section(
+            gpu_caps,
+            caps_key,
+            {
+                "supported": False,
+                "offset_min": offset_min,
+                "offset_max": offset_max,
+                "via_nvml": True,
+            },
+        )
+        return
     update_control_capability_section(
         gpu_caps,
         caps_key,
@@ -96,6 +118,8 @@ def _resolve_raw_offsets(
             logger=logger,
             operation=operation,
         )
+        if isinstance(modern, NvmlClockOffsetError):
+            return None
         if modern is not None:
             return modern
     return _resolve_legacy_offsets(
@@ -136,7 +160,7 @@ def _read_legacy_int(
         return None
     try:
         value = reader(handle)
-        return value if isinstance(value, int) else None
+        return value if is_strict_int(value) else None
     except pynvml_module.NVMLError as exception:
         if not is_nvml_error_not_supported(exception):
             _log_offset_query_failure(logger, exception, operation)
@@ -179,7 +203,7 @@ def _read_legacy_min_max(
         return None
     if isinstance(offsets, tuple | list) and len(offsets) == 2:
         first, second = offsets[0], offsets[1]
-        if isinstance(first, int) and isinstance(second, int):
+        if is_strict_int(first) and is_strict_int(second):
             return (first, second)
     return None
 

@@ -25,6 +25,7 @@ const resolveCharacterMapModalRefs = (modal: HTMLElement): CharacterMapModalRefs
     retry: requireElement(modal, `[data-action="${CHARACTER_MAP_ACTIONS.RETRY}"]`, HTMLButtonElement, 'retry action'),
     empty: requireUiElement(modal, 'empty', HTMLElement, 'empty state'),
     grid: requireUiElement(modal, 'grid', HTMLElement, 'grid'),
+    cells: requireElement(modal, '.chat-character-map-cells', HTMLElement, 'cell grid'),
     status: requireUiElement(modal, 'status', HTMLElement, 'status'),
     codePoints: requireUiElement(modal, 'code-points', HTMLElement, 'code-point details'),
     name: requireUiElement(modal, 'name', HTMLElement, 'name details'),

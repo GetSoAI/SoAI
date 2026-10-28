@@ -11,6 +11,7 @@ from core.files.types import ParseExecutionContext
 from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 from core.users.ocr_preferences import resolve_user_ocr_language
 from mcp.tools.argument_fields import reject_unexpected_parameters
+from mcp.tools.argument_runtime import resolve_tool_request_context
 from mcp.tools.error import MCPToolError
 from mcp.tools.files_access import (
     normalize_str,
@@ -85,6 +86,10 @@ async def tool_message_parse(self: MCPUtilityToolsProtocol, arguments: JSONDict)
                 progress_callback=None,
                 display_name=None,
                 extraction_deadline=time.monotonic() + INTERACTIVE_TIMEOUT_SEC,
+                request_context=resolve_tool_request_context(
+                    self,
+                    tool_name="parse_messaging_export",
+                ),
             ),
         )
     except RECOVERABLE_EXCEPTIONS as exception:

@@ -26,12 +26,12 @@ def load_kernel32() -> ctypes.CDLL:
     return ctypes.WinDLL("kernel32", use_last_error=True)
 
 
-def load_windows_library(name: str) -> ctypes.CDLL:
+def load_windows_library(name: str, *, use_last_error: bool = False) -> ctypes.CDLL:
     if not is_windows():
         raise StateError("Windows library loading requires Windows.")
     if sys.platform != "win32":
         raise StateError("Windows platform detection is inconsistent.")
-    return ctypes.WinDLL(name)
+    return ctypes.WinDLL(name, use_last_error=use_last_error)
 
 
 def last_windows_error() -> int:

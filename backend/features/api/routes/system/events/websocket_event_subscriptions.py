@@ -25,6 +25,7 @@ from core.events.types_conversation_durable import (
     ConversationAttentionChangedEvent,
     ConversationInputTerminalEvent,
 )
+from core.events.types_skills import ConversationSkillsChangedEvent, SkillLibraryChangedEvent
 from core.events.types_system import (
     ChatStreamActivityChangedEvent,
     ChatStreamEvent,
@@ -44,6 +45,11 @@ from core.notifications.notification_source_visibility import (
     notification_source_is_visible,
     resolve_notification_excluded_sources,
 )
+from core.notifications.notification_text_models import (
+    NotificationTextPlain,
+    NotificationTextTemplate,
+)
+from core.notifications.notification_transport import project_notification_text
 from core.state.access import AccessAction
 from core.types.json import JSONDict
 from features.api.routes.system.events.agent_event_types import (
@@ -83,6 +89,8 @@ _CRITICAL_CHRONOLOGY_EVENTS: frozenset[type[Event]] = frozenset(
         ChatStreamEvent,
         ChatStreamActivityChangedEvent,
         ConversationAttentionChangedEvent,
+        SkillLibraryChangedEvent,
+        ConversationSkillsChangedEvent,
         ConversationInputTerminalEvent,
         HardwareHistoryResetEvent,
         MetricsHistoryResetEvent,
@@ -223,6 +231,8 @@ def register_websocket_event_subscriptions(
 
     async def event_handler(event: Event) -> None:
         try:
+            if shutdown_event.is_set():
+                return
             event_type = type(event)
             await refresh_websocket_event_subscriptions(
                 event_bus=event_bus,
@@ -230,6 +240,8 @@ def register_websocket_event_subscriptions(
                 event_handler=event_handler,
                 force=False,
             )
+            if shutdown_event.is_set():
+                return
             can_receive = connection.can_receive_event(event_type)
             if not can_receive:
                 return
@@ -246,7 +258,7 @@ def register_websocket_event_subscriptions(
                 return
             if not _notification_event_visible_to_connection(event, connection):
                 return
-            if event_type not in connection.subscribed_types:
+            if shutdown_event.is_set() or event_type not in connection.subscribed_types:
                 return
             if is_websocket_chat_presentation_event_type(event_type):
                 selected_conversation_id = connection.chat_presentation_conversation_id
@@ -257,6 +269,18 @@ def register_websocket_event_subscriptions(
                 ):
                     return
             event_data = event_to_transport_payload(event)
+            if isinstance(event, NotificationCreatedEvent):
+                accepted = connection.websocket.query_params.get("notification_templates")
+                for field in ("title", "message"):
+                    payload = event_data[field]
+                    text = (
+                        NotificationTextPlain.model_validate(payload)
+                        if isinstance(payload, dict) and payload.get("text_type") == "text"
+                        else NotificationTextTemplate.model_validate(payload)
+                    )
+                    event_data[field] = project_notification_text(text, accepted).model_dump(
+                        mode="json"
+                    )
             queue_label = f"WebSocket for {connection.user.get('username', 'unknown')}"
             if _event_requires_critical_chronology(event):
                 await _enqueue_critical_event_or_shutdown(

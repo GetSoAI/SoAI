@@ -115,6 +115,15 @@ class SearchComponent extends LifecycleModel {
         this.#backend.loadRecentSearches();
         this.startCacheCleanup();
         const generation = this.#realtimeInitializationToken.next();
+        const permissionsApplied = await this.#backend.refreshGrantedActions();
+        if (!permissionsApplied || !this.#realtimeInitializationToken.isActive(generation) || this.isDestroyed) {
+            return;
+        }
+        await this.#backend.refreshStaticIndexes();
+        if (!this.#realtimeInitializationToken.isActive(generation) || this.isDestroyed) {
+            return;
+        }
+        this.#backend.indexPages();
         void this.#initializeSearchData(generation).catch((error) => {
             errorHandler.warn('SearchPanel', 'Search data initialization failed', ensureError(error));
         });
@@ -126,15 +135,6 @@ class SearchComponent extends LifecycleModel {
     }
 
     async #initializeSearchData(generation: number): Promise<void> {
-        const permissionsApplied = await this.#backend.refreshGrantedActions();
-        if (!permissionsApplied || !this.#realtimeInitializationToken.isActive(generation) || this.isDestroyed) {
-            return;
-        }
-        await this.#backend.refreshStaticIndexes();
-        if (!this.#realtimeInitializationToken.isActive(generation) || this.isDestroyed) {
-            return;
-        }
-        this.#backend.indexPages();
         await this.#backend.monitorSystemReadiness();
         if (!this.#realtimeInitializationToken.isActive(generation) || this.isDestroyed) {
             return;

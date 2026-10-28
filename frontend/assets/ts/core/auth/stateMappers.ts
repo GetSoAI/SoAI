@@ -7,6 +7,7 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import type { SessionPayload, SharedAuthState } from '@core/auth/types.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
+import { isBoolean } from '@core/typeGuards.ts';
 
 const buildSessionPayload = (user: WebuiUser | null): SessionPayload | null =>
     user
@@ -45,7 +46,7 @@ const serializeAuthUser = (user: WebuiUser): JsonObject => ({
 });
 
 const parseSharedAuthState = (value: JsonValue | undefined): SharedAuthState | null => {
-    if (!isJsonObject(value)) return null;
+    if (!isJsonObject(value) || !isBoolean(value['is_authenticated'])) return null;
     const revision = normalizeCrossTabRevision(value['revision']);
     if (revision === null) return null;
     const isAuthenticated = value['is_authenticated'] === true;

@@ -1,0 +1,143 @@
+--- a/chromadb/__init__.py
++++ b/chromadb/__init__.py
+@@ -3,1 +3,1 @@
+-__version__ = "1.5.9"
++__version__ = "1.5.9+soai.1"
+--- a/chromadb/api/collection_configuration.py
++++ b/chromadb/api/collection_configuration.py
+@@ -47,0 +48,12 @@
++def _reject_remote_code(config: Dict[str, Any]) -> None:
++    pending = [config]
++    while pending:
++        value = pending.pop()
++        if isinstance(value, dict):
++            if value.get("trust_remote_code") not in (None, False):
++                raise ValueError("Remote embedding code is prohibited in serialized configuration")
++            pending.extend(value.values())
++        elif isinstance(value, list):
++            pending.extend(value)
++
++
+@@ -58,0 +71,1 @@
++    _reject_remote_code(config_json_map)
+@@ -293,0 +307,1 @@
++    _reject_remote_code(json_map)
+@@ -607,0 +622,1 @@
++    _reject_remote_code(json_map)
+--- a/chromadb/auth/simple_rbac_authz/__init__.py
++++ b/chromadb/auth/simple_rbac_authz/__init__.py
+@@ -2,1 +2,1 @@
+-from typing import Dict, Set
++from typing import Dict, Set, List
+@@ -45,0 +46,1 @@
++        self._resources: Dict[str, List[Dict[str, str]]] = {}
+@@ -48,0 +50,9 @@
++            resources = self._config["roles_mapping"][user["role"]].get("resources")
++            if not isinstance(resources, list) or not resources:
++                raise ValueError("RBAC roles require explicit tenant, database and collection resources")
++            for resource in resources:
++                if not isinstance(resource, dict) or set(resource) != {"tenant", "database", "collection"}:
++                    raise ValueError("RBAC resources require tenant, database and collection")
++                if any(not isinstance(value, str) or not value for value in resource.values()):
++                    raise ValueError("RBAC resource scopes must be nonempty strings")
++            self._resources[user["id"]] = resources
+@@ -64,0 +75,6 @@
++            and any(
++                (scope["tenant"] == "*" or scope["tenant"] == resource.tenant)
++                and (scope["database"] == "*" or scope["database"] == resource.database)
++                and (scope["collection"] == "*" or scope["collection"] == resource.collection)
++                for scope in self._resources[user.user_id]
++            )
+--- a/chromadb/server/fastapi/__init__.py
++++ b/chromadb/server/fastapi/__init__.py
+@@ -534,0 +535,4 @@
++        tenant, database = self._validate_authenticated_scope(
++            user_identity, action, tenant, database, collection
++        )
++
+@@ -552,0 +557,37 @@
++
++    def _validate_authenticated_scope(
++        self,
++        user: UserIdentity,
++        action: AuthzAction,
++        tenant: Optional[str],
++        database: Optional[str],
++        collection: Optional[str],
++    ) -> Tuple[Optional[str], Optional[str]]:
++        if tenant is None and user.tenant and user.tenant != "*":
++            tenant = user.tenant
++        if database is None and user.databases and len(user.databases) == 1:
++            if user.databases[0] != "*":
++                database = user.databases[0]
++        if user.tenant and user.tenant != "*" and tenant != user.tenant:
++            raise HTTPException(status_code=403, detail="Forbidden tenant")
++        if user.databases is not None and "*" not in user.databases:
++            if database is None or database not in user.databases:
++                raise HTTPException(status_code=403, detail="Forbidden database")
++        if collection is not None and action in (
++            AuthzAction.UPDATE_COLLECTION,
++            AuthzAction.ADD,
++            AuthzAction.DELETE,
++            AuthzAction.GET,
++            AuthzAction.QUERY,
++            AuthzAction.COUNT,
++            AuthzAction.UPDATE,
++            AuthzAction.UPSERT,
++        ):
++            owner = self._api.get_collection_by_id(
++                _uuid(collection), tenant or DEFAULT_TENANT, database or DEFAULT_DATABASE
++            )
++            if owner.tenant != (tenant or DEFAULT_TENANT):
++                raise HTTPException(status_code=403, detail="Forbidden collection tenant")
++            if owner.database != (database or DEFAULT_DATABASE):
++                raise HTTPException(status_code=403, detail="Forbidden collection database")
++        return tenant, database
+@@ -812,0 +854,9 @@
++            # NOTE(rescrv, iron will auth):  Implemented.
++            self.sync_auth_request(
++                request.headers,
++                AuthzAction.CREATE_COLLECTION,
++                tenant,
++                database,
++                create.name,
++            )
++
+@@ -826,9 +875,0 @@
+-
+-            # NOTE(rescrv, iron will auth):  Implemented.
+-            self.sync_auth_request(
+-                request.headers,
+-                AuthzAction.CREATE_COLLECTION,
+-                tenant,
+-                database,
+-                create.name,
+-            )
+@@ -1649,0 +1691,4 @@
++        tenant, database = self._validate_authenticated_scope(
++            user_identity, action, tenant, database, collection
++        )
++
+@@ -1879,8 +1923,0 @@
+-            configuration = (
+-                CreateCollectionConfiguration()
+-                if not create.configuration
+-                else load_create_collection_configuration_from_json(
+-                    create.configuration
+-                )
+-            )
+-
+@@ -1901,0 +1939,8 @@
++
++            configuration = (
++                CreateCollectionConfiguration()
++                if not create.configuration
++                else load_create_collection_configuration_from_json(
++                    create.configuration
++                )
++            )
+--- a/chromadb-1.5.9.dist-info/METADATA
++++ b/chromadb-1.5.9.dist-info/METADATA
+@@ -3,1 +3,1 @@
+-Version: 1.5.9
++Version: 1.5.9+soai.1

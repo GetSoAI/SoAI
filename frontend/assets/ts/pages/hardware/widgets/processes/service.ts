@@ -1,6 +1,7 @@
 /* SoAI - Hardware page processes service [frontend/assets/ts/pages/hardware/widgets/processes/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { captureReorderMotion } from '@core/animations/reorderMotion.ts';
 import type { HardwareProcessesResource } from '@core/realtime/streammanager/resources/resourceValueContracts.ts';
 import { requireSortableColumn, requireSortableHeaders, resolveNextSortState } from '@core/ui/tables/sortableTable.ts';
 import { normalizeProcessRecord, selectTopCpuProcess } from '@pages/hardware/widgets/processes/mappers.ts';
@@ -69,8 +70,11 @@ class ProcessTableManager {
         this.sortColumn = nextSort.column;
         this.sortDirection = nextSort.direction;
         this.#dependencies.onSortChanged({ column: this.sortColumn, direction: this.sortDirection });
+        const tbody = this.#ensureElements()?.tbody ?? null;
+        const motion = tbody === null ? null : captureReorderMotion(tbody);
         this.#orderedPids = [];
         this.renderProcessCard();
+        motion?.play();
     }
     handleKillAction(target: Element): Promise<void> {
         return this.#killController.handleKillAction(target);
@@ -95,16 +99,12 @@ class ProcessTableManager {
         return this.processList?.length ?? 0;
     }
     handleResourceUpdate(processes: HardwareProcessesResource): void {
-        if (processes.length) {
-            this.dataReady = true;
-            this.processList = processes;
-            this.renderProcessCard();
-        } else {
-            this.dataReady = false;
-            this.processList = [];
+        this.dataReady = true;
+        this.processList = processes;
+        if (!processes.length) {
             this.#pendingHydratedRender = false;
-            this.renderProcessCard([]);
         }
+        this.renderProcessCard();
     }
     renderProcessCard(processes: ProcessRecord[] = this.processList): void {
         if (!this.#processRowsHydrated && processes.length) {

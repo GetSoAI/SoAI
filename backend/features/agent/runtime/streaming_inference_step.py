@@ -26,7 +26,7 @@ from features.agent.runtime.model_output_contract_recovery import (
     recover_streaming_invalid_tool_call_json_outcome,
 )
 from features.agent.runtime.openai_payload import (
-    extract_assistant_content_visible,
+    extract_assistant_text_channels,
     remove_suppressed_assistant_tool_calls,
     replace_assistant_content_visible,
 )
@@ -69,6 +69,7 @@ class StreamingInferenceStepResult:
     assistant_text: str
     assistant_output_published: bool
     detected_tool_calls: list[JSONDict]
+    reasoning_text: str = ""
 
 
 async def stream_inference_step(
@@ -185,8 +186,9 @@ async def stream_inference_step(
         if outcome.payload is not None:
             inject_collected_tool_calls_into_payload(outcome.payload, adjusted_calls)
     final_text = ""
+    reasoning_text = ""
     if outcome.payload is not None:
-        final_text = extract_assistant_content_visible(outcome.payload)
+        final_text, reasoning_text = extract_assistant_text_channels(outcome.payload)
     if not final_text:
         final_text = output_publisher.buffered_text()
     stripping = strip_echoed_injected_prompt_blocks(final_text)
@@ -222,7 +224,8 @@ async def stream_inference_step(
         outcome=outcome,
     )
     if invalid_tool_call_json_recovered:
-        final_text = extract_assistant_content_visible(outcome.payload) if outcome.payload else ""
+        final_text = extract_assistant_text_channels(outcome.payload)[0] if outcome.payload else ""
+        reasoning_text = ""
     buffered_output_publishable = not buffer_output or (
         outcome.stream_successful
         and not retry_output_leaked
@@ -302,4 +305,5 @@ async def stream_inference_step(
         assistant_text=final_text,
         assistant_output_published=assistant_output_published,
         detected_tool_calls=(detected_tool_calls if not buffer_output else []),
+        reasoning_text=reasoning_text,
     )

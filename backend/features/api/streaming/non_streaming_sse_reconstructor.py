@@ -87,7 +87,9 @@ class NonStreamingSSEReconstructor:
                 raise NonStreamingSSEMalformedFrameError(frame_preview=frame_preview)
             parsed_error = parse_openai_sse_error_frame(frame)
             if parsed_error is not None:
-                raise_openai_streaming_error(parsed_error, operation=OPERATION_CONSUME_SSE)
+                raise_openai_streaming_error(
+                    parsed_error, operation=OPERATION_CONSUME_SSE, request_payload=request_json
+                )
             if self._transcript is None:
                 self._transcript = OpenAIStreamTranscript(
                     model_hint=resolve_optional_model_name(request_json),

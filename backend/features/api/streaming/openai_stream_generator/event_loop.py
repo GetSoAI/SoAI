@@ -7,6 +7,7 @@ from collections.abc import AsyncGenerator, Callable
 from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_handled_exception
+from core.errors.public_projection import project_public_error
 from core.events.types_base import Event
 from core.events.types_models_streaming import StreamChunkEvent, StreamEndEvent
 from core.events.types_plugins import ErrorEvent
@@ -120,6 +121,7 @@ async def run_stream_event_loop(
                     yield stream_bytes
             except OpenAIStreamAbortRequested as exception:
                 if isinstance(exception.__cause__, OpenAIStreamError):
+                    public_error = project_public_error(exception.__cause__, trace_id=trace_id)
                     log_handled_exception(
                         logger,
                         exception.__cause__,
@@ -127,8 +129,19 @@ async def run_stream_event_loop(
                         trace_id=trace_id,
                         operation=OPERATION_PROVIDER_ERROR_DELIVERY,
                     )
-                async for chunk in send_error(exception.message, exception.error_type):
-                    yield chunk
+                    async for chunk in iter_error_event_chunks(
+                        ErrorEvent(
+                            message=public_error.message, context=context, public_error=public_error
+                        ),
+                        state,
+                        send_error=send_error,
+                        emit_done_marker=emit_done_marker,
+                        stream_result_state=stream_result_state,
+                    ):
+                        yield chunk
+                else:
+                    async for chunk in send_error(exception.message, exception.error_type):
+                        yield chunk
                 break
             continue
         if isinstance(event, StreamEndEvent):
@@ -153,6 +166,7 @@ async def run_stream_event_loop(
                 state,
                 send_error=send_error,
                 emit_done_marker=emit_done_marker,
+                stream_result_state=stream_result_state,
             ):
                 yield chunk
             break

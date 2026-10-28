@@ -5,8 +5,11 @@ import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { CompatibilityInfo } from '@core/types/catalogPluginTypes.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import type { CardRendererHost } from '@core/ui/BaseCardRenderer.ts';
+import type { BackendUpdateAccess } from '@core/plugins/backendUpdates.ts';
 
 interface PluginStatusPresenter {
+    isError(status: string): boolean;
+    isTransitioning(status: string): boolean;
     getCollectionStatusClass(status: string): string;
     getDescription(status: string): string;
     getCollectionBadgeClass(status: string): string;
@@ -29,13 +32,13 @@ interface PluginCardHost extends CardRendererHost {
     };
     presentation: {
         getPluginLogo(plugin: PluginRecord): string;
-        getPluginLogoFallback(plugin: PluginRecord): string;
         formatPluginName(name: string | undefined): string;
         getCircuitBreakerNotice(plugin: PluginRecord): string;
         getIncompatibleNotice(plugin: PluginRecord): string;
         sanitizeText(value: JsonValue, options?: Record<string, JsonValue>): string;
     };
     actions: {
+        backendUpdateAccess(plugin: PluginRecord): BackendUpdateAccess;
         getPendingToggleTarget(plugin: PluginRecord): boolean | null;
         getItemCardId(plugin: PluginRecord): string | null;
         isNewItem(plugin: PluginRecord): boolean;

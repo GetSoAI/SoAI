@@ -9,6 +9,7 @@ import uuid
 
 from core.errors.exceptions import SecurityError, StateError, ValidationError
 from core.files.path_policy import ensure_path_within_base_lexical
+from core.filesystem.descriptor_io import open_descriptor
 from core.filesystem.path_coercion import coerce_path
 
 __all__ = ("write_text_no_symlink_atomic",)
@@ -17,7 +18,7 @@ __all__ = ("write_text_no_symlink_atomic",)
 def _open_child_directory(parent_fd: int, name: str) -> int:
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
     try:
-        return os.open(name, flags, dir_fd=parent_fd)
+        return open_descriptor(name, flags, dir_fd=parent_fd)
     except OSError as exception:
         raise SecurityError(
             "Cannot write through symbolic link path components.",
@@ -28,7 +29,7 @@ def _open_child_directory(parent_fd: int, name: str) -> int:
 def _open_root_directory(root_path: str) -> int:
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
     try:
-        return os.open(root_path, flags)
+        return open_descriptor(root_path, flags)
     except OSError as exception:
         raise SecurityError(
             "Cannot open file explorer root directory.",
@@ -94,7 +95,7 @@ def _write_temp_file(parent_fd: int, content: bytes, existing_mode: int | None) 
     temp_name = f".soai_fe_.{uuid.uuid4().hex}.tmp"
     mode = existing_mode if existing_mode is not None else 0o666
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-    file_fd = os.open(temp_name, flags, mode, dir_fd=parent_fd)
+    file_fd = open_descriptor(temp_name, flags, mode, dir_fd=parent_fd)
     try:
         offset = 0
         while offset < len(content):

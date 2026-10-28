@@ -1,9 +1,10 @@
 /* SoAI - Realtime hardware metric resolver effects [frontend/assets/ts/pages/hardware/realtime/hardwarerealtimemetricresolvers/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { HardwareNetworkSpeed } from '@core/api/contracts/hardwareContractTypes.ts';
 import { clampPercent } from '@core/primitives/clampNumber.ts';
 import { isFiniteNumber, isNullOrUndefined } from '@core/typeGuards.ts';
-import { normalizeIdentifier, resolveNetworkSpeedEntry, type NetworkSpeedEntry, type NetworkSpeedSnapshot } from '@features/hardware/public.ts';
+import { normalizeIdentifier, resolveNetworkSpeedEntry, type NetworkSpeedSnapshot } from '@features/hardware/public.ts';
 import type { HardwarePageSnapshot } from '@pages/hardware/types.ts';
 import { STR_DISK, STR_NETWORK } from '@pages/hardware/realtime/hardwarerealtimemetricresolvers/constants.ts';
 import type { ChartOhlcNumericContract, DeviceSelection } from '@pages/hardware/realtime/hardwarerealtimemetricresolvers/types.ts';
@@ -51,7 +52,7 @@ const resolveDiskMetric = (metricKey: string | undefined, payload: HardwarePageS
     return resolved;
 };
 
-const resolveNetworkMetricSpeedEntry = (sources: readonly (NetworkSpeedSnapshot | undefined)[], interfaceName: string, deviceId: string): NetworkSpeedEntry | null => {
+const resolveNetworkMetricSpeedEntry = (sources: readonly (NetworkSpeedSnapshot | undefined)[], interfaceName: string, deviceId: string): HardwareNetworkSpeed | null => {
     for (const source of sources) {
         const match = resolveNetworkSpeedEntry(source, interfaceName, deviceId);
         if (match) {

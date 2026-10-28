@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 import shutil
 import sys
@@ -16,6 +17,11 @@ import psutil
 
 from app.updater.disk_space import require_disk_space_for_update
 from app.updater.release_bundle import PreparedReleaseBundle
+from app.updater.software_update.activation_state import read_update_activation_identity
+from app.updater.software_update.install_transaction_inventory import (
+    require_retained_installation_root,
+    require_rollback_inventory,
+)
 from app.updater.software_update.update_payload_validation import (
     validate_and_prepare_staged_update,
 )
@@ -27,12 +33,14 @@ from core.files.path_policy import safe_join_relative_under_base
 from core.filesystem.atomic_write_primitives import fsync_directory
 from core.filesystem.file_sync import fsync_install_entry
 from core.filesystem.open_files import read_regular_file_no_symlink
+from core.filesystem.windows_sharing_conflicts import rename_with_sharing_retry
 from core.logging.protocols import LoggerProtocol
 from core.runtime.process_identity_kill import (
     force_kill_process_tree_matching_identity_blocking,
 )
 from core.runtime.process_identity_signals import read_process_create_time_ms
 from core.serialization.json_parsing import parse_json_dict
+from core.system.native_image_budget import native_image_allowance
 from core.system.process_launcher import DEVNULL_STREAM, spawn_handoff_process
 from core.system.subprocess_platform import windows_isolated_process_creationflags
 from core.timing.constants import CONTROL_TIMEOUT_SEC, SETUP_TIMEOUT_SEC
@@ -46,9 +54,32 @@ __all__ = (
     "PreparedWindowsInstaller",
     "prepare_windows_installer_payload",
     "retain_windows_recovery_runtime",
+    "verify_windows_installer_original_backup",
 )
 
 RECOVERY_RUNTIME_DIRECTORY = "recovery_runtime"
+
+
+def verify_windows_installer_original_backup(
+    paths: UpdateTransactionPaths, backup_root: str
+) -> None:
+    identity = read_update_activation_identity(paths)
+    require_retained_installation_root(
+        paths.base_path,
+        backup_root,
+        edition=identity.edition,
+        expected_version=identity.from_version,
+    )
+    if (
+        require_rollback_inventory(
+            paths,
+            old_complete=False,
+            originals_at_installation=True,
+            retained_installation_root=backup_root,
+        )
+        is None
+    ):
+        raise StateError("Native original backup has no protected live-original inventory.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,7 +149,11 @@ def prepare_windows_installer_payload(
     base_path: str,
     release_bundle: PreparedReleaseBundle,
     logger: LoggerProtocol,
+    native_images: tuple[str, ...],
 ) -> Generator[PreparedWindowsInstaller]:
+    preparation_seconds = math.ceil(
+        native_image_allowance(SETUP_TIMEOUT_SEC, roots=native_images).seconds
+    )
     preparation_root = tempfile.mkdtemp(prefix="soai-update-prepare-", dir=temp_path)
     staged_root = os.path.join(preparation_root, "payload")
     process_handle = None
@@ -128,7 +163,13 @@ def prepare_windows_installer_payload(
         try:
             os.mkdir(staged_root)
             process_handle = spawn_handoff_process(
-                [*command, "-StageRoot", staged_root],
+                [
+                    *command,
+                    "-PreparationTimeoutSeconds",
+                    str(preparation_seconds),
+                    "-StageRoot",
+                    staged_root,
+                ],
                 cwd=preparation_root,
                 creationflags=windows_isolated_process_creationflags(),
                 stdin=DEVNULL_STREAM,
@@ -137,7 +178,7 @@ def prepare_windows_installer_payload(
             )
             cleanup_safe = False
             process_create_time_ms = read_process_create_time_ms(psutil.Process(process_handle.pid))
-            exit_code = process_handle.wait(timeout=SETUP_TIMEOUT_SEC + 2 * CONTROL_TIMEOUT_SEC)
+            exit_code = process_handle.wait(timeout=preparation_seconds + 2 * CONTROL_TIMEOUT_SEC)
             exit_witness = read_regular_file_no_symlink(f"{staged_root}.exited", max_bytes=128)
             cleanup_safe = exit_witness.strip() == str(process_handle.pid).encode("ascii")
             if not cleanup_safe:
@@ -239,7 +280,7 @@ def retain_windows_recovery_runtime(
                 copy_install_entry(os.path.join(source, name), retained)
             for path in job_files:
                 copy_install_entry(path, job_root)
-            os.rename(
+            rename_with_sharing_retry(
                 os.path.join(job_root, "soai.exe"), os.path.join(job_root, "soai-job-owner.dll")
             )
             fsync_install_entry(job_root)

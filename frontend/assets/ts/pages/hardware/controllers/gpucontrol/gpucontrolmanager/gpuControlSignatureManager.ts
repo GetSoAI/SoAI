@@ -68,6 +68,7 @@ const slotEntrySignature = (entry: GpuSlotEntry): SignatureValue => {
         gpuIndex: typeof entry.gpuIndex === 'number' ? entry.gpuIndex : null,
         bootEnabledSaved: entry.boot?.enabled === true,
         bootSlotSaved: entry.boot?.slot ?? null,
+        reconciliation: entry.reconciliation ? JSON.stringify(entry.reconciliation) : null,
         slots: sortedRecord(slots)
     });
 };

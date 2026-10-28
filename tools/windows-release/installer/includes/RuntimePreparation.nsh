@@ -1,7 +1,7 @@
 ; SoAI - Windows installer runtime preparation [tools/windows-release/installer/includes/RuntimePreparation.nsh]
 ; SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-!define SOAI_RUNTIME_PREPARATION_COMMAND '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -NonInteractive -File "$RuntimeWrapperPath" -InstallRoot "$INSTDIR" -DiagnosticRoot "$RuntimeDiagnosticPath"'
+!define SOAI_RUNTIME_PREPARATION_COMMAND '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -NonInteractive -File "$RuntimeWrapperPath" -InstallRoot "$INSTDIR" -DiagnosticRoot "$RuntimeDiagnosticPath"$RuntimeExistingInstallationArgument'
 !define SOAI_RUNTIME_PREPARATION_LIMIT_SECONDS 14400
 !define SOAI_RUNTIME_TASK_STOP_SECONDS 30
 
@@ -28,14 +28,18 @@ Function CreateRuntimePrepWrapper
   StrCpy $RuntimeExitPath "$RuntimeDiagnosticPath\install-exit-code.txt"
   StrCpy $RuntimeErrorPath "$RuntimeDiagnosticPath\install-error.txt"
   StrCpy $RuntimeWrapperPath "$RuntimeDiagnosticPath\run-install-runtime.ps1"
+  StrCpy $RuntimeExistingInstallationArgument ""
+  ${If} $InstallerTargetClassification == "existing"
+    StrCpy $RuntimeExistingInstallationArgument " -ExistingInstallation"
+  ${EndIf}
   ClearErrors
   FileOpen $0 "$RuntimeWrapperPath" w
-  FileWrite $0 "param([string]$$InstallRoot, [string]$$DiagnosticRoot)$\r$\n"
+  FileWrite $0 "param([string]$$InstallRoot, [string]$$DiagnosticRoot, [switch]$$ExistingInstallation)$\r$\n"
   FileWrite $0 "$$ErrorActionPreference = 'Stop'$\r$\n"
   FileWrite $0 "$$exitCode = 0$\r$\n"
   FileWrite $0 "[IO.File]::WriteAllText((Join-Path $$DiagnosticRoot 'install-root.txt'), $$InstallRoot, [Text.Encoding]::Unicode)$\r$\n"
   FileWrite $0 "try {$\r$\n"
-  FileWrite $0 "  & (Join-Path $$InstallRoot 'installer-support\Install-SoAIRuntime.ps1') -InstallRoot $$InstallRoot -PythonVersion '${PYTHON_VERSION}' -PythonUrl '${PYTHON_URL}' -PythonSha256 '${PYTHON_SHA256}' -WebView2BootstrapperUrl '${WEBVIEW2_BOOTSTRAPPER_URL}' -DiagnosticRoot (Join-Path $$DiagnosticRoot 'logs') -StatusPath (Join-Path $$DiagnosticRoot 'install-status.ini')$\r$\n"
+  FileWrite $0 "  & (Join-Path $$InstallRoot 'installer-support\Install-SoAIRuntime.ps1') -InstallRoot $$InstallRoot -PythonVersion '${PYTHON_VERSION}' -PythonUrl '${PYTHON_URL}' -PythonSha256 '${PYTHON_SHA256}' -WebView2BootstrapperUrl '${WEBVIEW2_BOOTSTRAPPER_URL}' -DiagnosticRoot (Join-Path $$DiagnosticRoot 'logs') -StatusPath (Join-Path $$DiagnosticRoot 'install-status.ini') -ExistingInstallation:$$ExistingInstallation$\r$\n"
   FileWrite $0 "  Add-Type -AssemblyName System.IO.Compression.FileSystem$\r$\n"
   FileWrite $0 "  $$nativeRoot = if ($$InstallRoot.StartsWith('\\')) { '\\?\UNC\' + $$InstallRoot.Substring(2) } else { '\\?\' + $$InstallRoot }$\r$\n"
   FileWrite $0 "  $$identity = [IO.Path]::GetFileName([IO.Path]::GetDirectoryName($$DiagnosticRoot))$\r$\n"

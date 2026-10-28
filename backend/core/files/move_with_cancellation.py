@@ -16,6 +16,7 @@ from core.concurrency.protocols import CancellationTokenProtocol
 from core.config.byte_sizes import MIB_BYTES
 from core.errors.exceptions import ValidationError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
+from core.files.commit_receipt import FileCommitReceipt
 from core.files.move_errors import DestinationExistsError, MoveFileCommittedError
 from core.filesystem.atomic_write_primitives import allocate_atomic_temporary_file
 from core.filesystem.exclusive_rename import rename_file_without_replacement
@@ -24,7 +25,7 @@ from core.filesystem.open_files import open_binary
 from core.filesystem.path_coercion import normalize_filesystem_path
 
 if TYPE_CHECKING:
-    from core.types.json import JSONValue
+    from core.types.json import JSONDict, JSONValue
 
 __all__ = (
     "MoveFileCommittedAfterCancellationError",
@@ -44,10 +45,12 @@ class MoveFileCommittedAfterCancellationError(TaskCancelledError):
         destination_path: str,
         reason: str | None = None,
         cancellation_cause: BaseException | None = None,
+        receipt: JSONDict | None = None,
     ) -> None:
         super().__init__(cancellation_id, reason)
         self.source_path = source_path
         self.destination_path = destination_path
+        self.receipt = FileCommitReceipt.from_dict(receipt) if receipt is not None else None
         if cancellation_cause is not None:
             self.cause = cancellation_cause
         details = dict(self.details or {})
@@ -73,6 +76,7 @@ class MoveFileCommittedAfterCancellationError(TaskCancelledError):
                 "destination_path": self.destination_path,
                 "reason": self.reason,
                 "cancellation_cause": self.cause,
+                "receipt": self.receipt.to_dict() if self.receipt is not None else None,
             },
         )
 

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Protocol
 from core.errors.error_types import ErrorType
 from core.errors.payload import ErrorPublicPayload
 from core.plugins.protocols_instance import PluginInstanceProtocol
+from core.tasks.execution_budget import ExecutionBudget
 from core.tasks.task import Task
 from orchestrator.execution.active_inferences import ActiveInferenceInfo
 from orchestrator.execution.streaming_completion import StreamingCompletion
@@ -43,7 +44,14 @@ class ActiveInferenceRegistryProtocol(Protocol):
 
     async def set_dispatch_time(self, tracking_id: str, dispatch_time: float) -> None: ...
 
-    async def set_request_timeout(self, tracking_id: str, timeout: float) -> None: ...
+    async def set_execution_limits(
+        self,
+        tracking_id: str,
+        *,
+        request_timeout: float,
+        health_watchdog: float,
+        execution_budget: ExecutionBudget | None = None,
+    ) -> None: ...
 
     async def get_dispatch_time(self, tracking_id: str) -> float | None: ...
 

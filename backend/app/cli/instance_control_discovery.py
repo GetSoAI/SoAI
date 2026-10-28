@@ -18,7 +18,9 @@ from core.errors.exception_logging import log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.runtime.instance_record import read_verified_runtime_instance_record
+from core.security.tls_policy import resolve_auto_tls_certificate_paths
 from core.system_api.route_paths import SOAI_SYSTEM_HEALTH_PATH
+from core.validation.boolean_coercion import coerce_bool_with_default
 
 __all__ = (
     "DiscoveryProbeResult",
@@ -48,7 +50,17 @@ def _resolve_probe_ca_file(base_dir: str) -> str | None:
         return os.path.abspath(os.path.expanduser(configured_ca_file.strip()))
     configured_cert_file = ssl_section.get("CERT_FILE")
     if not isinstance(configured_cert_file, str) or not configured_cert_file.strip():
-        return None
+        configured_key_file = ssl_section.get("KEY_FILE")
+        tls_enabled = ssl_section.get("TLS_ENABLED")
+        if (
+            configured_cert_file
+            or configured_key_file
+            or not isinstance(tls_enabled, str | int | float | bool)
+            or not coerce_bool_with_default(tls_enabled, default=False, strict=False)
+        ):
+            return None
+        auto_cert_file, _auto_key_file = resolve_auto_tls_certificate_paths(base_dir)
+        return auto_cert_file if os.path.isfile(auto_cert_file) else None
     cert_file = os.path.abspath(os.path.expanduser(configured_cert_file.strip()))
     local_ca_file = os.path.join(os.path.dirname(cert_file), "soai-local-root-ca.crt")
     return local_ca_file if os.path.isfile(local_ca_file) else None

@@ -14,6 +14,7 @@ import type { AiSetupFlowController } from '@pages/wizard/services/aisetup/AiSet
 type WizardCompletionDestination = 'default' | 'chat';
 
 interface WizardViewPort {
+    getAbortSignal(): AbortSignal | null;
     state: WizardState;
     requireUi(): WizardUi;
     requireAccountUi(): WizardAccountUi;
@@ -55,6 +56,7 @@ interface WizardDataPort {
 }
 
 interface WizardCompletionPort {
+    reconcileSetupCompletion(): void;
     dispatchWizardCompleted(): void;
     navigateAfterCompletion(isSessionActivationRequired: boolean, destination: WizardCompletionDestination): Promise<void>;
     refreshLogos(): void;

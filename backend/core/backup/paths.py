@@ -13,6 +13,7 @@ __all__ = (
     "get_backup_relative_gpu_settings_path",
     "get_backup_relative_logs_path",
     "get_backup_relative_plugin_config_path",
+    "get_backup_relative_user_files_path",
     "get_backup_relative_wallpaper_path",
 )
 
@@ -22,6 +23,7 @@ _GPU_SETTINGS_PATH = ("data", "gpu", "gpu_settings_slots.json")
 _ENCRYPTION_KEY_PATH = ("data", "secret.key")
 _FILES_PATH = ("data", "files")
 _LOGS_PATH = ("data", "logs")
+_USER_FILES_PATH = ("data", "user_files")
 _WALLPAPER_PATH = ("data", "wallpaper")
 
 ALLOWED_RESTORE_FILE_DESTINATION_KEYS: tuple[tuple[tuple[str, ...], str], ...] = (
@@ -33,6 +35,7 @@ ALLOWED_RESTORE_FILE_DESTINATION_KEYS: tuple[tuple[tuple[str, ...], str], ...] =
 ALLOWED_RESTORE_DIRECTORY_DESTINATION_KEYS: tuple[tuple[tuple[str, ...], str], ...] = (
     (_FILES_PATH, "files_storage_path"),
     (_LOGS_PATH, "logs_path"),
+    (_USER_FILES_PATH, "user_files_path"),
     (_WALLPAPER_PATH, "wallpaper_path"),
 )
 
@@ -59,6 +62,10 @@ def get_backup_relative_files_path() -> str:
 
 def get_backup_relative_logs_path() -> str:
     return posixpath.join(*_LOGS_PATH)
+
+
+def get_backup_relative_user_files_path() -> str:
+    return posixpath.join(*_USER_FILES_PATH)
 
 
 def get_backup_relative_wallpaper_path() -> str:

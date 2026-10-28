@@ -15,6 +15,7 @@ from core.hardware.gpu_settings_contract import (
     GPU_SETTING_MEM_CLOCK_FIELD,
     GPU_SETTING_POWER_LIMIT_FIELD,
 )
+from core.hardware.gpu_slot_failures import build_gpu_range_validation_error
 from core.logging.trace import get_logger
 from core.validation.booleans import parse_bool
 from core.validation.numbers import coerce_int_from_json
@@ -28,6 +29,8 @@ if TYPE_CHECKING:
 __all__ = (
     "GpuSettingDescriptor",
     "capability_supported",
+    "clock_capability_requires_current_observation",
+    "fan_capability_observes_configured_mode",
     "get_capability_entry",
     "gpu_setting_descriptors",
     "sanitize_ranged_setting",
@@ -76,6 +79,33 @@ def setting_descriptor_for_key(key: str) -> GpuSettingDescriptor | None:
                 unit=unit,
             )
     return None
+
+
+def clock_capability_requires_current_observation(capability: Mapping[str, JSONValue]) -> bool:
+    if "control_backend" in capability and capability.get("supported") is not True:
+        return True
+    if capability.get("clock_control_type") == "application_clocks" or capability.get(
+        "control_backend"
+    ) in ("amd_overdrive", "amd_adl", "intel_i915", "intel_xpum", "nvidia_nvapi"):
+        return True
+    minimum = coerce_int_from_json(capability.get("offset_min"))
+    maximum = coerce_int_from_json(capability.get("offset_max"))
+    return (
+        (capability.get("via_nvml") is True or capability.get("via_nvidia_settings") is True)
+        and minimum is not None
+        and maximum is not None
+        and minimum < maximum
+    )
+
+
+def fan_capability_observes_configured_mode(capability: Mapping[str, JSONValue]) -> bool:
+    return capability.get("control_backend") in (
+        "nvidia_nvml",
+        "nvidia_nvapi",
+        "nvidia_settings",
+    ) or any(
+        capability.get(route) is True for route in ("via_nvml", "via_nvapi", "via_nvidia_settings")
+    )
 
 
 def capability_supported(
@@ -131,7 +161,11 @@ def sanitize_ranged_setting(
     enforce_range: bool = True,
 ) -> str | int:
     if isinstance(value, str) and value.lower() == "auto":
+        if "auto_supported" in caps and caps["auto_supported"] is not True:
+            raise ValidationError(f"{descriptor.label} automatic control is unavailable.")
         return "auto"
+    if "numeric_supported" in caps and caps["numeric_supported"] is not True:
+        raise ValidationError(f"{descriptor.label} numeric control is unavailable.")
     value_int = coerce_int_from_json(
         value,
         default=None,
@@ -148,16 +182,18 @@ def sanitize_ranged_setting(
         parse_float_strings=True,
         round_float_strings=True,
     )
-    if min_limit is not None and value_int < min_limit:
-        raise ValidationError(f"{descriptor.label} must be at least {min_limit}{descriptor.unit}.")
     max_limit = coerce_int_from_json(
         caps.get("max"),
         default=None,
         parse_float_strings=True,
         round_float_strings=True,
     )
-    if max_limit is not None and value_int > max_limit:
-        raise ValidationError(f"{descriptor.label} must be at most {max_limit}{descriptor.unit}.")
+    if (min_limit is not None and value_int < min_limit) or (
+        max_limit is not None and value_int > max_limit
+    ):
+        raise build_gpu_range_validation_error(
+            descriptor.request_key, value_int, min_limit, max_limit, descriptor.unit
+        )
     allowed_values = _allowed_int_values(caps)
     if allowed_values and value_int not in allowed_values:
         raise ValidationError(

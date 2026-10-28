@@ -253,7 +253,7 @@ class VariantProbeManager {
     }
 
     highlightSelection(): void {
-        highlightVariantProbeSelection(this.#selectionContext(), this.selectedIndex);
+        highlightVariantProbeSelection(this.#selectionContext().requireUiElement('model-variant-results'), this.selectedIndex);
     }
 
     #selectionContext(): VariantProbeSelectionContext {

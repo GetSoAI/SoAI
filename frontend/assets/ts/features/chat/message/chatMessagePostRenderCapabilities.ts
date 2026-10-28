@@ -1,8 +1,8 @@
 /* SoAI - Canonical chat message post-render capability contract [frontend/assets/ts/features/chat/message/chatMessagePostRenderCapabilities.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { dom } from '@core/dom/dom.ts';
 import { PREVIEW_REFERENCE_START } from '@features/chat/message/enhancers/inlineMultimediaPreviewContract.ts';
+import { collectMatchingElements } from '@features/chat/stream/streamDomQueries.ts';
 
 const CHAT_POST_RENDER_CAPABILITIES_ATTRIBUTE = 'data-chat-post-render-capabilities';
 const MERMAID_CONTAINER_CLASS = 'mermaid-container';
@@ -18,15 +18,15 @@ const ASSISTANT_ARTICLE_IMAGE_SELECTOR = `.assistant-news-widget__media .${ASSIS
 const CHAT_IMAGE_LIFECYCLE_SELECTOR = `${CHAT_CONTENT_IMAGE_SELECTOR}, ${ASSISTANT_ARTICLE_IMAGE_SELECTOR}, ${ATTACHMENT_THUMBNAIL_IMAGE_SELECTOR}`;
 const ENABLED_INLINE_MULTIMEDIA_SELECTOR = `.${INLINE_MULTIMEDIA_CARD_CLASS}__media, .${INLINE_MULTIMEDIA_CARD_CLASS}[data-inline-media-card="1"], img`;
 const DISABLED_INLINE_MULTIMEDIA_SELECTOR = 'a[href], img';
-const STREAMING_POST_RENDER_MARKER_SELECTOR = `pre, a, img, .${MERMAID_CONTAINER_CLASS}, [data-inline-media-card="1"]`;
+const STREAMING_POST_RENDER_MARKER_SELECTOR = `pre, a, img, .${MERMAID_CONTAINER_CLASS}, [data-inline-media-card="1"], [data-speech-setup]`;
 
-type ChatPostRenderCapability = 'code' | 'mermaid' | 'branding' | 'image-lifecycle' | 'inline-multimedia';
-const CHAT_POST_RENDER_CAPABILITY_ORDER: readonly ChatPostRenderCapability[] = ['code', 'mermaid', 'branding', 'image-lifecycle', 'inline-multimedia'];
+type ChatPostRenderCapability = 'code' | 'mermaid' | 'branding' | 'image-lifecycle' | 'inline-multimedia' | 'speech-setup';
+const CHAT_POST_RENDER_CAPABILITY_ORDER: readonly ChatPostRenderCapability[] = ['code', 'mermaid', 'branding', 'image-lifecycle', 'inline-multimedia', 'speech-setup'];
 
 type ChatPostRenderCapabilities = ReadonlySet<ChatPostRenderCapability>;
 
 const isChatPostRenderCapability = (value: string): value is ChatPostRenderCapability => {
-    return value === 'code' || value === 'mermaid' || value === 'branding' || value === 'image-lifecycle' || value === 'inline-multimedia';
+    return value === 'code' || value === 'mermaid' || value === 'branding' || value === 'image-lifecycle' || value === 'inline-multimedia' || value === 'speech-setup';
 };
 
 const serializeChatPostRenderCapabilities = (capabilities: ReadonlySet<ChatPostRenderCapability>): string => {
@@ -42,6 +42,7 @@ const classifyChatMessagePostRenderCapabilities = (markup: string): ReadonlySet<
     if (containsRenderedElement(markup, 'pre')) capabilities.add('code');
     if (markup.includes(MERMAID_CONTAINER_CLASS)) capabilities.add('mermaid');
     if (markup.includes(CHAT_BRANDING_LOGO_CLASS)) capabilities.add('branding');
+    if (markup.includes('data-speech-setup=')) capabilities.add('speech-setup');
     if (containsRenderedElement(markup, 'img') || markup.includes(INLINE_TOOL_IMAGE_CLASS) || markup.includes(ASSISTANT_ARTICLE_IMAGE_CLASS) || markup.includes('data-chat-attachment-thumbnail')) capabilities.add('image-lifecycle');
     if (containsRenderedElement(markup, 'img') || containsRenderedElement(markup, 'a') || markup.includes(INLINE_MULTIMEDIA_CARD_CLASS) || markup.includes(PREVIEW_REFERENCE_START)) capabilities.add('inline-multimedia');
     return capabilities;
@@ -49,9 +50,9 @@ const classifyChatMessagePostRenderCapabilities = (markup: string): ReadonlySet<
 
 const classifyChatPostRenderCapabilitiesFromDom = (element: HTMLElement): ReadonlySet<ChatPostRenderCapability> => {
     const capabilities = new Set<ChatPostRenderCapability>();
-    const candidates = dom.resolveAll(STREAMING_POST_RENDER_MARKER_SELECTOR, element).filter((candidate): candidate is HTMLElement => candidate instanceof HTMLElement);
-    for (const candidate of candidates) {
+    for (const candidate of collectMatchingElements(element, STREAMING_POST_RENDER_MARKER_SELECTOR)) {
         if (candidate.matches('pre')) capabilities.add('code');
+        if (candidate.hasAttribute('data-speech-setup')) capabilities.add('speech-setup');
         if (candidate.classList.contains(MERMAID_CONTAINER_CLASS)) capabilities.add('mermaid');
         if (candidate.matches(CHAT_BRANDING_LOGO_SELECTOR)) capabilities.add('branding');
         if (candidate.matches(CHAT_IMAGE_LIFECYCLE_SELECTOR)) capabilities.add('image-lifecycle');

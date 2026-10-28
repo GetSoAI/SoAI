@@ -99,7 +99,7 @@ async def run_ws_model_test_stream(
         context=context,
     )
     model_id = resolve_optional_model_name(request_json)
-    stream_transcript = OpenAIStreamTranscript(model_hint=model_id)
+    stream_transcript = OpenAIStreamTranscript(model_hint=model_id, error_origin="local_terminal")
     detached = False
 
     try:

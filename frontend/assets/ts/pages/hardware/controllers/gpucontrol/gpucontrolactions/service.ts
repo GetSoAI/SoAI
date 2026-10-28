@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
+import { isCurrentGpuControlState } from '@pages/hardware/controllers/gpucontrol/gpuControlState.ts';
 import { isNullOrUndefined } from '@core/typeGuards.ts';
 import { applyGpuSettingsDirect, applyGpuSlot, saveGpuSlot } from '@pages/hardware/controllers/gpucontrol/gpucontrolactions/effects.ts';
 import type { ApplyCapabilityResult, ControlContext, GpuSnapshot } from '@pages/hardware/controllers/gpucontrol/gpucontrolactions/types.ts';
@@ -44,17 +45,20 @@ const handleGpuApplyClick = async (
         context.dependencies.showNotification(i18n.t('hardware.gpu.notifications.deviceMissing'), 'error');
         return;
     }
+    const deviceId = state.deviceId;
     state.pending = true;
     context.refreshApplyState(key);
     try {
         if (capability.mode === 'slot' && capability.slot) {
-            await applyGpuSlot(context, state.deviceId, capability.slot, capability.applyAtBoot, key);
+            await applyGpuSlot(context, deviceId, capability.slot, capability.applyAtBoot, key);
         } else {
-            await applyGpuSettingsDirect(context, state.deviceId, snapshot, key);
+            await applyGpuSettingsDirect(context, deviceId, snapshot, key);
         }
     } finally {
-        state.pending = false;
-        context.refreshApplyState(key);
+        if (isCurrentGpuControlState(context.ensureUiState(key), state, deviceId)) {
+            state.pending = false;
+            context.refreshApplyState(key);
+        }
     }
 };
 
@@ -74,18 +78,20 @@ const handleGpuSlotClick = async (context: ControlContext, index: string | numbe
     }
 
     const slotMetadata = context.getSlotEntryByIndex(index);
-    const slotData = slotMetadata?.slots?.[slotId];
+    const recovered = slotId.startsWith('recovered/') ? slotMetadata?.reconciliation?.recoveredProfiles.find((profile) => profile.id === slotId.slice('recovered/'.length)) : null;
+    const slotData = recovered ? recovered.profile : slotMetadata?.slots?.[slotId];
     const settings = slotData?.settings;
     if (!settings) {
         return;
     }
-    state.previewSlot = slotId;
-    state.previewSource = 'slot';
+    state.previewSlot = recovered ? null : slotId;
+    state.previewSource = recovered ? 'recovered' : 'slot';
     state.previewSettings = normalizeSlotSettings(settings, slotData?.fieldModes ?? null);
     state.previewHydrated = false;
     state.bootToggleDirty = false;
     state.canStoreAppliedSettings = false;
     clearTransientActions(state);
+    if (recovered) state.saveMode = true;
     const boot = slotMetadata?.boot;
     state.applyAtBootDesired = Boolean(boot?.enabled && str(boot.slot) === slotId);
     context.renderGpuControls({ only: [key] });
@@ -104,14 +110,17 @@ const handleGpuSoAIBenchStartClick = async (context: ControlContext, index: stri
         context.dependencies.showNotification(i18n.t('hardware.gpu.notifications.deviceMissing'), 'error');
         return;
     }
+    const deviceId = state.deviceId;
     state.pending = true;
     state.soaibenchStopRequested = false;
     context.syncSoAIBenchUi({ only: [key] });
     try {
-        await startGpuSoAIBench(context, state.deviceId, key, profile);
+        await startGpuSoAIBench(context, deviceId, key, profile);
     } finally {
-        state.pending = false;
-        context.syncSoAIBenchUi({ only: [key] });
+        if (isCurrentGpuControlState(context.ensureUiState(key), state, deviceId)) {
+            state.pending = false;
+            context.syncSoAIBenchUi({ only: [key] });
+        }
     }
 };
 
@@ -128,17 +137,20 @@ const handleGpuSoAIBenchStopClick = async (context: ControlContext, index: strin
         context.dependencies.showNotification(i18n.t('hardware.gpu.notifications.deviceMissing'), 'error');
         return;
     }
+    const deviceId = state.deviceId;
     state.pending = true;
     state.soaibenchStopRequested = true;
     context.syncSoAIBenchUi({ only: [key] });
     try {
-        await stopGpuSoAIBench(context, state.deviceId, key);
+        await stopGpuSoAIBench(context, deviceId, key);
     } catch (error) {
-        state.soaibenchStopRequested = false;
+        if (isCurrentGpuControlState(context.ensureUiState(key), state, deviceId)) state.soaibenchStopRequested = false;
         throw error;
     } finally {
-        state.pending = false;
-        context.syncSoAIBenchUi({ only: [key] });
+        if (isCurrentGpuControlState(context.ensureUiState(key), state, deviceId)) {
+            state.pending = false;
+            context.syncSoAIBenchUi({ only: [key] });
+        }
     }
 };
 

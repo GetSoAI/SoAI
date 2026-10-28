@@ -5,7 +5,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { CHAT_CONFIGURATION_MODAL_ID } from '@features/chat/modals/constants.ts';
 
-type ChatConfigurationTabId = 'general' | 'appearance' | 'files' | 'completion' | 'voice' | 'knowledge' | 'memory' | 'mcp' | 'presets';
+type ChatConfigurationTabId = 'general' | 'appearance' | 'files' | 'completion' | 'voice' | 'knowledge' | 'memory' | 'skills' | 'mcp' | 'presets';
 
 interface ChatConfigurationTabDefinition {
     id: ChatConfigurationTabId;
@@ -20,6 +20,7 @@ const CHAT_CONFIGURATION_TAB_DEFINITIONS: ReadonlyArray<ChatConfigurationTabDefi
     { id: 'files', contentId: modalUiId(CHAT_CONFIGURATION_MODAL_ID, 'files-folder-content') },
     { id: 'knowledge', contentId: modalUiId(CHAT_CONFIGURATION_MODAL_ID, 'knowledge-content') },
     { id: 'memory', contentId: modalUiId(CHAT_CONFIGURATION_MODAL_ID, 'memory-content') },
+    { id: 'skills', contentId: modalUiId(CHAT_CONFIGURATION_MODAL_ID, 'skills-content') },
     { id: 'mcp', contentId: modalUiId(CHAT_CONFIGURATION_MODAL_ID, 'mcp-content') },
     { id: 'presets', contentId: modalUiId(CHAT_CONFIGURATION_MODAL_ID, 'presets-content') }
 ]);
@@ -46,6 +47,8 @@ const resolveChatConfigurationTabLabel = (tabId: ChatConfigurationTabId): string
             return i18n.t('chat.configuration.tabs.knowledge');
         case 'memory':
             return i18n.t('chat.configuration.tabs.memory');
+        case 'skills':
+            return i18n.t('chat.configuration.skills.title');
         case 'mcp':
             return i18n.t('chat.configuration.mcp.tools');
         case 'presets':

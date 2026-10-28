@@ -1,7 +1,8 @@
 /* SoAI - Shared UI auto scroller [frontend/assets/ts/core/ui/AutoScroller.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
+import { measureLayoutBox, measureLayoutViewport } from '@core/layout/elementGeometry.ts';
+import { addRootScroll } from '@core/data/boundedcollectionrenderer/scrollRoot.ts';
 
 interface ScrollConfig {
     edgeSize: number;
@@ -14,31 +15,33 @@ const SCROLL_CONFIG: Readonly<ScrollConfig> = Object.freeze({
 });
 
 interface AutoScrollerOptions {
-    scrollContainer: Element | null;
+    scrollContainer: Element | Window | null;
 }
 
 class AutoScroller {
-    private scrollContainer: HTMLElement | null;
+    private scrollContainer: HTMLElement | Window | null;
 
     constructor({ scrollContainer }: AutoScrollerOptions) {
-        this.scrollContainer = scrollContainer instanceof HTMLElement ? scrollContainer : null;
+        this.scrollContainer = scrollContainer instanceof HTMLElement || scrollContainer instanceof Window ? scrollContainer : null;
     }
 
-    update(clientY: number): boolean {
+    update(clientY: number, limits?: { upwardDistance: number; downwardDistance: number }): boolean {
         const container = this.scrollContainer;
         if (!container) {
             return false;
         }
-        const rect = measureLayoutBox(container);
-        const topEdge = rect.top + SCROLL_CONFIG.edgeSize;
-        const bottomEdge = rect.bottom - SCROLL_CONFIG.edgeSize;
+        const bounds = container instanceof HTMLElement ? measureLayoutBox(container) : { top: 0, bottom: measureLayoutViewport(container.document).height };
+        const topEdge = bounds.top + SCROLL_CONFIG.edgeSize;
+        const bottomEdge = bounds.bottom - SCROLL_CONFIG.edgeSize;
 
-        if (clientY < topEdge) {
-            container.scrollTop -= SCROLL_CONFIG.speed;
+        const upwardDistance = Math.max(0, Math.min(SCROLL_CONFIG.speed, limits?.upwardDistance ?? SCROLL_CONFIG.speed));
+        const downwardDistance = Math.max(0, Math.min(SCROLL_CONFIG.speed, limits?.downwardDistance ?? SCROLL_CONFIG.speed));
+        if (clientY < topEdge && upwardDistance > 0) {
+            addRootScroll(container, -upwardDistance);
             return true;
         }
-        if (clientY > bottomEdge) {
-            container.scrollTop += SCROLL_CONFIG.speed;
+        if (clientY > bottomEdge && downwardDistance > 0) {
+            addRootScroll(container, downwardDistance);
             return true;
         }
         return false;

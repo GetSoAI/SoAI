@@ -16,6 +16,7 @@ interface ApiResultHandlerOptions {
     notifyOnSuccess?: boolean;
     notifyOnError?: boolean;
     notifyNetworkErrors?: boolean;
+    shouldNotify?: () => boolean;
     logErrors?: boolean;
     silent?: boolean;
     boundaryName?: string;
@@ -50,7 +51,7 @@ const handleApiResult = async <T>(promise: Promise<T>, options: ApiResultHandler
 
     try {
         const result = await promise;
-        if (!silent && notifyOnSuccess) {
+        if (!silent && notifyOnSuccess && options.shouldNotify?.() !== false) {
             const message = resolveSuccessMessage(options);
             if (message && notificationBridge) notificationBridge.showNotification(message, 'success', 3000);
         }
@@ -71,7 +72,7 @@ const handleApiResult = async <T>(promise: Promise<T>, options: ApiResultHandler
             errorHandler.error(boundaryName, 'Api call failed', runtimeError);
         }
 
-        if (!silent && notifyOnError && (!networkError || notifyNetworkErrors)) {
+        if (!silent && notifyOnError && (!networkError || notifyNetworkErrors) && options.shouldNotify?.() !== false) {
             const message = resolveErrorMessage(runtimeError, options);
             const handledByNotifier = notificationBridge ? notificationBridge.notifyHandledOperationError(runtimeError) : false;
             if (!handledByNotifier && message && notificationBridge) notificationBridge.showNotification(message, 'error', 6000);

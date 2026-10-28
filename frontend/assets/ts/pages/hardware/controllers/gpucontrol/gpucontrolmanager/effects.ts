@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { normalizeSnapshotForIndex, settingsDiffer } from '@pages/hardware/controllers/gpucontrol/gpuControlNormalization.ts';
+import { buildSettingsPayloadFromNormalized } from '@pages/hardware/controllers/gpucontrol/gpucontrolactions/payloads.ts';
 import type { GpuCapabilitiesByIndex } from '@core/realtime/streammanager/resources/gpuCapabilitiesContracts.ts';
 import type { GpuSettingsState, GpuSnapshot, GpuUiState } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 
@@ -29,7 +30,7 @@ export const computeApplyCapability = (
 
     const mode: 'direct' | 'slot' = match ? 'slot' : 'direct';
     const slot = match ? state.previewSlot : null;
-    const diff = settingsDiffer(normalized, state.liveSettings);
+    const diff = Object.keys(buildSettingsPayloadFromNormalized(capabilitiesByIndex, index, normalized, state.liveSettings)).length > 0;
     const bootChange = !!(slot && state.bootToggleDirty);
 
     const canApply = bootChange || (mode === 'slot' ? (slot ? str(state.activeSlot) !== slot : false) : diff);

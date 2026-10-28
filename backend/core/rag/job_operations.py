@@ -59,6 +59,7 @@ class RAGDocumentStatusUpdateRequest:
     effective_embedding_model: str | None = None
     embedding_dimensions: int | None = None
     error_message: str | None = None
+    extraction_summary: JSONDict | None = None
 
 
 @dataclass(frozen=True, slots=True)

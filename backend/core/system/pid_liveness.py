@@ -13,24 +13,26 @@ from core.system.windows_ctypes import resolve_windll
 __all__ = ("pid_is_running",)
 
 
-def pid_is_running(pid: int) -> bool:
+def pid_is_running(pid: int, *, raise_on_access_denied: bool = False) -> bool:
     if pid <= 0:
         return False
     if is_windows():
-        return _windows_pid_is_running(pid)
+        return _windows_pid_is_running(pid, raise_on_access_denied=raise_on_access_denied)
     is_running = False
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
         is_running = False
     except PermissionError:
+        if raise_on_access_denied:
+            raise
         is_running = True
     else:
         is_running = True
     return is_running
 
 
-def _windows_pid_is_running(pid: int) -> bool:
+def _windows_pid_is_running(pid: int, *, raise_on_access_denied: bool) -> bool:
     windll = resolve_windll()
     if windll is None:
         raise StateError("Windows process liveness API is unavailable.")
@@ -45,6 +47,8 @@ def _windows_pid_is_running(pid: int) -> bool:
         if error_code == 87:
             return False
         if error_code == 5:
+            if raise_on_access_denied:
+                raise PermissionError(error_code, "Windows process inspection was denied.")
             return True
         raise StateError("Windows process liveness could not be inspected.")
     try:

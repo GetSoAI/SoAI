@@ -65,51 +65,46 @@ class AsyncPathTreeLock:
         keys = sorted(set(keys))
         if not keys:
             raise ValidationError("At least one lock path must be provided.")
-        acquired: list[str] = []
+        await self._acquire_many(keys)
         try:
-            for key in keys:
-                await self._acquire_one(key)
-                acquired.append(key)
             yield
         finally:
-            for key in reversed(acquired):
-                await self._release_one(key)
+            await self._release_many(keys)
 
-    async def _acquire_one(self, key: str) -> None:
+    async def _acquire_many(self, keys: list[str]) -> None:
         current_task = asyncio.current_task()
         current_task_id = id(current_task) if current_task is not None else None
         async with self._condition:
-            existing = self._held.get(key)
-            if existing is not None and existing.owner_task_id == current_task_id:
-                existing.depth += 1
-                return
-            while True:
-                conflicts = False
-                for held_key, held_entry in self._held.items():
-                    if held_entry.owner_task_id == current_task_id:
-                        continue
-                    if _is_ancestor_or_self(ancestor=held_key, path=key) or _is_ancestor_or_self(
-                        ancestor=key,
-                        path=held_key,
-                    ):
-                        conflicts = True
-                        break
-                if not conflicts:
-                    self._held[key] = _HeldPathLock(owner_task_id=current_task_id, depth=1)
-                    return
+            while any(
+                held_entry.owner_task_id != current_task_id
+                and (
+                    _is_ancestor_or_self(ancestor=held_key, path=key)
+                    or _is_ancestor_or_self(ancestor=key, path=held_key)
+                )
+                for key in keys
+                for held_key, held_entry in self._held.items()
+            ):
                 await self._condition.wait()
+            for key in keys:
+                existing = self._held.get(key)
+                if existing is None:
+                    self._held[key] = _HeldPathLock(owner_task_id=current_task_id, depth=1)
+                else:
+                    existing.depth += 1
 
-    async def _release_one(self, key: str) -> None:
+    async def _release_many(self, keys: list[str]) -> None:
         current_task = asyncio.current_task()
         current_task_id = id(current_task) if current_task is not None else None
         async with self._condition:
-            held = self._held.get(key)
-            if held is None:
-                raise ValidationError("Attempted to release an unheld lock.")
-            if held.owner_task_id != current_task_id:
-                raise ValidationError("Attempted to release a lock owned by another task.")
-            held.depth = max(0, int(held.depth) - 1)
-            if held.depth:
-                return
-            self._held.pop(key, None)
+            for key in keys:
+                held = self._held.get(key)
+                if held is None:
+                    raise ValidationError("Attempted to release an unheld lock.")
+                if held.owner_task_id != current_task_id:
+                    raise ValidationError("Attempted to release a lock owned by another task.")
+            for key in keys:
+                held = self._held[key]
+                held.depth = max(0, int(held.depth) - 1)
+                if not held.depth:
+                    del self._held[key]
             self._condition.notify_all()

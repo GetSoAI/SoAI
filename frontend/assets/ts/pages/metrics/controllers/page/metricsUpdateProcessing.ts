@@ -182,7 +182,7 @@ const refreshMetricsPresentation = (host: MetricsPageActionsHost): void => {
     }
 };
 
-const processMetricsUpdate = (host: MetricsPageActionsHost, data: MetricsData): void => {
+const processMetricsUpdate = (host: MetricsPageActionsHost, data: MetricsData, { renderDisplays = true }: { renderDisplays?: boolean } = {}): void => {
     if (!isObject(data)) {
         return;
     }
@@ -191,22 +191,22 @@ const processMetricsUpdate = (host: MetricsPageActionsHost, data: MetricsData): 
     const timestamp = extractMetricsTimestamp(host, data);
     const chartValue = resolveRealtimeChartValue(host, data, host.state.currentMetricType);
     if (!isFiniteNumber(chartValue)) {
-        if (renderNow) {
+        if (renderNow && renderDisplays) {
             updateMetricsDisplays(host);
         }
         return;
     }
     host.history.captureRealtimeSample(timestamp, chartValue);
     if (!canApplyRealtimeMetricsHistory(host)) {
-        if (renderNow) {
+        if (renderNow && renderDisplays) {
             updateMetricsDisplays(host, { skipChart: true });
         }
         return;
     }
     applyRealtimeMetricsChartValue(host, timestamp, chartValue, { renderChart: renderNow });
-    if (renderNow) {
+    if (renderNow && renderDisplays) {
         updateMetricsDisplays(host, { skipChart: true });
     }
 };
 
-export { appendMetricsHistoryPoint, applyRealtimeMetricsChartValue, buildMetricsDisplaySeries, processMetricsUpdate, refreshMetricsPresentation, resetMetricsData, resetMetricsValueHistory, trimMetricsHistoryPoints, updateMetricsMainChart };
+export { appendMetricsHistoryPoint, applyRealtimeMetricsChartValue, buildMetricsDisplaySeries, processMetricsUpdate, refreshMetricsPresentation, resetMetricsData, resetMetricsValueHistory, trimMetricsHistoryPoints, updateMetricsDisplays, updateMetricsMainChart };

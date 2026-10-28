@@ -69,9 +69,11 @@ def _raise_rapid_ocr_unavailable() -> OcrEngineProtocol:
 
 rapid_ocr_engine_builder: Callable[[], OcrEngineProtocol] = _raise_rapid_ocr_unavailable
 if module_available("rapidocr_onnxruntime") and module_available("cv2"):
+    from onnxruntime import disable_telemetry_events
     from rapidocr_onnxruntime import RapidOCR
 
     def _build_rapid_ocr_engine() -> OcrEngineProtocol:
+        disable_telemetry_events()
         return RapidOCR()
 
     rapid_ocr_engine_builder = _build_rapid_ocr_engine

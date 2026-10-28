@@ -37,7 +37,7 @@ class AppLifecycle {
 
     async bootstrap(): Promise<void> {
         const isRefresh = this.#dependencies.boot.getIsRefreshScenario();
-        if (this.bootstrapPromise && !isRefresh) {
+        if (this.bootstrapPromise && (this.#bootstrapInProgress || !isRefresh)) {
             return this.bootstrapPromise;
         }
         if (isRefresh) {
@@ -46,29 +46,29 @@ class AppLifecycle {
         this.bootstrapPromise = (async (): Promise<void> => {
             this.isRefreshScenario = isRefresh;
             this.#bootstrapInProgress = true;
+            let bootstrappedAuthenticated = false;
             try {
-                await runAppLifecycleBootstrap({
+                bootstrappedAuthenticated = await runAppLifecycleBootstrap({
                     dependencies: this.#dependencies,
                     isRefreshScenario: this.isRefreshScenario,
                     navigationBootstrapUnsubscribe: this.#navigationBootstrapUnsubscribe,
-                    connectionSubscription: this.connectionSubscription,
-                    dataHubConnectionSubscription: this.dataHubConnectionSubscription,
-                    routerWarmupUnsubscribe: this.#routerWarmupUnsubscribe,
-                    uiTracker: this.#uiTracker,
                     setNavigationBootstrapUnsubscribe: (value) => {
                         this.#navigationBootstrapUnsubscribe = value;
                     },
-                    setConnectionSubscription: (value) => {
-                        this.connectionSubscription = value;
-                    },
-                    setDataHubConnectionSubscription: (value) => {
-                        this.dataHubConnectionSubscription = value;
-                    },
-                    setRouterWarmupUnsubscribe: (value) => {
-                        this.#routerWarmupUnsubscribe = value;
-                    },
-                    setUiTracker: (value) => {
-                        this.#uiTracker = value;
+                    takeResources: () => {
+                        const resources = {
+                            navigationBootstrapUnsubscribe: this.#navigationBootstrapUnsubscribe,
+                            connectionSubscription: this.connectionSubscription,
+                            dataHubConnectionSubscription: this.dataHubConnectionSubscription,
+                            routerWarmupUnsubscribe: this.#routerWarmupUnsubscribe,
+                            uiTracker: this.#uiTracker
+                        };
+                        this.#navigationBootstrapUnsubscribe = null;
+                        this.connectionSubscription = null;
+                        this.dataHubConnectionSubscription = null;
+                        this.#routerWarmupUnsubscribe = null;
+                        this.#uiTracker = null;
+                        return resources;
                     },
                     setStateUninitialized: () => {
                         this.stateMeta.initialized = false;
@@ -91,6 +91,7 @@ class AppLifecycle {
             } finally {
                 this.#bootstrapInProgress = false;
             }
+            this.#authSession.resumeDeferredLogin(!bootstrappedAuthenticated && this.#dependencies.auth.isAuthenticated);
         })();
         return this.bootstrapPromise;
     }
@@ -110,12 +111,11 @@ class AppLifecycle {
         this.#authSession.release();
     }
 
-    async resolveInitialRoute(isAuthenticated: boolean, needsWizard: boolean): Promise<string> {
+    resolveInitialRoute(isAuthenticated: boolean, needsWizard: boolean): string {
         return resolveInitialRoute({
             isAuthenticated,
             needsWizard,
             router: this.#dependencies.router,
-            toggleMainUI: (show) => this.toggleMainUI(show),
             isWizardCompletionPending: () => this.#dependencies.storage.isWizardCompletionPending()
         });
     }
@@ -178,7 +178,7 @@ class AppLifecycle {
                     await this.#dependencies.router.navigate(route, { force: true, replace: true });
                 },
                 monitorConnectionStatus: () => this.monitorConnectionStatus(),
-                toggleMainUI: (show) => this.toggleMainUI(show),
+                toggleMainUI: (show, animateEntrance) => this.toggleMainUI(show, animateEntrance),
                 refreshSoaiOsAccess: () => refreshLifecycleSoaiOsAccess(this.#dependencies.soaiOsCapabilities),
                 setupAuthenticatedSession: (options) => this.setupAuthenticatedSession(options),
                 applyBackground: (route, options) => this.applyBackground(route, options)
@@ -266,8 +266,8 @@ class AppLifecycle {
         await applyLifecycleBackground(this.#dependencies.backgroundTasks, this.isRefreshScenario, route, options);
     }
 
-    toggleMainUI(show: boolean): void {
-        toggleMainUIVisibility(show, this.#dependencies.state);
+    toggleMainUI(show: boolean, animateEntrance = false): void {
+        toggleMainUIVisibility(show, this.#dependencies.state, animateEntrance);
     }
 
     renderInitializationError(error: Error): void {

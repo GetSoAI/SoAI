@@ -5,10 +5,7 @@ import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
-import type { AcceptedPowerActionResponse } from '@core/api/contracts/powerContracts.ts';
 import type { ConfigUpdateResponse } from '@core/api/contracts/configContracts.ts';
-
-type ConcurrentRestartOperationType = 'restart-application';
 
 interface ConcurrentSliderBounds {
     min: number;
@@ -20,17 +17,8 @@ interface ConcurrentApiConfigs {
     update(name: string, config: JsonObject): Promise<ConfigUpdateResponse>;
 }
 
-interface ConcurrentApiSystemPower {
-    restartApplication?: () => Promise<AcceptedPowerActionResponse>;
-}
-
-interface ConcurrentApiSystem {
-    power?: ConcurrentApiSystemPower;
-}
-
 interface ConcurrentApi {
     configs: ConcurrentApiConfigs;
-    system?: ConcurrentApiSystem;
 }
 
 interface ConcurrentModalViewPort {
@@ -59,7 +47,6 @@ interface ConcurrentSettingsStatePort {
 
 interface ConcurrentSettingsOperationsPort {
     loadCoreConfig(options?: { force?: boolean }): Promise<void>;
-    getRestartOverlay: () => { show: (type: ConcurrentRestartOperationType) => void };
     api: ConcurrentApi;
 }
 
@@ -69,4 +56,4 @@ interface ConcurrentManagerHost {
     operations: ConcurrentSettingsOperationsPort;
 }
 
-export type { ConcurrentManagerHost, ConcurrentRestartOperationType, ConcurrentSliderBounds };
+export type { ConcurrentManagerHost, ConcurrentSliderBounds };

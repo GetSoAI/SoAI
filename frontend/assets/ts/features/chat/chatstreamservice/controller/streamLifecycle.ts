@@ -40,8 +40,8 @@ const markComparisonRunAborting = (state: ConversationStreamState): void => {
     }
 };
 
-const acceptStreamingServiceUpdateLifecycle = (context: ChatStreamingControllerContext, inputArguments: { conversationId: string; state: ConversationStreamState; requestId: string | null; assistantTimestamp: number | null }): void => {
-    if (inputArguments.state.phase === 'stopping' || inputArguments.state.phase === 'stop_failed') {
+const acceptStreamingServiceUpdateLifecycle = (context: ChatStreamingControllerContext, inputArguments: { conversationId: string; state: ConversationStreamState; requestId: string | null; assistantTimestamp: number | null; adoptsSupersedingStream: boolean }): void => {
+    if (!inputArguments.adoptsSupersedingStream && (inputArguments.state.phase === 'stopping' || inputArguments.state.phase === 'stop_failed')) {
         syncStreamingControls(context);
         return;
     }

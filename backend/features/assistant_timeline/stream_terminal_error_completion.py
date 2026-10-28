@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from core.errors.payload import ErrorPublicPayload
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.timing.monotonic import monotonic_ms
 from features.assistant_timeline.loading_error_finalization import (
@@ -32,6 +33,7 @@ async def complete_claimed_chat_stream_error(
     message: str,
     code: str,
     flush_deferred_visible_text: bool,
+    public_error: ErrorPublicPayload | None = None,
 ) -> None:
     preterminal_failure: Exception | None = None
     thinking_tail_duration_ms = 0
@@ -68,6 +70,7 @@ async def complete_claimed_chat_stream_error(
         message=message,
         code=code,
         publish_loading_activity=preterminal_failure is None,
+        public_error=public_error,
     )
     await flush_chat_stream_event_persistence(
         context.runtime,

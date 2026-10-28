@@ -12,6 +12,7 @@ from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
 from core.logging.protocols import TraceLogger
 from core.logging.trace import get_logger
+from core.system.pid_liveness import pid_is_running
 from core.timing.constants import SHORT_POLL_INTERVAL_SEC
 from core.timing.sleep import sleep_seconds
 
@@ -38,16 +39,6 @@ def _collect_session_pids(session_id: int) -> set[int]:
         except PermissionError:
             continue
     return session_pids
-
-
-def _is_pid_alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-        return True
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
 
 
 def _send_signal_to_session_pids(
@@ -130,13 +121,13 @@ def close_pty(master_fd: int, pid: int) -> None:
             except (ChildProcessError, ProcessLookupError):
                 leader_reaped = True
         remaining = _collect_session_pids(session_id)
-        if not remaining and (leader_reaped or not _is_pid_alive(pid)):
+        if not remaining and (leader_reaped or not pid_is_running(pid)):
             _raise_cleanup_failure(cleanup_failure, pid=pid)
             return
         sleep_seconds(SHORT_POLL_INTERVAL_SEC)
 
     remaining = _collect_session_pids(session_id)
-    if not leader_reaped and _is_pid_alive(pid):
+    if not leader_reaped and pid_is_running(pid):
         remaining.add(pid)
     signal_failure = _send_signal_to_session_pids(
         remaining,
@@ -151,7 +142,7 @@ def close_pty(master_fd: int, pid: int) -> None:
 
     deadline = deadline_after(2.0)
     while not deadline.expired():
-        if not _is_pid_alive(pid):
+        if not pid_is_running(pid):
             break
         sleep_seconds(SHORT_POLL_INTERVAL_SEC)
     try:
@@ -171,7 +162,7 @@ def close_pty(master_fd: int, pid: int) -> None:
         )
         if cleanup_failure is None:
             cleanup_failure = exception
-    if _collect_session_pids(session_id) or (not leader_reaped and _is_pid_alive(pid)):
+    if _collect_session_pids(session_id) or (not leader_reaped and pid_is_running(pid)):
         if cleanup_failure is None:
             cleanup_failure = StateError(
                 "PTY session remained alive after forced shutdown.",

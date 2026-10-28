@@ -49,7 +49,7 @@ class ActiveSoAIBenchRuns:
     def _bind(self, run: ActiveSoAIBenchRun) -> None:
         active_device_run_id = self._run_ids_by_device.get(run.device_id)
         if active_device_run_id is not None and active_device_run_id != run.run_id:
-            raise ValidationError("device already has an active SoAIBench run.")
+            raise ValidationError("device already has an active SoAI Bench run.")
         existing = self._runs_by_id.get(run.run_id)
         if existing is not None and existing.device_id != run.device_id:
             existing_device_run_id = self._run_ids_by_device.get(existing.device_id)

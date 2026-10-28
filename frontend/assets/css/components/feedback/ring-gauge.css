@@ -1,0 +1,30 @@
+/* SoAI - Rounded ring gauge graphics [frontend/assets/css/components/feedback/ring-gauge.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-ring-gauge {
+        position: absolute;
+        inset: var(--border-width-1);
+        inline-size: calc(100% - 2 * var(--border-width-1));
+        block-size: calc(100% - 2 * var(--border-width-1));
+        pointer-events: none;
+        fill: none;
+    }
+
+    .ui-ring-gauge-track {
+        stroke: color-mix(in srgb, var(--ring-gauge-color) 12%, transparent);
+    }
+
+    .ui-ring-gauge-fill {
+        stroke: var(--ring-gauge-color);
+        stroke-linecap: round;
+        transition:
+            stroke-dasharray var(--duration-400) var(--ease-emphasized),
+            opacity var(--duration-400) var(--ease-emphasized),
+            stroke var(--transition-normal);
+    }
+
+    .ui-ring-gauge[data-ring-gauge-empty='true'] .ui-ring-gauge-fill {
+        opacity: 0;
+    }
+}

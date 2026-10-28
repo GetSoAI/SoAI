@@ -1,10 +1,16 @@
 /* SoAI - Bounded collection detached construction and atomic DOM commit [frontend/assets/ts/core/data/boundedcollectionrenderer/transaction.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { ensureError } from '@core/errors/coerce.ts';
+import { cancelReorderExit, playReorderExit } from '@core/animations/reorderMotion.ts';
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { addRootScroll, resetRootScroll, resolveCollectionScrollRoot } from '@core/data/boundedcollectionrenderer/scrollRoot.ts';
 import type { CollectionBuild, CollectionCommitAnchor, CollectionViewportAnchor } from '@core/data/boundedcollectionrenderer/types.ts';
+import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
 import { dom } from '@core/dom/dom.ts';
+import { captureToggleSwitchContinuity, type ToggleSwitchContinuity } from '@core/dom/toggleSwitchReconciliation.ts';
+import { syncElementShell } from '@core/dom/patching.ts';
+import { armCollectionCardRevealTargets, readStagedCollectionCardRevealDelay } from '@core/collectionpage/cardReveal.ts';
 
 interface FocusTarget {
     collectionId: string;
@@ -31,7 +37,7 @@ const indexExistingCollectionNodes = (container: HTMLElement): ReadonlyMap<strin
     return indexed;
 };
 
-const createPlannedNode = <TItem>(build: CollectionBuild<TItem>, index: number, renderItem: (item: TItem, context: { id: string }) => HTMLElement, resolveItemIdentifier: (element: HTMLElement) => string | null, requiredTagName: string | null): HTMLElement => {
+const createPlannedNode = <TItem>(build: CollectionBuild<TItem>, index: number, renderItem: (item: TItem, context: { id: string }) => HTMLElement, resolveItemIdentifier: (element: HTMLElement) => string | null, requiredTagName: string | null, patchesMountedItems: boolean): HTMLElement => {
     const identifier = build.ids[index];
     if (identifier === undefined) throw new Error('Collection build index is outside the validated sequence');
     const existing = build.existingNodes.get(identifier) ?? null;
@@ -44,6 +50,10 @@ const createPlannedNode = <TItem>(build: CollectionBuild<TItem>, index: number, 
     const domainIdentifier = resolveItemIdentifier(rendered);
     if (domainIdentifier !== identifier) throw new Error(`Collection renderer identity mismatch for ${identifier}`);
     rendered.dataset['collectionId'] = identifier;
+    if (existing !== null && patchesMountedItems) {
+        build.itemPatches.push({ element: existing, replacement: rendered });
+        return existing;
+    }
     if (existing === null) build.enteringElements.push(rendered);
     return rendered;
 };
@@ -128,11 +138,37 @@ const restoreFocus = (container: HTMLElement, focusTarget: FocusTarget | null): 
     collectionElement.focus({ preventScroll: true });
 };
 
+const startCollectionExit = <TItem>(build: CollectionBuild<TItem>, completion: { resume(): void; fail(error: Error): void }): boolean => {
+    if (!build.animateLayout || build.exitStarted) return false;
+    build.exitStarted = true;
+    const exiting = Array.from(build.existingNodes).flatMap(([identifier, node]) => (build.lookup.has(identifier) ? [] : [node]));
+    const exit = playReorderExit(build.container, exiting);
+    if (exit === null) return false;
+    void exit.then(completion.resume).catch((error) => completion.fail(ensureError(error)));
+    return true;
+};
+
 const commitPlannedNodes = <TItem>(build: CollectionBuild<TItem>): void => {
+    for (const plannedNode of build.plannedNodes) cancelReorderExit(plannedNode);
     const oldChildren = Array.from(build.container.childNodes);
     const survivingNodes = new Set(build.plannedNodes);
     const anchor = captureViewportAnchor(build.container, survivingNodes) ?? captureViewportAnchor(build.container);
-    const focusTarget = captureFocus(build.container);
+    const focusTarget = build.focusOwner === 'renderer' ? captureFocus(build.container) : null;
+    const continuities = new Map<HTMLElement, ToggleSwitchContinuity>();
+    const stagedReveals = new Map<HTMLElement, string>();
+    for (const current of build.plannedNodes) {
+        const identifier = current.dataset['collectionId'];
+        const previous = identifier !== undefined ? build.existingNodes.get(identifier) : null;
+        if (previous && previous !== current) {
+            continuities.set(current, captureToggleSwitchContinuity(previous));
+            const delay = readStagedCollectionCardRevealDelay(previous);
+            if (delay !== null) stagedReveals.set(current, delay);
+        }
+    }
+    for (const itemPatch of build.itemPatches) {
+        const delay = readStagedCollectionCardRevealDelay(itemPatch.element);
+        if (delay !== null) stagedReveals.set(itemPatch.element, delay);
+    }
     try {
         for (const child of Array.from(build.container.childNodes)) {
             if (!(child instanceof HTMLElement) || !survivingNodes.has(child)) child.remove();
@@ -143,12 +179,19 @@ const commitPlannedNodes = <TItem>(build: CollectionBuild<TItem>): void => {
             const currentNode = build.container.children.item(index);
             if (currentNode !== plannedNode) build.container.insertBefore(plannedNode, currentNode);
         }
+        for (const itemPatch of build.itemPatches) {
+            syncElementShell({ target: itemPatch.element, source: itemPatch.replacement });
+            reconcileChildNodes(itemPatch.element, Array.from(itemPatch.replacement.childNodes));
+        }
+        if (build.range !== null && build.policy !== null) build.gridScrollExtent?.apply(build.container, build.range, build.ids.length, build.policy);
     } catch (error) {
         build.container.replaceChildren(...oldChildren);
         throw error;
     }
+    for (const [current, continuity] of continuities) continuity.restore(current);
+    for (const [current, delay] of stagedReveals) armCollectionCardRevealTargets(current, delay);
     if (anchor !== null) restoreViewportAnchor(build.container, anchor);
-    restoreFocus(build.container, focusTarget);
+    if (build.focusOwner === 'renderer') restoreFocus(build.container, focusTarget);
 };
 
 const createEdgeLoader = (container: HTMLElement, edge: 'backward' | 'forward', label: string): HTMLElement => {
@@ -181,4 +224,12 @@ const createEdgeLoader = (container: HTMLElement, edge: 'backward' | 'forward', 
     return loader;
 };
 
-export { captureViewportAnchor, commitPlannedNodes, createEdgeLoader, createPlannedNode, indexExistingCollectionNodes, restoreKeyedViewportAnchor, restoreViewportAnchor };
+const removeBuildLoader = <TItem>(build: CollectionBuild<TItem>): void => {
+    if (build.loader === null) return;
+    const anchor = build.edge === 'backward' ? captureViewportAnchor(build.container) : null;
+    build.loader.remove();
+    build.loader = null;
+    if (anchor !== null) restoreViewportAnchor(build.container, anchor);
+};
+
+export { captureViewportAnchor, commitPlannedNodes, createEdgeLoader, createPlannedNode, indexExistingCollectionNodes, removeBuildLoader, restoreKeyedViewportAnchor, restoreViewportAnchor, startCollectionExit };

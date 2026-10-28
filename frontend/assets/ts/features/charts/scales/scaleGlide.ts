@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { Scale } from '@features/charts/component/chartComponentTypes.ts';
-import { easeOutCubic } from '@features/charts/viewport/easing.ts';
+import { easeOutCubic } from '@core/animations/chartMotion.ts';
 
 interface ScaleGlideState {
     active: boolean;

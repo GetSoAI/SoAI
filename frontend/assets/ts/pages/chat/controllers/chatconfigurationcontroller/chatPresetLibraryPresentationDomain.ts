@@ -4,14 +4,17 @@
 import { i18n } from '@core/i18n/index.ts';
 import { isChatPresetNameValid } from '@core/api/contracts/webuiChatPresetContracts.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
-import { formatDateTime } from '@core/primitives/dateTime.ts';
 import { createSearchTextIndex, matchesSearchFilterQuery } from '@core/search/searchQuery.ts';
 import { CHAT_ACTIONS, CHAT_CONFIGURATION_MODAL_ID, CHAT_PRESET_SECTION_DEFINITIONS, translateChatPresetSection, type ChatPresetSectionId } from '@features/chat/public.ts';
 import type { WebuiChatPresetRecord } from '@core/api/contracts/webuiChatPresetContractTypes.ts';
 import type { ChatPresetEditorDraft, ChatPresetLibraryViewState, ChatPresetSectionChoice } from '@pages/chat/controllers/chatconfigurationcontroller/contracts.ts';
-import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
-import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
-import { createIconSlot, setIconSlot } from '@core/ui/icons/view.ts';
+import { createSearchFieldActions } from '@core/ui/searchField.ts';
+import { insertWithPresence, removeWithPresence, isPresenceExiting } from '@core/animations/presence/public.ts';
+import { patchOrderedChildren } from '@core/dom/orderedChildPatching.ts';
+import { syncElementShell } from '@core/dom/patching.ts';
+import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
+import { CHECKERBOARD_CLASS_NAMES } from '@core/dom/checkerboardAssignment.ts';
+import { createPresetActionButton, createPresetRow } from '@pages/chat/controllers/chatconfigurationcontroller/chatPresetRecordPresentationDomain.ts';
 import { checkerboardService, dom } from '@core/dom/dom.ts';
 import { captureChatPresetLibraryFocus, focusChatPresetEditorTransition, readChatPresetEditorFocusTarget, restoreChatPresetLibraryFocus } from '@pages/chat/controllers/chatconfigurationcontroller/chatPresetLibraryFocusDomain.ts';
 import { renderChatPresetStatus } from '@pages/chat/controllers/chatconfigurationcontroller/chatPresetStatusPresentationDomain.ts';
@@ -24,82 +27,11 @@ const resolveElement = (root: Element, token: string): HTMLElement => {
     return element;
 };
 
-const hydrateStaticIcons = (root: Element): void => {
-    setIconSlot(resolveElement(root, 'preset-add-icon'), getIconSync('add', { size: 16, strokeWidth: 1.7 }));
-};
-
-type PresetRowActionPresentation = Readonly<{ className: string; icon: IconName; strokeWidth: number }>;
-
-const presetRowActionPresentation = (action: string): PresetRowActionPresentation | null => {
-    if (action === CHAT_ACTIONS.REMOVE_PRESET) return { className: 'ui-round-button ui-round-button--inline ui-round-button--delete', icon: 'close', strokeWidth: 1.5 };
-    if (action === CHAT_ACTIONS.REPLACE_PRESET) return { className: 'ui-round-button ui-round-button--inline ui-round-button--settings ui-round-button--modal-close', icon: 'replace', strokeWidth: 1.5 };
-    if (action === CHAT_ACTIONS.RENAME_PRESET) return { className: 'ui-round-button ui-round-button--inline ui-round-button--edit', icon: 'rename', strokeWidth: 1 };
-    if (action === CHAT_ACTIONS.APPLY_PRESET) return { className: 'ui-round-button ui-round-button--inline ui-round-button--success chat-preset-apply-action', icon: 'play', strokeWidth: 1.5 };
-    return null;
-};
-
-const createButton = (documentValue: Document, action: string, label: string, presetId: string | null, disabled: boolean): HTMLButtonElement => {
-    const button = documentValue.createElement('button');
-    button.type = 'button';
-    const rowPresentation = presetRowActionPresentation(action);
-    button.className = rowPresentation ? rowPresentation.className : action === CHAT_ACTIONS.SUBMIT_PRESET_EDITOR ? 'ui-button ui-variant-accent' : action === CHAT_ACTIONS.CANCEL_PRESET_EDITOR ? 'ui-button ui-variant-neutral' : 'ui-button ui-button--sm';
-    button.dataset['action'] = action;
-    if (presetId) button.dataset['presetId'] = presetId;
-    button.disabled = disabled;
-    button.dataset['presetBaseDisabled'] = disabled ? 'true' : 'false';
-    button.setAttribute('aria-label', label);
-    button.dataset['tooltip'] = label;
-    if (rowPresentation) button.append(createIconSlot(documentValue, getIconSync(rowPresentation.icon, { strokeWidth: rowPresentation.strokeWidth })));
-    else button.textContent = label;
-    return button;
-};
-
-const renderBadges = (record: WebuiChatPresetRecord, container: HTMLElement): void => {
-    for (const definition of CHAT_PRESET_SECTION_DEFINITIONS) {
-        if (!(definition.id in record.sections)) continue;
-        const badge = container.ownerDocument.createElement('span');
-        badge.className = 'settings-record-badge';
-        badge.textContent = translateChatPresetSection(definition.id);
-        container.append(badge);
-    }
-};
-
-const createPresetRow = (record: WebuiChatPresetRecord, state: ChatPresetLibraryViewState, documentValue: Document): HTMLElement => {
-    const row = documentValue.createElement('article');
-    row.className = 'collection-list-item chat-preset-row glass-surface-interactive';
-    row.setAttribute('role', 'listitem');
-    if (!record.applicable) row.classList.add('is-unavailable');
-    row.dataset['presetId'] = record.id;
-    const info = documentValue.createElement('div');
-    info.className = 'collection-list-item-main';
-    const title = documentValue.createElement('h3');
-    title.className = 'collection-list-item-title';
-    title.textContent = record.name;
-    const meta = documentValue.createElement('div');
-    meta.className = 'collection-list-item-meta';
-    meta.textContent = i18n.t('chat.configuration.presetLibrary.modifiedAt', { value: formatDateTime(record.modifiedAtMs, false) });
-    const badges = documentValue.createElement('div');
-    badges.className = 'chat-preset-badges';
-    renderBadges(record, badges);
-    info.append(title, meta, badges);
-    if (record.omittedSettingsCount > 0) {
-        const warning = documentValue.createElement('div');
-        warning.className = 'chat-configuration-hint is-warning';
-        warning.textContent = i18n.t('chat.configuration.presetLibrary.omittedSettings', { count: record.omittedSettingsCount });
-        info.append(warning);
-    }
-    if (!record.applicable) {
-        const unavailable = documentValue.createElement('div');
-        unavailable.className = 'chat-configuration-hint';
-        unavailable.textContent = i18n.t('chat.configuration.presetLibrary.notApplicable');
-        info.append(unavailable);
-    }
-    const actions = documentValue.createElement('div');
-    actions.className = 'ui-collection-list__actions chat-preset-row-actions';
-    const revisionsBlocked = state.stale;
-    actions.append(createButton(documentValue, CHAT_ACTIONS.REMOVE_PRESET, i18n.t('common.delete'), record.id, revisionsBlocked), createButton(documentValue, CHAT_ACTIONS.RENAME_PRESET, i18n.t('chat.configuration.presetLibrary.renameAction'), record.id, revisionsBlocked), createButton(documentValue, CHAT_ACTIONS.REPLACE_PRESET, i18n.t('chat.configuration.presetLibrary.replaceAction'), record.id, revisionsBlocked), createButton(documentValue, CHAT_ACTIONS.APPLY_PRESET, i18n.t('chat.configuration.presetLibrary.applyAction'), record.id, revisionsBlocked || !record.applicable));
-    row.append(info, actions);
-    return row;
+const initializeChatPresetLibraryPresentation = (root: HTMLElement): void => {
+    const search = resolveElement(root, 'preset-search');
+    const surface = search.parentElement;
+    if (!surface?.classList.contains('searchbar-container')) throw new Error('Chat preset search requires its searchbar container.');
+    surface.replaceChildren(search, ...createSearchFieldActions(root.ownerDocument));
 };
 
 const matchingRecords = (state: ChatPresetLibraryViewState): readonly WebuiChatPresetRecord[] => {
@@ -119,6 +51,7 @@ const sectionDescription = (sectionId: ChatPresetSectionId): string => {
     if (sectionId === 'completion') return i18n.t('chat.configuration.presetLibrary.editor.sectionDescriptions.completion');
     if (sectionId === 'voice') return i18n.t('chat.configuration.presetLibrary.editor.sectionDescriptions.voice');
     if (sectionId === 'files') return i18n.t('chat.configuration.presetLibrary.editor.sectionDescriptions.files');
+    if (sectionId === 'skills') return i18n.t('chat.configuration.skills.description');
     if (sectionId === 'knowledge') return i18n.t('chat.configuration.presetLibrary.editor.sectionDescriptions.knowledge');
     return i18n.t('chat.configuration.presetLibrary.editor.sectionDescriptions.tools');
 };
@@ -177,10 +110,10 @@ const renderSectionChoice = (choice: ChatPresetSectionChoice, draft: ChatPresetE
 };
 
 const renderEditor = (state: ChatPresetLibraryViewState, editor: HTMLElement): void => {
-    editor.replaceChildren();
     const draft = state.editor;
     editor.classList.toggle('u-hidden', draft === null);
     if (!draft) {
+        editor.replaceChildren();
         delete editor.dataset['presetEditorMode'];
         delete editor.dataset['presetEditorTargetId'];
         return;
@@ -188,6 +121,7 @@ const renderEditor = (state: ChatPresetLibraryViewState, editor: HTMLElement): v
     editor.dataset['presetEditorMode'] = draft.mode;
     if (draft.targetId) editor.dataset['presetEditorTargetId'] = draft.targetId;
     else delete editor.dataset['presetEditorTargetId'];
+    const content = editor.ownerDocument.createElement('div');
     const title = editor.ownerDocument.createElement('h3');
     title.textContent = editorTitle(draft.mode);
     const description = editor.ownerDocument.createElement('p');
@@ -213,7 +147,7 @@ const renderEditor = (state: ChatPresetLibraryViewState, editor: HTMLElement): v
     nameInput.setAttribute('aria-describedby', nameHint.id);
     nameInput.setAttribute('aria-invalid', nameState.showError ? 'true' : 'false');
     surface.append(nameLabel, nameInput, nameHint);
-    editor.append(title, description, surface);
+    content.append(title, description, surface);
     if (draft.mode !== 'rename') {
         const choices = editor.ownerDocument.createElement('fieldset');
         choices.className = 'chat-preset-section-choices';
@@ -225,19 +159,27 @@ const renderEditor = (state: ChatPresetLibraryViewState, editor: HTMLElement): v
         count.className = 'ui-chip chat-preset-selection-summary';
         count.textContent = i18n.t('chat.configuration.presetLibrary.editor.selectedCount', { count: draft.selectedSections.size });
         choices.append(count);
-        editor.append(choices);
+        content.append(choices);
     }
     if (draft.targetUnavailable || draft.reviewRequired) {
         const warning = editor.ownerDocument.createElement('div');
         warning.className = 'chat-configuration-hint is-warning';
         warning.textContent = draft.targetUnavailable ? i18n.t('chat.configuration.presetLibrary.editor.targetUnavailable') : i18n.t('chat.configuration.presetLibrary.editor.revisionChanged');
-        editor.append(warning);
-        if (draft.reviewRequired && !draft.targetUnavailable) editor.append(createButton(editor.ownerDocument, CHAT_ACTIONS.REVIEW_PRESET_EDITOR, i18n.t('chat.configuration.presetLibrary.editor.reviewAction'), null, false));
+        content.append(warning);
+        if (draft.reviewRequired && !draft.targetUnavailable) content.append(createPresetActionButton(editor.ownerDocument, CHAT_ACTIONS.REVIEW_PRESET_EDITOR, i18n.t('chat.configuration.presetLibrary.editor.reviewAction'), null, false));
     }
     const actions = editor.ownerDocument.createElement('div');
     actions.className = 'chat-configuration-actions';
-    actions.append(createButton(editor.ownerDocument, CHAT_ACTIONS.SUBMIT_PRESET_EDITOR, editorActionLabel(draft.mode), null, nameState.submitDisabled), createButton(editor.ownerDocument, CHAT_ACTIONS.CANCEL_PRESET_EDITOR, i18n.t('common.cancel'), null, false));
-    editor.append(actions);
+    actions.append(createPresetActionButton(editor.ownerDocument, CHAT_ACTIONS.SUBMIT_PRESET_EDITOR, editorActionLabel(draft.mode), null, nameState.submitDisabled), createPresetActionButton(editor.ownerDocument, CHAT_ACTIONS.CANCEL_PRESET_EDITOR, i18n.t('common.cancel'), null, false));
+    content.append(actions);
+    reconcileChildNodes(editor, Array.from(content.childNodes));
+    syncChatPresetEditorNamePresentation(editor, state);
+    for (const input of dom.resolveAll('[data-chat-preset-section]', editor)) {
+        if (!(input instanceof HTMLInputElement)) throw new Error('Chat preset section choice must be an input.');
+        const sectionId = readPresetSectionId(input);
+        if (sectionId === null) throw new Error('Chat preset section choice is unavailable.');
+        input.checked = draft.selectedSections.has(sectionId);
+    }
 };
 
 const syncChatPresetEditorNamePresentation = (root: HTMLElement, state: ChatPresetLibraryViewState): void => {
@@ -262,28 +204,52 @@ const applyChatPresetLibraryOperationState = (root: HTMLElement, operationPendin
     const candidate = dom.resolve('.chat-preset-library', root);
     const stateSurface = candidate instanceof HTMLElement ? candidate : root;
     const loading = stateSurface.dataset['chatPresetState'] === 'loading';
+    const blockingLoad = stateSurface.dataset['chatLibraryLoading'] === 'true';
     stateSurface.setAttribute('aria-busy', operationPending || loading ? 'true' : 'false');
     for (const element of dom.resolveAll('[data-preset-base-disabled]', root)) {
-        if (element instanceof HTMLButtonElement) element.disabled = operationPending || element.dataset['presetBaseDisabled'] === 'true';
+        if (element instanceof HTMLButtonElement) element.disabled = operationPending || blockingLoad || element.dataset['presetBaseDisabled'] === 'true';
     }
 };
 
 const renderChatPresetLibrary = (root: HTMLElement, state: ChatPresetLibraryViewState): void => {
-    hydrateStaticIcons(root);
     const focus = captureChatPresetLibraryFocus(root);
     const editor = resolveElement(root, 'preset-editor');
     const previousEditor = readChatPresetEditorFocusTarget(editor);
     resolveElement(root, 'preset-toolbar').classList.toggle('u-hidden', state.editor !== null);
     const candidate = dom.resolve('.chat-preset-library', root);
     const stateSurface = candidate instanceof HTMLElement ? candidate : root;
+    stateSurface.dataset['chatLibraryLoading'] = String(state.phase === 'loading' && state.lastSuccessAtMs === null);
     stateSurface.dataset['chatPresetState'] = state.phase === 'loading' ? 'loading' : state.stale ? 'stale' : state.phase;
     const search = resolveElement(root, 'preset-search');
     if (search instanceof HTMLInputElement && search.value !== state.searchQuery) search.value = state.searchQuery;
     const records = matchingRecords(state);
-    renderChatPresetStatus(state, records.length, resolveElement(root, 'preset-status'));
-    renderEditor(state, editor);
+    renderChatPresetStatus(state, records.length, resolveElement(root, 'preset-status'), resolveElement(root, 'preset-empty'));
+    if (state.phase !== 'loading' || !editor.hasChildNodes()) renderEditor(state, editor);
     const list = resolveElement(root, 'preset-list');
-    list.replaceChildren(...records.map((record) => createPresetRow(record, state, root.ownerDocument)));
+    list.classList.toggle('u-hidden', records.length === 0);
+    const createdParent = root.ownerDocument.createElement('div');
+    createdParent.append(...records.map((record) => createPresetRow(record, state, root.ownerDocument)));
+    patchOrderedChildren({
+        existingParent: list,
+        createdParent,
+        resolveChildKey: (child) => child.dataset['presetId'] ?? null,
+        insertChild: (parent, child, anchor) => {
+            insertWithPresence(parent, child, anchor);
+            return child;
+        },
+        patchChild: (existing, created) => {
+            const changed = syncElementShell({ target: existing, source: created, preservedClassNames: CHECKERBOARD_CLASS_NAMES });
+            if (existing.innerHTML === created.innerHTML) return changed;
+            reconcileChildNodes(existing, Array.from(created.childNodes));
+            return true;
+        },
+        removeChild: removeWithPresence,
+        isChildDetaching: isPresenceExiting,
+        replaceUnsupportedChildren: () => {
+            list.replaceChildren(...Array.from(createdParent.children));
+            return true;
+        }
+    });
     checkerboardService.applyCheckerboard(list, CHAT_PRESET_ROW_SELECTOR);
     applyChatPresetLibraryOperationState(root, state.operationPending);
     if (!focusChatPresetEditorTransition(root, previousEditor, state.editor)) restoreChatPresetLibraryFocus(root, focus);
@@ -305,4 +271,4 @@ const readPresetSectionId = (input: HTMLInputElement): ChatPresetSectionId | nul
     return definition?.id ?? null;
 };
 
-export { applyChatPresetLibraryOperationState, disconnectChatPresetLibraryPresentation, readPresetId, readPresetSectionId, renderChatPresetLibrary, syncChatPresetEditorNamePresentation };
+export { initializeChatPresetLibraryPresentation, applyChatPresetLibraryOperationState, disconnectChatPresetLibraryPresentation, readPresetId, readPresetSectionId, renderChatPresetLibrary, syncChatPresetEditorNamePresentation };

@@ -1,0 +1,32 @@
+Apache Tika runtime and third-party components
+
+Apache Tika is licensed under the Apache License, Version 2.0. SoAI complete
+distributions retain the unmodified Apache Tika distribution archive, including
+its complete LICENSE and NOTICE files and the notices in its library JARs.
+Those files remain alongside the installed runtime after extraction.
+
+Project: https://tika.apache.org/
+
+The Apache Tika distribution includes the following separately licensed,
+unmodified libraries. Their source archives accompany the runtime archive in
+runtime-assets/ in SoAI complete distributions:
+
+- JHighlight 2.0.0: CDDL 1.0, selected from its CDDL/LGPL dual license.
+  Source: jhighlight-2.0.0-sources.jar
+  License: licenses/CDDL-1.0.txt
+  Project: https://github.com/codelibs/jhighlight
+- Jakarta Annotations API 3.0.0: Eclipse Public License 2.0.
+  Source: jakarta.annotation-api-3.0.0-sources.jar
+  Project: https://github.com/jakartaee/common-annotations-api
+- Jakarta Servlet API 6.1.0: Eclipse Public License 2.0.
+  Source: jakarta.servlet-api-6.1.0-sources.jar
+  Project: https://github.com/jakartaee/servlet
+- Jakarta RESTful Web Services API 4.0.0: Eclipse Public License 2.0.
+  Source: jakarta.ws.rs-api-4.0.0-sources.jar
+  Project: https://github.com/jakartaee/rest
+
+The Eclipse Public License 2.0 and notices are included in the Apache Tika
+LICENSE file and the corresponding Jakarta binary and source JARs.
+
+These third-party libraries and their source remain under their own licenses.
+The SoAI Source-Available License does not limit the rights those licenses grant.

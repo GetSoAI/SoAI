@@ -74,17 +74,16 @@ def uuid_from_device_id(device_id: str | None) -> str | None:
 def snapshot_gpu_entries(snapshot: JSONDict) -> list[JSONDict]:
     gpu_payload = coerce_json_dict_or_empty(snapshot.get("gpu"))
     entries: list[JSONDict] = []
-    device_ids: list[str] = []
     gpus_value = gpu_payload.get("gpus")
     if isinstance(gpus_value, list):
         for entry in gpus_value:
             if isinstance(entry, dict):
-                _append_snapshot_gpu_entry(entries, device_ids, entry)
+                _append_snapshot_gpu_entry(entries, entry)
     by_device = gpu_payload.get("by_device_id")
     if isinstance(by_device, Mapping):
         for entry in by_device.values():
             if isinstance(entry, dict):
-                _append_snapshot_gpu_entry(entries, device_ids, entry)
+                _append_snapshot_gpu_entry(entries, entry)
     return entries
 
 
@@ -98,12 +97,7 @@ def windows_adapter_primary_device_id(gpu_info: JSONDict, vendor: str) -> str | 
 
 def _append_snapshot_gpu_entry(
     entries: list[JSONDict],
-    device_ids: list[str],
     entry: JSONDict,
 ) -> None:
-    device_id = optional_identity_text(entry.get("device_id"))
-    if device_id is not None:
-        if device_id in device_ids:
-            return
-        device_ids.append(device_id)
-    entries.append(entry)
+    if entry not in entries:
+        entries.append(entry)

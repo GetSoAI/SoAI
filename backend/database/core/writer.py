@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.config.protocols import ConfigProtocol
 from core.database.protocols import DatabaseMetricsRecorderProtocol
+from core.database.write_storage import DatabaseWriteStorage
 from core.di.validation import require_dependencies
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
@@ -155,6 +156,7 @@ class DatabaseWriter:
         *args: *Ts,
         enqueue_timeout: float | None = None,
         operation_timeout: float | None = None,
+        storage: DatabaseWriteStorage | None = None,
         **named_args: JSONValue,
     ) -> T:
         if self.is_faulted:
@@ -171,7 +173,7 @@ class DatabaseWriter:
         def target_func(connection: sqlite3.Connection, *inner_args: *Ts) -> T:
             return func(connection, *inner_args, **named_args)
 
-        if enqueue_timeout is None and operation_timeout is None:
+        if enqueue_timeout is None and operation_timeout is None and storage is None:
             return await self._io_controller.operations.queue_write_operation(
                 target_func,
                 *args,
@@ -181,6 +183,7 @@ class DatabaseWriter:
             *args,
             enqueue_timeout=enqueue_timeout,
             operation_timeout=operation_timeout,
+            storage=storage,
         )
 
     def process_single_operation[*Ts, T](

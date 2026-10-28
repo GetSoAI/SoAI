@@ -6,11 +6,15 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from core.errors.exceptions import StateError
+from core.errors.exceptions import StateError, ValidationError
+from core.hardware.gpu_recovery_records import GPURecoveryMember
 from core.imports.availability import module_available
 from core.validation.coercion import coerce_int_from_scalar
+from core.validation.strict_integer import is_strict_int
+from core.validation.strict_numbers import require_int_in_range_strict
 from hardware.gpu_capabilities.payloads import read_control_capability_section
 from hardware.result_messages import append_log_message
+from hardware.vendors.nvidia.internal_protocols import NvmlControlModuleProtocol
 from hardware.vendors.nvidia.nvml_clock_offset_operations import (
     reset_clock_offsets,
     set_clock_offset,
@@ -21,12 +25,10 @@ from hardware.vendors.nvidia.tuning_nvml_application_clocks import (
 )
 
 if TYPE_CHECKING:
-    import ctypes
-
     from core.logging.protocols import TraceLogger
     from core.types.json import JSONDict, JSONValue
+    from hardware.vendors.nvidia.internal_protocols import NvmlDeviceHandle
 
-    type NvmlDeviceHandle = ctypes.c_void_p
 
 __all__ = ("apply_nvml_clock_settings",)
 
@@ -61,6 +63,14 @@ def apply_nvml_clock_settings(
     core_uses_application_clocks, mem_uses_application_clocks = resolve_application_clock_fields(
         capabilities
     )
+    if (
+        not reset_clocks
+        and mem_clock is not None
+        and not mem_uses_application_clocks
+        and not (isinstance(mem_clock, str) and mem_clock.lower() == "auto")
+    ):
+        errors.append("Absolute memory clock conversion is unavailable.")
+        return False
     if reset_clocks:
         changed = False
         if core_uses_application_clocks or mem_uses_application_clocks:
@@ -235,3 +245,28 @@ def _require_clock_setter(
     ):
         return
     raise StateError(f"{label} VF offset API is unavailable.")
+
+
+def invoke_nvml_legacy_clock_member(
+    module: NvmlControlModuleProtocol,
+    handle: NvmlDeviceHandle,
+    member: GPURecoveryMember,
+    *,
+    native_value: int | float | None,
+) -> None:
+    offset = require_int_in_range_strict(
+        native_value,
+        minimum=-(2**31),
+        maximum=2**31 - 1,
+        error_message="NVML frozen clock offset is invalid.",
+    )
+    if member.member_id != "vf_offset:legacy" or member.pstate_id != 0:
+        raise ValidationError("NVML legacy clock invocation has invalid routing.")
+    if member.domain_id == 0 and member.field == "core_clock":
+        status = module.nvmlDeviceSetGpcClkVfOffset(handle, offset)
+    elif member.domain_id == 2 and member.field == "mem_clock":
+        status = module.nvmlDeviceSetMemClkVfOffset(handle, offset)
+    else:
+        raise ValidationError("NVML legacy clock field conflicts with native domain.")
+    if not is_strict_int(status) or status != 0:
+        raise StateError("NVML legacy clock setter returned an invalid acknowledgement.")

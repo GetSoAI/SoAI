@@ -12,9 +12,19 @@ if TYPE_CHECKING:
 
     import numpy
 
-    from core.files.types import ParseProgressCallback
-    from core.media.types import OcrFrameText, TranscriptionResult
-    from core.types.json import JSONDict, JSONValue
+    from core.media.speech_catalog import SpeechCatalogSnapshot
+    from core.media.speech_selection import ResolvedSpeechModel
+    from core.media.speech_setup import SpeechTask
+    from core.media.transcription_contracts import (
+        MediaTranscriptionRequest,
+        SpeechChunkRequest,
+    )
+    from core.media.types import (
+        OcrFrameText,
+        TranscriptionChunkResult,
+        TranscriptionResult,
+    )
+    from core.types.json import JSONValue
 
     type OcrCoordinate = int | float
     type OcrBoundingBox = Sequence[Sequence[OcrCoordinate]]
@@ -23,10 +33,11 @@ if TYPE_CHECKING:
     type OcrRawEntry = Sequence[OcrRawValue]
 
 __all__ = (
-    "MediaOcrRuntimeProtocol",
     "MediaIpcServerLifecycleProtocol",
+    "MediaOcrRuntimeProtocol",
     "MediaTranscriptionRuntimeProtocol",
     "OcrEngineProtocol",
+    "SpeechCatalogProtocol",
     "TranscriptionChunkGatewayProtocol",
 )
 
@@ -58,32 +69,20 @@ class MediaOcrRuntimeProtocol(Protocol):
 
 
 class MediaTranscriptionRuntimeProtocol(Protocol):
-    async def transcribe(
-        self,
-        *,
-        source_path: str,
-        duration_seconds: float,
-        model_name: str,
-        language: str | None,
-        task: str,
-        include_word_timestamps: bool,
-        extraction_deadline: float,
-        progress_callback: ParseProgressCallback | None = None,
-    ) -> TranscriptionResult: ...
+    async def resolve_model(self, *, selector: str, task: SpeechTask) -> ResolvedSpeechModel: ...
+
+    async def transcribe(self, request: MediaTranscriptionRequest) -> TranscriptionResult: ...
 
     async def shutdown(self) -> None: ...
 
 
+class SpeechCatalogProtocol(Protocol):
+    async def snapshot_speech_catalog(self) -> SpeechCatalogSnapshot: ...
+
+
 class TranscriptionChunkGatewayProtocol(Protocol):
-    async def transcribe_chunk(
-        self,
-        *,
-        file_path: str,
-        model_name: str,
-        language: str | None,
-        task: str,
-        include_word_timestamps: bool,
-        timeout_seconds: float,
-    ) -> JSONDict: ...
+    async def resolve_model(self, *, selector: str, task: SpeechTask) -> ResolvedSpeechModel: ...
+
+    async def transcribe_chunk(self, request: SpeechChunkRequest) -> TranscriptionChunkResult: ...
 
     async def shutdown(self) -> None: ...

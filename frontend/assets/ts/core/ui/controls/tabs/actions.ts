@@ -1,6 +1,7 @@
 /* SoAI - Shared UI tabs actions [frontend/assets/ts/core/ui/controls/tabs/actions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { insertWithPresence, removeWithPresence } from '@core/animations/presence/public.ts';
 import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -86,23 +87,24 @@ const updateTabBadge = (options: TabBadgeUpdateOptions): void => {
     if (hasBadge) {
         const badgeText = String(badgeValue);
         tab.badge = badgeValue;
-        if (existingBadge) {
+        if (existingBadge instanceof HTMLElement) {
             dom.setText(existingBadge, badgeText);
+            if (existingBadge.parentElement) insertWithPresence(existingBadge.parentElement, existingBadge);
             return;
         }
         const tabElement = options.resolveElement(`#${options.tabId}-tab`);
         if (!tabElement) {
             return;
         }
-        const badgeNode = dom.create('span', { className: 'tab-notify-badge', id: `${options.tabId}-badge` });
+        const badgeNode = dom.create('span', { className: 'tab-notify-badge', 'data-presence': '', id: `${options.tabId}-badge` });
         dom.setText(badgeNode, badgeText);
-        dom.appendChild(tabElement, badgeNode);
+        insertWithPresence(tabElement, badgeNode);
         return;
     }
 
     delete tab.badge;
-    if (existingBadge) {
-        dom.remove(existingBadge);
+    if (existingBadge instanceof HTMLElement) {
+        removeWithPresence(existingBadge);
     }
 };
 
@@ -117,9 +119,10 @@ const updateTabNotifyBadge = (options: TabNotifyBadgeUpdateOptions): void => {
         const ariaLabel = options.ariaLabel ?? i18n.t('header.notificationCenter.titleWithCount', { count: options.count });
         tab.notifyBadge = displayCount;
         const badgeElement = options.resolveElement(`#${options.tabId}-notify`);
-        if (badgeElement) {
+        if (badgeElement instanceof HTMLElement) {
             dom.setText(badgeElement, displayCount);
             dom.setAttribute(badgeElement, 'aria-label', ariaLabel);
+            if (badgeElement.parentElement) insertWithPresence(badgeElement.parentElement, badgeElement);
             return;
         }
         const tabElement = options.resolveElement(`#${options.tabId}-tab`);
@@ -128,18 +131,19 @@ const updateTabNotifyBadge = (options: TabNotifyBadgeUpdateOptions): void => {
         }
         const notifyBadge = dom.create('span', {
             className: 'tab-notify-badge',
+            'data-presence': '',
             id: `${options.tabId}-notify`
         });
         dom.setText(notifyBadge, displayCount);
         dom.setAttribute(notifyBadge, 'aria-label', ariaLabel);
-        dom.appendChild(tabElement, notifyBadge);
+        insertWithPresence(tabElement, notifyBadge);
         return;
     }
 
     delete tab.notifyBadge;
     const badgeElement = options.resolveElement(`#${options.tabId}-notify`);
-    if (badgeElement) {
-        dom.remove(badgeElement);
+    if (badgeElement instanceof HTMLElement) {
+        removeWithPresence(badgeElement);
     }
 };
 
@@ -147,8 +151,8 @@ const clearNotifyBadges = (tabs: TabConfig[], resolveElement: ResolveTabElement)
     tabs.forEach((tab) => {
         delete tab.notifyBadge;
         const badgeElement = resolveElement(`#${tab.id}-notify`);
-        if (badgeElement) {
-            dom.remove(badgeElement);
+        if (badgeElement instanceof HTMLElement) {
+            removeWithPresence(badgeElement);
         }
     });
 };

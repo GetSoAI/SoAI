@@ -3,6 +3,7 @@
 
 @layer pages {
     .dashboard-container:where([data-section='dashboard'], [data-page-scope='dashboard']) {
+        --dashboard-dial-padding-block-start: calc(var(--space-3) + var(--space-2));
         width: 100%;
         height: 100%;
         position: relative;
@@ -44,45 +45,20 @@
         min-width: 0;
     }
 
-    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-section .section-controls, .logs-controls, .logs-controls .logs-size-controls) {
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .section-controls {
         display: flex;
         align-items: center;
-        gap: var(--dashboard-section-control-gap);
+        gap: calc(var(--space-15) * var(--movable-section-content-scale-inverse));
         flex-wrap: nowrap;
-    }
-
-    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .section-controls {
-        --dashboard-section-control-gap: var(--space-2);
-        --dashboard-section-control-size: var(--control-height-titlebar);
-        --dashboard-section-control-icon-size: var(--space-25);
         margin-inline-start: auto;
         flex-shrink: 0;
+        min-height: calc(var(--control-height-titlebar) * var(--movable-section-content-scale-inverse));
     }
 
-    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section > .dashboard-section-surface > .section-header > .section-controls :is(.ui-button, .ui-icon-button) {
-        min-height: var(--dashboard-section-control-size);
-        height: var(--dashboard-section-control-size);
-        font-size: var(--font-size-compact);
-        gap: var(--space-05);
-
-        --button-icon-scale: 0;
-        --icon-size: var(--dashboard-section-control-icon-size);
-    }
-
-    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section > .dashboard-section-surface > .section-header > .section-controls .ui-button {
-        padding: var(--space-05) var(--space-15);
-    }
-
-    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section > .dashboard-section-surface > .section-header > .section-controls .ui-icon-button {
-        width: var(--dashboard-section-control-size);
-        min-width: var(--dashboard-section-control-size);
-        padding: 0;
-    }
-
-    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section > .dashboard-section-surface > .section-header > .section-controls :is(.ui-button, .ui-icon-button) :is(svg, .ui-icon),
-    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section > .dashboard-section-surface > .section-header > .section-controls :is(.ui-button, .ui-icon-button) .ui-icon > svg {
-        width: var(--dashboard-section-control-icon-size);
-        height: var(--dashboard-section-control-icon-size);
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .section-controls > .ui-icon-button--titlebar {
+        margin-inline-start: calc(var(--control-height-titlebar) * (var(--movable-section-content-scale-inverse) - 1));
+        transform: scale(var(--movable-section-content-scale-inverse));
+        transform-origin: calc(100% - var(--inline-start-percent)) center;
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .logs-viewer {

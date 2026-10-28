@@ -148,12 +148,15 @@ def register_routes(routers: ApiRouters) -> None:
             stop_sequences=payload.stop_sequences,
         )
         if payload.stream:
-            transcript = OpenAIStreamTranscript(model_hint=payload.model)
+            transcript = OpenAIStreamTranscript(
+                model_hint=payload.model, error_origin="local_terminal"
+            )
 
             def transform(upstream: AsyncGenerator[bytes]) -> AsyncGenerator[bytes]:
                 return project_anthropic_stream(
                     upstream,
                     transcript=transcript,
+                    finalizer_tracker=api_context.dependencies.task_finalizer_tracker,
                     settings=projection_settings,
                 )
 

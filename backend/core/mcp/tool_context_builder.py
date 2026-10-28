@@ -107,6 +107,7 @@ async def build_mcp_tool_context(
     local_tool_catalog_scope: MCPToolCatalogScope,
     forced_tool_names: tuple[str, ...] = (),
     force_tool_choice_auto: bool = False,
+    request_tool_names: tuple[str, ...] = (),
     user_interaction_timeout_ms: int = DEFAULT_USER_INTERACTION_TIMEOUT_MS,
 ) -> MCPToolContext:
     choice_mode_raw, choice_name_raw = normalize_tool_choice(request_json.get("tool_choice"))
@@ -189,6 +190,9 @@ async def build_mcp_tool_context(
             "Tools are enabled but no tools are selected for chat mode. Select at least one default tool or disable tools.",
         )
 
+    selected_names = list(
+        dict.fromkeys([*selected_names, *_normalize_forced_tool_names(request_tool_names)])
+    )
     if tool_name_validator is not None:
         for tool_name in selected_names:
             tool_name_validator(tool_name)
@@ -204,7 +208,10 @@ async def build_mcp_tool_context(
         raise ValidationError("MCP tools require a resolved model.")
 
     if not await supports_tool_calling(normalized_model_id):
-        raise ValidationError("The selected model does not support tool calling.")
+        raise ValidationError(
+            "The selected model does not support tool calling.",
+            details={"reason": "model_tool_calling_unsupported"},
+        )
 
     tool_entries, allowed_tool_map = await collect_mcp_tool_catalog(
         sources.mcp_server,

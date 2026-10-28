@@ -10,6 +10,8 @@ from core.types.protocols import HttpClientProtocol
 from core.validation.strings import require_trimmed_text
 from plugins.action_response import PluginActionResponse
 from plugins.loader.upload import upload_staged_plugin_package
+from plugins.manager.backend_update_checks import check_backend_update
+from plugins.manager.backend_update_diagnostics import check_for_backend_updates
 from plugins.manager.name_normalization import (
     call_with_optional_plugin_name,
     call_with_required_plugin_name,
@@ -20,7 +22,6 @@ from plugins.manager.transfer_outcomes import (
     ModelDownloadFinalization,
 )
 from plugins.manager.transfers import (
-    check_for_backend_updates,
     download_plugin_package,
     finalize_model_download,
     is_model_download_in_progress,
@@ -78,6 +79,12 @@ class PluginManagerTransferOperations:
         context: RequestContext,
     ) -> PluginActionResponse:
         return await upload_staged_plugin_package(self, upload, context)
+
+    async def check_backend_update(
+        self: PluginManagerRuntimeProtocol,
+        plugin_name: str,
+    ) -> JSONDict:
+        return await call_with_required_plugin_name(self, plugin_name, check_backend_update)
 
     async def check_for_backend_updates(
         self: PluginManagerRuntimeProtocol,

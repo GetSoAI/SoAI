@@ -5,6 +5,7 @@ import { requireClosestElement, requireTrimmedDataAttribute } from '@core/dom/at
 import { requireSortableColumn, requireSortableHeaders, resolveNextSortState, updateSortableTableIndicators, type SortDirection, type SortState } from '@core/ui/tables/sortableTable.ts';
 import { renderRepeatableDropdownSelectControl, syncRepeatableDropdownSelect } from '@core/ui/dropdown/selectControl.ts';
 import type { PageServicesOwnerHost } from '@core/routing/pages/basepagecore/PageServices.ts';
+import type { ReapplyCollectionOptions } from '@core/routing/pages/pagetypes/public.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { UiAttributeValue } from '@core/security/uiHtml.ts';
 
@@ -19,7 +20,7 @@ interface SortableListOptions<TColumn extends string> {
     columns: readonly TColumn[];
     defaultDirections: Record<TColumn, SortDirection>;
     context: string;
-    reapplyCollection: (options: { shouldRender: boolean; updateStats: boolean; updateFilters: boolean; resetScroll: boolean }) => void;
+    reapplyCollection: (options: ReapplyCollectionOptions) => void;
     afterSort?: ((column: TColumn, direction: SortDirection) => void) | undefined;
 }
 
@@ -29,7 +30,7 @@ interface ApplySortControlSelectionOptions<TColumn extends string> {
     columns: readonly TColumn[];
     defaultDirections: Record<TColumn, SortDirection>;
     inactiveColumn?: TColumn;
-    reapplyCollection: (options: { shouldRender: boolean; updateStats: boolean; updateFilters: boolean; resetScroll: boolean }) => void;
+    reapplyCollection: (options: ReapplyCollectionOptions) => void;
     afterSort?: ((column: TColumn, direction: SortDirection) => void) | undefined;
 }
 

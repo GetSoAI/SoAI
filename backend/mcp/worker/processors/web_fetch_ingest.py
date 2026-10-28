@@ -7,6 +7,9 @@ from typing import TYPE_CHECKING
 
 from core.config.numeric import require_strict_int_at_least
 from core.errors.exceptions import ValidationError
+from core.files.extraction_state import ExtractionState
+from core.files.extraction_summary import build_extraction_summary
+from mcp.rag.scraper.extraction_projection import fetched_extraction_fields
 from mcp.rag.scraper.text_formatting import resolve_extract_mode_content, truncate_text
 from mcp.worker.processing.durable_job_payloads import lease_identity_from_job_payload
 from mcp.worker.processors.chunk_embed import process_chunk_embed_store
@@ -140,6 +143,10 @@ async def process_web_fetch_ingest(
         token=token,
         job_id=job_id,
         lease_token=lease_token,
+        status_details=(
+            "degraded" if fetched.extraction_state is ExtractionState.DEGRADED else None
+        ),
+        extraction_summary=build_extraction_summary(fetched.missing_capabilities),
     )
     await self.check_cancellation(task_id, "web_fetch_ingest_post_ingest", token=token)
     query = ingest_job.focus_query
@@ -176,6 +183,7 @@ async def process_web_fetch_ingest(
         "length": len(truncated_content),
         "raw_length": len(content_for_return),
         "page_count": fetched.page_count,
+        **fetched_extraction_fields(fetched),
         "immediate_context": immediate_context,
         "output_limits": output_limits,
         "ingest_limits": ingest_limits,

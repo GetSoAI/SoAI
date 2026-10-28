@@ -101,6 +101,7 @@ const applyHeaderLocalization = (context: HeaderLocalizationContext): void => {
         }
     }
     setText('#goto-settings', i18n.t('header.menu.settings'));
+    setText('#goto-power', i18n.t('header.menu.power'));
     setText('#goto-logs', i18n.t('header.menu.logs'));
     setText('#goto-updates', i18n.t('header.menu.updates'));
     setText('#goto-about', i18n.t('header.menu.about'));

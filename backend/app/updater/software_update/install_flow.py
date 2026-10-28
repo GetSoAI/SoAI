@@ -293,4 +293,5 @@ def run_software_update_install_flow(deps: SoftwareUpdateServiceDependencies) ->
         if not supervise_update_activation(deps):
             _restart_after_failed_update(deps, should_restart=True)
             return 1
+        deps.logger.info("Plugin backends will be checked when eligible after startup.")
     return 0

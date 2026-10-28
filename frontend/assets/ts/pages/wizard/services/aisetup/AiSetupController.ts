@@ -3,6 +3,9 @@
 
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { throwIfAborted } from '@core/errors/abort.ts';
+import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
+import { LifecycleScope } from '@core/lifecycle/lifecycleScope.ts';
 import { readDecodedModelCollection } from '@core/models/decodedModelCollection.ts';
 import { MODELS } from '@core/realtime/streammanager/resources/ids.ts';
 import type { PageStreamingContract } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
@@ -14,8 +17,8 @@ import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import { requireCatalogStore } from '@features/catalog/public.ts';
 import { resolveRepositoryLinkData } from '@features/models/public.ts';
 import { AiSetupCloudConnectionSession, readProviderPluginAvailability } from '@pages/wizard/services/aisetup/AiSetupCloudConnectionSession.ts';
-import { loadAiSetupFacts, loadEngineCandidate, resolveItemEngine, withEngineCandidate, type AiSetupFacts } from '@pages/wizard/services/aisetup/facts/service.ts';
-import { deriveAiSetupProgress, type AiSetupProgressSummary } from '@pages/wizard/services/aisetup/progress/mappers.ts';
+import { isAiSetupDiscoveryReady, loadAiSetupFacts, loadEngineCandidate, resolveItemEngine, withEngineCandidate, type AiSetupFacts } from '@pages/wizard/services/aisetup/facts/service.ts';
+import { deriveAiSetupProgress, isLocalDownloadComplete, type AiSetupProgressSummary } from '@pages/wizard/services/aisetup/progress/mappers.ts';
 import { AiSetupModelSearchController } from '@pages/wizard/services/aisetup/AiSetupModelSearchController.ts';
 import { AiSetupOperationsManager } from '@pages/wizard/services/aisetup/AiSetupOperationsManager.ts';
 import { AiSetupReadinessManager } from '@pages/wizard/services/aisetup/AiSetupReadinessManager.ts';
@@ -42,7 +45,10 @@ class AiSetupController {
     readonly readiness: AiSetupReadinessManager;
     readonly cloud: AiSetupCloudConnectionSession;
     readonly search: AiSetupModelSearchController;
-    readonly #lifecycle = new AbortController();
+    readonly #lifecycle = new LifecycleScope();
+    readonly #lifecycleRun = this.#lifecycle.begin();
+    readonly #engineRefreshSequences = new Map<string, SequenceToken>();
+    readonly #factsLoadSequence = new SequenceToken();
     #facts: AiSetupFacts | null = null;
     #factsLoad: Promise<AiSetupFacts> | null = null;
     #models: readonly ModelData[] = [];
@@ -117,20 +123,39 @@ class AiSetupController {
     };
 
     async activate(): Promise<AiSetupFacts> {
+        const signal = this.#lifecycleRun.signal;
+        throwIfAborted(signal);
         if (this.#unsubscribeModels === null) {
             this.#unsubscribeModels = this.#host.streaming.subscribeResourceValue(MODELS, (value) => this.#applyModels(value));
-            void this.#host.streaming.ensureSubscriptions({ signal: this.#lifecycle.signal }).catch((error) => errorHandler.warn('WizardAiSetup', 'Model catalog subscription failed', ensureError(error)));
+            void this.#host.streaming.ensureSubscriptions({ signal }).catch((error) => {
+                if (!signal.aborted) errorHandler.warn('WizardAiSetup', 'Model catalog subscription failed', ensureError(error));
+            });
         }
-        this.#factsLoad ??= loadAiSetupFacts(this.#lifecycle.signal).catch((error) => {
-            this.#factsLoad = null;
+        if (this.#factsLoad === null) {
+            const sequence = this.#factsLoadSequence.next();
+            for (const refreshSequence of this.#engineRefreshSequences.values()) refreshSequence.invalidate();
+            this.#factsLoad = loadAiSetupFacts(signal).then((facts) => {
+                throwIfAborted(signal);
+                if (this.#factsLoadSequence.isActive(sequence)) this.#facts = facts;
+                else this.#factsLoad = null;
+                return facts;
+            });
+        }
+        const loading = this.#factsLoad;
+        try {
+            await loading;
+        } catch (error) {
+            if (this.#factsLoad === loading) this.#factsLoad = null;
             throw ensureError(error);
-        });
-        this.#facts = await this.#factsLoad;
+        }
+        throwIfAborted(signal);
+        const facts = this.requireFacts();
+        if (!isAiSetupDiscoveryReady(facts) && this.#factsLoad === loading) this.#factsLoad = null;
         if (this.setup !== null) {
             this.operations.reconcile();
-            this.readiness.schedule();
+            if (isAiSetupDiscoveryReady(facts)) this.readiness.schedule();
         }
-        return this.#facts;
+        return facts;
     }
 
     requireFacts(): AiSetupFacts {
@@ -158,6 +183,7 @@ class AiSetupController {
             connection: this.cloud.state,
             providerAvailability: readProviderPluginAvailability(),
             search: this.search.state,
+            localDownloadComplete: isLocalDownloadComplete(this.requireSetup(), this.operations.observations),
             searchOpen: this.searchOpen,
             cloudFilter: this.cloudFilter,
             resolveRepositoryUrl: (pluginName, repository) => resolveRepositoryLinkData(requireCatalogStore().getPlugin(pluginName), repository)?.url ?? null
@@ -182,18 +208,29 @@ class AiSetupController {
 
     #applyModels(value: JsonValue | null): void {
         const models = value === null ? null : readDecodedModelCollection(value);
-        if (models === null || this.#lifecycle.signal.aborted) return;
+        if (models === null || !this.#lifecycle.isCurrent(this.#lifecycleRun)) return;
         this.#models = models;
         if (this.setup !== null) {
             this.operations.reconcile();
-            if (this.#facts !== null) this.readiness.schedule();
+            if (this.#facts !== null && isAiSetupDiscoveryReady(this.#facts)) this.readiness.schedule();
         }
         this.#notifyChange();
     }
 
     async #reloadEngine(pluginName: string): Promise<void> {
-        const refreshed = await loadEngineCandidate(pluginName);
-        if (this.#facts !== null && !this.#lifecycle.signal.aborted) this.#facts = withEngineCandidate(this.#facts, refreshed);
+        let sequence = this.#engineRefreshSequences.get(pluginName);
+        if (sequence === undefined) {
+            sequence = new SequenceToken();
+            this.#engineRefreshSequences.set(pluginName, sequence);
+        }
+        await this.activate();
+        const token = sequence.next();
+        this.#factsLoadSequence.invalidate();
+        const refreshed = await loadEngineCandidate(pluginName, this.#lifecycleRun.signal);
+        if (this.#facts !== null && this.#lifecycle.isCurrent(this.#lifecycleRun) && sequence.isActive(token)) {
+            this.#facts = withEngineCandidate(this.#facts, refreshed);
+            if (!isAiSetupDiscoveryReady(this.#facts)) this.#factsLoad = null;
+        }
     }
 
     #resolveStarterContext(item: AiSetupModel): number | null {
@@ -203,7 +240,7 @@ class AiSetupController {
     }
 
     #notifyChange(): void {
-        if (!this.#lifecycle.signal.aborted) this.#host.onChange();
+        if (this.#lifecycle.isCurrent(this.#lifecycleRun)) this.#host.onChange();
     }
 }
 

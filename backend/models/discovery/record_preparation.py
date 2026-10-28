@@ -9,13 +9,15 @@ from typing import TYPE_CHECKING, TypedDict
 
 from core.errors.exceptions import ValidationError
 from core.models.context_window import extract_context_window_tokens_from_metadata
+from core.models.provider_backing import get_model_provider_id
 from core.models.universal_id import generate_universal_id
 from core.serialization.json import serialize_json_compact_stable_strict
 from core.timing.epoch import epoch_ms
-from models.discovery.provider_bounded_execution import PluginCheckUnchanged
+from models.discovery.provider_bounded_execution import ProviderCatalogDiscovery
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
+    from models.discovery.provider_bounded_execution import PluginDiscoveryResult
 
 __all__ = (
     "IndexedModelCandidates",
@@ -66,18 +68,45 @@ class IndexedModelCandidates(TypedDict):
     all_discovered_universal_ids_by_plugin: dict[str, set[str]]
 
 
+def _index_existing_provider_model_ids(
+    models: dict[str, JSONDict],
+) -> dict[tuple[str, str], str]:
+    universal_ids: dict[tuple[str, str], str] = {}
+    for record in models.values():
+        provider_id = get_model_provider_id(record)
+        if provider_id is None:
+            continue
+        source_model_id = _require_discovered_source_model_id(record)
+        universal_id = record.get("universal_id")
+        if not source_model_id or not isinstance(universal_id, str) or not universal_id:
+            raise ValidationError("Stored provider model is missing its source identity.")
+        identity = (provider_id, source_model_id)
+        if identity in universal_ids:
+            raise ValidationError("Stored provider models have duplicate source identities.")
+        universal_ids[identity] = universal_id
+    return universal_ids
+
+
 def index_model_candidates(
-    discovered_data: dict[
-        str,
-        dict[str, JSONDict] | Exception | PluginCheckUnchanged | None,
-    ],
+    discovered_data: dict[str, PluginDiscoveryResult],
+    existing_models_by_plugin: dict[str, dict[str, JSONDict]] | None = None,
 ) -> IndexedModelCandidates:
     candidate_records_by_universal_id: dict[str, JSONDict] = {}
     all_discovered_universal_ids_by_plugin: dict[str, set[str]] = defaultdict(set)
     discovery_timestamp_ms = int(epoch_ms())
-    for plugin_name, models in discovered_data.items():
+    for plugin_name, discovery_result in discovered_data.items():
+        models = (
+            discovery_result.models
+            if isinstance(discovery_result, ProviderCatalogDiscovery)
+            else discovery_result
+        )
         if not isinstance(models, dict):
             continue
+        if isinstance(discovery_result, ProviderCatalogDiscovery):
+            all_discovered_universal_ids_by_plugin[plugin_name] = set()
+        existing_provider_model_ids = _index_existing_provider_model_ids(
+            existing_models_by_plugin.get(plugin_name, {}) if existing_models_by_plugin else {}
+        )
         for model_id, data in models.items():
             source_model_id = _require_discovered_source_model_id(data)
             if not source_model_id:
@@ -85,7 +114,18 @@ def index_model_candidates(
                     "Discovered model is missing required field 'source_model_id'.",
                     details={"plugin_name": plugin_name, "model_id": model_id},
                 )
-            universal_id = generate_universal_id(plugin_name, source_model_id)
+            provider_id = get_model_provider_id(data)
+            if data.get("provider_id") is not None and provider_id is None:
+                raise ValidationError("Discovered model has an invalid provider_id.")
+            universal_id = (
+                existing_provider_model_ids.get((provider_id, source_model_id))
+                if provider_id
+                else None
+            )
+            if universal_id is None:
+                universal_id = generate_universal_id(
+                    plugin_name, source_model_id, provider_id=provider_id
+                )
             if not universal_id:
                 raise ValidationError(
                     "Failed to generate universal_id for discovered model.",
@@ -159,6 +199,8 @@ def prepare_model_upserts(
             added_universal_ids.append(universal_id_value)
             models_to_upsert.append(candidate_record)
             continue
+        if get_model_provider_id(authoritative_record) != get_model_provider_id(candidate_record):
+            raise ValidationError("Discovered model ID belongs to a different provider identity.")
         merged_record = {**authoritative_record, **candidate_record}
         for field_name in preserved_fields:
             if field_name in authoritative_record:

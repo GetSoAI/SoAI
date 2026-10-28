@@ -1,12 +1,10 @@
 /* SoAI - Plugin modal LED state updates [frontend/assets/ts/features/plugins/modals/pluginsModalLedUpdates.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { i18n } from '@core/i18n/index.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
-import { modalUiSelector } from '@core/modals/uiIds.ts';
+import { renderManageBackendInfoStatus } from '@features/plugins/modals/backend/managebackendmodal/backendInfo.ts';
 import { MANAGE_BACKEND_MODAL_ID } from '@features/plugins/modals/backendModals.ts';
-import { renderManageBackendBadge } from '@features/plugins/modals/backend/managebackendmodal/view.ts';
 
 interface PluginStatusIndicatorHost {
     updateIndicator(element: HTMLElement, status: string): void;
@@ -29,25 +27,7 @@ const updatePluginsModalLeds = (host: PluginsModalLedUpdateHost): void => {
     const currentManagingPlugin = host.getCurrentManagingPlugin();
     if (currentManagingPlugin) {
         const modalRoot = host.modals.requireElement(MANAGE_BACKEND_MODAL_ID);
-        const pluginStatus = host.getPluginStatus(currentManagingPlugin);
-        const manageLed = host.optionalHTMLElement(modalUiSelector(MANAGE_BACKEND_MODAL_ID, 'info-led'), modalRoot);
-        if (manageLed) {
-            host.statusManager.updateIndicator(manageLed, pluginStatus);
-        }
-        const badge = host.optionalHTMLElement('.plugin-install-badge', modalRoot);
-        if (badge && badge.dataset['state'] !== 'loading' && !badge.hasAttribute('data-local-backend-operation')) {
-            renderManageBackendBadge(badge, pluginStatus, 'ready');
-        }
-        const backendStatus = host.getBackendStatus(currentManagingPlugin);
-        const statusElement = host.optionalHTMLElement('.plugin-info-status', modalRoot);
-        if (statusElement) {
-            host.updateText(statusElement, i18n.t('plugins.modal.manageBackend.backendStatus', { status: backendStatus }));
-        }
-        const backendVersion = host.getBackendVersion(currentManagingPlugin) || i18n.t('common.unknown');
-        const versionElement = host.optionalHTMLElement('.plugin-backend-version', modalRoot);
-        if (versionElement) {
-            host.updateText(versionElement, i18n.t('plugins.modal.manageBackend.backend_version', { version: backendVersion }));
-        }
+        renderManageBackendInfoStatus(host, host, currentManagingPlugin, modalRoot, host.statusManager);
     }
 };
 

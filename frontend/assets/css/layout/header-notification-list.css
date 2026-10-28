@@ -101,7 +101,7 @@
         min-width: var(--space-5);
         min-height: var(--space-5);
         line-height: 0;
-        color: var(--text-secondary);
+        color: var(--ui-button-color);
         align-items: center;
         justify-content: center;
     }
@@ -115,24 +115,27 @@
     }
 
     .notification-item-actions :is(.notification-delete-btn, .notification-expand-btn).ui-icon-button {
-        opacity: 0.5;
+        --ui-button-emphasis-opacity: var(--ui-button-subdued-opacity);
+        opacity: var(--ui-control-opacity);
         transition: opacity var(--duration-200) var(--ease-out);
     }
 
     .notification-delete-btn.ui-icon-button:hover,
     .notification-expand-btn.ui-icon-button:hover,
     .notification-clear-all-btn.ui-icon-button:hover {
-        color: var(--text-primary);
+        color: var(--ui-button-color-hover);
     }
 
     .notification-delete-btn.ui-icon-button:active,
     .notification-expand-btn.ui-icon-button:active {
-        opacity: 1;
+        --ui-button-emphasis-opacity: 1;
+        opacity: var(--ui-control-opacity);
     }
 
     .notification-item:hover .notification-delete-btn.ui-icon-button,
     .notification-item:hover .notification-expand-btn.ui-icon-button {
-        opacity: 1;
+        --ui-button-emphasis-opacity: 1;
+        opacity: var(--ui-control-opacity);
     }
 
     .header-notification-manager:not(.header-notification-manager--expanded) .notification-clear-all-btn.ui-icon-button {

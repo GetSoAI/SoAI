@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Coroutine
-from typing import TYPE_CHECKING, Literal, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 __all__ = (
     "ApplicationControlProtocol",
@@ -17,6 +17,7 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
+    from core.app.update_result import ApplicationUpdateResult
     from core.calendar.protocols import CalendarServiceProtocol
     from core.external_accounts.linked_account_types import LinkedAccountCapabilities
     from core.external_accounts.protocols import ExternalAccountsServiceProtocol
@@ -32,13 +33,6 @@ if TYPE_CHECKING:
         TokenCollectionProtocol,
     )
     from core.types.json import JSONDict
-
-    type ApplicationUpdateOutcome = Literal[
-        "accepted",
-        "conflict",
-        "failed",
-        "unavailable",
-    ]
 
 
 class BannerSystemProtocol(Protocol):
@@ -63,13 +57,15 @@ class ApplicationRuntimeCoordinatorProtocol(Protocol):
 
 
 class ApplicationControlProtocol(Protocol):
-    async def update(self) -> tuple[ApplicationUpdateOutcome, str]: ...
+    async def update(self) -> ApplicationUpdateResult: ...
 
     async def get_update_preparation_status(self) -> JSONDict: ...
 
     async def get_update_notice(self, user_id: int) -> JSONDict | None: ...
 
     async def acknowledge_update_notice(self, *, user_id: int, task_id: str) -> bool: ...
+
+    async def get_update_diagnostics(self, task_id: str) -> JSONDict: ...
 
     def restart(self) -> bool: ...
 

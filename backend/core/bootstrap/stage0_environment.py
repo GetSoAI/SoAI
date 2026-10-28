@@ -14,6 +14,7 @@ from core.bootstrap.runtime_directories import ensure_runtime_directory_environm
 from core.bootstrap.venv_paths import get_venv_path, get_venv_python_executable
 from core.config.file_permissions import secure_runtime_config_paths
 from core.errors.exceptions import StateError
+from core.filesystem.descriptor_io import open_descriptor
 from core.filesystem.path_coercion import normalize_filesystem_path
 from core.meta.paths import get_config_yaml_path, join_data_abs
 from core.system.process_launcher import SUBPROCESS_RECOVERABLE_EXCEPTIONS
@@ -111,7 +112,7 @@ def ensure_stage0_config_yaml_exists(repo_root_path: str) -> None:
         os.makedirs(config_dir, exist_ok=True)
     temp_path = f"{config_path}.tmp.{os.getpid()}.{uuid.uuid4().hex}"
     try:
-        descriptor = os.open(temp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        descriptor = open_descriptor(temp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(descriptor, "wb") as target_handle:
             secure_runtime_config_paths(temp_path)
             with open(default_config_path, "rb") as source_handle:

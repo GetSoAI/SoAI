@@ -19,7 +19,7 @@
 
         /* direction: physical — centering uses physical negative half-width translation */
         left: 50%;
-        transform: translateX(-50%);
+        transform: translateX(-50%) scaleX(var(--dir-sign));
     }
 
     :where([data-section='plugins'], [data-page-scope='plugins']).plugin-config-modal :where(.config-field-item),
@@ -190,10 +190,6 @@
     }
 
     @container ui-viewport (width <= 1024px) {
-        :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-config-grid {
-            grid-template-columns: minmax(0, 1fr);
-        }
-
         :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-item {
             flex-direction: column;
             align-items: flex-start;

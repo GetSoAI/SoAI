@@ -10,7 +10,9 @@ from features.agent.runtime.openai_payload import (
     complete_assistant_tool_calls_as_stopped,
 )
 from features.agent.runtime.tool_execution_steer_interrupt import (
+    STEER_INTERRUPTED_ERROR_MESSAGE,
     AgentTurnInterruptedBySteer,
+    should_interrupt_turn_for_steer,
 )
 from features.agent.runtime.turn_iteration_policy_types import (
     AgentOutputPublicationMode,
@@ -50,6 +52,24 @@ class TurnLoopToolTransition:
     completed: bool
 
 
+def _build_completed_transition(
+    *,
+    phase_context: ToolPhaseExecutionContext,
+    total_tool_calls: int,
+    output_publication_mode: AgentOutputPublicationMode,
+    terminal_outcome: TurnTerminalOutcome | None,
+) -> TurnLoopToolTransition:
+    return TurnLoopToolTransition(
+        iteration_index=phase_context.iteration_index,
+        message_history=phase_context.message_history,
+        boundary_source_messages=phase_context.boundary_source_messages,
+        total_tool_calls=total_tool_calls,
+        output_publication_mode=output_publication_mode,
+        terminal_outcome=terminal_outcome,
+        completed=True,
+    )
+
+
 async def advance_turn_loop_after_tools(
     *,
     phase_context: ToolPhaseExecutionContext,
@@ -69,52 +89,55 @@ async def advance_turn_loop_after_tools(
             settings=settings,
         )
     except AgentTurnInterruptedBySteer as exception:
-        return TurnLoopToolTransition(
-            iteration_index=phase_context.iteration_index,
-            message_history=phase_context.message_history,
-            boundary_source_messages=phase_context.boundary_source_messages,
+        return _build_completed_transition(
+            phase_context=phase_context,
             total_tool_calls=total_tool_calls + max(0, exception.executed_tool_calls),
             output_publication_mode=output_publication_mode,
-            terminal_outcome=build_interrupted_turn_terminal_outcome(str(exception)),
-            completed=True,
+            terminal_outcome=build_interrupted_turn_terminal_outcome(
+                STEER_INTERRUPTED_ERROR_MESSAGE,
+            ),
         )
     next_total_tool_calls = total_tool_calls + tool_phase_outcome.tool_results_count
     if await phase_context.turn_cancelled():
-        return TurnLoopToolTransition(
-            iteration_index=phase_context.iteration_index,
-            message_history=phase_context.message_history,
-            boundary_source_messages=phase_context.boundary_source_messages,
+        return _build_completed_transition(
+            phase_context=phase_context,
             total_tool_calls=next_total_tool_calls,
             output_publication_mode=output_publication_mode,
             terminal_outcome=build_cancelled_turn_terminal_outcome(),
-            completed=True,
         )
     if tool_phase_outcome.stop_requested:
         complete_assistant_tool_calls_as_stopped(
             final_payload,
             assistant_text=phase_context.assistant_text,
         )
-        return TurnLoopToolTransition(
-            iteration_index=phase_context.iteration_index,
-            message_history=phase_context.message_history,
-            boundary_source_messages=phase_context.boundary_source_messages,
+        return _build_completed_transition(
+            phase_context=phase_context,
             total_tool_calls=next_total_tool_calls,
             output_publication_mode=output_publication_mode,
             terminal_outcome=None,
-            completed=True,
         )
     if is_next_iteration_blocked(
         iteration_index=phase_context.iteration_index,
         max_iterations=settings.max_iterations,
     ):
-        return TurnLoopToolTransition(
-            iteration_index=phase_context.iteration_index,
-            message_history=phase_context.message_history,
-            boundary_source_messages=phase_context.boundary_source_messages,
+        return _build_completed_transition(
+            phase_context=phase_context,
             total_tool_calls=next_total_tool_calls,
             output_publication_mode=output_publication_mode,
             terminal_outcome=build_max_iterations_turn_terminal_outcome(),
-            completed=True,
+        )
+    if await should_interrupt_turn_for_steer(
+        request_context=phase_context.request_context,
+        database_input_queue=phase_context.database_input_queue,
+        tool_context=phase_context.tool_context,
+    ):
+        return _build_completed_transition(
+            phase_context=phase_context,
+            total_tool_calls=next_total_tool_calls,
+            output_publication_mode=output_publication_mode,
+            terminal_outcome=build_interrupted_turn_terminal_outcome(
+                STEER_INTERRUPTED_ERROR_MESSAGE,
+            ),
         )
     message_history, boundary_source_messages = await compact_turn_loop_history(
         compact_messages=compact_messages,

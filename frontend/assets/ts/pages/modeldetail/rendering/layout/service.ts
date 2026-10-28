@@ -12,11 +12,12 @@ import type { HeaderActionDefinition, HeaderConfig } from '@pages/modeldetail/re
 const buildHeaderConfig = (): HeaderConfig => {
     const renderButton = (id: string, action: string, label: string, variant: string, hidden: boolean) => {
         const className = `ui-button ${variant}${hidden ? ` ${CSS_CLASSES.HIDDEN}` : ''}`;
-        return uiHtml`<button type="button" class="${uiAttr(className)}" id="${uiAttr(id)}" data-action="${uiAttr(action)}" ${renderLabelAttributes(label)}>${label}</button>`;
+        return uiHtml`<button type="button" class="${uiAttr(className)}" id="${uiAttr(id)}" data-action="${uiAttr(action)}" ${action === 'reset-openai-capabilities' ? uiHtml`data-openai-capability-reset="true"` : EMPTY_UI_HTML} ${renderLabelAttributes(label)}>${label}</button>`;
     };
 
     const actions: HeaderActionDefinition[] = [
         { type: 'search', class: CSS_CLASSES.HIDDEN },
+        { type: 'custom', html: renderButton('modeldetail-openai-capabilities-reset', 'reset-openai-capabilities', i18n.t('modelDetail.buttons.resetAll'), 'ui-variant-danger', false) },
         { type: 'custom', html: renderButton('reset-all-params-header', 'reset-all-parameters', i18n.t('modelDetail.buttons.resetAll'), 'ui-variant-danger', true) },
         { type: 'custom', html: renderButton('save-params-header', 'save-parameters', i18n.t('modelDetail.buttons.saveParameters'), 'ui-variant-accent', false) },
         { type: 'custom', html: renderButton('test-model-header', 'test-model', i18n.t('modelDetail.buttons.test'), 'ui-variant-primary', false) }
@@ -46,7 +47,7 @@ const renderContent = (): string => {
     <aside class="modeldetail-overview-side">${renderStatusCard()}${renderExternalProviderCard()}</aside>
     </div>
     </div>
-    <div class="tab-content" id="parameters-content"><div id="parameters-interface" class="parameters-interface"></div></div>
+    <div class="tab-content" id="parameters-content"><div id="parameters-availability" class="parameters-availability u-hidden" role="status" aria-live="polite"></div><div id="parameters-interface" class="parameters-interface"></div></div>
     <div class="model-detail-error u-hidden" id="model-detail-error">
     <div class="error-state">
     <div class="error-icon"></div>

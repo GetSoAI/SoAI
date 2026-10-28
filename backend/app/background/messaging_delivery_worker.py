@@ -172,16 +172,18 @@ class MessagingDeliveryWorker:
                 )
                 offline_active = False
             try:
-                licensing_admission = await self._deps.licensing_status.admission(
-                    LicensingOperationClass.ORDINARY
-                )
-                if not licensing_admission.allowed:
-                    await self._wait_for_work()
-                    continue
-                attempt = await self._deps.database_deliveries.claim_next_delivery_attempt(
-                    claim_owner=MESSAGING_DELIVERY_CLAIM_OWNER,
-                    server_boot_id=self._server_boot_id,
-                )
+                attempt = None
+                if await self._deps.database_deliveries.has_due_delivery():
+                    licensing_admission = await self._deps.licensing_status.admission(
+                        LicensingOperationClass.ORDINARY
+                    )
+                    if not licensing_admission.allowed:
+                        await self._wait_for_work()
+                        continue
+                    attempt = await self._deps.database_deliveries.claim_next_delivery_attempt(
+                        claim_owner=MESSAGING_DELIVERY_CLAIM_OWNER,
+                        server_boot_id=self._server_boot_id,
+                    )
             except RECOVERABLE_EXCEPTIONS as exception:
                 if claim_failure_attempt == 0:
                     log_handled_exception(

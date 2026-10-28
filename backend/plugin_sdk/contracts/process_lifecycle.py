@@ -8,7 +8,6 @@ import io
 import logging
 import os
 import signal
-from collections.abc import Awaitable, Callable
 
 from core.concurrency.cancellation_cleanup import uncancel_and_wait
 from core.concurrency.task_groups import (
@@ -19,8 +18,8 @@ from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.platform.os import is_windows
-from core.system.async_process_spawning import spawn_async_process
 from plugin_sdk.contracts.process_group_termination import terminate_remaining_process_group
+from plugin_sdk.contracts.windows_process_termination import terminate_windows_process_tree
 
 __all__ = (
     "check_process_alive",
@@ -49,7 +48,6 @@ async def terminate_managed_process(
     shutdown_timeout_sec: float = 30.0,
     kill_wait_sec: float = 10.0,
     use_process_group: bool = True,
-    force_kill_tree_callback: Callable[[int, float], Awaitable[bool]] | None = None,
     log_consumer_tasks: list[asyncio.Task[None]] | None = None,
     log_file_handle: io.BufferedIOBase | None = None,
 ) -> bool:
@@ -77,22 +75,21 @@ async def terminate_managed_process(
             pid,
         )
     try:
+        if use_process_group and is_windows():
+            return await terminate_windows_process_tree(
+                process,
+                logger=logger,
+                plugin_label=plugin_label,
+                shutdown_timeout_sec=shutdown_timeout_sec,
+                kill_wait_sec=kill_wait_sec,
+            )
         if not terminated:
             if use_process_group:
-                if is_windows():
-                    taskkill = await spawn_async_process(
-                        ["taskkill", "/PID", str(pid), "/T"],
-                        stdin=None,
-                        stdout=asyncio.subprocess.DEVNULL,
-                        stderr=asyncio.subprocess.DEVNULL,
-                    )
-                    await asyncio.wait_for(taskkill.wait(), timeout=shutdown_timeout_sec)
-                else:
-                    await asyncio.to_thread(
-                        os.killpg,
-                        owned_process_group_id if owned_process_group_id is not None else pid,
-                        signal.SIGTERM,
-                    )
+                await asyncio.to_thread(
+                    os.killpg,
+                    owned_process_group_id if owned_process_group_id is not None else pid,
+                    signal.SIGTERM,
+                )
             else:
                 process.terminate()
 
@@ -109,20 +106,11 @@ async def terminate_managed_process(
         try:
             if process.returncode is None:
                 if use_process_group:
-                    if is_windows():
-                        taskkill = await spawn_async_process(
-                            ["taskkill", "/F", "/PID", str(pid), "/T"],
-                            stdin=None,
-                            stdout=asyncio.subprocess.DEVNULL,
-                            stderr=asyncio.subprocess.DEVNULL,
-                        )
-                        await asyncio.wait_for(taskkill.wait(), timeout=kill_wait_sec)
-                    else:
-                        await asyncio.to_thread(
-                            os.killpg,
-                            owned_process_group_id if owned_process_group_id is not None else pid,
-                            signal.SIGKILL,
-                        )
+                    await asyncio.to_thread(
+                        os.killpg,
+                        owned_process_group_id if owned_process_group_id is not None else pid,
+                        signal.SIGKILL,
+                    )
                 else:
                     process.kill()
             await asyncio.wait_for(process.wait(), timeout=kill_wait_sec)
@@ -137,34 +125,6 @@ async def terminate_managed_process(
             )
             terminated = True
         except TimeoutError:
-            if force_kill_tree_callback is not None and process.returncode is None:
-                logger.warning(
-                    "%s process %s did not exit after force kill. Attempting kill-tree fallback.",
-                    plugin_label,
-                    pid,
-                )
-                try:
-                    await force_kill_tree_callback(pid, kill_wait_sec)
-                except PROCESS_LIFECYCLE_OPERATION_EXCEPTIONS as exception:
-                    coerced = coerce_to_soai_error(
-                        exception,
-                        operation=f"{plugin_label}.stop.kill_tree",
-                    )
-                    log_exception(
-                        logger,
-                        coerced,
-                        message="Kill-tree fallback failed",
-                        operation=OPERATION_PLUGIN_SDK_CONTRACTS_PROCESS_LIFECYCLE_TERMINATE_MANAGED_PROCESS,
-                    )
-                try:
-                    await asyncio.wait_for(process.wait(), timeout=kill_wait_sec)
-                except TimeoutError:
-                    logger.debug(
-                        "%s process %s did not exit after kill-tree fallback wait.",
-                        plugin_label,
-                        pid,
-                    )
-                terminated = process.returncode is not None
             if not terminated:
                 logger.error(
                     "Failed to kill %s process %s even with force.",
@@ -185,6 +145,8 @@ async def terminate_managed_process(
             pid,
         )
     except asyncio.CancelledError:
+        if use_process_group and is_windows():
+            raise
         if process.returncode is None:
             logger.warning(
                 "%s process %s termination was cancelled. Killing before propagating cancellation.",
@@ -193,20 +155,11 @@ async def terminate_managed_process(
             )
             try:
                 if use_process_group:
-                    if is_windows():
-                        taskkill = await spawn_async_process(
-                            ["taskkill", "/F", "/PID", str(pid), "/T"],
-                            stdin=None,
-                            stdout=asyncio.subprocess.DEVNULL,
-                            stderr=asyncio.subprocess.DEVNULL,
-                        )
-                        await asyncio.wait_for(taskkill.wait(), timeout=kill_wait_sec)
-                    else:
-                        await asyncio.to_thread(
-                            os.killpg,
-                            owned_process_group_id if owned_process_group_id is not None else pid,
-                            signal.SIGKILL,
-                        )
+                    await asyncio.to_thread(
+                        os.killpg,
+                        owned_process_group_id if owned_process_group_id is not None else pid,
+                        signal.SIGKILL,
+                    )
                 else:
                     process.kill()
                 await asyncio.wait_for(process.wait(), timeout=kill_wait_sec)

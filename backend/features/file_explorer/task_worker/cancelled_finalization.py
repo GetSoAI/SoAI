@@ -3,7 +3,11 @@
 
 from __future__ import annotations
 
-from core.concurrency.cancellation_cleanup import shielded_cleanup
+from core.concurrency.cancellation_cleanup import (
+    run_idempotent_current_task_operation,
+    shielded_cleanup,
+)
+from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.errors.exception_logging import log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.protocols import StandardLogger
@@ -31,7 +35,7 @@ async def finalize_cancelled_batch_task(
     details: dict[str, str],
 ) -> None:
     try:
-        await shielded_cleanup(
+        finalization_task = create_ephemeral_task(
             finalize(
                 task_registry,
                 task_id,
@@ -45,6 +49,12 @@ async def finalize_cancelled_batch_task(
                 error_message="Cancelled.",
                 status_message="Cancelled.",
             ),
+            name=f"{task_id}:cancelled-batch-finalization",
+            log_exceptions=False,
+        )
+        await run_idempotent_current_task_operation(
+            lambda: shielded_cleanup(finalization_task),
+            restore_cancellation_requests=False,
         )
     except RECOVERABLE_EXCEPTIONS as exception:
         resolved_details = dict(details)

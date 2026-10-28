@@ -7,10 +7,11 @@ import asyncio
 
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import StateError
+from core.errors.exceptions import ServiceUnavailableError, StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.events.types_base import Event
 from core.events.types_mcp import MCPServerStartedEvent
+from core.events.types_system import SystemQuiesceEvent
 from core.events.types_tasks import TaskProgressEvent
 from core.logging.trace import get_logger
 from core.runtime.soai_identifiers import build_soai_id
@@ -21,6 +22,8 @@ from core.tasks.type_catalog import (
     TASK_TYPE_MCP_SAMPLING,
     TASK_TYPE_MCP_TOOL_CALL,
 )
+from core.timing.constants import CONTROL_TIMEOUT_SEC
+from core.types.json import JSONValue
 from mcp.server.handlers.host_interaction_expiry import run_host_interaction_expiry_loop
 from mcp.server.handlers.lifecycle_cleanup import (
     cancel_background_tasks_safely,
@@ -49,30 +52,43 @@ class MCPLifecycleManager:
     def __init__(self, deps: MCPLifecycleManagerDependencies) -> None:
         self._deps = deps
         self._state = deps.state
-        self._task_progress_subscribed = False
+        self._lifecycle_events_subscribed = False
         self._started = False
         self._lifecycle_lock = asyncio.Lock()
 
     def _reset_start_state(self) -> None:
         reset_server_shutdown_event(self._state)
 
-    def _subscribe_task_progress(self) -> None:
-        if self._task_progress_subscribed or (not self._deps.tasks_enabled):
+    def _subscribe_lifecycle_events(self) -> None:
+        if self._lifecycle_events_subscribed:
             return
-        self._deps.event_bus.subscribe(
-            TaskProgressEvent,
-            self.on_task_progress_event,
-        )
-        self._task_progress_subscribed = True
+        self._deps.event_bus.subscribe(SystemQuiesceEvent, self.on_system_quiesce)
+        if self._deps.tasks_enabled:
+            self._deps.event_bus.subscribe(TaskProgressEvent, self.on_task_progress_event)
+        self._lifecycle_events_subscribed = True
 
-    def _unsubscribe_task_progress(self) -> None:
-        if not self._task_progress_subscribed:
+    def _unsubscribe_lifecycle_events(self) -> None:
+        if not self._lifecycle_events_subscribed:
             return
-        self._deps.event_bus.unsubscribe(
-            TaskProgressEvent,
-            self.on_task_progress_event,
-        )
-        self._task_progress_subscribed = False
+        self._deps.event_bus.unsubscribe(SystemQuiesceEvent, self.on_system_quiesce)
+        if self._deps.tasks_enabled:
+            self._deps.event_bus.unsubscribe(TaskProgressEvent, self.on_task_progress_event)
+        self._lifecycle_events_subscribed = False
+
+    async def on_system_quiesce(self, event: Event) -> None:
+        if not isinstance(event, SystemQuiesceEvent):
+            return
+        async with self._lifecycle_lock:
+            await self._quiesce_requests()
+
+    async def _quiesce_requests(self) -> tuple[asyncio.Task[JSONValue], ...]:
+        async with self._state.task.pending_server_requests_lock:
+            self._state.server_mode_active = False
+            requests = tuple(self._state.task.task_method_map)
+            for request in requests:
+                if not request.done() and not request.cancelling():
+                    request.cancel()
+            return requests
 
     async def start(self) -> None:
         async with self._lifecycle_lock:
@@ -104,7 +120,7 @@ class MCPLifecycleManager:
                 logger=logger,
             )
             if server_mode_active:
-                self._subscribe_task_progress()
+                self._subscribe_lifecycle_events()
             if self._deps.tasks_enabled:
                 logger.debug(
                     "MCP Tasks feature enabled with TTL=%ds, max_concurrent=%d",
@@ -157,7 +173,7 @@ class MCPLifecycleManager:
         logger.info("MCPServer started successfully.")
 
     async def _rollback_failed_start(self) -> None:
-        self._unsubscribe_task_progress()
+        self._unsubscribe_lifecycle_events()
         self._state.server_mode_active = False
         await cancel_background_tasks_safely(
             self._deps.background_tasks,
@@ -187,9 +203,15 @@ class MCPLifecycleManager:
             return
         logger.debug("MCPServer shutdown initiated.")
         self._state.shutdown_event.set()
-        self._state.server_mode_active = False
-        self._started = False
         try:
+            requests = await self._quiesce_requests()
+            if requests:
+                _, pending = await asyncio.wait(requests, timeout=CONTROL_TIMEOUT_SEC)
+                if pending:
+                    raise ServiceUnavailableError(
+                        "MCP request cancellation is still pending.",
+                        operation="mcp.server.lifecycle_manager.quiesce",
+                    )
             try:
                 for task_type in (
                     TASK_TYPE_MCP_TOOL_CALL,
@@ -215,7 +237,7 @@ class MCPLifecycleManager:
                     level="warning",
                 )
         finally:
-            self._unsubscribe_task_progress()
+            self._unsubscribe_lifecycle_events()
             await close_all_sessions_safely(
                 self._deps.close_all_sessions,
                 operation="mcp.server.lifecycle_manager.shutdown.close_sessions",
@@ -239,7 +261,8 @@ class MCPLifecycleManager:
             )
             self._deps.rag_chunker.shutdown()
             self._state.rag_resource_patterns = {}
-            logger.debug("MCPServer has been shut down.")
+        self._started = False
+        logger.debug("MCPServer has been shut down.")
 
     async def on_task_progress_event(self, event: Event) -> None:
         if not isinstance(event, TaskProgressEvent):

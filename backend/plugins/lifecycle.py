@@ -28,9 +28,12 @@ from plugins.lifecycle_task_initialization import initialize_lifecycle_task
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Awaitable
 
-    from core.concurrency.lock_types import BoundedLockResult
+    from core.concurrency.lock_types import BoundedLockResult, LockHolderSnapshot
     from core.concurrency.protocols import AsyncContextManagerProtocol, CancellationTokenProtocol
-    from core.plugins.protocols_lifecycle import SchedulableCommandProtocol
+    from core.plugins.protocols_lifecycle import (
+        PluginDiscoveryOwnershipProtocol,
+        SchedulableCommandProtocol,
+    )
     from core.runtime.request_context import RequestContext
     from core.tasks.protocols import (
         CancellationCoordinatorProtocol,
@@ -89,6 +92,10 @@ class PluginLifecycle:
     def token_collection(self) -> TokenCollectionProtocol:
         return self._deps.token_collection
 
+    @property
+    def discovery_ownership(self) -> PluginDiscoveryOwnershipProtocol:
+        return self._deps.discovery_ownership
+
     def require_enabled(self, service_name: str) -> None:
         self._deps.lifecycle.require_enabled(service_name)
 
@@ -97,6 +104,9 @@ class PluginLifecycle:
 
     def is_plugin_lock_owned_by_current_task(self, plugin_name: str) -> bool:
         return self._deps.locks.is_owned_by_current_task(plugin_name)
+
+    def describe_plugin_lock_holder(self, plugin_name: str) -> LockHolderSnapshot | None:
+        return self._deps.locks.describe_holder(plugin_name)
 
     @staticmethod
     def format_task_name(template: str, command: SchedulableCommandProtocol) -> str:

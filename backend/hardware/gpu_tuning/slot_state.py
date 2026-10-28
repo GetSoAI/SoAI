@@ -6,7 +6,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
-from core.hardware.gpu_settings_contract import GPU_CLOCK_SETTING_FIELDS
+from core.hardware.gpu_settings_contract import (
+    GPU_CLOCK_SETTING_FIELDS,
+    GPU_SETTING_FAN_SPEED_FIELD,
+)
 from core.logging.trace import get_logger
 from core.validation.numbers import coerce_int_from_json
 from hardware.gpu_tuning.boot_state import boot_enabled, boot_payload_from_value
@@ -21,6 +24,8 @@ from hardware.gpu_tuning.effective_control_state import (
 )
 from hardware.gpu_tuning.setting_capabilities import (
     capability_supported,
+    clock_capability_requires_current_observation,
+    fan_capability_observes_configured_mode,
     gpu_setting_descriptors,
 )
 from hardware.gpu_tuning.setting_modes import (
@@ -63,20 +68,32 @@ def extract_current_settings(
             return None
         return normalize(applied_settings.get(key))
 
-    def build_entry(current: JSONValue, default: JSONValue, key: str) -> JSONDict | None:
-        if (current_value := normalize(current)) is None:
+    def build_entry(capability: JSONDict, key: str) -> JSONDict | None:
+        configured_clock = (
+            key in GPU_CLOCK_SETTING_FIELDS
+            and clock_capability_requires_current_observation(capability)
+        )
+        configured_fan = (
+            key == GPU_SETTING_FAN_SPEED_FIELD
+            and fan_capability_observes_configured_mode(capability)
+        )
+        mode = normalize_field_mode(capability.get("mode")) if configured_fan else resolve_mode(key)
+        if configured_fan and mode is None:
+            return None
+        if (current_value := normalize(capability.get("current"))) is None:
+            if configured_clock or configured_fan:
+                return None
             applied_value = resolve_applied_value(key)
             if applied_value is None:
                 return None
             current_value = applied_value
         entry: JSONDict = {"value": current_value}
-        default_value = normalize(default)
+        default_value = normalize(capability.get("default"))
         if default_value is not None:
             entry["default"] = default_value
-        mode = resolve_mode(key)
         applied_value = resolve_applied_value(key)
         if mode == "manual" and applied_value is not None:
-            if key in GPU_CLOCK_SETTING_FIELDS:
+            if key in GPU_CLOCK_SETTING_FIELDS and not configured_clock:
                 entry["value"] = applied_value
             entry["is_default"] = False
             return entry
@@ -101,8 +118,7 @@ def extract_current_settings(
         ):
             continue
         state_entry = build_entry(
-            caps_entry.get("current"),
-            caps_entry.get("default"),
+            caps_entry,
             descriptor.request_key,
         )
         if state_entry is not None:
@@ -119,7 +135,13 @@ def build_live_state(
     raw_modes = entry.get("field_modes") if isinstance(entry, dict) else None
     field_modes = normalize_field_mode_mapping(raw_modes)
     raw_applied_settings = entry.get("applied_settings") if isinstance(entry, dict) else None
-    applied_settings = raw_applied_settings if isinstance(raw_applied_settings, dict) else {}
+    applied_settings = dict(raw_applied_settings) if isinstance(raw_applied_settings, dict) else {}
+    unverified = entry.get("unverified_control_fields") if isinstance(entry, dict) else None
+    if isinstance(unverified, list):
+        for field in unverified:
+            if isinstance(field, str):
+                field_modes.pop(field, None)
+                applied_settings.pop(field, None)
     current_settings = (
         extract_current_settings(
             capabilities,
@@ -144,7 +166,11 @@ def build_live_state(
     live["boot_state"], live["boot_enabled"] = (boot_payload, enabled)
     live["boot_slot"] = boot_payload.get("slot") if enabled else None
     active_slot, active_signature, active_applied_at = (None, None, None)
-    if isinstance(entry, dict) and isinstance((slots := entry.get("slots", {})), dict):
+    if (
+        not unverified
+        and isinstance(entry, dict)
+        and isinstance((slots := entry.get("slots", {})), dict)
+    ):
         for slot_id, slot_entry in slots.items():
             if not (
                 isinstance(slot_entry, dict)

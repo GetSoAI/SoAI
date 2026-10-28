@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { JsonValue } from '@core/types/jsonValues.ts';
+import { requireAuthManager } from '@core/auth/runtime.ts';
 
 const WEBSOCKET_AUTHENTICATION_CLOSE_CODE = 4001;
 const WEBSOCKET_SESSION_ROTATED_REASON = 'session_rotated';
@@ -20,5 +21,10 @@ const resolveWebSocketSessionClosure = (code: JsonValue | undefined, reason: Jso
     return reason === WEBSOCKET_SESSION_ROTATED_REASON ? 'rotate' : 'invalidate';
 };
 
-export { readWebSocketSessionClosure, resolveWebSocketSessionClosure };
+const createWebSocketSessionClosureResolver = (mode: 'session' | 'setup-status'): ((code: JsonValue | undefined, reason: JsonValue | undefined) => WebSocketSessionClosure) => {
+    const authEpoch = mode === 'session' ? requireAuthManager().authEpoch : null;
+    return (code, reason) => (authEpoch !== null && authEpoch !== requireAuthManager().authEpoch ? 'none' : resolveWebSocketSessionClosure(code, reason));
+};
+
+export { createWebSocketSessionClosureResolver, readWebSocketSessionClosure, resolveWebSocketSessionClosure };
 export type { WebSocketSessionClosure };

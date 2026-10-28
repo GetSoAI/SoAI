@@ -1,6 +1,7 @@
 /* SoAI - Frontend operation progress ownership [frontend/assets/ts/core/operationprogress/operationProgress.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { insertWithPresence } from '@core/animations/presence/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { isHTMLElement, isString } from '@core/typeGuards.ts';
 import { createProgressElement, updateProgressElement } from '@core/operationprogress/dom.ts';
@@ -104,10 +105,10 @@ const createOperationProgressReporter = (container: HTMLElement | string, option
                     showBadge: normalizedOptions.showBadge !== false,
                     extraClassName: normalizedOptions.extraClassName ?? null
                 });
-                containerElement.append(progressElement);
                 progressElements.set(key, progressElement);
             }
             updateProgressElement(progressElement, updatePayload.progressValue, updatePayload.messageValue, updatePayload.badgeValue, updatePayload.detailsValue, updatePayload.stateValue, updatePayload.cancelableValue, updatePayload.indeterminateValue);
+            insertWithPresence(containerElement, progressElement);
             syncBackgroundButton();
         },
         remove: (key: string): void => {

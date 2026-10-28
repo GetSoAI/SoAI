@@ -3,6 +3,7 @@
 
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { resolve, resolveAll } from '@core/dom/dom.ts';
+import { syncAttributeValue, syncTextContent } from '@core/dom/patching.ts';
 import { resolveModelTypeLabel } from '@core/models/modelTypeLabel.ts';
 import { isHTMLElement } from '@core/typeGuards.ts';
 import type { ModelData } from '@core/types/modelTypes.ts';
@@ -25,10 +26,10 @@ const applyActivityModeLabel = (activity: HTMLElement, model: ModelData | null):
     }
     const separatorDot = resolve(ACTIVITY_SEPARATOR_DOT_SELECTOR, activity);
     const label = resolveModelTypeLabel(model);
-    modeText.textContent = label ?? '';
-    modeRoot.hidden = label === null;
+    syncTextContent(modeText, label ?? '');
+    syncAttributeValue(modeRoot, 'hidden', label === null ? '' : null);
     if (isHTMLElement(separatorDot)) {
-        separatorDot.hidden = modeRoot.hidden;
+        syncAttributeValue(separatorDot, 'hidden', label === null ? '' : null);
     }
 };
 

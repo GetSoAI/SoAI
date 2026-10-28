@@ -86,7 +86,7 @@ async def publish_certified_progress(
         summary=summary,
         measured_passes=measured_passes,
         progress_current=progress_current,
-        status_message="SoAIBench certified pass completed.",
+        status_message="SoAI Bench certified pass completed.",
     )
 
 
@@ -134,7 +134,7 @@ async def publish_certified_phase_progress(
         measured_passes=measured_passes,
         progress_current=progress_current,
         status_message=(
-            f"SoAIBench {pass_type} {pass_index} {phase} phase running "
+            f"SoAI Bench {pass_type} {pass_index} {phase} phase running "
             f"on GPU {gpu_number} ({gpu_name})."
         ),
     )

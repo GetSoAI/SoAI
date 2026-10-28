@@ -18,6 +18,10 @@
         min-width: 0;
     }
 
+    .chat-character-map-controls > :is(.chat-character-map-staging, .chat-character-map-search) {
+        grid-column: 1 / -1;
+    }
+
     .chat-character-map-select-field,
     .chat-character-map-staging {
         display: grid;
@@ -34,14 +38,8 @@
     .chat-character-map-search {
         display: grid;
         gap: 0;
-        grid-column: 1 / -1;
         margin-bottom: 0;
         min-width: 0;
-    }
-
-    .chat-character-map-font-hint {
-        grid-column: 1 / -1;
-        margin: 0;
     }
 
     .chat-character-map-status {
@@ -52,8 +50,8 @@
 
     .chat-character-map-results-surface {
         position: relative;
-        height: clamp(252px, calc(42 * var(--ui-viewport-height-unit)), 480px);
-        min-height: 252px;
+        height: clamp(228px, calc(33 * var(--ui-viewport-height-unit)), 396px);
+        min-height: 228px;
         overflow: hidden;
         border: var(--border-width-1) solid var(--surface-card-border);
         border-radius: var(--border-radius);
@@ -62,7 +60,7 @@
 
     .chat-character-map-results-surface > :is(.modal-loading-state, .chat-character-map-error, .chat-character-map-empty) {
         height: 100%;
-        min-height: 252px;
+        min-height: 228px;
     }
 
     .chat-character-map-error {
@@ -79,17 +77,22 @@
     .chat-character-map-grid {
         --character-map-cell-size: var(--space-12);
 
+        height: 100%;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+    }
+
+    .chat-character-map-cells {
         align-content: start;
         display: grid;
         grid-template-columns: repeat(auto-fill, var(--character-map-cell-size));
         grid-auto-rows: var(--character-map-cell-size);
         gap: var(--space-1);
-        height: 100%;
         justify-content: start;
-        min-height: 252px;
-        overflow: auto;
+        min-height: 100%;
         padding: var(--space-1);
-        scrollbar-gutter: stable;
     }
 
     .chat-character-map-cell {
@@ -201,7 +204,7 @@
             grid-template-columns: 1fr;
         }
 
-        .chat-character-map-controls > :is(.chat-character-map-search, .chat-character-map-font-hint) {
+        .chat-character-map-controls > .chat-character-map-search {
             grid-column: auto;
         }
     }

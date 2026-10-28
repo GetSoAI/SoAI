@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
+import { measureViewportBox } from '@core/layout/elementGeometry.ts';
 import { LifecycleModel } from '@core/LifecycleModel.ts';
 import { TASK_MANAGER_SERVICE_ID, type TaskLocalOperationUpdate, type TaskOperationEntry, type TaskOperationFilter, type TaskOperationListener, type TaskOperationsApi } from '@core/tasks/protocols.ts';
 import { isBoolean, isFunction } from '@core/typeGuards.ts';
@@ -144,9 +145,10 @@ class TaskManager extends LifecycleModel implements TaskOperationsApi {
         }
         this.isExpanded = true;
         this.#dependencies.storage.set(TASK_PANEL_EXPANDED_STORAGE_KEY, true);
+        this.renderPluginList();
+        measureViewportBox(this.#elements.panel);
         this.#view.setExpandedState(this.#elements, true);
         terminateHandledPromise(this.#store.reconcileOperations());
-        this.renderPluginList();
     }
 
     collapse(): void {

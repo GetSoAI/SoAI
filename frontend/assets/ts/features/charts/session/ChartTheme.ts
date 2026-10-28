@@ -1,7 +1,7 @@
 /* SoAI - Chart theme observation and palette ownership [frontend/assets/ts/features/charts/session/ChartTheme.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { getCancelAnimationFrame, getRequestAnimationFrame } from '@core/environment/public.ts';
+import { scheduleRequiredRender } from '@core/runtime/animationFrames.ts';
 import { LifecycleResources } from '@core/lifecyclemodel/LifecycleResources.ts';
 import type { ChartColorInput, ColorPalette, ThemeStyles } from '@features/charts/chartTypes.ts';
 import { CSS_COLOR_VAR_MAP, THEME_DEPENDENT_COLOR_KEYS } from '@features/charts/component/chartComponentStatics.ts';
@@ -20,7 +20,7 @@ class ChartTheme {
     readonly #surface: ChartThemeDependencies['surface'];
     readonly #settings: ChartThemeDependencies['settings'];
     readonly #resources = new LifecycleResources();
-    #frame: number | null = null;
+    #cancelRefresh: (() => void) | null = null;
     #active = false;
 
     constructor({ configuration, surface, settings }: ChartThemeDependencies) {
@@ -67,16 +67,16 @@ class ChartTheme {
 
     async destroy(): Promise<void> {
         this.#active = false;
-        if (this.#frame !== null) getCancelAnimationFrame()(this.#frame);
-        this.#frame = null;
+        this.#cancelRefresh?.();
+        this.#cancelRefresh = null;
         await this.#resources.cleanup();
     }
 
     #scheduleRefresh(): void {
-        if (this.#frame !== null) return;
-        this.#frame = getRequestAnimationFrame()(() => {
-            this.#frame = null;
-            this.refresh();
+        if (!this.#active || this.#cancelRefresh !== null) return;
+        this.#cancelRefresh = scheduleRequiredRender(() => {
+            this.#cancelRefresh = null;
+            if (this.#active) this.refresh();
         });
     }
 }

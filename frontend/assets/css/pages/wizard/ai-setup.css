@@ -107,11 +107,42 @@
         background: var(--glass-surface-medium);
     }
 
-    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-disclosure > summary {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-disclosure-toggle {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        width: 100%;
         padding: var(--space-3) var(--space-4);
-        color: var(--accent-green);
+        border: none;
+        border-radius: inherit;
+        background: transparent;
+        color: var(--ui-button-neutral-color);
+        font: inherit;
         font-weight: 600;
+        text-align: start;
         cursor: pointer;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-disclosure-chevron {
+        display: flex;
+        flex: 0 0 auto;
+        color: var(--text-secondary);
+        transition: transform var(--duration-220) var(--ease-default);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-disclosure-toggle[aria-expanded='true'] .wizard-disclosure-chevron {
+        transform: rotate(calc(90deg * var(--dir-sign)));
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-disclosure-toggle:focus-visible {
+        outline: var(--border-width-2) solid var(--accent-green);
+        outline-offset: calc(-1 * var(--space-05));
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-disclosure-chevron {
+            transition: none;
+        }
     }
 
     :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-disclosure-body {
@@ -173,6 +204,10 @@
         font-weight: 600;
     }
 
+    :where([data-section='wizard'], [data-page-scope='wizard']) .ui-operation-progress--success .ui-operation-progress__badge {
+        --status-badge-color: var(--status-green);
+    }
+
     :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-progress {
         display: grid;
         gap: var(--space-3);
@@ -213,7 +248,7 @@
             min-height: 44px;
         }
 
-        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-step--ai :is(.ui-button, .wizard-form-input, .wizard-disclosure > summary),
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-step--ai :is(.ui-button, .wizard-form-input, .wizard-disclosure-toggle),
         :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-cloud-choice {
             min-height: 44px;
         }

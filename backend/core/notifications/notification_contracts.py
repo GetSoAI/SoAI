@@ -16,6 +16,7 @@ __all__ = (
     "NOTIFICATION_TEXT_TYPE_SQL_VALUES",
     "NOTIFICATION_TYPE_SQL_VALUES",
     "OPENAI_QUOTA_NOTIFICATION_SOURCE",
+    "PLUGIN_BACKEND_UPDATE_NOTIFICATION_SOURCE",
     "PLUGIN_CIRCUIT_BREAKER_NOTIFICATION_SOURCE",
     "SECURITY_LOGIN_NOTIFICATION_SOURCE",
     "NotificationLinkType",
@@ -27,6 +28,7 @@ __all__ = (
 
 NOTIFICATION_TEXT_TYPE_SQL_VALUES: tuple[str, ...] = ("text", "template")
 NOTIFICATION_TYPE_SQL_VALUES: tuple[str, ...] = ("info", "success", "warning", "error")
+PLUGIN_BACKEND_UPDATE_NOTIFICATION_SOURCE = "plugins.backend_update"
 PLUGIN_CIRCUIT_BREAKER_NOTIFICATION_SOURCE = "plugins.circuit_breaker"
 SECURITY_LOGIN_NOTIFICATION_SOURCE = "security.login"
 BACKUP_NOTIFICATION_SOURCE = "backup"
@@ -70,6 +72,8 @@ NOTIFICATION_TEMPLATE_SQL_VALUES: tuple[str, ...] = (
     "messaging_account_degraded_title",
     "messaging_account_recovered_message",
     "messaging_account_recovered_title",
+    "plugin_backend_update_message",
+    "plugin_backend_update_title",
     "plugin_circuit_breaker_tripped_message",
     "plugin_circuit_breaker_tripped_title",
     "vault_secret_request_required_message",
@@ -116,6 +120,8 @@ class NotificationTemplateId(str, Enum):
     MESSAGING_ACCOUNT_DEGRADED_TITLE = "messaging_account_degraded_title"
     MESSAGING_ACCOUNT_RECOVERED_MESSAGE = "messaging_account_recovered_message"
     MESSAGING_ACCOUNT_RECOVERED_TITLE = "messaging_account_recovered_title"
+    PLUGIN_BACKEND_UPDATE_MESSAGE = "plugin_backend_update_message"
+    PLUGIN_BACKEND_UPDATE_TITLE = "plugin_backend_update_title"
     PLUGIN_CIRCUIT_BREAKER_TRIPPED_MESSAGE = "plugin_circuit_breaker_tripped_message"
     PLUGIN_CIRCUIT_BREAKER_TRIPPED_TITLE = "plugin_circuit_breaker_tripped_title"
     CREDENTIAL_REQUEST_REQUIRED_MESSAGE = "vault_secret_request_required_message"
@@ -222,6 +228,10 @@ def resolve_notification_template_required_params(
         case NotificationTemplateId.MESSAGING_ACCOUNT_RECOVERED_MESSAGE:
             return frozenset({"accountLabel", "providerLabel"})
         case NotificationTemplateId.MESSAGING_ACCOUNT_RECOVERED_TITLE:
+            return frozenset()
+        case NotificationTemplateId.PLUGIN_BACKEND_UPDATE_MESSAGE:
+            return frozenset({"pluginName"})
+        case NotificationTemplateId.PLUGIN_BACKEND_UPDATE_TITLE:
             return frozenset()
         case NotificationTemplateId.PLUGIN_CIRCUIT_BREAKER_TRIPPED_MESSAGE:
             return frozenset({"pluginName"})

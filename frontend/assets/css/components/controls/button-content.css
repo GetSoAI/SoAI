@@ -2,7 +2,17 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    :is(button, .dropdown-item, .ui-button, .ui-icon-button, .ui-round-button, select:not([multiple]), .page-header-filter-input, [role='tab']):is(:hover, :focus-visible):not(:disabled, [aria-disabled='true'], [data-toggle-disabled='true']),
+    .dropdown-select:has(> select:not(:disabled, [aria-disabled='true'])):hover,
+    .dropdown-select:has(> select:focus-visible:not(:disabled, [aria-disabled='true'])),
+    .searchbar-container:not(:has(.searchbar-input:is(:disabled, [aria-disabled='true']))):hover,
+    .chat-page-mode-indicator:has(select:not(:disabled, [aria-disabled='true'])):hover,
+    .chat-page-mode-indicator:has(select:focus-visible:not(:disabled, [aria-disabled='true'])) {
+        --control-button-border-strength: var(--control-button-border-hover-strength);
+    }
+
     :is(.ui-button, .ui-icon-button) {
+        --ui-control-opacity: var(--ui-button-emphasis-opacity);
         --ui-button-border: var(--ui-button-neutral-color);
         --ui-button-border-hover: var(--ui-button-neutral-color-hover);
         --ui-button-color: var(--ui-button-neutral-color);
@@ -15,7 +25,7 @@
         align-items: center;
         justify-content: center;
         background-color: var(--ui-button-bg);
-        border: var(--border-width-1) solid var(--ui-button-border);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--ui-button-border) var(--control-button-border-strength), transparent);
         box-shadow:
             0 2px 4px var(--surface-drop-shadow-soft),
             0 0 0 1px var(--surface-outline-highlight-soft);
@@ -44,7 +54,7 @@
 
     .ui-button:focus-visible,
     .ui-icon-button:focus-visible {
-        border-color: var(--ui-button-border-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
         box-shadow:
             0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring),
             0 4px 12px var(--shadow-medium);
@@ -59,11 +69,20 @@
         padding: var(--control-padding-block) var(--control-padding-inline);
     }
 
-    .ui-button:hover:not(:disabled, [aria-disabled='true']),
-    .ui-icon-button:is(:hover, :focus-visible, [data-hover-carried]):not(:disabled, [aria-disabled='true']) {
+    .ui-button:hover:not(:disabled, [aria-disabled='true'], [data-toggle-disabled='true']),
+    .ui-icon-button:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true'], [data-toggle-disabled='true']) {
         background-color: var(--ui-button-bg-hover);
-        border-color: var(--ui-button-border-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
         color: var(--ui-button-color-hover);
+    }
+
+    .ui-icon-button[data-hover-carried]:not(:disabled, [aria-disabled='true'], [data-toggle-disabled='true']) {
+        --control-button-border-strength: var(--control-button-border-hover-strength);
+
+        background-color: var(--ui-button-bg-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
+        color: var(--ui-button-color-hover);
+        transition: none;
     }
 
     .ui-icon-button--chromeless {
@@ -83,12 +102,20 @@
     }
 
     .ui-icon-button--titlebar {
+        font-size: var(--font-size-compact);
+        line-height: 1;
         width: var(--control-height-titlebar);
         height: var(--control-height-titlebar);
         min-width: var(--control-height-titlebar);
         min-height: var(--control-height-titlebar);
 
         --icon-size: var(--control-icon-size-compact);
+    }
+
+    .ui-icon-button.ui-icon-button--titlebar,
+    .ui-icon-button.ui-icon-button--titlebar:is(:hover, :focus-visible, .is-active, [data-hover-carried]) {
+        background-color: transparent;
+        border-color: currentColor;
     }
 
     .provider-logo,
@@ -153,8 +180,18 @@
         stroke: currentColor;
     }
 
+    :where(.ui-icon-button) > .ui-icon > svg {
+        width: var(--icon-size);
+        height: var(--icon-size);
+        flex-shrink: 0;
+    }
+
     svg.ui-icon {
         display: block;
+    }
+
+    .ui-icon-button--titlebar svg {
+        stroke-width: var(--control-icon-stroke-compact);
     }
 
     :is(.ui-button, .ui-icon-button) :where(span:not(.ui-icon), .ui-icon, svg) {
@@ -162,7 +199,7 @@
         stroke: currentColor;
     }
 
-    :where(.ui-button) :is(svg, .ui-icon) {
+    :where(.ui-button:not(.ui-icon-button)) :is(svg, .ui-icon) {
         flex-shrink: 0;
         width: calc(1em + (var(--button-icon-scale) * 1rem));
         height: calc(1em + (var(--button-icon-scale) * 1rem));

@@ -16,6 +16,7 @@ from mcp.tools.browser.playwright_policy import (
     ensure_playwright_browsers_path,
     ensure_playwright_chromium_available,
     require_playwright_chromium_ready,
+    resolve_chromium_launch_timeout_ms,
     resolve_playwright_launch_args,
     should_retry_playwright_auto_install_after_launch_error,
 )
@@ -90,11 +91,15 @@ async def launch_local_chromium_browser(
                 runtime_flags,
                 install_lock=install_lock,
             )
+        launch_timeout_ms = await resolve_chromium_launch_timeout_ms(
+            headless=bool(headless), channel=channel
+        )
         return await await_playwright_driver_call(
             playwright.chromium.launch(
                 headless=bool(headless),
                 channel=channel,
                 args=launch_args,
+                timeout=launch_timeout_ms,
             ),
             operation=operation,
             logger=logger,
@@ -112,11 +117,15 @@ async def launch_local_chromium_browser(
                 runtime_flags,
                 install_lock=install_lock,
             )
+            launch_timeout_ms = await resolve_chromium_launch_timeout_ms(
+                headless=bool(headless), channel=channel
+            )
             return await await_playwright_driver_call(
                 playwright.chromium.launch(
                     headless=bool(headless),
                     channel=channel,
                     args=launch_args,
+                    timeout=launch_timeout_ms,
                 ),
                 operation=operation,
                 logger=logger,

@@ -68,6 +68,15 @@
                     }
                 },
                 "initFailed": "Không thể khởi tạo SoAI WebUI",
+                "reference": "Mã tham chiếu: {reference}",
+                "stages": {
+                    "entrypoint": "WebUI không thể tải tài nguyên khởi động. Hãy tải lại trang để thử lại.",
+                    "criticalServices": "WebUI không thể khởi động các dịch vụ cần thiết. Hãy kiểm tra xem backend SoAI có đang chạy không, rồi tải lại trang.",
+                    "authentication": "WebUI không thể kiểm tra trạng thái thiết lập và đăng nhập. Hãy tải lại trang để thử lại.",
+                    "session": "WebUI không thể chuẩn bị phiên đăng nhập của bạn. Hãy tải lại trang để thử lại.",
+                    "routeRendering": "WebUI không thể hiển thị trang được yêu cầu. Hãy tải lại trang để thử lại.",
+                    "background": "WebUI không thể hoàn tất các bước khởi động cuối cùng. Hãy tải lại trang để thử lại."
+                },
                 "routeNotReady": "Trang không tải xong trong thời gian cho phép. Vui lòng tải lại trang.",
                 "unknown": "Đã xảy ra lỗi không xác định."
             },
@@ -610,13 +619,17 @@
                 "notSupported": "Ghi âm giọng nói yêu cầu kết nối bảo mật (HTTPS) hoặc localhost",
                 "permissionDenied": "Quyền truy cập micrô bị từ chối. Vui lòng cho phép truy cập micrô trong cài đặt trình duyệt.",
                 "recordingFailed": "Ghi âm thất bại",
-                "transcriptionFailed": "Chuyển giọng nói thành văn bản thất bại."
+                "transcriptionFailed": "Chuyển giọng nói thành văn bản thất bại.",
+                "transcriptionDeadlineExceeded": "Quá trình chuyển giọng nói thành văn bản mất quá nhiều thời gian và đã bị hủy. Hãy thử bản ghi ngắn hơn hoặc mô hình chuyển đổi nhanh hơn.",
+                "transcriptionCancellationUnconfirmed": "Quá trình chuyển giọng nói thành văn bản mất quá nhiều thời gian và không thể xác nhận việc hủy. Hãy đợi một lát trước khi thử lại.",
+                "transcriptionCancellationUnconfirmedReference": "Quá trình chuyển giọng nói thành văn bản mất quá nhiều thời gian và không thể xác nhận việc hủy. Hãy đợi một lát trước khi thử lại. Mã tham chiếu: {reference}"
             },
             "audioPreview": {
                 "cancel": "Hủy ghi âm",
                 "errorTitle": "Ghi âm giọng nói",
                 "processingStatus": "Đang gửi âm thanh để chuyển thành văn bản",
                 "processingTitle": "Đang chuyển giọng nói thành văn bản",
+                "transcriptionSettling": "Đã đạt giới hạn thời gian. Đang dừng chuyển đổi giọng nói…",
                 "recordingStatus": "Đang ghi âm {elapsed}",
                 "recordingTitle": "Ghi âm giọng nói",
                 "requestingStatus": "Đang chờ quyền từ trình duyệt",
@@ -742,8 +755,8 @@
                     "title": "Cài đặt kiến thức"
                 },
                 "memory": {
-                    "description": "Bộ nhớ lâu dài giúp SoAI hiểu tùy chọn, mục tiêu và ngữ cảnh lặp lại của bạn mà không cần prompt tùy chỉnh mỗi lần.",
-                    "empty": "Chưa lưu bộ nhớ nào.",
+                    "description": "Bộ nhớ lâu dài giúp SoAI hiểu tùy chọn, mục tiêu và ngữ cảnh lặp lại của bạn mà không cần prompt tùy chỉnh mỗi lần",
+                    "empty": "Chưa lưu bộ nhớ nào",
                     "openProfile": "Mở biểu mẫu hồ sơ",
                     "refresh": "Làm mới bộ nhớ",
                     "title": "Cài đặt bộ nhớ",
@@ -794,7 +807,7 @@
                     "knowledgeManagedToolsEnabledHint": "Công cụ sẽ tự động duy trì trạng thái bật khi kiến thức đã lập chỉ mục đang hoạt động cho cuộc trò chuyện này. Điều này không thay đổi giá trị mặc định cho cuộc trò chuyện mới",
                     "noServers": "Không có máy chủ MCP nào khả dụng.",
                     "noTools": "Không có công cụ MCP nào khả dụng.",
-                    "resetToolsDescription": "Đặt lại công cụ {mode} về mặc định của SoAI.",
+                    "resetToolsDescription": "Đặt lại công cụ {mode} về mặc định của SoAI",
                     "resetToolsLabel": "Đặt lại",
                     "resetToolsTitle": "Đặt lại công cụ mặc định",
                     "servers": "Máy chủ",
@@ -880,7 +893,9 @@
                         "parsing": "Đang phân tích",
                         "queued": "Đang chờ",
                         "unreadable": "Không thể đọc",
-                        "unknown": "Không xác định"
+                        "unknown": "Không xác định",
+                        "noTranscript": "Không có bản chép lời",
+                        "partial": "Trích xuất một phần"
                     },
                     "title": "Cài đặt RAG",
                     "topK": "Top K"
@@ -955,8 +970,8 @@
                     "newAction": "Cấu hình đặt sẵn mới",
                     "noMatches": "Không có cấu hình đặt sẵn nào khớp với tìm kiếm này.",
                     "noChanges": "Cấu hình đặt sẵn không làm thay đổi cấu hình đang chờ áp dụng.",
-                    "notApplicable": "Không có cài đặt đã lưu nào của cấu hình đặt sẵn này khả dụng trong phiên bản hiện tại. Bạn vẫn có thể thay thế, đổi tên hoặc xóa nó.",
-                    "omittedSettings": "Đã bỏ qua {count} cài đặt đã lưu không được hỗ trợ hoặc không hợp lệ.",
+                    "notApplicable": "Không có cài đặt đã lưu nào của cấu hình đặt sẵn này khả dụng trong phiên bản hiện tại. Bạn vẫn có thể thay thế, đổi tên hoặc xóa nó",
+                    "omittedSettings": "Đã bỏ qua {count} cài đặt đã lưu không được hỗ trợ hoặc không hợp lệ",
                     "replaceAction": "Thay thế",
                     "renameAction": "Đổi tên",
                     "retryAction": "Thử lại",
@@ -1005,7 +1020,7 @@
                         "replaceDescription": "Thay cấu hình đặt sẵn này bằng ảnh chụp mới của các giá trị hiện đang chờ áp dụng.",
                         "replaceTitle": "Thay thế cấu hình đặt sẵn",
                         "reviewAction": "Xem lại bản sửa đổi mới nhất",
-                        "revisionChanged": "Cấu hình đặt sẵn này đã thay đổi ở nơi khác. Hãy xem lại bản sửa đổi mới nhất trước khi tiếp tục.",
+                        "revisionChanged": "Cấu hình đặt sẵn này đã thay đổi ở nơi khác. Hãy xem lại bản sửa đổi mới nhất trước khi tiếp tục",
                         "prunedValues": "Đã bỏ qua {count} cài đặt động không khả dụng khỏi ảnh chụp này.",
                         "selectedCount": "Đã chọn {count} phần",
                         "sectionDescriptions": {
@@ -1019,7 +1034,7 @@
                         },
                         "sectionUnavailable": "Phần này không khả dụng cho cuộc trò chuyện hiện tại.",
                         "sectionsLabel": "Các phần cấu hình",
-                        "targetUnavailable": "Cấu hình đặt sẵn này không còn tồn tại. Hãy hủy chỉnh sửa này hoặc tạo cấu hình đặt sẵn mới."
+                        "targetUnavailable": "Cấu hình đặt sẵn này không còn tồn tại. Hãy hủy chỉnh sửa này hoặc tạo cấu hình đặt sẵn mới"
                     }
                 },
                 "saveDegradedDetail": "Đã lưu {completed}. Một phép chiếu tiếp theo đã được xác nhận cần được xử lý; hãy thử lại từ phần bị ảnh hưởng.",
@@ -1076,7 +1091,58 @@
                     "title": "Cài đặt tìm kiếm web"
                 },
                 "widescreen_mode": "Chế độ màn hình rộng",
-                "widescreenModeHint": "Tăng không gian khả dụng cho cuộc trò chuyện trên màn hình lớn"
+                "widescreenModeHint": "Tăng không gian khả dụng cho cuộc trò chuyện trên màn hình lớn",
+                "skills": {
+                    "title": "Kỹ năng",
+                    "description": "Kỹ năng cung cấp cho trợ lý các hướng dẫn có thể tái sử dụng cho từng công việc. Bật chúng cho cuộc trò chuyện này rồi lưu. Thay đổi áp dụng cho yêu cầu mới; công việc đã tiếp nhận vẫn giữ các kỹ năng đã ghi nhận.",
+                    "add": "Thêm kỹ năng",
+                    "empty": "Thêm tệp SKILL.md hoặc bộ kỹ năng dạng ZIP để bắt đầu",
+                    "immediate": "Việc nhập và xóa khỏi thư viện có hiệu lực ngay. Kỹ năng mới ban đầu bị tắt",
+                    "unavailable": "Lưu cuộc trò chuyện thông thường trước khi chọn kỹ năng. Không thể chọn trong các cuộc trò chuyện được quản lý",
+                    "automatic": "Gọi tự động hoặc trực tiếp",
+                    "explicit": "Chỉ gọi trực tiếp",
+                    "automaticOnly": "Chỉ gọi tự động",
+                    "disabledReason": "Kỹ năng này không cho phép gọi tự động hoặc trực tiếp",
+                    "removeConfirm": "Xóa kỹ năng này khỏi thư viện và các lựa chọn trong tương lai của các cuộc trò chuyện? Công việc đã tiếp nhận vẫn giữ gói kỹ năng. Tệp trong không gian làm việc và lịch sử trò chuyện vẫn còn.",
+                    "conflict": "Lựa chọn đã thay đổi ở nơi khác. Xem lại lựa chọn hiện tại trước khi lưu bản nháp",
+                    "keepDraft": "Giữ lựa chọn của tôi",
+                    "stale": "Kỹ năng chưa được cập nhật. Kết nối lại hoặc thử lại trước khi lưu",
+                    "search": "Tìm kỹ năng...",
+                    "emptyTitle": "Thêm kỹ năng đầu tiên",
+                    "noMatchesTitle": "Không có kỹ năng phù hợp",
+                    "errors": {
+                        "invalidPackage": "Nhập tệp SKILL.md hợp lệ hoặc bộ kỹ năng dạng ZIP. Kiểm tra định dạng tệp và giới hạn kích thước.",
+                        "uploadConflict": "Lượt tải lên này đã được dùng cho tệp khác. Chọn lại tệp để bắt đầu lượt nhập mới.",
+                        "nameConflict": "Đã cài đặt một kỹ năng có tên này. Hãy xóa kỹ năng đó trước khi nhập kỹ năng thay thế.",
+                        "libraryFull": "Thư viện kỹ năng đã đầy. Xóa các kỹ năng không dùng và đợi các tác vụ đang dùng kỹ năng đã xóa hoàn tất.",
+                        "invocationUnavailable": "Kỹ năng được yêu cầu chưa được bật hoặc không cho phép gọi trực tiếp. Kiểm tra các kỹ năng đã chọn cho cuộc trò chuyện này.",
+                        "importBusy": "Chức năng nhập kỹ năng đang bận. Hãy thử lại cùng lượt tải lên sau ít phút.",
+                        "notFound": "Kỹ năng hoặc tài nguyên không khả dụng. Hãy làm mới thư viện kỹ năng.",
+                        "wrapperNameMismatch": "Tên thư mục bao ngoài của ZIP phải khớp với tên kỹ năng trong SKILL.md.",
+                        "restrictionUnsupported": "Kỹ năng này dùng các giới hạn công cụ chưa được hỗ trợ. Hãy dùng tên công cụ SoAI rõ ràng trước khi kích hoạt.",
+                        "toolRestricted": "Một kỹ năng đang hoạt động cấm công cụ này. Hãy theo quy trình được phép hoặc bắt đầu lượt thực thi mới.",
+                        "argumentConflict": "Không thể thay thế các đối số kỹ năng đã được chấp nhận. Hãy bắt đầu lời gọi mới với đối số khác.",
+                        "aliasAmbiguous": "Bí danh này chỉ đến nhiều kỹ năng đã bật. Hãy dùng tên kỹ năng kèm không gian tên.",
+                        "manifestFormat": "SKILL.md cần văn bản UTF-8 và YAML thuần hợp lệ giữa các dấu phân cách ---. Kiểm tra định dạng và giới hạn kích thước tệp kê khai.",
+                        "invalidField": "Trường kỹ năng {field} chưa được hỗ trợ, bị thiếu hoặc không hợp lệ. Kiểm tra tên và kiểu giá trị.",
+                        "sourceConflict": "Các bản sao kỹ năng tại {first} và {second} xung đột. Hãy giữ lại một bản sao nhất quán.",
+                        "archiveIntegrity": "Tệp nén kỹ năng bị hỏng hoặc chưa đầy đủ. Tải lại và thử bằng tệp hoàn chỉnh.",
+                        "archiveUnsafe": "Tệp nén kỹ năng chứa đường dẫn không an toàn, liên kết hoặc mục xung đột. Tạo tệp nén di động chứa các tệp thông thường.",
+                        "archiveUnsupported": "Tệp nén kỹ năng sử dụng mã hóa hoặc nén không được hỗ trợ. Tạo ZIP không mã hóa với các mục được lưu nguyên hoặc nén bằng Deflate.",
+                        "invalidFilename": "Chọn tệp có tên SKILL.md hoặc tệp ZIP kỹ năng.",
+                        "resourceLimit": "Vượt giới hạn nhập kỹ năng cho {field}: {measured} > {limit}. Giảm tệp nén hoặc xóa kỹ năng không dùng rồi thử lại.",
+                        "manifestPosition": "YAML không hợp lệ tại dòng {line}, cột {column}. Sửa SKILL.md rồi thử lại."
+                    },
+                    "importUncertain": "Kết quả nhập chưa rõ. Giữ tệp này được chọn và dùng Làm mới để kiểm tra biên nhận trước khi thử lại.",
+                    "invalidSelection": "Một số kỹ năng đã chọn không khả dụng hoặc vượt quá giới hạn thư viện. Làm mới, rồi điều chỉnh lựa chọn trước khi lưu",
+                    "status": {
+                        "importTitle": "Kết quả nhập chưa rõ",
+                        "conflictTitle": "Lựa chọn đã thay đổi ở nơi khác",
+                        "staleTitle": "Danh sách kỹ năng có thể đã lỗi thời",
+                        "unavailableTitle": "Không thể chọn kỹ năng",
+                        "invalidTitle": "Cần xem lại lựa chọn"
+                    }
+                }
             },
             "confirmations": {
                 "externalLink": "Mở liên kết bên ngoài",
@@ -1139,8 +1205,15 @@
                 "conversationLoadFailed": "Không thể tải cuộc trò chuyện.",
                 "conversationUnavailable": "Không tìm thấy cuộc trò chuyện. Bạn đã được đưa về cuộc trò chuyện trống.",
                 "interactionFocusUnavailable": "Liên kết tương tác bảo mật này không còn khả dụng. Hãy xem lại prompt Trò chuyện hiện tại.",
+                "modelToolCallingUnsupported": "Mô hình đã chọn không hỗ trợ gọi công cụ. Hãy chọn mô hình hỗ trợ công cụ hoặc tắt công cụ cho cuộc trò chuyện này.",
                 "soaiWorkspaceChanged": "Không gian làm việc của cuộc trò chuyện đã thay đổi trong lúc chuẩn bị tin nhắn này. Hãy mở lại hoặc liên kết lại các nguồn SoAI rồi gửi lại.",
-                "syncFailed": "Không thể đồng bộ cuộc trò chuyện"
+                "syncFailed": "Không thể đồng bộ cuộc trò chuyện",
+                "contextWindowOverrideInvalid": "Giá trị ghi đè cửa sổ ngữ cảnh phải là số nguyên dương. Nhập giá trị hợp lệ hoặc để trống để dùng giá trị mặc định của mô hình.",
+                "contextWindowOverrideConflict": "Các giá trị ghi đè cửa sổ ngữ cảnh xung đột. Đặt một giá trị hoặc xóa ghi đè rồi thử lại.",
+                "durableQueueFull": "Hàng đợi đã đầy. Hãy gửi lại yêu cầu bị từ chối này sau khi công việc đang chạy hoàn tất.",
+                "promptBudgetExceeded": "Đầu vào cần {requested} token; còn {available} sau khi dành chỗ cho đầu ra và biên an toàn. Giảm đầu vào hoặc đầu ra dự trữ, thu gọn cuộc trò chuyện hoặc tăng ngữ cảnh.",
+                "ragEmbeddingModelUnavailable": "Không có mô hình embedding nào khả dụng. Chọn mô hình embedding trong cài đặt Trò chuyện, hoặc cài bộ máy embedding và tải mô hình xuống, rồi thử lại.",
+                "ragDocumentsNotIndexed": "Không có kiến thức đã lập chỉ mục để lập chỉ mục lại. Hãy tải lên và lập chỉ mục tài liệu trước."
             },
             "export": {
                 "noMessages": "Không có tin nhắn để xuất",
@@ -1340,6 +1413,7 @@
                 "voiceCallStart": "Bắt đầu cuộc gọi thoại",
                 "steer": "Điều hướng prompt",
                 "queue": "Xếp prompt vào hàng đợi",
+                "resumeQueue": "Tiếp tục prompt trong hàng đợi",
                 "stop": "Dừng phản hồi",
                 "stopRecording": "Dừng ghi âm",
                 "transcribing": "Đang chuyển giọng nói thành văn bản...",
@@ -1364,7 +1438,8 @@
             "inputQueue": {
                 "badge": {
                     "queued": "Đang xếp hàng",
-                    "steer": "Điều hướng"
+                    "steer": "Điều hướng",
+                    "held": "Tạm dừng"
                 },
                 "state": {
                     "materializing": "Đang chuẩn bị",
@@ -1381,6 +1456,33 @@
                 "reason": "Lý do"
             },
             "memory": {
+                "library": {
+                    "add": "Thêm bộ nhớ",
+                    "search": "Tìm trong bộ nhớ",
+                    "noMatches": "Không có bộ nhớ phù hợp",
+                    "stale": "Dữ liệu đã lưu đã cũ. Lần làm mới gần nhất: {time}. Làm mới để xem xét dữ liệu hiện tại.",
+                    "deleteFact": "Xóa thông tin hoặc mối quan hệ này?",
+                    "deleteEntry": "Xóa “{title}”, bao gồm {facts} thông tin và {relations} mối quan hệ?",
+                    "savedHidden": "Đã lưu. Xóa tìm kiếm để thấy bộ nhớ này.",
+                    "savedRefreshNeeded": "Đã lưu. Cần làm mới thư viện.",
+                    "from": "Từ",
+                    "to": "Đến",
+                    "type": "Loại mối quan hệ",
+                    "staleTitle": "Danh sách bộ nhớ có thể đã lỗi thời",
+                    "errorTitle": "Thư viện bộ nhớ không khả dụng"
+                },
+                "errors": {
+                    "revisionChanged": "Bộ nhớ này đã thay đổi. Xem xét nội dung hiện tại trước khi lưu.",
+                    "duplicateName": "Đã có bộ nhớ dùng tiêu đề này. Hãy chọn tiêu đề khác.",
+                    "duplicateId": "Mã định danh bản nháp này đã tồn tại. Làm mới và xem xét bộ nhớ đã lưu.",
+                    "profileRestricted": "Dùng biểu mẫu hồ sơ để quản lý thông tin hồ sơ có cấu trúc.",
+                    "duplicateRelation": "Mối quan hệ này đã tồn tại.",
+                    "relationNotIncident": "Giữ một đầu nối với bộ nhớ này.",
+                    "invalidText": "Nhập tiêu đề và nội dung không trống.",
+                    "missing": "Bản ghi này không có sẵn hoặc không còn thuộc bộ nhớ này. Làm mới và xem xét lại.",
+                    "unconfirmed": "Không thể xác nhận kết quả. Giữ bản nháp và làm mới để xem xét dữ liệu hiện tại trước khi thử lại.",
+                    "loadFailed": "Không thể tải bộ nhớ. Làm mới để thử lại."
+                },
                 "profile": {
                     "description": "Chia sẻ thông tin tùy chọn để SoAI có thể ghi nhớ cách làm việc với bạn qua các cuộc trò chuyện.",
                     "fields": {
@@ -1449,7 +1551,10 @@
                 },
                 "speak": {
                     "failed": "Không thể đọc tin nhắn.",
-                    "noText": "Không có nội dung để đọc."
+                    "noText": "Không có nội dung để đọc.",
+                    "invalidVoice": "Giọng đã chọn không khả dụng cho mô hình giọng nói này. Hãy chọn giọng khác trong cài đặt giọng nói.",
+                    "invalidResponseFormat": "Mô hình giọng nói này không thể tạo định dạng âm thanh được yêu cầu.",
+                    "invalidSpeed": "Tốc độ nói nằm ngoài phạm vi mô hình này hỗ trợ. Hãy điều chỉnh tốc độ trong cài đặt giọng nói."
                 },
                 "assistant": "Trợ lý",
                 "assistantWithModel": "{assistant} ({model})",
@@ -1479,6 +1584,13 @@
                     "tokensTitle": "Mức sử dụng token",
                     "toolActivity": "Hoạt động công cụ",
                     "totalTokens": "Tổng số token"
+                },
+                "outputNotices": {
+                    "reasoningOnly": "Mô hình đã trả về phần suy luận nhưng không có câu trả lời cuối cùng. Hãy thử lại, hoặc thử mô hình hay cài đặt suy luận khác.",
+                    "steered": "Đã tiếp tục bên dưới với tin nhắn mới của bạn.",
+                    "stopped": "Bạn đã dừng câu trả lời này.",
+                    "tokenLimit": "Phản hồi đã dừng vì đạt giới hạn token đầu ra. Hãy tăng cài đặt số token tối đa để nhận câu trả lời dài hơn.",
+                    "tokenLimitReasoning": "Mô hình đã dùng hết ngân sách token đầu ra cho phần suy luận trước khi viết câu trả lời. Hãy tăng cài đặt số token tối đa hoặc giảm mức độ suy luận."
                 },
                 "renderFailed": "Không thể hiển thị tin nhắn.",
                 "runningActivitySummary": {
@@ -1549,7 +1661,6 @@
                 "executePrompt": "Thực hiện kế hoạch.",
                 "executeUnavailable": "Cuộc trò chuyện này không thể chuyển sang chế độ thực thi",
                 "label": "Kế hoạch",
-                "metrics": "{lines} dòng · {characters} ký tự",
                 "revision": "Bản sửa đổi {revision}"
             },
             "processing": {
@@ -1607,7 +1718,6 @@
                 "allUnicode": "Toàn bộ Unicode",
                 "description": "Duyệt ký tự Unicode và emoji, tạo một chuỗi rồi sao chép hoặc chèn vào tin nhắn",
                 "font": "Phông chữ",
-                "fontHint": "Phông chữ chỉ ảnh hưởng đến hiển thị; mọi ký tự trong danh sách vẫn có thể chọn",
                 "fonts": {
                     "emoji": "Emoji nền tảng",
                     "monospace": "Đơn cách chung",
@@ -1634,19 +1744,6 @@
                 "staging": "Ký tự cần sao chép",
                 "subset": "Tập con",
                 "title": "Bảng ký tự"
-            },
-            "promptsPicker": {
-                "editFailed": "Không thể mở trình chỉnh sửa prompt.",
-                "empty": "Chưa có prompt nào được lưu.",
-                "emptyContent": "Không có nội dung prompt",
-                "help": "Chọn một prompt đã lưu để chèn vào ô soạn trò chuyện",
-                "loadFailed": "Không thể tải các prompt đã lưu.",
-                "loading": "Đang tải prompt...",
-                "manage": "Quản lý prompt",
-                "manageFailed": "Không thể mở trang prompt.",
-                "noMatches": "Không có prompt nào khớp với tìm kiếm.",
-                "search": "Tìm kiếm",
-                "title": "Prompt đã lưu"
             },
             "search": {
                 "placeholder": "Tìm kiếm cuộc trò chuyện...",
@@ -1700,9 +1797,32 @@
                     "service_unavailable": "Một dịch vụ cần thiết cho phản hồi này tạm thời không khả dụng.",
                     "stream_hydration_failed": "Không thể đồng bộ lại luồng phản hồi.",
                     "tool_sequence_contract_violation": "Mô hình đã tạo chuỗi công cụ không hợp lệ sau nhiều lần thử. Hãy thử lại hoặc thay đổi tham số mô hình.",
+                    "invalid_request_error": "Nhà cung cấp mô hình đã từ chối yêu cầu. Hãy kiểm tra mô hình đã chọn và các tham số của nó.",
+                    "authentication_error": "Nhà cung cấp mô hình đã từ chối thông tin xác thực hoặc quyền truy cập. Hãy kiểm tra khóa API đã cấu hình.",
+                    "payment_required_error": "Nhà cung cấp mô hình đã từ chối yêu cầu vì thanh toán, tín dụng hoặc giới hạn chi tiêu của tài khoản cần được xử lý.",
+                    "rate_limit_error": "Nhà cung cấp mô hình đang bận hoặc bị giới hạn tốc độ. Hãy đợi một lát rồi thử lại.",
+                    "timeout_error": "Nhà cung cấp mô hình đã hết thời gian chờ khi tạo phản hồi. Hãy thử lại sau.",
+                    "providerExplanation": "Giải thích của nhà cung cấp: {explanation}",
                     "withCode": "{message} (mã: {code})",
                     "withReference": "{message} (mã: {code}; tham chiếu: {referenceId})",
-                    "ws_disconnected": "Mất kết nối khi đang nhận phản hồi."
+                    "ws_disconnected": "Mất kết nối khi đang nhận phản hồi.",
+                    "providerPermission": "Nhà cung cấp từ chối quyền truy cập. Kiểm tra quyền của khóa API, quyền truy cập tài khoản và các khu vực được hỗ trợ.",
+                    "providerParameter": "Nhà cung cấp từ chối {param}. Thay đổi hoặc đặt lại tham số mô hình này rồi thử lại.",
+                    "providerMedia": "Nhà cung cấp từ chối tệp đính kèm. Kiểm tra định dạng, kích thước và nội dung hoặc tải lên lại.",
+                    "providerContext": "Yêu cầu vượt quá cửa sổ ngữ cảnh. Rút gọn ngữ cảnh hội thoại, giảm token đầu ra hoặc chọn mô hình có ngữ cảnh lớn hơn.",
+                    "providerContentPolicy": "Nhà cung cấp chặn yêu cầu theo chính sách nội dung. Diễn đạt lại tin nhắn hoặc chọn mô hình khác.",
+                    "providerVision": "Mô hình hoặc điểm cuối này không nhận hình ảnh. Xóa hình ảnh hoặc chọn mô hình hỗ trợ hình ảnh.",
+                    "providerAudio": "Mô hình hoặc điểm cuối này không nhận âm thanh. Xóa âm thanh hoặc chọn mô hình âm thanh.",
+                    "providerModelUnavailable": "Nhà cung cấp cho biết mô hình này không khả dụng. Làm mới danh mục hoặc chọn mô hình khác.",
+                    "providerUnavailable": "Nhà cung cấp tạm thời không khả dụng hoặc quá tải. Thử lại sau hoặc chọn nhà cung cấp khác.",
+                    "providerRetryAfter": "Chờ ít nhất {seconds} giây trước khi thử lại.",
+                    "providerMediaFormat": "Định dạng tệp đính kèm bị từ chối. Hãy chuyển sang định dạng được hỗ trợ và thử lại.",
+                    "providerMediaSize": "Kiểm tra kích thước và các chiều của tệp đính kèm, rồi thử lại với kích thước được hỗ trợ.",
+                    "providerMediaDecoding": "Không thể giải mã tệp đính kèm. Hãy tải lên tệp hợp lệ và thử lại.",
+                    "providerMediaRetrieval": "Không thể truy xuất tệp đính kèm. Hãy kiểm tra liên kết hoặc tải tệp lên lại.",
+                    "providerContextUsage": "Yêu cầu này cần {requested} token; ngữ cảnh khả dụng là {available} token.",
+                    "context_budget_unavailable": "Ngữ cảnh của mô hình quá nhỏ so với phần dự trữ đầu ra đã cấu hình. Hãy tăng độ dài ngữ cảnh của mô hình hoặc giảm phần dự trữ đầu ra cho việc nén.",
+                    "contextBudgetUsage": "Ngữ cảnh của mô hình là {context} token ({usable} khả dụng); phần dự trữ đầu ra cho việc nén là {reserved} token."
                 },
                 "failedToGetResponse": "Không thể nhận phản hồi",
                 "noModelSelected": "Vui lòng chọn mô hình trước khi gửi tin nhắn",
@@ -2155,6 +2275,12 @@
                         },
                         "apply_patch": {
                             "1": "Đang áp dụng thay đổi"
+                        },
+                        "skill_read": {
+                            "1": "Đang đọc hướng dẫn của kỹ năng"
+                        },
+                        "skill_materialize": {
+                            "1": "Đang sao chép tệp kỹ năng vào không gian làm việc"
                         }
                     }
                 }
@@ -2412,12 +2538,15 @@
             "cancellation": {
                 "failed": "Yêu cầu hủy thất bại. Thao tác vẫn đang chạy; hãy thử lại.",
                 "userRequested": "Người dùng đã yêu cầu hủy.",
-                "userRequestedViaWebUi": "Người dùng đã yêu cầu hủy qua WebUI."
+                "userRequestedViaWebUi": "Người dùng đã yêu cầu hủy qua WebUI.",
+                "cancelling": "Đang hủy",
+                "cancelled": "Đã hủy"
             },
             "clipboard": {
                 "copied": "Đã sao chép vào bảng tạm",
                 "copyFailed": "Không thể sao chép vào bảng tạm",
-                "copyUnavailable": "Bảng tạm không khả dụng trong môi trường này"
+                "copyUnavailable": "Bảng tạm không khả dụng trong môi trường này",
+                "notificationCopied": "Đã sao chép thông báo vào bảng tạm"
             },
             "close": "Đóng",
             "filters": {
@@ -2441,7 +2570,6 @@
                 "chatAttachments": "Các tệp đính kèm được tin nhắn này tham chiếu",
                 "chatMcpDefaultTools": "Công cụ MCP mặc định cho cuộc trò chuyện mới",
                 "chatMemoryProfile": "Thông tin cá nhân mà SoAI ghi nhớ qua các cuộc trò chuyện",
-                "chatPromptsPicker": "Các prompt đã lưu, sẵn sàng chèn vào cuộc trò chuyện này",
                 "voiceCall": "Trò chuyện rảnh tay với micrô, chuyển giọng nói thành văn bản, phản hồi dạng stream và phát giọng nói",
                 "credits": "Thông tin ghi công cho các dependency bên thứ ba",
                 "fileExplorerMetadata": "Siêu dữ liệu tệp",
@@ -2490,12 +2618,24 @@
             "error": "Lỗi",
             "errors": {
                 "errorWithMessage": "Lỗi: {message}",
+                "fileAccessDenied": "SoAI bị từ chối quyền truy cập vào một tệp cần thiết. Hãy kiểm tra quyền của thư mục rồi thử lại.",
+                "fileOperationFailed": "Một thao tác với tệp đã thất bại. Hãy xem nhật ký để biết chi tiết rồi thử lại.",
                 "insufficientDiskSpace": "Không thể tiếp tục thao tác vì không đủ dung lượng ổ đĩa.",
                 "offlinePolicy": "Thao tác không khả dụng khi chế độ ngoại tuyến đang bật.",
                 "operationFailed": "Thao tác thất bại. Hãy thử lại.",
                 "operationFailedWithMessage": "Không thể {operation}: {error}",
+                "runtimeStartupTimeout": "Một môi trường chạy chưa sẵn sàng kịp thời. Các tệp môi trường chạy mới cài đặt có thể mất nhiều thời gian hơn trong lần khởi động đầu tiên. Hãy thử lại thao tác.",
+                "runtimeVerificationTimeout": "SoAI không thể hoàn tất việc kiểm tra môi trường chạy kịp thời. Các tệp môi trường chạy mới cài đặt có thể mất nhiều thời gian hơn trong lần khởi động đầu tiên. Hãy thử lại thao tác.",
+                "executionTimeoutResponse": "Plugin không trả về phản hồi trong vòng {budget} giây (đã trôi qua {elapsed} giây).",
+                "executionTimeoutInitialResponse": "Mô hình không bắt đầu phản hồi trong vòng {budget} giây (đã trôi qua {elapsed} giây).",
+                "executionTimeoutFirstToken": "Mô hình không tạo ra đầu ra đầu tiên trong vòng {budget} giây (đã trôi qua {elapsed} giây).",
+                "executionTimeoutBufferedResponse": "Mô hình không hoàn tất phản hồi trong vòng {budget} giây (đã trôi qua {elapsed} giây).",
+                "executionTimeoutRequestLimit": "Yêu cầu đã đặt giới hạn thời gian này, nên plugin không bị đánh dấu là không ổn định.",
+                "executionTimeoutPluginBudget": "Đây là ngân sách thực thi của plugin, nên plugin có thể đang quá tải hoặc không phản hồi.",
                 "unknown": "Lỗi không xác định",
-                "unknownError": "Đã xảy ra lỗi không xác định."
+                "unknownError": "Đã xảy ra lỗi không xác định.",
+                "storageHeadroomInsufficient": "Không đủ dung lượng lưu trữ khi tính cả khoảng trống an toàn và dung lượng đã đặt trước. Hãy giải phóng dung lượng hoặc đợi các thao tác lưu trữ khác hoàn tất rồi thử lại.",
+                "storageHeadroomValues": "Cần có, gồm biên an toàn: {required}. Khả dụng cho thao tác này: {available}."
             },
             "export": "Xuất",
             "exportPreview": {
@@ -2606,6 +2746,10 @@
             "retry": "Thử lại"
         },
         "contentPreview": {
+            "fields": {
+                "title": "Tiêu đề",
+                "text": "Văn bản"
+            },
             "actions": {
                 "goToPath": "Đi tới đường dẫn",
                 "goToUrl": "Đi tới URL",
@@ -2890,7 +3034,14 @@
                 "renameNameRequired": "Hãy nhập tên trước.",
                 "renameNameUnchanged": "Hãy nhập tên khác.",
                 "selectionChanged": "Lựa chọn đã thay đổi. Hãy chọn lại mục trước khi đổi tên.",
-                "selectionRequired": "Hãy chọn ít nhất một mục trước."
+                "selectionRequired": "Hãy chọn ít nhất một mục trước.",
+                "changeRefreshFailed": "Thay đổi đã được lưu nhưng không thể làm mới thông tin tệp. Hãy làm mới trang Tệp.",
+                "fileInUse": "Ứng dụng khác đang sử dụng tệp này. Hãy đóng ứng dụng đó rồi thử lại.",
+                "listingExpired": "Danh sách thư mục không còn khả dụng. Hãy làm mới trang Tệp để tải lại.",
+                "publicationUncertain": "Tệp có thể đã được lưu nhưng không thể xác minh trạng thái cuối cùng. Kiểm tra vị trí đích trong Tệp trước khi tải lên lại.",
+                "cleanupIncomplete": "Không thể hoàn tất việc dọn dẹp tự động. Hãy kiểm tra vị trí đích trong Tệp trước khi thử lại.",
+                "contentChanged": "Tệp đã thay đổi trong quá trình thao tác. Chọn lại tệp và thử lại.",
+                "destinationExists": "Đã có tệp hoặc thư mục mang tên này. Hãy chọn tên hoặc vị trí đích khác."
             },
             "labels": {
                 "latestTask": "Tác vụ mới nhất",
@@ -3114,7 +3265,8 @@
                         "withTotal": "{count} {label} • {total}"
                     },
                     "title": "Lưu trữ",
-                    "waiting": "Đang phát hiện..."
+                    "waiting": "Đang phát hiện...",
+                    "unavailable": "Lưu trữ không khả dụng"
                 }
             },
             "common": {
@@ -3137,7 +3289,47 @@
                 "network": "Mạng"
             },
             "errors": {
-                "historyInitFailed": "Không thể khởi tạo luồng lịch sử"
+                "historyInitFailed": "Không thể khởi tạo luồng lịch sử",
+                "gpuRecoveryIdentityConflict": "Quá trình khôi phục GPU không thể xác minh thiết bị vật lý. Các thay đổi GPU vẫn bị vô hiệu hóa. Hãy giữ lại dữ liệu khôi phục và xem chẩn đoán phần cứng.",
+                "gpuSlotAliasConflict": "Các bí danh GPU đã lưu chứa cài đặt xung đột hoặc không được nhận dạng. Hãy giữ lại tệp khe và kiểm tra các hồ sơ đã lưu trước khi thay đổi.",
+                "opencl_compiler_unavailable": "Môi trường OpenCL không thể biên dịch kernel của SoAI Bench. Hãy cài môi trường OpenCL cho GPU có trình biên dịch khi chạy.",
+                "opencl_kernel_execution_unavailable": "Môi trường OpenCL không thể thực thi kernel được biên dịch từ mã nguồn. Hãy cài môi trường OpenCL cho GPU có hỗ trợ này.",
+                "opencl_custom_identity_unproved": "Không thể xác minh danh tính GPU hoặc thông tin nhà cung cấp trong OpenCL. Hãy làm mới việc phát hiện GPU và cập nhật trình điều khiển GPU.",
+                "opencl_memory_insufficient": "SoAI Bench cần một vùng cấp phát OpenCL 256 MiB và đủ tổng bộ nhớ thiết bị. Hãy chọn GPU đáp ứng các yêu cầu này.",
+                "soaibenchPublicationUnsupported": "GPU này không thể chạy phép đo hiệu năng này. Không có điểm để công bố. Hãy chọn GPU được hỗ trợ và hoàn thành phép đo hiệu năng trước.",
+                "gpuInventoryBusy": "Danh mục GPU đang bận hoặc đang khôi phục. Hãy chờ rồi thử lại chuỗi lịch sử này.",
+                "soaibenchPublicationCancelled": "Bài đo này đã bị hủy. Hoàn thành một bài đo được hỗ trợ trước khi công bố.",
+                "soaibenchPublicationIncomplete": "Bài đo này chưa có kết quả đầy đủ đủ điều kiện. Hoàn thành bài đo được chứng nhận và hỗ trợ trước khi công bố.",
+                "gpuClockCombinationUnsupported": "GPU này không thể kết hợp các điều khiển xung nhịp này. Hãy áp dụng từng điều khiển một.",
+                "gpuClockConversionUnavailable": "Trình điều khiển không thể cung cấp phép chuyển đổi xung nhịp cần thiết. Hãy làm mới việc phát hiện phần cứng và kiểm tra khả năng hỗ trợ của trình điều khiển.",
+                "gpuSettingOutOfRange": "Cài đặt GPU này nằm ngoài phạm vi được hỗ trợ. Hãy chọn giá trị được hỗ trợ.",
+                "gpuSettingRange": "{field}: {requested} {unit} nằm ngoài phạm vi được hỗ trợ {minimum}–{maximum} {unit}. Hãy chọn giá trị được hỗ trợ.",
+                "gpuObservationUnavailable": "Không thể đọc trạng thái GPU hiện tại. Các thay đổi đã lưu vẫn được giữ lại. Hãy chờ việc đọc khôi phục rồi làm mới giao diện.",
+                "gpuObservationTimeout": "Việc đọc trạng thái GPU hiện tại đã hết thời gian chờ. Các thay đổi đã lưu vẫn được giữ lại. Hãy chờ việc đọc khôi phục rồi làm mới giao diện.",
+                "gpuSensorPermissionDenied": "Quyền truy cập cảm biến GPU bị từ chối. Cấp cho tài khoản dịch vụ SoAI quyền truy cập thiết bị GPU và các tệp cảm biến, rồi làm mới.",
+                "vulkanRuntimeUnavailable": "Liên kết GPU đã chọn cần ánh xạ thiết bị Vulkan, nhưng công cụ Vulkan không khả dụng hoặc bị lỗi. Hãy cài đặt công cụ và trình điều khiển Vulkan của bản phân phối, hoặc liên kết tất cả GPU.",
+                "vulkanQueryTimeout": "Liên kết GPU đã chọn cần ánh xạ thiết bị Vulkan, nhưng truy vấn thiết bị Vulkan đã hết thời gian chờ. Hãy kiểm tra trình điều khiển Vulkan, hoặc liên kết tất cả GPU.",
+                "vulkanFormatUnsupported": "Liên kết GPU đã chọn cần ánh xạ thiết bị Vulkan, nhưng công cụ Vulkan trả về định dạng không được hỗ trợ. Hãy cập nhật công cụ Vulkan của bản phân phối, hoặc liên kết tất cả GPU.",
+                "vulkanDeviceUnavailable": "GPU đã chọn không nằm trong số các thiết bị Vulkan. Hãy kiểm tra trình điều khiển Vulkan của GPU này, hoặc chọn GPU khác.",
+                "vulkanIdentityUnavailable": "GPU đã chọn không có định danh UUID hoặc PCI chung với các thiết bị Vulkan, nên không thể liên kết an toàn. Hãy liên kết tất cả GPU thay thế.",
+                "vulkanIdentityConflict": "GPU đã chọn có định danh mâu thuẫn trong danh sách thiết bị Vulkan, nên không thể liên kết an toàn. Hãy kiểm tra trình điều khiển GPU, hoặc liên kết tất cả GPU.",
+                "vulkanDeviceAmbiguous": "GPU đã chọn được nhiều trình điều khiển Vulkan cung cấp. Hãy xóa trình điều khiển Vulkan trùng lặp (ICD), hoặc liên kết tất cả GPU.",
+                "gpuBindingIdentityConflict": "Định danh vật lý của GPU đã chọn xuất hiện nhiều lần trong danh mục phần cứng. Làm mới thông tin phần cứng rồi chọn lại GPU.",
+                "gpuDiscoveryTimeout": "Quá thời gian phát hiện GPU. Chờ truy vấn phần cứng kết thúc rồi thử lại.",
+                "gpuDiscoveryBusy": "Truy vấn phần cứng vẫn đang chạy. Chờ phát hiện GPU hoàn tất rồi thử lại.",
+                "gpuDiscoveryNativeTimeout": "Truy vấn GPU gốc đã quá thời gian. Kiểm tra trình điều khiển đồ họa rồi thử lại.",
+                "gpuDiscoveryQueryFailed": "Truy vấn GPU gốc thất bại. Kiểm tra trình điều khiển đồ họa và chẩn đoán hệ thống rồi thử lại.",
+                "gpuDiscoveryEmpty": "Truy vấn GPU không trả về dữ liệu. Kiểm tra trình điều khiển đồ họa rồi thử lại.",
+                "gpuDiscoveryInvalid": "Truy vấn GPU trả về dữ liệu không hợp lệ. Kiểm tra trình điều khiển đồ họa và chẩn đoán hệ thống rồi thử lại.",
+                "gpuDiscoveryRuntimeUnavailable": "Không có công cụ phát hiện GPU. Khôi phục các công cụ hệ thống rồi thử lại.",
+                "gpuDiscoveryPermissionDenied": "Quyền truy cập để phát hiện GPU bị từ chối. Kiểm tra quyền phần cứng của tài khoản dịch vụ rồi thử lại.",
+                "gpuDiscoveryUnavailable": "Không thể phát hiện GPU. Kiểm tra trình điều khiển đồ họa và các công cụ hệ thống rồi thử lại.",
+                "gpuDiscoveryChanged": "Danh sách GPU đã thay đổi trong khi phát hiện. Chờ phát hiện phần cứng hoàn tất rồi thử lại.",
+                "opencl_operation_deadline": "{phase} đã vượt quá giới hạn {seconds} giây. Không có điểm số nào được tạo. Hãy kiểm tra xem trình điều khiển đồ họa có phản hồi không, rồi thử lại.",
+                "opencl_runtime_deadline": "OpenCL không hoàn tất trước thời hạn. Hãy kiểm tra xem trình điều khiển đồ họa có phản hồi không, rồi thử lại.",
+                "opencl_child_exited": "Môi trường chạy OpenCL đã dừng đột ngột. Kiểm tra trình điều khiển đồ họa, rồi thử lại SoAI Bench.",
+                "opencl_child_invalid_response": "Môi trường chạy OpenCL trả về phản hồi không hợp lệ. Khởi động lại SoAI và thử lại SoAI Bench.",
+                "opencl_child_disconnected": "Giao tiếp với môi trường chạy OpenCL bị gián đoạn. Thử lại SoAI Bench."
             },
             "gpu": {
                 "actions": {
@@ -3145,7 +3337,7 @@
                     "soaibenchHistory": "Lịch sử",
                     "soaibenchStandard": "Benchmark",
                     "soaibenchStop": "Dừng",
-                    "soaibenchStress": "Kiểm tra tải",
+                    "soaibenchStress": "Tải nặng",
                     "viewBenchmark": "Xem benchmark",
                     "test": "Kiểm thử",
                     "reset": "Đặt lại",
@@ -3154,8 +3346,11 @@
                 "controls": {
                     "autoLabel": "Tự động",
                     "coreClock": "Độ lệch xung nhịp lõi",
+                    "coreClockFrequency": "Tần số xung nhịp lõi",
                     "fan_speed": "Tốc độ quạt",
                     "memoryClock": "Độ lệch xung nhịp bộ nhớ",
+                    "memoryClockFrequency": "Tần số xung nhịp bộ nhớ",
+                    "powerLimitOffset": "Độ lệch giới hạn công suất",
                     "power_limit": "Giới hạn công suất",
                     "toggleAutomatic": "Điều khiển tự động"
                 },
@@ -3166,19 +3361,19 @@
                     "noManualChange": "Hãy tắt chế độ 'Tự động' trước khi lưu.",
                     "noSettings": "Không có cài đặt GPU nào để áp dụng.",
                     "reset": "Đã đặt lại GPU {index} về mặc định",
-                    "soaibenchNoActiveRun": "GPU {index} không có lượt chạy SoAIBench nào đang hoạt động",
-                    "soaibenchStarted": "GPU {index} đã bắt đầu SoAIBench {profile}",
-                    "soaibenchStopRequested": "Đã yêu cầu dừng SoAIBench trên GPU {index}",
-                    "soaibenchUnsupported": "GPU {index} không hỗ trợ SoAIBench: {reason}",
+                    "soaibenchNoActiveRun": "GPU {index} không có lượt chạy SoAI Bench nào đang hoạt động",
+                    "soaibenchStarted": "GPU {index} đã bắt đầu SoAI Bench {profile}",
+                    "soaibenchStopRequested": "Đã yêu cầu dừng SoAI Bench trên GPU {index}",
+                    "soaibenchUnsupported": "GPU {index} không hỗ trợ SoAI Bench: {reason}",
                     "soaibenchSettingsLocked": "GPU {index} đang chạy benchmark. Hãy dừng hoặc đợi benchmark hoàn tất trước khi lưu cài đặt.",
                     "slotApplied": "GPU {index}: đã áp dụng slot {slot}",
                     "slotSaved": "GPU {index}: đã lưu slot {slot}"
                 },
                 "soaibench": {
-                    "standardTaskName": "SoAIBench GPU tiêu chuẩn",
+                    "standardTaskName": "SoAI Bench GPU tiêu chuẩn",
                     "stressRunningLabel": "Kiểm tra tải nặng - đang chạy",
-                    "stopTaskName": "Dừng SoAIBench GPU",
-                    "stressTaskName": "SoAIBench GPU tải nặng"
+                    "stopTaskName": "Dừng SoAI Bench GPU",
+                    "stressTaskName": "SoAI Bench GPU tải nặng"
                 },
                 "panelHeader": "GPU {index}: {name}",
                 "panelTitle": "Điều khiển GPU",
@@ -3195,6 +3390,28 @@
                     "powerDraw": "Công suất",
                     "temperatures": "Nhiệt độ",
                     "memoryUtilization": "VRAM"
+                },
+                "errors": {
+                    "invalidGpuId": "Chọn một GPU hợp lệ rồi thử lại.",
+                    "invalidSlot": "Chọn một slot GPU hợp lệ rồi thử lại.",
+                    "invalidPayload": "Kiểm tra cài đặt GPU rồi thử lại.",
+                    "noSettings": "Chọn ít nhất một cài đặt GPU trước khi áp dụng thay đổi.",
+                    "deviceNotFound": "Không tìm thấy GPU đã chọn. Làm mới danh sách phần cứng rồi chọn lại GPU đó.",
+                    "noGpus": "Không có GPU nào khả dụng. Kiểm tra việc phát hiện phần cứng rồi thử lại.",
+                    "slotEmpty": "Slot GPU đã chọn đang trống. Lưu cài đặt vào slot này trước khi áp dụng.",
+                    "slotUnchanged": "Slot GPU đã chứa các cài đặt này.",
+                    "bootUnchanged": "Slot GPU đã có cài đặt khởi động này.",
+                    "slotRequiresApply": "Áp dụng slot GPU trước khi bật slot khi khởi động.",
+                    "applyFailed": "Không thể áp dụng cài đặt GPU một cách an toàn. Hãy xem chi tiết thao tác và thử lại.",
+                    "deviceUnavailable": "GPU đã chọn không khả dụng. Đợi GPU khôi phục rồi thử lại.",
+                    "hardwareMutationDisabled": "Thay đổi phần cứng GPU đã bị vô hiệu hóa cho bản cài đặt này.",
+                    "gpuActivityConflict": "GPU đang bận với một thao tác khác. Đợi thao tác hoàn tất rồi thử lại.",
+                    "hardwareUnavailable": "Không thể tinh chỉnh GPU trong bản cài đặt này. Kiểm tra khả năng hỗ trợ phần cứng và cấu hình.",
+                    "gpuError": "Thao tác cài đặt GPU thất bại. Kiểm tra cài đặt rồi thử lại.",
+                    "slotError": "Thao tác slot GPU thất bại. Làm mới danh sách phần cứng rồi thử lại.",
+                    "recoveryReconciled": "Cài đặt GPU trước đó đã được khôi phục. Hãy áp dụng lại cài đặt mới.",
+                    "recoveryUnresolved": "Không thể khôi phục an toàn cài đặt GPU trước đó. Hãy kiểm tra trạng thái GPU trước khi áp dụng lại cài đặt.",
+                    "controlPreparationFailed": "Không thể chuẩn bị cài đặt GPU trước khi truy cập phần cứng. Hãy thử lại và báo cáo mã tham chiếu nếu sự cố vẫn tiếp diễn."
                 }
             },
             "metrics": {
@@ -3217,41 +3434,41 @@
             "soaibenchPublication": {
                 "deleteLocalHistory": "Xóa lịch sử cục bộ",
                 "deleteLocalConfirm": {
-                    "title": "Xóa lượt chạy SoAIBench?",
-                    "message": "Xóa lượt chạy SoAIBench này khỏi lịch sử cục bộ? Không thể hoàn tác thao tác này."
+                    "title": "Xóa lượt chạy SoAI Bench?",
+                    "message": "Xóa lượt chạy SoAI Bench này khỏi lịch sử cục bộ? Không thể hoàn tác thao tác này."
                 },
                 "action": "Chia sẻ",
                 "openRun": "Mở kết quả",
-                "ariaLabel": "Chia sẻ điểm SoAIBench này",
-                "unavailable": "Không có lượt chạy SoAIBench nào đủ điều kiện công bố",
+                "ariaLabel": "Chia sẻ điểm SoAI Bench này",
+                "unavailable": "Không có lượt chạy SoAI Bench nào đủ điều kiện công bố",
                 "confirm": {
-                    "title": "Chia sẻ điểm SoAIBench?",
-                    "message": "Công bố điểm {score} và {passes} lượt đo của điểm này trên bảng xếp hạng SoAIBench công khai?",
+                    "title": "Chia sẻ điểm SoAI Bench?",
+                    "message": "Công bố điểm {score} và {passes} lượt đo của điểm này trên bảng xếp hạng SoAI Bench công khai?",
                     "description": "Thao tác này gửi điểm, năm lượt đo, thông tin GPU và môi trường chạy công khai, cài đặt phép thử và bằng chứng cảm biến tùy chọn. Danh tính tài khoản, tệp, cấu hình, dữ liệu phân tích và dữ liệu đo từ xa chung đều bị loại trừ."
                 },
                 "outcomes": {
-                    "published": "Đã chia sẻ công khai điểm SoAIBench.",
-                    "alreadyPublished": "Điểm SoAIBench này đã được chia sẻ.",
-                    "heldForReview": "Kết quả SoAIBench đang được giữ lại để xem xét danh tính hoặc điểm bất thường và chưa được tính vào bảng xếp hạng.",
+                    "published": "Đã chia sẻ công khai điểm SoAI Bench.",
+                    "alreadyPublished": "Điểm SoAI Bench này đã được chia sẻ.",
+                    "heldForReview": "Kết quả SoAI Bench đang được giữ lại để xem xét danh tính hoặc điểm bất thường và chưa được tính vào bảng xếp hạng.",
                     "offline": "Không thể chia sẻ điểm khi SoAI ngoại tuyến.",
-                    "unavailable": "Dịch vụ công bố SoAIBench hiện không khả dụng.",
+                    "unavailable": "Dịch vụ công bố SoAI Bench hiện không khả dụng.",
                     "timeout": "Quá thời gian chia sẻ điểm. Hãy thử lại để đối soát cùng một lần công bố.",
                     "rateLimited": "Đã chia sẻ quá nhiều điểm từ kết nối này. Hãy thử lại sau.",
-                    "capacity": "Bảng xếp hạng SoAIBench hiện đã hết dung lượng.",
-                    "rejected": "Bảng xếp hạng SoAIBench đã từ chối kết quả này.",
+                    "capacity": "Bảng xếp hạng SoAI Bench hiện đã hết dung lượng.",
+                    "rejected": "Bảng xếp hạng SoAI Bench đã từ chối kết quả này.",
                     "conflict": "Lần công bố này xung đột với trạng thái bảng xếp hạng hiện có.",
-                    "invalidResponse": "Bảng xếp hạng SoAIBench trả về phản hồi không hợp lệ.",
+                    "invalidResponse": "Bảng xếp hạng SoAI Bench trả về phản hồi không hợp lệ.",
                     "retryAfter": "Hãy thử lại sau {seconds} giây."
                 }
             },
             "modals": {
                 "soaibenchHistory": {
                     "ariaLabels": {
-                        "close": "Đóng lịch sử SoAIBench",
-                        "copy": "Sao chép lịch sử SoAIBench",
-                        "copyRun": "Sao chép lượt chạy SoAIBench",
-                        "download": "Tải xuống CSV lịch sử SoAIBench",
-                        "downloadRun": "Tải xuống lượt chạy SoAIBench"
+                        "close": "Đóng lịch sử SoAI Bench",
+                        "copy": "Sao chép lịch sử SoAI Bench",
+                        "copyRun": "Sao chép lượt chạy SoAI Bench",
+                        "download": "Tải xuống CSV lịch sử SoAI Bench",
+                        "downloadRun": "Tải xuống lượt chạy SoAI Bench"
                     },
                     "close": "Đóng",
                     "copy": "Sao chép",
@@ -3260,10 +3477,10 @@
                         "runs": "Lượt chạy",
                         "table": "Bảng lượt chạy"
                     },
-                    "copySuccess": "Đã sao chép lịch sử SoAIBench vào bảng tạm",
-                    "copyUnavailable": "Không có lịch sử SoAIBench để sao chép",
+                    "copySuccess": "Đã sao chép lịch sử SoAI Bench vào bảng tạm",
+                    "copyUnavailable": "Không có lịch sử SoAI Bench để sao chép",
                     "download": "Tải xuống",
-                    "downloadSuccess": "Đã bắt đầu tải xuống CSV lịch sử SoAIBench",
+                    "downloadSuccess": "Đã bắt đầu tải xuống CSV lịch sử SoAI Bench",
                     "columns": {
                         "actions": "Thao tác",
                         "certification": "Chứng nhận",
@@ -3287,11 +3504,11 @@
                         "quick": "Nhanh",
                         "varianceSuffix": "độ biến thiên {variance}%"
                     },
-                    "description": "Các lượt chạy SoAIBench trước đây của GPU đã chọn",
-                    "empty": "GPU này chưa có lượt chạy SoAIBench nào.",
+                    "description": "Các lượt chạy SoAI Bench trước đây của GPU đã chọn",
+                    "empty": "GPU này chưa có lượt chạy SoAI Bench nào.",
                     "loading": "Đang tải lịch sử lượt chạy...",
-                    "pageEmpty": "Chưa có lượt chạy SoAIBench nào.",
-                    "pageLoadFailed": "Không thể tải các lượt chạy SoAIBench. Hãy thử lại.",
+                    "pageEmpty": "Chưa có lượt chạy SoAI Bench nào.",
+                    "pageLoadFailed": "Không thể tải các lượt chạy SoAI Bench. Hãy thử lại.",
                     "matchBases": {
                         "device_id": "ID thiết bị",
                         "gpu_model_key": "Khóa mô hình GPU",
@@ -3313,9 +3530,11 @@
                         "stress": "Tải nặng"
                     },
                     "reasons": {
-                        "opencl_numerical_mismatch": "Xác thực số của khối lượng công việc OpenCL không thành công."
+                        "opencl_numerical_mismatch": "Xác thực số của khối lượng công việc OpenCL không thành công.",
+                        "preflight": "Kiểm tra sơ bộ",
+                        "startup": "Khởi động"
                     },
-                    "rowCopyUnavailable": "Không có lượt chạy SoAIBench để sao chép",
+                    "rowCopyUnavailable": "Không có lượt chạy SoAI Bench để sao chép",
                     "staleHardware": "Kết quả khớp phần cứng đã cũ",
                     "statuses": {
                         "cancelled": "Đã hủy",
@@ -3327,28 +3546,28 @@
                         "unstable": "Không ổn định",
                         "unsupported": "Không được hỗ trợ"
                     },
-                    "title": "Các lượt chạy SoAIBench trước đây"
+                    "title": "Các lượt chạy SoAI Bench trước đây"
                 },
                 "soaibenchRun": {
                     "selectGpu": "Chọn GPU để đo hiệu năng",
                     "noGpus": "Không có GPU nào để đo hiệu năng.",
                     "ariaLabels": {
-                        "close": "Đóng SoAIBench",
-                        "copy": "Sao chép lượt chạy SoAIBench",
-                        "download": "Tải xuống lượt chạy SoAIBench",
-                        "history": "Mở lịch sử SoAIBench",
-                        "retry": "Thử lại SoAIBench được chứng nhận",
-                        "stop": "Dừng SoAIBench được chứng nhận",
-                        "stopping": "Đang dừng SoAIBench được chứng nhận",
-                        "newBenchmark": "Bắt đầu lượt chạy SoAIBench được chứng nhận mới",
-                        "runAgain": "Chạy lại SoAIBench được chứng nhận trên GPU này",
-                        "recover": "Kiểm tra lại trạng thái SoAIBench",
-                        "start": "Bắt đầu SoAIBench được chứng nhận"
+                        "close": "Đóng SoAI Bench",
+                        "copy": "Sao chép lượt chạy SoAI Bench",
+                        "download": "Tải xuống lượt chạy SoAI Bench",
+                        "history": "Mở lịch sử SoAI Bench",
+                        "retry": "Thử lại SoAI Bench được chứng nhận",
+                        "stop": "Dừng SoAI Bench được chứng nhận",
+                        "stopping": "Đang dừng SoAI Bench được chứng nhận",
+                        "newBenchmark": "Bắt đầu lượt chạy SoAI Bench được chứng nhận mới",
+                        "runAgain": "Chạy lại SoAI Bench được chứng nhận trên GPU này",
+                        "recover": "Kiểm tra lại trạng thái SoAI Bench",
+                        "start": "Bắt đầu SoAI Bench được chứng nhận"
                     },
                     "close": "Đóng",
                     "copy": "Sao chép",
-                    "copySuccess": "Đã sao chép lượt chạy SoAIBench vào bảng tạm",
-                    "copyUnavailable": "Không có lượt chạy SoAIBench để sao chép",
+                    "copySuccess": "Đã sao chép lượt chạy SoAI Bench vào bảng tạm",
+                    "copyUnavailable": "Không có lượt chạy SoAI Bench để sao chép",
                     "description": "Benchmark GPU được chứng nhận để kiểm tra mức sẵn sàng cho suy luận SoAI",
                     "download": "Tải xuống",
                     "export": {
@@ -3360,7 +3579,7 @@
                         "rawRun": "Chi tiết lượt chạy thô",
                         "runId": "ID lượt chạy",
                         "status": "Trạng thái",
-                        "title": "Chi tiết lượt chạy SoAIBench"
+                        "title": "Chi tiết lượt chạy SoAI Bench"
                     },
                     "history": "Lịch sử",
                     "metrics": {
@@ -3392,16 +3611,16 @@
                         "stability": "Độ ổn định"
                     },
                     "progress": {
-                        "activeRunInProgress": "Một lượt chạy SoAIBench khác đã đang hoạt động trên GPU này.",
+                        "activeRunInProgress": "Một lượt chạy SoAI Bench khác đã đang hoạt động trên GPU này.",
                         "awaitingRun": "Đang chờ trạng thái lượt chạy từ backend",
                         "measured": "Lượt đo {pass} trên {total}",
                         "measuredDetail": "Đã đo {pass}/{total}",
                         "measuredPhase": "Lượt đo {pass} trên {total}: {phase}",
                         "phaseDetail": "{phase} {index}/{total}",
-                        "running": "SoAIBench đang chạy, vui lòng chờ...",
-                        "startFailed": "Không thể bắt đầu SoAIBench",
-                        "starting": "Đang bắt đầu SoAIBench được chứng nhận",
-                        "stopping": "Đang dừng SoAIBench",
+                        "running": "SoAI Bench đang chạy, vui lòng chờ...",
+                        "startFailed": "Không thể bắt đầu SoAI Bench",
+                        "starting": "Đang bắt đầu SoAI Bench được chứng nhận",
+                        "stopping": "Đang dừng SoAI Bench",
                         "warmupDetail": "Làm nóng {pass}/{total}",
                         "warmupPhase": "Làm nóng: {phase}",
                         "warmup": "Đã hoàn tất lượt làm nóng",
@@ -3411,7 +3630,7 @@
                         "startUnconfirmed": "Không thể xác nhận benchmark đã bắt đầu và không có lượt chạy nào đang hoạt động trên GPU này. Hãy kiểm tra lịch sử trước khi thử lại."
                     },
                     "retry": "Thử lại",
-                    "scoreLabel": "Điểm SoAIBench",
+                    "scoreLabel": "Điểm SoAI Bench",
                     "sections": {
                         "expect": {
                             "items": "GPU sẽ bận|Công suất và tốc độ quạt có thể tăng|Có thể dừng lượt chạy|Các trường hợp runtime không được hỗ trợ sẽ được báo rõ",
@@ -3439,7 +3658,7 @@
                         "unresolved": "Không rõ trạng thái",
                         "rejected": "Chưa bắt đầu"
                     },
-                    "title": "SoAIBench"
+                    "title": "SoAI Bench"
                 },
                 "systemInfo": {
                     "anonymize": "Ẩn danh",
@@ -3565,6 +3784,9 @@
                 "slotsRetained": "Các cài đặt GPU đã lưu không khả dụng. Đang hiển thị dữ liệu từ {age}.",
                 "capabilitiesUnavailable": "Không thể sử dụng các điều khiển GPU.",
                 "slotsUnavailable": "Không thể sử dụng các cài đặt GPU đã lưu."
+            },
+            "observations": {
+                "retainedAge": "Quan sát được giữ lại · cách đây {seconds} giây"
             }
         },
         "header": {
@@ -3592,6 +3814,7 @@
                 "about": "Giới thiệu",
                 "logout": "Đăng xuất",
                 "logs": "Nhật ký",
+                "power": "Khởi động lại / Tắt",
                 "settings": "Cài đặt",
                 "updates": "Cập nhật"
             },
@@ -3630,7 +3853,7 @@
                     "unavailable": "Thông báo không khả dụng. Đang kết nối lại..."
                 },
                 "confirmations": {
-                    "clearAllMessage": "Xóa tất cả thông báo? Thao tác này không thể hoàn tác."
+                    "clearAllMessage": "Xóa tất cả thông báo ({count})? Thao tác này không thể hoàn tác."
                 }
             }
         },
@@ -4205,17 +4428,22 @@
             "cards": {
                 "capabilities": {
                     "lockedReasons": {
-                        "requiresAudio": "Bật phương thức Audio để có thể thay đổi mục này.",
-                        "requiresImages": "Bật endpoint Images để có thể thay đổi mục này.",
-                        "requiresResponses": "Bật endpoint Responses để có thể thay đổi mục này.",
-                        "requiresVision": "Bật phương thức Vision để có thể thay đổi mục này.",
+                        "requiresAudio": "Yêu cầu phương thức âm thanh.",
+                        "requiresImages": "Yêu cầu điểm cuối Images.",
+                        "requiresResponses": "Yêu cầu điểm cuối Responses.",
+                        "requiresVision": "Yêu cầu phương thức thị giác.",
                         "text": "Không thể tắt Text.",
-                        "unsupported": "Mô hình này không hỗ trợ khả năng này."
+                        "unsupported": "Mô hình không công bố khả năng này."
                     },
                     "manifestLoading": "Đang tải phân loại khả năng...",
+                    "modes": {
+                        "autoOff": "Tự động (tắt)",
+                        "autoOn": "Tự động (bật)",
+                        "disabled": "Đã tắt",
+                        "enabled": "Đã bật"
+                    },
                     "none": "Không có khả năng OpenAI nào khả dụng cho mô hình này.",
                     "pluginCapabilitiesUnavailable": "Hồ sơ khả năng của plugin không khả dụng.",
-                    "reset": "Đặt lại ghi đè",
                     "sections": {
                         "chatFeatures": "Tính năng trò chuyện",
                         "endpoints": "Endpoint",
@@ -4223,7 +4451,9 @@
                         "modalities": "Phương thức",
                         "responsesFeatures": "Tính năng phản hồi"
                     },
-                    "title": "Khả năng"
+                    "title": "Khả năng",
+                    "unverified": "Chưa xác minh",
+                    "unverifiedHint": "Nhà cung cấp không báo cáo khả năng này. SoAI giữ hành vi tương thích cho đến khi bạn chọn Đã bật hoặc Đã tắt"
                 },
                 "constituents": {
                     "hasParameters": "Tham số tùy chỉnh",
@@ -4235,7 +4465,6 @@
                     "created": "Đã tạo",
                     "name": "Tên nhà cung cấp",
                     "providerId": "ID nhà cung cấp",
-                    "status": "Trạng thái",
                     "title": "Nhà cung cấp bên ngoài"
                 },
                 "identity": {
@@ -4270,6 +4499,9 @@
                     "delete": "Gỡ",
                     "enabledNote": "Mô hình bị tắt không thể nhận yêu cầu và sẽ bị ẩn khỏi bộ chọn mô hình.",
                     "enabledToggleLabel": "Bật mô hình này",
+                    "inferenceUnverified": "Chưa được xác minh. Việc phát hiện không xác nhận rằng các yêu cầu sẽ thành công.",
+                    "inferenceVerification": "Suy luận",
+                    "inferenceVerified": "Thành công gần nhất: {date}",
                     "manageAlias": "Đổi tên",
                     "modelStatus": "Trạng thái mô hình",
                     "orphaned": "Mất liên kết",
@@ -4300,12 +4532,6 @@
                 "externalLinkCancel": "Hủy",
                 "externalLinkConfirm": "Mở liên kết",
                 "externalLinkMessage": "Bạn có chắc muốn mở tài liệu backend trong tab mới không?",
-                "resetCapabilities": "Đặt lại ghi đè khả năng",
-                "resetCapabilitiesConfirm": "Đặt lại",
-                "resetCapabilitiesMessage": "Đặt lại tất cả ghi đè khả năng và kế thừa mặc định của plugin cho mô hình này?",
-                "resetParameters": "Đặt lại tham số",
-                "resetParametersConfirm": "Đặt lại",
-                "resetParametersMessage": "Bạn có chắc muốn đặt lại tất cả tham số về giá trị mặc định không? Thao tác này sẽ loại bỏ mọi thay đổi chưa lưu.",
                 "stopPlugin": "Dừng plugin",
                 "stopPluginMessage": "Bạn có chắc muốn dừng {plugin} không?"
             },
@@ -4369,6 +4595,7 @@
                 }
             },
             "notifications": {
+                "capabilitiesConflict": "Khả năng đã được thay đổi ở nơi khác. Các chỉnh sửa của bạn đã bị hủy; hãy xem lại giá trị mới nhất và áp dụng lại.",
                 "capabilitiesUpdated": "Đã cập nhật khả năng thành công",
                 "deletionInProgress": "Đang xóa mô hình...",
                 "enabledUpdated": "Đã cập nhật trạng thái bật của mô hình thành công",
@@ -4424,6 +4651,17 @@
             "tabs": {
                 "overview": "Tổng quan",
                 "parameters": "Tham số"
+            },
+            "parameterAvailability": {
+                "loading": "Đang tải tham số...",
+                "refreshing": "Đang làm mới tham số... Cập nhật lần cuối: {age}.",
+                "stale": "Mất kết nối; giá trị có thể đã lỗi thời. Cập nhật lần cuối: {age}.",
+                "failed": "Không thể tải tham số.",
+                "retained": "Tính năng lưu bị tắt cho đến khi tham số khả dụng. Cập nhật lần cuối: {age}.",
+                "schemaChanged": "Định nghĩa tham số đã thay đổi trong khi bạn chỉnh sửa. Hãy hủy các thay đổi chưa lưu để tải định nghĩa hiện tại.",
+                "discard": "Hủy thay đổi",
+                "unavailableNotice": "Tham số mô hình không khả dụng. Tính năng lưu bị tắt cho đến khi có thể tải chúng.",
+                "saveBlocked": "Không thể lưu tham số cho đến khi chúng khả dụng. Hãy tải lại chúng trước."
             }
         },
         "models": {
@@ -4463,7 +4701,8 @@
                 "externalLink": "Liên kết bên ngoài",
                 "externalLinkCancel": "Hủy",
                 "externalLinkConfirm": "Tiếp tục",
-                "externalLinkMessage": "Bạn có chắc muốn mở kho lưu trữ của mô hình này trong tab mới không?"
+                "externalLinkMessage": "Bạn có chắc muốn mở kho lưu trữ của mô hình này trong tab mới không?",
+                "deleteLargeModelMessage": "Xóa \"{model}\" ({sizeGb} GB)? Tải lại có thể mất nhiều thời gian và tiêu tốn đáng kể dung lượng dữ liệu. Không thể hoàn tác thao tác này."
             },
             "description": "Quản lý các mô hình AI trên nhiều plugin và nhà cung cấp.",
             "searchPlaceholder": "Tìm kiếm mô hình...",
@@ -4502,7 +4741,7 @@
                     "close": "Đóng",
                     "confirmDownload": "Tải mô hình xuống",
                     "modelIdLabel": "ID tải xuống mô hình",
-                    "pluginHelp": "Chọn plugin sẽ xử lý việc tải mô hình",
+                    "pluginHelp": "Plugin dùng để tải mô hình",
                     "pluginLabel": "Plugin",
                     "pluginPlaceholder": "Chọn plugin...",
                     "quantHelp": "Nhập định danh mô hình và mức lượng tử hóa (định dạng phụ thuộc vào plugin đã chọn)",
@@ -4587,7 +4826,7 @@
                     "modelsFilterPlaceholder": "ví dụ: free, gpt, claude",
                     "nameHelp": "Tên mô tả cho nhà cung cấp bên ngoài này",
                     "nameLabel": "Tên nhà cung cấp",
-                    "pluginHelp": "Chọn plugin sẽ quản lý nhà cung cấp bên ngoài này",
+                    "pluginHelp": "Plugin dùng để quản lý nhà cung cấp bên ngoài",
                     "pluginLabel": "Plugin",
                     "pluginPlaceholder": "Chọn plugin...",
                     "title": "Thêm nhà cung cấp"
@@ -4790,7 +5029,42 @@
                 "unknown": "Không xác định",
                 "virtual": "Ảo"
             },
-            "virtualModelLabel": "Mô hình ảo"
+            "virtualModelLabel": "Mô hình ảo",
+            "errors": {
+                "ollamaPullEof": "Ollama kết thúc tải xuống trước khi xác nhận thành công.",
+                "ollamaPullTimeout": "Tải xuống Ollama đã hết thời gian chờ.",
+                "ollamaPullDisconnected": "Mất kết nối với Ollama.",
+                "ollamaPullRejected": "Ollama từ chối tải mô hình xuống.",
+                "ollamaPullProtocolInvalid": "Ollama trả về dữ liệu tải xuống không hợp lệ.",
+                "ollamaPullTargetMissing": "Mô hình đã tải không có trong danh mục hiện tại của Ollama.",
+                "ollamaPullCacheFailed": "Không thể lưu danh mục cục bộ của mô hình đã tải.",
+                "ollamaPullCleanupFailed": "Dọn dẹp chưa hoàn tất. Dừng dịch vụ Ollama được quản lý và hoàn tất dọn dẹp trước khi thử lại.",
+                "ollamaPullPreparationFailed": "Không thể chuẩn bị dịch vụ tải xuống Ollama.",
+                "ollamaPullRecovery": "Kiểm tra chẩn đoán và bộ nhớ lưu trữ của Ollama rồi thử lại thao tác.",
+                "modelNotFound": "Không tìm thấy mô hình được yêu cầu. Hãy cài đặt hoặc đăng ký mô hình, hoặc dùng ID mô hình API có sẵn.",
+                "parameterSchemaBusy": "Tham số mô hình tạm thời không khả dụng trong khi một thao tác plugin đang diễn ra. Hãy thử lại sau giây lát.",
+                "parameterSchemaUnavailable": "Tham số mô hình không khả dụng vì backend của plugin chưa được tải. Hãy khởi động hoặc sửa plugin, rồi thử lại.",
+                "parametersApplyFailed": "Tham số đã được lưu, nhưng SoAI không thể áp dụng chúng cho mô hình đang chạy. Hãy làm mới để xem lại các giá trị đã lưu và tải lại mô hình để áp dụng chúng.",
+                "configurationMissing": "Mô hình GGUF cần cấu hình mô hình gốc. Hãy đặt tệp config.json gốc cạnh tệp GGUF hoặc đặt đường dẫn cấu hình Hugging Face, rồi thử lại.",
+                "architectureUnsupported": "Backend đã chọn không hỗ trợ kiến trúc mô hình này. Hãy dùng phiên bản khác của mô hình hoặc backend khác.",
+                "cudaDeviceArchitectureUnsupported": "Backend CUDA đã cài đặt không thể chạy trên kiến trúc GPU NVIDIA đã chọn. Chọn GPU được hỗ trợ, cài đặt biến thể backend CUDA hỗ trợ GPU này hoặc sử dụng backend CPU.",
+                "nativeCpuFeaturesUnsupported": "Bộ xử lý này thiếu các lệnh CPU mà biến thể backend đã cài đặt yêu cầu. Hãy cài đặt một biến thể backend tương thích, chẳng hạn CPU.",
+                "openvinoTensorShapeIncompatible": "Backend OpenVINO không thể chạy mô hình này vì hình dạng tensor trong đồ thị của nó không tương thích. Hãy dùng biến thể backend khác cho mô hình này, hoặc đặt số lớp GPU bằng 0 để chạy trên CPU.",
+                "repositoryUnavailable": "Không thể truy cập kho lưu trữ hoặc bản sửa đổi của mô hình. Hãy kiểm tra mã định danh; kho riêng tư hoặc bị giới hạn còn cần mã thông báo kho được ủy quyền và đã chấp nhận điều khoản truy cập.",
+                "modelSearchTimeout": "Tìm kiếm mô hình mất quá nhiều thời gian. Danh mục có thể vẫn đang được chuẩn bị; hãy thử lại sau giây lát."
+            },
+            "phases": {
+                "ollamaServicePreparation": "Đang chuẩn bị dịch vụ Ollama",
+                "ollamaPullStreaming": "Đang tải mô hình với Ollama",
+                "ollamaTerminalConfirmation": "Đang xác nhận hoàn tất tải xuống",
+                "ollamaTargetVerification": "Đang kiểm tra danh mục mô hình hiện tại",
+                "ollamaCachePublication": "Đang lưu danh mục mô hình cục bộ",
+                "ollamaCleanup": "Đang dọn dẹp tải xuống Ollama",
+                "transferDownloading": "Đang tải xuống",
+                "transferHashing": "Đang tính mã băm dữ liệu tải xuống được giữ lại",
+                "transferReplaying": "Đang so sánh dữ liệu tải xuống được giữ lại",
+                "transferVerifying": "Đang xác minh toàn bộ tệp tải xuống"
+            }
         },
         "nav": {
             "about": "Giới thiệu",
@@ -5111,7 +5385,31 @@
             },
             "errors": {
                 "changeHandlerFailed": "Trình xử lý thay đổi plugin thất bại",
-                "clickHandlerFailed": "Trình xử lý thao tác nhấp plugin thất bại"
+                "clickHandlerFailed": "Trình xử lý thao tác nhấp plugin thất bại",
+                "modelConversionFailed": "Chuyển đổi mô hình thất bại. Hãy xem nhật ký bộ chuyển đổi để tìm phụ thuộc còn thiếu hoặc đầu vào mô hình không hợp lệ, rồi thử lại.",
+                "backendCancellationCleanupFailed": "Không thể xác nhận việc dọn dẹp sau khi hủy. Hãy giữ bộ máy này ở trạng thái dừng và sửa môi trường trước khi thử lại.",
+                "melottsContainerCleanupFailed": "MeloTTS đã được cài đặt nhưng việc dọn dẹp tài nguyên tạm thời chưa hoàn tất. Hãy thử lại thao tác với bộ máy.",
+                "backendDockerBuilderUnavailable": "Trình dựng Docker Buildx không khả dụng. Hãy cấu hình một trình dựng hoạt động và thử lại.",
+                "backendDockerBuildxUnavailable": "Tài khoản bộ máy không thể sử dụng Docker Buildx. Hãy cài hoặc bật Buildx rồi thử lại.",
+                "backendDockerCliMissing": "Tài khoản bộ máy không thể sử dụng Docker. Hãy cài Docker và thử lại.",
+                "backendDockerEngineUnavailable": "Tài khoản bộ máy không thể truy cập bộ máy Docker. Hãy khởi động Docker và kiểm tra quyền cùng khả năng hỗ trợ ảo hóa.",
+                "backendDockerStorageUnavailable": "Tài khoản backend không thể phát hiện bộ lưu trữ Docker. Hãy khởi động Docker, xác nhận tài khoản backend có thể truy vấn engine, rồi thử lại.",
+                "backendDockerStorageUnmapped": "Không thể ánh xạ bộ lưu trữ Docker tới một vị trí đã xác minh trên máy chủ. Hãy dùng Docker engine cục bộ có ổ dữ liệu nằm trên ổ đĩa cục bộ, rồi thử lại.",
+                "backendDockerStorageAccessDenied": "Tài khoản backend không thể kiểm tra vị trí lưu trữ Docker. Hãy kiểm tra quyền truy cập của tài khoản vào vị trí dữ liệu Docker, rồi thử lại.",
+                "backendDockerStorageChanged": "Docker engine hoặc bộ lưu trữ của nó đã thay đổi trong khi cài đặt. Hãy giữ nguyên cài đặt Docker trong khi cài đặt, rồi thử lại.",
+                "modelConversionDependencyMissing": "Thiếu một phần phụ thuộc của bộ chuyển đổi CTranslate2. Hãy cập nhật hoặc cài lại bộ máy, rồi tải lại mô hình.",
+                "backendLifecycleLocked": "Một thao tác backend khác đang sử dụng plugin này. Hãy đợi thao tác đó hoàn tất rồi thử lại.",
+                "configurationBusy": "Cấu hình plugin đang bận với một thao tác khác và chưa có gì được thay đổi. Hãy thử lại sau giây lát.",
+                "ollamaResponsesSettingsUnsupported": "Ollama Responses cục bộ không thể áp dụng cài đặt thực thi đã cấu hình. Hãy dùng Chat hoặc /v1/chat/completions với mô hình này để áp dụng chúng.",
+                "backendRuntimeIncompatible": "Môi trường thực thi này không tương thích với phần cứng đã chọn. Hãy chọn GPU tương thích hoặc môi trường thực thi khác.",
+                "backendRuntimeSelectionChanged": "Lựa chọn phần cứng đã thay đổi trong khi cài đặt. Hãy kiểm tra GPU và môi trường thực thi rồi thử lại.",
+                "managedCompilerUnavailable": "Không thể cài đặt trình biên dịch được quản lý hoặc biên dịch môi trường CPU. Hãy kiểm tra dung lượng lưu trữ và kết nối mạng, rồi sửa chữa bản cài đặt backend.",
+                "runtimeIllegalInstruction": "Việc kiểm tra môi trường dừng ở lệnh không hợp lệ. Chọn môi trường tương thích hoặc sửa bộ máy.",
+                "runtimeVerificationFailed": "Kiểm tra môi trường thất bại. Sửa bộ máy và xem thông tin chẩn đoán.",
+                "backendCpuInstructionsUnavailable": "Môi trường này cần các lệnh CPU không khả dụng. Hãy chọn môi trường tương thích khác.",
+                "configurationChanged": "Cấu hình plugin đã thay đổi. Hãy làm mới và xem lại các thay đổi trước khi lưu lại.",
+                "configurationApplyFailed": "Cấu hình đã được lưu nhưng môi trường chạy không thể áp dụng. Hãy kiểm tra trạng thái backend rồi thử áp dụng lại.",
+                "backendRuntimeUnverified": "Không thể xác minh tính tương thích của GPU. Chờ phát hiện xong rồi thử lại hoặc chọn môi trường thực thi đã xác minh."
             },
             "filters": {
                 "active": "Đang hoạt động",
@@ -5266,7 +5564,9 @@
                     "loadFailed": "Không thể tải các biến thể backend.",
                     "loading": "Đang tải biến thể backend...",
                     "loadingBackends": "Đang tải các backend...",
-                    "saveFailed": "Không thể lưu biến thể backend."
+                    "saveFailed": "Không thể lưu biến thể backend.",
+                    "autoCompatibility": "Chế độ tự động loại trừ {variants} với lựa chọn phần cứng hiện tại. Hãy chọn GPU khác hoặc một môi trường thực thi khác có sẵn.",
+                    "compatibilityUnknown": "Chưa thể xác nhận tính tương thích từ thông tin hiện tại. Hãy làm mới thông tin phần cứng hoặc chọn một môi trường thực thi khác có sẵn."
                 },
                 "manageBackend": {
                     "author": "Tác giả: {author}",
@@ -5327,13 +5627,14 @@
                 "providerManagedReadOnly": "{plugin} tự quản lý các nhà cung cấp của mình. Hãy dùng bảng điều khiển plugin để xác thực hoặc quản lý quyền truy cập.",
                 "providersUnavailable": "{plugin} không cung cấp nhà cung cấp bên ngoài.",
                 "restartButton": "Khởi động lại SoAI",
-                "restartFailed": "Không thể khởi động lại SoAI.",
                 "restartRequired": "Khởi động lại SoAI để áp dụng giới hạn plugin đồng thời mới.",
                 "selectFile": "Vui lòng chọn tệp plugin",
                 "stopAllSuccess": "Đã gửi lệnh dừng tất cả plugin.",
                 "stopSuccess": "Đã dừng plugin {plugin} thành công",
                 "updateCheckFailed": "Không thể kiểm tra bản cập nhật",
-                "uploadFailed": "Không thể tải plugin lên"
+                "uploadFailed": "Không thể tải plugin lên",
+                "backendUpdateTitle": "Có bản cập nhật bộ máy",
+                "backendUpdateMessage": "Có bản cập nhật bộ máy cho {pluginName}. Mở Plugin để xem lại."
             },
             "providerMode": {
                 "badges": {
@@ -5392,88 +5693,71 @@
                 "hibernateSystem": {
                     "buttonLabel": "Ngủ đông hệ thống",
                     "confirmMessage": "Bạn có chắc muốn đưa hệ thống vào chế độ ngủ đông không?",
-                    "confirmMessageWithDelay": "Bạn có chắc muốn đưa hệ thống vào chế độ ngủ đông không? Thao tác sẽ bắt đầu sau {delay} giây.",
                     "confirmTitle": "Ngủ đông hệ thống",
                     "confirmWarning": "Các phiên chỉ tiếp tục sau khi máy được bật lại",
                     "description": "Lưu bộ nhớ xuống đĩa và tắt nguồn phần lớn phần cứng.",
                     "optionDelay": "Độ trễ (giây)",
                     "overlayMessage": "Hệ thống đang vào chế độ ngủ đông...",
-                    "successNotification": "Đã bắt đầu ngủ đông hệ thống",
-                    "successNotificationWithDelay": "Đã lên lịch ngủ đông hệ thống (trễ {delay}s)",
                     "title": "Ngủ đông hệ thống"
                 },
                 "rebootSystem": {
                     "buttonLabel": "Khởi động lại hệ thống",
                     "confirmMessage": "Bạn có chắc muốn khởi động lại hệ thống không?",
-                    "confirmMessageWithDelay": "Bạn có chắc muốn khởi động lại hệ thống không? Thao tác sẽ bắt đầu sau {delay} giây.",
                     "confirmTitle": "Khởi động lại hệ thống",
                     "confirmWarning": "Thao tác này sẽ khởi động lại toàn bộ máy",
                     "description": "Khởi động lại toàn bộ máy và nạp lại hệ điều hành.",
                     "optionDelay": "Độ trễ (giây)",
                     "optionForce": "Buộc khởi động lại",
-                    "successNotification": "Đã bắt đầu khởi động lại hệ thống",
-                    "successNotificationWithDelay": "Đã lên lịch khởi động lại hệ thống (trễ {delay}s)",
                     "title": "Khởi động lại hệ thống"
                 },
                 "restartApplication": {
                     "buttonLabel": "Khởi động lại ứng dụng",
-                    "confirmMessage": "Bạn có chắc muốn khởi động lại ứng dụng không?",
-                    "confirmTitle": "Khởi động lại ứng dụng",
-                    "confirmWarning": "Tất cả người dùng sẽ tạm thời bị ngắt kết nối trong khi ứng dụng khởi động lại",
-                    "description": "Khởi động lại ứng dụng SoAI và nạp lại tất cả dịch vụ.",
+                    "confirmMessage": "Bạn có chắc muốn khởi động lại SoAI không?",
+                    "confirmTitle": "Khởi động lại SoAI",
+                    "confirmWarning": "Tất cả người dùng sẽ tạm thời bị ngắt kết nối trong khi SoAI khởi động lại",
+                    "description": "Khởi động lại SoAI và nạp lại tất cả dịch vụ.",
                     "optionDelay": "Độ trễ (giây)",
-                    "successNotification": "Đã bắt đầu khởi động lại ứng dụng",
-                    "title": "Khởi động lại ứng dụng"
+                    "title": "Khởi động lại SoAI"
                 },
                 "shutdownApplication": {
                     "buttonLabel": "Tắt ứng dụng",
-                    "confirmMessage": "Bạn có chắc muốn tắt ứng dụng SoAI không?",
-                    "confirmMessageWithDelay": "Bạn có chắc muốn tắt ứng dụng SoAI không? Thao tác sẽ bắt đầu sau {delay} giây.",
-                    "confirmTitle": "Tắt ứng dụng",
-                    "confirmWarning": "Người dùng sẽ bị ngắt kết nối cho đến khi ứng dụng được khởi động lại",
-                    "description": "Dừng ứng dụng SoAI nhưng vẫn giữ máy chủ hoạt động.",
+                    "confirmMessage": "Bạn có chắc muốn tắt SoAI không?",
+                    "confirmTitle": "Tắt SoAI",
+                    "confirmWarning": "Người dùng sẽ bị ngắt kết nối cho đến khi SoAI được khởi động lại",
+                    "description": "Dừng SoAI nhưng vẫn giữ máy chủ hoạt động.",
                     "optionDelay": "Độ trễ (giây)",
-                    "overlayMessage": "Ứng dụng đang tắt...",
-                    "successNotification": "Đã bắt đầu tắt ứng dụng",
-                    "successNotificationWithDelay": "Đã lên lịch tắt ứng dụng (trễ {delay}s)",
-                    "title": "Tắt ứng dụng"
+                    "overlayMessage": "SoAI đang tắt...",
+                    "title": "Tắt SoAI"
                 },
                 "shutdownSystem": {
                     "buttonLabel": "Tắt máy",
                     "confirmMessage": "Bạn có chắc muốn tắt hệ thống không?",
-                    "confirmMessageWithDelay": "Bạn có chắc muốn tắt hệ thống không? Thao tác sẽ bắt đầu sau {delay} giây.",
                     "confirmTitle": "Tắt hệ thống",
                     "confirmWarning": "Thao tác này sẽ dừng mọi tiến trình và tắt nguồn máy hoàn toàn",
                     "description": "Tắt nguồn toàn bộ máy sau khi các thao tác đang chờ hoàn tất.",
                     "optionDelay": "Độ trễ (giây)",
                     "optionForce": "Buộc tắt máy",
                     "overlayMessage": "Hệ thống đang tắt...",
-                    "successNotification": "Đã bắt đầu tắt hệ thống",
-                    "successNotificationWithDelay": "Đã lên lịch tắt hệ thống (trễ {delay}s)",
                     "title": "Tắt hệ thống"
                 },
                 "suspendSystem": {
                     "buttonLabel": "Tạm ngưng hệ thống",
                     "confirmMessage": "Bạn có chắc muốn tạm ngưng hệ thống không?",
-                    "confirmMessageWithDelay": "Bạn có chắc muốn tạm ngưng hệ thống không? Thao tác sẽ bắt đầu sau {delay} giây.",
                     "confirmTitle": "Tạm ngưng hệ thống",
                     "confirmWarning": "Các tiến trình sẽ tạm dừng cho đến khi hệ thống tiếp tục",
                     "description": "Đưa hệ thống vào trạng thái ngủ tiết kiệm điện.",
                     "optionDelay": "Độ trễ (giây)",
                     "overlayMessage": "Hệ thống đang vào chế độ ngủ...",
-                    "successNotification": "Đã bắt đầu tạm ngưng hệ thống",
-                    "successNotificationWithDelay": "Đã lên lịch tạm ngưng hệ thống (trễ {delay}s)",
                     "title": "Tạm ngưng hệ thống"
                 }
             },
-            "description": "Các thao tác nguồn của ứng dụng và hệ thống.",
             "operations": {
                 "failed": "Thao tác nguồn thất bại. Hãy xem trạng thái và chính sách nguồn khi chạy, rồi chỉ thử lại khi thao tác cho phép thử lại."
             },
             "overlays": {
                 "applicationShutdown": {
-                    "monitoring": "Đang dừng ứng dụng SoAI.",
-                    "offline": "Ứng dụng đang ngoại tuyến."
+                    "monitoring": "Đang dừng SoAI.",
+                    "offline": "SoAI đang ngoại tuyến."
                 },
                 "countdown": {
                     "cancel": "Hủy",
@@ -5497,6 +5781,10 @@
             "restartReminder": {
                 "message": "Cần khởi động lại để áp dụng thay đổi.",
                 "messageWithReason": "Cần khởi động lại: {reason}"
+            },
+            "groups": {
+                "application": "SoAI",
+                "system": "Hệ thống"
             }
         },
         "prompts": {
@@ -5664,7 +5952,20 @@
             "title": "Prompt",
             "unnamedPrompt": "Prompt chưa đặt tên",
             "unsavedChanges": "Bạn có thay đổi chưa lưu. Bạn có chắc muốn rời đi không?",
-            "untitled": "Chưa có tiêu đề"
+            "untitled": "Chưa có tiêu đề",
+            "picker": {
+                "editFailed": "Không thể mở trình chỉnh sửa prompt.",
+                "empty": "Chưa có prompt nào được lưu.",
+                "emptyContent": "Không có nội dung prompt",
+                "help": "Chọn một câu lệnh đã lưu để sử dụng nội dung",
+                "loadFailed": "Không thể tải các prompt đã lưu.",
+                "loading": "Đang tải prompt...",
+                "manage": "Quản lý prompt",
+                "manageFailed": "Không thể mở trang prompt.",
+                "noMatches": "Không có prompt nào khớp với tìm kiếm.",
+                "search": "Tìm kiếm",
+                "title": "Prompt đã lưu"
+            }
         },
         "restartOverlay": {
             "descriptions": {
@@ -5672,7 +5973,7 @@
                 "generic": "SoAI đang thực hiện một thao tác.",
                 "rebooting": "Hệ thống đang khởi động lại. Vui lòng chờ hệ thống trực tuyến trở lại.",
                 "rebootTimeout": "Không thể xác nhận trạng thái hệ thống sau 15 phút. Đang buộc làm mới toàn bộ.",
-                "restarting": "Ứng dụng đang khởi động lại. Quá trình này chỉ mất ít phút.",
+                "restarting": "SoAI đang khởi động lại. Quá trình này chỉ mất ít phút.",
                 "shutdown": "Hệ thống đang tắt. Bạn có thể đóng cửa sổ trình duyệt này.",
                 "sleep": "Hệ thống đang vào chế độ ngủ. Hãy đánh thức hệ thống để tiếp tục dùng SoAI.",
                 "updateTimeout": "SoAI không trực tuyến trở lại sau khi cập nhật. Hãy kiểm tra application_updater.log trong thư mục nhật ký của SoAI, sau đó tải lại trang này.",
@@ -5692,7 +5993,16 @@
                 "updateTimeout": "SoAI vẫn chưa hoạt động trở lại",
                 "updating": "SoAI đang cập nhật..."
             },
-            "reconnecting": "Đang thử kết nối lại..."
+            "reconnecting": "Đang thử kết nối lại...",
+            "handoff": {
+                "plannedAddress": "Địa chỉ dự kiến sau khi khởi động lại. Các bản nháp vẫn ở trong thẻ này.",
+                "newAddress": "Kết nối đã bị gián đoạn. Mở địa chỉ mới để kết nối lại; máy chủ có thể vẫn đang khởi động.",
+                "manualHttps": "Máy chủ sẽ dùng HTTPS. Mở SoAI tại địa chỉ được cấu hình cho máy chủ hoặc proxy ngược của bạn.",
+                "manualHttp": "Máy chủ sẽ dùng HTTP. Mở SoAI tại địa chỉ được cấu hình cho máy chủ hoặc proxy ngược của bạn.",
+                "open": "Mở địa chỉ mới",
+                "copy": "Sao chép địa chỉ",
+                "copied": "Đã sao chép địa chỉ"
+            }
         },
         "richText": {
             "footnotes": {
@@ -5961,7 +6271,9 @@
                     "timeout": "Thời lượng chờ"
                 },
                 "nullPlaceholder": "null",
-                "sectionHeader": "Cài đặt nâng cao (config.yaml)"
+                "sectionHeader": "Cài đặt nâng cao (config.yaml)",
+                "autoUpdateBuiltinLabel": "Tự động cập nhật backend tích hợp",
+                "autoUpdateBuiltinHelp": "Sau khi các gói plugin thay đổi, kiểm tra backend đã cài đặt và cập nhật backend tích hợp khi chúng đã dừng an toàn. Công việc đang chạy được giữ nguyên. Backend bên thứ ba cần cập nhật thủ công"
             },
             "advancedMode": "Nâng cao",
             "advancedTitle": "Cài đặt nâng cao",
@@ -6797,7 +7109,6 @@
                     "readVideoAudioExtractionTimeoutSec": "Thời gian chờ trích xuất âm thanh",
                     "readVideoPreviewExtractionTimeoutSec": "Thời gian chờ trích xuất bản xem trước",
                     "readVideoLiveProgressMinIntervalMs": "Khoảng thời gian tối thiểu giữa các cập nhật tiến độ trực tiếp",
-                    "readVideoWhisperModel": "Mô hình Whisper cho bản chép lời âm thanh",
                     "hostModeEnabled": "Bật client ở chế độ host",
                     "hostModeAutoConnectOnStartup": "Kết nối các máy chủ đã lưu khi khởi động",
                     "hostModeReconnectDelaySec": "Độ trễ trước khi thử kết nối lại",
@@ -7719,6 +8030,14 @@
                     "help": "Tải hình ảnh từ thiết bị của bạn lên (PNG, JPG, GIF, WebP, SVG - Tối đa 25MB)",
                     "label": "Tải hình nền lên"
                 }
+            },
+            "speechToText": {
+                "title": "Chuyển giọng nói thành văn bản",
+                "description": "Chép lại âm thanh và video trong tệp, Kiến thức và công cụ.",
+                "model": {
+                    "label": "Mô hình chuyển giọng nói thành văn bản",
+                    "help": "Tự động dùng mô hình cục bộ khả dụng đầu tiên. Đọc chính tả trong trò chuyện dùng cài đặt Giọng nói của từng cuộc trò chuyện"
+                }
             }
         },
         "statusCatalog": {
@@ -7934,13 +8253,19 @@
                 "partial": "Không thể tải một số ghi chú phát hành. Các ghi chú hiện có được hiển thị."
             },
             "outcome": {
+                "diagnosticsInstalledOriginalChanged": "Các tệp đã cài đặt đã thay đổi trong khi bản cập nhật đang chuẩn bị bản sao khôi phục.",
+                "diagnosticsInterruptedPreparation": "Bản cập nhật bị gián đoạn khi đang chuẩn bị bản sao khôi phục.",
+                "diagnosticsMessage": "Dữ liệu chẩn đoán của lần thử này đã được lưu trên máy tính SoAI tại {location}. {summary} Mã tham chiếu: {reference}.",
+                "diagnosticsRetainedCopyMismatch": "Bản sao khôi phục của các tệp đã cài đặt không khớp với bản gốc.",
+                "diagnosticsSnapshotOperationFailed": "Không thể hoàn tất bản sao khôi phục vì một thao tác tệp đã thất bại.",
+                "diagnosticsSourceUnverifiable": "Không thể đọc các tệp đã cài đặt để xác minh bản sao khôi phục.",
                 "failureMessage": "Bản cập nhật lên phiên bản {version} chưa hoàn tất. SoAI {previousVersion} vẫn đang được cài đặt. Hãy kiểm tra application_updater.log trong thư mục nhật ký của SoAI để biết chi tiết.",
                 "failureTitle": "Cập nhật chưa hoàn tất",
                 "later": "Để sau",
                 "reloadMessage": "SoAI hiện đang chạy phiên bản {version}. Hãy tải lại trang này để sử dụng giao diện đã cập nhật.",
                 "reloadTitle": "SoAI đã được cập nhật",
-                "successMessage": "SoAI đã được cập nhật thành công lên phiên bản {version}.",
-                "successTitle": "Cập nhật hoàn tất"
+                "successMessage": "Phiên bản {version} đã sẵn sàng.",
+                "successTitle": "Đã cập nhật SoAI"
             },
             "progress": {
                 "downloading": "Đang tải bản cập nhật...",
@@ -8015,7 +8340,25 @@
                 "updating": "Đang cập nhật..."
             },
             "title": "Cập nhật",
-            "unknown": "Không xác định"
+            "unknown": "Không xác định",
+            "backend": {
+                "failedUpdatesHeading": "Cập nhật thất bại",
+                "availableHeading": "Có bản cập nhật bộ máy",
+                "updatingHeading": "Đang cập nhật",
+                "pendingHeading": "Đang chờ kiểm tra",
+                "failedHeading": "Các kiểm tra cần chú ý",
+                "reviewUpdate": "Xem bản cập nhật",
+                "reviewUpdates": "Xem các bản cập nhật",
+                "viewPlugins": "Xem plugin"
+            },
+            "history": {
+                "lastCheck": "Lần kiểm tra gần nhất: {date}.",
+                "lastUpdate": "Lần cập nhật gần nhất: {date}.",
+                "savedResults": "Kết quả đã lưu từ {date}. Kiểm tra lại để làm mới.",
+                "restored": "Thông tin cập nhật đã lưu. Kiểm tra lại để làm mới.",
+                "unavailable": "Không thể tải hoặc lưu lịch sử cập nhật. Hãy kiểm tra cập nhật lại.",
+                "saved": "Kết quả đã lưu"
+            }
         },
         "wizard": {
             "completion": {
@@ -8252,7 +8595,8 @@
                             "recommended": "Khuyến nghị",
                             "warning": "Cảnh báo",
                             "unavailable": "Không khả dụng"
-                        }
+                        },
+                        "automaticRuntime": "Môi trường chạy cho {engine} sẽ được chọn khi cài đặt. Khả năng tăng tốc chưa được xác nhận."
                     }
                 },
                 "models": {
@@ -8321,19 +8665,20 @@
                     "retryInstallation": "Thử cài đặt lại",
                     "skipItem": "Bỏ qua mục này",
                     "testAgain": "Kiểm tra lại",
-                    "checkAgain": "Kiểm tra lại trạng thái",
                     "sendTest": "Gửi tin nhắn thử",
                     "error": {
                         "empty": "Mô hình đã tải nhưng không trả lời. Hãy thử lại hoặc chọn mô hình khác.",
-                        "loadError": "Không thể khởi động mô hình trên thiết bị này. Hãy thử lại hoặc chọn mô hình nhỏ hơn.",
+                        "loadError": "Kiểm thử mô hình thất bại. Hãy kiểm tra và khắc phục nguyên nhân, rồi thử lại.",
                         "timeout": "Mô hình trả lời quá lâu. Hãy thử lại hoặc chọn mô hình nhỏ hơn.",
                         "disconnected": "Mất kết nối trong khi kiểm tra. Hãy thử lại.",
                         "downloadFailed": "Quá trình tải xuống đã dừng. Hãy thử lại.",
                         "installFailed": "Quá trình cài đặt chưa hoàn tất. Hãy thử lại.",
-                        "noDiskSpace": "Không đủ dung lượng đĩa cho mô hình này. Hãy giải phóng dung lượng hoặc chọn mô hình nhỏ hơn."
+                        "noDiskSpace": "Không đủ dung lượng đĩa cho mô hình này. Hãy giải phóng dung lượng hoặc chọn mô hình nhỏ hơn.",
+                        "discoveryFailed": "Đã tải xuống xong nhưng không thể thêm mô hình vào danh mục. Mở Mô hình để kiểm tra hoặc hoàn tất thiết lập sau."
                     },
                     "testPrompt": "Hãy trả lời bằng một câu ngắn và thân thiện.",
-                    "testCancelled": "Bài kiểm tra thiết lập SoAI đã bị hủy."
+                    "testCancelled": "Bài kiểm tra thiết lập SoAI đã bị hủy.",
+                    "useCpuRuntime": "Dùng môi trường CPU"
                 },
                 "completion": {
                     "modelsTitle": "Mô hình AI",
@@ -8362,6 +8707,40 @@
                     "both": "Các lượt tải mô hình và cài đặt backend sẽ tiếp tục ở chế độ nền."
                 }
             }
+        },
+        "speechSetup": {
+            "notTranscribed": "Giọng nói chưa được chép lại",
+            "askAdministrator": "Nhờ quản trị viên thiết lập chuyển giọng nói thành văn bản.",
+            "askAdministratorTextToSpeech": "Nhờ quản trị viên thiết lập chuyển văn bản thành giọng nói.",
+            "installBackend": "Cài bộ xử lý {plugin}",
+            "enablePlugin": "Bật {plugin}",
+            "changeModel": "Đổi mô hình giọng nói",
+            "openPlugins": "Mở Plugin",
+            "addAgain": "Chuyển giọng nói thành văn bản đã sẵn sàng. Tải tệp lên lại để chép lại.",
+            "checking": "Đang kiểm tra khả năng chuyển giọng nói thành văn bản…",
+            "checkingTextToSpeech": "Đang kiểm tra khả năng chuyển văn bản thành giọng nói…",
+            "errors": {
+                "noPlugin": "Không có plugin đã cài nào cung cấp chuyển giọng nói thành văn bản cục bộ.",
+                "noModel": "Chưa cài mô hình chuyển giọng nói thành văn bản cục bộ.",
+                "notLocal": "Nội dung đa phương tiện được chép lại cục bộ. Chọn mô hình chuyển giọng nói thành văn bản cục bộ.",
+                "translationUnsupported": "Không có mô hình giọng nói cục bộ đã cài nào hỗ trợ dịch. Chọn mô hình đa ngôn ngữ.",
+                "unsupportedOption": "{model} không thể trả về thông tin thời gian hoặc ngôn ngữ cần thiết. Chọn mô hình giọng nói khác.",
+                "configuredModelMissing": "Mô hình chuyển giọng nói thành văn bản đã chọn không khả dụng.",
+                "mediaDependencyUnavailable": "Xử lý phương tiện cần FFmpeg và ffprobe. Hãy cài đặt FFmpeg rồi thử lại.",
+                "noVoiceModel": "Không có mô hình chuyển giọng nói thành văn bản khả dụng.",
+                "noTextToSpeechModel": "Không có mô hình chuyển văn bản thành giọng nói khả dụng.",
+                "backendNotInstalled": "Bộ xử lý của plugin chuyển giọng nói thành văn bản chưa được cài.",
+                "textToSpeechBackendNotInstalled": "Bộ xử lý của plugin chuyển văn bản thành giọng nói chưa được cài.",
+                "pluginDisabled": "Plugin chuyển giọng nói thành văn bản đang bị tắt.",
+                "textToSpeechPluginDisabled": "Plugin chuyển văn bản thành giọng nói đang bị tắt.",
+                "modelDisabled": "Các mô hình chuyển giọng nói thành văn bản đã cài đang bị tắt hoặc không khả dụng.",
+                "textToSpeechModelDisabled": "Các mô hình chuyển văn bản thành giọng nói đã cài đang bị tắt hoặc không khả dụng.",
+                "unsupportedOptionSelected": "Mô hình giọng nói đã chọn không thể trả về thông tin thời gian hoặc ngôn ngữ mà yêu cầu này cần. Chọn mô hình giọng nói khác."
+            },
+            "notTranscribedNotice": "Giọng nói chưa được chép lại. Hãy thiết lập chuyển giọng nói thành văn bản, rồi tải tệp lên lại.",
+            "notTranscribedAskAdministrator": "Giọng nói chưa được chép lại. Nhờ quản trị viên thiết lập chuyển giọng nói thành văn bản, rồi tải tệp lên lại.",
+            "openModels": "Mở Mô hình",
+            "openSettings": "Cài đặt chuyển giọng nói thành văn bản"
         }
     }
 }

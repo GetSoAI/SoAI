@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ensureError } from '@core/errors/coerce.ts';
+import { APIError } from '@core/apiError.ts';
+import { notifyHandledOperationError } from '@core/operationErrorNotifier.ts';
+import { uniqueSortedStrings } from '@core/normalize.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
 import { HARDWARE, METRICS } from '@core/realtime/streammanager/resources/ids.ts';
 import { isGpuSlotsBuilderResult } from '@core/realtime/streammanager/resources/gpuSlotsResource.ts';
@@ -55,6 +58,7 @@ class HardwareRealtimeController implements HardwareRealtimeHost {
     #chartBootstrapSequence = 0;
     #realtimeReadyPromise: Promise<void> | null = null;
     #permissionsPromise: Promise<void> | null = null;
+    #slotAliasConflictKey: string | null = null;
 
     readonly history: HardwareHistoryController;
     renderEventContext: HardwareRealtimeRenderEventContext;
@@ -132,12 +136,13 @@ class HardwareRealtimeController implements HardwareRealtimeHost {
             logger: this.logger,
             applyPermissionGates: () => this.renderController.applyPermissionGates()
         });
-        this.#permissionsPromise = promise.finally(() => {
-            if (this.#permissionsPromise === promise) {
+        const trackedPromise = promise.finally(() => {
+            if (this.#permissionsPromise === trackedPromise) {
                 this.#permissionsPromise = null;
             }
         });
-        return this.#permissionsPromise;
+        this.#permissionsPromise = trackedPromise;
+        return trackedPromise;
     }
     async prepareRealtimeResources(options: { signal?: AbortSignal | undefined } = {}): Promise<void> {
         await this.#prepareRealtimeResources(options);
@@ -244,6 +249,12 @@ class HardwareRealtimeController implements HardwareRealtimeHost {
         if (!isGpuSlotsBuilderResult(value)) throw new TypeError('hardware.gpu.slots stream must contain decoded slot state');
         if (!this.hasGrantedAction('HW_GPU_TUNING')) return;
         this.gpuResourceState.acceptSlots(value);
+        const conflicts = value.warnings?.type === 'gpu_slot_alias_conflict' ? value.warnings.deviceIds : [];
+        const conflictKey = conflicts.length > 0 ? uniqueSortedStrings(conflicts, 'en').join('\n') : null;
+        if (conflictKey !== this.#slotAliasConflictKey) {
+            this.#slotAliasConflictKey = conflictKey;
+            if (conflictKey !== null) notifyHandledOperationError(new APIError(409, value.warnings?.message ?? '', { code: 'gpu_slot_alias_conflict' }));
+        }
         this.#syncResourceFreshness();
         if (value.error === null) this.gpuController.setSavedSettings(value);
     }
@@ -269,7 +280,7 @@ class HardwareRealtimeController implements HardwareRealtimeHost {
     }
 
     handleSoAIBenchRunsUpdate(value: JsonValue | null): void {
-        if (!isJsonObject(value)) throw new TypeError('SoAIBench runs payload must be an object');
+        if (!isJsonObject(value)) throw new TypeError('SoAI Bench runs payload must be an object');
         this.state.soaibenchRuns = value;
         this.gpuResourceState.acceptSoAIBenchRuns();
         this.soaibenchRunModal.handleRunsUpdate(value);

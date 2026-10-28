@@ -8,14 +8,16 @@ import io
 import os
 import stat
 import sys
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import partial
 from typing import TYPE_CHECKING
 
+from core.concurrency.deadlines import deadline_after
 from core.concurrency.joined_thread_call import run_joined_thread_call
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import SoAITimeoutError, ValidationError
 from core.files.staged_transfer import iter_reader_chunks
+from core.filesystem.descriptor_io import open_descriptor
 from core.filesystem.open_files import open_regular_binary_no_symlink
 from core.hardware.reserved_writes import write_reserved_bytes
 from plugin_sdk.contracts.disk_claims import claim_plugin_reserved_write
@@ -44,24 +46,39 @@ class RetainedDownloadPrefix:
     sha256: str | None = None
 
 
-def inspect_resumable_download(path: str, max_bytes: int | None) -> RetainedDownloadPrefix:
+def inspect_resumable_download(
+    path: str,
+    max_bytes: int | None,
+    *,
+    cancellation_check: Callable[[], None] | None = None,
+    on_chunk: Callable[[bytes], None] | None = None,
+    read_timeout: float | None = None,
+) -> RetainedDownloadPrefix:
     try:
         status = os.lstat(path)
     except FileNotFoundError:
         return RetainedDownloadPrefix()
     if not stat.S_ISREG(status.st_mode):
         raise ValidationError("Resumable download state is not a regular file.")
-    if not status.st_size or (max_bytes is not None and status.st_size > max_bytes):
+    if max_bytes is not None and status.st_size > max_bytes:
         return RetainedDownloadPrefix(status=status)
     with open_regular_binary_no_symlink(path) as handle:
         _validate_retained_status(os.fstat(handle.fileno()), status)
         digest = hashlib.sha256()
         received = 0
+        deadline = deadline_after(read_timeout) if read_timeout is not None else None
         for chunk in iter_reader_chunks(handle.read):
+            if cancellation_check is not None:
+                cancellation_check()
+            if deadline is not None and deadline.expired():
+                raise SoAITimeoutError("Artifact checksum read exceeded its I/O deadline.")
             received += len(chunk)
             if received > status.st_size:
                 raise ValidationError("Resumable download state changed while hashing.")
             digest.update(chunk)
+            if on_chunk is not None:
+                on_chunk(chunk)
+            deadline = deadline_after(read_timeout) if read_timeout is not None else None
         _validate_retained_status(os.fstat(handle.fileno()), status)
         if received != status.st_size:
             raise ValidationError("Resumable download state changed while hashing.")
@@ -88,12 +105,11 @@ def open_resumable_download(
     if append:
         flags |= os.O_APPEND
     if sys.platform == "win32":
-        flags |= os.O_BINARY
         if os.path.islink(path):
             raise ValidationError("Resumable download state is not a regular file.")
     else:
         flags |= os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK
-    descriptor = os.open(path, flags, FILE_MODE_OWNER_READ_WRITE)
+    descriptor = open_descriptor(path, flags, FILE_MODE_OWNER_READ_WRITE)
     try:
         opened_status = os.fstat(descriptor)
         if not stat.S_ISREG(opened_status.st_mode):

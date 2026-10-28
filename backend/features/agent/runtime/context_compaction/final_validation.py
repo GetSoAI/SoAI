@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
+from core.openai.context_overflow_validation import ContextOverflowValidation
 from core.openai.token_accounting import PromptOccupancy
 from core.validation.strict_numbers import require_positive_int_strict
 from features.agent.runtime.context_compaction.token_counting import (
@@ -51,9 +52,13 @@ def require_compacted_history_within_budget(
             f"Prompt token counting capped after compaction (reason={occupancy.capped_reason}, maximum_tokens={resolved_maximum}).",
         )
     if int(occupancy.prompt_tokens) > resolved_maximum:
-        raise ValidationError(
-            f"Prompt exceeds the maximum after preserving required context (prompt_tokens={occupancy.prompt_tokens}, maximum_tokens={resolved_maximum}).",
+        overflow = ContextOverflowValidation(
+            requested_tokens=int(occupancy.prompt_tokens),
+            available_tokens=resolved_maximum,
+            model=None,
+            token_scope="prompt",
         )
+        raise ValidationError(overflow.message, details=overflow.to_details())
     if int(occupancy.prompt_tokens) > resolved_target and not protected_floor_reached:
         raise ValidationError(
             f"Prompt exceeds the compaction target before reaching the protected context floor (prompt_tokens={occupancy.prompt_tokens}, target_tokens={resolved_target}).",

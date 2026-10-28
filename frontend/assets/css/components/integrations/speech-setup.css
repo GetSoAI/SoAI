@@ -1,0 +1,76 @@
+/* SoAI - Speech setup inline guidance [frontend/assets/css/components/integrations/speech-setup.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .speech-setup-note {
+        display: grid;
+        gap: var(--space-2);
+        min-inline-size: 0;
+        max-inline-size: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .speech-setup-note__status {
+        margin: 0;
+        font-size: var(--font-size-caption-plus);
+        line-height: 1.4;
+        color: var(--text-secondary);
+    }
+
+    .speech-setup-note__status--warning {
+        color: var(--status-orange);
+    }
+
+    .speech-setup-note__title {
+        display: block;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .speech-setup-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .speech-setup-actions .ui-button {
+        max-inline-size: 100%;
+        white-space: normal;
+        text-align: start;
+    }
+
+    .speech-media-selection {
+        flex-basis: 100%;
+        min-inline-size: 0;
+    }
+
+    .speech-model-control {
+        display: grid;
+        min-inline-size: 0;
+    }
+
+    .speech-model-control > .ui-button {
+        justify-self: start;
+    }
+
+    .setting-item .speech-model-control > .ui-button {
+        justify-self: end;
+    }
+
+    .chat-configuration-modal .form-group > .speech-setup-note {
+        margin-block-start: var(--space-2);
+    }
+
+    .chat-configuration-modal .form-group > .speech-setup-note .speech-setup-note__status {
+        font-size: var(--font-size-xs);
+    }
+
+    .setting-item__footer:has(> .speech-setup-note.u-hidden:only-child) {
+        display: none;
+    }
+
+    .rag-document-detail:has(> .speech-setup-note.u-hidden:only-child) {
+        display: none;
+    }
+}

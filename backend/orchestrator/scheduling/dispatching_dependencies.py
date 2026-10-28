@@ -13,6 +13,7 @@ from core.di.validation import require_dependencies
 if TYPE_CHECKING:
     from core.models.protocols import ModelInformationServiceProtocol
     from core.orchestrator.protocols_queue import OrchestratorQueueProtocol
+    from core.orchestrator.scheduler_work import SchedulerWorkItem
     from core.plugins.protocols import PluginManagerProtocol
     from core.state.protocols import StateAggregatorProtocol
     from core.tasks.protocols import (
@@ -52,6 +53,7 @@ class SchedulerDispatchingDependencies:
     dispatch_ready_states: set[str]
     ensure_plugin_capacity: Callable[[str], Awaitable[None]]
     schedule_plugin_dispatch: Callable[[Task, str], Awaitable[None]]
+    queue_scheduler_work: Callable[[SchedulerWorkItem], Awaitable[None]]
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -68,6 +70,7 @@ class SchedulerDispatchingDependencies:
             outcomes=self.outcomes,
             plugin_manager=self.plugin_manager,
             queue=self.queue,
+            queue_scheduler_work=self.queue_scheduler_work,
             schedule_plugin_dispatch=self.schedule_plugin_dispatch,
             shutdown_event=self.shutdown_event,
             state_aggregator=self.state_aggregator,

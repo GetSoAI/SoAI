@@ -11,11 +11,15 @@ from core.runtime.soai_identifiers import create_prefixed_hex_id
 from core.serialization.json import serialize_json_compact_stable
 from core.timing.epoch import epoch_ms
 from database.core.query_execution import sync_fetch_all_as_dicts, sync_fetch_one_as_dict
+from database.repositories.skills.snapshots import sync_transfer_forced_skills
 from database.repositories.users.conversation_attachment_pending_sync import (
     sync_rebind_pending_attachment_references,
 )
 from database.repositories.users.conversation_input_constants import (
-    CONVERSATION_INPUT_DISPATCH_RANK_SQL,
+    build_conversation_input_dispatch_rank_sql,
+)
+from database.repositories.users.conversation_input_execution_settings import (
+    sync_read_conversation_input_execution_settings,
 )
 from database.repositories.users.conversation_input_fingerprint import (
     build_conversation_input_content_fingerprint,
@@ -74,7 +78,7 @@ def _read_pending_steers(
     rows = sync_fetch_all_as_dicts(
         conn.execute(
             f"""
-            SELECT *, {CONVERSATION_INPUT_DISPATCH_RANK_SQL} AS dispatch_rank
+            SELECT *, {build_conversation_input_dispatch_rank_sql()} AS dispatch_rank
             FROM webui_conversation_inputs
             WHERE conv_id = ? AND user_id = ?
               AND conversation_generation = ?
@@ -91,31 +95,6 @@ def _read_pending_steers(
             raise StateError("Pending steer input is unavailable.")
         formatted.append(input_record)
     return formatted
-
-
-def _resolve_settings_source_input_id(
-    conn: sqlite3.Connection,
-    input_id: str,
-) -> str:
-    row = conn.execute(
-        """
-        WITH RECURSIVE lineage(input_id, target_input_id, model_settings_json) AS (
-            SELECT input_id, target_input_id, model_settings_json
-            FROM webui_conversation_inputs WHERE input_id = ?
-            UNION
-            SELECT parent.input_id, parent.target_input_id, parent.model_settings_json
-            FROM webui_conversation_inputs AS parent
-            JOIN lineage ON parent.input_id = lineage.target_input_id
-        )
-        SELECT input_id FROM lineage
-        WHERE model_settings_json IS NOT NULL
-        LIMIT 1
-        """,
-        (input_id,),
-    ).fetchone()
-    if row is None or not isinstance(row[0], str) or not row[0].strip():
-        raise StateError("Forced steer input settings source is unavailable.")
-    return row[0].strip()
 
 
 def _combine_steer_content(
@@ -178,7 +157,10 @@ def _insert_forced_input(
         media_descriptors=media_descriptors,
     )
     accepted_at_ms = epoch_ms()
-    target_input_id = _resolve_settings_source_input_id(conn, executing_input_id)
+    target_input_id = sync_read_conversation_input_execution_settings(
+        conn,
+        executing_input_id,
+    ).source_input_id
     conn.execute(
         """
         INSERT INTO webui_conversation_inputs (
@@ -207,6 +189,14 @@ def _insert_forced_input(
             accepted_at_ms,
             accepted_at_ms,
         ),
+    )
+    sync_transfer_forced_skills(
+        conn,
+        user_id,
+        conv_id,
+        input_id,
+        executing_input_id,
+        source_input_ids,
     )
     inserted = sync_fetch_one_as_dict(
         conn.execute(

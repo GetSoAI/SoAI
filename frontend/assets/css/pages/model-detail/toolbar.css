@@ -82,6 +82,10 @@
             text-align: start;
         }
 
+        .model-parameter-rail-item.ui-button:not(:focus-visible) {
+            box-shadow: none;
+        }
+
         .model-parameter-rail-item.is-active {
             --ui-button-bg: var(--sidebar-viewing-bg);
             --ui-button-bg-hover: color-mix(in srgb, var(--sidebar-viewing-bg), var(--glass-surface-interactive-hover));
@@ -189,21 +193,12 @@
             background: var(--text-field-bg);
             padding: var(--space-15) var(--space-3);
             font-size: var(--font-size-sm);
-            color: var(--text-secondary);
+            color: var(--text-field-color);
             border-color: var(--text-field-border);
-            transition:
-                background var(--transition-fast),
-                border-color var(--transition-fast),
-                box-shadow var(--transition-fast);
         }
 
         :is(input.model-parameter-input, textarea.model-parameter-textarea)::placeholder {
-            color: var(--text-tertiary);
-        }
-
-        :is(input.model-parameter-input, textarea.model-parameter-textarea):hover:not(:focus) {
-            background: var(--text-field-bg-hover);
-            border-color: var(--text-field-border-hover);
+            color: var(--text-field-color);
         }
 
         .model-parameter-textarea {

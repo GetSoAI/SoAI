@@ -1,6 +1,8 @@
 /* SoAI - Plugins page rendering layer card renderer mapping [frontend/assets/ts/pages/plugins/rendering/cardrenderer/mappers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { i18n } from '@core/i18n/index.ts';
+import { showBackendUpdateBadge } from '@pages/plugins/rendering/cardrenderer/rendering.ts';
 import type { ActionState, PluginCardData, PluginCardHost, PluginRecord } from '@pages/plugins/rendering/cardrenderer/types.ts';
 
 function prepareCardData(host: PluginCardHost, plugin: PluginRecord): PluginCardData {
@@ -11,7 +13,7 @@ function prepareCardData(host: PluginCardHost, plugin: PluginRecord): PluginCard
         hardwareIncompatible: host.compatibility.isHardwareIncompatible(plugin),
         status,
         statusClass: statusManager.getCollectionStatusClass(status),
-        statusLabel: statusManager.getDescription(status),
+        statusLabel: showBackendUpdateBadge(plugin, host) ? i18n.t('plugins.modal.manageBackend.update_available') : statusManager.getDescription(status),
         statusBadgeClass: statusManager.getCollectionBadgeClass(status),
         circuitBreakerActive: host.compatibility.isCircuitBreakerActive(plugin),
         overrideRequired: host.compatibility.requiresCompatibilityOverride(plugin)

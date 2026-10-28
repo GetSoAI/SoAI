@@ -15,6 +15,9 @@ from core.network.policy import (
 )
 from core.runtime.network_policy import is_offline_mode_enabled, validate_local_only_url
 from mcp.tools.browser.config_values import resolve_browser_dns_timeout_sec
+from mcp.tools.browser.playwright_error_classification import (
+    is_chrome_internal_error_url,
+)
 from mcp.tools.error import MCPToolError
 
 if TYPE_CHECKING:
@@ -206,7 +209,9 @@ async def _require_browser_output_url_allowed(
         except (FeatureDisabledError, ValidationError) as exception:
             raise MCPToolError(-32603, str(exception)) from exception
         return
-    if _is_browser_render_only_url_allowed(current_url):
+    if _is_browser_render_only_url_allowed(current_url) or is_chrome_internal_error_url(
+        current_url,
+    ):
         return
     _raise_unsupported_url(tool_name, current_url)
 

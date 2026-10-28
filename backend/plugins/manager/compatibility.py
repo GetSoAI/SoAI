@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import ValidationError
+from core.hardware.gpu_inventory_errors import require_gpu_discovery_capabilities
 from core.logging.trace import get_logger
 from core.plugins.errors import PluginCapabilityError, PluginIncompatibleError
 from core.serialization.json_parsing import parse_json_value
@@ -18,7 +19,6 @@ from plugins.protocols_internal.runtime.internal_protocols import (
 )
 from plugins.state.compatibility import (
     build_compatibility_info,
-    should_block_for_incompatibility,
 )
 from plugins.state.publishing import require_plugin_record
 from plugins.state.system_capability_report import build_system_capability_report
@@ -31,7 +31,6 @@ __all__ = (
     "ensure_plugin_compatible",
     "ensure_record_is_compatible",
     "ensure_system_capabilities",
-    "is_plugin_compatible",
 )
 
 LOGGER_NAME = "SoAI.plugins.manager.compatibility"
@@ -120,6 +119,7 @@ async def ensure_system_capabilities(
         or not (blocking := report.get("blocking_actions"))
         or (isinstance(blocking, list) and action_key in {str(entry) for entry in blocking})
     ):
+        require_gpu_discovery_capabilities(report)
         display_name = await self.get_plugin_display_name(plugin_name)
         messages_value = report.get("messages")
         messages = messages_value if isinstance(messages_value, list) else []
@@ -130,28 +130,6 @@ async def ensure_system_capabilities(
             f"{action_description} for '{display_name}' is blocked. {message}",
         )
     return report
-
-
-async def is_plugin_compatible(
-    self: PluginManagerRuntimeProtocol,
-    plugin_name: str,
-) -> tuple[bool, str | None, str]:
-    plugin_info = await self.dependencies.databases.plugins.get_plugin_by_name(plugin_name)
-    if not plugin_info:
-        return (False, "Plugin not found.", self.state.configuration.core_version)
-    compatibility = compatibility_from_record(plugin_info)
-    should_block, _ = should_block_for_incompatibility(
-        compatibility,
-        plugin_info,
-        self.policy.hardware_incompatible_reasons,
-    )
-    if should_block:
-        core_compat = plugin_info.get("core_compat", ">=1.0.0")
-        core_compat_value = str(core_compat) if not isinstance(core_compat, str) else core_compat
-        return (False, compatibility.message, core_compat_value)
-    core_compat = plugin_info.get("core_compat", ">=1.0.0")
-    core_compat_value = str(core_compat) if not isinstance(core_compat, str) else core_compat
-    return (True, None, core_compat_value)
 
 
 async def ensure_plugin_compatible(self: PluginManagerRuntimeProtocol, plugin_name: str) -> None:

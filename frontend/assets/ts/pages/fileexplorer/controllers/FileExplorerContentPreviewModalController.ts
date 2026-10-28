@@ -93,6 +93,7 @@ class FileExplorerContentPreviewModalController {
     async #show(path: string, imageNavigationDirection: ContentPreviewImageNavigationDirection | null): Promise<void> {
         const normalized = this.#previewRequest.requirePath(path, 'File content preview modal requires a file path');
         const sequence = this.#previewRequest.begin(normalized);
+        this.#state.invalidatePendingSaveResult();
         try {
             const metadata = await this.#host.loadMetadata(normalized, this.#previewRequest.signal());
             if (!this.#previewRequest.isCurrent(sequence)) {
@@ -122,7 +123,7 @@ class FileExplorerContentPreviewModalController {
             if (!this.#previewRequest.isCurrent(sequence)) {
                 return;
             }
-            this.#openTextPreview(result.path, result.content, headerDescription, metadata.mimeType, true, false);
+            this.#openTextPreview(result.path, result.content, headerDescription, true, false);
             this.#state.setTextBaseline(result.path, result.content, { isNewFile: false });
             const modalRoot = this.#host.modalPresenter.requireElement(CONTENT_PREVIEW_MODAL_ID);
             this.#ensureWired(modalRoot);
@@ -213,7 +214,7 @@ class FileExplorerContentPreviewModalController {
         const normalized = this.#previewRequest.requirePath(path, 'New file path is required');
         this.#previewRequest.begin(normalized);
         const service = requireContentPreviewModalService();
-        this.#openTextPreview(normalized, '', null, '', false, true);
+        this.#openTextPreview(normalized, '', null, false, true);
         this.#state.setTextBaseline(normalized, '', { isNewFile: true });
         const modalRoot = this.#host.modalPresenter.requireElement(CONTENT_PREVIEW_MODAL_ID);
         this.#ensureWired(modalRoot);
@@ -222,7 +223,7 @@ class FileExplorerContentPreviewModalController {
         service.enterEditMode();
     }
 
-    #openTextPreview(path: string, content: string, headerDescription: string | null, mimeType: string, allowAttach: boolean, isUnsavedDraft: boolean): void {
+    #openTextPreview(path: string, content: string, headerDescription: string | null, allowAttach: boolean, isUnsavedDraft: boolean): void {
         const baseline: ContentPreviewTextBaseline = Object.freeze({
             title: filenameFromPath(path),
             content,
@@ -241,7 +242,7 @@ class FileExplorerContentPreviewModalController {
                 disableDownloadWhenEmpty: false,
                 colorToolkit: null,
                 sourceReference: { type: 'path', value: path },
-                onRequestSave: async (draft: ContentPreviewTextDraftSnapshot): Promise<ContentPreviewTextSaveResult | null> => await this.#applyTextSave(draft, mimeType),
+                onRequestSave: async (draft: ContentPreviewTextDraftSnapshot): Promise<ContentPreviewTextSaveResult | null> => await this.#applyTextSave(draft),
                 onRequestDownload: async (): Promise<void> => await this.#state.downloadCurrent(),
                 onRequestCopy: async (text: string): Promise<void> => await copyFileExplorerContentPreviewText(this.#host, text),
                 onRequestAttach: allowAttach ? async (): Promise<void> => await copyFileExplorerContentPreviewSoaiLink(this.#host, this.#state.getPath()) : null,
@@ -293,8 +294,8 @@ class FileExplorerContentPreviewModalController {
         });
     }
 
-    async #applyTextSave(draft: ContentPreviewTextDraftSnapshot, mimeType: string): Promise<ContentPreviewTextSaveResult | null> {
-        const result = await this.#state.applySave(draft, mimeType);
+    async #applyTextSave(draft: ContentPreviewTextDraftSnapshot): Promise<ContentPreviewTextSaveResult | null> {
+        const result = await this.#state.applySave(draft);
         if (result?.sourceReference?.type === 'path') {
             this.#previewRequest.setCurrentPath(result.sourceReference.value);
         }

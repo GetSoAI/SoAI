@@ -67,6 +67,7 @@ class VoiceCallModalUiController {
     #presenter: ModalPresenterApi;
     #abortController: AbortController | null = null;
     #programmaticClose = false;
+    #snapshot: VoiceCallUiSnapshot | null = null;
 
     constructor(host: VoiceCallModalUiControllerHost) {
         this.#host = host;
@@ -92,6 +93,7 @@ class VoiceCallModalUiController {
     }
 
     update(snapshot: VoiceCallUiSnapshot): void {
+        this.#snapshot = snapshot;
         const modal = this.#presenter.requireElement(CHAT_VOICE_CALL_MODAL_ID);
         const body = requireRootHTMLElement(modal, '.voice-call-modal-body', 'voice call modal body');
         body.setAttribute('data-voice-call-status', snapshot.status);
@@ -106,6 +108,7 @@ class VoiceCallModalUiController {
     }
 
     dispose(): void {
+        this.#snapshot = null;
         this.#abortController?.abort();
         this.#abortController = null;
     }
@@ -116,6 +119,13 @@ class VoiceCallModalUiController {
         }
         this.#abortController = new AbortController();
         const signal = this.#abortController.signal;
+        modal.addEventListener(
+            'core.modal.localize',
+            () => {
+                if (this.#snapshot && this.#presenter.isOpen(CHAT_VOICE_CALL_MODAL_ID)) this.update(this.#snapshot);
+            },
+            { signal }
+        );
         bindDataActionListener({
             root: modal,
             eventType: 'click',

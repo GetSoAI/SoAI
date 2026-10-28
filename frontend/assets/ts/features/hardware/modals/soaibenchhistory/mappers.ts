@@ -54,13 +54,13 @@ const normalizeHistoryRun = (value: GpuSoAIBenchHistoryRun): SoAIBenchHistoryRun
     const profile = toTrimmedString(value.profile);
     const status = toTrimmedString(value.status);
     if (!runId) {
-        throw new TypeError('SoAIBench history run must include run_id');
+        throw new TypeError('SoAI Bench history run must include run_id');
     }
     if (!profile) {
-        throw new TypeError('SoAIBench history run must include profile');
+        throw new TypeError('SoAI Bench history run must include profile');
     }
     if (!status) {
-        throw new TypeError('SoAIBench history run must include status');
+        throw new TypeError('SoAI Bench history run must include status');
     }
     const summary = value.summary ?? {};
     return {
@@ -81,6 +81,7 @@ const normalizeHistoryRun = (value: GpuSoAIBenchHistoryRun): SoAIBenchHistoryRun
         publicationEligible: value.publicationEligible,
         settingsSnapshotAvailable: Object.keys(value.settingsSnapshot).length > 0,
         reasonMessage: nullableText(summary.message),
+        deadline: { failedPhase: nullableText(summary.failedPhase), deadlineSeconds: summary.deadlineSeconds ?? null },
         guidanceMessage: nullableText(summary.guidance),
         failureReason: nullableText(value.failureReason),
         unsupportedReason: nullableText(value.unsupportedReason),
@@ -91,7 +92,7 @@ const normalizeHistoryRun = (value: GpuSoAIBenchHistoryRun): SoAIBenchHistoryRun
 };
 
 const normalizeHistoryRuns = (result: GpuOperationResponse): SoAIBenchHistoryRun[] => {
-    if (!result.history) throw new TypeError('SoAIBench history result must include history');
+    if (!result.history) throw new TypeError('SoAI Bench history result must include history');
     return result.history.map(normalizeHistoryRun);
 };
 

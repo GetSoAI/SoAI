@@ -176,7 +176,7 @@ async def create(
             if admission.outcome == "conflict":
                 raise MutationAdmissionConflictError(admission.task_id or None)
             if admission.outcome == "replay":
-                existing = await registry.get(task.task_id, force_refresh=True)
+                existing = await registry.get(admission.task_id, force_refresh=True)
                 if existing is None:
                     raise DatabaseError(
                         "Replayed mutation task is unavailable.",

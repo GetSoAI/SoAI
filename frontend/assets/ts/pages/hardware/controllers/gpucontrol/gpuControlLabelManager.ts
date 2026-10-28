@@ -4,14 +4,14 @@
 import { i18n } from '@core/i18n/index.ts';
 import type { GpuControlType } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 
-export const resolveGpuControlLabel = (type: GpuControlType): string => {
+export const resolveGpuControlLabel = (type: GpuControlType, isOffsetControl: boolean): string => {
     switch (type) {
         case 'power':
-            return i18n.t('hardware.gpu.controls.power_limit');
+            return isOffsetControl ? i18n.t('hardware.gpu.controls.powerLimitOffset') : i18n.t('hardware.gpu.controls.power_limit');
         case 'core':
-            return i18n.t('hardware.gpu.controls.coreClock');
+            return isOffsetControl ? i18n.t('hardware.gpu.controls.coreClock') : i18n.t('hardware.gpu.controls.coreClockFrequency');
         case 'memory':
-            return i18n.t('hardware.gpu.controls.memoryClock');
+            return isOffsetControl ? i18n.t('hardware.gpu.controls.memoryClock') : i18n.t('hardware.gpu.controls.memoryClockFrequency');
         case 'fan':
             return i18n.t('hardware.gpu.controls.fan_speed');
         default:

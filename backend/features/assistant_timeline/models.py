@@ -118,6 +118,7 @@ class AssistantTimelineRuntime:
     agent_tool_events_authoritative: bool = False
     cancellation_requested: bool = False
     cancellation_reason: str | None = None
+    cancellation_code: str = "cancelled"
     last_visible_activity_monotonic_ms: int = 0
     loading_activity: TimelineActivity = field(
         default_factory=lambda: TimelineActivity(status="running"),
@@ -140,7 +141,6 @@ class AssistantTimelineRuntime:
     assistant_delta_emitted: bool = False
     assistant_images_emitted: int = 0
     emitted_image_urls: set[str] = field(default_factory=set[str])
-    assistant_visible_output_started: bool = False
     assistant_event_buffer: list[PendingAssistantMessageEvent] = field(
         default_factory=list[PendingAssistantMessageEvent],
     )
@@ -181,7 +181,6 @@ class AssistantTimelineRuntime:
     stream_state_force_flush_future: asyncio.Future[bool] | None = None
     terminal_finalization_started: bool = False
     terminal_event_emitted: bool = False
-    terminal_event_published: bool = False
     terminal_persistence_attempted: bool = False
     terminal_persistence_completed: bool = False
     terminal_outcome_claim: Literal["cancelled", "completed", "error"] | None = None
@@ -190,6 +189,7 @@ class AssistantTimelineRuntime:
     quota_token_reservation: JSONDict | None = None
     quota_release_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     quota_prompt_tokens: int | None = None
+    execution_context_window_override_tokens: int | None = None
     usage_preview_prompt_tokens: int = 0
     usage_preview_context_window_tokens: int | None = None
     usage_preview_context_window_unverified: bool = False
@@ -202,7 +202,6 @@ class AssistantTimelineRuntime:
     usage_preview_revision: int = 0
     usage_preview_last_compute_ms: int = 0
     usage_preview_last_emit_ms: int = 0
-    usage_preview_last_completion_tokens: int | None = None
     usage_preview_estimated_completion_tokens: int = 0
     usage_preview_last_token_at_ms: int | None = None
     usage_preview_completion_rate_tokens_per_second: float = 0.0

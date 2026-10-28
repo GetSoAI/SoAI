@@ -27,6 +27,7 @@ class ResumedToolPhase:
     assistant_text: str | None
     tool_calls: list[JSONDict]
     cancellation_id: str
+    reasoning_text: str = ""
 
 
 def resolve_resumed_tool_phase(
@@ -72,4 +73,5 @@ def resolve_resumed_tool_phase(
         assistant_text=turn_state_writer.latest_assistant_text,
         tool_calls=tool_calls,
         cancellation_id=cancellation_id,
+        reasoning_text=turn_state_writer.latest_reasoning_text,
     )

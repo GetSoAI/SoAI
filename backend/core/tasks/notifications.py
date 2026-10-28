@@ -6,6 +6,7 @@ from __future__ import annotations
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
+from core.events.bus_publish_error_paths import is_event_bus_owned_publication_failure
 from core.events.protocols import EventBusProtocol
 from core.events.types_base import Event
 from core.events.types_tasks import TaskStatusChangedEvent
@@ -30,6 +31,8 @@ async def publish_event(event_bus: EventBusProtocol, event: Event, name: str) ->
     try:
         await event_bus.publish(event)
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
+        if is_event_bus_owned_publication_failure(exception):
+            return
         coerced = coerce_to_soai_error(exception, operation=OPERATION)
         log_exception(
             logger,

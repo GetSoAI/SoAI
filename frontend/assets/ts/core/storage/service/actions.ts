@@ -186,6 +186,7 @@ const createStorageStateActions = (
             throw new TypeError('language must be a non-empty string');
         }
         if (normalizedLanguage === state.cache.ui.language) {
+            dispatch(EVENT_REQUEST, { language: normalizedLanguage });
             return;
         }
         state.cache.ui.language = normalizedLanguage;

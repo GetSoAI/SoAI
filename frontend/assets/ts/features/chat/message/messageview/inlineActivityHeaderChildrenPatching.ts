@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { insertWithPresence, isPresenceExiting, removeWithPresence } from '@core/animations/presence/public.ts';
-import { haveEqualChildNodes, syncAttribute, syncAttributes, syncClass } from '@core/dom/patching.ts';
+import { replaceContentWithFade } from '@core/animations/contentReplacement.ts';
+import { haveEqualChildNodes, syncAttribute, syncAttributes, syncClass, syncTextContent } from '@core/dom/patching.ts';
 import { reapplyInlineActivityDetailsPendingChrome } from '@features/chat/message/inlineActivityDetailsPendingState.ts';
 import { patchInlineActivityPreviewNode } from '@features/chat/message/messageview/inlineActivityPreviewPatching.ts';
+import { patchInlineActivityLayoutWithMotion } from '@features/chat/message/messageview/inlineActivityLayoutMotion.ts';
 import { insertBeforeHeaderActions, moveBeforeAnchorIfAfter, removeUnownedHeaderDurationNodes, resolveHeaderChildren } from '@features/chat/message/messageview/inlineActivityHeaderChildrenDomOps.ts';
 
 const INLINE_ACTIVITY_STOP_REQUESTED_ATTRIBUTE = 'data-inline-activity-stop-requested';
@@ -71,20 +73,29 @@ const patchDurationNode = (existingHeader: HTMLElement, createdHeader: HTMLEleme
         insertBeforeHeaderActions(existingHeader, createdDuration.cloneNode(true));
         return true;
     }
-    if (existingDuration.textContent !== createdDuration.textContent) {
-        existingDuration.textContent = createdDuration.textContent;
-        changed = true;
+    const commit = (): boolean => {
+        let updated = syncTextContent(existingDuration, createdDuration.textContent ?? '');
+        if (syncClass(existingDuration, createdDuration)) updated = true;
+        if (syncAttributes({ target: existingDuration, source: createdDuration })) updated = true;
+        return updated;
+    };
+    const activity = existingHeader.closest('.inline-activity');
+    if (activity?.classList.contains('inline-activity-type-loading') && !activity.classList.contains('inline-activity-status-running')) {
+        return (
+            replaceContentWithFade(
+                existingDuration,
+                createdDuration.outerHTML,
+                () => {
+                    patchInlineActivityLayoutWithMotion(existingHeader, commit);
+                },
+                existingDuration.outerHTML
+            ) || changed
+        );
     }
-    if (syncClass(existingDuration, createdDuration)) {
-        changed = true;
-    }
-    if (syncAttributes({ target: existingDuration, source: createdDuration })) {
-        changed = true;
-    }
-    return changed;
+    return commit() || changed;
 };
 
-const patchInlineActivityHeaderChildrenInPlace = (existingHeader: HTMLElement, createdHeader: HTMLElement): boolean => {
+const applyInlineActivityHeaderChildrenPatch = (existingHeader: HTMLElement, createdHeader: HTMLElement): boolean => {
     let changed = false;
     if (syncClass(existingHeader, createdHeader)) {
         changed = true;
@@ -237,6 +248,10 @@ const patchInlineActivityHeaderChildrenInPlace = (existingHeader: HTMLElement, c
         }
     }
     return changed;
+};
+
+const patchInlineActivityHeaderChildrenInPlace = (existingHeader: HTMLElement, createdHeader: HTMLElement): boolean => {
+    return patchInlineActivityLayoutWithMotion(existingHeader, () => applyInlineActivityHeaderChildrenPatch(existingHeader, createdHeader));
 };
 
 export { patchInlineActivityHeaderChildrenInPlace };

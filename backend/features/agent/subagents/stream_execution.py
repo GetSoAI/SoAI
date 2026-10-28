@@ -109,6 +109,7 @@ async def execute_subagent_stream(
         todo_state=None,
         subagent_summaries=[],
         tool_context=subagent_tool_context,
+        skill_context=subagent_context.skill_execution_context,
         scope_message=_build_subagent_scope_system_message(subagent_context),
         prune_empty_messages=False,
         stream=True,

@@ -37,6 +37,7 @@ class RuntimeStateStore:
         self._system_stop_event = system_stop_event
         self._restart_pending = restart_pending
         self._startup_ready_event = startup_ready_event
+        self._startup_transition_complete_event = asyncio.Event()
         self._shutdown_event = shutdown_event
         self._restart_state_manager: RestartStateManagerProtocol | None = None
         self._system_restart_requester: SystemRestartRequesterProtocol | None = None
@@ -54,6 +55,8 @@ class RuntimeStateStore:
         self._pid_lock: RuntimePidLockProtocol | None = None
         self._async_loop = async_loop
         self._prune_tokens_task: asyncio.Task[None] | None = None
+        self.initial_user_activation_task: asyncio.Task[None] | None = None
+        self.database_recovery_pending = True
         self._runtime_api_endpoint: RuntimeApiEndpoint | None = None
         self._fastapi_app: FastAPI | None = None
         self._request_rate_limiter: MovingWindowRateLimiter | None = None
@@ -75,6 +78,10 @@ class RuntimeStateStore:
     @property
     def startup_ready_event(self) -> asyncio.Event:
         return self._startup_ready_event
+
+    @property
+    def startup_transition_complete_event(self) -> asyncio.Event:
+        return self._startup_transition_complete_event
 
     @property
     def shutdown_event(self) -> asyncio.Event:
@@ -295,6 +302,7 @@ class RuntimeStateStore:
     def _set_stop_event(self, event: asyncio.Event) -> None:
         def apply_stop_event() -> None:
             self._startup_ready_event.clear()
+            self._startup_transition_complete_event.clear()
             event.set()
 
         event_loop = self.async_loop

@@ -13,6 +13,8 @@ import { applyAdvancedScrollPreviewThumbStyles, resetAdvancedScrollPreviewStyles
 import { createAdvancedScrollPreviewVisibilityController } from '@features/chat/chatuimanager/advancedScrollPreviewVisibility.ts';
 import type { AdvancedScrollPreviewElements, ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 import { acquireMainTimelineCoordinator } from '@features/chat/mainTimelineCoordinator.ts';
+import { hasPresenceAnimationInSubtree } from '@core/animations/presence/public.ts';
+import { isMainTimelineScrollRestoring } from '@features/chat/mainTimelineScroll.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 
 type PreviewFrameMeasurement = {
@@ -46,7 +48,7 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
     let hasEverBeenScrollable = false;
     let geometryPending = false;
     let contentPending = false;
-    let contentPendingAfterTouch = false;
+    let contentPendingAfterGesture = false;
     let thumbPending = false;
     let lastLayout: LayoutMetrics | null = null;
 
@@ -125,16 +127,22 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
             return null;
         }
         const updateGeometry = geometryPending;
+        const requestedContent = contentPending;
         let updateContent = contentPending;
         const updateThumb = thumbPending;
         geometryPending = false;
         contentPending = false;
         thumbPending = false;
-        if (updateContent && coordinator.isDirectTouchActive()) {
+        const nativeGestureActive = coordinator.isNativeGestureActive();
+        if (updateContent && (nativeGestureActive || isMainTimelineScrollRestoring(messagesArea) || hasPresenceAnimationInSubtree(messagesRoot))) {
             updateContent = false;
-            contentPendingAfterTouch = true;
+            if (nativeGestureActive) contentPendingAfterGesture = true;
+            else {
+                contentPending = true;
+                schedulePreviewFrame();
+            }
         }
-        const layout = updateGeometry || updateContent ? computeLayoutMetrics() : lastLayout;
+        const layout = updateGeometry || requestedContent ? computeLayoutMetrics() : lastLayout;
         if (!layout) {
             return null;
         }
@@ -142,7 +150,7 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
         const measurement: PreviewFrameMeasurement = {
             bottomOffsetPx: updateGeometry ? bottomOffset.measure() : null,
             layout,
-            minimap: updateContent ? minimap.measure() : null,
+            minimap: updateContent && layout.visibleWanted ? minimap.measure() : null,
             thumb: updateContent || updateThumb ? computeAdvancedScrollPreviewThumbRect(layout, messagesArea.scrollTop) : null,
             updateContent
         };
@@ -159,8 +167,8 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
         if (isDisposed) {
             return;
         }
-        if (coordinator.isDirectTouchActive()) {
-            contentPendingAfterTouch = true;
+        if (coordinator.isNativeGestureActive()) {
+            contentPendingAfterGesture = true;
             return;
         }
         contentPending = true;
@@ -172,8 +180,8 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
         if (isDisposed) {
             return;
         }
-        if (coordinator.isDirectTouchActive()) {
-            contentPendingAfterTouch = true;
+        if (coordinator.isNativeGestureActive()) {
+            contentPendingAfterGesture = true;
             return;
         }
         if (isCurrentConversationStreaming()) {
@@ -243,11 +251,11 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
             scheduleGeometrySync();
         }
     });
-    const touchSettledDisposer = coordinator.subscribeTouchSettled(() => {
-        if (!contentPendingAfterTouch || isDisposed) {
+    const gestureSettledDisposer = coordinator.subscribeNativeGestureSettled(() => {
+        if (!contentPendingAfterGesture || isDisposed) {
             return;
         }
-        contentPendingAfterTouch = false;
+        contentPendingAfterGesture = false;
         scheduleContentNow();
     });
     const onScrollDisposer = context.dependencies.runtime.on(messagesArea, 'scroll', scheduleThumbUpdate, { passive: true });
@@ -296,7 +304,7 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
         scheduleIdleDraw.cancel?.();
         visibility.dispose();
         context.state.advancedScrollPreviewVisibilityController = null;
-        touchSettledDisposer();
+        gestureSettledDisposer();
         mutationDisposer();
         for (const resizeObservationDisposer of observedResizeDisposers) {
             resizeObservationDisposer();

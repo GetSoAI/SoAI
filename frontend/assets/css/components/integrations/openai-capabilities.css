@@ -26,7 +26,7 @@
     }
 
     .openai-capability-row.is-locked {
-        opacity: 0.8;
+        opacity: 1;
     }
 
     .openai-capability-row.is-overridden {
@@ -43,23 +43,33 @@
 
     .openai-capability-label {
         display: flex;
-        align-items: center;
-        gap: var(--space-15);
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: var(--space-1) var(--space-2);
         min-width: 0;
     }
 
     .openai-capability-name {
         font-size: var(--font-size-sm);
-        font-weight: 600;
+        font-weight: 500;
         color: var(--text-primary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: anywhere;
     }
 
     .openai-capability-reason {
         font-size: var(--font-size-xs);
-        color: var(--text-tertiary);
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .openai-capability-evidence {
+        flex-shrink: 0;
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+    }
+
+    .openai-capability-mode {
+        flex-shrink: 0;
     }
 
     .openai-capabilities-message {

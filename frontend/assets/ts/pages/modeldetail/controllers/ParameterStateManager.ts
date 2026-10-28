@@ -164,8 +164,8 @@ class ParameterStateManager {
             return false;
         }
         const originalParameter = this.getOriginalParameter(parameterKey);
-        const currentValue = overrideValue !== undefined ? sanitizeParameterValue(parameter, overrideValue, { treatDefaultAsNull: false }) : sanitizeParameterValue(parameter, parameter.currentValue ?? null, { treatDefaultAsNull: false });
-        const originalValue = originalParameter ? sanitizeParameterValue(originalParameter, originalParameter.currentValue ?? null, { treatDefaultAsNull: false }) : undefined;
+        const currentValue = sanitizeParameterValue(parameter, overrideValue !== undefined ? overrideValue : (parameter.currentValue ?? null));
+        const originalValue = originalParameter ? sanitizeParameterValue(originalParameter, originalParameter.currentValue ?? null) : undefined;
         return !areValuesEqual(currentValue, originalValue);
     }
 
@@ -201,8 +201,11 @@ class ParameterStateManager {
         return this.getParameterKeys().length;
     }
 
-    commit(): void {
-        this.originalParameters = deepClone(this.parameters);
+    commit(submittedValues: Record<string, JsonValue>): void {
+        for (const [key, value] of Object.entries(submittedValues)) {
+            const original = this.originalParameters[key];
+            if (original) original.currentValue = deepClone(value);
+        }
     }
 }
 

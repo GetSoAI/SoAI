@@ -7,9 +7,11 @@ import os
 import subprocess
 import sys
 import warnings
+from functools import partial
 
 from app.cli.startup_flags import handle_information_cli_request
 from app.installation_transaction_admission import reject_unfinished_installation_transactions
+from core.bootstrap.backend_bytecode import compile_backend_bytecode
 from core.bootstrap.background import contains_background_flag, launch_background
 from core.bootstrap.install_arguments import (
     ParsedInstallArguments,
@@ -25,6 +27,8 @@ from core.bootstrap.install_diagnostics import (
     configure_install_cancellation,
     read_install_diagnostics_context,
 )
+from core.bootstrap.install_locks import build_install_lock_environment
+from core.bootstrap.install_payload import INSTALL_MANIFEST_FILENAME
 from core.bootstrap.install_windows import (
     default_windows_install_target,
     install_to_target,
@@ -39,10 +43,13 @@ from core.bootstrap.stage0_environment import (
     relaunch_in_venv_or_emit_failure,
     repo_root,
 )
+from core.bootstrap.venv_paths import get_venv_path, get_venv_python_executable
 from core.bootstrap.windows_managed_venv import ensure_windows_managed_venv
 from core.errors.exceptions import SoAIError, SoAITimeoutError
+from core.meta.paths import join_data_abs
 from core.platform.os import is_windows
 from core.runtime.opencl_environment import configure_opencl_runtime_environment
+from core.system.commands import run_argv_capture
 from core.system.process_replacement import replace_current_process
 
 __all__ = ("main",)
@@ -63,8 +70,44 @@ def _prepare_windows_install_command(repo_root_path: str) -> ParsedInstallArgume
             current_directory=os.getcwd(),
         )
         if parsed_args.command == "install":
+            existing_installation = any(
+                os.path.isfile(os.path.join(parsed_args.target, *components))
+                for components in (("backend", "main.py"), (INSTALL_MANIFEST_FILENAME,))
+            )
+
+            def run_upgrade_operation(operation: str, staging: str | None = None) -> None:
+                target = parsed_args.target
+                if not existing_installation and operation != "finish":
+                    return
+                environment = dict(os.environ)
+                environment.update(
+                    build_install_lock_environment(
+                        join_data_abs(target, "state", "locks", "soai.install.lock.d")
+                    )
+                )
+                environment["PYTHONPATH"] = os.path.join(repo_root_path, "backend")
+                command = [
+                    get_venv_python_executable(get_venv_path(target)),
+                    "-P",
+                    "-m",
+                    "app.updater.installation_plugin_upgrade",
+                    operation,
+                    "--base-path",
+                    target,
+                    "--edition",
+                    "soai-core",
+                ]
+                if staging is not None:
+                    command.extend(["--source", repo_root_path, "--staged", staging])
+                run_argv_capture(command, env=environment, check=True, timeout=1200)
+
             install_to_target(
-                repo_root_path, parsed_args, reject_unfinished_installation_transactions
+                repo_root_path,
+                parsed_args,
+                reject_unfinished_installation_transactions,
+                prepare_staging=partial(run_upgrade_operation, "prepare"),
+                finish_installation=partial(run_upgrade_operation, "finish"),
+                rollback_installation=partial(run_upgrade_operation, "abort"),
             )
             return 0
         return parsed_args
@@ -87,6 +130,7 @@ def main(
     runtime_cli_module: str = "app.cli.entrypoint",
     managed_entrypoint_path: str | None = None,
     expected_edition: str = "soai-core",
+    post_update_hook_module: str = "app.updater.post_update_hook",
 ) -> int:
     information_exit_code = handle_information_cli_request(
         sys.argv[1:],
@@ -117,6 +161,8 @@ def main(
                 repo_root_path,
                 windows_install_args,
                 reject_unfinished_installation_transactions,
+                expected_edition=expected_edition,
+                post_update_hook_module=post_update_hook_module,
             )
         except (
             OSError,
@@ -192,6 +238,19 @@ def main(
                 )
             emit("ERROR", f"FATAL: Bootstrap failed: {type(exception).__name__}: {exception}")
             return 1
+
+        if contains_install_deps_flag(sys.argv[1:]):
+            emit("INFO", "Preparing SoAI backend bytecode...")
+            try:
+                compile_backend_bytecode(
+                    repo_root_path,
+                    progress=lambda entries: emit("INFO", f"Prepared backend bytecode: {entries}"),
+                )
+            except (SoAIError, OSError) as exception:
+                emit(
+                    "WARN",
+                    f"Backend bytecode preparation failed; SoAI compiles on demand: {exception}",
+                )
 
         if windows_install_deps_session is not None:
             try:

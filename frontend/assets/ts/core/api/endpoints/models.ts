@@ -1,11 +1,12 @@
 /* SoAI - Shared frontend API endpoint layer models [frontend/assets/ts/core/api/endpoints/models.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { buildSignalRequestOptions } from '@core/api/requestOptions.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import type { GetVariantsOptions, ModelDownloadParameters } from '@core/api/types/models.ts';
 import type { RequestOptions } from '@core/api/types/request.ts';
 import { toTrimmedString } from '@core/normalize.ts';
-import type { OpenAICapabilityOverrideCategory } from '@core/openai/capabilityCategories.ts';
+import type { OpenAICapabilityOverrideReplaceRequest } from '@core/openai/capabilityCategories.ts';
 import { isBoolean } from '@core/typeGuards.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { decodeSuccessfulMutationResponse, type SuccessfulMutationResponse } from '@core/api/contracts/successfulMutationContract.ts';
@@ -28,8 +29,7 @@ const createModelsEndpoints = (
     updateEnabled: (id: string, payload: { enabled: boolean }) => Promise<SuccessfulMutationResponse>;
     updateParameters: (id: string, parameters: JsonValue) => Promise<SuccessfulMutationResponse>;
     deleteParameters: (id: string, keys: string[]) => Promise<SuccessfulMutationResponse>;
-    updateOpenAICapabilityOverride: (id: string, payload: { category: OpenAICapabilityOverrideCategory; token: string; enabled: boolean }) => Promise<SuccessfulMutationResponse>;
-    resetOpenAICapabilityOverrides: (id: string) => Promise<SuccessfulMutationResponse>;
+    replaceOpenAICapabilityOverrides: (id: string, payload: OpenAICapabilityOverrideReplaceRequest) => Promise<SuccessfulMutationResponse>;
     discover: () => Promise<ModelDiscoveryResponse>;
     getVariants: (pluginName: string, modelId: string, options?: GetVariantsOptions) => Promise<ModelVariantResponse[]>;
 } => {
@@ -56,13 +56,12 @@ const createModelsEndpoints = (
         updateEnabled: async (id: string, payload: { enabled: boolean }): Promise<SuccessfulMutationResponse> => decodeSuccessfulMutationResponse(await api.patch(`${MODELS_BASE_PATH}/${api.encodePathSegment(id)}/enabled`, payload), 'Model enabled update response'),
         updateParameters: async (id: string, parameters: JsonValue): Promise<SuccessfulMutationResponse> => decodeSuccessfulMutationResponse(await api.patch(`${MODELS_BASE_PATH}/${api.encodePathSegment(id)}/parameters`, { parameters }), 'Model parameters update response'),
         deleteParameters: async (id: string, keys: string[]): Promise<SuccessfulMutationResponse> => decodeSuccessfulMutationResponse(await api.delete(`${MODELS_BASE_PATH}/${api.encodePathSegment(id)}/parameters`, { body: { keys } }), 'Model parameters deletion response'),
-        updateOpenAICapabilityOverride: async (id: string, payload: { category: OpenAICapabilityOverrideCategory; token: string; enabled: boolean }): Promise<SuccessfulMutationResponse> => decodeSuccessfulMutationResponse(await api.patch(`${MODELS_BASE_PATH}/${api.encodePathSegment(id)}/capabilities/openai`, payload), 'Model OpenAI capability update response'),
-        resetOpenAICapabilityOverrides: async (id: string): Promise<SuccessfulMutationResponse> => decodeSuccessfulMutationResponse(await api.delete(`${MODELS_BASE_PATH}/${api.encodePathSegment(id)}/capabilities/openai`), 'Model OpenAI capability reset response'),
+        replaceOpenAICapabilityOverrides: async (id: string, payload: OpenAICapabilityOverrideReplaceRequest): Promise<SuccessfulMutationResponse> => decodeSuccessfulMutationResponse(await api.put(`${MODELS_BASE_PATH}/${api.encodePathSegment(id)}/capabilities/openai`, { overrides: { ...payload.overrides }, expected: { ...payload.expected } }), 'Model OpenAI capability replacement response'),
         discover: async (): Promise<ModelDiscoveryResponse> => decodeModelDiscoveryResponse(await api.post('/api/v1/actions/discover-models')),
         getVariants: async (pluginName: string, modelId: string, options: GetVariantsOptions = {}): Promise<ModelVariantResponse[]> => {
             const query: Record<string, boolean> = {};
             if (isBoolean(options.includeSpeedTests)) query['include_speed_tests'] = options.includeSpeedTests;
-            return decodeModelVariantsResponse(await api.get(`/api/v1/plugins/${api.encodePathSegment(pluginName)}/models/${api.encodePathSegment(modelId)}/variants`, { query }));
+            return decodeModelVariantsResponse(await api.get(`/api/v1/plugins/${api.encodePathSegment(pluginName)}/models/${api.encodePathSegment(modelId)}/variants`, { query, ...buildSignalRequestOptions(options) }));
         }
     };
 };

@@ -3,7 +3,7 @@
 
 import { resolveDesktopHostTransport } from '@core/desktophost/transport.ts';
 import { getDocumentElement, getEventHub, getMutationObserverCtor } from '@core/environment/public.ts';
-import { isJsonObject } from '@core/types/jsonValues.ts';
+import { isJsonObject, type JsonObject } from '@core/types/jsonValues.ts';
 
 const DESKTOP_LAUNCHER_CHANNEL = 'soai.desktopLauncher.v1';
 const DESKTOP_LAUNCHER_PLATFORMS: ReadonlySet<string> = new Set(['windows', 'linux', 'macos']);
@@ -51,6 +51,23 @@ const announceDesktopLauncherBootReveal = (): void => {
     postDesktopLauncherMessage({ command: 'bootReveal' });
 };
 
+const registerDesktopLauncherDetachedContextCapture = (capture: () => JsonObject | null): (() => void) => {
+    if (!isDesktopLauncherHost()) return () => {};
+    const handleCapture = (event: Event): void => {
+        if (event instanceof CustomEvent && isJsonObject(event.detail)) event.detail['context'] = capture();
+    };
+    getEventHub().addEventListener('soai:desktop-detached-context-capture', handleCapture);
+    return () => getEventHub().removeEventListener('soai:desktop-detached-context-capture', handleCapture);
+};
+
+const takeDesktopLauncherDetachedContext = (): JsonObject | null => {
+    if (!isDesktopLauncherHost()) return null;
+    const context = window.soaiDesktopLauncherDetachedContext;
+    delete window.soaiDesktopLauncherDetachedContext;
+    if (context !== undefined && context !== null && !isJsonObject(context)) throw new Error('Desktop detached context must be an object');
+    return isJsonObject(context) ? context : null;
+};
+
 const readAppearance = (preference: string): DesktopLauncherAppearance => {
     const root = getDocumentElement();
     const interfaceScale = Number(root.getAttribute('data-interface-scale'));
@@ -89,5 +106,5 @@ const startDesktopLauncherAppearanceSync = (): void => {
     publishAppearance();
 };
 
-export { announceDesktopLauncherBootReveal, announceDesktopLauncherUpdateHandoff, isDesktopLauncherHost, resolveDesktopLauncherBootHandoff, startDesktopLauncherAppearanceSync };
+export { announceDesktopLauncherBootReveal, announceDesktopLauncherUpdateHandoff, isDesktopLauncherHost, registerDesktopLauncherDetachedContextCapture, resolveDesktopLauncherBootHandoff, startDesktopLauncherAppearanceSync, takeDesktopLauncherDetachedContext };
 export type { DesktopLauncherBootHandoff };

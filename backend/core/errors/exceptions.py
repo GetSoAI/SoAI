@@ -3,14 +3,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, TypedDict, override
+from collections.abc import Awaitable, Callable, Mapping
+from typing import TYPE_CHECKING, Never, SupportsIndex, override
 
+from core.errors.error_initialization import build_error_init_kwargs
 from core.errors.error_types import ErrorType
 from core.errors.messages import resolve_error_message
 from core.errors.operation_resolution import resolve_default_operation
 
 if TYPE_CHECKING:
+    import asyncio
+    import subprocess
+
     from core.types.json import JSONValue
 
 __all__ = (
@@ -19,13 +23,16 @@ __all__ = (
     "AcceleratorMemoryExhaustedError",
     "ArchivedConversationLimitError",
     "AutomationRevisionConflictError",
+    "BackendUpdateContainmentError",
     "ConcurrencyError",
     "ConfigurationError",
     "ConflictError",
     "ConversationInputNotCancellableError",
     "DatabaseError",
+    "DurableDeliveryDeferredError",
     "EditionUnavailableError",
     "FeatureDisabledError",
+    "GPUControlInputValidationError",
     "InsufficientDiskSpaceError",
     "IpcRemoteRequestError",
     "ModelOutputContractError",
@@ -34,6 +41,7 @@ __all__ = (
     "PayloadTooLargeError",
     "PreconditionError",
     "ProcessError",
+    "ProcessGroupCleanupError",
     "RateLimitError",
     "SecurityError",
     "ServiceUnavailableError",
@@ -43,34 +51,9 @@ __all__ = (
     "SystemMemoryExhaustedError",
     "TaskConcurrencyLimitError",
     "ValidationError",
-    "build_error_init_kwargs",
 )
 
 CONVERSATION_INPUT_NOT_CANCELLABLE_CODE = "conversation_input_not_cancellable"
-
-
-class _ErrorInitKwargs(TypedDict):
-    details: Mapping[str, JSONValue] | None
-    operation: str | None
-    cause: BaseException | None
-    trace_id: str | None
-    headers: Mapping[str, str] | None
-
-
-def build_error_init_kwargs(
-    details: Mapping[str, JSONValue] | None,
-    operation: str | None,
-    cause: BaseException | None,
-    trace_id: str | None,
-    headers: Mapping[str, str] | None,
-) -> _ErrorInitKwargs:
-    return {
-        "details": details,
-        "operation": operation,
-        "cause": cause,
-        "trace_id": trace_id,
-        "headers": headers,
-    }
 
 
 class SoAIError(Exception):
@@ -78,6 +61,7 @@ class SoAIError(Exception):
     http_status: int = 500
     is_transient: bool = False
     public_message: str | None = None
+    public_param: str | None = None
     public_details: Mapping[str, JSONValue] | None = None
 
     def __init__(
@@ -153,23 +137,16 @@ class ApiError(SoAIError):
     ) -> tuple[
         tuple[JSONValue | BaseException | None, ...], Mapping[str, JSONValue | BaseException | None]
     ]:
-        return (
-            (self.message,),
-            {
-                "code": self.code,
-                "http_status": self.http_status,
-                "details": self.details,
-                "operation": self.operation,
-                "cause": self.cause,
-                "trace_id": self.trace_id,
-                "headers": self.headers,
-            },
-        )
+        arguments, keywords = super().__getnewargs_ex__()
+        return arguments, {**keywords, "code": self.code, "http_status": self.http_status}
 
 
 class ValidationError(SoAIError):
     code: str | int = ErrorType.INVALID_REQUEST.value
     http_status = 422
+
+
+class GPUControlInputValidationError(ValidationError): ...
 
 
 class OneShotAutomationStartNotFutureError(ValidationError):
@@ -198,6 +175,7 @@ class AutomationRevisionConflictError(PreconditionError):
 class InsufficientDiskSpaceError(SoAIError):
     code: str | int = "insufficient_disk_space"
     http_status = 507
+    public_message: str | None = "Not enough storage headroom. Free space or wait, then retry."
 
 
 class AcceleratorMemoryExhaustedError(SoAIError):
@@ -241,6 +219,10 @@ class ServiceUnavailableError(SoAIError):
     is_transient = True
 
 
+class DurableDeliveryDeferredError(ServiceUnavailableError):
+    code: str | int = "durable_delivery_deferred"
+
+
 class SecurityError(SoAIError):
     code: str | int = "security_error"
     http_status = 403
@@ -249,6 +231,10 @@ class SecurityError(SoAIError):
 class StateError(SoAIError):
     code: str | int = "invalid_state"
     http_status = 409
+
+
+class BackendUpdateContainmentError(StateError):
+    code: str | int = "backend_update_containment_failed"
 
 
 class ConcurrencyError(SoAIError):
@@ -304,6 +290,41 @@ class SoAITimeoutError(SoAIError):
 class ProcessError(SoAIError):
     code: str | int = "process_error"
     http_status = 500
+
+
+class ProcessGroupCleanupError(ProcessError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        process: subprocess.Popen[str] | subprocess.Popen[bytes],
+        read_connections: tuple[tuple[asyncio.ReadTransport, asyncio.StreamReader], ...] = (),
+        stdin_writer: asyncio.StreamWriter | None = None,
+        operation: str | None = None,
+        cause: BaseException | None = None,
+    ) -> None:
+        super().__init__(
+            message,
+            operation=operation,
+            cause=cause,
+            details={"process_group_exit": "unverified"},
+        )
+        self.process = process
+        self.read_connections = read_connections
+        self.stdin_writer = stdin_writer
+        self.owned_cleanup_callbacks: list[Callable[[], Awaitable[None]]] = []
+
+    @override
+    def __str__(self) -> str:
+        if self.process.returncode is None:
+            return self.message
+        return f"{self.message} Owned group exit was later verified."
+
+    @override
+    def __reduce_ex__(self, protocol: SupportsIndex) -> Never:
+        raise TypeError(
+            "Owned process-group authority cannot be reconstructed outside its runtime."
+        )
 
 
 class DatabaseError(SoAIError):

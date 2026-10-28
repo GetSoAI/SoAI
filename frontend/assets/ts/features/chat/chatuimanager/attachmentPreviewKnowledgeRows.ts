@@ -7,7 +7,7 @@ import { uiAttr, uiHtml, uiText } from '@core/security/uiHtml.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import { CHAT_ACTIONS } from '@features/chat/chatActionIds.ts';
 import { buildChatFilePreviewItemDocumentMarkup } from '@features/chat/chatuimanager/filePreviewItemDocumentMarkup.ts';
-import { completedKnowledgeItemCount } from '@features/chat/knowledgeAttachmentReadiness.ts';
+import { completedKnowledgeItemCount, isItemlessKnowledgeReindex } from '@features/chat/knowledgeAttachmentReadiness.ts';
 import { resolveKnowledgeAttachmentPresentation, resolveKnowledgeAttachmentReconciliationId } from '@features/chat/knowledgeAttachmentPresentation.ts';
 import type { AttachmentPreviewEntry } from '@features/chat/chatuimanager/attachmentPreviewReconciler.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
@@ -18,7 +18,7 @@ const renderKnowledgeAttachmentRow = (context: ChatUIManagerContext, knowledge: 
     const visibleCount = knowledge.visibleCount;
     const completedCount = completedKnowledgeItemCount(knowledge);
     const presentation = resolveKnowledgeAttachmentPresentation(knowledge);
-    const statusText = `${presentation.label} - ${String(visibleCount)} / ${String(totalCount)}`;
+    const statusText = isItemlessKnowledgeReindex(knowledge) ? presentation.label : `${presentation.label} - ${String(visibleCount)} / ${String(totalCount)}`;
     const knowledgeAttachmentId = knowledge.knowledgeAttachmentId;
     if (knowledgeAttachmentId) {
         const removeLabel = i18n.t('chat.attachments.removeTooltip');

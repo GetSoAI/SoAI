@@ -51,7 +51,7 @@ class SoAIBenchRunSessionState {
     requireEntry(sectionId: string): SoAIBenchRunEntry {
         const entry = this.findEntry(sectionId);
         if (entry === null) {
-            throw new Error('SoAIBench run section is no longer available');
+            throw new Error('SoAI Bench run section is no longer available');
         }
         return entry;
     }
@@ -59,7 +59,7 @@ class SoAIBenchRunSessionState {
     requireRunEntry(runId: string): SoAIBenchRunEntry {
         const entry = this.#entriesByRunId.get(runId);
         if (entry === undefined) {
-            throw new Error('SoAIBench run is no longer available');
+            throw new Error('SoAI Bench run is no longer available');
         }
         return entry;
     }

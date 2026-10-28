@@ -29,6 +29,7 @@ class ErrorType(Enum):
     UPLOAD_ERROR = "upload_error"
     CONFLICT = "conflict_error"
     RATE_LIMIT = "rate_limit_error"
+    PAYMENT_REQUIRED = "payment_required_error"
     LOCKED = "locked_error"
     ACTION_NOT_SUPPORTED = "action_not_supported"
     ACCELERATOR_MEMORY_EXHAUSTED = "accelerator_memory_exhausted"

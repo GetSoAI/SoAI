@@ -75,7 +75,13 @@ const requireIsoDateToUtcMs = (iso: string, label: string): number => {
     return utcMs;
 };
 
-const startOfDay = (date: Date): Date => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+const startOfDay = (date: Date): Date => createLocalDate(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0);
+
+const resolveCalendarDayIndex = (date: Date): number => {
+    const calendarDate = new Date(0);
+    calendarDate.setUTCFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+    return calendarDate.getTime() / DAY_MS;
+};
 
 const isSameDay = (firstValue: Date, secondValue: Date): boolean => firstValue.getFullYear() === secondValue.getFullYear() && firstValue.getMonth() === secondValue.getMonth() && firstValue.getDate() === secondValue.getDate();
 
@@ -97,11 +103,10 @@ const resolveLocalCalendarBucket = (date: Date, now: Date, options: { futureAsTo
         throw new Error('Local calendar bucket requires valid dates');
     }
     const todayStart = startOfDay(now).getTime();
-    const yesterdayStart = todayStart - DAY_MS;
     const dateStart = startOfDay(date).getTime();
-    const calendarDaysAgo = Math.floor((todayStart - dateStart) / DAY_MS);
+    const calendarDaysAgo = resolveCalendarDayIndex(now) - resolveCalendarDayIndex(date);
     const isToday = options.futureAsToday === true ? date.getTime() >= todayStart : dateStart === todayStart;
-    const type: LocalCalendarBucketType = isToday ? 'today' : dateStart === yesterdayStart ? 'yesterday' : calendarDaysAgo < 7 ? 'recent' : 'older';
+    const type: LocalCalendarBucketType = isToday ? 'today' : calendarDaysAgo === 1 ? 'yesterday' : calendarDaysAgo < 7 ? 'recent' : 'older';
     return {
         type,
         calendarDaysAgo,

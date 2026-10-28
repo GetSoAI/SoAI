@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, Depends, Request, params
 from starlette.responses import Response
 
@@ -10,6 +12,7 @@ from core.errors.exceptions import ValidationError
 from core.events.types_models_model_commands import (
     DeleteModelAliasCommand,
     DeleteModelParametersCommand,
+    ReplaceModelOpenAICapabilityOverridesCommand,
     ResetModelOpenAICapabilityOverridesCommand,
     UpdateModelAliasCommand,
     UpdateModelEnabledCommand,
@@ -18,6 +21,9 @@ from core.events.types_models_model_commands import (
 )
 from core.models.universal_id import is_universal_id
 from features.api.runtime.context import ApiContext, resolve_api_context
+from features.api.schemas.model_openai_capability_overrides import (
+    ModelOpenAICapabilityOverridesReplace,
+)
 from features.api.schemas.models import (
     ModelAliasUpdate,
     ModelEnabledUpdate,
@@ -25,6 +31,9 @@ from features.api.schemas.models import (
     ModelParametersResetRequest,
     ModelParametersUpdate,
 )
+
+if TYPE_CHECKING:
+    from core.types.json import JSONDict
 
 __all__ = ("register_model_mutation_routes",)
 
@@ -168,6 +177,36 @@ def register_model_mutation_routes(
                 "category": payload.category,
                 "token": payload.token,
                 "enabled": payload.enabled,
+            },
+            success_status=202,
+        )
+
+    @router.put("/{universal_id}/capabilities/openai", dependencies=model_admin_restart_deps)
+    async def model_replace_openai_capabilities(
+        request: Request,
+        universal_id: str,
+        payload: ModelOpenAICapabilityOverridesReplace,
+        api_context: ApiContext = Depends(resolve_api_context),
+    ) -> Response:
+        universal_id = _require_universal_id(universal_id)
+        disabled = payload.overrides.disabled
+        enabled = payload.overrides.enabled
+        expected: JSONDict = {
+            "disabled": payload.expected.disabled,
+            "enabled": payload.expected.enabled,
+        }
+        return await api_context.dependencies.command_dispatcher.execute_model_mutation_command(
+            request,
+            validator=None,
+            command_class=ReplaceModelOpenAICapabilityOverridesCommand,
+            audit_action="REPLACE_MODEL_OPENAI_CAPABILITIES",
+            audit_target=universal_id,
+            audit_details={"disabled": disabled, "enabled": enabled},
+            dispatch_fields={
+                "universal_id": universal_id,
+                "disabled": disabled,
+                "enabled": enabled,
+                "expected": expected,
             },
             success_status=202,
         )

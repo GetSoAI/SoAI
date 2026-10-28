@@ -19,6 +19,7 @@ from core.logging.trace import get_logger
 from core.network.urls import require_absolute_http_url
 from core.users.ocr_preferences import resolve_user_ocr_language
 from mcp.tools.argument_fields import reject_unexpected_parameters
+from mcp.tools.argument_runtime import resolve_tool_request_context
 from mcp.tools.argument_scalars import parse_int
 from mcp.tools.error import MCPToolError
 from mcp.tools.files_access import normalize_str, resolve_existing_file_source
@@ -115,6 +116,7 @@ async def tool_read_document(self: MCPUtilityToolsProtocol, arguments: JSONDict)
             parse_timeout_sec=float(parse_timeout_sec),
             max_chars=int(max_chars),
             offset_chars=int(offset_chars),
+            request_context=resolve_tool_request_context(self, tool_name="read_document"),
         )
     except HTTP_RECOVERABLE_EXCEPTIONS as exception:
         raise MCPToolError(-32603, f"Failed to read document: {exception}") from exception
@@ -151,6 +153,8 @@ async def tool_read_document(self: MCPUtilityToolsProtocol, arguments: JSONDict)
         "total_chars": result.total_chars,
         "extraction_state": result.extraction_state.value,
     }
+    if result.missing_capabilities:
+        payload["missing_capabilities"] = list(result.missing_capabilities)
     if not str(result.content or "").strip():
         warnings_list = list(result.warnings)
         warnings_list.append("Extraction returned empty content.")

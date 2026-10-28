@@ -28,6 +28,7 @@ interface RegisterLifecycleAuthHandlersOptions {
 class LifecycleAuthSession {
     #unsubscribeLogin: (() => void) | null = null;
     #unsubscribeLogout: (() => void) | null = null;
+    #resumeDeferredLogin: ((sessionNeedsHandoff: boolean) => void) | null = null;
     #registered = false;
 
     register({ auth, host }: RegisterLifecycleAuthHandlersOptions): void {
@@ -37,7 +38,12 @@ class LifecycleAuthSession {
         const subscriptions = registerLifecycleAuthHandlers({ auth, host });
         this.#unsubscribeLogin = subscriptions.unsubscribeLogin;
         this.#unsubscribeLogout = subscriptions.unsubscribeLogout;
+        this.#resumeDeferredLogin = subscriptions.resumeDeferredLogin;
         this.#registered = true;
+    }
+
+    resumeDeferredLogin(sessionNeedsHandoff: boolean): void {
+        this.#resumeDeferredLogin?.(sessionNeedsHandoff);
     }
 
     release(): void {
@@ -45,6 +51,7 @@ class LifecycleAuthSession {
         const unsubscribeLogout = this.#unsubscribeLogout;
         this.#unsubscribeLogin = null;
         this.#unsubscribeLogout = null;
+        this.#resumeDeferredLogin = null;
         runCleanup(unsubscribeLogin, (runtimeError) => {
             errorHandler.warn('AppLifecycle', 'Login subscription cleanup failed', runtimeError);
         });
@@ -63,7 +70,7 @@ interface AppLifecycleLoginOptions {
     setNavigationBootstrapUnsubscribe: (value: (() => void) | null) => void;
     setStateUninitialized: () => void;
     monitorConnectionStatus: () => void;
-    toggleMainUI: (show: boolean) => void;
+    toggleMainUI: (show: boolean, animateEntrance?: boolean) => void;
     shouldStayOnAuthRoute: (routeKey: string) => boolean;
     resolveAuthenticatedRoute: () => string;
     navigateToAuthenticatedRoute: (route: string) => Promise<void>;
@@ -100,8 +107,10 @@ export const registerLifecycleAuthHandlers = ({ auth, host }: RegisterLifecycleA
             errorHandler.error('AppLifecycle', `${label} handler failed`, ensureError(error));
         });
     };
+    let loginDeferredByBootstrap = false;
     const unsubscribeLogin = auth.onLogin(() => {
         if (host.isBootstrapInProgress()) {
+            loginDeferredByBootstrap = true;
             return;
         }
         enqueueTransition(host.handleLogin, 'Login');
@@ -113,11 +122,19 @@ export const registerLifecycleAuthHandlers = ({ auth, host }: RegisterLifecycleA
 
     return {
         unsubscribeLogin: typeof unsubscribeLogin === 'function' ? unsubscribeLogin : () => {},
-        unsubscribeLogout: typeof unsubscribeLogout === 'function' ? unsubscribeLogout : () => {}
+        unsubscribeLogout: typeof unsubscribeLogout === 'function' ? unsubscribeLogout : () => {},
+        resumeDeferredLogin: (sessionNeedsHandoff: boolean): void => {
+            const loginWasDeferred = loginDeferredByBootstrap;
+            loginDeferredByBootstrap = false;
+            if (loginWasDeferred && sessionNeedsHandoff) {
+                enqueueTransition(host.handleLogin, 'Login');
+            }
+        }
     };
 };
 
 export const handleLifecycleLogin = async ({ setStateUninitialized, resetBranding, cleanupUiTracker, clearNavigationBootstrapSubscription, getCurrentRoute, shouldStayOnAuthRoute, resolveAuthenticatedRoute, navigateToAuthenticatedRoute, monitorConnectionStatus, toggleMainUI, refreshSoaiOsAccess, clearConnectionSubscription, destroyRealtimeTransport, setupAuthenticatedSession, resolveRouteKey, ensureRouteRendered, applyBackground }: LifecycleLoginHost): Promise<void> => {
+    const animateShellEntrance = isAuthRouteComponent(resolveRouteKey(getCurrentRoute()) ?? '');
     let handoffCompleted = false;
     let handoffInProgress = false;
     let unsubscribe: (() => void) | null = null;
@@ -162,7 +179,7 @@ export const handleLifecycleLogin = async ({ setStateUninitialized, resetBrandin
             resetBranding();
             cleanupUiTracker();
             clearNavigationBootstrapSubscription();
-            toggleMainUI(true);
+            toggleMainUI(true, animateShellEntrance && !isAuthRouteComponent(key));
             await ensureRouteRendered(key);
             await applyBackground(key, { forceDetection: true });
         } finally {

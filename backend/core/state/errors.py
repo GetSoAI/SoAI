@@ -9,6 +9,7 @@ __all__ = (
     "CannotDeleteLastAdminError",
     "CannotDemoteLastAdminError",
     "DatabaseQueueSaturatedError",
+    "DatabaseReadCleanupError",
     "DatabaseTimeoutError",
     "DatabaseUnavailableError",
     "DatabaseWriteAcceptanceUnresolvedError",
@@ -18,6 +19,10 @@ __all__ = (
 
 
 class DatabaseUnavailableError(DatabaseError): ...
+
+
+class DatabaseReadCleanupError(DatabaseError):
+    is_transient = False
 
 
 class DatabaseQueueSaturatedError(DatabaseError): ...

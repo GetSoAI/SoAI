@@ -4,6 +4,9 @@
 from __future__ import annotations
 
 from core.plugins.sdk_public_all_exports import (
+    NATIVE_COMPATIBILITY_ASSESSMENT_EXPORTS,
+    NATIVE_COMPATIBILITY_EXPORTS,
+    NATIVE_RUNTIME_PROBE_EXPORTS,
     OUTBOUND_HEADER_EXPORTS,
     PLUGIN_LOGO_EXPORTS,
     PUBLIC_PLUGIN_SDK_EXPORTS,
@@ -15,11 +18,13 @@ from core.plugins.sdk_public_openai_exports import (
 )
 
 __all__ = (
-    "ASYNC_FILESYSTEM_EXPORTS",
+    "NATIVE_COMPATIBILITY_ASSESSMENT_EXPORTS",
     "CHAT_TEMPLATE_ROLE_POLICY_EXPORTS",
     "ERROR_EXPORTS",
     "HF_SEARCH_EXPORTS",
     "MODEL_ARTIFACT_EXPORTS",
+    "NATIVE_COMPATIBILITY_EXPORTS",
+    "NATIVE_RUNTIME_PROBE_EXPORTS",
     "OPENAI_AUDIO_UPLOAD_RESPONSE_EXPORTS",
     "OPENAI_EXPORTS",
     "OPENAI_PROVIDER_TRANSPORT_EXPORTS",
@@ -29,7 +34,21 @@ __all__ = (
     "PROGRESS_EXPORTS",
     "PUBLIC_PLUGIN_SDK_EXPORTS",
     "REPOSITORY_ARTIFACT_EXPORTS",
+    "RUNTIME_NETWORK_EXPORTS",
     "TRANSFER_FORMAT_EXPORTS",
+)
+
+RUNTIME_NETWORK_EXPORTS: tuple[str, ...] = (
+    "OfflineModeError",
+    "create_guarded_async_http_client",
+    "enforce_offline_policy",
+    "guard_outbound_http_request",
+    "is_block_private_network_egress_enabled",
+    "is_loopback_host",
+    "is_offline_mode_enabled",
+    "require_online_mode",
+    "validate_local_only_url",
+    "validate_runtime_host_port",
 )
 
 PROGRESS_EXPORTS: tuple[str, ...] = (
@@ -41,6 +60,7 @@ PROGRESS_EXPORTS: tuple[str, ...] = (
     "DownloadProgressReporter",
 )
 ERROR_EXPORTS: tuple[str, ...] = (
+    "BackendPrerequisiteError",
     "AcceleratorMemoryExhaustedError",
     "ValidationError",
     "StateError",
@@ -61,15 +81,6 @@ HF_SEARCH_EXPORTS: tuple[str, ...] = (
     "RemoteModelSearchVariant",
     "RemoteModelSearchResult",
     "RemoteModelSearchError",
-)
-ASYNC_FILESYSTEM_EXPORTS: tuple[str, ...] = (
-    "async_remove",
-    "async_path_exists",
-    "async_makedirs",
-    "async_listdir",
-    "async_islink",
-    "async_isfile",
-    "async_isdir",
 )
 MODEL_ARTIFACT_EXPORTS: tuple[str, ...] = (
     "parse_artifact_shard_filename",

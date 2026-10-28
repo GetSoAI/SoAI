@@ -1,7 +1,9 @@
 /* SoAI - Settings page backup progress widget [frontend/assets/ts/pages/settings/controllers/backupmanager/backupProgressWidget.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { reconcileElementChildrenFromTrustedHtml } from '@core/dom/childNodeReconciliation.ts';
 import { AnimationFrameRenderQueue } from '@core/animations/renderQueue.ts';
+import { formatDateTime } from '@core/primitives/dateTime.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { BackupOperationState } from '@core/settings/contracts.ts';
 import { EMPTY_UI_HTML } from '@core/security/uiHtml.ts';
@@ -43,17 +45,18 @@ class BackupProgressWidget {
         if (!container) {
             return;
         }
-        const trackedOperation = operation && PROGRESS_TRACKED_BACKUP_TYPES.has(operation.type) ? operation : null;
+        const staleTracking = operation?.tracking && operation.tracking.status !== 'current' ? operation.tracking : null;
+        const trackedOperation = operation && (PROGRESS_TRACKED_BACKUP_TYPES.has(operation.type) || staleTracking) ? operation : null;
         const markup = trackedOperation
             ? renderOperationProgress({
                   label: resolveBackupProgressLabel(trackedOperation.type),
-                  state: 'running',
-                  percent: trackedOperation.progress,
-                  detail: trackedOperation.message,
-                  statusText: i18n.t('settings.operationProgress.running')
+                  state: staleTracking ? 'pending' : 'running',
+                  ...(staleTracking ? {} : { percent: trackedOperation.progress }),
+                  detail: staleTracking ? i18n.t('settings.availability.stale', { age: formatDateTime(staleTracking.updatedAtMs) }) : trackedOperation.message,
+                  statusText: staleTracking ? (staleTracking.status === 'recovering' ? i18n.t('statusCatalog.main.reconnecting') : i18n.t('statusCatalog.default.unknown')) : i18n.t('settings.operationProgress.running')
               })
             : EMPTY_UI_HTML;
-        this.#host.pageDom.updateHtml(container, markup, { escape: false });
+        reconcileElementChildrenFromTrustedHtml({ target: container, html: markup });
         this.#host.pageDom.flush();
     }
 }

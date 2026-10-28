@@ -6,10 +6,7 @@ from __future__ import annotations
 from core.meta.soai_v1_contract import SOAI_API_V1_PREFIX, SOAI_OPENAI_COMPAT_V1_PREFIX
 
 __all__ = (
-    "ANTHROPIC_COUNT_TOKENS_PATH",
     "ANTHROPIC_MESSAGES_PATH",
-    "API_ROOT_PATH",
-    "API_SURFACE_PREFIX",
     "MCP_API_PREFIX",
     "MCP_OAUTH_CALLBACK_PATH",
     "MCP_OAUTH_CALLBACK_ROUTE_PATH",
@@ -60,8 +57,6 @@ __all__ = (
     "SOAI_WEBUI_WIZARD_STATUS_PATH",
 )
 
-API_ROOT_PATH: str = "/api"
-API_SURFACE_PREFIX: str = "/api/"
 MCP_ROOT_PATH: str = "/mcp"
 MCP_API_PREFIX: str = "/mcp/"
 SOAI_API_PREFIX: str = SOAI_API_V1_PREFIX
@@ -116,7 +111,6 @@ OPENAI_COMPLETIONS_PATH: str = "/v1/completions"
 OPENAI_RESPONSES_PATH: str = "/v1/responses"
 OPENAI_FILES_PATH: str = "/v1/files"
 ANTHROPIC_MESSAGES_PATH: str = "/v1/messages"
-ANTHROPIC_COUNT_TOKENS_PATH: str = "/v1/messages/count_tokens"
 
 PUBLIC_API_REQUESTS: frozenset[tuple[str, str]] = frozenset(
     (

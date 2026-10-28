@@ -14,7 +14,9 @@ from features.api.routes.system.events.internal_protocols import WebSocketEventT
 from features.api.runtime.event_enqueue import enqueue_event_must_deliver
 
 if TYPE_CHECKING:
-    from core.types.json import JSONDict
+    from collections.abc import Mapping
+
+    from core.types.json import JSONDict, JSONValue
     from features.api.streaming.websocket import WebsocketConnection
 
 __all__ = (
@@ -35,10 +37,12 @@ def build_chat_command_error_payload(
     phase: str | None = None,
     trace_id: str | None = None,
     include_trace_id: bool = False,
+    details: Mapping[str, JSONValue] | None = None,
 ) -> JSONDict:
     public_error = project_public_error_code(
         code=code,
         message=message,
+        details=details,
         trace_id=trace_id,
     )
     event_payload: JSONDict = {
@@ -51,6 +55,8 @@ def build_chat_command_error_payload(
     event_payload["message"] = public_error.message
     if include_trace_id or trace_id is not None:
         event_payload["trace_id"] = trace_id
+    if public_error.details:
+        event_payload["details"] = dict(public_error.details)
     payload = build_websocket_event_payload(event_type, event_payload)
     payload.update(
         build_chat_error_payload_metadata(

@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { cloneChatParameters } from '@core/chat/parameters/chatParameterDefaults.ts';
-import { STORED_CHAT_PARAMETER_KEYS } from '@core/chat/parameters/chatParameterKeySets.ts';
+import { CHAT_PARAMETER_WIRE_KEYS, LOCAL_ONLY_CHAT_PARAMETER_KEYS, STORED_CHAT_PARAMETER_KEYS } from '@core/chat/parameters/chatParameterKeySets.ts';
+import { dom } from '@core/dom/dom.ts';
 import { FieldStateTracker } from '@core/forms/fieldStateTracker.ts';
-import { requireFieldSurface } from '@core/forms/fieldSurface.ts';
 import { isNumber } from '@core/typeGuards.ts';
 import { isJsonValue, type JsonValue } from '@core/types/jsonValues.ts';
 import type { ChatParameters } from '@features/chat/public.ts';
@@ -57,6 +57,7 @@ interface CommitConfigurationEditStateOptions {
     stateAccess: ConfigurationControllerStateAccess;
     host: Pick<ConfigurationControllerHost, 'applyTextZoom'>;
     editingParameters: ChatParameters | null;
+    parameterEditBaseline: ChatParameters | null;
 }
 
 interface CommitConfigurationEditStateResult {
@@ -72,22 +73,14 @@ interface CommitConfigurationEditStateResult {
     activityDurationDisplayChanged: boolean;
 }
 
-interface CancelConfigurationEditStateOptions {
-    parameterChangeTracker: FieldStateTracker | null;
-}
-
 const createConfigurationEditSession = (host: Pick<ConfigurationControllerHost, 'pageDom' | 'root'>, stateAccess: ConfigurationControllerStateAccess): ConfigurationEditSession => {
     const parameterEditBaseline = cloneChatParameters(stateAccess.getParameters());
     parameterEditBaseline.textZoom = stateAccess.getTextZoom();
     const editingParameters = cloneChatParameters(parameterEditBaseline);
+    const resolveParameterElements = (key: string): Element[] => dom.resolveAll(`[data-param="${CHAT_PARAMETER_WIRE_KEYS[key] ?? key}"]`, host.root);
     const parameterChangeTracker = new FieldStateTracker({
-        getElement: (key: string) => {
-            const element = host.pageDom.optional(`[data-param="${key}"]`, host.root);
-            if (!element) {
-                return null;
-            }
-            return requireFieldSurface(element);
-        },
+        getElement: (key: string) => resolveParameterElements(key)[0] ?? null,
+        getElements: resolveParameterElements,
         getCurrentValue: (key: string) => editingParameters[key],
         getOriginalValue: (key: string) => parameterEditBaseline[key],
         comparator: (current, original, key: string) => areParameterValuesEqual(key, requireComparableJsonValue(current), requireComparableJsonValue(original))
@@ -100,7 +93,7 @@ const createConfigurationEditSession = (host: Pick<ConfigurationControllerHost, 
     };
 };
 
-const commitConfigurationEditState = ({ stateAccess, host, editingParameters }: CommitConfigurationEditStateOptions): CommitConfigurationEditStateResult => {
+const commitConfigurationEditState = ({ stateAccess, host, editingParameters, parameterEditBaseline }: CommitConfigurationEditStateOptions): CommitConfigurationEditStateResult => {
     if (!editingParameters) {
         return {
             committed: false,
@@ -117,14 +110,15 @@ const commitConfigurationEditState = ({ stateAccess, host, editingParameters }: 
     }
 
     const previousParameters = stateAccess.getParameters();
-    const previousRichText = stateAccess.isRichTextEnabled();
-    const previousHideRealModel = previousParameters.hideRealModel === true;
-    const previousHideAutomationRuns = previousParameters.hideAutomationRuns === true;
-    const previousHideMessagingConversations = previousParameters.hideMessagingConversations === true;
+    const previousPresentationParameters = parameterEditBaseline ?? previousParameters;
+    const previousRichText = parameterEditBaseline ? parameterEditBaseline.richTextEnabled !== false : stateAccess.isRichTextEnabled();
+    const previousHideRealModel = previousPresentationParameters.hideRealModel === true;
+    const previousHideAutomationRuns = previousPresentationParameters.hideAutomationRuns === true;
+    const previousHideMessagingConversations = previousPresentationParameters.hideMessagingConversations === true;
     const previousToolsEnabled = previousParameters.toolsEnabled === true;
     const previousToolApprovalRequired = previousParameters.toolApprovalRequired === true;
     const previousNewConversationInheritLastSettings = previousParameters.newConversationInheritLastSettings === true;
-    const previousShowActivityElapsedTime = previousParameters.showActivityElapsedTime !== false;
+    const previousShowActivityElapsedTime = previousPresentationParameters.showActivityElapsedTime !== false;
 
     const editedTextZoom = editingParameters.textZoom;
     if (isNumber(editedTextZoom) && editedTextZoom !== stateAccess.getTextZoom()) {
@@ -137,7 +131,13 @@ const commitConfigurationEditState = ({ stateAccess, host, editingParameters }: 
         host.applyTextZoom();
     }
 
-    stateAccess.setParameters(cloneChatParameters(editingParameters));
+    const committedParameters = cloneChatParameters(editingParameters);
+    if (parameterEditBaseline) {
+        for (const key of LOCAL_ONLY_CHAT_PARAMETER_KEYS) {
+            if (areParameterValuesEqual(key, editingParameters[key], parameterEditBaseline[key])) committedParameters[key] = previousParameters[key];
+        }
+    }
+    stateAccess.setParameters(committedParameters);
 
     const nextParameters = stateAccess.getParameters();
     const nextHideRealModel = nextParameters.hideRealModel === true;
@@ -153,8 +153,8 @@ const commitConfigurationEditState = ({ stateAccess, host, editingParameters }: 
         backendDefaultsChanged: previousToolsEnabled !== nextToolsEnabled || previousToolApprovalRequired !== nextToolApprovalRequired || previousNewConversationInheritLastSettings !== nextNewConversationInheritLastSettings || haveParametersChanged(previousParameters, nextParameters, STORED_CHAT_PARAMETER_KEYS),
         richTextChanged: previousRichText !== stateAccess.isRichTextEnabled(),
         senderLabelChanged: previousHideRealModel !== nextHideRealModel,
-        inputActionsChanged: haveParametersChanged(previousParameters, nextParameters, INPUT_ACTION_PARAMETER_KEYS),
-        sendHotkeyChanged: haveParametersChanged(previousParameters, nextParameters, SEND_HOTKEY_PARAMETER_KEYS),
+        inputActionsChanged: haveParametersChanged(previousPresentationParameters, nextParameters, INPUT_ACTION_PARAMETER_KEYS),
+        sendHotkeyChanged: haveParametersChanged(previousPresentationParameters, nextParameters, SEND_HOTKEY_PARAMETER_KEYS),
         toolsEnabledChanged: previousToolsEnabled !== nextToolsEnabled,
         toolApprovalRequiredChanged: previousToolApprovalRequired !== nextToolApprovalRequired,
         conversationListFiltersChanged: previousHideAutomationRuns !== nextHideAutomationRuns || previousHideMessagingConversations !== nextHideMessagingConversations,
@@ -162,14 +162,10 @@ const commitConfigurationEditState = ({ stateAccess, host, editingParameters }: 
     };
 };
 
-const cancelConfigurationEditState = ({ parameterChangeTracker }: CancelConfigurationEditStateOptions): void => {
-    parameterChangeTracker?.clearAll();
-};
-
 const hasPendingConfigurationParameterChanges = (editingParameters: ChatParameters | null, parameterEditBaseline: ChatParameters | null): boolean => {
     return !areParameterSetsEqual(editingParameters, parameterEditBaseline);
 };
 
-export { cancelConfigurationEditState, commitConfigurationEditState, createConfigurationEditSession, hasPendingConfigurationParameterChanges };
+export { commitConfigurationEditState, createConfigurationEditSession, hasPendingConfigurationParameterChanges };
 export { isBackendOwnedNoConversationParameter, isInputActionParameter };
-export type { CancelConfigurationEditStateOptions, CommitConfigurationEditStateOptions, CommitConfigurationEditStateResult, ConfigurationEditSession };
+export type { CommitConfigurationEditStateOptions, CommitConfigurationEditStateResult, ConfigurationEditSession };

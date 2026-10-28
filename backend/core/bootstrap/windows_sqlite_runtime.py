@@ -21,7 +21,8 @@ from core.bootstrap.stage0_download import download_https_file_atomic
 from core.errors.exceptions import StateError
 from core.filesystem.open_files import open_binary
 from core.filesystem.path_coercion import normalize_filesystem_path
-from core.system.commands import run_argv_capture
+from core.filesystem.windows_sharing_conflicts import replace_with_sharing_retry
+from core.system.native_runtime_probes import capture_native_probe, interpreter_probe_budget
 from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 
 __all__ = ("ensure_windows_sqlite_runtime",)
@@ -74,11 +75,14 @@ def _version_text(version: tuple[int, ...]) -> str:
 
 
 def _probe_sqlite_version(python_executable: str) -> tuple[int, ...]:
-    result = run_argv_capture(
+    result = capture_native_probe(
         [python_executable, "-c", "import sqlite3; print(sqlite3.sqlite_version)"],
+        budget=interpreter_probe_budget(
+            python_executable, ordinary_seconds=INTERACTIVE_TIMEOUT_SEC
+        ),
+        subject="The managed Python SQLite check",
         encoding="utf-8",
         errors="replace",
-        timeout=INTERACTIVE_TIMEOUT_SEC,
     )
     output = result.stdout.strip()
     if result.return_code != 0 or not output:
@@ -216,7 +220,7 @@ def _install_sqlite_dll(archive_path: str, sqlite_dll_path: str) -> None:
                                 shutil.copyfileobj(source_handle, replacement_handle)
                             replacement_handle.flush()
                             os.fsync(replacement_handle.fileno())
-                        os.replace(replacement_path, sqlite_dll_path)
+                        replace_with_sharing_retry(replacement_path, sqlite_dll_path)
                     finally:
                         if os.path.exists(replacement_path):
                             os.unlink(replacement_path)

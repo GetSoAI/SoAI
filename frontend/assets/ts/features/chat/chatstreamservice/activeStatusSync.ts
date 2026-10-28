@@ -1,7 +1,7 @@
 /* SoAI - Active chat stream session synchronization [frontend/assets/ts/features/chat/chatstreamservice/activeStatusSync.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { fetchCurrentChatStreamStatusSnapshot } from '@features/chat/chatstreamservice/activeStatusAdmissionCommit.ts';
+import { fetchCurrentChatStreamStatusSnapshot, resolveUncommittedStatusReconciliation } from '@features/chat/chatstreamservice/activeStatusAdmissionCommit.ts';
 import type { ActiveStatusInactiveTransitionArguments } from '@features/chat/chatstreamservice/activeStatusInactiveTransition.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 import { handleIgnoredActiveStatus } from '@features/chat/chatstreamservice/activeStatusSessionCleanup.ts';
@@ -21,13 +21,14 @@ const syncChatStreamConversationStatus = async (inputArguments: ActiveStatusSync
     if (!normalizedConversationId) {
         return requireCanonicalMessageLoad('stale-generation');
     }
-    const status = await fetchCurrentChatStreamStatusSnapshot({
+    const statusCommit = await fetchCurrentChatStreamStatusSnapshot({
         ...inputArguments,
         conversationId: normalizedConversationId
     });
-    if (status === null) {
-        return requireCanonicalMessageLoad('stale-generation');
+    if (statusCommit.type !== 'committed') {
+        return resolveUncommittedStatusReconciliation(statusCommit);
     }
+    const status = statusCommit.status;
     if (!status.active) {
         return await reconcileInactiveStatusSnapshot(inputArguments, status);
     }

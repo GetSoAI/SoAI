@@ -22,7 +22,7 @@ interface AutomationPageActivationControllerDependencies {
     applySplit: (percent: number) => void;
     queueRender: () => void;
     refreshData: () => Promise<void>;
-    waitForRenderIdle: () => Promise<void>;
+    waitForRenderIdle: (signal: AbortSignal | null) => Promise<void>;
     getStyleProp: (property: string, element?: Element) => string;
     showWarningNotification: (message: string) => void;
     preferencesStatus: AutomationPreferencesState;
@@ -91,7 +91,7 @@ class AutomationPageActivationController {
     async #runActivation(signal: AbortSignal | null): Promise<void> {
         await this.#dependencies.refreshData();
         throwIfAborted(signal);
-        await this.#dependencies.waitForRenderIdle();
+        await this.#dependencies.waitForRenderIdle(signal);
         throwIfAborted(signal);
         if (!isAutomationInitialSelectionVisible(this.#dependencies.getState().zones, this.#dependencies.initialSelection)) {
             this.#dependencies.showWarningNotification(i18n.t('automation.notifications.runUnavailable'));

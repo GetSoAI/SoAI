@@ -18,7 +18,6 @@ __all__ = (
     "THINKING_OPEN_TAG_REGEX",
     "find_text_tag_start",
     "is_thinking_tag_prefix",
-    "has_known_tool_call",
     "resolve_tool_call_key",
     "source_has_content",
     "source_has_reasoning",
@@ -66,16 +65,6 @@ def resolve_tool_call_key(call: JSONDict) -> Hashable | None:
     if call_index is not None:
         return call_index
     return None
-
-
-def has_known_tool_call(tool_calls: dict[Hashable, JSONDict], call: JSONDict) -> bool:
-    call_id = call.get("id")
-    if isinstance(call_id, str) and call_id and call_id in tool_calls:
-        return True
-    call_index = coerce_optional_non_negative_int_strict(call.get("index"))
-    if call_index is not None and call_index in tool_calls:
-        return True
-    return False
 
 
 def source_has_content(source: JSONDict | None) -> bool:

@@ -44,7 +44,7 @@ class SoAIBenchRunOperations {
     async refreshRuns(visit: number): Promise<JsonObject> {
         const payload = await this.#host.refreshSoAIBenchRuns();
         if (payload === null) {
-            throw new TypeError('SoAIBench runs payload must be an object');
+            throw new TypeError('SoAI Bench runs payload must be an object');
         }
         if (this.#state.isVisitActive(visit)) {
             this.reconcile(payload);

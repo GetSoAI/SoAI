@@ -25,7 +25,7 @@ const buildReasoningEffortOptions = (levels: readonly ReasoningEffortLevel[], st
 
 const renderReasoningEffortOptionsMarkup = (strings: ChatParameterControlsStrings): string =>
     buildReasoningEffortOptions(REASONING_EFFORT_LEVELS, strings)
-        .map((option) => `<option value="${uiAttr(option.value).html}">${uiText(option.label).html}</option>`)
+        .map((option) => `<option data-modal-localize="text" value="${uiAttr(option.value).html}">${uiText(option.label).html}</option>`)
         .join('');
 
 class ReasoningEffortControl {

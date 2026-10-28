@@ -9,7 +9,12 @@ from typing import TYPE_CHECKING, override
 
 from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.di.validation import require_dependencies
-from core.errors.exceptions import ProcessError, ServiceUnavailableError, SoAITimeoutError
+from core.errors.exceptions import (
+    ModelOutputContractError,
+    ProcessError,
+    ServiceUnavailableError,
+    SoAITimeoutError,
+)
 from core.files.extraction_state import ExtractionState
 from core.files.parse_execution import raise_if_parse_cancelled, report_parse_progress
 from core.files.protocols import FileParserProtocol
@@ -18,7 +23,11 @@ from core.media.cancellation import await_media_operation
 from core.media.config import resolve_media_parsing_config
 from core.media.document_rendering import render_video_document
 from core.media.probing import probe_video
-from core.media.transcription_request import request_media_transcription
+from core.media.speech_errors import TranscriptionOptionUnsupportedError
+from core.media.transcription_request import (
+    DocumentTranscription,
+    request_document_transcription,
+)
 from core.media.types import TranscriptionResult
 from core.media.video_text import apply_visible_text_budget, merge_adjacent_visible_text
 from core.runtime.network_policy import OfflineModeError
@@ -45,7 +54,6 @@ class VideoParserDependencies:
     ocr_runtime: MediaOcrRuntimeProtocol
     config: ConfigProtocol
     storage_manager: StorageManagerProtocol
-    transcription_available: bool
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -54,7 +62,6 @@ class VideoParserDependencies:
             ocr_runtime=self.ocr_runtime,
             config=self.config,
             storage_manager=self.storage_manager,
-            transcription_available=self.transcription_available,
         )
 
 
@@ -66,7 +73,6 @@ class VideoParser(FileParserProtocol):
         self._ocr_runtime = deps.ocr_runtime
         self._config = deps.config
         self._storage_manager = deps.storage_manager
-        self._transcription_available = deps.transcription_available
 
     @override
     async def parse(self, context: ParseExecutionContext) -> ParsedDocument:
@@ -81,7 +87,12 @@ class VideoParser(FileParserProtocol):
             context.cancellation_token,
             extraction_deadline=context.extraction_deadline,
         )
-        transcription, transcription_warning = await self._transcribe(context, probe, config)
+        transcription_outcome, transcription_warning = await self._transcribe(
+            context,
+            probe,
+            config,
+        )
+        transcription = transcription_outcome.result
         frame_ocr = await read_video_ocr_frames(
             context=context,
             probe=probe,
@@ -107,7 +118,8 @@ class VideoParser(FileParserProtocol):
         )
         successful_transcription = probe.audio_present and transcription_warning is None
         successful_ocr = bool(frame_ocr.frames)
-        if not successful_transcription and not successful_ocr:
+        missing_capabilities = transcription_outcome.missing_capabilities
+        if not successful_transcription and not successful_ocr and not missing_capabilities:
             raise ProcessError("Video speech and visible text extraction failed.")
         extraction_state = ExtractionState.DEGRADED if warnings else ExtractionState.COMPLETE
         extraction_note = " ".join(warnings) if warnings else None
@@ -143,6 +155,7 @@ class VideoParser(FileParserProtocol):
             metadata=metadata,
             extraction_state=extraction_state,
             warnings=warnings,
+            missing_capabilities=missing_capabilities,
         )
 
     async def _transcribe(
@@ -150,34 +163,40 @@ class VideoParser(FileParserProtocol):
         context: ParseExecutionContext,
         probe: VideoProbeResult,
         config: MediaParsingConfig,
-    ) -> tuple[TranscriptionResult, str | None]:
+    ) -> tuple[DocumentTranscription, str | None]:
         if not probe.audio_present:
-            return TranscriptionResult(text="", language=None, segments=()), None
-        if not self._transcription_available:
             return (
-                TranscriptionResult(text="", language=None, segments=()),
-                _TRANSCRIPTION_WARNING,
+                DocumentTranscription(
+                    result=TranscriptionResult(text="", language=None, segments=()),
+                    setup_warning=None,
+                ),
+                None,
             )
 
         async def transcription_progress(value: float, stage: str) -> None:
             await report_parse_progress(context, 0.05 + value * 0.4, stage)
 
         try:
-            result = await request_media_transcription(
+            outcome = await request_document_transcription(
                 self._transcription_runtime,
                 context=context,
                 duration_seconds=probe.duration_seconds,
-                model_name=config.whisper_model,
+                selector=config.whisper_model,
                 progress_callback=transcription_progress,
             )
-            return result, None
         except (
+            ModelOutputContractError,
             OfflineModeError,
             ProcessError,
             ServiceUnavailableError,
             SoAITimeoutError,
+            TranscriptionOptionUnsupportedError,
         ):
             return (
-                TranscriptionResult(text="", language=None, segments=()),
+                DocumentTranscription(
+                    result=TranscriptionResult(text="", language=None, segments=()),
+                    setup_warning=None,
+                ),
                 _TRANSCRIPTION_WARNING,
             )
+        return outcome, outcome.setup_warning

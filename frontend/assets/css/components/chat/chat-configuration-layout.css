@@ -33,7 +33,7 @@
         display: var(--chat-configuration-loading-display);
     }
 
-    .chat-configuration-modal:is([data-chat-configuration-opening='true'], :has(.tab-content.is-active[data-chat-settings-hydration-scope='true'], .tab-content.is-active [data-chat-settings-hydration-scope='true'], .tab-content.is-active [data-chat-preset-state='loading'])) .modal-body {
+    .chat-configuration-modal:is([data-chat-configuration-opening='true'], :has(.tab-content.is-active[data-chat-settings-hydration-scope='true'], .tab-content.is-active [data-chat-settings-hydration-scope='true'], .tab-content.is-active [data-chat-library-loading='true'], .tab-content.is-active[data-chat-library-loading='true'])) .modal-body {
         --chat-configuration-loading-display: flex;
         --chat-configuration-content-visibility: hidden;
     }
@@ -124,7 +124,7 @@
         --toggle-width: 24px;
         --toggle-height: 13px;
         --toggle-handle-size: 9px;
-        --toggle-handle-offset: 0;
+        --toggle-handle-offset: 1px;
         --toggle-handle-translate: 11px;
 
         display: flex;
@@ -147,7 +147,7 @@
         --toggle-width: 24px;
         --toggle-height: 13px;
         --toggle-handle-size: 9px;
-        --toggle-handle-offset: 0;
+        --toggle-handle-offset: 1px;
         --toggle-handle-translate: 11px;
 
         gap: var(--space-15);
@@ -213,6 +213,19 @@
 
     .chat-configuration-modal .chat-config-field-header > * {
         min-width: 0;
+    }
+
+    .chat-configuration-modal .chat-config-field-header--context-window {
+        flex-wrap: wrap;
+        row-gap: var(--space-15);
+        margin-block-end: var(--space-1);
+    }
+
+    .chat-configuration-modal .chat-context-window-presets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-05);
+        margin-inline-start: auto;
     }
 
     .chat-configuration-modal .chat-config-field-toggle .toggle-label {

@@ -86,6 +86,9 @@ const serializeAssistantTimelinePayload = (payload: AssistantTimelinePayload): J
     ...(payload.reason !== undefined ? { reason: payload.reason } : {}),
     ...(payload.code !== undefined ? { code: payload.code } : {}),
     ...(payload.message !== undefined ? { message: payload.message } : {}),
+    ...(payload.explanation !== undefined ? { explanation: payload.explanation } : {}),
+    ...(payload['param'] !== undefined ? { 'param': payload['param'] } : {}),
+    ...(payload.details !== undefined ? { details: payload.details } : {}),
     ...(payload.referenceId !== undefined ? { 'reference_id': payload.referenceId } : {})
 });
 

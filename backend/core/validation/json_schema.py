@@ -18,14 +18,16 @@ def _validate_json_schema(schema: JSONDict, instance: JSONDict | None) -> None:
         validator_class.check_schema(schema)
         if instance is not None:
             validator_class(schema).validate(instance)
-    except exceptions.SchemaError as exception:
-        raise ValidationError("JSON Schema is invalid.") from exception
-    except exceptions.ValidationError as exception:
-        raise ValidationError(
-            "Generated JSON does not satisfy the requested schema."
-        ) from exception
-    except Unresolvable as exception:
-        raise ValidationError("JSON Schema reference could not be resolved.") from exception
+    except (exceptions.SchemaError, exceptions.ValidationError, Unresolvable) as exception:
+        if isinstance(exception, exceptions.SchemaError):
+            message = "JSON Schema is invalid. Correct the schema and retry."
+        elif isinstance(exception, exceptions.ValidationError):
+            message = "Generated JSON does not satisfy the requested schema."
+        else:
+            message = "JSON Schema reference could not be resolved."
+        error = ValidationError(message)
+        error.public_message = message
+        raise error from exception
 
 
 def validate_json_schema(schema: JSONDict) -> None:

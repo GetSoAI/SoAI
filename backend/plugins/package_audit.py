@@ -59,6 +59,7 @@ class PluginPackageAudit:
     imports_validated: bool
     parameter_schema: JSONDict | None
     logo: PluginLogoResult = field(default_factory=lambda: PluginLogoResult(status="absent"))
+    backend_variant_options: list[JSONDict] | None = None
 
 
 def _open_plugin_snapshot(plugin_name: str, archive_path: str) -> PluginPackageSnapshot:
@@ -124,6 +125,7 @@ def _audit_snapshot(
         content=snapshot.content,
         imports_validated=enforce_import_scan,
         logo=logo,
+        backend_variant_options=snapshot.backend_variant_options,
         parameter_schema=(
             copy_json_dict(snapshot.parameter_schema)
             if snapshot.parameter_schema is not None

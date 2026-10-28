@@ -37,7 +37,7 @@ from core.plugins.protocols_instance import FilesProtocol
 from core.plugins.protocols_lifecycle import PluginLifecycleProtocol
 from core.plugins.protocols_manager_dependencies import PluginUpdaterProtocol
 from core.plugins.protocols_manager_environment import PluginEnvironmentManagerProtocol
-from core.runtime.protocols import RuntimeFlagsViewProtocol
+from core.runtime.protocols import RuntimeFlagsViewProtocol, RuntimeRepairPlaneViewProtocol
 from core.state.protocols import (
     AuthoritativePluginStateTransitionsProtocol,
     StateAggregatorProtocol,
@@ -142,6 +142,7 @@ class PluginManagerInfrastructureDependencies:
     state_aggregator: StateAggregatorProtocol
     lifecycle_publisher: AuthoritativePluginStateTransitionsProtocol
     runtime_flags: RuntimeFlagsViewProtocol
+    runtime_health: RuntimeRepairPlaneViewProtocol
     lifecycle: PluginLifecycleProtocol
     task_registry: TaskRegistryProtocol
     task_helpers: PluginManagerTaskHelpers
@@ -163,6 +164,7 @@ class PluginManagerInfrastructureDependencies:
             lifecycle_publisher=self.lifecycle_publisher,
             metrics_manager=self.metrics_manager,
             runtime_flags=self.runtime_flags,
+            runtime_health=self.runtime_health,
             state_aggregator=self.state_aggregator,
             storage_manager=self.storage_manager,
             task_helpers=self.task_helpers,

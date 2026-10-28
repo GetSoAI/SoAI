@@ -165,6 +165,7 @@ def format_conversation_input_row(row: SQLiteRowDict | None) -> JSONDict | None:
         "source_key": row.get("source_key"),
         "content_fingerprint": row.get("content_fingerprint"),
         "source_metadata": source_metadata,
+        "is_held": source_metadata.get("dispatch_held") is True,
         "media_descriptors": media_descriptors,
         "regeneration_request": regeneration_request,
         "regeneration_accepted_revision": row.get("regeneration_accepted_revision"),

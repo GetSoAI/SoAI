@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from core.bootstrap.upstream_telemetry_environment import apply_upstream_telemetry_opt_outs
 from core.meta.paths import join_data_abs
 from core.platform.os import is_windows
 from core.system.subprocess_platform import resolve_windows_process_path
@@ -82,6 +83,7 @@ def ensure_runtime_directory_environment(repo_root_path: str) -> RuntimeDirector
         os.environ["PIP_RETRIES"] = "10"
     if "PIP_RESUME_RETRIES" not in os.environ:
         os.environ["PIP_RESUME_RETRIES"] = "10"
+    apply_upstream_telemetry_opt_outs()
     process_temp_path = (
         resolve_windows_process_path(temp_path, directory=True) if is_windows() else temp_path
     )

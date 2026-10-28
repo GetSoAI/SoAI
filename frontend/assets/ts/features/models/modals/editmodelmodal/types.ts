@@ -42,6 +42,7 @@ interface EditModelOperationsPort {
         updateEnabled: (modelId: string, payload: { enabled: boolean }) => Promise<SuccessfulMutationResponse>;
     };
     refreshModelsCollection(): Promise<void>;
+    findModelRecord(modelId: string): ModelRecord | null;
 }
 
 interface EditModelModalHost {

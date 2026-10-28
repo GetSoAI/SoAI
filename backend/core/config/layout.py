@@ -22,7 +22,6 @@ __all__ = (
     "BASE_PATH_KEY",
     "DEFAULT_SYSTEM_DATA_PATH",
     "STATE_DOTTED_KEYS",
-    "SYSTEM_DATA_PATH_KEY",
     "ConfigPathResolutionError",
     "apply_config_layout",
     "resolve_base_path",
@@ -30,7 +29,6 @@ __all__ = (
 
 DEFAULT_SYSTEM_DATA_PATH = "data"
 BASE_PATH_KEY = "SYSTEM.PATHS.BASE"
-SYSTEM_DATA_PATH_KEY = "SYSTEM.PATHS.SYSTEM_DATA"
 
 STATE_DOTTED_KEYS = frozenset(
     {

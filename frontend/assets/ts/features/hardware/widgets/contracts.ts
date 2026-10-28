@@ -28,7 +28,7 @@ interface DeviceNameParts {
 
 interface DataPoint {
     timestamp: number;
-    [key: string]: number;
+    [key: string]: number | undefined;
 }
 
 interface HistoryData {

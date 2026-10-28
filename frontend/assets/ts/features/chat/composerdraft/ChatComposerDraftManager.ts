@@ -133,7 +133,7 @@ class ChatComposerDraftManager {
         await trackedPromise;
     }
 
-    beginComposerTransfer(nextConversationId: string | null, options: { mode: ComposerDraftTransferMode; signal?: AbortSignal }): ComposerDraftTransferTicket {
+    beginComposerTransfer(nextConversationId: string | null, options: { mode: ComposerDraftTransferMode; signal?: AbortSignal; knownEmpty?: boolean }): ComposerDraftTransferTicket {
         this.ensureInitialized();
         const normalizedNextId = normalizeConversationId(nextConversationId) || null;
         if (this.#ownership.conversationId && (this.#ownership.isLocalProjectionAuthoritative() || this.#projectCurrent().signature !== this.#appliedSignature)) {
@@ -144,8 +144,9 @@ class ChatComposerDraftManager {
         if (options.mode === 'restore') this.#applyDraft(emptyParsedComposerDraft(), ownership);
         const transferAbortController = new AbortController();
         const transferSignalScope = createAbortSignalScope([options.signal, transferAbortController.signal]);
-        const draftPromise = this.#draftLoads
-            .readLatest(normalizedNextId, transferSignalScope.signal)
+        if (options.knownEmpty === true) this.#draftLoads.clear();
+        const draftLoad = options.knownEmpty === true ? Promise.resolve(emptyParsedComposerDraft()) : this.#draftLoads.readLatest(normalizedNextId, transferSignalScope.signal);
+        const draftPromise = draftLoad
             .then(
                 (draft): ComposerDraftLoadSettlement => ({ status: 'ready', draft }),
                 (error): ComposerDraftLoadSettlement => ({ status: 'failed', error: ensureError(error) })

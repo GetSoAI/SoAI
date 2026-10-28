@@ -66,11 +66,6 @@
         min-width: 35px;
     }
 
-    :where([data-section='models'], [data-page-scope='models']) .model-edit-enabled-toggle > .slider,
-    :where([data-section='models'], [data-page-scope='models']) .model-edit-enabled-toggle > .slider::before {
-        transition: none;
-    }
-
     :where([data-section='models'], [data-page-scope='models']) .model-edit-enabled-state {
         flex: 0 0 auto;
         margin-inline-start: auto;

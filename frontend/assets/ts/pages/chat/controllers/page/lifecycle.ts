@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { fetchSystemLimits } from '@core/api/systemLimitsService.ts';
+import { raceWithAbortSignal } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { prepareInterfaceEmphasisFont } from '@core/layout/typographyReadiness.ts';
+import { waitForElementAnimations } from '@core/pageTransitions.ts';
 import { createHeaderActionController } from '@core/headerActionBus.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { runAbortable, signalAborted } from '@core/lifecycle/abortSignals.ts';
@@ -147,9 +150,18 @@ const prepareChatPageInitialContent = async (host: ChatLiveUpdatesHost, paramete
     if (shouldAbort()) {
         return;
     }
+    if (
+        !(await runStep(async () => {
+            await host.uiBehaviors.layout.applySidebarState();
+            const mainContainer = host.uiBehaviors.presentation.pageDom.require('.chat-main-container');
+            await waitForElementAnimations(mainContainer, { signal });
+        }))
+    ) {
+        return;
+    }
     let streamReadiness: ModelStreamReadiness;
     try {
-        streamReadiness = await host.modelSession.ensureStream();
+        streamReadiness = await raceWithAbortSignal(host.modelSession.ensureStream(), signal);
     } catch (error) {
         if (shouldAbort()) {
             return;
@@ -162,6 +174,12 @@ const prepareChatPageInitialContent = async (host: ChatLiveUpdatesHost, paramete
     }
     if (shouldAbort()) {
         return;
+    }
+    try {
+        await prepareInterfaceEmphasisFont(host.uiBehaviors.presentation.pageDom.require('.chat-main-container').ownerDocument, signal);
+    } catch (error) {
+        if (shouldAbort()) return;
+        chatLogger('warn', 'Chat emphasis font did not become ready', ensureError(error));
     }
     if (!(await runStep(() => host.conversationView.refresh()))) {
         return;
@@ -177,7 +195,6 @@ const prepareChatPageInitialContent = async (host: ChatLiveUpdatesHost, paramete
         host.conversationState.currentConversationId,
         signal
     );
-    await host.uiBehaviors.layout.applySidebarState();
     if (shouldAbort()) {
         return;
     }
@@ -201,7 +218,9 @@ const prepareChatPageInitialContent = async (host: ChatLiveUpdatesHost, paramete
                 isSelectableModel: (modelId) => {
                     const model = host.conversationState.modelIndex.get(modelId);
                     return model !== undefined && isChatSelectableModel(model);
-                }
+                },
+                updateConversationSettings: (conversationId, patch) => host.conversationRuntime.requireConversation().updateConversationSettings(conversationId, patch),
+                refreshConversationSettings: (conversationId) => host.conversationView.requireActions().handleConversationSettingsAuthorityChangedEvent(conversationId)
             },
             parameters
         );

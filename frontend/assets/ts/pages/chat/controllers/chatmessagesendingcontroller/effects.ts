@@ -70,19 +70,6 @@ const clearComposerInput = (host: ComposerInputHost, expectedText?: string): boo
     return true;
 };
 
-const restoreComposerInput = (host: ComposerInputHost, text: string): void => {
-    const input = host.composer.getChatInput();
-    if (!(input instanceof HTMLTextAreaElement)) {
-        return;
-    }
-    if (readTrimmedInputValue(input).length > 0) {
-        return;
-    }
-    host.composer.setUIValue(input, text, { attribute: 'value' });
-    host.composer.resizeChatInput(input);
-    host.composer.noteChatInputDraftChanged(text);
-};
-
 const refreshComposerState = (host: MessageSendingHost, options: { updateInputState?: boolean } = {}): void => {
     host.presentation.updateEmptyStateInputHint();
     if (options.updateInputState === false) {
@@ -219,5 +206,5 @@ const notifyExportResult = (host: MessageSendingHost, hasMessages: boolean): boo
     return true;
 };
 
-export { clearComposerInput, getChatSyncErrorTitle, hasComposerPayload, isReadySendAttachment, notifyExportResult, notifyIngestionStarted, readComposerInputText, refreshComposerState, refreshConversationListAfterSharedSync, requireCurrentConversationForSend, resolveComposerPayloadForSubmission, resolveCurrentConversationSelection, resolveSelectedSendModel, restoreComposerInput, syncConversationSystemPromptLock };
+export { clearComposerInput, getChatSyncErrorTitle, hasComposerPayload, isReadySendAttachment, notifyExportResult, notifyIngestionStarted, readComposerInputText, refreshComposerState, refreshConversationListAfterSharedSync, requireCurrentConversationForSend, resolveComposerPayloadForSubmission, resolveCurrentConversationSelection, resolveSelectedSendModel, syncConversationSystemPromptLock };
 export type { ComposerPayload };

@@ -22,6 +22,7 @@ from mcp.rag.scraper.url_validation import (
 from mcp.rag.scraper.url_variant_racing import race_url_variants
 
 if TYPE_CHECKING:
+    from core.runtime.request_context import RequestContext
     from mcp.rag.scraper.internal_protocols import (
         ProgressCallbackProtocol,
         WebContentFetcherProtocol,
@@ -35,6 +36,7 @@ async def fetch_url(
     url: str,
     *,
     ocr_language: str,
+    request_context: RequestContext,
     progress_callback: ProgressCallbackProtocol | None = None,
 ) -> FetchedContent:
     normalized_url = normalize_http_url(url)
@@ -104,6 +106,7 @@ async def fetch_url(
             async with asyncio.timeout(float(self.browser_render_nav_timeout_sec) + 15.0):
                 rendered = await render_url_to_html(
                     self.runtime_flags,
+                    playwright_sessions=self.playwright_sessions,
                     config=self.config,
                     adblock_service=self.adblock_service,
                     url=_resolve_render_url(),
@@ -207,6 +210,7 @@ async def fetch_url(
     return await process_fetched_url_content(
         self,
         ocr_language=ocr_language,
+        request_context=request_context,
         content=content,
         content_type=content_type,
         final_url=final_url,

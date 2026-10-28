@@ -6,6 +6,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.events.types_models_model_commands import ModelDownloadCommand
+from core.models.wizard_download_admission import build_wizard_download_admission
+from core.runtime.ownership import resolve_http_owner_id
 from core.state.access import AccessAction
 from core.state.state_names import ORCH_STATE_DISABLED
 from core.validation.strings import coerce_optional_trimmed_str
@@ -126,6 +128,23 @@ async def handle_model_download(
         )
         return
     quantization = coerce_optional_trimmed_str(body.get("quantization"))
+    command_fields: JSONDict = {
+        "plugin_name": plugin_name,
+        "model_id": model_id,
+        "quantization": quantization,
+    }
+    wizard_download = body.get("wizard") is True
+    task_id = coerce_optional_trimmed_str(data.get("task_id"))
+    admission = (
+        build_wizard_download_admission(
+            task_id or "",
+            resolve_http_owner_id(request.state.context),
+            command_fields,
+            coerce_optional_trimmed_str(body.get("previous_task_id")),
+        )
+        if wizard_download
+        else None
+    )
     dispatch_context = PluginAdminDispatchContext(
         request,
         api_context,
@@ -134,6 +153,9 @@ async def handle_model_download(
         trace_id,
         run_id,
         plugin_name,
+        task_id=task_id if wizard_download else None,
+        requires_mutation_id=wizard_download,
+        admission=admission,
     )
     await dispatch_plugin_admin_command_accepted_for_context(
         dispatch_context,
@@ -150,9 +172,5 @@ async def handle_model_download(
             "display_name": display_name,
             "quantization": quantization,
         },
-        command_fields={
-            "plugin_name": plugin_name,
-            "model_id": model_id,
-            "quantization": quantization,
-        },
+        command_fields=command_fields,
     )

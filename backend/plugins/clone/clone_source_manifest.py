@@ -13,6 +13,7 @@ from core.errors.exceptions import StateError, ValidationError
 from core.files.content_hashing import hash_descriptor_content
 from core.files.directory_descriptor_scope import open_secure_directory_descriptor
 from core.files.secure_open_flags import secure_read_only_open_flags
+from core.filesystem.descriptor_io import open_descriptor
 
 __all__ = (
     "CloneSourceEntry",
@@ -109,7 +110,7 @@ def scan_clone_source(root_handle: int) -> tuple[CloneSourceEntry, ...]:
                             content_digest=None,
                         )
                     )
-                    child_handle = os.open(
+                    child_handle = open_descriptor(
                         entry.name,
                         secure_read_only_open_flags(directory=True),
                         dir_fd=directory_handle,
@@ -137,7 +138,7 @@ def scan_clone_source(root_handle: int) -> tuple[CloneSourceEntry, ...]:
                         f"Clone model source contains a hardlink alias: {relative_path}"
                     )
                 seen_inodes.add(identity)
-                file_handle = os.open(
+                file_handle = open_descriptor(
                     entry.name,
                     secure_read_only_open_flags(directory=False),
                     dir_fd=directory_handle,

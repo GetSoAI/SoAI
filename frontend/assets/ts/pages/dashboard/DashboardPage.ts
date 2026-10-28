@@ -96,7 +96,7 @@ class DashboardPage extends StaticBasePage {
         this.setupDashboardSubscriptions();
         await this.streaming.ensureSubscriptions(buildSignalRequestOptions({ signal }));
         throwIfAborted(signal);
-        await this.#runtime.sectionRenderQueue.setSectionsReady(true);
+        await this.#runtime.sectionRenderQueue.setSectionsReady(true, signal);
         throwIfAborted(signal);
         if (!this.isDestroyed) {
             await this.#runtime.logs.activate();

@@ -56,7 +56,7 @@ def build_routing_defaults() -> ConfigDict:
                 "JITTER_FRACTION": 0.1,
                 "STREAMING_IDLE_TIMEOUT_SEC": 300.0,
                 "NON_STREAMING_TIMEOUT_SEC": 300.0,
-                "STREAMING_PREFILL_MIN_TOKENS_PER_SEC": 50.0,
+                "STREAMING_PREFILL_MIN_TOKENS_PER_SEC": 8.0,
                 "STREAMING_PREFILL_OVERHEAD_SEC": 60.0,
                 "PING_TIMEOUT_SEC": 15,
                 "STUCK_STATE_TIMEOUT_SEC": 900,

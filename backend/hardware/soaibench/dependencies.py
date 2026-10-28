@@ -10,8 +10,10 @@ from typing import TYPE_CHECKING
 from core.di.validation import require_dependencies
 
 if TYPE_CHECKING:
+    from core.concurrency.bounded_blocking import BoundedBlockingPool
     from core.events.protocols import EventBusProtocol
     from core.hardware.protocols import (
+        GPURecoveryAdmissionProtocol,
         HardwareManagerProtocol,
     )
     from core.hardware.protocols_activity import HardwareActivityRegistryProtocol
@@ -30,6 +32,7 @@ __all__ = ("SoAIBenchServiceDependencies",)
 @dataclass(frozen=True, slots=True)
 class SoAIBenchServiceDependencies:
     hardware_manager: HardwareManagerProtocol
+    recovery_admission: GPURecoveryAdmissionProtocol
     database_hardware: DatabaseSoAIBenchProtocol
     task_registry: TaskRegistryProtocol
     cancellation_binder: TaskCancellationBinderProtocol
@@ -39,6 +42,7 @@ class SoAIBenchServiceDependencies:
     shutdown_event: asyncio.Event
     logger: LoggerProtocol
     publication_service: SoAIBenchPublicationProtocol
+    telemetry_pool: BoundedBlockingPool
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -48,9 +52,11 @@ class SoAIBenchServiceDependencies:
             database_hardware=self.database_hardware,
             event_bus=self.event_bus,
             hardware_manager=self.hardware_manager,
+            recovery_admission=self.recovery_admission,
             logger=self.logger,
             opencl_pool=self.opencl_pool,
             publication_service=self.publication_service,
+            telemetry_pool=self.telemetry_pool,
             shutdown_event=self.shutdown_event,
             task_registry=self.task_registry,
         )

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
 from core.files.mime_detection import detect_mime_type
@@ -23,6 +24,9 @@ from core.timing.epoch import epoch_ms
 from core.types.json import JSONDict
 from core.workspaces.soai_path_fingerprints import build_soai_path_target_fingerprint
 from core.workspaces.soai_path_link_codec import DecodedSoaiPathToken
+
+if TYPE_CHECKING:
+    from core.concurrency.deadlines import MonotonicDeadline
 
 __all__ = (
     "build_soai_path_content_part",
@@ -128,7 +132,10 @@ def build_soai_path_content_part(
     root_fingerprint: str,
     conversation_virtual_path: str,
     resolved_at_ms: int | None = None,
+    deadline: MonotonicDeadline | None = None,
 ) -> JSONDict:
+    if deadline is not None and deadline.expired():
+        raise TimeoutError("Linked file verification exceeded its operation deadline.")
     canonical_virtual_path = canonical_workspace_virtual_path(
         effective_workspace_root,
         conversation_virtual_path,
@@ -171,6 +178,7 @@ def build_soai_path_content_part(
             effective_workspace_root=effective_workspace_root,
             conversation_virtual_path=canonical_virtual_path,
             entry_type=entry.entry_type,
+            deadline=deadline,
         ),
         "title": title,
         "preview_type": preview_type,

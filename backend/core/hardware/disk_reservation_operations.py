@@ -10,14 +10,12 @@ from core.hardware.disk_reservation_ledger import DiskSpaceReservationLedger
 from core.hardware.disk_reservation_records import DiskSpaceReservationRequest
 from core.hardware.protocols_storage import (
     DiskSpaceReservationLeaseProtocol,
-    DiskSpaceSnapshotProtocol,
     StorageManagerProtocol,
 )
 from core.types.json import JSONValue
 
 __all__ = (
     "DiskReservationBackedStorage",
-    "require_install_volume_free_disk_space",
     "reserve_disk_space_for_path",
     "reserve_install_volume_disk_space",
     "reserve_many_disk_spaces_with_ledger",
@@ -77,22 +75,6 @@ class DiskReservationBackedStorage(StorageManagerProtocol):
             operation=operation,
             details=details,
         )
-
-
-def require_install_volume_free_disk_space(
-    storage_manager: StorageManagerProtocol,
-    *,
-    base_dir: str,
-    required_bytes: int,
-    operation: str,
-    details: Mapping[str, JSONValue] | None,
-) -> DiskSpaceSnapshotProtocol:
-    return storage_manager.require_free_disk_space(
-        path=base_dir,
-        required_bytes=required_bytes,
-        operation=operation,
-        details=details,
-    )
 
 
 def reserve_disk_space_for_path(

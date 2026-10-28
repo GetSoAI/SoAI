@@ -208,5 +208,5 @@ async def finish_terminal_without_score(
 
 def _require_durable_run(run: JSONDict | None) -> JSONDict:
     if run is None:
-        raise StateError("SoAIBench terminal mutation did not return a durable run.")
+        raise StateError("SoAI Bench terminal mutation did not return a durable run.")
     return run

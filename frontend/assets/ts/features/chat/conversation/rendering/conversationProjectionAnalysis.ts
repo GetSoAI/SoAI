@@ -5,7 +5,7 @@ import { isArray } from '@core/typeGuards.ts';
 import { resolveChatComparisonTurnMeta, resolveComparisonTurnStatesByTurn, type ChatComparisonTurnMeta, type ChatComparisonTurnState } from '@features/chat/comparisonTurnMetadata.ts';
 import type { ChatMessage, ConversationContract } from '@features/chat/ChatTypes.ts';
 import type { ChatTurnAdmissionStreamIdentity } from '@features/chat/chatstreamservice/types.ts';
-import { resolveActiveStreamingAssistantSelection, type ActiveComparisonRun, type ActiveStreamingAssistantMeta, type TerminalRenderPendingPredicate } from '@features/chat/message/activeStreamingAssistantMessage.ts';
+import { resolveActiveStreamingAssistantSelection, type ActiveComparisonRun, type ActiveStreamingAssistantMeta, type TerminalRenderStateResolver } from '@features/chat/message/activeStreamingAssistantMessage.ts';
 import { isEmptyAssistantPlaceholderMessage } from '@features/chat/message/placeholderAssistantMessage.ts';
 import { resolveLastNonSystemMessageIndex, shouldRenderAssistantPlaceholder } from '@features/chat/conversation/rendering/assistantPlaceholderPolicy.ts';
 import { resolveConversationMessageRenderPresentations, type ChatMessageRenderPresentation, type MessagePendingDeletionPredicate } from '@features/chat/message/messageRenderPresentation.ts';
@@ -32,7 +32,7 @@ const analyzeConversationProjection = (
         activeComparisonRun: ActiveComparisonRun | null;
         activeStreamIdentity: ChatTurnAdmissionStreamIdentity | null;
         isMessagePendingDeletion: MessagePendingDeletionPredicate;
-        isTerminalRenderPending?: TerminalRenderPendingPredicate;
+        resolveTerminalRenderState?: TerminalRenderStateResolver;
     }
 ): ConversationProjectionAnalysis => {
     const messages = conversation && isArray(conversation.messages) ? conversation.messages : [];
@@ -75,7 +75,7 @@ const analyzeConversationProjection = (
         isConversationStreaming: inputArguments.isCurrentStreaming,
         activeComparisonRun: inputArguments.activeComparisonRun,
         activeStreamIdentity: inputArguments.activeStreamIdentity,
-        ...(inputArguments.isTerminalRenderPending !== undefined ? { isTerminalRenderPending: inputArguments.isTerminalRenderPending } : {})
+        ...(inputArguments.resolveTerminalRenderState !== undefined ? { resolveTerminalRenderState: inputArguments.resolveTerminalRenderState } : {})
     });
     const messageRenderPresentations = resolveConversationMessageRenderPresentations(conversation, {
         activeStreamingAssistantDomIds: activeStreamingSelection.domIds,

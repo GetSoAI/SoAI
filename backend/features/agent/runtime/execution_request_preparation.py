@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from core.errors.exceptions import ValidationError
 from core.openai.request_field_filtering import build_inference_request_payload
 from core.openai.request_fields import resolve_optional_model_name
+from core.skills.prompt_projection import can_load_skills_automatically, project_skill_context
 from core.types.json_value import copy_json_dict, copy_json_dict_list
 from core.validation.strings import coerce_optional_trimmed_str
 from features.agent.runtime.context_compaction.activity_result import (
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
     from core.openai.token_accounting import PromptOccupancy
     from core.openai.token_counter import PromptTokenCounter
     from core.orchestrator.types import MCPToolContext
+    from core.skills.execution import SkillExecutionContext
     from core.types.json import JSONDict
 
 __all__ = ("build_prepared_execution_request",)
@@ -54,7 +56,10 @@ async def build_prepared_execution_request(
     prune_empty_messages: bool,
     stream: bool,
     summarize_messages: Callable[[list[JSONDict]], Awaitable[str]] | None,
+    skill_context: SkillExecutionContext | None = None,
 ) -> PreparedExecutionRequest:
+    if skill_context is not None:
+        skill_context.require_owner(user_id=user_id, conv_id=conv_id)
     final_payload = copy_json_dict(request_json)
     resolved_model = coerce_optional_trimmed_str(requested_model)
     if resolved_model is None:
@@ -71,6 +76,11 @@ async def build_prepared_execution_request(
         tool_context=tool_context,
         scope_message=scope_message,
         prune_empty_messages=prune_empty_messages,
+    )
+    prepared_messages = project_skill_context(
+        prepared_messages,
+        skill_context,
+        automatic_loading_available=can_load_skills_automatically(tool_context, request_json),
     )
     tool_definitions, tool_choice = _resolve_tool_payload_fields(request_json, tool_context)
     if tool_definitions:
@@ -146,6 +156,7 @@ async def build_prepared_execution_request(
         todo_state=copy_json_dict(todo_state) if todo_state is not None else None,
         subagent_summaries=copy_json_dict_list(subagent_summaries),
         tool_context=tool_context,
+        skill_context=skill_context,
         final_payload=copy_json_dict(final_payload),
         prepared_auto_compaction=prepared_auto_compaction,
     )

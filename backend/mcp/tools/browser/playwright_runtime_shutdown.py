@@ -111,6 +111,8 @@ async def stop_playwright_with_logging(
     except asyncio.CancelledError as exception:
         raise_cancelled_error(exception)
     except Exception as exception:
+        if not playwright.resources_closed:
+            raise
         driver_error = classify_playwright_driver_connection_closed_exception(
             exception,
             operation=_OPERATION_STOP_PLAYWRIGHT,

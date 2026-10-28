@@ -19,6 +19,7 @@ if [ -z "${SOAI_EXPLICIT_ROOT:-}" ] \
     || [ -z "${SOAI_EXPLICIT_ENTRYPOINT:-}" ] \
     || [ -z "${SOAI_EXPLICIT_PYTHONPATH:-}" ] \
     || [ -z "${SOAI_EXPLICIT_EDITION:-}" ] \
+    || [ -z "${SOAI_EXPLICIT_POST_UPDATE_HOOK_MODULE:-}" ] \
     || [ -z "${SOAI_EXPLICIT_PRODUCT_VERSION:-}" ] \
     || [ -z "${SOAI_EXPLICIT_CORE_VERSION:-}" ] \
     || [ -z "${SOAI_EXPLICIT_ENTRYPOINT_RELATIVE_PATH:-}" ] \
@@ -37,8 +38,7 @@ source "${SOAI_LAUNCHER_MODULE_DIR}/runtime_locks.sh"
 SOAI_LAUNCHER_FAST_MANAGEMENT=0
 soai_launcher_expected_install_lock_dir="${SCRIPT_DIR}/data/state/locks/soai.install.lock.d"
 soai_launcher_inherited_install_lock_is_parent_owned=0
-if [ "${SOAI_INSTALL_LOCK_HELD_PATH:-}" = "$soai_launcher_expected_install_lock_dir" ] \
-    && soai_managed_runtime__lock_dir_is_process_owned "$soai_launcher_expected_install_lock_dir" "$PPID"; then
+if soai_managed_runtime__inherited_install_lock_is_parent_owned "$soai_launcher_expected_install_lock_dir"; then
     soai_launcher_inherited_install_lock_is_parent_owned=1
 fi
 
@@ -90,7 +90,7 @@ do
 done
 
 soai_launcher__configure_paths() {
-    SOAI_MANAGED_PYTHON="${SOAI_MANAGED_PYTHON:-3.13}"
+    SOAI_MANAGED_PYTHON="${SOAI_MANAGED_PYTHON:-$SOAI_MANAGED_RUNTIME_PYTHON_VERSION}"
     if [ -z "${SOAI_MICROMAMBA_VERSION:-}" ]; then
         SOAI_MICROMAMBA_VERSION="$(soai_managed_runtime__default_micromamba_version)" || return 1
     fi
@@ -131,7 +131,7 @@ soai_launcher__run_start() {
     if [ "$SOAI_LAUNCHER_FAST_MANAGEMENT" = "0" ]; then
         soai_launcher__info "Performing platform checks for the SoAI application..."
     fi
-    if ! soai_launcher__run_startup_preflight "${SOAI_VENV_PATH}/bin/python"; then
+    if ! soai_launcher__run_startup_preflight; then
         soai_managed_runtime__release_lock_dir "$runtime_lock_dir"
         return 1
     fi
@@ -171,6 +171,6 @@ if soai_launcher__emit_information_if_requested "$@"; then
     exit 0
 fi
 soai_launcher__elevate_for_installed_state "$@" || exit 1
-soai_launcher__recover_update_transactions || exit 1
+soai_launcher__recover_update_transactions "$@" || exit 1
 
 soai_launcher__dispatch "$@"

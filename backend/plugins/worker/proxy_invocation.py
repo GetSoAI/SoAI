@@ -11,14 +11,22 @@ from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.concurrency.task_groups import cancel_and_await
 from core.errors.exceptions import ValidationError
 from core.ipc.multiplexed import MultiplexedIpcServer
-from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
+from core.timing.constants import LOCAL_IO_TIMEOUT_SEC, SETUP_TIMEOUT_SEC
 from core.types.json import JSONDict, JSONValue
 from core.validation.record_fields import require_json_object
+from plugins.worker.cancellation_settlement import (
+    BACKEND_LIFECYCLE_WORKER_METHODS,
+    CANCELLATION_SETTLED_WORKER_METHODS,
+)
 from plugins.worker.handle_request_payload_budget import (
     fit_handle_request_payload_to_ipc_budget,
 )
 from plugins.worker.proxy_payloads import payload_from_message, require_json_response_value
-from plugins.worker.proxy_streaming import prepare_stream_or_json_response, stream_queue
+from plugins.worker.proxy_streaming import (
+    prepare_stream_or_json_response,
+    settle_response_task,
+    stream_queue,
+)
 from plugins.worker.stream_protocol import (
     PLUGIN_STREAM_CHUNK_EVENT,
     PLUGIN_STREAM_END_EVENT,
@@ -220,11 +228,18 @@ class ProxyInvocationClient:
             name=f"plugin-proxy-stream-{self._plugin_name}",
         )
         if expected_stream:
-            return await prepare_stream_or_json_response(
-                queue,
-                response_task,
-                method=method,
-            )
+            response_transferred = False
+            try:
+                response = await prepare_stream_or_json_response(
+                    queue,
+                    response_task,
+                    method=method,
+                )
+                response_transferred = True
+                return response
+            finally:
+                if not response_transferred:
+                    await settle_response_task(response_task)
         response = await response_task
         response_payload = payload_from_message(response)
         if is_stream_response_payload(response_payload):
@@ -254,6 +269,11 @@ class ProxyInvocationClient:
             payload=next_payload,
             timeout_sec=timeout_sec,
             event_handler=event_handler,
+            require_cancellation_completion=method in CANCELLATION_SETTLED_WORKER_METHODS,
+            cancellation_completion_timeout_sec=(
+                SETUP_TIMEOUT_SEC if method in BACKEND_LIFECYCLE_WORKER_METHODS else None
+            ),
+            completed_result_wins_cancellation=method in BACKEND_LIFECYCLE_WORKER_METHODS,
         )
 
 

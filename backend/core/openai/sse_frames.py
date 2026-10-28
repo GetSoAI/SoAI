@@ -9,7 +9,6 @@ __all__ = (
     "SSE_KEEPALIVE_FRAME_TEXT",
     "is_openai_sse_done_payload_text",
     "sse_done_chunk",
-    "sse_done_frame_trimmed",
     "sse_keepalive_chunk",
     "sse_keepalive_frame_trimmed",
 )
@@ -33,7 +32,3 @@ def sse_done_chunk() -> bytes:
 
 def sse_keepalive_frame_trimmed() -> str:
     return SSE_KEEPALIVE_FRAME_TEXT.strip()
-
-
-def sse_done_frame_trimmed() -> str:
-    return SSE_DONE_FRAME_TEXT.strip()

@@ -13,8 +13,8 @@ import { toTrimmedStringOrNull } from '@core/normalize.ts';
 import type { FieldStateTracker } from '@core/forms/fieldStateTracker.ts';
 import type { SaveController } from '@core/save/public.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
-import { parseOpenAICapabilityToggleRequest, setOpenAICapabilityControlsBusy } from '@features/models/capabilities/openaiCapabilityDom.ts';
-import { createOpenAICapabilityOverrideState, hasOpenAICapabilityOverrideChanges, saveOpenAICapabilityOverrideState, setOpenAICapabilityOverrideEnabled, type OpenAICapabilityOverrideState } from '@features/models/capabilities/openaiCapabilityState.ts';
+import { applyOpenAICapabilityToggleRequest, setOpenAICapabilityControlsBusy } from '@features/models/capabilities/openaiCapabilityDom.ts';
+import { createOpenAICapabilityOverrideState, discardOpenAICapabilityOverrideChanges, hasOpenAICapabilityOverrideChanges, isOpenAICapabilityOverrideConflict, saveOpenAICapabilityOverrideState, type OpenAICapabilityOverrideState } from '@features/models/capabilities/openaiCapabilityState.ts';
 import { MODELS_EDIT_MODEL_MODAL_ID } from '@features/models/modals/constants.ts';
 import { bindEditModelModalActions } from '@features/models/modals/editmodelmodal/actionBindings.ts';
 import { deleteFromEditModelModal, navigateFromEditModelModal, renameFromEditModelModal } from '@features/models/modals/editmodelmodal/actionFlow.ts';
@@ -187,8 +187,7 @@ class EditModelModalManager {
         if (!this.#capabilityState || this.#save?.isSaving() || toggle.dataset['toggleLocked'] === 'true' || toggle.getAttribute('aria-disabled') === 'true' || toggle.dataset['busy'] === 'true') {
             return;
         }
-        const request = parseOpenAICapabilityToggleRequest(toggle);
-        setOpenAICapabilityOverrideEnabled(this.#capabilityState, request.category, request.token, request.enabled);
+        applyOpenAICapabilityToggleRequest(toggle, this.#capabilityState);
         this.#renderModalState(modalRoot);
         this.#save?.notifyChanged();
     }
@@ -209,22 +208,59 @@ class EditModelModalManager {
         }
         const capabilitiesChanged = hasOpenAICapabilityOverrideChanges(state);
         const enabledChanged = hasEditModelEnabledChanges(enabledState);
-        const updatedModel = await this.#host.view.runWithBoundary('models:saveEditModelSettings', async (): Promise<ModelRecord> => {
-            const capabilityModel = await saveOpenAICapabilityOverrideState({
-                api: this.#host.operations.api,
-                model: selectedModel,
-                state
+        let committedModel = selectedModel;
+        let updatedModel: ModelRecord | null;
+        try {
+            updatedModel = await this.#host.view.runWithBoundary('models:saveEditModelSettings', async (): Promise<ModelRecord | null> => {
+                let capabilityModel: ModelRecord;
+                try {
+                    capabilityModel = await saveOpenAICapabilityOverrideState({
+                        api: this.#host.operations.api,
+                        model: selectedModel,
+                        state
+                    });
+                } catch (error) {
+                    const normalizedError = ensureError(error);
+                    if (!isOpenAICapabilityOverrideConflict(normalizedError)) {
+                        throw normalizedError;
+                    }
+                    errorHandler.debug('EditModelModalManager', 'Capability override save conflicted with a newer model revision', { modelId: selectedModel.id });
+                    return null;
+                }
+                committedModel = capabilityModel;
+                committedModel = await saveEditModelEnabledState({
+                    api: this.#host.operations.api,
+                    model: capabilityModel,
+                    state: enabledState
+                });
+                return committedModel;
             });
-            return await saveEditModelEnabledState({
-                api: this.#host.operations.api,
-                model: capabilityModel,
-                state: enabledState
-            });
-        });
+        } finally {
+            if (modalSession === this.#modalSession && committedModel !== selectedModel) {
+                this.#selectedModel = committedModel;
+                const modalRoot = this.#host.view.modals.requireElement(this.modalId);
+                this.#renderModalState(modalRoot);
+                const refreshed = await this.#refreshSavedModelCollection();
+                if (modalSession === this.#modalSession) {
+                    if (refreshed) {
+                        const authoritativeModel = this.#host.operations.findModelRecord(state.modelId);
+                        if (authoritativeModel !== null) this.#selectedModel = authoritativeModel;
+                    }
+                    this.#renderModalState(modalRoot);
+                    this.#save?.notifyChanged();
+                }
+            }
+        }
         if (modalSession !== this.#modalSession) {
             return;
         }
-        this.#selectedModel = updatedModel;
+        if (updatedModel === null) {
+            discardOpenAICapabilityOverrideChanges(state);
+            this.#host.view.showNotification(i18n.t('modelDetail.notifications.capabilitiesConflict'), 'error');
+            this.#host.view.modals.close(this.modalId);
+            await this.#refreshSavedModelCollection();
+            return;
+        }
         if (capabilitiesChanged && enabledChanged) {
             this.#host.view.showNotification(i18n.t('models.modal.edit.saveSuccess'), 'success');
         } else if (enabledChanged) {
@@ -235,16 +271,30 @@ class EditModelModalManager {
         const modalRoot = this.#host.view.modals.requireElement(this.modalId);
         this.#renderModalState(modalRoot);
         this.#save?.notifyChanged();
+    }
+
+    async #refreshSavedModelCollection(): Promise<boolean> {
         try {
             await this.#host.operations.refreshModelsCollection();
+            return true;
         } catch (error) {
-            errorHandler.handleError(ensureError(error), { context: 'EditModelModalManager.refreshSavedModelCollection' });
+            const normalizedError = ensureError(error);
+            errorHandler.error('EditModelModalManager.refreshSavedModelCollection', 'Saved model collection refresh failed', normalizedError);
+            return false;
         }
-        if (modalSession !== this.#modalSession) {
+    }
+
+    reconcileSelectedModel(): void {
+        const state = this.#capabilityState;
+        if (!state || this.#save?.isSaving()) {
             return;
         }
-        this.#renderModalState(modalRoot);
-        this.#save?.notifyChanged();
+        const model = this.#host.operations.findModelRecord(state.modelId);
+        if (model === null || model === this.#selectedModel) {
+            return;
+        }
+        this.#selectedModel = model;
+        this.#renderModalState(this.#host.view.modals.requireElement(this.modalId));
     }
 
     onModalClosed(): void {

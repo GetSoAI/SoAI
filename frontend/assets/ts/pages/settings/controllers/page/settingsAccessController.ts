@@ -36,6 +36,8 @@ const hasSettingsAction = (state: SettingsPageState, action: string): boolean =>
 
 const canManageInstanceIdentity = (page: SettingsRuntimeContext, state: SettingsPageState): boolean => page.owners.auth.isAdmin() && hasSettingsAction(state, 'CONFIG_PATCH');
 
+const canManageSpeechModel = (state: SettingsPageState): boolean => hasSettingsAction(state, 'CONFIG_PATCH') && hasSettingsAction(state, 'MODEL_READ');
+
 const canManageWallpaper = (page: SettingsRuntimeContext, state: SettingsPageState): boolean => page.owners.auth.isAdmin() && hasSettingsAction(state, 'WEBUI_APPEARANCE_ADMIN');
 
-export { canManageInstanceIdentity, canManageWallpaper, hasSettingsAction, isNormalTabVisible, isSettingsNormalTabVisibleById, refreshAccessState };
+export { canManageInstanceIdentity, canManageSpeechModel, canManageWallpaper, hasSettingsAction, isNormalTabVisible, isSettingsNormalTabVisibleById, refreshAccessState };

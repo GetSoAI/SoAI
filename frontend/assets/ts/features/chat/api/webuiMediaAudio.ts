@@ -2,12 +2,17 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { OpenAiTranscriptionResponse } from '@core/api/contracts/openAiResponseContracts.ts';
+import { TRANSCRIPTION_CANCELLATION_UNCONFIRMED_CODE, TRANSCRIPTION_DEADLINE_EXCEEDED_CODE, type TranscriptionRequestOptions } from '@core/api/endpoints/openaiWsAudioTranscription.ts';
 import type { RequestOptions } from '@core/api/types/request.ts';
+import { APIError } from '@core/apiError.ts';
+import { i18n } from '@core/i18n/index.ts';
+import { resolveOperationCauseMessage } from '@core/errors/operationCausePresentation.ts';
+import { notifyHandledOperationError } from '@core/operationErrorNotifier.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import { isFunction, isObject } from '@core/typeGuards.ts';
 
 interface WebuiTranscriptionsApi {
-    create(payload: FormData, options?: RequestOptions): Promise<OpenAiTranscriptionResponse>;
+    create(payload: FormData, options?: TranscriptionRequestOptions): Promise<OpenAiTranscriptionResponse>;
 }
 
 interface WebuiSpeechApi {
@@ -38,12 +43,13 @@ interface TranscribeAudioBlobArguments {
     filenameStem: string;
     model: string;
     signal?: AbortSignal | undefined;
+    onDeadlineSettlement?: (() => void) | undefined;
     context: string;
 }
 
 const RECORDING_MIME_TYPES: readonly string[] = Object.freeze(['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/wav']);
 
-type WebuiTranscriptionMethod = (payload: FormData, options?: RequestOptions) => Promise<OpenAiTranscriptionResponse>;
+type WebuiTranscriptionMethod = (payload: FormData, options?: TranscriptionRequestOptions) => Promise<OpenAiTranscriptionResponse>;
 type WebuiSpeechMethod = (payload: JsonObject, options?: RequestOptions) => Promise<Response>;
 
 const isWebuiTranscriptionMethod = (value: CallableFunction | null | undefined): value is WebuiTranscriptionMethod => {
@@ -79,7 +85,7 @@ const requireWebuiTranscriptionsApi = (apiClient: WebuiMediaApiClient | null, co
         throw new Error(`${context} requires core.apiClient.webui.media.audio.transcriptions.create`);
     }
     return {
-        create: (payload: FormData, options?: RequestOptions): Promise<OpenAiTranscriptionResponse> => create(payload, options)
+        create: (payload: FormData, options?: TranscriptionRequestOptions): Promise<OpenAiTranscriptionResponse> => create(payload, options)
     };
 };
 
@@ -121,13 +127,25 @@ const transcribeAudioBlob = async (inputArguments: TranscribeAudioBlobArguments)
     formData.append('file', inputArguments.blob, `${inputArguments.filenameStem}.${extension}`);
     formData.append('model', inputArguments.model);
     formData.append('response_format', 'json');
-    const options: RequestOptions = {};
+    const options: TranscriptionRequestOptions = { onDeadlineSettlement: inputArguments.onDeadlineSettlement };
     if (inputArguments.signal) {
         options.signal = inputArguments.signal;
     }
-    const response = await requireWebuiTranscriptionsApi(inputArguments.apiClient, inputArguments.context).create(formData, options);
-    return response.text;
+    try {
+        const response = await requireWebuiTranscriptionsApi(inputArguments.apiClient, inputArguments.context).create(formData, options);
+        return response.text;
+    } catch (error) {
+        if (error instanceof APIError && error.code === 'transcription_model_unavailable') notifyHandledOperationError(error);
+        throw error;
+    }
 };
 
-export { requireWebuiSpeechApi, resolveSupportedRecordingMimeType, transcribeAudioBlob };
+const resolveTranscriptionFailureText = (error: Error, fallback: string): string => {
+    if (!(error instanceof APIError)) return fallback;
+    if (error.code === TRANSCRIPTION_DEADLINE_EXCEEDED_CODE) return i18n.t('chat.audio.transcriptionDeadlineExceeded');
+    if (error.code !== TRANSCRIPTION_CANCELLATION_UNCONFIRMED_CODE) return resolveOperationCauseMessage(error.code ?? null, error) ?? fallback;
+    return error.taskId ? i18n.t('chat.audio.transcriptionCancellationUnconfirmedReference', { reference: error.taskId }) : i18n.t('chat.audio.transcriptionCancellationUnconfirmed');
+};
+
+export { requireWebuiSpeechApi, resolveSupportedRecordingMimeType, resolveTranscriptionFailureText, transcribeAudioBlob };
 export type { WebuiMediaApiClient };

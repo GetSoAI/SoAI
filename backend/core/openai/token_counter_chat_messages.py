@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from tiktoken.core import Encoding
 
+from core.openai.stream_transcript.payload_segments import extract_reasoning_text_from_source
 from core.openai.token_counter_parts import count_content_segment, count_tool_calls
 from core.openai.token_counter_types import (
     MESSAGE_NAME_OVERHEAD_TOKENS,
@@ -94,6 +95,10 @@ def count_chat_messages_tokens(
             count_texts=count_texts,
             is_exhausted=is_exhausted,
         )
+        if not is_exhausted(state):
+            reasoning_text = extract_reasoning_text_from_source(message)
+            if reasoning_text:
+                total_tokens += count_texts([reasoning_text], encoding, state)
         total_tokens += count_tool_calls(
             message.get("tool_calls"),
             encoding=encoding,

@@ -1,6 +1,7 @@
 /* SoAI - Chat feature conversation list refresh [frontend/assets/ts/features/chat/storage/conversationListRefresh.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { applyConversationSnapshotTitleMetadata } from '@features/chat/conversation/conversationPersistenceSnapshots.ts';
 import { isArray, isBoolean, isNumber } from '@core/typeGuards.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
 import { parseBackendConversationList } from '@features/chat/storage/conversationPayloadParsing.ts';
@@ -55,9 +56,15 @@ const copyOptionalBooleanField = (target: Conversation, source: Conversation, fi
 
 const mergeExistingConversationRefreshState = (normalizedConversation: Conversation, existingConversation: Conversation, preserveSelectedWindow: boolean): void => {
     const incomingUpdatedAt = normalizedConversation.updatedAt;
+    const titleTarget = { ...existingConversation };
+    applyConversationSnapshotTitleMetadata(titleTarget, normalizedConversation);
+    normalizedConversation.title = titleTarget.title;
+    if (titleTarget.titleAutoUpdateAllowed !== undefined) normalizedConversation.titleAutoUpdateAllowed = titleTarget.titleAutoUpdateAllowed;
+    else delete normalizedConversation.titleAutoUpdateAllowed;
+    if (titleTarget.committedTitleMetadata) normalizedConversation.committedTitleMetadata = titleTarget.committedTitleMetadata;
+    else delete normalizedConversation.committedTitleMetadata;
     const invalidatesHydratedHistory = incomingUpdatedAt >= existingConversation.updatedAt && normalizedConversation.messageCount !== undefined && normalizedConversation.messageCount < resolveKnownPersistedMessageCount(existingConversation);
     if (incomingUpdatedAt < existingConversation.updatedAt) {
-        normalizedConversation.title = existingConversation.title;
         normalizedConversation.color = existingConversation.color;
         normalizedConversation.isFavorite = existingConversation.isFavorite;
         normalizedConversation.modelSettings = existingConversation.modelSettings;
@@ -109,6 +116,14 @@ const applyConversationList = (manager: ChatConversationListRuntime, response: r
         const shouldPreserve = !manager.conversationManager.isConversationPersisted(conversationId) || wasConversationModifiedAfterRefreshStart(conversation, refreshStartedAtMs);
         if (shouldPreserve) {
             nextConversations.set(conversationId, conversation);
+        }
+    }
+    for (const [conversationId, conversation] of nextConversations) {
+        const existing = existingConversations.get(conversationId);
+        if (existing && existing !== conversation) {
+            Object.assign(existing, conversation);
+            if (!conversation.history) delete existing.history;
+            nextConversations.set(conversationId, existing);
         }
     }
     manager.state.setConversations(nextConversations);

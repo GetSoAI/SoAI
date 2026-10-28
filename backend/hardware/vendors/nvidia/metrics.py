@@ -3,11 +3,14 @@
 
 from __future__ import annotations
 
+from contextlib import ExitStack
 from typing import TYPE_CHECKING
 
 from core.concurrency.deadlines import MonotonicDeadline, deadline_after
 from core.errors.exception_logging import log_exception, log_handled_exception
+from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.hardware.gpu_control_operation_types import GPUClockCombinationUnsupportedError
 from core.hardware.protocols import (
     NvidiaCapabilitiesCacheServiceProtocol,
     NvmlGateProtocol,
@@ -27,6 +30,7 @@ from hardware.vendors.nvidia.discovery import (
     read_nvml_ecc_support,
 )
 from hardware.vendors.nvidia.internal_protocols import (
+    NvmlControlModuleProtocol,
     NvmlDeviceGetHandleByIndexProtocol,
 )
 from hardware.vendors.nvidia.nvapi_capabilities import (
@@ -37,6 +41,10 @@ from hardware.vendors.nvidia.nvidia_settings_capabilities import (
     apply_nvidia_settings_capabilities,
 )
 from hardware.vendors.nvidia.nvml_capabilities import collect_nvidia_capabilities
+from hardware.vendors.nvidia.nvml_clock_preparation import (
+    require_compatible_nvml_clock_facilities,
+    selected_nvml_clock_facilities,
+)
 from hardware.vendors.nvidia.nvml_metric_reading import is_nvml_error_not_supported
 from hardware.vendors.nvidia.smi import NvidiaSettingsController
 
@@ -44,6 +52,7 @@ if TYPE_CHECKING:
     import ctypes
 
     from core.logging.protocols import TraceLogger
+    from core.system.protocols import CommandExecutorProtocol
     from core.types.json import JSONDict
 
     type NvmlDeviceHandle = ctypes.c_void_p
@@ -120,6 +129,14 @@ def _apply_nvidia_backend_metadata(
         if assigned_backend is not None and assigned_backend not in control_backends:
             control_backends.append(assigned_backend)
     gpu_caps["control_backends"] = control_backends
+    try:
+        require_compatible_nvml_clock_facilities(
+            selected_nvml_clock_facilities(gpu_caps, ("core_clock", "mem_clock"))
+        )
+    except GPUClockCombinationUnsupportedError as exception:
+        gpu_caps["clock_combination_error_code"] = str(exception.code)
+    else:
+        gpu_caps.pop("clock_combination_error_code", None)
 
 
 def _is_finalized_nvidia_capabilities(gpu_caps: JSONDict) -> bool:
@@ -142,6 +159,8 @@ def _expensive_capability_computation(
     nvml_gate: NvmlGateProtocol,
     controller: NvidiaSettingsController | None,
     deadline: MonotonicDeadline,
+    executor: CommandExecutorProtocol | None = None,
+    selected_gpu: JSONDict | None = None,
 ) -> JSONDict:
     nvapi_available = nvml_gate.nvapi_support.can_attempt
     nvidia_settings_available = nvml_gate.nvidia_settings_available
@@ -198,7 +217,34 @@ def _expensive_capability_computation(
                         level="trace",
                     )
     if nvapi_available:
-        nvapi_caps = collect_nvapi_capabilities(vendor_id, nvml_gate=nvml_gate)
+        native_reference = pynvml_module_ref
+        reference_module: NvmlControlModuleProtocol | None = None
+        with ExitStack() as reference_scope:
+            if nvml_available and isinstance(native_reference, NvmlControlModuleProtocol):
+                try:
+                    reference_scope.enter_context(nvml_gate.session())
+                except (
+                    StateError,
+                    native_reference.NVMLError,
+                    *RECOVERABLE_EXCEPTIONS,
+                ) as exception:
+                    log_handled_exception(
+                        nvml_gate.logger,
+                        exception,
+                        message="NvAPI independent numeric reference session is unavailable.",
+                        operation=OPERATION,
+                        details={"vendor_id": vendor_id},
+                        level="trace",
+                    )
+                else:
+                    reference_module = native_reference
+            nvapi_caps = collect_nvapi_capabilities(
+                vendor_id,
+                nvml_gate=nvml_gate,
+                executor=executor,
+                selected_gpu=selected_gpu,
+                nvml_module=reference_module,
+            )
         gpu_caps = merge_nvapi_capabilities(gpu_caps, nvapi_caps)
     if nvidia_settings_available and nvml_gate.runtime_platform.is_linux and controller is not None:
         nvidia_settings_control_available = apply_nvidia_settings_capabilities(
@@ -253,6 +299,8 @@ def sync_get_nvidia_capabilities(
     capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
     controller: NvidiaSettingsController | None,
     deadline: MonotonicDeadline | None = None,
+    executor: CommandExecutorProtocol | None = None,
+    selected_gpu: JSONDict | None = None,
 ) -> JSONDict:
     operation_deadline = deadline or deadline_after(10.0)
     cached = capabilities_cache_service.get_cached(vendor_id)
@@ -268,6 +316,8 @@ def sync_get_nvidia_capabilities(
             nvml_gate=nvml_gate,
             controller=controller,
             deadline=operation_deadline,
+            executor=executor,
+            selected_gpu=selected_gpu,
         )
 
     return capabilities_cache_service.compute_or_wait(

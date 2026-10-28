@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from core.concurrency.protocols import CancellationTokenProtocol
+    from core.types.json import JSONDict
     from mcp.storage.internal_protocols import MCPStorageProtocol
     from mcp.worker.internal_protocols import MCPWorkerProtocol
 
@@ -76,6 +77,7 @@ async def try_reuse_embedding_cache(
     job_id: str | None,
     lease_token: str | None,
     status_details: str | None,
+    extraction_summary: JSONDict | None,
 ) -> int | None:
     logger = get_logger(LOGGER_NAME)
     cached = await self.database_files.find_completed_rag_document_for_embedding_cache(
@@ -264,6 +266,7 @@ async def try_reuse_embedding_cache(
         effective_embedding_model=embedding_model,
         embedding_dimensions=embedding_dimensions,
         status_details=status_details,
+        extraction_summary=extraction_summary,
     )
     await rebuild_sparse_index(self.storage, conv_id)
     return len(chunks_from_cache)

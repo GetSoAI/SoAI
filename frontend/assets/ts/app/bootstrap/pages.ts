@@ -17,7 +17,6 @@ import type { AutomationDataService } from '@features/automation/public.ts';
 import type { AutomationRunActivityServiceContract } from '@features/automation/runactivity/types.ts';
 import type { HardwarePageStorage } from '@features/hardware/public.ts';
 import type { LogStream } from '@features/logging/logstreamservice/service.ts';
-import type { CountdownOverlay } from '@features/overlays/Countdown.ts';
 import type { OperationType, RestartOverlayShowOptions } from '@features/overlays/public.ts';
 import type { FirstRunModalService } from '@core/firstrun/protocols.ts';
 import type { BasePageDependencies } from '@core/routing/pages/pagetypes/public.ts';
@@ -38,7 +37,6 @@ import { ModelDetailPage } from '@pages/modeldetail/ModelDetailPage.ts';
 import { ModelsPage } from '@pages/models/ModelsPage.ts';
 import { PluginsPage } from '@pages/plugins/PluginsPage.ts';
 import type { PluginsFiltersStorage } from '@features/plugins/public.ts';
-import { PowerPage } from '@pages/power/PowerPage.ts';
 import { PromptsPage } from '@pages/prompts/PromptsPage.ts';
 import { SearchPage } from '@pages/search/SearchPage.ts';
 import { SettingsPage } from '@pages/settings/SettingsPage.ts';
@@ -90,16 +88,14 @@ interface PageRegistrationDependencies {
     firstRunModals: FirstRunModalService;
     automationRunActivity: AutomationRunActivityServiceContract;
     logStream: LogStream;
-    countdownOverlay: CountdownOverlay;
     restartOverlay: { show(value: OperationType, options?: RestartOverlayShowOptions): void; hide(): void };
-    powerOverlay: { show(value: string): void; hide(): void };
     searchComponent: SearchComponent;
     catalogStore: CatalogStore;
     storage: SharedStorage;
     automationDataService: AutomationDataService;
 }
 
-const registerPages = ({ basePageDependencies, chatStreamService, chatPagePresence, chatConversationAttention, chatToolIconService, firstRunModals, automationRunActivity, logStream, countdownOverlay, restartOverlay, powerOverlay, searchComponent, catalogStore, storage, automationDataService }: PageRegistrationDependencies): void => {
+const registerPages = ({ basePageDependencies, chatStreamService, chatPagePresence, chatConversationAttention, chatToolIconService, firstRunModals, automationRunActivity, logStream, restartOverlay, searchComponent, catalogStore, storage, automationDataService }: PageRegistrationDependencies): void => {
     const sharedStorage = ensureSharedStorage(storage);
 
     registerPage('about', AboutPage, { factory: () => new AboutPage(basePageDependencies) });
@@ -143,15 +139,11 @@ const registerPages = ({ basePageDependencies, chatStreamService, chatPagePresen
             new PluginsPage(
                 {
                     storage: sharedStorage,
-                    restartOverlay,
                     catalogStore,
                     firstRunModals
                 },
                 basePageDependencies
             )
-    });
-    registerPage('power', PowerPage, {
-        factory: () => new PowerPage({ countdownOverlay, restartOverlay, powerOverlay }, basePageDependencies)
     });
     registerPage('prompts', PromptsPage, { factory: () => new PromptsPage(basePageDependencies) });
     registerPage('search', SearchPage, { factory: () => new SearchPage({ searchComponent }, basePageDependencies) });
@@ -168,7 +160,7 @@ const registerPages = ({ basePageDependencies, chatStreamService, chatPagePresen
     });
     registerPage('terminal', TerminalPage, { factory: () => new TerminalPage(basePageDependencies) });
     registerPage('updates', UpdatesPage, {
-        factory: () => new UpdatesPage({ restartOverlay, product: requireFrontendEditionComposition().updates }, basePageDependencies)
+        factory: () => new UpdatesPage({ catalogStore, restartOverlay, product: requireFrontendEditionComposition().updates }, basePageDependencies)
     });
     registerPage('wizard', WizardPage, {
         factory: () =>

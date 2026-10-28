@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 
 from app.startup_steps.actors_and_services import ActorsAndServicesStartupStep
@@ -11,6 +12,10 @@ from app.startup_steps.temp_files_cleanup import TempFilesCleanupStep
 from app.types_application import ApplicationContext
 from core.di.validation import require_dependencies
 from core.runtime.protocols import RuntimeStateStoreProtocol
+from core.runtime.service_termination_evidence import (
+    describe_service_termination,
+    resolve_previous_service_termination,
+)
 from core.runtime.shutdown_marker import (
     mark_process_started,
     resolve_process_shutdown_marker_path,
@@ -46,6 +51,9 @@ class LifecycleStartupService:
         self._deps = deps
 
     async def start_before_host(self, application_context: ApplicationContext) -> bool:
+        stop_event = self._deps.runtime.system_stop_event
+        if stop_event.is_set() or self._deps.runtime.shutdown_event.is_set():
+            return False
         config = application_context.services.configuration.config
         system_data_path = config.get_str("SYSTEM.PATHS.SYSTEM_DATA")
         if system_data_path:
@@ -54,19 +62,36 @@ class LifecycleStartupService:
                 application_context.logging.lifecycle_logger,
             )
             if unclean_shutdown_detected:
-                await verify_database_after_unclean_shutdown(
+                previous_termination = await asyncio.to_thread(
+                    resolve_previous_service_termination,
+                )
+                application_context.logging.lifecycle_logger.warning(
+                    "Previous SoAI run termination: %s",
+                    describe_service_termination(previous_termination),
+                )
+                application_context.logging.lifecycle_logger.warning(
+                    "SoAI did not shut down cleanly during its previous run. Checking database integrity before startup continues...",
+                )
+                if not await verify_database_after_unclean_shutdown(
                     application_context.services.databases.core.reader,
                     application_context.logging.lifecycle_logger,
-                )
+                    stop_event,
+                ):
+                    return False
                 application_context.logging.lifecycle_logger.info(
                     "Database recovery integrity check completed successfully.",
                 )
+        self._deps.runtime.database_recovery_pending = False
+        if stop_event.is_set() or self._deps.runtime.shutdown_event.is_set():
+            return False
         temp_cleanup_started_ms = monotonic_ms()
         await self._deps.temp_files_cleanup.cleanup_temp_files(application_context)
         self._deps.startup_timings.record_since_ms(
             "startup.temp_files_cleanup_ms",
             temp_cleanup_started_ms,
         )
+        if stop_event.is_set() or self._deps.runtime.shutdown_event.is_set():
+            return False
         await self._deps.actors_and_services.start_actors_and_services(application_context)
         if self._deps.runtime.shutdown_event.is_set():
             return False

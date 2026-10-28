@@ -62,16 +62,12 @@ def merge_persisted_backend_variant_counts(
     manager: PluginManagerRuntimeProtocol,
     database_plugins: list[JSONDict],
     stats: dict[str, dict[str, int]],
-    backend_installation_overrides: dict[str, str],
 ) -> None:
     for plugin_data in database_plugins:
         plugin_name_value = plugin_data.get("plugin_name")
         if not isinstance(plugin_name_value, str) or not plugin_name_value:
             continue
-        effective_state = backend_installation_overrides.get(
-            plugin_name_value,
-            str(plugin_data.get("state") or ""),
-        )
+        effective_state = str(plugin_data.get("state") or "")
         if not _needs_backend_variant_count(manager, plugin_data, effective_state):
             continue
         if plugin_name_value not in stats:

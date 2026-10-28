@@ -16,8 +16,9 @@ from core.metrics.protocols import MetricsManagerProtocol
 if TYPE_CHECKING:
     from uvicorn.config import Config
 
+    from app.lifecycle.results import LifecycleFailure
     from app.updater.release_manifest_types import ReleaseManifestV1
-    from core.app.protocols import ApplicationUpdateOutcome
+    from core.app.update_result import ApplicationUpdateResult
     from core.licensing.types import Edition
     from core.logging.protocols import LoggerProtocol
     from core.meta.instance_identity import InstanceIdentity
@@ -93,7 +94,7 @@ class LifecycleCoordinatorProtocol(Protocol):
 
     def server_count(self) -> int: ...
 
-    async def shutdown_servers(self, timeout: float) -> None: ...
+    async def shutdown_servers(self, timeout: float) -> list[LifecycleFailure]: ...
 
     async def wait_until_started(self, timeout: float) -> None: ...
 
@@ -145,6 +146,9 @@ class UvicornConnectionProtocol(Protocol):
 
 
 class UvicornServerStateProtocol(Protocol):
+    @property
+    def tasks(self) -> Collection[asyncio.Task[None]]: ...
+
     @property
     def connections(self) -> Collection[UvicornConnectionProtocol]: ...
 
@@ -198,16 +202,18 @@ class ApplicationRuntimeCoordinatorViewProtocol(ApplicationRuntimeCoordinatorPro
 
 
 class ApplicationHostServiceProtocol(Protocol):
-    async def shutdown_servers(self, timeout_sec: float) -> None: ...
+    async def shutdown_servers(self, timeout_sec: float) -> list[LifecycleFailure]: ...
 
     async def stop_discovery_server(self) -> None: ...
 
 
 class ApplicationUpdateServiceProtocol(Protocol):
-    async def update(self) -> tuple[ApplicationUpdateOutcome, str]: ...
+    async def update(self) -> ApplicationUpdateResult: ...
 
     async def get_preparation_status(self) -> JSONDict: ...
 
     async def get_update_notice(self, user_id: int) -> JSONDict | None: ...
 
     async def acknowledge_update_notice(self, *, user_id: int, task_id: str) -> bool: ...
+
+    async def get_update_diagnostics(self, task_id: str) -> JSONDict: ...

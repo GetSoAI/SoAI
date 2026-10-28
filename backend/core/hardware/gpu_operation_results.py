@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
+    "GPU_CLOCK_REJECTION_CODES",
     "build_gpu_operation_error",
     "build_gpu_result",
     "extract_gpu_operation_error_detail",
@@ -22,6 +23,10 @@ __all__ = (
 )
 
 RESERVED_ERROR_PAYLOAD_KEYS: tuple[str, ...] = ("success", "code", "error")
+GPU_CLOCK_REJECTION_CODES = (
+    "gpu_clock_combination_unsupported",
+    "gpu_clock_conversion_unavailable",
+)
 
 
 def build_gpu_result(
@@ -46,17 +51,25 @@ def gpu_operation_status_code(code: str) -> int:
             "invalid_gpu_id"
             | "invalid_slot"
             | "invalid_payload"
+            | "gpu_setting_out_of_range"
             | "invalid_request_error"
             | "no_settings"
         ):
             return 400
-        case "slot_unchanged" | "boot_unchanged":
+        case (
+            "slot_unchanged"
+            | "boot_unchanged"
+            | "gpu_activity_conflict"
+            | "gpu_clock_combination_unsupported"
+        ):
             return 409
         case "slot_requires_apply":
             return 412
-        case "apply_failed":
+        case "apply_failed" | "gpu_control_preparation_failed":
             return 500
-        case "device_unavailable" | "hardware_mutation_disabled":
+        case (
+            "device_unavailable" | "hardware_mutation_disabled" | "gpu_clock_conversion_unavailable"
+        ):
             return 503
         case _:
             return 400
@@ -94,23 +107,24 @@ def build_gpu_operation_error(
             f"Reserved hardware error payload keys cannot be supplied as extras: {conflicting_keys}.",
         )
     match code:
-        case "apply_failed":
+        case "apply_failed" | "gpu_control_preparation_failed":
             error_type = ErrorType.SERVER_ERROR.value
         case "boot_unchanged":
             error_type = ErrorType.CONFLICT.value
         case "device_not_found" | "no_gpus" | "slot_empty":
             error_type = ErrorType.NOT_FOUND.value
-        case "device_unavailable":
+        case "device_unavailable" | "gpu_clock_conversion_unavailable":
             error_type = ErrorType.SERVICE_UNAVAILABLE.value
         case (
             "invalid_gpu_id"
             | "invalid_payload"
+            | "gpu_setting_out_of_range"
             | "invalid_request_error"
             | "invalid_slot"
             | "no_settings"
         ):
             error_type = ErrorType.INVALID_REQUEST.value
-        case "slot_unchanged":
+        case "slot_unchanged" | "gpu_clock_combination_unsupported":
             error_type = ErrorType.CONFLICT.value
         case "slot_requires_apply":
             error_type = "precondition_failed"

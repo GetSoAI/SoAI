@@ -10,7 +10,6 @@ from core.config.byte_sizes import GIB_BYTES, MIB_BYTES
 __all__ = (
     "calculate_eta",
     "format_eta",
-    "format_item_progress_details",
     "format_speed",
     "format_transfer_details",
     "format_transfer_log_suffix",
@@ -115,20 +114,3 @@ def calculate_eta(speed: float, downloaded_bytes: int, total_bytes: int) -> floa
         return 0.0
     remaining = total_bytes - downloaded_bytes
     return remaining / speed if remaining > 0 else 0.0
-
-
-def format_item_progress_details(
-    items_processed: int,
-    total_items: int,
-    *,
-    items_per_second: float = 0.0,
-    eta_seconds: float = 0.0,
-) -> str:
-    parts: list[str] = []
-    parts.append(f"{items_processed}/{total_items}")
-    if items_per_second > 0:
-        parts.append(f"{items_per_second:.1f}/s")
-    eta_str = format_eta(eta_seconds)
-    if eta_str:
-        parts.append(f"ETA {eta_str}")
-    return " | ".join(parts)

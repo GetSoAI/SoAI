@@ -5,7 +5,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from core.agent.status_values import AGENT_TURN_STATUS_ABANDONED
+from core.agent.status_values import (
+    AGENT_TURN_STATUS_ABANDONED,
+    AGENT_TURN_STATUS_CANCELLED,
+    AGENT_TURN_STATUS_ERROR,
+)
 from core.errors.exception_logging import log_handled_exception
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.tool_calls.owner_task_reconciliation import (
@@ -23,24 +27,41 @@ if TYPE_CHECKING:
     from core.tool_calls.protocols import DatabaseToolCallsProtocol
     from core.types.json import JSONDict
 
-__all__ = ("finalize_stale_turn_active_tool_calls_noncritical",)
+__all__ = (
+    "finalize_stale_turn_active_tool_calls_noncritical",
+    "resolve_terminal_root_tool_call_error_message",
+    "resolve_terminal_root_tool_call_status",
+)
 
 _OPERATION = "features.agent.runtime.finalize_stale_turn_active_tool_calls"
 
 
-def _resolve_tool_call_terminal_error_message(turn_status: str, error_message: str | None) -> str:
+def resolve_terminal_root_tool_call_error_message(
+    turn_status: str,
+    error_message: str | None,
+) -> str:
+    normalized_status = turn_status.strip()
     normalized_error_message = str(error_message or "").strip()
-    if turn_status == AGENT_TURN_STATUS_ABANDONED:
+    if normalized_status == AGENT_TURN_STATUS_CANCELLED:
+        return (
+            normalized_error_message or "Tool call cancelled because the agent turn was cancelled."
+        )
+    if normalized_status == AGENT_TURN_STATUS_ABANDONED:
         return (
             normalized_error_message or "Tool call cancelled because the agent turn was abandoned."
         )
-    return (
-        normalized_error_message or "Tool call failed because the agent turn ended with an error."
+    if normalized_status == AGENT_TURN_STATUS_ERROR:
+        return (
+            normalized_error_message
+            or "Tool call failed because the agent turn ended with an error."
+        )
+    return normalized_error_message or (
+        "Tool call did not finish before the agent turn reached a terminal state."
     )
 
 
-def _resolve_tool_call_terminal_status(turn_status: str) -> str:
-    if turn_status == AGENT_TURN_STATUS_ABANDONED:
+def resolve_terminal_root_tool_call_status(turn_status: str) -> str:
+    if turn_status.strip() in (AGENT_TURN_STATUS_ABANDONED, AGENT_TURN_STATUS_CANCELLED):
         return TOOL_CALL_STATUS_CANCELLED
     return TOOL_CALL_STATUS_ERROR
 
@@ -55,8 +76,8 @@ async def finalize_stale_turn_active_tool_calls_noncritical(
     completed_at_ms: int,
     logger: LoggerProtocol,
 ) -> None:
-    tool_status = _resolve_tool_call_terminal_status(turn_status)
-    error_message = _resolve_tool_call_terminal_error_message(turn_status, turn_error_message)
+    tool_status = resolve_terminal_root_tool_call_status(turn_status)
+    error_message = resolve_terminal_root_tool_call_error_message(turn_status, turn_error_message)
     for tool_call in tool_calls:
         storage_call_id = str(tool_call.get("id") or "").strip()
         if not storage_call_id:

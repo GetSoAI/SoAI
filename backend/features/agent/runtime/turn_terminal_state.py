@@ -11,6 +11,7 @@ from core.agent.status_values import (
     AGENT_TURN_STATUS_COMPLETED,
     AGENT_TURN_STATUS_MAX_ITERATIONS,
 )
+from core.errors.payload import ErrorPublicPayload
 from features.agent.runtime.tool_execution_steer_interrupt import STEER_INTERRUPTED_ERROR_TYPE
 from features.agent.runtime.turn_iteration_policy_messages import get_cancelled_status
 
@@ -38,6 +39,7 @@ class TurnTerminalOutcome:
     error_type: str | None
     reached_max_iterations: bool = False
     preserve_active_subagents: bool = False
+    public_error: ErrorPublicPayload | None = None
 
 
 @dataclass(frozen=True, slots=True)

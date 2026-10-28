@@ -11,7 +11,12 @@ from core.errors.exceptions import ValidationError
 if TYPE_CHECKING:
     type PathInput = str | os.PathLike[str]
 
-__all__ = ("coerce_path", "normalize_filesystem_path", "remove_windows_path_namespace")
+__all__ = (
+    "coerce_path",
+    "normalize_filesystem_path",
+    "remove_windows_path_namespace",
+    "require_direct_entry_name",
+)
 
 
 def coerce_path(value: PathInput) -> str:
@@ -38,6 +43,13 @@ def normalize_filesystem_path(path: str) -> str:
     if absolute_path.startswith("\\\\"):
         return f"\\\\?\\UNC\\{absolute_path[2:]}"
     return f"\\\\?\\{absolute_path}"
+
+
+def require_direct_entry_name(name: str) -> str:
+    coerce_path(name)
+    if name in {".", ".."} or "/" in name or "\\" in name:
+        raise ValidationError("Anchored directory operations require direct entry names.")
+    return name
 
 
 def remove_windows_path_namespace(path: str) -> str:

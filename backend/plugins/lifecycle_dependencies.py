@@ -10,7 +10,10 @@ from typing import TYPE_CHECKING
 from core.concurrency.protocols import CancellationTokenProtocol
 from core.di.validation import require_dependencies
 from core.lifecycle.protocols import ServiceLifecycleProtocol
-from core.plugins.protocols_lifecycle import PluginLifecycleLocksProtocol
+from core.plugins.protocols_lifecycle import (
+    PluginDiscoveryOwnershipProtocol,
+    PluginLifecycleLocksProtocol,
+)
 from core.tasks.protocols import (
     CancellationCoordinatorProtocol,
     CancellationEventBusProtocol,
@@ -51,6 +54,7 @@ class ActiveCancellationRecord:
 class PluginLifecycleDependencies:
     lifecycle: ServiceLifecycleProtocol
     locks: PluginLifecycleLocksProtocol
+    discovery_ownership: PluginDiscoveryOwnershipProtocol
     cancellation_coordinator: CancellationCoordinatorProtocol
     cancellation_history: CancellationHistoryProtocol
     cancellation_event_bus: CancellationEventBusProtocol
@@ -74,6 +78,7 @@ class PluginLifecycleDependencies:
             cancellation_event_bus=self.cancellation_event_bus,
             cancellation_history=self.cancellation_history,
             create_managed_task=self.create_managed_task,
+            discovery_ownership=self.discovery_ownership,
             lifecycle=self.lifecycle,
             locks=self.locks,
             plugin_task_ttl_ms=self.plugin_task_ttl_ms,

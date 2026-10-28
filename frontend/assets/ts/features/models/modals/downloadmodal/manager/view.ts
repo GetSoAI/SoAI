@@ -3,7 +3,6 @@
 
 import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { requireInputElement, requireSelectElement } from '@core/dom/typedElements.ts';
-import { splitModelVariantInput } from '@core/modelactions/variantInput.ts';
 import { MODELS_ACTION_ADD_PROVIDER } from '@core/models/pageActions.ts';
 import { createModalElementResolver } from '@core/modals/modalElementResolver.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
@@ -15,7 +14,7 @@ import type { DownloadModalManagerRuntime } from '@features/models/modals/downlo
 import { countActiveModelDownloads } from '@features/models/downloads/modelDownloadOperations.ts';
 import { MODEL_DOWNLOAD_OPERATION_TYPE } from '@features/models/modelDownloadOperation.ts';
 import { cancelModelSearchRequest, clearModelSearchResults, handleModelSearchPluginChange, resetModelSearchState, updateModelIdGroupVisibility, updateModelSearchButtonState, updateModelSearchPlaceholder, updateModelSearchVisibility } from '@features/models/modals/downloadmodal/manager/searchControls.ts';
-import { updateDownloadModalUI, updateModalTabsVisibility, updateVariantControlsVisibility } from '@features/models/modals/downloadmodal/manager/tabsView.ts';
+import { updateDownloadModalUI, updateModalTabsVisibility, updateSelectedModelDisplay, updateVariantControlsVisibility } from '@features/models/modals/downloadmodal/manager/tabsView.ts';
 
 const openDownloadModelModal = (runtime: DownloadModalManagerRuntime, _event?: Event): void => {
     const modalId = runtime.modalId;
@@ -43,6 +42,11 @@ const openDownloadModelModal = (runtime: DownloadModalManagerRuntime, _event?: E
     const pluginValue = toTrimmedString(requireSelectElement(resolver, modalUiSelector(modalId, 'download-plugin-select'), 'Download modal download-plugin-select', modalRoot).value);
     renderDownloadPluginWarning(runtime.host, modalId, modalRoot, pluginValue);
     handleModelSearchPluginChange(runtime);
+    const initialSearch = toTrimmedString(context?.['search']);
+    if (initialSearch) {
+        runtime.host.view.setUIValue(requireInputElement(resolver, modalUiSelector(modalId, 'model-search-input'), 'Download modal model-search-input', modalRoot), initialSearch, { attribute: 'value' });
+        updateModelSearchButtonState(runtime);
+    }
     updateModelIdGroupVisibility(runtime, Boolean(toTrimmedString(pluginValue)));
     updateModalTabsVisibility(runtime, !shouldOpenProviderTab);
     updateDownloadModalUI(runtime, shouldOpenProviderTab ? 'provider' : 'download');
@@ -134,29 +138,6 @@ const handleVariantInputChange = (runtime: DownloadModalManagerRuntime, _event?:
     updateSelectedModelDisplay(runtime);
     updateDownloadButtonState(runtime);
 };
-const updateSelectedModelDisplay = (runtime: DownloadModalManagerRuntime): void => {
-    const modalId = runtime.modalId;
-    const modalRoot = runtime.host.session.modals.requireElement(modalId);
-    const display = runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'selected-model-display'), modalRoot);
-    const downloadTab = runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'download-tab'), modalRoot);
-    const resolver = createModalElementResolver(modalRoot, 'Download modal');
-    const isDownloadTabActive = runtime.host.session.dom.hasClass(downloadTab, CSS_CLASSES.ACTIVE);
-    const hasPlugin = Boolean(toTrimmedString(requireSelectElement(resolver, modalUiSelector(modalId, 'download-plugin-select'), 'Download modal download-plugin-select', modalRoot).value));
-    const modelId = toTrimmedString(requireInputElement(resolver, modalUiSelector(modalId, 'model-id'), 'Download modal model-id', modalRoot).value);
-
-    const shouldShow = isDownloadTabActive && hasPlugin && Boolean(modelId);
-    runtime.host.view.toggleClassName(display, CSS_CLASSES.HIDDEN, !shouldShow);
-    runtime.host.view.updateAttribute(display, 'aria-hidden', shouldShow ? 'false' : 'true');
-    if (!shouldShow) {
-        return;
-    }
-
-    const inlineVariant = splitModelVariantInput(modelId);
-    const quant = inlineVariant.variantToken || toTrimmedString(requireInputElement(resolver, modalUiSelector(modalId, 'model-quant'), 'Download modal model-quant', modalRoot).value);
-    const displayModelId = inlineVariant.variantToken ? inlineVariant.modelId : modelId;
-    runtime.host.view.updateText(runtime.host.session.requireHTMLElement('.download-model-selected-model-id', display), displayModelId);
-    runtime.host.view.updateText(runtime.host.session.requireHTMLElement('.download-model-selected-model-quant', display), quant);
-};
 const updateProviderFieldsVisibility = (runtime: DownloadModalManagerRuntime): void => {
     const modalId = runtime.modalId;
     const modalRoot = runtime.host.session.modals.requireElement(modalId);
@@ -224,10 +205,10 @@ const updateDownloadBadge = (runtime: DownloadModalManagerRuntime): void => {
     const modalRoot = runtime.host.session.modals.requireElement(modalId);
     const badge = runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'download-notify'), modalRoot);
     const count = countActiveModelDownloads();
-    runtime.host.view.updateText(badge, resolveNotifyBadgeText(count));
+    if (count > 0) runtime.host.view.updateText(badge, resolveNotifyBadgeText(count));
     runtime.host.view.toggleClassName(badge, CSS_CLASSES.HIDDEN, count === 0);
 };
 
 const hasActiveModelDownloads = (runtime: DownloadModalManagerRuntime): boolean => countActiveModelDownloads() > 0 || runtime.host.execution.requireStreamManager().hasActiveOperationsOfType(MODEL_DOWNLOAD_OPERATION_TYPE);
 
-export { cancelModelSearchRequest, clearDownloadFormFields, clearModelSearchResults, clearProviderFormFields, closeDownloadModelModal, handleDownloadTabClick, handleModelSearchPluginChange, handlePluginSelectChange, handleProviderPluginSelectChange, handleProviderTabClick, handleVariantInputChange, hasActiveModelDownloads, openDownloadModelModal, populatePluginDropdowns, resetModelSearchState, updateDownloadBadge, updateDownloadButtonState, updateDownloadModalUI, updateModelIdGroupVisibility, updateModelSearchButtonState, updateModelSearchPlaceholder, updateModelSearchVisibility, updateModalTabsVisibility, updatePluginRequiredMarkers, updateSelectedModelDisplay };
+export { cancelModelSearchRequest, clearDownloadFormFields, clearModelSearchResults, clearProviderFormFields, closeDownloadModelModal, handleDownloadTabClick, handleModelSearchPluginChange, handlePluginSelectChange, handleProviderPluginSelectChange, handleProviderTabClick, handleVariantInputChange, hasActiveModelDownloads, openDownloadModelModal, populatePluginDropdowns, resetModelSearchState, updateDownloadBadge, updateDownloadButtonState, updateDownloadModalUI, updateModelIdGroupVisibility, updateModelSearchButtonState, updateModelSearchPlaceholder, updateModelSearchVisibility, updateModalTabsVisibility, updatePluginRequiredMarkers };

@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from core.metrics.protocols import MetricsManagerProtocol
     from core.tasks.protocols import TaskRegistryProtocol
     from core.tasks.task import Task
+    from core.types.json import JSONDict
     from orchestrator.execution.internal_protocols import DeliveryManagerProtocol
     from orchestrator.execution.outcome_finalization import (
         OutcomeFinalizationDependencies,
@@ -71,9 +72,10 @@ async def execute_terminal_failure_outcome(
     error_type: ErrorType,
     reason_is_public: bool = False,
     public_error: ErrorPublicPayload | None = None,
+    audio_upload_error_response: JSONDict | None = None,
 ) -> None:
     context, task, delivery_version, dedup_hash, dedup_exception = await prepare_failure_delivery(
-        queue, delivery, task, reason=reason
+        queue, delivery, task, reason=reason, task_registry=task_registry
     )
     if delivery_version is None:
         return
@@ -88,7 +90,8 @@ async def execute_terminal_failure_outcome(
         claimed_task=task,
         delivery_version=delivery_version,
         dedup_hash=dedup_hash,
-        dedup_exception=dedup_exception,
+        dedup_result=audio_upload_error_response,
+        dedup_exception=dedup_exception if audio_upload_error_response is None else None,
         metrics_counter=(
             METRIC_KEY_CANCELLED if status == TaskStatus.CANCELLED else METRIC_KEY_FAILED
         ),
@@ -147,6 +150,7 @@ async def execute_terminal_failure_outcome(
             ),
             reason_is_public=reason_is_public,
             public_error=public_error,
+            audio_upload_error_response=audio_upload_error_response,
             details={"task_id": task.task_id},
             level="debug" if status == TaskStatus.CANCELLED else "warning",
         )

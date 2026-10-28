@@ -58,8 +58,8 @@ jobs:
             --disable-pip-version-check \
             --no-cache-dir \
             --requirement requirements.txt
-          bash -n install-soai-macos.command
-          bash -n install-soai-from-release.command
+          bash -n install_soai_macos.command
+          bash -n install_soai_from_release.command
           bash -n soai.sh
           test -f soai.command
           test -f backend/core/bootstrap/launcher_posix/darwin_x64_conda_runtime_packages.txt

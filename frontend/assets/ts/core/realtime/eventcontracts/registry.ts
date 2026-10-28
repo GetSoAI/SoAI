@@ -1,6 +1,7 @@
 /* SoAI - Frontend canonical WebSocket event contract registry [frontend/assets/ts/core/realtime/eventcontracts/registry.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { SKILL_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/skillContracts.ts';
 import { AGENT_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/agentContracts.ts';
 import { ATTACHMENT_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/attachmentContracts.ts';
 import { AUTOMATION_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/automationContracts.ts';
@@ -19,6 +20,7 @@ import { TERMINAL_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/terminal
 import { TOOL_LIVE_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/toolLiveContracts.ts';
 
 const WEBSOCKET_EVENT_CONTRACTS = Object.freeze({
+    skills: SKILL_EVENT_CONTRACTS,
     agent: AGENT_EVENT_CONTRACTS,
     automation: AUTOMATION_EVENT_CONTRACTS,
     chat: CHAT_CONTROL_EVENT_CONTRACTS,
@@ -39,6 +41,8 @@ const WEBSOCKET_EVENT_CONTRACTS = Object.freeze({
 
 const listWebSocketEventContracts = () =>
     Object.freeze([
+        WEBSOCKET_EVENT_CONTRACTS.skills.libraryChanged,
+        WEBSOCKET_EVENT_CONTRACTS.skills.selectionChanged,
         WEBSOCKET_EVENT_CONTRACTS.agent.turnStarted,
         WEBSOCKET_EVENT_CONTRACTS.agent.itemStarted,
         WEBSOCKET_EVENT_CONTRACTS.agent.itemDelta,

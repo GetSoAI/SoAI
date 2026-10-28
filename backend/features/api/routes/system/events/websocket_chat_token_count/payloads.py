@@ -15,8 +15,11 @@ from features.api.routes.system.events.internal_protocols import WebSocketEventT
 from features.api.runtime.event_enqueue import enqueue_event_or_warn
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from core.errors.payload import ErrorPublicPayload
     from core.openai.token_accounting import PromptOccupancy
-    from core.types.json import JSONDict
+    from core.types.json import JSONDict, JSONValue
     from features.api.runtime.container.enqueue_warning_tracker import (
         EnqueueWarningTracker,
     )
@@ -28,6 +31,7 @@ __all__ = (
     "enqueue_conversation_not_found_token_count_error",
     "enqueue_token_count_profile_result",
     "enqueue_token_count_error",
+    "enqueue_token_count_public_error",
     "enqueue_token_count_result",
     "token_count_result_delivery",
 )
@@ -133,6 +137,7 @@ async def enqueue_token_count_error(
     request_id: str,
     code: str,
     message: str,
+    details: Mapping[str, JSONValue] | None = None,
 ) -> None:
     payload = build_chat_command_error_payload(
         event_type=WebSocketEventTypes.CHAT_TOKEN_COUNT_ERROR,
@@ -143,12 +148,33 @@ async def enqueue_token_count_error(
         trace_id=trace_id,
         include_trace_id=True,
         include_usage_preview=True,
+        details=details,
     )
     enqueue_event_or_warn(
         enqueue_warning_tracker,
         connection.queue,
         payload,
         "Chat token count error",
+    )
+
+
+async def enqueue_token_count_public_error(
+    *,
+    connection: WebsocketConnection,
+    enqueue_warning_tracker: EnqueueWarningTracker,
+    conv_id: str,
+    request_id: str,
+    public_error: ErrorPublicPayload,
+) -> None:
+    await enqueue_token_count_error(
+        connection=connection,
+        enqueue_warning_tracker=enqueue_warning_tracker,
+        trace_id=public_error.trace_id,
+        conv_id=conv_id,
+        request_id=request_id,
+        code=str(public_error.code),
+        message=public_error.message,
+        details=public_error.details,
     )
 
 

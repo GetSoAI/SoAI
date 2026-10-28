@@ -33,6 +33,7 @@ def sync_create_conversation(
     messaging_platform: str | None = None,
     messaging_account_label: str | None = None,
     messaging_account_snapshot_id: str | None = None,
+    title_auto_update_allowed: bool = False,
 ) -> JSONDict:
     resolved_conv_id = conv_id or f"conv_{uuid.uuid4().hex}"
     now_ms = epoch_ms()
@@ -54,8 +55,9 @@ def sync_create_conversation(
             INSERT INTO webui_conversations (
                 id, user_id, title, created_at_ms, last_modified_at_ms, model_settings,
                 is_automation, is_messaging, messaging_platform,
-                messaging_account_label, messaging_account_snapshot_id, is_archived
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                messaging_account_label, messaging_account_snapshot_id, is_archived,
+                title_auto_update_allowed
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 resolved_conv_id,
@@ -70,6 +72,7 @@ def sync_create_conversation(
                 messaging_account_label,
                 messaging_account_snapshot_id,
                 0,
+                1 if title_auto_update_allowed else 0,
             ),
         )
     except sqlite3.IntegrityError as exception:
@@ -90,6 +93,7 @@ def sync_create_conversation(
             "id": resolved_conv_id,
             "user_id": user_id,
             "title": title,
+            "title_auto_update_allowed": 1 if title_auto_update_allowed else 0,
             "created_at_ms": now_ms,
             "last_modified_at_ms": now_ms,
             "model_settings": settings_json,

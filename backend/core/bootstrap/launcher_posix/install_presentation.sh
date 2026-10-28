@@ -130,7 +130,7 @@ soai_install_ui__frame_loop() {
     local downloaded=0
     local narrow_line_shown=0
     while true; do
-        dimensions="$(stty size <&2 2>/dev/null || printf '24 80')"
+        dimensions="$(trap '' TTOU; stty size <&2 2>/dev/null || printf '24 80')"
         width="${dimensions##* }"
         case "$width" in ''|0|*[!0-9]*) width=80 ;; esac
         elapsed=$((SECONDS - SOAI_INSTALL_UI_STARTED))
@@ -141,10 +141,12 @@ soai_install_ui__frame_loop() {
             if [ "$SOAI_INSTALL_UI_DOWNLOAD_TOTAL" -gt 0 ]; then
                 local percentage=$((downloaded * 100 / SOAI_INSTALL_UI_DOWNLOAD_TOTAL))
                 if [ "$percentage" -gt 100 ]; then percentage=100; fi
-                progress=" ($downloaded/$SOAI_INSTALL_UI_DOWNLOAD_TOTAL bytes)"
+                printf -v progress ' (%d.%02d/%d.%02d MB)' \
+                    "$((downloaded / 1000000))" "$((downloaded % 1000000 / 10000))" \
+                    "$((SOAI_INSTALL_UI_DOWNLOAD_TOTAL / 1000000))" "$((SOAI_INSTALL_UI_DOWNLOAD_TOTAL % 1000000 / 10000))"
                 progress_summary="${percentage}%"
             else
-                progress_summary="$downloaded bytes"
+                printf -v progress_summary '%d.%02d MB' "$((downloaded / 1000000))" "$((downloaded % 1000000 / 10000))"
             fi
         fi
         local suffix="${SOAI_INSTALL_UI_SEPARATOR} $(printf '%02d:%02d' "$((elapsed / 60))" "$((elapsed % 60))")"
@@ -175,7 +177,7 @@ soai_install_ui__start() {
     local dimensions=""
     local width=80
     if [ -t 2 ] && [ "${TERM:-dumb}" != dumb ]; then
-        dimensions="$(stty size <&2 2>/dev/null || printf '24 80')"
+        dimensions="$(trap '' TTOU; stty size <&2 2>/dev/null || printf '24 80')"
         width="${dimensions##* }"
         case "$width" in ''|0|*[!0-9]*) width=80 ;; esac
         if [ "$width" -ge 40 ]; then

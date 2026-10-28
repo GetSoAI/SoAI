@@ -38,11 +38,11 @@ def validate_public_benchmark_numbers(benchmark: JSONDict) -> None:
         or benchmark.get("benchmark_mode") != "certified"
         or benchmark.get("status") != "completed"
     ):
-        raise ValidationError("SoAIBench public benchmark classification is invalid.")
+        raise ValidationError("SoAI Bench public benchmark classification is invalid.")
     started = require_public_integer(benchmark.get("started_at_ms"))
     completed = require_public_integer(benchmark.get("completed_at_ms"))
     if completed < started:
-        raise ValidationError("SoAIBench public benchmark timing is invalid.")
+        raise ValidationError("SoAI Bench public benchmark timing is invalid.")
     validate_public_pass_numbers(benchmark)
     require_public_number(benchmark.get("score_variance_percent"), minimum=0.0)
 
@@ -61,16 +61,16 @@ def validate_public_pass_numbers(measured: JSONDict) -> None:
 
 def validate_public_certification_numbers(certification: JSONDict) -> None:
     if not has_public_certification_status(certification):
-        raise ValidationError("SoAIBench public certification is invalid.")
+        raise ValidationError("SoAI Bench public certification is invalid.")
     require_public_number(certification.get("score_variance_percent"), minimum=0.0)
     variation = certification.get("phase_variation_percent")
     drift = certification.get("phase_drift_percent")
     if not isinstance(variation, dict) or not isinstance(drift, dict):
-        raise ValidationError("SoAIBench phase diagnostics are invalid.")
+        raise ValidationError("SoAI Bench phase diagnostics are invalid.")
     if set(variation) != set(SOAIBENCH_WORKLOAD_NAMES) or set(drift) != set(
         SOAIBENCH_WORKLOAD_NAMES
     ):
-        raise ValidationError("SoAIBench phase diagnostics are incomplete.")
+        raise ValidationError("SoAI Bench phase diagnostics are incomplete.")
     for name in SOAIBENCH_WORKLOAD_NAMES:
         require_public_number(variation.get(name), minimum=0.0)
         require_public_number(drift.get(name), minimum=-100.0)
@@ -109,7 +109,7 @@ def validate_public_temperature_threshold(
                 )
                 > validated_limit
             ):
-                raise ValidationError("SoAIBench completed run exceeded its temperature limit.")
+                raise ValidationError("SoAI Bench completed run exceeded its temperature limit.")
 
 
 def require_public_integer(
@@ -125,7 +125,7 @@ def require_public_integer(
         value,
         minimum=minimum,
         maximum=maximum,
-        error_message="SoAIBench public integer evidence is invalid.",
+        error_message="SoAI Bench public integer evidence is invalid.",
     )
 
 
@@ -138,12 +138,12 @@ def require_public_number(
     allow_zero: bool = True,
 ) -> float:
     number = require_finite_float_strict(
-        value, error_message="SoAIBench public numeric evidence is invalid."
+        value, error_message="SoAI Bench public numeric evidence is invalid."
     )
     if number < minimum or (exclusive and number == minimum) or (not allow_zero and number == 0.0):
-        raise ValidationError("SoAIBench public numeric evidence is invalid.")
+        raise ValidationError("SoAI Bench public numeric evidence is invalid.")
     if maximum is not None and number > maximum:
-        raise ValidationError("SoAIBench public numeric evidence is invalid.")
+        raise ValidationError("SoAI Bench public numeric evidence is invalid.")
     return number
 
 

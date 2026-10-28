@@ -11,6 +11,7 @@ import select
 import struct
 import termios
 
+from core.filesystem.descriptor_io import open_descriptor
 from core.filesystem.open_files import open_text
 from terminal.shell_command import PTYShellCommand
 
@@ -39,7 +40,7 @@ def spawn_pty(
         try:
             os.close(master_fd)
             os.setsid()
-            controlling_fd = os.open(slave_name, os.O_RDWR)
+            controlling_fd = open_descriptor(slave_name, os.O_RDWR)
             fcntl.ioctl(controlling_fd, termios.TIOCSCTTY, 0)
             os.dup2(controlling_fd, 0)
             os.dup2(controlling_fd, 1)

@@ -8,14 +8,20 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_handled_exception
-from core.errors.exceptions import StateError
+from core.errors.exceptions import StateError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.imports.availability import module_available
+from core.validation.strict_numbers import (
+    require_int_in_range_strict,
+    require_non_negative_int_strict,
+)
 from hardware.gpu_capabilities.payloads import update_control_capability_section
+from hardware.vendors.nvidia.internal_protocols import NvmlFanQueryProtocol
 from hardware.vendors.nvidia.nvml_metric_reading import is_nvml_error_not_supported
 from hardware.vendors.nvidia.nvml_power_limit_resolution import (
     resolve_nvml_power_limit_functions,
 )
+from hardware.vendors.nvidia.tuning_nvml_controls import read_nvml_fan_constraints
 
 if TYPE_CHECKING:
     from core.logging.protocols import TraceLogger
@@ -38,6 +44,11 @@ OPERATION_HARDWARE_NVIDIA_NVML_CAPABILITIES_READ_POWER_LIMITS = (
 )
 OPERATION_HARDWARE_NVIDIA_NVML_CAPABILITIES_READ_SUPPORTED_CLOCKS = (
     "hardware.nvidia.nvml_capabilities.read_supported_clocks"
+)
+FAN_CAPABILITY_READ_EXCEPTIONS: tuple[type[Exception], ...] = (
+    StateError,
+    ValidationError,
+    *RECOVERABLE_EXCEPTIONS,
 )
 POWER_CAPABILITY_READ_EXCEPTIONS: tuple[type[Exception], ...] = (
     StateError,
@@ -128,28 +139,69 @@ def apply_fan_capabilities(
     if pynvml_module is None:
         return
     try:
-        fan_speed_function = pynvml_module.nvmlDeviceGetFanSpeed
+        default_setter = pynvml_module.nvmlDeviceSetDefaultFanSpeed_v2
+        manual_setter = pynvml_module.nvmlDeviceSetFanSpeed_v2
     except AttributeError:
-        fan_speed_function = None
-    try:
-        default_fan_speed_function = pynvml_module.nvmlDeviceSetDefaultFanSpeed_v2
-    except AttributeError:
-        default_fan_speed_function = None
-    try:
-        set_fan_speed_function = pynvml_module.nvmlDeviceSetFanSpeed_v2
-    except AttributeError:
-        set_fan_speed_function = None
-    if not callable(fan_speed_function):
+        default_setter = None
+        manual_setter = None
+    if not isinstance(pynvml_module, NvmlFanQueryProtocol):
+        update_control_capability_section(
+            gpu_caps, "fan_speed_percent", {"current": None, "supported": False, "via_nvml": True}
+        )
         return
     try:
-        fan_value_raw = fan_speed_function(handle)
+        count = require_non_negative_int_strict(
+            pynvml_module.nvmlDeviceGetNumFans(handle),
+            error_message="NVML actual fan count is invalid.",
+        )
+        if count == 0:
+            update_control_capability_section(
+                gpu_caps,
+                "fan_speed_percent",
+                {"current": None, "supported": False, "via_nvml": True},
+            )
+            return
+        minimum, maximum = read_nvml_fan_constraints(pynvml_module, handle)
+        policies: list[int] = []
+        targets: list[int | None] = []
+        for fan in range(count):
+            policy = require_int_in_range_strict(
+                pynvml_module.nvmlDeviceGetFanControlPolicy_v2(handle, fan),
+                minimum=0,
+                maximum=1,
+                error_message="NVML actual fan policy is invalid.",
+            )
+            policies.append(policy)
+            targets.append(
+                None
+                if policy == 0
+                else require_int_in_range_strict(
+                    pynvml_module.nvmlDeviceGetTargetFanSpeed(handle, fan),
+                    minimum=minimum,
+                    maximum=maximum,
+                    error_message="NVML actual configured fan target is invalid.",
+                )
+            )
+        if count != require_non_negative_int_strict(
+            pynvml_module.nvmlDeviceGetNumFans(handle),
+            error_message="NVML repeated fan count is invalid.",
+        ):
+            raise StateError("NVML fan membership changed during capability acquisition.")
+        mode = (
+            "auto"
+            if all(policy == 0 for policy in policies)
+            else ("manual" if all(policy == 1 for policy in policies) else None)
+        )
+        current = targets[0] if mode == "manual" and len(set(targets)) == 1 else None
         update_control_capability_section(
             gpu_caps,
             "fan_speed_percent",
             {
-                "current": int(fan_value_raw) if isinstance(fan_value_raw, int | float) else 0,
-                "supported": callable(default_fan_speed_function)
-                and callable(set_fan_speed_function),
+                "current": current,
+                "mode": mode,
+                "min": minimum,
+                "max": maximum,
+                "supported": callable(default_setter) and callable(manual_setter),
                 "via_nvml": True,
             },
         )
@@ -158,15 +210,15 @@ def apply_fan_capabilities(
             log_handled_exception(
                 logger,
                 exception,
-                message="Failed to read NVIDIA fan speed (non-critical).",
+                message="Failed to read NVIDIA configured fan state (non-critical).",
                 operation=OPERATION_HARDWARE_NVIDIA_NVML_CAPABILITIES_READ_FAN_SPEED,
                 level="trace",
             )
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except FAN_CAPABILITY_READ_EXCEPTIONS as exception:
         log_handled_exception(
             logger,
             exception,
-            message="Failed to read NVIDIA fan speed (non-critical).",
+            message="Failed to read NVIDIA configured fan state (non-critical).",
             operation=OPERATION_HARDWARE_NVIDIA_NVML_CAPABILITIES_READ_FAN_SPEED,
             level="trace",
         )

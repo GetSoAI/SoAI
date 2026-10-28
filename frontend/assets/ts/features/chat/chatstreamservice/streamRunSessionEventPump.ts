@@ -259,9 +259,9 @@ const createChatStreamEventPump = (inputArguments: { session: ChatStreamSession;
             if (prepared.revision > previousRevision) options.onSharedStreamState?.();
             const terminalEvent = prepared.message.assistantEventTimeline?.[prepared.message.assistantEventTimeline.length - 1];
             const notifyUser = options.notifyUserOnTerminal !== false;
-            if (terminalEvent?.eventType === 'completed') applyCompletedStreamEvent({ session, runtime, payload: terminalEvent.payload, assistantRevision: terminalEvent.assistantRevision, failProtocol, markDone, notifyUser });
-            else if (terminalEvent?.eventType === 'cancelled') applyCancelledStreamEvent({ session, runtime, payload: terminalEvent.payload, assistantRevision: terminalEvent.assistantRevision, failProtocol, markDone, notifyUser });
-            else if (terminalEvent?.eventType === 'error') applyErrorStreamEvent({ session, runtime, payload: terminalEvent.payload, assistantRevision: terminalEvent.assistantRevision, failProtocol, markDone, notifyUser });
+            if (terminalEvent?.eventType === 'completed') applyCompletedStreamEvent({ session, runtime, payload: terminalEvent.payload, assistantRevision: terminalEvent.assistantRevision, failProtocol, markDone, notifyUser, hydrated: true });
+            else if (terminalEvent?.eventType === 'cancelled') applyCancelledStreamEvent({ session, runtime, payload: terminalEvent.payload, assistantRevision: terminalEvent.assistantRevision, failProtocol, markDone, notifyUser, hydrated: true });
+            else if (terminalEvent?.eventType === 'error') applyErrorStreamEvent({ session, runtime, payload: terminalEvent.payload, assistantRevision: terminalEvent.assistantRevision, failProtocol, markDone, notifyUser, hydrated: true });
             else if (prepared.revision > previousRevision) {
                 if (previousRevision === 0) await runtime.notifyCheckpoint(session, { type: 'initial-timeline' });
                 else runtime.notify(session, { type: 'replay' });

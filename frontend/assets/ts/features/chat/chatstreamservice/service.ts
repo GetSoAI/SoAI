@@ -133,6 +133,7 @@ class ChatStreamService {
     }
 
     setPresentationState(state: ChatPresentationState): void {
+        if (!state.visible && !this.#lifecycle.isActive()) return;
         this.#lifecycle.requireActive('set presentation state');
         this.#presentationSession.setPresentationState(state);
     }

@@ -13,6 +13,7 @@ from core.runtime.request_context import RequestContext
 from core.types.json import JSONDict, JSONValue
 
 if TYPE_CHECKING:
+    from core.database.mutation_requests import MutationClaim
     from core.state.state_names import PluginRuntimeStateName
 
 __all__ = (
@@ -45,7 +46,6 @@ __all__ = (
     "UpdateAllPluginBackendsCommand",
     "UpdatePluginBackendCommand",
     "UploadPluginCommand",
-    "ValidateProviderCommand",
 )
 
 
@@ -114,6 +114,7 @@ class UpdatePluginBackendCommand(ReplyableUserCommand):
     plugin_name: str
     backend_variant_id: str | None = None
     context: RequestContext | None = None
+    mutation_claim: MutationClaim | None = None
 
 
 @dataclass(slots=True)
@@ -134,12 +135,6 @@ class UpdateAllPluginBackendsCommand(ReplyableUserCommand):
 @dataclass(slots=True)
 class StopAllPluginsCommand(UserCommand):
     initiator: Literal["shutdown", "user"] = "user"
-    context: RequestContext | None = None
-
-
-@dataclass(slots=True)
-class ValidateProviderCommand(UserCommand):
-    provider_id: str
     context: RequestContext | None = None
 
 

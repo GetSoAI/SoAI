@@ -5,7 +5,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.errors.exceptions import StateError
+from core.files.extraction_summary import read_missing_capabilities
 from core.validation.epoch import EPOCH_MS_MIN
+from database.core.row_fields import require_row_optional_json_object
 from database.core.sqlite_row_scalars import (
     require_sqlite_row_int,
     require_sqlite_row_non_empty_str,
@@ -73,6 +76,15 @@ def format_linked_knowledge_item_row(row: SQLiteRow) -> JSONDict:
             row,
             "document_status",
             label=LINKED_KNOWLEDGE_ROW_FIELD_LABEL,
+        ),
+        "missing_capabilities": list(
+            read_missing_capabilities(
+                require_row_optional_json_object(
+                    row.get("document_metadata"),
+                    label="Document extraction metadata",
+                    build_error=StateError,
+                )
+            )
         ),
         "item_rag_status": sqlite_row_optional_str(
             row,

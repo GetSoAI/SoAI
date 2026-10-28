@@ -9,6 +9,7 @@ from collections.abc import Sequence
 from core.config.gpu_binding_devices import is_gpu_binding_eligible_entry
 from core.hardware.device_display_name import build_device_display_name
 from core.types.json import JSONDict
+from hardware.gpu_inventory.memory_metrics import gpu_capacity_is_current
 
 __all__ = (
     "build_gpu_payload",
@@ -40,12 +41,32 @@ def _binding_device(entry: JSONDict) -> JSONDict | None:
         "vendor": entry.get("type") if isinstance(entry.get("type"), str) else "unknown",
         "index": entry.get("index"),
         "binding_index": entry.get("vendor_id"),
-        "memory_total_mb": entry.get("memory_total_mb"),
+        "memory_total_mb": (
+            entry.get("memory_total_mb") if gpu_capacity_is_current(entry) else None
+        ),
     }
     for key in ("gpu_uuid", "pci_bdf", "pci_vendor_id", "pci_device_id"):
         value = entry.get(key)
         if isinstance(value, str) and value.strip():
             payload[key] = value
+    for key in (
+        "type",
+        "vendor",
+        "uuid",
+        "gpu_uuid_observations",
+        "pci_bdf_observations",
+        "native_device_path",
+        "windows_pnp_instance_id",
+        "platform_driver",
+        "platform_compatible",
+        "pci_bdf_full",
+        "pci_bus_id",
+        "bus_id",
+        "control_binding_state",
+        "control_binding_reason",
+    ):
+        if key in entry:
+            payload[key] = copy.deepcopy(entry[key])
     return payload
 
 

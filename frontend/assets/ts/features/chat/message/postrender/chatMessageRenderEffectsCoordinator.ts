@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { JsonApiClient } from '@core/api/jsonRequestGate.ts';
+import { mountSpeechSetup } from '@core/speechsetup/view.ts';
+import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import type { SyntaxHighlighter } from '@core/syntaxhighlighter/public.ts';
@@ -21,6 +23,7 @@ import { disposeStreamingSpinnerStatusRuntime, reconcileStreamingSpinnerStatusSu
 import { syncAssistantBodyCacheFromDom } from '@features/chat/message/postrender/assistantBodyCacheSync.ts';
 
 class ChatMessageRenderEffectsCoordinator {
+    readonly #speechSetupViews = new Map<HTMLElement, { controller: AbortController; refresh: () => void }>();
     readonly #documentRef: Document;
     readonly #syntaxHighlighter: SyntaxHighlighter;
     readonly #apiClient: JsonApiClient;
@@ -72,6 +75,7 @@ class ChatMessageRenderEffectsCoordinator {
     }
 
     dispose(): void {
+        this.#disposeSpeechSetupViews();
         this.#isDisposed = true;
         this.#batchScheduler.dispose();
         this.#streamingTimelineQueue.dispose();
@@ -182,6 +186,21 @@ class ChatMessageRenderEffectsCoordinator {
     #executeQueuedEntry(entry: ChatQueuedPostRenderEntry): void {
         if (this.#isDisposed || !entry.target.isConnected || !this.#isRenderKeyCurrent(entry.renderKey) || !this.#batchScheduler.isLatest(entry)) return;
         this.#activateEnhancer(entry.renderKey);
+        if (hasChatPostRenderCapability(entry.capabilities, 'speech-setup') && dom.resolve('[data-speech-setup]', entry.target) !== null) {
+            for (const [root, view] of this.#speechSetupViews) {
+                if (!root.isConnected) {
+                    view.controller.abort();
+                    this.#speechSetupViews.delete(root);
+                }
+            }
+            let view = this.#speechSetupViews.get(entry.target);
+            if (view === undefined) {
+                const controller = new AbortController();
+                view = { controller, refresh: mountSpeechSetup(entry.target, controller.signal) };
+                this.#speechSetupViews.set(entry.target, view);
+            }
+            view.refresh();
+        }
         runQueuedChatMessagePostRenderEffects({
             node: entry.target,
             syntaxHighlighter: this.#syntaxHighlighter,
@@ -228,9 +247,15 @@ class ChatMessageRenderEffectsCoordinator {
 
     #activateEnhancer(renderKey: ChatPostRenderContainerKey): void {
         if (this.#activeEnhancerKey?.conversationId === renderKey.conversationId && this.#activeEnhancerKey.epoch === renderKey.epoch) return;
+        this.#disposeSpeechSetupViews();
         this.#inlineMultimediaEnhancer.dispose();
         this.#inlineMultimediaEnhancer = this.#createInlineMultimediaEnhancer();
         this.#activeEnhancerKey = renderKey;
+    }
+
+    #disposeSpeechSetupViews(): void {
+        for (const view of this.#speechSetupViews.values()) view.controller.abort();
+        this.#speechSetupViews.clear();
     }
 
     #createInlineMultimediaEnhancer(): ChatInlineMultimediaEnhancer {

@@ -145,6 +145,8 @@ const decodeFileExplorerBatchUploadResponse = (value: ApiResponsePayload): FileE
         const result: FileExplorerBatchUploadItemResponse = { path: readRequiredPresentStringValue(item['path'], `${itemLabel}.path`), success: readRequiredBooleanValue(item['success'], `${itemLabel}.success`) };
         const size = readNullableNonNegativeIntegerValue(item['size'], `${itemLabel}.size`);
         const error = readNullableTrimmedStringValue(item['error'], `${itemLabel}.error`);
+        const code = readNullableTrimmedStringValue(item['code'], `${itemLabel}.code`);
+        if (code !== null) result.code = code;
         if (size !== null) result.size = size;
         if (error !== null) result.error = error;
         return result;

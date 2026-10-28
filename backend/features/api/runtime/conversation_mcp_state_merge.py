@@ -19,6 +19,7 @@ from core.mcp.agent_config_normalization import (
 from core.mcp.tool_entries import SOAI_MCP_SERVER_ID
 from core.rag.knowledge_prompt_contract import KNOWLEDGE_ACCESS_TOOL_NAMES
 from features.api.runtime.conversation_mcp_knowledge import (
+    apply_knowledge_managed_mcp_overlay,
     strip_knowledge_managed_mcp_overlay,
 )
 from features.api.runtime.errors import raise_invalid_request
@@ -40,6 +41,7 @@ if TYPE_CHECKING:
 __all__ = (
     "merge_conversation_mcp_config_update",
     "normalize_owner_mcp_config",
+    "resolve_effective_conversation_mcp_config",
 )
 
 
@@ -128,6 +130,26 @@ def normalize_owner_mcp_config(
         return normalize_conversation_mcp_config(mcp_payload)
     except ValidationError as exception:
         raise_invalid_request(request, exception.message)
+
+
+def resolve_effective_conversation_mcp_config(
+    request: RequestProtocol,
+    stored_config: JSONDict,
+    *,
+    state: ConversationMCPStateProtocol,
+    disallowed_unqualified_tools: tuple[str, ...],
+) -> JSONDict:
+    return build_normalized_agent_mcp_config_payload(
+        apply_knowledge_managed_mcp_overlay(
+            normalize_owner_mcp_config(
+                request,
+                stored_config,
+                is_automation=state.is_automation,
+                disallowed_unqualified_tools=disallowed_unqualified_tools,
+            ),
+            state.knowledge_state,
+        )
+    )
 
 
 def _drop_disabled_server_tools(

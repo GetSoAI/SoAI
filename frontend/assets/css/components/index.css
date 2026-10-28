@@ -2,6 +2,7 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @import url('./feedback/spinner.css') layer(components);
+@import url('./feedback/ring-gauge.css') layer(components);
 @import url('./controls/button-base.css') layer(components);
 @import url('./controls/label-base.css') layer(components);
 @import url('./data/parameter-descriptions.css') layer(components);
@@ -14,6 +15,7 @@
 @import url('./controls/disabled-controls.css') layer(components);
 @import url('./controls/busy-controls.css') layer(components);
 @import url('./controls/range-controls.css') layer(components);
+@import url('./controls/selection-controls.css') layer(components);
 @import url('./layout/movable-sections.css') layer(components);
 @import url('./collections/collection-grid.css') layer(components);
 @import url('./collections/collection-group-separator.css') layer(components);
@@ -63,11 +65,11 @@
 @import url('./hardware/hardware-widget-metrics.css') layer(components);
 @import url('./layout/shared-layout.css') layer(components);
 @import url('./layout/shared-forms.css') layer(components);
+@import url('./integrations/speech-setup.css') layer(components);
 @import url('./layout/setting-rows.css') layer(components);
 @import url('./controls/select-controls.css') layer(components);
 @import url('./layout/shared-status.css') layer(components);
 @import url('./layout/shared-page-areas.css') layer(components);
-@import url('./layout/branding.css') layer(components);
 @import url('./feedback/loading-states.css') layer(components);
 @import url('./layout/page-header-shell.css') layer(components);
 @import url('./layout/page-header-stats.css') layer(components);
@@ -87,6 +89,7 @@
 @import url('./modals/content-preview-image-viewer.css') layer(components);
 @import url('./modals/prompt-enhancer-modal.css') layer(components);
 @import url('./feedback/empty-states.css') layer(components);
+@import url('./collections/collection-feedback.css') layer(components);
 @import url('./controls/searchbar-base.css') layer(components);
 @import url('./layout/rich-text-sections.css') layer(components);
 @import url('./controls/searchbar-variants.css') layer(components);
@@ -113,7 +116,7 @@
 @import url('./chat/chat-attach-modal-surfaces.css') layer(components);
 @import url('./chat/chat-attach-modal-camera.css') layer(components);
 @import url('./chat/chat-attach-modal-knowledge.css') layer(components);
-@import url('./chat/chat-prompts-picker-modal.css') layer(components);
+@import url('./prompts/picker-modal.css') layer(components);
 @import url('./chat/chat-character-map-modal.css') layer(components);
 @import url('./chat/chat-sketch-modal.css') layer(components);
 @import url('./chat/chat-composer-buttons.css') layer(components);
@@ -186,3 +189,5 @@
 @import url('./data/tool-approval-preview.css') layer(components);
 @import url('./layout/toolbar-and-header-actions.css') layer(components);
 @import url('./feedback/prompts-highlight.css') layer(components);
+@import url('./chat/chat-configuration-library.css') layer(components);
+@import url('./chat/chat-skills.css') layer(components);

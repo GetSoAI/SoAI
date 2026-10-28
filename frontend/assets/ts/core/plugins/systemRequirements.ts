@@ -1,6 +1,7 @@
 /* SoAI - Shared plugins system requirements [frontend/assets/ts/core/plugins/systemRequirements.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { resolveOperationCauseMessage } from '@core/errors/operationCausePresentation.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { isNullOrUndefined, isString } from '@core/typeGuards.ts';
 import { isJsonArray, isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
@@ -56,6 +57,15 @@ const getPluginSystemRequirementMessages = <T>(plugin: T, action: string): strin
         const normalizedBlockingActions = normalizeRequirementStringList(blockingActions, 'Plugin system_requirements.blocking_actions').filter(Boolean);
         if (!normalizedBlockingActions.includes(normalizedAction)) {
             return [];
+        }
+    }
+    const discovery = systemRequirements['gpu_discovery'];
+    const failure = isJsonObject(discovery) ? discovery['error'] : null;
+    if (isJsonObject(failure) && isString(failure['code'])) {
+        const localizedCause = resolveOperationCauseMessage(failure['code'], { error: failure });
+        if (localizedCause) {
+            const publicMessage = failure['message'];
+            return normalizedMessages.map((message) => (message === publicMessage ? localizedCause : message));
         }
     }
     return normalizedMessages;

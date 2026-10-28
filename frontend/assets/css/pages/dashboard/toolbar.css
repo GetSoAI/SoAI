@@ -32,11 +32,6 @@
         line-height: var(--line-height-compact);
     }
 
-    :where([data-section='dashboard'], [data-page-scope='dashboard']) .plugin-status {
-        font-size: var(--font-size-compact);
-        color: var(--text-tertiary);
-    }
-
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .plugin-status-badge,
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .model-plugin-badge {
         --status-badge-min-height: 1.5rem;

@@ -14,7 +14,7 @@ from app.background.runtime_api_dependencies import (
     resolve_api_dependencies_from_runtime,
 )
 from core.di.validation import require_dependencies
-from core.errors.exceptions import ServiceUnavailableError, StateError
+from core.errors.exceptions import DurableDeliveryDeferredError, StateError
 from core.events.types_base import Event
 from core.events.types_conversation_durable import (
     ConversationStreamCancellationRequestedEvent,
@@ -109,7 +109,9 @@ class ConversationInputDispatcher:
             reason=CANCELLATION_REASON,
         )
         if acceptance.status == "cancellation_requested":
-            raise ServiceUnavailableError("Accepted Chat stream cancellation is not terminal yet.")
+            raise DurableDeliveryDeferredError(
+                "Accepted Chat stream cancellation is not terminal yet."
+            )
 
     async def start(self) -> None:
         if self._task is not None and not self._task.done():

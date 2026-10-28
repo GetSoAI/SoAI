@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.hardware.gpu_identity_normalization import normalize_observed_full_pci_bdf
 from core.logging.trace import get_logger
 from core.validation.coercion import coerce_non_negative_int_from_numberish
 from hardware.gpu_inventory.entries import apply_gpu_clock_metrics, build_gpu_entry
@@ -18,6 +19,7 @@ from hardware.vendors.amd.amd_smi_parsing import (
     extract_amd_smi_numeric,
     extract_amd_smi_processes,
     extract_amd_smi_text,
+    extract_amd_smi_watts,
 )
 from hardware.vendors.amd.amd_smi_payload_selection import (
     collect_amd_smi_gpu_payloads,
@@ -25,6 +27,7 @@ from hardware.vendors.amd.amd_smi_payload_selection import (
 )
 from hardware.vendors.amd.availability import is_amd_smi_available
 from hardware.vendors.amd.commands import execute_amd_smi_json_command
+from hardware.vendors.amd.power_capabilities import query_amd_native_power_capabilities
 
 if TYPE_CHECKING:
     from core.logging.protocols import TraceLogger
@@ -35,6 +38,10 @@ __all__ = ("get_amd_gpu_info",)
 
 LOGGER_NAME = "SoAI.hardware.vendors.amd_gpu_info"
 OPERATION = "hardware_amd.get_amd_gpu_info"
+AMD_OPTIONAL_QUERY_FAILURES: tuple[type[Exception], ...] = (
+    StateError,
+    *RECOVERABLE_EXCEPTIONS,
+)
 
 
 def _read_payloads(
@@ -55,7 +62,7 @@ def _read_payloads(
             ["amd-smi", "metric", "-g", "all", "-p", "-c", "-t", "-u", "-m", "-f", "--json"],
             timeout=10,
         )
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except AMD_OPTIONAL_QUERY_FAILURES as exception:
         log_handled_exception(
             logger,
             exception,
@@ -70,7 +77,7 @@ def _read_payloads(
                 ["amd-smi", "process", "-g", "all", "--json"],
                 timeout=5,
             )
-        except RECOVERABLE_EXCEPTIONS as exception:
+        except AMD_OPTIONAL_QUERY_FAILURES as exception:
             log_handled_exception(
                 logger,
                 exception,
@@ -120,9 +127,10 @@ def _build_gpu_entry(
     total_mem = coerce_non_negative_int_from_numberish(
         extract_amd_smi_numeric(static_entry, (("vram", "size"), ("size",))),
     )
-    used_mem = coerce_non_negative_int_from_numberish(
-        extract_amd_smi_numeric(metric_entry, (("vram", "used"), ("memory", "used"))),
+    observed_used_memory = extract_amd_smi_numeric(
+        metric_entry, (("vram", "used"), ("memory", "used"))
     )
+    used_mem = coerce_non_negative_int_from_numberish(observed_used_memory)
     name = (
         extract_amd_smi_text(static_entry, (("market", "name"), ("product", "name"))) or "AMD GPU"
     )
@@ -158,7 +166,7 @@ def _build_gpu_entry(
                 ("gfx", "busy"),
             ),
         ),
-        power_draw_watts=extract_amd_smi_numeric(
+        power_draw_watts=extract_amd_smi_watts(
             metric_entry,
             (
                 ("power", "socket", "power", "value"),
@@ -168,9 +176,20 @@ def _build_gpu_entry(
                 ("power", "usage"),
             ),
         ),
-        power_limit_watts=extract_amd_smi_numeric(static_entry, (("max", "power"),)),
+        power_limit_watts=extract_amd_smi_watts(
+            [static_entry, metric_entry], (("current", "power", "cap"),)
+        ),
         processes=processes,
     )
+    if observed_used_memory is None:
+        gpu_entry["memory_used_mb"] = None
+        gpu_entry["percent_used"] = None
+    if metric_entry is None:
+        gpu_entry["telemetry_available"] = False
+        gpu_entry["telemetry_unavailable_reason"] = "metric_query_failed"
+    elif detailed and process_entry is None:
+        gpu_entry["telemetry_available"] = True
+        gpu_entry["telemetry_unavailable_reason"] = "process_query_failed"
     apply_gpu_clock_metrics(
         gpu_entry,
         extract_amd_smi_numeric(
@@ -198,6 +217,26 @@ def _build_gpu_entry(
     stable_gpu_uuid = _resolve_stable_gpu_uuid(static_entry)
     if stable_gpu_uuid is not None:
         gpu_entry["gpu_uuid"] = stable_gpu_uuid
+    gpu_entry["gpu_uuid_observations"] = [
+        value
+        for key, value in static_entry.items()
+        if key.casefold() == "uuid" and value is not None and value != "N/A"
+    ]
+    pci_observations: list[JSONValue] = []
+    for key, value in static_entry.items():
+        if key.casefold() == "bdf" and value is not None and value != "N/A":
+            pci_observations.append(value)
+        if key.casefold() == "bus" and isinstance(value, dict):
+            pci_observations.extend(
+                observation
+                for field, observation in value.items()
+                if field.casefold() == "bdf" and observation is not None and observation != "N/A"
+            )
+    gpu_entry["pci_bdf_observations"] = pci_observations
+    for observation in pci_observations:
+        if isinstance(observation, str) and normalize_observed_full_pci_bdf(observation):
+            gpu_entry["pci_bdf_full"] = observation
+            break
     return gpu_entry
 
 
@@ -211,7 +250,10 @@ def get_amd_gpu_info(
         return ([], {})
     try:
         static_payload, metric_payload, process_payload = _read_payloads(executor, detailed, logger)
-    except RECOVERABLE_EXCEPTIONS as exception:
+        static_entries = collect_amd_smi_gpu_payloads(static_payload)
+        if not static_entries and static_payload != []:
+            raise StateError("AMD SMI returned no recognizable static GPU data.")
+    except AMD_OPTIONAL_QUERY_FAILURES as exception:
         log_handled_exception(
             logger,
             exception,
@@ -220,7 +262,6 @@ def get_amd_gpu_info(
             level="warning",
         )
         return ([], {})
-    static_entries = collect_amd_smi_gpu_payloads(static_payload)
     gpus: list[JSONDict] = []
     total_cards = len(static_entries)
     for card_index, static_entry in enumerate(static_entries):
@@ -255,6 +296,9 @@ def get_amd_gpu_info(
                 operation=OPERATION,
             )
             continue
+        native_power = query_amd_native_power_capabilities(executor, logger, gpu_entry)
+        if native_power is not None and "current" in native_power:
+            gpu_entry["power_limit_watts"] = native_power["current"]
         gpus.append(gpu_entry)
     driver_version = _extract_driver_version(static_payload)
     drivers: JSONDict = {}

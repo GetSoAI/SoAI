@@ -24,6 +24,8 @@ __all__ = (
     "ValidatedZipPlan",
     "ZipPlanPolicy",
     "build_validated_zip_plan",
+    "validate_zip_member",
+    "add_zip_materialized_outputs",
 )
 
 SUPPORTED_ZIP_COMPRESSION_TYPES = frozenset(
@@ -117,7 +119,7 @@ def build_validated_zip_plan(
             ),
             name=zip_info.orig_filename,
         )
-        member = _validate_member(zip_info, resolved_policy)
+        member = validate_zip_member(zip_info, resolved_policy)
         _validate_destination_collisions(
             member,
             resolved_policy,
@@ -128,7 +130,7 @@ def build_validated_zip_plan(
             canonical_file_destinations,
         )
         exact_destinations.add(member.destination_path)
-        _add_materialized_outputs(
+        add_zip_materialized_outputs(
             member,
             materialized_directories,
             budget,
@@ -145,7 +147,7 @@ def build_validated_zip_plan(
     )
 
 
-def _add_materialized_outputs(
+def add_zip_materialized_outputs(
     member: ValidatedZipMember,
     materialized_directories: set[str],
     budget: ArchivePlanningBudget,
@@ -170,7 +172,9 @@ def _add_materialized_outputs(
         materialized_directories.add(member.destination_path)
 
 
-def _validate_member(zip_info: zipfile.ZipInfo, policy: ZipPlanPolicy) -> ValidatedZipMember:
+def validate_zip_member(
+    zip_info: zipfile.ZipInfo, policy: ZipPlanPolicy, *, allow_symbolic_links: bool = False
+) -> ValidatedZipMember:
     archive_path = zip_info.orig_filename
     if not archive_path or "\x00" in archive_path:
         raise ArchivePathTraversalError("ZIP archive contains an empty or NUL-valued member path.")
@@ -195,9 +199,11 @@ def _validate_member(zip_info: zipfile.ZipInfo, policy: ZipPlanPolicy) -> Valida
         )
     unix_mode = (zip_info.external_attr >> 16) & 0xFFFF
     file_type = stat.S_IFMT(unix_mode)
-    if file_type == stat.S_IFLNK:
+    if file_type == stat.S_IFLNK and not allow_symbolic_links:
         raise ArchivePathTraversalError(f"ZIP archive contains a symbolic link: {archive_path}")
-    if file_type not in {0, stat.S_IFREG, stat.S_IFDIR}:
+    if file_type not in {0, stat.S_IFREG, stat.S_IFDIR} and not (
+        allow_symbolic_links and file_type == stat.S_IFLNK
+    ):
         raise ArchivePathTraversalError(
             f"ZIP archive contains a redirected or special member: {archive_path}",
         )

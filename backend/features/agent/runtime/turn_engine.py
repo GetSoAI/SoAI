@@ -47,6 +47,7 @@ from features.agent.runtime.turn_sequence import coerce_turn_sequence
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    from core.errors.payload import ErrorPublicPayload
     from core.events.protocols import EventBusProtocol
     from core.openai.token_counter import PromptTokenCounter
     from core.types.json import JSONDict
@@ -127,6 +128,7 @@ class AgentTurnEngineDependencies:
 class AgentTurnResult:
     final_payload: JSONDict
     reached_max_iterations: bool
+    public_error: ErrorPublicPayload | None = None
 
 
 def create_turn_id() -> str:

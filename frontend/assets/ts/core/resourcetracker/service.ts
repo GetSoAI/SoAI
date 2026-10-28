@@ -284,14 +284,15 @@ class ResourceTracker {
             cancelAnimationFrame: (frameId) => getCancelAnimationFrame()(frameId)
         });
 
+        const disposables = [...this.disposables];
+        this.disposables.clear();
         await Promise.all(
-            [...this.disposables].map((metadata) =>
+            disposables.map((metadata) =>
                 cleanupTrackedDisposable(metadata, (runtimeError) => {
                     errorHandler.warn('ResourceTracker', 'Disposable cleanup failed', runtimeError);
                 })
             )
         );
-        this.disposables.clear();
     }
 }
 

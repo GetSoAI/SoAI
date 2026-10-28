@@ -3,11 +3,35 @@
 
 !define SOAI_DISPOSABLE_DIAGNOSTICS_MARKER "diagnostics.disposable"
 
+!macro DefineInstallerProcessFailure PREFIX
+Function ${PREFIX}WriteInstallerProcessFailure
+  StrCpy $InstallerDiagnosticsRetained 1
+  Exch $0
+  Push $1
+  Push $2
+  ReadEnvStr $1 "SOAI_INSTALLER_FAILURE_PATH"
+  ${If} $1 != ""
+    IfFileExists "$1" uninstall_failure_retained 0
+    FileOpen $2 "$1" w
+    FileWriteUTF16LE /BOM $2 "$0"
+    FileClose $2
+  ${EndIf}
+  uninstall_failure_retained:
+  Pop $2
+  Pop $1
+  Pop $0
+FunctionEnd
+!macroend
+!insertmacro DefineInstallerProcessFailure ""
+!insertmacro DefineInstallerProcessFailure "un."
+
 !macro DefineInstallerProcessAdmission PREFIX
 Function ${PREFIX}AdmitInstallerProcess
   System::Call 'kernel32::GetCommandLineW() p .r0'
   System::Call 'kernel32::lstrlenW(p r0) i .r1'
   ${If} $1 >= ${NSIS_MAX_STRLEN}
+    Push "Setup arguments exceed the supported command-line capacity."
+    Call ${PREFIX}WriteInstallerProcessFailure
     ${IfNot} ${Silent}
       MessageBox MB_ICONSTOP|MB_OK "Setup arguments exceed the supported command-line capacity. Use a shorter installation path."
     ${EndIf}
@@ -16,6 +40,9 @@ Function ${PREFIX}AdmitInstallerProcess
   ${EndIf}
   StrCpy $InstallerIsRefreshWorker 0
   ReadEnvStr $2 "SOAI_INSTALL_REFRESH_PARENT_PID"
+  !if "${PREFIX}" == "un."
+    ReadEnvStr $2 "SOAI_UNINSTALL_OWNER_PID"
+  !endif
   ${If} $2 != ""
     System::Call '*(i 0,i 0,i 0,i 0,i 0,i 0) p .r3'
     System::Call 'ntdll::NtQueryInformationProcess(p -1,i 0,p r3,i 24,*i .r4) i .r0'
@@ -23,11 +50,15 @@ Function ${PREFIX}AdmitInstallerProcess
     System::Free $3
     ${If} $0 != 0
     ${OrIf} $4 != $2
+      Push "Setup parent identity could not be verified: observed=$4 expected=$2 status=$0."
+      Call ${PREFIX}WriteInstallerProcessFailure
       SetErrorLevel 1
       Abort
     ${EndIf}
     System::Call 'kernel32::OpenProcess(i 0x00101000,i 0,i r4) p .r3'
     ${If} $3 == 0
+      Push "Setup could not inspect its parent process: parent=$4."
+      Call ${PREFIX}WriteInstallerProcessFailure
       SetErrorLevel 1
       Abort
     ${EndIf}
@@ -35,21 +66,31 @@ Function ${PREFIX}AdmitInstallerProcess
     System::Call 'kernel32::QueryFullProcessImageNameW(p r3,i 0,w .r4,*i r5) i .r0'
     System::Call 'kernel32::WaitForSingleObject(p r3,i 0) i .r5'
     System::Call 'kernel32::CloseHandle(p r3)'
+    StrCpy $6 "$EXEPATH"
+    !if "${PREFIX}" == "un."
+      ReadEnvStr $6 "SOAI_UNINSTALL_OWNER_IMAGE"
+    !endif
     ${If} $0 == 0
-    ${OrIf} $4 != "$EXEPATH"
+    ${OrIf} $4 != "$6"
     ${OrIf} $5 != 258
+      Push "Setup parent image or liveness could not be verified: observed=$4 expected=$6 state=$5 status=$0."
+      Call ${PREFIX}WriteInstallerProcessFailure
       SetErrorLevel 1
       Abort
     ${EndIf}
     System::Call 'kernel32::OpenMutexW(i 0x00100000,i 0,w "Global\SoAI.WindowsInstaller.V1") p .r1'
     StrCpy $InstallerMutexHandle $1
     ${If} $InstallerMutexHandle == 0
+      Push "Setup could not open its parent's installation mutex."
+      Call ${PREFIX}WriteInstallerProcessFailure
       SetErrorLevel 1
       Abort
     ${EndIf}
     System::Call 'kernel32::SetEnvironmentVariableW(w "SOAI_INSTALL_REFRESH_PARENT_PID",p 0)'
     ReadEnvStr $InstallerRefreshResultRoot "SOAI_INSTALL_REFRESH_RESULT_ROOT"
-    StrCpy $InstallerIsRefreshWorker 1
+    !if "${PREFIX}" == ""
+      StrCpy $InstallerIsRefreshWorker 1
+    !endif
     Return
   ${EndIf}
   System::Call 'kernel32::CreateMutexW(p 0,i 0,w "Global\SoAI.WindowsInstaller.V1") p .r1 ?e'
@@ -57,6 +98,8 @@ Function ${PREFIX}AdmitInstallerProcess
   StrCpy $InstallerMutexHandle $1
   ${If} $InstallerMutexHandle == 0
   ${OrIf} $0 == 183
+    Push "Setup could not acquire the installation mutex: handle=$InstallerMutexHandle status=$0."
+    Call ${PREFIX}WriteInstallerProcessFailure
     ${IfNot} ${Silent}
       MessageBox MB_ICONSTOP|MB_OK "Another SoAI installer or repair operation is active. Finish it before starting this installer."
     ${EndIf}
@@ -108,9 +151,20 @@ Function PreflightInstallerLongPaths
   ${EndIf}
   SetOutPath "$InstallerPreflightRoot"
   File /oname=Install-SoAIRuntime.ps1 "${PAYLOAD_DIR}\installer-support\Install-SoAIRuntime.ps1"
+  File /oname=Shared-SoAIResourceOwnership.ps1 "${PAYLOAD_DIR}\installer-support\Shared-SoAIResourceOwnership.ps1"
+  ReadEnvStr $0 "SOAI_INSTALLER_FAILURE_PATH"
+  ${If} $0 == ""
+    System::Call 'kernel32::SetEnvironmentVariableW(w "SOAI_INSTALLER_FAILURE_PATH",w "$InstallerPreflightRoot\admission-failure.txt") i .r0'
+    ${If} $0 == 0
+      SetErrorLevel 1
+      Abort
+    ${EndIf}
+  ${EndIf}
   nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$InstallerPreflightRoot\Install-SoAIRuntime.ps1" -PreflightOnly'
   Pop $0
   ${If} $0 != 0
+    Push "Windows runtime preflight failed: exit=$0."
+    Call WriteInstallerProcessFailure
     ${IfNot} ${Silent}
       MessageBox MB_ICONSTOP|MB_OK "Windows long-path support could not be enabled and verified. Setup has not changed the installation."
     ${EndIf}
@@ -165,31 +219,39 @@ Function CountInstallerJobProcesses
   Exch $0
 FunctionEnd
 
-Function RunRefreshedInstaller
+Function RunInstallerChild
+  Pop $InstallerChildResultRoot
+  Pop $InstallerChildCommandLine
   System::Call 'kernel32::GetCurrentProcessId() i .r0'
   System::Call 'kernel32::SetEnvironmentVariableW(w "SOAI_INSTALL_REFRESH_PARENT_PID",w r0) i .r1'
   ${If} $1 == 0
+    Push "Setup could not publish its child-process parent identity."
+    Call WriteInstallerProcessFailure
     SetErrorLevel 1
     Abort
   ${EndIf}
-  System::Call 'kernel32::SetEnvironmentVariableW(w "SOAI_INSTALL_REFRESH_RESULT_ROOT",w "$InstallerPreflightRoot") i .r1'
+  System::Call 'kernel32::SetEnvironmentVariableW(w "SOAI_INSTALL_REFRESH_RESULT_ROOT",w "$InstallerChildResultRoot") i .r1'
   ${If} $1 == 0
+    Push "Setup could not publish its child-process result location."
+    Call WriteInstallerProcessFailure
     SetErrorLevel 1
     Abort
   ${EndIf}
   Call CreateInstallerJobObject
   Pop $7
   ${If} $7 == 0
+    Push "Setup could not allocate a bounded child-process job."
+    Call WriteInstallerProcessFailure
     SetErrorLevel 1
     Abort
   ${EndIf}
-  System::Call 'kernel32::GetCommandLineW() p .r0'
-  System::Call 'kernel32::lstrlenW(p r0) i .r1'
+  StrLen $1 "$InstallerChildCommandLine"
   IntOp $1 $1 + 1
   IntOp $1 $1 * 2
   System::Alloc $1
   Pop $2
-  System::Call 'kernel32::lstrcpyW(p r2,p r0)'
+  StrCpy $0 "$InstallerChildCommandLine"
+  System::Call 'kernel32::lstrcpyW(p r2,w r0)'
   System::Call '*(i 68,i 0,i 0,i 0,i 0,i 0,i 0,i 0,i 0,i 0,i 0,i 0,i 0,i 0,i 0,i 0,i 0) p .r3'
   System::Call '*(p 0,p 0,i 0,i 0) p .r4'
   System::Call 'kernel32::CreateProcessW(w "$EXEPATH",p r2,p 0,p 0,i 0,i 4,p 0,w "$EXEDIR",p r3,p r4) i .r5'
@@ -197,6 +259,8 @@ Function RunRefreshedInstaller
   System::Free $3
   System::Call 'kernel32::SetEnvironmentVariableW(w "SOAI_INSTALL_REFRESH_PARENT_PID",p 0)'
   ${If} $5 == 0
+    Push "Setup could not create its child process."
+    Call WriteInstallerProcessFailure
     System::Free $4
     System::Call 'kernel32::CloseHandle(p r7)'
     SetErrorLevel 1
@@ -206,6 +270,8 @@ Function RunRefreshedInstaller
   System::Free $4
   System::Call 'kernel32::AssignProcessToJobObject(p r7,p r2) i .r5'
   ${If} $5 == 0
+    Push "Setup could not assign its child process to the owned job."
+    Call WriteInstallerProcessFailure
     System::Call 'kernel32::TerminateProcess(p r2,i 1)'
     System::Call 'kernel32::WaitForSingleObject(p r2,i -1)'
     System::Call 'kernel32::CloseHandle(p r3)'
@@ -217,10 +283,14 @@ Function RunRefreshedInstaller
   System::Call 'kernel32::ResumeThread(p r3) i .r5'
   System::Call 'kernel32::CloseHandle(p r3)'
   ${If} $5 == -1
+    Push "Setup could not resume its owned child process."
+    Call WriteInstallerProcessFailure
     System::Call 'kernel32::TerminateJobObject(p r7,i 1)'
   ${EndIf}
   System::Call 'kernel32::WaitForSingleObject(p r2,i 18000000) i .r5'
   ${If} $5 != 0
+    Push "Setup could not observe its child process within the installation deadline: status=$5."
+    Call WriteInstallerProcessFailure
     System::Call 'kernel32::TerminateJobObject(p r7,i 1)'
     System::Call 'kernel32::WaitForSingleObject(p r2,i -1)'
     StrCpy $5 1
@@ -228,6 +298,10 @@ Function RunRefreshedInstaller
     System::Call 'kernel32::GetExitCodeProcess(p r2,*i .r5)'
   ${EndIf}
   StrCpy $R0 $5
+  ${If} $R0 != 0
+    Push "Setup child process failed: exit=$R0."
+    Call WriteInstallerProcessFailure
+  ${EndIf}
   System::Call 'kernel32::TerminateJobObject(p r7,i 1) i .r6'
   StrCpy $R1 0
   join_refresh_children:
@@ -250,7 +324,16 @@ Function RunRefreshedInstaller
   refresh_join_failed:
   System::Call 'kernel32::CloseHandle(p r2)'
   System::Call 'kernel32::CloseHandle(p r7)'
-  StrCpy $5 $R0
+  System::Call 'kernel32::SetEnvironmentVariableW(w "SOAI_INSTALL_REFRESH_RESULT_ROOT",p 0)'
+  Push $R0
+FunctionEnd
+
+Function RunRefreshedInstaller
+  System::Call 'kernel32::GetCommandLineW() w .r0'
+  Push $0
+  Push "$InstallerPreflightRoot"
+  Call RunInstallerChild
+  Pop $5
   SetOutPath "$WINDIR\Temp"
   IfFileExists "$InstallerPreflightRoot\launch-root.txt" 0 refresh_launch_done
     FileOpen $0 "$InstallerPreflightRoot\launch-root.txt" r
@@ -318,11 +401,21 @@ FunctionEnd
 
 Function RecordInstallFailure
   Exch $0
+  Push $1
   ${If} $InstallFailed != 1
     StrCpy $InstallFailed 1
     StrCpy $InstallFailureMessage $0
+    ${If} $InstallerPreflightRoot != ""
+      ClearErrors
+      FileOpen $1 "$InstallerPreflightRoot\installation-failure.txt" w
+      ${IfNot} ${Errors}
+        FileWriteUTF16LE /BOM $1 "$InstallFailureMessage"
+        FileClose $1
+      ${EndIf}
+    ${EndIf}
   ${EndIf}
   DetailPrint "$0"
+  Pop $1
   Pop $0
   SetErrorLevel 1
   ${If} ${Silent}
@@ -416,6 +509,8 @@ FunctionEnd
 
 !macro RecordInstallerFailure PREFIX MESSAGE
   !if "${PREFIX}" == "un."
+    Push "${MESSAGE}"
+    Call un.WriteInstallerProcessFailure
     SetErrorLevel 1
     Abort
   !else
@@ -431,6 +526,8 @@ FunctionEnd
 
 !macro FailInstallerScript PREFIX CONTEXT HINT
   !if "${PREFIX}" == "un."
+    Push "${CONTEXT}. ${HINT}"
+    Call un.WriteInstallerProcessFailure
     SetErrorLevel 1
     Abort
   !else
@@ -444,23 +541,39 @@ FunctionEnd
 
 !macro DefineAdmitInstallerTarget PREFIX
 Function ${PREFIX}AdmitInstallerTarget
+  StrCpy $InstallerRemoveDataArgument ""
+  StrCpy $InstallerSourceArgument ""
+  !if "${PREFIX}" == "un."
+    ${If} $UninstallRemoveData == 1
+      StrCpy $InstallerRemoveDataArgument " -RemoveApplicationData"
+    ${EndIf}
+  !endif
   InitPluginsDir
   SetOutPath "$PLUGINSDIR"
   File /oname=Admit-SoAIInstall.ps1 "${PAYLOAD_DIR}\installer-support\Admit-SoAIInstall.ps1"
   File /oname=soai-control.exe "${PAYLOAD_DIR}\soai.exe"
   File /oname=soai.exe.config "${PAYLOAD_DIR}\soai.exe.config"
-  nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$PLUGINSDIR\Admit-SoAIInstall.ps1" -InstallRoot "$INSTDIR" -CandidateConfigPath "$PLUGINSDIR\soai.exe.config" -CandidateVersion "${PRODUCT_VERSION}" -ClassificationPath "$PLUGINSDIR\target-classification.txt"'
+  nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$PLUGINSDIR\Admit-SoAIInstall.ps1" -InstallRoot "$INSTDIR" -CandidateConfigPath "$PLUGINSDIR\soai.exe.config" -CandidateVersion "${PRODUCT_VERSION}" -ClassificationPath "$PLUGINSDIR\target-classification.txt" -CandidateLauncherPath "$PLUGINSDIR\soai-control.exe"$InstallerRemoveDataArgument'
   Pop $0
   ${If} $0 != 0
     !insertmacro FailInstallerScript "${PREFIX}" "Setup cannot install SoAI in $INSTDIR" ""
   ${EndIf}
+  ClearErrors
   FileOpen $0 "$PLUGINSDIR\target-classification.txt" r
   FileRead $0 $InstallerTargetClassification
   FileClose $0
+  ${If} ${Errors}
+    !insertmacro FailInstallerStep "${PREFIX}" "Setup did not receive installation admission evidence. Application files were retained."
+  ${EndIf}
+  ClearErrors
   FileOpen $0 "$PLUGINSDIR\target-classification.txt.target-root" r
   FileSeek $0 2 SET
   FileReadUTF16LE $0 $INSTDIR
   FileClose $0
+  ${If} ${Errors}
+  ${OrIf} $INSTDIR == ""
+    !insertmacro FailInstallerStep "${PREFIX}" "Setup did not receive a verified installation root. Application files were retained."
+  ${EndIf}
   Push "$INSTDIR"
   Call ${PREFIX}InstallerFilesystemPath
   Pop $InstallerFilesystemRoot
@@ -505,7 +618,16 @@ Function ${PREFIX}AdmitInstallerTarget
   ${If} $2 == 0
     !insertmacro FailInstallerStep "${PREFIX}" "Another SoAI setup or maintenance task is using $INSTDIR. Wait for it to finish, then run Setup again."
   ${EndIf}
-  nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$PLUGINSDIR\Admit-SoAIInstall.ps1" -InstallRoot "$INSTDIR" -CandidateConfigPath "$PLUGINSDIR\soai.exe.config" -CandidateVersion "${PRODUCT_VERSION}" -ClassificationPath "$PLUGINSDIR\target-classification.txt" -CandidateLauncherPath "$PLUGINSDIR\soai-control.exe" -Mode Transactions'
+  !if "${PREFIX}" == ""
+    ${If} $InstallerTargetClassification == "existing"
+      Call StageInstallerCandidate
+      ${If} $InstallFailed == 1
+        Return
+      ${EndIf}
+      StrCpy $InstallerSourceArgument ' -CandidateSourceRoot "$InstallerCandidateStage"'
+    ${EndIf}
+  !endif
+  nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$PLUGINSDIR\Admit-SoAIInstall.ps1" -InstallRoot "$INSTDIR" -CandidateConfigPath "$PLUGINSDIR\soai.exe.config" -CandidateVersion "${PRODUCT_VERSION}" -ClassificationPath "$PLUGINSDIR\target-classification.txt" -CandidateLauncherPath "$PLUGINSDIR\soai-control.exe" -Mode Transactions$InstallerRemoveDataArgument$InstallerSourceArgument'
   Pop $0
   ${If} $0 != 0
     !insertmacro FailInstallerScript "${PREFIX}" "Setup could not verify unfinished SoAI maintenance in $INSTDIR" ""

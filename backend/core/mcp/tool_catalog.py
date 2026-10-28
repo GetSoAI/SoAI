@@ -23,6 +23,7 @@ from core.mcp.tool_catalog_scope import (
 from core.mcp.tool_config_normalization import normalize_server_filter
 from core.mcp.tool_entries import SOAI_MCP_SERVER_ID, SOAI_MCP_SERVER_NAME
 from core.types.json_value import copy_json_dict, filter_json_mapping
+from core.validation.json_schema import validate_json_schema
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
@@ -117,6 +118,7 @@ def _normalize_openai_tool_parameters(parameters: JSONValue | None) -> JSONDict:
     normalized["type"] = "object"
     if not isinstance(normalized.get("properties"), Mapping):
         normalized["properties"] = {}
+    validate_json_schema(normalized)
     return normalized
 
 

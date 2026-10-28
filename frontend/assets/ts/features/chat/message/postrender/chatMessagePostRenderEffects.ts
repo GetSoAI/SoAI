@@ -9,7 +9,6 @@ import { renderAllMermaidDiagrams } from '@core/mermaidRenderer.ts';
 import type { SyntaxHighlighter } from '@core/syntaxhighlighter/public.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { ChatInlineMultimediaEnhancer } from '@features/chat/message/enhancers/ChatInlineMultimediaEnhancer.ts';
-import { STREAMING_TAIL_SELECTOR } from '@features/chat/message/enhancers/inlineMultimediaDomSafety.ts';
 import { createInlineMultimediaPreviewFeedbackRecorder } from '@features/chat/message/enhancers/inlineMultimediaPreviewFeedback.ts';
 import { highlightStableChatCodeBlocks } from '@features/chat/message/syntaxHighlightPostRender.ts';
 import { CHAT_BRANDING_LOGO_SELECTOR, hasChatPostRenderCapability, type ChatPostRenderCapabilities } from '@features/chat/message/chatMessagePostRenderCapabilities.ts';
@@ -94,7 +93,7 @@ const runMermaidPostRenderEffect = (inputArguments: ChatMessagePostRenderEffectA
 const runChatMessagePostRenderEffects = (inputArguments: ChatMessagePostRenderEffectArguments): void => {
     if (hasChatPostRenderCapability(inputArguments.capabilities, 'code')) {
         try {
-            highlightStableChatCodeBlocks(inputArguments.node, inputArguments.syntaxHighlighter, STREAMING_TAIL_SELECTOR);
+            highlightStableChatCodeBlocks(inputArguments.node, inputArguments.syntaxHighlighter);
         } catch (error) {
             const runtimeError = ensureError(error);
             errorHandler.debug('ChatMessageManager', 'Syntax highlight post-render failed', runtimeError);

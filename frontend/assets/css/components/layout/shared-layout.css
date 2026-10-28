@@ -31,7 +31,7 @@
         flex-wrap: nowrap;
     }
 
-    :where(.ui-inline-center, .automation-color-option, .automation-automation-recurrence-label, .inline-activity-separator-dot, .agent-todo-panel-view-plan-icon-wrapper, .inline-activity-leading-icon, .inline-activity-icon, .chat-comparison-chevron, .conversation-action-btn.message-action.ui-icon-button.ui-icon-button-small, .table-compact th.sortable .sort-indicator, .ui-collection-list__table th.sortable .sort-indicator) {
+    :where(.ui-inline-center, .automation-color-option, .automation-automation-recurrence-label, .inline-activity-separator-dot, .agent-todo-panel-view-plan-icon-wrapper, .inline-activity-leading-icon, .inline-activity-icon, .chat-comparison-chevron, .conversation-action-btn.message-action.ui-icon-button.ui-icon-button-small) {
         display: inline-flex;
         align-items: center;
         justify-content: center;

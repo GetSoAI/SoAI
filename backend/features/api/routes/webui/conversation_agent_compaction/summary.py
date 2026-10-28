@@ -3,27 +3,21 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
 from core.openai.token_accounting import count_prompt_occupancy
-from core.openai.truncation import build_prefix_truncation_text
-from features.agent.runtime.context_compaction.summary import build_summary_message
+from features.agent.runtime.context_compaction.budget import truncate_message_content_to_fit_budget
+from features.agent.runtime.context_compaction.summary import (
+    build_summary_message,
+    extract_context_summary,
+)
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
     from features.api.runtime.context import ApiContext
 
-__all__ = (
-    "TruncationCandidate",
-    "truncate_summary_to_budget",
-)
-
-
-@dataclass(frozen=True, slots=True)
-class TruncationCandidate:
-    content: str
+__all__ = ("truncate_summary_to_budget",)
 
 
 def truncate_summary_to_budget(
@@ -47,32 +41,20 @@ def truncate_summary_to_budget(
     initial_tokens = initial_occupancy.prompt_tokens
     if initial_tokens <= target_prompt_tokens:
         return summary_text
-    low, high = 0, len(summary_text)
-    best: TruncationCandidate | None = None
-    while low <= high:
-        mid = (low + high) // 2
-        candidate_text = build_prefix_truncation_text(
-            original=summary_text,
-            prefix_length=mid,
-        )
-        candidate_payload = dict(base_payload)
-        candidate_payload["messages"] = [build_summary_message(candidate_text)]
-        candidate_occupancy = count_prompt_occupancy(
-            prompt_token_counter=api_context.dependencies.prompt_token_counter,
-            request_payload=candidate_payload,
-        )
-        candidate_tokens = candidate_occupancy.prompt_tokens
-        if not candidate_occupancy.capped and candidate_tokens <= target_prompt_tokens:
-            best = TruncationCandidate(content=candidate_text)
-            low = mid + 1
-            continue
-        high = mid - 1
-    if best is None:
+    messages = truncate_message_content_to_fit_budget(
+        prompt_token_counter=api_context.dependencies.prompt_token_counter,
+        base_request_payload=base_payload,
+        message_history=[build_summary_message(summary_text)],
+        message_index=0,
+        max_prompt_tokens=target_prompt_tokens,
+    )
+    fitted_summary = extract_context_summary(messages)
+    if not fitted_summary:
         raise ValidationError(
-            "Compaction target prompt budget is too small to fit any summary content.",
+            "Compaction target prompt budget is too small to fit any summary content."
         )
     final_payload = dict(base_payload)
-    final_payload["messages"] = [build_summary_message(best.content)]
+    final_payload["messages"] = [build_summary_message(fitted_summary)]
     final_occupancy = count_prompt_occupancy(
         prompt_token_counter=api_context.dependencies.prompt_token_counter,
         request_payload=final_payload,
@@ -84,4 +66,4 @@ def truncate_summary_to_budget(
     final_tokens = final_occupancy.prompt_tokens
     if final_tokens > target_prompt_tokens:
         raise ValidationError("Compaction summary exceeds the configured prompt budget.")
-    return best.content
+    return fitted_summary

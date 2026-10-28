@@ -3,8 +3,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from core.errors.public_projection import project_public_error_code
 from core.types.json import JSONDict
+
+if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
 
 __all__ = (
     "build_websocket_error_payload",
@@ -26,12 +31,17 @@ def build_websocket_error_payload(
     code: str,
     details: JSONDict | None = None,
     extra: JSONDict | None = None,
+    public_error: ErrorPublicPayload | None = None,
 ) -> JSONDict:
-    error_payload = project_public_error_code(
-        code=code,
-        message=message,
-        details=details,
-        trace_id=trace_id,
+    error_payload = (
+        public_error
+        if public_error is not None
+        else project_public_error_code(
+            code=code,
+            message=message,
+            details=details,
+            trace_id=trace_id,
+        )
     )
     error_fields = error_payload.to_dict()
     fields: JSONDict = dict(extra or {})

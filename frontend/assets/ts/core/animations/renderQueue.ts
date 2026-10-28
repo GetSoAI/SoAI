@@ -3,11 +3,16 @@
 
 import { getCancelAnimationFrame, getRequestAnimationFrame } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { createAbortError, isAbortError, throwIfAborted } from '@core/errors/abort.ts';
+import { claimErrorReporting } from '@core/errors/reportingOwnership.ts';
+import { createDeferred, type Deferred } from '@core/runtime/deferred.ts';
+import { scheduleRequiredRender } from '@core/runtime/animationFrames.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { isThenable } from '@core/typeGuards.ts';
 
 interface AnimationFrameRenderQueueOptions<TPayload> {
     label: string;
+    required?: boolean;
     render?: ((payload: TPayload) => void | Promise<void>) | undefined;
     renderBatch?: ((payloads: readonly TPayload[]) => void | Promise<void>) | undefined;
     merge: (previous: TPayload | null, next: TPayload) => TPayload;
@@ -21,6 +26,7 @@ type PendingRenderPayload<TPayload> = { value: TPayload };
 
 class AnimationFrameRenderQueue<TPayload> {
     readonly #label: string;
+    readonly #required: boolean;
     readonly #render: ((payload: TPayload) => void | Promise<void>) | undefined;
     readonly #renderBatch: ((payloads: readonly TPayload[]) => void | Promise<void>) | undefined;
     readonly #merge: (previous: TPayload | null, next: TPayload) => TPayload;
@@ -28,16 +34,18 @@ class AnimationFrameRenderQueue<TPayload> {
     readonly #isDisposed: () => boolean;
     readonly #requestAnimationFrame: (callback: () => void) => number;
     readonly #cancelAnimationFrame: (id: number) => void;
-    #frameId: number | null = null;
+    #cancelScheduled: (() => void) | null = null;
+    #failure: Error | null = null;
     #pendingPayload: PendingRenderPayload<TPayload> | null = null;
     #pendingByKey = new Map<string, TPayload>();
-    #idleResolvers: Array<() => void> = [];
+    readonly #idleWaiters = new Set<Deferred<void>>();
     #scheduleGeneration = 0;
     #disposed = false;
     #rendering = false;
 
     constructor(options: AnimationFrameRenderQueueOptions<TPayload>) {
         this.#label = options.label;
+        this.#required = options.required ?? false;
         this.#render = options.render;
         this.#renderBatch = options.renderBatch;
         this.#merge = options.merge;
@@ -57,30 +65,25 @@ class AnimationFrameRenderQueue<TPayload> {
         if (this.#disposed || this.#isDisposed()) {
             return;
         }
-        if (this.#keyOf) {
-            const key = this.#keyOf(payload);
-            if (!key) {
-                throw new Error('Animation frame render queue keys must not be empty');
-            }
-            this.#pendingByKey.set(key, this.#merge(this.#pendingByKey.get(key) ?? null, payload));
-            if (this.#frameId === null && !this.#rendering) {
-                this.#requestFlush();
-            }
-            return;
-        }
-        const previous = this.#pendingPayload === null ? null : this.#pendingPayload.value;
-        this.#pendingPayload = { value: this.#merge(previous, payload) };
-        if (this.#frameId !== null || this.#rendering) {
-            return;
-        }
-        this.#requestFlush();
+        const key = this.#keyOf?.(payload) ?? null;
+        if (this.#keyOf && !key) throw new Error('Animation frame render queue keys must not be empty');
+        const previous = key === null ? (this.#pendingPayload === null ? null : this.#pendingPayload.value) : (this.#pendingByKey.get(key) ?? null);
+        const merged = this.#merge(previous, payload);
+        if (this.#isIdle() || (this.#failure !== null && isAbortError(this.#failure))) this.#failure = null;
+        if (key !== null) this.#pendingByKey.set(key, merged);
+        else this.#pendingPayload = { value: merged };
+        if (this.#cancelScheduled === null && !this.#rendering) this.#requestFlush();
     }
 
     cancel(): void {
+        if (this.#required && !this.#isIdle()) {
+            this.#failure = createAbortError('Required render cancelled.');
+            this.#settleIdleWaiters();
+        }
         this.#scheduleGeneration += 1;
-        if (this.#frameId !== null) {
-            this.#cancelAnimationFrame(this.#frameId);
-            this.#frameId = null;
+        if (this.#cancelScheduled !== null) {
+            this.#cancelScheduled();
+            this.#cancelScheduled = null;
         }
         this.#pendingPayload = null;
         this.#pendingByKey.clear();
@@ -92,10 +95,10 @@ class AnimationFrameRenderQueue<TPayload> {
             return false;
         }
         const dropped = this.#pendingByKey.delete(key);
-        if (this.#pendingByKey.size === 0 && this.#frameId !== null && !this.#rendering) {
+        if (this.#pendingByKey.size === 0 && this.#cancelScheduled !== null && !this.#rendering) {
             this.#scheduleGeneration += 1;
-            this.#cancelAnimationFrame(this.#frameId);
-            this.#frameId = null;
+            this.#cancelScheduled();
+            this.#cancelScheduled = null;
         }
         this.#resolveIdleIfReady();
         return dropped;
@@ -106,92 +109,80 @@ class AnimationFrameRenderQueue<TPayload> {
         this.cancel();
     }
 
-    waitForIdle(): Promise<void> {
+    async waitForIdle(signal: AbortSignal | null = null): Promise<void> {
+        throwIfAborted(signal);
         if (this.#disposed || this.#isDisposed()) {
             this.cancel();
+            if (this.#required) throw createAbortError('Required render disposed.');
         }
-        if (this.#isIdle()) {
-            return Promise.resolve();
+        if (this.#required && this.#failure !== null) throw this.#failure;
+        if (this.#isIdle()) return;
+        const completion = createDeferred<void>();
+        const onAbort = (): void => completion.reject(createAbortError('Render wait aborted.'));
+        this.#idleWaiters.add(completion);
+        signal?.addEventListener('abort', onAbort, { once: true });
+        try {
+            await completion.promise;
+        } finally {
+            this.#idleWaiters.delete(completion);
+            signal?.removeEventListener('abort', onAbort);
         }
-        return new Promise((resolve) => {
-            this.#idleResolvers.push(resolve);
-        });
     }
 
     #flush(): void {
-        this.#frameId = null;
-        if (this.#keyOf) {
-            this.#flushKeyed();
-            return;
-        }
-        const pendingPayload = this.#pendingPayload;
+        this.#cancelScheduled = null;
+        const payload = this.#pendingPayload;
+        const payloads = Array.from(this.#pendingByKey.values());
         this.#pendingPayload = null;
-        if (pendingPayload === null || this.#disposed || this.#isDisposed()) {
+        this.#pendingByKey.clear();
+        if ((payload === null && payloads.length === 0) || this.#disposed || this.#isDisposed()) {
             this.#resolveIdleIfReady();
             return;
         }
         this.#rendering = true;
+        const generation = this.#scheduleGeneration;
         try {
-            const render = this.#render;
-            if (!render) {
-                throw new Error('Animation frame render callback is unavailable');
-            }
-            const result = render(pendingPayload.value);
+            let result: void | Promise<void>;
+            if (this.#keyOf && this.#renderBatch) result = this.#renderBatch(payloads);
+            else if (payload !== null && this.#render) result = this.#render(payload.value);
+            else throw new Error('Animation frame render callback is unavailable');
             if (isThenable(result)) {
                 void Promise.resolve(result).then(
                     () => this.#finishRender(),
                     (error) => {
-                        errorHandler.error(this.#label, 'Animation frame render failed', ensureError(error));
+                        this.#recordFailure(ensureError(error), generation);
                         this.#finishRender();
                     }
                 );
                 return;
             }
         } catch (error) {
-            errorHandler.error(this.#label, 'Animation frame render failed', ensureError(error));
+            this.#recordFailure(ensureError(error), generation);
         }
         this.#finishRender();
     }
 
-    #flushKeyed(): void {
-        const pendingPayloads = Array.from(this.#pendingByKey.values());
-        this.#pendingByKey.clear();
-        if (pendingPayloads.length === 0 || this.#disposed || this.#isDisposed()) {
-            this.#resolveIdleIfReady();
-            return;
+    #recordFailure(error: Error, generation: number): void {
+        if (generation !== this.#scheduleGeneration) return;
+        if (this.#required) this.#failure ??= error;
+        if (!isAbortError(error) && (!this.#required || this.#idleWaiters.size === 0) && claimErrorReporting(error)) {
+            errorHandler.error(this.#label, 'Animation frame render failed', error);
         }
-        this.#rendering = true;
-        try {
-            const renderBatch = this.#renderBatch;
-            if (!renderBatch) {
-                throw new Error('Keyed animation frame render callback is unavailable');
-            }
-            const result = renderBatch(pendingPayloads);
-            if (isThenable(result)) {
-                void Promise.resolve(result).then(
-                    () => this.#finishRender(),
-                    (error) => {
-                        errorHandler.error(this.#label, 'Animation frame render failed', ensureError(error));
-                        this.#finishRender();
-                    }
-                );
-                return;
-            }
-        } catch (error) {
-            errorHandler.error(this.#label, 'Animation frame render failed', ensureError(error));
-        }
-        this.#finishRender();
     }
 
     #requestFlush(): void {
         const generation = this.#scheduleGeneration + 1;
         this.#scheduleGeneration = generation;
-        this.#frameId = this.#requestAnimationFrame(() => {
-            if (generation !== this.#scheduleGeneration) {
-                return;
-            }
+        const callback = (): void => {
+            if (generation !== this.#scheduleGeneration) return;
             this.#flush();
-        });
+        };
+        if (this.#required) {
+            this.#cancelScheduled = scheduleRequiredRender(callback, { requestAnimationFrame: this.#requestAnimationFrame, cancelAnimationFrame: this.#cancelAnimationFrame });
+        } else {
+            const identifier = this.#requestAnimationFrame(callback);
+            this.#cancelScheduled = () => this.#cancelAnimationFrame(identifier);
+        }
     }
 
     #finishRender(): void {
@@ -202,7 +193,7 @@ class AnimationFrameRenderQueue<TPayload> {
             this.#resolveIdleIfReady();
             return;
         }
-        if ((this.#pendingPayload !== null || this.#pendingByKey.size > 0) && this.#frameId === null) {
+        if ((this.#pendingPayload !== null || this.#pendingByKey.size > 0) && this.#cancelScheduled === null) {
             this.#requestFlush();
             return;
         }
@@ -210,16 +201,22 @@ class AnimationFrameRenderQueue<TPayload> {
     }
 
     #isIdle(): boolean {
-        return this.#frameId === null && this.#pendingPayload === null && this.#pendingByKey.size === 0 && !this.#rendering;
+        return this.#cancelScheduled === null && this.#pendingPayload === null && this.#pendingByKey.size === 0 && !this.#rendering;
     }
 
     #resolveIdleIfReady(): void {
         if (!this.#isIdle()) {
             return;
         }
-        const resolvers = this.#idleResolvers.splice(0);
-        for (const resolve of resolvers) {
-            resolve();
+        this.#settleIdleWaiters();
+    }
+
+    #settleIdleWaiters(): void {
+        const waiters = Array.from(this.#idleWaiters);
+        this.#idleWaiters.clear();
+        for (const waiter of waiters) {
+            if (this.#required && this.#failure !== null) waiter.reject(this.#failure);
+            else waiter.resolve();
         }
     }
 }

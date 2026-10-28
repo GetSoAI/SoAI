@@ -41,7 +41,7 @@ const createPluginsIntroModalElement = (): HTMLElement => {
         titleClassName: 'first-run-rich-text-section-title rich-text-section-title'
     });
     const body = renderModalBody(uiHtml`
-        <div class="first-run-rich-text plugins-first-run-copy">
+        <div class="first-run-rich-text plugins-first-run-copy" data-modal-localize="content">
             ${richText}
         </div>
     `);

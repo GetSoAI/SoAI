@@ -16,6 +16,7 @@ from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.execution.owned_execution_tasks import create_owned_execution_task
 from core.runtime.request_context import RequestContext
+from core.skills.delegation import build_delegated_skill_instructions
 from core.tasks.asyncio_task_spawner import spawn_tracked_task
 from features.agent.subagents.background_parent_stream_setup import (
     maybe_build_parent_update_bridge,
@@ -86,11 +87,17 @@ async def spawn_subagent_execution(
     workspace_path: str | None,
     max_iterations: int | None,
     tools: tuple[str, ...] | None,
+    skill_ids: tuple[str, ...] = (),
 ) -> SubagentAcceptedExecution:
     parent_context, tool_call_identity, parent_tool_context = require_parent_subagent_state(
         active_request_context,
         active_tool_call_context,
     )
+    delegated = build_delegated_skill_instructions(
+        parent_context.skill_execution_context, skill_ids
+    )
+    if delegated is not None:
+        context = f"{context}\n\n{delegated}" if context else delegated
     spawn_plan = await plan_subagent_spawn(
         api_dependencies=api_dependencies,
         parent_context=parent_context,

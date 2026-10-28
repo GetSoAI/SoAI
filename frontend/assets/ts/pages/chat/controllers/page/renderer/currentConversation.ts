@@ -67,7 +67,7 @@ const renderCurrentConversationView = async (host: ChatCurrentConversationRender
         activeComparisonRun,
         activeStreamIdentity,
         isMessagePendingDeletion: (messageDomId) => host.conversationRuntime.requireMessages().isMessagePendingDeletion(conversation, messageDomId),
-        isTerminalRenderPending: (conversationId, message) => streamingController?.isTerminalRenderPending(conversationId, message) === true
+        resolveTerminalRenderState: (conversationId, message) => streamingController?.resolveTerminalRenderState(conversationId, message) ?? 'none'
     });
     const selectedConversationState = resolveSelectedConversationViewState(host, conversation, renderAnalysis.logicalMessageCount, isCurrentStreaming, conversationKey);
     const showEmptyState = selectedConversationState === 'empty';

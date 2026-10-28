@@ -1,7 +1,9 @@
 /* SoAI - Assistant message action button DOM patching [frontend/assets/ts/features/chat/message/assistantMessageActionButtonPatching.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { STREAMING_ACTION_CONTROLS_CLASS } from '@features/chat/message/messageActionStreamingPolicy.ts';
 import { insertWithPresence, isPresenceExiting, removeWithPresence, resolveNextPresenceAnchor } from '@core/animations/presence/public.ts';
+import { BUSY_DISABLED_ATTRIBUTE_NAMES, BUSY_DISABLED_CLASS_NAMES, getBusyDisabledToken } from '@core/ui/controls/busyDisabledState.ts';
 import { hasDataActionElement } from '@core/dom/dataAction.ts';
 import { dom } from '@core/dom/dom.ts';
 import { replaceChildrenIfChanged, syncElementShell } from '@core/dom/patching.ts';
@@ -100,11 +102,15 @@ const patchTimestampButtonContent = (existingButton: HTMLElement, createdButton:
     if (timestampText.changed) {
         changed = true;
     }
+    const compactTimestampText = syncElementText(existingContent, createdContent, '.message-timestamp-text-compact');
+    if (!compactTimestampText.supported) return { supported: false, changed };
+    if (compactTimestampText.changed) changed = true;
     return { supported: true, changed };
 };
 
 const patchActionButton = (existingButton: HTMLElement, createdButton: HTMLElement, key: string): boolean => {
-    let changed = syncElementShell({ target: existingButton, source: createdButton });
+    const preservesCommandBusyState = existingButton instanceof HTMLButtonElement && getBusyDisabledToken(existingButton) !== null;
+    let changed = syncElementShell({ target: existingButton, source: createdButton, ...(preservesCommandBusyState ? { preservedAttributeNames: BUSY_DISABLED_ATTRIBUTE_NAMES, preservedClassNames: BUSY_DISABLED_CLASS_NAMES } : {}) });
     if (key === TIMESTAMP_ACTION_KEY) {
         const contentPatch = patchTimestampButtonContent(existingButton, createdButton);
         if (contentPatch.supported) {
@@ -168,8 +174,13 @@ const patchActionButtonGroup = (existingGroup: HTMLElement, createdGroup: HTMLEl
             changed = true;
             continue;
         }
+        if (isPresenceExiting(existingButton) && createdGroup.classList.contains(STREAMING_ACTION_CONTROLS_CLASS)) {
+            anchor = resolveNextPresenceAnchor(existingButton);
+            existingButtons.delete(key);
+            continue;
+        }
         if (isPresenceExiting(existingButton)) {
-            insertWithPresence(existingGroup, existingButton, anchor);
+            insertWithPresence(existingGroup, existingButton, anchor, options.suppressInsertAnimations !== true);
             changed = true;
         }
         if (patchActionButton(existingButton, child, key)) {

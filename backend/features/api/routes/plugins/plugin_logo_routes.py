@@ -77,12 +77,12 @@ def register_routes(routers: ApiRouters) -> None:
         etag = f'"{hashlib.sha256(result.content).hexdigest()}"'
         headers = {
             "Cache-Control": "private, no-cache",
-            "Content-Length": str(len(result.content)),
             "ETag": etag,
             "X-Content-Type-Options": "nosniff",
         }
         if _matches_entity_tag(request.headers.get("if-none-match"), etag):
             return Response(status_code=304, headers=headers)
+        headers["Content-Length"] = str(len(result.content))
         return Response(
             content=b"" if request.method == "HEAD" else result.content,
             media_type="image/png",

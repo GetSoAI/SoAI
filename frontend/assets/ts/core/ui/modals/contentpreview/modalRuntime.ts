@@ -5,7 +5,7 @@ import { setModalHeaderDescription } from '@core/modals/headerDescription.ts';
 import { requireModalPresenter, type ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
-import { createSaveController, SAVE_HEADER_PRIORITY_MODAL, type SaveController } from '@core/save/public.ts';
+import { createSaveController, SAVE_HEADER_PRIORITY_MODAL, type SaveController, type SaveUnitResult } from '@core/save/public.ts';
 import { applyButtonLabels, applyEditingUiState, applyTextEmptyDisableState } from '@core/ui/modals/contentpreview/modalButtons.ts';
 import { CONTENT_PREVIEW_MODAL_ID } from '@core/ui/modals/contentpreview/constants.ts';
 import { requireContentPreviewHeaderColorContainer, requireContentPreviewSaveButton } from '@core/ui/modals/contentpreview/dom.ts';
@@ -38,6 +38,7 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
         renderMedia: (root: HTMLElement, request: Exclude<ContentPreviewOpenRequest, ContentPreviewTextRequest>): void => mediaController.render(root, request)
     };
 
+    let discardConfirmationPending = false;
     let wired = false;
     let sessionState: ContentPreviewSessionState = createClosedContentPreviewSessionState();
     let saveController: SaveController | null = null;
@@ -98,7 +99,7 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
         if (!request) {
             return;
         }
-        if (!textController.isEditing()) {
+        if (!textController.isEditing() || sessionState.mode === 'busySave') {
             return;
         }
         const modalRoot = requireModalRoot();
@@ -110,19 +111,38 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
         notifyPotentialChange();
     };
 
+    const captureCloseValidity = (): (() => boolean) => {
+        const capturedSession = sessionState;
+        const capturedDraft = textController.getDraftSnapshot(requireModalRoot());
+        return (): boolean => {
+            if (sessionState !== capturedSession || sessionState.mode === 'busySave') {
+                return false;
+            }
+            const currentDraft = textController.getDraftSnapshot(requireModalRoot());
+            return currentDraft?.title === capturedDraft?.title && currentDraft?.content === capturedDraft?.content && currentDraft?.selectedColor === capturedDraft?.selectedColor;
+        };
+    };
+
     const confirmDraftDiscard = async (): Promise<boolean> => {
-        if (saveController?.isSaving()) {
+        if (sessionState.mode === 'busySave' || saveController?.isSaving() || discardConfirmationPending) {
             return false;
         }
         if (!textController.hasDraftChanges()) {
             return true;
         }
-        return await showUnsavedChangesConfirmation();
+        const isStillValid = captureCloseValidity();
+        discardConfirmationPending = true;
+        try {
+            return (await showUnsavedChangesConfirmation()) && isStillValid();
+        } finally {
+            discardConfirmationPending = false;
+        }
     };
 
     const handleClose = async (): Promise<void> => {
+        const isStillValid = captureCloseValidity();
         if (textController.isEditing()) {
-            if (!(await confirmDraftDiscard())) {
+            if (!(await confirmDraftDiscard()) || !isStillValid()) {
                 return;
             }
             const discardsWholeSession = getCurrentTextRequest()?.isUnsavedDraft === true;
@@ -134,13 +154,13 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
         modalPresenter.close(CONTENT_PREVIEW_MODAL_ID, { reason: 'trigger' });
     };
 
-    const requestTextSave = async (): Promise<void> => {
+    const requestTextSave = async (): Promise<SaveUnitResult> => {
         const request = getCurrentTextRequest();
         if (!request) {
             return;
         }
         const modalRoot = requireModalRoot();
-        await requestContentPreviewTextSave({
+        return await requestContentPreviewTextSave({
             modalRoot,
             request,
             textController,
@@ -178,7 +198,9 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
             handleAttach: actions.handleAttach,
             handleOpenSource: actions.handleOpenSource,
             enterEditMode,
-            requestSave: requestTextSave,
+            requestSave: async (): Promise<void> => {
+                await saveController?.requestSave();
+            },
             handleEnhance: actions.handleEnhance,
             canNavigateImage: (): boolean => modalPresenter.isOpen(CONTENT_PREVIEW_MODAL_ID) && getCurrentImageNavigation() !== null,
             handleImagePrevious: actions.handleImagePrevious,
@@ -217,11 +239,9 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
                     hasChanges: (): boolean => getCurrentTextRequest() !== null && textController.hasDraftChanges(),
                     isValid: (): boolean => {
                         const request = getCurrentTextRequest();
-                        return Boolean(request?.editable && request.onRequestSave);
+                        return sessionState.mode !== 'busySave' && Boolean(request?.editable && request.onRequestSave);
                     },
-                    save: async (): Promise<void> => {
-                        await requestTextSave();
-                    }
+                    save: requestTextSave
                 }
             ]
         });
@@ -234,8 +254,9 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
                 modal: modalRoot,
                 presenter: modalPresenter,
                 modalId: CONTENT_PREVIEW_MODAL_ID,
-                shouldConfirmClose: (): boolean => textController.hasDraftChanges() || saveController?.isSaving() === true,
-                confirmClose: confirmDraftDiscard
+                shouldConfirmClose: (): boolean => sessionState.mode === 'busySave' || textController.hasDraftChanges() || saveController?.isSaving() === true,
+                confirmClose: confirmDraftDiscard,
+                captureCloseValidity
             })
         );
     };
@@ -291,10 +312,12 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
             const modalRoot = requireModalRoot();
             return textController.getDraftSnapshot(modalRoot);
         },
-        requestSave: requestTextSave,
+        requestSave: async (): Promise<void> => {
+            await saveController?.requestSave();
+        },
         setTextSelectedColor: (color: string | null): void => {
             const request = getCurrentTextRequest();
-            if (!request) {
+            if (!request || sessionState.mode === 'busySave') {
                 return;
             }
             const modalRoot = requireModalRoot();

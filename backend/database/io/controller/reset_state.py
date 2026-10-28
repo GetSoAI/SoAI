@@ -61,6 +61,7 @@ def drain_pending_items(
                 level="warning",
             )
         finally:
+            job.release_resources()
             queue.task_done()
 
 

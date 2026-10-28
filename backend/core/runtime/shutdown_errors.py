@@ -7,9 +7,11 @@ import asyncio
 
 from core.concurrency.cancellation import TaskCancelledError
 from core.errors.exceptions import ServiceUnavailableError, SoAIError
+from core.openai.openai_sse_error_escalation import OpenAIStreamError
 from core.tasks.cancellation_ids import normalize_cancellation_id
 
 __all__ = (
+    "SERVER_SHUTDOWN_MESSAGE",
     "SERVER_SHUTTING_DOWN_MESSAGE",
     "ServerShuttingDownError",
     "build_shutdown_task_cancelled_error",
@@ -17,6 +19,7 @@ __all__ = (
 )
 
 SERVER_SHUTTING_DOWN_MESSAGE = "Server shutting down."
+SERVER_SHUTDOWN_MESSAGE = "SoAI server has shut down."
 
 
 class ServerShuttingDownError(ServiceUnavailableError): ...
@@ -49,11 +52,17 @@ def is_shutdown_service_unavailable(
     if shutdown_event is None or not shutdown_event.is_set():
         return False
     for candidate in _iter_exception_chain(exception):
-        if isinstance(candidate, ServerShuttingDownError):
+        if isinstance(candidate, ServerShuttingDownError | TaskCancelledError):
+            return True
+        if (
+            isinstance(candidate, OpenAIStreamError)
+            and candidate.origin == "local_terminal"
+            and candidate.code == "cancelled"
+        ):
             return True
     return False
 
 
 def build_shutdown_task_cancelled_error(cancellation_id: str | None) -> TaskCancelledError:
     normalized_cancellation_id = normalize_cancellation_id(cancellation_id) or "system_shutdown"
-    return TaskCancelledError(normalized_cancellation_id, SERVER_SHUTTING_DOWN_MESSAGE)
+    return TaskCancelledError(normalized_cancellation_id, SERVER_SHUTDOWN_MESSAGE)

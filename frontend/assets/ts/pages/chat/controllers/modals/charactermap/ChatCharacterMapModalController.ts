@@ -16,7 +16,7 @@ import { CharacterMapGridWidget } from '@pages/chat/controllers/modals/character
 import { CharacterMapViewStateController } from '@pages/chat/controllers/modals/charactermap/CharacterMapViewStateController.ts';
 import { resolveCharacterMapModalRefs } from '@pages/chat/controllers/modals/charactermap/dom.ts';
 import type { CharacterMapModalHost, CharacterMapModalRefs } from '@pages/chat/controllers/modals/charactermap/types.ts';
-import { populateCharacterMapSelectors, projectCharacterMapActive, projectCharacterMapResult, projectStagingActions, resetCharacterMapView, showCharacterMapLoadFailure, showCharacterMapLoading, showCharacterMapReady, showCharacterMapResultFailure } from '@pages/chat/controllers/modals/charactermap/view.ts';
+import { populateCharacterMapSelectors, projectCharacterMapActive, projectCharacterMapResult, projectStagingActions, resetCharacterMapView, showCharacterMapLoadFailure, showCharacterMapLoading, showCharacterMapPendingResult, showCharacterMapReady, showCharacterMapResultFailure } from '@pages/chat/controllers/modals/charactermap/view.ts';
 
 const SEARCH_DELAY_MS = 80;
 
@@ -45,7 +45,7 @@ class ChatCharacterMapModalController implements EventListenerObject {
         this.#refs = resolveCharacterMapModalRefs(modal);
         resetCharacterMapView(this.#refs);
         this.#renderer = new CharacterMapGridWidget({
-            grid: this.#refs.grid,
+            grid: this.#refs.cells,
             empty: this.#refs.empty,
             loadingLabel: () => i18n.t('common.loading'),
             onCommit: () => this.#handleRendererCommit(),
@@ -53,8 +53,7 @@ class ChatCharacterMapModalController implements EventListenerObject {
         });
         this.#navigation = new CharacterMapGridNavigationController({
             grid: this.#refs.grid,
-            reveal: (identifier) => this.#renderer.reveal(identifier),
-            resolveCell: (identifier) => this.#renderer.resolveCell(identifier),
+            cells: this.#renderer,
             isCurrent: () => this.#isCurrent(),
             onActive: (item) => this.#projectActive(item),
             onSelect: () => this.#selectActive(),
@@ -168,6 +167,7 @@ class ChatCharacterMapModalController implements EventListenerObject {
             this.#candidate = { generation, result, preferredId: this.#navigation.activeId, type: 'query' };
             this.#refs.grid.setAttribute('aria-busy', 'true');
             setControlDisabledState(this.#refs.select, true);
+            showCharacterMapPendingResult(this.#refs, result.ids.length);
             this.#renderer.update(result, true, this.#viewState.resolveRestoreAnchor(selectorId));
         } catch (error) {
             this.#rollbackCandidate(generation);
@@ -189,6 +189,7 @@ class ChatCharacterMapModalController implements EventListenerObject {
             return;
         }
         this.#navigation.applyRovingTabIndex();
+        this.#viewState.refreshViewportAnchor();
     }
 
     #handleRendererError(error: Error): void {

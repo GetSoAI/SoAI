@@ -35,6 +35,12 @@
         line-height: 1.4;
     }
 
+    .form-disclaimer.form-disclaimer-info {
+        color: var(--status-blue);
+        background: color-mix(in srgb, var(--status-blue) 10%, var(--glass-underlay-surface));
+        border-color: color-mix(in srgb, var(--status-blue) 30%, var(--glass-underlay-surface));
+    }
+
     .form-disclaimer.form-disclaimer-error {
         color: var(--feedback-error-highlight);
         background: var(--glass-surface-error);

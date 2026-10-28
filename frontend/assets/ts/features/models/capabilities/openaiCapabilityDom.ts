@@ -1,20 +1,23 @@
 /* SoAI - Models feature OpenAI capability DOM [frontend/assets/ts/features/models/capabilities/openaiCapabilityDom.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { resolveOpenAICapabilityRequirement } from '@features/models/capabilities/openaiCapabilityDependencies.ts';
+import { reconcileElementChildrenFromTrustedHtml } from '@core/dom/childNodeReconciliation.ts';
+import type { TrustedHtml } from '@core/security/public.ts';
+import { setControlDisabledState } from '@core/ui/controls/disabledState.ts';
 import { dom } from '@core/dom/dom.ts';
 import { isString } from '@core/typeGuards.ts';
 import { createBusyDisabledToken, getBusyDisabledToken, setBusyDisabledState } from '@core/ui/controls/busyDisabledState.ts';
-import { isOpenAICapabilityOverrideCategory, isSafeOpenAICapabilityToken, normalizeOverrideToken, type OpenAICapabilityOverrideCategory } from '@features/models/capabilities/openaiCapabilityState.ts';
+import { setOpenAICapabilityOverrideMode, isOpenAICapabilityOverrideCategory, isSafeOpenAICapabilityToken, normalizeOverrideToken, resolveOpenAICapabilityOverrideMode, type OpenAICapabilityOverrideState, type OpenAICapabilityOverrideCategory, type OpenAICapabilityOverrideMode } from '@features/models/capabilities/openaiCapabilityState.ts';
 import { EDIT_MODEL_MODAL_ACTION_TOGGLE_OPENAI_CAPABILITY } from '@features/models/modals/constants.ts';
 
 interface OpenAICapabilityToggleRequest {
     category: OpenAICapabilityOverrideCategory;
     token: string;
-    enabled: boolean;
-    checkbox: HTMLInputElement;
+    mode: OpenAICapabilityOverrideMode;
 }
 
-const parseOpenAICapabilityToggleRequest = (element: HTMLElement): OpenAICapabilityToggleRequest => {
+const parseOpenAICapabilityToggleRequest = (element: HTMLElement, state: OpenAICapabilityOverrideState): OpenAICapabilityToggleRequest => {
     if (element.dataset['toggleLocked'] === 'true' || element.getAttribute('aria-disabled') === 'true') {
         throw new Error('OpenAI capability toggle is locked');
     }
@@ -25,9 +28,9 @@ const parseOpenAICapabilityToggleRequest = (element: HTMLElement): OpenAICapabil
     const tokenRaw = element.dataset['token'];
     const category = isString(categoryRaw) ? categoryRaw.trim() : '';
     const token = isString(tokenRaw) ? normalizeOverrideToken(tokenRaw) : '';
-    const checkbox = dom.resolve('input[type="checkbox"]', element);
-    if (!(checkbox instanceof HTMLInputElement)) {
-        throw new TypeError('OpenAI capability toggle requires a checkbox input');
+    const input = dom.resolve('input[type="checkbox"]', element);
+    if (!(input instanceof HTMLInputElement)) {
+        throw new TypeError('OpenAI capability override requires a checkbox');
     }
     if (!isOpenAICapabilityOverrideCategory(category)) {
         throw new Error('OpenAI capability toggle category is invalid');
@@ -35,7 +38,42 @@ const parseOpenAICapabilityToggleRequest = (element: HTMLElement): OpenAICapabil
     if (!isSafeOpenAICapabilityToken(token)) {
         throw new Error('OpenAI capability toggle token is invalid');
     }
-    return { category, token, enabled: checkbox.checked, checkbox };
+    const autoSupported = element.dataset['autoSupported'];
+    if (autoSupported !== 'true' && autoSupported !== 'false') {
+        throw new Error('OpenAI capability toggle requires its automatic state');
+    }
+    const originalMode = resolveOpenAICapabilityOverrideMode(state.original, category, token);
+    const mode = originalMode === 'auto' && input.checked === (autoSupported === 'true') ? 'auto' : input.checked ? 'enabled' : 'disabled';
+    return { category, token, mode };
+};
+
+const applyOpenAICapabilityToggleRequest = (element: HTMLElement, state: OpenAICapabilityOverrideState): void => {
+    const request = parseOpenAICapabilityToggleRequest(element, state);
+    const input = dom.resolve('input[type="checkbox"]', element);
+    const requirement = resolveOpenAICapabilityRequirement(request.category, request.token);
+    const draft = { ...state };
+    if (input instanceof HTMLInputElement && input.checked && requirement) {
+        const root = element.closest('.openai-capabilities-overrides');
+        const parent = root ? dom.resolve(`.openai-capability-mode[data-category="${requirement.category}"][data-token="${requirement.token}"]`, root) : null;
+        const parentInput = parent ? dom.resolve('input[type="checkbox"]', parent) : null;
+        if (!(parent instanceof HTMLElement) || !(parentInput instanceof HTMLInputElement) || parentInput.disabled) {
+            throw new Error('OpenAI capability prerequisite is unavailable');
+        }
+        if (!parentInput.checked) {
+            const originalMode = resolveOpenAICapabilityOverrideMode(state.original, requirement.category, requirement.token);
+            const mode = originalMode === 'auto' && parent.dataset['autoSupported'] === 'true' ? 'auto' : 'enabled';
+            setOpenAICapabilityOverrideMode(draft, requirement.category, requirement.token, mode);
+        }
+    }
+    setOpenAICapabilityOverrideMode(draft, request.category, request.token, request.mode);
+    state.current = draft.current;
+};
+
+const reconcileOpenAICapabilityControls = (root: HTMLElement, html: TrustedHtml): void => {
+    reconcileElementChildrenFromTrustedHtml({ target: root, html });
+    for (const input of dom.resolveAll('input[type="checkbox"]', root)) {
+        if (input instanceof HTMLInputElement) input.checked = input.hasAttribute('checked');
+    }
 };
 
 const setOpenAICapabilityControlsBusy = (root: Element, busy: boolean): void => {
@@ -44,17 +82,17 @@ const setOpenAICapabilityControlsBusy = (root: Element, busy: boolean): void => 
         if (!(toggle instanceof HTMLElement)) {
             continue;
         }
-        const checkbox = dom.resolve('input[type="checkbox"]', toggle);
-        if (!(checkbox instanceof HTMLInputElement)) {
+        const input = dom.resolve('input[type="checkbox"]', toggle);
+        if (!(input instanceof HTMLInputElement)) {
             continue;
         }
         if (busy) {
             toggle.dataset['busy'] = 'true';
-            checkbox.disabled = true;
+            setControlDisabledState(input, true);
             continue;
         }
         delete toggle.dataset['busy'];
-        checkbox.disabled = toggle.dataset['toggleLocked'] === 'true' || toggle.getAttribute('aria-disabled') === 'true';
+        setControlDisabledState(input, toggle.dataset['toggleLocked'] === 'true' || toggle.getAttribute('aria-disabled') === 'true');
     }
     const resetButtons = dom.resolveAll('[data-openai-capability-reset="true"]', root);
     for (const resetButton of resetButtons) {
@@ -77,5 +115,5 @@ const setOpenAICapabilityControlsBusy = (root: Element, busy: boolean): void => 
     }
 };
 
-export { parseOpenAICapabilityToggleRequest, setOpenAICapabilityControlsBusy };
+export { applyOpenAICapabilityToggleRequest, reconcileOpenAICapabilityControls, parseOpenAICapabilityToggleRequest, setOpenAICapabilityControlsBusy };
 export type { OpenAICapabilityToggleRequest };

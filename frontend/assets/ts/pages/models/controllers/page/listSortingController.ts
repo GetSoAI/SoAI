@@ -7,6 +7,7 @@ import { requirePageControlsStorage, type PageControlsStorageInput } from '@core
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageServicesOwnerHost } from '@core/routing/pages/basepagecore/PageServices.ts';
 import type { PageUiOwnerHost } from '@core/routing/pages/basepagecore/PageUi.ts';
+import type { ReapplyCollectionOptions } from '@core/routing/pages/pagetypes/public.ts';
 import type { ModelsPageControlState } from '@core/storage/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { normalizeStoredSortState, requireSortableColumn, type SortDirection, type SortState } from '@core/ui/tables/sortableTable.ts';
@@ -90,7 +91,7 @@ const syncModelsSortControls = (host: ModelsListSortHost): void => {
     if (table) syncSortableListIndicators(host, table, 'Models');
 };
 
-const applyModelsSortSelection = (host: ModelsListSortHost, requestedColumn: string, reapplyCollection: (options: { shouldRender: boolean; updateStats: boolean; updateFilters: boolean; resetScroll: boolean }) => void): void => {
+const applyModelsSortSelection = (host: ModelsListSortHost, requestedColumn: string, reapplyCollection: (options: ReapplyCollectionOptions) => void): void => {
     const column = requireSortableColumn(MODELS_SORT_COLUMNS, requestedColumn, 'Models');
     applySortControlSelection({
         requestedColumn: column,
@@ -106,7 +107,7 @@ const applyModelsSortSelection = (host: ModelsListSortHost, requestedColumn: str
     });
 };
 
-const sortModelsListFromHeader = (host: ModelsListSortHost, actionElement: HTMLElement, reapplyCollection: (options: { shouldRender: boolean; updateStats: boolean; updateFilters: boolean; resetScroll: boolean }) => void): void => {
+const sortModelsListFromHeader = (host: ModelsListSortHost, actionElement: HTMLElement, reapplyCollection: (options: ReapplyCollectionOptions) => void): void => {
     sortCollectionListFromHeader({
         actionElement,
         host,

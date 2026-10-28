@@ -64,6 +64,7 @@ async def forward_speech_session_segment_stream(
                 message=prepared.error_message or "Speech session segment failed.",
                 code=prepared.error_type or "server_error",
                 task_id=task_id,
+                param=prepared.public_error.param if prepared.public_error is not None else None,
             ),
             shutdown_event,
             "OpenAI audio speech session error",

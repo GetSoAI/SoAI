@@ -7,6 +7,7 @@ import errno
 import os
 
 from core.errors.exceptions import NotFoundError, SecurityError, StateError, ValidationError
+from core.filesystem.descriptor_io import open_descriptor
 from core.filesystem.open_files import open_binary
 
 __all__ = ("read_bytes_sample", "read_text_file")
@@ -53,7 +54,7 @@ def _read_bytes_sample_posix(real_path: str, *, max_bytes: int, allow_symlinks: 
     if not allow_symlinks:
         open_flags |= os.O_NOFOLLOW
     try:
-        file_fd = os.open(real_path, open_flags)
+        file_fd = open_descriptor(real_path, open_flags)
     except FileNotFoundError as exception:
         raise NotFoundError(
             f"File not found: '{os.path.basename(real_path)}'.",
@@ -97,7 +98,7 @@ def _read_text_file_posix(real_path: str, *, max_bytes: int, allow_symlinks: boo
     if not allow_symlinks:
         open_flags |= os.O_NOFOLLOW
     try:
-        file_fd = os.open(real_path, open_flags)
+        file_fd = open_descriptor(real_path, open_flags)
     except FileNotFoundError as exception:
         raise NotFoundError(
             f"File not found: '{os.path.basename(real_path)}'.",

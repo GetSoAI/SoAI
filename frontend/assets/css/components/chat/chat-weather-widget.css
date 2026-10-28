@@ -6,6 +6,7 @@
         --weather-accent: var(--accent-blue);
         --weather-accent-soft: color-mix(in srgb, var(--weather-accent) 18%, transparent);
         display: grid;
+        gap: var(--space-15);
         grid-template-columns: 1fr;
         grid-template-rows: auto auto auto auto;
         border: var(--border-width-1) solid color-mix(in srgb, var(--glass-border-strong) 68%, var(--weather-accent) 32%);
@@ -48,8 +49,9 @@
         grid-row: 2;
         grid-column: 1;
         display: grid;
-        grid-template-columns: 1fr;
-        gap: var(--space-3);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: auto auto;
+        gap: var(--space-2);
         min-width: 0;
         min-height: auto;
         align-content: start;
@@ -57,6 +59,11 @@
         opacity: 0;
         pointer-events: none;
         transition: opacity calc(var(--duration-500) / 2) var(--ease-out);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__detail-panel > .assistant-weather-widget__strip {
+        grid-column: 1 / -1;
+        grid-row: 2;
     }
 
     :where(.chat-container) .assistant-weather-widget__day-selector:checked + .assistant-weather-widget__detail-panel {
@@ -76,6 +83,8 @@
     :where(.chat-container) .assistant-weather-widget__current {
         display: flex;
         align-items: center;
+        grid-column: 1;
+        grid-row: 1;
         gap: var(--space-3);
         min-width: 0;
     }
@@ -131,6 +140,8 @@
 
     :where(.chat-container) .assistant-weather-widget__metrics {
         display: grid;
+        grid-column: 2;
+        grid-row: 1;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--space-1) var(--space-2);
         align-content: center;
@@ -160,5 +171,26 @@
         font-weight: 600;
         color: var(--text-primary);
         font-feature-settings: 'tnum' 1;
+    }
+
+    @container assistant-activity-widgets (width < 23.75rem) {
+        :where(.chat-container) .assistant-weather-widget__detail-panel > .assistant-weather-widget__current {
+            grid-column: 1 / -1;
+        }
+
+        :where(.chat-container) .assistant-weather-widget__detail-panel > .assistant-weather-widget__strip {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        :where(.chat-container) .assistant-weather-widget__detail-panel > .assistant-weather-widget__metrics {
+            grid-column: 1;
+            grid-row: 2;
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        :where(.chat-container) .assistant-weather-widget__metric strong {
+            white-space: nowrap;
+        }
     }
 }

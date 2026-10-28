@@ -51,14 +51,10 @@ const composeChatLifecycle = (composition: ChatLifecycleComposition, logger: Mod
     const { domain, page, platform, sessions, controllerRuntime, uiBehaviors, controls } = composition;
     const responsiveLayout = new ChatResponsiveLayoutSession({
         conversationState: domain.conversationState,
-        settings: domain.settings,
-        runtimeServices: domain.runtimeServices,
         uiBehaviors,
         conversationView: sessions.conversationView,
         modelSession: sessions.modelSession,
-        taskScope: domain.taskScope,
-        pageDom: page.pageDom,
-        document: platform.dom.getDocument()
+        pageDom: page.pageDom
     });
     return new ChatPageLifecycleController(
         {

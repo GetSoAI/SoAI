@@ -1,15 +1,17 @@
 /* SoAI - Chat chrome auto-hide surface controller [frontend/assets/ts/features/chat/chatuimanager/chatChromeSurfaceController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { measureLayoutPoint, measureLayoutViewport, type GeometryBox } from '@core/layout/elementGeometry.ts';
+import { measureLayoutBox, measureLayoutPoint, measureLayoutViewport, type GeometryBox } from '@core/layout/elementGeometry.ts';
 import { applyChatChromeSurfaceVisibilityScroll, beginChatChromeSurfaceHoverReveal, CHAT_CHROME_HOVER_REVEAL_HEIGHT_PX, createChatChromeSurfaceVisibilityState, dismissChatChromeSurfaceHoverReveal, endChatChromeSurfaceHoverSuppression, holdChatChromeSurfaceHoverReveal, releaseChatChromeSurfaceHoverReveal, type ChatChromeSurfaceVisibilityState } from '@features/chat/chatuimanager/chatChromeVisibilityPolicy.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 
 export type ChatChromeSurfaceConfig = {
     revealEdge: 'top' | 'bottom';
     resolveElement: () => HTMLElement | null;
+    resolveInteractionElements: (element: HTMLElement) => readonly HTMLElement[];
     resolveRevealBounds: (element: HTMLElement) => GeometryBox | null;
     isPinned: (element: HTMLElement) => boolean;
+    isTemporaryHideExempt: (shown: boolean) => boolean;
     isRevealBlocked: () => boolean;
     isPointerTargetIgnored: (target: EventTarget | null) => boolean;
     project: (element: HTMLElement, visible: boolean) => void;
@@ -18,10 +20,11 @@ export type ChatChromeSurfaceConfig = {
 export type ChatChromeSurfaceController = {
     observeDelta: (delta: number, hideableDistance: number) => void;
     sync: (hideableDistance: number | null) => void;
-    handlePointerMove: (event: Event) => void;
+    handlePointerMove: (event: Event, allowReveal?: boolean) => void;
     commit: () => void;
     reset: () => void;
     isShown: () => boolean;
+    setTemporarilyHidden: (hidden: boolean) => void;
     addDisposer: (dispose: () => void) => void;
     dispose: () => void;
 };
@@ -35,6 +38,7 @@ export const createChatChromeSurfaceController = (context: ChatUIManagerContext,
     let state: ChatChromeSurfaceVisibilityState = createChatChromeSurfaceVisibilityState();
     let dismissTimer: number | null = null;
     let shown = true;
+    let suspendedVisibility: { state: ChatChromeSurfaceVisibilityState; remainingDismissDelay: number | null } | null = null;
     const disposers: Array<() => void> = [];
 
     const clearDismissTimer = (): void => {
@@ -60,10 +64,14 @@ export const createChatChromeSurfaceController = (context: ChatUIManagerContext,
         const previousDismissAt = state.hoverDismissAt;
         const element = config.resolveElement();
         const pinned = isGlobalPinned() || (element !== null && config.isPinned(element));
-        state = pinned ? createChatChromeSurfaceVisibilityState() : next;
+        state = next;
+        if (pinned) {
+            if (suspendedVisibility === null) state = createChatChromeSurfaceVisibilityState();
+            else if (state.hoverActive) state = holdChatChromeSurfaceHoverReveal(state);
+        }
         if (state.hoverDismissAt !== previousDismissAt) scheduleDismissTimer();
         if (element === null) return;
-        shown = pinned || (!config.isRevealBlocked() && state.visible);
+        shown = (suspendedVisibility === null && pinned) || (!config.isRevealBlocked() && (state.visible || (suspendedVisibility !== null && config.isTemporaryHideExempt(shown))));
         config.project(element, shown);
     };
 
@@ -77,32 +85,50 @@ export const createChatChromeSurfaceController = (context: ChatUIManagerContext,
         return point.y >= bounds.bottom - CHAT_CHROME_HOVER_REVEAL_HEIGHT_PX && point.y <= measureLayoutViewport(documentRef).height;
     };
 
-    const handlePointerMove = (event: Event): void => {
-        if (!isMousePointer(event) || (state.visible && !state.hoverSuppressed) || config.isPointerTargetIgnored(event.target)) return;
+    const isInteractionTarget = (target: EventTarget | null): boolean => {
+        const element = config.resolveElement();
+        return element !== null && target instanceof Node && !config.isPointerTargetIgnored(target) && config.resolveInteractionElements(element).some((surface) => surface.contains(target));
+    };
+
+    const handlePointerMove = (event: Event, allowReveal = true): void => {
+        const permanentlyVisible = state.visible && !state.hoverActive && !state.hoverSuppressed;
+        if (!isMousePointer(event) || permanentlyVisible) return;
         const withinRevealStrip = isWithinRevealStrip(event);
         if (state.hoverSuppressed) {
             if (!withinRevealStrip) apply(endChatChromeSurfaceHoverSuppression(state));
             return;
         }
-        if (withinRevealStrip && !config.isRevealBlocked()) apply(beginChatChromeSurfaceHoverReveal(state, Date.now()));
+        const ignored = config.isPointerTargetIgnored(event.target);
+        if (allowReveal && (suspendedVisibility === null || event.buttons === 0) && !ignored && withinRevealStrip && !config.isRevealBlocked()) apply(beginChatChromeSurfaceHoverReveal(state, Date.now()));
+        if (!state.hoverActive) return;
+        const element = config.resolveElement();
+        const point = measureLayoutPoint(event, documentRef);
+        const withinInteractionSurface =
+            !ignored &&
+            element !== null &&
+            config.resolveInteractionElements(element).some((surface) => {
+                const bounds = measureLayoutBox(surface);
+                return bounds.height > 0 && point.x >= bounds.left && point.x <= bounds.right && point.y >= bounds.top && point.y <= bounds.bottom;
+            });
+        apply(withinInteractionSurface ? holdChatChromeSurfaceHoverReveal(state) : releaseChatChromeSurfaceHoverReveal(state, Date.now()));
     };
 
     const element = config.resolveElement();
-    if (element !== null) {
+    for (const surface of element === null ? [] : config.resolveInteractionElements(element)) {
         disposers.push(
             dependencies.runtime.on(
-                element,
+                surface,
                 'pointerenter',
                 (event) => {
-                    if (isMousePointer(event)) apply(holdChatChromeSurfaceHoverReveal(state));
+                    if (isMousePointer(event) && !config.isPointerTargetIgnored(event.target)) apply(holdChatChromeSurfaceHoverReveal(state));
                 },
                 { passive: true }
             ),
             dependencies.runtime.on(
-                element,
+                surface,
                 'pointerleave',
                 (event) => {
-                    if (isMousePointer(event)) apply(releaseChatChromeSurfaceHoverReveal(state, Date.now()));
+                    if (isMousePointer(event)) apply(isInteractionTarget(event.relatedTarget) ? holdChatChromeSurfaceHoverReveal(state) : releaseChatChromeSurfaceHoverReveal(state, Date.now()));
                 },
                 { passive: true }
             )
@@ -110,12 +136,34 @@ export const createChatChromeSurfaceController = (context: ChatUIManagerContext,
     }
 
     return {
-        observeDelta: (delta, hideableDistance) => apply(applyChatChromeSurfaceVisibilityScroll(state, { delta, hideableDistance })),
-        sync: (hideableDistance) => apply(state.visible || hideableDistance === null ? state : applyChatChromeSurfaceVisibilityScroll(state, { delta: 0, hideableDistance })),
+        observeDelta: (delta, hideableDistance) => apply(suspendedVisibility === null ? applyChatChromeSurfaceVisibilityScroll(state, { delta, hideableDistance }) : state),
+        sync: (hideableDistance) => apply(suspendedVisibility !== null || state.visible || hideableDistance === null ? state : applyChatChromeSurfaceVisibilityScroll(state, { delta: 0, hideableDistance })),
         handlePointerMove,
         commit: () => apply(state),
-        reset: () => apply(createChatChromeSurfaceVisibilityState()),
+        reset: () => {
+            if (suspendedVisibility !== null) {
+                suspendedVisibility = { state: createChatChromeSurfaceVisibilityState(), remainingDismissDelay: null };
+                apply({ ...createChatChromeSurfaceVisibilityState(), visible: false });
+            } else {
+                apply(createChatChromeSurfaceVisibilityState());
+            }
+        },
         isShown: () => shown,
+        setTemporarilyHidden: (hidden) => {
+            if ((suspendedVisibility !== null) === hidden) {
+                if (hidden) apply({ ...createChatChromeSurfaceVisibilityState(), visible: false });
+                return;
+            }
+            if (hidden) {
+                suspendedVisibility = { state, remainingDismissDelay: state.hoverDismissAt === null ? null : Math.max(0, state.hoverDismissAt - Date.now()) };
+                clearDismissTimer();
+                apply({ ...createChatChromeSurfaceVisibilityState(), visible: false });
+            } else if (suspendedVisibility !== null) {
+                const restored = suspendedVisibility;
+                suspendedVisibility = null;
+                apply(config.isTemporaryHideExempt(shown) ? createChatChromeSurfaceVisibilityState() : { ...restored.state, hoverDismissAt: restored.remainingDismissDelay === null ? null : Date.now() + restored.remainingDismissDelay });
+            }
+        },
         addDisposer: (dispose) => {
             disposers.push(dispose);
         },

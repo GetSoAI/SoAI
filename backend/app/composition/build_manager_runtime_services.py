@@ -22,8 +22,11 @@ from app.types_services_runtime import (
     StorageServices,
 )
 from core.config.protocols import ConfigManagerProtocol, ConfigProtocol
+from core.files.upload_policy import resolve_temp_directory_runtime
 from core.licensing.protocols import LicensingStatusProtocol
 from core.licensing.types import Edition
+from core.media.speech_child_tasks import SpeechChildTaskOwner, SpeechChildTaskOwnerDependencies
+from core.media.speech_transcription_gateway import SpeechTranscriptionGatewayDependencies
 from core.models.protocols import (
     ModelInformationServiceProtocol,
     ModelResolutionServiceProtocol,
@@ -35,6 +38,10 @@ from core.plugins.protocols_instance import FilesProtocol
 from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.protocols import RuntimeFlagsViewProtocol, RuntimeStateStoreProtocol
 from core.tool_calls.protocols import ToolCallExecutorProtocol
+from models.information.speech_catalog import (
+    SpeechCatalogService,
+    SpeechCatalogServiceDependencies,
+)
 from orchestrator.tool_calls.dependencies import ToolCallProcessorDependencies
 from orchestrator.tool_calls.service import ToolCallProcessor
 
@@ -100,10 +107,31 @@ def build_manager_runtime_services(
 ]:
     media_parsing = build_media_parsing_services(
         config=config,
-        runtime_flags=runtime_flags,
         storage_manager=infrastructure_services.hardware.storage,
+        speech_transcription=SpeechTranscriptionGatewayDependencies(
+            children=SpeechChildTaskOwner(
+                SpeechChildTaskOwnerDependencies(
+                    event_bus=preconditions.event_bus,
+                    task_registry=preconditions.task_registry,
+                    task_type_routing=preconditions.task_type_routing_service,
+                    temp_root=resolve_temp_directory_runtime(config),
+                    finalizer_tracker=preconditions.finalizer_tracker,
+                ),
+            ),
+            speech_catalog=SpeechCatalogService(
+                SpeechCatalogServiceDependencies(
+                    database_plugins=preconditions.database_plugins,
+                    database_models=preconditions.database_models,
+                    model_information_service=model_information_service,
+                ),
+            ),
+            model_resolution_service=model_resolution_service,
+            model_information_service=model_information_service,
+            virtual_model_service=model_virtual_model_service,
+        ),
     )
     mcp_coordinator_instance = build_mcp_services_coordinator(
+        playwright_sessions=infrastructure_services.playwright_sessions,
         config=config,
         runtime_flags=runtime_flags,
         http_client=http_client,
@@ -134,6 +162,7 @@ def build_manager_runtime_services(
         database_automation_runs=preconditions.database_automation_runs,
         database_tool_calls=preconditions.database_tool_calls,
         database_read_video=preconditions.database_read_video,
+        database_skills=preconditions.database_skills,
         database_plugins=preconditions.database_plugins,
         database_tasks=preconditions.database_tasks,
         database_mcp=preconditions.database_mcp,

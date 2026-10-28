@@ -44,6 +44,7 @@ from database.repositories.users.conversation_attachment_knowledge_terminal_coun
 from database.repositories.users.conversation_attachment_rows import (
     format_knowledge_attachment_row,
 )
+from database.repositories.users.conversation_knowledge_extraction import KNOWLEDGE_SUMMARY_COLUMNS
 
 KNOWLEDGE_ATTACHMENT_FIELD_LABEL = "Knowledge attachment field"
 
@@ -160,7 +161,7 @@ def _cancel_without_task(
     )
     row = sync_fetch_one_as_dict(
         conn.execute(
-            """
+            f"""
             UPDATE webui_conversation_knowledge_attachments
             SET processing_state = 'cancelled',
                 status_counts_json = ?,
@@ -169,7 +170,7 @@ def _cancel_without_task(
                 attachment_revision = attachment_revision + 1
             WHERE conv_id = ? AND user_id = ? AND id = ?
               AND state = ?
-            RETURNING *
+            RETURNING {KNOWLEDGE_SUMMARY_COLUMNS}
             """,
             (
                 serialize_status_counts(status_counts),
@@ -241,7 +242,7 @@ def sync_cancel_knowledge_attachment(
               AND id = ?
               AND state = ?
               AND processing_state IN ({state_placeholders})
-            RETURNING *
+            RETURNING {KNOWLEDGE_SUMMARY_COLUMNS}
             """,
             (
                 now,

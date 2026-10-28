@@ -31,6 +31,7 @@ if TYPE_CHECKING:
         conv_id: str
         last_modified_at_ms: int
         title: str | None
+        title_auto_update_allowed: bool | None
         is_favorite: bool | None
         color: str | None
         color_present: bool
@@ -44,6 +45,7 @@ __all__ = (
     "build_conversation_updated_event",
     "build_message_saved_event",
     "publish_conversation_created",
+    "publish_conversation_title_updated",
     "publish_conversation_updated",
     "publish_conversation_updated_and_message_saved",
 )
@@ -61,6 +63,7 @@ def build_conversation_created_event(
     favorite_value = conversation_record.get("is_favorite")
     color_value = conversation_record.get("color")
     is_automation_value = conversation_record.get("is_automation")
+    title_auto_update_allowed_value = conversation_record.get("title_auto_update_allowed")
     if not isinstance(conv_id_value, str) or not conv_id_value.strip():
         raise StateError("Conversation record id is invalid.")
     if not isinstance(title_value, str) or not title_value.strip():
@@ -77,6 +80,8 @@ def build_conversation_created_event(
         raise StateError("Conversation record color is invalid.")
     if not isinstance(is_automation_value, bool):
         raise StateError("Conversation record is_automation is invalid.")
+    if not isinstance(title_auto_update_allowed_value, bool):
+        raise StateError("Conversation record title_auto_update_allowed is invalid.")
     source = resolve_conversation_source_metadata(conversation_record)
     authority = resolve_conversation_settings_authority(dict(conversation_record))
     return ConversationCreatedEvent(
@@ -94,6 +99,7 @@ def build_conversation_created_event(
         messaging_account_snapshot_id=source.messaging_account_snapshot_id,
         settings_authority=build_settings_authority_payload(authority),
         is_archived=False,
+        title_auto_update_allowed=title_auto_update_allowed_value,
     )
 
 
@@ -124,6 +130,7 @@ def build_conversation_updated_event(
     conv_id: str,
     last_modified_at_ms: int,
     title: str | None = None,
+    title_auto_update_allowed: bool | None = None,
     is_favorite: bool | None = None,
     color: str | None = None,
     color_present: bool = False,
@@ -135,6 +142,8 @@ def build_conversation_updated_event(
         raise StateError("Conversation event conv_id is invalid.")
     if title is not None and not title.strip():
         raise StateError("Conversation event title is invalid.")
+    if (title is None) != (title_auto_update_allowed is None):
+        raise StateError("Conversation event title metadata is incomplete.")
     if not color_present and color is not None:
         raise StateError("Conversation event color is invalid.")
     return ConversationUpdatedEvent(
@@ -142,6 +151,7 @@ def build_conversation_updated_event(
         conv_id=conv_id.strip(),
         last_modified_at_ms=_resolve_last_modified_at_ms(last_modified_at_ms),
         title=title,
+        title_auto_update_allowed=title_auto_update_allowed,
         is_favorite=is_favorite,
         color=(
             _resolve_color(color, "Conversation event color is invalid.") if color_present else None
@@ -191,6 +201,33 @@ async def publish_conversation_created(
     )
 
 
+async def publish_conversation_title_updated(
+    event_bus: EventBusProtocol,
+    *,
+    user_id: int,
+    conv_id: str,
+    conversation_record: Mapping[str, JSONValue],
+) -> None:
+    title_value = conversation_record.get("title")
+    title_auto_update_allowed_value = conversation_record.get("title_auto_update_allowed")
+    last_modified_at_value = conversation_record.get("last_modified_at_ms")
+    if not isinstance(title_value, str):
+        raise StateError("Conversation record title is invalid.")
+    if not isinstance(title_auto_update_allowed_value, bool):
+        raise StateError("Conversation record title_auto_update_allowed is invalid.")
+    if not is_strict_int(last_modified_at_value):
+        raise StateError("Conversation record last_modified_at_ms is invalid.")
+    await event_bus.publish(
+        build_conversation_updated_event(
+            user_id=user_id,
+            conv_id=conv_id,
+            last_modified_at_ms=last_modified_at_value,
+            title=title_value,
+            title_auto_update_allowed=title_auto_update_allowed_value,
+        ),
+    )
+
+
 async def publish_conversation_updated(
     event_bus: EventBusProtocol,
     *,
@@ -198,6 +235,7 @@ async def publish_conversation_updated(
     conv_id: str,
     last_modified_at_ms: int,
     title: str | None = None,
+    title_auto_update_allowed: bool | None = None,
     is_favorite: bool | None = None,
     color: str | None = None,
     color_present: bool = False,
@@ -210,6 +248,7 @@ async def publish_conversation_updated(
         "conv_id": conv_id,
         "last_modified_at_ms": last_modified_at_ms,
         "title": title,
+        "title_auto_update_allowed": title_auto_update_allowed,
         "is_favorite": is_favorite,
         "color": color,
         "color_present": color_present,
@@ -229,6 +268,7 @@ async def publish_conversation_updated_and_message_saved(
     last_modified_at_ms: int,
     message: JSONDict | None = None,
     title: str | None = None,
+    title_auto_update_allowed: bool | None = None,
 ) -> None:
     resolved_last_modified_at = _resolve_last_modified_at_ms(last_modified_at_ms)
     await event_bus.publish(
@@ -237,6 +277,7 @@ async def publish_conversation_updated_and_message_saved(
             conv_id=conv_id,
             last_modified_at_ms=resolved_last_modified_at,
             title=title,
+            title_auto_update_allowed=title_auto_update_allowed,
         ),
     )
     await event_bus.publish(

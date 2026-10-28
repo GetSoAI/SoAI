@@ -12,6 +12,7 @@ from core.errors.exceptions import StateError, ValidationError
 from core.files.content_hashing import hash_descriptor_content
 from core.files.directory_descriptor_scope import open_secure_directory_descriptor
 from core.files.secure_open_flags import secure_read_only_open_flags
+from core.filesystem.descriptor_io import open_descriptor
 from core.hardware.reserved_writes import write_reserved_bytes
 from plugins.clone.clone_source_manifest import (
     CloneSourceEntry,
@@ -73,7 +74,7 @@ def _open_parent_directory(
         for directory_name in parts[:-1]:
             if create:
                 _create_directory_component(parent_handle, directory_name)
-            following_handle = os.open(
+            following_handle = open_descriptor(
                 directory_name,
                 secure_read_only_open_flags(directory=True),
                 dir_fd=parent_handle,
@@ -105,14 +106,14 @@ def _copy_source_file(
             create=True,
         )
         try:
-            source_handle = os.open(
+            source_handle = open_descriptor(
                 source_name,
                 secure_read_only_open_flags(directory=False),
                 dir_fd=source_parent,
             )
             try:
                 _require_unchanged(source_handle, source)
-                destination_handle = os.open(
+                destination_handle = open_descriptor(
                     destination_name,
                     os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
                     0o600,
@@ -142,7 +143,7 @@ def _copy_source_file(
                     raise StateError(f"Clone model copy was incomplete: {source.relative_path}")
             finally:
                 os.close(source_handle)
-            destination_handle = os.open(
+            destination_handle = open_descriptor(
                 destination_name,
                 secure_read_only_open_flags(directory=False),
                 dir_fd=destination_parent,
@@ -176,7 +177,7 @@ def _copy_source_directory(
         create=False,
     )
     try:
-        source_handle = os.open(
+        source_handle = open_descriptor(
             source_name,
             secure_read_only_open_flags(directory=True),
             dir_fd=source_parent,
@@ -224,7 +225,7 @@ def copy_model_tree(
         ):
             raise StateError("Clone model source changed after capacity planning.")
         os.mkdir(destination, mode=0o750)
-        destination_handle = os.open(
+        destination_handle = open_descriptor(
             destination,
             secure_read_only_open_flags(directory=True),
         )

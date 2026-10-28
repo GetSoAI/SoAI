@@ -32,6 +32,7 @@ interface DashboardRequestsRendererDependencies {
 
 interface DashboardRequestsRenderOptions {
     transition?: boolean;
+    transitionLegend?: boolean;
 }
 
 interface DashboardRequestsSurfaces {
@@ -223,7 +224,7 @@ const createDashboardRequestsSectionRenderer = (dependencies: DashboardRequestsR
         const commitChartAndLegend = (): void => {
             if (options.transition === true) {
                 surfaces.chart.style.removeProperty('opacity');
-                transitionContentElements({ elements: [surfaces.mount, surfaces.legend], render: renderChartAndLegend });
+                transitionContentElements({ elements: options.transitionLegend === true ? [surfaces.mount, surfaces.legend] : [surfaces.mount], render: renderChartAndLegend });
                 return;
             }
             renderContentImmediately({ elements: [surfaces.chart, surfaces.legend, surfaces.mount], render: renderChartAndLegend });

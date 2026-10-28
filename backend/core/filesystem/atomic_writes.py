@@ -16,9 +16,10 @@ from core.filesystem.atomic_write_primitives import (
     cleanup_temp_file_on_failure,
     copy_existing_file_to_descriptor,
     ensure_parent_directory,
+    finalize_atomic_write_and_clear_callbacks,
     finalize_atomic_write_create_and_clear_callbacks,
-    finalize_atomic_write_replace_and_clear_callbacks,
 )
+from core.filesystem.descriptor_io import open_text_descriptor
 from core.filesystem.file_sync import flush_and_fsync_file
 from core.filesystem.path_coercion import coerce_path, normalize_filesystem_path
 from core.serialization.json import serialize_json_compact_stable_strict
@@ -92,6 +93,8 @@ def atomic_write_text(
     backup_path: str | None = None,
     file_mode: int | None = None,
     fsync_parent_directory: bool = False,
+    newline: str | None = None,
+    preserve_windows_acl: bool = False,
 ) -> None:
     if mode not in {"w", "a"}:
         raise ValidationError("Text atomic writes only support mode 'w' or 'a'.")
@@ -110,25 +113,28 @@ def atomic_write_text(
                 copy_existing_file_to_descriptor(
                     resolved, file_descriptor, preserve_permissions=file_mode is None
                 )
-            text_handle = os.fdopen(
-                file_descriptor, mode, encoding=resolved_encoding, errors=resolved_errors
-            )
         except (OSError, ValueError):
             os.close(file_descriptor)
             raise
-        if not isinstance(text_handle, io.TextIOBase):
-            text_handle.close()
-            raise ValidationError("Atomic text writer failed to open a text stream.")
+        text_handle = open_text_descriptor(
+            file_descriptor,
+            mode=mode,
+            encoding=resolved_encoding,
+            errors=resolved_errors,
+            newline=newline,
+            error_message="Atomic text writer failed to open a text stream.",
+        )
         with text_handle:
             writer(text_handle)
             if fsync:
                 flush_and_fsync_file(text_handle)
-        finalize_atomic_write_replace_and_clear_callbacks(
+        finalize_atomic_write_and_clear_callbacks(
             stack,
             target,
             backup_path=backup_path,
             file_mode=file_mode,
             fsync_parent_directory=fsync_parent_directory,
+            preserve_windows_acl=preserve_windows_acl,
         )
 
 

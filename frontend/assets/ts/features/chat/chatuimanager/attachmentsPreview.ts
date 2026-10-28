@@ -5,6 +5,7 @@ import { buildWebuiConversationAttachmentContentPath } from '@core/api/endpoints
 import { serializeSoaiPathContentPart } from '@core/api/contracts/webuiSoaiPathSerialization.ts';
 import { isArray, isNonNegativeInteger, isString } from '@core/typeGuards.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { syncSpeechAttachmentGuidance } from '@features/chat/chatuimanager/speechAttachmentGuidance.ts';
 import { toTrimmedStringOrNull } from '@core/normalize.ts';
 import { classifyFileBrowserMimeType } from '@core/fileexplorerbrowser/mediaClassification.ts';
 import { stableJsonStringify } from '@core/serialization/json.ts';
@@ -164,6 +165,7 @@ function updateAttachmentsPreview(context: ChatUIManagerContext): void {
     const hasKnowledgeRow = knowledgeRows.length > 0;
 
     const attachments = context.dependencies.drafts.getAttachments();
+    syncSpeechAttachmentGuidance(context, preview, attachments ?? []);
     const hasAttachments = isArray(attachments) && attachments.length > 0;
     if (!hasAttachments && !showIngestion && !hasKnowledgeRow) {
         reconcileAttachmentPreview(context, preview, []);

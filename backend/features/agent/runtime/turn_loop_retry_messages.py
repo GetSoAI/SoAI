@@ -3,32 +3,14 @@
 
 from __future__ import annotations
 
+from core.errors.exceptions import StateError
 from core.openai.internal_retry_prompt import is_internal_retry_message
 from core.types.json import JSONDict
 from features.agent.runtime.tool_image_relay_messages import (
     is_tool_image_relay_message,
 )
 
-__all__ = ("append_turn_retry_message",)
-
-
-def append_turn_retry_message(
-    *,
-    message_history: list[JSONDict],
-    boundary_source_messages: list[JSONDict],
-    assistant_text: str | None,
-    retry_message: JSONDict,
-) -> None:
-    _append_turn_retry_message(
-        message_history=message_history,
-        assistant_text=assistant_text,
-        retry_message=retry_message,
-    )
-    _append_turn_retry_message(
-        message_history=boundary_source_messages,
-        assistant_text=assistant_text,
-        retry_message=retry_message,
-    )
+__all__ = ("build_turn_retry_messages",)
 
 
 def _append_turn_retry_message(
@@ -72,3 +54,15 @@ def _append_turn_retry_message(
             message_history[-1] = last_user
             return
     message_history.append(next_retry_message)
+
+
+def build_turn_retry_messages(
+    *, assistant_text: str | None, retry_message: JSONDict
+) -> list[JSONDict]:
+    if not is_internal_retry_message(retry_message):
+        raise StateError("Agent retry projection requires an internal retry message.")
+    messages: list[JSONDict] = []
+    _append_turn_retry_message(
+        message_history=messages, assistant_text=assistant_text, retry_message=retry_message
+    )
+    return messages

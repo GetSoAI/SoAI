@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { SanitizerInput } from '@core/pagecontext/contracts.ts';
-import type { AcceptedPowerActionResponse } from '@core/api/contracts/powerContracts.ts';
 import type { DomEventHost, DomMutationHost, DomQueryHost, ExecutionHost, NotificationHost, SearchHost } from '@core/ui/controllerHosts.ts';
 import type { BackupApiEntry, BackupEntry, BackupListLoadStatus, BackupOperationState } from '@core/settings/contracts.ts';
 import type { OperationType } from '@features/overlays/public.ts';
@@ -23,7 +22,6 @@ interface BackupManagerApiHost {
     verifyBackup: (backupId: string) => Promise<BackupTaskAcceptedResponse>;
     deleteBackup: (backupId: string) => Promise<BackupTaskAcceptedResponse>;
     exportBackup: (backupId: string) => Promise<Response>;
-    restartApplication: () => Promise<AcceptedPowerActionResponse>;
     showRestartOverlay: (value: OperationType) => void;
     sanitizeHtml: (value: SanitizerInput) => string;
     sanitizeAttribute: (value: SanitizerInput) => string;

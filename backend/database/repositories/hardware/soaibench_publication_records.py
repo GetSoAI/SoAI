@@ -31,9 +31,9 @@ def materialize_soaibench_publication_record(
         or not isinstance(canonical, str)
         or not is_strict_int(prepared_at_ms)
     ):
-        raise StateError("SoAIBench publication row is invalid.")
+        raise StateError("SoAI Bench publication row is invalid.")
     if published_at_ms is not None and not is_strict_int(published_at_ms):
-        raise StateError("SoAIBench publication row is invalid.")
+        raise StateError("SoAI Bench publication row is invalid.")
     raw_state = publication.get("state")
     state: Literal["prepared", "published"]
     if raw_state == "prepared":
@@ -41,14 +41,14 @@ def materialize_soaibench_publication_record(
     elif raw_state == "published":
         state = "published"
     else:
-        raise StateError("SoAIBench publication state is invalid.")
+        raise StateError("SoAI Bench publication state is invalid.")
     receipt = publication.get("receipt")
     if receipt is not None and not isinstance(receipt, dict):
-        raise StateError("SoAIBench publication receipt is invalid.")
+        raise StateError("SoAI Bench publication receipt is invalid.")
     if state == "prepared" and (published_at_ms is not None or receipt is not None):
-        raise StateError("Prepared SoAIBench publication row is inconsistent.")
+        raise StateError("Prepared SoAI Bench publication row is inconsistent.")
     if state == "published" and (published_at_ms is None or receipt is None):
-        raise StateError("Published SoAIBench publication row is inconsistent.")
+        raise StateError("Published SoAI Bench publication row is inconsistent.")
     return SoAIBenchPublicationRecord(
         run_id=run_id,
         created_by_user_id=user_id,

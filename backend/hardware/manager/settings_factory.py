@@ -70,7 +70,9 @@ def _compute_hardware_manager_settings(
         monitoring_interval_ms=int(monitoring_interval_ms),
     )
     log_gpu_tool_warnings(gpu_vendor_detection_service)
-    gpu_info_cache_service.invalidate_cache()
+    gpu_info_cache_service.invalidate_cache(
+        owner="hardware.manager.settings", reason="settings_resolved"
+    )
     gpu_vendor_detection_service.invalidate_cache()
     return HardwareManagerSettings(
         enabled=bool(enabled),

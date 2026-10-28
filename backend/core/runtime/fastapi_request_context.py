@@ -22,7 +22,6 @@ def initialize_request_state_fields(request: RequestProtocol) -> None:
     request.state.user = None
     request.state.token_payload = None
     request.state.granted_actions = None
-    request.state.auth_failure_category = None
     request.state.access_state = None
     request.state.openai_api_key_id = None
     request.state.openai_api_key_quota_reservation = None

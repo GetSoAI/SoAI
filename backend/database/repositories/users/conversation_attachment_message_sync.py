@@ -6,9 +6,11 @@ from __future__ import annotations
 import sqlite3
 from typing import TYPE_CHECKING
 
+from core.validation.integers import is_strict_int
 from database.repositories.users.conversation_attachment_commit_sync import (
     sync_commit_attachment_references,
     sync_replace_committed_attachment_parts,
+    sync_restore_unavailable_file_references,
 )
 from database.repositories.users.conversation_attachment_reference_validation import (
     sync_validate_attachment_references,
@@ -74,6 +76,20 @@ def sync_apply_overwrite_attachment_references(
     updated_at_ms: int,
     storage_root: str | None = None,
 ) -> tuple[list[JSONDict], list[JSONDict]]:
+    canonical_messages: list[JSONDict] = []
+    for message in messages:
+        canonical = dict(message)
+        timestamp = message.get("timestamp")
+        if message.get("role") == "user" and is_strict_int(timestamp):
+            canonical["content"] = sync_restore_unavailable_file_references(
+                conn,
+                conv_id=conv_id,
+                created_at_ms=timestamp,
+                message_id=None,
+                content=message.get("content"),
+            )
+        canonical_messages.append(canonical)
+    messages = canonical_messages
     references = extract_message_attachment_references(messages)
     conversation_input_id: str | None = None
     sync_validate_attachment_references(

@@ -3,6 +3,8 @@
 
 import { dom } from '@core/dom/dom.ts';
 import { resolveStatusPreviewDomStateFromMessage } from '@features/chat/assistanteventtimeline/statusPreviewState.ts';
+import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
+import { syncStreamingSpinnerActivityFlags } from '@features/chat/stream/streamMessageSpinnerStatusActivityFlags.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { resolveAssistantMessageParts } from '@features/chat/message/assistantMessageMarkupParts.ts';
 import { RUNNING_ACTIVITY_SUMMARY_ATTRIBUTE, syncRunningActivitySummaryElement } from '@features/chat/message/messageRunningActivitySummaryMarkup.ts';
@@ -11,7 +13,7 @@ import { STREAM_SPINNER_HAS_PREVIEW_ATTRIBUTE, STREAM_SPINNER_PREVIEW_COOLDOWN_M
 import { reconcileStreamingSpinnerStatusSubtree } from '@features/chat/stream/streamMessageSpinnerStatusRuntime.ts';
 import type { RunningActivitySummary } from '@features/chat/toolactivity/runningActivitySummary.ts';
 
-const syncStreamingStatusPreviewAttributes = (message: ChatMessage, messageTextRoot: Element, streaming: boolean): boolean => {
+const syncStreamingStatusPreviewAttributes = (message: ChatMessage, messageTextRoot: Element, streaming: boolean, segments?: readonly MessageSegment[]): boolean => {
     const messageRoot = messageTextRoot.closest('.chat-message');
     if (!(messageRoot instanceof HTMLElement)) {
         return false;
@@ -20,6 +22,7 @@ const syncStreamingStatusPreviewAttributes = (message: ChatMessage, messageTextR
     if (!(actions instanceof HTMLElement)) {
         return false;
     }
+    const activityChanged = segments !== undefined && syncStreamingSpinnerActivityFlags(messageRoot, segments);
     const previewState = resolveStatusPreviewDomStateFromMessage(message);
     const nextStreaming = streaming ? 'true' : 'false';
     const nextHasPreview = streaming && previewState.hasPreview ? 'true' : 'false';
@@ -41,7 +44,7 @@ const syncStreamingStatusPreviewAttributes = (message: ChatMessage, messageTextR
     if (cooldownChanged) {
         actions.setAttribute(STREAM_SPINNER_PREVIEW_COOLDOWN_MS_ATTRIBUTE, nextCooldownMs);
     }
-    const changed = streamingChanged || hasPreviewChanged || textChanged || cooldownChanged;
+    const changed = activityChanged || streamingChanged || hasPreviewChanged || textChanged || cooldownChanged;
     if (changed) {
         reconcileStreamingSpinnerStatusSubtree(messageRoot);
     }

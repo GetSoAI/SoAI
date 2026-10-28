@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import shutil
 import stat
 import uuid
 
@@ -32,9 +31,10 @@ from core.bootstrap.runtime_directory_publication import (
 from core.config.byte_sizes import MIB_BYTES
 from core.errors.exceptions import StateError
 from core.files.windows_reparse_points import is_windows_reparse_point
+from core.filesystem.windows_sharing_conflicts import remove_path_with_sharing_retry
 from core.meta.paths import join_data_abs
 from core.serialization.json import serialize_json_pretty_sorted_strict
-from core.system.commands import run_argv_capture
+from core.system.native_runtime_probes import capture_native_probe, native_probe_budget
 from core.timing.constants import CONTROL_TIMEOUT_SEC
 
 __all__ = ("ensure_ripgrep_installed", "is_ripgrep_installed")
@@ -188,7 +188,7 @@ def ensure_ripgrep_installed(repo_root_path: str) -> str:
             )
         finally:
             if os.path.isdir(staging_directory) and not os.path.islink(staging_directory):
-                shutil.rmtree(staging_directory)
+                remove_path_with_sharing_retry(staging_directory)
         marker = _read_required_marker(install_directory)
         return marker["rg_bin"]
 
@@ -253,7 +253,11 @@ def _require_regular_binary(binary_path: str) -> None:
 
 
 def _require_ripgrep_version(binary_path: str) -> None:
-    result = run_argv_capture([binary_path, "--version"], timeout=CONTROL_TIMEOUT_SEC)
+    result = capture_native_probe(
+        [binary_path, "--version"],
+        budget=native_probe_budget(CONTROL_TIMEOUT_SEC, roots=(binary_path,)),
+        subject="The managed ripgrep version check",
+    )
     first_line = result.stdout.splitlines()[0].strip() if result.stdout else ""
     if result.return_code != 0 or first_line != RIPGREP_VERSION_LINE:
         raise StateError("Managed ripgrep version validation failed.")

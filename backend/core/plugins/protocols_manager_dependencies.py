@@ -50,7 +50,7 @@ if TYPE_CHECKING:
     from core.plugins.protocols_manager_environment import (
         PluginEnvironmentManagerProtocol,
     )
-    from core.runtime.protocols import RuntimeFlagsViewProtocol
+    from core.runtime.protocols import RuntimeFlagsViewProtocol, RuntimeRepairPlaneViewProtocol
     from core.state.protocols import (
         AuthoritativePluginStateTransitionsProtocol,
         StateAggregatorProtocol,
@@ -132,6 +132,8 @@ class PluginManagerInfrastructureDependenciesProtocol(Protocol):
     def lifecycle_publisher(self) -> AuthoritativePluginStateTransitionsProtocol: ...
     @property
     def runtime_flags(self) -> RuntimeFlagsViewProtocol: ...
+    @property
+    def runtime_health(self) -> RuntimeRepairPlaneViewProtocol: ...
     @property
     def lifecycle(self) -> PluginLifecycleProtocol: ...
     @property

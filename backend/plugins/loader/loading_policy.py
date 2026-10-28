@@ -22,6 +22,7 @@ class PluginLoadPolicy:
     catalog_state: str | None
     announce: bool
     publish_failure_state: bool
+    initial_state: PluginRuntimeStateName | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,3 +33,4 @@ class PluginLoadOutcome:
     initial_state: PluginRuntimeStateName
     reason: str
     welcome_message: str | None
+    acquired_instance: PluginInstanceProtocol | None = None

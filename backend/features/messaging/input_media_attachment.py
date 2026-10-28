@@ -135,6 +135,7 @@ async def ingest_messaging_media_attachment(
     if attachment.get("parse_state") == "pending":
         parse_result = await parse_direct_attachment(
             deps=DirectAttachmentParseDependencies(
+                file_content_pool=api_dependencies.file_content_pool,
                 config=api_dependencies.config,
                 files=api_dependencies.files,
                 database_users=api_dependencies.database_users,

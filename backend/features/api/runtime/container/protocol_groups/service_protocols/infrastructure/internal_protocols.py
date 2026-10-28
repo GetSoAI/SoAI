@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
     from core.app.protocols import CommunicationsServicesProtocol
     from core.app.service_groups import HardwareRuntimeServices
+    from core.browser.playwright_session_resources import PlaywrightSessionResources
     from core.events.protocols import EventBusProtocol
     from core.logging.protocols import LoggingManagerProtocol
     from core.messaging.protocols_gateway import MessagingGatewayProtocol
@@ -25,6 +26,9 @@ __all__ = ("InfrastructureServicesProtocol",)
 
 
 class InfrastructureServicesProtocol(Protocol):
+    @property
+    def playwright_sessions(self) -> PlaywrightSessionResources: ...
+
     @property
     def event_bus(self) -> EventBusProtocol: ...
 

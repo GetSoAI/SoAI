@@ -192,7 +192,8 @@ class ChatConversationActionsController implements ChatConversationActionsContra
         }
         const normalizedDraft = sanitizeTitle(renameState.draft);
         const normalizedOriginal = sanitizeTitle(renameState.originalTitle);
-        return normalizedDraft !== normalizedOriginal;
+        const conversation = this.#runtime.state.getConversation(renameState.conversationId);
+        return normalizedDraft !== normalizedOriginal || (conversation !== null && (conversation.titleAutoUpdateAllowed !== false || sanitizeTitle(conversation.title) !== normalizedDraft));
     }
 }
 

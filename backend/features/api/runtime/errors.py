@@ -9,6 +9,8 @@ from fastapi import status
 from fastapi.responses import JSONResponse
 
 from core.errors.error_types import ErrorType
+from core.errors.exceptions import ApiError
+from core.errors.public_projection import apply_public_error_payload
 from core.errors.status_mapping import error_type_to_status_code
 from core.openai.request_requirement_failures import (
     build_openai_request_requirement_failure_details,
@@ -22,6 +24,7 @@ from features.api.runtime.error_response_fields import (
 )
 
 if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
     from core.types.json import JSONDict
 
 __all__ = (
@@ -40,6 +43,7 @@ __all__ = (
     "raise_offline_mode",
     "raise_payload_too_large",
     "raise_precondition_failed",
+    "raise_public_error",
     "raise_rate_limit",
     "raise_server_error",
     "raise_service_unavailable",
@@ -162,6 +166,17 @@ def raise_error_type(
         message,
         extra=extra,
     )
+
+
+def raise_public_error(public_error: ErrorPublicPayload, *, error_type: ErrorType) -> NoReturn:
+    error = ApiError(
+        public_error.message,
+        code=public_error.code,
+        http_status=public_error.http_status or error_type_to_status_code(error_type),
+        trace_id=public_error.trace_id,
+    )
+    apply_public_error_payload(error, public_error)
+    raise error
 
 
 def raise_service_unavailable(

@@ -3,14 +3,9 @@
 
 from __future__ import annotations
 
-from dataclasses import Field
-from typing import ClassVar, Never, Protocol
+from typing import Protocol
 
-__all__ = ("DependenciesDataclassProtocol", "DependencyValueProtocol")
-
-
-class DependenciesDataclassProtocol(Protocol):
-    __dataclass_fields__: ClassVar[dict[str, Field[Never]]]
+__all__ = ("DependencyValueProtocol",)
 
 
 class DependencyValueProtocol(Protocol):

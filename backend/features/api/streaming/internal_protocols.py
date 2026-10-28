@@ -37,7 +37,6 @@ __all__ = (
     "TaskIdContextProtocol",
     "TaskStreamChannelBroadcastProtocol",
     "TaskStreamChannelDeregistrationProtocol",
-    "TaskStreamChannelListenerProtocol",
     "TaskStreamChannelProtocol",
     "TaskStreamChannelPumpProtocol",
     "TaskStreamChannelRegistryProtocol",
@@ -46,10 +45,6 @@ __all__ = (
 
 class TaskStreamChannelDeregistrationProtocol(Protocol):
     async def discard(self, reply_queue: asyncio.Queue[Event]) -> None: ...
-
-
-class TaskStreamChannelListenerProtocol(Protocol):
-    async def unregister_listener(self, listener_id: str) -> None: ...
 
 
 class TaskStreamChannelProtocol(Protocol):

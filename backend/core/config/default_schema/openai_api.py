@@ -25,7 +25,7 @@ def build_openai_api_defaults() -> ConfigDict:
                     "CONTEXT_MARGIN_RATIO": 0.10,
                     "POST_COMPACT_MARGIN_RATIO": 0.35,
                     "RESERVED_OUTPUT_TOKENS": 2048,
-                    "SUMMARY_MAX_TOKENS": 2048,
+                    "SUMMARY_MAX_TOKENS": 4096,
                 },
                 "MAX_OUTPUT_TOKENS": 32_768,
                 "DEFAULT_CONTEXT_WINDOW_TOKENS": 65_536,

@@ -3,24 +3,35 @@
 
 from __future__ import annotations
 
-import asyncio
-import io
 import time
 from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING, Literal
 
-from core.concurrency.cancellation import TaskCancelledError
-from core.concurrency.protocols import CancellationTokenProtocol
 from core.errors.exceptions import ValidationError
-from core.network.download_reservations import (
-    DownloadReservationPlan,
-    flush_download_buffer_with_reservation,
-)
 
 __all__ = (
     "emit_download_progress",
     "emit_final_download_progress",
-    "raise_after_flushing_interrupted_download",
+    "emit_download_activity",
 )
+
+if TYPE_CHECKING:
+    type DownloadActivity = Literal["hashing", "replaying", "downloading", "verifying"]
+    type DownloadActivityCallback = Callable[
+        [DownloadActivity, int, int | None], Awaitable[None] | None
+    ]
+
+
+async def emit_download_activity(
+    callback: DownloadActivityCallback | None,
+    activity: DownloadActivity,
+    processed_bytes: int,
+    total_bytes: int | None,
+) -> None:
+    if callback is not None:
+        result = callback(activity, processed_bytes, total_bytes)
+        if result is not None:
+            await result
 
 
 async def emit_download_progress(
@@ -65,21 +76,3 @@ async def emit_final_download_progress(
         declared_content_length=declared_content_length,
         started_at=started_at,
     )
-
-
-async def raise_after_flushing_interrupted_download(
-    cancellation_token: CancellationTokenProtocol,
-    write_buffer: list[bytes],
-    *,
-    file_handle: io.BufferedWriter,
-    reservation_plan: DownloadReservationPlan,
-) -> None:
-    try:
-        cancellation_token.raise_if_cancelled()
-    except (asyncio.CancelledError, TaskCancelledError, ValidationError):
-        await flush_download_buffer_with_reservation(
-            write_buffer,
-            file_handle=file_handle,
-            reservation_plan=reservation_plan,
-        )
-        raise

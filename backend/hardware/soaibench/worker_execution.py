@@ -103,7 +103,7 @@ async def run_stress(
             summary=summary,
             sample_count=sample_count,
             progress_current=min(95, 10 + sample_count),
-            status_message="SoAIBench stress slice completed.",
+            status_message="SoAI Bench stress slice completed.",
         )
     if latest_result is None:
         await opencl_pool.close()

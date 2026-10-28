@@ -15,9 +15,9 @@
         flex: 0 0 auto;
         display: grid;
         justify-items: center;
-        gap: var(--space-1);
+        gap: var(--space-05);
         min-width: 4rem;
-        padding: var(--space-2) var(--space-1);
+        padding: var(--space-15) var(--space-1);
         border-radius: 0;
         background: var(--assistant-weather-day-surface);
         border: none;

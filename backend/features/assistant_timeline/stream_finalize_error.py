@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from core.errors.payload import ErrorPublicPayload
 from core.logging.trace import get_logger
 from features.assistant_timeline.stream_finalize_context import (
     ChatStreamFinalizeContext,
@@ -28,6 +29,7 @@ async def finalize_chat_stream_error(
     *,
     message: str,
     code: str,
+    public_error: ErrorPublicPayload | None = None,
     flush_deferred_visible_text: bool = True,
 ) -> bool:
     async def finalize_claimed() -> None:
@@ -47,6 +49,7 @@ async def finalize_chat_stream_error(
             message=normalized_message,
             code=normalized_code,
             flush_deferred_visible_text=flush_deferred_visible_text,
+            public_error=public_error,
         )
 
     return await run_chat_stream_terminal_finalization(

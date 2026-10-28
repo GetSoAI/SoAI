@@ -10,6 +10,7 @@ from core.bootstrap.disk_reservation_provider import (
 )
 from core.bootstrap.java_runtime_archive import find_java_binary
 from core.bootstrap.java_runtime_assets import (
+    JAVA_RUNTIME_PROVIDER,
     JAVA_RUNTIME_RELEASE,
     JAVA_RUNTIME_RELEASE_DIR,
     get_java_runtime_assets,
@@ -36,7 +37,7 @@ def _compute_state_dir(repo_root_path: str) -> str:
 
 
 def _compute_install_base(repo_root_path: str) -> str:
-    install_name = f"microsoft-openjdk-{JAVA_RUNTIME_RELEASE_DIR}"
+    install_name = f"{JAVA_RUNTIME_PROVIDER}-{JAVA_RUNTIME_RELEASE_DIR}"
     return os.path.join(_compute_state_dir(repo_root_path), "java", install_name)
 
 
@@ -115,7 +116,7 @@ def ensure_java_runtime_installed(repo_root_path: str) -> tuple[str, str]:
         java_bin = find_java_binary(extracted_root)
         java_home = os.path.abspath(os.path.dirname(os.path.dirname(java_bin)))
         payload = {
-            "provider": "microsoft-openjdk",
+            "provider": JAVA_RUNTIME_PROVIDER,
             "release": JAVA_RUNTIME_RELEASE,
             "platform_id": platform_id,
             "archive_url": asset.url,

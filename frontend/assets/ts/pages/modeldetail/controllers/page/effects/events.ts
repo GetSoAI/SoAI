@@ -7,6 +7,7 @@ import { createModuleLogger } from '@core/runtime/runtimeContext.ts';
 import { unwrap } from '@core/realtime/streammanager/resources/normalizers.ts';
 import { isArray, isObject, isString } from '@core/typeGuards.ts';
 import type { ModelDetailEffectsHost } from '@pages/modeldetail/controllers/page/effects/types.ts';
+import { refreshModelDetailParameters } from '@pages/modeldetail/controllers/page/effects/parameterSnapshotRuntime.ts';
 import { extractModelDetailPayload, isModelDetailStillPresent } from '@pages/modeldetail/controllers/page/mappers.ts';
 import { applyModelDetailMetricsUpdate } from '@pages/modeldetail/widgets/modelDetailMetrics.ts';
 
@@ -32,8 +33,10 @@ const handleModelDetailPluginCollectionUpdate = (host: ModelDetailEffectsHost, p
         if (matchingPlugin && isObject(matchingPlugin)) {
             const nextState = matchingPlugin['state'];
             if (isString(nextState) && host.state.model) {
+                const previousState = host.state.model.pluginStatus;
                 host.state.model = { ...host.state.model, pluginStatus: nextState };
                 host.rendering.updateTestPluginStatusDisplay();
+                if (previousState !== undefined && previousState !== nextState) terminateHandledPromise(refreshModelDetailParameters(host));
             }
         }
     }

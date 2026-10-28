@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import io
+import os
+from collections.abc import Callable
 from tarfile import (
     GNUTYPE_LONGLINK,
     GNUTYPE_LONGNAME,
@@ -14,10 +16,12 @@ from tarfile import (
     TarFile,
     TarInfo,
 )
-from typing import TYPE_CHECKING, Literal, NoReturn
+from typing import TYPE_CHECKING, Literal, NoReturn, override
 
 from core.archives.resource_limits import ArchivePlanningBudget, default_archive_resource_limits
 from core.errors.exceptions import ValidationError
+from core.files.staged_transfer import STAGED_TRANSFER_CHUNK_SIZE, iter_reader_chunks
+from core.filesystem.open_files import open_binary
 
 __all__ = ("ResourceLimitedTarFile", "ResourceLimitedTarInfo")
 
@@ -87,6 +91,8 @@ class ResourceLimitedTarFile(TarFile):
                 "Resource-limited TAR parsing requires its protected member type."
             )
         self.planning_budget = ArchivePlanningBudget(default_archive_resource_limits())
+        self.firstmember: TarInfo | None = None
+        self.progress_check: Callable[[], None] | None = None
         super().__init__(
             name=name,
             mode=mode,
@@ -99,3 +105,43 @@ class ResourceLimitedTarFile(TarFile):
             metadata_bytes=member.size,
             name=member.name or "<TAR extension header>",
         )
+
+    @override
+    def next(self) -> TarInfo | None:
+        progress_check = self.progress_check
+        if progress_check is not None:
+            while self.firstmember is None and self.offset > self.fileobj.tell():
+                progress_check()
+                remaining = self.offset - self.fileobj.tell()
+                if not self.fileobj.read(min(remaining, STAGED_TRANSFER_CHUNK_SIZE)):
+                    break
+            progress_check()
+        return super().next()
+
+    @override
+    def makefile(
+        self, tarinfo: TarInfo, targetpath: str | bytes | os.PathLike[str] | os.PathLike[bytes]
+    ) -> None:
+        progress_check = self.progress_check
+        if progress_check is None:
+            super().makefile(tarinfo, targetpath)
+            return
+        self._extract_regular_file(tarinfo, os.fsdecode(targetpath), progress_check)
+
+    def _extract_regular_file(
+        self, tarinfo: TarInfo, targetpath: str, progress_check: Callable[[], None]
+    ) -> None:
+        progress_check()
+        source = self.extractfile(tarinfo)
+        if source is None:
+            raise ValidationError("Validated TAR file has no readable content.")
+        received = 0
+        with source, open_binary(targetpath, mode="wb") as destination:
+            for chunk in iter_reader_chunks(source.read):
+                progress_check()
+                received += len(chunk)
+                if received > tarinfo.size:
+                    raise ValidationError("TAR file exceeds its declared size.")
+                destination.write(chunk)
+        if received != tarinfo.size:
+            raise ValidationError("TAR file ended before its declared size.")

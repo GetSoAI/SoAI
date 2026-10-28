@@ -55,6 +55,8 @@ export type HardwareModalsTranslationKey =
     | 'hardware.modals.soaibenchHistory.profiles.standard'
     | 'hardware.modals.soaibenchHistory.profiles.stress'
     | 'hardware.modals.soaibenchHistory.reasons.opencl_numerical_mismatch'
+    | 'hardware.modals.soaibenchHistory.reasons.preflight'
+    | 'hardware.modals.soaibenchHistory.reasons.startup'
     | 'hardware.modals.soaibenchHistory.rowCopyUnavailable'
     | 'hardware.modals.soaibenchHistory.staleHardware'
     | 'hardware.modals.soaibenchHistory.statuses.cancelled'

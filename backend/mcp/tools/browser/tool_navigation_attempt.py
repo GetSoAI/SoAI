@@ -7,6 +7,9 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from core.errors.cancellation import raise_cancelled_error
+from mcp.tools.browser.navigation_fallback_goto import (
+    goto_awaiting_error_page_commit,
+)
 from mcp.tools.browser.playwright_error_classification import (
     is_download_starting_error,
     is_interrupted_chrome_internal_navigation_error,
@@ -58,7 +61,12 @@ async def perform_navigation_with_http_fallback(
 ) -> bool:
     download_started = False
     try:
-        await page.goto(primary_url, wait_until=wait_until, timeout=timeout_ms)
+        await goto_awaiting_error_page_commit(
+            page,
+            primary_url,
+            wait_until=wait_until,
+            timeout=timeout_ms,
+        )
     except asyncio.CancelledError as exception:
         raise_cancelled_error(exception)
     except PLAYWRIGHT_OPERATION_EXCEPTIONS as exception:
@@ -81,7 +89,12 @@ async def perform_navigation_with_http_fallback(
             source="MCP browser navigation (http alternative)",
         )
         try:
-            await page.goto(fallback_url, wait_until=wait_until, timeout=timeout_ms)
+            await goto_awaiting_error_page_commit(
+                page,
+                fallback_url,
+                wait_until=wait_until,
+                timeout=timeout_ms,
+            )
         except asyncio.CancelledError as cancellation_exception:
             raise_cancelled_error(cancellation_exception)
         except PLAYWRIGHT_OPERATION_EXCEPTIONS as alternative_error:

@@ -5,6 +5,7 @@ import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
 import type { ParametersData, StreamHandle, StreamSubscription } from '@pages/modeldetail/contracts/modelDetailPageSupport.ts';
 import type { ModelDetailUi } from '@pages/modeldetail/dom.ts';
+import { ModelDetailParameterAuthority } from '@pages/modeldetail/state/ModelDetailParameterAuthorityState.ts';
 
 class ModelDetailSession {
     realtimeCollectionsInitialized = false;
@@ -15,6 +16,7 @@ class ModelDetailSession {
     model: ModelRecord | null = null;
     modelSubscription: StreamSubscription | null = null;
     parameters: ParametersData | null = null;
+    readonly parameterAuthority = new ModelDetailParameterAuthority();
     activeTab = 'overview';
     deletionStream: StreamHandle | null = null;
     metrics: JsonObject | null = null;
@@ -29,6 +31,8 @@ class ModelDetailSession {
         this.listeners = null;
         this.loadError = null;
         this.modelId = modelId;
+        this.parameters = null;
+        this.parameterAuthority.reset();
     }
 }
 

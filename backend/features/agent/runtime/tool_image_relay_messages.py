@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.agent.tool_call_fields import resolve_tool_call_name
 from core.errors.exceptions import ValidationError
 from core.files.content_types import normalize_content_type
 from core.files.inline_image_preparation import (
@@ -15,6 +16,7 @@ from core.files.inline_image_preparation import (
 from core.openai.internal_message_metadata import SOAI_MESSAGE_TYPE_FIELD
 from core.openai.token_accounting import count_prompt_occupancy_async
 from core.serialization.base64_values import decode_base64_ascii
+from core.validation.strings import coerce_trimmed_str_or_empty
 from features.agent.runtime.request_messages import strip_internal_message_metadata
 
 if TYPE_CHECKING:
@@ -38,6 +40,8 @@ TOOL_IMAGE_RELAY_MESSAGE_TYPE: str = "tool_image_relay"
 class ToolImagePayload:
     image_base64: str
     declared_content_type: str | None
+    tool_name: str
+    tool_call_id: str
 
 
 def is_tool_image_relay_message(message: JSONDict) -> bool:
@@ -66,13 +70,14 @@ async def build_tool_image_relay_message_for_prompt(
     base_request_payload: JSONDict,
     message_history: list[JSONDict],
     pending_messages: list[JSONDict],
+    tool_calls: list[JSONDict],
     tool_results: list[JSONValue],
     max_prompt_tokens: int | None,
     max_encoded_chars: int,
     token_estimation_profile: TokenEstimationProfile,
     max_pixels: int = DEFAULT_PROMPT_RELAY_IMAGE_MAX_PIXELS,
 ) -> JSONDict | None:
-    payloads = _collect_tool_image_payloads_from_results(tool_results)
+    payloads = _collect_tool_image_payloads_from_results(tool_calls, tool_results)
     if not payloads:
         return None
     if max_prompt_tokens is None:
@@ -101,7 +106,8 @@ async def build_tool_image_relay_message_for_prompt(
         )
         if part is None:
             continue
-        candidate_message = build_tool_image_relay_message(included_parts + [part])
+        labeled_parts = [_build_tool_image_label_part(payload), part]
+        candidate_message = build_tool_image_relay_message(included_parts + labeled_parts)
         candidate_payload = dict(base_request_payload)
         candidate_payload["messages"] = strip_internal_message_metadata(
             list(message_history) + list(pending_messages) + [candidate_message],
@@ -120,19 +126,34 @@ async def build_tool_image_relay_message_for_prompt(
         prompt_tokens = occupancy.prompt_tokens
         if prompt_tokens > max_prompt_tokens:
             continue
-        included_parts.append(part)
+        included_parts.extend(labeled_parts)
     if not included_parts:
         return None
     return build_tool_image_relay_message(included_parts)
 
 
 def _collect_tool_image_payloads_from_results(
+    tool_calls: list[JSONDict],
     tool_results: list[JSONValue],
 ) -> list[ToolImagePayload]:
     payloads: list[ToolImagePayload] = []
-    for tool_result in tool_results:
-        _collect_tool_image_payloads(tool_result, payloads)
+    for tool_call, tool_result in zip(tool_calls, tool_results, strict=False):
+        _collect_tool_image_payloads(
+            tool_result,
+            payloads,
+            tool_name=resolve_tool_call_name(tool_call),
+            tool_call_id=coerce_trimmed_str_or_empty(tool_call.get("id")),
+        )
     return payloads
+
+
+def _build_tool_image_label_part(payload: ToolImagePayload) -> JSONDict:
+    return {
+        "type": "text",
+        "text": (
+            f"Image returned by tool {payload.tool_name} (tool_call_id: {payload.tool_call_id})."
+        ),
+    }
 
 
 async def _resolve_remaining_image_encoded_chars(
@@ -172,10 +193,18 @@ async def _resolve_remaining_image_encoded_chars(
 def _collect_tool_image_payloads(
     value: JSONValue,
     payloads: list[ToolImagePayload],
+    *,
+    tool_name: str,
+    tool_call_id: str,
 ) -> None:
     if isinstance(value, list):
         for item in value:
-            _collect_tool_image_payloads(item, payloads)
+            _collect_tool_image_payloads(
+                item,
+                payloads,
+                tool_name=tool_name,
+                tool_call_id=tool_call_id,
+            )
         return
     if not isinstance(value, dict):
         return
@@ -185,12 +214,19 @@ def _collect_tool_image_payloads(
             ToolImagePayload(
                 image_base64=image_base64.strip(),
                 declared_content_type=_resolve_declared_content_type(value),
+                tool_name=tool_name,
+                tool_call_id=tool_call_id,
             ),
         )
     for key in sorted(value.keys()):
         if key == "image_base64":
             continue
-        _collect_tool_image_payloads(value.get(key), payloads)
+        _collect_tool_image_payloads(
+            value.get(key),
+            payloads,
+            tool_name=tool_name,
+            tool_call_id=tool_call_id,
+        )
 
 
 def _resolve_declared_content_type(value: JSONDict) -> str | None:

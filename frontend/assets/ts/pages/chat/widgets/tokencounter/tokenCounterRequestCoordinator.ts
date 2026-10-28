@@ -21,6 +21,7 @@ type TokenCounterRequestPayload = {
     openAiRequest: JsonObject;
     draftUserText: string | null;
     draftAttachmentContent: JsonArray;
+    targetInputId?: string | null;
 };
 
 type TokenCounterRequest = {
@@ -28,11 +29,12 @@ type TokenCounterRequest = {
     openAiRequest: JsonObject;
     draftUserText: string | null;
     draftAttachmentContent: JsonArray;
+    targetInputId?: string | null;
     generation: number;
     onFailure: () => void;
 };
 
-const buildTokenCounterRequestPayload = (host: TokenCounterHost, draftText: string): TokenCounterRequestPayload | null => {
+const buildTokenCounterRequestPayload = (host: TokenCounterHost, draftText: string, steeringTargetInputId: string | null): TokenCounterRequestPayload | null => {
     const openAiRequest = cloneJsonObject(host.getRequestParameters());
     const modelId = toTrimmedString(host.getCurrentModel());
     if (!modelId || !host.isModelAvailable(modelId)) {
@@ -42,22 +44,25 @@ const buildTokenCounterRequestPayload = (host: TokenCounterHost, draftText: stri
     const draftUserText = draftText.trim() ? draftText : null;
     const draftAttachmentContent = cloneJsonArray(host.getDraftAttachmentContent());
 
-    return { openAiRequest, draftUserText, draftAttachmentContent };
+    return { openAiRequest, draftUserText, draftAttachmentContent, targetInputId: draftUserText || draftAttachmentContent.length > 0 ? steeringTargetInputId : null };
 };
 
 class TokenCounterRequestCoordinator {
     readonly #host: TokenCounterHost;
+    readonly #getSteeringTargetInputId: () => string | null;
     readonly #ws: TokenCounterWebSocketClient;
     readonly #usageTracker: TokenCounterUsageRateTracker;
     #activeTokenCountRequestId: string | null = null;
     #activeTokenCountConversationId: string | null = null;
     #activeTokenCountModelId: string | null = null;
+    #activeTokenCountTargetInputId: string | null = null;
     #activeTokenCountGeneration = 0;
     #latestTokenCountGeneration = 0;
     #queuedTokenCountRequest: TokenCounterRequest | null = null;
 
-    constructor(options: { host: TokenCounterHost; ws: TokenCounterWebSocketClient; usageTracker: TokenCounterUsageRateTracker }) {
+    constructor(options: { getSteeringTargetInputId: () => string | null; host: TokenCounterHost; ws: TokenCounterWebSocketClient; usageTracker: TokenCounterUsageRateTracker }) {
         this.#host = options.host;
+        this.#getSteeringTargetInputId = options.getSteeringTargetInputId;
         this.#ws = options.ws;
         this.#usageTracker = options.usageTracker;
     }
@@ -66,6 +71,7 @@ class TokenCounterRequestCoordinator {
         this.#activeTokenCountRequestId = null;
         this.#activeTokenCountConversationId = null;
         this.#activeTokenCountModelId = null;
+        this.#activeTokenCountTargetInputId = null;
         this.#activeTokenCountGeneration = 0;
         this.#latestTokenCountGeneration += 1;
         this.#queuedTokenCountRequest = null;
@@ -91,6 +97,7 @@ class TokenCounterRequestCoordinator {
             openAiRequest: inputArguments.openAiRequest,
             draftUserText: inputArguments.draftUserText,
             draftAttachmentContent: inputArguments.draftAttachmentContent,
+            targetInputId: inputArguments.targetInputId ?? null,
             generation: this.#latestTokenCountGeneration,
             onFailure: inputArguments.onFailure
         };
@@ -123,6 +130,7 @@ class TokenCounterRequestCoordinator {
         this.#activeTokenCountRequestId = requestId;
         this.#activeTokenCountConversationId = nextRequest.conversationId;
         this.#activeTokenCountModelId = modelId;
+        this.#activeTokenCountTargetInputId = nextRequest.targetInputId ?? null;
         this.#activeTokenCountGeneration = nextRequest.generation;
 
         const payload = serializeChatTokenCountRequest({
@@ -130,7 +138,8 @@ class TokenCounterRequestCoordinator {
             requestId,
             openAiRequest: nextRequest.openAiRequest,
             draftUserText: nextRequest.draftUserText,
-            draftAttachmentContent: nextRequest.draftAttachmentContent
+            draftAttachmentContent: nextRequest.draftAttachmentContent,
+            targetInputId: nextRequest.targetInputId ?? null
         });
 
         this.#host.runUiTask(`chat:tokenCounter:request:${requestId}`, async (): Promise<void> => {
@@ -165,6 +174,7 @@ class TokenCounterRequestCoordinator {
         this.#activeTokenCountRequestId = null;
         this.#activeTokenCountConversationId = null;
         this.#activeTokenCountModelId = null;
+        this.#activeTokenCountTargetInputId = null;
         this.#activeTokenCountGeneration = 0;
         if (this.#host.isPageTerminating()) {
             this.#queuedTokenCountRequest = null;
@@ -189,6 +199,7 @@ class TokenCounterRequestCoordinator {
         if (normalizeConversationId(this.#host.getCurrentConversationId()) !== conversationId) {
             return false;
         }
+        if (this.#activeTokenCountTargetInputId !== this.#getSteeringTargetInputId()) return false;
         const currentModelId = toTrimmedString(this.#host.getCurrentModel());
         return Boolean(currentModelId) && currentModelId === modelId && this.#host.isModelAvailable(currentModelId);
     }
@@ -222,7 +233,8 @@ class TokenCounterRequestCoordinator {
         if (!this.#isActiveRequestCurrent(event, normalizedRequestId)) {
             return false;
         }
-        if (!this.#usageTracker.setPromptUsageSnapshot(event.usagePreview)) {
+        const applied = this.#activeTokenCountTargetInputId !== null ? this.#usageTracker.setSteeringPreview(event.usagePreview) : this.#usageTracker.setPromptUsageSnapshot(event.usagePreview);
+        if (!applied) {
             this.#clearActiveRequest(normalizedRequestId);
             return false;
         }

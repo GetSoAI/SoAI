@@ -1,9 +1,13 @@
 /* SoAI - Charts feature history chart presentation [frontend/assets/ts/features/charts/presentation/historyChartPresentation.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { scaleAnimationDurationMs } from '@core/animations/speed.ts';
+import { scaleChartAnimationDurationMs } from '@core/animations/chartMotion.ts';
 import { dom } from '@core/dom/dom.ts';
-import { getRequestAnimationFrame } from '@core/environment/public.ts';
+import { errorHandler } from '@core/errorHandler.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { waitForElementAnimations } from '@core/pageTransitions.ts';
+import { scheduleRequiredRender } from '@core/runtime/animationFrames.ts';
 
 const CHART_LOADING_CLASS = 'chart-container--loading';
 const CHART_READY_CLASS = 'chart-container--ready';
@@ -20,6 +24,9 @@ class HistoryChartPresentation {
     readonly #host: HTMLElement;
     #loadSequence = 0;
     #readySequence = 0;
+    #cancelReveal: (() => void) | null = null;
+    #fadeAbort: AbortController | null = null;
+    #fadeAnimation: Animation | null = null;
 
     constructor(host: HTMLElement) {
         this.#host = host;
@@ -33,6 +40,8 @@ class HistoryChartPresentation {
     }
 
     begin(): number {
+        this.#cancelReveal?.();
+        this.#cancelReveal = null;
         this.#loadSequence += 1;
         this.#readySequence = 0;
         const hasVisibleChart = this.#host.classList.contains(CHART_READY_CLASS);
@@ -71,6 +80,12 @@ class HistoryChartPresentation {
     }
 
     #clearTransitionLayers(): void {
+        this.#cancelReveal?.();
+        this.#cancelReveal = null;
+        this.#fadeAbort?.abort();
+        this.#fadeAbort = null;
+        this.#fadeAnimation?.cancel();
+        this.#fadeAnimation = null;
         dom.resolveAll(`.${CHART_TRANSITION_LAYER_CLASS}`, this.#host).forEach((layer) => layer.remove());
     }
 
@@ -113,15 +128,29 @@ class HistoryChartPresentation {
     }
 
     #startOutgoingFade(overlay: HTMLCanvasElement): void {
+        const duration = scaleChartAnimationDurationMs(CHART_TRANSITION_DURATION_MS, overlay);
+        if (duration === 0) {
+            this.#finishOutgoingLayer(overlay);
+            return;
+        }
+        const controller = new AbortController();
         const animation = overlay.animate([{ opacity: 1 }, { opacity: 0 }], {
-            duration: scaleAnimationDurationMs(CHART_TRANSITION_DURATION_MS, overlay),
+            duration,
             easing: 'ease',
             fill: 'forwards'
         });
-        void animation.finished.then(
-            () => this.#finishOutgoingLayer(overlay),
-            () => this.#finishOutgoingLayer(overlay)
-        );
+        this.#fadeAbort = controller;
+        this.#fadeAnimation = animation;
+        const finish = (): void => {
+            if (this.#fadeAbort === controller) this.#fadeAbort = null;
+            if (this.#fadeAnimation === animation) this.#fadeAnimation = null;
+            animation.cancel();
+            this.#finishOutgoingLayer(overlay);
+        };
+        void waitForElementAnimations(overlay, { ensureStarted: false, signal: controller.signal, animations: [animation] }).then(finish, (error) => {
+            if (!isAbortError(error)) errorHandler.warn('HistoryChartPresentation', 'Outgoing chart animation did not complete', ensureError(error));
+            finish();
+        });
     }
 
     #finishOutgoingLayer(overlay: HTMLCanvasElement): void {
@@ -139,8 +168,9 @@ class HistoryChartPresentation {
         if (this.#activeTransitionLayer()) {
             return;
         }
-        const scheduleAnimationFrame = getRequestAnimationFrame();
-        scheduleAnimationFrame(() => {
+        this.#cancelReveal?.();
+        this.#cancelReveal = scheduleRequiredRender(() => {
+            this.#cancelReveal = null;
             if (this.#loadSequence === sequence && this.#readySequence === sequence) {
                 this.#setLoading(false);
             }

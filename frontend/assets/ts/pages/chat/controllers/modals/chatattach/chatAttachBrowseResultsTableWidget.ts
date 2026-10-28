@@ -1,6 +1,8 @@
 /* SoAI - Chat attach modal browse results table widget [frontend/assets/ts/pages/chat/controllers/modals/chatattach/chatAttachBrowseResultsTableWidget.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { captureReorderMotion } from '@core/animations/reorderMotion.ts';
+import { dom } from '@core/dom/dom.ts';
 import { replaceChildrenFromTrustedHtml } from '@core/dom/html.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
@@ -120,7 +122,9 @@ const renderEmptyResults = (container: HTMLElement): void => {
     container.replaceChildren(emptyState);
 };
 
-const renderBrowseResultsTable = (container: HTMLElement, results: readonly ChatAttachBrowseResult[], selectedKey: string | null, sortState: ChatAttachBrowseSortState): void => {
+const resolveResultRowKey = (row: HTMLElement): string | null => row.dataset['resultKey'] ?? null;
+
+const renderBrowseResultsTable = (container: HTMLElement, results: readonly ChatAttachBrowseResult[], selectedKey: string | null, sortState: ChatAttachBrowseSortState, animateReorder: boolean): void => {
     if (results.length === 0) {
         renderEmptyResults(container);
         return;
@@ -130,6 +134,8 @@ const renderBrowseResultsTable = (container: HTMLElement, results: readonly Chat
     const currentWrapper = currentWrapperElement instanceof HTMLElement && currentWrapperElement.classList.contains('chat-attach-modal-results-table-wrap') ? currentWrapperElement : null;
     const scrollTop = currentWrapper === null ? 0 : currentWrapper.scrollTop;
     const scrollLeft = currentWrapper === null ? 0 : currentWrapper.scrollLeft;
+    const currentBody = animateReorder && currentWrapper !== null ? dom.resolve('tbody', currentWrapper) : null;
+    const motion = currentBody instanceof HTMLElement ? captureReorderMotion(currentBody, resolveResultRowKey) : null;
     const wrapper = documentRef.createElement('div');
     wrapper.className = 'chat-attach-modal-results-table-wrap';
     const table = documentRef.createElement('table');
@@ -143,6 +149,7 @@ const renderBrowseResultsTable = (container: HTMLElement, results: readonly Chat
     container.replaceChildren(wrapper);
     wrapper.scrollTop = scrollTop;
     wrapper.scrollLeft = scrollLeft;
+    motion?.play(body);
 };
 
 export { renderBrowseResultsTable };

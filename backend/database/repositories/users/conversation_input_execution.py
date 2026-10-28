@@ -13,7 +13,11 @@ from database.repositories.users.conversation_input_claim_reconciliation import 
     sync_reconcile_abandoned_conversation_input_claims,
 )
 from database.repositories.users.conversation_input_claims import (
+    query_dispatchable_conversation_input_head,
     sync_claim_next_conversation_input,
+)
+from database.repositories.users.conversation_input_execution_settings import (
+    query_conversation_input_execution_settings,
 )
 from database.repositories.users.conversation_input_materialization import (
     sync_materialize_claimed_conversation_input,
@@ -22,7 +26,6 @@ from database.repositories.users.conversation_input_media_ingestion import (
     sync_attach_ingested_input_media,
 )
 from database.repositories.users.conversation_input_queries import (
-    query_conversation_input_execution_settings,
     query_conversation_input_variant_outcomes,
     require_conversation_input_claim,
 )
@@ -56,10 +59,11 @@ class DatabaseConversationInputExecution:
         self.storage_root = resolve_storage_backed_repository_root(deps)
 
     async def get_input_execution_settings(self, *, input_id: str) -> JSONDict:
-        return await self.core.reader.execute_read(
+        execution_settings = await self.core.reader.execute_read(
             query_conversation_input_execution_settings,
             require_input_id(input_id),
         )
+        return execution_settings.model_settings
 
     async def list_input_variant_outcomes(self, *, input_id: str) -> list[JSONDict]:
         return await self.core.reader.execute_read(
@@ -74,11 +78,17 @@ class DatabaseConversationInputExecution:
         server_boot_id: str,
         excluded_conversation_ids: tuple[str, ...] = (),
     ) -> JSONDict | None:
+        normalized_owner = coerce_required_non_empty_str(claim_owner, label="claim_owner")
+        normalized_boot_id = coerce_required_non_empty_str(server_boot_id, label="server_boot_id")
+        if not await self.core.reader.execute_read(
+            query_dispatchable_conversation_input_head, excluded_conversation_ids
+        ):
+            return None
         return await queue_storage_backed_write(
             self.core,
             sync_claim_next_conversation_input,
-            coerce_required_non_empty_str(claim_owner, label="claim_owner"),
-            coerce_required_non_empty_str(server_boot_id, label="server_boot_id"),
+            normalized_owner,
+            normalized_boot_id,
             now_ms(),
             excluded_conversation_ids,
         )

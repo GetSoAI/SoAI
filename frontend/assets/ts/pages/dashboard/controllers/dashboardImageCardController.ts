@@ -7,9 +7,9 @@ import { narrowHTMLElement } from '@core/dom/narrowElement.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
-import { EMPTY_UI_HTML, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
+import { EMPTY_UI_HTML, uiHtml } from '@core/security/uiHtml.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
-import { renderIconSlot } from '@core/ui/icons/view.ts';
+import { renderDashboardTitlebarButton } from '@pages/dashboard/rendering/titlebar/view.ts';
 import { DASHBOARD_ACTION_IMAGE_DELETE, DASHBOARD_ACTION_IMAGE_TOGGLE_FIT, DASHBOARD_ACTION_IMAGE_UPLOAD } from '@pages/dashboard/actions.ts';
 import type { DashboardHost } from '@core/edition/dashboardContribution.ts';
 
@@ -45,16 +45,12 @@ class DashboardImageCardController {
             return EMPTY_UI_HTML;
         }
         const isContain = this.#storage.getDashboardImageCardFit() === 'contain';
-        const fitIcon = getIconSync('fullscreen', { size: 14, strokeWidth: 1.6 });
-        const deleteIcon = getIconSync('close', { size: 14, strokeWidth: 1.5 });
         const fitTitle = isContain ? i18n.t('dashboard.sections.imagecard.fill') : i18n.t('dashboard.sections.imagecard.fit');
         const deleteTitle = i18n.t('dashboard.sections.imagecard.delete');
 
-        const btn = (id: string, action: string, title: string, icon: TrustedHtml, variant: string = 'ui-variant-neutral'): TrustedHtml => {
-            return uiHtml`<button type="button" class="ui-icon-button ui-icon-button--titlebar ${variant}" id="${uiAttr(id)}" data-action="${uiAttr(action)}" aria-label="${uiAttr(title)}" data-tooltip="${uiAttr(title)}">${renderIconSlot(icon)}</button>`;
-        };
-
-        return uiHtml`${btn('imagecard-fit', DASHBOARD_ACTION_IMAGE_TOGGLE_FIT, fitTitle, fitIcon)}${btn('imagecard-delete', DASHBOARD_ACTION_IMAGE_DELETE, deleteTitle, deleteIcon, 'ui-variant-danger')}`;
+        const fit = renderDashboardTitlebarButton({ id: 'imagecard-fit', action: DASHBOARD_ACTION_IMAGE_TOGGLE_FIT, label: fitTitle, icon: 'fullscreen' });
+        const remove = renderDashboardTitlebarButton({ id: 'imagecard-delete', action: DASHBOARD_ACTION_IMAGE_DELETE, label: deleteTitle, icon: 'close', variant: 'ui-variant-danger' });
+        return uiHtml`${fit}${remove}`;
     }
 
     triggerUploadDialog(): void {

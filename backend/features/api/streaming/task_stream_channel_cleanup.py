@@ -6,7 +6,6 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from core.concurrency.queue_ops import drain_queue_to_list
 from core.metrics.keyspace_paths_event_streaming import (
     STREAMING_COUNTER_QUEUE_DOUBLE_FINALIZATION,
 )
@@ -17,14 +16,7 @@ if TYPE_CHECKING:
     from core.logging.protocols import TraceLogger
     from core.metrics.protocols import MetricsManagerProtocol
 
-__all__ = (
-    "drain_channel_reply_queue",
-    "signal_reply_queue_task_done_safe",
-)
-
-
-def drain_channel_reply_queue(reply_queue: asyncio.Queue[Event]) -> int:
-    return len(drain_queue_to_list(reply_queue))
+__all__ = ("signal_reply_queue_task_done_safe",)
 
 
 def signal_reply_queue_task_done_safe(

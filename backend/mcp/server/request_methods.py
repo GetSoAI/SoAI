@@ -6,8 +6,6 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from mcp.registry.internal_protocols import MCPRegistryManagerProtocol
-from mcp.registry.tools_list import handle_tools_list
 from mcp.server.dispatch import handle_mcp_request
 from mcp.server.internal_protocols import (
     MCPBackgroundTaskSurface,
@@ -19,18 +17,8 @@ if TYPE_CHECKING:
 
 __all__ = (
     "handle_mcp_request_method",
-    "list_mcp_tools_method",
     "track_background_task_method",
 )
-
-
-async def list_mcp_tools_method(self: MCPRegistryManagerProtocol, parameters: JSONDict) -> JSONDict:
-    normalized_parameters: JSONDict
-    if isinstance(parameters, dict):
-        normalized_parameters = dict(parameters)
-    else:
-        normalized_parameters = {}
-    return await handle_tools_list(self, normalized_parameters)
 
 
 def track_background_task_method(self: MCPBackgroundTaskSurface, task: asyncio.Task[None]) -> None:

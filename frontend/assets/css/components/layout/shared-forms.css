@@ -2,6 +2,10 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    :where(input:not([type='button'], [type='submit'], [type='reset'], [type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='image'], [type='hidden']), textarea:not(.chat-input), [contenteditable=''], [contenteditable='true'], [contenteditable='plaintext-only']) {
+        transition: var(--text-field-transition);
+    }
+
     :where(input, textarea).form-input {
         width: 100%;
         height: var(--control-height);
@@ -13,13 +17,8 @@
         background-color: var(--text-field-bg);
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
-        box-shadow: var(--glass-shadow-base);
-        color: var(--text-primary);
-        transition:
-            background-color var(--transition-fast),
-            border-color var(--transition-fast),
-            box-shadow var(--transition-fast),
-            color var(--transition-fast);
+        box-shadow: var(--text-field-shadow);
+        color: var(--text-field-color);
     }
 
     :where(input, textarea).form-input:disabled {
@@ -28,20 +27,27 @@
 
     :where(input, textarea).form-input:autofill,
     :where(input, textarea).form-input:-webkit-autofill {
-        -webkit-text-fill-color: var(--text-primary);
+        -webkit-text-fill-color: var(--text-field-color);
         box-shadow:
             0 0 0 1000px var(--text-field-bg) inset,
-            var(--glass-shadow-base);
-    }
-
-    :where(input, textarea).form-input:hover:not(:focus) {
-        border-color: var(--text-field-border-hover);
-        background-color: var(--text-field-bg-hover);
+            var(--text-field-shadow);
     }
 
     :where(input, textarea).form-input::placeholder {
-        color: var(--text-tertiary);
+        color: var(--text-field-color);
     }
+    :where(input, textarea):is(.form-input, .setting-input, .setting-textarea, .wizard-form-input, .glass-input, .ui-inline-text-edit__input, .page-header-filter-input, .model-parameter-input, .model-parameter-textarea, .conversation-item-title-input, .archived-conversation-title-input):not(.searchbar-input, [type='color'], [type='range'], [type='checkbox'], [type='radio']):focus:not(:disabled, [aria-disabled='true']) {
+        --text-field-border: var(--text-field-border-active);
+        --text-field-color: var(--ui-button-neutral-color-hover);
+        --text-field-shadow: var(--text-field-shadow-focus);
+        border-color: var(--text-field-border-active);
+        box-shadow: var(--text-field-shadow-focus);
+    }
+
+    :where(input, textarea):not([type='checkbox'], [type='radio'], [type='range'], [type='color'], :disabled, [aria-disabled='true']):is(:hover, :focus) {
+        --text-field-color: var(--ui-button-neutral-color-hover);
+    }
+
     .ui-required-marker {
         color: var(--accent-primary);
     }

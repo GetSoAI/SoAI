@@ -1,6 +1,7 @@
 /* SoAI - SoAI Bench history modal DOM contracts [frontend/assets/ts/features/hardware/modals/soaibenchhistory/dom.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { captureReorderMotion } from '@core/animations/reorderMotion.ts';
 import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { dom } from '@core/dom/dom.ts';
 import { requireButtonElement, requireTableElement } from '@core/dom/typedElements.ts';
@@ -10,7 +11,7 @@ import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
 import { requireSortableHeaders, resolveSortableAriaSortValue, updateSortableTableIndicators } from '@core/ui/tables/sortableTable.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { HARDWARE_SOAIBENCH_HISTORY_MODAL_ID } from '@features/hardware/modals/constants.ts';
-import { SOAIBENCH_HISTORY_COLUMNS, resolveSoAIBenchHistoryColumnLabel, type SoAIBenchHistoryColumnDefinition } from '@features/hardware/modals/soaibenchhistory/columns.ts';
+import { SOAIBENCH_HISTORY_COLUMNS, resolveSoAIBenchHistoryColumnLabel, type SoAIBenchHistoryColumnDefinition, type SoAIBenchHistorySortColumn } from '@features/hardware/modals/soaibenchhistory/columns.ts';
 import { HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION, HARDWARE_SOAIBENCH_HISTORY_SORT_ACTION } from '@features/hardware/modals/soaibenchhistory/constants.ts';
 import { createHistoryStateRow, patchHistoryTableRows } from '@features/hardware/modals/soaibenchhistory/rowPatching.ts';
 import type { SoAIBenchHistorySortState } from '@features/hardware/modals/soaibenchhistory/sorting.ts';
@@ -44,11 +45,11 @@ const requireLoadingOverlay = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLE
 };
 
 const requireCopyButton = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLElement): HTMLButtonElement => {
-    return requireButtonElement(host, SELECTORS.copyButton, 'SoAIBench history copy button', modalRoot);
+    return requireButtonElement(host, SELECTORS.copyButton, 'SoAI Bench history copy button', modalRoot);
 };
 
 const requireDownloadButton = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLElement): HTMLButtonElement => {
-    return requireButtonElement(host, SELECTORS.downloadButton, 'SoAIBench history download button', modalRoot);
+    return requireButtonElement(host, SELECTORS.downloadButton, 'SoAI Bench history download button', modalRoot);
 };
 
 const requireTableElementForModal = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLElement): HTMLTableElement => {
@@ -59,7 +60,7 @@ const requireContentElement = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLE
     return host.requireHTMLElement(SELECTORS.content, modalRoot);
 };
 
-const createHistoryHeaderCell = (documentRef: Document, column: SoAIBenchHistoryColumnDefinition): HTMLTableCellElement => {
+const createHistoryHeaderCell = (documentRef: Document, column: SoAIBenchHistoryColumnDefinition<SoAIBenchHistorySortColumn | 'gpu'>): HTMLTableCellElement => {
     const label = resolveSoAIBenchHistoryColumnLabel(column.key);
     const header = documentRef.createElement('th');
     header.className = column.initialDirection === 'none' ? 'sortable' : 'sortable is-active';
@@ -128,7 +129,7 @@ const resolveHistoryTableElements = (modalRoot: HTMLElement): HistoryTableElemen
 
 const syncSortIndicators = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLElement, sortState: SoAIBenchHistorySortState): void => {
     updateSortableTableIndicators({
-        headers: requireSortableHeaders(requireTableElementForModal(host, modalRoot), 'SoAIBench history'),
+        headers: requireSortableHeaders(requireTableElementForModal(host, modalRoot), 'SoAI Bench history'),
         activeColumn: sortState.column,
         activeDirection: sortState.direction,
         host
@@ -202,25 +203,38 @@ const createHistoryRunRow = (documentRef: Document, runId: string, index: number
     return row;
 };
 
-const renderHistoryRows = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLElement, rows: readonly SoAIBenchHistoryDisplayRow[], sortState: SoAIBenchHistorySortState, busyRunIds: ReadonlySet<string>): void => {
+const createHistoryValueCell = (documentRef: Document, value: string, statusClassName: string | null = null): HTMLTableCellElement => {
+    const cell = documentRef.createElement('td');
+    if (statusClassName === null) {
+        cell.textContent = value;
+    } else {
+        const badge = documentRef.createElement('span');
+        badge.className = `ui-status-badge ${statusClassName}`;
+        badge.textContent = value;
+        cell.appendChild(badge);
+    }
+    return cell;
+};
+
+const renderHistoryRows = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLElement, rows: readonly SoAIBenchHistoryDisplayRow[], sortState: SoAIBenchHistorySortState, busyRunIds: ReadonlySet<string>, animateReorder: boolean): void => {
     const content = requireContentElement(host, modalRoot);
     const tableElements = resolveHistoryTableElements(modalRoot) ?? createHistoryTableElements();
     const documentRef = getDocument();
     const rowElements = rows.map((row, index) => {
         const rowElement = createHistoryRunRow(documentRef, row.runId, index);
-        for (const column of row.columns) {
-            const cell = documentRef.createElement('td');
-            cell.textContent = column;
-            rowElement.appendChild(cell);
+        for (const [columnIndex, column] of row.columns.entries()) {
+            rowElement.appendChild(createHistoryValueCell(documentRef, column, columnIndex === 2 ? row.statusClassName : null));
         }
         rowElement.appendChild(createActionsCell(documentRef, host, row, busyRunIds.has(row.runId)));
         return rowElement;
     });
+    const motion = animateReorder ? captureReorderMotion(tableElements.rowsElement) : null;
     patchHistoryTableRows(tableElements.rowsElement, rowElements.length ? rowElements : [createHistoryStateRow(documentRef, SOAIBENCH_HISTORY_COLUMNS.length + 1, 'u-text-center u-text-muted', i18n.t('hardware.modals.soaibenchHistory.empty'))]);
     if (!content.contains(tableElements.wrapper)) {
         content.appendChild(tableElements.wrapper);
     }
     syncSortIndicators(host, modalRoot, sortState);
+    motion?.play();
 };
 
-export { createActionsCell, createHistoryHeaderCell, createHistoryRunRow, renderHistoryRows, resetHistoryState, setFooterActionsDisabled, setLoadingVisible, setRunActionsDisabled, syncSortIndicators };
+export { createActionsCell, createHistoryHeaderCell, createHistoryRunRow, createHistoryValueCell, renderHistoryRows, resetHistoryState, setFooterActionsDisabled, setLoadingVisible, setRunActionsDisabled, syncSortIndicators };

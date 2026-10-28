@@ -30,6 +30,7 @@ def reset_agent_runtime_context_fields(context: RequestContext) -> None:
     context.agent_turn_id = None
     context.agent_turn_scope = None
     context.agent_turn_execution_token = None
+    context.agent_prompt_replay_snapshot = None
     context.agent_iteration_index = None
     context.agent_parent_turn_id = None
     context.agent_parent_tool_call_id = None

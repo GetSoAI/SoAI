@@ -19,9 +19,11 @@ def build_read_audio_tool_definitions() -> dict[str, JSONDict]:
         "read_audio": {
             "title": "Read Audio",
             "description": (
-                "Read audio for model analysis using Whisper plus local file metadata. "
-                "Returns transcript text, timing, source/container metadata, speech pacing, "
-                "silence gaps, and Whisper confidence diagnostics."
+                "Read audio for model analysis with a local speech-to-text model provided by "
+                "an installed plugin, plus local file metadata. Returns transcript text, timing, "
+                "source/container metadata, speech pacing, silence gaps, and speech model "
+                "confidence diagnostics when the model reports them. If speech-to-text is not "
+                "set up, the error explains which plugin backend or model to install."
             ),
             "icons": [build_tool_icon_entry(ICON_AUDIO)],
             "input_schema": {
@@ -44,16 +46,12 @@ def build_read_audio_tool_definitions() -> dict[str, JSONDict]:
                     },
                     "model": {
                         "type": "string",
-                        "description": "Whisper model size (default: base)",
-                        "enum": [
-                            "tiny",
-                            "base",
-                            "small",
-                            "medium",
-                            "large",
-                            "large-v2",
-                            "large-v3",
-                        ],
+                        "description": (
+                            "Local speech-to-text model. Omit to use the speech model setting. "
+                            "Accepts 'auto' (first installed local model), a Whisper size "
+                            "(tiny, base, small, medium, large, large-v2, large-v3), or an "
+                            "installed model ID."
+                        ),
                     },
                     "language": {
                         "type": "string",
@@ -70,8 +68,8 @@ def build_read_audio_tool_definitions() -> dict[str, JSONDict]:
                     "include_word_timestamps": {
                         "type": "boolean",
                         "description": (
-                            "Include word-level timestamps and probabilities when Whisper "
-                            "provides them (default: false)."
+                            "Include word-level timestamps and probabilities when the speech "
+                            "model provides them (default: false)."
                         ),
                     },
                 },
@@ -114,8 +112,9 @@ def build_read_audio_tool_definitions() -> dict[str, JSONDict]:
                     "whisper_diagnostics": {
                         "type": "object",
                         "description": (
-                            "Whisper confidence, no-speech, compression, temperature, and "
-                            "per-segment diagnostic aggregates."
+                            "Speech model confidence, no-speech, compression, temperature, and "
+                            "per-segment diagnostic aggregates; values the model does not report "
+                            "are null."
                         ),
                     },
                     "model_notes": {

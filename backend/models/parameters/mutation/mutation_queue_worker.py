@@ -19,7 +19,7 @@ from core.concurrency.queue_race import (
 )
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import ServiceUnavailableError
+from core.errors.exceptions import ServiceUnavailableError, SoAIError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import UNEXPECTED_RUNTIME_EXCEPTIONS
 from core.logging.protocols import LoggerProtocol
@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 __all__ = ("run_mutation_queue_worker",)
 
 OPERATION = "models.parameters.mutation.mutation_queue_worker.process_mutation"
+SETTLED_MUTATION_FAILURES: tuple[type[Exception], ...] = (SoAIError, *RECOVERABLE_EXCEPTIONS)
 
 
 async def run_mutation_queue_worker(
@@ -103,7 +104,7 @@ async def run_mutation_queue_worker(
                 if not future.done():
                     future.set_exception(exception)
                 raise
-            except RECOVERABLE_EXCEPTIONS as exception:
+            except SETTLED_MUTATION_FAILURES as exception:
                 log_handled_exception(
                     logger,
                     exception,

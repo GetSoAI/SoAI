@@ -2,15 +2,13 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
+import { canCheckPluginBackend, canUpdatePluginBackend } from '@core/plugins/backendUpdates.ts';
 import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
-import { errorHandler } from '@core/errorHandler.ts';
-import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import type { TaskOperationPanel } from '@core/tasks/operationpanel/service.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
-import { beginLoadingButton, clearLoadingButtonIfNeeded } from '@core/ui/loadingbuttons/service.ts';
-import type { PluginBackendUpdatesResponse } from '@core/api/contracts/pluginManagementContracts.ts';
+import { BackendUpdateComparison } from '@features/plugins/modals/backend/managebackendmodal/backendUpdateComparison.ts';
 import { MANAGE_BACKEND_MODAL_ID } from '@features/plugins/modals/backendModals.ts';
 import { startManageBackendInstall, startManageBackendUninstall, startManageBackendUpdate, type ManageBackendOperationDependencies } from '@features/plugins/modals/backend/managebackendmodal/backendOperations.ts';
 import { attachManageBackendOperationPanel, detachManageBackendOperationPanel } from '@features/plugins/modals/backend/managebackendmodal/operations.ts';
@@ -18,17 +16,19 @@ import { clearManageState, createManageInitialState } from '@features/plugins/mo
 import type { BackendManagerDependencies, ManageState } from '@features/plugins/modals/backend/managebackendmodal/types.ts';
 import { confirmManageBackendUninstall } from '@features/plugins/modals/backend/managebackendmodal/uninstallConfirmation.ts';
 import { loadManageBackendVariants } from '@features/plugins/modals/backend/managebackendmodal/variants.ts';
-import { clearManageBackendModalView, renderManageBackendInfo, renderManageBackendWarning, resetManageBackendButtons, setManageBackendButtonsDisabled, showManageBackendNoUpdateAvailable, showManageBackendUpdateAvailable, syncManageBackendFooterActions } from '@features/plugins/modals/backend/managebackendmodal/view.ts';
+import { clearManageBackendModalView, renderManageBackendInfo, renderManageBackendWarning, resetManageBackendButtons, setManageBackendButtonsDisabled, syncManageBackendFooterActions } from '@features/plugins/modals/backend/managebackendmodal/view.ts';
 
 class ManageBackendModalManager {
     readonly modalId = MANAGE_BACKEND_MODAL_ID;
     readonly #host: BackendManagerDependencies['host'];
-    readonly #updateCheckToken = new SequenceToken();
+    #variantAbort: AbortController | null = null;
     readonly #variantLoadToken = new SequenceToken();
     readonly #operationToken = new SequenceToken();
     protected state: ManageState;
     #dependencies: BackendManagerDependencies;
     #operationPanel: TaskOperationPanel | null = null;
+    #pendingCatalogRefresh = false;
+    readonly #comparison: BackendUpdateComparison;
 
     constructor(dependencies: BackendManagerDependencies) {
         if (!dependencies.host) {
@@ -44,6 +44,7 @@ class ManageBackendModalManager {
         this.#host = dependencies.host;
         this.#dependencies = dependencies;
         this.state = createManageInitialState();
+        this.#comparison = new BackendUpdateComparison(dependencies, this.state, this.modalId, this.#reconcileCatalogVariants);
     }
 
     openInstallBackendModal = (plugin: PluginRecord): void => {
@@ -59,7 +60,7 @@ class ManageBackendModalManager {
             return;
         }
 
-        this.#updateCheckToken.invalidate();
+        this.#comparison.dispose();
         if (mode === 'install' && this.#host.policy.isPluginPermanentlyDisabled(plugin)) {
             this.#host.policy.notifyPluginIncompatible(plugin);
             return;
@@ -73,15 +74,21 @@ class ManageBackendModalManager {
             return;
         }
 
+        this.#variantLoadToken.invalidate();
+        this.#variantAbort?.abort();
         this.#operationToken.invalidate();
+        this.#pendingCatalogRefresh = false;
         this.state.currentPlugin = plugin;
         this.state.updateInfo = null;
         this.state.backendVariantsReady = false;
+        this.state.backendVariantsLoading = false;
+        this.state.backendVariantSaving = false;
+        this.state.operationActive = false;
         this.#host.status.setCurrentManagingPlugin(plugin);
         this.#host.status.setCurrentUpdateInfo(null);
-        const variantToken = this.#variantLoadToken.next();
 
         const modalRoot = this.#host.view.modals.requireElement(this.modalId);
+        this.#host.view.setDataAttribute(modalRoot, 'pluginName', plugin.name);
         const title = this.#host.view.requireHTMLElement(modalUiSelector(this.modalId, 'title'), modalRoot);
         this.#host.view.updateText(title, mode === 'install' ? i18n.t('plugins.modal.installBackend.titleFormat', { plugin: this.#host.operations.formatPluginName(String(plugin.name)) }) : i18n.t('plugins.modal.manageBackend.title'));
 
@@ -91,15 +98,31 @@ class ManageBackendModalManager {
         renderManageBackendWarning(this.#dependencies, this.modalId, modalRoot, plugin);
         setManageBackendButtonsDisabled({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, modalRoot, true);
         if (hasBackendAction) {
-            terminateHandledPromise(loadManageBackendVariants({ ...this.#dependencies, state: this.state, variantLoadToken: this.#variantLoadToken }, this.modalId, modalRoot, plugin, variantToken));
+            this.#loadVariants(modalRoot, plugin);
         }
         this.#operationPanel = attachManageBackendOperationPanel(this.#operationPanel, this.modalId, String(plugin.name));
         this.#host.view.modals.open(this.modalId);
         this.#host.status.subscribeModalLedUpdates();
+        this.#comparison.bind();
+    }
+
+    #loadVariants(modalRoot: HTMLElement, plugin: PluginRecord): void {
+        const variantToken = this.#variantLoadToken.next();
+        this.#variantAbort?.abort();
+        const abort = new AbortController();
+        this.#variantAbort = abort;
+        terminateHandledPromise(loadManageBackendVariants({ ...this.#dependencies, state: this.state, signal: abort.signal, variantLoadToken: this.#variantLoadToken, invalidateComparison: () => this.#comparison.invalidate(), flushCatalogRefresh: this.#flushCatalogRefresh }, this.modalId, modalRoot, plugin, variantToken));
+    }
+
+    handleRetryBackendVariants(): void {
+        const plugin = this.state.currentPlugin;
+        if (!plugin || this.state.operationActive || this.state.backendVariantsLoading || this.state.backendVariantSaving || !this.#host.catalog.isFresh()) return;
+        this.#refreshAfterOperation(plugin);
     }
 
     async handleCheckBackendUpdate(): Promise<void> {
-        if (!this.state.currentPlugin) {
+        if (this.state.operationActive || this.#comparison.checking) return;
+        if (!this.state.currentPlugin?.name) {
             return;
         }
         if (!this.state.backendVariantsReady) {
@@ -110,6 +133,11 @@ class ManageBackendModalManager {
         const modalRoot = this.#host.view.modals.requireElement(this.modalId);
         const checkButton = this.#host.view.requireHTMLElement(modalUiSelector(this.modalId, 'check-update'), modalRoot);
         const mode = this.#host.view.dom.getData(checkButton, 'mode');
+        const current = this.#host.catalog.getPlugin(this.state.currentPlugin.name);
+        if (!current || !this.#host.catalog.isFresh()) return;
+        const access = this.#host.policy.backendUpdateAccess(current);
+        if (!(mode === 'update' ? canUpdatePluginBackend(current, access) : canCheckPluginBackend(access))) return;
+        this.state.currentPlugin = current;
         if (mode === 'update') {
             const plugin = this.state.currentPlugin;
             if (plugin) {
@@ -118,84 +146,14 @@ class ManageBackendModalManager {
             return;
         }
         if (mode === 'check') {
-            await this.#checkForBackendUpdate();
+            await this.#comparison.check();
             return;
         }
         throw new Error('Backend update button requires a valid mode');
     }
 
-    async #checkForBackendUpdate(): Promise<void> {
-        const currentPlugin = this.state.currentPlugin;
-        if (!currentPlugin) {
-            return;
-        }
-
-        const token = this.#updateCheckToken.next();
-
-        const modalRoot = this.#host.view.modals.requireElement(this.modalId);
-        const checkButtonCandidate = this.#host.view.requireHTMLElement(modalUiSelector(this.modalId, 'check-update'), modalRoot);
-        if (!(checkButtonCandidate instanceof HTMLButtonElement)) {
-            throw new TypeError('Manage backend update check requires an HTMLButtonElement');
-        }
-        const checkButton = checkButtonCandidate;
-        setManageBackendButtonsDisabled({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, modalRoot, true);
-        beginLoadingButton(checkButton);
-
-        let response: PluginBackendUpdatesResponse;
-        try {
-            response = await this.#host.operations.checkUpdates();
-        } catch (error) {
-            const runtimeError = ensureError(error);
-            errorHandler.error('ManageBackendModalManager', i18n.t('plugins.notifications.updateCheckFailed'), runtimeError);
-            this.#host.operations.showNotification(i18n.t('plugins.notifications.updateCheckFailed'), 'error');
-            throw ensureError(error);
-        } finally {
-            if (this.#updateCheckToken.isActive(token)) {
-                setManageBackendButtonsDisabled({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, modalRoot, !this.state.backendVariantsReady);
-                clearLoadingButtonIfNeeded(checkButton);
-            }
-        }
-
-        if (!this.#updateCheckToken.isActive(token)) {
-            return;
-        }
-        if (this.state.currentPlugin?.name !== currentPlugin.name) {
-            return;
-        }
-
-        const info = response[String(currentPlugin.name)] ?? null;
-        this.state.updateInfo = info;
-        this.#host.status.setCurrentUpdateInfo(info);
-
-        if (info?.updateAvailable) {
-            showManageBackendUpdateAvailable(
-                {
-                    host: this.#host,
-                    classNames: this.#dependencies.classNames,
-                    state: this.state,
-                    security: this.#dependencies.security
-                },
-                this.modalId,
-                modalRoot,
-                info
-            );
-            return;
-        }
-
-        this.#host.operations.showNotification(i18n.t('plugins.notifications.noUpdates'), 'info');
-        showManageBackendNoUpdateAvailable(
-            {
-                host: this.#host,
-                classNames: this.#dependencies.classNames,
-                state: this.state,
-                security: this.#dependencies.security
-            },
-            this.modalId,
-            modalRoot
-        );
-    }
-
     handleStartBackendInstall(): void {
+        if (this.state.operationActive || this.#comparison.checking) return;
         const plugin = this.state.currentPlugin;
         if (!plugin) {
             return;
@@ -208,6 +166,7 @@ class ManageBackendModalManager {
     }
 
     async handleUninstallBackend(): Promise<void> {
+        if (this.state.operationActive || this.#comparison.checking) return;
         const plugin = this.state.currentPlugin;
         if (!plugin?.name) {
             return;
@@ -222,7 +181,7 @@ class ManageBackendModalManager {
         if (!confirmed) {
             return;
         }
-        if (!this.#operationToken.isActive(modalSessionToken) || this.state.currentPlugin?.name !== plugin.name || !this.state.backendVariantsReady) {
+        if (!this.#operationToken.isActive(modalSessionToken) || this.state.currentPlugin?.name !== plugin.name || !this.state.backendVariantsReady || this.state.operationActive || this.#comparison.checking) {
             return;
         }
 
@@ -230,12 +189,29 @@ class ManageBackendModalManager {
     }
 
     #operationDependencies(): ManageBackendOperationDependencies {
-        return { ...this.#dependencies, modalId: this.modalId, operationToken: this.#operationToken, state: this.state, refreshAfterOperation: this.#refreshAfterOperation };
+        return { ...this.#dependencies, modalId: this.modalId, operationToken: this.#operationToken, state: this.state, refreshAfterOperation: this.#refreshAfterOperation, flushCatalogRefresh: this.#flushCatalogRefresh };
     }
 
+    #reconcileCatalogVariants = (backendChanged: boolean): void => {
+        if (backendChanged) this.#pendingCatalogRefresh = true;
+        this.#flushCatalogRefresh();
+    };
+
+    #flushCatalogRefresh = (): void => {
+        const plugin = this.state.currentPlugin;
+        if (!this.#pendingCatalogRefresh || !plugin?.name || this.state.operationActive || this.state.backendVariantsLoading || this.state.backendVariantSaving || !this.#host.catalog.isFresh() || !this.#host.catalog.getPlugin(plugin.name)) return;
+        this.#refreshAfterOperation(plugin);
+    };
+
     #refreshAfterOperation = (plugin: PluginRecord): void => {
-        if (this.state.currentPlugin?.name !== plugin.name) {
+        if (!plugin.name || this.state.currentPlugin?.name !== plugin.name) {
             return;
+        }
+        this.#pendingCatalogRefresh = false;
+        const currentPlugin = this.#host.catalog.getPlugin(plugin.name);
+        if (currentPlugin) {
+            plugin = currentPlugin;
+            this.state.currentPlugin = currentPlugin;
         }
         const modalRoot = this.#host.view.modals.requireElement(this.modalId);
         this.state.updateInfo = null;
@@ -247,12 +223,12 @@ class ManageBackendModalManager {
         renderManageBackendWarning(this.#dependencies, this.modalId, modalRoot, plugin);
         setManageBackendButtonsDisabled({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, modalRoot, true);
         if (hasBackendAction) {
-            const variantToken = this.#variantLoadToken.next();
-            terminateHandledPromise(loadManageBackendVariants({ ...this.#dependencies, state: this.state, variantLoadToken: this.#variantLoadToken }, this.modalId, modalRoot, plugin, variantToken));
+            this.#loadVariants(modalRoot, plugin);
         }
     };
 
     #clearModalState(): void {
+        this.#pendingCatalogRefresh = false;
         clearManageBackendModalView({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, this.#host.view.modals.requireElement(this.modalId));
         clearManageState(this.state);
         this.#host.status.setCurrentManagingPlugin(null);
@@ -260,8 +236,10 @@ class ManageBackendModalManager {
     }
 
     onModalClosed(): void {
-        this.#updateCheckToken.invalidate();
+        this.#comparison.dispose();
         this.#variantLoadToken.invalidate();
+        this.#variantAbort?.abort();
+        this.#variantAbort = null;
         this.#operationToken.invalidate();
         this.#host.status.unsubscribeModalLedUpdates();
         this.#operationPanel = detachManageBackendOperationPanel(this.#operationPanel);
@@ -269,7 +247,10 @@ class ManageBackendModalManager {
     }
 
     disposeForPageDestroy(): void {
+        this.#comparison.dispose();
         this.#variantLoadToken.invalidate();
+        this.#variantAbort?.abort();
+        this.#variantAbort = null;
         this.#operationToken.invalidate();
         this.#operationPanel = detachManageBackendOperationPanel(this.#operationPanel);
         this.#clearModalState();

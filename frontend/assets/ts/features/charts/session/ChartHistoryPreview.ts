@@ -6,7 +6,7 @@ import { clampNumber } from '@core/primitives/clampNumber.ts';
 import type { ChartHistoryStatus } from '@features/charts/chartTypes.ts';
 import type { RenderGeometry } from '@features/charts/rendering/renderingModels.ts';
 import type { ChartConfigurationState, ChartViewportState } from '@features/charts/session/chartState.ts';
-import { easeOutCubic } from '@features/charts/viewport/easing.ts';
+import { easeOutCubic } from '@core/animations/chartMotion.ts';
 
 interface HistoryRevealSpan {
     fromTs: number;

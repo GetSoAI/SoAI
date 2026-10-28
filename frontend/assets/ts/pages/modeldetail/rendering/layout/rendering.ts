@@ -13,7 +13,7 @@ const MODEL_DETAIL_FACT_CLASS = 'modeldetail-fact';
 const renderCopyButton = (sourceId: string, label: string): string => {
     const copyLabel = `${i18n.t('common.copy')}: ${label}`;
     const icon = renderIconSlot(getIconSync('copy', { size: 14, strokeWidth: 1.5 }));
-    return `<button type="button" class="ui-icon-button ui-icon-button--xs ui-variant-ghost modeldetail-copy-button" data-action="${ACTION_COPY_MODEL_DETAIL_VALUE}" data-copy-source="${sourceId}" ${renderLabelAttributes(copyLabel).html}>${icon.html}</button>`;
+    return `<button type="button" class="ui-icon-button ui-icon-button-small modeldetail-copy-button" data-action="${ACTION_COPY_MODEL_DETAIL_VALUE}" data-copy-source="${sourceId}" ${renderLabelAttributes(copyLabel).html}>${icon.html}</button>`;
 };
 
 const renderSpecRow = (options: { id?: string | undefined; label: string; value?: string | undefined; tooltip?: string | undefined; labelClassName?: string | undefined; valueClassName?: string | undefined; copyable?: boolean | undefined; hidden?: boolean | undefined; trailing?: string | undefined }): string => {

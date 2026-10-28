@@ -18,6 +18,7 @@ from core.hardware.soaibench_workloads import (
 )
 from core.types.json import JSONDict
 from hardware.soaibench.errors import SoAIBenchUnsupported
+from hardware.soaibench.opencl_memory_budget import opencl_buffer_capacity_bytes
 from hardware.soaibench.opencl_program import (
     enqueue_kernel,
     finish_queue,
@@ -34,15 +35,10 @@ if TYPE_CHECKING:
 __all__ = (
     "DEFAULT_ELEMENT_COUNT",
     "FLOAT_SIZE_BYTES",
-    "KERNEL_OPERATION_ESTIMATE",
     "SoAIBenchPhaseResult",
     "execute_opencl_phase",
     "require_standard_memory_capability",
 )
-
-KERNEL_OPERATION_ESTIMATE = 8
-MAX_DEVICE_MEMORY_PERCENT = 72
-MAX_ALLOC_MEMORY_PERCENT = 85
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,12 +65,18 @@ def execute_opencl_phase(
     summary_prefix: str,
     element_count: int = DEFAULT_ELEMENT_COUNT,
     synchronize_each_repeat: bool = False,
+    maximum_dispatch_elements: int | None = None,
     initialization_kernel_name: str | None = None,
     require_exact_element_count: bool = False,
     stress: bool = False,
     session: OpenCLExecutionSession | None = None,
 ) -> SoAIBenchPhaseResult:
     _validate_workload_shape(rounds=rounds, repeats=repeats, element_count=element_count)
+    if maximum_dispatch_elements is not None and maximum_dispatch_elements < 1:
+        raise SoAIBenchUnsupported(
+            reason="opencl_workload_invalid",
+            message="OpenCL native dispatch element count must be positive.",
+        )
     owned_session = session is None
     execution_session = session or OpenCLExecutionSession(identity)
     started = time.monotonic()
@@ -105,9 +107,21 @@ def execute_opencl_phase(
 
         def run_batch(batch_dispatches: int) -> None:
             for _repeat in range(batch_dispatches):
-                enqueue_kernel(runtime, kernel, resolved_element_count)
-                if synchronize_each_repeat:
-                    finish_queue(runtime)
+                if maximum_dispatch_elements is None:
+                    enqueue_kernel(runtime, kernel, resolved_element_count)
+                    if synchronize_each_repeat:
+                        finish_queue(runtime)
+                else:
+                    for global_offset in range(
+                        0, resolved_element_count, maximum_dispatch_elements
+                    ):
+                        enqueue_kernel(
+                            runtime,
+                            kernel,
+                            min(maximum_dispatch_elements, resolved_element_count - global_offset),
+                            global_offset_value=global_offset,
+                        )
+                        finish_queue(runtime)
             if not synchronize_each_repeat:
                 finish_queue(runtime)
 
@@ -148,6 +162,11 @@ def execute_opencl_phase(
                 f"{summary_prefix}_requested_elements": element_count,
                 f"{summary_prefix}_allocation_bytes": buffer_size_bytes,
                 f"{summary_prefix}_checksum_sample_count": len(positions),
+                f"{summary_prefix}_native_dispatch_elements": (
+                    min(maximum_dispatch_elements, resolved_element_count)
+                    if maximum_dispatch_elements is not None
+                    else resolved_element_count
+                ),
                 "queue_api": runtime.queue_api,
                 "match_basis": runtime.match_basis,
                 "opencl_platform_name": runtime.platform_name,
@@ -172,32 +191,28 @@ def _resolve_element_count(
     *,
     require_exact: bool,
 ) -> int:
-    max_elements = min(
-        _memory_budget_elements(runtime.global_mem_bytes, MAX_DEVICE_MEMORY_PERCENT),
-        _memory_budget_elements(runtime.max_alloc_bytes, MAX_ALLOC_MEMORY_PERCENT),
+    max_elements = (
+        opencl_buffer_capacity_bytes(runtime.global_mem_bytes, runtime.max_alloc_bytes)
+        // FLOAT_SIZE_BYTES
     )
     if requested_element_count <= max_elements:
         return requested_element_count
     if require_exact:
         raise SoAIBenchUnsupported(
             reason="opencl_memory_insufficient",
-            message="OpenCL device memory limits are too small for SoAIBench.",
+            message="OpenCL device memory limits are too small for SoAI Bench.",
         )
     aligned_elements = _align_down(max_elements, ELEMENT_ALIGNMENT)
     if aligned_elements >= DEFAULT_ELEMENT_COUNT:
         return aligned_elements
     raise SoAIBenchUnsupported(
         reason="opencl_memory_insufficient",
-        message="OpenCL device memory limits are too small for SoAIBench.",
+        message="OpenCL device memory limits are too small for SoAI Bench.",
     )
 
 
 def require_standard_memory_capability(runtime: OpenCLRuntime) -> None:
     _resolve_element_count(runtime, MEMORY_ELEMENTS, require_exact=True)
-
-
-def _memory_budget_elements(memory_bytes: int, percent: int) -> int:
-    return (memory_bytes * percent // 100) // FLOAT_SIZE_BYTES
 
 
 def _align_down(value: int, alignment: int) -> int:

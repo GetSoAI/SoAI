@@ -6,9 +6,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from core.errors.exception_coercion import coerce_to_soai_error
-from core.errors.exception_logging import log_exception
-from core.logging.protocols import LoggerProtocol
+from core.errors.public_projection import project_public_error
 from core.orchestrator.protocols_lifecycle import InferenceAdmissionReceipt
 from features.api.routes.system.events.internal_protocols import (
     OpenAiWsErrorPayloadBuilder,
@@ -26,7 +24,6 @@ if TYPE_CHECKING:
 __all__ = (
     "enqueue_openai_ws_reply_channel_unavailable",
     "enqueue_openai_ws_runner_error_payload",
-    "log_and_enqueue_openai_ws_runner_error",
     "openai_ws_detach_event_is_set",
     "resolve_openai_ws_reply_queue_or_enqueue_unavailable",
 )
@@ -51,7 +48,7 @@ def enqueue_openai_ws_runner_error_payload(
         queue,
         build_error_payload(
             run_id=run_id,
-            message=str(coerced),
+            message=project_public_error(coerced).message,
             code=str(coerced.code),
             task_id=task_id,
         ),
@@ -105,40 +102,3 @@ def resolve_openai_ws_reply_queue_or_enqueue_unavailable(
         message,
     )
     return None
-
-
-def log_and_enqueue_openai_ws_runner_error(
-    *,
-    exception: BaseException,
-    operation: str,
-    logger: LoggerProtocol,
-    log_message: str,
-    trace_id: str | None,
-    detach_event: asyncio.Event | None,
-    enqueue_warning_tracker: EnqueueWarningTracker,
-    queue: asyncio.Queue[JSONDict],
-    warn_label: str,
-    build_error_payload: OpenAiWsErrorPayloadBuilder,
-    run_id: str,
-    task_id: str | None,
-) -> None:
-    if openai_ws_detach_event_is_set(detach_event):
-        return
-    coerced = coerce_to_soai_error(exception, operation=operation)
-    log_exception(
-        logger,
-        exception,
-        message=log_message,
-        operation=operation,
-        trace_id=trace_id,
-        level="error",
-    )
-    enqueue_openai_ws_runner_error_payload(
-        coerced=coerced,
-        enqueue_warning_tracker=enqueue_warning_tracker,
-        queue=queue,
-        warn_label=warn_label,
-        build_error_payload=build_error_payload,
-        run_id=run_id,
-        task_id=task_id,
-    )

@@ -12,11 +12,16 @@ from core.conversations.conversation_message_write_result import (
     ConversationMessageWriteResult,
 )
 from core.errors.exceptions import StateError, ValidationError
+from core.serialization.json import serialize_json_compact_stable_strict
+from core.serialization.json_parsing import parse_json_value
 from core.timing.epoch import epoch_ms
 from core.types.json import JSONDict
 from core.validation.epoch import require_unix_epoch_ms
 from core.validation.integers import is_strict_int
 from database.core.query_execution import sync_fetch_one_as_dict
+from database.repositories.users.conversation_attachment_commit_sync import (
+    sync_restore_unavailable_file_references,
+)
 from database.repositories.users.conversation_ownership import ensure_conversation_owned
 from database.repositories.users.conversation_versioning import (
     sync_bump_conversation_last_modified_at_ms,
@@ -132,6 +137,15 @@ def sync_resubmit_user_message_by_cursor(
         user_id=user_id,
         where_sql="message.created_at_ms = ? AND message.id = ?",
         params=(cursor_created_at_ms, cursor_message_id),
+    )
+    content_json = serialize_json_compact_stable_strict(
+        sync_restore_unavailable_file_references(
+            conn,
+            conv_id=conv_id,
+            created_at_ms=cursor_created_at_ms,
+            message_id=cursor_message_id,
+            content=parse_json_value(content_json),
+        )
     )
     content_length, content_sha256 = build_message_content_integrity(content_json)
     now = epoch_ms()

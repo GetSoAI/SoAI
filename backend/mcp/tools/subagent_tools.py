@@ -12,6 +12,7 @@ from core.agent.subagent_serialization import (
     serialize_subagent_snapshot,
 )
 from core.errors.exceptions import SoAITimeoutError
+from core.skills.selection import canonicalize_skill_selection
 from core.tool_calls.deferred_tool_call_signal import mark_result_deferred
 from core.validation.integers import is_strict_int
 from mcp.tools.argument_fields import (
@@ -43,6 +44,7 @@ _ALLOWED_SUBAGENT_SPAWN_KEYS: frozenset[str] = frozenset(
         "workspace_path",
         "max_iterations",
         "tools",
+        "skill_ids",
     },
 )
 _ALLOWED_SUBAGENT_ID_KEYS: frozenset[str] = frozenset({"subagent_id"})
@@ -106,6 +108,11 @@ async def tool_subagent_spawn(
                 key="max_iterations",
             ),
             tools=_optional_tools(arguments.get("tools")),
+            skill_ids=(
+                canonicalize_skill_selection(arguments["skill_ids"])
+                if "skill_ids" in arguments
+                else ()
+            ),
         ),
     )
     return mark_result_deferred(

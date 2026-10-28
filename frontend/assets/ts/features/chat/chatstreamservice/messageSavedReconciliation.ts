@@ -3,7 +3,7 @@
 
 import type { ChatStreamStartAdmission } from '@features/chat/chatstreamservice/types.ts';
 
-type ChatStreamMessageSavedReconciliationReason = 'inactive-no-stream-session' | 'active-stream' | 'terminalized-session' | 'suppressed-or-superseded-active-status' | 'stale-generation' | 'status-sync-timeout';
+type ChatStreamMessageSavedReconciliationReason = 'inactive-no-stream-session' | 'active-stream' | 'terminalized-session' | 'suppressed-or-superseded-active-status' | 'stale-generation' | 'status-sync-timeout' | 'status-changed';
 
 type CanonicalMessageLoadReason = Exclude<ChatStreamMessageSavedReconciliationReason, 'active-stream'>;
 type SkippedCanonicalMessageLoadReason = Extract<ChatStreamMessageSavedReconciliationReason, 'active-stream'>;

@@ -52,7 +52,7 @@ const renderFileExplorerPageView = (dependencies: FileExplorerHeaderWidgetDepend
 	                    <input id="file-explorer-upload-folder-input" class="u-hidden" type="file" data-action="${FILE_EXPLORER_ACTION_UPLOAD_FILES}" multiple directory webkitdirectory>
 		            </section>
 
-	            <section id="file-explorer-task-panel" class="file-explorer-card file-explorer-task-panel u-hidden is-collapsed">
+	            <section id="file-explorer-task-panel" class="file-explorer-card file-explorer-task-panel u-hidden is-collapsed" data-presence data-presence-atomic>
                     <button id="file-explorer-task-toggle" type="button" class="file-explorer-task-summary"
                         data-action="${FILE_EXPLORER_ACTION_TASK_PANEL_TOGGLE}" aria-expanded="false" aria-controls="file-explorer-task-details" ${renderLabelAttributes(i18n.t('fileExplorer.labels.tasks'))}>
                         <div class="file-explorer-task-summary-head">

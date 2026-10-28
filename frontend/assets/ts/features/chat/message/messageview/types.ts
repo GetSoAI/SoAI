@@ -1,11 +1,13 @@
 /* SoAI - Chat feature message view contracts [frontend/assets/ts/features/chat/message/messageview/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { SpeechSetupErrorsTranslationKey } from '@core/i18n/translationkeys/speechsetup/errors.generated.ts';
 import type { AgentCanonicalPlan } from '@core/chat/agentTypes.ts';
 import type { SyntaxHighlighterLanguagesTranslationKey } from '@core/i18n/translationkeys/syntaxhighlighter/languages.generated.ts';
 import type { CodeBlockDescriptor, RichTextTableMode } from '@core/richtextrenderer/service.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { ChatActivityDurationDisplayMode } from '@features/chat/message/messageview/activityDurationDisplay.ts';
+import type { ChatStreamErrorsTranslationKey } from '@core/i18n/translationkeys/chat/stream__errors.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import type { ImageSegment, InlineActionUpdateSegment, InlineLoadingActivitySegment, InlineProcessingActivitySegment, InlineToolActivitySegment, InlineThinkingActivitySegment, InlineWaitForUserActivitySegment, MessageSegment, SoaiFileSegment, SoaiFileUnavailableSegment, SoaiKnowledgeSegment, SoaiKnowledgeUnavailableSegment, SoaiPathSegment, ToolCallSegment } from '@features/chat/message/messageSegments.ts';
 
@@ -38,7 +40,6 @@ type ChatMessageTranslationKey =
     | 'chat.agent.plan.viewPlan'
     | 'chat.planWidget.execute'
     | 'chat.planWidget.label'
-    | 'chat.planWidget.metrics'
     | 'chat.planWidget.revision'
     | 'chat.weather.clouds'
     | 'chat.weather.compass.e'
@@ -97,7 +98,7 @@ type ChatMessageTranslationKey =
     | 'contentPreview.actions.openSource'
     | 'richText.footnotes.backToReference';
 
-type ChatMessageWorkerTranslationKey = ChatMessageTranslationKey | SyntaxHighlighterLanguagesTranslationKey | 'common.time.units.hour.short' | 'common.time.units.minute.short' | 'common.time.units.second.short';
+type ChatMessageWorkerTranslationKey = Exclude<SpeechSetupErrorsTranslationKey, 'speechSetup.errors.mediaDependencyUnavailable'> | 'speechSetup.notTranscribed' | ChatMessageTranslationKey | ChatStreamErrorsTranslationKey | SyntaxHighlighterLanguagesTranslationKey | 'common.retry' | 'common.time.units.hour.short' | 'common.time.units.minute.short' | 'common.time.units.second.short';
 
 interface ChatMessageRenderHost {
     nowMs: () => number;
@@ -120,6 +121,7 @@ interface SegmentTextResolution {
 }
 
 type MessageRenderOptions = {
+    attachmentMissingCapabilities?: Readonly<Record<string, readonly string[]>>;
     hideDefaultImageLabel?: boolean;
     compactAttachmentCards?: boolean;
     conversationId?: string | null;

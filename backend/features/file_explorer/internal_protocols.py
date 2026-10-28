@@ -7,7 +7,10 @@ import os
 from typing import TYPE_CHECKING, Protocol
 
 from core.files.protocols_explorer import FileSystemRootScopeProtocol
-from features.file_explorer.directory_listing_state import DirectoryListingRecord
+from features.file_explorer.directory_listing_state import (
+    DirectoryListingAdmissionOutcome,
+    DirectoryListingRecord,
+)
 
 if TYPE_CHECKING:
     from core.files.explorer_models import FileMetadata
@@ -44,7 +47,7 @@ class DirectoryListingRegistryProtocol(Protocol):
         user_id: int,
         workspace_path: str,
         virtual_path: str,
-    ) -> DirectoryListingRecord: ...
+    ) -> DirectoryListingAdmissionOutcome: ...
 
     async def attach_task(self, listing_id: str, *, task_id: str) -> None: ...
 
@@ -66,9 +69,17 @@ class DirectoryListingRegistryProtocol(Protocol):
         user_id: int,
     ) -> DirectoryListingRecord | None: ...
 
-    async def reap_expired(self) -> list[DirectoryListingRecord]: ...
+    async def reap_expired(
+        self, *, user_id: int | None = None, listing_id: str | None = None
+    ) -> list[DirectoryListingRecord]: ...
 
-    async def release(self, listing_id: str, *, user_id: int) -> bool: ...
+    async def release(
+        self,
+        listing_id: str,
+        *,
+        user_id: int,
+        expected_record: DirectoryListingRecord | None = None,
+    ) -> bool: ...
 
 
 class SecureFileOpsProtocol(Protocol):

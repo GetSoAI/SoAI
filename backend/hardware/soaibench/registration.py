@@ -20,6 +20,7 @@ from hardware.soaibench.active_runs import ActiveSoAIBenchRun
 from hardware.soaibench.opencl_pool import SoAIBenchAdmissionCleanupError
 from hardware.soaibench.registration_failure import (
     finish_start_registration_failed_preserving,
+    release_degraded_lease_after_verified_exit,
 )
 from hardware.soaibench.runtime import OWNER_TYPE
 from hardware.soaibench.types import SoAIBenchRunStatus
@@ -28,7 +29,7 @@ from hardware.soaibench.worker import run_soaibench_worker
 if TYPE_CHECKING:
     from core.types.json import JSONDict
     from hardware.soaibench.dependencies import SoAIBenchServiceDependencies
-    from hardware.soaibench.internal_protocols import SoAIBenchOpenCLExecutionProtocol
+    from hardware.soaibench.opencl_child import SoAIBenchOpenCLChild
     from hardware.soaibench.registration_context import SoAIBenchRegistrationContext
 
 __all__ = ("register_soaibench_worker",)
@@ -76,7 +77,7 @@ async def register_soaibench_worker(
             primary_exception=exception,
             status=SoAIBenchRunStatus.CANCELLED,
             failure_reason=None,
-            message="SoAIBench worker registration was cancelled.",
+            message="SoAI Bench worker registration was cancelled.",
         )
         raise
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
@@ -87,7 +88,7 @@ async def register_soaibench_worker(
         log_exception(
             context.deps.logger,
             coerced_exception,
-            message="SoAIBench worker registration failed.",
+            message="SoAI Bench worker registration failed.",
             operation=REGISTRATION_OPERATION,
         )
         await finish_start_registration_failed_preserving(
@@ -119,6 +120,7 @@ async def _create_native_task(
             "run_id": str(run["run_id"]),
             "device_id": str(run["device_id"]),
             "profile": str(run["profile"]),
+            "benchmark_mode": run.get("benchmark_mode"),
             "gpu_name": run.get("gpu_name"),
             "gpu_uuid": run.get("gpu_uuid"),
             "pci_bdf": run.get("pci_bdf"),
@@ -131,10 +133,9 @@ async def _worker_wrapper(
     context: SoAIBenchRegistrationContext,
     worker_start_event: asyncio.Event,
 ) -> None:
-    retain_degraded_lease = False
     ownership_settled = False
     worker_entered = False
-    active_execution: SoAIBenchOpenCLExecutionProtocol | None = None
+    active_execution: SoAIBenchOpenCLChild | None = None
     try:
         await worker_start_event.wait()
         await context.start_execution_event.wait()
@@ -146,6 +147,7 @@ async def _worker_wrapper(
                 event_bus=context.deps.event_bus,
                 logger=context.deps.logger,
                 hardware_manager=context.deps.hardware_manager,
+                telemetry_pool=context.deps.telemetry_pool,
                 opencl_pool=opencl_pool,
                 run=context.run,
                 identity=context.identity,
@@ -162,8 +164,8 @@ async def _worker_wrapper(
             native_task_created=True,
             primary_exception=exception.cleanup_failure,
             failure_reason="opencl_child_termination_failed",
-            message="SoAIBench OpenCL child termination could not be verified.",
-            retain_degraded_lease=True,
+            message="SoAI Bench OpenCL child termination could not be verified.",
+            retained_child=exception.child,
         )
         ownership_settled = True
         raise exception.cleanup_failure from exception
@@ -176,7 +178,7 @@ async def _worker_wrapper(
             primary_exception=exception,
             status=SoAIBenchRunStatus.CANCELLED,
             failure_reason=None,
-            message="SoAIBench was cancelled before OpenCL admission.",
+            message="SoAI Bench was cancelled before OpenCL admission.",
         )
         ownership_settled = True
         raise
@@ -188,21 +190,25 @@ async def _worker_wrapper(
             native_task_created=True,
             primary_exception=exception,
             failure_reason="opencl_child_admission_failed",
-            message="SoAIBench OpenCL child admission failed.",
+            message="SoAI Bench OpenCL child admission failed.",
         )
         ownership_settled = True
         raise
     finally:
         if not ownership_settled:
-            retain_degraded_lease = active_execution is not None and active_execution.degraded
             context.active_runs.unbind(run_id=context.run_id, lease_id=context.lease_id)
-            if retain_degraded_lease:
+            if active_execution is not None and active_execution.degraded:
                 await uncancel_then_cleanup(
                     context.deps.activity_registry.mark_degraded(
                         device_id=context.device_id,
                         lease_id=context.lease_id,
-                        reason="SoAIBench OpenCL child exit could not be verified.",
+                        reason="SoAI Bench OpenCL child exit could not be verified.",
                     ),
+                )
+                await uncancel_then_cleanup(
+                    release_degraded_lease_after_verified_exit(
+                        context=context, child=active_execution
+                    )
                 )
             else:
                 await uncancel_then_cleanup(
@@ -220,7 +226,7 @@ def _track_worker(
     task: asyncio.Task[None],
 ) -> None:
     if task.done() or task.cancelling():
-        raise ValidationError("SoAIBench worker was cancelled before active tracking.")
+        raise ValidationError("SoAI Bench worker was cancelled before active tracking.")
     context.active_runs.bind_tracked_worker(
         ActiveSoAIBenchRun(
             run_id=context.run_id,

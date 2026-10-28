@@ -18,7 +18,6 @@ __all__ = (
     "checksum_asset_name",
     "linux_update_archive_name",
     "macos_release_manifest_asset_name",
-    "macos_release_manifest_signature_asset_name",
     "macos_update_archive_name",
     "os_linux_update_archive_name",
     "release_manifest_asset_name",
@@ -28,7 +27,6 @@ __all__ = (
     "windows_complete_archive_name",
     "windows_installer_name",
     "windows_release_manifest_asset_name",
-    "windows_release_manifest_signature_asset_name",
 )
 
 CANONICAL_RELEASE_VERSION_PATTERN = r"[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?\Z"
@@ -63,10 +61,6 @@ def windows_release_manifest_asset_name(version: str) -> str:
     return f"SoAI-{version}-windows-release-manifest-v1.json"
 
 
-def windows_release_manifest_signature_asset_name(version: str) -> str:
-    return f"{windows_release_manifest_asset_name(version)}.sig"
-
-
 def os_linux_update_archive_name(version: str) -> str:
     return f"SoAI-OS-{version}-linux-complete.zip"
 
@@ -94,10 +88,6 @@ def release_manifest_signature_asset_name(
 
 def macos_release_manifest_asset_name(version: str) -> str:
     return f"SoAI-{version}-macos-release-manifest-v1.json"
-
-
-def macos_release_manifest_signature_asset_name(version: str) -> str:
-    return f"{macos_release_manifest_asset_name(version)}.sig"
 
 
 def checksum_asset_name(artifact_name: str) -> str:

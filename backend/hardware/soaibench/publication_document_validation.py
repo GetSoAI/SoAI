@@ -95,12 +95,12 @@ def normalize_public_text(
     if value is None and not required:
         return None
     if not isinstance(value, str):
-        raise ValidationError("SoAIBench public text evidence is invalid.")
+        raise ValidationError("SoAI Bench public text evidence is invalid.")
     normalized = unicodedata.normalize("NFC", value).strip()
     if (not normalized and not allow_empty) or len(normalized.encode("utf-8")) > maximum_bytes:
-        raise ValidationError("SoAIBench public text evidence is invalid.")
+        raise ValidationError("SoAI Bench public text evidence is invalid.")
     if any(unicodedata.category(character) in {"Cc", "Cf"} for character in normalized):
-        raise ValidationError("SoAIBench public text evidence is invalid.")
+        raise ValidationError("SoAI Bench public text evidence is invalid.")
     return normalized
 
 
@@ -115,7 +115,7 @@ def validate_publication_document(document: JSONDict) -> None:
             "runtime",
             "evidence",
         ),
-        "SoAIBench publication document",
+        "SoAI Bench publication document",
     )
     presentation = coerce_json_dict_or_empty(document.get("presentation"))
     benchmark = coerce_json_dict_or_empty(document.get("benchmark"))
@@ -124,11 +124,11 @@ def validate_publication_document(document: JSONDict) -> None:
     evidence = coerce_json_dict_or_empty(document.get("evidence"))
     certification = coerce_json_dict_or_empty(evidence.get("certification"))
     settings = coerce_json_dict_or_empty(evidence.get("gpu_settings"))
-    _exact_fields(presentation, ("display_name",), "SoAIBench presentation")
-    _exact_fields(benchmark, BENCHMARK_FIELDS, "SoAIBench benchmark")
-    _exact_fields(gpu, GPU_FIELDS, "SoAIBench GPU")
-    _exact_fields(runtime, RUNTIME_FIELDS, "SoAIBench runtime")
-    _exact_fields(certification, CERTIFICATION_FIELDS, "SoAIBench certification")
+    _exact_fields(presentation, ("display_name",), "SoAI Bench presentation")
+    _exact_fields(benchmark, BENCHMARK_FIELDS, "SoAI Bench benchmark")
+    _exact_fields(gpu, GPU_FIELDS, "SoAI Bench GPU")
+    _exact_fields(runtime, RUNTIME_FIELDS, "SoAI Bench runtime")
+    _exact_fields(certification, CERTIFICATION_FIELDS, "SoAI Bench certification")
     _exact_fields(
         evidence,
         (
@@ -139,14 +139,14 @@ def validate_publication_document(document: JSONDict) -> None:
             "temperature_limit_celsius",
             "warmup_active_seconds",
         ),
-        "SoAIBench evidence",
+        "SoAI Bench evidence",
     )
     if (
         document.get("submission_version") != "soaibench-submission-v1"
         or presentation.get("display_name") != "Anonymous"
         or benchmark.get("score_version") != "soaibench-v2"
     ):
-        raise ValidationError("SoAIBench publication document version is invalid.")
+        raise ValidationError("SoAI Bench publication document version is invalid.")
     validate_public_benchmark_numbers(benchmark)
     validate_public_certification_numbers(certification)
     require_public_number(evidence.get("warmup_active_seconds"), minimum=120.0)
@@ -155,30 +155,30 @@ def validate_publication_document(document: JSONDict) -> None:
     _validate_telemetry(coerce_json_dict_or_empty(evidence.get("telemetry_summary")))
     passes = evidence.get("measured_passes")
     if not isinstance(passes, list) or len(passes) != 5:
-        raise ValidationError("SoAIBench public measured-pass evidence is invalid.")
+        raise ValidationError("SoAI Bench public measured-pass evidence is invalid.")
     telemetry_observations = [coerce_json_dict_or_empty(evidence.get("telemetry_summary"))]
     for index, entry in enumerate(passes, start=1):
         if not isinstance(entry, dict):
-            raise ValidationError("SoAIBench public measured-pass evidence is invalid.")
-        _exact_fields(entry, (*PASS_FIELDS, "telemetry"), "SoAIBench measured pass")
+            raise ValidationError("SoAI Bench public measured-pass evidence is invalid.")
+        _exact_fields(entry, (*PASS_FIELDS, "telemetry"), "SoAI Bench measured pass")
         if (
             not is_strict_int(entry.get("index"))
             or entry.get("index") != index
             or entry.get("warmup") is not False
             or entry.get("score_version") != "soaibench-v2"
         ):
-            raise ValidationError("SoAIBench public measured-pass ordering is invalid.")
+            raise ValidationError("SoAI Bench public measured-pass ordering is invalid.")
         validate_public_pass_numbers(entry)
         minimum_duration_ms = validate_public_workload(
             coerce_json_dict_or_empty(entry.get("workload"))
         )
         if require_public_integer(entry.get("duration_ms")) < minimum_duration_ms:
-            raise ValidationError("SoAIBench measured-pass duration is inconsistent.")
+            raise ValidationError("SoAI Bench measured-pass duration is inconsistent.")
         pass_telemetry = coerce_json_dict_or_empty(entry.get("telemetry"))
         _validate_telemetry(pass_telemetry)
         telemetry_observations.append(pass_telemetry)
     if set(settings) - set(SETTINGS_FIELDS):
-        raise ValidationError("SoAIBench settings contain an unexpected field.")
+        raise ValidationError("SoAI Bench settings contain an unexpected field.")
     for field, maximum in (
         ("power_limit_watts", 1_000_000.0),
         ("fan_speed", 100.0),
@@ -199,9 +199,9 @@ def _validate_gpu(gpu: JSONDict) -> None:
     gpu_name = normalize_public_text(gpu.get("gpu_name"), required=False, allow_empty=True)
     model_key = normalize_public_text(gpu.get("gpu_model_key"), required=False, allow_empty=True)
     if not gpu_name and not model_key:
-        raise ValidationError("SoAIBench public GPU identity is incomplete.")
+        raise ValidationError("SoAI Bench public GPU identity is incomplete.")
     if model_key is not None and re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", model_key) is None:
-        raise ValidationError("SoAIBench public GPU model key is invalid.")
+        raise ValidationError("SoAI Bench public GPU model key is invalid.")
     for field in ("vendor", "driver_version", "kernel_driver"):
         normalize_public_text(gpu.get(field), required=False, allow_empty=True)
 
@@ -231,9 +231,9 @@ def _validate_runtime(runtime: JSONDict) -> None:
 
 
 def _validate_telemetry(telemetry: JSONDict) -> None:
-    _exact_fields(telemetry, TELEMETRY_FIELDS, "SoAIBench telemetry")
+    _exact_fields(telemetry, TELEMETRY_FIELDS, "SoAI Bench telemetry")
     if not telemetry_availability_is_consistent(telemetry):
-        raise ValidationError("SoAIBench public sensor availability is inconsistent.")
+        raise ValidationError("SoAI Bench public sensor availability is inconsistent.")
     for field in ("temperature_celsius", "max_temperature_celsius"):
         require_optional_public_number(telemetry.get(field), minimum=-273.15, maximum=1000.0)
     for field in ("power_draw_watts", "avg_power_watts", "max_power_watts"):

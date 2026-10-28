@@ -155,7 +155,6 @@ async def resolve_request_effective_actions(
     )
     if bootstrap_state is BootstrapState.INTEGRITY_ERROR:
         effective_actions = restrict_to_repair_plane(effective_actions)
-    request.state.effective_access_actions = effective_actions
     _store_context_access_actions(request, effective_actions)
     return effective_actions
 

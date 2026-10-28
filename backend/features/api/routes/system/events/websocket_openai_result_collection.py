@@ -8,6 +8,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ApiError, ValidationError
+from core.errors.public_projection import apply_public_error_payload
 from core.errors.status_mapping import error_type_to_status_code
 from core.events.inference_terminal_handlers import build_inference_terminal_handlers
 from core.events.non_streaming_hard_deadline import (
@@ -25,7 +26,10 @@ if TYPE_CHECKING:
     from core.tasks.protocols import TaskRegistryProtocol
     from core.types.json import JSONDict, JSONValue
 
-__all__ = ("collect_openai_ws_result",)
+__all__ = (
+    "build_openai_ws_result_handlers",
+    "collect_openai_ws_result",
+)
 
 
 async def _finalize_openai_ws_result(
@@ -52,20 +56,13 @@ async def _finalize_openai_ws_result(
     )
 
 
-async def collect_openai_ws_result(
+def build_openai_ws_result_handlers(
     *,
     registry: TaskRegistryProtocol | None,
     task_id: str | None,
-    reply_queue: asyncio.Queue[Event],
-    timeout_seconds: float,
-    timeout_message: str,
-    timeout_operation: str,
     include_payload_event: bool,
     finalization_result_builder: Callable[[JSONValue], JSONDict] | None,
-) -> JSONValue:
-    async def next_event(timeout: float) -> Event:
-        return await asyncio.wait_for(reply_queue.get(), timeout=timeout)
-
+) -> tuple[TerminalEventHandler[Event, JSONValue], ...]:
     async def handle_payload(event: Event) -> JSONValue:
         if not isinstance(event, PayloadEvent):
             raise ValidationError("Expected PayloadEvent.")
@@ -120,9 +117,7 @@ async def collect_openai_ws_result(
         )
         error = ApiError(message, code=code, http_status=status_code)
         if public_error is not None:
-            error.public_message = public_error.message
-            error.public_details = public_error.details
-            error.trace_id = public_error.trace_id
+            apply_public_error_payload(error, public_error)
         raise error
 
     async def handle_complete(event: Event) -> JSONValue:
@@ -159,18 +154,40 @@ async def collect_openai_ws_result(
             handle_complete=handle_complete,
         )
     )
-    if include_payload_event:
-        terminal_handlers = (
-            TerminalEventHandler(
-                matches=lambda event: isinstance(event, PayloadEvent),
-                handler=handle_payload,
-            ),
-            *terminal_handlers,
-        )
+    if not include_payload_event:
+        return terminal_handlers
+    return (
+        TerminalEventHandler(
+            matches=lambda event: isinstance(event, PayloadEvent),
+            handler=handle_payload,
+        ),
+        *terminal_handlers,
+    )
+
+
+async def collect_openai_ws_result(
+    *,
+    registry: TaskRegistryProtocol | None,
+    task_id: str | None,
+    reply_queue: asyncio.Queue[Event],
+    timeout_seconds: float,
+    timeout_message: str,
+    timeout_operation: str,
+    include_payload_event: bool,
+    finalization_result_builder: Callable[[JSONValue], JSONDict] | None,
+) -> JSONValue:
+    async def next_event(timeout: float) -> Event:
+        return await asyncio.wait_for(reply_queue.get(), timeout=timeout)
+
     return await run_inactivity_timeout_event_loop(
         inactivity_timeout_seconds=float(timeout_seconds),
         next_event=next_event,
-        terminal_handlers=terminal_handlers,
+        terminal_handlers=build_openai_ws_result_handlers(
+            registry=registry,
+            task_id=task_id,
+            include_payload_event=include_payload_event,
+            finalization_result_builder=finalization_result_builder,
+        ),
         timeout_message=timeout_message,
         timeout_operation=timeout_operation,
     )

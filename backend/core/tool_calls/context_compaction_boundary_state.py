@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from core.openai.pinned_prefix import split_leading_pinned_prefix
 from core.serialization.json import serialize_json_compact_stable_strict
+from core.skills.prompt_projection import is_skill_context_message
 from core.tool_calls.context_compaction_boundary_messages import (
     normalize_context_compaction_boundary_messages,
 )
@@ -72,11 +73,11 @@ def build_context_compaction_boundary_state(
         messages,
         strip_leading_pinned_prefix=strip_leading_pinned_prefix,
     )
-    timestamp_source_messages: Sequence[JSONDict]
+    timestamp_source_messages = [
+        message for message in messages if not is_skill_context_message(message)
+    ]
     if strip_leading_pinned_prefix:
-        timestamp_source_messages = split_leading_pinned_prefix(messages)[1]
-    else:
-        timestamp_source_messages = messages
+        timestamp_source_messages = split_leading_pinned_prefix(timestamp_source_messages)[1]
     return {
         _BOUNDARY_MESSAGE_COUNT_FIELD: len(normalized_messages),
         _BOUNDARY_LAST_MESSAGE_TIMESTAMP_FIELD: _resolve_boundary_last_message_timestamp(

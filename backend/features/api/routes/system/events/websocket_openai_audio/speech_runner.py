@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.public_projection import project_public_error
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.serialization.base64_values import encode_base64_ascii
@@ -147,7 +148,7 @@ async def run_openai_audio_speech_stream(
             queue=connection.queue,
             event=build_openai_audio_speech_error(
                 run_id=run_id,
-                message=str(coerced),
+                message=project_public_error(coerced).message,
                 code=str(coerced.code),
                 task_id=runtime.task_id,
             ),

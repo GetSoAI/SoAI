@@ -4,16 +4,21 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Final
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Final
 
 from fastapi import WebSocket, WebSocketDisconnect
 from starlette.requests import ClientDisconnect
 from starlette.websockets import WebSocketState
 
+if TYPE_CHECKING:
+    from core.types.json import JSONDict
+
 __all__ = (
     "WEBSOCKET_CLIENT_DISCONNECT_EXCEPTIONS",
     "WEBSOCKET_TERMINAL_LIFECYCLE_EXCEPTIONS",
     "WEBSOCKET_TRANSPORT_TERMINAL_EXCEPTIONS",
+    "WebsocketTerminalErrorDelivery",
     "is_websocket_close_state_error",
     "should_close_websocket_application_state",
 )
@@ -32,6 +37,13 @@ WEBSOCKET_TERMINAL_LIFECYCLE_EXCEPTIONS: Final[tuple[type[BaseException], ...]] 
     *WEBSOCKET_TRANSPORT_TERMINAL_EXCEPTIONS,
     asyncio.CancelledError,
 )
+
+
+@dataclass(slots=True)
+class WebsocketTerminalErrorDelivery:
+    payload: JSONDict | None = None
+    requested: asyncio.Event = field(default_factory=asyncio.Event)
+    delivered: asyncio.Event = field(default_factory=asyncio.Event)
 
 
 def should_close_websocket_application_state(websocket: WebSocket) -> bool:

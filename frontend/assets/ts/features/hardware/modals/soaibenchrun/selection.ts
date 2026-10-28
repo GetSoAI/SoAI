@@ -24,16 +24,16 @@ const renderDismissButton = (label: string): TrustedHtml => renderModalFooterAct
 const renderPickerOption = (option: SoAIBenchRunOpenRequest, position: number, context: SoAIBenchComposerContext): TrustedHtml => {
     const label = renderGpuLabel(option);
     if (!context.isBusy(option.deviceId)) {
-        return uiHtml`<button type="button" class="ui-button ui-variant-neutral hardware-soaibench-gpu-option" data-action="${uiAttr(HARDWARE_SOAIBENCH_RUN_PICK_ACTION)}" data-selection-index="${uiAttr(position)}"${renderLabelAttributes(label)}>${label}</button>`;
+        return uiHtml`<button type="button" class="ui-button ui-variant-neutral hardware-soaibench-gpu-option" data-action="${uiAttr(HARDWARE_SOAIBENCH_RUN_PICK_ACTION)}" data-selection-index="${uiAttr(position)}"${renderLabelAttributes(label)} data-modal-localize="text">${label}</button>`;
     }
     const reasonId = modalUiId(context.modalId, `busy-${String(position)}`);
-    return uiHtml`<button type="button" class="ui-button ui-variant-neutral hardware-soaibench-gpu-option" data-action="${uiAttr(HARDWARE_SOAIBENCH_RUN_PICK_ACTION)}" data-selection-index="${uiAttr(position)}" aria-describedby="${uiAttr(reasonId)}"${renderLabelAttributes({ ariaLabel: label, tooltip: i18n.t('hardware.modals.soaibenchRun.gpuBusy') })}${uiAttributes({ disabled: true, 'aria-disabled': 'true', tabindex: '-1' })}><span>${label}</span><span class="hardware-soaibench-gpu-option-reason" id="${uiAttr(reasonId)}">${i18n.t('hardware.modals.soaibenchRun.gpuBusy')}</span></button>`;
+    return uiHtml`<button type="button" class="ui-button ui-variant-neutral hardware-soaibench-gpu-option" data-action="${uiAttr(HARDWARE_SOAIBENCH_RUN_PICK_ACTION)}" data-selection-index="${uiAttr(position)}" aria-describedby="${uiAttr(reasonId)}"${renderLabelAttributes({ ariaLabel: label, tooltip: i18n.t('hardware.modals.soaibenchRun.gpuBusy') })}${uiAttributes({ disabled: true, 'aria-disabled': 'true', tabindex: '-1' })}><span data-modal-localize="text">${label}</span><span class="hardware-soaibench-gpu-option-reason" id="${uiAttr(reasonId)}" data-modal-localize="text">${i18n.t('hardware.modals.soaibenchRun.gpuBusy')}</span></button>`;
 };
 
 const renderPicker = (options: readonly SoAIBenchRunOpenRequest[], context: SoAIBenchComposerContext): TrustedHtml => {
-    const list = options.length > 0 ? uiHtml`<div class="hardware-soaibench-gpu-list">${joinUiHtml(options.map((option, position) => renderPickerOption(option, position, context)))}</div>` : uiHtml`<p class="hardware-soaibench-gpu-empty">${i18n.t('hardware.modals.soaibenchRun.noGpus')}</p>`;
-    const dismiss = context.hasSections ? uiHtml`<div class="hardware-soaibench-run-actions">${renderDismissButton(i18n.t('common.cancel'))}</div>` : EMPTY_UI_HTML;
-    return uiHtml`<h3 class="hardware-soaibench-gpu-selection-title">${i18n.t('hardware.modals.soaibenchRun.selectGpu')}</h3>${list}${dismiss}`;
+    const list = options.length > 0 ? uiHtml`<div class="hardware-soaibench-gpu-list">${joinUiHtml(options.map((option, position) => renderPickerOption(option, position, context)))}</div>` : uiHtml`<p class="hardware-soaibench-gpu-empty" data-modal-localize="text">${i18n.t('hardware.modals.soaibenchRun.noGpus')}</p>`;
+    const dismiss = context.hasSections ? uiHtml`<div class="hardware-soaibench-run-actions" data-modal-localize="text">${renderDismissButton(i18n.t('common.cancel'))}</div>` : EMPTY_UI_HTML;
+    return uiHtml`<h3 class="hardware-soaibench-gpu-selection-title" data-modal-localize="text">${i18n.t('hardware.modals.soaibenchRun.selectGpu')}</h3>${list}${dismiss}`;
 };
 
 const renderIntro = (request: SoAIBenchRunOpenRequest, fromPicker: boolean, context: SoAIBenchComposerContext): TrustedHtml => {
@@ -64,7 +64,7 @@ class SoAIBenchGpuSelection {
         const position = Number(positionText);
         const request = this.#composer.type === 'picker' && Number.isSafeInteger(position) && position >= 0 ? this.#pickerOptions[position] : undefined;
         if (request === undefined) {
-            throw new Error('SoAIBench GPU selection is no longer available');
+            throw new Error('SoAI Bench GPU selection is no longer available');
         }
         this.#composer = { type: 'intro', request, fromPicker: true };
         return request;
@@ -81,7 +81,7 @@ class SoAIBenchGpuSelection {
 
     requireIntroRequest(): SoAIBenchRunOpenRequest {
         if (this.#composer.type !== 'intro') {
-            throw new Error('SoAIBench start requires a selected GPU');
+            throw new Error('SoAI Bench start requires a selected GPU');
         }
         return this.#composer.request;
     }

@@ -28,7 +28,7 @@ const createPluginConfigModalElement = (): HTMLElement => {
     const body = renderModalBody(uiHtml`
         <div class="form-group">
             <label id="${modalUiId(modalId, 'content-title')}"></label>
-            <div class="form-help">${i18n.t('plugins.modal.config.instructions')}</div>
+            <div class="form-help" data-modal-localize="text">${i18n.t('plugins.modal.config.instructions')}</div>
             <div id="${modalUiId(modalId, 'meta')}" class="plugin-config-meta"></div>
         </div>
         <div id="${modalUiId(modalId, 'form')}"></div>

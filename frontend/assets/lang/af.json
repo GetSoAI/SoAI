@@ -68,6 +68,15 @@
                     }
                 },
                 "initFailed": "Kon nie SoAI WebUI inisialiseer nie",
+                "reference": "Verwysing: {reference}",
+                "stages": {
+                    "entrypoint": "Die WebUI kon nie sy beginhulpbronne laai nie. Herlaai die bladsy om weer te probeer.",
+                    "criticalServices": "Die WebUI kon nie die dienste begin wat dit benodig nie. Kontroleer dat die SoAI-agterkant loop en herlaai dan die bladsy.",
+                    "authentication": "Die WebUI kon nie die opstelling- en aanmeldstatus nagaan nie. Herlaai die bladsy om weer te probeer.",
+                    "session": "Die WebUI kon nie jou aangemelde sessie voorberei nie. Herlaai die bladsy om weer te probeer.",
+                    "routeRendering": "Die WebUI kon nie die versoekte bladsy vertoon nie. Herlaai die bladsy om weer te probeer.",
+                    "background": "Die WebUI kon nie sy laaste beginstappe voltooi nie. Herlaai die bladsy om weer te probeer."
+                },
                 "routeNotReady": "Die bladsy het nie betyds klaar gelaai nie. Herlaai asseblief die bladsy.",
                 "unknown": "'n Onbekende fout het voorgekom."
             },
@@ -610,13 +619,17 @@
                 "notSupported": "Stemopname vereis 'n veilige verbinding (HTTPS) of localhost",
                 "permissionDenied": "Mikrofoontoegang geweier. Laat asseblief mikrofoontoegang in jou blaaierinstellings toe.",
                 "recordingFailed": "Opname het misluk",
-                "transcriptionFailed": "Stemtranskripsie het misluk."
+                "transcriptionFailed": "Stemtranskripsie het misluk.",
+                "transcriptionDeadlineExceeded": "Transkripsie het te lank geneem en is gekanselleer. Probeer 'n korter opname of 'n vinniger transkripsiemodel.",
+                "transcriptionCancellationUnconfirmed": "Transkripsie het te lank geneem, en die kansellasie kon nie bevestig word nie. Wag 'n oomblik voordat jy weer probeer.",
+                "transcriptionCancellationUnconfirmedReference": "Transkripsie het te lank geneem, en die kansellasie kon nie bevestig word nie. Wag 'n oomblik voordat jy weer probeer. Verwysing: {reference}"
             },
             "audioPreview": {
                 "cancel": "Kanselleer opname",
                 "errorTitle": "Stemopname",
                 "processingStatus": "Stuur oudio vir transkripsie",
                 "processingTitle": "Transkribeer stem",
+                "transcriptionSettling": "Tydsbeperking bereik. Transkripsie word gestop…",
                 "recordingStatus": "Neem op {elapsed}",
                 "recordingTitle": "Stemopname",
                 "requestingStatus": "Wag vir blaaiertoestemming",
@@ -742,8 +755,8 @@
                     "title": "Kennisinstellings"
                 },
                 "memory": {
-                    "description": "Aanhoudende geheue help SoAI om jou voorkeure, doelwitte en herhalende konteks te verstaan sonder dat 'n pasgemaakte prompt elke keer nodig is.",
-                    "empty": "Nog geen geheue gestoor nie.",
+                    "description": "Aanhoudende geheue help SoAI om jou voorkeure, doelwitte en herhalende konteks te verstaan sonder dat 'n pasgemaakte prompt elke keer nodig is",
+                    "empty": "Nog geen geheue gestoor nie",
                     "openProfile": "Maak profielvorm oop",
                     "refresh": "Verfris geheue",
                     "title": "Geheue-instellings",
@@ -794,7 +807,7 @@
                     "knowledgeManagedToolsEnabledHint": "Hulpmiddels bly outomaties geaktiveer terwyl geïndekseerde kennis vir hierdie gesprek aktief is. Dit verander nie jou verstekwaarde vir nuwe kletse nie",
                     "noServers": "Geen MCP-bedieners beskikbaar nie.",
                     "noTools": "Geen MCP-hulpmiddels beskikbaar nie.",
-                    "resetToolsDescription": "Stel {mode}-hulpmiddels terug na SoAI-verstekwaardes.",
+                    "resetToolsDescription": "Stel {mode}-hulpmiddels terug na SoAI-verstekwaardes",
                     "resetToolsLabel": "Stel terug",
                     "resetToolsTitle": "Stel verstekhulpmiddels terug",
                     "servers": "Bedieners",
@@ -880,7 +893,9 @@
                         "parsing": "Ontleed",
                         "queued": "In tou",
                         "unreadable": "Onleesbaar",
-                        "unknown": "Onbekend"
+                        "unknown": "Onbekend",
+                        "noTranscript": "Geen transkripsie nie",
+                        "partial": "Gedeeltelik onttrek"
                     },
                     "title": "RAG-instellings",
                     "topK": "Top K"
@@ -955,8 +970,8 @@
                     "newAction": "Nuwe voorinstelling",
                     "noMatches": "Geen voorinstellings pas by hierdie soektog nie.",
                     "noChanges": "Die voorinstelling het nie die voorbereide konfigurasie verander nie.",
-                    "notApplicable": "Geen van hierdie voorinstelling se gestoorde instellings is in die huidige weergawe beskikbaar nie. Jy kan dit steeds vervang, hernoem of uitvee.",
-                    "omittedSettings": "{count} nie-ondersteunde of ongeldige gestoorde instelling(s) is weggelaat.",
+                    "notApplicable": "Geen van hierdie voorinstelling se gestoorde instellings is in die huidige weergawe beskikbaar nie. Jy kan dit steeds vervang, hernoem of uitvee",
+                    "omittedSettings": "{count} nie-ondersteunde of ongeldige gestoorde instelling(s) is weggelaat",
                     "replaceAction": "Vervang",
                     "renameAction": "Hernoem",
                     "retryAction": "Probeer weer",
@@ -1005,7 +1020,7 @@
                         "replaceDescription": "Vervang hierdie voorinstelling met 'n vars momentopname van die waardes wat tans voorberei is.",
                         "replaceTitle": "Vervang voorinstelling",
                         "reviewAction": "Gaan jongste hersiening na",
-                        "revisionChanged": "Hierdie voorinstelling het elders verander. Gaan die jongste hersiening na voordat jy voortgaan.",
+                        "revisionChanged": "Hierdie voorinstelling het elders verander. Gaan die jongste hersiening na voordat jy voortgaan",
                         "prunedValues": "{count} nie-beskikbare dinamiese instelling(s) is uit hierdie momentopname weggelaat.",
                         "selectedCount": "{count} afdelings gekies",
                         "sectionDescriptions": {
@@ -1019,7 +1034,7 @@
                         },
                         "sectionUnavailable": "Hierdie afdeling is nie vir die huidige gesprek beskikbaar nie.",
                         "sectionsLabel": "Konfigurasie-afdelings",
-                        "targetUnavailable": "Hierdie voorinstelling bestaan nie meer nie. Kanselleer hierdie wysiging of skep 'n nuwe voorinstelling."
+                        "targetUnavailable": "Hierdie voorinstelling bestaan nie meer nie. Kanselleer hierdie wysiging of skep 'n nuwe voorinstelling"
                     }
                 },
                 "saveDegradedDetail": "{completed} gestoor. 'n Bevestigde opvolgprojeksie vereis aandag; probeer weer vanaf die betrokke afdeling.",
@@ -1076,7 +1091,58 @@
                     "title": "Websoekinstellings"
                 },
                 "widescreen_mode": "Breëskermmodus",
-                "widescreenModeHint": "Vergroot die beskikbare ruimte vir die klets op groter skerms"
+                "widescreenModeHint": "Vergroot die beskikbare ruimte vir die klets op groter skerms",
+                "skills": {
+                    "title": "Vaardighede",
+                    "description": "Vaardighede gee die assistent herbruikbare instruksies vir spesifieke take. Aktiveer hulle vir hierdie klets en stoor. Veranderinge geld vir nuwe versoeke; aanvaarde werk behou sy vasgelegde vaardighede.",
+                    "add": "Voeg vaardigheid by",
+                    "empty": "Voeg ’n SKILL.md-lêer of ’n ZIP-vaardigheidsversameling by om te begin",
+                    "immediate": "Invoere en verwyderings uit die biblioteek tree onmiddellik in werking. Nuwe vaardighede is aanvanklik gedeaktiveer",
+                    "unavailable": "Stoor ’n gewone klets voordat jy vaardighede kies. Keuse is nie vir bestuurde gesprekke beskikbaar nie",
+                    "automatic": "Outomatiese of direkte aanroep",
+                    "explicit": "Slegs direkte aanroep",
+                    "automaticOnly": "Slegs outomatiese aanroep",
+                    "disabledReason": "Hierdie vaardigheid laat nóg outomatiese nóg direkte aanroep toe",
+                    "removeConfirm": "Verwyder hierdie vaardigheid uit jou biblioteek en toekomstige keuses in jou kletse? Aanvaarde werk behou die pakket. Werkruimtelêers en gesprekgeskiedenis bly behoue.",
+                    "conflict": "Die keuse is elders verander. Hersien die huidige keuse voordat jy jou konsep stoor",
+                    "keepDraft": "Behou my keuse",
+                    "stale": "Vaardighede is nie op datum nie. Herverbind of probeer weer voordat jy stoor",
+                    "search": "Soek vaardighede...",
+                    "emptyTitle": "Voeg jou eerste vaardigheid by",
+                    "noMatchesTitle": "Geen passende vaardighede",
+                    "errors": {
+                        "invalidPackage": "Voer ’n geldige SKILL.md-lêer of ’n ZIP-versameling vaardighede in. Kontroleer die lêerformaat en groottebeperkings.",
+                        "uploadConflict": "Hierdie oplaai is reeds vir ’n ander lêer gebruik. Kies die lêer weer om ’n nuwe invoer te begin.",
+                        "nameConflict": "’n Vaardigheid met hierdie naam is reeds geïnstalleer. Verwyder dit voordat jy ’n plaasvervanger invoer.",
+                        "libraryFull": "Die vaardigheidsbiblioteek is vol. Verwyder ongebruikte vaardighede en wag totdat take wat verwyderde vaardighede gebruik, klaar is.",
+                        "invocationUnavailable": "Die gevraagde vaardigheid is nie geaktiveer nie of laat nie direkte aanroeping toe nie. Kontroleer die vaardighede wat vir hierdie klets gekies is.",
+                        "importBusy": "Die vaardigheidsinvoer is besig. Probeer dieselfde oplaai binnekort weer.",
+                        "notFound": "Die vaardigheid of hulpbron is nie beskikbaar nie. Verfris jou vaardigheidsbiblioteek.",
+                        "wrapperNameMismatch": "Die omsluitende ZIP-gids moet ooreenstem met die vaardigheid se naam in SKILL.md.",
+                        "restrictionUnsupported": "Hierdie vaardigheid gebruik onondersteunde hulpmiddelbeperkings. Gebruik uitdruklike SoAI-hulpmiddelname voor aktivering.",
+                        "toolRestricted": "’n Aktiewe vaardigheid verbied hierdie hulpmiddel. Volg die toegelate werkvloei of begin ’n nuwe uitvoering.",
+                        "argumentConflict": "Die vasgelegde vaardigheidsargumente kan nie vervang word nie. Begin ’n nuwe aanroep met ander argumente.",
+                        "aliasAmbiguous": "Hierdie alias verwys na verskeie geaktiveerde vaardighede. Gebruik ’n gekwalifiseerde vaardigheidsnaam.",
+                        "manifestFormat": "SKILL.md vereis UTF-8-teks en geldige gewone YAML tussen --- skeidingstekens. Kontroleer die formaat en manifesgrootte.",
+                        "invalidField": "Die vaardigheidsveld {field} word nie ondersteun nie, ontbreek of is ongeldig. Kontroleer die naam en waardetipe.",
+                        "sourceConflict": "Vaardigheidskopieë bots by {first} en {second}. Behou een konsekwente kopie.",
+                        "archiveIntegrity": "Die vaardigheidsargief is beskadig of onvolledig. Laai dit weer af en probeer met die volledige lêer.",
+                        "archiveUnsafe": "Die vaardigheidsargief bevat onveilige paaie, skakels of botsende inskrywings. Skep ’n draagbare argief met gewone lêers.",
+                        "archiveUnsupported": "Die vaardigheidsargief gebruik onondersteunde enkripsie of kompressie. Skep ’n ongeënkripteerde ZIP met gestoorde of Deflate-inskrywings.",
+                        "invalidFilename": "Kies ’n lêer genaamd SKILL.md of ’n ZIP-vaardigheidsargief.",
+                        "resourceLimit": "Vaardigheidsinvoerlimiet oorskry vir {field}: {measured} > {limit}. Verklein die argief of verwyder ongebruikte vaardighede en probeer weer.",
+                        "manifestPosition": "Ongeldige YAML by reël {line}, kolom {column}. Maak SKILL.md reg en probeer weer."
+                    },
+                    "importUncertain": "Die invoeruitkoms is onseker. Hou hierdie lêer gekies en gebruik Verfris om die ontvangsbewys na te gaan voordat jy weer probeer.",
+                    "invalidSelection": "Sommige gekose vaardighede is nie beskikbaar nie of oorskry die biblioteeklimiet. Verfris en pas dan die keuse aan voordat jy stoor",
+                    "status": {
+                        "importTitle": "Invoeruitkoms is onseker",
+                        "conflictTitle": "Keuse is elders verander",
+                        "staleTitle": "Vaardigheidslys is moontlik verouderd",
+                        "unavailableTitle": "Vaardigheidskeuse is nie beskikbaar nie",
+                        "invalidTitle": "Keuse moet hersien word"
+                    }
+                }
             },
             "confirmations": {
                 "externalLink": "Maak eksterne skakel oop",
@@ -1139,8 +1205,15 @@
                 "conversationLoadFailed": "Kon nie gesprek laai nie.",
                 "conversationUnavailable": "Gesprek nie gevind nie. Jy is na 'n leë klets teruggestuur.",
                 "interactionFocusUnavailable": "Hierdie veilige interaksieskakel is nie meer beskikbaar nie. Hersien die huidige Klets-prompt.",
+                "modelToolCallingUnsupported": "Die gekose model ondersteun nie hulpmiddeloproepe nie. Kies 'n model wat hulpmiddels ondersteun, of deaktiveer hulpmiddels vir hierdie gesprek.",
                 "soaiWorkspaceChanged": "Die gesprek se werkruimte het verander terwyl hierdie boodskap voorberei is. Maak die SoAI-bronne weer oop of koppel hulle weer en stuur weer.",
-                "syncFailed": "Kon nie gesprek sinkroniseer nie"
+                "syncFailed": "Kon nie gesprek sinkroniseer nie",
+                "contextWindowOverrideInvalid": "Die konteksvenster moet ’n positiewe heelgetal wees. Voer ’n geldige waarde in of laat dit leeg om die model se verstek te gebruik.",
+                "contextWindowOverrideConflict": "Die konteksvenster het teenstrydige waardes. Stel een waarde of verwyder die oorskrywing en probeer weer.",
+                "durableQueueFull": "Die tou is vol. Probeer hierdie afgekeurde versoek weer nadat aktiewe werk voltooi is.",
+                "promptBudgetExceeded": "Die invoer benodig {requested} tekens; die beskikbare begroting is {available} ná uitvoerreservering en enige veiligheidsmarge. Verminder die invoer of gereserveerde uitvoer, verkort die gesprek of vergroot die konteks.",
+                "ragEmbeddingModelUnavailable": "Geen inbeddingsmodel is beskikbaar nie. Kies 'n inbeddingsmodel in die kletsinstellings, of installeer 'n inbeddingsagterkant en laai 'n model af. Probeer dan weer.",
+                "ragDocumentsNotIndexed": "Geen geïndekseerde kennis is beskikbaar om weer te indekseer nie. Laai eers 'n dokument op en indekseer dit."
             },
             "export": {
                 "noMessages": "Geen boodskappe om uit te voer nie",
@@ -1340,6 +1413,7 @@
                 "voiceCallStart": "Begin stemoproep",
                 "steer": "Rig prompt",
                 "queue": "Plaas prompt in tou",
+                "resumeQueue": "Hervat prompts in tou",
                 "stop": "Stop antwoord",
                 "stopRecording": "Stop opname",
                 "transcribing": "Transkribeer tans...",
@@ -1364,7 +1438,8 @@
             "inputQueue": {
                 "badge": {
                     "queued": "In tou",
-                    "steer": "Rig"
+                    "steer": "Rig",
+                    "held": "Gepouseer"
                 },
                 "state": {
                     "materializing": "Berei voor",
@@ -1381,6 +1456,33 @@
                 "reason": "Rede"
             },
             "memory": {
+                "library": {
+                    "add": "Voeg geheue by",
+                    "search": "Deursoek geheues",
+                    "noMatches": "Geen ooreenstemmende geheues nie",
+                    "stale": "Die gestoorde data is verouderd. Laaste verversing: {time}. Ververs om huidige data na te gaan.",
+                    "deleteFact": "Vee hierdie feit of verhouding uit?",
+                    "deleteEntry": "Vee “{title}” uit, insluitend {facts} feite en {relations} verhoudings?",
+                    "savedHidden": "Gestoor. Maak die soektog skoon om hierdie geheue te sien.",
+                    "savedRefreshNeeded": "Gestoor. Die biblioteek moet ververs word.",
+                    "from": "Van",
+                    "to": "Na",
+                    "type": "Verhoudingstipe",
+                    "staleTitle": "Geheuelys is moontlik verouderd",
+                    "errorTitle": "Geheuebiblioteek is nie beskikbaar nie"
+                },
+                "errors": {
+                    "revisionChanged": "Hierdie geheue het verander. Gaan die huidige inhoud na voordat jy stoor.",
+                    "duplicateName": "’n Geheue gebruik reeds hierdie titel. Kies ’n ander titel.",
+                    "duplicateId": "Hierdie konsepidentiteit bestaan reeds. Ververs en gaan die gestoorde geheue na.",
+                    "profileRestricted": "Gebruik die profielvorm om gestruktureerde profielfeite te bestuur.",
+                    "duplicateRelation": "Hierdie verhouding bestaan reeds.",
+                    "relationNotIncident": "Hou een eindpunt aan hierdie geheue gekoppel.",
+                    "invalidText": "Voer ’n nie-leë titel en teks in.",
+                    "missing": "Hierdie rekord is nie beskikbaar nie of behoort nie meer aan hierdie geheue nie. Ververs en gaan dit na.",
+                    "unconfirmed": "Die resultaat kon nie bevestig word nie. Behou jou konsep en ververs om die huidige data na te gaan voordat jy weer probeer.",
+                    "loadFailed": "Geheues kon nie gelaai word nie. Ververs om weer te probeer."
+                },
                 "profile": {
                     "description": "Deel opsionele besonderhede sodat SoAI kan onthou hoe om oor kletse heen met jou saam te werk.",
                     "fields": {
@@ -1449,7 +1551,10 @@
                 },
                 "speak": {
                     "failed": "Kon nie boodskap hardop lees nie.",
-                    "noText": "Niks om hardop te lees nie."
+                    "noText": "Niks om hardop te lees nie.",
+                    "invalidVoice": "Die gekose stem is nie vir hierdie spraakmodel beskikbaar nie. Kies 'n ander stem in die spraakinstellings.",
+                    "invalidResponseFormat": "Hierdie spraakmodel kan nie die versoekte klankformaat lewer nie.",
+                    "invalidSpeed": "Die spraakspoed is buite die reeks wat hierdie model ondersteun. Pas die spoed in die spraakinstellings aan."
                 },
                 "assistant": "Assistent",
                 "assistantWithModel": "{assistant} ({model})",
@@ -1479,6 +1584,13 @@
                     "tokensTitle": "Tokengebruik",
                     "toolActivity": "Hulpmiddelaktiwiteit",
                     "totalTokens": "Totale tokens"
+                },
+                "outputNotices": {
+                    "reasoningOnly": "Die model het redenering teruggegee, maar geen finale antwoord nie. Probeer weer, of probeer 'n ander model of redeneringsinstelling.",
+                    "steered": "Gaan hieronder voort met jou nuwe boodskap.",
+                    "stopped": "Jy het hierdie antwoord gestop.",
+                    "tokenLimit": "Die antwoord het gestop omdat dit die uitvoertokenlimiet bereik het. Verhoog die maksimum tokens-instelling vir 'n langer antwoord.",
+                    "tokenLimitReasoning": "Die model het sy hele uitvoertokenbegroting aan redenering bestee voordat dit 'n antwoord geskryf het. Verhoog die maksimum tokens-instelling of verlaag die redeneringsinspanning."
                 },
                 "renderFailed": "Kon nie boodskap weergee nie.",
                 "runningActivitySummary": {
@@ -1549,7 +1661,6 @@
                 "executePrompt": "Implementeer die plan.",
                 "executeUnavailable": "Hierdie gesprek kan nie na uitvoermodus oorskakel nie",
                 "label": "Plan",
-                "metrics": "{lines} reëls · {characters} karakters",
                 "revision": "Hersiening {revision}"
             },
             "processing": {
@@ -1607,7 +1718,6 @@
                 "allUnicode": "Alle Unicode",
                 "description": "Blaai deur Unicode-karakters en emoji, stel 'n reeks saam en kopieer dit of voeg dit by jou boodskap in",
                 "font": "Lettertipe",
-                "fontHint": "Lettertipes beïnvloed net die vertoning; elke gelyste karakter bly kiesbaar",
                 "fonts": {
                     "emoji": "Platform-emoji",
                     "monospace": "Generiese enkelspasie",
@@ -1634,19 +1744,6 @@
                 "staging": "Karakters om te kopieer",
                 "subset": "Deelversameling",
                 "title": "Karakterkaart"
-            },
-            "promptsPicker": {
-                "editFailed": "Kon nie promptredigeerder oopmaak nie.",
-                "empty": "Nog geen gestoorde prompts nie.",
-                "emptyContent": "Geen promptinhoud nie",
-                "help": "Kies 'n gestoorde prompt om dit in die kletsopsteller in te voeg",
-                "loadFailed": "Kon nie gestoorde prompts laai nie.",
-                "loading": "Laai prompts...",
-                "manage": "Bestuur prompts",
-                "manageFailed": "Kon nie die prompts-bladsy oopmaak nie.",
-                "noMatches": "Geen prompts pas by jou soektog nie.",
-                "search": "Soek",
-                "title": "Gestoorde prompts"
             },
             "search": {
                 "placeholder": "Soek kletse...",
@@ -1700,9 +1797,32 @@
                     "service_unavailable": "'n Diens wat vir hierdie antwoord vereis word, is tydelik nie beskikbaar nie.",
                     "stream_hydration_failed": "Kon nie die antwoordstroom weer sinchroniseer nie.",
                     "tool_sequence_contract_violation": "Die model het ná herhaalde pogings 'n ongeldige hulpmiddelvolgorde gelewer. Probeer weer of verander modelparameters.",
+                    "invalid_request_error": "Die modelverskaffer het die versoek verwerp. Kontroleer die gekose model en sy parameters.",
+                    "authentication_error": "Die modelverskaffer het die geloofsbriewe of toegangsregte verwerp. Kontroleer die gekonfigureerde API-sleutel.",
+                    "payment_required_error": "Die modelverskaffer het die versoek afgewys omdat die rekening se fakturering, krediete of bestedingslimiet aandag nodig het.",
+                    "rate_limit_error": "Die modelverskaffer is besig of tempo-beperk. Wag 'n oomblik en probeer weer.",
+                    "timeout_error": "Die modelverskaffer het uitgetel terwyl die antwoord gegenereer is. Probeer later weer.",
+                    "providerExplanation": "Verskaffer se verduideliking: {explanation}",
                     "withCode": "{message} (kode: {code})",
                     "withReference": "{message} (kode: {code}; verwysing: {referenceId})",
-                    "ws_disconnected": "Verbinding verloor terwyl die antwoord ontvang is."
+                    "ws_disconnected": "Verbinding verloor terwyl die antwoord ontvang is.",
+                    "providerPermission": "Die verskaffer het toegang geweier. Gaan die API-sleutel se toestemmings, rekeningtoegang en ondersteunde streke na.",
+                    "providerParameter": "Die verskaffer het {param} verwerp. Verander of herstel hierdie modelparameter en probeer weer.",
+                    "providerMedia": "Die verskaffer het ’n aanhegsel verwerp. Gaan die formaat, grootte en inhoud na of laai dit weer op.",
+                    "providerContext": "Die versoek oorskry die konteksvenster. Verkort die gesprekskonteks, verminder uitsettekens of kies ’n model met ’n groter konteks.",
+                    "providerContentPolicy": "Die verskaffer het die versoek volgens sy inhoudsbeleid geblokkeer. Herformuleer die boodskap of kies ’n ander model.",
+                    "providerVision": "Hierdie model of eindpunt aanvaar nie beelde nie. Verwyder die beeld of kies ’n model wat beelde ondersteun.",
+                    "providerAudio": "Hierdie model of eindpunt aanvaar nie oudio nie. Verwyder die oudio of kies ’n oudiomodel.",
+                    "providerModelUnavailable": "Die verskaffer meld dat hierdie model nie beskikbaar is nie. Verfris die katalogus of kies ’n ander model.",
+                    "providerUnavailable": "Die verskaffer is tydelik onbeskikbaar of oorlaai. Probeer later weer of kies ’n ander verskaffer.",
+                    "providerRetryAfter": "Wag minstens {seconds} sekondes voordat jy weer probeer.",
+                    "providerMediaFormat": "Die aanhegselformaat is geweier. Skakel dit na ’n ondersteunde formaat om en probeer weer.",
+                    "providerMediaSize": "Kontroleer die aanhegsel se grootte en afmetings en probeer weer met ’n ondersteunde grootte.",
+                    "providerMediaDecoding": "Die aanhegsel kon nie gedekodeer word nie. Laai ’n geldige lêer op en probeer weer.",
+                    "providerMediaRetrieval": "Die aanhegsel kon nie verkry word nie. Kontroleer die skakel of laai die lêer weer op.",
+                    "providerContextUsage": "Hierdie versoek benodig {requested} tekens; die beskikbare konteks is {available} tekens.",
+                    "context_budget_unavailable": "Die modelkonteks is te klein vir die opgestelde uitsetreservering. Vergroot die modelkontekslengte of verminder die kompaksie-uitsetreservering.",
+                    "contextBudgetUsage": "Die modelkonteks is {context} tekens ({usable} bruikbaar); die kompaksie-uitsetreservering is {reserved} tekens."
                 },
                 "failedToGetResponse": "Kon nie antwoord kry nie",
                 "noModelSelected": "Kies asseblief 'n model voordat jy 'n boodskap stuur",
@@ -2155,6 +2275,12 @@
                         },
                         "apply_patch": {
                             "1": "Pas veranderings toe"
+                        },
+                        "skill_read": {
+                            "1": "Lees vaardigheidsinstruksies"
+                        },
+                        "skill_materialize": {
+                            "1": "Kopieer vaardigheidslêers na die werkruimte"
                         }
                     }
                 }
@@ -2412,12 +2538,15 @@
             "cancellation": {
                 "failed": "Die kansellasieversoek het misluk. Die bewerking loop steeds; probeer weer.",
                 "userRequested": "Gebruiker het kansellasie versoek.",
-                "userRequestedViaWebUi": "Gebruiker het kansellasie via WebUI versoek."
+                "userRequestedViaWebUi": "Gebruiker het kansellasie via WebUI versoek.",
+                "cancelling": "Kanselleer tans",
+                "cancelled": "Gekanselleer"
             },
             "clipboard": {
                 "copied": "Na knipbord gekopieer",
                 "copyFailed": "Kon nie na knipbord kopieer nie",
-                "copyUnavailable": "Knipbord is nie in hierdie omgewing beskikbaar nie"
+                "copyUnavailable": "Knipbord is nie in hierdie omgewing beskikbaar nie",
+                "notificationCopied": "Kennisgewing na knipbord gekopieer"
             },
             "close": "Sluit",
             "filters": {
@@ -2441,7 +2570,6 @@
                 "chatAttachments": "Aanhegsels waarna hierdie boodskap verwys",
                 "chatMcpDefaultTools": "Verstek-MCP-hulpmiddels vir nuwe kletse",
                 "chatMemoryProfile": "Persoonlike besonderhede wat SoAI oor kletse heen onthou",
-                "chatPromptsPicker": "Gestoorde prompts gereed om in hierdie klets in te voeg",
                 "voiceCall": "Handvrye klets met mikrofoon, transkripsie, stromende antwoorde en spraakweergawe",
                 "credits": "Erkennings vir derdeparty-afhanklikhede",
                 "fileExplorerMetadata": "Lêermetadata",
@@ -2490,12 +2618,24 @@
             "error": "Fout",
             "errors": {
                 "errorWithMessage": "Fout: {message}",
+                "fileAccessDenied": "SoAI is toegang geweier tot ’n lêer wat dit nodig het. Gaan die vouer se toestemmings na en probeer dan weer.",
+                "fileOperationFailed": "’n Lêerbewerking het misluk. Gaan die logboek na vir besonderhede en probeer dan weer.",
                 "insufficientDiskSpace": "Die bewerking kon nie voortgaan nie omdat daar nie genoeg skyfspasie is nie.",
                 "offlinePolicy": "Die bewerking is nie beskikbaar terwyl vanlynmodus aktief is nie.",
                 "operationFailed": "Die bewerking het misluk. Probeer weer.",
                 "operationFailedWithMessage": "Kon nie {operation} nie: {error}",
+                "runtimeStartupTimeout": "’n Looptyd was nie betyds gereed nie. Nuut geïnstalleerde looptydlêers kan langer neem wanneer hulle die eerste keer begin. Probeer die bewerking weer.",
+                "runtimeVerificationTimeout": "SoAI kon nie betyds klaarmaak om ’n looptyd na te gaan nie. Nuut geïnstalleerde looptydlêers kan langer neem wanneer hulle die eerste keer begin. Probeer die bewerking weer.",
+                "executionTimeoutResponse": "Die inprop het nie binne {budget} sekondes ’n antwoord teruggestuur nie ({elapsed} sekondes verstreke).",
+                "executionTimeoutInitialResponse": "Die model het nie binne {budget} sekondes begin antwoord nie ({elapsed} sekondes verstreke).",
+                "executionTimeoutFirstToken": "Die model het nie binne {budget} sekondes sy eerste uitvoer gelewer nie ({elapsed} sekondes verstreke).",
+                "executionTimeoutBufferedResponse": "Die model het nie sy antwoord binne {budget} sekondes voltooi nie ({elapsed} sekondes verstreke).",
+                "executionTimeoutRequestLimit": "Die versoek het hierdie tydsbeperking gestel, dus is die inprop nie as ongesond gemerk nie.",
+                "executionTimeoutPluginBudget": "Dit was die inprop se uitvoeringsbegroting, dus is die inprop dalk oorlaai of reageer nie.",
                 "unknown": "Onbekende fout",
-                "unknownError": "'n Onbekende fout het voorgekom."
+                "unknownError": "'n Onbekende fout het voorgekom.",
+                "storageHeadroomInsufficient": "Daar is nie genoeg beskikbare stoorspasie nie, met inagneming van veiligheidsruimte en bestaande besprekings. Maak ruimte vry of wag totdat ander stoorbewerkings voltooi is, en probeer weer.",
+                "storageHeadroomValues": "Benodig met die veiligheidsmarge: {required}. Beskikbaar vir hierdie bewerking: {available}."
             },
             "export": "Voer uit",
             "exportPreview": {
@@ -2606,6 +2746,10 @@
             "retry": "Probeer weer"
         },
         "contentPreview": {
+            "fields": {
+                "title": "Titel",
+                "text": "Teks"
+            },
             "actions": {
                 "goToPath": "Gaan na pad",
                 "goToUrl": "Gaan na URL",
@@ -2890,7 +3034,14 @@
                 "renameNameRequired": "Voer eers 'n naam in.",
                 "renameNameUnchanged": "Voer 'n ander naam in.",
                 "selectionChanged": "Die seleksie het verander. Kies die inskrywing weer voordat jy dit hernoem.",
-                "selectionRequired": "Kies eers minstens een inskrywing."
+                "selectionRequired": "Kies eers minstens een inskrywing.",
+                "changeRefreshFailed": "Die verandering is gestoor, maar lêerbesonderhede kon nie verfris word nie. Verfris Lêers.",
+                "fileInUse": "Hierdie lêer word deur ’n ander toepassing gebruik. Sluit daardie toepassing en probeer weer.",
+                "listingExpired": "Die vouerlys is nie meer beskikbaar nie. Verfris Lêers om dit weer te laai.",
+                "publicationUncertain": "Die lêer is moontlik gestoor, maar die finale toestand kon nie bevestig word nie. Gaan die bestemming in Lêers na voordat jy dit weer oplaai.",
+                "cleanupIncomplete": "Outomatiese opruiming kon nie voltooi word nie. Gaan die bestemming in Lêers na voordat jy weer probeer.",
+                "contentChanged": "Die lêer het tydens die bewerking verander. Kies dit weer en probeer weer.",
+                "destinationExists": "’n Lêer of gids met hierdie naam bestaan reeds. Kies ’n ander naam of bestemming."
             },
             "labels": {
                 "latestTask": "Jongste taak",
@@ -3114,7 +3265,8 @@
                         "withTotal": "{count} {label} • {total}"
                     },
                     "title": "Berging",
-                    "waiting": "Bespeur tans..."
+                    "waiting": "Bespeur tans...",
+                    "unavailable": "Berging nie beskikbaar nie"
                 }
             },
             "common": {
@@ -3137,7 +3289,47 @@
                 "network": "Netwerk"
             },
             "errors": {
-                "historyInitFailed": "Kon nie geskiedenisstroom inisialiseer nie"
+                "historyInitFailed": "Kon nie geskiedenisstroom inisialiseer nie",
+                "gpuRecoveryIdentityConflict": "GPU-herstel kon nie die fisiese toestel verifieer nie. GPU-veranderinge bly gedeaktiveer. Bewaar die hersteldata en ondersoek die hardewarediagnostiek.",
+                "gpuSlotAliasConflict": "Gestoorde GPU-aliasse bevat botsende of onherkende instellings. Bewaar die gleuflêer en hersien die gestoorde profiele voordat jy veranderinge maak.",
+                "opencl_compiler_unavailable": "Die OpenCL-looptydomgewing kan nie SoAI Bench-kerne saamstel nie. Installeer 'n GPU-OpenCL-looptydomgewing met 'n ingeboude samesteller.",
+                "opencl_kernel_execution_unavailable": "Die OpenCL-looptydomgewing kan nie kerne uitvoer wat uit bronkode saamgestel is nie. Installeer 'n GPU-OpenCL-looptydomgewing wat dit ondersteun.",
+                "opencl_custom_identity_unproved": "Die OpenCL-GPU se identiteit of verskafferinligting kon nie bevestig word nie. Verfris GPU-opsporing en werk die GPU-drywer by.",
+                "opencl_memory_insufficient": "SoAI Bench benodig 'n OpenCL-toewysing van 256 MiB en genoeg totale toestelgeheue. Kies 'n GPU wat aan hierdie vereistes voldoen.",
+                "soaibenchPublicationUnsupported": "Hierdie GPU kan nie hierdie maatstaftoets uitvoer nie. Daar is geen telling om te publiseer nie. Kies ’n ondersteunde GPU en voltooi eers ’n maatstaftoets.",
+                "gpuInventoryBusy": "GPU-inventaris is besig of herstel. Wag en probeer hierdie geskiedenisreeks weer.",
+                "soaibenchPublicationCancelled": "Hierdie maatstaftoets is gekanselleer. Voltooi ’n ondersteunde toets voordat jy dit publiseer.",
+                "soaibenchPublicationIncomplete": "Hierdie toets het geen volledige geskikte resultaat nie. Voltooi ’n ondersteunde gesertifiseerde toets voordat jy dit publiseer.",
+                "gpuClockCombinationUnsupported": "Hierdie GPU kan nie hierdie klokbeheerfunksies kombineer nie. Pas een op 'n slag toe.",
+                "gpuClockConversionUnavailable": "Die drywer kan nie die vereiste klokomskakeling verskaf nie. Verfris hardewarebespeuring en kontroleer drywerondersteuning.",
+                "gpuSettingOutOfRange": "Hierdie GPU-instelling is buite die ondersteunde reeks. Kies ’n ondersteunde waarde.",
+                "gpuSettingRange": "{field}: {requested} {unit} is buite die ondersteunde reeks {minimum}–{maximum} {unit}. Kies ’n ondersteunde waarde.",
+                "gpuObservationUnavailable": "Die lewendige GPU-toestand kon nie waargeneem word nie. Gestoorde veranderings bly behoue. Wag vir herstel en verfris dan.",
+                "gpuObservationTimeout": "Die lewendige GPU-waarneming het uitgetel. Gestoorde veranderings bly behoue. Wag vir herstel en verfris dan.",
+                "gpuSensorPermissionDenied": "Toegang tot GPU-sensors is geweier. Gee die SoAI-diensrekening toegang tot die GPU-toestel en sensorlêers en verfris dan.",
+                "vulkanRuntimeUnavailable": "Die gekose GPU-binding benodig Vulkan-toesteltoewysing, maar die Vulkan-gereedskap is onbeskikbaar of het misluk. Installeer die verspreiding se Vulkan-gereedskap en drywer, of bind alle GPU’s.",
+                "vulkanQueryTimeout": "Die gekose GPU-binding benodig Vulkan-toesteltoewysing, maar die Vulkan-toestelnavraag het uitgetel. Gaan die Vulkan-drywer na, of bind alle GPU’s.",
+                "vulkanFormatUnsupported": "Die gekose GPU-binding benodig Vulkan-toesteltoewysing, maar die Vulkan-gereedskap het ’n nie-ondersteunde formaat teruggegee. Werk die verspreiding se Vulkan-gereedskap by, of bind alle GPU’s.",
+                "vulkanDeviceUnavailable": "Die gekose GPU is nie onder die Vulkan-toestelle nie. Gaan die Vulkan-drywer vir hierdie GPU na, of kies ’n ander GPU.",
+                "vulkanIdentityUnavailable": "Die gekose GPU deel geen UUID- of PCI-identiteit met die Vulkan-toestelle nie, so dit kan nie veilig gebind word nie. Bind eerder alle GPU’s.",
+                "vulkanIdentityConflict": "Die gekose GPU het ’n botsende identiteit in die Vulkan-toestellys, so dit kan nie veilig gebind word nie. Gaan die GPU-drywers na, of bind alle GPU’s.",
+                "vulkanDeviceAmbiguous": "Die gekose GPU word deur verskeie Vulkan-drywers blootgestel. Verwyder die duplikaat Vulkan-drywer (ICD), of bind alle GPU’s.",
+                "gpuBindingIdentityConflict": "Die gekose GPU het duplikaat fisiese identiteite in die hardeware-inventaris. Verfris die hardeware-inligting en kies die GPU weer.",
+                "gpuDiscoveryTimeout": "GPU-opsporing het uitgetel. Wag totdat die hardewarenavraag klaar is en probeer weer.",
+                "gpuDiscoveryBusy": "'n Hardewarenavraag loop nog. Wag totdat GPU-opsporing afgehandel is en probeer weer.",
+                "gpuDiscoveryNativeTimeout": "Die inheemse GPU-navraag het uitgetel. Gaan die grafiese drywer na en probeer weer.",
+                "gpuDiscoveryQueryFailed": "Die inheemse GPU-navraag het misluk. Gaan die grafiese drywer en stelseldiagnostiek na en probeer weer.",
+                "gpuDiscoveryEmpty": "Die GPU-navraag het geen data teruggestuur nie. Gaan die grafiese drywer na en probeer weer.",
+                "gpuDiscoveryInvalid": "Die GPU-navraag het ongeldige data teruggestuur. Gaan die grafiese drywer en stelseldiagnostiek na en probeer weer.",
+                "gpuDiscoveryRuntimeUnavailable": "GPU-opsporingsnutsmiddels is nie beskikbaar nie. Herstel die stelselnutsmiddels en probeer weer.",
+                "gpuDiscoveryPermissionDenied": "Toegang vir GPU-opsporing is geweier. Gaan die diensrekening se hardewaretoestemmings na en probeer weer.",
+                "gpuDiscoveryUnavailable": "GPU-opsporing is nie beskikbaar nie. Gaan die grafiese drywer en stelselnutsmiddels na en probeer weer.",
+                "gpuDiscoveryChanged": "Die GPU-inventaris het tydens opsporing verander. Wag totdat hardewareopsporing afgehandel is en probeer weer.",
+                "opencl_operation_deadline": "{phase} het die sperdatum van {seconds} sekondes oorskry. Geen telling is geskep nie. Kontroleer dat die grafiese drywer reageer en probeer weer.",
+                "opencl_runtime_deadline": "OpenCL het nie voor die sperdatum voltooi nie. Kontroleer dat die grafiese drywer reageer en probeer weer.",
+                "opencl_child_exited": "Die OpenCL-looptydomgewing het onverwags gestop. Kontroleer die grafiese drywer en probeer SoAI Bench weer.",
+                "opencl_child_invalid_response": "Die OpenCL-looptydomgewing het ’n ongeldige antwoord teruggestuur. Herbegin SoAI en probeer SoAI Bench weer.",
+                "opencl_child_disconnected": "Kommunikasie met die OpenCL-looptydomgewing is onderbreek. Probeer SoAI Bench weer."
             },
             "gpu": {
                 "actions": {
@@ -3154,8 +3346,11 @@
                 "controls": {
                     "autoLabel": "Outo",
                     "coreClock": "Kernklok-afwyking",
+                    "coreClockFrequency": "Kernklokfrekwensie",
                     "fan_speed": "Waaierspoed",
                     "memoryClock": "Geheueklok-afwyking",
+                    "memoryClockFrequency": "Geheueklokfrekwensie",
+                    "powerLimitOffset": "Kraglimiet-afwyking",
                     "power_limit": "Kraglimiet",
                     "toggleAutomatic": "Outomatiese beheer"
                 },
@@ -3166,19 +3361,19 @@
                     "noManualChange": "Deaktiveer 'Outo'-modus voordat jy stoor.",
                     "noSettings": "Geen GPU-instellings om toe te pas nie.",
                     "reset": "GPU {index} na verstekwaardes teruggestel",
-                    "soaibenchNoActiveRun": "GPU {index} het geen aktiewe SoAIBench-uitvoering nie",
-                    "soaibenchStarted": "GPU {index} SoAIBench {profile} begin",
-                    "soaibenchStopRequested": "Stop van GPU {index} SoAIBench versoek",
-                    "soaibenchUnsupported": "GPU {index} SoAIBench word nie ondersteun nie: {reason}",
+                    "soaibenchNoActiveRun": "GPU {index} het geen aktiewe SoAI Bench-uitvoering nie",
+                    "soaibenchStarted": "GPU {index} SoAI Bench {profile} begin",
+                    "soaibenchStopRequested": "Stop van GPU {index} SoAI Bench versoek",
+                    "soaibenchUnsupported": "GPU {index} SoAI Bench word nie ondersteun nie: {reason}",
                     "soaibenchSettingsLocked": "GPU {index} voer 'n toetslopie uit. Stop dit of wag totdat dit klaar is voordat jy sy instellings stoor.",
                     "slotApplied": "GPU {index}-gleuf {slot} toegepas",
                     "slotSaved": "GPU {index}-gleuf {slot} gestoor"
                 },
                 "soaibench": {
-                    "standardTaskName": "GPU SoAIBench standaard",
+                    "standardTaskName": "GPU SoAI Bench standaard",
                     "stressRunningLabel": "Strestoets - loop tans",
-                    "stopTaskName": "GPU SoAIBench stop",
-                    "stressTaskName": "GPU SoAIBench stres"
+                    "stopTaskName": "GPU SoAI Bench stop",
+                    "stressTaskName": "GPU SoAI Bench stres"
                 },
                 "panelHeader": "GPU {index}: {name}",
                 "panelTitle": "GPU-beheeropsies",
@@ -3195,6 +3390,28 @@
                     "powerDraw": "Krag",
                     "temperatures": "Temperature",
                     "memoryUtilization": "VRAM"
+                },
+                "errors": {
+                    "invalidGpuId": "Kies 'n geldige GPU en probeer weer.",
+                    "invalidSlot": "Kies 'n geldige GPU-gleuf en probeer weer.",
+                    "invalidPayload": "Gaan die GPU-instellings na en probeer weer.",
+                    "noSettings": "Kies minstens een GPU-instelling voordat jy veranderinge toepas.",
+                    "deviceNotFound": "Die gekose GPU is nie gevind nie. Verfris die hardewarelys en kies dit weer.",
+                    "noGpus": "Geen GPU's is beskikbaar nie. Gaan hardewarebespeuring na en probeer weer.",
+                    "slotEmpty": "Die gekose GPU-gleuf is leeg. Stoor instellings in hierdie gleuf voordat jy dit toepas.",
+                    "slotUnchanged": "Die GPU-gleuf bevat reeds hierdie instellings.",
+                    "bootUnchanged": "Die GPU-gleuf het reeds hierdie selflaai-instelling.",
+                    "slotRequiresApply": "Pas die GPU-gleuf toe voordat jy dit vir selflaai aktiveer.",
+                    "applyFailed": "GPU-instellings kon nie veilig toegepas word nie. Gaan die bewerkingbesonderhede na en probeer weer.",
+                    "deviceUnavailable": "Die gekose GPU is nie beskikbaar nie. Wag totdat dit herstel en probeer weer.",
+                    "hardwareMutationDisabled": "GPU-hardewareveranderinge is vir hierdie installasie gedeaktiveer.",
+                    "gpuActivityConflict": "Die GPU is besig met 'n ander bewerking. Wag totdat dit klaar is en probeer weer.",
+                    "hardwareUnavailable": "GPU-verstelling is nie in hierdie installasie beskikbaar nie. Gaan hardewareondersteuning en konfigurasie na.",
+                    "gpuError": "Die GPU-instellingsbewerking het misluk. Gaan die instellings na en probeer weer.",
+                    "slotError": "Die GPU-gleufbewerking het misluk. Verfris die hardewarelys en probeer weer.",
+                    "recoveryReconciled": "Die vorige GPU-instellings is herstel. Pas die nuwe instellings weer toe.",
+                    "recoveryUnresolved": "Die vorige GPU-instellings kon nie veilig herstel word nie. Gaan die GPU se toestand na voordat jy instellings weer toepas.",
+                    "controlPreparationFailed": "GPU-instellings kon nie voor hardewaretoegang voorberei word nie. Probeer weer en rapporteer die verwysings-ID as die probleem voortduur."
                 }
             },
             "metrics": {
@@ -3217,41 +3434,41 @@
             "soaibenchPublication": {
                 "deleteLocalHistory": "Vee plaaslike geskiedenis uit",
                 "deleteLocalConfirm": {
-                    "title": "SoAIBench-uitvoering uitvee?",
-                    "message": "Vee hierdie SoAIBench-uitvoering uit die plaaslike geskiedenis uit? Dit kan nie ontdoen word nie."
+                    "title": "SoAI Bench-uitvoering uitvee?",
+                    "message": "Vee hierdie SoAI Bench-uitvoering uit die plaaslike geskiedenis uit? Dit kan nie ontdoen word nie."
                 },
                 "action": "Deel",
                 "openRun": "Open lopie",
-                "ariaLabel": "Deel hierdie SoAIBench-telling",
-                "unavailable": "Geen publiseerbare SoAIBench-lopie is beskikbaar nie",
+                "ariaLabel": "Deel hierdie SoAI Bench-telling",
+                "unavailable": "Geen publiseerbare SoAI Bench-lopie is beskikbaar nie",
                 "confirm": {
-                    "title": "Deel SoAIBench-telling?",
-                    "message": "Publiseer telling {score} en sy {passes} gemete lopies op die openbare SoAIBench-ranglys?",
+                    "title": "Deel SoAI Bench-telling?",
+                    "message": "Publiseer telling {score} en sy {passes} gemete lopies op die openbare SoAI Bench-ranglys?",
                     "description": "Dit stuur die telling, vyf gemete lopies, openbare GPU- en looptydinligting, maatstaftoetsinstellings en opsionele sensorbewyse. Rekeningidentiteit, lêers, konfigurasie, ontleding en algemene telemetrie word uitgesluit."
                 },
                 "outcomes": {
-                    "published": "SoAIBench-telling is openbaar gedeel.",
-                    "alreadyPublished": "Hierdie SoAIBench-telling is reeds gedeel.",
-                    "heldForReview": "Die SoAIBench-resultaat is vir identiteits- of afwykingshersiening gehou en is nog nie in die ranglys ingesluit nie.",
+                    "published": "SoAI Bench-telling is openbaar gedeel.",
+                    "alreadyPublished": "Hierdie SoAI Bench-telling is reeds gedeel.",
+                    "heldForReview": "Die SoAI Bench-resultaat is vir identiteits- of afwykingshersiening gehou en is nog nie in die ranglys ingesluit nie.",
                     "offline": "Die telling kon nie gedeel word terwyl SoAI vanlyn is nie.",
-                    "unavailable": "Die SoAIBench-publikasiediens is nie beskikbaar nie.",
+                    "unavailable": "Die SoAI Bench-publikasiediens is nie beskikbaar nie.",
                     "timeout": "Die deel van die telling het uitgetel. Probeer weer om dieselfde publikasie te versoen.",
                     "rateLimited": "Te veel tellings is vanaf hierdie verbinding gedeel. Probeer later weer.",
-                    "capacity": "Die SoAIBench-ranglys is tans vol.",
-                    "rejected": "Die SoAIBench-ranglys het hierdie resultaat verwerp.",
+                    "capacity": "Die SoAI Bench-ranglys is tans vol.",
+                    "rejected": "Die SoAI Bench-ranglys het hierdie resultaat verwerp.",
                     "conflict": "Hierdie publikasie bots met die bestaande ranglystoestand.",
-                    "invalidResponse": "Die SoAIBench-ranglys het ’n ongeldige antwoord teruggestuur.",
+                    "invalidResponse": "Die SoAI Bench-ranglys het ’n ongeldige antwoord teruggestuur.",
                     "retryAfter": "Probeer weer oor {seconds} sekondes."
                 }
             },
             "modals": {
                 "soaibenchHistory": {
                     "ariaLabels": {
-                        "close": "Sluit SoAIBench-geskiedenis",
-                        "copy": "Kopieer SoAIBench-geskiedenis",
-                        "copyRun": "Kopieer SoAIBench-uitvoering",
-                        "download": "Laai SoAIBench-geskiedenis-CSV af",
-                        "downloadRun": "Laai SoAIBench-uitvoering af"
+                        "close": "Sluit SoAI Bench-geskiedenis",
+                        "copy": "Kopieer SoAI Bench-geskiedenis",
+                        "copyRun": "Kopieer SoAI Bench-uitvoering",
+                        "download": "Laai SoAI Bench-geskiedenis-CSV af",
+                        "downloadRun": "Laai SoAI Bench-uitvoering af"
                     },
                     "close": "Sluit",
                     "copy": "Kopieer",
@@ -3260,10 +3477,10 @@
                         "runs": "Uitvoerings",
                         "table": "Uitvoeringstabel"
                     },
-                    "copySuccess": "SoAIBench-geskiedenis na knipbord gekopieer",
-                    "copyUnavailable": "Geen SoAIBench-geskiedenis beskikbaar om te kopieer nie",
+                    "copySuccess": "SoAI Bench-geskiedenis na knipbord gekopieer",
+                    "copyUnavailable": "Geen SoAI Bench-geskiedenis beskikbaar om te kopieer nie",
                     "download": "Laai af",
-                    "downloadSuccess": "Aflaai van SoAIBench-geskiedenis-CSV begin",
+                    "downloadSuccess": "Aflaai van SoAI Bench-geskiedenis-CSV begin",
                     "columns": {
                         "actions": "Aksies",
                         "certification": "Sertifisering",
@@ -3287,11 +3504,11 @@
                         "quick": "Vinnig",
                         "varianceSuffix": "{variance}% variansie"
                     },
-                    "description": "Vorige SoAIBench-uitvoerings vir die gekose GPU",
-                    "empty": "Nog geen SoAIBench-uitvoerings vir hierdie GPU nie.",
+                    "description": "Vorige SoAI Bench-uitvoerings vir die gekose GPU",
+                    "empty": "Nog geen SoAI Bench-uitvoerings vir hierdie GPU nie.",
                     "loading": "Laai uitvoeringsgeskiedenis...",
-                    "pageEmpty": "Nog geen SoAIBench-lopies nie.",
-                    "pageLoadFailed": "Kon nie SoAIBench-lopies laai nie. Probeer weer.",
+                    "pageEmpty": "Nog geen SoAI Bench-lopies nie.",
+                    "pageLoadFailed": "Kon nie SoAI Bench-lopies laai nie. Probeer weer.",
                     "matchBases": {
                         "device_id": "Toestel-ID",
                         "gpu_model_key": "GPU-modelsleutel",
@@ -3313,9 +3530,11 @@
                         "stress": "Stres"
                     },
                     "reasons": {
-                        "opencl_numerical_mismatch": "Die numeriese validering van die OpenCL-werklas het misluk."
+                        "opencl_numerical_mismatch": "Die numeriese validering van die OpenCL-werklas het misluk.",
+                        "preflight": "Voorafkontrole",
+                        "startup": "Aanvang"
                     },
-                    "rowCopyUnavailable": "Geen SoAIBench-uitvoering beskikbaar om te kopieer nie",
+                    "rowCopyUnavailable": "Geen SoAI Bench-uitvoering beskikbaar om te kopieer nie",
                     "staleHardware": "Verouderde hardeware-ooreenstemming",
                     "statuses": {
                         "cancelled": "Gekanselleer",
@@ -3327,28 +3546,28 @@
                         "unstable": "Onstabiel",
                         "unsupported": "Nie ondersteun nie"
                     },
-                    "title": "Vorige SoAIBench-uitvoerings"
+                    "title": "Vorige SoAI Bench-uitvoerings"
                 },
                 "soaibenchRun": {
                     "selectGpu": "Kies ’n GPU om te toets",
                     "noGpus": "Geen GPU’s beskikbaar vir toetsing nie.",
                     "ariaLabels": {
-                        "close": "Sluit SoAIBench",
-                        "copy": "Kopieer SoAIBench-uitvoering",
-                        "download": "Laai SoAIBench-uitvoering af",
-                        "history": "Maak SoAIBench-geskiedenis oop",
-                        "retry": "Probeer gesertifiseerde SoAIBench weer",
-                        "stop": "Stop gesertifiseerde SoAIBench",
-                        "stopping": "Stop gesertifiseerde SoAIBench",
-                        "newBenchmark": "Begin 'n nuwe gesertifiseerde SoAIBench-uitvoering",
-                        "runAgain": "Voer gesertifiseerde SoAIBench weer op hierdie GPU uit",
-                        "recover": "Kontroleer die SoAIBench-status weer",
-                        "start": "Begin gesertifiseerde SoAIBench"
+                        "close": "Sluit SoAI Bench",
+                        "copy": "Kopieer SoAI Bench-uitvoering",
+                        "download": "Laai SoAI Bench-uitvoering af",
+                        "history": "Maak SoAI Bench-geskiedenis oop",
+                        "retry": "Probeer gesertifiseerde SoAI Bench weer",
+                        "stop": "Stop gesertifiseerde SoAI Bench",
+                        "stopping": "Stop gesertifiseerde SoAI Bench",
+                        "newBenchmark": "Begin 'n nuwe gesertifiseerde SoAI Bench-uitvoering",
+                        "runAgain": "Voer gesertifiseerde SoAI Bench weer op hierdie GPU uit",
+                        "recover": "Kontroleer die SoAI Bench-status weer",
+                        "start": "Begin gesertifiseerde SoAI Bench"
                     },
                     "close": "Sluit",
                     "copy": "Kopieer",
-                    "copySuccess": "SoAIBench-uitvoering na knipbord gekopieer",
-                    "copyUnavailable": "Geen SoAIBench-uitvoering beskikbaar om te kopieer nie",
+                    "copySuccess": "SoAI Bench-uitvoering na knipbord gekopieer",
+                    "copyUnavailable": "Geen SoAI Bench-uitvoering beskikbaar om te kopieer nie",
                     "description": "Gesertifiseerde GPU-vergelykingstoets vir SoAI-inferensiegereedheid",
                     "download": "Laai af",
                     "export": {
@@ -3360,7 +3579,7 @@
                         "rawRun": "Rou uitvoeringsbesonderhede",
                         "runId": "Uitvoering-ID",
                         "status": "Status",
-                        "title": "SoAIBench-uitvoeringsbesonderhede"
+                        "title": "SoAI Bench-uitvoeringsbesonderhede"
                     },
                     "history": "Geskiedenis",
                     "metrics": {
@@ -3392,16 +3611,16 @@
                         "stability": "Stabiliteit"
                     },
                     "progress": {
-                        "activeRunInProgress": "Nog 'n SoAIBench-uitvoering is reeds aktief op hierdie GPU.",
+                        "activeRunInProgress": "Nog 'n SoAI Bench-uitvoering is reeds aktief op hierdie GPU.",
                         "awaitingRun": "Wag vir backend-uitvoeringstatus",
                         "measured": "Gemete deurloop {pass} van {total}",
                         "measuredDetail": "Gemeet {pass}/{total}",
                         "measuredPhase": "Gemete deurloop {pass} van {total}: {phase}",
                         "phaseDetail": "{phase} {index}/{total}",
-                        "running": "SoAIBench loop tans, wag asseblief...",
-                        "startFailed": "SoAIBench kon nie begin nie",
-                        "starting": "Begin gesertifiseerde SoAIBench",
-                        "stopping": "Stop SoAIBench",
+                        "running": "SoAI Bench loop tans, wag asseblief...",
+                        "startFailed": "SoAI Bench kon nie begin nie",
+                        "starting": "Begin gesertifiseerde SoAI Bench",
+                        "stopping": "Stop SoAI Bench",
                         "warmupDetail": "Opwarming {pass}/{total}",
                         "warmupPhase": "Opwarming: {phase}",
                         "warmup": "Opwarmingsdeurloop voltooi",
@@ -3411,7 +3630,7 @@
                         "startUnconfirmed": "Die begin van die toetslopie kon nie bevestig word nie en geen uitvoering is aktief op hierdie GPU nie. Gaan die geskiedenis na voordat jy weer probeer."
                     },
                     "retry": "Probeer weer",
-                    "scoreLabel": "SoAIBench-telling",
+                    "scoreLabel": "SoAI Bench-telling",
                     "sections": {
                         "expect": {
                             "items": "GPU sal besig wees|Kragverbruik en waaierspoed kan styg|Die uitvoering kan gestop word|Nie-ondersteunde looptydgevalle word uitdruklik gerapporteer",
@@ -3439,7 +3658,7 @@
                         "unresolved": "Status onbekend",
                         "rejected": "Nie begin nie"
                     },
-                    "title": "SoAIBench"
+                    "title": "SoAI Bench"
                 },
                 "systemInfo": {
                     "anonymize": "Anonimiseer",
@@ -3565,6 +3784,9 @@
                 "slotsRetained": "Gestoorde GPU-instellings is nie beskikbaar nie. Data van {age} word gewys.",
                 "capabilitiesUnavailable": "GPU-kontroles is nie beskikbaar nie.",
                 "slotsUnavailable": "Gestoorde GPU-instellings is nie beskikbaar nie."
+            },
+            "observations": {
+                "retainedAge": "Behoue waarneming · ouderdom {seconds}s"
             }
         },
         "header": {
@@ -3592,6 +3814,7 @@
                 "about": "Oor",
                 "logout": "Meld af",
                 "logs": "Loglêers",
+                "power": "Herbegin / Afskakel",
                 "settings": "Instellings",
                 "updates": "Opdaterings"
             },
@@ -3630,7 +3853,7 @@
                     "unavailable": "Kennisgewings is nie beskikbaar nie. Herkoppel tans..."
                 },
                 "confirmations": {
-                    "clearAllMessage": "Vee alle kennisgewings uit? Hierdie aksie kan nie ongedaan gemaak word nie."
+                    "clearAllMessage": "Vee alle kennisgewings ({count}) uit? Hierdie aksie kan nie ongedaan gemaak word nie."
                 }
             }
         },
@@ -4205,17 +4428,22 @@
             "cards": {
                 "capabilities": {
                     "lockedReasons": {
-                        "requiresAudio": "Aktiveer die Oudio-modaliteit om dit te wissel.",
-                        "requiresImages": "Aktiveer die Beelde-eindpunt om dit te wissel.",
-                        "requiresResponses": "Aktiveer die Antwoorde-eindpunt om dit te wissel.",
-                        "requiresVision": "Aktiveer die Visie-modaliteit om dit te wissel.",
+                        "requiresAudio": "Vereis die Audio-modaliteit.",
+                        "requiresImages": "Vereis die Images-eindpunt.",
+                        "requiresResponses": "Vereis die Responses-eindpunt.",
+                        "requiresVision": "Vereis die Vision-modaliteit.",
                         "text": "Teks kan nie gedeaktiveer word nie.",
-                        "unsupported": "Hierdie model ondersteun nie hierdie vermoë nie."
+                        "unsupported": "Die model meld nie hierdie vermoë nie."
                     },
                     "manifestLoading": "Laai vermoë-taksonomie...",
+                    "modes": {
+                        "autoOff": "Outo (af)",
+                        "autoOn": "Outo (aan)",
+                        "disabled": "Gedeaktiveer",
+                        "enabled": "Geaktiveer"
+                    },
                     "none": "Geen OpenAI-vermoëns vir hierdie model beskikbaar nie.",
                     "pluginCapabilitiesUnavailable": "Plugin-vermoëprofiel is nie beskikbaar nie.",
-                    "reset": "Stel oorskrywings terug",
                     "sections": {
                         "chatFeatures": "Kletsfunksies",
                         "endpoints": "Eindpunte",
@@ -4223,7 +4451,9 @@
                         "modalities": "Modaliteite",
                         "responsesFeatures": "Antwoordfunksies"
                     },
-                    "title": "Vermoëns"
+                    "title": "Vermoëns",
+                    "unverified": "Ongeverifieer",
+                    "unverifiedHint": "Die verskaffer het hierdie vermoë nie gerapporteer nie. SoAI behou versoenbaarheidsgedrag totdat jy Geaktiveer of Gedeaktiveer kies"
                 },
                 "constituents": {
                     "hasParameters": "Pasgemaakte parameters",
@@ -4235,7 +4465,6 @@
                     "created": "Geskep",
                     "name": "Verskaffernaam",
                     "providerId": "Verskaffer-ID",
-                    "status": "Status",
                     "title": "Eksterne verskaffer"
                 },
                 "identity": {
@@ -4270,6 +4499,9 @@
                     "delete": "Verwyder",
                     "enabledNote": "Gedeaktiveerde modelle kan nie versoeke aanvaar nie en word van modelkiesers versteek.",
                     "enabledToggleLabel": "Aktiveer hierdie model",
+                    "inferenceUnverified": "Nog nie geverifieer nie. Ontdekking bevestig nie dat versoeke slaag nie.",
+                    "inferenceVerification": "Inferensie",
+                    "inferenceVerified": "Laas suksesvol op {date}",
                     "manageAlias": "Hernoem",
                     "modelStatus": "Modelstatus",
                     "orphaned": "Verweesd",
@@ -4300,12 +4532,6 @@
                 "externalLinkCancel": "Kanselleer",
                 "externalLinkConfirm": "Maak skakel oop",
                 "externalLinkMessage": "Is jy seker jy wil backend-dokumentasie in 'n nuwe oortjie oopmaak?",
-                "resetCapabilities": "Stel vermoë-oorskrywings terug",
-                "resetCapabilitiesConfirm": "Stel terug",
-                "resetCapabilitiesMessage": "Stel alle vermoë-oorskrywings terug en erf plugin-verstekwaardes vir hierdie model?",
-                "resetParameters": "Stel parameters terug",
-                "resetParametersConfirm": "Stel terug",
-                "resetParametersMessage": "Is jy seker jy wil alle parameters na hul verstekwaardes terugstel? Dit sal alle ongestoorde veranderinge verwerp.",
                 "stopPlugin": "Stop plugin",
                 "stopPluginMessage": "Is jy seker jy wil {plugin} stop?"
             },
@@ -4369,6 +4595,7 @@
                 }
             },
             "notifications": {
+                "capabilitiesConflict": "Vermoëns is elders verander. Jou wysigings is weggegooi; hersien die nuutste waardes en pas dit weer toe.",
                 "capabilitiesUpdated": "Vermoëns suksesvol bygewerk",
                 "deletionInProgress": "Model word tans uitgevee...",
                 "enabledUpdated": "Model se aktiveringstatus suksesvol bygewerk",
@@ -4424,6 +4651,17 @@
             "tabs": {
                 "overview": "Oorsig",
                 "parameters": "Parameters"
+            },
+            "parameterAvailability": {
+                "loading": "Laai parameters...",
+                "refreshing": "Verfris parameters... Laas bygewerk: {age}.",
+                "stale": "Verbinding verloor; waardes kan verouderd wees. Laas bygewerk: {age}.",
+                "failed": "Die parameters kon nie gelaai word nie.",
+                "retained": "Stoor is gedeaktiveer totdat die parameters beskikbaar is. Laas bygewerk: {age}.",
+                "schemaChanged": "Die parameterdefinisies het verander terwyl jy gewysig het. Gooi jou ongestoorde veranderinge weg om die huidige definisies te laai.",
+                "discard": "Gooi veranderinge weg",
+                "unavailableNotice": "Modelparameters is onbeskikbaar. Stoor is gedeaktiveer totdat hulle gelaai kan word.",
+                "saveBlocked": "Parameters kan nie gestoor word voordat hulle beskikbaar is nie. Laai hulle eers weer."
             }
         },
         "models": {
@@ -4463,7 +4701,8 @@
                 "externalLink": "Eksterne skakel",
                 "externalLinkCancel": "Kanselleer",
                 "externalLinkConfirm": "Gaan voort",
-                "externalLinkMessage": "Is jy seker jy wil hierdie model se bewaarplek in 'n nuwe oortjie oopmaak?"
+                "externalLinkMessage": "Is jy seker jy wil hierdie model se bewaarplek in 'n nuwe oortjie oopmaak?",
+                "deleteLargeModelMessage": "Vee \"{model}\" ({sizeGb} GB) uit? Om dit weer af te laai, kan aansienlike tyd en bandwydte verg. Hierdie handeling kan nie ongedaan gemaak word nie."
             },
             "description": "Bestuur KI-modelle oor plugins en verskaffers heen.",
             "searchPlaceholder": "Soek modelle...",
@@ -4502,7 +4741,7 @@
                     "close": "Sluit",
                     "confirmDownload": "Laai model af",
                     "modelIdLabel": "Modelaflaai-ID",
-                    "pluginHelp": "Kies watter plugin die modelaflaai sal hanteer",
+                    "pluginHelp": "Die inprop wat die model aflaai",
                     "pluginLabel": "Plugin",
                     "pluginPlaceholder": "Kies 'n plugin...",
                     "quantHelp": "Voer die modelidentifiseerder en kwantisering in (formaat hang van die gekose plugin af)",
@@ -4587,7 +4826,7 @@
                     "modelsFilterPlaceholder": "bv., free, gpt, claude",
                     "nameHelp": "'n Beskrywende naam vir hierdie eksterne verskaffer",
                     "nameLabel": "Verskaffernaam",
-                    "pluginHelp": "Kies watter plugin hierdie eksterne verskaffer sal bestuur",
+                    "pluginHelp": "Die inprop wat die eksterne verskaffer bestuur",
                     "pluginLabel": "Plugin",
                     "pluginPlaceholder": "Kies 'n plugin...",
                     "title": "Voeg verskaffer by"
@@ -4790,7 +5029,42 @@
                 "unknown": "Onbekend",
                 "virtual": "Virtueel"
             },
-            "virtualModelLabel": "Virtuele model"
+            "virtualModelLabel": "Virtuele model",
+            "errors": {
+                "ollamaPullEof": "Ollama het die aflaai beëindig sonder om sukses te bevestig.",
+                "ollamaPullTimeout": "Ollama se aflaai het uitgetel.",
+                "ollamaPullDisconnected": "Die verbinding met Ollama is verloor.",
+                "ollamaPullRejected": "Ollama het die modelaflaai geweier.",
+                "ollamaPullProtocolInvalid": "Ollama het ongeldige aflaaidata teruggestuur.",
+                "ollamaPullTargetMissing": "Die afgelaaide model ontbreek in Ollama se huidige katalogus.",
+                "ollamaPullCacheFailed": "Die afgelaaide model se plaaslike katalogus kon nie gestoor word nie.",
+                "ollamaPullCleanupFailed": "Opruiming is onvolledig. Stop die bestuurde Ollama-diens en voltooi opruiming voordat jy weer probeer.",
+                "ollamaPullPreparationFailed": "Die Ollama-aflaaidiens kon nie voorberei word nie.",
+                "ollamaPullRecovery": "Kontroleer Ollama se diagnostiek en berging en probeer die bewerking weer.",
+                "modelNotFound": "Die aangevraagde model is nie gevind nie. Installeer of registreer dit, of gebruik ’n beskikbare API-model-ID.",
+                "parameterSchemaBusy": "Modelparameters is tydelik onbeskikbaar terwyl ’n inpropbewerking aan die gang is. Probeer binnekort weer.",
+                "parameterSchemaUnavailable": "Modelparameters is onbeskikbaar omdat die inprop-agterkant nie gelaai is nie. Begin of herstel die inprop en probeer dan weer.",
+                "parametersApplyFailed": "Die parameters is gestoor, maar SoAI kon hulle nie op die lopende model toepas nie. Verfris om die gestoorde waardes na te gaan en herlaai die model om hulle toe te pas.",
+                "configurationMissing": "Die GGUF-model het sy oorspronklike modelkonfigurasie nodig. Plaas die oorspronklike config.json langs die GGUF-lêer of stel die Hugging Face-konfigurasiepad in, en probeer dan weer.",
+                "architectureUnsupported": "Die gekose agterkant ondersteun nie hierdie modelargitektuur nie. Gebruik ’n ander weergawe van die model of ’n ander agterkant.",
+                "cudaDeviceArchitectureUnsupported": "Die geïnstalleerde CUDA-agterkant kan nie op die gekose NVIDIA-GPU-argitektuur werk nie. Kies ’n ondersteunde GPU, installeer ’n CUDA-agterkantvariant wat hierdie GPU ondersteun, of gebruik ’n SVE-agterkant.",
+                "nativeCpuFeaturesUnsupported": "Hierdie verwerker het nie die CPU-instruksies wat die geïnstalleerde agterkantvariant vereis nie. Installeer ’n versoenbare agterkantvariant, soos CPU.",
+                "openvinoTensorShapeIncompatible": "Die OpenVINO-agterkant kon nie hierdie model laat loop nie omdat die tensorvorms van sy grafiek onversoenbaar is. Gebruik ’n ander agterkantvariant vir hierdie model, of stel GPU-lae op nul vir uitvoering op die CPU.",
+                "repositoryUnavailable": "Die modelbewaarplek of hersiening kon nie bereik word nie. Kontroleer die identifiseerder; 'n privaat of beperkte bewaarplek benodig ook 'n gemagtigde bewaarplek-token en aanvaarde toegangsvoorwaardes.",
+                "modelSearchTimeout": "Die modelsoektog het te lank geneem. Die katalogus warm dalk nog op; probeer weer oor 'n oomblik."
+            },
+            "phases": {
+                "ollamaServicePreparation": "Berei Ollama-diens voor",
+                "ollamaPullStreaming": "Laai model met Ollama af",
+                "ollamaTerminalConfirmation": "Bevestig aflaaivoltooiing",
+                "ollamaTargetVerification": "Verifieer huidige modelkatalogus",
+                "ollamaCachePublication": "Stoor plaaslike modelkatalogus",
+                "ollamaCleanup": "Ruim Ollama-aflaai op",
+                "transferDownloading": "Laai af",
+                "transferHashing": "Bereken die kontrolesom van behoue aflaaidata",
+                "transferReplaying": "Vergelyk behoue aflaaidata",
+                "transferVerifying": "Verifieer die volledige aflaai"
+            }
         },
         "nav": {
             "about": "Oor",
@@ -5111,7 +5385,31 @@
             },
             "errors": {
                 "changeHandlerFailed": "Plugins se veranderingshanteerder het misluk",
-                "clickHandlerFailed": "Plugins se klikhanteerder het misluk"
+                "clickHandlerFailed": "Plugins se klikhanteerder het misluk",
+                "modelConversionFailed": "Modelomskakeling het misluk. Ondersoek die omskakelaarlog vir ontbrekende afhanklikhede of ongeldige modelinvoer en probeer weer.",
+                "backendCancellationCleanupFailed": "Opruiming ná kansellasie kon nie bevestig word nie. Hou hierdie agterkant gestop en herstel die omgewing voordat jy weer probeer.",
+                "melottsContainerCleanupFailed": "MeloTTS is geïnstalleer, maar die opruiming van tydelike hulpbronne is onvoltooid. Probeer die agterkantbewerking weer.",
+                "backendDockerBuilderUnavailable": "Die Docker Buildx-bouer is nie beskikbaar nie. Stel 'n werkende bouer op en probeer weer.",
+                "backendDockerBuildxUnavailable": "Docker Buildx is nie vir die agterkantrekening beskikbaar nie. Installeer of aktiveer Buildx en probeer weer.",
+                "backendDockerCliMissing": "Docker is nie vir die agterkantrekening beskikbaar nie. Installeer Docker en probeer weer.",
+                "backendDockerEngineUnavailable": "Die agterkantrekening het nie toegang tot die Docker-enjin nie. Begin Docker en kontroleer toestemmings en virtualiseringsondersteuning.",
+                "backendDockerStorageUnavailable": "Die agterkantrekening kon nie Docker-berging opspoor nie. Begin Docker, bevestig dat die agterkantrekening die enjin kan bevraagteken en probeer dan weer.",
+                "backendDockerStorageUnmapped": "Docker-berging kan nie aan 'n geverifieerde gasheerligging gekoppel word nie. Gebruik 'n plaaslike Docker-enjin waarvan die dataskyf op 'n plaaslike skyf is en probeer dan weer.",
+                "backendDockerStorageAccessDenied": "Die agterkantrekening kan nie die Docker-bergingsligging inspekteer nie. Kontroleer sy toegang tot die Docker-dataligging en probeer dan weer.",
+                "backendDockerStorageChanged": "Die Docker-enjin of sy berging het tydens installasie verander. Hou Docker-instellings onveranderd terwyl jy installeer en probeer dan weer.",
+                "modelConversionDependencyMissing": "'n Afhanklikheid van die CTranslate2-omsetter ontbreek. Werk die agterkant by of herinstalleer dit en probeer die modelaflaai weer.",
+                "backendLifecycleLocked": "Nog ’n agterkantbewerking gebruik hierdie inprop. Wag totdat dit klaar is en probeer weer.",
+                "configurationBusy": "Die plugin-konfigurasie is besig met 'n ander bewerking en niks is verander nie. Probeer oor 'n oomblik weer.",
+                "ollamaResponsesSettingsUnsupported": "Plaaslike Ollama Responses kan nie die opgestelde uitvoerinstellings toepas nie. Gebruik Chat of /v1/chat/completions met hierdie model om dit toe te pas.",
+                "backendRuntimeIncompatible": "Hierdie looptyd is onversoenbaar met die huidige hardewarekeuse. Kies versoenbare GPU’s of ’n ander looptyd.",
+                "backendRuntimeSelectionChanged": "Die hardewarekeuse het tydens installering verander. Gaan die GPU’s en looptyd na en probeer weer.",
+                "managedCompilerUnavailable": "Die bestuurde samesteller kon nie geïnstalleer word of die SVE-looptyd saamstel nie. Gaan stoorspasie en netwerktoegang na en herstel dan die backend-installasie.",
+                "runtimeIllegalInstruction": "Looptydverifikasie het op ’n ongeldige instruksie gestop. Kies ’n versoenbare looptyd of herstel die agterkant.",
+                "runtimeVerificationFailed": "Looptydverifikasie het misluk. Herstel die agterkant en hersien die diagnostiek.",
+                "backendCpuInstructionsUnavailable": "Hierdie looptyd vereis SVE-instruksies wat nie beskikbaar is nie. Kies ’n ander versoenbare looptyd.",
+                "configurationChanged": "Die inprop se opstelling het verander. Verfris dit en hersien jou veranderinge voordat jy weer stoor.",
+                "configurationApplyFailed": "Die opstelling is gestoor, maar die looptyd kon dit nie toepas nie. Gaan die agterkant se status na en probeer dit weer toepas.",
+                "backendRuntimeUnverified": "GPU-versoenbaarheid kon nie bevestig word nie. Wag vir opsporing en probeer weer, of kies 'n bevestigde looptydomgewing."
             },
             "filters": {
                 "active": "Aktief",
@@ -5266,7 +5564,9 @@
                     "loadFailed": "Backend-variante kon nie gelaai word nie.",
                     "loading": "Laai tans backend-variante...",
                     "loadingBackends": "Laai tans backends...",
-                    "saveFailed": "Backend-variant kon nie gestoor word nie."
+                    "saveFailed": "Backend-variant kon nie gestoor word nie.",
+                    "autoCompatibility": "Auto sluit {variants} uit vir die huidige hardewarekeuse. Kies ander GPU’s of ’n ander beskikbare looptyd.",
+                    "compatibilityUnknown": "Versoenbaarheid kon nie uit die huidige waarnemings bevestig word nie. Verfris die hardeware-inligting of kies ’n ander beskikbare looptyd."
                 },
                 "manageBackend": {
                     "author": "Outeur: {author}",
@@ -5327,13 +5627,14 @@
                 "providerManagedReadOnly": "{plugin} bestuur sy eie verskaffers. Gebruik die pluginkonsole om te verifieer of toegang te bestuur.",
                 "providersUnavailable": "{plugin} stel nie eksterne verskaffers beskikbaar nie.",
                 "restartButton": "Herbegin SoAI",
-                "restartFailed": "Kon nie SoAI herbegin nie.",
                 "restartRequired": "Herbegin SoAI om die nuwe limiet vir gelyktydige plugins toe te pas.",
                 "selectFile": "Kies asseblief 'n pluginlêer",
                 "stopAllSuccess": "Opdrag om alle plugins te stop is uitgereik.",
                 "stopSuccess": "Plugin {plugin} suksesvol gestop",
                 "updateCheckFailed": "Kon nie vir opdaterings kyk nie",
-                "uploadFailed": "Kon nie plugin oplaai nie"
+                "uploadFailed": "Kon nie plugin oplaai nie",
+                "backendUpdateTitle": "Agterkantopdatering beskikbaar",
+                "backendUpdateMessage": "’n Agterkantopdatering is beskikbaar vir {pluginName}. Maak Inproppe oop om dit na te gaan."
             },
             "providerMode": {
                 "badges": {
@@ -5392,88 +5693,71 @@
                 "hibernateSystem": {
                     "buttonLabel": "Hiberneer stelsel",
                     "confirmMessage": "Is jy seker jy wil die stelsel hiberneer?",
-                    "confirmMessageWithDelay": "Is jy seker jy wil die stelsel hiberneer? Die handeling begin oor {delay} sekondes.",
                     "confirmTitle": "Hiberneer stelsel",
                     "confirmWarning": "Sessies hervat eers nadat die masjien weer aangeskakel is",
                     "description": "Stoor geheue op skyf en skakel die meeste hardeware af.",
                     "optionDelay": "Vertraging (sekondes)",
                     "overlayMessage": "Stelsel hiberneer tans...",
-                    "successNotification": "Stelselhibernasie begin",
-                    "successNotificationWithDelay": "Stelselhibernasie geskeduleer ({delay}s vertraging)",
                     "title": "Hiberneer stelsel"
                 },
                 "rebootSystem": {
                     "buttonLabel": "Herbegin stelsel",
                     "confirmMessage": "Is jy seker jy wil die stelsel herbegin?",
-                    "confirmMessageWithDelay": "Is jy seker jy wil die stelsel herbegin? Die handeling begin oor {delay} sekondes.",
                     "confirmTitle": "Herbegin stelsel",
                     "confirmWarning": "Dit herbegin die hele masjien",
                     "description": "Herbegin die hele masjien en herlaai die bedryfstelsel.",
                     "optionDelay": "Vertraging (sekondes)",
                     "optionForce": "Dwing herbegin af",
-                    "successNotification": "Stelselherbegin begin",
-                    "successNotificationWithDelay": "Stelselherbegin geskeduleer ({delay}s vertraging)",
                     "title": "Herbegin stelsel"
                 },
                 "restartApplication": {
                     "buttonLabel": "Herbegin toepassing",
-                    "confirmMessage": "Is jy seker jy wil die toepassing herbegin?",
-                    "confirmTitle": "Herbegin toepassing",
-                    "confirmWarning": "Alle gebruikers sal kortliks ontkoppel terwyl die toepassing herbegin",
-                    "description": "Herbegin die SoAI-toepassing en herlaai alle dienste.",
+                    "confirmMessage": "Is jy seker jy wil SoAI herbegin?",
+                    "confirmTitle": "Herbegin SoAI",
+                    "confirmWarning": "Alle gebruikers sal kortliks ontkoppel terwyl SoAI herbegin",
+                    "description": "Herbegin SoAI en herlaai alle dienste.",
                     "optionDelay": "Vertraging (sekondes)",
-                    "successNotification": "Toepassingherbegin begin",
-                    "title": "Herbegin toepassing"
+                    "title": "Herbegin SoAI"
                 },
                 "shutdownApplication": {
                     "buttonLabel": "Sluit toepassing af",
-                    "confirmMessage": "Is jy seker jy wil die SoAI-toepassing afsluit?",
-                    "confirmMessageWithDelay": "Is jy seker jy wil die SoAI-toepassing afsluit? Die handeling begin oor {delay} sekondes.",
-                    "confirmTitle": "Sluit toepassing af",
-                    "confirmWarning": "Gebruikers sal ontkoppel wees totdat die toepassing weer begin word",
-                    "description": "Stop die SoAI-toepassing terwyl die gasheer beskikbaar bly.",
+                    "confirmMessage": "Is jy seker jy wil SoAI afsluit?",
+                    "confirmTitle": "Sluit SoAI af",
+                    "confirmWarning": "Gebruikers sal ontkoppel wees totdat SoAI weer begin word",
+                    "description": "Stop SoAI terwyl die gasheer beskikbaar bly.",
                     "optionDelay": "Vertraging (sekondes)",
-                    "overlayMessage": "Toepassing sluit tans af...",
-                    "successNotification": "Toepassingafskakeling begin",
-                    "successNotificationWithDelay": "Toepassingafskakeling geskeduleer ({delay}s vertraging)",
-                    "title": "Sluit toepassing af"
+                    "overlayMessage": "SoAI sluit tans af...",
+                    "title": "Sluit SoAI af"
                 },
                 "shutdownSystem": {
                     "buttonLabel": "Skakel af",
                     "confirmMessage": "Is jy seker jy wil die stelsel afskakel?",
-                    "confirmMessageWithDelay": "Is jy seker jy wil die stelsel afskakel? Die handeling begin oor {delay} sekondes.",
                     "confirmTitle": "Skakel stelsel af",
                     "confirmWarning": "Dit stop alle prosesse en skakel die masjien heeltemal af",
                     "description": "Skakel die hele masjien af nadat hangende bewerkings voltooi is.",
                     "optionDelay": "Vertraging (sekondes)",
                     "optionForce": "Dwing afskakeling af",
                     "overlayMessage": "Stelsel skakel tans af...",
-                    "successNotification": "Stelselafskakeling begin",
-                    "successNotificationWithDelay": "Stelselafskakeling geskeduleer ({delay}s vertraging)",
                     "title": "Skakel stelsel af"
                 },
                 "suspendSystem": {
                     "buttonLabel": "Skort stelsel op",
                     "confirmMessage": "Is jy seker jy wil die stelsel opskort?",
-                    "confirmMessageWithDelay": "Is jy seker jy wil die stelsel opskort? Die handeling begin oor {delay} sekondes.",
                     "confirmTitle": "Skort stelsel op",
                     "confirmWarning": "Prosesse word onderbreek totdat die stelsel hervat",
                     "description": "Plaas die stelsel in 'n laekrag-slaaptoestand.",
                     "optionDelay": "Vertraging (sekondes)",
                     "overlayMessage": "Stelsel gaan tans slaapmodus binne...",
-                    "successNotification": "Stelselopskorting begin",
-                    "successNotificationWithDelay": "Stelselopskorting geskeduleer ({delay}s vertraging)",
                     "title": "Skort stelsel op"
                 }
             },
-            "description": "Kragbewerkings vir toepassing en stelsel.",
             "operations": {
                 "failed": "Die kragbewerking het misluk. Hersien die status en looptyd-kragbeleid daarvan, en probeer dan net weer wanneer die bewerking herprobeerbaar is."
             },
             "overlays": {
                 "applicationShutdown": {
-                    "monitoring": "Stop tans die SoAI-toepassing.",
-                    "offline": "Toepassing is vanlyn."
+                    "monitoring": "Stop tans SoAI.",
+                    "offline": "SoAI is vanlyn."
                 },
                 "countdown": {
                     "cancel": "Kanselleer",
@@ -5497,6 +5781,10 @@
             "restartReminder": {
                 "message": "Herbegin vereis om veranderinge toe te pas.",
                 "messageWithReason": "Herbegin vereis: {reason}"
+            },
+            "groups": {
+                "application": "SoAI",
+                "system": "Stelsel"
             }
         },
         "prompts": {
@@ -5664,7 +5952,20 @@
             "title": "Prompts",
             "unnamedPrompt": "Naamlose prompt",
             "unsavedChanges": "Jy het ongestoorde veranderinge. Is jy seker jy wil verlaat?",
-            "untitled": "Naamloos"
+            "untitled": "Naamloos",
+            "picker": {
+                "editFailed": "Kon nie promptredigeerder oopmaak nie.",
+                "empty": "Nog geen gestoorde prompts nie.",
+                "emptyContent": "Geen promptinhoud nie",
+                "help": "Kies ’n gestoorde opdrag om die teks te gebruik",
+                "loadFailed": "Kon nie gestoorde prompts laai nie.",
+                "loading": "Laai prompts...",
+                "manage": "Bestuur prompts",
+                "manageFailed": "Kon nie die prompts-bladsy oopmaak nie.",
+                "noMatches": "Geen prompts pas by jou soektog nie.",
+                "search": "Soek",
+                "title": "Gestoorde prompts"
+            }
         },
         "restartOverlay": {
             "descriptions": {
@@ -5672,7 +5973,7 @@
                 "generic": "SoAI voer 'n bewerking uit.",
                 "rebooting": "Die stelsel herbegin tans. Wag asseblief terwyl dit weer aanlyn kom.",
                 "rebootTimeout": "Kan nie stelselstatus ná 15 minute bevestig nie. Dwing nou 'n volledige herlaai af.",
-                "restarting": "Die toepassing herbegin tans. Dit behoort net 'n paar oomblikke te neem.",
+                "restarting": "SoAI herbegin tans. Dit behoort net 'n paar oomblikke te neem.",
                 "shutdown": "Die stelsel skakel tans af. Jy kan hierdie blaaiervenster sluit.",
                 "sleep": "Die stelsel gaan slaapmodus binne. Maak dit wakker om voort te gaan om SoAI te gebruik.",
                 "updateTimeout": "SoAI het nie ná die opdatering weer aanlyn gekom nie. Kyk na application_updater.log in die SoAI-loglêergids en herlaai dan hierdie bladsy.",
@@ -5692,7 +5993,16 @@
                 "updateTimeout": "SoAI is nog nie terug nie",
                 "updating": "SoAI dateer tans op..."
             },
-            "reconnecting": "Probeer tans weer koppel..."
+            "reconnecting": "Probeer tans weer koppel...",
+            "handoff": {
+                "plannedAddress": "Beplande adres ná herbegin. Jou konsepte bly in hierdie oortjie.",
+                "newAddress": "Die verbinding is onderbreek. Maak die nuwe adres oop om weer te verbind; die bediener begin dalk nog.",
+                "manualHttps": "Die bediener sal HTTPS gebruik. Maak SoAI oop by die adres wat vir jou bediener of omgekeerde instaanbediener ingestel is.",
+                "manualHttp": "Die bediener sal HTTP gebruik. Maak SoAI oop by die adres wat vir jou bediener of omgekeerde instaanbediener ingestel is.",
+                "open": "Maak nuwe adres oop",
+                "copy": "Kopieer adres",
+                "copied": "Adres gekopieer"
+            }
         },
         "richText": {
             "footnotes": {
@@ -5961,7 +6271,9 @@
                     "timeout": "Tydlimietduur"
                 },
                 "nullPlaceholder": "null",
-                "sectionHeader": "Gevorderde instellings (config.yaml)"
+                "sectionHeader": "Gevorderde instellings (config.yaml)",
+                "autoUpdateBuiltinLabel": "Werk ingeboude agtergronde outomaties by",
+                "autoUpdateBuiltinHelp": "Nadat inproppakkette verander, kontroleer geïnstalleerde agtergronde en werk ingeboude agtergronde by sodra hulle veilig gestop is. Aktiewe werk word behou. Derdeparty-agtergronde vereis ’n handmatige opdatering"
             },
             "advancedMode": "Gevorderd",
             "advancedTitle": "Gevorderde instellings",
@@ -6797,7 +7109,6 @@
                     "readVideoAudioExtractionTimeoutSec": "Tydlimiet vir oudio-onttrekking",
                     "readVideoPreviewExtractionTimeoutSec": "Tydlimiet vir voorskou-onttrekking",
                     "readVideoLiveProgressMinIntervalMs": "Minimum interval vir intydse vordering",
-                    "readVideoWhisperModel": "Whisper-model vir oudiotranskripsies",
                     "hostModeEnabled": "Aktiveer gasheermodus-kliënte",
                     "hostModeAutoConnectOnStartup": "Koppel gestoorde bedieners tydens opstart",
                     "hostModeReconnectDelaySec": "Vertraging voor herkoppelpogings",
@@ -7719,6 +8030,14 @@
                     "help": "Laai 'n beeld vanaf jou toestel op (PNG, JPG, GIF, WebP, SVG - Maks. 25MB)",
                     "label": "Laai agtergrond op"
                 }
+            },
+            "speechToText": {
+                "title": "Spraak-na-teks",
+                "description": "Transkribeer oudio en video in lêers, Kennis en gereedskap.",
+                "model": {
+                    "label": "Spraak-na-teksmodel",
+                    "help": "Outo gebruik die eerste beskikbare plaaslike model. Kletsdiktee gebruik elke klets se Stem-instelling"
+                }
             }
         },
         "statusCatalog": {
@@ -7934,13 +8253,19 @@
                 "partial": "Sommige vrystellingsnotas kon nie gelaai word nie. Beskikbare notas word gewys."
             },
             "outcome": {
+                "diagnosticsInstalledOriginalChanged": "Geïnstalleerde lêers het verander terwyl die opdatering sy terugrolkopie voorberei het.",
+                "diagnosticsInterruptedPreparation": "Die opdatering is onderbreek terwyl dit sy terugrolkopie voorberei het.",
+                "diagnosticsMessage": "Diagnostiek vir hierdie poging is gestoor op die SoAI-rekenaar by {location}. {summary} Verwysing: {reference}.",
+                "diagnosticsRetainedCopyMismatch": "Die terugrolkopie van die geïnstalleerde lêers het nie by die oorspronklikes ooreengestem nie.",
+                "diagnosticsSnapshotOperationFailed": "Die terugrolkopie kon nie voltooi word nie omdat 'n lêerbewerking misluk het.",
+                "diagnosticsSourceUnverifiable": "Die geïnstalleerde lêers kon nie gelees word om die terugrolkopie te verifieer nie.",
                 "failureMessage": "Die opdatering na weergawe {version} is nie voltooi nie. SoAI {previousVersion} is steeds geïnstalleer. Kyk na application_updater.log in die SoAI-loglêergids vir besonderhede.",
                 "failureTitle": "Opdatering nie voltooi nie",
                 "later": "Later",
                 "reloadMessage": "SoAI loop nou weergawe {version}. Herlaai hierdie bladsy om die opgedateerde koppelvlak te gebruik.",
                 "reloadTitle": "SoAI is opgedateer",
-                "successMessage": "SoAI is suksesvol opgedateer na weergawe {version}.",
-                "successTitle": "Opdatering voltooi"
+                "successMessage": "Weergawe {version} is gereed.",
+                "successTitle": "SoAI opgedateer"
             },
             "progress": {
                 "downloading": "Laai opdatering af...",
@@ -8015,7 +8340,25 @@
                 "updating": "Dateer tans op..."
             },
             "title": "Opdaterings",
-            "unknown": "Onbekend"
+            "unknown": "Onbekend",
+            "backend": {
+                "failedUpdatesHeading": "Opdaterings het misluk",
+                "availableHeading": "Agterkantopdaterings beskikbaar",
+                "updatingHeading": "Opdaterings aan die gang",
+                "pendingHeading": "Kontroles hangende",
+                "failedHeading": "Kontroles verg aandag",
+                "reviewUpdate": "Bekyk opdatering",
+                "reviewUpdates": "Bekyk opdaterings",
+                "viewPlugins": "Bekyk inproppe"
+            },
+            "history": {
+                "lastCheck": "Laaste kontrole: {date}.",
+                "lastUpdate": "Laaste opdatering: {date}.",
+                "savedResults": "Gestoorde resultate van {date}. Kontroleer weer om te verfris.",
+                "restored": "Gestoorde opdateringsinligting. Kontroleer weer om te verfris.",
+                "unavailable": "Opdateringsgeskiedenis kon nie gelaai of gestoor word nie. Probeer weer vir opdaterings kontroleer.",
+                "saved": "Gestoorde resultaat"
+            }
         },
         "wizard": {
             "completion": {
@@ -8252,7 +8595,8 @@
                             "recommended": "Aanbeveel",
                             "warning": "Waarskuwing",
                             "unavailable": "Onbeskikbaar"
-                        }
+                        },
+                        "automaticRuntime": "Die looptydomgewing vir {engine} word tydens installasie gekies. Versnelling is nog nie bevestig nie."
                     }
                 },
                 "models": {
@@ -8321,19 +8665,20 @@
                     "retryInstallation": "Probeer installasie weer",
                     "skipItem": "Slaan hierdie item oor",
                     "testAgain": "Toets weer",
-                    "checkAgain": "Gaan weer na",
                     "sendTest": "Stuur 'n toetsboodskap",
                     "error": {
                         "empty": "Die model is gelaai maar het nie geantwoord nie. Probeer weer of kies 'n ander model.",
-                        "loadError": "Die model kon nie op hierdie toestel begin nie. Probeer weer of kies 'n kleiner model.",
+                        "loadError": "Die modeltoets het misluk. Gaan die oorsaak na, stel dit reg en probeer weer.",
                         "timeout": "Die model het te lank geneem om te antwoord. Probeer weer of kies 'n kleiner model.",
                         "disconnected": "Die verbinding is tydens die toets verloor. Probeer weer.",
                         "downloadFailed": "Die aflaai het gestop. Probeer weer.",
                         "installFailed": "Die installasie is nie voltooi nie. Probeer weer.",
-                        "noDiskSpace": "Nie genoeg skyfspasie vir hierdie model nie. Maak spasie vry of kies 'n kleiner model."
+                        "noDiskSpace": "Nie genoeg skyfspasie vir hierdie model nie. Maak spasie vry of kies 'n kleiner model.",
+                        "discoveryFailed": "Die aflaai is voltooi, maar die model kon nie by die katalogus gevoeg word nie. Maak Modelle oop om dit na te gaan, of voltooi die opstelling later."
                     },
                     "testPrompt": "Antwoord met een kort, vriendelike sin.",
-                    "testCancelled": "Die SoAI-opstellingstoets is gekanselleer."
+                    "testCancelled": "Die SoAI-opstellingstoets is gekanselleer.",
+                    "useCpuRuntime": "Gebruik SVE-looptydomgewing"
                 },
                 "completion": {
                     "modelsTitle": "KI-modelle",
@@ -8362,6 +8707,40 @@
                     "both": "Modelaflaaie en backend-installasies sal in die agtergrond voortgaan."
                 }
             }
+        },
+        "speechSetup": {
+            "notTranscribed": "Spraak nie getranskribeer nie",
+            "askAdministrator": "Vra ’n administrateur om spraakherkenning op te stel.",
+            "askAdministratorTextToSpeech": "Vra ’n administrateur om teks-na-spraak op te stel.",
+            "installBackend": "Installeer {plugin} se agterkant",
+            "enablePlugin": "Aktiveer {plugin}",
+            "changeModel": "Verander spraakmodel",
+            "openPlugins": "Maak Inproppe oop",
+            "addAgain": "Spraakherkenning is nou beskikbaar. Laai die lêer weer op om dit te transkribeer.",
+            "checking": "Gaan spraakherkenning se beskikbaarheid na…",
+            "checkingTextToSpeech": "Gaan teks-na-spraak se beskikbaarheid na…",
+            "errors": {
+                "noPlugin": "Geen geïnstalleerde inprop bied plaaslike spraakherkenning nie.",
+                "noModel": "Geen plaaslike spraakherkenningsmodel is geïnstalleer nie.",
+                "notLocal": "Mediatranskripsie word plaaslik uitgevoer. Kies ’n plaaslike spraakherkenningsmodel.",
+                "translationUnsupported": "Geen geïnstalleerde plaaslike spraakmodel ondersteun vertaling nie. Kies ’n veeltalige model.",
+                "unsupportedOption": "{model} kan nie die vereiste tydstempels of taal lewer nie. Kies ’n ander spraakmodel.",
+                "configuredModelMissing": "Die gekose spraakherkenningsmodel is nie beskikbaar nie.",
+                "mediaDependencyUnavailable": "Mediaverwerking vereis FFmpeg en ffprobe. Installeer FFmpeg en probeer weer.",
+                "noVoiceModel": "Geen spraakherkenningsmodel is beskikbaar nie.",
+                "noTextToSpeechModel": "Geen teks-na-spraakmodel is beskikbaar nie.",
+                "backendNotInstalled": "Die agterkant van die spraakherkenning-inprop is nie geïnstalleer nie.",
+                "textToSpeechBackendNotInstalled": "Die agterkant van die teks-na-spraak-inprop is nie geïnstalleer nie.",
+                "pluginDisabled": "Die spraakherkenning-inprop is gedeaktiveer.",
+                "textToSpeechPluginDisabled": "Die teks-na-spraak-inprop is gedeaktiveer.",
+                "modelDisabled": "Geïnstalleerde spraakherkenningsmodelle is gedeaktiveer of onbeskikbaar.",
+                "textToSpeechModelDisabled": "Geïnstalleerde teks-na-spraakmodelle is gedeaktiveer of onbeskikbaar.",
+                "unsupportedOptionSelected": "Die gekose spraakmodel kan nie die tydstempels of taal lewer wat hierdie versoek benodig nie. Kies ’n ander spraakmodel."
+            },
+            "notTranscribedNotice": "Spraak nie getranskribeer nie. Stel spraakherkenning op en laai dan die lêer weer op.",
+            "notTranscribedAskAdministrator": "Spraak nie getranskribeer nie. Vra ’n administrateur om spraakherkenning op te stel en laai dan die lêer weer op.",
+            "openModels": "Maak Modelle oop",
+            "openSettings": "Spraakherkenning-instellings"
         }
     }
 }

@@ -42,7 +42,6 @@ __all__ = (
     "serialize_cache_metadata_text",
     "touch_cache_file",
     "try_read_cache_metadata",
-    "write_cache_metadata_atomic",
 )
 
 LOGGER_NAME = "SoAI.webui.manager.media_preview_proxy_cache"
@@ -231,10 +230,6 @@ def _read_text_file(path: str) -> str:
 def _remove_path_if_exists(path: str) -> None:
     if os.path.exists(path):
         os.remove(path)
-
-
-async def write_cache_metadata_atomic(meta_path: str, payload: JSONDict) -> None:
-    await write_cache_metadata_text_atomic(meta_path, serialize_cache_metadata_text(payload))
 
 
 async def write_cache_metadata_text_atomic(meta_path: str, text: str) -> None:

@@ -8,13 +8,16 @@ import os
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, override
 
-from core.errors.exceptions import ConfigurationError
+from core.errors.exceptions import ConfigurationError, StateError
 
 if TYPE_CHECKING:
     from core.types.json import JSONValue
 
 __all__ = (
+    "PLUGIN_CONFIGURATION_BUSY_CODE",
+    "PluginConfigurationBusyError",
     "get_lock_path",
+    "get_plugin_config_mutation_lock_path",
     "resolve_lock_directory",
 )
 
@@ -41,6 +44,18 @@ class ConfigLockTimeout(ConfigurationError):
         return ((self.message,), {"config_path": (self.details or {}).get("config_path")})
 
 
+PLUGIN_CONFIGURATION_BUSY_CODE = "plugin_configuration_busy"
+
+
+class PluginConfigurationBusyError(StateError):
+    code: str | int = PLUGIN_CONFIGURATION_BUSY_CODE
+    is_transient = True
+    public_message: str | None = (
+        "Plugin configuration is busy with another operation and nothing was changed."
+        " Retry in a moment."
+    )
+
+
 def resolve_lock_directory(path: str | None) -> str | None:
     if not path:
         return None
@@ -54,3 +69,10 @@ def get_lock_path(path: str, *, lock_directory: str | None) -> str:
         digest = hashlib.sha256(path.encode("utf-8")).hexdigest()
         return os.path.join(lock_directory, f"{digest}.lock")
     return f"{path}.lock"
+
+
+def get_plugin_config_mutation_lock_path(plugins_path: str, *, lock_directory: str | None) -> str:
+    return get_lock_path(
+        os.path.join(plugins_path, ".plugin-config-mutations"),
+        lock_directory=lock_directory,
+    )

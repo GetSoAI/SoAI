@@ -13,7 +13,6 @@ from core.hardware.protocols import (
 from hardware.gpu_tuning.settings_request import GpuSettingsApplyRequest
 from hardware.vendors.nvidia.metrics import sync_get_nvidia_capabilities
 from hardware.vendors.nvidia.smi import NvidiaSettingsController
-from hardware.vendors.nvidia.tuning_nvapi import sync_set_nvidia_settings_nvapi
 from hardware.vendors.nvidia.tuning_nvidia_settings import (
     sync_set_nvidia_settings_via_nvidia_settings,
 )
@@ -38,7 +37,11 @@ def sync_set_nvidia_settings(
 ) -> JSONDict:
     control_backend = request.control_backend
     if control_backend is None:
-        return build_gpu_result(errors=["NVIDIA control backend is required."])
+        return build_gpu_result(errors=["NVIDIA control backend is required."], changed=False)
+    if control_backend == "nvidia_nvapi":
+        return build_gpu_result(
+            errors=["NvAPI control requires prepared physical device authority."], changed=False
+        )
     caps = capabilities or sync_get_nvidia_capabilities(
         logger,
         vendor_id,
@@ -46,15 +49,6 @@ def sync_set_nvidia_settings(
         capabilities_cache_service=capabilities_cache_service,
         controller=nvidia_settings_controller,
     )
-    if control_backend == "nvidia_nvapi":
-        return sync_set_nvidia_settings_nvapi(
-            logger,
-            vendor_id,
-            request=request,
-            capabilities=caps,
-            nvml_gate=nvml_gate,
-            capabilities_cache_service=capabilities_cache_service,
-        )
     if control_backend == "nvidia_settings":
         return sync_set_nvidia_settings_via_nvidia_settings(
             logger,
@@ -68,6 +62,7 @@ def sync_set_nvidia_settings(
     if control_backend != "nvidia_nvml":
         return build_gpu_result(
             errors=[f"NVIDIA control backend '{control_backend}' is unsupported."],
+            changed=False,
         )
     return sync_set_nvidia_settings_via_nvml(
         logger,

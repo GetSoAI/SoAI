@@ -8,12 +8,14 @@ import asyncio
 from core.concurrency.task_groups import ManagedTaskGroup
 from core.errors.error_types import ErrorType
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import ConflictError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.events.types_base import Event
 from core.events.types_models_model_commands import (
     DeleteModelAliasCommand,
     DeleteModelParametersCommand,
     ModelDeleteCommand,
+    ReplaceModelOpenAICapabilityOverridesCommand,
     ResetModelOpenAICapabilityOverridesCommand,
     TriggerModelDiscoveryCommand,
     UpdateModelAliasCommand,
@@ -42,6 +44,7 @@ OPERATION_MODELS_MANAGER_COORDINATOR_COMMAND_OPENAI_CAPABILITY_OVERRIDE = (
 OPERATION_MODELS_MANAGER_COORDINATOR_COMMAND_PARAMETERS = (
     "models.manager.coordinator.command.parameters"
 )
+_OVERRIDE_COMMAND_EXCEPTIONS: tuple[type[Exception], ...] = (ConflictError, ValidationError)
 
 
 class ModelManagerEventHandlers:
@@ -205,13 +208,22 @@ class ModelManagerEventHandlers:
     async def handle_openai_capabilities_override_command(self, command: Event) -> None:
         if not isinstance(
             command,
-            UpdateModelOpenAICapabilityOverrideCommand | ResetModelOpenAICapabilityOverridesCommand,
+            UpdateModelOpenAICapabilityOverrideCommand
+            | ReplaceModelOpenAICapabilityOverridesCommand
+            | ResetModelOpenAICapabilityOverridesCommand,
         ):
             return
         try:
             if isinstance(command, ResetModelOpenAICapabilityOverridesCommand):
                 await self._deps.model_actions_service.model_reset_openai_capability_overrides(
                     command.universal_id,
+                )
+            elif isinstance(command, ReplaceModelOpenAICapabilityOverridesCommand):
+                await self._deps.model_actions_service.model_replace_openai_capability_overrides(
+                    command.universal_id,
+                    command.disabled,
+                    command.enabled,
+                    command.expected,
                 )
             else:
                 await self._deps.model_actions_service.model_update_openai_capability_override(
@@ -230,7 +242,7 @@ class ModelManagerEventHandlers:
                 f"Model OpenAI capabilities {action} successfully.",
                 registry=self._deps.task_registry,
             )
-        except RECOVERABLE_EXCEPTIONS as exception:
+        except (*RECOVERABLE_EXCEPTIONS, *_OVERRIDE_COMMAND_EXCEPTIONS) as exception:
             logger = get_logger(LOGGER_NAME)
             log_exception(
                 logger,
@@ -241,7 +253,11 @@ class ModelManagerEventHandlers:
             await send_error_event_and_finalize(
                 command.reply_channel,
                 str(exception),
-                ErrorType.INVALID_REQUEST,
+                (
+                    ErrorType.CONFLICT
+                    if isinstance(exception, ConflictError)
+                    else ErrorType.INVALID_REQUEST
+                ),
                 registry=self._deps.task_registry,
             )
 

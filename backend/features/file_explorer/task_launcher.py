@@ -7,7 +7,12 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import SecurityError, StateError
-from core.tasks.type_catalog import TASK_TYPE_FILE_EXPLORER_OP
+from core.tasks.type_catalog import (
+    TASK_OWNER_FILE_EXPLORER_COPY_BATCH,
+    TASK_OWNER_FILE_EXPLORER_DELETE_BATCH,
+    TASK_OWNER_FILE_EXPLORER_MOVE_BATCH,
+    TASK_TYPE_FILE_EXPLORER_OP,
+)
 from features.file_explorer.background_task_launching import (
     start_file_explorer_background_task,
 )
@@ -87,7 +92,7 @@ class FileExplorerTaskLauncher:
             track_task=self._track_task,
             task_type=TASK_TYPE_FILE_EXPLORER_OP,
             user_id=user_id,
-            owner_id="file_explorer_delete:batch",
+            owner_id=TASK_OWNER_FILE_EXPLORER_DELETE_BATCH,
             status_message=f"Deleting {len(virtual_paths)} entries...",
             task_name_prefix="file-explorer-delete-batch-",
             metadata_operation="delete_batch",
@@ -156,13 +161,13 @@ class FileExplorerTaskLauncher:
         config = (
             (
                 "copy",
-                "file_explorer_copy:batch",
+                TASK_OWNER_FILE_EXPLORER_COPY_BATCH,
                 "Copying",
                 "file-explorer-copy-batch-",
             ),
             (
                 "move",
-                "file_explorer_move:batch",
+                TASK_OWNER_FILE_EXPLORER_MOVE_BATCH,
                 "Moving",
                 "file-explorer-move-batch-",
             ),

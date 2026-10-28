@@ -1,6 +1,7 @@
 /* SoAI - Wizard AI setup model selection view [frontend/assets/ts/pages/wizard/rendering/aisetup/models/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { renderWizardDisclosure } from '@pages/wizard/widgets/WizardDisclosureWidget.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { formatBytes } from '@core/primitives/byteSize.ts';
 import { renderEmptyState } from '@core/ui/emptyState.ts';
@@ -76,7 +77,7 @@ const readUseCaseLabel = (useCase: ModelCatalogUseCase): string => {
 const renderOpenChatChoice = (context: WizardViewContext, view: AiSetupModelsView, key: string, itemId: string | null): string => {
     const visible = view.showOpenChat && itemId !== null;
     const checked = itemId !== null && itemId === view.firstChatItemId;
-    return `<label class="wizard-ai-open-chat${visible ? '' : ' u-hidden'}" data-ai-open-chat="${context.sanitizer.attribute(key)}"><input type="radio" name="${AI_FIRST_CHAT_INPUT_NAME}" value="${context.sanitizer.attribute(key)}"${checked ? ' checked' : ''}><span>${context.sanitizer.html(i18n.t('wizard.aiSetup.models.openChatWith'))}</span></label>`;
+    return `<label class="wizard-ai-open-chat${visible ? '' : ' u-hidden'}" data-presence data-presence-atomic data-ai-open-chat="${context.sanitizer.attribute(key)}"><input type="radio" name="${AI_FIRST_CHAT_INPUT_NAME}" value="${context.sanitizer.attribute(key)}"${checked ? ' checked' : ''}><span>${context.sanitizer.html(i18n.t('wizard.aiSetup.models.openChatWith'))}</span></label>`;
 };
 
 const formatParameters = (card: RecommendationCard): string => {
@@ -94,7 +95,7 @@ const renderCardDetails = (context: WizardViewContext, view: AiSetupLocalCardVie
     const repository = context.sanitizer.html(card.entry.repository);
     const source = view.repositoryUrl === null ? `<span dir="ltr">${repository}</span>` : `<a class="external-link-confirmation" dir="ltr" href="${context.sanitizer.attribute(view.repositoryUrl)}" data-href="${context.sanitizer.attribute(view.repositoryUrl)}" target="_blank" rel="noopener noreferrer">${repository}${renderIcon(context, 'external-link', 12)}</a>`;
     const rows = [renderDetailRow(context, i18n.t('wizard.aiSetup.models.details.quantization'), `<span dir="ltr">${context.sanitizer.html(card.entry.quantization)}</span>`), renderDetailRow(context, i18n.t('wizard.aiSetup.models.details.parameters'), context.sanitizer.html(formatParameters(card))), renderDetailRow(context, i18n.t('wizard.aiSetup.models.details.context'), context.sanitizer.html(contextText)), renderDetailRow(context, i18n.t('wizard.aiSetup.models.details.file'), `<span dir="ltr">${context.sanitizer.html(card.entry.file)}</span>`), renderDetailRow(context, i18n.t('wizard.aiSetup.models.details.source'), source)];
-    return `<details class="wizard-disclosure wizard-ai-model-details"><summary>${context.sanitizer.html(i18n.t('wizard.aiSetup.models.details.label'))}</summary><dl class="wizard-disclosure-body wizard-ai-details-list">${rows.join('')}</dl></details>`;
+    return renderWizardDisclosure(`wizard-ai-details-${card.entry.id}`, i18n.t('wizard.aiSetup.models.details.label'), `<dl class="wizard-disclosure-body wizard-ai-details-list">${rows.join('')}</dl>`, false, 'wizard-ai-model-details');
 };
 
 const renderLocalCard = (context: WizardViewContext, view: AiSetupModelsView, cardView: AiSetupLocalCardView): string => {
@@ -102,21 +103,21 @@ const renderLocalCard = (context: WizardViewContext, view: AiSetupModelsView, ca
     const key = localSelectionKey(card.entry.id);
     const roleBadge = card.role === null ? '' : `<span class="ui-badge ui-badge--compact wizard-ai-role-badge wizard-ai-role-badge--${card.role}">${context.sanitizer.html(readRoleLabel(card.role))}</span>`;
     const chips = renderAiSetupChips([renderAiSetupChip(context, 'meta', i18n.t('wizard.aiSetup.models.downloadSize', { size: formatBytes(card.entry.downloadBytes) }), { icon: 'download' }), card.runsOn === 'gpu' ? renderAiSetupChip(context, 'ok', i18n.t('wizard.aiSetup.models.runsOnGpu'), { icon: 'device-gpu' }) : renderAiSetupChip(context, 'ok', i18n.t('wizard.aiSetup.models.runsOnCpu'), { icon: 'device-cpu' }), renderAiSetupChip(context, readSpeedTone(card.speed), readSpeedLabel(card.speed), { icon: 'clock' })]);
-    const choice = renderAiSetupChoiceCard(context, { type: 'checkbox', name: AI_MODEL_INPUT_NAME, value: key, selected: cardView.itemId !== null, icon: null, title: card.entry.name, titleBadgeMarkup: roleBadge, description: readUseCaseLabel(card.entry.useCase), extraMarkup: chips, className: 'wizard-model-card' });
+    const choice = renderAiSetupChoiceCard(context, { type: 'radio', disabled: view.localSelectionLocked, name: AI_MODEL_INPUT_NAME, value: key, selected: cardView.itemId !== null, icon: null, title: card.entry.name, titleBadgeMarkup: roleBadge, description: readUseCaseLabel(card.entry.useCase), extraMarkup: chips, className: 'wizard-model-card' });
     return `<div class="wizard-ai-model wizard-ai-model--recommended" data-ai-model="${context.sanitizer.attribute(key)}">${choice}${renderCardDetails(context, cardView)}${renderOpenChatChoice(context, view, key, cardView.itemId)}</div>`;
 };
 
 const renderPickedModel = (context: WizardViewContext, view: AiSetupModelsView, picked: AiSetupPickedModelView): string => {
     const key = itemSelectionKey(picked.itemId);
-    const choice = renderAiSetupChoiceCard(context, { type: 'checkbox', name: AI_MODEL_INPUT_NAME, value: key, selected: true, icon: 'model-default', title: picked.label, description: picked.detail, className: 'wizard-model-card' });
+    const choice = renderAiSetupChoiceCard(context, { type: 'radio', disabled: view.localSelectionLocked, name: AI_MODEL_INPUT_NAME, value: key, selected: true, icon: 'model-default', title: picked.label, description: picked.detail, className: 'wizard-model-card' });
     return `<div class="wizard-ai-model" data-ai-model="${context.sanitizer.attribute(key)}">${choice}${renderOpenChatChoice(context, view, key, picked.itemId)}</div>`;
 };
 
 const renderSearchDisclosure = (context: WizardViewContext, view: AiSetupModelsView): string => {
     const searchLabel = context.sanitizer.html(i18n.t('models.modal.addModel.searchLabel'));
     const searchButton = context.sanitizer.html(i18n.t('models.modal.addModel.searchButton'));
-    const form = `<form id="${AI_SEARCH_FORM_ID}" class="wizard-ai-search-form" role="search"><label for="wizard-ai-search-input">${searchLabel}</label><div class="wizard-ai-search-row"><div class="searchbar-container searchbar-container--collection"><input id="wizard-ai-search-input" name="query" type="text" class="form-input searchbar-input" value="${context.sanitizer.attribute(view.search.query)}" autocomplete="off" spellcheck="false">${renderSearchFieldActions().html}</div><button type="submit" class="ui-button" aria-label="${searchButton}" data-tooltip="${searchButton}">${searchButton}</button></div></form>`;
-    return `<details class="wizard-disclosure" data-ai-search${view.searchOpen ? ' open' : ''}><summary>${context.sanitizer.html(i18n.t('wizard.aiSetup.models.searchAnother'))}</summary><div class="wizard-disclosure-body wizard-ai-search" data-page-scope="models">${form}<div class="wizard-ai-scroll" data-ai-region="search-results" aria-live="polite">${renderAiSearchResults(context, view.search)}</div><div class="wizard-ai-scroll" data-ai-region="search-variants" aria-live="polite">${renderAiSearchVariants(context, view.search)}</div></div></details>`;
+    const form = `<form id="${AI_SEARCH_FORM_ID}" class="wizard-ai-search-form" role="search"><label for="wizard-ai-search-input">${searchLabel}</label><div class="wizard-ai-search-row"><div class="searchbar-container searchbar-container--collection"><input id="wizard-ai-search-input" name="query" type="text" placeholder="${context.sanitizer.attribute(i18n.t('models.searchPlaceholder'))}" class="form-input searchbar-input" value="${context.sanitizer.attribute(view.search.query)}" autocomplete="off" spellcheck="false">${renderSearchFieldActions().html}</div><button type="submit" class="ui-button" aria-label="${searchButton}" data-tooltip="${searchButton}">${searchButton}</button></div></form>`;
+    return renderWizardDisclosure('wizard-ai-search', i18n.t('wizard.aiSetup.models.searchAnother'), `<div class="wizard-disclosure-body wizard-ai-search" data-page-scope="models">${form}<div class="wizard-ai-scroll" data-ai-region="search-results" aria-live="polite">${renderAiSearchResults(context, view.search)}</div><div class="wizard-ai-scroll" data-ai-region="search-variants" aria-live="polite">${renderAiSearchVariants(context, view.search)}</div></div>`, view.searchOpen);
 };
 
 const renderLimitedState = (context: WizardViewContext, message: string): string => {

@@ -12,6 +12,7 @@ import type { ParameterValue } from '@pages/modeldetail/contracts/parameterTypes
 import type { ParameterStateManager } from '@pages/modeldetail/controllers/ParameterStateManager.ts';
 import { CATEGORY_COUNT_SELECTOR, PARAMETER_CATEGORY_SELECTOR, PARAMETER_ITEM_SELECTOR, PARAMETERS_EMPTY_STATE_ID, PARAMETERS_INTERFACE_ID } from '@pages/modeldetail/controllers/parameterviewmanager/constants.ts';
 import type { BoundParameterEvents, ParameterElementCache, ParameterViewFilters, ParameterViewHost } from '@pages/modeldetail/controllers/parameterviewmanager/types.ts';
+import { resolveParameterInputId } from '@pages/modeldetail/widgets/parametertemplates/state.ts';
 
 const requireElement = (host: ParameterViewHost, selector: string): Element => {
     const element = host.pageDom.optional(selector);
@@ -141,12 +142,18 @@ const applyFilters = (host: ParameterViewHost, state: ParameterStateManager, fil
 };
 
 const updateParameterUi = (host: ParameterViewHost, state: ParameterStateManager, parameterKey: string, value: ParameterValue, rerenderArrayInput: (key: string) => void): void => {
+    const validation = host.pageDom.optional(`${resolveParameterInputId(parameterKey)}-validation`);
+    if (validation) {
+        host.pageDom.updateText(validation, '');
+        host.pageDom.toggleClass(validation, 'error', false);
+    }
     const displayValue = value ?? state.getParameter(parameterKey)?.definition?.default;
     if (isArray(displayValue)) {
         rerenderArrayInput(parameterKey);
         return;
     }
     host.$$(`${PARAMETER_ITEM_SELECTOR}[data-param="${CSS.escape(parameterKey)}"] :is(input, textarea, select)[data-param]`).forEach((input) => {
+        input.setAttribute('aria-invalid', 'false');
         if (input instanceof HTMLInputElement && input.type === 'checkbox') {
             const checked = displayValue === true || displayValue === 'true';
             host.pageDom.updateProperty(input, 'checked', checked);
@@ -159,8 +166,14 @@ const updateParameterUi = (host: ParameterViewHost, state: ParameterStateManager
         }
 
         const normalized = displayValue !== null && displayValue !== undefined && isObject(displayValue) ? JSON.stringify(displayValue, null, 2) : String(displayValue ?? '');
-        host.setUIValue(input, normalized, { attribute: 'value' });
+        host.setUIValue(input, normalized, { attribute: 'value', skipChangeEvent: true });
     });
 };
 
-export { applyFilters, disposeEventHandlers, getDomData, refreshElementCache, registerHandlers, requireElement, resolveElement, updateParameterUi };
+const validateArrayControls = (host: ParameterViewHost, parameterKey: string): boolean =>
+    host.$$(`.array-item-input[data-param="${CSS.escape(parameterKey)}"]`).every((element) => {
+        if (!(element instanceof HTMLInputElement)) throw new TypeError('Array parameter control must be an input');
+        return element.reportValidity();
+    });
+
+export { applyFilters, disposeEventHandlers, getDomData, refreshElementCache, registerHandlers, requireElement, resolveElement, updateParameterUi, validateArrayControls };

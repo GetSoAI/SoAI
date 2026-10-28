@@ -58,7 +58,10 @@ const updateAdvancedToggleButton = (page: SettingsRuntimeContext, button: Elemen
     if (!button) {
         return;
     }
-    const label = advanced ? i18n.t('settings.basicMode') : i18n.t('settings.advancedMode');
+    page.owners.pageDom.toggleClass(button, 'ui-variant-neutral', !advanced);
+    page.owners.pageDom.toggleClass(button, 'ui-variant-warning', advanced);
+    page.owners.pageDom.updateAttribute(button, 'aria-pressed', String(advanced));
+    const label = advanced ? i18n.t('settings.advancedMode') : i18n.t('settings.basicMode');
     const labelElement = button.lastElementChild;
     page.owners.pageDom.updateText(labelElement ?? button, label);
     page.owners.pageDom.updateAttribute(button, 'aria-label', label);

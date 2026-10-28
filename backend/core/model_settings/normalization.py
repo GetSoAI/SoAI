@@ -8,8 +8,13 @@ from typing import TYPE_CHECKING
 from core.agent.iteration_limits import require_agent_max_iterations
 from core.agent_mode import normalize_agent_mode
 from core.errors.exceptions import StateError, ValidationError
-from core.model_settings.request_projection import read_execution_context_window_override
-from core.types.json_value import coerce_json_dict
+from core.model_settings.request_projection import (
+    build_context_window_override_conflict_error,
+    read_execution_context_window_override,
+    require_context_window_override_value,
+)
+from core.models.context_window import MODEL_PARAM_STANDARDIZED_NAME
+from core.types.json_value import coerce_json_dict, copy_json_dict
 from core.validation.strings import coerce_optional_trimmed_str
 
 if TYPE_CHECKING:
@@ -167,18 +172,65 @@ def extract_agent_mode(model_settings: JSONDict, *, strict: bool) -> str:
     return normalize_agent_mode(agent_settings.get("mode"), strict=strict)
 
 
-def merge_model_settings(existing: JSONDict, patch: JSONDict) -> JSONDict:
+def _read_context_window_override_patch(patch: JSONDict) -> tuple[bool, int | None]:
+    occurrences: list[JSONValue] = []
+    if MODEL_PARAM_STANDARDIZED_NAME in patch:
+        occurrences.append(patch[MODEL_PARAM_STANDARDIZED_NAME])
+    patch_parameters = coerce_json_dict(patch.get("parameters"))
+    if patch_parameters is not None and MODEL_PARAM_STANDARDIZED_NAME in patch_parameters:
+        occurrences.append(patch_parameters[MODEL_PARAM_STANDARDIZED_NAME])
+    if not occurrences:
+        return False, None
+    values = [
+        None if occurrence is None else require_context_window_override_value(occurrence)
+        for occurrence in occurrences
+    ]
+    if len(values) > 1 and values[0] != values[1]:
+        raise build_context_window_override_conflict_error()
+    return True, values[0]
+
+
+def _remove_context_window_override_patch(patch: JSONDict) -> JSONDict:
+    remaining: JSONDict = dict(patch)
+    remaining.pop(MODEL_PARAM_STANDARDIZED_NAME, None)
+    patch_parameters = coerce_json_dict(remaining.get("parameters"))
+    if patch_parameters is not None:
+        patch_parameters.pop(MODEL_PARAM_STANDARDIZED_NAME, None)
+        remaining["parameters"] = patch_parameters
+    return remaining
+
+
+def _apply_context_window_override(
+    merged: JSONDict,
+    *,
+    value: int | None,
+    store_nested: bool,
+) -> JSONDict:
+    result: JSONDict = dict(merged)
+    result.pop(MODEL_PARAM_STANDARDIZED_NAME, None)
+    merged_parameters = result.get("parameters")
+    parameters = copy_json_dict(merged_parameters) if isinstance(merged_parameters, dict) else None
+    if parameters is not None:
+        parameters.pop(MODEL_PARAM_STANDARDIZED_NAME, None)
+        result["parameters"] = parameters
+    if value is None:
+        return result
+    if store_nested and parameters is not None:
+        parameters[MODEL_PARAM_STANDARDIZED_NAME] = value
+    else:
+        result[MODEL_PARAM_STANDARDIZED_NAME] = value
+    return result
+
+
+def _merge_settings_values(existing: JSONDict, patch: JSONDict) -> JSONDict:
     merged: JSONDict = dict(existing)
     for key, value in patch.items():
-        if key == "context_window_tokens" and value is None:
-            merged.pop(key, None)
-            continue
         existing_value = merged.get(key)
         existing_nested = coerce_json_dict(existing_value)
         patch_nested = coerce_json_dict(value)
         if key == "parameters" and patch_nested is not None:
             merged[key] = (
-                merge_model_settings(existing_nested, patch_nested)
+                _merge_settings_values(existing_nested, patch_nested)
                 if existing_nested is not None
                 else value
             )
@@ -186,7 +238,21 @@ def merge_model_settings(existing: JSONDict, patch: JSONDict) -> JSONDict:
                 merged.pop(parameter_name, None)
             continue
         if existing_nested is not None and patch_nested is not None:
-            merged[key] = merge_model_settings(existing_nested, patch_nested)
+            merged[key] = _merge_settings_values(existing_nested, patch_nested)
             continue
         merged[key] = value
     return merged
+
+
+def merge_model_settings(existing: JSONDict, patch: JSONDict) -> JSONDict:
+    context_supplied, context_value = _read_context_window_override_patch(patch)
+    merged = _merge_settings_values(existing, _remove_context_window_override_patch(patch))
+    if not context_supplied:
+        return merged
+    patch_parameters = coerce_json_dict(patch.get("parameters"))
+    return _apply_context_window_override(
+        merged,
+        value=context_value,
+        store_nested=patch_parameters is not None
+        and MODEL_PARAM_STANDARDIZED_NAME in patch_parameters,
+    )

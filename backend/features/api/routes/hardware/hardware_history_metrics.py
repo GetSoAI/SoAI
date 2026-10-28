@@ -8,12 +8,10 @@ from core.hardware.snapshot_lookup import (
     find_network_snapshot_selection,
     find_network_speed_entry,
 )
-from core.timing.epoch import epoch_ms
 from core.types.json import JSONDict
 from features.api.routes.hardware.hardware_numeric import safe_numeric
 
 __all__ = (
-    "build_history_stream_update",
     "extract_cpu_metrics",
     "extract_disk_metrics",
     "extract_gpu_metrics",
@@ -135,40 +133,3 @@ def extract_network_metrics(snapshot: JSONDict, identifier: str | None) -> dict[
         if download is not None:
             metrics["download_mbps"] = download
     return metrics or None
-
-
-def build_history_stream_update(
-    snapshot: JSONDict,
-    component: str,
-    gpu_index: int | None,
-    identifier: str | None = None,
-) -> JSONDict | None:
-    timestamp_value = safe_numeric(
-        snapshot.get("timestamp_ms"),
-        "snapshot.timestamp_ms",
-        default=epoch_ms(),
-    )
-    timestamp_ms = int(timestamp_value if timestamp_value is not None else epoch_ms())
-    component_lower = component.lower()
-    if component_lower == "cpu":
-        metrics = extract_cpu_metrics(snapshot)
-    elif component_lower == "gpu":
-        metrics = extract_gpu_metrics(snapshot, gpu_index)
-    elif component_lower == "disk":
-        metrics = extract_disk_metrics(snapshot, identifier)
-    elif component_lower == "network":
-        metrics = extract_network_metrics(snapshot, identifier)
-    else:
-        metrics = None
-    if not metrics:
-        return None
-    payload: JSONDict = {
-        "timestamp_ms": timestamp_ms,
-        "component": component_lower,
-        "metrics": metrics,
-    }
-    if component_lower == "gpu":
-        payload["gpu_index"] = gpu_index
-    if component_lower in {"disk", "network"} and identifier:
-        payload["identifier"] = identifier
-    return payload

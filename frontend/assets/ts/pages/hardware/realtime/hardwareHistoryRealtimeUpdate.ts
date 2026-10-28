@@ -4,7 +4,7 @@
 import { isArray, isFiniteNumber } from '@core/typeGuards.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { appendHistoryValue, resolveHistoryChartStorageCapacity, type CandlestickPoint, type HistoryChartInstance } from '@features/charts/public.ts';
-import { extractRealtimeMetricValue } from '@pages/hardware/realtime/hardwarerealtimemetricresolvers/service.ts';
+import { extractRealtimeMetricValue, resolveRealtimeMetricTimestamp } from '@pages/hardware/realtime/hardwarerealtimemetricresolvers/service.ts';
 import type { DeviceSelection, HardwarePageSnapshot, HistoryDataPoint, HistoryMetadata } from '@pages/hardware/types.ts';
 
 interface HardwareHistoryMetadataHost {
@@ -62,7 +62,7 @@ const parseHardwareHistoryResponseMetadata = (host: HardwareHistoryMetadataHost,
 
 const applyHardwareHistoryRealtimeUpdate = (host: HardwareHistoryRealtimeHost, payload: HardwarePageSnapshot): void => {
     if (!payload) return;
-    const timestamp = host.chartOhlc.toTimestampMs(payload.timestampMs);
+    const timestamp = host.chartOhlc.toTimestampMs(resolveRealtimeMetricTimestamp({ metricKey: host.getMetricKey(), selectedTarget: host.getSelectedHistoryTarget(), payload }));
     const value = extractRealtimeMetricValue({
         metricKey: host.getMetricKey(),
         selectedTarget: host.getSelectedHistoryTarget(),

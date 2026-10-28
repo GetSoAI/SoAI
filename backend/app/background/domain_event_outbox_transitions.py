@@ -34,6 +34,11 @@ class DomainEventOutboxTransitionController:
     def should_skip_processing(self, outbox_id: int, *, now_ms: int) -> bool:
         return self._state.should_skip_processing(outbox_id, now_ms=now_ms)
 
+    def has_due_terminal_transitions(self, *, now_ms: int) -> bool:
+        return any(
+            now_ms >= pending.next_attempt_at_ms for _, pending in self._state.pending_items()
+        )
+
     async def _quarantine_row_best_effort(
         self,
         *,

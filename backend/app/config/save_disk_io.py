@@ -64,6 +64,7 @@ async def write_config_to_disk(
     previous_cached_snapshot: CommentedMap | None,
     lock_path: str,
     previous_state: KnownFileState | None,
+    configuration_changed: bool = True,
 ) -> ConfigSaveOutcome:
     backup_path = f"{config_path}.backup"
     content_hash: str | None = None
@@ -73,6 +74,8 @@ async def write_config_to_disk(
     try:
         did_exist_before_save = os.path.exists(config_path)
         previous_revision = reconciler.file_revisions.get(config_path)
+        if configuration_changed:
+            await io.invalidate_plugin_backend_update(config_name)
         await io.atomic_write_yaml_unlocked(
             config_path=config_path,
             config_mapping=config_mapping,

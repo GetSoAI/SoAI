@@ -10,6 +10,7 @@ import type { PluginRecord } from '@core/types/pluginTypes.ts';
 interface PluginsGroupingControllerDependencies {
     grouping: CollectionGroupingState<PluginRecord>;
     getSortBy: () => string;
+    presentsHeadings: () => boolean;
     getItemCardId: (plugin: PluginRecord) => string | null;
     getPluginStatus: (plugin: PluginRecord) => string;
     getStatusDescription: (status: string) => string;
@@ -45,6 +46,7 @@ const createPluginsGroupingController = (dependencies: PluginsGroupingController
         return dependencies.grouping.applyHeadings({
             items: plugins,
             grouped: sortBy !== 'none',
+            presentsHeadings: dependencies.presentsHeadings(),
             resolveItemId: (plugin) => dependencies.getItemCardId(plugin) ?? '',
             resolveGroup: (plugin) => resolveGroup(plugin, sortBy)
         });

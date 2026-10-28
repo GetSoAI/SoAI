@@ -8,7 +8,11 @@ import time
 
 import aiosqlite
 
-from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
+from core.concurrency.cancellation_cleanup import (
+    run_idempotent_current_task_operation,
+    uncancel_then_cleanup,
+)
+from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import ConfigurationError, DatabaseError
 from core.logging.trace import get_logger
@@ -16,7 +20,7 @@ from core.sqlite.policy import (
     configure_aiosqlite_connection,
     resolve_sqlite_database_target,
 )
-from core.state.errors import DatabaseUnavailableError
+from core.state.errors import DatabaseReadCleanupError, DatabaseUnavailableError
 from core.timing.constants import CONTROL_TIMEOUT_SEC, LOCAL_IO_TIMEOUT_SEC
 
 __all__ = ("ReadConnectionPool",)
@@ -151,25 +155,50 @@ class ReadConnectionPool:
         async with connection.execute("SELECT 1") as cursor:
             await cursor.fetchone()
 
-    async def release(self, connection: aiosqlite.Connection) -> None:
-        await uncancel_then_cleanup(self._release_connection_internal(connection))
+    async def release(self, connection: aiosqlite.Connection, *, reusable: bool = True) -> None:
+        cleanup = self._release_connection_internal(connection, reusable=reusable)
+        if reusable:
+            await uncancel_then_cleanup(cleanup)
+        else:
+            cleanup_task = create_ephemeral_task(
+                cleanup, name="database-read-connection-discard", log_exceptions=False
+            )
+            await run_idempotent_current_task_operation(lambda: asyncio.shield(cleanup_task))
 
-    async def _release_connection_internal(self, connection: aiosqlite.Connection) -> None:
+    def _complete_connection_release(self, connection: aiosqlite.Connection) -> None:
+        self._borrowed_connections.discard(connection)
+        if not self._borrowed_connections:
+            self._borrowed_connections_drained.set()
+
+    async def _release_connection_internal(
+        self, connection: aiosqlite.Connection, *, reusable: bool = True
+    ) -> None:
         try:
-            should_close = False
             async with self._state_lock:
-                self._borrowed_connections.discard(connection)
-                if not self._borrowed_connections:
-                    self._borrowed_connections_drained.set()
-                if self._shutdown:
-                    should_close = True
-                else:
+                should_close = self._shutdown or not reusable
+                if not should_close:
                     try:
                         self._pool.put_nowait((connection, time.monotonic()))
                     except asyncio.QueueFull:
                         should_close = True
+                    else:
+                        self._complete_connection_release(connection)
             if should_close:
-                await self._close_connection_safe(connection)
+                try:
+                    if reusable:
+                        await self._close_connection_safe(connection)
+                    else:
+                        try:
+                            await connection.close()
+                        except (aiosqlite.Error, OSError, RuntimeError, ValueError) as exception:
+                            raise DatabaseReadCleanupError(
+                                "Failed to close a discarded database read connection.",
+                                operation=OPERATION_CLOSE_CONNECTION,
+                                cause=exception,
+                            ) from exception
+                finally:
+                    async with self._state_lock:
+                        self._complete_connection_release(connection)
         finally:
             self._active_semaphore.release()
 

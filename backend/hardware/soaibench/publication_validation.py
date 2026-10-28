@@ -12,6 +12,11 @@ from core.hardware.soaibench_evidence import (
     minimum_measured_duration_ms,
     validate_workload_phase,
 )
+from core.hardware.soaibench_publication_errors import (
+    SoAIBenchPublicationCancelledError,
+    SoAIBenchPublicationIncompleteError,
+    SoAIBenchPublicationUnsupportedError,
+)
 from core.hardware.soaibench_workloads import SOAIBENCH_WORKLOAD_NAMES, throughput_diagnostics
 from core.types.json import JSONDict
 from core.types.json_value import coerce_json_dict_or_empty
@@ -34,11 +39,19 @@ __all__ = ("validated_measured_passes",)
 
 
 def validated_measured_passes(run: JSONDict) -> list[JSONDict]:
+    if run.get("status") == "unsupported":
+        raise SoAIBenchPublicationUnsupportedError(
+            "Unsupported GPU benchmark has no publishable score."
+        )
+    if run.get("status") == "cancelled":
+        raise SoAIBenchPublicationCancelledError(
+            "Cancelled benchmark has no completed publication result."
+        )
     if classify_run(run).get("publication_eligible") is not True:
-        raise ValidationError("SoAIBench run is not eligible for publication.")
+        raise SoAIBenchPublicationIncompleteError("SoAI Bench run is not eligible for publication.")
     passes = coerce_json_dict_or_empty(run.get("passes")).get("measured")
     if not isinstance(passes, list):
-        raise ValidationError("SoAIBench measured-pass evidence is missing.")
+        raise ValidationError("SoAI Bench measured-pass evidence is missing.")
     measured: list[JSONDict] = []
     for index, value in enumerate(passes, start=1):
         if (
@@ -46,7 +59,7 @@ def validated_measured_passes(run: JSONDict) -> list[JSONDict]:
             or not is_strict_int(value.get("index"))
             or value.get("index") != index
         ):
-            raise ValidationError("SoAIBench measured-pass order is invalid.")
+            raise ValidationError("SoAI Bench measured-pass order is invalid.")
         _validate_pass(value)
         measured.append(value)
     _validate_temperature_threshold(run, measured)
@@ -56,12 +69,12 @@ def validated_measured_passes(run: JSONDict) -> list[JSONDict]:
 
 def _validate_pass(measured: JSONDict) -> None:
     if measured.get("warmup") is not False or measured.get("score_version") != "soaibench-v2":
-        raise ValidationError("SoAIBench measured-pass version is invalid.")
+        raise ValidationError("SoAI Bench measured-pass version is invalid.")
     evidence = coerce_json_dict_or_empty(
         coerce_json_dict_or_empty(measured.get("workload")).get("workload_evidence")
     )
     if set(evidence) != {"alu", "compute", "matrix", "latency", "memory", "mixed"}:
-        raise ValidationError("SoAIBench workload evidence is incomplete.")
+        raise ValidationError("SoAI Bench workload evidence is incomplete.")
     phases: dict[str, SoAIBenchPhaseResult] = {
         name: _validate_phase(name, coerce_json_dict_or_empty(value))
         for name, value in evidence.items()
@@ -78,7 +91,7 @@ def _validate_pass(measured: JSONDict) -> None:
     )
     expected_evidence = coerce_json_dict_or_empty(calculated.summary.get("workload_evidence"))
     if evidence != expected_evidence:
-        raise ValidationError("SoAIBench workload count evidence is inconsistent.")
+        raise ValidationError("SoAI Bench workload count evidence is inconsistent.")
     for field in (
         "compute_gops",
         "memory_gbs",
@@ -92,18 +105,18 @@ def _validate_pass(measured: JSONDict) -> None:
             calculated.score_fields.get(field), minimum=0.0, allow_zero=False
         )
         if round(measured_value, 6) != round(calculated_value, 6):
-            raise ValidationError(f"SoAIBench measured-pass {field} is inconsistent.")
+            raise ValidationError(f"SoAI Bench measured-pass {field} is inconsistent.")
     for field in ("overall_score", "compute_score", "memory_score", "latency_score"):
         if require_public_integer(measured.get(field)) != require_public_integer(
             calculated.score_fields.get(field)
         ):
-            raise ValidationError("SoAIBench measured-pass score is inconsistent.")
+            raise ValidationError("SoAI Bench measured-pass score is inconsistent.")
     if round(require_public_number(measured.get("stability_multiplier"), minimum=0.0), 4) != round(
         require_public_number(calculated.score_fields.get("stability_multiplier"), minimum=0.0), 4
     ):
-        raise ValidationError("SoAIBench measured-pass score is inconsistent.")
+        raise ValidationError("SoAI Bench measured-pass score is inconsistent.")
     if require_public_integer(measured.get("sample_count")) != calculated.sample_count:
-        raise ValidationError("SoAIBench measured-pass sample count is inconsistent.")
+        raise ValidationError("SoAI Bench measured-pass sample count is inconsistent.")
     accounting = tuple(
         PhaseAccounting(
             phase.elapsed_seconds,
@@ -116,12 +129,12 @@ def _validate_pass(measured: JSONDict) -> None:
     if require_public_integer(measured.get("duration_ms")) < minimum_measured_duration_ms(
         accounting
     ):
-        raise ValidationError("SoAIBench measured-pass duration is inconsistent.")
+        raise ValidationError("SoAI Bench measured-pass duration is inconsistent.")
 
 
 def _validate_phase(name: str, phase: JSONDict) -> SoAIBenchPhaseResult:
     if set(phase) != set(WORKLOAD_PHASE_FIELDS):
-        raise ValidationError("SoAIBench workload phase evidence is malformed.")
+        raise ValidationError("SoAI Bench workload phase evidence is malformed.")
     elapsed = require_public_number(phase.get("elapsed_seconds"), minimum=1.0)
     elements = require_public_integer(phase.get("element_count"), allow_zero=False)
     rounds = require_public_integer(phase.get("rounds"), allow_zero=False)
@@ -134,16 +147,16 @@ def _validate_phase(name: str, phase: JSONDict) -> SoAIBenchPhaseResult:
     phase_sample_positions = phase.get("sample_positions")
     phase_sample_values = phase.get("sample_values")
     if (phase_sample_positions is None) or (phase_sample_values is None):
-        raise ValidationError("SoAIBench workload samples are malformed.")
+        raise ValidationError("SoAI Bench workload samples are malformed.")
     positions: tuple[int, ...] = ()
     values: tuple[float, ...] = ()
     if not isinstance(phase_sample_positions, list) or not isinstance(phase_sample_values, list):
-        raise ValidationError("SoAIBench workload samples are malformed.")
+        raise ValidationError("SoAI Bench workload samples are malformed.")
     positions = tuple(require_public_integer(value) for value in phase_sample_positions)
     values = tuple(
         require_finite_float_strict(
             value,
-            error_message="SoAIBench workload sample value is invalid.",
+            error_message="SoAI Bench workload sample value is invalid.",
         )
         for value in phase_sample_values
     )
@@ -218,12 +231,12 @@ def _validate_aggregate(run: JSONDict, passes: list[JSONDict]) -> None:
         if require_public_integer(run.get(field)) != require_public_integer(
             expected_score_fields.get(field)
         ):
-            raise ValidationError("SoAIBench aggregate score is inconsistent.")
+            raise ValidationError("SoAI Bench aggregate score is inconsistent.")
     for field, expected in medians.items():
         if round(require_public_number(run.get(field), minimum=0.0, allow_zero=False), 6) != round(
             expected, 6
         ):
-            raise ValidationError(f"SoAIBench aggregate {field} is inconsistent.")
+            raise ValidationError(f"SoAI Bench aggregate {field} is inconsistent.")
     scores = [require_public_integer(entry.get("overall_score")) for entry in passes]
     expected_variance = (
         0.0 if sum(scores) == 0 else round(pstdev(scores) / (sum(scores) / len(scores)) * 100, 4)
@@ -235,15 +248,15 @@ def _validate_aggregate(run: JSONDict, passes: list[JSONDict]) -> None:
         )
         != expected_variance
     ):
-        raise ValidationError("SoAIBench aggregate variance is inconsistent.")
+        raise ValidationError("SoAI Bench aggregate variance is inconsistent.")
     if require_public_integer(run.get("sample_count")) != sum(
         require_public_integer(entry.get("sample_count")) for entry in passes
     ):
-        raise ValidationError("SoAIBench aggregate sample count is inconsistent.")
+        raise ValidationError("SoAI Bench aggregate sample count is inconsistent.")
     if require_public_integer(run.get("duration_ms")) != sum(
         require_public_integer(entry.get("duration_ms")) for entry in passes
     ):
-        raise ValidationError("SoAIBench aggregate duration is inconsistent.")
+        raise ValidationError("SoAI Bench aggregate duration is inconsistent.")
     if (
         round(
             require_public_number(run.get("stability_multiplier"), minimum=0.0),
@@ -251,7 +264,7 @@ def _validate_aggregate(run: JSONDict, passes: list[JSONDict]) -> None:
         )
         != 1.0
     ):
-        raise ValidationError("SoAIBench aggregate stability is inconsistent.")
+        raise ValidationError("SoAI Bench aggregate stability is inconsistent.")
     certification = coerce_json_dict_or_empty(run.get("certification"))
     if (
         round(
@@ -260,7 +273,7 @@ def _validate_aggregate(run: JSONDict, passes: list[JSONDict]) -> None:
         )
         != expected_variance
     ):
-        raise ValidationError("SoAIBench certification variance is inconsistent.")
+        raise ValidationError("SoAI Bench certification variance is inconsistent.")
     _validate_phase_diagnostics(certification, passes)
 
 
@@ -268,11 +281,11 @@ def _validate_phase_diagnostics(certification: JSONDict, passes: list[JSONDict])
     variation = certification.get("phase_variation_percent")
     drift = certification.get("phase_drift_percent")
     if not isinstance(variation, dict) or not isinstance(drift, dict):
-        raise ValidationError("SoAIBench phase diagnostics are missing.")
+        raise ValidationError("SoAI Bench phase diagnostics are missing.")
     if set(variation) != set(SOAIBENCH_WORKLOAD_NAMES) or set(drift) != set(
         SOAIBENCH_WORKLOAD_NAMES
     ):
-        raise ValidationError("SoAIBench phase diagnostics are incomplete.")
+        raise ValidationError("SoAI Bench phase diagnostics are incomplete.")
     for name in SOAIBENCH_WORKLOAD_NAMES:
         values = tuple(
             require_public_number(
@@ -299,4 +312,4 @@ def _validate_phase_diagnostics(certification: JSONDict, passes: list[JSONDict])
             )
             != expected_drift
         ):
-            raise ValidationError("SoAIBench phase diagnostics are inconsistent.")
+            raise ValidationError("SoAI Bench phase diagnostics are inconsistent.")

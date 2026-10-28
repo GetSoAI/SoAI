@@ -14,7 +14,6 @@ from core.validation.record_fields import (
     require_json_object,
     require_json_object_list,
     require_number,
-    require_optional_json_object,
     require_str_list,
 )
 
@@ -29,26 +28,17 @@ __all__ = (
     "read_non_empty_raw_str_field",
     "read_non_empty_str_field",
     "read_number_field",
-    "read_optional_dict_field",
     "read_optional_int_field",
     "read_optional_str_field",
     "read_required_int_field",
     "read_required_named_str_field",
     "read_required_str_field",
     "read_scalar_field",
-    "read_str_field",
     "read_str_list_field",
     "read_worker_request_str_field",
 )
 
 WORKER_REQUEST_FIELD_LABEL = "Worker request field"
-
-
-def read_str_field(payload: JSONDict, key: str, *, label: str) -> str:
-    value: JSONValue | None = payload.get(key)
-    if not isinstance(value, str):
-        raise ValidationError(f"{label} '{key}' must be a string.")
-    return value
 
 
 def read_non_empty_str_field(payload: JSONDict, key: str, *, label: str) -> str:
@@ -190,15 +180,6 @@ def read_scalar_field(payload: JSONDict, key: str, *, label: str) -> str | int |
 
 def read_dict_field(payload: JSONDict, key: str, *, label: str) -> JSONDict:
     return require_json_object(
-        payload.get(key),
-        label=f"{label} '{key}'",
-        build_error=ValidationError,
-        invalid_message=f"{label} '{key}' must be a JSON object.",
-    )
-
-
-def read_optional_dict_field(payload: JSONDict, key: str, *, label: str) -> JSONDict | None:
-    return require_optional_json_object(
         payload.get(key),
         label=f"{label} '{key}'",
         build_error=ValidationError,

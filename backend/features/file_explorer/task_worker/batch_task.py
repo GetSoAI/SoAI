@@ -4,13 +4,16 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 
+from core.concurrency.cancellation_cleanup import wait_for_task_completion
+from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import InsufficientDiskSpaceError
+from core.errors.exceptions import InsufficientDiskSpaceError, StateError
 from core.errors.public_projection import project_public_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.events.types_file_explorer import FileExplorerOperation
 from core.logging.protocols import StandardLogger
 from core.tasks.enums import TaskStatus
@@ -40,17 +43,38 @@ async def run_batch_task(
     item_error_operation: str,
     cancel_finalization_operation: str,
     cancel_details: dict[str, str],
-    process_item: Callable[[str], Awaitable[None]],
+    process_item: Callable[[str], Coroutine[None, None, None]],
 ) -> None:
     total = len(item_paths)
     succeeded = 0
     failed = 0
     results: list[dict[str, str | bool]] = []
+    cancellation_requested = False
+    operation_task = asyncio.current_task()
+    if operation_task is None:
+        raise StateError("Batch mutations require an owning task.")
+
+    async def execute_item(item_path: str) -> None:
+        if cancellation_requested or operation_task.cancelling():
+            raise asyncio.CancelledError
+        await process_item(item_path)
 
     try:
         for item_index, item_path in enumerate(item_paths):
+            item_task: asyncio.Task[None] = create_ephemeral_task(
+                execute_item(item_path),
+                name=f"{task_id}:batch-item:{item_index}",
+                log_exceptions=False,
+            )
+            cancellation: asyncio.CancelledError | None = None
             try:
-                await process_item(item_path)
+                try:
+                    await asyncio.shield(item_task)
+                except asyncio.CancelledError as exception:
+                    cancellation = exception
+                    cancellation_requested = True
+                    await wait_for_task_completion(item_task, retain_resources_until_complete=True)
+                    item_task.result()
                 succeeded += 1
                 results.append({"path": item_path, "success": True})
             except InsufficientDiskSpaceError as exception:
@@ -89,14 +113,7 @@ async def run_batch_task(
                     status_message=str(exception.message),
                 )
                 return
-            except RECOVERABLE_EXCEPTIONS as exception:
-                log_exception(
-                    logger,
-                    exception,
-                    message=f"Failed to {action_verb} {item_path}",
-                    operation=OPERATION_FEATURES_FILE_EXPLORER_TASK_WORKER_BATCH_TASK_RUN_BATCH_TASK,
-                    details={"path": item_path, "operation": item_error_operation},
-                )
+            except HANDLED_RUNTIME_EXCEPTIONS as exception:
                 failed += 1
                 results.append(
                     {
@@ -105,7 +122,18 @@ async def run_batch_task(
                         "error": project_public_exception(exception).message,
                     }
                 )
+                if not isinstance(exception, RECOVERABLE_EXCEPTIONS):
+                    raise
+                log_exception(
+                    logger,
+                    exception,
+                    message=f"Failed to {action_verb} {item_path}",
+                    operation=OPERATION_FEATURES_FILE_EXPLORER_TASK_WORKER_BATCH_TASK_RUN_BATCH_TASK,
+                    details={"path": item_path, "operation": item_error_operation},
+                )
 
+            if cancellation is not None:
+                raise cancellation
             if total > 0:
                 await update_progress(
                     task_registry,
@@ -139,7 +167,7 @@ async def run_batch_task(
             details=cancel_details,
         )
         return
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except HANDLED_RUNTIME_EXCEPTIONS as exception:
         operation_value = str(operation.value)
         if isinstance(exception, InsufficientDiskSpaceError):
             log_handled_exception(
@@ -157,6 +185,7 @@ async def run_batch_task(
                 error_code=exception.http_status,
                 error_message=str(exception.message),
                 status_message=str(exception.message),
+                result={"total": total, "succeeded": succeeded, "failed": failed, "items": results},
             )
             return
         coerced = coerce_to_soai_error(
@@ -168,11 +197,16 @@ async def run_batch_task(
             coerced,
             message=f"Task {operation_value}_batch failed",
             operation=OPERATION_FEATURES_FILE_EXPLORER_TASK_WORKER_BATCH_TASK_RUN_BATCH_TASK,
+            level="warning" if 400 <= coerced.http_status < 500 else "error",
         )
         await finalize(
             task_registry,
             task_id,
             TaskStatus.FAILED,
+            error_code=coerced.http_status,
+            error_type=str(coerced.code),
             error_message=coerced.message,
             status_message=f"Error: {coerced.message}",
+            public_error=project_public_exception(coerced, trace_id=task_id),
+            result={"total": total, "succeeded": succeeded, "failed": failed, "items": results},
         )

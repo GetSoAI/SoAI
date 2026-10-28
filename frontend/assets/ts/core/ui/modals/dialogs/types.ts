@@ -1,6 +1,8 @@
 /* SoAI - Shared UI dialogs contracts [frontend/assets/ts/core/ui/modals/dialogs/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ConfirmationActionButton, NoticeSection } from '@core/ui/modals/dialogs/confirmationFlow.ts';
+
 interface ClipboardServiceInterface {
     isSupported: () => boolean;
     copyText: (text: string, options?: CopyTextOptions) => Promise<boolean>;
@@ -24,10 +26,17 @@ interface ConfirmationOptions {
     confirmVariant?: string;
     messageAllowHTML?: boolean;
     descriptionAllowHTML?: boolean;
+    advisory?: { text: string; variant: 'info' | 'warning' } | undefined;
+    fields?: HTMLElement | undefined;
     onConfirm?: () => Promise<boolean>;
 }
 
 interface NoticeOptions {
+    sections?: readonly NoticeSection[];
+    signal?: AbortSignal | undefined;
+    advisory?: { text: string; variant: 'info' | 'warning' };
+    action?: ConfirmationActionButton;
+    actionErrorText?: string;
     title: string;
     message: string;
     variant: 'success' | 'info' | 'warning' | 'danger';
@@ -131,4 +140,4 @@ interface UsernameRenameModalOptions {
     onSubmit: (values: UsernameRenameValues) => Promise<IdentityMutationModalFailure | null>;
 }
 
-export type { ClipboardServiceInterface, ConfirmationOptions, CopyTextModalOptions, CopyTextOptions, ExternalLinkOptions, IdentityMutationModalFailure, LocalFolderOpenOptions, NoticeOptions, PasswordChangeFieldLabels, PasswordChangeModalOptions, PasswordChangeValidationMessages, PasswordChangeValues, PromptAutocomplete, PromptInputType, PromptModalOptions, UsernameRenameModalOptions, UsernameRenameValues };
+export type { ClipboardServiceInterface, ConfirmationOptions, CopyTextModalOptions, CopyTextOptions, ExternalLinkOptions, IdentityMutationModalFailure, LocalFolderOpenOptions, NoticeOptions, NoticeSection, PasswordChangeFieldLabels, PasswordChangeModalOptions, PasswordChangeValidationMessages, PasswordChangeValues, PromptAutocomplete, PromptInputType, PromptModalOptions, UsernameRenameModalOptions, UsernameRenameValues };

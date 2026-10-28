@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_handled_exception
+from core.errors.payload import ErrorPublicPayload
+from core.errors.public_projection import project_public_error
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.runtime.request_context import RequestContext
 from features.api.runtime.chat_execution.runtime_quota import (
@@ -43,9 +45,10 @@ async def cleanup_ws_chat_stream_failure_noncritical(
     context: RequestContext,
     session: AssistantTimelineSession,
     database_api_keys: DatabaseAPIKeysProtocol,
-) -> tuple[str, str]:
+) -> ErrorPublicPayload:
     runtime = session.runtime
     coerced = coerce_to_soai_error(exception, operation="webui_ws_chat_stream.run")
+    public_error = project_public_error(coerced, trace_id=context.trace_id)
     await uncancel_then_cleanup(stop_timeline_session_tickers(session))
     if runtime.active_task_id or (
         runtime.agent_turn_id is not None and runtime.agent_turn_id.strip()
@@ -55,7 +58,7 @@ async def cleanup_ws_chat_stream_failure_noncritical(
                 api_dependencies=api_context.dependencies,
                 context=context,
                 runtime=runtime,
-                reason=str(coerced),
+                reason=public_error.message,
             )
         except RECOVERABLE_EXCEPTIONS as cancel_exception:
             cancel_error = coerce_to_soai_error(
@@ -81,4 +84,4 @@ async def cleanup_ws_chat_stream_failure_noncritical(
             message="Failed to release WebUI WebSocket chat stream quota after error.",
         ),
     )
-    return str(coerced), str(coerced.code)
+    return public_error

@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "extract_optional_single_file",
-    "extract_required_files",
     "extract_single_file",
     "finalize_cleanup_and_raise",
     "finalize_cleanup_and_raise_invalid_request",
@@ -59,23 +58,6 @@ def extract_optional_single_file(
     if len(matches) != 1:
         raise ValidationError(f"At most one '{field_name}' file may be provided.")
     return matches[0]
-
-
-def extract_required_files(
-    staged_files: list[StreamingStagedPart],
-    field_name: str,
-    *,
-    min_count: int = 1,
-    max_count: int | None = None,
-) -> tuple[StreamingStagedPart, ...]:
-    if min_count < 0:
-        raise ValidationError("min_count must be non-negative.")
-    matches = tuple(part for part in staged_files if part.field_name == field_name)
-    if len(matches) < min_count:
-        raise ValidationError(f"At least {min_count} '{field_name}' files must be provided.")
-    if max_count is not None and len(matches) > max_count:
-        raise ValidationError(f"At most {max_count} '{field_name}' files may be provided.")
-    return matches
 
 
 async def finalize_cleanup_and_raise(

@@ -62,6 +62,7 @@ const parseTemplateNotificationText = (template: NotificationTemplateId, paramet
         case 'messaging_account_degraded_title':
         case 'messaging_account_recovered_title':
         case 'security_login_throttle_title':
+        case 'plugin_backend_update_title':
         case 'plugin_circuit_breaker_tripped_title': {
             return hasNoParameters(parametersValue) ? { textType: 'template', template } : null;
         }
@@ -162,6 +163,7 @@ const parseTemplateNotificationText = (template: NotificationTemplateId, paramet
             const reason = parameters?.['reason'];
             return reason === undefined ? null : { textType: 'template', template, parameters: { reason } };
         }
+        case 'plugin_backend_update_message':
         case 'plugin_circuit_breaker_tripped_message': {
             const parameters = parseSingleStringParameter(parametersValue, 'pluginName');
             const pluginName = parameters?.['pluginName'];

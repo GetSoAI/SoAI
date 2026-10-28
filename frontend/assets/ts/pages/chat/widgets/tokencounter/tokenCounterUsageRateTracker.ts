@@ -5,6 +5,7 @@ import type { TokenUsageSnapshot } from '@core/api/contracts/tokenUsageContracts
 
 class TokenCounterUsageRateTracker {
     #lastTokenUsage: TokenUsageSnapshot | null = null;
+    #steeringPreview: TokenUsageSnapshot | null = null;
     #activeStreamRevision: number | null = null;
     #streamActive = false;
 
@@ -13,15 +14,32 @@ class TokenCounterUsageRateTracker {
     }
 
     clearUsage(): void {
+        this.clearSteeringPreview();
         this.#lastTokenUsage = null;
     }
 
+    clearSteeringPreview(): void {
+        this.#steeringPreview = null;
+    }
+
+    getSteeringPreview(): TokenUsageSnapshot | null {
+        return this.#steeringPreview;
+    }
+
+    setSteeringPreview(usage: TokenUsageSnapshot): boolean {
+        if (!this.#streamActive) return false;
+        this.#steeringPreview = usage;
+        return true;
+    }
+
     resetStreamTracking(): void {
+        this.clearSteeringPreview();
         this.#activeStreamRevision = null;
         this.#streamActive = false;
     }
 
     beginActiveStream(): void {
+        this.clearSteeringPreview();
         this.#streamActive = true;
         this.#activeStreamRevision = null;
     }
@@ -47,6 +65,7 @@ class TokenCounterUsageRateTracker {
     }
 
     completeActiveStream(): void {
+        this.clearSteeringPreview();
         this.#activeStreamRevision = null;
         this.#streamActive = false;
     }

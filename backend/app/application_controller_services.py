@@ -11,9 +11,9 @@ from app.application_dependencies import (
     ApplicationModuleDependencies,
     ApplicationPaths,
 )
+from app.application_update_dependencies import ApplicationUpdateServiceDependencies
 from app.application_update_service import (
     ApplicationUpdateService,
-    ApplicationUpdateServiceDependencies,
 )
 from app.bootstrap_preflight_service import (
     BootstrapPreflightService,

@@ -8,7 +8,8 @@ from core.validation.epoch import EPOCH_MS_MIN
 __all__ = (
     "ACTIVE_INPUT_STATES",
     "CONVERSATION_INPUT_ACTIVE_ORDER_SQL",
-    "CONVERSATION_INPUT_DISPATCH_RANK_SQL",
+    "CONVERSATION_INPUT_HELD_DISPATCH_RANK",
+    "CONVERSATION_INPUT_HELD_SQL",
     "CONVERSATION_INPUT_PRECEDES_SQL",
     "CONVERSATION_INPUT_RUNNING_ROOT_AVAILABLE_SQL",
     "CONVERSATION_REGENERATION_HAS_REPLACEMENT_SQL",
@@ -18,16 +19,39 @@ __all__ = (
     "EPOCH_MS_MIN",
     "TERMINAL_INPUT_STATES",
     "VALID_INPUT_STATES",
+    "build_conversation_input_dispatch_rank_sql",
     "conversation_regeneration_retryable_sql",
 )
 
-CONVERSATION_INPUT_DISPATCH_RANK_SQL = """
-CASE
-    WHEN json_extract(source_metadata_json, '$.dispatch_mode') = 'forced_after_interrupt'
-    THEN 0
-    ELSE 1
-END
-"""
+CONVERSATION_INPUT_HELD_DISPATCH_RANK = 4
+
+CONVERSATION_INPUT_HELD_SQL = "json_extract(source_metadata_json, '$.dispatch_held') IS 1"
+
+
+def build_conversation_input_dispatch_rank_sql() -> str:
+    return f"""
+    CASE
+        WHEN {CONVERSATION_INPUT_HELD_SQL}
+        THEN {CONVERSATION_INPUT_HELD_DISPATCH_RANK}
+        WHEN state = 'pending'
+         AND agent_turn_id IS NOT NULL
+         AND EXISTS (
+             SELECT 1 FROM webui_agent_turns AS root_turn
+             WHERE root_turn.conv_id = webui_conversation_inputs.conv_id
+               AND root_turn.user_id = webui_conversation_inputs.user_id
+               AND root_turn.turn_scope = 'root'
+               AND root_turn.status = 'running'
+               AND root_turn.turn_id = webui_conversation_inputs.agent_turn_id
+         )
+        THEN 0
+        WHEN json_extract(source_metadata_json, '$.dispatch_mode') = 'forced_after_interrupt'
+        THEN 1
+        WHEN input_type = 'steer'
+        THEN 2
+        ELSE 3
+    END
+    """
+
 
 CONVERSATION_INPUT_ACTIVE_ORDER_SQL = """
 CASE WHEN state IN ('materializing', 'running', 'input_required') THEN 0 ELSE 1 END ASC,

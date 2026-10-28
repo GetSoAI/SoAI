@@ -11,7 +11,7 @@ import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 
 import { uiHtml } from '@core/security/uiHtml.ts';
-import { PLUGINS_ACTION_BACKEND_INSTALL_START, PLUGINS_ACTION_BACKEND_UNINSTALL, PLUGINS_ACTION_BACKEND_UPDATE_CHECK } from '@features/plugins/contracts/pluginActionIds.ts';
+import { PLUGINS_ACTION_BACKEND_VARIANTS_RETRY, PLUGINS_ACTION_BACKEND_INSTALL_START, PLUGINS_ACTION_BACKEND_UNINSTALL, PLUGINS_ACTION_BACKEND_UPDATE_CHECK } from '@features/plugins/contracts/pluginActionIds.ts';
 
 const MANAGE_BACKEND_MODAL_ID = 'manage-backend-modal';
 
@@ -20,6 +20,7 @@ const renderBackendModalBody = (modalId: string) => {
         uiHtml`
             <div id="${modalUiId(modalId, 'operation-container')}" class="ui-operation-progress-list backend-operation-container"></div>
             <div id="${modalUiId(modalId, 'plugin-info')}"></div>
+            <div id="${modalUiId(modalId, 'variant-selector')}" class="backend-variant-body-slot"></div>
             <div id="${modalUiId(modalId, 'warning')}" class="form-disclaimer u-hidden"></div>
             <div id="${modalUiId(modalId, 'version-info')}" class="u-hidden backend-version-info"></div>
         `,
@@ -29,7 +30,7 @@ const renderBackendModalBody = (modalId: string) => {
 
 const renderBackendModalFooterActions = (modalId: string) => {
     return uiHtml`
-        <div id="${modalUiId(modalId, 'variant-selector')}" class="backend-variant-footer-slot"></div>
+        ${renderModalFooterActionButton({ text: i18n.t('common.retry'), id: modalUiId(modalId, 'retry-variants'), action: PLUGINS_ACTION_BACKEND_VARIANTS_RETRY, className: 'u-hidden', variant: 'neutral' })}
         ${renderModalFooterActionButton({ text: i18n.t('plugins.modal.installBackend.startInstall'), id: modalUiId(modalId, 'start-install'), action: PLUGINS_ACTION_BACKEND_INSTALL_START, className: 'u-hidden', variant: 'accent' })}
         ${renderModalFooterActionButton({ id: modalUiId(modalId, 'uninstall'), text: i18n.t('plugins.modal.manageBackend.uninstall'), action: PLUGINS_ACTION_BACKEND_UNINSTALL, variant: 'danger' })}
         ${renderModalFooterActionButton({ id: modalUiId(modalId, 'check-update'), text: i18n.t('plugins.modal.manageBackend.checkUpdates'), action: PLUGINS_ACTION_BACKEND_UPDATE_CHECK, variant: 'neutral' })}

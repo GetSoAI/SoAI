@@ -7,14 +7,22 @@ import os
 from enum import Enum
 
 from app.backup.restore_journal import require_no_pending_restore
-from app.installation_transaction_admission import TRANSACTION_PREFIX
+from app.installation_transaction_admission import (
+    TRANSACTION_PREFIX,
+    list_update_transaction_storage,
+)
 from app.updater.software_update.activation_state import (
     activation_process_path,
     read_pending_update_activation,
+    read_update_activation_identity,
     require_update_candidate_stopped,
     validate_update_recovery_evidence,
 )
-from app.updater.software_update.install_transaction_inventory import require_rollback_inventory
+from app.updater.software_update.install_transaction_inventory import (
+    ROLLBACK_INVENTORY_FILENAME,
+    require_retained_installation_root,
+    require_rollback_inventory,
+)
 from app.updater.software_update.install_transaction_managed_data import (
     validate_managed_data_destinations,
 )
@@ -23,6 +31,7 @@ from app.updater.software_update.install_transaction_state import (
     OLD_COMPLETE_MARKER,
     PREPARING_MARKER,
     ROLLBACK_COMPLETE_MARKER,
+    ROLLBACK_INVENTORY_REQUIRED_MARKER,
     ROLLBACK_REQUIRED_MARKER,
     SUCCESS_COMPLETE_MARKER,
     UpdateTransactionPaths,
@@ -47,7 +56,10 @@ class UpdateRecoveryAction(Enum):
 
 
 def plan_transaction_recovery(
-    paths: UpdateTransactionPaths, *, allow_pending_activation: bool
+    paths: UpdateTransactionPaths,
+    *,
+    allow_pending_activation: bool,
+    retained_installation_root: str | None = None,
 ) -> UpdateRecoveryAction:
     validate_update_recovery_evidence(paths)
     transaction_path = paths.transaction_path
@@ -79,21 +91,41 @@ def plan_transaction_recovery(
         )
         validate_managed_data_destinations(paths)
         return UpdateRecoveryAction.RESTORE
-    if os.path.exists(marker_path(transaction_path, PREPARING_MARKER)):
-        inventory = require_rollback_inventory(
-            paths, old_complete=False, originals_at_installation=True
+    preparation_started = os.path.exists(marker_path(transaction_path, PREPARING_MARKER))
+    if (
+        not preparation_started
+        and os.path.lexists(paths.rollback_old_path)
+        and (
+            os.path.islink(paths.rollback_old_path)
+            or not os.path.isdir(paths.rollback_old_path)
+            or os.listdir(paths.rollback_old_path)
         )
-        if inventory is None:
-            raise StateError("Prepared update is missing its original inventory.")
-        return UpdateRecoveryAction.CLEAN_INTERRUPTED
-    if os.path.lexists(paths.rollback_old_path) and (
-        os.path.islink(paths.rollback_old_path)
-        or not os.path.isdir(paths.rollback_old_path)
-        or os.listdir(paths.rollback_old_path)
     ):
         raise StateError(
             "Unmarked update transaction contains rollback evidence; preserve it for repair."
         )
+    if (
+        preparation_started
+        or os.path.lexists(os.path.join(transaction_path, ROLLBACK_INVENTORY_FILENAME))
+        or os.path.lexists(marker_path(transaction_path, ROLLBACK_INVENTORY_REQUIRED_MARKER))
+    ):
+        if retained_installation_root is not None:
+            identity = read_update_activation_identity(paths)
+            require_retained_installation_root(
+                paths.base_path,
+                retained_installation_root,
+                edition=identity.edition,
+                expected_version=identity.from_version,
+            )
+        inventory = require_rollback_inventory(
+            paths,
+            old_complete=False,
+            originals_at_installation=True,
+            retained_installation_root=retained_installation_root,
+        )
+        if inventory is None:
+            raise StateError("Prepared update is missing its original inventory.")
+        return UpdateRecoveryAction.CLEAN_INTERRUPTED
     return UpdateRecoveryAction.CLEAN_INTERRUPTED
 
 
@@ -103,10 +135,10 @@ def inspect_update_restorations(base_path: str) -> tuple[str, ...]:
         return ()
     restoration_paths: list[str] = []
     with guarded_software_update_recovery(resolved_base_path):
-        for name in os.listdir(resolved_base_path):
+        for transaction_path in list_update_transaction_storage(resolved_base_path):
+            name = os.path.basename(transaction_path)
             if not name.startswith(TRANSACTION_PREFIX):
                 continue
-            transaction_path = os.path.join(resolved_base_path, name)
             if os.path.islink(transaction_path) or not os.path.isdir(transaction_path):
                 raise StateError("Update transaction storage is invalid; preserve it for repair.")
             action = plan_transaction_recovery(

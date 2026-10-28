@@ -21,5 +21,40 @@ const resolveCheckerboardClass = (index: number, options: CheckerboardClassOptio
     return (rowIndex + columnIndex) % 2 === 0 ? startClass : invertCheckerboardClass(startClass);
 };
 
-export { CHECKERBOARD_CLASS_PAIR, invertCheckerboardClass, resolveCheckerboardClass };
+const CHECKERBOARD_CLASS_NAMES: ReadonlySet<string> = new Set(CHECKERBOARD_CLASS_PAIR.split(' '));
+
+const countCheckerboardMatches = (rows: readonly HTMLElement[], offset: number): number => rows.reduce((count, row, index) => count + (row.classList.contains(resolveCheckerboardClass(index + offset)) ? 1 : 0), 0);
+
+const applyCheckerboardClasses = (items: readonly Element[], assignments: readonly CheckerboardClassName[]): void => {
+    const changes = items.flatMap((item, index) => {
+        const assigned = assignments[index];
+        if (assigned === undefined) throw new Error('Checkerboard assignment missing for item');
+        const previous = invertCheckerboardClass(assigned);
+        if (item.classList.contains(assigned) && !item.classList.contains(previous)) return [];
+        const animations = typeof item.getAnimations === 'function' ? item.getAnimations({ subtree: true }) : [];
+        return [{ item, assigned, previous, animations: new Set(animations) }];
+    });
+    changes.forEach(({ item, assigned, previous }) => {
+        item.classList.remove(previous);
+        item.classList.add(assigned);
+    });
+    changes.forEach(({ item, animations }) => {
+        if (typeof item.getAnimations !== 'function') return;
+        for (const animation of item.getAnimations({ subtree: true })) {
+            if (!animations.has(animation) && 'transitionProperty' in animation && (animation.transitionProperty === 'background-color' || animation.transitionProperty === 'background-image' || animation.transitionProperty === 'box-shadow')) {
+                animation.finish();
+            }
+        }
+    });
+};
+
+const syncStableCheckerboardClasses = (rows: readonly HTMLElement[]): void => {
+    const offset = countCheckerboardMatches(rows, 1) > countCheckerboardMatches(rows, 0) ? 1 : 0;
+    applyCheckerboardClasses(
+        rows,
+        rows.map((_row, index) => resolveCheckerboardClass(index + offset))
+    );
+};
+
+export { applyCheckerboardClasses, CHECKERBOARD_CLASS_NAMES, CHECKERBOARD_CLASS_PAIR, invertCheckerboardClass, resolveCheckerboardClass, syncStableCheckerboardClasses };
 export type { CheckerboardClassName, CheckerboardClassOptions };

@@ -12,8 +12,10 @@ from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import StateError
 from core.files.secure_open_flags import secure_read_only_open_flags
 from core.filesystem.atomic_write_names import atomic_temporary_path
+from core.filesystem.descriptor_io import open_descriptor, write_all_descriptor_bytes
 from core.filesystem.exclusive_rename import rename_file_without_replacement
 from core.filesystem.path_coercion import coerce_path, normalize_filesystem_path
+from core.filesystem.windows_access_control import copy_windows_discretionary_acl
 from core.logging.trace import get_logger
 
 __all__ = (
@@ -23,7 +25,7 @@ __all__ = (
     "cleanup_temp_file_on_failure",
     "ensure_parent_directory",
     "finalize_atomic_write_replace",
-    "finalize_atomic_write_replace_and_clear_callbacks",
+    "finalize_atomic_write_and_clear_callbacks",
     "finalize_atomic_write_create_and_clear_callbacks",
     "fsync_directory",
     "open_temp_file_descriptor",
@@ -65,7 +67,7 @@ def fsync_directory(path: str, *, strict: bool = False) -> None:
     if strict:
         if os.name == "nt":
             return
-        strict_directory_descriptor = os.open(
+        strict_directory_descriptor = open_descriptor(
             normalize_filesystem_path(path),
             secure_read_only_open_flags(directory=True),
         )
@@ -80,7 +82,7 @@ def fsync_directory(path: str, *, strict: bool = False) -> None:
         return
     directory_descriptor: int | None = None
     try:
-        directory_descriptor = os.open(
+        directory_descriptor = open_descriptor(
             normalize_filesystem_path(path), os.O_RDONLY | directory_flag
         )
         os.fsync(directory_descriptor)
@@ -126,11 +128,20 @@ def finalize_atomic_write_replace(
     backup_path: str | None,
     file_mode: int | None,
     fsync_parent_directory: bool,
+    preserve_windows_acl: bool = False,
 ) -> None:
     if backup_path:
         backup_resolved = normalize_filesystem_path(coerce_path(backup_path))
         if os.path.exists(normalize_filesystem_path(resolved)):
-            _copy_file_to_secure_backup(resolved, backup_resolved, file_mode)
+            _copy_file_to_secure_backup(
+                resolved, backup_resolved, file_mode, preserve_windows_acl=preserve_windows_acl
+            )
+    if (
+        preserve_windows_acl
+        and os.name == "nt"
+        and os.path.exists(normalize_filesystem_path(resolved))
+    ):
+        copy_windows_discretionary_acl(resolved, temp_path)
     os.replace(normalize_filesystem_path(temp_path), normalize_filesystem_path(resolved))
     if file_mode is not None:
         set_file_mode_after_replace(resolved, file_mode)
@@ -138,7 +149,9 @@ def finalize_atomic_write_replace(
         fsync_directory(parent)
 
 
-def _copy_file_to_secure_backup(source_path: str, backup_path: str, file_mode: int | None) -> None:
+def _copy_file_to_secure_backup(
+    source_path: str, backup_path: str, file_mode: int | None, *, preserve_windows_acl: bool = False
+) -> None:
     descriptor, temp_path = allocate_atomic_temporary_file(backup_path, file_mode=file_mode)
     try:
         try:
@@ -155,6 +168,8 @@ def _copy_file_to_secure_backup(source_path: str, backup_path: str, file_mode: i
                     normalize_filesystem_path(source_path), normalize_filesystem_path(temp_path)
                 )
             os.fsync(target_handle.fileno())
+        if preserve_windows_acl and os.name == "nt":
+            copy_windows_discretionary_acl(source_path, temp_path)
         os.replace(normalize_filesystem_path(temp_path), normalize_filesystem_path(backup_path))
         if file_mode is not None:
             set_file_mode_after_replace(backup_path, file_mode)
@@ -162,14 +177,24 @@ def _copy_file_to_secure_backup(source_path: str, backup_path: str, file_mode: i
         cleanup_temp_file_on_failure(temp_path)
 
 
-def finalize_atomic_write_replace_and_clear_callbacks(
+def finalize_atomic_write_and_clear_callbacks(
     stack: ExitStack,
     target: AtomicWriteTarget,
     *,
     backup_path: str | None,
     file_mode: int | None,
     fsync_parent_directory: bool,
+    preserve_windows_acl: bool = False,
+    exclusive: bool = False,
 ) -> None:
+    if exclusive:
+        finalize_atomic_write_create_and_clear_callbacks(
+            stack,
+            target,
+            file_mode=file_mode,
+            fsync_parent_directory=fsync_parent_directory,
+        )
+        return
     finalize_atomic_write_replace(
         resolved=target.resolved,
         temp_path=target.temp_path,
@@ -177,6 +202,7 @@ def finalize_atomic_write_replace_and_clear_callbacks(
         backup_path=backup_path,
         file_mode=file_mode,
         fsync_parent_directory=fsync_parent_directory,
+        preserve_windows_acl=preserve_windows_acl,
     )
     stack.pop_all()
 
@@ -208,7 +234,7 @@ def open_temp_file_descriptor(
     if exclusive:
         flags |= os.O_EXCL
     creation_mode = file_mode if file_mode is not None else 0o666
-    descriptor = os.open(normalize_filesystem_path(temp_path), flags, creation_mode)
+    descriptor = open_descriptor(normalize_filesystem_path(temp_path), flags, creation_mode)
     if file_mode is None or os.name == "nt":
         return descriptor
     try:
@@ -258,9 +284,6 @@ def copy_existing_file_to_descriptor(
         if preserve_permissions and os.name != "nt":
             os.fchmod(descriptor, os.fstat(source_handle.fileno()).st_mode & 0o7777)
         while content := source_handle.read(1024 * 1024):
-            remaining = memoryview(content)
-            while remaining:
-                written = os.write(descriptor, remaining)
-                if written <= 0:
-                    raise OSError("Atomic append could not copy existing bytes.")
-                remaining = remaining[written:]
+            write_all_descriptor_bytes(
+                descriptor, content, error_message="Atomic append could not copy existing bytes."
+            )

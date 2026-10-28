@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from core.config.byte_sizes import MIB_BYTES
 from core.errors.exceptions import NotFoundError, SecurityError, StateError, ValidationError
+from core.filesystem.descriptor_io import open_descriptor
 from core.hardware.reserved_writes import write_reserved_bytes
 from features.file_explorer.secure_ops.copy_error_coercion import (
     raise_copy_directory_exception,
@@ -41,7 +42,9 @@ def _copy_file_descriptor_to_path(
     dest_fd = -1
     try:
         open_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
-        dest_fd = os.open(destination_path, open_flags, int(destination_stat.st_mode) & 0o777)
+        dest_fd = open_descriptor(
+            destination_path, open_flags, int(destination_stat.st_mode) & 0o777
+        )
         with (
             os.fdopen(source_fd, "rb", closefd=False) as source_stream,
             os.fdopen(
@@ -76,7 +79,7 @@ def copy_file_no_symlinks_posix(
 ) -> None:
     src_fd = -1
     try:
-        src_fd = os.open(source_path, os.O_RDONLY | os.O_NOFOLLOW)
+        src_fd = open_descriptor(source_path, os.O_RDONLY | os.O_NOFOLLOW)
         st = os.fstat(src_fd)
         if not stat.S_ISREG(st.st_mode):
             raise ValidationError(
@@ -128,7 +131,7 @@ def _copy_file_no_symlinks_posix_from_dir_fd(
 ) -> None:
     src_fd = -1
     try:
-        src_fd = os.open(filename, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=dir_fd)
+        src_fd = open_descriptor(filename, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=dir_fd)
         st = os.fstat(src_fd)
         if not stat.S_ISREG(st.st_mode):
             raise ValidationError(

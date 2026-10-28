@@ -22,8 +22,10 @@ from features.agent.runtime.turn_engine import resolve_existing_turn_id
 
 if TYPE_CHECKING:
     from core.logging.protocols import TraceLogger
+    from core.openai.streaming_usage import OpenAIPublicUsageProjection
     from core.openai.token_accounting import PromptOccupancy
     from core.openai.usage.models import CanonicalUsage
+    from core.streaming.protocols import StreamGeneratorStateProtocol
     from core.types.json import JSONDict
     from features.agent.internal_protocols import AgentStreamingInferenceRunnerProtocol
     from features.agent.runtime.context_compaction.activity_result import (
@@ -75,6 +77,8 @@ async def run_agentic_sse_engine(
     initial_output_publication_mode: AgentOutputPublicationMode | None,
     detach_event: asyncio.Event,
     push_bytes: Callable[[bytes], Awaitable[None]],
+    public_usage_projection: OpenAIPublicUsageProjection | None,
+    stream_result_state: StreamGeneratorStateProtocol | None,
 ) -> None:
     done_sentinel_pushed = False
     try:
@@ -99,6 +103,8 @@ async def run_agentic_sse_engine(
             turn_id=resolve_existing_turn_id(context),
             validate_visible_assistant_output=validate_visible_assistant_output,
             initial_output_publication_mode=initial_output_publication_mode,
+            public_usage_projection=public_usage_projection,
+            stream_result_state=stream_result_state,
         )
         done_sentinel_pushed = True
     except asyncio.CancelledError:

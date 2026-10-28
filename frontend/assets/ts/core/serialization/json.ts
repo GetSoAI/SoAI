@@ -153,7 +153,7 @@ const prettyJsonStringify = (value: JsonValue): string => {
 const parseJsonValueText = (value: string): JsonValue => {
     const parsed = JSON.parse(value);
     if (!isJsonValue(parsed)) {
-        throw new Error('Parsed JSON must contain only finite JSON values');
+        throw new TypeError('Parsed JSON must contain only finite JSON values');
     }
     return parsed;
 };

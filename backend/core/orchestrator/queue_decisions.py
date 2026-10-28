@@ -13,6 +13,7 @@ from core.tasks.errors import TASK_STATE_PERSISTENCE_FAILED_MESSAGE
 from core.tasks.task import Task
 
 if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
     from core.types.json import JSONDict
 
 __all__ = (
@@ -47,6 +48,7 @@ class QueueDecision:
     error_type: ErrorType | None = None
     work_item: SchedulerWorkItem | None = None
     from_queue: bool = False
+    public_error: ErrorPublicPayload | None = None
 
 
 def build_fail_task_decision(
@@ -55,6 +57,7 @@ def build_fail_task_decision(
     *,
     allow_failover: bool,
     error_type: ErrorType | None = None,
+    public_error: ErrorPublicPayload | None = None,
 ) -> QueueDecision:
     return QueueDecision(
         QueueDecisionType.FAIL_TASK,
@@ -62,6 +65,7 @@ def build_fail_task_decision(
         reason=reason,
         allow_failover=allow_failover,
         error_type=error_type,
+        public_error=public_error,
     )
 
 

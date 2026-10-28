@@ -5,7 +5,7 @@ import type { BasePageDependencies } from '@core/routing/pages/pagetypes/public.
 import type { LicenseServiceInterface } from '@core/licenseservice/types.ts';
 import { signalAborted } from '@core/lifecycle/abortSignals.ts';
 import { AUTH_ROUTE_WIZARD } from '@core/routing/router/authRouteTarget.ts';
-import { toTrustedHtml, type TrustedHtml } from '@core/security/public.ts';
+import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { StaticBasePage, type RenderContext } from '@core/StaticBasePage.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -63,7 +63,7 @@ class WizardPage extends StaticBasePage {
     }
 
     override async renderView(_context: RenderContext): Promise<TrustedHtml> {
-        return toTrustedHtml(this.#domain.render());
+        return toTrustedUiHtml(this.#domain.render());
     }
 
     override async initializeShell(parameters: JsonObject | null, context: { signal?: AbortSignal } = {}): Promise<void> {

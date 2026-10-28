@@ -10,7 +10,7 @@ import pydantic
 from fastapi import WebSocket
 
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import ApiError, ValidationError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.state.access import AccessAction
@@ -175,13 +175,23 @@ async def handle_snapshot_request(
             shutdown_event=delivery_shutdown_event,
         )
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
+        diagnostic_details: JSONDict = {"resource": resource}
+        expected_gpu_rejection = False
+        if (
+            isinstance(exception, ApiError)
+            and exception.operation is not None
+            and exception.operation.startswith("hardware.gpu.")
+        ):
+            expected_gpu_rejection = 400 <= exception.http_status < 500
+            diagnostic_details["gpu_result"] = dict(exception.details or {})
         log_exception(
             get_logger(LOGGER_NAME),
             exception,
             message="Snapshot generation failed",
             operation=OPERATION,
             trace_id=trace_id,
-            details={"resource": resource},
+            details=diagnostic_details,
+            level="debug" if expected_gpu_rejection else "error",
         )
         await send_snapshot_error_event(
             exception,

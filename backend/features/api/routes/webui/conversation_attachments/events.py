@@ -6,7 +6,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.attachments.attachment_event_payloads import (
-    conversation_attachment_changed_event,
     knowledge_attachment_changed_event,
 )
 
@@ -16,17 +15,8 @@ if TYPE_CHECKING:
 
 __all__ = (
     "publish_knowledge_attachment_changed",
-    "publish_physical_attachment_changed",
     "publish_unique_knowledge_attachment_summaries",
 )
-
-
-async def publish_physical_attachment_changed(
-    event_bus: EventBusProtocol,
-    *,
-    attachment: JSONDict,
-) -> None:
-    await event_bus.publish(conversation_attachment_changed_event(attachment))
 
 
 async def publish_knowledge_attachment_changed(

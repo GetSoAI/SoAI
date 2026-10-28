@@ -9,9 +9,9 @@ const AI_SETUP_ACTION_IDS: readonly AiSetupActionId[] = Object.freeze(['wizard-a
 
 const { guard: isAiSetupActionId } = createActionIdSet<AiSetupActionId>(...AI_SETUP_ACTION_IDS);
 
-export type WizardActionId = 'wizard-back' | 'wizard-next' | 'wizard-activate' | 'wizard-activate-evaluation' | 'wizard-reconcile' | 'wizard-export-offline' | 'wizard-import-offline' | 'wizard-start-evaluation' | 'wizard-ai-finish-later' | 'wizard-ai-skip' | AiSetupActionId;
+export type WizardActionId = 'wizard-toggle-disclosure' | 'wizard-back' | 'wizard-next' | 'wizard-activate' | 'wizard-activate-evaluation' | 'wizard-reconcile' | 'wizard-export-offline' | 'wizard-import-offline' | 'wizard-start-evaluation' | 'wizard-ai-finish-later' | 'wizard-ai-skip' | AiSetupActionId;
 
-const { guard: isWizardActionId } = createActionIdSet<WizardActionId>('wizard-back', 'wizard-next', 'wizard-activate', 'wizard-activate-evaluation', 'wizard-reconcile', 'wizard-export-offline', 'wizard-import-offline', 'wizard-start-evaluation', 'wizard-ai-finish-later', 'wizard-ai-skip', ...AI_SETUP_ACTION_IDS);
+const { guard: isWizardActionId } = createActionIdSet<WizardActionId>('wizard-toggle-disclosure', 'wizard-back', 'wizard-next', 'wizard-activate', 'wizard-activate-evaluation', 'wizard-reconcile', 'wizard-export-offline', 'wizard-import-offline', 'wizard-start-evaluation', 'wizard-ai-finish-later', 'wizard-ai-skip', ...AI_SETUP_ACTION_IDS);
 
 export { isAiSetupActionId, isWizardActionId };
 export type { AiSetupActionId };

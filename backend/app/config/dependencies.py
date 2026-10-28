@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 from core.config.protocols import ConfigProtocol
@@ -26,6 +27,7 @@ class ConfigManagerDependencies:
     finalizer_tracker: TaskFinalizerTrackerProtocol
     plugin_directory: str | None
     lock_directory: str | None
+    invalidate_backend_update: Callable[[str], Awaitable[bool]] | None = None
 
     def __post_init__(self) -> None:
         require_dependencies(

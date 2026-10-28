@@ -11,6 +11,10 @@ from core.errors.exceptions import ConflictError, StateError, ValidationError
 from core.serialization.json_parsing import parse_json_dict
 from core.validation.integers import is_strict_int
 from database.core.query_execution import sync_fetch_one_as_dict
+from database.repositories.skills.snapshots import (
+    sync_prepare_regeneration_skills,
+    sync_store_skill_snapshot,
+)
 from database.repositories.users.conversation_input_active_state_reads import (
     sync_read_active_conversation_input_summary,
 )
@@ -221,6 +225,7 @@ def sync_admit_conversation_regeneration(
             user_id=user_id,
             command=command,
         )
+    skills = sync_prepare_regeneration_skills(conn, user_id, conv_id, source_message_id)
     assistant_at_ms = sync_next_regeneration_assistant_timestamp(conn, conv_id)
     if boundary_at_ms is not None and boundary_id is not None:
         where_sql = "(created_at_ms > ? OR (created_at_ms = ? AND id >= ?))"
@@ -305,6 +310,7 @@ def sync_admit_conversation_regeneration(
     )
     if insert_cursor.rowcount != 1:
         raise StateError("Conversation regeneration source user message changed during admission.")
+    sync_store_skill_snapshot(conn, user_id, conv_id, input_id, skills)
     inserted = sync_fetch_one_as_dict(
         conn.execute("SELECT * FROM webui_conversation_inputs WHERE input_id = ?", (input_id,)),
     )

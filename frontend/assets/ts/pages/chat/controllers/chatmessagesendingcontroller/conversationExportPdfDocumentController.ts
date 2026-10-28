@@ -9,6 +9,7 @@ import { replaceChildrenFromHtml, serializeElementChildrenToHtml } from '@core/d
 import { i18n } from '@core/i18n/index.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { encodeBase64Bytes } from '@core/primitives/base64.ts';
+import { sha256Hex } from '@core/security/sha256.ts';
 import { escapeHtml } from '@core/security/textSanitizer.ts';
 import { buildConversationExportCoverDocument, type ConversationExportCoverData } from '@features/chat/public.ts';
 import { flattenConversationExportAttachmentCards } from '@pages/chat/controllers/chatmessagesendingcontroller/conversationExportPdfAttachmentCardController.ts';
@@ -79,12 +80,6 @@ const fetchDataUri = async (host: ConversationPdfExportDocumentHost, url: string
         throw new Error(i18n.t('chat.export.pdf.assetFetchFailed'));
     }
     return await blobToDataUri(asset);
-};
-
-const digestHex = async (value: string): Promise<string> => {
-    const encoded = new TextEncoder().encode(value);
-    const digest = await crypto.subtle.digest('SHA-256', encoded);
-    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 };
 
 const normalizeMultipartText = (value: string): string => value.replace(/\r\n|\r|\n/gu, '\r\n');
@@ -258,9 +253,9 @@ const buildConversationPdfExportDocument = async (host: ConversationPdfExportDoc
             file: new Blob([html], { type: 'text/html;charset=utf-8' }),
             exportDate,
             smallLogoDataUri,
-            htmlSha256: await digestHex(html),
+            htmlSha256: sha256Hex(html),
             coverHtml,
-            coverSha256: await digestHex(coverHtml)
+            coverSha256: sha256Hex(coverHtml)
         };
     } finally {
         container.remove();

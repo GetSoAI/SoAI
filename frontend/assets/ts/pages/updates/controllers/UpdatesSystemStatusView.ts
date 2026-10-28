@@ -1,9 +1,12 @@
 /* SoAI - Updates page system status view [frontend/assets/ts/pages/updates/controllers/UpdatesSystemStatusView.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { i18n } from '@core/i18n/index.ts';
+import type { UpdatesSystemControllerHost } from '@pages/updates/controllers/UpdatesSystemControllerContract.ts';
+import { buildUpdatesReleaseNotesMarkup, buildUpdatesSummaryMarkup } from '@pages/updates/controllers/UpdatesSystemMarkupBuilder.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import { EMPTY_UI_HTML } from '@core/security/uiHtml.ts';
-import type { UpdatesPageNoticeTone, UpdatesUiRefs } from '@pages/updates/types.ts';
+import type { NormalizedUpdatePayload, UpdatesPageNoticeTone, UpdatesUiRefs } from '@pages/updates/types.ts';
 
 type PageNoticeUiRefs = Pick<UpdatesUiRefs, 'pageNotice' | 'pageNoticeIndicator' | 'pageNoticeHeading' | 'pageNoticeDetail'>;
 type SystemUiRefs = Pick<UpdatesUiRefs, 'statusIcon' | 'statusSpinner' | 'statusHeading' | 'statusDetail' | 'detailsSection' | 'summaryContainer' | 'notesContainer' | 'notesBody'>;
@@ -38,4 +41,35 @@ const clearUpdatesSystemDetails = (dependencies: { ui: SystemUiRefs; toggleHidde
     dependencies.toggleHidden(dependencies.ui.notesContainer, true);
 };
 
-export { clearUpdatesSystemDetails, setUpdatesPageNotice, setUpdatesSystemStatus };
+const renderUpdatesSystemDetails = (host: UpdatesSystemControllerHost, ui: SystemUiRefs, update: NormalizedUpdatePayload, saved = false): void => {
+    const markup = buildUpdatesSummaryMarkup({
+        update,
+        savedLabel: saved ? i18n.t('updates.history.saved') : undefined,
+        unknownLabel: i18n.t('updates.unknown'),
+        updatesAvailableLabel: i18n.t('updates.sections.system.updatesAvailable', { count: 1 }),
+        upToDateLabel: i18n.t('updates.badges.upToDate'),
+        sectionTitle: i18n.t('updates.sections.system.title'),
+        currentVersionLabel: i18n.t('updates.sections.system.current_version'),
+        latestVersionLabel: i18n.t('updates.metadata.latest_version'),
+        publishedLabel: i18n.t('updates.metadata.published'),
+        releaseLinkLabel: i18n.t('updates.metadata.viewRelease'),
+        installActionLabel: i18n.t('updates.actions.installUpdate'),
+        installActionAriaLabel: i18n.t('updates.ariaLabels.installUpdate'),
+        sanitizeHtml: host.sanitizeHtml,
+        sanitizeAttribute: host.sanitizeAttribute,
+        sanitizeUrl: host.sanitizeUrl,
+        getIconSync: host.getIconSync,
+        iconOptions: { size: 12, strokeWidth: 1.2 }
+    });
+    host.updateHTML(ui.summaryContainer, markup, { escape: false });
+    const notes = buildUpdatesReleaseNotesMarkup({
+        update,
+        sanitizeHtml: host.sanitizeHtml,
+        renderMarkdown: host.renderMarkdown,
+        partialLabel: i18n.t('updates.notes.partial')
+    });
+    host.updateHTML(ui.notesBody, notes.html, { escape: false });
+    host.toggleHidden(ui.notesContainer, !notes.hasNotes);
+};
+
+export { renderUpdatesSystemDetails, clearUpdatesSystemDetails, setUpdatesPageNotice, setUpdatesSystemStatus };

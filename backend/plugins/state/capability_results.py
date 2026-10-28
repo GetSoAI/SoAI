@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from core.types.json import JSONValue
+    from core.types.json import JSONDict, JSONValue
 
 __all__ = (
     "CapabilityValidationResult",
@@ -24,6 +24,7 @@ class CapabilityValidationResult:
     required: JSONValue
     detected: JSONValue
     message: str
+    error: JSONDict | None = None
 
 
 def create_capability_failure(
@@ -32,6 +33,8 @@ def create_capability_failure(
     required: JSONValue,
     detected: JSONValue,
     message: str,
+    *,
+    error: JSONDict | None = None,
 ) -> CapabilityValidationResult:
     return CapabilityValidationResult(
         is_valid=False,
@@ -40,6 +43,7 @@ def create_capability_failure(
         required=required,
         detected=detected,
         message=message,
+        error=error,
     )
 
 

@@ -9,9 +9,10 @@ from typing import TYPE_CHECKING, override
 
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import FeatureDisabledError, SoAIError, ValidationError
+from core.errors.exceptions import SoAIError, ValidationError
 from core.errors.external_service_exception import MCPError
 from core.errors.messages import resolve_error_message
+from core.errors.public_projection import project_specific_public_error
 from core.logging.trace import get_logger
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ __all__ = (
     "build_invalid_params_error",
     "get_arg",
     "guarded_tool_call",
+    "tool_error_from_soai_error",
 )
 
 LOGGER_NAME = "SoAI.mcp.tools.error"
@@ -64,6 +66,16 @@ def build_invalid_params_error(message: str) -> MCPToolError:
     return MCPToolError(-32602, message)
 
 
+def tool_error_from_soai_error(exception: SoAIError) -> MCPToolError:
+    rpc_code = -32602 if isinstance(exception, ValidationError) else -32603
+    public_error = project_specific_public_error(exception)
+    if public_error is not None:
+        tool_error = MCPToolError(rpc_code, public_error.message, public_error.to_dict())
+        tool_error.public_error = public_error
+        return tool_error
+    return MCPToolError(rpc_code, exception.message)
+
+
 async def guarded_tool_call(
     operation: str,
     tool_name: str,
@@ -75,14 +87,12 @@ async def guarded_tool_call(
         raise
     except MCPToolError:
         raise
-    except ValidationError as exception:
-        raise MCPToolError(-32602, exception.message) from exception
-    except FeatureDisabledError as exception:
-        raise MCPToolError(-32603, exception.message) from exception
     except MCPError as exception:
-        raise MCPToolError(exception.rpc_code, exception.message, exception.rpc_data) from exception
+        tool_error = MCPToolError(exception.rpc_code, exception.message, exception.rpc_data)
+        tool_error.public_error = exception.public_error
+        raise tool_error from exception
     except SoAIError as exception:
-        raise MCPToolError(-32603, exception.message) from exception
+        raise tool_error_from_soai_error(exception) from exception
     except Exception as exception:
         logger = get_logger(LOGGER_NAME)
         coerced = coerce_to_soai_error(

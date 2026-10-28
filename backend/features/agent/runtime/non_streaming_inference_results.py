@@ -19,10 +19,12 @@ def build_successful_non_streaming_inference_result(
     payload: JSONDict,
     assistant_text: str,
     include_usage: bool,
+    reasoning_text: str = "",
 ) -> TurnLoopInferenceResult:
     return TurnLoopInferenceResult(
         payload=payload,
         assistant_text=assistant_text,
+        reasoning_text=reasoning_text,
         finish_reason=extract_finish_reason(payload),
         usage=extract_usage(payload) if include_usage else None,
         stream_id=None,

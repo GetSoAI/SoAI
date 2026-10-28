@@ -4,9 +4,8 @@
 from __future__ import annotations
 
 import asyncio
-import os
-from collections.abc import AsyncGenerator, Callable, Mapping
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from collections.abc import Callable, Mapping
+from contextlib import AbstractAsyncContextManager
 from typing import TYPE_CHECKING, override
 
 from ruamel.yaml.comments import CommentedMap
@@ -36,6 +35,10 @@ from app.config.paths import (
     resolve_base_path,
     resolve_plugins_path,
 )
+from app.config.plugin_config_mutation_lock import (
+    PluginConfigMutationLock,
+    PluginConfigMutationLockDependencies,
+)
 from app.config.reconciler import ConfigReconciler, ConfigReconcilerDependencies
 from app.config.saving import ConfigSaveCoordinator, ConfigSaveCoordinatorDependencies
 from core.concurrency.lock_registry import (
@@ -45,7 +48,6 @@ from core.concurrency.lock_registry import (
 from core.concurrency.task_groups import ManagedTaskGroup
 from core.config.locks import get_lock_path
 from core.errors.exceptions import StateError, ValidationError
-from core.files.locking import async_guarded_file_lock
 from core.lifecycle.protocols import Shutdownable
 from core.logging.protocols import LoggerProtocol
 from core.logging.trace import get_logger
@@ -56,6 +58,7 @@ from core.tasks.protocols import (
 from core.tasks.service_lifecycle import ServiceLifecycle, ServiceLifecycleDependencies
 
 if TYPE_CHECKING:
+    from core.concurrency.deadlines import MonotonicDeadline
     from core.config.protocols import ConfigValue
     from core.hardware.protocols_storage import DiskSpaceReservationLeaseProtocol
     from core.types.json import JSONDict, JSONValue
@@ -63,7 +66,6 @@ if TYPE_CHECKING:
 __all__ = ("ConfigManager",)
 
 LOGGER_NAME = "SoAI.app.config.service"
-PLUGIN_CONFIG_MUTATION_LOCK_NAME = ".plugin-config-mutations"
 
 
 class ConfigManager(Shutdownable):
@@ -112,6 +114,14 @@ class ConfigManager(Shutdownable):
                 plugins_path=self.plugins_path,
                 lock_directory=deps.lock_directory,
                 logger=self.logger,
+                invalidate_backend_update=deps.invalidate_backend_update,
+            ),
+        )
+        self._plugin_config_mutation_lock = PluginConfigMutationLock(
+            PluginConfigMutationLockDependencies(
+                plugins_path=self.plugins_path,
+                lock_directory=self._io.lock_directory,
+                logger=self.logger,
             ),
         )
         self.reconciler: ConfigReconcilerProtocol = ConfigReconciler(
@@ -154,29 +164,16 @@ class ConfigManager(Shutdownable):
             raise ValidationError("Config creation lock key must be provided.")
         return self._creation_locks_registry.lock(key)
 
-    @asynccontextmanager
-    async def plugin_config_mutation_scope(
+    def plugin_config_mutation_scope(
         self,
         config_name: str,
-    ) -> AsyncGenerator[None]:
-        normalized_name = config_name.strip()
-        if not normalized_name:
-            raise ValidationError("Plugin config mutation requires a config name.")
-        if normalized_name == "core":
-            yield
-            return
-        if not self.plugins_path:
-            raise StateError("Plugin directory is not configured.")
-        lock_path = get_lock_path(
-            os.path.join(self.plugins_path, PLUGIN_CONFIG_MUTATION_LOCK_NAME),
-            lock_directory=self._io.lock_directory,
+        *,
+        operation: str,
+        deadline: MonotonicDeadline | None = None,
+    ) -> AbstractAsyncContextManager[None]:
+        return self._plugin_config_mutation_lock.scope(
+            config_name, operation=operation, deadline=deadline
         )
-        async with async_guarded_file_lock(
-            lock_path,
-            timeout=30,
-            on_timeout=StateError("Plugin configuration mutation lock acquisition timed out."),
-        ):
-            yield
 
     def get_config_path_sync(self, config_name: str) -> str:
         return get_config_path_sync(
@@ -212,7 +209,7 @@ class ConfigManager(Shutdownable):
         changed_keys: frozenset[str] | None = None,
     ) -> bool:
         config_path = self.get_config_path_sync(config_name)
-        async with self.plugin_config_mutation_scope(config_name):
+        async with self.plugin_config_mutation_scope(config_name, operation="config.save"):
             return await self._saver.save_and_publish(
                 config_name=config_name,
                 config_path=config_path,
@@ -230,7 +227,9 @@ class ConfigManager(Shutdownable):
         changed_keys: frozenset[str] | None = None,
     ) -> bool:
         config_path = self.get_config_path_sync(config_name)
-        async with self.plugin_config_mutation_scope(config_name):
+        async with self.plugin_config_mutation_scope(
+            config_name, operation="config.update_transactionally"
+        ):
             return await self._saver.update_and_publish(
                 config_name=config_name,
                 config_path=config_path,

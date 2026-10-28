@@ -78,4 +78,4 @@ const renderVariantError = (inputArguments: { host: VariantProbeHost; resultsEle
     inputArguments.host.pageDom.removeClass(inputArguments.resultsElement, CSS_CLASSES.HIDDEN);
 };
 
-export { buildVariantAdvisoryMarkup, buildVariantErrorMarkup, buildVariantLoadingMarkup, renderVariantError, renderVariantLoading, renderVariantResults };
+export { applyVariantCheckerboard, buildVariantAdvisoryMarkup, buildVariantErrorMarkup, buildVariantLoadingMarkup, renderVariantError, renderVariantLoading, renderVariantResults };

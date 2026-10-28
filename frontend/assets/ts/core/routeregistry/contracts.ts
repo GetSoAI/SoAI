@@ -10,6 +10,7 @@ interface RouteData {
 }
 
 interface RouteSidebar {
+    readonly activateOnNavigation: boolean;
     readonly include: boolean;
     readonly getLabel: (() => string) | null;
     readonly icon: IconName | null;
@@ -38,6 +39,7 @@ interface RouteDataDefinition {
 }
 
 interface RouteSidebarDefinition {
+    activateOnNavigation?: boolean;
     include?: boolean;
     getLabel?: (() => string) | null;
     icon?: IconName | null;

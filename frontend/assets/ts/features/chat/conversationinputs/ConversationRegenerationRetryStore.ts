@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ConversationRegenerationReceipt } from '@core/api/contracts/webuiMessageRegenerationContracts.ts';
+import { isConversationInputTerminalState } from '@core/chat/conversationInputLifecycle.ts';
 import type { RetryableConversationRegeneration } from '@features/chat/conversationinputs/ConversationInputTypes.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 
@@ -51,7 +52,7 @@ class ConversationRegenerationRetryStore {
     observe(conversationId: string, receipt: ConversationRegenerationReceipt): boolean {
         const normalizedConversationId = normalizeConversationId(conversationId);
         if (!normalizedConversationId) return false;
-        const terminal = receipt.state === 'completed' || receipt.state === 'failed' || receipt.state === 'cancelled' || receipt.state === 'effect_unknown';
+        const terminal = isConversationInputTerminalState(receipt.state);
         const latest = this.#latestObservationByConversationId.get(normalizedConversationId);
         if (latest && receipt.lastModifiedAtMs < latest.revision) return false;
         if (latest && receipt.lastModifiedAtMs === latest.revision && !revisesSameRevisionObservation(latest, receipt, terminal)) return false;

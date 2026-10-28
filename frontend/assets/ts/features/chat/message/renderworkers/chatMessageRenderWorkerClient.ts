@@ -59,6 +59,7 @@ class ChatMessageRenderWorkerClient {
             { name: 'copy', options: { size: 14, strokeWidth: 1.5 } },
             { name: 'external-link', options: { size: 14, strokeWidth: 1.5 } },
             { name: 'warning', options: { size: 14, strokeWidth: 1.5 } },
+            { name: 'refresh', options: { size: 14 } },
             { name: 'close', options: { size: 14, strokeWidth: 1.5 } },
             { name: 'close', options: { size: 16, strokeWidth: 1.7 } },
             { name: 'clock', options: { size: 16, strokeWidth: 1.7 } },

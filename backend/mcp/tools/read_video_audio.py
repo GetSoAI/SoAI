@@ -12,14 +12,18 @@ from core.mcp.protocols_main import ReadAudioGatewayProtocol
 from core.media.audio_extraction import estimate_wav_bytes
 from core.media.job_storage import ensure_secure_directory, remove_media_file
 from core.media.process_runtime import media_process_base_argv, run_media_process
+from core.media.speech_setup import SpeechTask
+from core.media.transcription_contracts import SpeechTranscriptionOptions
 from mcp.tools.read_video_audio_mapping import compute_audio_chunks, map_chunk_segments
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from core.hardware.protocols_storage import StorageManagerProtocol
+    from core.media.speech_selection import ResolvedSpeechModel
     from core.read_video.operations import ReadVideoAudioChunkReservation
     from core.read_video.protocols_database import DatabaseReadVideoJobsProtocol
+    from core.runtime.request_context import RequestContext
     from mcp.tools.read_video_config import ReadVideoConfig
 
 __all__ = ("ReadVideoAudioJob", "extract_audio")
@@ -77,6 +81,8 @@ async def _process_one_chunk(
     repository: DatabaseReadVideoJobsProtocol,
     storage_manager: StorageManagerProtocol,
     transcriber: ReadAudioGatewayProtocol,
+    model: ResolvedSpeechModel,
+    request_context: RequestContext,
 ) -> None:
     duration = chunk.end_seconds - chunk.start_seconds
     if duration <= 0:
@@ -114,10 +120,11 @@ async def _process_one_chunk(
                 claim.commit()
             payload = await transcriber.read_audio(
                 file_path=wav_path,
-                model_name=config.whisper_model,
-                language=None,
-                task="transcribe",
-                include_word_timestamps=False,
+                selector=model.universal_id,
+                options=SpeechTranscriptionOptions(
+                    task=SpeechTask.TRANSCRIBE, language=None, include_word_timestamps=False
+                ),
+                request_context=request_context,
             )
         text, segments = map_chunk_segments(
             payload,
@@ -140,6 +147,7 @@ async def extract_audio(
     repository: DatabaseReadVideoJobsProtocol,
     storage_manager: StorageManagerProtocol,
     transcriber: ReadAudioGatewayProtocol,
+    request_context: RequestContext,
     on_progress: Callable[[int, int], Awaitable[None]],
 ) -> None:
     chunks = compute_audio_chunks(
@@ -153,9 +161,14 @@ async def extract_audio(
     await on_progress(len(completed), total)
     ensure_secure_directory(job.audio_dir)
     ensure_secure_directory(job.scratch_dir)
-    for chunk in chunks:
-        if chunk.chunk_index in completed:
-            continue
+    pending = [chunk for chunk in chunks if chunk.chunk_index not in completed]
+    if not pending:
+        return
+    model = await transcriber.resolve_speech_model(
+        selector=config.whisper_model,
+        task=SpeechTask.TRANSCRIBE,
+    )
+    for chunk in pending:
         await _process_one_chunk(
             job,
             chunk=chunk,
@@ -163,6 +176,8 @@ async def extract_audio(
             repository=repository,
             storage_manager=storage_manager,
             transcriber=transcriber,
+            model=model,
+            request_context=request_context,
         )
         done = len(await repository.get_completed_chunk_indices(job.job_id))
         await on_progress(done, total)

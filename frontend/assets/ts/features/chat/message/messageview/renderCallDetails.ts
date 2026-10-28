@@ -54,10 +54,18 @@ const renderToolCall = (host: ChatMessageRenderHost, segment: ToolCallSegment): 
     return `<div class="tool-call"><div class="tool-call-header"><span class="tool-call-title">${host.escapeHtml(toolName)}</span></div>${argumentsHtml}${functionValueHtml}${metaHtml}</div>`;
 };
 
-const renderMessageError = (host: ChatMessageRenderHost, error: string): string => {
+const renderMessageError = (host: ChatMessageRenderHost, error: string, explanation: string | null, retryAvailable: boolean = false): string => {
     const icon = host.getIconHtml('warning', { size: 14, strokeWidth: 1.5 });
     const escapedError = host.escapeHtml(error);
-    return injectAssistantBodyRootAttributes(host, `<div class="message-error"><span class="message-error-icon">${icon}</span><span class="message-error-text">${escapedError}</span></div>`, 'message_error:1', error);
+    const explanationHtml = explanation ? `<span class="message-error-explanation">${host.escapeHtml(explanation)}</span>` : '';
+    const retryLabel = i18n.t('common.retry');
+    const retryHtml = retryAvailable ? `<button type="button" class="ui-button ui-button--sm ui-variant-neutral regenerate-message-btn message-provider-error-retry" data-action="regenerate" aria-label="${host.escapeAttribute(retryLabel)}" data-tooltip="${host.escapeAttribute(retryLabel)}">${host.getIconHtml('refresh', { size: 14 })}<span>${host.escapeHtml(retryLabel)}</span></button>` : '';
+    return injectAssistantBodyRootAttributes(host, `<div class="message-error${retryAvailable ? ' message-provider-error' : ''}" data-presence-atomic><span class="message-error-icon">${icon}</span><span class="message-error-text">${escapedError}${explanationHtml}</span>${retryHtml}</div>`, 'message_error:1', `${error}\n${explanation ?? ''}\n${retryAvailable}`);
 };
 
-export { renderMessageError, renderToolCall };
+const renderMessageOutputNotice = (host: ChatMessageRenderHost, notice: string): string => {
+    const icon = host.getIconHtml('info', { size: 14, strokeWidth: 1.5 });
+    return injectAssistantBodyRootAttributes(host, `<div class="message-output-notice"><span class="message-error-icon">${icon}</span><span class="message-output-notice-text">${host.escapeHtml(notice)}</span></div>`, 'message_output_notice:1', notice);
+};
+
+export { renderMessageError, renderMessageOutputNotice, renderToolCall };

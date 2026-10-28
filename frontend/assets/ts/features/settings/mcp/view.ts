@@ -69,17 +69,17 @@ export const resolveTransportLabel = (transport: string): string => {
 };
 
 const renderMcpTextInputControl = (modalId: string, inputId: string, placeholder: string): string => {
-    return `<input type="text" id="${uiAttr(modalUiId(modalId, inputId)).html}"` + ` class="setting-input setting-input--wide" value=""` + ` placeholder="${uiAttr(placeholder).html}">`;
+    return `<input type="text" id="${uiAttr(modalUiId(modalId, inputId)).html}"` + ` class="setting-input setting-input--wide" value=""` + ` placeholder="${uiAttr(placeholder).html}" data-modal-localize="placeholder">`;
 };
 
 const renderMcpSecretInputControl = (modalId: string, inputId: string, placeholder: string, secretInputType: string): string => {
     const resolvedInputId = modalUiId(modalId, inputId);
-    const input = `<input dir="ltr" type="${uiAttr(secretInputType).html}" id="${uiAttr(resolvedInputId).html}"` + ` class="setting-input setting-input--wide secret-input" value=""` + ` placeholder="${uiAttr(placeholder).html}">`;
+    const input = `<input dir="ltr" type="${uiAttr(secretInputType).html}" id="${uiAttr(resolvedInputId).html}"` + ` class="setting-input setting-input--wide secret-input" value=""` + ` placeholder="${uiAttr(placeholder).html}" data-modal-localize="placeholder">`;
     return renderSecretInputControl({ inputId: resolvedInputId, inputMarkup: input });
 };
 
 const renderMcpTextareaControl = (modalId: string, textareaId: string, placeholder: string): string => {
-    return `<textarea id="${uiAttr(modalUiId(modalId, textareaId)).html}"` + ` class="setting-textarea setting-textarea--wide" rows="3"` + ` placeholder="${uiAttr(placeholder).html}"></textarea>`;
+    return `<textarea id="${uiAttr(modalUiId(modalId, textareaId)).html}"` + ` class="setting-textarea setting-textarea--wide" rows="3"` + ` placeholder="${uiAttr(placeholder).html}" data-modal-localize="placeholder"></textarea>`;
 };
 
 const buildMcpServerModalBodyMarkup = (modalId: string): string => {
@@ -90,7 +90,7 @@ const buildMcpServerModalBodyMarkup = (modalId: string): string => {
         { value: MCP_SERVER_TRANSPORT_STREAMABLE_HTTP, label: i18n.t('settings.mcp.servers.transport.streamable_http') },
         { value: MCP_SERVER_TRANSPORT_STDIO, label: i18n.t('settings.mcp.servers.transport.stdio') }
     ]
-        .map((option) => `<option value="${uiAttr(option.value).html}">${option.label}</option>`)
+        .map((option) => `<option value="${uiAttr(option.value).html}" data-modal-localize="text">${option.label}</option>`)
         .join('');
 
     const authOptions = [
@@ -98,7 +98,7 @@ const buildMcpServerModalBodyMarkup = (modalId: string): string => {
         { value: MCP_SERVER_AUTH_API_KEY, label: i18n.t('settings.mcp.servers.auth.api_key') },
         { value: MCP_SERVER_AUTH_NONE, label: i18n.t('settings.mcp.servers.auth.none') }
     ]
-        .map((option) => `<option value="${uiAttr(option.value).html}">${option.label}</option>`)
+        .map((option) => `<option value="${uiAttr(option.value).html}" data-modal-localize="text">${option.label}</option>`)
         .join('');
 
     const items = [

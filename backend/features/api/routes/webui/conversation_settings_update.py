@@ -26,6 +26,7 @@ from core.model_settings.normalization import (
     merge_model_settings,
     normalize_chat_execution_settings,
 )
+from core.models.reference_resolution import resolve_stored_model_references
 from core.types.json_value import coerce_json_dict
 from core.validation.strings import coerce_optional_trimmed_str
 from core.workspaces.model_settings_workspace_path import (
@@ -44,9 +45,11 @@ from features.api.routes.webui.conversation_agent_settings_update_guard import (
 from features.api.runtime.conversation_access import resolve_conversation_access_id
 from features.api.runtime.conversation_mcp_catalog_state import (
     load_conversation_mcp_catalog_state,
+    load_conversation_mcp_local_state,
 )
 from features.api.runtime.conversation_mcp_state_merge import (
     merge_conversation_mcp_config_update,
+    resolve_effective_conversation_mcp_config,
 )
 from features.api.runtime.conversation_model_settings import (
     update_conversation_model_settings,
@@ -73,8 +76,9 @@ from features.api.schemas.mcp_config import ConversationMCPConfigUpdate
 if TYPE_CHECKING:
     from fastapi import Request
 
-    from core.types.json import JSONDict
+    from core.types.json import JSONDict, JSONValue
     from features.api.runtime.context import ApiContext
+    from features.api.runtime.conversation_mcp_state import ConversationMCPState
     from features.api.runtime.current_user import CurrentUser
     from features.api.schemas.conversations import ConversationSettingsUpdate
 
@@ -105,6 +109,10 @@ async def update_conversation_settings_record(
         message="Conversation not found.",
     )
     resolved_conv_id = resolve_conversation_access_id(existing_conversation, conv_id)
+    model_settings_patch = await _canonicalize_model_references(
+        api_context,
+        dict(payload.model_settings or {}),
+    )
     async with api_context.dependencies.conversation_agent_settings_locks.lock(
         (current_user["id"], resolved_conv_id),
     ):
@@ -126,11 +134,8 @@ async def update_conversation_settings_record(
             previous_mode = extract_agent_mode(existing_settings, strict=False)
         except ValidationError as error:
             raise StateError(error.message) from error
-        merged_settings = merge_model_settings(
-            existing_settings, dict(payload.model_settings or {})
-        )
-        model_settings_patch = payload.model_settings
-        if isinstance(model_settings_patch, dict) and "workspace_path" in model_settings_patch:
+        merged_settings = merge_model_settings(existing_settings, model_settings_patch)
+        if "workspace_path" in model_settings_patch:
             try:
                 resolve_user_record_workspace_access(
                     api_context.dependencies.files,
@@ -167,21 +172,46 @@ async def update_conversation_settings_record(
             existing_settings=existing_settings,
             next_settings=normalized_merged_settings,
         )
-        if _has_mcp_update(payload):
+        local_tool_catalog_scope = resolve_conversation_tool_catalog_scope(
+            user_is_admin=current_user["is_admin"],
+        )
+        model_id_override = coerce_optional_trimmed_str(normalized_merged_settings.get("model"))
+        if not _has_mcp_update(payload):
+            mcp_state = await load_conversation_mcp_local_state(
+                request=request,
+                api_context=api_context,
+                conv_id=resolved_conv_id,
+                user_id=current_user["id"],
+                local_tool_catalog_scope=local_tool_catalog_scope,
+                model_id_override=model_id_override,
+            )
+        else:
+            mcp_state, tool_map = await load_conversation_mcp_catalog_state(
+                request=request,
+                api_context=api_context,
+                conv_id=resolved_conv_id,
+                user_id=current_user["id"],
+                local_tool_catalog_scope=local_tool_catalog_scope,
+                model_id_override=model_id_override,
+            )
             normalized_merged_settings["mcp"] = await _merge_mcp_update_from_settings_patch(
                 request=request,
                 api_context=api_context,
-                current_user=current_user,
-                conv_id=resolved_conv_id,
+                mcp_state=mcp_state,
+                tool_map=tool_map,
                 payload=payload,
                 settings=normalized_merged_settings,
                 disallowed_unqualified_tools=disallowed_unqualified_tools,
             )
-        mcp_config = _require_mcp_config(request, normalized_merged_settings)
         validate_enabled_tools_for_agent_mode(
             request=request,
             settings=normalized_merged_settings,
-            merged_config=mcp_config,
+            merged_config=resolve_effective_conversation_mcp_config(
+                request,
+                _require_mcp_config(request, normalized_merged_settings),
+                state=mcp_state,
+                disallowed_unqualified_tools=disallowed_unqualified_tools,
+            ),
         )
         conversation_record = await update_conversation_model_settings(
             request,
@@ -199,6 +229,34 @@ async def update_conversation_settings_record(
                 logger=get_logger(LOGGER_NAME),
             )
     return conversation_record, previous_mode, next_mode
+
+
+async def _canonicalize_model_references(api_context: ApiContext, patch: JSONDict) -> JSONDict:
+    comparison_models = patch.get("comparison_models")
+    references = [
+        patch.get("model"),
+        *(comparison_models if isinstance(comparison_models, list) else []),
+    ]
+    model_names = [reference for reference in references if isinstance(reference, str)]
+    if not model_names:
+        return patch
+    stored_references = await resolve_stored_model_references(
+        model_names=model_names,
+        model_resolution_service=api_context.dependencies.model_resolution_service,
+        model_information_service=api_context.dependencies.model_information_service,
+    )
+
+    def canonical(reference: JSONValue) -> JSONValue:
+        if not isinstance(reference, str):
+            return reference
+        return stored_references.get(reference.strip(), reference)
+
+    canonical_patch: JSONDict = dict(patch)
+    if "model" in patch:
+        canonical_patch["model"] = canonical(patch["model"])
+    if isinstance(comparison_models, list):
+        canonical_patch["comparison_models"] = [canonical(entry) for entry in comparison_models]
+    return canonical_patch
 
 
 def _has_mcp_update(payload: ConversationSettingsUpdate) -> bool:
@@ -223,15 +281,12 @@ async def _merge_mcp_update_from_settings_patch(
     *,
     request: Request,
     api_context: ApiContext,
-    current_user: CurrentUser,
-    conv_id: str,
+    mcp_state: ConversationMCPState,
+    tool_map: dict[str, JSONDict],
     payload: ConversationSettingsUpdate,
     settings: JSONDict,
     disallowed_unqualified_tools: tuple[str, ...],
 ) -> JSONDict:
-    local_tool_catalog_scope = resolve_conversation_tool_catalog_scope(
-        user_is_admin=current_user["is_admin"],
-    )
     model_settings = payload.model_settings
     if not isinstance(model_settings, dict):
         return _require_mcp_config(request, settings)
@@ -250,22 +305,13 @@ async def _merge_mcp_update_from_settings_patch(
         if "server_configs" in tool_updates
         else set[str]()
     )
-    model_id_override = coerce_optional_trimmed_str(model_settings.get("model"))
-    state, tool_map = await load_conversation_mcp_catalog_state(
-        request=request,
-        api_context=api_context,
-        conv_id=conv_id,
-        user_id=current_user["id"],
-        local_tool_catalog_scope=local_tool_catalog_scope,
-        model_id_override=model_id_override,
-    )
     try:
         mcp_update = ConversationMCPConfigUpdate.model_validate(tool_updates)
     except pydantic.ValidationError as error:
         raise_invalid_request(request, str(error), error_type="invalid_request_error")
     return merge_conversation_mcp_config_update(
         request=request,
-        state=state,
+        state=mcp_state,
         payload=mcp_update,
         tool_map=tool_map,
         server_ids=server_ids,

@@ -20,13 +20,14 @@ def startup_entry(
     *,
     component_name: str,
     action: Callable[[], Awaitable[None]],
+    critical: bool = True,
 ) -> LifecycleEntry:
     return LifecycleEntry(
         component_name=component_name,
         phase="startup",
         action=action,
         timeout_sec=LONG_REQUEST_TIMEOUT_SEC,
-        critical=True,
+        critical=critical,
     )
 
 
@@ -36,10 +37,11 @@ def timed_startup_entry(
     metric_key: str,
     deps: StartupStepDependencies,
     action: Callable[[], Awaitable[None]],
+    critical: bool = True,
 ) -> LifecycleEntry:
     async def _run() -> None:
         step_started_ms = monotonic_ms()
         await action()
         deps.startup_timings.record_since_ms(metric_key, step_started_ms)
 
-    return startup_entry(component_name=component_name, action=_run)
+    return startup_entry(component_name=component_name, action=_run, critical=critical)

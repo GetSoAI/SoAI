@@ -13,6 +13,7 @@ from database.core.query_execution import (
     sync_fetch_changes_count,
     sync_fetch_one_as_dict,
 )
+from database.repositories.skills.retention import sync_reconcile_skill_retention
 from database.repositories.users.agent_turn_rows import format_agent_turn_row
 from database.repositories.users.manual_compaction_process_recovery import (
     sync_recover_interrupted_manual_compaction,
@@ -112,4 +113,5 @@ def sync_abandon_running_turn_if_current(
     formatted_row = format_agent_turn_row(row)
     if formatted_row is None:
         raise ValidationError("Abandoned agent turn row could not be reloaded.")
+    sync_reconcile_skill_retention(sqlite_conn, user_id, finished_at_ms)
     return formatted_row

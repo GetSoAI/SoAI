@@ -27,7 +27,7 @@ const createModelSearchIndex = (model: ModelData, providerLabel: string): string
 const createModelOption = (model: ModelData, selectedModelId: string | null, providerLabel: string): ChatModelMenuOption => {
     const statusSuffix = resolveChatModelStatusSuffix(model);
     const label = `${model.name} ${statusSuffix}`.trim();
-    const selected = selectedModelId !== null && model.id === selectedModelId;
+    const selected = selectedModelId !== null && (model.id === selectedModelId || model.universalId === selectedModelId);
     const disabled = !isChatSelectableModel(model);
     return {
         id: model.id,

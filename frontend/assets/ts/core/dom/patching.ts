@@ -5,7 +5,7 @@ import { dom } from '@core/dom/dom.ts';
 import { applyTextContent } from '@core/dom/textContent.ts';
 import { isHTMLElement } from '@core/typeGuards.ts';
 
-const EMPTY_PRESERVED_ATTRIBUTE_NAMES = new Set<string>();
+const EMPTY_PRESERVED_NAMES = new Set<string>();
 
 const resolveHTMLElement = (selector: string, container: Element): HTMLElement | null => {
     const node = dom.resolve(selector, container);
@@ -44,10 +44,10 @@ const syncStyleProperty = (target: HTMLElement, property: string, value: string)
     return true;
 };
 
-const syncClass = (target: HTMLElement, source: HTMLElement): boolean => {
+const syncClass = (target: HTMLElement, source: HTMLElement, preservedClassNames: ReadonlySet<string> = EMPTY_PRESERVED_NAMES): boolean => {
     const sourceClasses = source.classList;
     const targetClasses = target.classList;
-    if (sourceClasses.length === 0) {
+    if (sourceClasses.length === 0 && preservedClassNames.size === 0) {
         if (targetClasses.length === 0) {
             return false;
         }
@@ -64,7 +64,7 @@ const syncClass = (target: HTMLElement, source: HTMLElement): boolean => {
 
     let changed = false;
     for (const existingClass of Array.from(targetClasses)) {
-        if (!sourceClasses.contains(existingClass)) {
+        if (!sourceClasses.contains(existingClass) && !preservedClassNames.has(existingClass)) {
             targetClasses.remove(existingClass);
             changed = true;
         }
@@ -79,7 +79,7 @@ const syncClass = (target: HTMLElement, source: HTMLElement): boolean => {
 };
 
 const syncAttributes = (inputArguments: { target: HTMLElement; source: HTMLElement; preservedAttributeNames?: ReadonlySet<string> }): boolean => {
-    const preservedAttributeNames = inputArguments.preservedAttributeNames ?? EMPTY_PRESERVED_ATTRIBUTE_NAMES;
+    const preservedAttributeNames = inputArguments.preservedAttributeNames ?? EMPTY_PRESERVED_NAMES;
     let changed = false;
     const sourceAttributeNames = new Set<string>();
     for (const attribute of Array.from(inputArguments.source.attributes)) {
@@ -107,8 +107,8 @@ const syncAttributes = (inputArguments: { target: HTMLElement; source: HTMLEleme
     return changed;
 };
 
-const syncElementShell = (inputArguments: { target: HTMLElement; source: HTMLElement; preservedAttributeNames?: ReadonlySet<string> }): boolean => {
-    let changed = syncClass(inputArguments.target, inputArguments.source);
+const syncElementShell = (inputArguments: { target: HTMLElement; source: HTMLElement; preservedAttributeNames?: ReadonlySet<string>; preservedClassNames?: ReadonlySet<string> }): boolean => {
+    let changed = syncClass(inputArguments.target, inputArguments.source, inputArguments.preservedClassNames);
     if (syncAttributes(inputArguments)) {
         changed = true;
     }

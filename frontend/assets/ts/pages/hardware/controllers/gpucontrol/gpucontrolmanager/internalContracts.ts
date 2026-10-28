@@ -4,7 +4,7 @@
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { GpuControlTelemetry } from '@pages/hardware/controllers/gpucontrol/gpuControlTelemetryController.ts';
 import type { GpuCapabilities, GpuCapabilitiesByIndex } from '@core/realtime/streammanager/resources/gpuCapabilitiesContracts.ts';
-import type { GpuControlManagerDependencies, GpuUiState, SecurityService, SliderElements } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
+import type { GpuControlManagerDependencies, GpuSnapshotControl, GpuUiState, SecurityService, SliderElements } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 
 export interface GpuControlManagerViewContext {
     dependencies: GpuControlManagerDependencies;
@@ -16,7 +16,7 @@ export interface GpuControlManagerViewContext {
     ensureUiState: (index: string | number) => GpuUiState;
     refreshApplyState: (index: string | number) => void;
     setSliderToAuto: (index: string | number, type: string, explicitDefault?: string | number | null, options?: { preserveManual?: boolean }) => void;
-    setSliderToManual: (index: string | number, type: string, manualValue?: string | number | null) => void;
+    setSliderToManual: (index: string | number, type: string, manualValue?: string | number | null, options?: { alignToSupportedValue?: boolean }) => void;
     getSliderElements: (index: string | number, type: string) => SliderElements;
 }
 
@@ -37,7 +37,7 @@ export interface GpuControlManagerRenderPanelContext {
 }
 
 export interface GpuControlSnapshotControlState {
-    isAuto: boolean;
+    mode: GpuSnapshotControl['mode'];
     value: string;
     lastManual: string | null;
 }

@@ -13,6 +13,7 @@ import { getSortValue, isModelRecord, resolveGroupHeading, type ModelPropertyInp
 interface ModelsGroupingControllerDependencies {
     grouping: CollectionGroupingState<ModelRecord>;
     getSortBy: () => string;
+    presentsHeadings: () => boolean;
     getItemCardId: (item: ResourceIncomingValue | null | undefined) => string | number | null;
     getPluginByName: (name: string) => PluginRecord | null;
     statusManager: { getDescription(status: string): string };
@@ -68,6 +69,7 @@ const createModelsGroupingController = (dependencies: ModelsGroupingControllerDe
         return dependencies.grouping.applyHeadings({
             items: isArray(models) ? models : [],
             grouped: Boolean(sortBy) && !UNGROUPED_SORT_KEYS.has(sortBy),
+            presentsHeadings: dependencies.presentsHeadings(),
             resolveItemId: (model) => {
                 const identifier = dependencies.getItemCardId(model);
                 return identifier === null ? '' : String(identifier);

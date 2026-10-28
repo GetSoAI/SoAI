@@ -11,7 +11,7 @@ from core.config.runtime_config import Config
 from core.config.value_validation import is_config_dict
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import SoAIError, StateError
+from core.errors.exceptions import StateError
 from core.errors.http_recoverable import HTTP_RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import UNEXPECTED_RUNTIME_EXCEPTIONS
 from core.files.path_resolver import ConfigFilesPathResolver
@@ -45,7 +45,6 @@ from plugins.worker.storage_scope import WorkerStorageScopeState
 __all__ = ("PluginWorkerRuntime",)
 
 LOGGER_NAME = "SoAI.plugins.worker.runtime"
-OPERATION_WORKER_HANDLE_REQUEST = "plugins.worker.runtime.handle_request"
 OPERATION_WORKER_FLUSH_METRICS = "plugins.worker.runtime.flush_metrics"
 WORKER_FIELD_LABEL = "Worker request field"
 
@@ -146,52 +145,21 @@ class PluginWorkerRuntime:
 
     async def handle_request(self, request_id: str, method: str, payload: JSONDict) -> JSONDict:
         plugin = self._require_plugin()
-        suppress_flush_failure = False
+        request_succeeded = False
         try:
-            return await self._dispatcher.dispatch(
+            result = await self._dispatcher.dispatch(
                 plugin,
                 request_id=request_id,
                 method=method,
                 payload=payload,
             )
-        except HTTP_RECOVERABLE_EXCEPTIONS:
-            suppress_flush_failure = True
-            raise
-        except SoAIError as exception:
-            suppress_flush_failure = True
-            log_exception(
-                get_logger(LOGGER_NAME),
-                exception,
-                message="Plugin worker request dispatch failed.",
-                operation=OPERATION_WORKER_HANDLE_REQUEST,
-                details={"request_id": request_id, "method": method},
-                level="warning",
-            )
-            raise
-        except UNEXPECTED_RUNTIME_EXCEPTIONS as exception:
-            suppress_flush_failure = True
-            coerced = coerce_to_soai_error(
-                exception,
-                operation=OPERATION_WORKER_HANDLE_REQUEST,
-                details={"request_id": request_id, "method": method},
-            )
-            log_exception(
-                get_logger(LOGGER_NAME),
-                coerced,
-                message="Plugin worker request dispatch failed.",
-                operation=OPERATION_WORKER_HANDLE_REQUEST,
-                details={"request_id": request_id, "method": method},
-                level="warning",
-            )
-            raise coerced from exception
-        except asyncio.CancelledError:
-            suppress_flush_failure = True
-            raise
+            request_succeeded = True
+            return result
         finally:
             await self._flush_metrics(
                 request_id=request_id,
                 method=method,
-                suppress_failure=suppress_flush_failure,
+                suppress_failure=not request_succeeded,
             )
 
     async def cancel_request(self, request_id: str) -> None:

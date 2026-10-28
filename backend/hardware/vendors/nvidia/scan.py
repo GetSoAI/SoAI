@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Literal
 
 import pynvml
 
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import StateError
+from core.hardware.gpu_architecture import NVIDIA_ARCHITECTURE_ROW_FIELD
 from core.hardware.protocols import (
     NvidiaCapabilitiesCacheServiceProtocol,
     NvmlGateProtocol,
@@ -16,13 +18,14 @@ from core.hardware.protocols import (
 from core.logging.rate_limited_logger import RateLimitedLogger
 from hardware.gpu_inventory.entries import build_gpu_entry
 from hardware.gpu_inventory.identity import uuid_from_device_id
+from hardware.vendors.nvidia.architecture_reads import read_nvidia_scan_architecture
 from hardware.vendors.nvidia.internal_protocols import (
     NvmlDeviceGetHandleByIndexProtocol,
     NvmlSystemGetCudaDriverVersionProtocol,
 )
 from hardware.vendors.nvidia.scan_device_identity import (
     read_gpu_name,
-    read_pci_bdf,
+    read_pci_identity,
     read_primary_device_id,
 )
 from hardware.vendors.nvidia.scan_errors import (
@@ -53,6 +56,7 @@ def query_nvidia_gpus(
     *,
     nvml_gate: NvmlGateProtocol,
     capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
+    on_inventory_observed: Callable[[Literal["complete", "partial", "failed"]], None] | None = None,
 ) -> tuple[list[JSONDict], JSONDict]:
     logger = nvml_gate.logger
     expected_unavailable_logger = RateLimitedLogger(interval_seconds=300.0)
@@ -112,7 +116,7 @@ def query_nvidia_gpus(
                         level="warning",
                     )
                     continue
-                memory_total_mb, memory_used_mb, percent_used = read_memory_metrics(handle)
+                memory = read_memory_metrics(handle)
                 temperature = read_temperature(device_index, handle, logger=logger)
                 utilization = read_utilization(device_index, handle, logger=logger)
                 power_draw_watts = read_power_draw_watts(device_index, handle, logger=logger)
@@ -127,31 +131,60 @@ def query_nvidia_gpus(
                 mem_clock = read_mem_clock_mhz(device_index, handle, logger=logger)
                 gpu_name = read_gpu_name(handle)
                 device_id = read_primary_device_id(handle, logger=logger, device_index=device_index)
-                pci_bdf = read_pci_bdf(handle, logger=logger, device_index=device_index)
+                pci_bdf, pci_bdf_full, pci_bdf_observations = read_pci_identity(
+                    handle, logger=logger, device_index=device_index
+                )
                 gpu_data = build_gpu_entry(
                     vendor="nvidia",
                     index=device_index,
                     vendor_id=device_index,
                     device_id=device_id,
                     name=gpu_name,
-                    memory_used_mb=memory_used_mb,
-                    memory_total_mb=memory_total_mb,
-                    percent_used=percent_used,
+                    memory_used_mb=memory.used_mb if memory.used_mb is not None else 0,
+                    memory_total_mb=memory.total_mb if memory.total_mb is not None else 0,
+                    percent_used=memory.percent_used if memory.percent_used is not None else 0.0,
                     temperature=temperature,
                     utilization=utilization,
                     power_draw_watts=power_draw_watts,
                     power_limit_watts=power_limit_watts,
                     processes=processes,
                 )
+                gpu_data.update(
+                    {
+                        "memory_used_mb": memory.used_mb,
+                        "memory_total_mb": memory.total_mb,
+                        "memory_total_bytes": memory.total_bytes,
+                        "memory_used_bytes": memory.used_bytes,
+                        "percent_used": memory.percent_used,
+                        "memory_total_source": "nvml.device.memory_info.total",
+                        "memory_total_unit": "bytes",
+                        "memory_total_reported_value": memory.total_bytes,
+                    }
+                )
+                if driver_version:
+                    gpu_data["native_driver_version"] = driver_version
+                    gpu_data["driver_version"] = driver_version
+                    gpu_data["driver_version_source"] = "nvml.system.driver_version"
                 if core_clock is not None:
                     gpu_data["core_clock_mhz"] = float(core_clock)
                 if mem_clock is not None:
                     gpu_data["mem_clock_mhz"] = float(mem_clock)
                 if pci_bdf is not None:
                     gpu_data["pci_bdf"] = pci_bdf
+                gpu_data["pci_bdf_observations"] = pci_bdf_observations
+                if pci_bdf_full is not None:
+                    gpu_data["pci_bdf_full"] = pci_bdf_full
                 gpu_uuid = uuid_from_device_id(device_id)
                 if gpu_uuid is not None:
                     gpu_data["gpu_uuid"] = gpu_uuid
+                architecture = read_nvidia_scan_architecture(
+                    pynvml,
+                    device_id=device_id,
+                    device_index=device_index,
+                    pci_bdf_full=pci_bdf_full,
+                    pci_bdf_observations=pci_bdf_observations,
+                )
+                gpu_data[NVIDIA_ARCHITECTURE_ROW_FIELD] = architecture
                 gpus.append(gpu_data)
             complete = len(gpus) == count
     except pynvml.NVMLError as exception:
@@ -183,4 +216,6 @@ def query_nvidia_gpus(
             gpus,
             driver_version,
         )
+        if on_inventory_observed is not None:
+            on_inventory_observed("complete" if complete else "partial" if gpus else "failed")
     return (gpus, drivers)

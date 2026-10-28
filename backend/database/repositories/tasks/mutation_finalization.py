@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import sqlite3
 
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import StateError, ValidationError
 from core.serialization.json_parsing import parse_json_value
 from core.tasks.status_policy import TERMINAL_TASK_STATUS_VALUES
 from core.validation.strict_numbers import require_non_negative_int_strict
 from core.validation.strings import require_canonical_trimmed_json_text
+from database.repositories.skills.materialization import sync_read_materialization
+from database.repositories.skills.retention import sync_reconcile_skill_retention
 
 __all__ = ("sync_finalize_mutation_for_task",)
 
@@ -61,14 +63,49 @@ def sync_finalize_mutation_for_task(
     if terminal_result is not None:
         parse_json_value(terminal_result, field="terminal_result")
     admission = connection.execute(
-        """SELECT request_id FROM mutation_admissions
+        """SELECT request_id, operation_type, execution_phase, owner_id FROM mutation_admissions
         WHERE accepted_task_id = ?
             AND lifecycle_status IN ('accepted', 'running', 'recovery_required')""",
         (task_id,),
     ).fetchone()
     if admission is None:
         return False
-    recovery_required = _clone_retains_recovery_ownership(connection, task_id)
+    if admission["operation_type"] == "skill_materialize":
+        phase = admission["execution_phase"]
+        if (
+            phase not in {"accepted", "verified", "contained_failure", "conflict"}
+            or (terminal_status == "completed" and phase != "verified")
+            or (phase == "verified" and terminal_status != "completed")
+        ):
+            raise StateError(
+                "Materialization publication requires reconciliation before terminalization."
+            )
+        if terminal_status == "completed":
+            receipt_evidence = sync_read_materialization(
+                connection, admission["request_id"], int(admission["owner_id"])
+            )
+            if (
+                receipt_evidence is None
+                or terminal_result is None
+                or parse_json_value(terminal_result, field="Skill materialization result")
+                != receipt_evidence.completed_result()
+            ):
+                raise StateError(
+                    "Materialization terminal result differs from verified receipt evidence."
+                )
+        receipt = connection.execute(
+            """UPDATE webui_skill_materializations
+            SET terminal_status=?, terminal_result=? WHERE request_id=? AND terminal_status IS NULL
+            RETURNING user_id""",
+            (terminal_status, terminal_result, task_id),
+        ).fetchone()
+        if receipt is None:
+            raise StateError("Materialization finalization receipt is unavailable.")
+        sync_reconcile_skill_retention(connection, receipt["user_id"], completed_at_ms)
+    recovery_required = _clone_retains_recovery_ownership(connection, task_id) or (
+        admission["operation_type"] == "plugin_backend_update"
+        and admission["execution_phase"] not in {"accepted", "verified", "contained_failure"}
+    )
     lifecycle_status = "recovery_required" if recovery_required else terminal_status
     row = connection.execute(
         """UPDATE mutation_admissions

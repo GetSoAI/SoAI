@@ -18,14 +18,15 @@ type TerminalSessionStatus = 'complete' | 'cancelled' | 'error';
 
 const log = createModuleLogger('ChatStreamTerminalState', { defaultLevel: 'warn' });
 
-const applyChatStreamTerminalState = (inputArguments: { session: ChatStreamSession; status: TerminalSessionStatus; finishReason: string | null; lastError: JsonValue | null; errorMessage: string | null; errorCode: string | null; referenceId?: string | null }): void => {
+const applyChatStreamTerminalState = (inputArguments: { session: ChatStreamSession; status: TerminalSessionStatus; finishReason: string | null; lastError: JsonValue | null; errorMessage: string | null; errorCode: string | null; referenceId?: string | null; hydrated?: boolean }): void => {
+    const terminalAtMs = inputArguments.hydrated === true ? null : (inputArguments.session.terminalAtMs ??= serverEpochMs());
     inputArguments.session.status = inputArguments.status;
     clearChatStreamStatusPreview(inputArguments.session.assistantMessage);
     if (inputArguments.finishReason !== null) {
         inputArguments.session.assistantMessage.finishReason = inputArguments.finishReason;
     }
     inputArguments.session.lastError = inputArguments.lastError;
-    const activitiesSettled = settleTerminalAssistantActivities(inputArguments.session.assistantMessage, inputArguments.status, serverEpochMs());
+    const activitiesSettled = settleTerminalAssistantActivities(inputArguments.session.assistantMessage, inputArguments.status, terminalAtMs);
     if (activitiesSettled) {
         inputArguments.session.assistantTimelineIndexState = createAssistantTimelineIndexState();
         updateAssistantTimelineIndexState(inputArguments.session.assistantTimelineIndexState, inputArguments.session.assistantMessage);
@@ -33,10 +34,10 @@ const applyChatStreamTerminalState = (inputArguments: { session: ChatStreamSessi
     if (inputArguments.status === 'error' && inputArguments.errorMessage !== null) {
         writeTerminalErrorToTimeline(inputArguments.session, inputArguments.errorMessage, inputArguments.errorCode, inputArguments.referenceId ?? inputArguments.session.requestId);
     }
-    applyGenerationMetrics(inputArguments.session);
+    if (terminalAtMs !== null) applyGenerationMetrics(inputArguments.session, terminalAtMs);
 };
 
-const finalizeChatStreamTerminalState = (inputArguments: { session: ChatStreamSession; runtime: StreamRuntime; status: TerminalSessionStatus; finishReason: string | null; lastError: JsonValue | null; errorMessage: string | null; errorCode: string | null; referenceId?: string | null; notifyUser: boolean }): void => {
+const finalizeChatStreamTerminalState = (inputArguments: { session: ChatStreamSession; runtime: StreamRuntime; status: TerminalSessionStatus; finishReason: string | null; lastError: JsonValue | null; errorMessage: string | null; errorCode: string | null; referenceId?: string | null; notifyUser: boolean; hydrated?: boolean }): void => {
     applyChatStreamTerminalState(inputArguments);
     inputArguments.runtime.notify(inputArguments.session, { type: 'terminal' });
     if (!inputArguments.notifyUser) {

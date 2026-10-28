@@ -28,6 +28,7 @@ interface SidebarRendererHostFactory {
 }
 
 interface SidebarAuxControllerFactory {
+    canManagePlugins(): boolean;
     getPluginsLink: () => HTMLElement | null;
     getChatLink: () => HTMLElement | null;
     getModelsLink: () => HTMLElement | null;
@@ -79,6 +80,7 @@ const createSidebarRendererHost = (factory: SidebarRendererHostFactory): Sidebar
 
 const createSidebarAuxControllers = (factory: SidebarAuxControllerFactory): SidebarAuxControllers => {
     const pluginIndicator = new SidebarPluginIndicatorController({
+        canManagePlugins: factory.canManagePlugins,
         getPluginsLink: () => factory.getPluginsLink(),
         resolveStorage: () => factory.resolveStorage()
     });

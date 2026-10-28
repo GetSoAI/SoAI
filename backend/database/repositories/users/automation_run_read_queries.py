@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 import aiosqlite
 
-from core.automation.automation_constants import AUTOMATION_OCCURRENCES_MAX_ITEMS
 from core.errors.exceptions import StateError, ValidationError
 from database.core.query_execution import query_one_to_dict, query_to_dicts
 from database.repositories.users.automation_run_row_formatter import (
@@ -34,7 +33,6 @@ __all__ = (
     "list_active_automation_runs",
     "list_automation_run_window_records",
     "list_automation_runs",
-    "list_automation_runs_for_window",
 )
 
 
@@ -154,24 +152,6 @@ async def list_automation_runs(
         return _format_summary_rows(rows)
 
     return await core.reader.execute_read(_query)
-
-
-async def list_automation_runs_for_window(
-    core: DatabaseCoreProtocol,
-    *,
-    user_id: int,
-    from_utc_ms: int,
-    to_utc_ms: int,
-) -> list[JSONDict]:
-    return await list_automation_runs(
-        core,
-        user_id=user_id,
-        from_utc_ms=from_utc_ms,
-        to_utc_ms=to_utc_ms,
-        automation_id=None,
-        limit=AUTOMATION_OCCURRENCES_MAX_ITEMS,
-        offset=0,
-    )
 
 
 async def list_automation_run_window_records(

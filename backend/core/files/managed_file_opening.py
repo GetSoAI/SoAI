@@ -17,6 +17,7 @@ from core.files.managed_storage_traversal import (
 from core.files.secure_open_flags import secure_read_only_open_flags
 from core.files.windows_managed_path_handles import open_windows_managed_path_handles
 from core.files.windows_reparse_points import is_windows_reparse_point
+from core.filesystem.descriptor_io import open_descriptor
 
 __all__ = (
     "ManagedFileDescriptor",
@@ -44,7 +45,7 @@ def _open_regular_file_via_dir_fd(dir_fd: int, leaf: str) -> ManagedFileDescript
     if not stat.S_ISREG(stat_before.st_mode):
         raise FileStorageSecurityError(f"Refusing to open non-regular file '{leaf}'.")
     try:
-        descriptor = os.open(
+        descriptor = open_descriptor(
             leaf,
             secure_read_only_open_flags(directory=False),
             dir_fd=dir_fd,

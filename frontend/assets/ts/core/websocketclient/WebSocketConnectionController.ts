@@ -13,7 +13,8 @@ import { CONNECTION_STATES, CONNECTION_TIMEOUT_MS, CONNECTION_WAIT_TIMEOUT_MS, R
 import type { ConnectionControllerEvents } from '@core/websocketclient/contracts.ts';
 import { buildWebSocketUrl, clearTimers, startHeartbeatTimer } from '@core/websocketclient/effects.ts';
 import { resolveWebSocketMaintenanceTransition } from '@core/websocketclient/maintenance.ts';
-import { resolveWebSocketSessionClosure } from '@core/websocketclient/sessionClosure.ts';
+import { createWebSocketSessionClosureResolver } from '@core/websocketclient/sessionClosure.ts';
+import { WebSocketHandshakeReconciliation } from '@core/websocketclient/sessionHandshake.ts';
 import { type ConnectionStateInterface, type TimerState, type WaitForConnectionOptions } from '@core/websocketclient/types.ts';
 import { WebSocketReconnectScheduler } from '@core/websocketclient/WebSocketReconnectScheduler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -35,12 +36,15 @@ class WebSocketConnectionController {
     #waitRegistry: WebSocketConnectionWaitRegistry = new WebSocketConnectionWaitRegistry();
     #connectionRequested: boolean = false;
     #sessionRotationHold: boolean = false;
+    readonly #handshake = new WebSocketHandshakeReconciliation();
+    readonly #mode: 'session' | 'setup-status';
 
-    constructor(events: ConnectionControllerEvents) {
+    constructor(events: ConnectionControllerEvents, mode: 'session' | 'setup-status' = 'session') {
         this.#events = events;
+        this.#mode = mode;
         this.#connectionState = getConnectionState();
         this.#reconnect = new WebSocketReconnectScheduler({
-            isBlocked: (): boolean => this.#isDestroyed || this.#maintenanceHold || this.#sessionRotationHold,
+            isBlocked: (): boolean => !this.#connectionRequested || this.#isDestroyed || this.#maintenanceHold || this.#sessionRotationHold || this.#handshake.pending,
             reconnect: (): void => this.#connect(),
             log,
             emit: emitWebSocketTelemetryEvent
@@ -114,6 +118,7 @@ class WebSocketConnectionController {
     }
 
     send(payload: JsonObject): boolean {
+        if (this.#mode === 'setup-status') return false;
         if (this.#websocket && this.#websocket.readyState === WebSocket.OPEN) {
             this.#websocket.send(JSON.stringify({ ...payload, 'protocol_version': WEBSOCKET_PROTOCOL_VERSION }));
             return true;
@@ -122,6 +127,7 @@ class WebSocketConnectionController {
     }
 
     restartHeartbeatTimer(): void {
+        if (this.#mode === 'setup-status') return;
         startHeartbeatTimer({
             timers: this.#timers,
             log,
@@ -164,6 +170,7 @@ class WebSocketConnectionController {
     }
 
     #closeWebSocket(context: { reason: string; retrying: boolean; data?: JsonObject; dispatchEvent?: boolean }): void {
+        this.#handshake.retire();
         clearTimers(this.#timers);
         this.#reconnect.cancel();
         const dispatchEvent = context.dispatchEvent !== false;
@@ -197,8 +204,8 @@ class WebSocketConnectionController {
     }
 
     #connect(): void {
-        if (!this.#connectionRequested || this.#isDestroyed || this.#maintenanceHold || this.#sessionRotationHold) return;
-        const wsUrl = buildWebSocketUrl(this.#connectionState);
+        if (!this.#connectionRequested || this.#isDestroyed || this.#maintenanceHold || this.#sessionRotationHold || this.#handshake.pending) return;
+        const wsUrl = buildWebSocketUrl(this.#connectionState, this.#mode);
         if (!wsUrl) {
             log('debug', 'No base URL available, waiting for connection state');
             return;
@@ -208,6 +215,7 @@ class WebSocketConnectionController {
         log('debug', `Connecting to WebSocket: ${wsUrl}`);
         emitWebSocketTelemetryEvent('connecting', { url: wsUrl });
         try {
+            const resolveSessionClosure = createWebSocketSessionClosureResolver(this.#mode);
             const ws = new WebSocket(wsUrl);
             this.#websocket = ws;
             this.#activeUrl = wsUrl;
@@ -246,12 +254,17 @@ class WebSocketConnectionController {
                     if (this.#websocket !== ws) return;
                     log('debug', `WebSocket closed: code=${event.code}, reason=${event.reason}`);
                     emitWebSocketTelemetryEvent('closed', { code: event.code, reason: event.reason });
-                    const sessionClosure = resolveWebSocketSessionClosure(event.code, event.reason);
-                    const retrying = sessionClosure !== 'invalidate';
+                    const sessionClosure = resolveSessionClosure(event.code, event.reason);
+                    const reconcileHandshake = this.#mode === 'session' && (sessionClosure === 'invalidate' || (this.#state === CONNECTION_STATES.CONNECTING && event.code === 1006 && sessionClosure === 'none'));
+                    const retrying = reconcileHandshake || sessionClosure !== 'invalidate';
                     this.#sessionRotationHold = sessionClosure === 'rotate';
                     if (!retrying) this.#connectionRequested = false;
-                    this.#closeWebSocket({ reason: 'closed', retrying, data: { code: event.code, reason: event.reason, 'session_closure': sessionClosure } });
-                    if (sessionClosure !== 'none') return;
+                    this.#closeWebSocket({ reason: 'closed', retrying, dispatchEvent: !reconcileHandshake, data: { code: event.code, reason: event.reason, 'session_closure': sessionClosure } });
+                    if (sessionClosure !== 'none' && !reconcileHandshake) return;
+                    if (reconcileHandshake) {
+                        this.#reconcileHandshake(event);
+                        return;
+                    }
                     this.scheduleReconnect();
                 }
             });
@@ -264,16 +277,38 @@ class WebSocketConnectionController {
     }
 
     #handleBaseUrlChange(baseUrl: string | null): void {
+        this.#handshake.retireForBaseUrl(baseUrl);
         const plan = resolveBaseUrlChange({
             baseUrl,
             currentState: this.#state,
             activeUrl: this.#activeUrl,
-            nextWebSocketUrl: buildWebSocketUrl(this.#connectionState)
+            nextWebSocketUrl: buildWebSocketUrl(this.#connectionState, this.#mode)
         });
         if (plan.logMessage) log('debug', plan.logMessage);
         if (plan.disconnect) this.#closeWebSocket({ reason: 'base-url-change', retrying: plan.connect });
         if (plan.resetReconnectAttempts) this.#reconnect.reset();
         if (plan.connect) this.#connect();
+    }
+
+    #reconcileHandshake(event: CloseEvent): void {
+        void this.#handshake
+            .reconcile(this.#connectionState.getBaseUrl())
+            .then((result) => {
+                const outcome = this.#handshake.resolveOutcome(result);
+                if (outcome === 'retired') return;
+                if (outcome === 'superseded') {
+                    this.#connect();
+                    return;
+                }
+                if (outcome === 'invalidated' || outcome === 'forbidden') {
+                    this.#connectionRequested = false;
+                    this.#closeWebSocket({ reason: outcome, retrying: false, dispatchEvent: false });
+                    return;
+                }
+                this.#events.onDisconnectedEvent({ code: event.code, reason: event.reason, 'session_closure': 'none' });
+                this.scheduleReconnect();
+            })
+            .catch((error) => errorHandler.warn('WebSocketClient', 'Handshake session reconciliation failed', ensureError(error)));
     }
 
     #handleMaintenance(state: MaintenanceState): void {

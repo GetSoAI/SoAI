@@ -36,7 +36,7 @@ async def cancel_active_soaibench_runs(
                 reason=reason,
             )
         except asyncio.CancelledError as exception:
-            exception.add_note("SoAIBench active run cancellation was cancelled.")
+            exception.add_note("SoAI Bench active run cancellation was cancelled.")
             raise
         except HANDLED_RUNTIME_EXCEPTIONS as exception:
             coerced_exception = coerce_to_soai_error(
@@ -46,7 +46,7 @@ async def cancel_active_soaibench_runs(
             log_exception(
                 deps.logger,
                 coerced_exception,
-                message="SoAIBench active run cancellation request failed.",
+                message="SoAI Bench active run cancellation request failed.",
                 operation=operation,
                 details={"run_id": active.run_id, "task_id": active.task_id},
                 level="warning",
@@ -68,7 +68,7 @@ async def cancel_active_soaibench_runs(
             log_exception(
                 deps.logger,
                 coerced_exception,
-                message="SoAIBench active worker cancellation failed.",
+                message="SoAI Bench active worker cancellation failed.",
                 operation=operation,
                 details={"run_id": active.run_id, "task_id": active.task_id},
                 level="warning",

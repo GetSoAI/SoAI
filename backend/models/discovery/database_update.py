@@ -18,7 +18,6 @@ from core.orchestrator.routing_config import VirtualModelConfig
 from core.plugins.protocols import PluginManagerProtocol
 from models.catalog_locking import enter_model_record_locks
 from models.discovery.failure_deactivation import deactivate_models_for_failed_plugins
-from models.discovery.provider_bounded_execution import PluginCheckUnchanged
 from models.discovery.record_preparation import (
     index_model_candidates,
     model_fingerprint_records,
@@ -35,6 +34,7 @@ from models.internal_protocols import ModelMutationEffectsProtocol
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
+    from models.discovery.provider_bounded_execution import PluginDiscoveryResult
 
 __all__ = (
     "ModelDiscoveryUpdateDependencies",
@@ -71,15 +71,12 @@ class ModelDiscoveryUpdateDependencies:
 
 async def update_discovered_models_in_db(
     deps: ModelDiscoveryUpdateDependencies,
-    discovered_data: dict[
-        str,
-        dict[str, JSONDict] | Exception | PluginCheckUnchanged | None,
-    ],
+    discovered_data: dict[str, PluginDiscoveryResult],
     existing_models: dict[str, dict[str, JSONDict]],
     startup_discovery_complete: bool,
     last_model_upsert_fingerprint: str | None,
 ) -> str | None:
-    indexed_candidates = index_model_candidates(discovered_data)
+    indexed_candidates = index_model_candidates(discovered_data, existing_models)
     initial_removed_universal_ids = identify_and_log_removed_models(
         discovered_data,
         existing_models,
@@ -107,6 +104,16 @@ async def update_discovered_models_in_db(
             lock_universal_ids,
         )
         authoritative_models = await deps.database_models.get_all_models_by_plugin()
+        authoritative_candidates = index_model_candidates(discovered_data, authoritative_models)
+        if (
+            authoritative_candidates["all_discovered_universal_ids_by_plugin"]
+            != indexed_candidates["all_discovered_universal_ids_by_plugin"]
+        ):
+            raise StateError(
+                "Model source identities changed while acquiring discovery reconciliation locks.",
+                operation="models.discovery.update_discovered_models_in_db",
+            )
+        indexed_candidates = authoritative_candidates
         prepared_updates = prepare_model_upserts(indexed_candidates, authoritative_models)
         models_to_upsert = prepared_updates["models_to_upsert"]
         added_universal_ids = prepared_updates["added_universal_ids"]

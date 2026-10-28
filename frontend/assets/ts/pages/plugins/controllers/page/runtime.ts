@@ -111,13 +111,13 @@ const createPluginsPagePrimaryRuntime = (dependencies: CreatePluginsPageRuntimeD
             },
             presentation: {
                 getPluginLogo: (plugin: PluginRecord): string => coreControllers.dataController.getPluginLogo(plugin),
-                getPluginLogoFallback: (plugin: PluginRecord): string => coreControllers.dataController.getPluginLogoFallback(plugin),
                 formatPluginName: (name: string | undefined): string => coreControllers.dataController.formatPluginName(name ?? ''),
                 getCircuitBreakerNotice: (plugin: PluginRecord): string => coreControllers.compatibilityController.getCircuitBreakerNotice(plugin),
                 getIncompatibleNotice: (plugin: PluginRecord): string => coreControllers.compatibilityController.getIncompatibleNotice(plugin),
                 sanitizeText: (value: JsonValue | null | undefined, options?: Record<string, string | null>): string => infrastructure.services.sanitizeText(value === null || value === undefined ? value : String(value), options)
             },
             actions: {
+                backendUpdateAccess: (plugin) => session.backendUpdateAccess(plugin),
                 getPendingToggleTarget: (plugin: PluginRecord): boolean | null => {
                     const pluginName = plugin.name;
                     if (!pluginName) return null;

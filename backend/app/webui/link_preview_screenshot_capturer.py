@@ -34,6 +34,9 @@ from mcp.tools.browser.blank_page_screenshot_policy import (
     should_skip_blank_screenshot,
 )
 from mcp.tools.browser.config_values import resolve_browser_render_stabilize_ms
+from mcp.tools.browser.navigation_fallback_goto import (
+    goto_awaiting_error_page_commit,
+)
 from mcp.tools.browser.navigation_validation import build_navigation_url_candidates
 from mcp.tools.browser.playwright_error_classification import is_download_starting_error
 from mcp.tools.browser.runtime_cache import get_cached_playwright_runtime
@@ -176,7 +179,8 @@ class LinkPreviewScreenshotCapturer(WebUILinkPreviewScreenshotCapturerProtocol):
                     except (MCPToolError, ValidationError):
                         target_url, alternative_url = (normalized_url, None)
                     try:
-                        await page.goto(
+                        await goto_awaiting_error_page_commit(
+                            page,
                             target_url,
                             wait_until="domcontentloaded",
                             timeout=timeout_ms,

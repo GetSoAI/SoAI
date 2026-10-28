@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+import httpx2
+
 from core.config.byte_sizes import MIB_BYTES
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import SoAIError
@@ -245,7 +247,7 @@ async def collect_network_speed_template(
         )
         if template is not None:
             return template
-    except (OSError, RuntimeError, ValueError, SoAIError) as exception:
+    except (OSError, RuntimeError, ValueError, SoAIError, httpx2.HTTPError) as exception:
         log_handled_exception(
             logger,
             exception,

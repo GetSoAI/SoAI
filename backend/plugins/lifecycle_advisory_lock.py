@@ -12,7 +12,8 @@ from filelock import Timeout
 
 from core.concurrency.cancellation_cleanup import uncancel_and_wait
 from core.concurrency.deadlines import deadline_after
-from core.errors.exceptions import ServiceUnavailableError, StateError
+from core.errors.backend_lifecycle import PluginLifecycleLockContentionError
+from core.errors.exceptions import StateError
 from core.files.locking import async_guarded_file_lock
 from core.filesystem.path_coercion import normalize_filesystem_path
 from core.plugins.portable_identifiers import require_portable_plugin_identifier
@@ -94,7 +95,9 @@ async def plugin_lifecycle_advisory_lock(
     while True:
         remaining_seconds = acquisition_deadline.remaining_seconds()
         if remaining_seconds <= 0.0:
-            raise ServiceUnavailableError("Plugin lifecycle lock acquisition deadline expired.")
+            raise PluginLifecycleLockContentionError(
+                "Plugin lifecycle lock acquisition deadline expired."
+            )
         entered = False
         try:
             async with async_guarded_file_lock(
@@ -118,7 +121,9 @@ async def plugin_lifecycle_advisory_lock(
             if entered:
                 raise
             if normalized_task_id is None or normalized_fencing_token is None:
-                raise StateError("Plugin lifecycle lock acquisition timed out.") from exception
+                raise PluginLifecycleLockContentionError(
+                    "Plugin lifecycle lock acquisition timed out."
+                ) from exception
             if not await _mutation_claim_is_current(
                 manager,
                 normalized_task_id,
@@ -128,6 +133,6 @@ async def plugin_lifecycle_advisory_lock(
                     "Plugin lifecycle mutation claim is no longer current."
                 ) from exception
             if acquisition_deadline.expired():
-                raise ServiceUnavailableError(
+                raise PluginLifecycleLockContentionError(
                     "Plugin lifecycle lock acquisition deadline expired."
                 ) from exception

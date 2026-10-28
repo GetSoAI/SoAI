@@ -18,6 +18,10 @@ from database.core.sqlite_numbers import (
     coerce_required_int_from_sqlite_row,
     coerce_required_nonempty_str_from_sqlite_row,
 )
+from database.repositories.memory.graph_records import (
+    sync_insert_memory_entity,
+    sync_insert_memory_observation,
+)
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -85,10 +89,7 @@ def sync_store_graph(
         )
         if existing_row is None:
             entity_id = uuid.uuid4().hex
-            conn.execute(
-                "INSERT INTO mcp_memory_entities (id, user_id, name, entity_type, created_at_ms, updated_at_ms) VALUES (?, ?, ?, ?, ?, ?)",
-                (entity_id, user_id, name, entity_type, now, now),
-            )
+            sync_insert_memory_entity(conn, entity_id, user_id, name, entity_type, now)
             entities_inserted += 1
             entity_ids_by_name[name] = entity_id
             entity_names_in_order.append(name)
@@ -137,9 +138,8 @@ def sync_store_graph(
                 f"Observation at index {index} references unknown entity '{entity_name}'.",
             )
         observation_id = uuid.uuid4().hex
-        conn.execute(
-            "INSERT INTO mcp_memory_observations (id, entity_id, content, source, created_at_ms) VALUES (?, ?, ?, ?, ?)",
-            (observation_id, resolved_entity_id, content, source, now),
+        sync_insert_memory_observation(
+            conn, observation_id, resolved_entity_id, content, source, now
         )
         touched_entity_ids.add(resolved_entity_id)
         observations_inserted += 1

@@ -49,7 +49,7 @@ class SoAIBenchPublicationFlow {
     }
 
     publish(run: SoAIBenchPublicationRun, control: PublicationControl): Promise<void> {
-        if (!run.publicationEligible) throw new Error('SoAIBench run is not eligible for publication');
+        if (!run.publicationEligible) throw new Error('SoAI Bench run is not eligible for publication');
         const active = this.#inFlight.get(run.runId);
         if (active) {
             active.controls.add(control);
@@ -68,7 +68,7 @@ class SoAIBenchPublicationFlow {
     async #execute(run: SoAIBenchPublicationRun, controls: Set<PublicationControl>): Promise<void> {
         const score = run.overallScore;
         const passes = run.measuredPasses;
-        if (score === null || passes !== 5) throw new Error('Publishable SoAIBench run evidence is incomplete');
+        if (score === null || passes !== 5) throw new Error('Publishable SoAI Bench run evidence is incomplete');
         for (const setDisabled of controls) setDisabled(true);
         let receipt: GpuSoAIBenchPublicationReceipt | null = null;
         try {
@@ -123,6 +123,12 @@ class SoAIBenchPublicationFlow {
         if (!(error instanceof APIError)) return i18n.t('hardware.soaibenchPublication.outcomes.unavailable');
         const code = error.reason || error.code || '';
         switch (code) {
+            case 'soaibench_publication_cancelled':
+                return i18n.t('hardware.errors.soaibenchPublicationCancelled');
+            case 'soaibench_publication_incomplete':
+                return i18n.t('hardware.errors.soaibenchPublicationIncomplete');
+            case 'soaibench_publication_unsupported':
+                return i18n.t('hardware.errors.soaibenchPublicationUnsupported');
             case 'soaibench_publication_offline':
                 return i18n.t('hardware.soaibenchPublication.outcomes.offline');
             case 'soaibench_publication_timeout':

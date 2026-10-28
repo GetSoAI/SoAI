@@ -15,6 +15,10 @@ from core.events.types_plugins import (
     UpdatePluginBackendCommand,
 )
 from core.mutations.identifiers import require_mutation_request_id
+from core.plugins.backend_mutation_admission import (
+    build_backend_mutation_admission,
+    resolve_backend_mutation_operation,
+)
 from core.plugins.errors import PluginCapabilityError
 from core.state.access import AccessAction
 from core.types.json import JSONDict, JSONValue
@@ -27,10 +31,6 @@ from features.api.runtime.container.api_routers import ApiRouters
 from features.api.runtime.context import ApiContext, resolve_api_context
 from features.api.runtime.errors import raise_action_not_supported
 from features.api.runtime.plugin_compatibility import ensure_plugin_compatible_or_raise
-from features.api.runtime.plugin_mutation_admission import (
-    build_backend_mutation_admission,
-    resolve_backend_mutation_operation,
-)
 from features.api.runtime.restart import check_restart_status_allow_backend
 from features.api.schemas.plugins import (
     InstallPluginBackendRequest,
@@ -41,7 +41,7 @@ from features.api.schemas.plugins import (
 __all__ = ("register_routes",)
 
 if TYPE_CHECKING:
-    from features.api.runtime.plugin_mutation_admission import BackendMutationType
+    from core.plugins.backend_mutation_admission import BackendMutationType
 
 
 async def _dispatch_backend_action(

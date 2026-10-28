@@ -3,7 +3,9 @@
 
 import { stripTrailingPreviewDot, STREAMED_PREVIEW_ATTRIBUTE_NAMES } from '@features/chat/message/messageview/inlineActivityText.ts';
 import { monotonicMs, serverEpochMs } from '@core/time/clock.ts';
+import { isReducedAnimationScope } from '@core/animations/speed.ts';
 import { scheduleCheckpointTimer } from '@features/chat/stream/fadingTextScheduler.ts';
+import { splitTextIntoWordGroups } from '@features/chat/stream/streamingTextFadeWrap.ts';
 import { clearStreamedPreviewTimers, getStreamedPreviewState, setStreamedPreviewState, type StreamedPreviewState } from '@features/chat/stream/streamedPreviewStateStore.ts';
 import { applyRenderedStreamedPreviewText, applyStreamedPreviewText, bindStreamedPreviewState, finalizeStreamedPreviewState, resetStreamingBuffer } from '@features/chat/stream/streamedpreviewruntime/stateTransitions.ts';
 import { readStreamedPreviewAttribute, readStreamedPreviewRevealAtMs, readStreamedPreviewStatus, requireStreamedPreviewKey, requireStreamedPreviewTextElement, requireStreamedPreviewWindow } from '@features/chat/stream/streamedpreviewruntime/dom.ts';
@@ -12,10 +14,21 @@ const STREAMED_PREVIEW_CHECKPOINT_DELAY_MS = 3000;
 const STREAMED_PREVIEW_STREAM_TICK_DELAY_MS = 44;
 const STREAMED_PREVIEW_STREAM_MAX_TICKS = 24;
 const STREAMED_PREVIEW_SENTENCE_COOLDOWN_MS = 4000;
+const STREAMED_PREVIEW_CHUNK_GRAPHEMES = 8;
 
-const resolveWords = (value: string): string[] => {
-    const trimmed = value.trim();
-    return trimmed ? trimmed.split(/\s+/g) : [];
+const resolveStreamChunks = (value: string): string[] => {
+    const chunks: string[] = [];
+    const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+    for (const group of splitTextIntoWordGroups(value.trim())) {
+        const word = group.trimEnd();
+        const whitespace = group.slice(word.length);
+        const graphemes = Array.from(segmenter.segment(word), (entry) => entry.segment);
+        for (let index = 0; index < graphemes.length; index += STREAMED_PREVIEW_CHUNK_GRAPHEMES) {
+            const chunk = graphemes.slice(index, index + STREAMED_PREVIEW_CHUNK_GRAPHEMES).join('');
+            chunks.push(index + STREAMED_PREVIEW_CHUNK_GRAPHEMES >= graphemes.length ? chunk + whitespace : chunk);
+        }
+    }
+    return chunks;
 };
 
 const scheduleCooldown = (state: StreamedPreviewState): void => {
@@ -37,29 +50,29 @@ const finalizeStreamWithCooldown = (state: StreamedPreviewState, pendingText: st
 };
 
 const updateActiveStreamTarget = (state: StreamedPreviewState, nextPreview: string): boolean => {
-    if (state.pendingText === null || state.streamWords === null || state.streamWordIndex <= 0) {
+    if (state.pendingText === null || state.streamChunks === null || state.streamChunkIndex <= 0) {
         return false;
     }
     const normalizedPreview = stripTrailingPreviewDot(nextPreview);
     if (!normalizedPreview || normalizedPreview === state.pendingText) {
         return false;
     }
-    const nextWords = resolveWords(normalizedPreview);
-    if (nextWords.length <= 0) {
+    const nextChunks = resolveStreamChunks(normalizedPreview);
+    if (nextChunks.length <= 0) {
         return false;
     }
-    const currentIndex = Math.min(state.streamWordIndex, state.streamWords.length);
-    if (currentIndex <= 0 || currentIndex > nextWords.length) {
+    const currentIndex = Math.min(state.streamChunkIndex, state.streamChunks.length);
+    if (currentIndex <= 0 || currentIndex > nextChunks.length) {
         return false;
     }
     for (let index = 0; index < currentIndex; index += 1) {
-        if (state.streamWords[index] !== nextWords[index]) {
+        if (state.streamChunks[index] !== nextChunks[index]) {
             return false;
         }
     }
     state.pendingText = normalizedPreview;
-    state.streamWords = nextWords;
-    state.streamWordsPerTick = Math.max(1, Math.ceil(nextWords.length / STREAMED_PREVIEW_STREAM_MAX_TICKS));
+    state.streamChunks = nextChunks;
+    state.streamChunksPerTick = Math.max(1, Math.ceil(nextChunks.length / STREAMED_PREVIEW_STREAM_MAX_TICKS));
     return true;
 };
 
@@ -113,8 +126,8 @@ const reconcileStreamedPreviewStreamTick = (documentRef: Document, key: string, 
     const queryElement = state.queryElement;
     const textElement = state.textElement;
     const pendingText = state.pendingText;
-    const words = state.streamWords;
-    if (!pendingText || !words || words.length <= 0) {
+    const chunks = state.streamChunks;
+    if (!pendingText || !chunks || chunks.length <= 0) {
         scheduleStreamedPreviewCheckpoint(state, reconcileCheckpoint);
         return;
     }
@@ -128,10 +141,10 @@ const reconcileStreamedPreviewStreamTick = (documentRef: Document, key: string, 
         finalizeStreamedPreviewState(state);
         return;
     }
-    const nextIndex = Math.min(words.length, state.streamWordIndex + Math.max(1, state.streamWordsPerTick));
-    state.streamWordIndex = nextIndex;
-    applyRenderedStreamedPreviewText(state, words.slice(0, nextIndex).join(' '), { syncVisibleAttribute: false });
-    if (nextIndex >= words.length) {
+    const nextIndex = Math.min(chunks.length, state.streamChunkIndex + Math.max(1, state.streamChunksPerTick));
+    state.streamChunkIndex = nextIndex;
+    applyRenderedStreamedPreviewText(state, chunks.slice(0, nextIndex).join('').trimEnd(), { syncVisibleAttribute: false });
+    if (nextIndex >= chunks.length) {
         finalizeStreamWithCooldown(state, pendingText, reconcileCheckpoint);
         return;
     }
@@ -148,8 +161,12 @@ const startStreamedPreviewStream = (state: StreamedPreviewState, nextPreview: st
     clearStreamedPreviewTimers(state);
     state.view = requireStreamedPreviewWindow(queryElement);
     const normalizedPreview = stripTrailingPreviewDot(nextPreview);
-    const words = resolveWords(normalizedPreview);
-    if (words.length <= 0) {
+    if (isReducedAnimationScope(textElement)) {
+        finalizeStreamWithCooldown(state, normalizedPreview, reconcileCheckpoint);
+        return;
+    }
+    const chunks = resolveStreamChunks(normalizedPreview);
+    if (chunks.length <= 0) {
         resetStreamingBuffer(state);
         applyStreamedPreviewText(state, '');
         scheduleStreamedPreviewCheckpoint(state, reconcileCheckpoint);
@@ -157,13 +174,13 @@ const startStreamedPreviewStream = (state: StreamedPreviewState, nextPreview: st
     }
     state.streamSequence += 1;
     state.pendingText = normalizedPreview;
-    state.streamWords = words;
-    state.streamWordIndex = 0;
-    state.streamWordsPerTick = Math.max(1, Math.ceil(words.length / STREAMED_PREVIEW_STREAM_MAX_TICKS));
-    const firstIndex = Math.min(words.length, state.streamWordsPerTick);
-    state.streamWordIndex = firstIndex;
-    applyRenderedStreamedPreviewText(state, words.slice(0, firstIndex).join(' '), { syncVisibleAttribute: false });
-    if (firstIndex >= words.length) {
+    state.streamChunks = chunks;
+    state.streamChunkIndex = 0;
+    state.streamChunksPerTick = Math.max(1, Math.ceil(chunks.length / STREAMED_PREVIEW_STREAM_MAX_TICKS));
+    const firstIndex = Math.min(chunks.length, state.streamChunksPerTick);
+    state.streamChunkIndex = firstIndex;
+    applyRenderedStreamedPreviewText(state, chunks.slice(0, firstIndex).join('').trimEnd(), { syncVisibleAttribute: false });
+    if (firstIndex >= chunks.length) {
         finalizeStreamWithCooldown(state, normalizedPreview, reconcileCheckpoint);
         return;
     }
@@ -219,9 +236,9 @@ const createStreamedPreviewState = (key: string, queryElement: HTMLElement, text
         renderedPreview: visiblePreview,
         pendingText: null,
         streamSequence: 0,
-        streamWords: null,
-        streamWordIndex: 0,
-        streamWordsPerTick: 1
+        streamChunks: null,
+        streamChunkIndex: 0,
+        streamChunksPerTick: 1
     };
     setStreamedPreviewState(created);
     return created;

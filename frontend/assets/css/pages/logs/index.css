@@ -47,6 +47,7 @@
         padding: var(--layout-container-padding);
         position: sticky;
         top: 0;
+        translate: 0 var(--page-header-fold-offset);
         border-inline-end: none;
         border-inline-start: none;
     }
@@ -171,14 +172,7 @@
         .logs-page:where([data-section='logs'], [data-page-scope='logs']) .page-header-panel.is-floating {
             position: sticky;
             top: var(--layout-top-offset);
-        }
-
-        .logs-page:where([data-section='logs'], [data-page-scope='logs']) .page-header-panel--folded {
-            top: calc(var(--layout-top-offset) - var(--header-measured-height));
-        }
-
-        .logs-page:where([data-section='logs'], [data-page-scope='logs']) .page-header-panel--extended {
-            top: var(--layout-top-offset);
+            translate: 0 var(--page-header-fold-offset);
         }
 
         .logs-page:where([data-section='logs'], [data-page-scope='logs']) .page-content-area {

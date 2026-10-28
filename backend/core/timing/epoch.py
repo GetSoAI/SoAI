@@ -17,7 +17,6 @@ else:
 
 __all__ = (
     "EPOCH_MS_DETECTION_FLOOR",
-    "align_epoch_ms_to_monotonic_reference",
     "epoch_ms",
     "epoch_seconds",
     "epoch_seconds_float",
@@ -36,13 +35,3 @@ def epoch_seconds() -> EpochSeconds:
 
 def epoch_seconds_float() -> float:
     return time.time()
-
-
-def align_epoch_ms_to_monotonic_reference(
-    *,
-    now_epoch_ms: int,
-    now_monotonic_ms: int,
-    reference_monotonic_ms: int,
-) -> int:
-    elapsed_ms = max(0, int(now_monotonic_ms) - int(reference_monotonic_ms))
-    return max(0, int(now_epoch_ms) - elapsed_ms)

@@ -15,7 +15,7 @@ import type { ReadOnlyFileBrowserApi } from '@core/fileexplorerbrowser/types.ts'
 import { WorkspacePathDraft } from '@core/fileexplorerbrowser/workspacePathDraft.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import { McpFormController } from '@core/mcp/mcpFormController.ts';
-import { AUTOMATION_ACTION_MCP_SERVER_TOGGLE, AUTOMATION_ACTION_MCP_TOOL_GROUP_TOGGLE, AUTOMATION_ACTION_MCP_TOOL_SEARCH, AUTOMATION_ACTION_MCP_TOOL_TOGGLE, AUTOMATION_CONFIGURATION_MODAL_ID, requireAutomationMcpToolsEmpty, requireAutomationMcpToolsList, type AutomationDefinitionResponse, type AutomationMcpCatalogResponse, type AutomationModelOption } from '@features/automation/public.ts';
+import { AUTOMATION_ACTION_MCP_SERVER_TOGGLE, AUTOMATION_ACTION_MCP_TOOL_GROUP_TOGGLE, AUTOMATION_ACTION_MCP_TOOL_SEARCH, AUTOMATION_ACTION_MCP_TOOL_TOGGLE, AUTOMATION_ACTION_MCP_TOOL_MODE_SELECT, AUTOMATION_CONFIGURATION_MODAL_ID, requireAutomationMcpToolsEmpty, requireAutomationMcpToolsList, type AutomationDefinitionResponse, type AutomationMcpCatalogResponse, type AutomationModelOption } from '@features/automation/public.ts';
 import { AUTOMATION_CONFIGURATION_PARAMETERS_UPDATED_EVENT, AutomationConfigurationParametersController } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationParametersController.ts';
 
 interface ModelSettingsUi {
@@ -28,6 +28,7 @@ interface ModelSettingsUi {
 }
 
 const AUTOMATION_CONFIGURATION_WORKSPACE_UPDATED_EVENT = 'automation:configuration:workspace-updated';
+const AUTOMATION_CONFIGURATION_MCP_UPDATED_EVENT = 'automation:configuration:mcp-updated';
 
 class AutomationConfigurationModelSettingsController {
     readonly #ui: ModelSettingsUi;
@@ -48,13 +49,16 @@ class AutomationConfigurationModelSettingsController {
             actions: {
                 serverToggle: AUTOMATION_ACTION_MCP_SERVER_TOGGLE,
                 toolToggle: AUTOMATION_ACTION_MCP_TOOL_TOGGLE,
-                toolModeSelect: AUTOMATION_ACTION_MCP_TOOL_TOGGLE,
+                toolModeSelect: AUTOMATION_ACTION_MCP_TOOL_MODE_SELECT,
                 toolGroupToggle: AUTOMATION_ACTION_MCP_TOOL_GROUP_TOGGLE,
                 toolSearch: AUTOMATION_ACTION_MCP_TOOL_SEARCH
             },
             toolModes: ['execute'],
             initialToolMode: 'execute',
-            getIconSync: ui.getIconSync
+            getIconSync: ui.getIconSync,
+            onConfigurationChanged: () => {
+                this.#ui.modalRoot.dispatchEvent(new CustomEvent(AUTOMATION_CONFIGURATION_MCP_UPDATED_EVENT, { bubbles: true }));
+            }
         });
         this.#parameters = new AutomationConfigurationParametersController({
             modalPresenter: ui.modalPresenter,
@@ -242,4 +246,4 @@ class AutomationConfigurationModelSettingsController {
     }
 }
 
-export { AUTOMATION_CONFIGURATION_WORKSPACE_UPDATED_EVENT, AutomationConfigurationModelSettingsController };
+export { AUTOMATION_CONFIGURATION_MCP_UPDATED_EVENT, AUTOMATION_CONFIGURATION_WORKSPACE_UPDATED_EVENT, AutomationConfigurationModelSettingsController };

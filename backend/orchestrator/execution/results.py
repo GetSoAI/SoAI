@@ -8,9 +8,14 @@ from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from core.config.numeric import coerce_positive_float
+from core.errors.exceptions import ModelOutputContractError
 from core.metrics.protocols import MetricsManagerProtocol
+from core.models.provider_backing import get_model_provider_id
 from core.models.source_identifier import resolve_source_model_id
+from core.openai.provider_http_errors import build_openai_provider_http_error
+from core.openai.response_model_identity import normalize_response_model_identity
 from core.orchestrator.protocols_queue import OrchestratorQueueProtocol
+from core.serialization.json import serialize_json_compact_stable_strict
 from core.tasks.orchestration_context_cache import update_orchestration_context_from_current
 from core.tasks.streaming_prefill_timeout import resolve_streaming_first_chunk_timeout
 from core.tasks.task import Task
@@ -19,6 +24,7 @@ from core.tasks.type_catalog import (
     TASK_TYPE_IMAGE_EDIT,
     TASK_TYPE_IMAGE_GENERATION,
     TASK_TYPE_IMAGE_VARIATION,
+    TASK_TYPE_OPENAI_RESPONSE,
     TASK_TYPE_TEXT_TO_SPEECH,
 )
 from core.timing.constants import LONG_REQUEST_TIMEOUT_SEC
@@ -77,6 +83,23 @@ class ResultProcessor:
         plugin_name: str = "",
     ) -> JSONDict:
         payload: JSONDict = dict(result)
+        context = self._queue.require_orchestration_context(task)
+        payload = normalize_response_model_identity(payload, context.virtual_model_name)
+        if task.task_type == TASK_TYPE_OPENAI_RESPONSE and payload.get("status") == "failed":
+            if not isinstance(payload.get("error"), dict):
+                raise ModelOutputContractError(
+                    "Provider returned a failed Responses result without an error object.",
+                )
+            context = self._queue.require_orchestration_context(task)
+            event = context.event
+            raise build_openai_provider_http_error(
+                get_model_provider_id(model_info),
+                status=0,
+                body_text=serialize_json_compact_stable_strict({"error": payload["error"]}),
+                headers=None,
+                request_payload=context.request_payload,
+                trace_id=event.context.trace_id if event is not None else None,
+            )
         return finalize_usage_and_bill(
             task,
             model_info,
@@ -108,20 +131,30 @@ class ResultProcessor:
                 return None
             task = updated_task
             context = self._queue.require_orchestration_context(task)
+        execution_budget = context.execution_budget
+        health_check_config = (
+            execution_budget.health_check_config
+            if execution_budget is not None and execution_budget.health_check_config is not None
+            else self._health_check_config
+        )
         streaming_chunk_delivery_timeout = coerce_positive_float(
-            self._health_check_config.get(
+            health_check_config.get(
                 "STREAMING_CHUNK_DELIVERY_TIMEOUT_SEC",
                 STREAMING_CHUNK_DELIVERY_TIMEOUT_DEFAULT,
             ),
             default=STREAMING_CHUNK_DELIVERY_TIMEOUT_DEFAULT,
             minimum=STREAMING_CHUNK_DELIVERY_TIMEOUT_MINIMUM,
         )
-        first_chunk_timeout = resolve_streaming_first_chunk_timeout(
-            task=task,
-            health_check_config=self._health_check_config,
+        first_chunk_timeout = (
+            execution_budget.deadline.remaining_seconds()
+            if execution_budget is not None
+            else resolve_streaming_first_chunk_timeout(
+                task=task,
+                health_check_config=health_check_config,
+            ).seconds
         )
         streaming_idle_timeout = coerce_positive_float(
-            self._health_check_config.get(
+            health_check_config.get(
                 "STREAMING_IDLE_TIMEOUT_SEC",
                 LONG_REQUEST_TIMEOUT_SEC,
             ),

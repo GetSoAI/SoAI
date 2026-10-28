@@ -10,7 +10,7 @@ import type { SoAIBenchHistoryRun } from '@features/hardware/modals/soaibenchhis
 import type { SoAIBenchRunOpenRequest, SoAIBenchRunRecord } from '@features/hardware/modals/soaibenchrun/types.ts';
 import { projectSoAIBenchExportSystem, type SoAIBenchExportSystem } from '@features/hardware/modals/soaibenchrun/exportSystem.ts';
 import { formatSoAIBenchCertification, formatSoAIBenchDuration, formatSoAIBenchMetric, formatSoAIBenchPercentValue, formatSoAIBenchPowerPair, formatSoAIBenchScore, formatSoAIBenchStartedAt, formatSoAIBenchTemperature, formatSoAIBenchThroughputValue, getSoAIBenchNotAvailableLabel } from '@features/hardware/soaibenchMetricFormatting.ts';
-import { formatUnexpectedSoAIBenchIdentifierLabel, resolveSoAIBenchMatchBasisLabel, resolveSoAIBenchProfileLabel, resolveSoAIBenchReasonLabel, resolveSoAIBenchStatusLabel } from '@features/hardware/soaibenchLabels.ts';
+import { type SoAIBenchDeadline, formatUnexpectedSoAIBenchIdentifierLabel, resolveSoAIBenchMatchBasisLabel, resolveSoAIBenchProfileLabel, resolveSoAIBenchReasonLabel, resolveSoAIBenchStatusLabel } from '@features/hardware/soaibenchLabels.ts';
 import { formatSoAIBenchTextTable } from '@features/hardware/soaibenchTextTable.ts';
 import { buildSoAIBenchPhaseDiagnosticDisplays } from '@features/hardware/soaibenchPhaseDiagnostics.ts';
 import type { GpuSoAIBenchPhaseDiagnostics } from '@core/api/contracts/hardwareSoAIBenchTypes.ts';
@@ -51,6 +51,7 @@ interface SoAIBenchExportRun {
     settingsSnapshotAvailable: boolean | null;
     staleHardware: boolean | null;
     reasonMessage: string | null;
+    deadline?: SoAIBenchDeadline;
     guidanceMessage: string | null;
     failureReason: string | null;
     unsupportedReason: string | null;
@@ -82,12 +83,11 @@ const appendOptionalBooleanRow = (rows: TextTableRow[], label: string, value: bo
 };
 
 const appendReasonRow = (rows: TextTableRow[], run: SoAIBenchExportRun): void => {
-    const reason = resolveSoAIBenchReasonLabel(run.reasonMessage, run.failureReason, run.unsupportedReason, run.staleHardware === true);
+    const reason = resolveSoAIBenchReasonLabel(run.reasonMessage, run.failureReason, run.unsupportedReason, run.staleHardware === true, run.guidanceMessage, run.deadline);
     if (reason === null) {
         return;
     }
-    const value = run.guidanceMessage ? `${reason} — ${run.guidanceMessage}` : reason;
-    rows.push([i18n.t('hardware.modals.soaibenchHistory.columns.reason'), value]);
+    rows.push([i18n.t('hardware.modals.soaibenchHistory.columns.reason'), reason]);
 };
 
 const formatRunSummaryTable = (input: SoAIBenchRunExportInput): string => {
@@ -172,6 +172,7 @@ const exportRunFromHistoryRun = (run: SoAIBenchHistoryRun): SoAIBenchExportRun =
     settingsSnapshotAvailable: run.settingsSnapshotAvailable,
     staleHardware: run.staleHardware,
     reasonMessage: run.reasonMessage,
+    ...(run.deadline === undefined ? {} : { deadline: run.deadline }),
     guidanceMessage: run.guidanceMessage,
     failureReason: run.failureReason,
     unsupportedReason: run.unsupportedReason,
@@ -200,6 +201,7 @@ const exportRunFromRunRecord = (run: SoAIBenchRunRecord): SoAIBenchExportRun => 
     settingsSnapshotAvailable: null,
     staleHardware: null,
     reasonMessage: run.reasonMessage,
+    ...(run.deadline === undefined ? {} : { deadline: run.deadline }),
     guidanceMessage: run.guidanceMessage,
     failureReason: run.failureReason,
     unsupportedReason: run.unsupportedReason,

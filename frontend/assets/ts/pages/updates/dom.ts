@@ -11,6 +11,8 @@ const requireUpdatesUi = (pageDom: PageDom): UpdatesUiRefs => ({
     pageNoticeIndicator: pageDom.requireHTMLElement('#updatesPageNoticeIndicator'),
     pageNoticeHeading: pageDom.requireHTMLElement('#updatesPageNoticeHeading'),
     pageNoticeDetail: pageDom.requireHTMLElement('#updatesPageNoticeDetail'),
+    historyText: pageDom.requireHTMLElement('#updatesHistoryText'),
+    statusSection: pageDom.requireHTMLElement('#updatesStatus'),
     statusIcon: pageDom.requireHTMLElement('#updatesStatusIcon'),
     statusSpinner: pageDom.requireHTMLElement('#updatesStatusSpinner'),
     statusHeading: pageDom.requireHTMLElement('#updatesStatusHeading'),

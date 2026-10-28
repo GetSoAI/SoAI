@@ -19,7 +19,7 @@ from orchestrator.tool_calls.execution_persistence import (
 
 if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
-    from core.types.json import JSONDict
+    from core.types.json import JSONDict, JSONValue
     from orchestrator.tool_calls.persistence import (
         ToolCallExecutionRecord,
         ToolCallPersistenceContext,
@@ -27,7 +27,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "build_execution_boundary_error_payload",
-    "log_execution_boundary_error_and_build_payload",
     "persist_execution_error_result_or_return_payload",
     "persist_mcp_error_result_or_return_payload",
 )
@@ -45,30 +44,6 @@ def build_execution_boundary_error_payload(exception: BaseException) -> JSONDict
         error_message=public_error.message,
         code=public_error.code,
     )
-
-
-def log_execution_boundary_error_and_build_payload(
-    *,
-    logger: LoggerProtocol,
-    exception: BaseException,
-    message: str,
-    tool_name: str,
-    call_identifier: str,
-    storage_call_identifier: str,
-) -> JSONDict:
-    coerced = coerce_to_soai_error(
-        exception,
-        operation=OPERATION_EXECUTE_SINGLE_TOOL_CALL,
-    )
-    _log_tool_error(
-        logger=logger,
-        exception=coerced,
-        message=message,
-        tool_name=tool_name,
-        call_identifier=call_identifier,
-        storage_call_identifier=storage_call_identifier,
-    )
-    return build_execution_boundary_error_payload(exception)
 
 
 def _log_tool_error(
@@ -104,7 +79,7 @@ async def persist_mcp_error_result_or_return_payload(
     tool_name: str,
     call_identifier: str,
     storage_call_identifier: str,
-) -> JSONDict:
+) -> JSONValue:
     if int(exception.rpc_code) == -32603:
         log_handled_exception(
             logger,
@@ -165,7 +140,7 @@ async def persist_execution_error_result_or_return_payload(
     call_identifier: str,
     storage_call_identifier: str,
     log_message: str,
-) -> JSONDict:
+) -> JSONValue:
     coerced = coerce_to_soai_error(
         exception,
         operation=OPERATION_EXECUTE_SINGLE_TOOL_CALL,

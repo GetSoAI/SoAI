@@ -9,9 +9,9 @@ export const renderTerminalPageView = (): string => {
     return `<div id="terminal-root" class="terminal-page page-scrollable" data-section="terminal" data-page-transition-surface="true">
             <div class="terminal-container">
                 <div class="terminal-toolbar">
-                    <button class="terminal-btn" id="terminal-text-increase" data-action="${TERMINAL_ACTION_TEXT_INCREASE}" type="button" ${renderLabelAttributes(i18n.t('terminal.ariaLabels.increaseTextSize'))}></button>
-                    <button class="terminal-btn" id="terminal-text-decrease" data-action="${TERMINAL_ACTION_TEXT_DECREASE}" type="button" ${renderLabelAttributes(i18n.t('terminal.ariaLabels.decreaseTextSize'))}></button>
-                    <button class="terminal-btn" id="terminal-clear" data-action="${TERMINAL_ACTION_CLEAR}" type="button" ${renderLabelAttributes(i18n.t('terminal.ariaLabels.clearTerminal'))}></button>
+                    <button class="terminal-btn ui-icon-button ui-variant-neutral" id="terminal-text-increase" data-action="${TERMINAL_ACTION_TEXT_INCREASE}" type="button" ${renderLabelAttributes(i18n.t('terminal.ariaLabels.increaseTextSize'))}></button>
+                    <button class="terminal-btn ui-icon-button ui-variant-neutral" id="terminal-text-decrease" data-action="${TERMINAL_ACTION_TEXT_DECREASE}" type="button" ${renderLabelAttributes(i18n.t('terminal.ariaLabels.decreaseTextSize'))}></button>
+                    <button class="terminal-btn ui-icon-button ui-variant-neutral" id="terminal-clear" data-action="${TERMINAL_ACTION_CLEAR}" type="button" ${renderLabelAttributes(i18n.t('terminal.ariaLabels.clearTerminal'))}></button>
                 </div>
                 <div class="terminal-shell" id="terminal-shell" data-action="${TERMINAL_ACTION_FOCUS}"></div>
             </div>

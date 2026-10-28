@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from core.mcp.protocols_main import ReadAudioGatewayProtocol
     from core.read_video.operations import ReadVideoProgressUpdate
     from core.read_video.protocols_database import DatabaseReadVideoJobsProtocol
+    from core.runtime.request_context import RequestContext
     from core.tasks.protocols import TaskRegistryProtocol
     from mcp.tools.read_video_config import ReadVideoConfig
     from mcp.tools.read_video_cursor import ReadVideoCursor
@@ -50,3 +51,4 @@ class ReadVideoEngineDeps:
     transcriber: ReadAudioGatewayProtocol
     on_progress: Callable[[ReadVideoProgressUpdate], Awaitable[None]]
     clock: Callable[[], int]
+    speech_request_context: RequestContext

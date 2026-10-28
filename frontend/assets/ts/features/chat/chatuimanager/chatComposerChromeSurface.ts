@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
-import { isEditableKeyTarget } from '@features/chat/chatuimanager/autoScrollLockRuntime.ts';
+import { isEditableKeyTarget, isMainTimelineAtBottom } from '@features/chat/mainTimelineScroll.ts';
 import { createChatChromeSurfaceController, type ChatChromeSurfaceController } from '@features/chat/chatuimanager/chatChromeSurfaceController.ts';
 import { getElement, isAnyElementShown } from '@features/chat/chatuimanager/dom.ts';
 import type { ChatUIManagerContext, ElementSelectorKey } from '@features/chat/chatuimanager/types.ts';
@@ -30,6 +30,8 @@ export const setupChatComposerChromeSurface = (context: ChatUIManagerContext, is
     const documentRef = dependencies.dom.getDocument();
     let compositionActive = false;
     let stopFloating = false;
+    let conversationSelectionActive = false;
+    let selectionDragActive = false;
 
     const isFloatingStop = (target: EventTarget | null): boolean => stopFloating && target instanceof Node && getElement(context, 'actionBtn')?.contains(target) === true;
 
@@ -45,13 +47,18 @@ export const setupChatComposerChromeSurface = (context: ChatUIManagerContext, is
         if (wrapper.classList.contains(className) !== active) dependencies.toggleClassName(wrapper, className, active);
     };
 
-    const controller = createChatChromeSurfaceController(context, {
+    const controller: ChatChromeSurfaceController = createChatChromeSurfaceController(context, {
         isGlobalPinned,
         config: {
             revealEdge: 'bottom',
             resolveElement: () => resolveInputWrapper(context),
+            resolveInteractionElements: (wrapper) => [wrapper],
             resolveRevealBounds: (wrapper) => measureLayoutBox(wrapper),
             isPinned: (wrapper) => !dependencies.settings.isAutoHideChatComposerEnabled() || (!dependencies.messageManager.isMessageEditing() && hasDraftActivity(wrapper)),
+            isTemporaryHideExempt: (shown) => {
+                const messagesArea = getElement(context, 'messagesArea');
+                return messagesArea !== null && dependencies.session.getCurrentConversation()?.history?.hasNewer !== true && isMainTimelineAtBottom(messagesArea) && (!selectionDragActive || shown);
+            },
             isRevealBlocked: () => dependencies.messageManager.isMessageEditing(),
             isPointerTargetIgnored: isFloatingStop,
             project: (wrapper, visible) => {
@@ -73,20 +80,51 @@ export const setupChatComposerChromeSurface = (context: ChatUIManagerContext, is
     };
 
     const handleDocumentKeyDown = (event: Event): void => {
-        if (!(event instanceof KeyboardEvent) || !isTypingRevealKey(event) || controller.isShown()) return;
+        if (!(event instanceof KeyboardEvent) || !isTypingRevealKey(event) || controller.isShown() || conversationSelectionActive) return;
         const input = getElement(context, 'input');
         if (!(input instanceof HTMLTextAreaElement) || !isTypingRevealTarget(event.target, input) || input.closest('[inert]') !== null || dependencies.messageManager.isMessageEditing()) return;
         controller.reset();
         input.focus({ preventScroll: true });
     };
 
+    const handleSelectionChange = (): void => {
+        const selection = documentRef.getSelection();
+        const messagesArea = getElement(context, 'messagesArea');
+        conversationSelectionActive = false;
+        if (selection !== null && !selection.isCollapsed && messagesArea !== null) {
+            for (let rangeIndex = 0; rangeIndex < selection.rangeCount; rangeIndex += 1) {
+                if (selection.getRangeAt(rangeIndex).intersectsNode(messagesArea)) {
+                    conversationSelectionActive = true;
+                    break;
+                }
+            }
+        }
+        controller.setTemporarilyHidden(conversationSelectionActive);
+    };
+
+    const handleSelectionPointer = (event: Event): void => {
+        if (!(event instanceof PointerEvent) || event.pointerType !== 'mouse') return;
+        if (event.type === 'pointerdown') {
+            const messagesArea = getElement(context, 'messagesArea');
+            selectionDragActive = event.button === 0 && event.target instanceof Node && messagesArea?.contains(event.target) === true;
+        } else if (selectionDragActive && (event.buttons === 0 || event.type === 'pointercancel')) {
+            selectionDragActive = false;
+            controller.commit();
+        }
+    };
+
     const wrapper = resolveInputWrapper(context);
     const input = getElement(context, 'input');
     if (wrapper !== null && input !== null) {
+        for (const eventType of ['pointerdown', 'pointerup', 'pointercancel', 'pointermove']) {
+            controller.addDisposer(dependencies.runtime.on(documentRef, eventType, handleSelectionPointer, { passive: true }));
+        }
+        controller.addDisposer(dependencies.runtime.on(documentRef, 'selectionchange', handleSelectionChange));
         controller.addDisposer(dependencies.runtime.on(documentRef, 'keydown', handleDocumentKeyDown));
         controller.addDisposer(dependencies.runtime.on(wrapper, 'focusin', () => controller.commit(), { passive: true }));
         controller.addDisposer(dependencies.runtime.on(input, 'compositionstart', () => handleCompositionChange(true), { passive: true }));
         controller.addDisposer(dependencies.runtime.on(input, 'compositionend', () => handleCompositionChange(false), { passive: true }));
+        handleSelectionChange();
     }
 
     return controller;

@@ -12,6 +12,10 @@ from database.core.sqlite_numbers import (
     coerce_required_int_from_sqlite_row,
     coerce_required_nonempty_str_from_sqlite_row,
 )
+from database.repositories.memory.graph_records import (
+    sync_insert_memory_entity,
+    sync_insert_memory_observation,
+)
 
 __all__ = ("sync_replace_entity_observations_for_source",)
 
@@ -35,10 +39,7 @@ def sync_replace_entity_observations_for_source(
     if entity_row is None:
         if not contents or not entity_type:
             return
-        conn.execute(
-            "INSERT INTO mcp_memory_entities (id, user_id, name, entity_type, created_at_ms, updated_at_ms) VALUES (?, ?, ?, ?, ?, ?)",
-            (uuid.uuid4().hex, user_id, entity_name, entity_type, now, now),
-        )
+        sync_insert_memory_entity(conn, uuid.uuid4().hex, user_id, entity_name, entity_type, now)
         entity_row = sync_fetch_one_as_dict(
             conn.execute(
                 "SELECT id FROM mcp_memory_entities WHERE user_id = ? AND name = ?",
@@ -53,10 +54,7 @@ def sync_replace_entity_observations_for_source(
         (entity_id, source),
     )
     for content in contents:
-        conn.execute(
-            "INSERT INTO mcp_memory_observations (id, entity_id, content, source, created_at_ms) VALUES (?, ?, ?, ?, ?)",
-            (uuid.uuid4().hex, entity_id, content, source, now),
-        )
+        sync_insert_memory_observation(conn, uuid.uuid4().hex, entity_id, content, source, now)
     conn.execute("UPDATE mcp_memory_entities SET updated_at_ms = ? WHERE id = ?", (now, entity_id))
     if not delete_entity_if_empty:
         return

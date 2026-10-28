@@ -31,6 +31,12 @@ interface SharedStateHooks {
 type UserSerializer = (value: WebuiUser) => Promise<WebuiUser>;
 type SharedStateTransitionRunner = <T>(operation: () => Promise<T>) => Promise<T>;
 
+interface SharedStateOwnership {
+    revision: SharedAuthState['revision'];
+    generation: number;
+    authEpoch: number;
+}
+
 const runDirectSharedStateTransition: SharedStateTransitionRunner = async (operation) => await operation();
 
 const resolveStorageStateManager = (): StateManager => {
@@ -41,54 +47,62 @@ const resolveStorageStateManager = (): StateManager => {
     return stateManager;
 };
 
-const isCurrentSharedRevision = (state: AuthManagerStateHandle, revision: SharedAuthState['revision'], generation: number): boolean => {
-    return state.sharedStateGeneration === generation && compareCrossTabRevision(revision, state.stateRevision) === 0;
+const isCurrentSharedRevision = (state: AuthManagerStateHandle, ownership: SharedStateOwnership): boolean => {
+    return state.sharedStateGeneration === ownership.generation && state.authEpoch === ownership.authEpoch && compareCrossTabRevision(ownership.revision, state.stateRevision) === 0;
 };
 
-const commitSharedState = async (state: AuthManagerStateHandle, snapshot: SharedAuthState, serialized: WebuiUser | null, hooks: SharedStateHooks, generation: number): Promise<boolean> => {
-    if (!isCurrentSharedRevision(state, snapshot.revision, generation)) {
+const acceptsSharedUserRevision = (state: AuthManagerStateHandle, user: WebuiUser): boolean => {
+    if (!state.isAuthenticated || !state.user || state.user.id !== user.id || state.terminalEpoch !== null) return true;
+    const decision = compareWebuiUserRevision(state.user, user);
+    if (decision === 'integrity_error') throw new Error('Shared user revision contains conflicting identity fields.');
+    return decision !== 'stale';
+};
+
+const commitSharedState = async (state: AuthManagerStateHandle, snapshot: SharedAuthState, serialized: WebuiUser | null, hooks: SharedStateHooks, ownership: SharedStateOwnership): Promise<boolean> => {
+    if (!isCurrentSharedRevision(state, ownership)) {
         return false;
+    }
+    const committedOwnership = { ...ownership, authEpoch: state.authEpoch + 1 };
+    if (!snapshot.isAuthenticated) {
+        state.authEpoch = committedOwnership.authEpoch;
+        state.terminalEpoch = state.authEpoch;
     }
     state.isApplyingSharedState = true;
     try {
         if (snapshot.isAuthenticated && serialized) {
+            if (!acceptsSharedUserRevision(state, serialized)) return false;
             let candidate = serialized;
             const previousUser = state.user && isObject(state.user) ? state.user : null;
             if (!previousUser || !state.isAuthenticated || previousUser.id !== serialized.id || state.terminalEpoch !== null) {
-                const probedAuthEpoch = state.authEpoch;
                 const probedTerminalEpoch = state.terminalEpoch;
                 const verified = await hooks.probeAuthenticatedUser(serialized);
-                if (verified === null || verified.id !== serialized.id || state.authEpoch !== probedAuthEpoch || state.terminalEpoch !== probedTerminalEpoch) return false;
+                if (verified === null || verified.id !== serialized.id || !isCurrentSharedRevision(state, ownership) || state.terminalEpoch !== probedTerminalEpoch) return false;
                 candidate = verified;
-                state.authEpoch += 1;
-                state.terminalEpoch = null;
-            } else {
-                const decision = compareWebuiUserRevision(previousUser, serialized);
-                if (decision === 'stale') return false;
-                if (decision === 'integrity_error') throw new Error('Shared user revision contains conflicting identity fields.');
             }
             const wasAuthenticated = state.isAuthenticated;
-            const userChanged = !previousUser || previousUser.identityRevision !== candidate.identityRevision || previousUser.workspacePathResolved !== candidate.workspacePathResolved;
+            const userChanged = !previousUser || previousUser.id !== candidate.id || previousUser.identityRevision !== candidate.identityRevision || previousUser.workspacePathResolved !== candidate.workspacePathResolved;
             await hooks.persistLogin(candidate);
-            if (!isCurrentSharedRevision(state, snapshot.revision, generation) || state.isLoggingOut || state.terminalEpoch !== null) {
+            if (!isCurrentSharedRevision(state, ownership) || state.isLoggingOut) {
                 return false;
             }
+            state.authEpoch = committedOwnership.authEpoch;
+            state.terminalEpoch = null;
             state.user = candidate;
             state.isAuthenticated = true;
             if (!wasAuthenticated || userChanged) {
                 await hooks.notifyLogin(state);
             }
-            return isCurrentSharedRevision(state, snapshot.revision, generation);
+            return isCurrentSharedRevision(state, committedOwnership);
         }
         if (!snapshot.isAuthenticated && state.isAuthenticated) {
             await hooks.persistLogout();
-            if (!isCurrentSharedRevision(state, snapshot.revision, generation)) {
+            if (!isCurrentSharedRevision(state, committedOwnership)) {
                 return false;
             }
             state.user = null;
             state.isAuthenticated = false;
             await hooks.notifyLogout(state);
-            return isCurrentSharedRevision(state, snapshot.revision, generation);
+            return isCurrentSharedRevision(state, committedOwnership);
         }
         return false;
     } finally {
@@ -96,13 +110,13 @@ const commitSharedState = async (state: AuthManagerStateHandle, snapshot: Shared
     }
 };
 
-const queueSharedStateCommit = async (state: AuthManagerStateHandle, snapshot: SharedAuthState, serialized: WebuiUser | null, hooks: SharedStateHooks, generation: number): Promise<boolean> => {
+const queueSharedStateCommit = async (state: AuthManagerStateHandle, snapshot: SharedAuthState, serialized: WebuiUser | null, hooks: SharedStateHooks, ownership: SharedStateOwnership, runTransition: SharedStateTransitionRunner): Promise<boolean> => {
     const previousCommit = state.sharedStateCommitTask;
     const execute = async (): Promise<boolean> => {
         if (previousCommit) {
             await previousCommit;
         }
-        return await commitSharedState(state, snapshot, serialized, hooks, generation);
+        return await runTransition(async () => await commitSharedState(state, snapshot, serialized, hooks, ownership));
     };
     const commitTask = execute();
     const queueTail = commitTask.then(
@@ -121,7 +135,7 @@ const queueSharedStateCommit = async (state: AuthManagerStateHandle, snapshot: S
     }
 };
 
-const applySharedState = async (state: AuthManagerStateHandle, snapshot: SharedAuthState | null, hooks: SharedStateHooks, serialize: UserSerializer = serializeUser, initial = false): Promise<boolean> => {
+const applySharedState = async (state: AuthManagerStateHandle, snapshot: SharedAuthState | null, hooks: SharedStateHooks, serialize: UserSerializer = serializeUser, initial = false, runTransition: SharedStateTransitionRunner = runDirectSharedStateTransition): Promise<boolean> => {
     if (!snapshot || !isObject(snapshot)) {
         return false;
     }
@@ -129,17 +143,19 @@ const applySharedState = async (state: AuthManagerStateHandle, snapshot: SharedA
     if (!initial && compareCrossTabRevision(revision, state.stateRevision) <= 0) {
         return false;
     }
-    state.stateRevision = revision;
-    if (!snapshot.isAuthenticated) {
-        state.authEpoch += 1;
-        state.terminalEpoch = state.authEpoch;
-    }
-    const generation = state.sharedStateGeneration;
     const isAuthenticated = Boolean(snapshot.isAuthenticated);
-    if (initial && isAuthenticated) return false;
-    const hasUser = isAuthenticated && snapshot.user !== null && isObject(snapshot.user);
-    const serialized = hasUser && snapshot.user !== null ? await serialize(snapshot.user) : null;
-    return await queueSharedStateCommit(state, snapshot, serialized, hooks, generation);
+    if (initial && isAuthenticated) {
+        state.stateRevision = revision;
+        return false;
+    }
+    const user = snapshot.user;
+    const hasUser = isAuthenticated && user !== null && isObject(user);
+    if (isAuthenticated && !hasUser) return false;
+    if (hasUser && !acceptsSharedUserRevision(state, user)) return false;
+    state.stateRevision = revision;
+    const ownership = { revision, generation: state.sharedStateGeneration, authEpoch: state.authEpoch };
+    const serialized = hasUser ? await serialize(user) : null;
+    return await queueSharedStateCommit(state, snapshot, serialized, hooks, ownership, runTransition);
 };
 
 const connectSharedState = async (state: AuthManagerStateHandle, hooks: SharedStateHooks, serialize: UserSerializer = serializeUser, runTransition: SharedStateTransitionRunner = runDirectSharedStateTransition): Promise<StateManager | null> => {
@@ -190,7 +206,7 @@ const connectSharedState = async (state: AuthManagerStateHandle, hooks: SharedSt
                 if (!normalized) {
                     return;
                 }
-                void runTransition(async () => await applySharedState(state, normalized, hooks, serialize))
+                void applySharedState(state, normalized, hooks, serialize, false, runTransition)
                     .then((applied) => {
                         if (!applied) {
                             return;

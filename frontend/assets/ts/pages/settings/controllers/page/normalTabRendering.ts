@@ -10,7 +10,8 @@ const renderNormalTabContent = (state: SettingsPageState, definition: NormalTabD
             const manager = state.preferencesManager;
             if (!manager) throw new Error('PreferencesManager not initialized');
             const identityContent = state.instanceIdentityManager?.render().html ?? '';
-            return manager.render(identityContent).html;
+            const speechContent = state.speechModelSettingsManager?.render().html ?? '';
+            return manager.render(identityContent, speechContent).html;
         }
         case 'theme': {
             const manager = state.themeManager;

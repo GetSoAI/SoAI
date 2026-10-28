@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ensureError } from '@core/errors/coerce.ts';
+import { scheduleRequiredRender } from '@core/runtime/animationFrames.ts';
 import { runCleanupCallbacks } from '@core/lifecycle/cleanup.ts';
 import { disposeResourceStreamSubscriptions, subscribeResourceStateStreamBatch, type ResourceStreamSubscription } from '@core/realtime/resourceSubscriptions.ts';
 import { isJsonArray, isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
@@ -15,6 +16,7 @@ interface MetricsStreamHost extends PageResourcesOwnerHost {
     cancelAnimationFrame: (frameId: number) => void;
     isActive: () => boolean;
     processMetricsUpdate: (data: MetricsData) => void;
+    refreshMetricsDisplays: () => void;
     processPluginsUpdate: (data: readonly JsonValue[]) => void;
     setMetricsDisposer: (disposer: (() => void) | null) => void;
     setPluginsDisposer: (disposer: (() => void) | null) => void;
@@ -41,65 +43,68 @@ const disposeMetricsStreamSubscriptions = (host: MetricsStreamHost, metricsSubsc
 const initializeMetricsStream = async (host: MetricsStreamHost, signal: AbortSignal): Promise<void> => {
     host.disposeMetricsSubscription();
     host.disposePluginsSubscription();
-    let pendingMetrics: MetricsData | null = null;
-    let pendingFrame: number | null = null;
-    const frameCleanupController = new AbortController();
-    const cancelPendingMetricsFrame = (): void => {
-        if (pendingFrame !== null) {
-            host.cancelAnimationFrame(pendingFrame);
-            pendingFrame = null;
-        }
-        pendingMetrics = null;
+    let cancelPendingRender: (() => void) | null = null;
+    const renderCleanupController = new AbortController();
+    const isCurrent = (): boolean => !signal.aborted && !renderCleanupController.signal.aborted && host.isActive();
+    const cancelPendingMetricsRender = (): void => {
+        cancelPendingRender?.();
+        cancelPendingRender = null;
     };
-    const disposePendingMetricsFrame = (): void => {
-        frameCleanupController.abort();
-        cancelPendingMetricsFrame();
+    const disposePendingMetricsRender = (): void => {
+        renderCleanupController.abort();
+        cancelPendingMetricsRender();
     };
-    const flushPendingMetrics = (): void => {
-        pendingFrame = null;
-        const data = pendingMetrics;
-        pendingMetrics = null;
-        if (!data || signal.aborted || !host.isActive()) {
+    const flushMetricsDisplays = (): void => {
+        cancelPendingRender = null;
+        if (!isCurrent()) {
             return;
         }
-        host.processMetricsUpdate(data);
+        host.refreshMetricsDisplays();
     };
     const queueMetricsUpdate = (data: MetricsData): void => {
-        if (signal.aborted || !host.isActive()) {
+        host.processMetricsUpdate(data);
+        if (!isCurrent()) {
             return;
         }
-        pendingMetrics = data;
-        if (pendingFrame !== null) {
+        if (cancelPendingRender !== null) {
             return;
         }
-        pendingFrame = host.requestAnimationFrame(flushPendingMetrics);
+        cancelPendingRender = scheduleRequiredRender(flushMetricsDisplays, { requestAnimationFrame: (callback) => host.requestAnimationFrame(callback), cancelAnimationFrame: (identifier) => host.cancelAnimationFrame(identifier) });
     };
-    signal.addEventListener('abort', cancelPendingMetricsFrame, { once: true, signal: frameCleanupController.signal });
+    signal.addEventListener('abort', cancelPendingMetricsRender, { once: true, signal: renderCleanupController.signal });
 
-    const subscriptions = subscribeResourceStateStreamBatch({
-        label: 'Metrics realtime',
-        subscribeToData: (resource, handler) => host.subscribeToData(resource, handler),
-        bindings: [
-            {
-                resource: host.metricsStreamId,
-                handler: (value: JsonValue | null): void => {
-                    if (!isMetricsData(value)) {
-                        throw new Error('Metrics realtime payload must be an object');
+    let subscriptions: ResourceStreamSubscription[];
+    try {
+        subscriptions = subscribeResourceStateStreamBatch({
+            label: 'Metrics realtime',
+            subscribeToData: (resource, handler) => host.subscribeToData(resource, handler),
+            bindings: [
+                {
+                    resource: host.metricsStreamId,
+                    handler: (value: JsonValue | null): void => {
+                        if (!isCurrent()) return;
+                        if (!isMetricsData(value)) {
+                            throw new Error('Metrics realtime payload must be an object');
+                        }
+                        queueMetricsUpdate(value);
                     }
-                    queueMetricsUpdate(value);
-                }
-            },
-            {
-                resource: host.pluginsStreamId,
-                handler: (value: JsonValue | null): void => {
-                    if (!isJsonArray(value)) {
-                        throw new Error('Plugins realtime payload must be an array');
+                },
+                {
+                    resource: host.pluginsStreamId,
+                    handler: (value: JsonValue | null): void => {
+                        if (!isCurrent()) return;
+                        if (!isJsonArray(value)) {
+                            throw new Error('Plugins realtime payload must be an array');
+                        }
+                        host.processPluginsUpdate(value);
                     }
-                    host.processPluginsUpdate(value);
                 }
-            }
-        ]
-    });
+            ]
+        });
+    } catch (error) {
+        disposePendingMetricsRender();
+        throw ensureError(error);
+    }
     const metricsSubscription = subscriptions[0];
     const pluginsSubscription = subscriptions[1];
     if (!metricsSubscription || !pluginsSubscription) {
@@ -111,9 +116,9 @@ const initializeMetricsStream = async (host: MetricsStreamHost, signal: AbortSig
         }
         throw initializationError;
     }
-    const metricsSubscriptionWithFrameCleanup: ResourceStreamSubscription = {
+    const metricsSubscriptionWithRenderCleanup: ResourceStreamSubscription = {
         dispose: (): void => {
-            disposePendingMetricsFrame();
+            disposePendingMetricsRender();
             metricsSubscription.dispose();
         }
     };
@@ -121,14 +126,14 @@ const initializeMetricsStream = async (host: MetricsStreamHost, signal: AbortSig
     let metricsDisposerRegistered = false;
     let pluginsDisposerRegistered = false;
     try {
-        host.setMetricsDisposer(metricsSubscriptionWithFrameCleanup.dispose);
+        host.setMetricsDisposer(metricsSubscriptionWithRenderCleanup.dispose);
         metricsDisposerRegistered = true;
         host.setPluginsDisposer(pluginsSubscription.dispose);
         pluginsDisposerRegistered = true;
         await host.ensureDataSubscriptions({ signal });
     } catch (error) {
         try {
-            disposeMetricsStreamSubscriptions(host, metricsSubscriptionWithFrameCleanup, pluginsSubscription, { metrics: metricsDisposerRegistered, plugins: pluginsDisposerRegistered });
+            disposeMetricsStreamSubscriptions(host, metricsSubscriptionWithRenderCleanup, pluginsSubscription, { metrics: metricsDisposerRegistered, plugins: pluginsDisposerRegistered });
         } catch (cleanupError) {
             throw new AggregateError([ensureError(error), ensureError(cleanupError)], 'Metrics realtime initialization failed and cleanup also failed');
         }
@@ -136,16 +141,16 @@ const initializeMetricsStream = async (host: MetricsStreamHost, signal: AbortSig
     }
 
     if (!host.isActive()) {
-        disposeMetricsStreamSubscriptions(host, metricsSubscriptionWithFrameCleanup, pluginsSubscription, { metrics: true, plugins: true });
+        disposeMetricsStreamSubscriptions(host, metricsSubscriptionWithRenderCleanup, pluginsSubscription, { metrics: true, plugins: true });
         return;
     }
 
     try {
-        host.pageResources.track(metricsSubscriptionWithFrameCleanup.dispose, () => host.disposeMetricsSubscription());
+        host.pageResources.track(metricsSubscriptionWithRenderCleanup.dispose, () => host.disposeMetricsSubscription());
         host.pageResources.track(pluginsSubscription.dispose, () => host.disposePluginsSubscription());
     } catch (error) {
         try {
-            disposeMetricsStreamSubscriptions(host, metricsSubscriptionWithFrameCleanup, pluginsSubscription, { metrics: true, plugins: true });
+            disposeMetricsStreamSubscriptions(host, metricsSubscriptionWithRenderCleanup, pluginsSubscription, { metrics: true, plugins: true });
         } catch (cleanupError) {
             throw new AggregateError([ensureError(error), ensureError(cleanupError)], 'Metrics realtime tracking failed and cleanup also failed');
         }

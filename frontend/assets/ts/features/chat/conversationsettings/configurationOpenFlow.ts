@@ -30,6 +30,7 @@ const openConversationSettings = async (inputArguments: ConversationSettingsOpen
         if (inputArguments.readConversationId() !== null) {
             inputArguments.resetState(null);
         }
+        terminateHandledPromise(controllers.skillsController.open(null));
         controllers.workspacePathController.setConversation(null);
         controllers.identityPromptsController.syncFromConversation(null);
         return;
@@ -42,6 +43,7 @@ const openConversationSettings = async (inputArguments: ConversationSettingsOpen
     if (!conversationId) {
         return;
     }
+    let skillsHydration: Promise<void> | null = null;
     const operation = loadConversationSettings({
         conversation,
         host,
@@ -51,6 +53,8 @@ const openConversationSettings = async (inputArguments: ConversationSettingsOpen
         ragController: controllers.ragController,
         mcpController: controllers.mcpController,
         onConversationPersisted: (persistedConversation) => {
+            skillsHydration = controllers.skillsController.open(persistedConversation.id ?? null);
+            terminateHandledPromise(skillsHydration);
             controllers.workspacePathController.setConversation(persistedConversation.id ?? null);
             if (!inputArguments.isIdentityPromptsDirty()) {
                 controllers.identityPromptsController.syncFromConversation({
@@ -73,7 +77,8 @@ const openConversationSettings = async (inputArguments: ConversationSettingsOpen
         isLoadTokenActive: (token) => inputArguments.isLoadTokenActive(token)
     });
     terminateHandledPromise(operation);
-    return operation;
+    await operation;
+    await skillsHydration;
 };
 
 export { openConversationSettings };

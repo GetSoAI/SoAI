@@ -5,31 +5,28 @@ from __future__ import annotations
 
 import fnmatch
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 
-from app.backup.backup_removal import sync_remove_tree_no_symlinks
 from app.backup.copy_no_symlinks.constants import UPDATER_EXCLUSIONS
 from app.installation_transaction_admission import (
     TRANSACTION_CLEANUP_PREFIX,
     TRANSACTION_PREFIX,
     guard_installation_transaction_admission,
 )
+from core.bootstrap.filename_layout import packaged_filename
 from core.bootstrap.install_payload import INSTALL_MANIFEST_FILENAME, MANAGED_DOCUMENT_ENTRIES
-from core.errors.exception_logging import log_exception
-from core.errors.exceptions import ConflictError, SecurityError, StateError, ValidationError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.errors.exceptions import StateError
 from core.files.temp_files import create_secure_temp_directory
 from core.filesystem.atomic_write_primitives import fsync_directory
 from core.filesystem.atomic_writes import atomic_write_text_content
 from core.filesystem.open_files import read_regular_file_no_symlink
-from core.logging.protocols import LoggerProtocol
 from core.runtime.process_identity import SOAI_BACKEND_MAIN_SUBPATH
 
 __all__ = (
     "AppliedUpdateTransaction",
     "UpdateTransactionPaths",
     "allocate_update_transaction",
-    "cleanup_update_transaction",
     "build_rollback_top_level_ignore_patterns",
     "build_update_extraction_top_level_ignore_patterns",
     "build_update_top_level_ignore_patterns",
@@ -40,16 +37,6 @@ __all__ = (
     "required_update_paths",
     "validate_transaction_markers",
     "write_marker",
-)
-
-OPERATION_CLEANUP_UPDATE_TRANSACTION = "application_updater.cleanup_update_transaction"
-
-TRANSACTION_DISPOSAL_EXCEPTIONS = RECOVERABLE_EXCEPTIONS + (
-    OSError,
-    ConflictError,
-    SecurityError,
-    StateError,
-    ValidationError,
 )
 
 STAGED_NEW_DIR = "new"
@@ -89,7 +76,6 @@ CORE_REQUIRED_UPDATE_PATHS = (
     "plugins/embedding.soaiplugin",
     "plugins/whisper.soaiplugin",
     "plugins/melotts.soaiplugin",
-    *MANAGED_DOCUMENT_ENTRIES,
 )
 EXECUTABLE_UPDATE_FILES = (
     "install-soai-macos.command",
@@ -179,6 +165,7 @@ def required_update_paths(platform_id: str) -> tuple[str, ...]:
         raise ValueError(f"Unsupported update platform: {platform_id}")
     return (
         *CORE_REQUIRED_UPDATE_PATHS,
+        *(packaged_filename(name) for name in MANAGED_DOCUMENT_ENTRIES),
         managed_config_default_path,
         managed_vendor_metadata_path,
         *platform_paths,
@@ -232,9 +219,18 @@ def remove_marker(transaction_path: str, marker_name: str) -> None:
         os.remove(path)
 
 
-def allocate_update_transaction(base_path: str) -> UpdateTransactionPaths:
+def allocate_update_transaction(
+    base_path: str,
+    *,
+    installation_lock_held: bool = False,
+    inherited_install_lock_validator: Callable[[str], bool] | None = None,
+) -> UpdateTransactionPaths:
     resolved_base_path = os.path.abspath(base_path)
-    with guard_installation_transaction_admission(resolved_base_path):
+    with guard_installation_transaction_admission(
+        resolved_base_path,
+        installation_lock_held=installation_lock_held,
+        inherited_install_lock_validator=inherited_install_lock_validator,
+    ):
         transaction_path = create_secure_temp_directory(
             prefix=TRANSACTION_PREFIX,
             directory=resolved_base_path,
@@ -269,34 +265,3 @@ def paths_from_transaction_directory(
         staged_new_path=os.path.join(transaction_path, STAGED_NEW_DIR),
         rollback_old_path=os.path.join(transaction_path, ROLLBACK_OLD_DIR),
     )
-
-
-def cleanup_update_transaction(
-    paths: UpdateTransactionPaths, logger: LoggerProtocol, *, deferrable: bool = False
-) -> bool:
-    try:
-        cleanup_path = os.path.join(
-            paths.base_path,
-            os.path.basename(paths.transaction_path).replace(
-                TRANSACTION_PREFIX, TRANSACTION_CLEANUP_PREFIX, 1
-            ),
-        )
-        os.rename(paths.transaction_path, cleanup_path)
-        fsync_directory(paths.base_path, strict=True)
-        sync_remove_tree_no_symlinks(cleanup_path)
-        fsync_directory(paths.base_path, strict=True)
-        return True
-    except TRANSACTION_DISPOSAL_EXCEPTIONS as exception:
-        log_exception(
-            logger,
-            exception,
-            message=(
-                "Update transaction storage is still in use; the next recovery removes it."
-                if deferrable
-                else "Failed to clean up update transaction storage."
-            ),
-            operation=OPERATION_CLEANUP_UPDATE_TRANSACTION,
-            details={"transaction_path": paths.transaction_path},
-            level="info" if deferrable else "warning",
-        )
-        return False

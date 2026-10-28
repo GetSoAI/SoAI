@@ -7,7 +7,7 @@ import type { WizardLicensingDocumentResponse } from '@core/api/contracts/wizard
 import { getApiClient } from '@core/api/service.ts';
 import { AsyncOnceGuard } from '@core/concurrency/AsyncOnce.ts';
 import { LatestRequestController } from '@core/concurrency/latestRequest.ts';
-import { createAbortError, runWithAbortSignalScope } from '@core/errors/abort.ts';
+import { createAbortError, runWithAbortSignalScope, throwIfAborted } from '@core/errors/abort.ts';
 import type { LicenseServiceInterface } from '@core/licenseservice/types.ts';
 import { LicensingOperationPollController } from '@core/licensing/operationPollController.ts';
 
@@ -15,6 +15,7 @@ interface WizardLicensingRequestsOptions {
     licenseService: LicenseServiceInterface;
     onPolledStatus(status: WizardStatusResponse): void;
     onPollFailure(): void;
+    onSetupComplete(): void;
 }
 
 class WizardLicensingRequestsController {
@@ -27,9 +28,11 @@ class WizardLicensingRequestsController {
     readonly #licensingRequests = new LatestRequestController();
     readonly #poll: LicensingOperationPollController<WizardStatusResponse>;
     #pollFailureNotified = false;
+    readonly #onSetupComplete: () => void;
 
     constructor(options: WizardLicensingRequestsOptions) {
         this.#licenseService = options.licenseService;
+        this.#onSetupComplete = options.onSetupComplete;
         this.#poll = new LicensingOperationPollController({
             fetchStatus: (signal) => this.#refreshStatusRequired(signal),
             onStatus: (status) => {
@@ -97,7 +100,11 @@ class WizardLicensingRequestsController {
         return this.#statusRequests.runLatest(async (run) =>
             runWithAbortSignalScope([run.signal, signal], async (combinedSignal) => {
                 const status = await getApiClient().webui.wizard.status({ signal: combinedSignal });
-                if (!isDetailedWizardStatus(status)) throw new Error('Wizard licensing details require an active setup ceremony');
+                throwIfAborted(combinedSignal);
+                if (!isDetailedWizardStatus(status)) {
+                    if (status.hasUsers) this.#onSetupComplete();
+                    return null;
+                }
                 return status;
             })
         );

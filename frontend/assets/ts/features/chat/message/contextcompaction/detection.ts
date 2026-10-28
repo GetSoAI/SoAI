@@ -3,7 +3,7 @@
 
 import { isBoolean, isString } from '@core/typeGuards.ts';
 import { isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
-import type { AssistantEventTimelineItem, ChatMessage, SoaiCompactionMarker } from '@features/chat/ChatTypes.ts';
+import type { AssistantEventTimelineItem, ChatMessage, SoaiCompactionMarker, ToolActivityItem } from '@features/chat/ChatTypes.ts';
 import { timelineHasVisibleAssistantTextDelta } from '@features/chat/assistanteventtimeline/timelineTextDeltas.ts';
 import { flattenTextFragments } from '@features/chat/message/messageTextFlattening.ts';
 import { normalizeToolLeafName } from '@features/chat/toolactivity/toolLeafName.ts';
@@ -66,11 +66,11 @@ const isRemovedContextCompactionResult = (value: JsonValue | undefined): boolean
     return typeof removedAtMs === 'number' && Number.isInteger(removedAtMs) && removedAtMs > 0;
 };
 
-const isContextCompactionBoundaryMessage = (message: ChatMessage): boolean => {
+const isContextCompactionBoundaryMessage = (message: ChatMessage, tools?: readonly ToolActivityItem[]): boolean => {
     if (message.role !== 'assistant' || hasVisibleAssistantText(message)) {
         return false;
     }
-    return hasManualContextCompactionBoundaryMarker(message) || timelineHasManualContextCompactionActivity(message.assistantEventTimeline);
+    return hasManualContextCompactionBoundaryMarker(message) || (tools === undefined ? timelineHasManualContextCompactionActivity(message.assistantEventTimeline) : tools.some((tool) => normalizeToolLeafName(tool.toolName) === CONTEXT_COMPACTION_TOOL_LEAF && isManualContextCompactionCallId(tool.callId)));
 };
 
 const isInactiveContextCompactionBoundaryMessage = (message: ChatMessage): boolean => {

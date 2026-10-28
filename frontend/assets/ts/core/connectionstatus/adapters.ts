@@ -13,6 +13,7 @@ import { EVT_DISCO, EVT_UPDATE, INITIAL_RESTART_DELAY_MS, MODULE_NAME } from '@c
 import type { EnsureStreamHost, StopStreamHost } from '@core/connectionstatus/internalContracts.ts';
 import { ensureError, normalizeErrorTelemetryFields } from '@core/errors/coerce.ts';
 import { isLifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 
 const readErrorMessage = (payload: JsonValue): string | null => {
     if (!isObject(payload)) return null;
@@ -48,6 +49,8 @@ const ensureConnectionStatusStream = (host: EnsureStreamHost): Promise<void> | n
         return null;
     }
 
+    const bootstrapToken = state.bootstrapSequence.next();
+    const isCurrent = (): boolean => state.bootstrapSequence.isActive(bootstrapToken);
     const queueDepth = host.readQueueDepth();
     const bootContext = {
         statusSubscribers: state.subscribers.size,
@@ -66,12 +69,13 @@ const ensureConnectionStatusStream = (host: EnsureStreamHost): Promise<void> | n
         queueDepth
     });
     host.publishMetric('bootstrap:start', bootContext, queueDepth);
+    if (!isCurrent()) return null;
 
     state.isStarting = true;
     state.streamStartTask = (async () => {
         try {
             const managerCandidate = await host.ensureDeclaredResources();
-            if (!managerCandidate) {
+            if (!isCurrent() || !managerCandidate) {
                 return;
             }
             const streamManager: StreamRuntimeOwners = managerCandidate;
@@ -80,7 +84,17 @@ const ensureConnectionStatusStream = (host: EnsureStreamHost): Promise<void> | n
                 return;
             }
 
-            const unsubscribe = streamManager.subscriptions.subscribeResourceState(STATUS, (resourceSnapshot) => processConnectionStatusResourceSnapshot(host, resourceSnapshot), { immediate: true });
+            const unsubscribe = streamManager.subscriptions.subscribeResourceState(
+                STATUS,
+                (resourceSnapshot) => {
+                    if (isCurrent()) processConnectionStatusResourceSnapshot(host, resourceSnapshot);
+                },
+                { immediate: true }
+            );
+            if (!isCurrent()) {
+                if (isFunction(unsubscribe)) unsubscribe();
+                return;
+            }
 
             if (isFunction(unsubscribe)) {
                 state.unsubscribeHub = unsubscribe;
@@ -102,9 +116,10 @@ const ensureConnectionStatusStream = (host: EnsureStreamHost): Promise<void> | n
                 restartSubscribers: state.restartSubscribers.size
             });
         } catch (error) {
+            if (!isCurrent()) return;
             host.setConnected(false);
             const runtimeError = ensureError(error);
-            if (isLifecycleCancellationError(runtimeError)) {
+            if (isLifecycleCancellationError(runtimeError) || isAbortError(runtimeError)) {
                 host.rejectWaiters(runtimeError);
                 return;
             }
@@ -136,9 +151,11 @@ const ensureConnectionStatusStream = (host: EnsureStreamHost): Promise<void> | n
             host.rejectWaiters(runtimeError);
             throw runtimeError;
         } finally {
-            state.isStarting = false;
-            state.streamStartTask = null;
-            state.bootstrapTracker = null;
+            if (isCurrent()) {
+                state.isStarting = false;
+                state.streamStartTask = null;
+                state.bootstrapTracker = null;
+            }
         }
     })();
 
@@ -147,6 +164,7 @@ const ensureConnectionStatusStream = (host: EnsureStreamHost): Promise<void> | n
 
 const stopConnectionStatusStream = (host: StopStreamHost): void => {
     const state = host.state;
+    state.bootstrapSequence.invalidate();
     state.isStarting = false;
     state.streamStartTask = null;
     host.clearRestartTimer();

@@ -14,6 +14,7 @@ from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.network.browser_policy_error_text import (
     normalize_browser_policy_error_message,
 )
+from core.network.errors import NetworkPolicyDeniedError
 from core.network.urls import normalize_http_url
 from core.runtime.network_policy import OfflineModeError
 from webui.manager.media_preview_remote_policy import RemoteMediaPolicy
@@ -72,7 +73,7 @@ def build_link_preview_screenshot_route_handler(
                 details={"request_url": request_url},
                 level="trace",
             )
-            if host:
+            if host and isinstance(exception, NetworkPolicyDeniedError):
                 host_block_cache.add(host)
             await route.abort()
         except RECOVERABLE_EXCEPTIONS as exception:
@@ -88,8 +89,6 @@ def build_link_preview_screenshot_route_handler(
                 details={"request_url": request_url},
                 level="trace",
             )
-            if host:
-                host_block_cache.add(host)
             await route.abort()
 
     return _route_handler

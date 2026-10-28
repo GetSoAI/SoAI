@@ -25,6 +25,7 @@ from database.repositories.users.conversation_attachment_knowledge_lookup import
 from database.repositories.users.conversation_attachment_rows import (
     format_knowledge_attachment_row,
 )
+from database.repositories.users.conversation_knowledge_extraction import KNOWLEDGE_SUMMARY_COLUMNS
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -58,7 +59,7 @@ def _finalize_if_terminal(
         return updated
     row = sync_fetch_one_as_dict(
         conn.execute(
-            """
+            f"""
             UPDATE webui_conversation_knowledge_attachments
             SET processing_state = ?,
                 finalized_at_ms = COALESCE(finalized_at_ms, ?),
@@ -66,7 +67,7 @@ def _finalize_if_terminal(
                 attachment_revision = attachment_revision + 1
             WHERE conv_id = ? AND user_id = ? AND id = ?
               AND state = ?
-            RETURNING *
+            RETURNING {KNOWLEDGE_SUMMARY_COLUMNS}
             """,
             (
                 next_terminal_state,
@@ -174,7 +175,7 @@ def sync_add_knowledge_attachment_item(
             WHERE conv_id = ? AND user_id = ? AND id = ?
               AND state = ?
               AND processing_state IN ({state_placeholders})
-            RETURNING *
+            RETURNING {KNOWLEDGE_SUMMARY_COLUMNS}
             """,
             (
                 rag_status,

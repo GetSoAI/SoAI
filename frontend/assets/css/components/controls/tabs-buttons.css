@@ -15,7 +15,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: var(--text-secondary);
+        color: var(--ui-button-color);
         transition:
             opacity var(--transition-fast),
             transform var(--transition-fast),
@@ -95,17 +95,17 @@
 
     .tabs-buttons .ui-button.filter-button.is-active {
         background-color: var(--ui-button-bg-hover);
-        border-color: var(--ui-button-border-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
         color: var(--ui-button-color-hover);
     }
 
     .tabs-buttons .ui-button:focus-visible {
-        border-color: var(--accent-green);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
     }
 
     .tabs-nav-button:hover:not(:disabled, [aria-disabled='true']) {
         background: var(--ui-button-bg-hover);
-        border-color: var(--ui-button-border-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
         color: var(--ui-button-color-hover);
     }
 

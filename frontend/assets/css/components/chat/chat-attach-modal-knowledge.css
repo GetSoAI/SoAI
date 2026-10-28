@@ -87,11 +87,16 @@
     }
 
     .chat-attach-modal .ui-modal-tab-panel :is(.rag-document-name, .chat-attach-draft-attachment-row-name) {
+        min-width: 0;
         overflow: hidden;
         color: var(--text-primary);
         font-weight: var(--font-weight-semibold);
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    .chat-attach-modal .ui-modal-tab-panel .chat-attach-draft-attachment-row-meta {
+        overflow-wrap: anywhere;
     }
 
     .chat-attach-modal .ui-modal-tab-panel :is(.rag-document-meta, .chat-attach-draft-attachment-row-meta),

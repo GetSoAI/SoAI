@@ -25,6 +25,8 @@ __all__ = ("DatabaseTasksProtocol",)
 
 
 class DatabaseTasksProtocol(DatabaseMutationTasksProtocol, Protocol):
+    def replace_durable_acceptance_policy(self, config_dict: JSONDict) -> None: ...
+
     async def create_unified_task(self, request: CreateUnifiedTaskRequest) -> bool: ...
 
     async def has_conversation_interaction_checkpoint(

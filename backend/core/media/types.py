@@ -50,6 +50,7 @@ class TranscriptionResult:
     language: str | None
     segments: tuple[TranscriptSegment, ...]
     segment_details: tuple[JSONDict, ...] = ()
+    model_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

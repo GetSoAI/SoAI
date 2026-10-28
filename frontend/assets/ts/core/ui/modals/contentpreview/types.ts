@@ -97,6 +97,7 @@ export type ContentPreviewTextRequest = Readonly<{
     hideActionsWhenEmpty?: boolean | undefined;
     colorToolkit: ContentPreviewColorToolkitHooks | null;
     sourceReference: ContentPreviewSourceReference | null;
+    validateDraft?: (draft: ContentPreviewTextDraftSnapshot) => boolean;
     onRequestSave: ((draft: ContentPreviewTextDraftSnapshot) => Promise<ContentPreviewTextSaveResult | null>) | null;
     onSaveComplete: (() => void) | null;
     onRequestDownload: (() => Promise<void> | void) | null;

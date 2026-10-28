@@ -8,6 +8,7 @@ import { requirePageControlsStorage, type PageControlsStorageInput } from '@core
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageServicesOwnerHost } from '@core/routing/pages/basepagecore/PageServices.ts';
 import type { PageUiOwnerHost } from '@core/routing/pages/basepagecore/PageUi.ts';
+import type { ReapplyCollectionOptions } from '@core/routing/pages/pagetypes/public.ts';
 import type { PluginsPageControlState } from '@core/storage/types.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import { normalizeStoredSortState, requireSortableColumn, type SortDirection, type SortState } from '@core/ui/tables/sortableTable.ts';
@@ -105,7 +106,7 @@ const syncPluginsSortControls = (host: PluginsListSortHost): void => {
     if (table) syncSortableListIndicators(host, table, 'Plugins');
 };
 
-const applyPluginsSortSelection = (host: PluginsListSortHost, requestedColumn: string, reapplyCollection: (options: { shouldRender: boolean; updateStats: boolean; updateFilters: boolean; resetScroll: boolean }) => void): void => {
+const applyPluginsSortSelection = (host: PluginsListSortHost, requestedColumn: string, reapplyCollection: (options: ReapplyCollectionOptions) => void): void => {
     const column = requireSortableColumn(PLUGINS_SORT_COLUMNS, requestedColumn, 'Plugins');
     applySortControlSelection({
         requestedColumn: column,
@@ -121,7 +122,7 @@ const applyPluginsSortSelection = (host: PluginsListSortHost, requestedColumn: s
     });
 };
 
-const sortPluginsListFromHeader = (host: PluginsListSortHost, actionElement: HTMLElement, reapplyCollection: (options: { shouldRender: boolean; updateStats: boolean; updateFilters: boolean; resetScroll: boolean }) => void): void => {
+const sortPluginsListFromHeader = (host: PluginsListSortHost, actionElement: HTMLElement, reapplyCollection: (options: ReapplyCollectionOptions) => void): void => {
     sortCollectionListFromHeader({
         actionElement,
         host,

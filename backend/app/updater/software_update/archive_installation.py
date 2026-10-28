@@ -13,19 +13,21 @@ from app.updater.disk_space import require_disk_space_for_update
 from app.updater.release_manifest_types import ReleaseManifestV1, ReleaseUpdateArchive
 from app.updater.software_update.activation_state import record_update_activation_identity
 from app.updater.software_update.install_transaction import commit_staged_update
+from app.updater.software_update.install_transaction_cleanup import cleanup_update_transaction
 from app.updater.software_update.install_transaction_inventory import plan_replacement_roots
 from app.updater.software_update.install_transaction_persisted_state import (
     plan_persisted_update_state,
 )
+from app.updater.software_update.install_transaction_recovery import (
+    UpdateRepairRequiredError,
+    recover_unarmed_update_transaction,
+)
 from app.updater.software_update.install_transaction_state import (
-    ROLLBACK_REQUIRED_MARKER,
     UPDATE_COMPONENT_IGNORE_PATTERNS,
     AppliedUpdateTransaction,
     allocate_update_transaction,
     build_update_extraction_top_level_ignore_patterns,
     build_update_top_level_ignore_patterns,
-    cleanup_update_transaction,
-    marker_path,
 )
 from app.updater.software_update.plugin_reconciliation import (
     plan_plugin_reconciliation,
@@ -189,16 +191,14 @@ def apply_update_from_zip(
             paths=paths,
             top_level_ignore_patterns=top_level_ignore_patterns,
             logger=logger,
-            edition=updater.edition,
             state_files=state_files,
             state_directories=state_directories,
             staged_directories=staged_directories,
         )
-    except (ValidationError, StateError, SecurityError):
-        if os.path.exists(paths.transaction_path) and not os.path.exists(
-            marker_path(paths.transaction_path, ROLLBACK_REQUIRED_MARKER),
-        ):
-            cleanup_update_transaction(paths, logger)
+    except UpdateRepairRequiredError:
+        raise
+    except (ValidationError, StateError, SecurityError) as exception:
+        recover_unarmed_update_transaction(paths, logger, cause=exception)
         raise
     except operational_exceptions as exception:
         log_exception(
@@ -209,8 +209,5 @@ def apply_update_from_zip(
             details={"transaction_path": paths.transaction_path},
             level="error",
         )
-        if os.path.exists(paths.transaction_path) and not os.path.exists(
-            marker_path(paths.transaction_path, ROLLBACK_REQUIRED_MARKER),
-        ):
-            cleanup_update_transaction(paths, logger)
+        recover_unarmed_update_transaction(paths, logger, cause=exception)
         return None

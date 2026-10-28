@@ -13,6 +13,7 @@ from core.hardware.gpu_operation_results import build_gpu_result
 from core.logging.trace import get_logger
 from core.types.json import is_json_value
 from core.validation.coercion import coerce_int_from_scalar
+from core.validation.numbers import coerce_int_from_json
 from hardware.gpu_capabilities.payloads import read_control_capability_section
 from hardware.gpu_tuning.service_parsing import is_auto_gpu_setting
 from hardware.gpu_tuning.settings_request import GpuSettingsApplyRequest
@@ -72,7 +73,7 @@ def sync_set_amd_settings(
 
     control_backend = request.control_backend
     if control_backend is None:
-        return build_gpu_result(errors=["AMD control backend is required."])
+        return build_gpu_result(errors=["AMD control backend is required."], changed=False)
     if control_backend == AMDGPU_OVERDRIVE_BACKEND:
         return _set_amd_overdrive_settings(
             executor,
@@ -82,16 +83,18 @@ def sync_set_amd_settings(
             capabilities=capabilities,
         )
     if control_backend != "amd_smi":
-        return build_gpu_result(errors=[f"AMD control backend '{control_backend}' is unsupported."])
+        return build_gpu_result(
+            errors=[f"AMD control backend '{control_backend}' is unsupported."], changed=False
+        )
     if not is_amd_smi_available():
-        return build_gpu_result(errors=["amd-smi not found for AMD GPU control."])
+        return build_gpu_result(errors=["amd-smi not found for AMD GPU control."], changed=False)
     gpu_result, messages, errors = build_gpu_result_message_lists()
     power_limit = request.power_limit
     if power_limit is not None:
         try:
             if is_auto_gpu_setting(power_limit):
                 execute_amd_smi_reset_command(executor, vendor_id, ["--power-cap"])
-                message = "Power limit reset to default."
+                message = "Power limit reset command completed."
             else:
                 value = coerce_int_from_scalar(power_limit)
                 if value is None:
@@ -115,13 +118,13 @@ def sync_set_amd_settings(
     if fan_speed is not None:
         try:
             if str(fan_speed).lower() == "auto":
-                execute_amd_smi_command(executor, vendor_id, ["--perf-level", "AUTO"])
-                message = "Fan speed reset to default."
+                execute_amd_smi_reset_command(executor, vendor_id, ["--fans"])
+                message = "Fan control reset to automatic."
             else:
-                value = coerce_int_from_scalar(fan_speed)
-                if value is None:
+                value = coerce_int_from_json(fan_speed, default=None, allow_bool=False)
+                if value is None or not 0 <= value <= 100:
                     raise ValidationError("Invalid fan speed value.")
-                execute_amd_smi_command(executor, vendor_id, ["--fan", str(value)])
+                execute_amd_smi_command(executor, vendor_id, ["--fan", f"{value}%"])
                 message = f"Fan speed set to {value}%."
             gpu_result["changed"] = True
             append_amd_log_message(messages, logger, vendor_id, message)
@@ -163,10 +166,7 @@ def sync_set_amd_settings(
         mem_caps = read_control_capability_section(cap_entry, "mem_clock_mhz")
 
         def _resolve_auto_target(caps_entry: JSONDict) -> int | None:
-            for key in ("default", "max", "current"):
-                if (value := coerce_int_from_scalar(caps_entry.get(key))) is not None:
-                    return value
-            return None
+            return coerce_int_from_scalar(caps_entry.get("default"))
 
         applied_parts: list[str] = []
         try:

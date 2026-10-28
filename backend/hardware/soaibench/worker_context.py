@@ -14,7 +14,10 @@ if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
     from core.tasks.protocols import TaskRegistryProtocol
     from core.types.json import JSONDict
-    from hardware.soaibench.telemetry import SoAIBenchTelemetryDiagnostics
+    from hardware.soaibench.telemetry import (
+        SoAIBenchTelemetryDiagnostics,
+        SoAIBenchTelemetrySnapshot,
+    )
     from hardware.soaibench.types import SoAIBenchGpuIdentity
 
 __all__ = (
@@ -35,6 +38,7 @@ class SoAIBenchWorkerEventContext:
 class SoAIBenchWorkerState:
     current_run: JSONDict
     terminal_run: JSONDict | None = None
+    telemetry_read_task: asyncio.Task[SoAIBenchTelemetrySnapshot] | None = None
 
 
 @dataclass(frozen=True, slots=True)

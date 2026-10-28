@@ -20,18 +20,18 @@ const renderInput = (inputArguments: { id: string; name: string; type?: string; 
     const type = inputArguments.secret === true ? resolveSecretInputType() : (inputArguments.type ?? 'text');
     const placeholder = inputArguments.placeholder ? ` placeholder="${uiAttr(inputArguments.placeholder).html}"` : '';
     const className = inputArguments.secret === true ? 'setting-input setting-input--wide setting-input--full secret-input' : 'setting-input setting-input--wide setting-input--full';
-    const input = `<input id="${uiAttr(inputArguments.id).html}" class="${className}" name="${uiAttr(inputArguments.name).html}" type="${uiAttr(type).html}"${placeholder} autocomplete="off">`;
+    const input = `<input id="${uiAttr(inputArguments.id).html}" class="${className}" name="${uiAttr(inputArguments.name).html}" type="${uiAttr(type).html}"${placeholder} autocomplete="off" data-modal-localize="placeholder">`;
     return inputArguments.secret === true ? renderSecretInputControl({ inputId: inputArguments.id, inputMarkup: input }) : input;
 };
 
 const renderTextarea = (inputArguments: { id: string; name: string; placeholder?: string; rows?: number }): string => {
     const placeholder = inputArguments.placeholder ? ` placeholder="${uiAttr(inputArguments.placeholder).html}"` : '';
     const rows = inputArguments.rows ?? 4;
-    return `<textarea id="${uiAttr(inputArguments.id).html}" class="setting-textarea setting-textarea--wide setting-input--full external-accounts-textarea" name="${uiAttr(inputArguments.name).html}" rows="${uiAttr(rows).html}"${placeholder}></textarea>`;
+    return `<textarea data-modal-localize="placeholder" id="${uiAttr(inputArguments.id).html}" class="setting-textarea setting-textarea--wide setting-input--full external-accounts-textarea" name="${uiAttr(inputArguments.name).html}" rows="${uiAttr(rows).html}"${placeholder}></textarea>`;
 };
 
 const renderSelect = (inputArguments: { id: string; name: string; options: ReadonlyArray<{ value: string; label: string }> }): string => {
-    return renderStandardDropdownSelectControl(`<select id="${uiAttr(inputArguments.id).html}" class="setting-input setting-input--wide setting-input--full" name="${uiAttr(inputArguments.name).html}">${inputArguments.options.map((option) => `<option value="${uiAttr(option.value).html}">${uiAttr(option.label).html}</option>`).join('')}</select>`);
+    return renderStandardDropdownSelectControl(`<select id="${uiAttr(inputArguments.id).html}" class="setting-input setting-input--wide setting-input--full" name="${uiAttr(inputArguments.name).html}">${inputArguments.options.map((option) => `<option value="${uiAttr(option.value).html}" data-modal-localize="text">${uiAttr(option.label).html}</option>`).join('')}</select>`);
 };
 
 const renderRequiredLabel = (label: string): string => {
@@ -42,7 +42,7 @@ const renderLauncherItem = (inputArguments: { type: 'mail' | 'calendar'; title: 
     const iconName = inputArguments.type === 'mail' ? 'mail' : 'calendar';
     const iconMarkup = renderIconSlot(getIconSync(iconName, { size: 24, strokeWidth: 1.5 }), { className: 'external-account-modal__launcher-icon settings-card-surface' });
     const interactiveLabel = `${inputArguments.title}. ${inputArguments.description}`;
-    return `<div id="${uiAttr(inputArguments.itemId).html}" class="setting-item external-account-modal__launcher-item" role="button" tabindex="0" aria-pressed="false" aria-label="${uiAttr(interactiveLabel).html}" data-tooltip="${uiAttr(inputArguments.title).html}" data-action="${uiAttr(inputArguments.actionId).html}"><div class="setting-info">${iconMarkup}<label class="setting-label">${uiAttr(inputArguments.title).html}</label><span class="setting-help">${uiAttr(inputArguments.description).html}</span></div></div>`;
+    return `<div id="${uiAttr(inputArguments.itemId).html}" class="setting-item external-account-modal__launcher-item" role="button" tabindex="0" aria-pressed="false" aria-label="${uiAttr(interactiveLabel).html}" data-tooltip="${uiAttr(inputArguments.title).html}" data-action="${uiAttr(inputArguments.actionId).html}" data-modal-localize="aria-label data-tooltip"><div class="setting-info">${iconMarkup}<label class="setting-label" data-modal-localize="text">${uiAttr(inputArguments.title).html}</label><span class="setting-help" data-modal-localize="text">${uiAttr(inputArguments.description).html}</span></div></div>`;
 };
 
 const renderLauncherSection = (modalId: string): string => {

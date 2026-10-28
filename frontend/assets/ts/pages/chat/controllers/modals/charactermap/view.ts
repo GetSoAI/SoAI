@@ -15,7 +15,7 @@ const setVisible = (element: HTMLElement, visible: boolean): void => {
 const resetCharacterMapView = (refs: CharacterMapModalRefs): void => {
     refs.search.value = '';
     refs.staging.value = '';
-    refs.grid.replaceChildren();
+    refs.cells.replaceChildren();
     refs.grid.scrollTop = 0;
     refs.grid.setAttribute('aria-busy', 'false');
     refs.grid.classList.remove(...CHARACTER_MAP_FONT_CLASSES);
@@ -83,6 +83,12 @@ const projectCharacterMapResult = (refs: CharacterMapModalRefs, count: number, a
     setStatusSurface({ surface: refs.status, message: i18n.t('chat.characterMap.resultCount', { count }) });
 };
 
+const showCharacterMapPendingResult = (refs: CharacterMapModalRefs, count: number): void => {
+    if (count === 0) return;
+    setVisible(refs.empty, false);
+    setVisible(refs.grid, true);
+};
+
 const projectStagingActions = (refs: CharacterMapModalRefs, copyPending: boolean): void => {
     const empty = refs.staging.value.length === 0;
     if (!copyPending) setControlDisabledState(refs.copy, empty);
@@ -91,4 +97,4 @@ const projectStagingActions = (refs: CharacterMapModalRefs, copyPending: boolean
 
 const showCharacterMapResultFailure = (refs: CharacterMapModalRefs): void => setStatusSurface({ surface: refs.status, message: i18n.t('chat.characterMap.resultsUnavailable'), tone: 'error' });
 
-export { populateCharacterMapSelectors, projectCharacterMapActive, projectCharacterMapResult, projectStagingActions, resetCharacterMapView, showCharacterMapLoadFailure, showCharacterMapLoading, showCharacterMapReady, showCharacterMapResultFailure };
+export { populateCharacterMapSelectors, projectCharacterMapActive, projectCharacterMapResult, projectStagingActions, resetCharacterMapView, showCharacterMapLoadFailure, showCharacterMapLoading, showCharacterMapPendingResult, showCharacterMapReady, showCharacterMapResultFailure };

@@ -166,6 +166,7 @@ const duplicateSelected = async (host: PromptsPageActionsHost, save: SaveControl
         if (!ids.length) {
             return;
         }
+        const duplicatedIds: string[] = [];
         for (const id of ids) {
             const source = host.operations.findPromptById(id);
             if (!source) {
@@ -190,9 +191,10 @@ const duplicateSelected = async (host: PromptsPageActionsHost, save: SaveControl
                 continue;
             }
             host.operations.upsertPromptRecord(created);
+            duplicatedIds.push(id);
         }
-        host.components.selectionController.clear();
-        if (host.components.selectionController.isActive()) {
+        host.components.selectionController.removeMany(duplicatedIds);
+        if (host.components.selectionController.size() === 0 && host.components.selectionController.isActive()) {
             host.components.selectionController.toggleMode();
         }
         host.operations.reapplyCollection({ shouldRender: true, updateStats: true, updateFilters: false });

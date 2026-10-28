@@ -1,7 +1,7 @@
 /* SoAI - Chart vertical scale calculation [frontend/assets/ts/features/charts/component/data/verticalScale.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { scaleAnimationDurationMs } from '@core/animations/speed.ts';
+import { scaleChartAnimationDurationMs } from '@core/animations/chartMotion.ts';
 import { monotonicMs } from '@core/time/clock.ts';
 import type { ChartOptions } from '@features/charts/chartTypes.ts';
 import { DEFAULT_VERTICAL_SCALE_PADDING_RATIO, MIN_VERTICAL_PIXEL_PADDING } from '@features/charts/component/chartComponentStatics.ts';
@@ -79,7 +79,7 @@ const updateScale = (chart: VerticalScaleHost, calculations: VerticalScaleCalcul
     const padded = resolvePaddedRange(chart, chartHeight, statMin, statMax);
     const bounded = resolveBoundedScale(chart, padded.min, padded.max, false);
     const target = applyHysteresis(bounded, resolveCurrentTarget(chart), chart.chartOptions.scaleType === 'logarithmic');
-    glideScaleTowards(chart.scaleGlide, chart.scale, target.min, target.max, scaleAnimationDurationMs(SCALE_GLIDE_MS, chart.element), monotonicMs());
+    glideScaleTowards(chart.scaleGlide, chart.scale, target.min, target.max, scaleChartAnimationDurationMs(SCALE_GLIDE_MS, chart.element), monotonicMs());
 };
 
 export { updateScale };

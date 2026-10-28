@@ -104,10 +104,10 @@ class PagerTrackAnimatorController {
         track.classList.add('is-animating');
         let animation: ActiveTrackAnimation | null = null;
         const done = (): void => {
-            if (!animation) {
+            if (!animation || this.#activeAnimation !== animation) {
                 return;
             }
-            this.#currentOffsetPx = targetOffsetPx;
+            applyFinal();
             this.#finishAnimation(animation, true);
         };
         const onEnd = (transitionEvent: TransitionEvent): void => {

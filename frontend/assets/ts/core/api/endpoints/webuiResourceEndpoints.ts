@@ -1,6 +1,8 @@
 /* SoAI - Shared API WebUI resource endpoints [frontend/assets/ts/core/api/endpoints/webuiResourceEndpoints.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { NOTIFICATION_NEGOTIATED_TEMPLATES } from '@core/notifications/contracts.ts';
+
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import { decodePromptBatchDeleteResponse, decodePromptListResponse, decodePromptResponse, serializePromptBatchDeleteRequest, serializePromptRequest, type PromptBatchDeleteResponse, type PromptRequest, type PromptResponse } from '@core/api/contracts/promptContracts.ts';
 import { decodeMcpAccessTokenCreateResponse, decodeMcpAccessTokenRevokeResponse, decodeMcpAccessTokensListResponse, serializeMcpAccessTokenCreateRequest, type McpAccessTokenCreateRequest, type McpAccessTokenCreateResponse, type McpAccessTokenRevokeResponse, type McpAccessTokensListResponse } from '@core/api/contracts/mcpAccessTokenContracts.ts';
@@ -109,7 +111,7 @@ const createWebuiResourceEndpoints = (api: ApiClientContext): WebuiResourceEndpo
         }
     },
     notifications: {
-        open: async (notificationId): Promise<NotificationRecord> => decodeNotificationRecord(await api.post(notificationOpenPath(notificationId), {}))
+        open: async (notificationId): Promise<NotificationRecord> => decodeNotificationRecord(await api.post(notificationOpenPath(notificationId), {}, { headers: { 'X-SoAI-Notification-Templates': NOTIFICATION_NEGOTIATED_TEMPLATES } }))
     }
 });
 

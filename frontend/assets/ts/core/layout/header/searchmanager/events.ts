@@ -8,7 +8,6 @@ import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { cancelFileExplorerContentPreviewRequest } from '@core/fileexplorerbrowser/contentPreview.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { uiHtml } from '@core/security/uiHtml.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -16,6 +15,7 @@ import { queryReferencesConversationOnly } from '@core/search/directReference.ts
 import { SEARCH_PANEL_SERVICE_ID } from '@core/search/protocols.ts';
 import { normalizeSearchDisplayQuery } from '@core/search/searchQuery.ts';
 import { isRouterInterface, isSearchPanelInterface } from '@core/layout/header/searchmanager/guards.ts';
+import { buildSearchSearchingMarkup } from '@core/layout/header/searchmanager/actions.ts';
 import { requireSearchDom } from '@core/layout/header/searchmanager/dom.ts';
 import type { SearchItem } from '@core/search/searchTypes.ts';
 import { isMobileMode } from '@core/layout/header/searchmanager/effects.ts';
@@ -23,9 +23,9 @@ import type { HeaderSearchManagerContract, SearchPanelInterface } from '@core/la
 
 type SearchInitializationRuntime = Pick<HeaderSearchManagerContract, 'blurTimeoutId' | 'button' | 'collapse' | 'container' | 'dropdown' | 'expand' | 'handleButtonClick' | 'handleInput' | 'handleKeyDown' | 'handleResize' | 'header' | 'input' | 'localize' | 'performSearch' | 'requireDom' | 'resetResults' | 'searchToken' | 'updateButtonIcon'>;
 type SearchResizeRuntime = Pick<HeaderSearchManagerContract, 'collapse' | 'expanded'>;
-type SearchExecutionRuntime = Pick<HeaderSearchManagerContract, 'displayNoResults' | 'displayResults' | 'displayResultsWithCategoryState' | 'displaySearchError' | 'displaySearchInitializing' | 'header' | 'isSessionActive' | 'panel' | 'searchToken' | 'showMessage' | 'startSearchRequest'>;
+type SearchExecutionRuntime = Pick<HeaderSearchManagerContract, 'displayNoResults' | 'displayResults' | 'displayResultsWithCategoryState' | 'displaySearchError' | 'displaySearchInitializing' | 'header' | 'isSessionActive' | 'panel' | 'requireDropdownItems' | 'searchToken' | 'showMessage' | 'startSearchRequest'>;
 type SearchScheduleRuntime = SearchExecutionRuntime & Pick<HeaderSearchManagerContract, 'cancelScheduledSearch' | 'timeoutId'>;
-type SearchInputRuntime = SearchScheduleRuntime & Pick<HeaderSearchManagerContract, 'hideDropdown' | 'requireDom' | 'resetResults' | 'scheduleSearch'>;
+type SearchInputRuntime = SearchScheduleRuntime & Pick<HeaderSearchManagerContract, 'cancelPendingSearch' | 'hideDropdown' | 'requireDom' | 'scheduleSearch'>;
 type SearchKeyboardRuntime = Pick<HeaderSearchManagerContract, 'collapse' | 'header' | 'navigateSearchItem' | 'requireDom' | 'requireDropdownItems' | 'selectedIndex'>;
 type SearchButtonRuntime = Pick<HeaderSearchManagerContract, 'collapse' | 'expand' | 'expanded' | 'header' | 'requireDom'>;
 
@@ -106,7 +106,7 @@ const performSearch = async (manager: SearchExecutionRuntime, query: string, tok
         if (!manager.isSessionActive(token) || abortController.signal.aborted) {
             return;
         }
-        manager.showMessage(uiHtml`<div class="search-loading">${i18n.t('search.status.searching')}</div>`);
+        if (manager.requireDropdownItems().length === 0) manager.showMessage(buildSearchSearchingMarkup());
         if (!manager.isSessionActive(token) || abortController.signal.aborted) {
             return;
         }
@@ -185,7 +185,7 @@ const handleInput = (manager: SearchInputRuntime): void => {
         manager.hideDropdown();
         return;
     }
-    manager.resetResults();
+    manager.cancelPendingSearch();
     manager.scheduleSearch(query, manager.searchToken);
 };
 

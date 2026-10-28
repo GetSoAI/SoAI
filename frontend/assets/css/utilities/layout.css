@@ -102,15 +102,27 @@
         }
     }
 
-    @container ui-viewport (width <= 1200px) {
-        th.sortable .sort-indicator {
-            display: flex;
-            width: max-content;
-            min-width: 14px;
-            margin-top: var(--space-05);
-            margin-inline-end: auto;
-            margin-inline-start: auto;
-        }
+    th:has(> .sort-indicator) {
+        padding-inline-end: calc(var(--table-cell-padding-inline) + var(--sortable-header-indicator-size) + var(--sortable-header-indicator-gap));
+    }
+
+    th > .sort-indicator {
+        position: absolute;
+        top: 50%;
+        inset-inline-end: var(--table-cell-padding-inline);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--sortable-header-indicator-size);
+        height: var(--sortable-header-indicator-size);
+        margin: 0;
+        transform: translateY(-50%);
+    }
+
+    th > .sort-indicator svg {
+        display: block;
+        width: 100%;
+        height: 100%;
     }
 
     @container ui-viewport (width <= 640px) {

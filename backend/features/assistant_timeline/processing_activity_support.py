@@ -6,9 +6,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.activity_payloads import build_activity_payload
-from core.timing.epoch import align_epoch_ms_to_monotonic_reference
 from core.timing.monotonic import monotonic_ms
 from core.validation.integers import coerce_non_negative_int_or_zero
+from features.assistant_timeline.activity_status_sets import TIMELINE_ACTIVITY_STATUS_RUNNING
 from features.assistant_timeline.activity_timing import ensure_activity_start_times
 
 if TYPE_CHECKING:
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 __all__ = (
     "PROCESSING_IDLE_THRESHOLD_MS",
     "build_processing_activity_payload",
+    "can_start_timeline_activity",
     "ensure_processing_activity_start_times",
     "has_running_activity_before_processing",
     "note_visible_activity_locked",
@@ -26,42 +27,36 @@ __all__ = (
 PROCESSING_IDLE_THRESHOLD_MS: int = 8000
 
 
+def can_start_timeline_activity(runtime: AssistantTimelineRuntime) -> bool:
+    return (
+        runtime.detach_event is not None
+        and not runtime.detach_event.is_set()
+        and not runtime.cancellation_requested
+        and not runtime.terminal_finalization_started
+        and not runtime.terminal_event_emitted
+    )
+
+
 def ensure_processing_activity_start_times(
     runtime: AssistantTimelineRuntime,
     *,
     now_epoch_ms: int,
     now_monotonic_ms: int,
 ) -> tuple[int, int]:
-    reference_monotonic_ms = runtime.last_visible_activity_monotonic_ms
-    default_started_at_epoch_ms = align_epoch_ms_to_monotonic_reference(
-        now_epoch_ms=int(now_epoch_ms),
-        now_monotonic_ms=int(now_monotonic_ms),
-        reference_monotonic_ms=int(reference_monotonic_ms),
-    )
     return ensure_activity_start_times(
         runtime.processing_activity,
-        default_started_at_epoch_ms=int(default_started_at_epoch_ms),
+        default_started_at_epoch_ms=int(now_epoch_ms),
         default_started_at_monotonic_ms=int(now_monotonic_ms),
     )
-
-
-def has_running_thinking_phase(runtime: AssistantTimelineRuntime) -> bool:
-    thinking_phases = runtime.thinking_phases
-    if not thinking_phases:
-        return False
-    latest_phase = thinking_phases[-1]
-    if not isinstance(latest_phase, dict):
-        return False
-    return latest_phase.get("status") == "running"
 
 
 def has_running_activity_before_processing(runtime: AssistantTimelineRuntime) -> bool:
     if runtime.loading_activity.status == "running":
         return True
-    if (
-        runtime.assistant_visible_output_started
-        and not runtime.terminal_event_emitted
-        and not runtime.terminal_finalization_started
+    if runtime.wait_for_user_activity.status == TIMELINE_ACTIVITY_STATUS_RUNNING:
+        return True
+    if runtime.thinking_phases is not None and any(
+        phase.get("status") == TIMELINE_ACTIVITY_STATUS_RUNNING for phase in runtime.thinking_phases
     ):
         return True
     if runtime.pending_tool_events:
@@ -77,7 +72,7 @@ def has_running_activity_before_processing(runtime: AssistantTimelineRuntime) ->
                 return True
     if runtime.running_tool_call_ids:
         return True
-    return has_running_thinking_phase(runtime)
+    return False
 
 
 def build_processing_activity_payload(

@@ -22,7 +22,7 @@ soai_install__write_systemd_unit() {
     cat <<UNIT
 [Unit]
 Description=SoAI - Smart Orchestrator for Artificial Intelligence
-Documentation=https://soai.io/docs
+Documentation=https://soai.to/documentation/
 After=network-online.target docker.service nvidia-persistenced.service
 Wants=network-online.target
 
@@ -35,6 +35,7 @@ ExecStart=${launcher_path} start
 Restart=on-failure
 RestartSec=10
 KillSignal=SIGTERM
+KillMode=mixed
 TimeoutStartSec=0
 TimeoutStopSec=90
 StandardOutput=journal

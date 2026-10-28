@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.runtime.request_context import RequestContext
+from core.skills.execution import SkillExecutionContext
 from core.state.access import AccessAction
 
 if TYPE_CHECKING:
@@ -44,6 +45,16 @@ def clone_request_context(
     conversation_input_resume_generation: int | None = None,
     access_actions: frozenset[AccessAction] | None = None,
 ) -> RequestContext:
+    same_input = (
+        conversation_input_id is None
+        or conversation_input_id == request_context.conversation_input_id
+    )
+    same_turn = (agent_turn_id is None or agent_turn_id == request_context.agent_turn_id) and (
+        agent_turn_scope is None or agent_turn_scope == request_context.agent_turn_scope
+    )
+    skill_context = request_context.skill_execution_context if same_input else None
+    if skill_context is not None and not same_turn:
+        skill_context = SkillExecutionContext(snapshot=skill_context.snapshot)
     return RequestContext(
         trace_id=request_context.trace_id,
         client_ip=request_context.client_ip,
@@ -70,6 +81,13 @@ def clone_request_context(
         agent_turn_id=(request_context.agent_turn_id if agent_turn_id is None else agent_turn_id),
         agent_turn_scope=(
             request_context.agent_turn_scope if agent_turn_scope is None else agent_turn_scope
+        ),
+        agent_prompt_replay_snapshot=(
+            request_context.agent_prompt_replay_snapshot if same_input and same_turn else None
+        ),
+        skill_execution_context=skill_context,
+        skill_activation_callback=(
+            request_context.skill_activation_callback if same_input and same_turn else None
         ),
         agent_turn_execution_token=(
             request_context.agent_turn_execution_token

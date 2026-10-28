@@ -201,6 +201,11 @@ def _validate_central_directory(
         header = struct.unpack(CENTRAL_DIRECTORY_FORMAT, header_bytes)
         if header[0] != CENTRAL_DIRECTORY_SIGNATURE:
             raise zipfile.BadZipFile("ZIP central directory entry is invalid.")
+        if int(header[3]) > zipfile.MAX_EXTRACT_VERSION:
+            raise ValidationError(
+                "ZIP member requires an unsupported extraction version.",
+                details={"archive_reason": "unsupported"},
+            )
         filename_size = int(header[12])
         extra_size = int(header[13])
         comment_size = int(header[14])
@@ -224,8 +229,20 @@ def _enforce_directory_limits(
     limits: ArchiveResourceLimits,
 ) -> None:
     if total_entries > limits.max_members:
-        raise ValidationError(f"ZIP archive exceeds the member limit of {limits.max_members}.")
+        raise ValidationError(
+            f"ZIP archive exceeds the member limit of {limits.max_members}.",
+            details={
+                "archive_resource": "archive_entries",
+                "measured": total_entries,
+                "limit": limits.max_members,
+            },
+        )
     if directory_size > limits.max_aggregate_metadata_bytes:
         raise ValidationError(
             f"ZIP central directory exceeds the metadata limit of {limits.max_aggregate_metadata_bytes} bytes.",
+            details={
+                "archive_resource": "metadata_bytes",
+                "measured": directory_size,
+                "limit": limits.max_aggregate_metadata_bytes,
+            },
         )

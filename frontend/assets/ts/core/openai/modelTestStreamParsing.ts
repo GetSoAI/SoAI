@@ -53,6 +53,8 @@ const readModelTestDeltaText = (payload: JsonValue): string => {
     return isString(deltaValue) ? deltaValue : '';
 };
 
+const readModelTestErrorCode = (payload: JsonValue): JsonValue | undefined => readInnerPayload(payload)?.['code'];
+
 const readModelTestErrorMessage = (payload: JsonValue): string | null => {
     const innerPayload = readInnerPayload(payload);
     if (innerPayload === null) {
@@ -66,4 +68,4 @@ const readModelTestErrorMessage = (payload: JsonValue): string | null => {
     return normalized ? normalized : null;
 };
 
-export { readModelTestDeltaText, readModelTestErrorMessage, readModelTestEventType, readModelTestRunId, readModelTestSequence };
+export { readModelTestErrorCode, readModelTestDeltaText, readModelTestErrorMessage, readModelTestEventType, readModelTestRunId, readModelTestSequence };

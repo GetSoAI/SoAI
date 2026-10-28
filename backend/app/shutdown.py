@@ -26,6 +26,10 @@ from app.types_application import ApplicationContext
 from core.backup.types import BackupCreateResult
 from core.browser.playwright_installation import shutdown_playwright_install_executor
 from core.concurrency.bounded_blocking import shutdown_bounded_pool_executor
+from core.concurrency.cancellation_cleanup import (
+    current_task_has_pending_cancellation,
+    wait_for_task_completion,
+)
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.di.validation import require_dependencies
 from core.errors.exception_coercion import coerce_to_soai_error
@@ -57,7 +61,7 @@ async def _run_shutdown_backup_if_configured(
     application_context: ApplicationContext,
     backup_timeout_sec: float,
 ) -> None:
-    if backup_timeout_sec <= 0:
+    if backup_timeout_sec <= 0 or application_context.runtime.database_recovery_pending:
         return
     backup_service = application_context.services.storage.backup_service
     backup_task: asyncio.Task[BackupCreateResult | None] | None = None
@@ -118,6 +122,10 @@ async def _run_shutdown_cancellation(
     *,
     application_context: ApplicationContext,
 ) -> None:
+    activation_task = application_context.runtime.initial_user_activation_task
+    if activation_task is not None and not activation_task.done():
+        activation_task.cancel()
+        await wait_for_task_completion(activation_task, retain_resources_until_complete=True)
     if application_context.runtime.prune_tokens_task and (
         not application_context.runtime.prune_tokens_task.done()
     ):
@@ -129,8 +137,10 @@ async def _run_shutdown_cancellation(
         application_context.runtime.set_prune_tokens_task(None)
 
 
-def _shutdown_webui_login_password_executor(application_context: ApplicationContext) -> None:
+def _shutdown_webui_blocking_executors(application_context: ApplicationContext) -> None:
     shutdown_bounded_pool_executor(application_context.api_runtime_singletons.login_password_pool)
+    shutdown_bounded_pool_executor(application_context.api_runtime_singletons.skill_import_pool)
+    shutdown_bounded_pool_executor(application_context.api_runtime_singletons.file_content_pool)
 
 
 def _shutdown_prompt_token_counter(application_context: ApplicationContext) -> None:
@@ -143,6 +153,8 @@ async def _clear_hardware_dirty_flag_and_shutdown_executors(
     timeout_sec: float,
 ) -> None:
     try:
+        if application_context.runtime.exit_code != 0 or current_task_has_pending_cancellation():
+            return
         entries = build_hardware_shutdown_entries(
             application_context,
             component_timeout_sec=timeout_sec,
@@ -178,8 +190,8 @@ async def _clear_hardware_dirty_flag_and_shutdown_executors(
         )
         run_sync_shutdown_stage_continue(
             application_context=application_context,
-            component_name="WebUI Login Password Executor",
-            action=lambda: _shutdown_webui_login_password_executor(application_context),
+            component_name="WebUI Blocking Executors",
+            action=lambda: _shutdown_webui_blocking_executors(application_context),
         )
         run_sync_shutdown_stage_continue(
             application_context=application_context,
@@ -254,6 +266,11 @@ class ApplicationShutdownCoordinator:
                     application_context=application_context,
                     timeout_sec=budgets.finalizer_timeout_sec,
                 ),
+            )
+            await run_shutdown_stage_continue(
+                application_context=application_context,
+                component_name="Finite Browser Sessions",
+                awaitable=application_context.services.infrastructure.playwright_sessions.close_all(),
             )
         finally:
             await run_shutdown_stage_continue(

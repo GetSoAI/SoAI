@@ -3,6 +3,7 @@
 
 import type { PromptRequest, PromptResponse } from '@core/api/contracts/promptContracts.ts';
 import { dom } from '@core/dom/dom.ts';
+import { throwIfAborted } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { formatDateTimeMinute } from '@core/primitives/dateTime.ts';
@@ -42,6 +43,7 @@ interface PromptPreviewHost {
 
 interface OpenPromptPreviewOptions {
     edit?: boolean | undefined;
+    signal?: AbortSignal;
 }
 
 let promptPreviewSequence = 0;
@@ -71,12 +73,14 @@ const createPromptPreviewColorToolkit = (host: PromptPreviewHost): ColorToolkit 
         dom: { getDocument: () => host.getDocument() }
     });
 
-const resolvePromptForPreview = async (host: PromptPreviewHost, promptId: string): Promise<PromptRecord> => {
+const resolvePromptForPreview = async (host: PromptPreviewHost, promptId: string, signal?: AbortSignal): Promise<PromptRecord> => {
+    throwIfAborted(signal);
     const local = host.findPromptById?.(promptId);
     if (local) {
         return normalizePromptRecord(local);
     }
     const remote = await host.promptsApi.get(promptId);
+    throwIfAborted(signal);
     host.upsertPromptRecord?.(remote);
     return normalizePromptRecord(remote);
 };
@@ -91,6 +95,7 @@ const runPromptPreviewTask = async <T>(host: PromptPreviewHost, name: string, ta
 const presentPromptContentPreview = (host: PromptPreviewHost, session: PromptPreviewSession, baseline: ContentPreviewTextBaseline, options: OpenPromptPreviewOptions): boolean => {
     const colorToolkit = createPromptPreviewColorToolkit(host);
     const service = requireContentPreviewModalService();
+    throwIfAborted(options.signal);
     service.open(
         createTextContentPreviewRequest({
             scope: 'prompts',
@@ -212,13 +217,15 @@ const presentPromptContentPreview = (host: PromptPreviewHost, session: PromptPre
 };
 
 const openPromptContentPreview = async (host: PromptPreviewHost, promptId: string | number, options: OpenPromptPreviewOptions = {}): Promise<boolean> => {
+    throwIfAborted(options.signal);
     const normalizedId = String(promptId ?? '').trim();
     if (!normalizedId) {
         throw new Error('Prompt preview requires a prompt id');
     }
     const sequence = promptPreviewSequence + 1;
     promptPreviewSequence = sequence;
-    const prompt = await resolvePromptForPreview(host, normalizedId);
+    const prompt = await resolvePromptForPreview(host, normalizedId, options.signal);
+    throwIfAborted(options.signal);
     if (sequence !== promptPreviewSequence) {
         return true;
     }

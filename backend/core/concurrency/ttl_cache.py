@@ -9,6 +9,7 @@ from collections import OrderedDict
 from collections.abc import Callable, Hashable
 from dataclasses import dataclass
 
+from core.concurrency.singleflight import ResultCopyMode, SyncSingleflight
 from core.di.validation import require_dependencies
 from core.errors.exceptions import ValidationError
 
@@ -41,6 +42,7 @@ class TTLCache[K: Hashable, V]:
         self._max_size = int(deps.max_size)
         self._store: OrderedDict[K, tuple[V, float]] = OrderedDict()
         self._lock = threading.Lock()
+        self._singleflight = SyncSingleflight[K, V](result_copier=ResultCopyMode.NONE)
 
     def _is_expired(self, timestamp: float) -> bool:
         return time.monotonic() - timestamp >= self._ttl
@@ -69,6 +71,17 @@ class TTLCache[K: Hashable, V]:
             self._store[key] = (value, now)
             self._store.move_to_end(key)
             self._evict_until_within_limit()
+
+    def get_or_compute(self, key: K, computation: Callable[[], V]) -> V:
+        def compute_if_missing() -> V:
+            cached = self.get(key)
+            if cached is not None:
+                return cached
+            result = computation()
+            self.put(key, result)
+            return result
+
+        return self._singleflight.execute_or_wait(key, compute_if_missing)
 
     def delete(self, key: K) -> bool:
         with self._lock:

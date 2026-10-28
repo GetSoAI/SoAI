@@ -109,6 +109,7 @@ interface TestModalState {
     logEntries: TestModalLogEntry[];
     pendingLogEntries: TestModalLogEntry[];
     logFlushTimerId: number | null;
+    logsScrollTimerId: number | null;
     logStreamCallback: ((entry: JsonValue | null | undefined) => void) | null;
     logStreamHandle: TestModalLogStreamHandle | null;
     logStreamPluginName: string | null;

@@ -198,6 +198,10 @@
         justify-content: flex-start;
     }
 
+    :where([data-section='updates'], [data-page-scope='updates']) .update-actions--end {
+        justify-content: flex-end;
+    }
+
     :where([data-section='updates'], [data-page-scope='updates']) .update-metadata {
         display: flex;
         flex-wrap: wrap;

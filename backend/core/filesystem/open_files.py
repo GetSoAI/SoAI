@@ -9,8 +9,10 @@ import os
 import stat
 from typing import TYPE_CHECKING, Literal, overload
 
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import StateError, ValidationError
+from core.files.file_identity import FileIdentity
 from core.files.secure_open_flags import secure_read_only_open_flags
+from core.filesystem.descriptor_io import open_descriptor, open_text_descriptor
 from core.filesystem.path_coercion import coerce_path, normalize_filesystem_path
 
 if TYPE_CHECKING:
@@ -23,6 +25,7 @@ __all__ = (
     "open_regular_file_descriptor_no_symlink",
     "open_text",
     "read_regular_file_no_symlink",
+    "read_regular_file_snapshot_no_symlink",
 )
 
 
@@ -38,31 +41,34 @@ def open_text(
     resolved_encoding = encoding or "utf-8"
     resolved_errors = errors or "strict"
     flags = _text_open_flags(mode)
-    file_descriptor = os.open(resolved, flags, 0o666)
-    try:
-        file_handle = os.fdopen(
-            file_descriptor,
-            mode,
-            encoding=resolved_encoding,
-            errors=resolved_errors,
-            newline=newline,
-        )
-    except (OSError, ValueError):
-        os.close(file_descriptor)
-        raise
-    if not isinstance(file_handle, io.TextIOBase):
-        file_handle.close()
-        raise TypeError("open_text() must return a text file handle.")
-    return file_handle
+    file_descriptor = open_descriptor(resolved, flags, 0o666)
+    return open_text_descriptor(
+        file_descriptor,
+        mode=mode,
+        encoding=resolved_encoding,
+        errors=resolved_errors,
+        newline=newline,
+        error_type=TypeError,
+        error_message="open_text() must return a text file handle.",
+    )
 
 
 @overload
 def open_binary(
     path: PathInput,
     *,
-    mode: Literal["rb", "wb", "ab", "xb"],
+    mode: Literal["rb", "r+b", "wb", "ab", "xb"],
     buffering: Literal[0],
 ) -> io.FileIO: ...
+
+
+@overload
+def open_binary(
+    path: PathInput,
+    *,
+    mode: Literal["r+b"],
+    buffering: Literal[-1] = -1,
+) -> io.BufferedRandom: ...
 
 
 @overload
@@ -91,7 +97,7 @@ def open_binary(
 ) -> io.BufferedIOBase | io.RawIOBase:
     resolved = normalize_filesystem_path(coerce_path(path))
     flags = _binary_open_flags(mode)
-    file_descriptor = os.open(resolved, flags, 0o666)
+    file_descriptor = open_descriptor(resolved, flags, 0o666)
     try:
         file_handle = os.fdopen(file_descriptor, mode, buffering=buffering)
     except (OSError, ValueError):
@@ -105,7 +111,7 @@ def open_binary(
 
 def create_binary_owner_only(path: PathInput) -> io.BufferedWriter:
     resolved = normalize_filesystem_path(coerce_path(path))
-    file_descriptor = os.open(resolved, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    file_descriptor = open_descriptor(resolved, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
         if os.name == "posix":
             os.fchmod(file_descriptor, 0o600)
@@ -136,7 +142,7 @@ def open_regular_file_descriptor_no_symlink(
     if writable:
         open_flags |= os.O_RDWR
     try:
-        file_descriptor = os.open(resolved, open_flags)
+        file_descriptor = open_descriptor(resolved, open_flags)
     except FileNotFoundError as exception:
         raise ValidationError(not_found_message) from exception
     except OSError as exception:
@@ -222,6 +228,8 @@ def _text_open_flags(mode: str) -> int:
 def _binary_open_flags(mode: str) -> int:
     if mode == "rb":
         return os.O_RDONLY
+    if mode == "r+b":
+        return os.O_RDWR
     if mode == "wb":
         return os.O_WRONLY | os.O_CREAT | os.O_TRUNC
     if mode == "ab":
@@ -229,3 +237,16 @@ def _binary_open_flags(mode: str) -> int:
     if mode == "xb":
         return os.O_WRONLY | os.O_CREAT | os.O_EXCL
     raise ValueError(f"Unsupported binary file mode: {mode}")
+
+
+def read_regular_file_snapshot_no_symlink(path: str) -> tuple[bytes, FileIdentity]:
+    with open_regular_binary_no_symlink(path) as handle:
+        before = FileIdentity.from_stat(os.fstat(handle.fileno()))
+        contents = handle.read()
+        after = FileIdentity.from_stat(os.fstat(handle.fileno()))
+    current = FileIdentity.from_stat(
+        os.stat(normalize_filesystem_path(path), follow_symlinks=False)
+    )
+    if not before.matches_descriptor_snapshot(after) or after != current:
+        raise StateError("File changed while its snapshot was being read.", details={"path": path})
+    return contents, after

@@ -1,6 +1,7 @@
 /* SoAI - Shared UI busy disabled state [frontend/assets/ts/core/ui/controls/busyDisabledState.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { isString } from '@core/typeGuards.ts';
 import { setAriaBusy } from '@core/ui/controls/ariaBusy.ts';
@@ -50,6 +51,9 @@ const BUSY_PREV_TOOLTIP_KEY = 'soaiBusyPrevTooltip';
 const BUSY_PREV_SPINNER_KEY = 'soaiBusyPrevSpinner';
 
 const SPINNER_ATTRIBUTE = 'data-busy-spinner';
+
+const BUSY_DISABLED_ATTRIBUTE_NAMES: ReadonlySet<string> = new Set([...[BUSY_TOKEN_KEY, BUSY_PREV_DISABLED_KEY, BUSY_PREV_ARIA_DISABLED_KEY, BUSY_PREV_TABINDEX_KEY, BUSY_PREV_TOOLTIP_KEY, BUSY_PREV_SPINNER_KEY].map(toDataAttributeName), 'aria-busy', 'aria-disabled', 'disabled', 'tabindex', 'data-tooltip', SPINNER_ATTRIBUTE]);
+const BUSY_DISABLED_CLASS_NAMES: ReadonlySet<string> = new Set([CSS_CLASSES.BUSY_CONTROL]);
 
 const storePrevSpinner = (element: BusyDisabledTarget): void => {
     const existing = readDataAttribute(element, BUSY_PREV_SPINNER_KEY);
@@ -235,5 +239,5 @@ const getBusyDisabledToken = (target: BusyDisabledTarget): BusyDisabledToken | n
     return isString(token) && token.length > 0 ? token : null;
 };
 
-export { createBusyDisabledToken, getBusyDisabledToken, setBusyDisabledState };
+export { BUSY_DISABLED_ATTRIBUTE_NAMES, BUSY_DISABLED_CLASS_NAMES, createBusyDisabledToken, getBusyDisabledToken, setBusyDisabledState };
 export type { BusyDisabledTarget, BusyDisabledToken };

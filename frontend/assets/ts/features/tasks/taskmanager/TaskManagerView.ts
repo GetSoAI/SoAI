@@ -1,14 +1,14 @@
 /* SoAI - Tasks feature task manager view [frontend/assets/ts/features/tasks/taskmanager/TaskManagerView.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { reconcilePresenceList } from '@core/animations/presence/public.ts';
+import { optionalTrimmedDataAttribute } from '@core/dom/attributes.ts';
 import { dom } from '@core/dom/dom.ts';
-import { reconcileElementChildrenFromTrustedHtml } from '@core/dom/childNodeReconciliation.ts';
-import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { serializeElementToHtml } from '@core/dom/html.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { requireHeaderDropdownButton, requireHeaderDropdownElement } from '@core/layout/header/dropdownElements.ts';
 import { securityApi, toTrustedUiHtml } from '@core/security/public.ts';
-import { uiHtml } from '@core/security/uiHtml.ts';
+import { EMPTY_UI_HTML, uiHtml } from '@core/security/uiHtml.ts';
 import { syncTrackedTaskCounter } from '@core/tasks/taskCounterText.ts';
 import { resolveTaskOperationDetailText, resolveTaskOperationLabelText } from '@core/tasks/operationText.ts';
 import { isHTMLElement, isObject, isString } from '@core/typeGuards.ts';
@@ -25,6 +25,8 @@ import type { TaskManagerElements, TaskManagerStoreApi } from '@features/tasks/t
 interface StatusManagerContract {
     createIndicator: (status: string) => HTMLElement;
 }
+
+const resolveTaskRowKey = (child: HTMLElement): string | null => (child.classList.contains('task-item') ? (optionalTrimmedDataAttribute(child, 'task-key') ?? null) : null);
 
 class TaskManagerView {
     #store: TaskManagerStoreApi;
@@ -139,8 +141,9 @@ class TaskManagerView {
         const operationLabelDependencies = {
             store: this.#store
         };
+        const emptyStateHtml = uiHtml`<div class="task-list-empty"><p>${i18n.t('taskManager.messages.noActivePlugins')}</p></div>`;
         if (filteredEntries.length === 0) {
-            reconcileElementChildrenFromTrustedHtml({ target: elements.list, html: uiHtml`<div class="task-list-empty"><p>${i18n.t('taskManager.messages.noActivePlugins')}</p></div>` });
+            reconcilePresenceList({ list: elements.list, rowsHtml: EMPTY_UI_HTML, emptyStateHtml, resolveRowKey: resolveTaskRowKey });
             this.#listStructureSignature = null;
             return;
         }
@@ -181,7 +184,7 @@ class TaskManagerView {
                 }
                 const percent = this.#store.normalizeProgress(op.progress);
                 const progressContainer = dom.resolve('.task-progress[role="progressbar"]', row);
-                const progressBar = dom.resolve('.task-progress-bar--determinate', row);
+                const progressBar = dom.resolve('.task-progress-bar', row);
                 const labelElement = dom.resolve('.task-operation-label', row);
                 const detailElement = dom.resolve('.task-operation-detail', row);
                 if (!(progressContainer instanceof HTMLElement) || !(progressBar instanceof HTMLElement)) {
@@ -192,13 +195,15 @@ class TaskManagerView {
                     requiresFullRender = true;
                     break;
                 }
-                const normalizedProgress = syncDeterminateProgress({
-                    fillElement: progressBar,
-                    progress: percent,
-                    progressbarElement: progressContainer,
-                    syncUsageClass: true
-                });
-                progressBar.dataset['progress'] = String(normalizedProgress);
+                if (op.meta?.['indeterminate'] !== true) {
+                    const normalizedProgress = syncDeterminateProgress({
+                        fillElement: progressBar,
+                        progress: percent,
+                        progressbarElement: progressContainer,
+                        colorize: true
+                    });
+                    progressBar.dataset['progress'] = String(normalizedProgress);
+                }
                 dom.setText(labelElement, resolveTaskOperationLabelText(op));
                 dom.setText(detailElement, resolveTaskOperationDetailText(op));
             }
@@ -207,13 +212,12 @@ class TaskManagerView {
             }
         }
         const listHTML = filteredEntries
-            .map((plugin, index) => {
+            .map((plugin) => {
                 const pluginName = this.#store.resolvePluginDisplayName(plugin);
                 const pluginKey = this.#store.getPluginKey(plugin);
                 if (!pluginKey) {
                     throw new Error('TaskManager plugin rendering requires plugin key');
                 }
-                const checkerboardClass = resolveCheckerboardClass(index);
                 const status = String(plugin.state ?? 'UNKNOWN').toUpperCase();
                 const isSynthetic = plugin.__synthetic === true;
                 const isPersistent = plugin.isPersistent === true || this.#store.isPersistentStatus(status);
@@ -244,7 +248,7 @@ class TaskManagerView {
                 `
                         : '';
                 return `
-            <div class="dropdown-item task-item ${checkerboardClass}" data-plugin="${securityApi.escapeHtml(pluginName)}">
+            <div class="dropdown-item task-item" data-plugin="${securityApi.escapeHtml(pluginName)}" data-task-key="${securityApi.escapeHtml(pluginKey)}" data-presence-atomic>
             <div class="active-task-info">
             <div class="plugin-status">${indicatorMarkup}</div>
             <div class="active-task-details">
@@ -258,8 +262,7 @@ class TaskManagerView {
                  </div>`;
             })
             .join('');
-        const listMarkup = toTrustedUiHtml(listHTML);
-        dom.setHTML(elements.list, listMarkup, { escape: false });
+        reconcilePresenceList({ list: elements.list, rowsHtml: toTrustedUiHtml(listHTML), emptyStateHtml, resolveRowKey: resolveTaskRowKey });
         this.#listStructureSignature = structureSignature;
         for (const bar of dom.resolveAll('.task-progress-bar--determinate[data-progress]', elements.list)) {
             if (!isHTMLElement(bar)) continue;
@@ -268,7 +271,7 @@ class TaskManagerView {
                 syncDeterminateProgress({
                     fillElement: bar,
                     progress: value,
-                    syncUsageClass: true
+                    colorize: true
                 });
             }
         }

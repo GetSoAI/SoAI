@@ -1,12 +1,25 @@
 /* SoAI - Hardware snapshot GPU V1 boundary decoding [frontend/assets/ts/core/api/contracts/hardwareSnapshotGpuContract.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { readNullableTrimmedStringValue, readRequiredBooleanValue, readRequiredEnumValue } from '@core/types/payloadValueReaders.ts';
+import { requireRecord } from '@core/types/payloadRecordReaders.ts';
 import { readOptionalHardwareNumber, readOptionalHardwareString } from '@core/api/contracts/hardwareContractReaders.ts';
-import type { HardwareGpuSnapshot } from '@core/api/contracts/hardwareContractTypes.ts';
-import type { JsonObject } from '@core/types/jsonValues.ts';
+import type { HardwareGpuInventorySource, HardwareGpuSnapshot } from '@core/api/contracts/hardwareContractTypes.ts';
+import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
+import { decodeHardwareComponentObservation } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
+
+const decodeHardwareGpuInventorySources = (value: JsonValue): Readonly<Record<string, HardwareGpuInventorySource>> =>
+    Object.fromEntries(
+        Object.entries(requireRecord(value, 'Hardware GPU inventory sources')).map(([name, item]) => {
+            const record = requireRecord(item, `Hardware GPU inventory source ${name}`);
+            return [name, { state: readRequiredEnumValue(record['state'], `Hardware GPU inventory source ${name}.state`, ['observed', 'unknown', 'runtime_unavailable', 'query_failed', 'permission_denied', 'invalid_response']), reasonCode: readNullableTrimmedStringValue(record['reason_code'], `Hardware GPU inventory source ${name}.reason_code`) }];
+        })
+    );
 
 const decodeHardwareSnapshotGpu = (record: JsonObject, label: string): HardwareGpuSnapshot => {
     const decoded: HardwareGpuSnapshot = {};
+    if (record['telemetry_observation'] !== undefined) decoded.telemetryObservation = decodeHardwareComponentObservation(record['telemetry_observation'], `${label}.telemetry_observation`);
+    if (record['memory_total_observation'] !== undefined) decoded.memoryTotalObservation = decodeHardwareComponentObservation(record['memory_total_observation'], `${label}.memory_total_observation`);
     const deviceId = readOptionalHardwareString(record, 'device_id', label);
     const name = readOptionalHardwareString(record, 'name', label);
     const displayName = readOptionalHardwareString(record, 'display_name', label);
@@ -57,9 +70,9 @@ const decodeHardwareSnapshotGpu = (record: JsonObject, label: string): HardwareG
     if (memoryUsedBytes !== undefined) decoded.memoryUsedBytes = memoryUsedBytes;
     if (memoryTotalMb !== undefined) decoded.memoryTotalMb = memoryTotalMb;
     if (memoryUsedMb !== undefined) decoded.memoryUsedMb = memoryUsedMb;
-    if (typeof record['compute_capable'] === 'boolean') decoded.computeCapable = record['compute_capable'];
-    if (typeof record['telemetry_available'] === 'boolean') decoded.telemetryAvailable = record['telemetry_available'];
+    if (record['compute_capable'] !== undefined) decoded.computeCapable = readRequiredBooleanValue(record['compute_capable'], `${label}.compute_capable`);
+    if (record['telemetry_available'] !== undefined) decoded.telemetryAvailable = readRequiredBooleanValue(record['telemetry_available'], `${label}.telemetry_available`);
     return decoded;
 };
 
-export { decodeHardwareSnapshotGpu };
+export { decodeHardwareGpuInventorySources, decodeHardwareSnapshotGpu };

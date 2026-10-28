@@ -114,7 +114,7 @@
         align-items: center;
         justify-content: center;
         flex: 0 0 auto;
-        color: var(--text-tertiary);
+        color: inherit;
     }
 
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-control--multi {
@@ -178,34 +178,34 @@
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slot--placeholder.ui-icon-button {
         background: transparent;
         border-style: dashed;
-        border-color: color-mix(in srgb, var(--border-color) 75%, transparent);
-        color: var(--text-tertiary);
-        opacity: 0.9;
+        border-color: color-mix(in srgb, var(--ui-button-neutral-color) var(--control-button-border-strength), transparent);
+        color: var(--ui-button-neutral-color);
+        opacity: var(--ui-control-opacity);
     }
 
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slot--placeholder.ui-icon-button.ui-variant-accent {
         background: transparent;
         border-style: dashed;
-        border-color: color-mix(in srgb, var(--border-color) 75%, transparent);
-        color: var(--text-tertiary);
+        border-color: color-mix(in srgb, var(--ui-button-neutral-color) var(--control-button-border-strength), transparent);
+        color: var(--ui-button-neutral-color);
     }
 
-    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slot--placeholder.ui-icon-button:is(:hover, :focus-visible):not(:disabled) {
-        background: var(--button-surface-hover);
-        color: var(--text-primary);
-        opacity: 1;
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slot--placeholder.ui-icon-button:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true'], [data-toggle-disabled='true']) {
+        background: var(--ui-button-bg-hover);
+        color: var(--ui-button-color-hover);
+        opacity: var(--ui-control-opacity);
     }
 
-    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slot--placeholder.ui-icon-button.ui-variant-accent:is(:hover, :focus-visible):not(:disabled) {
-        background: var(--button-surface-hover);
-        border-color: color-mix(in srgb, var(--border-color) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
-        color: var(--text-primary);
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slot--placeholder.ui-icon-button.ui-variant-accent:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true'], [data-toggle-disabled='true']) {
+        background: var(--ui-button-bg-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
+        color: var(--ui-button-color-hover);
     }
 
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slot.ui-icon-button.is-open {
-        background: var(--button-surface-hover);
-        border-color: color-mix(in srgb, var(--border-color) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
-        color: var(--text-primary);
+        background: var(--ui-button-bg-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
+        color: var(--ui-button-color-hover);
     }
 
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slot-remove {
@@ -217,18 +217,12 @@
         width: 16px;
         height: 16px;
         opacity: 0.3;
-        transition:
-            opacity var(--transition-fast),
-            transform var(--transition-fast);
+        transition: opacity var(--transition-fast);
         z-index: var(--z-above-sibling);
     }
 
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slot-wrap:is(:hover, :focus-within) .chat-model-slot-remove {
         opacity: 1;
-    }
-
-    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slot-remove:hover:not(:disabled, [aria-disabled='true']) {
-        transform: translateY(-0.5px);
     }
 
     :where(.chat-container) .chat-sidebar-header .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slots:has(> .chat-model-slot-wrap:nth-child(5)) {

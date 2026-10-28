@@ -1,6 +1,7 @@
 /* SoAI - Canonical refresh-delay resolution for running inline activities [frontend/assets/ts/features/chat/message/activityRefreshDelay.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { AssistantResponseDurationState } from '@features/chat/message/assistantResponseDuration.ts';
 import { resolveInlineActivityDurationArguments, resolveInlineActivityRefreshDelayMs } from '@features/chat/message/messageview/inlineActivityDuration.ts';
 import { resolveAssistantHeaderDurationArguments } from '@features/chat/message/messageview/assistantHeaderDuration.ts';
 import { CHAT_ACTIVITY_DURATION_REFRESH_INTERVAL_MS } from '@features/chat/chatConstants.ts';
@@ -19,26 +20,16 @@ const earlierRefreshDelayMs = (current: number | null, candidate: number | null)
     return current;
 };
 
-const isDurationRefreshVisible = (segment: MessageSegment, displayMode: ChatActivityDurationDisplayMode): boolean => {
-    if (displayMode === 'all') {
-        return true;
-    }
-    if (displayMode === 'settledOnly') {
-        return false;
-    }
-    return (segment.type === 'inline_tool_activity' || segment.type === 'inline_thinking_activity') && segment.collapsed === false;
-};
-
 const resolveRunningInlineActivityRefreshDelayMs = (segments: MessageSegment[], nowMs: number, displayMode: ChatActivityDurationDisplayMode): number | null => {
+    if (displayMode === 'settledOnly') {
+        return null;
+    }
     let refreshDelayMs: number | null = null;
     for (const segment of segments) {
         if (!segment) {
             continue;
         }
         if (!isInlineRefreshActivitySegment(segment)) {
-            continue;
-        }
-        if (!isDurationRefreshVisible(segment, displayMode)) {
             continue;
         }
         const nextDelayMs = resolveInlineActivityRefreshDelayMs(resolveInlineActivityDurationArguments(segment, nowMs));
@@ -55,9 +46,9 @@ const canKnownDelayWinWithoutSegments = (refreshDelayMs: number | null): boolean
     return refreshDelayMs !== null && refreshDelayMs <= CHAT_ACTIVITY_DURATION_REFRESH_INTERVAL_MS;
 };
 
-const resolveRunningActivityRefreshDelayMs = (message: ChatMessage, resolveSegments: () => MessageSegment[], nowMs: number, runningSummaryRefreshDelayMs: number | null, displayMode: ChatActivityDurationDisplayMode): number | null => {
+const resolveRunningActivityRefreshDelayMs = (message: ChatMessage, resolveSegments: () => MessageSegment[], nowMs: number, runningSummaryRefreshDelayMs: number | null, displayMode: ChatActivityDurationDisplayMode, durationState?: AssistantResponseDurationState): number | null => {
     let refreshDelayMs = runningSummaryRefreshDelayMs;
-    const assistantHeaderDurationArguments = displayMode === 'all' ? resolveAssistantHeaderDurationArguments(message, nowMs) : null;
+    const assistantHeaderDurationArguments = displayMode === 'all' ? resolveAssistantHeaderDurationArguments(message, nowMs, durationState) : null;
     if (assistantHeaderDurationArguments !== null) {
         const assistantHeaderDelayMs = resolveInlineActivityRefreshDelayMs(assistantHeaderDurationArguments);
         refreshDelayMs = earlierRefreshDelayMs(refreshDelayMs, assistantHeaderDelayMs);

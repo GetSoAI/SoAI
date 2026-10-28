@@ -222,7 +222,7 @@ class ConcurrentModalManager {
     }
 
     async showConcurrentPluginsRestartNotification(): Promise<void> {
-        await showConcurrentPluginsRestartNotification(this.#host);
+        await showConcurrentPluginsRestartNotification();
     }
 
     #initializeSaveWiring(): void {

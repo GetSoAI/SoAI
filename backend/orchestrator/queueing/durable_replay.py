@@ -11,6 +11,7 @@ from core.errors.exceptions import StateError, ValidationError
 from core.events.types_base import Event
 from core.events.types_models_requests import (
     EmbeddingRequestReceived,
+    ImageEditJsonRequestReceived,
     ImageGenerationRequestReceived,
     InferenceRequestReceived,
     TextToSpeechRequestReceived,
@@ -29,6 +30,8 @@ def _resolve_event_class(event_type_name: str) -> type[InferenceRequestReceived]
         return EmbeddingRequestReceived
     if event_type_name == "ImageGenerationRequestReceived":
         return ImageGenerationRequestReceived
+    if event_type_name == "ImageEditJsonRequestReceived":
+        return ImageEditJsonRequestReceived
     if event_type_name == "TextToSpeechRequestReceived":
         return TextToSpeechRequestReceived
     if event_type_name == "InferenceRequestReceived":

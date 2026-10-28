@@ -24,16 +24,16 @@ const buildVirtualModelEditModalBody = (): ReturnType<typeof uiHtml> => {
     return uiHtml`
         <div id="${modalUiId(modalId, 'vm-edit-summary')}" class="form-help vm-edit-modal-summary"></div>
         <div class="form-group setting-change-surface" id="${modalUiId(modalId, 'vm-edit-strategy-field')}">
-            <label for="${modalUiId(modalId, 'vm-edit-strategy')}">${i18n.t('models.modal.virtualModels.strategy')}</label>
+            <label for="${modalUiId(modalId, 'vm-edit-strategy')}" data-modal-localize="text">${i18n.t('models.modal.virtualModels.strategy')}</label>
             ${toTrustedUiHtml(
                 renderStandardDropdownSelectControl(`<select id="${modalUiId(modalId, 'vm-edit-strategy')}" class="form-input">
-                <option value="load_balancing">${uiText(i18n.t('models.strategies.load_balancing')).html}</option>
-                <option value="failover">${uiText(i18n.t('models.strategies.failover')).html}</option>
+                <option value="load_balancing" data-modal-localize="text">${uiText(i18n.t('models.strategies.load_balancing')).html}</option>
+                <option value="failover" data-modal-localize="text">${uiText(i18n.t('models.strategies.failover')).html}</option>
             </select>`)
             )}
         </div>
         <div class="form-group setting-change-surface setting-change-surface--child-selection" id="${modalUiId(modalId, 'vm-edit-models-field')}">
-            <label>${i18n.t('models.modal.virtualModels.constituentModels')}</label>
+            <label data-modal-localize="text">${i18n.t('models.modal.virtualModels.constituentModels')}</label>
             ${buildConstituentPickerMarkup({ modalId, token: 'vm-edit-models' })}
         </div>
     `;

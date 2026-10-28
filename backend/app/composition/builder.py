@@ -138,6 +138,16 @@ class ApplicationAssemblyBuilder:
                         if api_runtime_singletons is None
                         else api_runtime_singletons.login_password_pool
                     ),
+                    file_content_pool=(
+                        None
+                        if api_runtime_singletons is None
+                        else api_runtime_singletons.file_content_pool
+                    ),
+                    skill_import_pool=(
+                        None
+                        if api_runtime_singletons is None
+                        else api_runtime_singletons.skill_import_pool
+                    ),
                 )
         if application_assembly is None:
             raise StateError("Application assembly construction completed without a result.")

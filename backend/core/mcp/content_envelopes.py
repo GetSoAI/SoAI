@@ -28,5 +28,5 @@ def build_resource_contents_result(*contents: JSONDict) -> JSONDict:
 def build_text_prompt_result(*, description: str, text: str) -> JSONDict:
     return {
         "description": description,
-        "messages": [{"role": "user", "content": [{"type": "text", "text": text}]}],
+        "messages": [{"role": "user", "content": {"type": "text", "text": text}}],
     }

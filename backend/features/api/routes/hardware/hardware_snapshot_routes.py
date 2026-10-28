@@ -32,11 +32,13 @@ async def _hardware_snapshot_initial_state(
     *,
     components: list[str] | None,
     cache: bool,
+    include_gpu_capabilities: bool = True,
 ) -> JSONDict:
     api_context = resolve_api_context(request)
     return await api_context.dependencies.hw_manager.get_system_info(
         components=components,
         cache=cache,
+        include_gpu_capabilities=include_gpu_capabilities,
     )
 
 
@@ -49,10 +51,12 @@ def register_routes(routers: ApiRouters) -> None:
         request: Request,
         components: str | None = Query(default=None),
         cache: bool = Query(default=True),
+        include_gpu_capabilities: bool = Query(default=True),
     ) -> Response:
         snapshot = await _hardware_snapshot_initial_state(
             request,
             components=_parse_components(components),
             cache=cache,
+            include_gpu_capabilities=include_gpu_capabilities,
         )
         return JSONResponse(content=snapshot)

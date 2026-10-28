@@ -68,3 +68,4 @@ class ChatStreamCancellationIntent:
     request_id: str
     force_pending_steers: bool
     reason: str
+    code: str = "cancelled"

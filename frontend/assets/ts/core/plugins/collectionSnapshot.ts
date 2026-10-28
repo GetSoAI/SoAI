@@ -1,6 +1,7 @@
 /* SoAI - Shared plugins collection snapshot [frontend/assets/ts/core/plugins/collectionSnapshot.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { decodePluginBackendUpdate } from '@core/plugins/backendUpdates.ts';
 import { isBoolean, isFiniteNumber, isString } from '@core/typeGuards.ts';
 import { isJsonArray, isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { isPluginRecord } from '@core/types/pluginRecordGuards.ts';
@@ -267,6 +268,7 @@ const decodePluginCollectionEntry = (entry: PluginCollectionEntry): PluginCollec
     if (entry['website_backend'] !== undefined) decoded['websiteBackend'] = entry['website_backend'];
     if (entry['model_repository'] !== undefined) decoded['modelRepository'] = parsePluginModelRepository(entry['model_repository']);
     decoded['logoRevision'] = entry['logo_revision'] ?? null;
+    if (entry['backend_update'] !== undefined) decoded['backendUpdate'] = decodePluginBackendUpdate(entry['backend_update']);
     return decoded;
 };
 

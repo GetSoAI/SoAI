@@ -17,6 +17,7 @@ from core.errors.exceptions import ConfigurationError, SoAITimeoutError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.files.lock_acquisition_retry import async_retrying_guarded_file_lock
 from core.logging.protocols import LoggerProtocol
+from core.serialization.json import normalize_for_json
 
 __all__ = (
     "ConfigBaselineUpdater",
@@ -70,6 +71,11 @@ class ConfigBaselineUpdater:
                     config_name=config_name,
                 )
             )
+            previous = await self._deps.cache.get(config_name)
+            if previous is not None and normalize_for_json(previous) != normalize_for_json(
+                config_mapping
+            ):
+                await self._deps.io.invalidate_plugin_backend_update(config_name)
             await self._deps.cache.set(config_name, config_mapping)
             self._deps.reconciler.known_files_state[config_path] = known_state
             self._deps.reconciler.ensure_revision_initialized(config_path)

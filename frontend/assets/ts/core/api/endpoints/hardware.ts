@@ -36,6 +36,7 @@ const createHardwareEndpoints = (
             if (isDefined(options.useCache)) {
                 query['cache'] = options.useCache;
             }
+            if (isDefined(options.includeGpuCapabilities)) query['include_gpu_capabilities'] = options.includeGpuCapabilities;
             return decodeHardwareSnapshot(
                 await api.get('/api/v1/hardware/snapshot', {
                     ...buildSignalRequestOptions(options),
@@ -45,9 +46,9 @@ const createHardwareEndpoints = (
         },
         gpuSettings: { updateDevice: async (deviceId: string, settings: GpuSettingsUpdateRequest): Promise<GpuOperationResponse> => decodeGpuOperationResponse(await api.post('/api/v1/hardware/gpu/settings', serializeGpuDeviceSettingsRequest(deviceId, settings))) },
         gpuSoAIBench: {
-            deleteLocal: async (runId: string): Promise<SuccessfulMutationResponse> => decodeSuccessfulMutationResponse(await api.delete(`/api/v1/hardware/gpu/soaibench/runs/${api.encodePathSegment(runId)}`), 'SoAIBench local history deletion'),
+            deleteLocal: async (runId: string): Promise<SuccessfulMutationResponse> => decodeSuccessfulMutationResponse(await api.delete(`/api/v1/hardware/gpu/soaibench/runs/${api.encodePathSegment(runId)}`), 'SoAI Bench local history deletion'),
             preview: async (runId: string): Promise<string> => {
-                if (!runId) throw new Error('SoAIBench runId is required');
+                if (!runId) throw new Error('SoAI Bench runId is required');
                 return decodeGpuSoAIBenchPublicationPreview(await api.get(`/api/v1/hardware/gpu/soaibench/runs/${api.encodePathSegment(runId)}/publication/preview`));
             },
             start: async (deviceId: string, payload: GpuSoAIBenchStartRequest): Promise<GpuOperationResponse> => {
@@ -55,15 +56,15 @@ const createHardwareEndpoints = (
                 return decodeGpuOperationResponse(await api.post('/api/v1/hardware/gpu/soaibench/runs', serializeGpuSoAIBenchDeviceStartRequest(deviceId, payload)));
             },
             get: async (runId: string): Promise<GpuOperationResponse> => {
-                if (!runId) throw new Error('SoAIBench runId is required');
+                if (!runId) throw new Error('SoAI Bench runId is required');
                 return decodeGpuOperationResponse(await api.get(`/api/v1/hardware/gpu/soaibench/runs/${api.encodePathSegment(runId)}`));
             },
             stop: async (runId: string): Promise<GpuOperationResponse> => {
-                if (!runId) throw new Error('SoAIBench runId is required');
+                if (!runId) throw new Error('SoAI Bench runId is required');
                 return decodeGpuOperationResponse(await api.post(`/api/v1/hardware/gpu/soaibench/runs/${api.encodePathSegment(runId)}/stop`, {}));
             },
             publish: async (runId: string): Promise<GpuSoAIBenchPublicationReceipt> => {
-                if (!runId) throw new Error('SoAIBench runId is required');
+                if (!runId) throw new Error('SoAI Bench runId is required');
                 return decodeGpuSoAIBenchPublicationReceipt(await api.post(`/api/v1/hardware/gpu/soaibench/runs/${api.encodePathSegment(runId)}/publication`));
             },
             history: async (deviceId: string, limit: number): Promise<GpuOperationResponse> => {

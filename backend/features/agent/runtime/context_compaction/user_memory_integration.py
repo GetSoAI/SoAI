@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from core.openai.chat_role_sets import OPENAI_PINNED_ROLES
 from core.openai.request_fields import resolve_optional_model_name
+from core.skills.prompt_projection import is_skill_context_message
 from features.agent.runtime.context_compaction.budget import (
     truncate_message_content_to_fit_budget,
 )
@@ -24,14 +25,9 @@ from features.agent.runtime.context_compaction.user_memory import (
     strip_user_message_memory_messages,
 )
 from features.agent.runtime.context_compaction.user_memory_selection import (
-    USER_MEMORY_HEAD_COUNT,
-    USER_MEMORY_MAX_HEAD_MESSAGE_TOKENS,
-    USER_MEMORY_MAX_USER_MESSAGE_TOKENS,
-    USER_MEMORY_TAIL_COUNT,
     collect_user_message_texts,
     select_head_user_messages,
     select_tail_user_messages,
-    truncate_user_message_to_limit,
 )
 
 if TYPE_CHECKING:
@@ -41,12 +37,7 @@ if TYPE_CHECKING:
 
 __all__ = ("apply_user_message_memory_to_compacted_history",)
 
-_USER_MEMORY_MAX_MEMORY_TOKENS: int = (
-    (USER_MEMORY_HEAD_COUNT * USER_MEMORY_MAX_HEAD_MESSAGE_TOKENS)
-    + (USER_MEMORY_TAIL_COUNT * USER_MEMORY_MAX_USER_MESSAGE_TOKENS)
-    + 2048
-)
-_USER_MEMORY_MAX_EXTRA_ENTRIES: int = 0
+_USER_MEMORY_MAX_MEMORY_TOKENS: int = 6144
 
 
 def _inject_user_memory_message(
@@ -75,6 +66,8 @@ def _truncate_context_summary_if_present(
 ) -> list[JSONDict]:
     summary_index: int | None = None
     for index, message in enumerate(message_history):
+        if is_skill_context_message(message):
+            continue
         content = message.get("content")
         if isinstance(content, str) and "<context_summary>" in content:
             summary_index = index
@@ -118,7 +111,6 @@ def apply_user_message_memory_to_compacted_history(
         token_estimation_profile=token_estimation_profile,
     )
     head_sources = {entry.source_text for entry in head}
-    tail_sources = {entry.source_text for entry in tail}
     missing_head = [
         entry.memory_text for entry in head if entry.source_text not in candidate_user_texts
     ]
@@ -127,30 +119,11 @@ def apply_user_message_memory_to_compacted_history(
         for entry in tail
         if entry.source_text not in candidate_user_texts and entry.source_text not in head_sources
     ]
-    extra_candidates: list[str] = []
-    if _USER_MEMORY_MAX_EXTRA_ENTRIES > 0:
-        for text in original_user_texts:
-            if text in candidate_user_texts:
-                continue
-            if text in head_sources or text in tail_sources:
-                continue
-            truncated = truncate_user_message_to_limit(
-                prompt_token_counter,
-                text=text,
-                model_name=model_name,
-                max_message_tokens=USER_MEMORY_MAX_USER_MESSAGE_TOKENS,
-                token_estimation_profile=token_estimation_profile,
-            )
-            if not truncated:
-                continue
-            extra_candidates.append(truncated)
-            if len(extra_candidates) >= _USER_MEMORY_MAX_EXTRA_ENTRIES:
-                break
     merged = merge_user_message_memory(
         existing_memory,
         head=missing_head,
         tail=missing_tail,
-        extra=extra_candidates,
+        extra=[],
     )
     merged = remove_user_memory_entries_present_as_user_messages(
         merged,
@@ -160,15 +133,12 @@ def apply_user_message_memory_to_compacted_history(
         return stripped_candidate
     while True:
         memory_text = render_user_message_memory_content(merged)
-        if (
-            count_compaction_text_tokens(
-                prompt_token_counter,
-                text=memory_text,
-                model_name=model_name,
-                token_estimation_profile=token_estimation_profile,
-            )
-            <= _USER_MEMORY_MAX_MEMORY_TOKENS
-        ):
+        if count_compaction_text_tokens(
+            prompt_token_counter,
+            text=memory_text,
+            model_name=model_name,
+            token_estimation_profile=token_estimation_profile,
+        ) <= min(_USER_MEMORY_MAX_MEMORY_TOKENS, max_prompt_tokens // 6):
             break
         next_memory = evict_one_low_priority_entry(merged)
         if next_memory is None:

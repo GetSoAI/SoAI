@@ -58,15 +58,14 @@ async def persist_tool_call_error_payload(
     result_payload: JSONDict,
     duration_ms: int,
     error_message: str,
-) -> JSONDict:
-    await persist_tool_call_exception_result(
+) -> JSONValue:
+    return await persist_tool_call_exception_result(
         persistence_context,
         record=record,
         result_payload=result_payload,
         duration_ms=duration_ms,
         error_message=error_message,
     )
-    return result_payload
 
 
 async def persist_tool_call_timeout_result(
@@ -75,7 +74,7 @@ async def persist_tool_call_timeout_result(
     record: ToolCallExecutionRecord,
     result_payload: JSONDict,
     duration_ms: int,
-) -> JSONDict:
+) -> JSONValue:
     error_value = result_payload.get("error")
     error_message = error_value if isinstance(error_value, str) else "Tool call timed out."
     return await persist_tool_call_error_payload(
@@ -92,7 +91,7 @@ async def persist_blocked_plan_mode_tool_call(
     *,
     record: ToolCallExecutionRecord,
     block_reason: str,
-) -> JSONDict:
+) -> JSONValue:
     await persist_tool_call_start_state(
         persistence_context,
         record=record,
@@ -140,7 +139,7 @@ async def persist_mcp_error_tool_call_result(
     record: ToolCallExecutionRecord,
     duration_ms: int,
     exception: MCPError,
-) -> JSONDict:
+) -> JSONValue:
     rpc_code = exception.rpc_code
     public_message, public_data = project_mcp_tool_error_fields(
         rpc_code,
@@ -167,7 +166,7 @@ async def persist_unexpected_tool_call_error_result(
     record: ToolCallExecutionRecord,
     duration_ms: int,
     exception: BaseException,
-) -> JSONDict:
+) -> JSONValue:
     coerced = coerce_to_soai_error(
         exception,
         operation="orchestrator.tool_calls.execute_single_tool_call",
@@ -228,8 +227,8 @@ async def persist_tool_call_completed_result(
     record: ToolCallExecutionRecord,
     result_payload: JSONValue,
     duration_ms: int,
-) -> None:
-    await persist_tool_call_completed(
+) -> JSONValue:
+    return await persist_tool_call_completed(
         persistence_context,
         record=record,
         result_payload=result_payload,

@@ -35,7 +35,7 @@ Advisories are published on the GitHub repository's security advisories page and
 
 ## Support period and security updates
 
-The security support period for SoAI runs from **22 August 2026 to 22 August 2031**, five years after the first official public distribution recorded in `CHANGE-DATES.md`. During that period, security updates are provided for the latest available stable release. This does not promise continued maintenance, feature parity, or separate security backports for superseded releases. That period reflects the expected lifetime of the product and is stated for Article 13(8) of Regulation (EU) 2024/2847.
+The security support period for SoAI runs from **22 August 2026 to 22 August 2031**, five years after the first official public distribution recorded in `CHANGE_DATES.md`. During that period, security updates are provided for the latest available stable release. This does not promise continued maintenance, feature parity, or separate security backports for superseded releases. That period reflects the expected lifetime of the product and is stated for Article 13(8) of Regulation (EU) 2024/2847.
 
 During the support period, security updates for the latest stable release are published **free of charge to everyone**, whether or not a paid commercial term is active and whether the installation is personal, evaluation, or commercial. They are delivered as official signed numbered releases through the same verified updater path as any other release, and are announced in the advisory and the release notes. Receiving a security update does not by itself grant a right to use SoAI outside a valid grant, and it does not extend or renew a license term.
 

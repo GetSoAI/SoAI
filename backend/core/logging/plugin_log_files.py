@@ -14,6 +14,7 @@ from core.meta.paths import join_data_abs
 __all__ = (
     "list_plugin_log_sources",
     "resolve_plugin_log_file",
+    "resolve_plugin_log_path",
 )
 
 _PLUGIN_SOURCE_PATTERN_TEXT: str = r"^[A-Za-z0-9][A-Za-z0-9_.-]*$"
@@ -42,7 +43,7 @@ def _validate_plugin_source_name(source: str) -> str:
     return normalized
 
 
-def resolve_plugin_log_file(config: ConfigProtocol, source: str) -> str | None:
+def resolve_plugin_log_path(config: ConfigProtocol, source: str) -> str:
     normalized = _validate_plugin_source_name(source)
     directory_path = _resolve_plugin_logs_directory(config)
     lexical_candidate_path = os.path.abspath(os.path.join(directory_path, f"{normalized}.log"))
@@ -54,6 +55,11 @@ def resolve_plugin_log_file(config: ConfigProtocol, source: str) -> str | None:
         description="Plugin log source path",
         error_cls=ValidationError,
     )
+    return candidate_path
+
+
+def resolve_plugin_log_file(config: ConfigProtocol, source: str) -> str | None:
+    candidate_path = resolve_plugin_log_path(config, source)
     if not os.path.isfile(candidate_path):
         return None
     return candidate_path

@@ -27,7 +27,6 @@ __all__ = (
     "ResponsesOutputContent",
     "ResponsesOutputItem",
     "ResponsesRequest",
-    "ResponsesResponse",
 )
 
 OPENAI_RESPONSES_MAX_OUTPUT_TOKENS = 4_194_304
@@ -109,22 +108,3 @@ class ResponsesOutputItem(BaseModel):
     status: str = "completed"
     role: str = "assistant"
     content: list[ResponsesOutputContent] = Field(default_factory=list[ResponsesOutputContent])
-
-
-class ResponsesResponse(BaseModel):
-    id: str
-    object: str = "response"
-    created_at: int
-    status: str = "completed"
-    error: dict[str, PydanticJSONValue] | None = None
-    incomplete_details: dict[str, PydanticJSONValue] | None = None
-    instructions: str | None = None
-    max_output_tokens: int | None = None
-    model: str
-    output: list[ResponsesOutputItem]
-    parallel_tool_calls: StrictBool = True
-    previous_response_id: str | None = None
-    reasoning: dict[str, PydanticJSONValue] | None = None
-    temperature: float | None = None
-    top_p: float | None = None
-    usage: dict[str, PydanticJSONValue] | None = None

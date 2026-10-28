@@ -79,7 +79,7 @@ async def exchange_soaibench_json(
                 if response.status_code in REDIRECT_STATUS_CODES:
                     _raise(
                         "soaibench_publication_invalid_response",
-                        "SoAIBench publication service returned a redirect.",
+                        "SoAI Bench publication service returned a redirect.",
                         502,
                         details=details,
                     )
@@ -88,7 +88,7 @@ async def exchange_soaibench_json(
                     if 200 <= response.status_code < 300:
                         _raise(
                             "soaibench_publication_invalid_response",
-                            "SoAIBench publication service returned an invalid success status.",
+                            "SoAI Bench publication service returned an invalid success status.",
                             502,
                             details=details,
                         )
@@ -96,7 +96,7 @@ async def exchange_soaibench_json(
                 if not _is_json_content_type(response.headers.get("content-type")):
                     _raise(
                         "soaibench_publication_invalid_response",
-                        "SoAIBench publication response content type is invalid.",
+                        "SoAI Bench publication response content type is invalid.",
                         502,
                         details=details,
                     )
@@ -105,25 +105,25 @@ async def exchange_soaibench_json(
                 await response.aclose()
     except OfflineModeError as exception:
         raise ApiError(
-            "SoAIBench publication is unavailable while offline mode is enabled.",
+            "SoAI Bench publication is unavailable while offline mode is enabled.",
             code="soaibench_publication_offline",
             http_status=503,
         ) from exception
     except TimeoutError as exception:
         raise ApiError(
-            "SoAIBench publication timed out.",
+            "SoAI Bench publication timed out.",
             code="soaibench_publication_timeout",
             http_status=504,
         ) from exception
     except httpx2.TimeoutException as exception:
         raise ApiError(
-            "SoAIBench publication timed out.",
+            "SoAI Bench publication timed out.",
             code="soaibench_publication_timeout",
             http_status=504,
         ) from exception
     except httpx2.RequestError as exception:
         raise ApiError(
-            "SoAIBench publication service is unreachable.",
+            "SoAI Bench publication service is unreachable.",
             code="soaibench_publication_unavailable",
             http_status=503,
         ) from exception
@@ -137,7 +137,7 @@ async def _read_response(response: httpx2.Response) -> bytes:
                 raise ValueError
         except ValueError as exception:
             raise ApiError(
-                "SoAIBench publication response is invalid.",
+                "SoAI Bench publication response is invalid.",
                 code="soaibench_publication_invalid_response",
                 http_status=502,
             ) from exception
@@ -147,7 +147,7 @@ async def _read_response(response: httpx2.Response) -> bytes:
         if len(content) > MAX_RESPONSE_BYTES:
             _raise(
                 "soaibench_publication_invalid_response",
-                "SoAIBench publication response is too large.",
+                "SoAI Bench publication response is too large.",
                 502,
             )
     return bytes(content)
@@ -157,20 +157,20 @@ def _validated_receipt_bytes(raw: bytes, expected_score: int) -> JSONDict:
     try:
         parsed = parse_json_value(
             raw,
-            field="SoAIBench publication response",
+            field="SoAI Bench publication response",
             strict_utf8=True,
             reject_duplicate_keys=True,
         )
     except ValidationError as exception:
         raise ApiError(
-            "SoAIBench publication response is invalid.",
+            "SoAI Bench publication response is invalid.",
             code="soaibench_publication_invalid_response",
             http_status=502,
         ) from exception
     if not isinstance(parsed, dict):
         _raise(
             "soaibench_publication_invalid_response",
-            "SoAIBench publication response is invalid.",
+            "SoAI Bench publication response is invalid.",
             502,
         )
     return validate_publication_receipt(parsed, expected_score)
@@ -181,7 +181,7 @@ def _validate_success_matrix(status_code: int, receipt: JSONDict) -> None:
     if status_code == 201 and duplicate:
         _raise(
             "soaibench_publication_invalid_response",
-            "SoAIBench publication response status is inconsistent.",
+            "SoAI Bench publication response status is inconsistent.",
             502,
         )
 
@@ -202,7 +202,9 @@ def _raise_upstream(
     headers = {"Retry-After": str(retry_after)} if retry_after > 0 else None
     code = ""
     try:
-        payload = parse_json_dict(raw, field="SoAIBench error response", reject_duplicate_keys=True)
+        payload = parse_json_dict(
+            raw, field="SoAI Bench error response", reject_duplicate_keys=True
+        )
         error = payload.get("error")
         if isinstance(error, dict) and isinstance(error.get("code"), str):
             code = error["code"]
@@ -210,7 +212,7 @@ def _raise_upstream(
         code = ""
     if response.status_code == 429:
         raise ApiError(
-            "SoAIBench publication is rate limited.",
+            "SoAI Bench publication is rate limited.",
             code="soaibench_publication_rate_limited",
             http_status=429,
             details=details,
@@ -218,7 +220,7 @@ def _raise_upstream(
         )
     if response.status_code == 503 and code == "capacity_unavailable":
         raise ApiError(
-            "SoAIBench publication capacity is unavailable.",
+            "SoAI Bench publication capacity is unavailable.",
             code="soaibench_publication_capacity",
             http_status=503,
             details=details,
@@ -226,7 +228,7 @@ def _raise_upstream(
         )
     if response.status_code == 503:
         raise ApiError(
-            "SoAIBench publication service is unavailable.",
+            "SoAI Bench publication service is unavailable.",
             code="soaibench_publication_unavailable",
             http_status=503,
             details=details,
@@ -234,7 +236,7 @@ def _raise_upstream(
         )
     if 500 <= response.status_code < 600:
         raise ApiError(
-            "SoAIBench publication service is unavailable.",
+            "SoAI Bench publication service is unavailable.",
             code="soaibench_publication_unavailable",
             http_status=503,
             details=details,
@@ -243,20 +245,20 @@ def _raise_upstream(
     if response.status_code == 409:
         _raise(
             "soaibench_publication_conflict",
-            "SoAIBench publication conflicts with existing state.",
+            "SoAI Bench publication conflicts with existing state.",
             409,
             details=details,
         )
     if response.status_code in {400, 413, 415, 422}:
         _raise(
             "soaibench_publication_rejected",
-            "SoAIBench publication was rejected.",
+            "SoAI Bench publication was rejected.",
             422,
             details=details,
         )
     _raise(
         "soaibench_publication_invalid_response",
-        "SoAIBench publication service returned an invalid response.",
+        "SoAI Bench publication service returned an invalid response.",
         502,
         details=details,
     )

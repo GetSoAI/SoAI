@@ -188,6 +188,10 @@ const executeNavigationRequest = async (dependencies: RouterExecuteNavigationDep
     try {
         const outcome = normalizeMiddlewareOutcome(await raceWithAbortSignal(dependencies.runNavigationMiddleware(context), dependencies.signal));
         if (outcome.status === NAVIGATION_STATUS.BLOCKED) {
+            throwIfAborted(dependencies.signal);
+            if (!dependencies.request.pushState && context.from) {
+                pushRouteState(dependencies.historyApi, context.from.path, dependencies.resolveRouteTitle(context.from.route), true);
+            }
             return;
         }
         if (outcome.status === NAVIGATION_STATUS.REDIRECT) {

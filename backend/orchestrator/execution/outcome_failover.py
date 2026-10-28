@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from core.logging.trace import get_logger
+from core.models.provider_backing import get_model_provider_id
 from core.tasks.orchestration_context_cache import merge_orchestration_context_snapshot
 from core.tasks.protocols import TaskRegistryProtocol
 from core.tasks.task import Task
@@ -37,6 +38,8 @@ async def try_failover_task(
     lifecycle: OrchestratorLifecycleCoordinatorProtocol,
     transient_failures: TransientFailureCooldownsProtocol,
     task: Task,
+    *,
+    billing_failure: bool = False,
 ) -> tuple[Task, bool]:
     logger = get_logger(LOGGER_NAME)
     context = queue.require_orchestration_context(task)
@@ -54,23 +57,47 @@ async def try_failover_task(
     if context.execution_universal_ids:
         failed_universal_id = context.execution_universal_ids[0]
         remaining_universal_ids = context.execution_universal_ids[1:]
+        excluded_universal_ids = set(context.excluded_universal_ids) | {failed_universal_id}
+        if billing_failure:
+            failed_model, _ = await resolve_orchestrator_model(
+                queue.orchestrator_deps.model_information_service,
+                failed_universal_id,
+                require_canonical_universal_id=False,
+            )
+            provider_id = (
+                get_model_provider_id(failed_model.model_info) if failed_model is not None else None
+            )
+            if provider_id is None:
+                return (task, False)
+            independent_universal_ids: list[str] = []
+            for universal_id in remaining_universal_ids:
+                candidate, _ = await resolve_orchestrator_model(
+                    queue.orchestrator_deps.model_information_service,
+                    universal_id,
+                    require_canonical_universal_id=False,
+                )
+                if candidate is None or get_model_provider_id(candidate.model_info) == provider_id:
+                    excluded_universal_ids.add(universal_id)
+                else:
+                    independent_universal_ids.append(universal_id)
+            remaining_universal_ids = tuple(independent_universal_ids)
         context = replace(
             context,
             execution_universal_ids=remaining_universal_ids,
-            excluded_universal_ids=context.excluded_universal_ids
-            | frozenset({failed_universal_id}),
+            excluded_universal_ids=frozenset(excluded_universal_ids),
         )
         task = task.with_orchestration_context(context)
         task = await merge_orchestration_context_snapshot(queue.task_registry, task)
         if task.status.is_terminal():
             await queue.execution_reservations.release(context.tracking_id)
             return (task, False)
-        transient_failures.record(failed_universal_id)
-        logger.warning(
-            "Task [%s] failed on model [%s], marking transient failure.",
-            task.task_id,
-            failed_universal_id,
-        )
+        if not billing_failure:
+            transient_failures.record(failed_universal_id)
+            logger.warning(
+                "Task [%s] failed on model [%s], marking transient failure.",
+                task.task_id,
+                failed_universal_id,
+            )
     task = await _prepare_next_failover_task(queue, transient_failures, task)
     if task.status.is_terminal():
         return (task, False)

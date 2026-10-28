@@ -62,7 +62,7 @@ const fetchRemoteResults = async (context: SearchExecutionContext, query: string
 
 const isSearchGenerationCurrent = (context: SearchExecutionContext, generation: number): boolean => context.state.isSearchGenerationActive(generation);
 
-const executeRemoteSearch = async (context: SearchExecutionContext, query: string, limit: number, options: SearchOptions, cacheKey: string, baseResults: SearchItem[], generation: number, readyBeforeSearch = false): Promise<SearchItem[]> => {
+const executeRemoteSearch = async (context: SearchExecutionContext, query: string, limit: number, options: SearchOptions, cacheKey: string, generation: number, readyBeforeSearch = false): Promise<SearchItem[]> => {
     if (!isSearchGenerationCurrent(context, generation)) {
         return [];
     }
@@ -70,7 +70,7 @@ const executeRemoteSearch = async (context: SearchExecutionContext, query: strin
     if (!isSearchGenerationCurrent(context, generation)) {
         return [];
     }
-    const combined = combineSearchResults(remoteResults, baseResults, limit, options);
+    const combined = combineSearchResults(remoteResults, getSearchLocalResults(context, query), limit, options);
     if (combined.length > 0 || readyBeforeSearch || context.state.isSystemReady()) {
         context.state.searchCache.set(cacheKey, {
             results: combined,
@@ -83,7 +83,7 @@ const executeRemoteSearch = async (context: SearchExecutionContext, query: strin
     return combined;
 };
 
-const scheduleRemoteSearch = (context: SearchExecutionContext, query: string, limit: number, options: SearchOptions, cacheKey: string, baseResults: SearchItem[], generation: number): void => {
+const scheduleRemoteSearch = (context: SearchExecutionContext, query: string, limit: number, options: SearchOptions, cacheKey: string, generation: number): void => {
     if (context.state.pendingRemoteSearches.has(cacheKey)) {
         return;
     }
@@ -99,7 +99,7 @@ const scheduleRemoteSearch = (context: SearchExecutionContext, query: string, li
             if (!isSearchGenerationCurrent(context, generation)) {
                 return;
             }
-            const results = await executeRemoteSearch(context, query, limit, options, cacheKey, baseResults, generation, ready);
+            const results = await executeRemoteSearch(context, query, limit, options, cacheKey, generation, ready);
             if (!isSearchGenerationCurrent(context, generation)) {
                 return;
             }
@@ -135,12 +135,9 @@ const searchCatalog = async (context: SearchExecutionContext, query: string, lim
     const cacheKey = `${createSearchCacheKey(searchTerm, limit)}::${resolvedOptions.presentation ?? 'compact'}`;
     const cached = context.state.searchCache.get(cacheKey);
 
-    if (cached && Date.now() - cached.timestamp < context.state.cacheTimeout) {
-        if (immediate && cached.partial) {
-            scheduleRemoteSearch(context, remoteQuery, limit, resolvedOptions, cacheKey, cached.results, generation);
-        }
-        if (!immediate && cached.partial) {
-            return [];
+    if (cached && Date.now() - cached.timestamp < context.state.cacheTimeout && (immediate || !cached.partial)) {
+        if (cached.partial) {
+            scheduleRemoteSearch(context, remoteQuery, limit, resolvedOptions, cacheKey, generation);
         }
         return cached.results;
     }
@@ -153,7 +150,7 @@ const searchCatalog = async (context: SearchExecutionContext, query: string, lim
             timestamp: Date.now(),
             partial: true
         });
-        scheduleRemoteSearch(context, remoteQuery, limit, resolvedOptions, cacheKey, combined, generation);
+        scheduleRemoteSearch(context, remoteQuery, limit, resolvedOptions, cacheKey, generation);
         return combined;
     }
 
@@ -164,7 +161,7 @@ const searchCatalog = async (context: SearchExecutionContext, query: string, lim
     throwIfAborted(resolvedOptions.signal);
     const readyBeforeSearch = await context.waitForSystemReady(4000);
     throwIfAborted(resolvedOptions.signal);
-    return await executeRemoteSearch(context, remoteQuery, limit, resolvedOptions, cacheKey, immediate ? [] : localResults, generation, readyBeforeSearch);
+    return await executeRemoteSearch(context, remoteQuery, limit, resolvedOptions, cacheKey, generation, readyBeforeSearch);
 };
 
 export { searchCatalog, getSearchLocalResults, combineSearchResults };

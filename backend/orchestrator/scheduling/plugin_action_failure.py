@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from core.errors.error_types import ErrorType
 from core.state.state_names import (
@@ -12,6 +13,10 @@ from core.state.state_names import (
     ORCH_STATE_QUARANTINED,
 )
 from core.state.state_transition_sets import PLUGIN_MANAGER_TRANSIENT_STATES
+
+if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
+    from core.tasks.task import Task
 
 __all__ = (
     "PluginActionFailure",
@@ -24,6 +29,8 @@ class PluginActionFailure:
     message: str
     operator_reason: str
     error_type: ErrorType
+    public_error: ErrorPublicPayload | None = None
+    rejected_task: Task | None = None
 
 
 def build_prohibitive_state_failure(plugin_name: str, plugin_status: str) -> PluginActionFailure:

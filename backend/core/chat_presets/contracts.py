@@ -25,19 +25,7 @@ __all__ = (
     "ChatPresetListResult",
     "ChatPresetMutationResult",
     "ChatPresetProjectedRecord",
-    "ChatPresetStoredRow",
 )
-
-
-class ChatPresetStoredRow(TypedDict):
-    id: str
-    user_id: int
-    name: str
-    name_key: str
-    sections_json: str
-    revision: int
-    created_at_ms: int
-    modified_at_ms: int
 
 
 class ChatPresetProjectedRecord(TypedDict):

@@ -7,16 +7,22 @@ from collections.abc import Awaitable, Callable
 from functools import partial
 from typing import TYPE_CHECKING
 
+from core.openai.reasoning_text import REASONING_FIELD_NAMES
+from features.agent.runtime.context_compaction.budget import truncate_message_content_to_fit_budget
 from features.agent.runtime.context_compaction.candidates import (
     materialize_compacted_history,
 )
-from features.agent.runtime.context_compaction.digest import merge_context_summary
 from features.agent.runtime.context_compaction.history import (
     count_tool_blocks,
+    is_user_history_message,
     split_after_anchor_for_compaction,
 )
 from features.agent.runtime.context_compaction.rewrite import (
     rewrite_history_for_compaction,
+)
+from features.agent.runtime.context_compaction.summary import (
+    build_summary_message,
+    is_context_summary_message,
 )
 from features.agent.runtime.context_compaction.token_counting import (
     history_within_budget,
@@ -61,12 +67,18 @@ async def _build_llm_summary_text(
     compactable_messages: list[JSONDict],
     summarize_messages: Callable[[list[JSONDict]], Awaitable[str]],
 ) -> str | None:
-    if not compactable_messages:
+    if not compactable_messages and not summary_text:
         return None
-    summary = await summarize_messages(strip_internal_message_metadata(compactable_messages))
+    summary_messages = strip_internal_message_metadata(compactable_messages)
+    if summary_text:
+        summary_messages.insert(0, build_summary_message(summary_text))
+    for message in summary_messages:
+        for field_name in REASONING_FIELD_NAMES:
+            message.pop(field_name, None)
+    summary = await summarize_messages(summary_messages)
     if not str(summary or "").strip():
         return None
-    return merge_context_summary(summary_text, str(summary).splitlines())
+    return str(summary).strip()
 
 
 def _build_candidate_history(
@@ -110,7 +122,16 @@ async def build_llm_compaction_candidate_history(
             after_anchor,
             preserve_tool_blocks=preserve_tool_blocks,
         )
-        compactable_messages = compactable_before + compactable_after
+        if not compactable_before and not compactable_after and not summary_text:
+            continue
+        compactable_messages = [
+            message
+            for message in before_anchor
+            if message in compactable_before or is_user_history_message(message)
+        ]
+        if anchor_message is not None:
+            compactable_messages.append(anchor_message)
+        compactable_messages.extend(compactable_after)
         merged_summary = await _build_llm_summary_text(
             summary_text=summary_text,
             compactable_messages=compactable_messages,
@@ -125,6 +146,23 @@ async def build_llm_compaction_candidate_history(
             after_anchor=preserved_after,
             merged_summary=merged_summary,
         )
+        if preserve_tool_blocks == preserve_attempts[-1]:
+            summary_index = next(
+                index
+                for index, message in enumerate(candidate_history)
+                if is_context_summary_message(message)
+            )
+            candidate_history = await prompt_token_counter.run_blocking(
+                partial(
+                    truncate_message_content_to_fit_budget,
+                    prompt_token_counter=prompt_token_counter,
+                    base_request_payload=base_request_payload,
+                    message_history=candidate_history,
+                    message_index=summary_index,
+                    max_prompt_tokens=max_prompt_tokens,
+                    token_estimation_profile=token_estimation_profile,
+                ),
+            )
         if await prompt_token_counter.run_blocking(
             partial(
                 history_within_budget,

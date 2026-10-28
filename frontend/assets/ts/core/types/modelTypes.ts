@@ -33,6 +33,7 @@ export interface ModelRecord extends ResourceIncomingObject {
     path?: string;
     sizeBytes?: number;
     family?: string;
+    whisperModelId?: string;
     quantization?: string;
     license?: string;
     createdAtMs?: number;
@@ -50,7 +51,9 @@ export interface ModelRecord extends ResourceIncomingObject {
     successRate?: number;
     lastUsedAtMs?: number;
     openaiCapabilities?: JsonObject;
+    openaiBaseProfile?: JsonObject | null;
     openaiCapabilitiesOverrides?: JsonValue | null;
+    openaiCapabilityEvidence?: JsonObject;
     modalities?: string[];
     capabilities?: JsonValue[];
     tags?: JsonValue[];

@@ -5,9 +5,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-__all__ = ("BoundedLockResult",)
+__all__ = ("BoundedLockResult", "LockHolderSnapshot")
 
 
 @dataclass(slots=True)
 class BoundedLockResult:
     acquired: bool
+
+
+@dataclass(frozen=True, slots=True)
+class LockHolderSnapshot:
+    task_name: str | None
+    held_seconds: float

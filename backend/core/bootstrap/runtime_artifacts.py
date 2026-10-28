@@ -27,6 +27,7 @@ from core.bootstrap.runtime_directories import (
 )
 from core.bootstrap.tika_server_jar import (
     ensure_tika_server_jar_installed,
+    has_verified_packaged_tika_distribution,
     is_tika_server_jar_installed,
 )
 from core.bootstrap.tiktoken_cache import (
@@ -69,14 +70,15 @@ def ensure_runtime_artifacts_if_needed(
             missing.append("Playwright Chromium")
         if needs_java:
             missing.append("managed Java runtime (for Tika)")
-        if needs_tika_jar:
+        if needs_tika_jar and not has_verified_packaged_tika_distribution(repo_root_path):
             missing.append("Apache Tika server jar")
         if needs_tiktoken:
             missing.append("tiktoken encoding cache")
-        missing_text = ", ".join(missing) if missing else "runtime artifacts"
-        raise StateError(
-            f"SYSTEM.RUNTIME.STAY_OFFLINE is enabled but required runtime artifacts are missing or out of date: {missing_text}. Run once online to bootstrap, or disable SYSTEM.RUNTIME.STAY_OFFLINE in config.yaml.",
-        )
+        if missing:
+            missing_text = ", ".join(missing)
+            raise StateError(
+                f"SYSTEM.RUNTIME.STAY_OFFLINE is enabled but required runtime artifacts are missing or out of date: {missing_text}. Run once online to bootstrap, or disable SYSTEM.RUNTIME.STAY_OFFLINE in config.yaml.",
+            )
     check = "runtime artifacts"
     try:
         if needs_playwright:

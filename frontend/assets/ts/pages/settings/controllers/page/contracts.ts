@@ -73,4 +73,11 @@ interface SettingsMarkupHost {
     renderMarkup: (element: Element, html: TrustedHtml) => void;
 }
 
-export type { SettingsManagerCallbacks, SettingsMarkupHost, SettingsPageDependencies, SettingsRuntimeContext, SettingsPageState, SettingsRuntimeOwners };
+interface SettingsUiPreferenceHost {
+    owners: {
+        storage: SettingsRuntimeOwners['storage'];
+        languageService: Pick<SettingsRuntimeOwners['languageService'], 'getLanguage' | 'setLanguage' | 'isLanguageRequestSettled'>;
+    };
+}
+
+export type { SettingsManagerCallbacks, SettingsMarkupHost, SettingsPageDependencies, SettingsRuntimeContext, SettingsPageState, SettingsRuntimeOwners, SettingsUiPreferenceHost };

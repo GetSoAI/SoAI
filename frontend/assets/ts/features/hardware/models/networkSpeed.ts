@@ -1,9 +1,10 @@
 /* SoAI - Hardware feature network speed [frontend/assets/ts/features/hardware/models/networkSpeed.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { NetworkSpeedEntry, NetworkSpeedSnapshot } from '@features/hardware/models/types.ts';
+import type { HardwareNetworkSpeed } from '@core/api/contracts/hardwareContractTypes.ts';
+import type { NetworkSpeedSnapshot } from '@features/hardware/models/types.ts';
 
-const resolveNetworkSpeedEntry = (speeds: NetworkSpeedSnapshot | null | undefined, interfaceName: string, deviceId: string): NetworkSpeedEntry | null => {
+const resolveNetworkSpeedEntry = (speeds: NetworkSpeedSnapshot | null | undefined, interfaceName: string, deviceId: string): HardwareNetworkSpeed | null => {
     if (!speeds) {
         return null;
     }

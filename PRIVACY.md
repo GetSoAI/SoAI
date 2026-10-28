@@ -7,73 +7,56 @@ run it on, and what it sends off that machine. It is explanatory and
 non-operative: it grants, limits, and varies no right. `LICENSE.md` and the other
 operative documents govern licensing.
 
-I am Roberto Martini, the individual who writes and licenses SoAI. Where this
-document says "I", it means me. Where it says "the Licensor", it means the same
-person acting in the role the operative documents define.
+Roberto Martini develops and licenses SoAI. In this document, "the Licensor"
+refers to the same person and role defined in the operative documents.
 
 The separate privacy notice at `https://soai.to/privacy/` covers the licensing
 website, checkout, and direct support records, where the Licensor is the
 controller. This document covers the software itself.
 
-## If you self-host, start here
+## Self-hosted use
 
-You have probably been burned before. Most software you install now assumes it
-may watch you: "anonymous usage statistics" enabled by default, an account
-required to run something on your own hardware, a license check that phones home
-on a timer, a crash reporter that ships your file paths to a vendor, an
-"improvement programme" you never joined. SoAI does none of that, and this
-section exists so that you never have to take my word for it.
+SoAI Core used under Free Personal Use requires no Licensor account, product key,
+or activation. Accounts created in the SoAI WebUI belong to your installation.
+SoAI includes no product analytics, usage reporting, crash reporting, heartbeat,
+or periodic license check.
 
-- **No account, ever, for free personal use.** SoAI Core used personally needs no
-  product key, no sign-up, and no activation. There is nothing of mine to log in
-  to.
-- **There is no telemetry to opt out of.** No analytics, no usage reporting, no
-  crash telemetry, no heartbeat, no periodic license check, and no update ping on
-  a timer. Nothing is merely "off by default" — nothing is there.
-- **Block me at the firewall and keep working.** Deny `soai.to` and
-  `api.github.com`. SoAI runs. You lose explicit licensing operations and the
-  ability to look for updates. You lose nothing else. An installation used for
-  free personal use has no reason to reach either host at all.
-- **Watch the wire.** Point `tcpdump` at a fresh install and compare what you see
-  against "What SoAI downloads, and from where" below. That list is meant to be
-  exhaustive. If it is not, that is a defect in my software or in this document,
-  and I want the report.
-- **The claims are enforced in the release process, not just asserted here.**
-  Release verification fails if licensing or update code reaches a host this document does not
-  disclose, if a telemetry exporter appears anywhere in the backend, or if the
-  ChromaDB client is constructed without its telemetry disabled.
-- **The source is available.** Adding tracking to SoAI would take a commit, and
-  that commit would be visible. You do not have to trust a promise about the
-  future; you can read the diff.
+Local inference and installed features continue to work when `soai.to` and
+`api.github.com` are blocked. Blocking these hosts prevents licensing operations,
+application update checks, and downloads that use them. Prepare the runtime,
+backends, and models before taking an installation offline.
 
-I do not want your data. There is no server of mine for it to arrive at, which
-means there is nothing for me to mine, profile, sell, share with an advertiser,
-or be compelled to produce about you.
+You can inspect network traffic with a tool such as `tcpdump` and compare it with
+the connections described below. Undisclosed connections should be reported
+following `SECURITY.md`. Release checks enforce the disclosed licensing and
+update destinations, reject telemetry exporter configuration, and require
+ChromaDB telemetry to be disabled. The source is available for inspection,
+including changes between releases.
 
-## The short version
+## Application data
 
 Your prompts, model inputs, model outputs, documents, knowledge-base content,
 files, credentials, API keys, conversations, and business data stay on the
 machine you run SoAI on. None of it is sent to the Licensor, for licensing or for
 any other purpose. There is no analytics, no usage reporting, no crash telemetry,
-and no background phone-home.
+and no background licensing connection.
 
 SoAI is self-hosted. For the data you process with it, you are the controller and
 the Licensor is not a processor: that data never reaches the Licensor, so there is
-nothing for the Licensor to process, sell, mine, or train on.
+no application data for the Licensor to process, sell, or use for training.
 
-## What SoAI contacts on its own
+## Licensing and application update connections
 
-Only two first-party endpoints, and only for the reasons below.
+SoAI uses the following endpoints for licensing and application updates.
 
-**`https://soai.to` — licensing.** Contacted only for an explicit licensing
-operation: evaluation issuance, activation, deactivation, SoAI OS evaluation
+**Licensing: `https://soai.to`.** SoAI contacts this service only for an explicit
+licensing operation: evaluation issuance, activation, deactivation, SoAI OS evaluation
 conversion or reversion, commercial conversion, deployment reclassification, term
 renewal, operation reconciliation, and offline activation. The origin is pinned in
 code and no other licensing host is accepted.
 
-Free personal use of SoAI Core needs no product key and no activation, so an
-installation used that way has no reason to contact the licensing service at all.
+Free Personal Use of SoAI Core needs no product key or activation and does not
+require a connection to the licensing service.
 
 Each licensing request is signed with a deployment key generated on your machine
 and carries only:
@@ -90,24 +73,24 @@ and carries only:
   for the contract: legal name, country, registration or tax identifier, the
   authorized acceptor's name and email, and the attestations those flows require
 
-It carries no prompt, no model input or output, no file, no credential, no
-knowledge-base content, no request counts, and no usage statistics. It also
-carries no hostname, MAC address, disk or machine serial, installed-software
+Licensing requests exclude prompts, model inputs and outputs, files, provider
+credentials, knowledge-base content, request counts, and usage statistics. They
+also exclude the hostname, MAC address, disk or machine serial, installed-software
 inventory, or hardware fingerprint: your deployment identity is a key pair
 generated on your machine, not a measurement taken of it.
 
-**`https://api.github.com` — updates.** Used to look up official releases and
-download release assets. Requests identify the software with the user agent
+**Application updates: `https://api.github.com`.** SoAI uses the GitHub API to
+look up official releases and obtain their download locations. Requests identify
+the software with the user agent
 `SoAI (+https://soai.to)` and send no account, deployment, or usage information.
-There is no scheduled background update polling: a check happens when an update
-action or update-status view asks for one. Downloaded releases are verified
+Application release checks run when an update action or update-status view asks
+for one; they do not run on a background schedule. Downloaded releases are verified
 against a pinned Ed25519 signature before anything is installed.
 
-Both are ordinary HTTPS requests, so the receiving server necessarily observes
-the source IP address and the time of the request, exactly as it would for any
-web request you make. I do not join that to a profile, and the bounded, minimized
-server logging that results is described in the notice at
-`https://soai.to/privacy/`. Blocking both hosts removes even that.
+As with other HTTPS requests, the receiving server observes the source IP address
+and request time. The Licensor does not combine that information into a user
+profile. The privacy notice at `https://soai.to/privacy/` describes the limited
+server logs retained for the licensing website.
 
 After a successful activation, entitlement validation is local. A valid
 deployment keeps working through a licensing-service or website outage, and a
@@ -115,40 +98,50 @@ commercial entitlement operates offline through its written term.
 
 ## About the OpenTelemetry packages
 
-The `opentelemetry-*` packages and `posthog` appear in `requirements.txt` only
-because ChromaDB (https://github.com/chroma-core/chroma), used for knowledge-base
-storage, forces them as transitive dependencies; they were never wanted or added
-deliberately, nothing in SoAI imports or configures them, no exporter or collector
-endpoint is ever set, and SoAI constructs its only Chroma client with
-`anonymized_telemetry=False` and `chroma_otel_granularity="none"`, so ChromaDB's
-own reporting is off and no telemetry leaves your machine.
+ChromaDB (https://github.com/chroma-core/chroma), which SoAI uses for knowledge-base
+storage, requires the `opentelemetry-*` and `posthog` packages as dependencies.
+SoAI does not import or configure their reporting clients or set an exporter or
+collector endpoint. Its ChromaDB client uses `anonymized_telemetry=False` and
+`chroma_otel_granularity="none"`, disabling ChromaDB's reporting.
 
 ## What SoAI downloads, and from where
 
-Runtime components are fetched from their own upstream sources on first use, not
-from me. These are downloads to your machine, not uploads of your data: each is a
-plain file fetch carrying no identifier of yours, and none of these hosts learns
-anything about how you use SoAI. They are listed with their licenses in `NOTICE`.
-The complete set fetched during first start is:
+SoAI obtains required runtime components from their upstream sources when they
+are not already packaged or installed. These downloads do not include your
+prompts, files, account identity, or usage statistics. The receiving server can
+observe the requested file, source IP address, and request time. `NOTICE` lists
+the components and their licenses. Runtime preparation can obtain:
 
 - **Playwright Chromium**, fetched by Playwright's own installer from its
   distribution service, used for browser automation.
-- **Microsoft Build of OpenJDK**, from `https://aka.ms`, the managed Java runtime
+- **Azul Zulu Builds of OpenJDK**, from `https://cdn.azul.com`, the managed Java runtime
   that runs Apache Tika.
-- **The Apache Tika server JAR**, from `https://archive.apache.org`, used for
-  document text extraction.
+- **The Apache Tika server distribution**, from `https://archive.apache.org`, used
+  for document text extraction. Complete release packages include this archive;
+  source installations download it when it is not already available.
 - **The ripgrep binary**, from `https://github.com`, used for file search.
 - **The tiktoken encoding files** (`vocab.bpe`, `encoder.json`, `r50k_base`,
   `p50k_base`, `cl100k_base`, and `o200k_base`), from
   `https://openaipublic.blob.core.windows.net`, cached under the state directory
   and used to count tokens locally.
 
-That last host deserves a plain explanation, because it is the one that looks
-alarming in a packet capture. It is Microsoft-operated storage from which OpenAI
-publishes the public encoding tables that the `tiktoken` tokenizer needs. SoAI
-downloads those tables once and counts tokens entirely on your machine. No
-prompt, no text, and no identifier is sent to that host or to OpenAI, and nothing
-about token counting requires a network connection after the files are cached.
+`openaipublic.blob.core.windows.net` is Microsoft-operated storage for the public
+encoding tables used by the `tiktoken` tokenizer. SoAI downloads and caches those
+tables, then counts tokens locally. Token counting sends no prompts, text, or
+user identifiers to that host or to OpenAI and needs no network connection once
+the tables are cached.
+
+On Windows, SoAI obtains its managed Python runtime from Astral's Python Build
+Standalone releases on `https://github.com`. On Linux and macOS, micromamba
+prepares the managed Python environment from conda-forge packages. Later Linux
+and macOS starts may download required runtime security updates before the
+application starts. These operations fetch software; they do not send prompts,
+files, or usage statistics.
+
+SoAI also applies the supported upstream opt-outs for inference-engine usage
+reporting, Hugging Face telemetry and update checks, pip version checks, and
+ONNX Runtime telemetry. Local OCR explicitly disables ONNX Runtime telemetry.
+Third-party plugins remain responsible for their own network behavior.
 
 Two further downloads happen only when you use the feature that needs them:
 
@@ -159,9 +152,11 @@ Two further downloads happen only when you use the feature that needs them:
 - **A public test file**, from `https://ftp.gnu.org`, downloaded and discarded
   only when you start the network speed measurement in hardware benchmarking.
 
-Installing an inference backend also downloads that backend's own packages and
-models from its own upstream, such as `https://download.pytorch.org` or a model
-registry like `https://huggingface.co`, and only when you choose to install it.
+Installing or updating an inference backend obtains its packages from upstream
+sources such as `https://download.pytorch.org`. Model downloads use the selected
+registry, such as `https://huggingface.co`. Built-in backend updates can download
+automatically when `PLUGINS.BACKEND_UPDATES.AUTO_UPDATE_BUILTIN` is enabled;
+third-party backend updates remain manual.
 
 ## What you point SoAI at
 
@@ -183,9 +178,8 @@ message history, knowledge-base documents and embeddings, uploaded and generated
 files, logs, and hardware statistics are stored locally under the installation's
 data directory. You control retention, backup, encryption at rest, and deletion.
 
-SoAI ships no remote administration channel, no vendor backdoor, and no support
-tunnel that I can open. The Licensor has no access path to your installation and
-no ability to read it remotely.
+SoAI provides no Licensor remote administration channel or support tunnel. The
+Licensor cannot access or read your installation remotely through the product.
 
 License expiry never changes this. When an evaluation or commercial term ends,
 application functionality is restricted, but licensing, status, logs, data access,
@@ -199,18 +193,17 @@ for the data its users put into it, and is responsible for lawful basis,
 transparency, retention, security, and data-subject requests. The Licensor is not
 a processor for that data, because it never receives it.
 
-Support is the one place where you may choose to send material to the Licensor.
-`COMMERCIAL-SUPPORT-TERMS.md` requires that diagnostic material be minimized and
-that secrets be excluded, and the privacy notice at `https://soai.to/privacy/`
+You may choose to send diagnostic material to the Licensor when requesting
+support. `COMMERCIAL_SUPPORT_TERMS.md` requires that diagnostic material be
+minimized and that secrets be excluded, and the privacy notice at `https://soai.to/privacy/`
 describes how support records are handled. Nothing is collected from your
 installation for support unless you send it yourself.
 
 ## Reporting
 
 If you believe SoAI sends something this document does not describe, report it as
-a security issue following `SECURITY.md`. Treat it as a defect, not a
-documentation gap. That applies to a host missing from the download list above
-just as much as to anything else.
+a security issue following `SECURITY.md`. Include undisclosed destination hosts
+as well as unexpected data transfers in the report.
 
 Questions about this document, and data-protection requests concerning the
 licensing, checkout, and support records the Licensor does hold, go to

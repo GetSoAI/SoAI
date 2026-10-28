@@ -1,6 +1,8 @@
 /* SoAI - Shared frontend WebSocket client effects [frontend/assets/ts/core/websocketclient/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { NOTIFICATION_NEGOTIATED_TEMPLATES } from '@core/notifications/contracts.ts';
+import { buildRelativeApiUrl } from '@core/api/actions.ts';
 import { getWebSocketProtocol } from '@core/realtime/transportSecurity.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -24,12 +26,12 @@ const clearTimers = (timers: TimerState): void => {
     }
 };
 
-const buildWebSocketUrl = (connectionState: Pick<ConnectionStateInterface, 'getBaseUrl'>): string | null => {
+const buildWebSocketUrl = (connectionState: Pick<ConnectionStateInterface, 'getBaseUrl'>, mode: 'session' | 'setup-status' = 'session'): string | null => {
     const baseUrl = connectionState.getBaseUrl();
     if (!baseUrl) return null;
     let url: URL;
     try {
-        url = new URL(baseUrl);
+        url = new URL(buildRelativeApiUrl(baseUrl, { 'notification_templates': NOTIFICATION_NEGOTIATED_TEMPLATES, ...(mode === 'setup-status' ? { mode } : {}) }));
         url.protocol = getWebSocketProtocol(url.protocol);
     } catch (error) {
         errorHandler.warn('WebSocketClient', 'Invalid API base URL for WebSocket connection', ensureError(error));

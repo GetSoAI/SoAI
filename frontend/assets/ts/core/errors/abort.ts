@@ -60,9 +60,6 @@ const createAbortSignalScope = (signals: readonly (AbortSignal | null | undefine
 };
 
 const raceWithAbortSignal = <T>(task: Promise<T>, signal: AbortSignal): Promise<T> => {
-    if (signal.aborted) {
-        return Promise.reject(createAbortError());
-    }
     return new Promise<T>((resolve, reject) => {
         let settled = false;
         const cleanup = (): void => signal.removeEventListener('abort', onAbort);
@@ -87,6 +84,7 @@ const raceWithAbortSignal = <T>(task: Promise<T>, signal: AbortSignal): Promise<
                 reject(error);
             }
         );
+        if (signal.aborted) onAbort();
     });
 };
 

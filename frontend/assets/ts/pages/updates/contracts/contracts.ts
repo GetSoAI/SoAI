@@ -4,6 +4,7 @@
 import { hasFunctionProperty, isObject } from '@core/typeGuards.ts';
 import type { SetButtonLoadingOptions } from '@core/state/UIStateManager.ts';
 import type { UpdatesEditionContribution } from '@core/edition/updatesContribution.ts';
+import type { CatalogStore } from '@features/catalog/public.ts';
 import type { OperationType, RestartOverlayShowOptions } from '@features/overlays/public.ts';
 
 interface RestartOverlayService {
@@ -11,6 +12,7 @@ interface RestartOverlayService {
 }
 
 interface UpdatesPageDependencies {
+    catalogStore: CatalogStore;
     restartOverlay: RestartOverlayService;
     product: UpdatesEditionContribution | null;
 }

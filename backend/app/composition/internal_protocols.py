@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from app.types_services_database import DatabaseServices
@@ -13,18 +13,9 @@ if TYPE_CHECKING:
         TaskServices,
     )
     from app.types_services_runtime import HostManagementServices
-    from core.config.protocols import ConfigValue
     from core.state.protocols import SystemRestartRequesterProtocol
 
-__all__ = (
-    "ConfigGetProtocol",
-    "HostManagementServiceBuilderProtocol",
-)
-
-
-@runtime_checkable
-class ConfigGetProtocol(Protocol):
-    def get(self, key: str, default: ConfigValue) -> ConfigValue: ...
+__all__ = ("HostManagementServiceBuilderProtocol",)
 
 
 class HostManagementServiceBuilderProtocol(Protocol):

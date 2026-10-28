@@ -218,6 +218,7 @@ async def _build_model_context(
         extract_payload_request_overrides(
             payload=request_payload,
             parameter_definitions=definitions,
+            configured_parameters=parameter_values,
         ),
     )
     model_path_value = target.model_info.get("path")

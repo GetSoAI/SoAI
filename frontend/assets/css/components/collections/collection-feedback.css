@@ -1,0 +1,82 @@
+/* SoAI - Collection notice and empty state component styles [frontend/assets/css/components/collections/collection-feedback.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-collection-notice {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-3);
+        min-height: calc(var(--control-height) + var(--space-4));
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--border-radius);
+    }
+
+    .ui-collection-notice--warning {
+        border-color: color-mix(in srgb, var(--accent-yellow) 48%, var(--glass-border-strong));
+        background: color-mix(in srgb, var(--accent-yellow) 9%, var(--glass-surface-medium));
+    }
+
+    .ui-collection-notice--error {
+        border-color: color-mix(in srgb, var(--accent-red) 48%, var(--glass-border-strong));
+        background: color-mix(in srgb, var(--accent-red) 9%, var(--glass-surface-medium));
+    }
+
+    :is(.ui-collection-notice__icon, .ui-collection-empty__icon) {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: var(--border-round);
+        background: var(--glass-surface-interactive-strong);
+        color: var(--accent-primary);
+    }
+
+    .ui-collection-notice__icon {
+        display: grid;
+        flex: 0 0 2.25rem;
+        place-items: center;
+    }
+
+    .ui-collection-notice__copy {
+        display: grid;
+        flex: 1 1 12rem;
+        gap: var(--space-05);
+        min-width: 0;
+    }
+
+    .ui-collection-notice__copy span {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+    }
+
+    .ui-collection-notice__actions {
+        display: flex;
+        flex: 0 0 auto;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        margin-inline-start: auto;
+    }
+
+    .ui-collection-empty {
+        justify-content: center;
+        min-height: 9rem;
+        padding: var(--space-6) var(--space-4);
+        border-radius: var(--border-radius);
+    }
+
+    .ui-collection-empty__icon svg {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        color: inherit;
+    }
+
+    .ui-collection-empty h3 {
+        margin: 0;
+        font-size: var(--font-size-base);
+    }
+
+    .ui-collection-empty p {
+        margin: 0;
+        font-size: var(--font-size-sm);
+    }
+}

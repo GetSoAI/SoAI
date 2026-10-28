@@ -7,6 +7,7 @@ from core.hardware.soaibench_workloads import (
     ALU_BATCH_DISPATCHES,
     ALU_MAXIMUM_ELEMENTS,
     ALU_ROUNDS,
+    ELEMENT_ALIGNMENT,
     counted_operations,
 )
 from hardware.soaibench.opencl_session import OpenCLExecutionSession
@@ -72,6 +73,8 @@ def execute_alu_workload(
         repeats=STANDARD_ALU_REPEATS,
         summary_prefix="alu",
         element_count=ALU_ELEMENT_COUNT,
+        synchronize_each_repeat=True,
+        maximum_dispatch_elements=ELEMENT_ALIGNMENT,
         session=session,
     )
 

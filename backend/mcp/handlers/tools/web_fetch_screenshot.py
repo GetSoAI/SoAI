@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 from typing import TYPE_CHECKING
 
 from playwright.async_api import Error
@@ -29,6 +30,7 @@ from mcp.tools.browser.config_values import (
     resolve_web_fetch_dns_timeout_sec,
 )
 from mcp.tools.browser.navigation_capture import capture_navigation_screenshot
+from mcp.tools.browser.navigation_fallback_goto import goto_with_http_fallback
 from mcp.tools.browser.navigation_validation import build_navigation_url_candidates
 from mcp.tools.browser.playwright_error_classification import is_download_starting_error
 from mcp.tools.browser.runtime_cache import (
@@ -84,19 +86,7 @@ async def capture_web_fetch_screenshot(
     except (MCPToolError, ValidationError) as exception:
         return (None, str(exception))
     try:
-        await require_url_allowed_when_offline(
-            runtime_flags,
-            tool_name="web_fetch (screenshot)",
-            url=primary_url,
-            capability="web_fetch screenshot",
-        )
-        if not is_offline_mode_enabled(runtime_flags):
-            await enforce_url_network_policy(
-                primary_url,
-                block_private_networks=resolve_web_fetch_block_private_networks(config),
-                dns_timeout_sec=resolve_web_fetch_dns_timeout_sec(config),
-                source="MCP web_fetch screenshot",
-            )
+        await _enforce_web_fetch_screenshot_url_policy(config, runtime_flags, primary_url)
     except (OfflineModeError, ValidationError) as exception:
         normalized_message = normalize_browser_policy_error_message(str(exception))
         handled_error = ValidationError(normalized_message)
@@ -152,35 +142,18 @@ async def capture_web_fetch_screenshot(
                         timeout=timeout_ms,
                     )
                 else:
-                    try:
-                        await page.goto(
-                            primary_url,
-                            wait_until="domcontentloaded",
-                            timeout=timeout_ms,
-                        )
-                    except (Error, TimeoutError):
-                        if fallback_url is None:
-                            raise
-                        await require_url_allowed_when_offline(
+                    await goto_with_http_fallback(
+                        page,
+                        primary_url=primary_url,
+                        fallback_url=fallback_url,
+                        wait_until="domcontentloaded",
+                        timeout=timeout_ms,
+                        enforce_fallback_policy=functools.partial(
+                            _enforce_web_fetch_screenshot_url_policy,
+                            config,
                             runtime_flags,
-                            tool_name="web_fetch (screenshot)",
-                            url=fallback_url,
-                            capability="web_fetch screenshot",
-                        )
-                        if not is_offline_mode_enabled(runtime_flags):
-                            await enforce_url_network_policy(
-                                fallback_url,
-                                block_private_networks=resolve_web_fetch_block_private_networks(
-                                    config,
-                                ),
-                                dns_timeout_sec=resolve_web_fetch_dns_timeout_sec(config),
-                                source="MCP web_fetch screenshot",
-                            )
-                        await page.goto(
-                            fallback_url,
-                            wait_until="domcontentloaded",
-                            timeout=timeout_ms,
-                        )
+                        ),
+                    )
                 if stabilize_ms:
                     await page.wait_for_timeout(stabilize_ms)
                 return await capture_navigation_screenshot(
@@ -280,3 +253,23 @@ async def capture_web_fetch_screenshot(
             level="warning",
         )
         return (None, project_public_exception(error).message)
+
+
+async def _enforce_web_fetch_screenshot_url_policy(
+    config: ConfigProtocol,
+    runtime_flags: RuntimeFlagsViewProtocol,
+    check_url: str,
+) -> None:
+    await require_url_allowed_when_offline(
+        runtime_flags,
+        tool_name="web_fetch (screenshot)",
+        url=check_url,
+        capability="web_fetch screenshot",
+    )
+    if not is_offline_mode_enabled(runtime_flags):
+        await enforce_url_network_policy(
+            check_url,
+            block_private_networks=resolve_web_fetch_block_private_networks(config),
+            dns_timeout_sec=resolve_web_fetch_dns_timeout_sec(config),
+            source="MCP web_fetch screenshot",
+        )

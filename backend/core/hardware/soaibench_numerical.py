@@ -43,19 +43,19 @@ def expected_sample_values(
         or dispatches < 1
         or dispatches > MAX_NUMERICAL_EVALUATION_DISPATCHES
     ):
-        raise SoAIBenchNumericalError("SoAIBench evidence is too expensive to evaluate.")
+        raise SoAIBenchNumericalError("SoAI Bench evidence is too expensive to evaluate.")
     spec = workload_spec(name, stress=stress)
     if name == "memory" and dispatches > MAX_MEMORY_EVALUATION_DISPATCHES:
-        raise SoAIBenchNumericalError("SoAIBench evidence is too expensive to evaluate.")
+        raise SoAIBenchNumericalError("SoAI Bench evidence is too expensive to evaluate.")
     if not is_strict_int(rounds) or rounds != spec.rounds:
-        raise SoAIBenchNumericalError("SoAIBench workload rounds are invalid.")
+        raise SoAIBenchNumericalError("SoAI Bench workload rounds are invalid.")
     if not is_strict_int(element_count) or (
         element_count != spec.maximum_elements
         if spec.exact_elements
         else not spec.minimum_elements <= element_count <= spec.maximum_elements
         or element_count % ELEMENT_ALIGNMENT != 0
     ):
-        raise SoAIBenchNumericalError("SoAIBench workload element count is invalid.")
+        raise SoAIBenchNumericalError("SoAI Bench workload element count is invalid.")
     try:
         positions = sample_positions(element_count)
     except ValueError as exception:
@@ -75,13 +75,13 @@ def validate_sample_values(
     stress: bool = False,
 ) -> None:
     if dispatches > MAX_NUMERICAL_EVALUATION_DISPATCHES:
-        raise SoAIBenchNumericalError("SoAIBench evidence is too expensive to evaluate.")
+        raise SoAIBenchNumericalError("SoAI Bench evidence is too expensive to evaluate.")
     try:
         expected_positions = sample_positions(element_count)
     except ValueError as exception:
         raise SoAIBenchNumericalError(str(exception)) from exception
     if positions != expected_positions or len(values) != len(positions):
-        raise SoAIBenchNumericalError("SoAIBench sample boundaries are invalid.")
+        raise SoAIBenchNumericalError("SoAI Bench sample boundaries are invalid.")
     expected_values = expected_sample_values(
         name,
         element_count,
@@ -97,7 +97,7 @@ def validate_sample_values(
             or abs(actual - expected) > _error_bound(name, expected, rounds, dispatches)
         ):
             raise SoAIBenchNumericalError(
-                "SoAIBench numerical evidence is outside its OpenCL bound."
+                "SoAI Bench numerical evidence is outside its OpenCL bound."
             )
 
 
@@ -125,7 +125,7 @@ def _expected_values(
             return tuple(_compute_value(position, rounds) for position in positions)
         case _:
             del stress
-            raise SoAIBenchNumericalError("SoAIBench workload name is invalid.")
+            raise SoAIBenchNumericalError("SoAI Bench workload name is invalid.")
 
 
 def _alu_value(position: int, rounds: int) -> float:
@@ -241,4 +241,4 @@ def _error_bound(name: str, expected: float, rounds: int, dispatches: int) -> fl
         case "mixed":
             return float32_ulp_bound * (16 * rounds + 4)
         case _:
-            raise SoAIBenchNumericalError("SoAIBench workload name is invalid.")
+            raise SoAIBenchNumericalError("SoAI Bench workload name is invalid.")

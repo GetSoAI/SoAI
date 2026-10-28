@@ -142,6 +142,8 @@ class ConfigApplier:
             config_name=config_name,
             config_path=config_path,
         )
+        if previous_payload_raw is not None and previous_payload_raw != normalize_for_json(data):
+            await self._deps.io.invalidate_plugin_backend_update(config_name)
         async with self._deps.cache.lock:
             self._deps.cache.configs[config_name] = data
         new_state = KnownFileState(

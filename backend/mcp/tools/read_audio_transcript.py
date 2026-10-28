@@ -121,7 +121,7 @@ def _build_words(value: JSONValue) -> list[JSONDict]:
                 "word": _json_text(raw_word.get("word")),
                 "start": json_float(raw_word.get("start"), default=0.0),
                 "end": json_float(raw_word.get("end"), default=0.0),
-                "probability": json_float(raw_word.get("probability"), default=0.0),
+                "probability": optional_json_float(raw_word.get("probability")),
             },
         )
     return words

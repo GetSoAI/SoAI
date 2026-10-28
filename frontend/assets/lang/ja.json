@@ -68,6 +68,15 @@
                     }
                 },
                 "initFailed": "SoAI WebUI を初期化できませんでした",
+                "reference": "参照: {reference}",
+                "stages": {
+                    "entrypoint": "WebUI の起動リソースを読み込めませんでした。ページを再読み込みしてもう一度お試しください。",
+                    "criticalServices": "WebUI に必要なサービスを開始できませんでした。SoAI バックエンドが実行中であることを確認してから、ページを再読み込みしてください。",
+                    "authentication": "WebUI はセットアップとサインインの状態を確認できませんでした。ページを再読み込みしてもう一度お試しください。",
+                    "session": "WebUI はサインイン済みのセッションを準備できませんでした。ページを再読み込みしてもう一度お試しください。",
+                    "routeRendering": "WebUI は要求されたページを表示できませんでした。ページを再読み込みしてもう一度お試しください。",
+                    "background": "WebUI は最後の起動手順を完了できませんでした。ページを再読み込みしてもう一度お試しください。"
+                },
                 "routeNotReady": "時間内にページの読み込みが完了しませんでした。ページを再読み込みしてください。",
                 "unknown": "不明なエラーが発生しました。"
             },
@@ -610,13 +619,17 @@
                 "notSupported": "音声録音にはセキュアな接続 (HTTPS) または localhost が必要です",
                 "permissionDenied": "マイクへのアクセスが拒否されました。ブラウザーの設定でマイクへのアクセスを許可してください。",
                 "recordingFailed": "録音に失敗しました",
-                "transcriptionFailed": "音声の文字起こしに失敗しました。"
+                "transcriptionFailed": "音声の文字起こしに失敗しました。",
+                "transcriptionDeadlineExceeded": "文字起こしに時間がかかりすぎたため、キャンセルされました。短い録音か、より高速な文字起こしモデルをお試しください。",
+                "transcriptionCancellationUnconfirmed": "文字起こしに時間がかかりすぎ、キャンセルを確認できませんでした。しばらく待ってから再試行してください。",
+                "transcriptionCancellationUnconfirmedReference": "文字起こしに時間がかかりすぎ、キャンセルを確認できませんでした。しばらく待ってから再試行してください。参照: {reference}"
             },
             "audioPreview": {
                 "cancel": "録音をキャンセル",
                 "errorTitle": "音声録音",
                 "processingStatus": "音声を文字起こしに送信中",
                 "processingTitle": "音声を文字起こし中",
+                "transcriptionSettling": "制限時間に達しました。文字起こしを停止しています…",
                 "recordingStatus": "録音中 {elapsed}",
                 "recordingTitle": "音声録音",
                 "requestingStatus": "ブラウザーの許可を待機中",
@@ -669,27 +682,27 @@
                 "assistantAvatarUploadLabel": "アシスタントのアバターをアップロード",
                 "assistantNamePlaceholder": "カスタムモデル名を入力...",
                 "autoHideChatComposer": "チャット入力欄を自動的に隠す",
-                "autoHideChatComposerHint": "以前のメッセージを読んでいる間、空のチャット入力欄を隠します。",
+                "autoHideChatComposerHint": "以前のメッセージを読んでいる間、空のチャット入力欄を隠します",
                 "autoHideChatHeader": "チャットヘッダーを自動的に隠す",
-                "autoHideChatHeaderHint": "以前のメッセージを読んでいる間、会話のヘッダーを隠します。",
+                "autoHideChatHeaderHint": "以前のメッセージを読んでいる間、会話のヘッダーを隠します",
                 "identityNameInvalid": "表示名は 50 文字以内の Unicode 文字で、無効なテキストを含めないでください。",
                 "promptInvalid": "プロンプトに無効な Unicode テキストが含まれています。",
                 "close": "閉じる",
                 "delete": "削除",
                 "frequencyPenalty": "頻度ペナルティ:",
-                "frequencyPenaltyHint": "テキスト内での出現頻度に基づいてトークンにペナルティを与え、繰り返しを抑えます。",
+                "frequencyPenaltyHint": "テキスト内での出現頻度に基づいてトークンにペナルティを与え、繰り返しを抑えます",
                 "hide_real_model": "モデル ID を非表示",
-                "hideRealModelHint": "チャットのヘッダーとメッセージで技術的なモデル識別子を非表示にします。",
+                "hideRealModelHint": "チャットのヘッダーとメッセージで技術的なモデル識別子を非表示にします",
                 "autoTitleGeneration": "会話名を自動変更",
-                "autoTitleGenerationHint": "最初の応答が完了した後、システムがアイドル状態であれば、SoAI が短いタイトルを 1 回生成できます。",
+                "autoTitleGenerationHint": "最初の応答が完了した後、システムがアイドル状態であれば、SoAI が短いタイトルを 1 回生成できます",
                 "showActivities": "アクティビティを表示",
-                "showActivitiesHint": "無効にすると、アクティビティは読み込み行の背後に折りたたまれ、アシスタントのテキストは表示されたままになります。展開すると通常のアクティビティレイアウトに戻ります。",
+                "showActivitiesHint": "無効にすると、アクティビティは読み込み行の背後に折りたたまれ、アシスタントのテキストは表示されたままになります。展開すると通常のアクティビティレイアウトに戻ります",
                 "showActivityElapsedTime": "アクティビティの経過時間を表示",
                 "showActivityElapsedTimeHint": "アクティビティの実行中に経過時間を更新します。無効にすると、最終時間はアクティビティの終了後にのみ表示されるため、CPU 使用率を抑えられる場合があります",
                 "hideAutomationRuns": "オートメーション実行を非表示",
-                "hideAutomationRunsHint": "有効にすると、オートメーション実行の会話がサイドバーの一覧に表示されなくなります。",
+                "hideAutomationRunsHint": "有効にすると、オートメーション実行の会話がサイドバーの一覧に表示されなくなります",
                 "hideMessagingConversations": "メッセージングの会話を非表示",
-                "hideMessagingConversationsHint": "有効にすると、メッセージングアカウントの会話がサイドバーの一覧に表示されなくなります。",
+                "hideMessagingConversationsHint": "有効にすると、メッセージングアカウントの会話がサイドバーの一覧に表示されなくなります",
                 "inputActions": {
                     "prompts": "保存済みプロンプト",
                     "title": "入力アクション",
@@ -698,15 +711,15 @@
                     "camera": "カメラ",
                     "voice": "音声",
                     "call": "音声通話",
-                    "voiceHint": "チャット入力欄に音声入力アクションを表示します。",
-                    "callHint": "チャット入力欄に音声通話アクションを表示します。",
-                    "uploadFileHint": "会話へのファイルのアップロードを許可します。",
-                    "cameraHint": "チャット入力欄にカメラ撮影アクションを表示します。",
-                    "promptsHint": "チャット入力欄に保存済みプロンプトの選択ツールを表示します。",
-                    "tokenCounterHint": "チャット入力欄にトークンカウンターを表示します。",
+                    "voiceHint": "チャット入力欄に音声入力アクションを表示します",
+                    "callHint": "チャット入力欄に音声通話アクションを表示します",
+                    "uploadFileHint": "会話へのファイルのアップロードを許可します",
+                    "cameraHint": "チャット入力欄にカメラ撮影アクションを表示します",
+                    "promptsHint": "チャット入力欄に保存済みプロンプトの選択ツールを表示します",
+                    "tokenCounterHint": "チャット入力欄にトークンカウンターを表示します",
                     "auxiliary": {
                         "label": "モバイル用補助入力アクション",
-                        "hint": "コンパクトなチャットレイアウトで送信ボタンの横に表示する追加アクションを 1 つ選択します。",
+                        "hint": "コンパクトなチャットレイアウトで送信ボタンの横に表示する追加アクションを 1 つ選択します",
                         "options": {
                             "none": "なし",
                             "agentMode": "エージェントモード",
@@ -724,14 +737,14 @@
                         }
                     },
                     "exportToPdf": "PDF にエクスポート",
-                    "exportToPdfHint": "有効にすると、会話のエクスポート時に JSON をダウンロードする代わりに、スタイル付きの印刷可能な PDF ドキュメントが開きます。"
+                    "exportToPdfHint": "有効にすると、会話のエクスポート時に JSON をダウンロードする代わりに、スタイル付きの印刷可能な PDF ドキュメントが開きます"
                 },
                 "toolApprovalRequired": "ツールの承認が必要",
-                "toolApprovalRequiredHint": "この会話でツールを実行する前に承認を必須にします。",
+                "toolApprovalRequiredHint": "この会話でツールを実行する前に承認を必須にします",
                 "newConversationInheritLastSettings": "新しいチャットに前回の設定を使用",
-                "newConversationInheritLastSettingsHint": "新しいチャットは、最後に使用したモデル、ツール、ナレッジ設定で開始します。",
+                "newConversationInheritLastSettingsHint": "新しいチャットは、最後に使用したモデル、ツール、ナレッジ設定で開始します",
                 "ctrlEnterSend": "Ctrl + Enter で送信",
-                "ctrlEnterSendHint": "有効にすると、Ctrl + Enter で送信し、Enter で改行します。無効にすると、Enter で送信し、Shift + Enter で改行します。",
+                "ctrlEnterSendHint": "有効にすると、Ctrl + Enter で送信し、Enter で改行します。無効にすると、Enter で送信し、Shift + Enter で改行します",
                 "knowledge": {
                     "downloadModel": "モデルをダウンロード",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -742,8 +755,8 @@
                     "title": "ナレッジ設定"
                 },
                 "memory": {
-                    "description": "永続メモリを使うと、毎回カスタムプロンプトを指定しなくても、SoAI があなたの設定、目標、繰り返し現れるコンテキストを理解できるようになります。",
-                    "empty": "保存されているメモリはまだありません。",
+                    "description": "永続メモリを使うと、毎回カスタムプロンプトを指定しなくても、SoAI があなたの設定、目標、繰り返し現れるコンテキストを理解できるようになります",
+                    "empty": "保存されているメモリはまだありません",
                     "openProfile": "プロフィールフォームを開く",
                     "refresh": "メモリを更新",
                     "title": "メモリ設定",
@@ -773,11 +786,11 @@
                 },
                 "sendParameterToggle": "このパラメーターをモデルに送信",
                 "maxCompletionTokens": "最大完了トークン数",
-                "maxCompletionTokensHint": "推論モデル (o1, o3) の推論を含むトークン上限です。最大トークン数より優先されます。",
+                "maxCompletionTokensHint": "推論モデル (o1, o3) の推論を含むトークン上限です。最大トークン数より優先されます",
                 "agentMaxIterations": "エージェントの最大反復回数",
-                "agentMaxIterationsHint": "会話が停止するまでのエージェントループの最大反復回数です。実質的に無制限で実行するには、非常に大きな値を指定します。",
+                "agentMaxIterationsHint": "会話が停止するまでのエージェントループの最大反復回数です。実質的に無制限で実行するには、非常に大きな値を指定します",
                 "maxTokens": "最大トークン数:",
-                "maxTokensHint": "応答の最大長をトークン数で指定します。",
+                "maxTokensHint": "応答の最大長をトークン数で指定します",
                 "mcp": {
                     "automation": "オートメーション",
                     "builtinServer": "SoAI 組み込み",
@@ -785,7 +798,7 @@
                         "modalTitle": "新しいチャットのデフォルトツール",
                         "open": "選択",
                         "summary": "有効なツール: {count}",
-                        "summaryHint": "新しいチャットに適用されます。現在のチャットは変更されません。",
+                        "summaryHint": "新しいチャットに適用されます。現在のチャットは変更されません",
                         "title": "デフォルトツール（新しいチャット）"
                     },
                     "automationEphemeralHint": "ツールの変更はここでのあなたのメッセージにのみ適用され、スケジュールされた実行には影響しません。",
@@ -794,7 +807,7 @@
                     "knowledgeManagedToolsEnabledHint": "この会話でインデックス化されたナレッジが有効な間、ツールは自動的に有効のままになります。新しいチャットのデフォルト値は変更されません。",
                     "noServers": "利用可能な MCP サーバーがありません。",
                     "noTools": "利用可能な MCP ツールがありません。",
-                    "resetToolsDescription": "{mode} のツールを SoAI のデフォルトにリセットします。",
+                    "resetToolsDescription": "{mode} のツールを SoAI のデフォルトにリセットします",
                     "resetToolsLabel": "リセット",
                     "resetToolsTitle": "デフォルトツールをリセット",
                     "servers": "サーバー",
@@ -807,14 +820,14 @@
                     "tools_enabled": "ツールを有効化",
                     "toolsEnabledLockedForAgentModeHint": "プランモードと実行モードではツールは有効のままになります。ツールを無効にする前にチャットモードへ切り替えてください。",
                     "toolsEnabledLockedWhileConversationRunningHint": "この会話の実行中はツールへのアクセスを変更できません。",
-                    "toolsEnabledHint": "この会話で MCP ツールを有効にします。新しいチャットでは最後に保存した値が使用されます。",
+                    "toolsEnabledHint": "この会話で MCP ツールを有効にします。新しいチャットでは最後に保存した値が使用されます",
                     "tool_approval_required": "ツールの承認を必須にする",
-                    "toolApprovalRequiredHint": "破壊的なツールを実行する前に確認を求めます。",
+                    "toolApprovalRequiredHint": "破壊的なツールを実行する前に確認を求めます",
                     "unavailableTools": "保存済みの利用できないツール: {tools}。選択は保持されます。",
                     "unavailableServers": "保存済みの利用できないサーバー: {servers}。設定は保持されます。"
                 },
                 "model_settings": {
-                    "contextWindowTokensHint": "この機能のコンテキスト長を上書きします。空欄にすると、選択したモデルのデフォルトが使用されます。",
+                    "contextWindowTokensHint": "この機能のコンテキスト長を上書きします。空欄にすると、選択したモデルのデフォルトが使用されます",
                     "contextWindowTokensLabel": "コンテキスト長（トークン）",
                     "detailUnavailable": "この実行アイデンティティには内部のモデル詳細ターゲットがちょうど 1 つ存在しないため、モデルの詳細を利用できません。",
                     "title": "モデル設定"
@@ -837,12 +850,12 @@
                 },
                 "notify_on_completion": "完了時に通知",
                 "notify_on_error": "エラー時に通知",
-                "notifyOnCompletionHint": "アシスタントの応答が完了したときに通知を表示します。",
-                "notifyOnErrorHint": "リクエストが失敗したときに通知を表示します。",
+                "notifyOnCompletionHint": "アシスタントの応答が完了したときに通知を表示します",
+                "notifyOnErrorHint": "リクエストが失敗したときに通知を表示します",
                 "microphoneSoundEffects": "マイクの効果音",
-                "microphoneSoundEffectsHint": "マイク録音の開始時と終了時に音を再生します。",
+                "microphoneSoundEffectsHint": "マイク録音の開始時と終了時に音を再生します",
                 "presencePenalty": "存在ペナルティ:",
-                "presencePenaltyHint": "すでに出現したトークンにペナルティを与え、繰り返しを抑えます。",
+                "presencePenaltyHint": "すでに出現したトークンにペナルティを与え、繰り返しを抑えます",
                 "rag": {
                     "chunkingFixedSize": "固定サイズ",
                     "chunkingParagraph": "段落",
@@ -860,12 +873,12 @@
                     },
                     "embeddingAuto": "自動（埋め込み）",
                     "embeddingEmpty": "利用可能な埋め込みモデルがありません",
-                    "embeddingHint": "埋め込みモデルを選択するか、自動を使用して SoAI に選択させます。",
+                    "embeddingHint": "埋め込みモデルを選択するか、自動を使用して SoAI に選択させます",
                     "embeddingLoading": "埋め込みモデルを読み込み中...",
                     "embeddingModel": "埋め込みモデル",
                     "embeddingUnavailable": "{model}（利用不可）",
                     "enabled": "RAG を有効化",
-                    "enabledHint": "アップロードしたナレッジファイルを使用して、この会話の回答を改善します。",
+                    "enabledHint": "アップロードしたナレッジファイルを使用して、この会話の回答を改善します",
                     "retrievalHybrid": "ハイブリッド",
                     "retrievalMmr": "MMR",
                     "retrievalSimilarity": "類似度",
@@ -880,14 +893,16 @@
                         "parsing": "解析中",
                         "queued": "キュー待ち",
                         "unreadable": "読み取り不可",
-                        "unknown": "不明"
+                        "unknown": "不明",
+                        "noTranscript": "文字起こしなし",
+                        "partial": "一部のみ抽出"
                     },
                     "title": "RAG 設定",
                     "topK": "Top K"
                 },
                 "reasoningEffort": "推論強度",
                 "reasoningEffortHigh": "高",
-                "reasoningEffortHint": "推論モデルの処理強度を制御します。値を高くすると使用するトークン数が増えますが、品質が向上する場合があります。",
+                "reasoningEffortHint": "推論モデルの処理強度を制御します。値を高くすると使用するトークン数が増えますが、品質が向上する場合があります",
                 "reasoningEffortLow": "低",
                 "reasoningEffortMaximum": "最大",
                 "reasoningEffortMedium": "中",
@@ -899,16 +914,16 @@
                 "refresh": "更新",
                 "restore": "復元",
                 "richTextMode": "リッチテキストをレンダリング (Markdown)",
-                "richTextModeHint": "無効にすると、メッセージはプレーンテキストで表示されます。",
+                "richTextModeHint": "無効にすると、メッセージはプレーンテキストで表示されます",
                 "inlineMultimediaPreviews": "インラインマルチメディアプレビュー",
-                "inlineMultimediaPreviewsHint": "有効にすると、SoAI はチャット内のメディアリンクや絶対パス参照に対して安全なインラインプレビューを表示します。",
+                "inlineMultimediaPreviewsHint": "有効にすると、SoAI はチャット内のメディアリンクや絶対パス参照に対して安全なインラインプレビューを表示します",
                 "save": "保存",
                 "saved": "チャット設定を保存しました",
                 "seed": "シード",
-                "seedHint": "再現可能な出力に使用する固定乱数シードです。ランダムにする場合は空欄にします。",
+                "seedHint": "再現可能な出力に使用する固定乱数シードです。ランダムにする場合は空欄にします",
                 "serviceTier": {
                     "label": "サービスティア",
-                    "hint": "SoAI のキュー優先度を制御し、標準の OpenAI service_tier 値を選択したプロバイダーに転送します。",
+                    "hint": "SoAI のキュー優先度を制御し、標準の OpenAI service_tier 値を選択したプロバイダーに転送します",
                     "unset": "未設定",
                     "auto": "自動",
                     "default": "デフォルト",
@@ -916,13 +931,13 @@
                     "priority": "優先"
                 },
                 "soaiSystemPrompt": "SoAI システムプロンプト",
-                "soaiSystemPromptHint": "この会話で SoAI の補正用システムプロンプトを有効または無効にします。",
+                "soaiSystemPromptHint": "この会話で SoAI の補正用システムプロンプトを有効または無効にします",
                 "stopSequences": "停止シーケンス",
-                "stopSequencesHint": "モデルが生成を停止するトークンをカンマ区切りで指定します。",
+                "stopSequencesHint": "モデルが生成を停止するトークンをカンマ区切りで指定します",
                 "systemPrompt": "システムプロンプト",
-                "systemPromptHint": "モデルの動作とパーソナリティを定義する指示です。",
+                "systemPromptHint": "モデルの動作とパーソナリティを定義する指示です",
                 "systemPromptLock": "システムプロンプトをロック",
-                "systemPromptLockHint": "有効にすると、このシステムプロンプトがすべての新しいメッセージと会話に適用されます。",
+                "systemPromptLockHint": "有効にすると、このシステムプロンプトがすべての新しいメッセージと会話に適用されます",
                 "systemPromptLockLocked": "ロック済み",
                 "systemPromptLockUnlocked": "ロック解除",
                 "systemPromptPlaceholder": "AI の動作とコンテキストを設定...",
@@ -955,8 +970,8 @@
                     "newAction": "新しいプリセット",
                     "noMatches": "この検索に一致するプリセットはありません。",
                     "noChanges": "このプリセットによる保留中の設定への変更はありませんでした。",
-                    "notApplicable": "このプリセットに保存されている設定は、現在のバージョンではいずれも利用できません。置換、名前変更、削除は引き続き行えます。",
-                    "omittedSettings": "サポートされていないか無効な保存済み設定 {count} 件を省略しました。",
+                    "notApplicable": "このプリセットに保存されている設定は、現在のバージョンではいずれも利用できません。置換、名前変更、削除は引き続き行えます",
+                    "omittedSettings": "サポートされていないか無効な保存済み設定 {count} 件を省略しました",
                     "replaceAction": "置換",
                     "renameAction": "名前を変更",
                     "retryAction": "もう一度試す",
@@ -1005,7 +1020,7 @@
                         "replaceDescription": "このプリセットを、現在保留中の値の新しいスナップショットで置き換えます。",
                         "replaceTitle": "プリセットを置換",
                         "reviewAction": "最新のリビジョンを確認",
-                        "revisionChanged": "このプリセットは別の場所で変更されました。続行する前に最新のリビジョンを確認してください。",
+                        "revisionChanged": "このプリセットは別の場所で変更されました。続行する前に最新のリビジョンを確認してください",
                         "prunedValues": "利用できない動的設定 {count} 件をこのスナップショットから省略しました。",
                         "selectedCount": "{count} セクション選択済み",
                         "sectionDescriptions": {
@@ -1019,7 +1034,7 @@
                         },
                         "sectionUnavailable": "このセクションは現在の会話では利用できません。",
                         "sectionsLabel": "設定セクション",
-                        "targetUnavailable": "このプリセットは存在しなくなりました。この編集をキャンセルするか、新しいプリセットを作成してください。"
+                        "targetUnavailable": "このプリセットは存在しなくなりました。この編集をキャンセルするか、新しいプリセットを作成してください"
                     }
                 },
                 "saveDegradedDetail": "{completed} を保存しました。確認済みの後続プロジェクションに対応が必要です。影響を受けたセクションから再試行してください。",
@@ -1034,28 +1049,28 @@
                     "title": "音声",
                     "ttsModel": "音声合成モデル",
                     "ttsModelAuto": "自動 (TTS)",
-                    "ttsModelHint": "読み上げと音声通話で使用されます。",
+                    "ttsModelHint": "読み上げと音声通話で使用されます",
                     "sttModel": "音声認識モデル",
                     "sttModelAuto": "自動 (STT)",
-                    "sttModelHint": "マイクによる音声入力と音声通話の文字起こしで使用されます。",
+                    "sttModelHint": "マイクによる音声入力と音声通話の文字起こしで使用されます",
                     "ttsVoice": "音声合成の声",
                     "ttsVoicePlaceholder": "ローカルの自動/デフォルト音声を使用する場合は空欄",
-                    "ttsVoiceHint": "一部のリモートプロバイダーでは必須です。ローカルの MeloTTS プラグインでは、melo-tts:<language>:<voice> のような具体的な音声モデルを選択するか、自動/ベース/デフォルト音声を使用する場合は空欄にします。"
+                    "ttsVoiceHint": "一部のリモートプロバイダーでは必須です。ローカルの MeloTTS プラグインでは、melo-tts:<language>:<voice> のような具体的な音声モデルを選択するか、自動/ベース/デフォルト音声を使用する場合は空欄にします"
                 },
                 "temperature": "温度:",
                 "temperatureBalanced": "バランス",
                 "temperatureCreative": "クリエイティブ",
                 "temperatureFocused": "フォーカス",
-                "temperatureHint": "ランダム性を制御します。値を低くするとより一貫性が高くなり、高くするとより創造的になります。",
+                "temperatureHint": "ランダム性を制御します。値を低くするとより一貫性が高くなり、高くするとより創造的になります",
                 "text_zoom": "テキストの拡大率",
                 "textZoomLarge": "大",
                 "textZoomNormal": "標準",
                 "textZoomSmall": "小",
                 "title": "チャット設定",
                 "topLogprobs": "上位ログ確率",
-                "topLogprobsHint": "返す最も可能性の高いトークンの数 (0-5) です。ログ確率を有効にする必要があります。",
+                "topLogprobsHint": "返す最も可能性の高いトークンの数 (0-5) です。ログ確率を有効にする必要があります",
                 "topP": "Top P:",
-                "topPHint": "ニュークリアスサンプリングのしきい値です。この累積確率の範囲内にあるトークンを考慮します。",
+                "topPHint": "ニュークリアスサンプリングのしきい値です。この累積確率の範囲内にあるトークンを考慮します",
                 "user_name": "あなたの名前",
                 "userAvatar": "あなたの写真",
                 "userAvatarHint": "ユーザーアバター用にカスタム画像をアップロード",
@@ -1076,7 +1091,58 @@
                     "title": "ウェブ検索設定"
                 },
                 "widescreen_mode": "ワイドスクリーンモード",
-                "widescreenModeHint": "大きな画面でチャットに利用できる領域を広げます。"
+                "widescreenModeHint": "大きな画面でチャットに利用できる領域を広げます",
+                "skills": {
+                    "title": "スキル",
+                    "description": "スキルは、特定の作業に使える再利用可能な指示をアシスタントに提供します。このチャットで有効にして保存してください。変更は新しいリクエストに適用され、受け付け済みの作業では記録されたスキルが維持されます。",
+                    "add": "スキルを追加",
+                    "empty": "SKILL.md ファイルまたはスキルコレクションの ZIP を追加して始めましょう",
+                    "immediate": "インポートとライブラリからの削除はすぐに反映されます。新しいスキルは最初は無効です",
+                    "unavailable": "スキルを選択する前に通常のチャットを保存してください。管理対象の会話では選択できません",
+                    "automatic": "自動または直接呼び出し",
+                    "explicit": "直接呼び出しのみ",
+                    "automaticOnly": "自動呼び出しのみ",
+                    "disabledReason": "このスキルは自動呼び出しも直接呼び出しも許可していません",
+                    "removeConfirm": "このスキルをライブラリとチャットの今後の選択から削除しますか？ 受け付け済みの作業はパッケージを保持します。ワークスペースのファイルと会話履歴は残ります。",
+                    "conflict": "選択が別の場所で変更されました。下書きを保存する前に現在の選択を確認してください",
+                    "keepDraft": "自分の選択を保持",
+                    "stale": "スキルは最新ではありません。保存する前に再接続するか、再試行してください",
+                    "search": "スキルを検索...",
+                    "emptyTitle": "最初のスキルを追加",
+                    "noMatchesTitle": "一致するスキルがありません",
+                    "errors": {
+                        "invalidPackage": "有効な SKILL.md ファイルまたはスキル集の ZIP をインポートしてください。ファイル形式とサイズ制限を確認してください。",
+                        "uploadConflict": "このアップロードは別のファイルに使用されています。ファイルを選び直して、新しいインポートを開始してください。",
+                        "nameConflict": "この名前のスキルは既にインストールされています。置き換えるスキルをインポートする前に削除してください。",
+                        "libraryFull": "スキルライブラリがいっぱいです。使わないスキルを削除し、削除済みのスキルを使用中の処理が完了するまでお待ちください。",
+                        "invocationUnavailable": "要求されたスキルが有効でないか、直接呼び出しが許可されていません。このチャットで選択したスキルを確認してください。",
+                        "importBusy": "スキルのインポートが混み合っています。しばらくしてから同じアップロードを再試行してください。",
+                        "notFound": "スキルまたはリソースを利用できません。スキルライブラリを更新してください。",
+                        "wrapperNameMismatch": "ZIPの外側のディレクトリ名は、SKILL.mdのスキル名と一致する必要があります。",
+                        "restrictionUnsupported": "このスキルには未対応のツール制限があります。有効化する前に、SoAI の明示的なツール名を指定してください。",
+                        "toolRestricted": "有効なスキルがこのツールを禁止しています。許可された手順に従うか、新しい実行を開始してください。",
+                        "argumentConflict": "受け付け済みのスキル引数は変更できません。別の引数で新たに呼び出してください。",
+                        "aliasAmbiguous": "この別名は複数の有効なスキルに一致します。修飾されたスキル名を指定してください。",
+                        "manifestFormat": "SKILL.md には UTF-8 テキストと、--- 区切りの間に有効な通常の YAML が必要です。形式とマニフェストのサイズ制限を確認してください。",
+                        "invalidField": "スキルのフィールド {field} は未対応、未指定、または無効です。名前と値の型を確認してください。",
+                        "sourceConflict": "{first} と {second} のスキルのコピーが競合しています。一貫したコピーを1つ残してください。",
+                        "archiveIntegrity": "スキルアーカイブが破損しているか不完全です。再ダウンロードし、完全なファイルで再試行してください。",
+                        "archiveUnsafe": "スキルアーカイブに安全でないパス、リンク、競合する項目が含まれています。通常のファイルを含む移植可能なアーカイブを作成してください。",
+                        "archiveUnsupported": "スキルアーカイブは未対応の暗号化または圧縮を使用しています。無圧縮またはDeflate圧縮の項目を含む、暗号化されていないZIPを作成してください。",
+                        "invalidFilename": "SKILL.mdという名前のファイル、またはスキルのZIPアーカイブを選択してください。",
+                        "resourceLimit": "{field}のスキルインポート上限を超えています: {measured} > {limit}。アーカイブを小さくするか、未使用のスキルを削除して再試行してください。",
+                        "manifestPosition": "{line} 行目、{column} 列目の YAML が無効です。SKILL.md を修正して再試行してください。"
+                    },
+                    "importUncertain": "インポートの結果が不明です。このファイルを選択したまま、再試行する前に更新して受領記録を確認してください。",
+                    "invalidSelection": "選択したスキルの一部が利用できないか、ライブラリの上限を超えています。更新してから、保存する前に選択を調整してください",
+                    "status": {
+                        "importTitle": "インポートの結果が不明です",
+                        "conflictTitle": "選択が別の場所で変更されました",
+                        "staleTitle": "スキル一覧が古い可能性があります",
+                        "unavailableTitle": "スキルを選択できません",
+                        "invalidTitle": "選択内容の確認が必要です"
+                    }
+                }
             },
             "confirmations": {
                 "externalLink": "外部リンクを開く",
@@ -1139,8 +1205,15 @@
                 "conversationLoadFailed": "会話を読み込めませんでした。",
                 "conversationUnavailable": "会話が見つかりません。空のチャットに戻りました。",
                 "interactionFocusUnavailable": "このセキュアなインタラクションリンクは利用できなくなりました。現在のチャットプロンプトを確認してください。",
+                "modelToolCallingUnsupported": "選択したモデルはツール呼び出しに対応していません。ツールに対応したモデルを選択するか、この会話のツールを無効にしてください。",
                 "soaiWorkspaceChanged": "このメッセージの準備中に会話のワークスペースが変更されました。SoAI ソースを開き直すかリンクし直して、もう一度送信してください。",
-                "syncFailed": "会話を同期できませんでした"
+                "syncFailed": "会話を同期できませんでした",
+                "contextWindowOverrideInvalid": "コンテキストウィンドウの上書き値には正の整数を指定してください。有効な値を入力するか、空欄にしてモデルの既定値を使用してください。",
+                "contextWindowOverrideConflict": "コンテキストウィンドウの上書き値が競合しています。値を1つにするか上書きを解除して、再試行してください。",
+                "durableQueueFull": "キューが満杯です。実行中の処理が完了してから、この拒否されたリクエストを再送信してください。",
+                "promptBudgetExceeded": "入力には {requested} トークンが必要ですが、出力の予約と安全マージンを差し引くと {available} トークンが利用可能です。入力や出力の予約を減らすか、会話を圧縮するか、コンテキスト長を増やしてください。",
+                "ragEmbeddingModelUnavailable": "埋め込みモデルがありません。チャット設定で埋め込みモデルを選択するか、埋め込みバックエンドをインストールしてモデルをダウンロードしてから、もう一度お試しください。",
+                "ragDocumentsNotIndexed": "再インデックスできる知識がありません。先にドキュメントをアップロードしてインデックスを作成してください。"
             },
             "export": {
                 "noMessages": "エクスポートするメッセージがありません",
@@ -1340,6 +1413,7 @@
                 "voiceCallStart": "音声通話を開始",
                 "steer": "プロンプトで方向修正",
                 "queue": "プロンプトをキューに追加",
+                "resumeQueue": "キューのプロンプトを再開",
                 "stop": "応答を停止",
                 "stopRecording": "録音を停止",
                 "transcribing": "文字起こし中...",
@@ -1364,7 +1438,8 @@
             "inputQueue": {
                 "badge": {
                     "queued": "キュー待ち",
-                    "steer": "方向修正"
+                    "steer": "方向修正",
+                    "held": "一時停止中"
                 },
                 "state": {
                     "materializing": "準備中",
@@ -1381,6 +1456,33 @@
                 "reason": "理由"
             },
             "memory": {
+                "library": {
+                    "add": "メモリを追加",
+                    "search": "メモリを検索",
+                    "noMatches": "一致するメモリはありません",
+                    "stale": "保存データが古くなっています。最終更新: {time}。更新して現在のデータを確認してください。",
+                    "deleteFact": "この事実または関係を削除しますか？",
+                    "deleteEntry": "「{title}」と、その中の事実 {facts} 件、関係 {relations} 件を削除しますか？",
+                    "savedHidden": "保存しました。このメモリを表示するには検索をクリアしてください。",
+                    "savedRefreshNeeded": "保存しました。ライブラリの更新が必要です。",
+                    "from": "接続元",
+                    "to": "接続先",
+                    "type": "関係の種類",
+                    "staleTitle": "メモリ一覧が古い可能性があります",
+                    "errorTitle": "メモリライブラリを利用できません"
+                },
+                "errors": {
+                    "revisionChanged": "このメモリは変更されています。保存前に現在の内容を確認してください。",
+                    "duplicateName": "このタイトルのメモリは既にあります。別のタイトルを選んでください。",
+                    "duplicateId": "この下書きの識別子は既に存在します。更新して保存済みのメモリを確認してください。",
+                    "profileRestricted": "構造化されたプロフィール情報はプロフィールフォームで管理してください。",
+                    "duplicateRelation": "この関係は既に存在します。",
+                    "relationNotIncident": "一方の端点をこのメモリに接続したままにしてください。",
+                    "invalidText": "空でないタイトルと本文を入力してください。",
+                    "missing": "このレコードは利用できないか、このメモリに属していません。更新して確認してください。",
+                    "unconfirmed": "結果を確認できませんでした。下書きを保持し、再試行する前に更新して現在のデータを確認してください。",
+                    "loadFailed": "メモリを読み込めませんでした。更新して再試行してください。"
+                },
                 "profile": {
                     "description": "任意の情報を共有すると、SoAI がチャットをまたいであなたに合わせた対応方法を記憶できます。",
                     "fields": {
@@ -1449,7 +1551,10 @@
                 },
                 "speak": {
                     "failed": "メッセージの読み上げに失敗しました。",
-                    "noText": "読み上げる内容がありません。"
+                    "noText": "読み上げる内容がありません。",
+                    "invalidVoice": "選択した音声はこの音声モデルでは利用できません。音声設定で別の音声を選択してください。",
+                    "invalidResponseFormat": "この音声モデルは要求された音声形式を生成できません。",
+                    "invalidSpeed": "読み上げ速度がこのモデルの対応範囲外です。音声設定で速度を調整してください。"
                 },
                 "assistant": "アシスタント",
                 "assistantWithModel": "{assistant} ({model})",
@@ -1479,6 +1584,13 @@
                     "tokensTitle": "トークン使用量",
                     "toolActivity": "ツールアクティビティ",
                     "totalTokens": "合計トークン"
+                },
+                "outputNotices": {
+                    "reasoningOnly": "モデルは推論を返しましたが、最終的な回答はありませんでした。再試行するか、別のモデルや推論設定をお試しください。",
+                    "steered": "新しいメッセージを受けて、下で続行しました。",
+                    "stopped": "この応答を停止しました。",
+                    "tokenLimit": "出力トークン上限に達したため、応答が停止しました。より長い回答を得るには、最大トークン数の設定を増やしてください。",
+                    "tokenLimitReasoning": "モデルは回答を書く前に、出力トークンの予算をすべて推論に使い切りました。最大トークン数の設定を増やすか、推論の強度を下げてください。"
                 },
                 "renderFailed": "メッセージのレンダリングに失敗しました。",
                 "runningActivitySummary": {
@@ -1549,7 +1661,6 @@
                 "executePrompt": "プランを実装してください。",
                 "executeUnavailable": "この会話は実行モードに切り替えられません",
                 "label": "プラン",
-                "metrics": "{lines} 行 · {characters} 文字",
                 "revision": "リビジョン {revision}"
             },
             "processing": {
@@ -1607,7 +1718,6 @@
                 "allUnicode": "すべての Unicode",
                 "description": "Unicode 文字と絵文字を参照して文字列を作成し、メッセージにコピーまたは挿入します。",
                 "font": "フォント",
-                "fontHint": "フォントは表示にのみ影響します。表示されている文字はすべて選択できます。",
                 "fonts": {
                     "emoji": "プラットフォーム絵文字",
                     "monospace": "汎用等幅",
@@ -1624,7 +1734,7 @@
                 "noResults": "選択したサブセットに、この検索と一致する文字はありません。",
                 "open": "文字コード表を開く",
                 "preference": "文字コード表",
-                "preferenceHint": "チャット入力欄に Unicode 文字コード表を表示します。",
+                "preferenceHint": "チャット入力欄に Unicode 文字コード表を表示します",
                 "resultCount": "{count} 件の結果",
                 "resultsUnavailable": "文字の結果は一時的に利用できません。",
                 "retry": "再試行",
@@ -1634,19 +1744,6 @@
                 "staging": "コピーする文字",
                 "subset": "サブセット",
                 "title": "文字コード表"
-            },
-            "promptsPicker": {
-                "editFailed": "プロンプトエディターを開けませんでした。",
-                "empty": "保存済みのプロンプトはまだありません。",
-                "emptyContent": "プロンプトの内容がありません",
-                "help": "チャット入力欄に挿入する保存済みプロンプトを選択します。",
-                "loadFailed": "保存済みプロンプトを読み込めませんでした。",
-                "loading": "プロンプトを読み込み中...",
-                "manage": "プロンプトを管理",
-                "manageFailed": "プロンプトページを開けませんでした。",
-                "noMatches": "検索に一致するプロンプトはありません。",
-                "search": "検索",
-                "title": "保存済みプロンプト"
             },
             "search": {
                 "placeholder": "チャットを検索...",
@@ -1700,9 +1797,32 @@
                     "service_unavailable": "この応答に必要なサービスが一時的に利用できません。",
                     "stream_hydration_failed": "応答ストリームの再同期に失敗しました。",
                     "tool_sequence_contract_violation": "再試行後もモデルが無効なツールシーケンスを生成しました。もう一度試すか、モデルパラメーターを変更してください。",
+                    "invalid_request_error": "モデルプロバイダーがリクエストを拒否しました。選択したモデルとそのパラメーターを確認してください。",
+                    "authentication_error": "モデルプロバイダーが認証情報またはアクセス権限を拒否しました。設定されたAPIキーを確認してください。",
+                    "payment_required_error": "アカウントの請求、クレジット、または利用上限に対応が必要なため、モデルプロバイダーがリクエストを拒否しました。",
+                    "rate_limit_error": "モデルプロバイダーが混雑しているか、レート制限中です。しばらく待ってから再試行してください。",
+                    "timeout_error": "応答の生成中にモデルプロバイダーがタイムアウトしました。後でもう一度お試しください。",
+                    "providerExplanation": "プロバイダーからの説明: {explanation}",
                     "withCode": "{message} (コード: {code})",
                     "withReference": "{message} (コード: {code}; 参照: {referenceId})",
-                    "ws_disconnected": "応答の受信中に接続が失われました。"
+                    "ws_disconnected": "応答の受信中に接続が失われました。",
+                    "providerPermission": "プロバイダーがアクセスを拒否しました。APIキーの権限、アカウントのアクセス権、対応地域を確認してください。",
+                    "providerParameter": "プロバイダーが {param} を拒否しました。このモデルパラメーターを変更またはリセットしてから再試行してください。",
+                    "providerMedia": "プロバイダーが添付ファイルを拒否しました。形式、サイズ、内容を確認するか、再アップロードしてください。",
+                    "providerContext": "リクエストがコンテキスト長を超えています。会話のコンテキストを短くするか、出力トークンを減らすか、コンテキスト長の大きいモデルを選択してください。",
+                    "providerContentPolicy": "プロバイダーがコンテンツポリシーに基づいてリクエストをブロックしました。メッセージを言い換えるか、別のモデルを選択してください。",
+                    "providerVision": "このモデルまたはエンドポイントは画像を受け付けません。画像を削除するか、画像対応モデルを選択してください。",
+                    "providerAudio": "このモデルまたはエンドポイントは音声を受け付けません。音声を削除するか、音声対応モデルを選択してください。",
+                    "providerModelUnavailable": "プロバイダーによると、このモデルは利用できません。カタログを更新するか、別のモデルを選択してください。",
+                    "providerUnavailable": "プロバイダーが一時的に利用できないか、過負荷になっています。後で再試行するか、別のプロバイダーを選択してください。",
+                    "providerRetryAfter": "再試行する前に少なくとも {seconds} 秒待ってください。",
+                    "providerMediaFormat": "添付ファイルの形式が拒否されました。対応する形式に変換して再試行してください。",
+                    "providerMediaSize": "添付ファイルのサイズと寸法を確認し、対応するサイズで再試行してください。",
+                    "providerMediaDecoding": "添付ファイルをデコードできませんでした。有効なファイルをアップロードして再試行してください。",
+                    "providerMediaRetrieval": "添付ファイルを取得できませんでした。リンクを確認するか、ファイルを再度アップロードしてください。",
+                    "providerContextUsage": "このリクエストには {requested} トークンが必要です。利用可能なコンテキストは {available} トークンです。",
+                    "context_budget_unavailable": "モデルのコンテキストが、設定された出力予約に対して小さすぎます。モデルのコンテキスト長を増やすか、圧縮の出力予約を減らしてください。",
+                    "contextBudgetUsage": "モデルのコンテキストは {context} トークン（使用可能 {usable}）で、圧縮の出力予約は {reserved} トークンです。"
                 },
                 "failedToGetResponse": "応答の取得に失敗しました",
                 "noModelSelected": "メッセージを送信する前にモデルを選択してください",
@@ -2155,6 +2275,12 @@
                         },
                         "apply_patch": {
                             "1": "変更を適用中"
+                        },
+                        "skill_read": {
+                            "1": "スキルの手順を読み取り中"
+                        },
+                        "skill_materialize": {
+                            "1": "スキルのファイルをワークスペースにコピー中"
                         }
                     }
                 }
@@ -2412,12 +2538,15 @@
             "cancellation": {
                 "failed": "キャンセル要求に失敗しました。操作はまだ実行中です。もう一度お試しください。",
                 "userRequested": "ユーザーがキャンセルを要求しました。",
-                "userRequestedViaWebUi": "ユーザーが WebUI からキャンセルを要求しました。"
+                "userRequestedViaWebUi": "ユーザーが WebUI からキャンセルを要求しました。",
+                "cancelling": "キャンセル中",
+                "cancelled": "キャンセル済み"
             },
             "clipboard": {
                 "copied": "クリップボードにコピーしました",
                 "copyFailed": "クリップボードへのコピーに失敗しました",
-                "copyUnavailable": "この環境ではクリップボードを利用できません"
+                "copyUnavailable": "この環境ではクリップボードを利用できません",
+                "notificationCopied": "通知をクリップボードにコピーしました"
             },
             "close": "閉じる",
             "filters": {
@@ -2441,7 +2570,6 @@
                 "chatAttachments": "このメッセージで参照されている添付ファイル。",
                 "chatMcpDefaultTools": "新しいチャットのデフォルト MCP ツール。",
                 "chatMemoryProfile": "SoAI がチャットをまたいで記憶する個人情報。",
-                "chatPromptsPicker": "このチャットに挿入できる保存済みプロンプト。",
                 "voiceCall": "マイク、文字起こし、ストリーミング応答、音声再生を使ったハンズフリーチャット。",
                 "credits": "サードパーティ依存関係のクレジット。",
                 "fileExplorerMetadata": "ファイルのメタデータ。",
@@ -2490,12 +2618,24 @@
             "error": "エラー",
             "errors": {
                 "errorWithMessage": "エラー: {message}",
+                "fileAccessDenied": "SoAI が必要なファイルへのアクセスを拒否されました。フォルダーのアクセス許可を確認してから、もう一度お試しください。",
+                "fileOperationFailed": "ファイル操作に失敗しました。詳細をログで確認してから、もう一度お試しください。",
                 "insufficientDiskSpace": "ディスク容量が不足しているため、操作を続行できませんでした。",
                 "offlinePolicy": "オフラインモードが有効な間はこの操作を利用できません。",
                 "operationFailed": "操作に失敗しました。もう一度お試しください。",
                 "operationFailedWithMessage": "{operation} に失敗しました: {error}",
+                "runtimeStartupTimeout": "ランタイムが時間内に準備完了になりませんでした。新しくインストールされたランタイムファイルは、初回起動に時間がかかることがあります。操作をもう一度お試しください。",
+                "runtimeVerificationTimeout": "SoAI はランタイムの確認を時間内に完了できませんでした。新しくインストールされたランタイムファイルは、初回起動に時間がかかることがあります。操作をもう一度お試しください。",
+                "executionTimeoutResponse": "プラグインは {budget} 秒以内に応答を返しませんでした（{elapsed} 秒経過）。",
+                "executionTimeoutInitialResponse": "モデルは {budget} 秒以内に応答を開始しませんでした（{elapsed} 秒経過）。",
+                "executionTimeoutFirstToken": "モデルは {budget} 秒以内に最初の出力を生成しませんでした（{elapsed} 秒経過）。",
+                "executionTimeoutBufferedResponse": "モデルは {budget} 秒以内に応答を完了しませんでした（{elapsed} 秒経過）。",
+                "executionTimeoutRequestLimit": "この制限時間はリクエストによって設定されたため、プラグインは異常としてマークされませんでした。",
+                "executionTimeoutPluginBudget": "これはプラグインの実行予算だったため、プラグインが過負荷になっているか応答していない可能性があります。",
                 "unknown": "不明なエラー",
-                "unknownError": "不明なエラーが発生しました。"
+                "unknownError": "不明なエラーが発生しました。",
+                "storageHeadroomInsufficient": "安全のための余裕と既存の予約を含めると、ストレージの空き容量が不足しています。空き容量を増やすか、他のストレージ処理が完了するまで待ってから再試行してください。",
+                "storageHeadroomValues": "安全マージンを含む必要容量: {required}。この操作に利用できる容量: {available}。"
             },
             "export": "エクスポート",
             "exportPreview": {
@@ -2606,6 +2746,10 @@
             "retry": "再試行"
         },
         "contentPreview": {
+            "fields": {
+                "title": "タイトル",
+                "text": "本文"
+            },
             "actions": {
                 "goToPath": "パスへ移動",
                 "goToUrl": "URL へ移動",
@@ -2890,7 +3034,14 @@
                 "renameNameRequired": "最初に名前を入力してください。",
                 "renameNameUnchanged": "別の名前を入力してください。",
                 "selectionChanged": "選択内容が変更されました。名前を変更する前に、もう一度項目を選択してください。",
-                "selectionRequired": "最初に 1 件以上の項目を選択してください。"
+                "selectionRequired": "最初に 1 件以上の項目を選択してください。",
+                "changeRefreshFailed": "変更は保存されましたが、ファイルの詳細を更新できませんでした。「ファイル」を更新してください。",
+                "fileInUse": "このファイルは別のアプリケーションで使用されています。そのアプリケーションを閉じて、もう一度お試しください。",
+                "listingExpired": "フォルダーの一覧は利用できなくなりました。「ファイル」を更新して再度読み込んでください。",
+                "publicationUncertain": "ファイルは保存された可能性がありますが、最終状態を確認できませんでした。再度アップロードする前に、「ファイル」で保存先を確認してください。",
+                "cleanupIncomplete": "自動クリーンアップを完了できませんでした。再試行する前に「ファイル」で保存先を確認してください。",
+                "contentChanged": "操作中にファイルが変更されました。もう一度選択して再試行してください。",
+                "destinationExists": "同じ名前のファイルまたはフォルダーが既に存在します。別の名前または保存先を選んでください。"
             },
             "labels": {
                 "latestTask": "最新のタスク",
@@ -3114,7 +3265,8 @@
                         "withTotal": "{count} {label} • {total}"
                     },
                     "title": "ストレージ",
-                    "waiting": "検出中..."
+                    "waiting": "検出中...",
+                    "unavailable": "ストレージを利用できません"
                 }
             },
             "common": {
@@ -3137,7 +3289,47 @@
                 "network": "ネットワーク"
             },
             "errors": {
-                "historyInitFailed": "履歴ストリームの初期化に失敗しました"
+                "historyInitFailed": "履歴ストリームの初期化に失敗しました",
+                "gpuRecoveryIdentityConflict": "GPU の復旧で物理デバイスを確認できませんでした。GPU の変更は引き続き無効です。復旧データを保持し、ハードウェアの診断情報を確認してください。",
+                "gpuSlotAliasConflict": "保存された GPU の別名に、競合する設定または認識できない設定があります。スロットファイルを保持し、変更する前に保存済みのプロファイルを確認してください。",
+                "opencl_compiler_unavailable": "OpenCL ランタイムは SoAI Bench のカーネルをコンパイルできません。実行時コンパイラーを備えた GPU 用 OpenCL ランタイムをインストールしてください。",
+                "opencl_kernel_execution_unavailable": "OpenCL ランタイムはソースコードからコンパイルしたカーネルを実行できません。対応する GPU 用 OpenCL ランタイムをインストールしてください。",
+                "opencl_custom_identity_unproved": "OpenCL の GPU 識別情報またはベンダー情報を確認できませんでした。GPU の検出を更新し、GPU ドライバーを更新してください。",
+                "opencl_memory_insufficient": "SoAI Bench には 256 MiB の OpenCL メモリー割り当てと、十分なデバイス総メモリーが必要です。この要件を満たす GPU を選択してください。",
+                "soaibenchPublicationUnsupported": "この GPU ではこのベンチマークを実行できません。公開できるスコアがありません。対応する GPU を選択し、先にベンチマークを完了してください。",
+                "gpuInventoryBusy": "GPU インベントリは処理中または復旧中です。待ってからこの履歴系列を再試行してください。",
+                "soaibenchPublicationCancelled": "このベンチマークはキャンセルされました。公開する前に対応するベンチマークを完了してください。",
+                "soaibenchPublicationIncomplete": "このベンチマークには公開条件を満たす完全な結果がありません。公開する前に対応する認定ベンチマークを完了してください。",
+                "gpuClockCombinationUnsupported": "このGPUでは、これらのクロック制御を組み合わせられません。クロック制御を1つずつ適用してください。",
+                "gpuClockConversionUnavailable": "ドライバーで必要なクロック変換を取得できません。ハードウェア検出を更新し、ドライバーの対応状況を確認してください。",
+                "gpuSettingOutOfRange": "このGPU設定は対応範囲外です。対応する値を選択してください。",
+                "gpuSettingRange": "{field}: {requested} {unit} は対応範囲 {minimum}–{maximum} {unit} 外です。対応する値を選択してください。",
+                "gpuObservationUnavailable": "GPUの現在の状態を読み取れませんでした。保存した変更は保持されています。読み取りが復旧するまで待ち、表示を更新してください。",
+                "gpuObservationTimeout": "GPUの現在の状態の読み取りがタイムアウトしました。保存した変更は保持されています。読み取りが復旧するまで待ち、表示を更新してください。",
+                "gpuSensorPermissionDenied": "GPU センサーへのアクセスが拒否されました。SoAI のサービスアカウントに GPU デバイスとセンサーファイルへのアクセスを許可してから、更新してください。",
+                "vulkanRuntimeUnavailable": "選択した GPU バインドには Vulkan デバイスの対応付けが必要ですが、Vulkan ツールが利用できないか失敗しました。ディストリビューションの Vulkan ツールとドライバーをインストールするか、すべての GPU をバインドしてください。",
+                "vulkanQueryTimeout": "選択した GPU バインドには Vulkan デバイスの対応付けが必要ですが、Vulkan デバイスの照会がタイムアウトしました。Vulkan ドライバーを確認するか、すべての GPU をバインドしてください。",
+                "vulkanFormatUnsupported": "選択した GPU バインドには Vulkan デバイスの対応付けが必要ですが、Vulkan ツールがサポートされていない形式を返しました。ディストリビューションの Vulkan ツールを更新するか、すべての GPU をバインドしてください。",
+                "vulkanDeviceUnavailable": "選択した GPU は Vulkan デバイスの中にありません。この GPU の Vulkan ドライバーを確認するか、別の GPU を選択してください。",
+                "vulkanIdentityUnavailable": "選択した GPU は Vulkan デバイスと共通の UUID または PCI ID を持たないため、安全にバインドできません。代わりにすべての GPU をバインドしてください。",
+                "vulkanIdentityConflict": "選択した GPU は Vulkan デバイス一覧で ID が矛盾しているため、安全にバインドできません。GPU ドライバーを確認するか、すべての GPU をバインドしてください。",
+                "vulkanDeviceAmbiguous": "選択した GPU は複数の Vulkan ドライバーから公開されています。重複した Vulkan ドライバー (ICD) を削除するか、すべての GPU をバインドしてください。",
+                "gpuBindingIdentityConflict": "選択したGPUの物理識別情報がハードウェア一覧で重複しています。ハードウェア情報を更新し、GPUを選択し直してください。",
+                "gpuDiscoveryTimeout": "GPU の検出がタイムアウトしました。ハードウェアの照会が完了してから再試行してください。",
+                "gpuDiscoveryBusy": "ハードウェアの照会がまだ実行中です。GPU の検出が完了してから再試行してください。",
+                "gpuDiscoveryNativeTimeout": "ネイティブ GPU 照会がタイムアウトしました。グラフィックスドライバーを確認して再試行してください。",
+                "gpuDiscoveryQueryFailed": "ネイティブ GPU 照会に失敗しました。グラフィックスドライバーとシステム診断を確認して再試行してください。",
+                "gpuDiscoveryEmpty": "GPU 照会からデータが返されませんでした。グラフィックスドライバーを確認して再試行してください。",
+                "gpuDiscoveryInvalid": "GPU 照会から無効なデータが返されました。グラフィックスドライバーとシステム診断を確認して再試行してください。",
+                "gpuDiscoveryRuntimeUnavailable": "GPU 検出ツールを利用できません。システムツールを復元して再試行してください。",
+                "gpuDiscoveryPermissionDenied": "GPU 検出のアクセスが拒否されました。サービスアカウントのハードウェア権限を確認して再試行してください。",
+                "gpuDiscoveryUnavailable": "GPU の検出を利用できません。グラフィックスドライバーとシステムツールを確認して再試行してください。",
+                "gpuDiscoveryChanged": "検出中に GPU の一覧が変わりました。ハードウェアの検出が完了してから再試行してください。",
+                "opencl_operation_deadline": "{phase} が {seconds} 秒の制限時間を超えました。スコアは作成されませんでした。グラフィックスドライバーが応答することを確認してから、再試行してください。",
+                "opencl_runtime_deadline": "OpenCL が制限時間内に完了しませんでした。グラフィックスドライバーが応答することを確認してから、再試行してください。",
+                "opencl_child_exited": "OpenCL ランタイムが予期せず停止しました。グラフィックスドライバーを確認してから、SoAI Bench を再試行してください。",
+                "opencl_child_invalid_response": "OpenCL ランタイムが無効な応答を返しました。SoAI を再起動し、SoAI Bench を再試行してください。",
+                "opencl_child_disconnected": "OpenCL ランタイムとの通信が中断されました。SoAI Bench を再試行してください。"
             },
             "gpu": {
                 "actions": {
@@ -3154,8 +3346,11 @@
                 "controls": {
                     "autoLabel": "自動",
                     "coreClock": "コアクロックオフセット",
+                    "coreClockFrequency": "コアクロック周波数",
                     "fan_speed": "ファン速度",
                     "memoryClock": "メモリクロックオフセット",
+                    "memoryClockFrequency": "メモリクロック周波数",
+                    "powerLimitOffset": "電力上限オフセット",
                     "power_limit": "電力上限",
                     "toggleAutomatic": "自動制御"
                 },
@@ -3166,19 +3361,19 @@
                     "noManualChange": "保存する前に「自動」モードを無効にしてください。",
                     "noSettings": "適用する GPU 設定がありません。",
                     "reset": "GPU {index} を既定値にリセットしました",
-                    "soaibenchNoActiveRun": "GPU {index} ではアクティブな SoAIBench 実行がありません",
-                    "soaibenchStarted": "GPU {index} で SoAIBench {profile} を開始しました",
-                    "soaibenchStopRequested": "GPU {index} の SoAIBench 停止を要求しました",
-                    "soaibenchUnsupported": "GPU {index} は SoAIBench をサポートしていません: {reason}",
+                    "soaibenchNoActiveRun": "GPU {index} ではアクティブな SoAI Bench 実行がありません",
+                    "soaibenchStarted": "GPU {index} で SoAI Bench {profile} を開始しました",
+                    "soaibenchStopRequested": "GPU {index} の SoAI Bench 停止を要求しました",
+                    "soaibenchUnsupported": "GPU {index} は SoAI Bench をサポートしていません: {reason}",
                     "soaibenchSettingsLocked": "GPU {index} でベンチマークを実行中です。設定を保存する前に、ベンチマークを停止するか完了するまでお待ちください。",
                     "slotApplied": "GPU {index} のスロット {slot} を適用しました",
                     "slotSaved": "GPU {index} のスロット {slot} を保存しました"
                 },
                 "soaibench": {
-                    "standardTaskName": "GPU SoAIBench 標準",
+                    "standardTaskName": "GPU SoAI Bench 標準",
                     "stressRunningLabel": "ストレステスト - 実行中",
-                    "stopTaskName": "GPU SoAIBench 停止",
-                    "stressTaskName": "GPU SoAIBench ストレス"
+                    "stopTaskName": "GPU SoAI Bench 停止",
+                    "stressTaskName": "GPU SoAI Bench ストレス"
                 },
                 "panelHeader": "GPU {index}: {name}",
                 "panelTitle": "GPU コントロール",
@@ -3195,6 +3390,28 @@
                     "powerDraw": "電力",
                     "temperatures": "温度",
                     "memoryUtilization": "VRAM"
+                },
+                "errors": {
+                    "invalidGpuId": "有効な GPU を選択して、もう一度お試しください。",
+                    "invalidSlot": "有効な GPU スロットを選択して、もう一度お試しください。",
+                    "invalidPayload": "GPU 設定を確認して、もう一度お試しください。",
+                    "noSettings": "変更を適用する前に、GPU 設定を少なくとも1つ選択してください。",
+                    "deviceNotFound": "選択した GPU が見つかりません。ハードウェア一覧を更新して、もう一度選択してください。",
+                    "noGpus": "利用可能な GPU がありません。ハードウェアの検出を確認して、もう一度お試しください。",
+                    "slotEmpty": "選択した GPU スロットは空です。適用する前に、このスロットに設定を保存してください。",
+                    "slotUnchanged": "GPU スロットには、すでにこれらの設定が保存されています。",
+                    "bootUnchanged": "GPU スロットには、すでにこの起動設定が指定されています。",
+                    "slotRequiresApply": "起動時に有効にする前に、GPU スロットを適用してください。",
+                    "applyFailed": "GPU設定を安全に適用できませんでした。操作の詳細を確認して再試行してください。",
+                    "deviceUnavailable": "選択した GPU を利用できません。復旧するまで待って、もう一度お試しください。",
+                    "hardwareMutationDisabled": "このインストールでは、GPU ハードウェアの変更が無効になっています。",
+                    "gpuActivityConflict": "GPU は別の操作で使用中です。完了するまで待って、もう一度お試しください。",
+                    "hardwareUnavailable": "このインストールでは、GPU の調整を利用できません。ハードウェアの対応状況と構成を確認してください。",
+                    "gpuError": "GPU 設定の操作に失敗しました。設定を確認して、もう一度お試しください。",
+                    "slotError": "GPU スロットの操作に失敗しました。ハードウェア一覧を更新して、もう一度お試しください。",
+                    "recoveryReconciled": "以前の GPU 設定を復元しました。新しい設定をもう一度適用してください。",
+                    "recoveryUnresolved": "以前の GPU 設定を安全に復元できませんでした。設定を再度適用する前に GPU の状態を確認してください。",
+                    "controlPreparationFailed": "ハードウェアへのアクセス前にGPU設定の準備に失敗しました。再試行し、問題が続く場合は参照IDを添えて報告してください。"
                 }
             },
             "metrics": {
@@ -3217,41 +3434,41 @@
             "soaibenchPublication": {
                 "deleteLocalHistory": "ローカル履歴を削除",
                 "deleteLocalConfirm": {
-                    "title": "SoAIBench 実行を削除しますか？",
-                    "message": "この SoAIBench 実行をローカル履歴から削除しますか？この操作は元に戻せません。"
+                    "title": "SoAI Bench 実行を削除しますか？",
+                    "message": "この SoAI Bench 実行をローカル履歴から削除しますか？この操作は元に戻せません。"
                 },
                 "action": "共有",
                 "openRun": "結果を開く",
-                "ariaLabel": "このSoAIBenchスコアを共有",
-                "unavailable": "公開可能なSoAIBench実行はありません",
+                "ariaLabel": "このSoAI Benchスコアを共有",
+                "unavailable": "公開可能なSoAI Bench実行はありません",
                 "confirm": {
-                    "title": "SoAIBenchスコアを共有しますか？",
-                    "message": "スコア{score}と{passes}回の計測パスを公開SoAIBenchランキングに掲載しますか？",
+                    "title": "SoAI Benchスコアを共有しますか？",
+                    "message": "スコア{score}と{passes}回の計測パスを公開SoAI Benchランキングに掲載しますか？",
                     "description": "スコア、5回の計測パス、公開GPUおよびランタイム情報、ベンチマーク設定、任意のセンサー証拠が送信されます。アカウントの識別情報、ファイル、構成、分析、一般的なテレメトリは除外されます。"
                 },
                 "outcomes": {
-                    "published": "SoAIBenchスコアを公開しました。",
-                    "alreadyPublished": "このSoAIBenchスコアはすでに共有されています。",
-                    "heldForReview": "SoAIBench の結果は ID または異常値の確認のため保留されており、まだランキングには反映されていません。",
+                    "published": "SoAI Benchスコアを公開しました。",
+                    "alreadyPublished": "このSoAI Benchスコアはすでに共有されています。",
+                    "heldForReview": "SoAI Bench の結果は ID または異常値の確認のため保留されており、まだランキングには反映されていません。",
                     "offline": "SoAIがオフラインのため、スコアを共有できませんでした。",
-                    "unavailable": "SoAIBench公開サービスを利用できません。",
+                    "unavailable": "SoAI Bench公開サービスを利用できません。",
                     "timeout": "スコアの共有がタイムアウトしました。同じ公開内容を照合するには再試行してください。",
                     "rateLimited": "この接続から共有されたスコアが多すぎます。後でもう一度お試しください。",
-                    "capacity": "SoAIBenchランキングは現在、容量上限に達しています。",
-                    "rejected": "SoAIBenchランキングがこの結果を拒否しました。",
+                    "capacity": "SoAI Benchランキングは現在、容量上限に達しています。",
+                    "rejected": "SoAI Benchランキングがこの結果を拒否しました。",
                     "conflict": "この公開は既存のランキング状態と競合しています。",
-                    "invalidResponse": "SoAIBenchランキングから無効な応答が返されました。",
+                    "invalidResponse": "SoAI Benchランキングから無効な応答が返されました。",
                     "retryAfter": "{seconds}秒後にもう一度お試しください。"
                 }
             },
             "modals": {
                 "soaibenchHistory": {
                     "ariaLabels": {
-                        "close": "SoAIBench 履歴を閉じる",
-                        "copy": "SoAIBench 履歴をコピー",
-                        "copyRun": "SoAIBench 実行をコピー",
-                        "download": "SoAIBench 履歴 CSV をダウンロード",
-                        "downloadRun": "SoAIBench 実行をダウンロード"
+                        "close": "SoAI Bench 履歴を閉じる",
+                        "copy": "SoAI Bench 履歴をコピー",
+                        "copyRun": "SoAI Bench 実行をコピー",
+                        "download": "SoAI Bench 履歴 CSV をダウンロード",
+                        "downloadRun": "SoAI Bench 実行をダウンロード"
                     },
                     "close": "閉じる",
                     "copy": "コピー",
@@ -3260,10 +3477,10 @@
                         "runs": "実行",
                         "table": "実行テーブル"
                     },
-                    "copySuccess": "SoAIBench 履歴をクリップボードにコピーしました",
-                    "copyUnavailable": "コピーできる SoAIBench 履歴がありません",
+                    "copySuccess": "SoAI Bench 履歴をクリップボードにコピーしました",
+                    "copyUnavailable": "コピーできる SoAI Bench 履歴がありません",
                     "download": "ダウンロード",
-                    "downloadSuccess": "SoAIBench 履歴 CSV のダウンロードを開始しました",
+                    "downloadSuccess": "SoAI Bench 履歴 CSV のダウンロードを開始しました",
                     "columns": {
                         "actions": "操作",
                         "certification": "認定",
@@ -3287,11 +3504,11 @@
                         "quick": "クイック",
                         "varianceSuffix": "分散 {variance}%"
                     },
-                    "description": "選択した GPU の過去の SoAIBench 実行。",
-                    "empty": "この GPU の SoAIBench 実行はまだありません。",
+                    "description": "選択した GPU の過去の SoAI Bench 実行。",
+                    "empty": "この GPU の SoAI Bench 実行はまだありません。",
                     "loading": "実行履歴を読み込み中...",
-                    "pageEmpty": "SoAIBench の実行履歴はまだありません。",
-                    "pageLoadFailed": "SoAIBench の実行履歴を読み込めませんでした。再試行してください。",
+                    "pageEmpty": "SoAI Bench の実行履歴はまだありません。",
+                    "pageLoadFailed": "SoAI Bench の実行履歴を読み込めませんでした。再試行してください。",
                     "matchBases": {
                         "device_id": "デバイス ID",
                         "gpu_model_key": "GPU モデルキー",
@@ -3313,9 +3530,11 @@
                         "stress": "ストレス"
                     },
                     "reasons": {
-                        "opencl_numerical_mismatch": "OpenCL ワークロードの数値検証に失敗しました。"
+                        "opencl_numerical_mismatch": "OpenCL ワークロードの数値検証に失敗しました。",
+                        "preflight": "事前確認",
+                        "startup": "起動"
                     },
-                    "rowCopyUnavailable": "コピーできる SoAIBench 実行がありません",
+                    "rowCopyUnavailable": "コピーできる SoAI Bench 実行がありません",
                     "staleHardware": "古いハードウェア一致",
                     "statuses": {
                         "cancelled": "キャンセル済み",
@@ -3327,28 +3546,28 @@
                         "unstable": "不安定",
                         "unsupported": "未対応"
                     },
-                    "title": "SoAIBench の過去の実行"
+                    "title": "SoAI Bench の過去の実行"
                 },
                 "soaibenchRun": {
                     "selectGpu": "ベンチマークする GPU を選択",
                     "noGpus": "ベンチマークに使用できる GPU がありません。",
                     "ariaLabels": {
-                        "close": "SoAIBench を閉じる",
-                        "copy": "SoAIBench 実行をコピー",
-                        "download": "SoAIBench 実行をダウンロード",
-                        "history": "SoAIBench 履歴を開く",
-                        "retry": "認定 SoAIBench を再試行",
-                        "stop": "認定 SoAIBench を停止",
-                        "stopping": "認定 SoAIBench を停止中",
-                        "newBenchmark": "新しい認定 SoAIBench の実行を開始",
-                        "runAgain": "この GPU で認定 SoAIBench をもう一度実行",
-                        "recover": "SoAIBench の状態を再確認",
-                        "start": "認定 SoAIBench を開始"
+                        "close": "SoAI Bench を閉じる",
+                        "copy": "SoAI Bench 実行をコピー",
+                        "download": "SoAI Bench 実行をダウンロード",
+                        "history": "SoAI Bench 履歴を開く",
+                        "retry": "認定 SoAI Bench を再試行",
+                        "stop": "認定 SoAI Bench を停止",
+                        "stopping": "認定 SoAI Bench を停止中",
+                        "newBenchmark": "新しい認定 SoAI Bench の実行を開始",
+                        "runAgain": "この GPU で認定 SoAI Bench をもう一度実行",
+                        "recover": "SoAI Bench の状態を再確認",
+                        "start": "認定 SoAI Bench を開始"
                     },
                     "close": "閉じる",
                     "copy": "コピー",
-                    "copySuccess": "SoAIBench 実行をクリップボードにコピーしました",
-                    "copyUnavailable": "コピーできる SoAIBench 実行がありません",
+                    "copySuccess": "SoAI Bench 実行をクリップボードにコピーしました",
+                    "copyUnavailable": "コピーできる SoAI Bench 実行がありません",
                     "description": "SoAI の推論準備状況を確認する認定 GPU ベンチマーク。",
                     "download": "ダウンロード",
                     "export": {
@@ -3360,7 +3579,7 @@
                         "rawRun": "実行の生データ詳細",
                         "runId": "実行 ID",
                         "status": "ステータス",
-                        "title": "SoAIBench 実行の詳細"
+                        "title": "SoAI Bench 実行の詳細"
                     },
                     "history": "履歴",
                     "metrics": {
@@ -3392,16 +3611,16 @@
                         "stability": "安定性"
                     },
                     "progress": {
-                        "activeRunInProgress": "この GPU では別の SoAIBench 実行がすでにアクティブです。",
+                        "activeRunInProgress": "この GPU では別の SoAI Bench 実行がすでにアクティブです。",
                         "awaitingRun": "バックエンドの実行状態を待機中",
                         "measured": "計測パス {pass}/{total}",
                         "measuredDetail": "計測済み {pass}/{total}",
                         "measuredPhase": "計測パス {pass}/{total}: {phase}",
                         "phaseDetail": "{phase} {index}/{total}",
-                        "running": "SoAIBench を実行中です。お待ちください...",
-                        "startFailed": "SoAIBench を開始できませんでした",
-                        "starting": "認定 SoAIBench を開始中",
-                        "stopping": "SoAIBench を停止中",
+                        "running": "SoAI Bench を実行中です。お待ちください...",
+                        "startFailed": "SoAI Bench を開始できませんでした",
+                        "starting": "認定 SoAI Bench を開始中",
+                        "stopping": "SoAI Bench を停止中",
                         "warmupDetail": "ウォームアップ {pass}/{total}",
                         "warmupPhase": "ウォームアップ: {phase}",
                         "warmup": "ウォームアップパス完了",
@@ -3411,7 +3630,7 @@
                         "startUnconfirmed": "ベンチマークの開始を確認できず、この GPU で実行中の処理はありません。再試行する前に履歴を確認してください。"
                     },
                     "retry": "再試行",
-                    "scoreLabel": "SoAIBench スコア",
+                    "scoreLabel": "SoAI Bench スコア",
                     "sections": {
                         "expect": {
                             "items": "GPU が高負荷になります|電力とファン回転数が上昇する場合があります|実行は停止できます|未対応のランタイムケースは明示的に報告されます",
@@ -3439,7 +3658,7 @@
                         "unresolved": "状態不明",
                         "rejected": "未開始"
                     },
-                    "title": "SoAIBench"
+                    "title": "SoAI Bench"
                 },
                 "systemInfo": {
                     "anonymize": "匿名化",
@@ -3565,6 +3784,9 @@
                 "slotsRetained": "保存済みのGPU設定を利用できません。{age}のデータを表示しています。",
                 "capabilitiesUnavailable": "GPUの制御を利用できません。",
                 "slotsUnavailable": "保存済みのGPU設定を利用できません。"
+            },
+            "observations": {
+                "retainedAge": "保持された観測 · {seconds}秒前"
             }
         },
         "header": {
@@ -3592,6 +3814,7 @@
                 "about": "概要",
                 "logout": "ログアウト",
                 "logs": "ログ",
+                "power": "再起動 / シャットダウン",
                 "settings": "設定",
                 "updates": "更新"
             },
@@ -3630,7 +3853,7 @@
                     "unavailable": "通知を利用できません。再接続中..."
                 },
                 "confirmations": {
-                    "clearAllMessage": "すべての通知を消去しますか？この操作は元に戻せません。"
+                    "clearAllMessage": "すべての通知（{count}）を消去しますか？この操作は元に戻せません。"
                 }
             }
         },
@@ -4205,17 +4428,22 @@
             "cards": {
                 "capabilities": {
                     "lockedReasons": {
-                        "requiresAudio": "切り替えるには Audio モダリティを有効にしてください。",
-                        "requiresImages": "切り替えるには Images エンドポイントを有効にしてください。",
-                        "requiresResponses": "切り替えるには Responses エンドポイントを有効にしてください。",
-                        "requiresVision": "切り替えるには Vision モダリティを有効にしてください。",
+                        "requiresAudio": "音声モダリティが必要です。",
+                        "requiresImages": "Imagesエンドポイントが必要です。",
+                        "requiresResponses": "Responsesエンドポイントが必要です。",
+                        "requiresVision": "視覚モダリティが必要です。",
                         "text": "Text は無効にできません。",
-                        "unsupported": "このモデルはこの機能をサポートしていません。"
+                        "unsupported": "モデルはこの機能を提供すると明示していません。"
                     },
                     "manifestLoading": "機能分類を読み込み中...",
+                    "modes": {
+                        "autoOff": "自動（オフ）",
+                        "autoOn": "自動（オン）",
+                        "disabled": "無効",
+                        "enabled": "有効"
+                    },
                     "none": "このモデルで利用できる OpenAI 機能はありません。",
                     "pluginCapabilitiesUnavailable": "プラグインの機能プロファイルを利用できません。",
-                    "reset": "オーバーライドをリセット",
                     "sections": {
                         "chatFeatures": "チャット機能",
                         "endpoints": "エンドポイント",
@@ -4223,7 +4451,9 @@
                         "modalities": "モダリティ",
                         "responsesFeatures": "Responses 機能"
                     },
-                    "title": "機能"
+                    "title": "機能",
+                    "unverified": "未確認",
+                    "unverifiedHint": "プロバイダーはこの機能を報告していません。有効または無効を選択するまで、SoAI は互換動作を維持します。"
                 },
                 "constituents": {
                     "hasParameters": "カスタムパラメーター",
@@ -4235,7 +4465,6 @@
                     "created": "作成日時",
                     "name": "プロバイダー名",
                     "providerId": "プロバイダー ID",
-                    "status": "ステータス",
                     "title": "外部プロバイダー"
                 },
                 "identity": {
@@ -4270,6 +4499,9 @@
                     "delete": "削除",
                     "enabledNote": "無効なモデルはリクエストを受け付けず、モデル選択画面にも表示されません。",
                     "enabledToggleLabel": "このモデルを有効にする",
+                    "inferenceUnverified": "まだ検証されていません。検出されただけでは、リクエストが成功することは確認されません。",
+                    "inferenceVerification": "推論",
+                    "inferenceVerified": "最終成功: {date}",
                     "manageAlias": "名前を変更",
                     "modelStatus": "モデルのステータス",
                     "orphaned": "孤立",
@@ -4300,12 +4532,6 @@
                 "externalLinkCancel": "キャンセル",
                 "externalLinkConfirm": "リンクを開く",
                 "externalLinkMessage": "バックエンドのドキュメントを新しいタブで開いてもよろしいですか？",
-                "resetCapabilities": "機能オーバーライドをリセット",
-                "resetCapabilitiesConfirm": "リセット",
-                "resetCapabilitiesMessage": "すべての機能オーバーライドをリセットし、このモデルでプラグインのデフォルトを継承しますか？",
-                "resetParameters": "パラメーターをリセット",
-                "resetParametersConfirm": "リセット",
-                "resetParametersMessage": "すべてのパラメーターをデフォルト値にリセットしてもよろしいですか？未保存の変更はすべて破棄されます。",
                 "stopPlugin": "プラグインを停止",
                 "stopPluginMessage": "{plugin} を停止してもよろしいですか？"
             },
@@ -4369,6 +4595,7 @@
                 }
             },
             "notifications": {
+                "capabilitiesConflict": "機能が別の場所で変更されました。編集内容は破棄されました。最新の値を確認して、もう一度適用してください。",
                 "capabilitiesUpdated": "機能を更新しました",
                 "deletionInProgress": "モデルを削除中...",
                 "enabledUpdated": "モデルの有効状態を更新しました",
@@ -4424,6 +4651,17 @@
             "tabs": {
                 "overview": "概要",
                 "parameters": "パラメーター"
+            },
+            "parameterAvailability": {
+                "loading": "パラメーターを読み込んでいます...",
+                "refreshing": "パラメーターを更新しています... 最終更新: {age}。",
+                "stale": "接続が切断されました。値が古い可能性があります。最終更新: {age}。",
+                "failed": "パラメーターを読み込めませんでした。",
+                "retained": "パラメーターが利用可能になるまで保存は無効です。最終更新: {age}。",
+                "schemaChanged": "編集中にパラメーターの定義が変更されました。現在の定義を読み込むには、未保存の変更を破棄してください。",
+                "discard": "変更を破棄",
+                "unavailableNotice": "モデルパラメーターを利用できません。読み込めるようになるまで保存は無効です。",
+                "saveBlocked": "パラメーターは利用可能になるまで保存できません。先に再読み込みしてください。"
             }
         },
         "models": {
@@ -4463,7 +4701,8 @@
                 "externalLink": "外部リンク",
                 "externalLinkCancel": "キャンセル",
                 "externalLinkConfirm": "続行",
-                "externalLinkMessage": "このモデルのリポジトリを新しいタブで開いてもよろしいですか？"
+                "externalLinkMessage": "このモデルのリポジトリを新しいタブで開いてもよろしいですか？",
+                "deleteLargeModelMessage": "「{model}」（{sizeGb} GB）を削除しますか？再ダウンロードには多くの時間と通信量が必要になる場合があります。この操作は取り消せません。"
             },
             "description": "プラグインやプロバイダーをまたいで AI モデルを管理します。",
             "searchPlaceholder": "モデルを検索...",
@@ -4502,7 +4741,7 @@
                     "close": "閉じる",
                     "confirmDownload": "モデルをダウンロード",
                     "modelIdLabel": "モデルダウンロード ID",
-                    "pluginHelp": "モデルのダウンロードを処理するプラグインを選択してください",
+                    "pluginHelp": "モデルのダウンロードに使用するプラグイン",
                     "pluginLabel": "プラグイン",
                     "pluginPlaceholder": "プラグインを選択...",
                     "quantHelp": "モデル識別子と量子化を入力してください（形式は選択したプラグインによって異なります）",
@@ -4587,7 +4826,7 @@
                     "modelsFilterPlaceholder": "例: free, gpt, claude",
                     "nameHelp": "この外部プロバイダーを識別しやすい名前",
                     "nameLabel": "プロバイダー名",
-                    "pluginHelp": "この外部プロバイダーを管理するプラグインを選択してください",
+                    "pluginHelp": "外部プロバイダーの管理に使用するプラグイン",
                     "pluginLabel": "プラグイン",
                     "pluginPlaceholder": "プラグインを選択...",
                     "title": "プロバイダーを追加"
@@ -4790,7 +5029,42 @@
                 "unknown": "不明",
                 "virtual": "仮想"
             },
-            "virtualModelLabel": "仮想モデル"
+            "virtualModelLabel": "仮想モデル",
+            "errors": {
+                "ollamaPullEof": "Ollama は成功を確認せずにダウンロードを終了しました。",
+                "ollamaPullTimeout": "Ollama のダウンロードがタイムアウトしました。",
+                "ollamaPullDisconnected": "Ollama への接続が切断されました。",
+                "ollamaPullRejected": "Ollama がモデルのダウンロードを拒否しました。",
+                "ollamaPullProtocolInvalid": "Ollama が無効なダウンロードデータを返しました。",
+                "ollamaPullTargetMissing": "ダウンロードしたモデルが Ollama の現在の一覧にありません。",
+                "ollamaPullCacheFailed": "ダウンロードしたモデルのローカル一覧を保存できませんでした。",
+                "ollamaPullCleanupFailed": "後処理が未完了です。管理対象の Ollama サービスを停止し、後処理の問題を解決してから再試行してください。",
+                "ollamaPullPreparationFailed": "Ollama のダウンロードサービスを準備できませんでした。",
+                "ollamaPullRecovery": "Ollama の診断情報とストレージを確認し、操作を再試行してください。",
+                "modelNotFound": "指定されたモデルが見つかりません。インストールまたは登録するか、利用可能なAPIモデルIDを使用してください。",
+                "parameterSchemaBusy": "プラグインの操作が進行中のため、モデルパラメーターは一時的に利用できません。しばらくしてから再試行してください。",
+                "parameterSchemaUnavailable": "プラグインのバックエンドが読み込まれていないため、モデルパラメーターを利用できません。プラグインを起動または修復してから再試行してください。",
+                "parametersApplyFailed": "パラメーターは保存されましたが、SoAI は実行中のモデルに適用できませんでした。更新して保存済みの値を確認し、モデルを再読み込みして適用してください。",
+                "configurationMissing": "GGUF モデルには元のモデル構成が必要です。元の config.json を GGUF ファイルの横に置くか、Hugging Face の構成パスを設定してから再試行してください。",
+                "architectureUnsupported": "選択したバックエンドはこのモデルアーキテクチャをサポートしていません。モデルの別のバージョンか別のバックエンドを使用してください。",
+                "cudaDeviceArchitectureUnsupported": "インストール済みのCUDAバックエンドは、選択したNVIDIA GPUのアーキテクチャでは動作しません。対応するGPUを選択するか、このGPUに対応するCUDAバックエンドのバリアントをインストールするか、CPUバックエンドを使用してください。",
+                "nativeCpuFeaturesUnsupported": "このプロセッサーには、インストールされているバックエンドのバリアントが必要とする CPU 命令がありません。CPU など、互換性のあるバックエンドのバリアントをインストールしてください。",
+                "openvinoTensorShapeIncompatible": "グラフのテンソル形状に互換性がないため、OpenVINO バックエンドはこのモデルを実行できませんでした。このモデルには別のバックエンドのバリアントを使用するか、CPU で実行するために GPU レイヤー数を 0 に設定してください。",
+                "repositoryUnavailable": "モデルのリポジトリまたはリビジョンにアクセスできませんでした。識別子を確認してください。非公開またはアクセス制限付きのリポジトリには、承認済みのリポジトリトークンとアクセス条件への同意も必要です。",
+                "modelSearchTimeout": "モデル検索に時間がかかりすぎました。カタログがまだ準備中の可能性があります。少し待ってから再試行してください。"
+            },
+            "phases": {
+                "ollamaServicePreparation": "Ollama サービスを準備中",
+                "ollamaPullStreaming": "Ollama でモデルをダウンロード中",
+                "ollamaTerminalConfirmation": "ダウンロード完了を確認中",
+                "ollamaTargetVerification": "現在のモデル一覧を検証中",
+                "ollamaCachePublication": "ローカルモデル一覧を保存中",
+                "ollamaCleanup": "Ollama ダウンロードの後処理中",
+                "transferDownloading": "ダウンロード中",
+                "transferHashing": "保持したダウンロードデータのハッシュを計算中",
+                "transferReplaying": "保持したダウンロードデータを比較中",
+                "transferVerifying": "ダウンロード全体を検証中"
+            }
         },
         "nav": {
             "about": "概要",
@@ -5111,7 +5385,31 @@
             },
             "errors": {
                 "changeHandlerFailed": "プラグイン変更ハンドラーに失敗しました",
-                "clickHandlerFailed": "プラグインクリックハンドラーに失敗しました"
+                "clickHandlerFailed": "プラグインクリックハンドラーに失敗しました",
+                "modelConversionFailed": "モデルの変換に失敗しました。変換ツールのログで不足している依存関係や無効なモデル入力を確認し、もう一度お試しください。",
+                "backendCancellationCleanupFailed": "キャンセル後のクリーンアップを確認できませんでした。このバックエンドを停止したまま環境を修復してから再試行してください。",
+                "melottsContainerCleanupFailed": "MeloTTS はインストールされていますが、一時リソースのクリーンアップが完了していません。バックエンド操作を再試行してください。",
+                "backendDockerBuilderUnavailable": "Docker Buildxのビルダーを利用できません。動作するビルダーを設定して再試行してください。",
+                "backendDockerBuildxUnavailable": "バックエンドのアカウントでDocker Buildxを利用できません。Buildxをインストールまたは有効化して再試行してください。",
+                "backendDockerCliMissing": "バックエンドのアカウントでDockerを利用できません。Dockerをインストールして再試行してください。",
+                "backendDockerEngineUnavailable": "バックエンドのアカウントからDockerエンジンにアクセスできません。Dockerを起動し、権限と仮想化のサポートを確認してください。",
+                "backendDockerStorageUnavailable": "バックエンドアカウントが Docker ストレージを検出できませんでした。Docker を起動し、バックエンドアカウントがエンジンに問い合わせできることを確認してから再試行してください。",
+                "backendDockerStorageUnmapped": "Docker ストレージを検証済みのホスト上の場所に対応付けられません。データディスクがローカルドライブにあるローカルの Docker エンジンを使用してから再試行してください。",
+                "backendDockerStorageAccessDenied": "バックエンドアカウントが Docker ストレージの場所を検査できません。Docker データの場所へのアクセス権を確認してから再試行してください。",
+                "backendDockerStorageChanged": "インストール中に Docker エンジンまたはそのストレージが変更されました。インストール中は Docker の設定を変更せず、再試行してください。",
+                "modelConversionDependencyMissing": "CTranslate2コンバーターの依存関係が不足しています。バックエンドを更新または再インストールしてから、モデルを再度ダウンロードしてください。",
+                "backendLifecycleLocked": "別のバックエンド操作がこのプラグインを使用しています。完了するまで待ってから再試行してください。",
+                "configurationBusy": "プラグイン構成は別の操作で使用中のため、何も変更されていません。しばらくしてから再試行してください。",
+                "ollamaResponsesSettingsUnsupported": "ローカルのOllama Responsesでは、構成された実行設定を適用できません。このモデルで設定を適用するには、Chatまたは/v1/chat/completionsを使用してください。",
+                "backendRuntimeIncompatible": "このランタイムは現在選択されているハードウェアと互換性がありません。対応するGPUまたは別のランタイムを選択してください。",
+                "backendRuntimeSelectionChanged": "インストール中にハードウェアの選択が変更されました。GPUとランタイムを確認してから再試行してください。",
+                "managedCompilerUnavailable": "管理対象コンパイラをインストールできなかったか、CPUランタイムをコンパイルできませんでした。ストレージとネットワーク接続を確認してから、バックエンドのインストールを修復してください。",
+                "runtimeIllegalInstruction": "ランタイム検証が不正な命令で停止しました。互換性のあるランタイムを選ぶか、バックエンドを修復してください。",
+                "runtimeVerificationFailed": "ランタイム検証に失敗しました。バックエンドを修復し、診断を確認してください。",
+                "backendCpuInstructionsUnavailable": "このランタイムに必要な CPU 命令が利用できません。別の互換性のあるランタイムを選んでください。",
+                "configurationChanged": "プラグインの設定が変更されました。最新の設定を読み込み、変更内容を確認してから再度保存してください。",
+                "configurationApplyFailed": "設定は保存されましたが、実行環境に適用できませんでした。バックエンドの状態を確認し、再度適用してください。",
+                "backendRuntimeUnverified": "GPU の互換性を確認できませんでした。検出が完了してから再試行するか、互換性が確認されたランタイムを選択してください。"
             },
             "filters": {
                 "active": "アクティブ",
@@ -5266,7 +5564,9 @@
                     "loadFailed": "バックエンドのバリアントを読み込めませんでした。",
                     "loading": "バックエンドのバリアントを読み込み中...",
                     "loadingBackends": "バックエンドを読み込み中...",
-                    "saveFailed": "バックエンドのバリアントを保存できませんでした。"
+                    "saveFailed": "バックエンドのバリアントを保存できませんでした。",
+                    "autoCompatibility": "自動選択では、現在のハードウェア選択に対して{variants}を除外します。別のGPUまたは利用可能な別のランタイムを選択してください。",
+                    "compatibilityUnknown": "現在の情報では互換性を確認できませんでした。ハードウェア情報を更新するか、利用可能な別のランタイムを選択してください。"
                 },
                 "manageBackend": {
                     "author": "作者: {author}",
@@ -5327,13 +5627,14 @@
                 "providerManagedReadOnly": "{plugin} は独自にプロバイダーを管理します。認証やアクセス管理にはプラグインコンソールを使用してください。",
                 "providersUnavailable": "{plugin} は外部プロバイダーを公開していません。",
                 "restartButton": "SoAI を再起動",
-                "restartFailed": "SoAI の再起動に失敗しました。",
                 "restartRequired": "新しい同時実行プラグイン数の上限を適用するには SoAI を再起動してください。",
                 "selectFile": "プラグインファイルを選択してください",
                 "stopAllSuccess": "すべてのプラグインを停止するコマンドを送信しました。",
                 "stopSuccess": "プラグイン {plugin} を停止しました",
                 "updateCheckFailed": "更新の確認に失敗しました",
-                "uploadFailed": "プラグインのアップロードに失敗しました"
+                "uploadFailed": "プラグインのアップロードに失敗しました",
+                "backendUpdateTitle": "バックエンドの更新があります",
+                "backendUpdateMessage": "{pluginName} のバックエンドを更新できます。プラグインを開いて確認してください。"
             },
             "providerMode": {
                 "badges": {
@@ -5392,88 +5693,71 @@
                 "hibernateSystem": {
                     "buttonLabel": "システムを休止状態にする",
                     "confirmMessage": "システムを休止状態にしてもよろしいですか？",
-                    "confirmMessageWithDelay": "システムを休止状態にしてもよろしいですか？操作は {delay} 秒後に開始します。",
                     "confirmTitle": "システムを休止状態にする",
                     "confirmWarning": "マシンの電源を再び入れるまで、セッションは再開されません。",
                     "description": "メモリの内容をディスクに保存し、ほとんどのハードウェアの電源を切ります。",
                     "optionDelay": "遅延（秒）",
                     "overlayMessage": "システムを休止状態にしています...",
-                    "successNotification": "システムの休止処理を開始しました",
-                    "successNotificationWithDelay": "システムの休止処理を予約しました（{delay} 秒後）",
                     "title": "システムを休止状態にする"
                 },
                 "rebootSystem": {
                     "buttonLabel": "システムを再起動",
                     "confirmMessage": "システムを再起動してもよろしいですか？",
-                    "confirmMessageWithDelay": "システムを再起動してもよろしいですか？操作は {delay} 秒後に開始します。",
                     "confirmTitle": "システムを再起動",
                     "confirmWarning": "マシン全体が再起動されます。",
                     "description": "マシン全体を再起動し、オペレーティングシステムを再読み込みします。",
                     "optionDelay": "遅延（秒）",
                     "optionForce": "強制再起動",
-                    "successNotification": "システムの再起動を開始しました",
-                    "successNotificationWithDelay": "システムの再起動を予約しました（{delay} 秒後）",
                     "title": "システムを再起動"
                 },
                 "restartApplication": {
                     "buttonLabel": "アプリケーションを再起動",
-                    "confirmMessage": "アプリケーションを再起動してもよろしいですか？",
-                    "confirmTitle": "アプリケーションを再起動",
-                    "confirmWarning": "アプリケーションの再起動中、すべてのユーザーが一時的に切断されます。",
-                    "description": "SoAI アプリケーションを再起動し、すべてのサービスを再読み込みします。",
+                    "confirmMessage": "SoAI を再起動してもよろしいですか？",
+                    "confirmTitle": "SoAI を再起動",
+                    "confirmWarning": "SoAI の再起動中、すべてのユーザーが一時的に切断されます。",
+                    "description": "SoAI を再起動し、すべてのサービスを再読み込みします。",
                     "optionDelay": "遅延（秒）",
-                    "successNotification": "アプリケーションの再起動を開始しました",
-                    "title": "アプリケーションを再起動"
+                    "title": "SoAI を再起動"
                 },
                 "shutdownApplication": {
                     "buttonLabel": "アプリケーションをシャットダウン",
-                    "confirmMessage": "SoAI アプリケーションをシャットダウンしてもよろしいですか？",
-                    "confirmMessageWithDelay": "SoAI アプリケーションをシャットダウンしてもよろしいですか？操作は {delay} 秒後に開始します。",
-                    "confirmTitle": "アプリケーションをシャットダウン",
-                    "confirmWarning": "アプリケーションを再度起動するまで、ユーザーは切断されたままになります。",
-                    "description": "ホストは稼働させたまま、SoAI アプリケーションを停止します。",
+                    "confirmMessage": "SoAI をシャットダウンしてもよろしいですか？",
+                    "confirmTitle": "SoAI をシャットダウン",
+                    "confirmWarning": "SoAI を再度起動するまで、ユーザーは切断されたままになります。",
+                    "description": "ホストは稼働させたまま、SoAI を停止します。",
                     "optionDelay": "遅延（秒）",
-                    "overlayMessage": "アプリケーションをシャットダウンしています...",
-                    "successNotification": "アプリケーションのシャットダウンを開始しました",
-                    "successNotificationWithDelay": "アプリケーションのシャットダウンを予約しました（{delay} 秒後）",
-                    "title": "アプリケーションをシャットダウン"
+                    "overlayMessage": "SoAI をシャットダウンしています...",
+                    "title": "SoAI をシャットダウン"
                 },
                 "shutdownSystem": {
                     "buttonLabel": "シャットダウン",
                     "confirmMessage": "システムをシャットダウンしてもよろしいですか？",
-                    "confirmMessageWithDelay": "システムをシャットダウンしてもよろしいですか？操作は {delay} 秒後に開始します。",
                     "confirmTitle": "システムをシャットダウン",
                     "confirmWarning": "すべてのプロセスが停止し、マシンの電源が完全に切れます。",
                     "description": "保留中の操作が完了した後、マシン全体の電源を切ります。",
                     "optionDelay": "遅延（秒）",
                     "optionForce": "強制シャットダウン",
                     "overlayMessage": "システムをシャットダウンしています...",
-                    "successNotification": "システムのシャットダウンを開始しました",
-                    "successNotificationWithDelay": "システムのシャットダウンを予約しました（{delay} 秒後）",
                     "title": "システムをシャットダウン"
                 },
                 "suspendSystem": {
                     "buttonLabel": "システムをサスペンド",
                     "confirmMessage": "システムをサスペンドしてもよろしいですか？",
-                    "confirmMessageWithDelay": "システムをサスペンドしてもよろしいですか？操作は {delay} 秒後に開始します。",
                     "confirmTitle": "システムをサスペンド",
                     "confirmWarning": "システムが再開するまで、プロセスは一時停止します。",
                     "description": "システムを低電力のスリープ状態にします。",
                     "optionDelay": "遅延（秒）",
                     "overlayMessage": "システムをスリープ状態に移行しています...",
-                    "successNotification": "システムのサスペンドを開始しました",
-                    "successNotificationWithDelay": "システムのサスペンドを予約しました（{delay} 秒後）",
                     "title": "システムをサスペンド"
                 }
             },
-            "description": "アプリケーションとシステムの電源操作。",
             "operations": {
                 "failed": "電源操作に失敗しました。ステータスと実行時の電源ポリシーを確認し、再試行可能な操作の場合のみ、もう一度お試しください。"
             },
             "overlays": {
                 "applicationShutdown": {
-                    "monitoring": "SoAI アプリケーションを停止しています。",
-                    "offline": "アプリケーションはオフラインです。"
+                    "monitoring": "SoAI を停止しています。",
+                    "offline": "SoAI はオフラインです。"
                 },
                 "countdown": {
                     "cancel": "キャンセル",
@@ -5497,6 +5781,10 @@
             "restartReminder": {
                 "message": "変更を適用するには再起動が必要です。",
                 "messageWithReason": "再起動が必要です: {reason}"
+            },
+            "groups": {
+                "application": "SoAI",
+                "system": "システム"
             }
         },
         "prompts": {
@@ -5664,7 +5952,20 @@
             "title": "プロンプト",
             "unnamedPrompt": "名前のないプロンプト",
             "unsavedChanges": "未保存の変更があります。このまま移動してもよろしいですか？",
-            "untitled": "無題"
+            "untitled": "無題",
+            "picker": {
+                "editFailed": "プロンプトエディターを開けませんでした。",
+                "empty": "保存済みのプロンプトはまだありません。",
+                "emptyContent": "プロンプトの内容がありません",
+                "help": "保存済みのプロンプトを選択して、そのテキストを使用します。",
+                "loadFailed": "保存済みプロンプトを読み込めませんでした。",
+                "loading": "プロンプトを読み込み中...",
+                "manage": "プロンプトを管理",
+                "manageFailed": "プロンプトページを開けませんでした。",
+                "noMatches": "検索に一致するプロンプトはありません。",
+                "search": "検索",
+                "title": "保存済みプロンプト"
+            }
         },
         "restartOverlay": {
             "descriptions": {
@@ -5672,7 +5973,7 @@
                 "generic": "SoAI が処理を実行しています。",
                 "rebooting": "システムを再起動しています。オンラインに戻るまでお待ちください。",
                 "rebootTimeout": "15 分経過してもシステム状態を確認できませんでした。今すぐ完全な再読み込みを実行します。",
-                "restarting": "アプリケーションを再起動しています。通常は数分以内に完了します。",
+                "restarting": "SoAI を再起動しています。通常は数分以内に完了します。",
                 "shutdown": "システムをシャットダウンしています。このブラウザーウィンドウは閉じてもかまいません。",
                 "sleep": "システムはスリープモードに入っています。SoAI の使用を続けるにはシステムを復帰させてください。",
                 "updateTimeout": "更新後、SoAI がオンラインに戻りませんでした。SoAI のログフォルダーにある application_updater.log を確認してから、このページを再読み込みしてください。",
@@ -5692,7 +5993,16 @@
                 "updateTimeout": "SoAI がまだ復帰していません",
                 "updating": "SoAI をアップデートしています..."
             },
-            "reconnecting": "再接続を試行しています..."
+            "reconnecting": "再接続を試行しています...",
+            "handoff": {
+                "plannedAddress": "再起動後に使用する予定のアドレスです。下書きはこのタブに残ります。",
+                "newAddress": "接続が中断されました。新しいアドレスを開いて再接続してください。サーバーはまだ起動中の可能性があります。",
+                "manualHttps": "サーバーはHTTPSを使用します。サーバーまたはリバースプロキシに設定されたアドレスでSoAIを開いてください。",
+                "manualHttp": "サーバーはHTTPを使用します。サーバーまたはリバースプロキシに設定されたアドレスでSoAIを開いてください。",
+                "open": "新しいアドレスを開く",
+                "copy": "アドレスをコピー",
+                "copied": "アドレスをコピーしました"
+            }
         },
         "richText": {
             "footnotes": {
@@ -5961,7 +6271,9 @@
                     "timeout": "タイムアウト時間"
                 },
                 "nullPlaceholder": "null",
-                "sectionHeader": "詳細設定 (config.yaml)"
+                "sectionHeader": "詳細設定 (config.yaml)",
+                "autoUpdateBuiltinLabel": "組み込みバックエンドを自動更新",
+                "autoUpdateBuiltinHelp": "プラグインパッケージの変更後、インストール済みバックエンドを確認し、安全に停止した組み込みバックエンドを更新します。実行中の作業は維持されます。サードパーティ製バックエンドは手動で更新する必要があります。"
             },
             "advancedMode": "詳細",
             "advancedTitle": "詳細設定",
@@ -6797,7 +7109,6 @@
                     "readVideoAudioExtractionTimeoutSec": "音声抽出のタイムアウト。",
                     "readVideoPreviewExtractionTimeoutSec": "プレビュー抽出のタイムアウト。",
                     "readVideoLiveProgressMinIntervalMs": "ライブ進捗の最小更新間隔。",
-                    "readVideoWhisperModel": "音声文字起こし用の Whisper モデル。",
                     "hostModeEnabled": "ホストモードクライアントを有効にします。",
                     "hostModeAutoConnectOnStartup": "起動時に保存済みサーバーへ接続します。",
                     "hostModeReconnectDelaySec": "再接続試行までの待機時間。",
@@ -7719,6 +8030,14 @@
                     "help": "デバイスから画像をアップロードします（PNG、JPG、GIF、WebP、SVG - 最大 25MB）",
                     "label": "壁紙をアップロード"
                 }
+            },
+            "speechToText": {
+                "title": "音声認識",
+                "description": "ファイル、ナレッジ、ツール内の音声と動画を文字起こしします。",
+                "model": {
+                    "label": "音声認識モデル",
+                    "help": "自動では、最初に利用可能なローカルモデルを使用します。チャットの音声入力は、各チャットの音声設定を使用します。"
+                }
             }
         },
         "statusCatalog": {
@@ -7934,13 +8253,19 @@
                 "partial": "一部のリリースノートを読み込めませんでした。取得できたノートを表示しています。"
             },
             "outcome": {
+                "diagnosticsInstalledOriginalChanged": "アップデートがロールバック用コピーを準備している間に、インストール済みのファイルが変更されました。",
+                "diagnosticsInterruptedPreparation": "ロールバック用コピーの準備中にアップデートが中断されました。",
+                "diagnosticsMessage": "この試行の診断情報は、SoAI コンピューターの {location} に保存されました。{summary} 参照番号: {reference}。",
+                "diagnosticsRetainedCopyMismatch": "インストール済みファイルのロールバック用コピーが元のファイルと一致しませんでした。",
+                "diagnosticsSnapshotOperationFailed": "ファイル操作に失敗したため、ロールバック用コピーを完了できませんでした。",
+                "diagnosticsSourceUnverifiable": "ロールバック用コピーを検証するためのインストール済みファイルを読み取れませんでした。",
                 "failureMessage": "バージョン {version} への更新は完了しませんでした。SoAI {previousVersion} は引き続きインストールされています。詳細は SoAI のログフォルダーにある application_updater.log を確認してください。",
                 "failureTitle": "更新が完了しませんでした",
                 "later": "後で",
                 "reloadMessage": "SoAI は現在バージョン {version} で動作しています。更新されたインターフェースを使用するには、このページを再読み込みしてください。",
                 "reloadTitle": "SoAI が更新されました",
-                "successMessage": "SoAI はバージョン {version} に正常に更新されました。",
-                "successTitle": "更新が完了しました"
+                "successMessage": "バージョン {version} の準備ができました。",
+                "successTitle": "SoAI を更新しました"
             },
             "progress": {
                 "downloading": "アップデートをダウンロードしています...",
@@ -8015,7 +8340,25 @@
                 "updating": "更新中..."
             },
             "title": "更新",
-            "unknown": "不明"
+            "unknown": "不明",
+            "backend": {
+                "failedUpdatesHeading": "失敗した更新",
+                "availableHeading": "バックエンドの更新が利用可能",
+                "updatingHeading": "更新中",
+                "pendingHeading": "確認待ち",
+                "failedHeading": "確認が必要な項目",
+                "reviewUpdate": "更新を確認",
+                "reviewUpdates": "更新を確認",
+                "viewPlugins": "プラグインを表示"
+            },
+            "history": {
+                "lastCheck": "最終確認: {date}。",
+                "lastUpdate": "最終更新: {date}。",
+                "savedResults": "{date}に保存された結果です。最新情報を取得するには再確認してください。",
+                "restored": "保存された更新情報です。最新情報を取得するには再確認してください。",
+                "unavailable": "更新履歴を読み込み、または保存できませんでした。更新を再確認してください。",
+                "saved": "保存された結果"
+            }
         },
         "wizard": {
             "completion": {
@@ -8252,7 +8595,8 @@
                             "recommended": "推奨",
                             "warning": "警告",
                             "unavailable": "利用不可"
-                        }
+                        },
+                        "automaticRuntime": "{engine} のランタイムはインストール時に選択されます。アクセラレーションはまだ確認されていません。"
                     }
                 },
                 "models": {
@@ -8321,19 +8665,20 @@
                     "retryInstallation": "インストールを再試行",
                     "skipItem": "この項目をスキップ",
                     "testAgain": "もう一度テスト",
-                    "checkAgain": "もう一度確認",
                     "sendTest": "テストメッセージを送信",
                     "error": {
                         "empty": "モデルは読み込まれましたが応答がありませんでした。再試行するか、別のモデルを選んでください。",
-                        "loadError": "このデバイスでモデルを起動できませんでした。再試行するか、より小さいモデルを選んでください。",
+                        "loadError": "モデルのテストに失敗しました。原因を確認して対処してから、もう一度お試しください。",
                         "timeout": "モデルの応答に時間がかかりすぎました。再試行するか、より小さいモデルを選んでください。",
                         "disconnected": "テスト中に接続が切れました。再試行してください。",
                         "downloadFailed": "ダウンロードが停止しました。再試行してください。",
                         "installFailed": "インストールが完了しませんでした。再試行してください。",
-                        "noDiskSpace": "このモデルに必要なディスク容量が足りません。空き容量を増やすか、より小さいモデルを選んでください。"
+                        "noDiskSpace": "このモデルに必要なディスク容量が足りません。空き容量を増やすか、より小さいモデルを選んでください。",
+                        "discoveryFailed": "ダウンロードは完了しましたが、モデルをカタログに追加できませんでした。「モデル」で確認するか、後でセットアップを完了してください。"
                     },
                     "testPrompt": "短く親しみやすい一文で返答してください。",
-                    "testCancelled": "SoAI セットアップのテストはキャンセルされました。"
+                    "testCancelled": "SoAI セットアップのテストはキャンセルされました。",
+                    "useCpuRuntime": "CPUランタイムを使用"
                 },
                 "completion": {
                     "modelsTitle": "AI モデル",
@@ -8362,6 +8707,40 @@
                     "both": "モデルのダウンロードとバックエンドのインストールはバックグラウンドで続行されます。"
                 }
             }
+        },
+        "speechSetup": {
+            "notTranscribed": "音声は未文字起こし",
+            "askAdministrator": "管理者に音声認識の設定を依頼してください。",
+            "askAdministratorTextToSpeech": "管理者に音声合成の設定を依頼してください。",
+            "installBackend": "{plugin} のバックエンドをインストール",
+            "enablePlugin": "{plugin} を有効化",
+            "changeModel": "音声モデルを変更",
+            "openPlugins": "プラグインを開く",
+            "addAgain": "音声認識を利用できるようになりました。文字起こしするにはファイルをもう一度アップロードしてください。",
+            "checking": "音声認識の利用可否を確認中…",
+            "checkingTextToSpeech": "音声合成の利用可否を確認中…",
+            "errors": {
+                "noPlugin": "ローカル音声認識を提供するプラグインがインストールされていません。",
+                "noModel": "ローカル音声認識モデルがインストールされていません。",
+                "notLocal": "メディアの文字起こしはローカルで実行されます。ローカル音声認識モデルを選択してください。",
+                "translationUnsupported": "インストール済みのローカル音声モデルは翻訳に対応していません。多言語モデルを選択してください。",
+                "unsupportedOption": "{model} は必要な時刻情報または言語を返せません。別の音声モデルを選択してください。",
+                "configuredModelMissing": "選択した音声認識モデルは利用できません。",
+                "mediaDependencyUnavailable": "メディアの処理には FFmpeg と ffprobe が必要です。FFmpeg をインストールして、もう一度お試しください。",
+                "noVoiceModel": "利用できる音声認識モデルがありません。",
+                "noTextToSpeechModel": "利用できる音声合成モデルがありません。",
+                "backendNotInstalled": "音声認識プラグインのバックエンドがインストールされていません。",
+                "textToSpeechBackendNotInstalled": "音声合成プラグインのバックエンドがインストールされていません。",
+                "pluginDisabled": "音声認識プラグインが無効になっています。",
+                "textToSpeechPluginDisabled": "音声合成プラグインが無効になっています。",
+                "modelDisabled": "インストール済みの音声認識モデルが無効か、利用できません。",
+                "textToSpeechModelDisabled": "インストール済みの音声合成モデルが無効か、利用できません。",
+                "unsupportedOptionSelected": "選択した音声モデルは、このリクエストに必要な時刻情報または言語を返せません。別の音声モデルを選択してください。"
+            },
+            "notTranscribedNotice": "音声は未文字起こしです。音声認識を設定してから、ファイルをもう一度アップロードしてください。",
+            "notTranscribedAskAdministrator": "音声は未文字起こしです。管理者に音声認識の設定を依頼してから、ファイルをもう一度アップロードしてください。",
+            "openModels": "モデルを開く",
+            "openSettings": "音声認識の設定"
         }
     }
 }

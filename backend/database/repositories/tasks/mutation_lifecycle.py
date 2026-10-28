@@ -47,7 +47,15 @@ def sync_cleanup_expired_mutation_admissions(
     return connection.execute(
         """DELETE FROM mutation_admissions
         WHERE lifecycle_status IN ('completed', 'failed', 'cancelled')
-            AND expires_at_ms < ?""",
+            AND expires_at_ms < ?
+            AND (operation_type != 'wizard_model_download' OR EXISTS (
+                SELECT 1 FROM mutation_admissions AS successor
+                WHERE successor.operation_type = 'wizard_model_download'
+                    AND successor.owner_id = mutation_admissions.owner_id
+                    AND (successor.accepted_at_ms > mutation_admissions.accepted_at_ms
+                        OR (successor.accepted_at_ms = mutation_admissions.accepted_at_ms
+                            AND successor.rowid > mutation_admissions.rowid))
+            ))""",
         (now_ms,),
     ).rowcount
 

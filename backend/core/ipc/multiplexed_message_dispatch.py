@@ -5,19 +5,14 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 
-from core.errors.exceptions import IpcRemoteRequestError, ValidationError
+from core.errors.exceptions import ValidationError
+from core.ipc.error_payload import decode_ipc_error_payload
 from core.ipc.multiplexed_host_requests import (
     handle_worker_host_request,
 )
 from core.ipc.multiplexed_support import MultiplexedConnection
 from core.ipc.ndjson import NdjsonCodec
-from core.ipc.remote_error_metadata import (
-    REMOTE_ERROR_CODE_KEY,
-    REMOTE_ERROR_PARAM_KEY,
-    REMOTE_ERROR_TRACE_ID_KEY,
-)
 from core.types.json import JSONDict
-from core.validation.strict_numbers import require_int_in_range_strict
 
 __all__ = ("dispatch_ipc_message",)
 
@@ -60,93 +55,22 @@ def _handle_response(
         return
     ok_value = message.get("ok", True)
     if not isinstance(ok_value, bool):
-        raise ValidationError("IPC response ok flag must be a boolean.")
+        invalid_flag = ValidationError("IPC response ok flag must be a boolean.")
+        pending.set_exception(invalid_flag)
+        raise invalid_flag
     if ok_value:
         pending.set_result(message)
         return
-    payload_value = message.get("payload")
-    if isinstance(payload_value, dict):
-        message_value = payload_value.get("message")
-        details = _build_remote_error_details(payload_value, worker_id=int(connection.worker_id))
-    else:
-        message_value = None
-        details = {"worker_id": int(connection.worker_id)}
-    error_message = (
-        message_value
-        if isinstance(message_value, str) and message_value
-        else "IPC worker request failed."
-    )
-    error = IpcRemoteRequestError(
-        error_message,
-        operation="core.ipc.multiplexed.response.error",
-        details=details,
-    )
-    if isinstance(payload_value, dict) and "http_status" in payload_value:
-        status_code = require_int_in_range_strict(
-            payload_value["http_status"],
-            minimum=400,
-            maximum=599,
-            error_message="IPC error HTTP status must be an integer from 400 through 599.",
+    try:
+        error = decode_ipc_error_payload(
+            message.get("payload"),
+            operation="core.ipc.multiplexed.response.error",
+            worker_id=int(connection.worker_id),
         )
-        code = payload_value.get("code")
-        if not isinstance(code, str | int) or isinstance(code, bool) or code == "":
-            raise ValidationError("IPC error code must be a non-empty string or integer.")
-        error.code = code
-        error.http_status = status_code
-        trace_id = payload_value.get("trace_id")
-        if isinstance(trace_id, str) and trace_id:
-            error.trace_id = trace_id
-        if "public_message" in payload_value:
-            public_message = payload_value["public_message"]
-            if not isinstance(public_message, str) or not public_message.strip():
-                raise ValidationError("IPC public error guidance must be a non-empty string.")
-            public_details = payload_value.get("public_details")
-            if public_details is not None and not isinstance(public_details, dict):
-                raise ValidationError("IPC public error details must be a JSON object.")
-            error.public_message = public_message
-            error.public_details = public_details
+    except ValidationError as exception:
+        pending.set_exception(exception)
+        raise
     pending.set_exception(error)
-
-
-def _build_remote_error_details(payload: JSONDict, *, worker_id: int) -> JSONDict:
-    details_value = payload.get("details")
-    details = dict(details_value) if isinstance(details_value, dict) else dict(payload)
-    details["worker_id"] = int(worker_id)
-    _copy_remote_error_text_field(
-        payload,
-        source_key="code",
-        target_key=REMOTE_ERROR_CODE_KEY,
-        details=details,
-    )
-    _copy_remote_error_text_field(
-        payload,
-        source_key="param",
-        target_key=REMOTE_ERROR_PARAM_KEY,
-        details=details,
-    )
-    _copy_remote_error_text_field(
-        payload,
-        source_key="trace_id",
-        target_key=REMOTE_ERROR_TRACE_ID_KEY,
-        details=details,
-    )
-    return details
-
-
-def _copy_remote_error_text_field(
-    payload: JSONDict,
-    *,
-    source_key: str,
-    target_key: str,
-    details: JSONDict,
-) -> None:
-    source_value = payload.get(source_key)
-    if not isinstance(source_value, str):
-        return
-    normalized_value = source_value.strip()
-    if not normalized_value:
-        return
-    details[target_key] = normalized_value
 
 
 async def _handle_host_request(

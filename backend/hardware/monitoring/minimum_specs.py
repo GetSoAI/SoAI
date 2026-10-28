@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from hardware.cpu_inventory.topology_totals import total_cpu_count
 from hardware.cpu_rapl import RaplEnergyCache
 from hardware.info_cpu import get_cpu_info
 from hardware.info_memory import get_memory_info
@@ -33,11 +34,13 @@ def check_minimum_specs(
     violations: list[str] = []
     try:
         cpu_info = get_cpu_info(executor, rapl_energy_cache=rapl_energy_cache)
-        if cpu_info:
-            cores_value = cpu_info[0].get("physical_cores")
-            physical_cores = int(cores_value) if isinstance(cores_value, int | float) else 0
-            if physical_cores < 2:
-                violations.append(f"CPU cores ({physical_cores} < 2)")
+        physical_cores = total_cpu_count(cpu_info, "physical_cores")
+        if physical_cores is None:
+            manager.logger.warning(
+                "CPU minimum spec check unavailable: physical core count unknown."
+            )
+        elif physical_cores < 2:
+            violations.append(f"CPU cores ({physical_cores} < 2)")
     except RECOVERABLE_EXCEPTIONS as exception:
         log_handled_exception(
             manager.logger,

@@ -91,17 +91,8 @@ class ChatMessageSendingController implements ChatMessageSendingPort {
                 const signal = this.#host.platform.getRuntimeAbortSignal();
                 await this.#host.services.getChatStreamingController().waitForTerminalReconciliation(conversationId, signal);
                 await task();
-            },
-            canReleaseBusyLock: () => this.#canReleaseBusyConversationLock()
+            }
         });
-    }
-
-    #canReleaseBusyConversationLock(): boolean {
-        const conversation = this.#host.conversation.getCurrentConversation();
-        if (conversation === null) {
-            return true;
-        }
-        return !this.#host.services.getChatStreamingController().isStreamingConversation(conversation.id);
     }
 
     async queueConversationInputFromComposer(intent: 'queued' | 'steer', options: QueueConversationInputOptions = {}): Promise<ConversationInputComposerOutcome> {

@@ -16,6 +16,7 @@ from core.notifications.notification_contracts import (
     BACKUP_NOTIFICATION_SOURCE,
     LOW_DISK_SPACE_NOTIFICATION_SOURCE,
     OPENAI_QUOTA_NOTIFICATION_SOURCE,
+    PLUGIN_BACKEND_UPDATE_NOTIFICATION_SOURCE,
     NotificationTemplateId,
     NotificationType,
 )
@@ -28,6 +29,7 @@ __all__ = (
     "create_backup_failure_admin_alert",
     "create_low_disk_space_admin_alert",
     "create_openai_quota_admin_alert",
+    "create_plugin_backend_update_admin_alert",
 )
 
 DEFAULT_ADMIN_ALERT_COOLDOWN_SECONDS = 900
@@ -127,4 +129,25 @@ async def create_openai_quota_admin_alert(
         aggregate_param_name=None,
         source=OPENAI_QUOTA_NOTIFICATION_SOURCE,
         cooldown_seconds=DEFAULT_ADMIN_ALERT_COOLDOWN_SECONDS,
+    )
+
+
+async def create_plugin_backend_update_admin_alert(
+    database_notifications: DatabaseNotificationsProtocol,
+    *,
+    plugin_name: str,
+    package_hash: str,
+    display_name: str,
+) -> int:
+    return await database_notifications.create_template_admin_alert_if_due(
+        alert_id=build_admin_alert_id("plugins.backend_update", (plugin_name, package_hash)),
+        notification_type=NotificationType.INFO,
+        title_template=NotificationTemplateId.PLUGIN_BACKEND_UPDATE_TITLE,
+        title_params={},
+        message_template=NotificationTemplateId.PLUGIN_BACKEND_UPDATE_MESSAGE,
+        message_params={"pluginName": normalize_admin_alert_label(display_name, plugin_name)},
+        aggregate_param_name=None,
+        source=PLUGIN_BACKEND_UPDATE_NOTIFICATION_SOURCE,
+        cooldown_seconds=DEFAULT_ADMIN_ALERT_COOLDOWN_SECONDS,
+        once_per_identity=True,
     )

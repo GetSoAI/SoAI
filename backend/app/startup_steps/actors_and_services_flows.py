@@ -113,6 +113,7 @@ async def start_metrics_or_enable_initial_user_activation(
         application_context.runtime.set_prune_tokens_task(None)
         return
     if setup_required:
+        application_context.runtime.set_prune_tokens_task(None)
         InitialUserPersistenceActivation(
             InitialUserPersistenceActivationDependencies(
                 event_bus=event_bus,
@@ -121,6 +122,7 @@ async def start_metrics_or_enable_initial_user_activation(
                 hardware_manager=application_context.services.infrastructure.hardware.manager,
                 hardware_gpu_tuning=application_context.services.infrastructure.hardware.gpu_tuning,
                 database_tokens=application_context.services.plugins.webui_manager.database_tokens,
+                database_users=application_context.services.databases.users,
                 runtime_state=application_context.runtime,
                 logger=logging_context.logger,
                 hardware_activation_enabled=hardware_activation_enabled,
@@ -175,9 +177,9 @@ async def start_background_services_and_initialize_managers(
         "startup.background.backup_service_initialize_ms",
         step_started_ms,
     )
-    if setup_required or repair_plane:
+    if repair_plane:
         application_context.runtime.set_prune_tokens_task(None)
-    else:
+    elif not setup_required:
         schedule_prune_webui_session_state(
             runtime_coordinator=deps.runtime_coordinator,
             runtime_state=application_context.runtime,

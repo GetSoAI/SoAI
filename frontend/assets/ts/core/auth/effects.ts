@@ -5,12 +5,47 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { clearCsrfToken } from '@core/api/csrf.ts';
 import { AUTH_TAG } from '@core/auth/constants.ts';
 import { isSessionInvalidApiError } from '@core/auth/sessionFailure.ts';
+import type { AuthRecoverySupervisor } from '@core/auth/recoverySupervisor.ts';
 import type { AuthManagerServiceResolver, AuthManagerStateHandle } from '@core/auth/internalContracts.ts';
 import type { InitializeOptions, SessionInvalidationResult, WebuiUser, WizardStatus } from '@core/auth/types.ts';
 import { connectSharedState } from '@core/auth/sharedState.ts';
-import { addCallback, applyUserSession, beginAuthenticatedEpoch, buildSessionPayload, clearSession, notifyLogin, notifyLogout, serializeUser } from '@core/auth/state.ts';
+import { addCallback, applyUserSession, beginAuthenticatedEpoch, beginTerminalAuthIntent, buildSessionPayload, canApplyAuthenticatedEpoch, clearSession, notifyLogin, notifyLogout, serializeUser } from '@core/auth/state.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { isDetailedWizardStatus } from '@core/api/contracts/wizardLicensingContracts.ts';
+import { APIError } from '@core/apiError.ts';
+
+interface RotatedSessionRecoveryRequest extends AuthManagerServiceResolver {
+    state: AuthManagerStateHandle;
+    recovery: AuthRecoverySupervisor;
+    signal: AbortSignal;
+    expectedEpoch: number;
+    reconcile: (user: WebuiUser) => Promise<void>;
+}
+
+const recoverRotatedSessionAuthManager = async (request: RotatedSessionRecoveryRequest): Promise<void> => {
+    const isCurrent = (): boolean => !request.signal.aborted && canApplyAuthenticatedEpoch(request.state, request.expectedEpoch);
+    if (!isCurrent()) return;
+    try {
+        const api = await request.resolveApi();
+        if (!isCurrent()) return;
+        const user = await request.recovery.recoverClosure(api, request.signal);
+        if (!isCurrent()) return;
+        await request.reconcile(user);
+        if (!isCurrent()) return;
+        const storage = await request.resolveStorage();
+        if (!isCurrent()) return;
+        const operation = await request.recovery.resume(user, api, storage, request.signal);
+        if (operation !== null && isCurrent()) await request.reconcile(operation.user);
+    } catch (error) {
+        if (!isCurrent()) return;
+        const runtimeError = ensureError(error);
+        if (runtimeError instanceof APIError && runtimeError.status === 401) {
+            beginTerminalAuthIntent(request.state);
+            await invalidateSessionAuthManager(request.state, request.resolveStorage);
+        }
+        throw runtimeError;
+    }
+};
 
 const initializeAuthManager = async (state: AuthManagerStateHandle, resolveApi: AuthManagerServiceResolver['resolveApi'], resolveStorage: AuthManagerServiceResolver['resolveStorage'], runAuthTransition: <T>(operation: () => Promise<T>) => Promise<T>, options: InitializeOptions = {}): Promise<boolean | undefined> => {
     await connectSharedState(
@@ -130,4 +165,4 @@ const onAuthLogin = (state: AuthManagerStateHandle, callback: (user: WebuiUser |
 
 const onAuthLogout = (state: AuthManagerStateHandle, callback: () => void | Promise<void>): (() => void) => addCallback(state.logoutCallbacks, callback);
 
-export { checkWizardStatus, getWizardStatusSnapshot, initializeAuthManager, invalidateSessionAuthManager, logoutAuthManager, notifyLogin, notifyLogout, onAuthLogin, onAuthLogout };
+export { checkWizardStatus, getWizardStatusSnapshot, initializeAuthManager, invalidateSessionAuthManager, logoutAuthManager, notifyLogin, notifyLogout, onAuthLogin, onAuthLogout, recoverRotatedSessionAuthManager };

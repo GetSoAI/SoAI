@@ -61,6 +61,7 @@ class DatabaseConversationAttachmentsProtocol(Protocol):
         parse_error: str | None,
         parsed_at_ms: int | None,
         updated_at_ms: int,
+        missing_capabilities: tuple[str, ...] = (),
     ) -> JSONDict | None: ...
     async def mark_unbound_attachment_unused(
         self,

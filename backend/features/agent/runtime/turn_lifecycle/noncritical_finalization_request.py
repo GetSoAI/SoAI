@@ -105,8 +105,11 @@ def build_cancelled_turn_noncritical_finalization_request(
     execution_token: str | None,
     operation: str,
     log_message: str,
+    error_message: str | None = None,
 ) -> AgentTurnNoncriticalFinalizationRequest:
-    _, error_message, error_type = resolve_agent_turn_terminal_defaults(AGENT_TURN_STATUS_CANCELLED)
+    _, default_error_message, error_type = resolve_agent_turn_terminal_defaults(
+        AGENT_TURN_STATUS_CANCELLED
+    )
     return build_terminal_turn_noncritical_finalization_request(
         trace_id=trace_id,
         conv_id=conv_id,
@@ -115,7 +118,7 @@ def build_cancelled_turn_noncritical_finalization_request(
         execution_token=execution_token,
         status=AGENT_TURN_STATUS_CANCELLED,
         reached_max_iterations=False,
-        error_message=error_message or "Agent turn cancelled.",
+        error_message=error_message or default_error_message or "Agent turn cancelled.",
         error_type=error_type or AGENT_TURN_STATUS_CANCELLED,
         operation=operation,
         log_message=log_message,

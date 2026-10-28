@@ -10,7 +10,7 @@
         text-align: start;
     }
 
-    :where(select):not(.chart-filter-select, .chat-page-mode-indicator-select, [multiple]),
+    :where(select):not(.chat-page-mode-indicator-select, [multiple]),
     .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary.ui-button {
         --filter-control-bg: var(--ui-button-bg);
         --filter-control-bg-hover: var(--ui-button-bg-hover);
@@ -23,7 +23,7 @@
         font-size: var(--control-dropdown-font-size);
         line-height: 1.2;
         text-align: start;
-        border: var(--border-width-1) solid var(--filter-control-border);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--filter-control-border) var(--control-button-border-strength), transparent);
         border-radius: var(--border-radius);
         background-color: var(--filter-control-bg);
         background-repeat: no-repeat;
@@ -46,21 +46,21 @@
         background-size: var(--control-icon-size);
     }
 
-    :where(select):not(.chart-filter-select, .chat-page-mode-indicator-select, [multiple], :disabled, [aria-disabled='true']):hover,
+    :where(select):not(.chat-page-mode-indicator-select, [multiple], :disabled, [aria-disabled='true']):hover,
     .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary.ui-button:is(:hover, :focus-visible, .is-open):not(:disabled, [aria-disabled='true']) {
         background-color: var(--filter-control-bg-hover);
-        border-color: var(--filter-control-border-hover);
+        border-color: color-mix(in srgb, var(--filter-control-border-hover) var(--control-button-border-strength), transparent);
         color: var(--filter-control-color-hover);
     }
 
-    :where(select):not(.chart-filter-select, .chat-page-mode-indicator-select, [multiple]):focus-visible {
-        border-color: var(--filter-control-border-hover);
+    :where(select):not(.chat-page-mode-indicator-select, [multiple]):focus-visible {
+        border-color: color-mix(in srgb, var(--filter-control-border-hover) var(--control-button-border-strength), transparent);
         box-shadow:
             0 0 0 var(--control-focus-ring-width) var(--filter-control-focus-ring),
             0 4px 12px var(--shadow-medium);
     }
 
-    :where(select):not(.chart-filter-select, .chat-page-mode-indicator-select, [multiple]) :is(option, optgroup) {
+    :where(select):not(.chat-page-mode-indicator-select, [multiple]) :is(option, optgroup) {
         color: var(--text-secondary);
         background-color: var(--glass-surface-strong);
     }
@@ -70,6 +70,8 @@
     }
 
     .dropdown-select {
+        --filter-control-indicator-color: var(--ui-button-color);
+        --filter-control-indicator-color-hover: var(--ui-button-color-hover);
         --filter-control-color: var(--ui-button-color);
         --filter-control-color-hover: var(--ui-button-color-hover);
         --dropdown-select-padding-inline-start: var(--control-padding-inline);
@@ -89,7 +91,7 @@
         z-index: var(--z-above-sibling);
         width: var(--control-icon-size);
         height: var(--control-icon-size);
-        background-color: var(--filter-control-color);
+        background-color: var(--filter-control-indicator-color);
         mask-image: var(--control-select-arrow-image);
         mask-position: center;
         mask-repeat: no-repeat;
@@ -199,6 +201,10 @@
         display: none;
     }
 
+    .dropdown-select:has(> select:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true']))::after {
+        background-color: var(--filter-control-indicator-color-hover);
+    }
+
     .dropdown-select:has(> select:not(.chart-filter-select, [multiple]):is(:disabled, [aria-disabled='true']))::after {
         opacity: 0.55;
     }
@@ -235,6 +241,6 @@
     }
 
     .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary-chevron {
-        color: currentColor;
+        color: inherit;
     }
 }

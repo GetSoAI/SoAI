@@ -4,9 +4,12 @@
 from __future__ import annotations
 
 import os
+from contextlib import ExitStack
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import NotFoundError, ValidationError
+from core.files.anchored_directory import open_anchored_workspace
+from core.files.move_errors import DestinationExistsError
 from core.files.path_policy import ensure_path_within_base_lexical
 from core.files.upload_relative_paths import normalize_batch_upload_relative_path
 
@@ -15,7 +18,6 @@ if TYPE_CHECKING:
         FileExplorerCoreProtocol,
         FileSystemRootScopeProtocol,
     )
-    from features.file_explorer.internal_protocols import SecureFileOpsProtocol
 
 __all__ = (
     "canonicalize_virtual_path",
@@ -111,7 +113,6 @@ def resolve_batch_upload_virtual_destination(
 
 def resolve_upload_destination(
     root_scope: FileSystemRootScopeProtocol,
-    secure_ops: SecureFileOpsProtocol,
     virtual_path: str,
     *,
     create_missing_parents: bool = False,
@@ -120,8 +121,24 @@ def resolve_upload_destination(
     real_path = root_scope.resolve(canonical_path)
     parent_dir = os.path.dirname(real_path)
     if create_missing_parents and parent_dir and not os.path.isdir(parent_dir):
+        if os.path.lexists(parent_dir):
+            raise ValidationError("Upload destination parent path is not a directory.")
         try:
-            secure_ops.create_directory(parent_dir)
+            with ExitStack() as directories:
+                parent = directories.enter_context(open_anchored_workspace(root_scope.root_path))
+                for component in os.path.relpath(parent_dir, root_scope.root_path).split(os.sep):
+                    try:
+                        child = parent.open_directory(component)
+                    except FileNotFoundError:
+                        try:
+                            child = parent.create_directory(component)
+                        except FileExistsError:
+                            child = parent.open_directory(component)
+                        directories.callback(child.close)
+                        parent.flush()
+                    else:
+                        directories.callback(child.close)
+                    parent = child
         except (FileExistsError, NotADirectoryError) as exception:
             raise ValidationError(
                 "Upload destination parent path is not a directory.",
@@ -132,7 +149,7 @@ def resolve_upload_destination(
             operation="file_explorer.upload",
         )
     if os.path.exists(real_path):
-        raise ValidationError(
+        raise DestinationExistsError(
             "A file or directory with this name already exists.",
         )
     return real_path

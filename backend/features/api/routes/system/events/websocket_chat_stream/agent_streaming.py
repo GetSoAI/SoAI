@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from core.openai.usage.models import CanonicalUsage
     from core.runtime.protocols import RequestProtocol
     from core.runtime.request_context import RequestContext
+    from core.streaming.protocols import StreamGeneratorStateProtocol
     from core.tasks.task import Task
     from core.types.json import JSONDict
     from features.agent.runtime.prepared_request_state import PreparedExecutionRequest
@@ -67,6 +68,7 @@ def create_ws_chat_agent_stream(
     logger: TraceLogger,
     stream_transcript: OpenAIStreamTranscript,
     first_iteration_cancellation_id: str | None = None,
+    stream_result_state: StreamGeneratorStateProtocol | None = None,
 ) -> AsyncGenerator[bytes]:
     async def create_ws_agent_iteration_task(
         payload: JSONDict,
@@ -153,4 +155,5 @@ def create_ws_chat_agent_stream(
             else AgentOutputPublicationMode.STREAM_LIVE
         ),
         acknowledge_stream_consumption=True,
+        stream_result_state=stream_result_state,
     )

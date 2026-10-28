@@ -12,12 +12,16 @@ from urllib.request import url2pathname
 
 from playwright.async_api import Error, Route
 
-from core.bootstrap.playwright_browser_state import is_expected_chromium_installed
+from core.bootstrap.playwright_browser_state import (
+    is_expected_chromium_installed,
+    managed_chromium_launch_timeout_ms,
+)
 from core.bootstrap.runtime_directories import ensure_runtime_directory_environment
 from core.browser.playwright_driver_errors import (
     classify_playwright_driver_connection_closed_exception,
 )
 from core.browser.playwright_lifecycle import managed_playwright
+from core.browser.playwright_session_resources import PlaywrightSessionResources
 from core.errors.cancellation import raise_cancelled_error
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
@@ -135,7 +139,9 @@ async def _block_untrusted_request(route: Route, allowed_roots: tuple[str, ...])
     await route.abort()
 
 
-async def _render_once(request: HtmlPdfRenderRequest) -> bytes:
+async def _render_once(
+    request: HtmlPdfRenderRequest, playwright_sessions: PlaywrightSessionResources
+) -> bytes:
     if not os.path.isfile(request.html_path):
         raise ValidationError("HTML export file is missing.")
     document_root = os.path.dirname(os.path.realpath(request.html_path))
@@ -158,60 +164,67 @@ async def _render_once(request: HtmlPdfRenderRequest) -> bytes:
             stylesheet_path,
         )
     display_header_footer = bool(request.header_template) or bool(request.footer_template)
-    async with managed_playwright() as playwright:
-        await require_pdf_browser_ready()
-        browser = await playwright.chromium.launch(
-            headless=True,
-            args=_resolve_launch_args(),
-        )
-        try:
-            context = await browser.new_context(
-                java_script_enabled=False,
-                bypass_csp=False,
-                ignore_https_errors=False,
-                viewport={"width": 794, "height": 1123},
+    async with playwright_sessions.managed_session() as session:
+        async with managed_playwright(session) as playwright:
+            await require_pdf_browser_ready()
+            launch_timeout_ms = await asyncio.to_thread(
+                managed_chromium_launch_timeout_ms, headless=True
+            )
+            browser = await playwright.chromium.launch(
+                headless=True,
+                args=_resolve_launch_args(),
+                timeout=launch_timeout_ms,
             )
             try:
-                page = await context.new_page()
-                page.set_default_timeout(float(request.timeout_sec * 1000))
-                page.set_default_navigation_timeout(float(request.timeout_sec * 1000))
-
-                async def route_handler(route: Route) -> None:
-                    await _block_untrusted_request(route, allowed_roots)
-
-                await page.route("**/*", route_handler)
-                await page.set_content(
-                    document_html,
-                    wait_until="load",
-                    timeout=float(request.timeout_sec * 1000),
+                context = await browser.new_context(
+                    java_script_enabled=False,
+                    bypass_csp=False,
+                    ignore_https_errors=False,
+                    viewport={"width": 794, "height": 1123},
                 )
-                await page.evaluate("document.fonts.ready")
-                await page.emulate_media(media="print")
-                return await page.pdf(
-                    format="A4",
-                    print_background=True,
-                    display_header_footer=display_header_footer,
-                    header_template=request.header_template,
-                    footer_template=request.footer_template,
-                    margin={
-                        "top": "18mm",
-                        "right": "14mm",
-                        "bottom": "16mm",
-                        "left": "14mm",
-                    },
-                )
+                try:
+                    page = await context.new_page()
+                    page.set_default_timeout(float(request.timeout_sec * 1000))
+                    page.set_default_navigation_timeout(float(request.timeout_sec * 1000))
+
+                    async def route_handler(route: Route) -> None:
+                        await _block_untrusted_request(route, allowed_roots)
+
+                    await page.route("**/*", route_handler)
+                    await page.set_content(
+                        document_html,
+                        wait_until="load",
+                        timeout=float(request.timeout_sec * 1000),
+                    )
+                    await page.evaluate("document.fonts.ready")
+                    await page.emulate_media(media="print")
+                    return await page.pdf(
+                        format="A4",
+                        print_background=True,
+                        display_header_footer=display_header_footer,
+                        header_template=request.header_template,
+                        footer_template=request.footer_template,
+                        margin={
+                            "top": "18mm",
+                            "right": "14mm",
+                            "bottom": "16mm",
+                            "left": "14mm",
+                        },
+                    )
+                finally:
+                    await context.close()
             finally:
-                await context.close()
-        finally:
-            await browser.close()
+                await browser.close()
 
 
-async def render_html_file_to_pdf(request: HtmlPdfRenderRequest) -> bytes:
+async def render_html_file_to_pdf(
+    request: HtmlPdfRenderRequest, *, playwright_sessions: PlaywrightSessionResources
+) -> bytes:
     if request.timeout_sec <= 0:
         raise ValidationError("PDF render timeout must be positive.")
     try:
         async with asyncio.timeout(request.timeout_sec):
-            return await _render_once(request)
+            return await _render_once(request, playwright_sessions)
     except TimeoutError as exception:
         raise SoAITimeoutError("Chromium PDF rendering timed out.") from exception
     except Error as exception:

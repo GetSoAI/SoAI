@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from core.attachments.attachment_constants import WEBUI_CHAT_ATTACHMENT_PURPOSE
 from core.errors.exceptions import ConflictError, StateError, ValidationError
+from core.serialization.json import serialize_json_compact_stable_strict
 from core.serialization.sha256_hexdigest import require_canonical_sha256_hexdigest
 from database.core.query_execution import sync_fetch_one_as_dict
 from database.core.sqlite_errors import parse_sqlite_integrity_error
@@ -216,6 +217,7 @@ def sync_update_attachment_parse_state(
     parse_error: str | None,
     parsed_at_ms: int | None,
     updated_at_ms: int,
+    missing_capabilities: tuple[str, ...] = (),
 ) -> JSONDict | None:
     provider_text_truncated_value = (
         None if provider_text_truncated is None else 1 if provider_text_truncated else 0
@@ -230,6 +232,7 @@ def sync_update_attachment_parse_state(
                 parse_state = ?,
                 parse_error = ?,
                 parsed_at_ms = ?,
+                missing_capabilities = ?,
                 updated_at_ms = ?,
                 attachment_revision = attachment_revision + 1
             WHERE conv_id = ?
@@ -246,6 +249,11 @@ def sync_update_attachment_parse_state(
                 parse_state,
                 parse_error,
                 parsed_at_ms,
+                (
+                    serialize_json_compact_stable_strict(list(missing_capabilities))
+                    if missing_capabilities
+                    else None
+                ),
                 updated_at_ms,
                 conv_id,
                 user_id,

@@ -34,9 +34,9 @@ const restoreCancelButtonAfterFailure = (button: HTMLButtonElement): void => {
 };
 
 const reportCancellationFailure = (host: OperationProgressEventHost, key: string, button: HTMLButtonElement, error: Error): void => {
+    if (!button.isConnected || !host.hasActiveOperations() || button.dataset['cancelable'] === 'false') return;
     restoreCancelButtonAfterFailure(button);
     errorHandler.warn('OperationProgress', 'Cancellation request failed', error);
-    if (!button.isConnected || !host.hasActiveOperations()) return;
     try {
         host.update(key, {
             details: i18n.t('common.cancellation.failed'),

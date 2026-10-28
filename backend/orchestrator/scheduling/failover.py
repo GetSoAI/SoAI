@@ -28,6 +28,7 @@ from orchestrator.scheduling.model_eligibility import ModelEligibilityEvaluator
 from orchestrator.scheduling.plugin_requirements import RequirementEvaluation
 from orchestrator.scheduling.requirement_failure_reasons import (
     format_virtual_model_requirements_failure_reason,
+    resolve_virtual_model_requirement_mismatch,
 )
 from orchestrator.scheduling.single_model_plan_resolution import (
     resolve_single_model_execution_plan,
@@ -160,6 +161,11 @@ class SchedulerPlanning:
                     requirements["capabilities"] or requirements["modalities"]
                 ) and unsupported_evaluations:
                     plan["failure_error_type"] = EXECUTION_PLAN_FAILURE_INVALID_REQUEST
+                    plan["requirement_mismatch"] = resolve_virtual_model_requirement_mismatch(
+                        required_capabilities=requirements["capabilities"],
+                        required_modalities=requirements["modalities"],
+                        evaluation_results=unsupported_evaluations,
+                    )
                     plan["failure_reason"] = format_virtual_model_requirements_failure_reason(
                         virtual_model_name=model_name,
                         required_capabilities=requirements["capabilities"],

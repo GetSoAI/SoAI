@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isNullOrUndefined, isString } from '@core/typeGuards.ts';
+import { syncAttributeValue } from '@core/dom/patching.ts';
 
 type TooltipTextValue = string | number | boolean | null | undefined;
 
@@ -12,10 +13,10 @@ const normalizeTooltipText = (value: TooltipTextValue): string => {
 
 export const setTooltipText = (target: HTMLElement, text: TooltipTextValue): void => {
     const normalized = normalizeTooltipText(text);
-    if (normalized) {
+    if (normalized && target.matches(':hover, :focus-within')) {
         target.dataset['tooltip'] = normalized;
     } else {
-        delete target.dataset['tooltip'];
+        syncAttributeValue(target, 'data-tooltip', normalized || null);
     }
 };
 

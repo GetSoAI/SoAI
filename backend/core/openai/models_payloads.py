@@ -10,17 +10,12 @@ from core.validation.strict_numbers import require_non_negative_int_strict
 from core.validation.strings import coerce_required_non_empty_str
 
 __all__ = (
-    "OpenAIModelListResponse",
-    "OpenAIModelObject",
     "project_openai_model_list_response",
     "project_openai_model_object",
     "require_openai_model_list_entries",
 )
 
 OPENAI_MODEL_LIST_FIELDS = frozenset({"object", "data"})
-
-OpenAIModelObject = JSONDict
-OpenAIModelListResponse = JSONDict
 
 
 def _require_nonempty_str(value: JSONValue, *, field_name: str, context: str) -> str:

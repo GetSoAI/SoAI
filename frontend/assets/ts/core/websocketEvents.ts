@@ -86,6 +86,8 @@ const WEBSOCKET_EVENT_TYPES = Object.freeze({
     CONVERSATION_CREATED: 'ConversationCreatedEvent',
     CONVERSATION_UPDATED: 'ConversationUpdatedEvent',
     CONVERSATION_DELETED: 'ConversationDeletedEvent',
+    SKILL_LIBRARY_CHANGED: 'SkillLibraryChangedEvent',
+    CONVERSATION_SKILLS_CHANGED: 'ConversationSkillsChangedEvent',
     CONVERSATION_DRAFT_CHANGED: 'ConversationDraftChangedEvent',
     MESSAGE_SAVED: 'MessageSavedEvent',
     CONVERSATION_ATTACHMENT_CHANGED: 'ConversationAttachmentChangedEvent',

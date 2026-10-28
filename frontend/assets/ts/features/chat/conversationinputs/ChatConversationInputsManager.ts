@@ -1,27 +1,26 @@
 /* SoAI - Durable conversation input admission and observation [frontend/assets/ts/features/chat/conversationinputs/ChatConversationInputsManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { isNetworkError, isRequestTimeoutError } from '@core/apiError.ts';
+import { CHAT_STREAM_STEER_INTERRUPTED_CODE, type ConversationInputActiveState, type ConversationInputLifecycleState } from '@core/chat/protocols.ts';
+import { isConversationInputTerminalState } from '@core/chat/conversationInputLifecycle.ts';
+import { errorHandler } from '@core/errorHandler.ts';
 import { LatestRequestController } from '@core/concurrency/latestRequest.ts';
 import { isAbortError, raceWithAbortSignal, throwIfAborted } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { toTrimmedString } from '@core/normalize.ts';
-import { containsSoaiPathToken } from '@core/soailinks/codec.ts';
 import { generateSecureId } from '@core/primitives/idGenerator.ts';
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
-import { isJsonObject, type JsonObject } from '@core/types/jsonValues.ts';
 import type { ConversationInputTerminalEvent, ConversationInputsChangedEvent } from '@core/realtime/eventcontracts/chatControlContracts.ts';
 import type { ConversationInputAdmission } from '@core/api/contracts/chatQueueDraftContracts.ts';
 import type { ConversationRegenerationReceipt, ConversationRegenerationRequest } from '@core/api/contracts/webuiMessageRegenerationContracts.ts';
-import type { ChatContentSegment } from '@features/chat/ChatTypes.ts';
 import type { ChatConversationInputsManagerDependencies, ConversationInput, RetryableConversationRegeneration } from '@features/chat/conversationinputs/ConversationInputTypes.ts';
+import { buildConversationInputEnqueueRequest, type ConversationInputEnqueuePayload } from '@features/chat/conversationinputs/conversationInputEnqueueRequest.ts';
 import { ConversationRegenerationRetryStore } from '@features/chat/conversationinputs/ConversationRegenerationRetryStore.ts';
 import { ConversationInputSettlementReconciler } from '@features/chat/conversationinputs/ConversationInputSettlementReconciler.ts';
 import { ConversationInputStateStore } from '@features/chat/conversationinputs/ConversationInputStateStore.ts';
 import { syncConversationInputs } from '@features/chat/conversationinputs/conversationInputSync.ts';
 import { recoverAmbiguousRegenerationAdmission } from '@features/chat/conversationinputs/regenerationAdmissionRecovery.ts';
 import { recoverLatestConversationRegeneration } from '@features/chat/conversationinputs/regenerationStatusRecovery.ts';
-import { serializeStorageContentPart } from '@features/chat/storage/messageNormalization.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 
 class ChatConversationInputsManager {
@@ -74,6 +73,14 @@ class ChatConversationInputsManager {
         return this.#store.getQueuedInputs(conversationId);
     }
 
+    hasDispatchingInput(conversationId: string): boolean {
+        return this.#store.hasDispatchableHead(conversationId);
+    }
+
+    getSteeringTargetInputId(conversationId: string): string | null {
+        return this.#store.getSteeringTargetInputId(conversationId);
+    }
+
     getRetryableRegeneration(conversationId: string): RetryableConversationRegeneration | null {
         return this.#store.hasActiveInputs(conversationId) ? null : this.#regenerationRetries.get(conversationId);
     }
@@ -115,23 +122,11 @@ class ChatConversationInputsManager {
         if (!regenerationApi) throw new Error('Conversation regeneration API is unavailable.');
         this.#store.beginAdmission(normalizedConversationId);
         try {
-            let receipt: ConversationRegenerationReceipt;
-            try {
-                receipt = await regenerationApi.regenerate(normalizedConversationId, admissionRequest);
-            } catch (admissionError) {
-                const runtimeError = ensureError(admissionError);
-                if (!isNetworkError(runtimeError) && !isRequestTimeoutError(runtimeError)) {
-                    throw runtimeError;
-                }
-                receipt = await recoverAmbiguousRegenerationAdmission({
-                    conversationId: normalizedConversationId,
-                    clientId: this.#clientId,
-                    clientRequestId,
-                    admissionError: runtimeError,
-                    signal: this.#lifecycleController.signal,
-                    readStatus: async (statusConversationId, clientId, requestId) => await regenerationApi.regenerationStatus(statusConversationId, clientId, requestId)
-                });
-            }
+            const receipt = await recoverAmbiguousRegenerationAdmission({
+                admit: async () => await regenerationApi.regenerate(normalizedConversationId, admissionRequest),
+                readReceipt: async () => await regenerationApi.regenerationStatus(normalizedConversationId, this.#clientId, clientRequestId),
+                signal: this.#lifecycleController.signal
+            });
             this.#applyRegenerationReceipt(normalizedConversationId, receipt);
             this.#syncNoncritical(normalizedConversationId, 'Failed to reconcile admitted conversation regeneration');
             return receipt;
@@ -144,47 +139,25 @@ class ChatConversationInputsManager {
         this.#syncNoncritical(conversationId, 'Failed to reconcile terminal conversation inputs');
     }
 
-    async enqueue(conversationId: string, payload: { intent: 'queued' | 'steer'; text: string | null; sourceText: string | null; attachmentContent: readonly ChatContentSegment[] }): Promise<ConversationInputAdmission> {
+    async enqueue(conversationId: string, payload: ConversationInputEnqueuePayload): Promise<ConversationInputAdmission> {
         this.initialize();
-        const signal = this.#lifecycleController.signal;
         const normalizedConversationId = normalizeConversationId(conversationId);
         if (!normalizedConversationId) {
             throw new Error('Conversation input enqueue requires a valid conversation id.');
         }
-        const text = toTrimmedString(payload.text) || null;
-        const promptHistoryText = toTrimmedString(payload.sourceText) || null;
-        const attachmentContent: JsonObject[] = [];
-        for (const entry of payload.attachmentContent) {
-            const serialized = serializeStorageContentPart(entry);
-            if (!isJsonObject(serialized)) {
-                throw new Error('Conversation input attachment_content entries must serialize to objects.');
-            }
-            attachmentContent.push(serialized);
+        const request = buildConversationInputEnqueueRequest(payload, this.#clientId);
+        const conversationInputsApi = this.#dependencies.conversationInputsApi;
+        const admit = async (): Promise<ConversationInputAdmission> => await conversationInputsApi.enqueue(normalizedConversationId, request);
+        this.#store.beginAdmission(normalizedConversationId);
+        try {
+            const receipt = await recoverAmbiguousRegenerationAdmission({ admit, readReceipt: admit, signal: this.#lifecycleController.signal });
+            if (this.#lifecycleController.signal.aborted) return receipt;
+            const isDispatchableHead = this.#applyAdmissionReceipt(normalizedConversationId, receipt, (state) => ({ ...receipt, state }));
+            this.#syncNoncritical(normalizedConversationId, 'Failed to reconcile admitted conversation input');
+            return { ...receipt, isDispatchableHead };
+        } finally {
+            this.#store.completeAdmission(normalizedConversationId);
         }
-        if (text === null && attachmentContent.length === 0) {
-            throw new Error('Conversation input enqueue requires text or attachment_content.');
-        }
-        if (text !== null && promptHistoryText === null) throw new Error('Conversation input source text must accompany textual input.');
-        if (text === null && promptHistoryText !== null && !containsSoaiPathToken(promptHistoryText)) throw new Error('Attachment-only conversation input cannot include source text.');
-        const created = await raceWithAbortSignal(
-            this.#dependencies.conversationInputsApi.enqueue(normalizedConversationId, {
-                inputType: payload.intent === 'steer' ? 'steer' : 'prompt',
-                text,
-                promptHistoryText,
-                attachmentContent,
-                clientId: this.#clientId,
-                clientRequestId: generateSecureId({ prefix: 'cinput_req', separator: '_' })
-            }),
-            signal
-        );
-        throwIfAborted(signal);
-        this.#store.upsertAdmittedInput(normalizedConversationId, created, created.isDispatchableHead);
-        this.#withdrawRegenerationRetryWhileActive(normalizedConversationId);
-        if (this.#dependencies.getCurrentConversationId() === normalizedConversationId) {
-            this.#dependencies.updateInputQueuePreview();
-        }
-        this.#syncNoncritical(normalizedConversationId, 'Failed to reconcile admitted conversation input');
-        return created;
     }
 
     async cancelPrompt(conversationId: string, inputId: string): Promise<void> {
@@ -208,6 +181,16 @@ class ChatConversationInputsManager {
             this.#dependencies.updateInputQueuePreview();
         }
         this.#syncNoncritical(normalizedConversationId, 'Failed to reconcile cancelled conversation input');
+    }
+
+    async resumeHeldPrompts(conversationId: string): Promise<void> {
+        this.initialize();
+        const normalizedConversationId = normalizeConversationId(conversationId);
+        if (!normalizedConversationId) return;
+        const signal = this.#lifecycleController.signal;
+        await raceWithAbortSignal(this.#dependencies.conversationInputsApi.resume(normalizedConversationId), signal);
+        throwIfAborted(signal);
+        this.#syncNoncritical(normalizedConversationId, 'Failed to reconcile resumed conversation inputs');
     }
 
     async #sync(conversationId: string): Promise<ConversationInput[]> {
@@ -236,30 +219,37 @@ class ChatConversationInputsManager {
     #applyRegenerationReceipt(conversationId: string, receipt: ConversationRegenerationReceipt): void {
         if (this.#lifecycleController.signal.aborted || !this.#regenerationRetries.observe(conversationId, receipt)) return;
         this.#withdrawRegenerationRetryWhileActive(conversationId);
-        if (this.#dependencies.getCurrentConversationId() === conversationId) this.#dependencies.updateInputQueuePreview();
-        if (receipt.state === 'pending' || receipt.state === 'materializing' || receipt.state === 'running' || receipt.state === 'input_required') {
-            this.#store.upsertAdmittedInput(
-                conversationId,
-                {
-                    inputId: receipt.inputId,
-                    inputType: 'prompt',
-                    text: '',
-                    attachmentContent: [],
-                    acceptedAtMs: receipt.acceptedAtMs,
-                    state: receipt.state,
-                    isRegeneration: true
-                },
-                receipt.isDispatchableHead
-            );
-            if (this.#dependencies.getCurrentConversationId() === conversationId) this.#dependencies.updateInputQueuePreview();
-            return;
-        }
-        this.#store.recordTerminalInput(conversationId, receipt.inputId);
-        void this.#settlements.reconcile(conversationId).catch((error) => {
-            if (!this.#lifecycleController.signal.aborted) {
-                this.#dependencies.logWarning('Failed to reconcile completed conversation regeneration', ensureError(error));
+        this.#applyAdmissionReceipt(conversationId, receipt, (state) => ({
+            inputId: receipt.inputId,
+            inputType: 'prompt',
+            text: '',
+            attachmentContent: [],
+            acceptedAtMs: receipt.acceptedAtMs,
+            state,
+            isRegeneration: true,
+            isHeld: false
+        }));
+    }
+
+    #applyAdmissionReceipt(conversationId: string, receipt: { inputId: string; state: ConversationInputLifecycleState; isDispatchableHead: boolean }, projectInput: (state: ConversationInputActiveState) => ConversationInput): boolean {
+        try {
+            if (isConversationInputTerminalState(receipt.state)) {
+                this.#store.recordTerminalInput(conversationId, receipt.inputId);
+                void this.#settlements.reconcile(conversationId).catch((error) => {
+                    if (!this.#lifecycleController.signal.aborted) this.#dependencies.logWarning('Failed to reconcile settled conversation input admission', ensureError(error));
+                });
+                return false;
             }
-        });
+            const isDispatchableHead = this.#store.upsertAdmittedInput(conversationId, projectInput(receipt.state), receipt.isDispatchableHead);
+            this.#withdrawRegenerationRetryWhileActive(conversationId);
+            return isDispatchableHead;
+        } catch (error) {
+            errorHandler.warn('ChatConversationInputsManager', 'Failed to project admitted conversation input', { error: ensureError(error), conversationId, inputId: receipt.inputId });
+            this.#syncNoncritical(conversationId, 'Failed to reconcile admitted conversation input');
+            return false;
+        } finally {
+            if (this.#dependencies.getCurrentConversationId() === conversationId) this.#dependencies.updateInputQueuePreview();
+        }
     }
 
     #withdrawRegenerationRetryWhileActive(conversationId: string): void {
@@ -295,7 +285,9 @@ class ChatConversationInputsManager {
         if (event.terminalState === 'cancelled' && event.sourceMessageId === null) {
             this.#store.recordCancelledInput(event.convId, event.inputId);
         } else {
-            this.#store.recordTerminalInput(event.convId, event.inputId);
+            const steerFollows = event.terminalState === 'cancelled' && event.terminalCode === CHAT_STREAM_STEER_INTERRUPTED_CODE;
+            this.#store.recordTerminalInput(event.convId, event.inputId, { cancelled: event.terminalState === 'cancelled', steerFollows });
+            if (steerFollows) this.#syncNoncritical(event.convId, 'Failed to load the steer that follows an interrupted turn');
         }
         if (this.#dependencies.getCurrentConversationId() === event.convId) {
             this.#dependencies.updateInputQueuePreview();

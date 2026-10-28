@@ -62,15 +62,15 @@ def materialized_heartbeat_run(
 ) -> JSONDict:
     if mutation.outcome == SoAIBenchMutationOutcome.TERMINAL_SUPERSEDED:
         if mutation.run is None:
-            raise StateError("SoAIBench superseded heartbeat has no durable run.")
+            raise StateError("SoAI Bench superseded heartbeat has no durable run.")
         if (
             mutation.run.get("status") == SoAIBenchRunStatus.RUNNING.value
             and mutation.run.get("stop_requested_at_ms") is None
         ):
-            raise StateError("SoAIBench heartbeat was superseded without a terminal decision.")
+            raise StateError("SoAI Bench heartbeat was superseded without a terminal decision.")
         raise SoAIBenchHeartbeatSuperseded(mutation.run)
     if mutation.outcome != SoAIBenchMutationOutcome.UPDATED or mutation.run is None:
-        raise StateError("SoAIBench heartbeat persistence violated its result contract.")
+        raise StateError("SoAI Bench heartbeat persistence violated its result contract.")
     return mutation.run
 
 
@@ -111,5 +111,5 @@ async def create_initial_run(
     }
     mutation = await deps.database_hardware.create_soaibench_run(run)
     if mutation.run is None:
-        raise StateError("SoAIBench initial persistence did not return a durable run.")
+        raise StateError("SoAI Bench initial persistence did not return a durable run.")
     return mutation.run

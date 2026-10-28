@@ -9,6 +9,8 @@ from core.conversations.assistant_terminal_finalization import (
     TerminalAssistantMessageFinalization,
 )
 from core.conversations.protocols_database_conversations import DatabaseMessagesProtocol
+from core.errors.payload import ErrorPublicPayload
+from core.openai.provider_error_explanations import split_provider_error_message
 from core.timing.epoch import epoch_ms
 from core.timing.monotonic import monotonic_ms
 from features.assistant_timeline.loading_activity_payloads import (
@@ -71,25 +73,37 @@ async def finalize_and_publish_loading_error(
     thinking_tail_duration_ms: int,
     message: str,
     code: str,
+    public_error: ErrorPublicPayload | None = None,
     publish_loading_activity: bool = True,
 ) -> None:
     loading_error_transition_already_started = runtime.loading_activity.status == "error"
     runtime.loading_activity.status = "error"
     runtime.loading_activity.duration_ms = duration_ms
-    normalized_message = message.strip() if message.strip() else "Chat stream failed."
-    normalized_code = code.strip() if code.strip() else "server_error"
+    normalized_message = (
+        public_error.message
+        if public_error is not None
+        else (message.strip() if message.strip() else "Chat stream failed.")
+    )
+    normalized_code = (
+        str(public_error.code)
+        if public_error is not None
+        else (code.strip() if code.strip() else "server_error")
+    )
+    summary, explanation = split_provider_error_message(normalized_message)
     loading_error = build_loading_activity_payload(
         runtime=runtime,
         status="error",
         duration_ms=duration_ms,
-        reason=normalized_message,
+        reason=summary,
         error_type=normalized_code,
     )
     runtime.terminal_finalization_started = True
     terminal_payload = _build_error_event_payload(
         runtime=runtime,
-        message=normalized_message,
+        message=summary,
         code=normalized_code,
+        explanation=explanation,
+        public_error=public_error,
     )
     finalization = TerminalAssistantMessageFinalization(
         finish_reason="error",
@@ -128,10 +142,22 @@ def _build_error_event_payload(
     runtime: AssistantTimelineRuntime,
     message: str,
     code: str,
+    explanation: str | None,
+    public_error: ErrorPublicPayload | None,
 ) -> JSONDict:
-    return {
+    payload: JSONDict = {
         "assistant_at_ms": runtime.assistant_at_ms,
         "message": message,
         "code": code,
         "reference_id": runtime.request_id,
     }
+    if explanation is not None:
+        payload["explanation"] = explanation
+    if public_error is not None:
+        if public_error.param is not None:
+            payload["param"] = public_error.param
+        if public_error.details:
+            payload["details"] = dict(public_error.details)
+        if public_error.trace_id:
+            payload["reference_id"] = public_error.trace_id
+    return payload

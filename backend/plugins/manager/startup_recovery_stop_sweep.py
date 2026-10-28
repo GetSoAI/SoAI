@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from core.config.numeric import coerce_positive_float
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import StateError
+from core.errors.exceptions import SoAIError, StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.events.completion_waiting import await_publication_receipt
 from core.logging.trace import get_logger
@@ -21,7 +21,14 @@ from core.runtime.backend_process_tracking import (
 from core.runtime.backend_process_tracking_db import (
     cleanup_tracked_backend_processes_from_database,
 )
-from core.state.state_names import PLUGIN_STATE_STOPPED
+from core.state.state_names import (
+    PLUGIN_STATE_INSTALL_ERROR,
+    PLUGIN_STATE_STOPPED,
+    PLUGIN_STATE_UPDATE_ERROR,
+)
+from core.timing.constants import SETUP_TIMEOUT_SEC
+from plugins.lifecycle_advisory_lock import plugin_lifecycle_advisory_lock
+from plugins.manager.load_serialization import serialized_plugin_load_scope
 
 if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
@@ -34,10 +41,16 @@ __all__ = ("perform_startup_backend_stop_sweep",)
 
 LOGGER_NAME = "SoAI.plugins.manager.startup_recovery_stop_sweep"
 OPERATION = "plugins.manager.startup_recovery.perform_startup_backend_stop_sweep"
+OPERATION_BACKEND_CLEANUP = "plugins.manager.startup_recovery.backend_cleanup"
+BACKEND_CLEANUP_FAILURE_EXCEPTIONS: tuple[type[Exception], ...] = (
+    *RECOVERABLE_EXCEPTIONS,
+    SoAIError,
+)
 
 
 async def perform_startup_backend_stop_sweep(manager: PluginManagerRuntimeProtocol) -> None:
     logger = get_logger(LOGGER_NAME)
+    await _cleanup_interrupted_backend_installations(manager)
     stop_sweep = manager.state.lifecycle.startup_recovery_stop_sweep
     if not stop_sweep:
         return
@@ -214,3 +227,39 @@ async def _resolve_backend_identities_from_instance(
             resolved,
         )
     return resolved
+
+
+async def _cleanup_interrupted_backend_installations(manager: PluginManagerRuntimeProtocol) -> None:
+    logger = get_logger(LOGGER_NAME)
+    records = await manager.dependencies.databases.plugins.get_all_listable_plugins()
+    for record in records:
+        if record.get("state") not in {PLUGIN_STATE_INSTALL_ERROR, PLUGIN_STATE_UPDATE_ERROR}:
+            continue
+        plugin_name = record.get("plugin_name")
+        if not isinstance(plugin_name, str) or not plugin_name:
+            continue
+        try:
+            async with (
+                plugin_lifecycle_advisory_lock(manager, plugin_name),
+                serialized_plugin_load_scope(manager, plugin_name),
+            ):
+                current = await manager.dependencies.databases.plugins.get_plugin_by_name(
+                    plugin_name
+                )
+                if current is None or current.get("state") not in {
+                    PLUGIN_STATE_INSTALL_ERROR,
+                    PLUGIN_STATE_UPDATE_ERROR,
+                }:
+                    continue
+                instance = await manager.require_loaded_plugin(plugin_name, auto_load=True)
+                async with asyncio.timeout(SETUP_TIMEOUT_SEC):
+                    await instance.cleanup_partial_installation()
+        except BACKEND_CLEANUP_FAILURE_EXCEPTIONS as exception:
+            log_exception(
+                logger,
+                exception,
+                message="Interrupted backend cleanup remains incomplete; retry the affected plugin operation.",
+                operation=OPERATION_BACKEND_CLEANUP,
+                details={"plugin_name": plugin_name},
+                level="warning",
+            )

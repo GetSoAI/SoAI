@@ -13,6 +13,7 @@ import type { PreferenceSliderDefinition } from '@pages/settings/controllers/pre
 
 interface PreferencesSectionViewModel {
     identityContent: string;
+    speechContent: string;
     languageOptions: Array<{ value: string; label: string; countryCode: string | null }>;
     currentLanguage: string;
     ocrOptions: Array<{ value: string; label: string; countryCode: string | null; disabled: boolean }>;
@@ -33,7 +34,7 @@ const renderOcrLanguageControl = (options: PreferencesSectionViewModel['ocrOptio
     return ready ? select : `${select}${renderSettingsTitlebarRefreshButton({ action: SETTINGS_ACTION_REFRESH_OCR, label: i18n.t('common.refresh') })}`;
 };
 
-const renderPreferencesSection = ({ identityContent, languageOptions, currentLanguage, ocrOptions, ocrLanguage, ocrReady, ocrAvailable, clockFormat, regionalLocale, dateFormat, measurementUnits, preferenceSliders, preferenceLabels, preferenceToggles }: PreferencesSectionViewModel): string => {
+const renderPreferencesSection = ({ identityContent, speechContent, languageOptions, currentLanguage, ocrOptions, ocrLanguage, ocrReady, ocrAvailable, clockFormat, regionalLocale, dateFormat, measurementUnits, preferenceSliders, preferenceLabels, preferenceToggles }: PreferencesSectionViewModel): string => {
     const items = [
         renderSettingItem({
             label: i18n.t('settings.preferences.language.label'),
@@ -149,7 +150,7 @@ const renderPreferencesSection = ({ identityContent, languageOptions, currentLan
             title: i18n.t('settings.preferences.subgroupTitle'),
             description: i18n.t('settings.preferences.subgroupDescription'),
             content: renderSettingsGroup(items)
-        })}`
+        })}${speechContent}`
     });
 };
 

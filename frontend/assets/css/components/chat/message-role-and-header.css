@@ -42,7 +42,7 @@
         border: var(--border-width-1) solid var(--glass-border-chat-message-user);
     }
 
-    :where(.chat-container) :is(.chat-sidebar, .attached-files-preview, .ask-user-preview, .secret-prompt-preview, .tool-approval-preview, .input-queue-preview, .voice-recording-preview, .chat-main-container) {
+    :where(.chat-container) :is(.chat-sidebar, .chat-draft-tray, .attached-files-preview, .ask-user-preview, .secret-prompt-preview, .tool-approval-preview, .input-queue-preview, .voice-recording-preview, .chat-main-container) {
         border: var(--border-width-1) solid var(--glass-border-strong);
         border-radius: var(--border-radius);
     }
@@ -54,7 +54,7 @@
         backdrop-filter: var(--glass-blur-base);
     }
 
-    :where(.chat-container) :is(.attached-files-preview, .ask-user-preview, .secret-prompt-preview, .tool-approval-preview, .input-queue-preview, .voice-recording-preview) {
+    :where(.chat-container) :is(.chat-draft-tray, .attached-files-preview, .ask-user-preview, .secret-prompt-preview, .tool-approval-preview, .input-queue-preview, .voice-recording-preview) {
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-2);
@@ -198,16 +198,6 @@
         font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
         line-height: 1.5;
         color: var(--text-secondary);
-    }
-
-    :where(.chat-container) .message-action-buttons {
-        display: flex;
-        gap: var(--space-3);
-        opacity: 0.4;
-        transition: opacity var(--transition-fast);
-        flex: 1 1 auto;
-        justify-content: space-between;
-        align-items: center;
     }
 
     :where(.chat-container) .message-action-buttons-right {

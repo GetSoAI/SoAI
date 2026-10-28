@@ -10,6 +10,7 @@ from core.agent.status_values import AGENT_TURN_STATUS_COMPLETED
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import SoAIError
+from core.errors.public_projection import project_public_error
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.openai.internal_retry_prompt import is_internal_retry_output_leak
 from features.agent.runtime.inference_request_payload import (
@@ -31,7 +32,7 @@ from features.agent.runtime.non_streaming_turn_events import (
     publish_assistant_item_events,
 )
 from features.agent.runtime.openai_payload import (
-    extract_assistant_content_visible,
+    extract_assistant_text_channels,
     remove_suppressed_assistant_tool_calls,
     replace_assistant_content_visible,
 )
@@ -112,8 +113,10 @@ async def run_non_streaming_turn(
             if recovered is not None:
                 return recovered
             return _build_failed_inference_result(coerced)
+        assistant_text, reasoning_text = extract_assistant_text_channels(payload)
         assistant_text = _sanitize_assistant_text(
             payload=payload,
+            assistant_text=assistant_text,
             output_publication_mode=output_publication_mode,
             logger=deps.logger,
         )
@@ -128,7 +131,11 @@ async def run_non_streaming_turn(
             next_action_sequence=bootstrap.sequence_tracker.next_sequence,
             assistant_text=assistant_text,
         )
-        return _build_successful_inference_result(payload=payload, assistant_text=assistant_text)
+        return _build_successful_inference_result(
+            payload=payload,
+            assistant_text=assistant_text,
+            reasoning_text=reasoning_text,
+        )
 
     runtime_execution = await execute_agent_turn_runtime(
         deps=deps,
@@ -158,10 +165,10 @@ async def run_non_streaming_turn(
 def _sanitize_assistant_text(
     *,
     payload: JSONDict,
+    assistant_text: str,
     output_publication_mode: AgentOutputPublicationMode,
     logger: LoggerProtocol,
 ) -> str:
-    assistant_text = extract_assistant_content_visible(payload)
     stripping = strip_echoed_injected_prompt_blocks(assistant_text)
     if stripping.stripped:
         logger.warning(
@@ -182,6 +189,7 @@ def _sanitize_assistant_text(
 
 
 def _build_failed_inference_result(error: SoAIError) -> TurnLoopInferenceResult:
+    public_error = project_public_error(error)
     return TurnLoopInferenceResult(
         payload=None,
         assistant_text=None,
@@ -189,13 +197,14 @@ def _build_failed_inference_result(error: SoAIError) -> TurnLoopInferenceResult:
         usage=None,
         stream_id=None,
         successful=False,
-        error_message=error.message,
-        error_type=str(error.code),
+        error_message=public_error.message,
+        error_type=str(public_error.code),
         assistant_output_published=False,
         tool_calls=[],
         visible_text_chars=0,
         thinking_text_chars=0,
-        error_details=error.details,
+        error_details=dict(public_error.details) if public_error.details is not None else None,
+        public_error=public_error,
     )
 
 
@@ -203,9 +212,11 @@ def _build_successful_inference_result(
     *,
     payload: JSONDict,
     assistant_text: str,
+    reasoning_text: str,
 ) -> TurnLoopInferenceResult:
     return build_successful_non_streaming_inference_result(
         payload=payload,
         assistant_text=assistant_text,
         include_usage=True,
+        reasoning_text=reasoning_text,
     )

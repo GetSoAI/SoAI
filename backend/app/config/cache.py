@@ -78,6 +78,9 @@ class ConfigCache:
             )
             raise
         if data is not None:
+            previous = await self.get(config_name)
+            if config_name != "core" and previous is not None and previous != data:
+                await io_component.invalidate_plugin_backend_update(config_name)
             async with self.lock:
                 self.configs[config_name] = data
             self._deps.logger.debug("Successfully loaded configuration for '%s'.", config_name)

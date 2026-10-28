@@ -3,7 +3,6 @@
 
 @layer components {
     :where(.chat-container) .message-text table.markdown-table th.markdown-table-sortable-header {
-        position: relative;
         cursor: pointer;
         user-select: none;
         transition:
@@ -23,33 +22,5 @@
         border-bottom-color: var(--border-color);
         color: var(--text-primary);
         font-weight: 700;
-    }
-
-    :where(.chat-container) .message-text table.markdown-table th.markdown-table-sortable-header .sort-indicator:empty {
-        display: none;
-    }
-
-    :where(.chat-container) .message-text table.markdown-table th.markdown-table-sortable-header .sort-indicator:not(:empty) {
-        display: inline-flex;
-        width: 14px;
-        height: 14px;
-        margin-inline-start: var(--space-1);
-        vertical-align: middle;
-        color: inherit;
-    }
-
-    :where(.chat-container) .message-text table.markdown-table th.markdown-table-sortable-header .sort-indicator.is-space-overlay {
-        position: absolute;
-        top: 50%;
-        inset-inline-end: var(--space-3);
-        margin-inline-start: 0;
-        transform: translateY(-50%);
-    }
-
-    :where(.chat-container) .message-text table.markdown-table th.markdown-table-sortable-header .sort-indicator svg {
-        display: block;
-        width: 14px;
-        height: 14px;
-        stroke: currentcolor;
     }
 }

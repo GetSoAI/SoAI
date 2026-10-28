@@ -110,6 +110,7 @@ class ChatStreamRegistry:
                 if intent is not None and execution_owns_runtime(intent.request_id, runtime):
                     runtime.cancellation_requested = True
                     runtime.cancellation_reason = intent.reason
+                    runtime.cancellation_code = intent.code
                     if runtime.detach_event is None:
                         runtime.detach_event = asyncio.Event()
                     runtime.detach_event.set()

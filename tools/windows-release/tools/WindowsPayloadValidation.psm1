@@ -9,22 +9,26 @@ function Assert-WindowsLicenseInventory {
     }
     $expected = @(
         'Apache-2.0.txt',
+        'Azul-Zulu-NOTICE.txt',
+        'CDDL-1.0.txt',
         'FRONTEND-THIRD-PARTY-LICENSES.txt',
         'MIT.txt',
         'MSVC-RUNTIME-NOTICE.txt',
-        'Microsoft-OpenJDK-NOTICE.txt',
         'NSIS-LICENSE.txt',
         'OFL.txt',
+        'OPTIONAL-NATIVE-DEPENDENCY-NOTICES.txt',
         'OpenJDK-ADDITIONAL-LICENSE-INFO.txt',
         'OpenJDK-GPLv2.txt',
         'OpenSSL-NOTICE.txt',
         'PLAYWRIGHT-CHROMIUM-NOTICES.txt',
         'PYTHON-THIRD-PARTY-NOTICES.txt',
         'Python-3.13-LICENSE.txt',
+        'SBOM-OPTIONAL-NATIVE-CYCLONEDX.json',
         'SBOM-PYTHON-CYCLONEDX.json',
         'TESSERACT-WINDOWS-RUNTIME-NOTICES.txt',
         'THIRD_PARTY_BACKEND_LICENSES.md',
         'THIRD_PARTY_LOGO_NOTICES.md',
+        'TIKA-RUNTIME-NOTICES.txt',
         'WINDOWS-THIRD-PARTY-NOTICES.txt',
         'legal_document_catalog.json',
         'libffi-NOTICE.txt',
@@ -37,6 +41,7 @@ function Assert-WindowsLicenseInventory {
     }
     $invalidLicenseEntries = @(
         $licenseEntries | Where-Object {
+            ($_.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -or
             ($_.Name -eq 'webview2' -and !$_.PSIsContainer) -or
             ($_.Name -ne 'webview2' -and $_.PSIsContainer)
         }
@@ -56,7 +61,9 @@ function Assert-WindowsLicenseInventory {
     $webViewLicenseEntries = @(Get-ChildItem -LiteralPath $webViewLicensesRoot -Force)
     $actualWebViewLicenses = @($webViewLicenseEntries | Select-Object -ExpandProperty Name | Sort-Object)
     if ((Compare-Object -ReferenceObject $expectedWebViewLicenses -DifferenceObject $actualWebViewLicenses).Count -ne 0 `
-        -or @($webViewLicenseEntries | Where-Object { $_.PSIsContainer }).Count -ne 0) {
+        -or @($webViewLicenseEntries | Where-Object {
+            $_.PSIsContainer -or ($_.Attributes -band [System.IO.FileAttributes]::ReparsePoint)
+        }).Count -ne 0) {
         throw 'Windows payload WebView2 license inventory does not match the platform contract.'
     }
 }

@@ -4,13 +4,13 @@
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { readCoercedFiniteNumberOrNullValue } from '@core/types/numberCoercionReaders.ts';
 import { isFiniteNumber, isNullOrUndefined, isObject } from '@core/typeGuards.ts';
-import { GPU_SETTING_KEYS, NORMALIZE_KEY_MAP } from '@pages/hardware/controllers/gpucontrol/gpuControlConfig.ts';
+import { GPU_CONTROLS_CONFIG, GPU_SETTING_KEYS, NORMALIZE_KEY_MAP } from '@pages/hardware/controllers/gpucontrol/gpuControlConfig.ts';
 import type { GpuCapabilities, GpuCapabilitiesByIndex } from '@core/realtime/streammanager/resources/gpuCapabilitiesContracts.ts';
 import type { ChartOhlcNumeric, GpuControlType, GpuControlValue, GpuFieldMode, GpuSettingsState, GpuSettingState, GpuSlotEntry, GpuSnapshot, OffsetControlContext } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 
 const entries = Object.entries;
 
-const createSettingState = (mode: GpuFieldMode, value: number | null = null): GpuSettingState => ({
+const createSettingState = (mode: GpuFieldMode | null, value: number | null = null): GpuSettingState => ({
     mode,
     value: isFiniteNumber(value) ? value : null
 });
@@ -86,6 +86,9 @@ export const getOffsetControlContext = (capabilitiesByIndex: GpuCapabilitiesByIn
     if (!clockCaps || clockCaps.supported !== true) return null;
 
     if (caps.type === 'nvidia') {
+        if (clockCaps.clockControlType === 'application_clocks') {
+            return computeFromAbsoluteRange(createAbsoluteRangeInfo(clockCaps));
+        }
         const def = Number(clockCaps.default);
         const offsetMin = Number(clockCaps.offsetMin);
         const offsetMax = Number(clockCaps.offsetMax);
@@ -108,15 +111,18 @@ const resolveSettingsInfoFromSources = (caps: GpuCapabilities | null, slotEntry:
 export const normalizeLiveSettings = (chartOhlc: ChartOhlcNumeric, caps: GpuCapabilities | null, slotEntry: GpuSlotEntry | null): GpuSettingsState => {
     const settingsInfo = resolveSettingsInfoFromSources(caps, slotEntry);
     const result = createDefaultSettingsState();
-    GPU_SETTING_KEYS.forEach((settingKey) => {
-        const raw = settingsInfo[settingKey];
-        const entry = isObject(raw) ? raw : {};
-        const resolved = chartOhlc.resolveNumeric(entry['value'] ?? null, entry['defaultValue'] ?? null);
+    Object.values(GPU_CONTROLS_CONFIG).forEach(({ settingKey, capabilityKey }) => {
+        const entry = settingsInfo[settingKey];
+        if (!isObject(entry)) {
+            result[settingKey] = createSettingState(caps?.[capabilityKey]?.mode === 'auto' ? 'auto' : null);
+            return;
+        }
+        const resolved = chartOhlc.resolveNumeric(entry['value'] ?? null, entry['isDefault'] === true ? (entry['defaultValue'] ?? null) : null);
         if (entry['isDefault'] === true) {
             result[settingKey] = createSettingState('auto', resolved);
             return;
         }
-        result[settingKey] = createSettingState(isFiniteNumber(resolved) ? 'manual' : 'auto', resolved);
+        result[settingKey] = createSettingState(entry['isDefault'] === false || isFiniteNumber(resolved) ? 'manual' : null, resolved);
     });
     return result;
 };
@@ -168,7 +174,7 @@ export const gpuSettingStatesEqual = (left: GpuSettingState, right: GpuSettingSt
     if (left.mode !== right.mode) {
         return false;
     }
-    if (left.mode === 'auto') {
+    if (left.mode === 'auto' || left.mode === null) {
         return true;
     }
     return isFiniteNumber(left.value) && isFiniteNumber(right.value) && left.value === right.value;

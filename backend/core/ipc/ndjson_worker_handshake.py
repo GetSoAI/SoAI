@@ -7,6 +7,7 @@ import asyncio
 import os
 
 from core.errors.exceptions import ValidationError
+from core.ipc.ndjson import NdjsonCodec
 from core.ipc.settings import build_ndjson_codec_from_env
 from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 from core.types.json import JSONDict
@@ -17,6 +18,7 @@ __all__ = ("connect_ndjson_ipc_worker_session",)
 async def connect_ndjson_ipc_worker_session(
     *,
     worker_label: str,
+    codec: NdjsonCodec | None = None,
     host_env_key: str = "SOAI_IPC_HOST",
     port_env_key: str = "SOAI_IPC_PORT",
     token_env_key: str = "SOAI_IPC_TOKEN",
@@ -36,7 +38,7 @@ async def connect_ndjson_ipc_worker_session(
         raise ValidationError(f"{worker_id_env_key} is required for {worker_label}.")
     port = int(port_raw)
     worker_id = int(worker_id_raw)
-    codec = build_ndjson_codec_from_env()
+    codec = codec if codec is not None else build_ndjson_codec_from_env()
     reader, writer = await asyncio.open_connection(
         host=host,
         port=port,

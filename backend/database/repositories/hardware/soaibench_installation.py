@@ -36,7 +36,7 @@ def sync_get_or_create_soaibench_installation_id(connection: sqlite3.Connection)
         ).fetchone()
     if row is None:
         raise DatabaseError(
-            "SoAIBench installation identity could not be persisted.",
+            "SoAI Bench installation identity could not be persisted.",
             operation="hardware.soaibench.installation_identity",
         )
     return validate_soaibench_installation_id(safe_json_deserialize(row[0], None))
@@ -45,20 +45,20 @@ def sync_get_or_create_soaibench_installation_id(connection: sqlite3.Connection)
 def validate_soaibench_installation_id(value: JSONValue | None) -> str:
     if not isinstance(value, str):
         raise DatabaseError(
-            "Stored SoAIBench installation identity is invalid.",
+            "Stored SoAI Bench installation identity is invalid.",
             operation="hardware.soaibench.installation_identity",
         )
     try:
         parsed = uuid.UUID(value)
     except ValueError as exception:
         raise DatabaseError(
-            "Stored SoAIBench installation identity is invalid.",
+            "Stored SoAI Bench installation identity is invalid.",
             operation="hardware.soaibench.installation_identity",
             cause=exception,
         ) from exception
     if parsed.version != 4 or str(parsed) != value:
         raise DatabaseError(
-            "Stored SoAIBench installation identity is invalid.",
+            "Stored SoAI Bench installation identity is invalid.",
             operation="hardware.soaibench.installation_identity",
         )
     return value

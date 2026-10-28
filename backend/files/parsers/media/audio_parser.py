@@ -20,8 +20,7 @@ from core.media.cancellation import await_media_operation
 from core.media.config import resolve_media_parsing_config
 from core.media.document_rendering import render_audio_document
 from core.media.probing import probe_audio
-from core.media.transcription_request import request_media_transcription
-from core.media.types import TranscriptionResult
+from core.media.transcription_request import request_document_transcription
 from core.types.json import JSONDict
 
 if TYPE_CHECKING:
@@ -35,14 +34,12 @@ __all__ = ("AudioParser", "AudioParserDependencies")
 class AudioParserDependencies:
     transcription_runtime: MediaTranscriptionRuntimeProtocol
     config: ConfigProtocol
-    transcription_available: bool
 
     def __post_init__(self) -> None:
         require_dependencies(
             owner="AudioParserDependencies",
             transcription_runtime=self.transcription_runtime,
             config=self.config,
-            transcription_available=self.transcription_available,
         )
 
 
@@ -52,7 +49,6 @@ class AudioParser(FileParserProtocol):
     def __init__(self, deps: AudioParserDependencies) -> None:
         self._transcription_runtime = deps.transcription_runtime
         self._config = deps.config
-        self._transcription_available = deps.transcription_available
 
     @override
     async def parse(self, context: ParseExecutionContext) -> ParsedDocument:
@@ -74,18 +70,15 @@ class AudioParser(FileParserProtocol):
         async def transcription_progress(value: float, stage: str) -> None:
             await report_parse_progress(context, 0.1 + value * 0.9, stage)
 
-        transcription_note = None
-        if self._transcription_available:
-            transcription = await request_media_transcription(
-                self._transcription_runtime,
-                context=context,
-                duration_seconds=probe.duration_seconds,
-                model_name=config.whisper_model,
-                progress_callback=transcription_progress,
-            )
-        else:
-            transcription = TranscriptionResult(text="", language=None, segments=())
-            transcription_note = "Speech transcription is unavailable on this platform."
+        document_transcription = await request_document_transcription(
+            self._transcription_runtime,
+            context=context,
+            duration_seconds=probe.duration_seconds,
+            selector=config.whisper_model,
+            progress_callback=transcription_progress,
+        )
+        transcription = document_transcription.result
+        transcription_note = document_transcription.setup_warning
         raise_if_parse_cancelled(context)
         file_size = await run_joined_thread_call(
             os.path.getsize,
@@ -122,6 +115,7 @@ class AudioParser(FileParserProtocol):
                 else ExtractionState.COMPLETE
             ),
             warnings=warnings,
+            missing_capabilities=document_transcription.missing_capabilities,
         )
 
 

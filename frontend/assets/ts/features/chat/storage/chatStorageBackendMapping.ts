@@ -102,6 +102,7 @@ const mapCompactionMarker = (value: JsonObject): SoaiCompactionMarker => {
 
 const mapMessageFields = (message: WebuiConversationMessageResponse): ChatMessage => {
     const mapped: ChatMessage = { role: message.role, timestamp: message.timestamp, messageType: message.messageType };
+    if (message.attachmentMissingCapabilities !== undefined) mapped.attachmentMissingCapabilities = message.attachmentMissingCapabilities;
     if (message.id !== undefined) mapped.id = message.id;
     if (message.conversationInputId !== undefined) mapped.soaiConversationInputId = message.conversationInputId;
     if (message.messagingSenderDisplayName !== undefined) mapped.messagingSenderDisplayName = message.messagingSenderDisplayName;

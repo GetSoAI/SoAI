@@ -30,7 +30,6 @@ __all__ = (
     "enforce_login_throttle",
     "raise_login_rate_limit",
     "record_login_failure",
-    "register_login_failure",
     "reset_login_failures",
 )
 
@@ -85,16 +84,6 @@ async def create_login_throttle_admin_alert_noncritical(
             operation=OPERATION_CREATE_LOGIN_THROTTLE_ALERT,
             level="warning",
         )
-
-
-async def register_login_failure(
-    request: Request,
-    guard: AuthGuardProtocol,
-    bucket_identifiers: tuple[str, ...],
-) -> None:
-    throttled, retry_at = await record_login_failure(guard, bucket_identifiers)
-    if throttled:
-        raise_login_rate_limit(request, retry_at)
 
 
 async def reset_login_failures(

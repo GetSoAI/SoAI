@@ -84,7 +84,7 @@
         place-items: center;
         align-self: end;
         border-radius: var(--border-round);
-        border: var(--border-width-1) solid var(--ui-button-border);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--ui-button-border) var(--control-button-border-strength), transparent);
         background-color: var(--ui-button-bg);
         color: var(--ui-button-color);
         box-shadow:
@@ -100,7 +100,7 @@
 
     .voice-call-control-orb:hover:not(:disabled),
     .voice-call-control-orb:focus-visible:not(:disabled) {
-        border-color: var(--ui-button-border-hover);
+        border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
         background-color: var(--ui-button-bg-hover);
         color: var(--ui-button-color-hover);
     }

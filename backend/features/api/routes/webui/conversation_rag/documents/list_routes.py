@@ -11,6 +11,7 @@ from starlette.responses import JSONResponse, Response
 from core.attachments.knowledge_attachment_statuses import (
     RAG_DOCUMENT_STATUS_COUNT_KEYS,
 )
+from core.files.extraction_summary import read_missing_capabilities
 from core.serialization.json import normalize_for_json
 from core.state.access import AccessAction
 from core.types.json_value import coerce_json_dict
@@ -94,6 +95,9 @@ def register_routes(routers: ApiRouters) -> None:
                 document = coerce_json_dict(normalized)
                 if document is None:
                     raise_server_error(request, "RAG document payload is not JSON.")
+                missing_capabilities = read_missing_capabilities(document.get("metadata"))
+                if missing_capabilities:
+                    document["missing_capabilities"] = list(missing_capabilities)
                 documents.append(document)
             response_payload["documents"] = documents
         return JSONResponse(content=response_payload)

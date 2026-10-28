@@ -1,6 +1,8 @@
 /* SoAI - Frontend system API boundary contracts [frontend/assets/ts/core/api/contracts/systemContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { decodeHardwareComponentStatuses } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
+
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { assertExactRecordKeys, readRequiredJsonObjectArrayValue, requireRecord } from '@core/types/payloadRecordReaders.ts';
 import { readRequiredStringArrayValue } from '@core/types/payloadArrayReaders.ts';
@@ -11,6 +13,10 @@ import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 interface DatabaseMaintenanceStatus {
     status: 'not_run' | 'disabled' | 'not_due' | 'skipped' | 'completed' | 'degraded';
     reason: string | null;
+}
+interface NetworkPathsStatus {
+    status: 'degraded';
+    settings: string[];
 }
 
 interface SystemHealthResponse {
@@ -26,6 +32,7 @@ interface SystemHealthResponse {
     preferredPort: number;
     fallbackActive: boolean;
     databaseMaintenance?: DatabaseMaintenanceStatus;
+    networkPaths?: NetworkPathsStatus;
 }
 interface InstanceNameResponse {
     instanceName: string | null;
@@ -125,8 +132,8 @@ const decodeMessage = (value: ApiResponsePayload, label: string): MessageRespons
 
 const decodeSystemHealth = (value: ApiResponsePayload): SystemHealthResponse => {
     const record = requireRecord(value, 'System health response');
-    const maintenanceFields = record['database_maintenance'] === undefined ? [] : ['database_maintenance'];
-    assertExactRecordKeys(record, ['status', 'edition', 'power_operations', 'product', 'version', 'instance_id', 'instance_name', 'scheme', 'port', 'preferred_port', 'fallback_active', ...maintenanceFields], 'System health response');
+    const optionalFields = ['database_maintenance', 'network_paths'].filter((field) => record[field] !== undefined);
+    assertExactRecordKeys(record, ['status', 'edition', 'power_operations', 'product', 'version', 'instance_id', 'instance_name', 'scheme', 'port', 'preferred_port', 'fallback_active', ...optionalFields], 'System health response');
     const port = readRequiredFiniteIntegerValue(record['port'], 'System health response.port');
     const preferredPort = readRequiredFiniteIntegerValue(record['preferred_port'], 'System health response.preferred_port');
     const fallbackActive = readRequiredBooleanValue(record['fallback_active'], 'System health response.fallback_active');
@@ -151,6 +158,14 @@ const decodeSystemHealth = (value: ApiResponsePayload): SystemHealthResponse => 
         response.databaseMaintenance = {
             status: readRequiredEnumValue(maintenance['status'], 'System health response.database_maintenance.status', ['not_run', 'disabled', 'not_due', 'skipped', 'completed', 'degraded']),
             reason: readNullableTrimmedStringValue(maintenance['reason'], 'System health response.database_maintenance.reason')
+        };
+    }
+    if (record['network_paths'] !== undefined) {
+        const networkPaths = requireRecord(record['network_paths'], 'System health response.network_paths');
+        assertExactRecordKeys(networkPaths, ['status', 'settings'], 'System health response.network_paths');
+        response.networkPaths = {
+            status: readRequiredEnumValue(networkPaths['status'], 'System health response.network_paths.status', ['degraded']),
+            settings: readRequiredStringArrayValue(networkPaths['settings'], 'System health response.network_paths.settings')
         };
     }
     return response;
@@ -215,6 +230,7 @@ const decodeSystemStateDefinitions = (value: ApiResponsePayload): SystemStateDef
 
 const decodeSystemStatus = (value: ApiResponsePayload): SystemStatusResponse => {
     const record = requireRecord(value, 'System status response');
+    decodeHardwareComponentStatuses(requireRecord(record['hardware'], 'System status response.hardware')['component_status']);
     return { timestampMs: readRequiredFiniteIntegerValue(record['timestamp_ms'], 'System status response.timestamp_ms'), soaiVersion: readRequiredTrimmedStringValue(record['soai_version'], 'System status response.soai_version'), mainState: readNullableTrimmedStringValue(record['main_state'], 'System status response.main_state'), pluginStates: requireRecord(record['plugin_states'], 'System status response.plugin_states'), pluginStateVersion: readRequiredNonNegativeIntegerValue(record['plugin_state_version'], 'System status response.plugin_state_version'), hardware: requireRecord(record['hardware'], 'System status response.hardware'), orchestrator: requireRecord(record['orchestrator'], 'System status response.orchestrator'), systemState: requireRecord(record['system_state'], 'System status response.system_state') };
 };
 

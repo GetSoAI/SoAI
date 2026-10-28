@@ -15,6 +15,7 @@ from core.notifications.notification_record_models import (
 from core.notifications.notification_source_visibility import (
     resolve_notification_excluded_sources,
 )
+from core.notifications.notification_transport import project_notification_record
 from core.state.access import AccessAction
 from core.validation.integers import is_strict_int
 from features.api.middleware.acl_enforcement import resolve_request_effective_actions
@@ -132,7 +133,12 @@ async def snapshot_webui_notifications(
         excluded_sources=excluded_sources,
     )
     response = NotificationsListResponse(
-        notifications=notifications_page.notifications,
+        notifications=[
+            project_notification_record(
+                record, connection.websocket.query_params.get("notification_templates")
+            )
+            for record in notifications_page.notifications
+        ],
         total_count=int(total_count),
         unread_count=int(unread_count),
         next_cursor=notifications_page.next_cursor,

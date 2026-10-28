@@ -10,6 +10,10 @@ from core.errors.exceptions import ValidationError
 from core.logging.trace import get_logger
 from core.models.provider_backing import get_model_provider_id, is_provider_backed_model
 from core.models.source_identifier import require_source_model_id, write_source_model_id
+from core.openai.capability_evidence import (
+    OPENAI_CAPABILITY_EVIDENCE_KEY,
+    normalize_openai_capability_evidence,
+)
 from core.openai.effective_profile import compute_effective_openai_model_profile
 from core.state.plugin_health_resolution import plugin_state_is_available
 from core.state.provider_backed_availability import (
@@ -224,6 +228,7 @@ def format_single_model_for_list(
         "size_bytes": model_data.get("size_bytes"),
         "path": model_data.get("path"),
         "family": model_data.get("family"),
+        "whisper_model_id": model_data.get("whisper_model_id"),
         "license": model_data.get("license"),
         "quantization": model_data.get("quantization"),
         "capabilities": model_data.get("capabilities", []),
@@ -246,7 +251,17 @@ def format_single_model_for_list(
     overrides = overrides_value if isinstance(overrides_value, dict) else None
     if overrides is not None:
         response["openai_capabilities_overrides"] = dict(overrides)
+    capability_evidence = normalize_openai_capability_evidence(
+        model_data.get(OPENAI_CAPABILITY_EVIDENCE_KEY)
+    )
+    if capability_evidence is not None:
+        response[OPENAI_CAPABILITY_EVIDENCE_KEY] = capability_evidence
     if plugin_info is not None:
+        response["openai_base_profile"] = compose_model_openai_base_profile(
+            plugin_profile=plugin_info,
+            model_data=model_data,
+            include_enabled_overrides=False,
+        )
         base_profile = compose_model_openai_base_profile(
             plugin_profile=plugin_info,
             model_data=model_data,

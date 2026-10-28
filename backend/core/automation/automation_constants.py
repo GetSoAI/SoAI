@@ -4,8 +4,6 @@
 from __future__ import annotations
 
 __all__ = (
-    "AUTOMATION_ACTIVE_RUN_STATUSES",
-    "AUTOMATION_AGENT_MODE_VALUES",
     "AUTOMATION_DEFAULT_MAX_RUN_MINUTES",
     "AUTOMATION_DEFAULT_MAX_TURNS",
     "AUTOMATION_DEFAULT_MAX_TURN_CHARS",
@@ -64,14 +62,12 @@ AUTOMATION_RUN_STATUS_VALUES: tuple[str, ...] = (
     "cancelled",
     "abandoned",
 )
-AUTOMATION_ACTIVE_RUN_STATUSES: tuple[str, ...] = ("queued", "running")
 AUTOMATION_TERMINAL_RUN_STATUSES: tuple[str, ...] = (
     "completed",
     "error",
     "cancelled",
     "abandoned",
 )
-AUTOMATION_AGENT_MODE_VALUES: tuple[str, ...] = ("chat", "plan", "execute")
 
 AUTOMATION_PAYLOAD_FIELDS: tuple[str, ...] = (
     "title",

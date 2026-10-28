@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from hardware.vendors.nvidia import scan
 from hardware.vendors.nvidia.smi_scan import query_nvidia_gpus_via_smi
@@ -24,17 +24,20 @@ def _query_nvidia_gpus(
     *,
     nvml_gate: NvmlGateProtocol,
     capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
+    on_inventory_observed: Callable[[Literal["complete", "partial", "failed"]], None] | None = None,
 ) -> tuple[list[JSONDict], JSONDict]:
     if nvml_gate.nvml_available:
         return scan.query_nvidia_gpus(
             detailed,
             nvml_gate=nvml_gate,
             capabilities_cache_service=capabilities_cache_service,
+            on_inventory_observed=on_inventory_observed,
         )
     return query_nvidia_gpus_via_smi(
         detailed,
         nvml_gate=nvml_gate,
         capabilities_cache_service=capabilities_cache_service,
+        on_inventory_observed=on_inventory_observed,
     )
 
 

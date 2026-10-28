@@ -1,17 +1,21 @@
 /* SoAI - Chat feature assistant timeline segment patching [frontend/assets/ts/features/chat/message/assistantTimelineSegmentPatching.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { CHAT_MESSAGE_ENTER_PRESERVED_CLASS_NAMES } from '@features/chat/message/messageMotion.ts';
 import { createHtmlFragment } from '@core/dom/html.ts';
-import { haveEqualChildNodes, syncAttributes, syncClass } from '@core/dom/patching.ts';
+import { preserveBoundedVerticalResizeState } from '@core/dom/boundedVerticalResize.ts';
+import { haveEqualChildNodes, syncAttributeValue, syncAttributes, syncClass } from '@core/dom/patching.ts';
 import { patchAssistantBodyChildrenInPlace } from '@features/chat/message/assistantBodyKeyedReconciler.ts';
 import { reconcileAssistantDom } from '@features/chat/message/assistantDomReconciler.ts';
 import type { AssistantDomStatePreservation } from '@features/chat/message/assistantDomState.ts';
 import { collectCanonicalStreamingTextChildNodes } from '@features/chat/message/assistantStreamingDomState.ts';
 import { formatAssistantBodySegmentSignature } from '@features/chat/message/assistantMessageMarkupParts.ts';
+import { ASSISTANT_ACTIVITY_WIDGETS_ATTRIBUTE } from '@features/chat/message/assistantResponseMarkup.ts';
 import { patchInlineActivityHeaderChildrenInPlace } from '@features/chat/message/messageview/inlineActivityHeaderChildrenPatching.ts';
 import { COLLAPSED_LOADING_CONTENT_SELECTOR } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
 import { patchToolDetailsMarkup } from '@features/chat/message/assistantToolDetailsPatching.ts';
 import { INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
+import { INLINE_ACTIVITY_DETAILS_EXPANDING_ATTRIBUTE, isInlineActivityDetailsClosing } from '@features/chat/message/inlineActivityDetailsMotion.ts';
 import { INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE, INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE } from '@features/chat/message/inlineActivityDetailsPendingState.ts';
 import { resolveDirectStreamSegments } from '@features/chat/stream/streamSegmentsMarker.ts';
 import { patchRevealedRichTextContent } from '@features/chat/stream/streamRichTextPatching.ts';
@@ -19,7 +23,7 @@ import { patchStreamingPlainTextContinuation } from '@features/chat/stream/strea
 import { wrapStreamingTextFadeTailHtml } from '@features/chat/stream/streamingTextFadeTail.ts';
 import { normalizeStreamingRevealTree } from '@features/chat/stream/streamingTextFadeWrap.ts';
 
-const PRESERVED_INLINE_ACTIVITY_ATTRIBUTE_NAMES = new Set<string>(['data-collapsed', INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE, INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE, INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE]);
+const PRESERVED_INLINE_ACTIVITY_ATTRIBUTE_NAMES = new Set<string>([INLINE_ACTIVITY_DETAILS_EXPANDING_ATTRIBUTE, 'data-collapsing', 'data-collapsed', INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE, INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE, INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE]);
 
 const resolveDirectInlineActionUpdateText = (root: HTMLElement): HTMLElement | null => {
     for (const child of Array.from(root.children)) {
@@ -202,7 +206,7 @@ const patchInlineActionUpdateMarkup = (existing: HTMLElement, created: HTMLEleme
     return changed;
 };
 
-const patchCollapsedLoadingContentMarkup = (inputArguments: { preserveActiveStreamingText?: boolean; existing: HTMLElement; created: HTMLElement; assistantDomState?: AssistantDomStatePreservation | null }): { patched: boolean; detailsChanged: boolean; retainedSignature?: string } => {
+const patchKeyedContainerMarkup = (inputArguments: { preserveActiveStreamingText: boolean; existing: HTMLElement; created: HTMLElement; container: HTMLElement; disableInsertAnimation: boolean; assistantDomState: AssistantDomStatePreservation | null }): { patched: boolean; detailsChanged: boolean; retainedSignature?: string } => {
     let changed = false;
     if (syncClass(inputArguments.existing, inputArguments.created)) {
         changed = true;
@@ -210,14 +214,12 @@ const patchCollapsedLoadingContentMarkup = (inputArguments: { preserveActiveStre
     if (syncAttributes({ target: inputArguments.existing, source: inputArguments.created })) {
         changed = true;
     }
-    const existingStreamSegments = resolveDirectStreamSegments(inputArguments.existing);
-    const patchContainer = existingStreamSegments ?? inputArguments.existing;
     const contentChanged = patchAssistantBodyChildrenInPlace({
-        container: patchContainer,
+        container: inputArguments.container,
         nextContainer: inputArguments.created,
-        assistantDomState: inputArguments.assistantDomState ?? null,
-        disableInsertAnimation: true,
-        patchExistingChild: (patchArguments) => patchStreamingTimelineSegmentInPlace({ ...patchArguments, preserveActiveStreamingText: inputArguments.preserveActiveStreamingText === true })
+        assistantDomState: inputArguments.assistantDomState,
+        disableInsertAnimation: inputArguments.disableInsertAnimation,
+        patchExistingChild: (patchArguments) => patchStreamingTimelineSegmentInPlace({ ...patchArguments, preserveActiveStreamingText: inputArguments.preserveActiveStreamingText })
     });
     if (contentChanged === null) {
         return { patched: false, detailsChanged: false };
@@ -225,7 +227,7 @@ const patchCollapsedLoadingContentMarkup = (inputArguments: { preserveActiveStre
     return {
         patched: true,
         detailsChanged: changed || contentChanged,
-        ...(inputArguments.preserveActiveStreamingText === true ? { retainedSignature: formatAssistantBodySegmentSignature(inputArguments.existing.innerHTML) } : {})
+        ...(inputArguments.preserveActiveStreamingText ? { retainedSignature: formatAssistantBodySegmentSignature(inputArguments.existing.innerHTML) } : {})
     };
 };
 
@@ -244,7 +246,10 @@ export const patchStreamingTimelineSegmentInPlace = (inputArguments: { preserveA
             return { patched: false, detailsChanged: false };
         }
         if (existing.matches(COLLAPSED_LOADING_CONTENT_SELECTOR) && created.matches(COLLAPSED_LOADING_CONTENT_SELECTOR)) {
-            return patchCollapsedLoadingContentMarkup({ existing, created, preserveActiveStreamingText: inputArguments.preserveActiveStreamingText === true, assistantDomState: inputArguments.assistantDomState ?? null });
+            return patchKeyedContainerMarkup({ existing, created, container: resolveDirectStreamSegments(existing) ?? existing, disableInsertAnimation: true, preserveActiveStreamingText: inputArguments.preserveActiveStreamingText === true, assistantDomState: inputArguments.assistantDomState ?? null });
+        }
+        if (existing.hasAttribute(ASSISTANT_ACTIVITY_WIDGETS_ATTRIBUTE) && created.hasAttribute(ASSISTANT_ACTIVITY_WIDGETS_ATTRIBUTE)) {
+            return patchKeyedContainerMarkup({ existing, created, container: existing, disableInsertAnimation: false, preserveActiveStreamingText: false, assistantDomState: inputArguments.assistantDomState ?? null });
         }
         let changed = false;
         let completedStreamingTextInPlace = false;
@@ -271,8 +276,9 @@ export const patchStreamingTimelineSegmentInPlace = (inputArguments: { preserveA
     }
     const preservedCollapsed = existing.getAttribute('data-collapsed');
     const wasCollapsing = existing.getAttribute('data-collapsing') === 'true';
+    preserveBoundedVerticalResizeState(existing, created);
     let detailsChanged = false;
-    if (syncClass(existing, created)) {
+    if (syncClass(existing, created, CHAT_MESSAGE_ENTER_PRESERVED_CLASS_NAMES)) {
         detailsChanged = true;
     }
     if (syncAttributes({ target: existing, source: created, preservedAttributeNames: PRESERVED_INLINE_ACTIVITY_ATTRIBUTE_NAMES })) {
@@ -288,11 +294,11 @@ export const patchStreamingTimelineSegmentInPlace = (inputArguments: { preserveA
         detailsChanged = true;
     }
 
-    if (patchToolDetailsMarkup({ existing, created, patchActivity: patchStreamingTimelineSegmentInPlace, assistantDomState: inputArguments.assistantDomState ?? null, preserveOpenDetails: !wasCollapsing, applyStreamingReveal })) {
+    if (patchToolDetailsMarkup({ existing, created, patchActivity: patchStreamingTimelineSegmentInPlace, assistantDomState: inputArguments.assistantDomState ?? null, preserveOpenDetails: !wasCollapsing || isInlineActivityDetailsClosing(existing), applyStreamingReveal })) {
         detailsChanged = true;
     }
     if (!wasCollapsing && preservedCollapsed !== null && hasDirectInlineActivityDetails(existing)) {
-        existing.setAttribute('data-collapsed', preservedCollapsed);
+        syncAttributeValue(existing, 'data-collapsed', preservedCollapsed);
     }
     return { patched: true, detailsChanged };
 };

@@ -22,7 +22,6 @@ __all__ = (
     "timestamp_to_utc_log_format",
     "utc_now",
     "utc_now_iso",
-    "utc_now_iso_compact",
     "utc_now_iso_filename_safe",
     "utc_now_log_format",
 )
@@ -46,10 +45,6 @@ def utc_now_log_format() -> str:
 
 def utc_now_iso_filename_safe() -> str:
     return utc_now().strftime("%Y-%m-%dT%H-%M-%SZ")
-
-
-def utc_now_iso_compact() -> str:
-    return utc_now().strftime("%Y%m%d%H%M%S")
 
 
 def timestamp_to_utc_iso(epoch_seconds: float) -> str:

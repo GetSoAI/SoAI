@@ -9,6 +9,10 @@ import { getComputedStyleStrict, getRequestAnimationFrame } from '@core/environm
 import { HEADER_ACTION_VISIBILITY_CLASSES } from '@core/routing/pages/pageActions.ts';
 import { normalizeSelectorInput } from '@core/routing/pages/pageDom.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
+import { waitForElementAnimations } from '@core/pageTransitions.ts';
+import { errorHandler } from '@core/errorHandler.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import { isArray, isElementNode, isNodeList, isString } from '@core/typeGuards.ts';
 import type { BasePageLayoutState } from '@core/routing/pages/basepagelayout/state.ts';
 
@@ -61,12 +65,18 @@ const refreshPageHeaderTitleTightStateForElement = (element: Element | null): vo
 };
 
 const refreshPageHeaderTitleTightStateAfterActionMotion = (headerActions: HTMLElement): void => {
-    const animations = headerActions.getAnimations({ subtree: true });
+    const animations = headerActions.getAnimations({ subtree: true }).filter((animation) => Number.isFinite(animation.effect?.getComputedTiming().endTime));
     if (!animations.length) {
         refreshPageHeaderTitleTightStateForElement(headerActions);
         return;
     }
-    terminateHandledPromise(Promise.allSettled(animations.map((animation) => animation.finished)).then(() => refreshPageHeaderTitleTightStateForElement(headerActions)));
+    terminateHandledPromise(
+        waitForElementAnimations(headerActions, { ensureStarted: false, animations })
+            .catch((error) => {
+                if (!isAbortError(error)) errorHandler.warn('PageHeaderActions', 'Header action motion did not complete', ensureError(error));
+            })
+            .then(() => refreshPageHeaderTitleTightStateForElement(headerActions))
+    );
 };
 
 type HeaderActionTarget = DOMTarget | readonly HeaderActionTarget[];

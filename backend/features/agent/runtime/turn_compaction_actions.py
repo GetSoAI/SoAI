@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from core.agent.turn_state_writer import TurnStateWriter
 from core.errors.exceptions import SoAIError, ValidationError
 from core.events.types_base import Event
+from core.openai.context_overflow_validation import extract_context_overflow_validation
 from core.openai.tool_message_sequence_repair import (
     repair_openai_tool_message_sequence_for_internal_contracts,
 )
@@ -234,6 +236,18 @@ async def try_compact_message_history(
             )
         raise
     except SoAIError as exception:
+        overflow = extract_context_overflow_validation(exception.message, exception.details)
+        if (
+            overflow is not None
+            and overflow.token_scope == "prompt"
+            and overflow.available_tokens == compaction_budget.maximum_prompt_tokens
+        ):
+            overflow = replace(
+                overflow,
+                usable_context_tokens=compaction_budget.context_window_tokens,
+                reserved_output_tokens=compaction_budget.reserved_output_tokens,
+            )
+            exception.details = overflow.to_details()
         if activity is not None and activity_scope is not None:
             await complete_auto_compaction_error_activity(
                 activity=activity,

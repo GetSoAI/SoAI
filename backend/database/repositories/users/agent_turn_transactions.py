@@ -6,6 +6,7 @@ from __future__ import annotations
 import sqlite3
 from typing import TYPE_CHECKING
 
+from core.agent.status_values import AGENT_TURN_STATUS_RUNNING
 from core.agent.turn_scope_values import TURN_SCOPE_ROOT
 from core.database.requests import (
     ClaimAgentTurnStateRequest,
@@ -14,6 +15,17 @@ from core.database.requests import (
 from core.errors.exceptions import ValidationError
 from database.core.query_execution import sync_fetch_one_as_dict
 from database.core.sqlite_errors import parse_sqlite_integrity_error
+from database.repositories.skills.activation_results import sync_commit_skill_activation_result
+from database.repositories.skills.retention import sync_reconcile_skill_retention
+from database.repositories.skills.turn_checkpoints import (
+    validate_skill_turn_admission,
+    validate_skill_turn_checkpoint,
+    write_skill_turn_checkpoint,
+)
+from database.repositories.users.agent_prompt_replay_transactions import (
+    sync_validate_replay_snapshot,
+    sync_write_prompt_replay,
+)
 from database.repositories.users.agent_turn_existing_row_validation import (
     validate_turn_claim_against_existing_row,
     validate_turn_write_against_existing_row,
@@ -160,8 +172,14 @@ def sync_write_turn_state(
     if existing_row is None:
         raise ValidationError("Agent turn must be claimed before it can be updated.")
     validate_turn_write_against_existing_row(existing_row, request)
+    validate_skill_turn_checkpoint(sqlite_conn, request, existing_row)
     try:
+        sync_commit_skill_activation_result(sqlite_conn, request)
         _write_turn_state_row(sqlite_conn, request)
+        sync_write_prompt_replay(sqlite_conn, request=request)
+        write_skill_turn_checkpoint(sqlite_conn, request)
+        if request.status != AGENT_TURN_STATUS_RUNNING:
+            sync_reconcile_skill_retention(sqlite_conn, request.user_id, request.updated_at_ms)
     except sqlite3.IntegrityError as exception:
         _raise_validation_for_integrity_error(exception)
     persisted_row = load_turn_row(
@@ -182,6 +200,8 @@ def sync_claim_turn_state(
 ) -> JSONDict:
     turn_state = request.turn_state
     validate_turn_state_request(turn_state)
+    validate_skill_turn_admission(sqlite_conn, request)
+    sync_validate_replay_snapshot(sqlite_conn, request=request)
     stale_turn_tokens: dict[str, str] = {}
     for stale_turn in request.stale_running_turns:
         stale_turn_id = stale_turn.turn_id.strip()
@@ -237,8 +257,10 @@ def sync_claim_turn_state(
     )
     if existing_row is not None:
         validate_turn_claim_against_existing_row(existing_row, turn_state)
+    validate_skill_turn_checkpoint(sqlite_conn, turn_state, existing_row)
     try:
         _write_turn_state_row(sqlite_conn, turn_state)
+        write_skill_turn_checkpoint(sqlite_conn, turn_state)
     except sqlite3.IntegrityError as exception:
         _raise_validation_for_integrity_error(exception)
     persisted_row = load_turn_row(

@@ -5,12 +5,10 @@ from __future__ import annotations
 
 from core.errors.error_types import ErrorType
 from core.system_api.websocket_payloads import build_websocket_error_payload
-from core.system_api.websocket_run_events import build_websocket_run_error_event
 from core.types.json import JSONDict
 from features.api.routes.system.events.internal_protocols import WebSocketEventTypes
 
 __all__ = (
-    "build_run_error_event",
     "build_websocket_error_event",
     "resolve_websocket_error_type_for_soai_code",
 )
@@ -50,21 +48,4 @@ def build_websocket_error_event(
         code=code,
         details=details,
         extra=extra,
-    )
-
-
-def build_run_error_event(
-    *,
-    event_type: str,
-    run_id: str,
-    message: str,
-    code: str,
-    task_id: str | None = None,
-) -> JSONDict:
-    return build_websocket_run_error_event(
-        event_type=event_type,
-        run_id=run_id,
-        message=message,
-        code=code,
-        task_id=task_id,
     )

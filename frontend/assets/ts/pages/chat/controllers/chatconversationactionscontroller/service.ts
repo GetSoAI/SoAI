@@ -3,6 +3,8 @@
 
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { notifyHandledOperationError } from '@core/operationErrorNotifier.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { SaveUnitResult } from '@core/save/public.ts';
 import { limitConversationTitleLength, sanitizeTitle } from '@features/chat/public.ts';
@@ -79,7 +81,15 @@ const persistConversationRename = async (host: ConversationActionsHost, state: C
         host.workflow.feedback.show(i18n.t('chat.conversation.titleRequired'), 'warning');
         return { type: 'stop' };
     }
-    await conversationManager.updateConversationTitle(renameState.conversationId, sanitized);
+    try {
+        await conversationManager.updateConversationTitle(renameState.conversationId, sanitized);
+    } catch (error) {
+        if (isAbortError(error)) return { type: 'stop' };
+        const runtimeError = ensureError(error);
+        errorHandler.warn('ChatPage', 'Conversation title save failed', runtimeError);
+        if (!notifyHandledOperationError(runtimeError)) host.workflow.feedback.show(i18n.t('common.errors.operationFailed'), 'warning');
+        return { type: 'stop' };
+    }
     if (state.getConversationRenameState() === renameState) {
         state.setConversationRenameState(null);
         host.workflow.notifySaveChanged();

@@ -4,13 +4,31 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
+from core.config.default_schema.routing import build_routing_defaults
+from core.config.factory import build_config
 from core.config.protocols import ConfigProtocol
+from core.config.schema_reconciliation import reconcile_config_schema
+from core.config.value_validation import is_config_dict
+from core.errors.exceptions import StateError, ValidationError
+
+if TYPE_CHECKING:
+    from core.config.value_types import ConfigDict
+    from core.types.json import JSONDict
 
 __all__ = (
     "DurableAcceptancePolicy",
     "build_durable_acceptance_policy",
+    "rebuild_durable_acceptance_policy",
+)
+
+_POLICY_ROUTING_FIELDS: tuple[str, ...] = (
+    "DURABLE_QUEUE_HARD_LIMIT_TASKS",
+    "MIN_FREE_DISK_BYTES_FOR_ACCEPT",
+    "ACCEPTANCE_DB_BUSY_TIMEOUT_SEC",
 )
 
 
@@ -27,6 +45,42 @@ def build_durable_acceptance_policy(
     *,
     database_path: str,
 ) -> DurableAcceptancePolicy:
+    return _build_policy(
+        config,
+        filesystem_path=_resolve_durable_acceptance_filesystem_path(
+            config=config,
+            database_path=database_path,
+        ),
+    )
+
+
+def rebuild_durable_acceptance_policy(
+    config_dict: JSONDict,
+    *,
+    application_base_path: str,
+    filesystem_path: str,
+) -> DurableAcceptancePolicy:
+    if not is_config_dict(config_dict):
+        raise ValidationError("Core configuration snapshot contains unsupported values.")
+    reconciled = reconcile_config_schema(schema=_policy_schema(), user=config_dict)
+    return _build_policy(
+        build_config({**config_dict, **reconciled.merged}, main_app_base_dir=application_base_path),
+        filesystem_path=filesystem_path,
+    )
+
+
+def _policy_schema() -> ConfigDict:
+    routing_defaults = build_routing_defaults().get("ROUTING")
+    if not isinstance(routing_defaults, Mapping):
+        raise StateError("Routing configuration defaults are unavailable.")
+    return {
+        "MODELS": {
+            "ROUTING": {name: routing_defaults[name] for name in _POLICY_ROUTING_FIELDS},
+        },
+    }
+
+
+def _build_policy(config: ConfigProtocol, *, filesystem_path: str) -> DurableAcceptancePolicy:
     return DurableAcceptancePolicy(
         durable_queue_hard_limit_tasks=max(
             0,
@@ -40,10 +94,7 @@ def build_durable_acceptance_policy(
             0.0,
             float(config.get_float("MODELS.ROUTING.ACCEPTANCE_DB_BUSY_TIMEOUT_SEC")),
         ),
-        filesystem_path=_resolve_durable_acceptance_filesystem_path(
-            config=config,
-            database_path=database_path,
-        ),
+        filesystem_path=filesystem_path,
     )
 
 

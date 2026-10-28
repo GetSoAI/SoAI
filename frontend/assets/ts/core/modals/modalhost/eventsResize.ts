@@ -34,13 +34,14 @@ const handleResizeStart = (state: ModalHostState, event: Event): void => {
         return;
     }
 
+    const config = state.registry.getConfig(modal.id);
+    if (!config.resizable || config.presentation === 'viewport') return;
     const direction = handle?.dataset['direction'] || '';
     const point = getClientPoint(event, content);
     if (!point) {
         return;
     }
 
-    const config = state.registry.getConfig(modal.id);
     const limits = applySizeConstraints({
         content,
         config,

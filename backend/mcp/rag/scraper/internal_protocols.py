@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Protocol, override
 import httpx2
 from charset_normalizer.models import CharsetMatches
 
+from core.browser.playwright_session_resources import PlaywrightSessionResources
 from core.browser_adblock.protocols import EasyListAdblockServiceProtocol
 from core.config.protocols import ConfigProtocol
 from core.files.protocols import FileParserProtocol
@@ -41,6 +42,7 @@ class MagicDetectorProtocol(Protocol):
 
 
 class WebContentFetcherProtocol(MCPWebFetcherProtocol, Protocol):
+    playwright_sessions: PlaywrightSessionResources
     http_client: httpx2.AsyncClient
     config: ConfigProtocol
     runtime_flags: RuntimeFlagsViewProtocol

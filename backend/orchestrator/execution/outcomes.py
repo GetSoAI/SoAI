@@ -6,14 +6,23 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.error_types import ErrorType
+from core.errors.http_status_classification import (
+    resolve_execution_error_type_for_http_status,
+)
 from core.errors.payload import ErrorPublicPayload
 from core.events.protocols import EventBusProtocol
 from core.metrics.protocols import MetricsManagerProtocol
 from core.models.protocols_database import DatabaseModelsProtocol
+from core.openai.audio_upload_responses import (
+    is_audio_upload_error_response,
+    read_audio_upload_error_response,
+)
 from core.tasks.enums import TaskStatus
 from core.tasks.errors import TASK_STATE_PERSISTENCE_FAILED_MESSAGE
+from core.tasks.orchestration_context_cache import is_current_execution_attempt
 from core.tasks.protocols import TaskRegistryProtocol
 from core.tasks.task import Task
+from core.validation.strings import coerce_required_non_empty_str
 from orchestrator.execution.dependencies import OutcomeManagerDependencies
 from orchestrator.execution.internal_protocols import DeliveryManagerProtocol
 from orchestrator.execution.outcome_failover import (
@@ -76,6 +85,35 @@ class OutcomeManager:
         is_streaming: bool = False,
         streaming_completion: StreamingCompletion | JSONDict | None = None,
     ) -> None:
+        current_task = await self._task_registry.get(task.task_id)
+        if current_task is not None and not is_current_execution_attempt(task, current_task):
+            return
+        if is_audio_upload_error_response(result):
+            status_code, error_payload = read_audio_upload_error_response(result)
+            public_error = ErrorPublicPayload(
+                code=coerce_required_non_empty_str(
+                    error_payload["type"], label="Audio upload error type"
+                ),
+                message=coerce_required_non_empty_str(
+                    error_payload["message"], label="Audio upload error message"
+                ),
+                http_status=status_code,
+            )
+            await execute_terminal_failure_outcome(
+                queue=self._queue,
+                delivery=self._delivery,
+                task_registry=self._task_registry,
+                finalization_dependencies=self._finalization_dependencies,
+                metrics=self._metrics,
+                database_api_keys=self._database_api_keys,
+                task=task,
+                reason=public_error.message,
+                status=TaskStatus.FAILED,
+                error_type=resolve_execution_error_type_for_http_status(status_code),
+                public_error=public_error,
+                audio_upload_error_response=result,
+            )
+            return
         await handle_successful_task_outcome(
             queue=self._queue,
             lifecycle=self._lifecycle,
@@ -100,6 +138,14 @@ class OutcomeManager:
         *,
         error_type: ErrorType = ErrorType.SERVER_ERROR,
     ) -> None:
+        current_task = await self._task_registry.get(task.task_id)
+        task = current_task if current_task is not None else task
+        if task.status.is_terminal() and not task.execution_timeout_pending:
+            return
+        context = task.orchestration_context
+        if context is not None and context.execution_timeout_claim is not None:
+            await self.fail_task(task, reason, allow_failover=False)
+            return
         await execute_terminal_failure_outcome(
             queue=self._queue,
             delivery=self._delivery,
@@ -124,9 +170,26 @@ class OutcomeManager:
         public_error: ErrorPublicPayload | None = None,
     ) -> None:
         cached_task = await self._task_registry.get(task.task_id)
+        if cached_task is not None and not is_current_execution_attempt(task, cached_task):
+            return
         task = cached_task if cached_task is not None else task
+        if task.status.is_terminal() and not task.execution_timeout_pending:
+            return
+        context = task.orchestration_context
+        timeout_claim = context.execution_timeout_claim if context is not None else None
+        if timeout_claim is not None:
+            public_error = timeout_claim.public_error
+            reason = public_error.message
+            error_type = ErrorType.TIMEOUT_ERROR
+            allow_failover = False
         task, did_failover = (
-            await try_failover_task(self._queue, self._lifecycle, self._transient_failures, task)
+            await try_failover_task(
+                self._queue,
+                self._lifecycle,
+                self._transient_failures,
+                task,
+                billing_failure=error_type is ErrorType.PAYMENT_REQUIRED,
+            )
             if allow_failover
             else (task, False)
         )

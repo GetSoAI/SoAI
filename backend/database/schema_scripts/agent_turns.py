@@ -6,6 +6,7 @@ from __future__ import annotations
 import sqlite3
 
 from core.validation.epoch import EPOCH_MS_MIN
+from database.schema_scripts.agent_prompt_replay import AGENT_PROMPT_REPLAY_SCHEMA_V4
 from database.sql.script import execute_sql_script
 
 __all__ = ("apply_agent_turns_schema",)
@@ -49,6 +50,7 @@ def _build_agent_turns_schema_sql() -> str:
             finished_at_ms INTEGER CHECK(finished_at_ms IS NULL OR finished_at_ms >= {EPOCH_MS_MIN}),
             manual_regeneration_request_json TEXT CHECK(manual_regeneration_request_json IS NULL OR (json_valid(manual_regeneration_request_json) AND json_type(manual_regeneration_request_json) = 'object')),
             manual_regeneration_accepted_revision INTEGER CHECK(manual_regeneration_accepted_revision IS NULL OR manual_regeneration_accepted_revision >= {EPOCH_MS_MIN}) CHECK((manual_regeneration_request_json IS NULL) = (manual_regeneration_accepted_revision IS NULL)),
+            prompt_replay_start_iteration INTEGER NOT NULL DEFAULT 0 CHECK(prompt_replay_start_iteration >= 0),
             CHECK(((turn_scope = 'root') AND parent_turn_id IS NULL AND parent_tool_call_id IS NULL AND parent_iteration_index IS NULL AND owner_task_id IS NULL) OR ((turn_scope = 'subagent') AND parent_turn_id IS NOT NULL AND length(trim(parent_turn_id)) > 0 AND parent_tool_call_id IS NOT NULL AND length(trim(parent_tool_call_id)) > 0 AND parent_iteration_index IS NOT NULL AND owner_task_id IS NOT NULL AND length(trim(owner_task_id)) > 0)),
             CHECK(((status = 'running') AND finished_at_ms IS NULL) OR ((status IN ('completed', 'cancelled', 'error', 'max_iterations', 'abandoned')) AND finished_at_ms IS NOT NULL)),
             CHECK(((status = 'max_iterations') AND reached_max_iterations = 1) OR ((status != 'max_iterations') AND reached_max_iterations = 0)),
@@ -109,3 +111,4 @@ def _build_agent_turns_schema_sql() -> str:
 
 def apply_agent_turns_schema(conn: sqlite3.Connection) -> None:
     execute_sql_script(conn, _build_agent_turns_schema_sql())
+    execute_sql_script(conn, AGENT_PROMPT_REPLAY_SCHEMA_V4)

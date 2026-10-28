@@ -3,27 +3,39 @@
 
 import type { FileExplorerBatchUploadResponse, FileExplorerUploadResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
 import { downloadAuthenticatedResponse } from '@core/api/authenticatedDownload.ts';
+import { resolveOperationCauseMessage } from '@core/errors/operationCausePresentation.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { joinVirtualPath, parentVirtualPath, toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { errorHandler } from '@core/errorHandler.ts';
+import { FILE_EXPLORER_HTTP_STATUS_MESSAGES } from '@core/api/statusMessageCatalog.ts';
+import { createDedupingOperationFailureReporter, type DedupingOperationFailureReporter } from '@core/ui/notifications/operationFailure.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import { notifyFileExplorerHttpError } from '@pages/fileexplorer/controllers/fileExplorerHttpErrorController.ts';
 import { filenameFromPath, normalizeFileExplorerRenameLeaf, toFiles, validateFileExplorerRenameLeaf } from '@pages/fileexplorer/controllers/fileExplorerOperations.ts';
 import type { FileExplorerRecentUploadController } from '@pages/fileexplorer/controllers/FileExplorerRecentUploadController.ts';
+import type { FileExplorerSelectionModel } from '@pages/fileexplorer/state/FileExplorerSelectionState.ts';
 import type { FileExplorerControllerHost, FileExplorerSelectionProvider, FileExplorerUploadMarkerSession, FileExplorerUploadUi } from '@pages/fileexplorer/types.ts';
+
+type FileExplorerDeletionOutcome = 'committed' | 'cancelled' | 'failed';
 
 class FileExplorerOperationsController {
     #host: FileExplorerControllerHost;
     #ui: FileExplorerUploadUi;
     #selection: FileExplorerSelectionProvider;
+    readonly #selectionModel: FileExplorerSelectionModel;
     #recentUploads: FileExplorerRecentUploadController;
+    readonly #operationFailures: DedupingOperationFailureReporter;
     #disposed = false;
 
-    constructor(dependencies: { host: FileExplorerControllerHost; ui: FileExplorerUploadUi; selection: FileExplorerSelectionProvider; recentUploads: FileExplorerRecentUploadController }) {
+    constructor(dependencies: { host: FileExplorerControllerHost; ui: FileExplorerUploadUi; selection: FileExplorerSelectionProvider; selectionModel: FileExplorerSelectionModel; recentUploads: FileExplorerRecentUploadController }) {
         this.#host = dependencies.host;
         this.#ui = dependencies.ui;
         this.#selection = dependencies.selection;
+        this.#selectionModel = dependencies.selectionModel;
         this.#recentUploads = dependencies.recentUploads;
+        this.#operationFailures = createDedupingOperationFailureReporter({ host: dependencies.host });
     }
 
     openUploadPicker(options?: { directory?: boolean }): void {
@@ -67,10 +79,18 @@ class FileExplorerOperationsController {
             }
             const uploadMarked = this.#recentUploads.markUploadResponse(uploadSession, response);
             if ('failed' in response && response.failed > 0) {
+                const causes = [
+                    ...new Set(
+                        response.results
+                            .filter((result) => !result.success)
+                            .map((result) => resolveOperationCauseMessage(result.code ?? null))
+                            .filter((message) => message !== null)
+                    )
+                ].join(' ');
                 if (response.succeeded > 0) {
-                    this.#host.showNotification(i18n.t('fileExplorer.notifications.uploadPartial', { succeeded: response.succeeded, failed: response.failed }), 'warning');
+                    this.#host.showNotification([i18n.t('fileExplorer.notifications.uploadPartial', { succeeded: response.succeeded, failed: response.failed }), causes].filter(Boolean).join(' '), 'warning');
                 } else {
-                    this.#host.showNotification(i18n.t('fileExplorer.notifications.uploadFailed', { succeeded: response.succeeded, failed: response.failed }), 'error');
+                    this.#host.showNotification([i18n.t('fileExplorer.notifications.uploadFailed', { succeeded: response.succeeded, failed: response.failed }), causes].filter(Boolean).join(' '), 'error');
                 }
             } else {
                 const uploadedCount = 'succeeded' in response ? response.succeeded : 1;
@@ -151,21 +171,7 @@ class FileExplorerOperationsController {
         if (source === destination) {
             throw new Error('File Explorer move requires different source and destination paths');
         }
-        try {
-            this.#requireActive();
-            await this.#host.api.move(source, destination);
-            if (this.#disposed) {
-                return;
-            }
-            await this.#refresh();
-        } catch (error) {
-            const runtimeError = ensureError(error);
-            if (this.#disposed) {
-                return;
-            }
-            this.#handleError(runtimeError, 'File Explorer move failed');
-            throw runtimeError;
-        }
+        await this.#commitMove(source, destination, false);
     }
 
     async renamePath(sourcePath: string, newLeafName: string): Promise<void> {
@@ -178,25 +184,31 @@ class FileExplorerOperationsController {
         if (source === destination) {
             throw new Error('File Explorer rename requires a different destination path');
         }
+        await this.#commitMove(source, destination, true);
+    }
+
+    async #commitMove(source: string, destination: string, renamed: boolean): Promise<void> {
+        const capturedSelection = this.#selectionModel.captureSelection([source]);
         try {
             this.#requireActive();
             await this.#host.api.move(source, destination);
             if (this.#disposed) {
                 return;
             }
-            this.#host.showNotification(i18n.t('fileExplorer.notifications.renameSuccess', { path: destination }), 'success');
+            this.#selectionModel.replaceRenamedPath(capturedSelection, source, destination);
+            if (renamed) this.#host.showNotification(i18n.t('fileExplorer.notifications.renameSuccess', { path: destination }), 'success');
             await this.#refresh();
         } catch (error) {
             const runtimeError = ensureError(error);
             if (this.#disposed) {
                 return;
             }
-            this.#handleError(runtimeError, 'File Explorer rename failed');
+            this.#handleError(runtimeError, renamed ? 'File Explorer rename failed' : 'File Explorer move failed');
             throw runtimeError;
         }
     }
 
-    async deletePath(path: string): Promise<void> {
+    async deletePath(path: string, onCommitted: () => void): Promise<FileExplorerDeletionOutcome> {
         const normalizedPath = toVirtualPath(path);
         const confirmed = await requireDialogsService().showConfirmation({
             title: i18n.t('fileExplorer.confirmations.deleteTitle'),
@@ -206,22 +218,21 @@ class FileExplorerOperationsController {
             variant: 'danger'
         });
         if (!confirmed) {
-            return;
+            return 'cancelled';
         }
         try {
             this.#requireActive();
             await this.#host.api.delete(normalizedPath);
-            if (this.#disposed) {
-                return;
-            }
-            this.#host.showNotification(i18n.t('fileExplorer.notifications.deleteSuccess', { path: normalizedPath }), 'success');
-            await this.#refresh();
         } catch (error) {
-            if (this.#disposed) {
-                return;
-            }
-            this.#handleError(ensureError(error), 'File Explorer delete failed');
+            if (this.#disposed || isAbortError(error)) return 'cancelled';
+            this.#operationFailures.report(ensureError(error), { context: 'File Explorer delete failed', notificationMessage: i18n.t('fileExplorer.status.error'), statusMessages: FILE_EXPLORER_HTTP_STATUS_MESSAGES });
+            return 'failed';
         }
+        if (this.#disposed) return 'committed';
+        onCommitted();
+        this.#host.showNotification(i18n.t('fileExplorer.notifications.deleteSuccess', { path: normalizedPath }), 'success');
+        await this.#refresh();
+        return 'committed';
     }
 
     async downloadPath(path: string, options: { signal?: AbortSignal } = {}): Promise<void> {
@@ -271,12 +282,18 @@ class FileExplorerOperationsController {
         if (marked) {
             this.#recentUploads.retainAcrossNextLoad();
         }
-        await this.#selection.refresh(marked ? uploadSession : undefined);
+        await this.#refresh(marked ? uploadSession : undefined);
     }
 
-    async #refresh(): Promise<void> {
-        this.#requireActive();
-        await this.#selection.refresh();
+    async #refresh(uploadSession?: FileExplorerUploadMarkerSession): Promise<void> {
+        if (this.#disposed) return;
+        try {
+            await this.#selection.refresh(uploadSession);
+        } catch (error) {
+            if (this.#disposed || isAbortError(error)) return;
+            errorHandler.warn('FileExplorer', 'File mutation committed before the view refresh failed', ensureError(error));
+            this.#host.showNotification(i18n.t('fileExplorer.errors.changeRefreshFailed'), 'warning');
+        }
     }
 
     #handleError(error: Error, context: string): void {
@@ -294,3 +311,4 @@ class FileExplorerOperationsController {
 }
 
 export { FileExplorerOperationsController };
+export type { FileExplorerDeletionOutcome };

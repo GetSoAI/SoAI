@@ -11,6 +11,11 @@
         animation: chat-audio-preview-pulse var(--duration-1200) var(--ease-in-out) infinite;
     }
 
+    :where(.chat-container) .voice-recording-preview-item[data-voice-recording-failed='true'] .voice-recording-preview-icon {
+        color: var(--status-orange);
+        animation: none;
+    }
+
     :where(.chat-container) .voice-recording-preview-status {
         min-width: 0;
     }

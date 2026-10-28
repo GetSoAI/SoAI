@@ -6,6 +6,7 @@ import { getCancelAnimationFrame } from '@core/environment/public.ts';
 import { resolveCanvasRenderPixelRatio } from '@core/layout/canvasGeometry.ts';
 import { EMPTY_UI_HTML } from '@core/security/uiHtml.ts';
 import { resolveCanvasBaseBackground } from '@features/charts/component/state/effects.ts';
+import { Y_AXIS_LABEL_GAP, Y_AXIS_OUTER_PADDING } from '@features/charts/rendering/axisrendering/constants.ts';
 import { createChartLayerPool } from '@features/charts/Runtime.ts';
 import type { ChartConfigurationState, ChartSurfaceState } from '@features/charts/session/chartState.ts';
 import { resizeChartSurface } from '@features/charts/session/chartSurfaceResize.ts';
@@ -15,6 +16,7 @@ class ChartSurface {
     readonly #state: ChartSurfaceState;
     readonly #configuration: ChartConfigurationState;
     readonly #resizeListeners = new Set<ChartSurfaceResizeListener>();
+    #axisLabelMeasurement: { labels: readonly string[]; font: string; width: number } | null = null;
 
     constructor(state: ChartSurfaceState, configuration: ChartConfigurationState) {
         this.#state = state;
@@ -97,6 +99,30 @@ class ChartSurface {
         return requiresResize;
     }
 
+    fitYAxisLabels(labels: readonly string[], autoScale: boolean): boolean {
+        if (this.#configuration.rightPaddingOverride !== null || labels.length === 0) return false;
+        const context = this.#state.contexts.static;
+        const { width } = this.getCanvasSize();
+        if (context === null || width <= 0) return false;
+        const font = autoScale ? '12px sans-serif' : '600 12px sans-serif';
+        let measurement = this.#axisLabelMeasurement;
+        if (measurement === null || measurement.font !== font || measurement.labels.length !== labels.length || labels.some((label, index) => label !== measurement?.labels[index])) {
+            context.save();
+            context.font = font;
+            measurement = { labels: [...labels], font, width: Math.max(...labels.map((label) => context.measureText(label).width)) };
+            context.restore();
+            this.#axisLabelMeasurement = measurement;
+        }
+        const labelWidth = measurement.width;
+        const right = Math.min(Math.max(24, Math.ceil((labelWidth + Y_AXIS_LABEL_GAP + Y_AXIS_OUTER_PADDING) / 8) * 8), Math.max(24, Math.floor(width * 0.4)));
+        if (this.#configuration.padding.right === right) return false;
+        this.#configuration.padding.right = right;
+        this.syncInteractionBounds();
+        dom.flush();
+        this.resize();
+        return true;
+    }
+
     syncInteractionBounds(): void {
         const padding = this.#configuration.padding;
         dom.setStyle(this.#state.element, '--chart-interaction-top', `${Math.max(0, padding.top)}px`);
@@ -139,6 +165,7 @@ class ChartSurface {
         this.#state.interactionCanvasDimensions = { width: 0, height: 0, dpr: 0 };
         this.#state.canvasBaseBackground = null;
         this.#resizeListeners.clear();
+        this.#axisLabelMeasurement = null;
     }
 
     #prepareContainer(): void {

@@ -13,7 +13,7 @@ from core.tasks.finalization import finalize
 from core.tasks.protocols import TaskRegistryLifecycleView
 from core.tasks.task import Task
 from core.tasks.task_lock_control import load_task_with_drop_control, task_lock_control
-from core.tasks.type_catalog import is_orchestrated_inference_task_type
+from core.tasks.type_catalog import requires_owner_terminal_settlement
 from core.timing.epoch import epoch_ms
 
 __all__ = (
@@ -46,8 +46,11 @@ async def request_task_cancellation(
 ) -> Task | None:
     normalized_reason = str(reason or "").strip() or "Cancelled by user"
     result_task = await mark_task_cancellation_requested(registry, task_id)
-    if result_task is None:
-        return None
+    if result_task is None or result_task.status.is_terminal():
+        return result_task
+    context = result_task.orchestration_context
+    if context is not None and context.execution_timeout_claim is not None:
+        return result_task
     await registry.cancellation_coordinator.cancel_scope(
         result_task.cancellation_id,
         normalized_reason,
@@ -90,7 +93,7 @@ async def cancel(
 ) -> Task | None:
     cancellation_id: str | None = None
     normalized_reason = str(reason or "").strip() or "Cancelled by user"
-    is_orchestrated = False
+    owner_settles_terminal = False
     requires_fenced_finalization = False
     result_task: Task | None = None
 
@@ -113,9 +116,13 @@ async def cancel(
             )
             await registry.update_task_cache(task)
         cancellation_id = task.cancellation_id
-        is_orchestrated = is_orchestrated_inference_task_type(task.task_type)
+        owner_settles_terminal = requires_owner_terminal_settlement(
+            task.task_type, owner_id=task.owner_id
+        )
         result_task = task
 
+    if result_task.execution_timeout_pending:
+        return result_task
     requires_fenced_finalization = (
         await registry.database_tasks.mutation_requires_fenced_finalization(task_id)
     )
@@ -128,7 +135,7 @@ async def cancel(
             normalized_reason,
             cancellation_id=cancellation_id,
         )
-    if is_orchestrated or (requires_fenced_finalization and mutation_fencing_token is None):
+    if owner_settles_terminal or (requires_fenced_finalization and mutation_fencing_token is None):
         return result_task
     return await finalize(
         registry,

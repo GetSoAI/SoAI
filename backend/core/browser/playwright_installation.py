@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import os
 import sys
-import time
 
 from core.bootstrap.playwright_browser_state import (
     is_expected_chromium_installed,
@@ -28,6 +27,7 @@ from core.concurrency.bounded_pool_lifecycle import (
     resolve_lazy_bounded_pool,
     shutdown_lazy_bounded_pool,
 )
+from core.concurrency.deadlines import deadline_after
 from core.errors.exceptions import ProcessError
 from core.files.locking import guarded_file_lock
 from core.logging.trace import get_logger
@@ -96,7 +96,7 @@ def install_chromium(
     browsers_path = runtime_directories.playwright_browsers_path
     lock_path = _compute_chromium_install_lock_path(browsers_path=browsers_path)
 
-    start_monotonic = time.monotonic()
+    install_deadline = deadline_after(timeout_sec)
     with guarded_file_lock(
         lock_path,
         timeout=float(timeout_sec),
@@ -109,12 +109,10 @@ def install_chromium(
         if not force and is_expected_chromium_installed(browsers_path=browsers_path):
             return
 
-        remaining_timeout_sec = max(
-            1,
-            int(float(timeout_sec) - (time.monotonic() - start_monotonic)),
+        install_command = build_playwright_install_command(
+            python_executable=python_executable, ceiling=install_deadline
         )
-
-        install_command = build_playwright_install_command(python_executable=python_executable)
+        remaining_timeout_sec = max(1, int(install_deadline.remaining_seconds()))
         argv = install_command.argv
         if _should_use_with_deps():
             argv = [*argv[:4], "--with-deps", *argv[4:]]

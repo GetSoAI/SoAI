@@ -11,6 +11,7 @@ from core.app.protocols import (
     CommunicationsServicesProtocol,
 )
 from core.app.service_groups import HardwareRuntimeServices
+from core.browser.playwright_session_resources import PlaywrightSessionResources
 from core.di.validation import require_dependencies
 from core.tasks.protocols import TaskTypeRoutingServiceProtocol
 from core.tasks.protocols_query import TaskRegistryQueryView
@@ -87,6 +88,7 @@ class ConfigurationServices:
 
 @dataclass(slots=True, frozen=True)
 class InfrastructureServices:
+    playwright_sessions: PlaywrightSessionResources
     event_bus: EventBusProtocol
     domain_event_delivery: DurableEventDeliveryProtocol
     log_manager: LoggingManagerProtocol
@@ -116,6 +118,7 @@ class InfrastructureServices:
     def __post_init__(self) -> None:
         require_dependencies(
             owner="InfrastructureServices",
+            playwright_sessions=self.playwright_sessions,
             event_bus=self.event_bus,
             domain_event_delivery=self.domain_event_delivery,
             log_manager=self.log_manager,

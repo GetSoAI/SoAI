@@ -10,10 +10,12 @@ from fastapi.responses import JSONResponse
 
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.hardware.soaibench_persistence import task_id_for_run
 from core.logging.trace import get_logger
 from core.state.access import AccessAction
 from core.tasks.identifiers import normalize_optional_task_id
 from core.tasks.task_cancellation import cancel
+from core.tasks.type_catalog import TASK_TYPE_HARDWARE_SOAIBENCH, TASK_TYPE_SOFTWARE_UPDATE
 from features.api.middleware.acl_enforcement import require_any_actions
 from features.api.routes.tasks.task_query_models import TaskCancelRequest
 from features.api.routes.tasks.task_visibility_rules import require_task_visibility
@@ -79,13 +81,40 @@ def register_routes(routers: ApiRouters) -> None:
         require_task_visibility(request, task, current_user)
         if task.status.is_terminal():
             _raise_terminal_task_error(request, task)
-        try:
-            updated_task = await cancel(
-                registry,
-                task_id,
-                reason=payload.reason,
-                context=request.state.context,
+        if task.task_type == TASK_TYPE_SOFTWARE_UPDATE:
+            raise_bad_request(
+                request, "Software update cancellation is unavailable.", error_type="not_cancelable"
             )
+        try:
+            if task.task_type == TASK_TYPE_HARDWARE_SOAIBENCH:
+                run_id = task.metadata.get("run_id")
+                if not isinstance(run_id, str) or not run_id.strip():
+                    raise_invalid_request(request, "Benchmark task has no run identity")
+                if task_id_for_run(run_id) != task_id:
+                    raise_invalid_request(request, "Benchmark task run identity mismatch")
+                response = await api_context.dependencies.hardware_soaibench.stop_run(
+                    run_id=run_id,
+                    user_id=task.user_id,
+                )
+                if response.get("task_id") != task_id:
+                    raise_invalid_request(request, "Benchmark cancellation identity mismatch")
+                if (
+                    response.get("accepted") is not True
+                    and response.get("stop_requested_at_ms") is None
+                ):
+                    raise_bad_request(
+                        request,
+                        "Benchmark run is no longer accepting cancellation.",
+                        error_type="invalid_state",
+                    )
+                updated_task = await registry.get(task_id, force_refresh=True)
+            else:
+                updated_task = await cancel(
+                    registry,
+                    task_id,
+                    reason=payload.reason,
+                    context=request.state.context,
+                )
         except RECOVERABLE_EXCEPTIONS as exception:
             log_exception(
                 logger,

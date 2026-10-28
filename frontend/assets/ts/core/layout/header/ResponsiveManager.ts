@@ -130,6 +130,17 @@ export class ResponsiveManager {
         }
 
         const rootStyle = getComputedStyle(root);
+        const hamburger = this.header.getDom('hamburger');
+        if (hamburger) {
+            const menu = measureLayoutBox(hamburger);
+            if (menu.width > 0 && menu.height > 0) {
+                const inlineStart = rootStyle.direction === 'rtl' ? rect.right - menu.right : menu.left - rect.left;
+                dom.setStyles(root, {
+                    '--header-menu-inset-inline-start': `${inlineStart}px`,
+                    '--header-menu-inset-block-start': `${menu.top - rect.top}px`
+                });
+            }
+        }
         const currentOffset = parseFloat(rootStyle.getPropertyValue('--layout-top-offset')) || 0;
         const currentHeaderHeight = parseFloat(rootStyle.getPropertyValue('--header-height')) || 0;
         const targetHeaderHeight = measured;

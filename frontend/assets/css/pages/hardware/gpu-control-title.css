@@ -9,6 +9,7 @@
         flex: 1 1 auto;
         min-width: 0;
         line-height: 1.2;
+        min-block-size: 2lh;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-title > .gpu-control-vendor-logo {

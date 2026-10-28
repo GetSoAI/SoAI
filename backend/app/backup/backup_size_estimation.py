@@ -9,16 +9,18 @@ import os
 from app.backup.backup_target_paths import (
     get_db_path,
     get_encryption_key_path,
-    get_files_storage_path,
     get_gpu_settings_path,
-    get_wallpaper_path,
 )
 from app.backup.backup_target_paths_extra import (
     get_core_config_path,
     get_logs_path,
     get_plugins_path,
 )
-from app.backup.internal_protocols import ConfigProviderProtocol, FilesProviderProtocol
+from app.backup.internal_protocols import (
+    ConfigProviderProtocol,
+    FilesProviderProtocol,
+    UserDataSource,
+)
 from app.backup.sqlite_backup_source import get_sqlite_source_physical_size_bytes
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import DatabaseError, StateError, ValidationError
@@ -48,6 +50,7 @@ async def estimate_backup_required_bytes(
     config: ConfigProviderProtocol,
     files: FilesProviderProtocol,
     enabled_targets_map: dict[str, bool],
+    user_data_sources: tuple[UserDataSource, ...],
 ) -> int:
     logger = get_logger(LOGGER_NAME)
     if not isinstance(enabled_targets_map, dict):
@@ -65,9 +68,7 @@ async def estimate_backup_required_bytes(
         paths_to_check.append(("ENCRYPTION_KEY", get_encryption_key_path(config, files)))
     if enabled_targets_map.get("GPU_SETTINGS"):
         paths_to_check.append(("GPU_SETTINGS", get_gpu_settings_path(config, files)))
-    if enabled_targets_map.get("USER_DATA"):
-        paths_to_check.append(("USER_DATA_WALLPAPER", get_wallpaper_path(config, files)))
-        paths_to_check.append(("USER_DATA_FILES", get_files_storage_path(config, files)))
+    paths_to_check.extend(("USER_DATA", source.source_path) for source in user_data_sources)
     if enabled_targets_map.get("LOGS"):
         paths_to_check.append(("LOGS", get_logs_path(config, files)))
     total_bytes += await _estimate_target_bytes(logger, paths_to_check)

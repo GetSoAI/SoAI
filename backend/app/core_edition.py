@@ -46,7 +46,7 @@ def build_core_edition_composition() -> EditionComposition:
             ),
             controlling_license_relative_path="LICENSE.md",
             controlling_license_name="SoAI Source-Available License 1.0",
-            evaluation_terms_relative_path="ORGANIZATION-EVALUATION-TERMS.md",
+            evaluation_terms_relative_path="ORGANIZATION_EVALUATION_TERMS.md",
             evaluation_terms_name="SoAI Organization Evaluation Terms",
             personal_purchase_terms_relative_path=None,
             personal_purchase_terms_name=None,

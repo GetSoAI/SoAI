@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import os
 import tarfile
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 
 from core.archives.constants import validate_member_name
 from core.archives.errors import ArchivePathTraversalError
@@ -27,6 +27,7 @@ def build_tar_extraction_plan(
     *,
     limits: ArchiveResourceLimits | None = None,
     budget: ArchivePlanningBudget | None = None,
+    progress_check: Callable[[], None] | None = None,
 ) -> TarExtractionPlan:
     if limits is not None and budget is not None:
         raise ValidationError("TAR planning accepts either limits or an existing budget, not both.")
@@ -39,6 +40,8 @@ def build_tar_extraction_plan(
     links: list[TarLinkMember] = []
     file_sizes: dict[str, int] = {}
     for member in members:
+        if progress_check is not None:
+            progress_check()
         _add_member_metadata(planning_budget, member)
         validated = validate_member_name(member.name)
         if validated in validated_destinations:

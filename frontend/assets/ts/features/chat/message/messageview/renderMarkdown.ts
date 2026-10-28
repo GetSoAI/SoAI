@@ -3,9 +3,12 @@
 
 import { i18n } from '@core/i18n/index.ts';
 import type { RichTextTableMode } from '@core/richtextrenderer/service.ts';
+import { resolveRenderableTableEndIndex } from '@core/richtextrenderer/tableRendering.ts';
 import { CHAT_ACTIONS } from '@features/chat/chatActionIds.ts';
+import { resolveInlineMediaCardIdentityKey, resolveInlineMediaTokenIdentity } from '@features/chat/message/enhancers/inlineMultimediaCardDataset.ts';
 import { renderInlineMediaPendingCardHtml } from '@features/chat/message/enhancers/inlineMultimediaPendingCard.ts';
-import { PREVIEW_REFERENCE_PATTERN, PREVIEW_REFERENCE_START, normalizeIndentedPreviewReferenceTokenLines, parsePreviewReferenceTokenMatch, parseTrailingPreviewReferenceDraft } from '@features/chat/message/enhancers/inlineMultimediaPreviewContract.ts';
+import { PREVIEW_REFERENCE_PATTERN, PREVIEW_REFERENCE_START, normalizeIndentedPreviewReferenceTokenLines, parsePreviewReferenceTokenMatch, parseTrailingPreviewReferenceDraft, type PreviewReferenceToken } from '@features/chat/message/enhancers/inlineMultimediaPreviewContract.ts';
+import { resolveInlineMultimediaReferenceTitle } from '@features/chat/message/enhancers/inlineMultimediaReferenceTitle.ts';
 import { resolveInlineMultimediaPreviewTokenRoute } from '@features/chat/message/enhancers/inlineMultimediaPreviewTokenResolution.ts';
 import type { ChatMessageRenderHost } from '@features/chat/message/messageview/types.ts';
 
@@ -28,7 +31,16 @@ const renderMessageCodeBlock = (host: ChatMessageRenderHost, descriptor: { html:
 };
 
 const PREVIEW_TOKEN_PLACEHOLDER_PREFIX = '\uE002SOAI_PREVIEW_';
+const PREVIEW_TABLE_REFERENCE_PLACEHOLDER_PREFIX = '\uE002SOAI_PREVIEW_TABLE_REFERENCE_';
 const PREVIEW_TOKEN_PLACEHOLDER_SUFFIX = '\uE003';
+
+const restorePreviewPlaceholders = (html: string, htmlByPlaceholder: ReadonlyMap<string, string>): string => {
+    let restoredHtml = html;
+    for (const [placeholder, replacementHtml] of htmlByPlaceholder.entries()) {
+        restoredHtml = restoredHtml.split(placeholder).join(replacementHtml);
+    }
+    return restoredHtml;
+};
 
 const protectInlinePreviewTokens = (host: ChatMessageRenderHost, content: string): { protectedContent: string; restore: (html: string) => string } => {
     PREVIEW_REFERENCE_PATTERN.lastIndex = 0;
@@ -36,7 +48,7 @@ const protectInlinePreviewTokens = (host: ChatMessageRenderHost, content: string
     const placeholderByToken = new Map<string, string>();
     const protectedContent = content.replace(PREVIEW_REFERENCE_PATTERN, (rawToken) => {
         const placeholder = `${PREVIEW_TOKEN_PLACEHOLDER_PREFIX}${nextIndex}${PREVIEW_TOKEN_PLACEHOLDER_SUFFIX}`;
-        placeholderByToken.set(placeholder, rawToken);
+        placeholderByToken.set(placeholder, host.escapeHtml(rawToken));
         nextIndex += 1;
         return placeholder;
     });
@@ -46,7 +58,7 @@ const protectInlinePreviewTokens = (host: ChatMessageRenderHost, content: string
             return protectedContent;
         }
         const placeholder = `${PREVIEW_TOKEN_PLACEHOLDER_PREFIX}${nextIndex}${PREVIEW_TOKEN_PLACEHOLDER_SUFFIX}`;
-        placeholderByToken.set(placeholder, trailingDraft.raw);
+        placeholderByToken.set(placeholder, host.escapeHtml(trailingDraft.raw));
         const draftStartIndex = protectedContent.lastIndexOf(trailingDraft.raw);
         if (draftStartIndex < 0) {
             return protectedContent;
@@ -62,13 +74,7 @@ const protectInlinePreviewTokens = (host: ChatMessageRenderHost, content: string
     }
     return {
         protectedContent: protectedContentWithDraft,
-        restore: (html: string) => {
-            let restoredHtml = html;
-            for (const [placeholder, rawToken] of placeholderByToken.entries()) {
-                restoredHtml = restoredHtml.split(placeholder).join(host.escapeHtml(rawToken));
-            }
-            return restoredHtml;
-        }
+        restore: (html: string) => restorePreviewPlaceholders(html, placeholderByToken)
     };
 };
 
@@ -103,12 +109,7 @@ const renderMarkdownTextChunk = (host: ChatMessageRenderHost, content: string, o
     );
 };
 
-const renderPendingPreviewCardFromMatch = (host: ChatMessageRenderHost, rawMatch: RegExpMatchArray): string => {
-    const token = parsePreviewReferenceTokenMatch(rawMatch);
-    if (token === null) {
-        return host.escapeHtml(String(rawMatch[0] ?? ''));
-    }
-    const routedToken = resolveInlineMultimediaPreviewTokenRoute(token);
+const renderPendingPreviewCard = (host: ChatMessageRenderHost, routedToken: PreviewReferenceToken): string => {
     return renderInlineMediaPendingCardHtml(host, {
         type: routedToken.type,
         target: routedToken.target,
@@ -117,45 +118,108 @@ const renderPendingPreviewCardFromMatch = (host: ChatMessageRenderHost, rawMatch
     });
 };
 
+const renderInlinePreviewReference = (host: ChatMessageRenderHost, routedToken: PreviewReferenceToken): string => {
+    const title = resolveInlineMultimediaReferenceTitle(routedToken) ?? routedToken.target;
+    return `<span class="chat-inline-media-reference" dir="auto" data-tooltip="${host.escapeAttribute(routedToken.target)}">${host.escapeHtml(title)}</span>`;
+};
+
+const visitPreviewReferenceSegments = (line: string, visitor: { text: (value: string) => void; reference: (rawToken: string, token: PreviewReferenceToken | null) => void }): void => {
+    PREVIEW_REFERENCE_PATTERN.lastIndex = 0;
+    let lastIndex = 0;
+    for (const rawMatch of line.matchAll(PREVIEW_REFERENCE_PATTERN)) {
+        const matchIndex = rawMatch.index;
+        const rawToken = String(rawMatch[0] ?? '');
+        if (matchIndex === undefined || !rawToken) {
+            continue;
+        }
+        visitor.text(line.slice(lastIndex, matchIndex));
+        visitor.reference(rawToken, parsePreviewReferenceTokenMatch(rawMatch));
+        lastIndex = matchIndex + rawToken.length;
+    }
+    visitor.text(line.slice(lastIndex));
+};
+
 const renderMarkdownContentWithPreviewCards = (host: ChatMessageRenderHost, content: string, options: MarkdownRenderOptions): string => {
     const parts: string[] = [];
+    const tableReferenceHtmlByPlaceholder = new Map<string, string>();
+    const tableCardTokensByIdentity = new Map<string, PreviewReferenceToken>();
+    const tableMode = options.tableMode ?? 'strict';
     let pendingText = '';
     let isInsideFencedCodeBlock = false;
+    let tableEndIndex: number | null = null;
     const lines = content.split('\n');
+    const tableDetectionLines = lines.map((line) => (line.includes(PREVIEW_REFERENCE_START) ? line.replace(PREVIEW_REFERENCE_PATTERN, PREVIEW_TABLE_REFERENCE_PLACEHOLDER_PREFIX) : line));
+    const appendPendingText = (value: string): void => {
+        pendingText += value;
+    };
     const flushPendingText = (): void => {
-        if (!pendingText) {
+        if (!pendingText.trim()) {
+            pendingText = '';
             return;
         }
-        parts.push(renderMarkdownTextChunk(host, pendingText, options));
+        parts.push(restorePreviewPlaceholders(renderMarkdownTextChunk(host, pendingText, options), tableReferenceHtmlByPlaceholder));
         pendingText = '';
+        tableReferenceHtmlByPlaceholder.clear();
+    };
+    const closeTable = (): void => {
+        tableEndIndex = null;
+        if (tableCardTokensByIdentity.size <= 0) {
+            return;
+        }
+        flushPendingText();
+        for (const routedToken of tableCardTokensByIdentity.values()) {
+            parts.push(renderPendingPreviewCard(host, routedToken));
+        }
+        tableCardTokensByIdentity.clear();
+    };
+    const appendTableReference = (rawToken: string, token: PreviewReferenceToken | null): void => {
+        const placeholder = `${PREVIEW_TABLE_REFERENCE_PLACEHOLDER_PREFIX}${String(tableReferenceHtmlByPlaceholder.size)}${PREVIEW_TOKEN_PLACEHOLDER_SUFFIX}`;
+        pendingText += placeholder;
+        if (token === null) {
+            tableReferenceHtmlByPlaceholder.set(placeholder, host.escapeHtml(rawToken));
+            return;
+        }
+        const routedToken = resolveInlineMultimediaPreviewTokenRoute(token);
+        tableReferenceHtmlByPlaceholder.set(placeholder, renderInlinePreviewReference(host, routedToken));
+        const identityKey = resolveInlineMediaCardIdentityKey(resolveInlineMediaTokenIdentity(routedToken)) ?? routedToken.raw;
+        if (!tableCardTokensByIdentity.has(identityKey)) {
+            tableCardTokensByIdentity.set(identityKey, routedToken);
+        }
+    };
+    const appendPreviewCard = (rawToken: string, token: PreviewReferenceToken | null): void => {
+        if (token === null) {
+            pendingText += rawToken;
+            return;
+        }
+        flushPendingText();
+        parts.push(renderPendingPreviewCard(host, resolveInlineMultimediaPreviewTokenRoute(token)));
     };
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
         const line = lines[lineIndex] ?? '';
         const newline = lineIndex < lines.length - 1 ? '\n' : '';
+        if (tableEndIndex !== null && lineIndex >= tableEndIndex) {
+            closeTable();
+        }
         if (FENCED_CODE_BLOCK_MARKER_PATTERN.test(line.trimStart())) {
             pendingText += `${line}${newline}`;
             isInsideFencedCodeBlock = !isInsideFencedCodeBlock;
             continue;
         }
-        if (isInsideFencedCodeBlock || !line.includes(PREVIEW_REFERENCE_START)) {
+        if (isInsideFencedCodeBlock) {
             pendingText += `${line}${newline}`;
             continue;
         }
-        PREVIEW_REFERENCE_PATTERN.lastIndex = 0;
-        let lastIndex = 0;
-        for (const rawMatch of line.matchAll(PREVIEW_REFERENCE_PATTERN)) {
-            const matchIndex = rawMatch.index;
-            const rawToken = String(rawMatch[0] ?? '');
-            if (matchIndex === undefined || !rawToken) {
-                continue;
-            }
-            pendingText += line.slice(lastIndex, matchIndex);
-            flushPendingText();
-            parts.push(renderPendingPreviewCardFromMatch(host, rawMatch));
-            lastIndex = matchIndex + rawToken.length;
+        if (tableEndIndex === null) {
+            tableEndIndex = resolveRenderableTableEndIndex(tableDetectionLines, lineIndex, tableMode);
         }
-        pendingText += `${line.slice(lastIndex)}${newline}`;
+        if (!line.includes(PREVIEW_REFERENCE_START)) {
+            pendingText += `${line}${newline}`;
+            continue;
+        }
+        visitPreviewReferenceSegments(line, { text: appendPendingText, reference: tableEndIndex === null ? appendPreviewCard : appendTableReference });
+        pendingText += newline;
     }
+    closeTable();
     flushPendingText();
     return parts.join('');
 };

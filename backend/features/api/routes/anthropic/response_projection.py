@@ -219,7 +219,7 @@ def build_anthropic_message_from_openai_payload(
     payload: JSONDict,
     settings: AnthropicMessageProjectionSettings,
 ) -> JSONDict:
-    transcript = OpenAIStreamTranscript(model_hint=settings.model)
+    transcript = OpenAIStreamTranscript(model_hint=settings.model, error_origin="local_terminal")
     transcript.feed(format_openai_sse_data(payload))
     transcript.finalize()
     return build_anthropic_message(transcript, settings)

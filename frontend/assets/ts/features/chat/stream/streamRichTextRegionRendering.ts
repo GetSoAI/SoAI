@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { createHtmlFragment } from '@core/dom/html.ts';
+import { collectInlineMediaCardPreservation, discardInlineMediaCardsFromPreservation, restoreInlineMediaCardsFromPreservation, type InlineMediaCardPreservation } from '@features/chat/message/assistantInlineMediaCardPreservation.ts';
+import { hasInlineMediaCards } from '@features/chat/message/enhancers/inlineMultimediaCardQueries.ts';
 import { projectStreamingRichTextBlocks, resolveStreamingMutableRenderSource, resolveStreamingMutableSource, type StreamingRichBlock, type StreamingRichBlockProjection } from '@core/richtextrenderer/streamingBlockProjection.ts';
 import type { RenderedStreamingBlockRecord, StreamingElementCache } from '@features/chat/stream/streamDomCache.ts';
 import type { StreamMessageManager } from '@features/chat/stream/streamMessageRenderingContracts.ts';
@@ -67,17 +69,22 @@ const renderMutableMarkdownSource = (source: string, messageManager: StreamMessa
     return `${prefixHtml}${messageManager.renderMarkdownContent(`\`\`\`${languageHint}\n${normalizedCode}\`\`\``)}`;
 };
 
-const parseRenderedBlock = (container: HTMLElement, block: StreamingRichBlock, markup: string): RenderedStreamingBlockRecord => {
+const parseRenderedBlock = (container: HTMLElement, block: StreamingRichBlock, markup: string, preservation: InlineMediaCardPreservation | null): RenderedStreamingBlockRecord => {
     const fragment = createHtmlFragment({
         documentRef: container.ownerDocument,
         html: markup,
         context: container
     });
-    const nodes = Array.from(fragment.children).filter((element): element is HTMLElement => element instanceof HTMLElement);
-    if (nodes.length === 0 || Array.from(fragment.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim())) {
+    if (fragment.children.length === 0 || Array.from(fragment.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim())) {
         throw new Error('Streaming rich-text immutable block did not produce canonical element children');
     }
-    container.appendChild(fragment);
+    const holder = container.ownerDocument.createElement('div');
+    holder.appendChild(fragment);
+    if (preservation !== null) {
+        restoreInlineMediaCardsFromPreservation(holder, preservation);
+    }
+    const nodes = Array.from(holder.children).filter((element): element is HTMLElement => element instanceof HTMLElement);
+    container.append(...Array.from(holder.childNodes));
     return {
         ...block,
         nodes
@@ -121,17 +128,31 @@ const cacheIsValid = (cached: StreamingElementCache, settled: HTMLElement): bool
     return settledChildren.length === cached.renderedRichNodeCount && settledChildren.length === expectedNodes.length && settledChildren.every((node, index) => node === expectedNodes[index]);
 };
 
-const removeBlocksFrom = (cached: StreamingElementCache, index: number): void => {
-    for (const record of cached.renderedRichBlocks.slice(index)) {
-        cached.renderedRichNodeCount -= record.nodes.length;
-        for (const node of record.nodes) {
+const detachBlocksFrom = (cached: StreamingElementCache, index: number): HTMLElement[] => {
+    const detached = cached.renderedRichBlocks.slice(index).flatMap((record) => record.nodes);
+    cached.renderedRichNodeCount -= detached.length;
+    cached.renderedRichBlocks.splice(index);
+    return detached;
+};
+
+const collectReusableInlineMediaCards = (nodes: readonly ChildNode[]): InlineMediaCardPreservation | null => {
+    const roots = nodes.filter((node): node is HTMLElement => node instanceof HTMLElement && hasInlineMediaCards(node));
+    return roots.length === 0 ? null : collectInlineMediaCardPreservation(roots);
+};
+
+const removeUnreusedNodes = (cached: StreamingElementCache, nodes: readonly ChildNode[]): void => {
+    if (nodes.length === 0) {
+        return;
+    }
+    const renderedNodes = new Set<ChildNode>(cached.renderedRichBlocks.flatMap((record) => record.nodes));
+    for (const node of nodes) {
+        if (!renderedNodes.has(node)) {
             node.remove();
         }
     }
-    cached.renderedRichBlocks.splice(index);
 };
 
-const retainMatchingPrefix = (cached: StreamingElementCache, blocks: readonly StreamingRichBlock[]): number => {
+const resolveMatchingPrefixCount = (cached: StreamingElementCache, blocks: readonly StreamingRichBlock[]): number => {
     let matchingCount = 0;
     while (matchingCount < cached.renderedRichBlocks.length && matchingCount < blocks.length) {
         const current = cached.renderedRichBlocks[matchingCount];
@@ -141,7 +162,6 @@ const retainMatchingPrefix = (cached: StreamingElementCache, blocks: readonly St
         }
         matchingCount += 1;
     }
-    removeBlocksFrom(cached, matchingCount);
     return matchingCount;
 };
 
@@ -169,7 +189,7 @@ const promoteMutableTail = (settled: HTMLElement, tail: HTMLElement, block: Stre
     };
 };
 
-const renderImmutableBlocks = (inputArguments: StreamingRegionRenderArguments, projection: StreamingRichBlockProjection, settled: HTMLElement, tail: HTMLElement, blocks: readonly StreamingRichBlock[], startIndex: number): { changedNodes: HTMLElement[]; promotedTail: boolean } => {
+const renderImmutableBlocks = (inputArguments: StreamingRegionRenderArguments, projection: StreamingRichBlockProjection, settled: HTMLElement, tail: HTMLElement, blocks: readonly StreamingRichBlock[], startIndex: number, preservation: InlineMediaCardPreservation | null, allowTailPromotion: boolean): { changedNodes: HTMLElement[]; promotedTail: boolean } => {
     const changedNodes: HTMLElement[] = [];
     let promotedTail = false;
     for (let index = startIndex; index < blocks.length; index += 1) {
@@ -178,33 +198,30 @@ const renderImmutableBlocks = (inputArguments: StreamingRegionRenderArguments, p
             continue;
         }
         const blockSource = projection.source.slice(block.start, block.end);
-        if (index === startIndex && canPromoteMutableTail(inputArguments.cached, projection, block, tail)) {
+        if (index === startIndex && allowTailPromotion && canPromoteMutableTail(inputArguments.cached, projection, block, tail)) {
             if (block.type === 'table') {
                 const sortableMarkup = inputArguments.messageManager.renderMarkdownContent(blockSource, { sortableTables: true });
                 patchRichTextContent(tail, sortableMarkup);
             }
             const promoted = promoteMutableTail(settled, tail, block);
+            if (preservation !== null) {
+                for (const node of promoted.nodes) {
+                    discardInlineMediaCardsFromPreservation(node, preservation);
+                }
+            }
             inputArguments.cached.renderedRichBlocks.push(promoted);
             inputArguments.cached.renderedRichNodeCount += promoted.nodes.length;
+            changedNodes.push(...promoted.nodes);
             promotedTail = true;
             continue;
         }
         const markup = block.type === 'table' ? inputArguments.messageManager.renderMarkdownContent(blockSource, { sortableTables: true }) : inputArguments.messageManager.renderStreamingMarkdownContent(blockSource);
-        const rendered = parseRenderedBlock(settled, block, markup);
+        const rendered = parseRenderedBlock(settled, block, markup, preservation);
         inputArguments.cached.renderedRichBlocks.push(rendered);
         inputArguments.cached.renderedRichNodeCount += rendered.nodes.length;
         changedNodes.push(...rendered.nodes);
     }
     return { changedNodes, promotedTail };
-};
-
-const rebuildCanonicalRegion = (inputArguments: StreamingRegionRenderArguments, settled: HTMLElement, tail: HTMLElement): boolean => {
-    const changed = settled.hasChildNodes() || tail.hasChildNodes();
-    settled.textContent = '';
-    tail.textContent = '';
-    inputArguments.cached.renderedRichBlocks = [];
-    inputArguments.cached.renderedRichNodeCount = 0;
-    return changed;
 };
 
 const clearStreamingRichTextRegion = (cached: StreamingElementCache): void => {
@@ -237,12 +254,18 @@ const renderStreamingRichTextRegion = (inputArguments: StreamingRegionRenderArgu
     const renderEpoch = inputArguments.messageManager.getWorkerRenderEpoch();
     const incrementalProjectionMatchesCache = inputArguments.cached.richTextRenderEpoch === renderEpoch && projection.reusedImmutableBlockCount === inputArguments.cached.renderedRichBlocks.length && incrementalCacheIsValid(inputArguments.cached, settled, tail);
     const rebuilt = !incrementalProjectionMatchesCache && (inputArguments.cached.richTextRenderEpoch !== renderEpoch || !cacheIsValid(inputArguments.cached, settled));
-    const rebuiltContentChanged = rebuilt ? rebuildCanonicalRegion(inputArguments, settled, tail) : false;
-    const matchingCount = incrementalProjectionMatchesCache ? inputArguments.cached.renderedRichBlocks.length : retainMatchingPrefix(inputArguments.cached, projection.immutableBlocks);
-    const immutableRender = renderImmutableBlocks(inputArguments, projection, settled, tail, projection.immutableBlocks, matchingCount);
+    const matchingCount = incrementalProjectionMatchesCache ? inputArguments.cached.renderedRichBlocks.length : rebuilt ? 0 : resolveMatchingPrefixCount(inputArguments.cached, projection.immutableBlocks);
+    const staleNodes: ChildNode[] = rebuilt ? Array.from(settled.childNodes) : detachBlocksFrom(inputArguments.cached, matchingCount);
+    if (rebuilt) {
+        inputArguments.cached.renderedRichBlocks = [];
+        inputArguments.cached.renderedRichNodeCount = 0;
+    }
+    const preservation = matchingCount < projection.immutableBlocks.length ? collectReusableInlineMediaCards([...staleNodes, tail]) : null;
+    const immutableRender = renderImmutableBlocks(inputArguments, projection, settled, tail, projection.immutableBlocks, matchingCount, preservation, !rebuilt);
+    removeUnreusedNodes(inputArguments.cached, staleNodes);
     const changedNodes = immutableRender.changedNodes;
     const mutableSource = resolveStreamingMutableSource(projection);
-    const tailChanged = rebuilt || immutableRender.promotedTail ? tail.textContent !== '' || mutableSource !== '' : previousMutableSource !== mutableSource;
+    const tailChanged = rebuilt || immutableRender.promotedTail ? tail.hasChildNodes() || mutableSource !== '' : previousMutableSource !== mutableSource;
     if (tailChanged) {
         const tailMarkup = renderMutableMarkdownSource(mutableSource, inputArguments.messageManager);
         patchRichTextContent(tail, tailMarkup);
@@ -251,7 +274,7 @@ const renderStreamingRichTextRegion = (inputArguments: StreamingRegionRenderArgu
     inputArguments.cached.richTextRenderEpoch = renderEpoch;
     inputArguments.cached.richTextProjection = projection;
     return {
-        updated: rebuiltContentChanged || changedNodes.length > 0 || tailChanged,
+        updated: staleNodes.length > 0 || changedNodes.length > 0 || tailChanged,
         postRenderTargets: Array.from(new Set(changedNodes))
     };
 };

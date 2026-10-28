@@ -39,14 +39,12 @@ PLUGIN_MANIFEST_READ_EXCEPTIONS = RECOVERABLE_EXCEPTIONS + (
 
 
 def read_plugin_manifest_from_disk(
-    manager: PluginManagerRuntimeProtocol,
     plugin_name: str,
     *,
     enforce_safety_validation: bool = True,
     package_audit: PluginPackageAudit,
 ) -> JSONDict:
     manifest = extract_plugin_manifest_from_disk(
-        manager,
         plugin_name,
         enforce_safety_validation=enforce_safety_validation,
         package_audit=package_audit,
@@ -90,7 +88,6 @@ async def read_plugin_manifests_from_disk(
                 )
             manifest = await asyncio.to_thread(
                 read_plugin_manifest_from_disk,
-                manager,
                 plugin_name,
                 enforce_safety_validation=enforce_safety_validation,
                 package_audit=package_audit,

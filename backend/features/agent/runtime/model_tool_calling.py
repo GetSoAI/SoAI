@@ -12,19 +12,16 @@ from core.openai.capability_checks import (
     is_openai_model_capability_enabled,
     is_openai_model_vision_input_supported,
 )
-from core.openai.request_fields import resolve_optional_model_name
 from core.validation.strings import coerce_optional_trimmed_str
 
 if TYPE_CHECKING:
     from core.types.json import JSONValue
     from features.api.runtime.container.types import ApiDependencies
-    from features.api.runtime.context import ApiContext
 
 __all__ = (
     "build_supports_tool_calling_callable",
     "model_supports_tool_calling",
     "model_supports_vision_input",
-    "request_model_supports_tool_calling",
 )
 
 
@@ -134,13 +131,3 @@ async def model_supports_vision_input(
     if not is_model_info_active_and_enabled(model_info):
         return False
     return is_openai_model_vision_input_supported(model_info)
-
-
-async def request_model_supports_tool_calling(
-    api_context: ApiContext,
-    request_json: Mapping[str, JSONValue],
-) -> bool:
-    model_name = resolve_optional_model_name(request_json)
-    if model_name is None:
-        return False
-    return await model_supports_tool_calling(api_context.dependencies, model_name)

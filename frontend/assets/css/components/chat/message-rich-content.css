@@ -259,6 +259,8 @@
     }
 
     :where(.chat-container) .message-error {
+        --presence-scale-from: 1;
+        --presence-blur-from: 0;
         display: inline-flex;
         align-items: flex-start;
         gap: var(--space-2);

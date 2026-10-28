@@ -32,24 +32,24 @@ const renderAutomationOccurrenceModalMarkup = (): TrustedHtml => {
         uiHtml`<div class="automation-occurrence-modal-body">
             <section id="${modalUiId(modalId, 'summary')}" class="automation-occurrence-summary" aria-labelledby="${titleId}">
                 <div class="automation-occurrence-summary-main">
-                    <div id="${modalUiId(modalId, 'occurrence-title')}" class="automation-occurrence-title">${unsetPlaceholder}</div>
-                    <div id="${modalUiId(modalId, 'when')}" class="automation-occurrence-when">${unsetPlaceholder}</div>
+                    <div id="${modalUiId(modalId, 'occurrence-title')}" class="automation-occurrence-title" data-modal-localize="text">${unsetPlaceholder}</div>
+                    <div id="${modalUiId(modalId, 'when')}" class="automation-occurrence-when" data-modal-localize="text">${unsetPlaceholder}</div>
                 </div>
                 <div class="automation-occurrence-summary-side">
-                    <span id="${modalUiId(modalId, 'status')}" class="ui-status-badge status-grey">${unsetPlaceholder}</span>
+                    <span id="${modalUiId(modalId, 'status')}" class="ui-status-badge status-grey" data-modal-localize="text">${unsetPlaceholder}</span>
                 </div>
             </section>
             <section class="automation-occurrence-excerpt-section" aria-labelledby="${modalUiId(modalId, 'excerpt-title')}">
-                <div id="${modalUiId(modalId, 'excerpt-title')}" class="automation-occurrence-excerpt-title">${excerptTitle}</div>
-                <div id="${modalUiId(modalId, 'excerpt')}" class="automation-occurrence-excerpt is-empty" aria-live="polite">${excerptEmpty}</div>
+                <div id="${modalUiId(modalId, 'excerpt-title')}" class="automation-occurrence-excerpt-title" data-modal-localize="text">${excerptTitle}</div>
+                <div id="${modalUiId(modalId, 'excerpt')}" class="automation-occurrence-excerpt is-empty" aria-live="polite" data-modal-localize="text">${excerptEmpty}</div>
             </section>
             <section class="automation-occurrence-plan-section" aria-labelledby="${modalUiId(modalId, 'plan-title')}">
-                <div id="${modalUiId(modalId, 'plan-title')}" class="automation-occurrence-plan-title">${planTitle}</div>
-                <div id="${modalUiId(modalId, 'plan')}" class="automation-occurrence-plan is-empty" aria-live="polite">${planEmpty}</div>
+                <div id="${modalUiId(modalId, 'plan-title')}" class="automation-occurrence-plan-title" data-modal-localize="text">${planTitle}</div>
+                <div id="${modalUiId(modalId, 'plan')}" class="automation-occurrence-plan is-empty" aria-live="polite" data-modal-localize="text">${planEmpty}</div>
             </section>
             <section class="automation-occurrence-todo-section" aria-labelledby="${modalUiId(modalId, 'todo-title')}">
-                <div id="${modalUiId(modalId, 'todo-title')}" class="automation-occurrence-todo-title">${todoTitle}</div>
-                <div id="${modalUiId(modalId, 'todo')}" class="automation-occurrence-todo is-empty" aria-live="polite">${todoEmpty}</div>
+                <div id="${modalUiId(modalId, 'todo-title')}" class="automation-occurrence-todo-title" data-modal-localize="text">${todoTitle}</div>
+                <div id="${modalUiId(modalId, 'todo')}" class="automation-occurrence-todo is-empty" aria-live="polite" data-modal-localize="text">${todoEmpty}</div>
             </section>
         </div>`,
         { className: 'modal-body--sectioned' }

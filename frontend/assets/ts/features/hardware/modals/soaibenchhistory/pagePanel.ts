@@ -7,18 +7,21 @@ import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { getCollator } from '@core/localization/intlCache.ts';
+import { getResolvedLocalizationLocale } from '@core/localization/public.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { createMicrotaskScheduler } from '@core/primitives/microtaskScheduler.ts';
 import { sleepMs } from '@core/primitives/sleepMs.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
-import { requireSortableColumn } from '@core/ui/tables/sortableTable.ts';
+import { requireSortableColumn, resolveNextSortState } from '@core/ui/tables/sortableTable.ts';
 import { requestWebSocketSnapshotRecord } from '@core/websocketclient/snapshotPayload.ts';
 import { copySoAIBenchRunExport, downloadSoAIBenchRunExport } from '@features/hardware/modals/soaibenchrun/exportActions.ts';
 import { exportRunFromHistoryRun } from '@features/hardware/modals/soaibenchrun/exportText.ts';
 import { setRunActionsDisabled } from '@features/hardware/modals/soaibenchhistory/dom.ts';
+import { resolveHistoryColumnDefaultDirection } from '@features/hardware/modals/soaibenchhistory/columns.ts';
 import { normalizeHistoryRuns } from '@features/hardware/modals/soaibenchhistory/mappers.ts';
-import { PAGE_COLUMN_KEYS, renderPageHistoryTable, type PageHistoryEntry } from '@features/hardware/modals/soaibenchhistory/pageTableDom.ts';
-import { HISTORY_SORT_DEFAULT_STATE, resolveNextHistorySortState, sortHistoryRuns, type SoAIBenchHistorySortState } from '@features/hardware/modals/soaibenchhistory/sorting.ts';
+import { PAGE_COLUMN_KEYS, renderPageHistoryTable, type PageHistoryEntry, type PageHistorySortState } from '@features/hardware/modals/soaibenchhistory/pageTableDom.ts';
+import { HISTORY_SORT_DEFAULT_STATE, compareHistoryRuns } from '@features/hardware/modals/soaibenchhistory/sorting.ts';
 import type { SoAIBenchHistoryModalDependencies, SoAIBenchHistoryModalHost, SoAIBenchHistoryOpenRequest } from '@features/hardware/modals/soaibenchhistory/types.ts';
 import { getSoAIBenchRuns } from '@features/hardware/soaibenchRunsIndex.ts';
 
@@ -42,7 +45,8 @@ class SoAIBenchHistoryPagePanel {
     #streamRuns: ReturnType<typeof getSoAIBenchRuns> = [];
     #requestSerial = 0;
     #initialized = false;
-    #sortState: SoAIBenchHistorySortState = HISTORY_SORT_DEFAULT_STATE;
+    #sortState: PageHistorySortState = HISTORY_SORT_DEFAULT_STATE;
+    #reorderPending = false;
 
     constructor({ host, confirmDeleteLocalRun, deleteLocalRun, publishRun }: SoAIBenchHistoryModalDependencies) {
         this.#host = host;
@@ -72,12 +76,14 @@ class SoAIBenchHistoryPagePanel {
         this.#streamRuns = [];
         this.#busyRunIds.clear();
         this.#sortState = HISTORY_SORT_DEFAULT_STATE;
+        this.#reorderPending = false;
         this.#initialized = false;
     }
 
     handleSortAction(header: HTMLElement): void {
-        const sortColumn = requireSortableColumn(PAGE_COLUMN_KEYS, header.dataset['sort'] ?? '', 'SoAIBench page history');
-        this.#sortState = resolveNextHistorySortState(this.#sortState, sortColumn);
+        const sortColumn = requireSortableColumn(PAGE_COLUMN_KEYS, header.dataset['sort'] ?? '', 'SoAI Bench page history');
+        this.#sortState = resolveNextSortState(this.#sortState, sortColumn, sortColumn === 'gpu' ? 'asc' : resolveHistoryColumnDefaultDirection(sortColumn));
+        this.#reorderPending = true;
         this.#scheduleRender();
     }
 
@@ -109,7 +115,7 @@ class SoAIBenchHistoryPagePanel {
         return this.#host.runWithBoundary('hardware:deleteLocalSoAIBenchPageHistoryRun', async () => {
             if (this.#busyRunIds.has(runId)) return;
             const entry = this.#requireEntry(runId);
-            if (entry.run.status === 'running') throw new Error('Running SoAIBench history cannot be deleted');
+            if (entry.run.status === 'running') throw new Error('Running SoAI Bench history cannot be deleted');
             this.#setRunBusy(runId, true);
             try {
                 if (!(await this.#confirmDeleteLocalRun())) return;
@@ -254,25 +260,22 @@ class SoAIBenchHistoryPagePanel {
         this.#entriesByDevice.delete(deviceId);
         this.#loadingDevices.delete(deviceId);
         this.#failedDevices.add(deviceId);
-        errorHandler.error('SoAIBenchHistoryPagePanel', `Failed to load SoAIBench history for ${deviceId}`, error);
+        errorHandler.error('SoAIBenchHistoryPagePanel', `Failed to load SoAI Bench history for ${deviceId}`, error);
         this.#scheduleRender();
     }
 
     #render(): void {
+        const animateReorder = this.#reorderPending;
+        this.#reorderPending = false;
         if (!(dom.resolve('#hardware-soaibench-history-panel') instanceof HTMLElement)) return;
-        const entries = [...this.#entriesByDevice.values()].flatMap((deviceEntries) => deviceEntries);
-        const byRun = new Map(entries.map((entry) => [entry.run, entry]));
-        const sortedEntries = sortHistoryRuns(
-            entries.map((entry) => entry.run),
-            this.#sortState
-        ).map((run) => {
-            const entry = byRun.get(run);
-            if (!entry) throw new Error('SoAIBench history entry missing');
-            const request = this.#devices.get(entry.request.deviceId) ?? entry.request;
-            return { request, run };
+        const entries = [...this.#entriesByDevice.values()].flatMap((deviceEntries) => deviceEntries).map((entry) => ({ request: this.#devices.get(entry.request.deviceId) ?? entry.request, run: entry.run }));
+        const { column, direction } = this.#sortState;
+        const sortedEntries = entries.sort((left, right) => {
+            const comparison = column === 'gpu' ? getCollator(getResolvedLocalizationLocale(), { numeric: true, sensitivity: 'base' }).compare(left.request.gpuName, right.request.gpuName) : compareHistoryRuns(left.run, right.run, column);
+            return comparison * (direction === 'asc' ? 1 : -1);
         });
         const stateText = this.#failedDevices.size ? i18n.t('hardware.modals.soaibenchHistory.pageLoadFailed') : this.#loadingDevices.size && !entries.length ? i18n.t('hardware.modals.soaibenchHistory.loading') : !entries.length ? i18n.t('hardware.modals.soaibenchHistory.pageEmpty') : null;
-        renderPageHistoryTable(this.#host, sortedEntries, this.#sortState, stateText, this.#busyRunIds);
+        renderPageHistoryTable(this.#host, sortedEntries, this.#sortState, stateText, this.#busyRunIds, animateReorder);
     }
 }
 

@@ -3,7 +3,11 @@
 
 import { i18n } from '@core/i18n/index.ts';
 import { joinVirtualPath, parentVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
-import { resolveFileExplorerPreviewHeaderDescriptionForFile } from '@core/ui/modals/contentpreview/headerDescriptions.ts';
+import { resolveFileExplorerPreviewHeaderDescription } from '@core/ui/modals/contentpreview/headerDescriptions.ts';
+import type { FileBrowserMetadata } from '@core/fileexplorerbrowser/types.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { resolveFileEntryTypeLabel } from '@core/fileexplorerbrowser/entryTypeLabels.ts';
 import { requireContentPreviewModalService } from '@core/ui/modals/contentpreview/service.ts';
 import type { ContentPreviewTextDraftSnapshot, ContentPreviewTextSaveResult } from '@core/ui/modals/contentpreview/types.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
@@ -19,9 +23,10 @@ interface FileExplorerContentPreviewModalStateHost {
     createFile(path: string, content: string): Promise<void>;
     movePath(sourcePath: string, destinationPath: string): Promise<void>;
     downloadPath(path: string): Promise<void>;
+    loadMetadata(path: string): Promise<FileBrowserMetadata>;
 }
 
-const buildCommittedTextSaveResult = (path: string, content: string, mimeType: string): ContentPreviewTextSaveResult =>
+const buildCommittedTextSaveResult = (path: string, content: string, headerDescription: string): ContentPreviewTextSaveResult =>
     Object.freeze({
         baseline: Object.freeze({
             title: filenameFromPath(path),
@@ -29,7 +34,7 @@ const buildCommittedTextSaveResult = (path: string, content: string, mimeType: s
             promptColor: null
         }),
         sourceReference: Object.freeze({ type: 'path', value: path }),
-        headerDescription: resolveFileExplorerPreviewHeaderDescriptionForFile(mimeType)
+        headerDescription
     });
 
 class FileExplorerContentPreviewModalStateController {
@@ -56,7 +61,10 @@ class FileExplorerContentPreviewModalStateController {
         this.#path = null;
         this.#baselineContent = null;
         this.#isNewFile = false;
-        this.#saveInProgress = false;
+    }
+
+    invalidatePendingSaveResult(): void {
+        this.#stateRevision += 1;
     }
 
     getPath(): string | null {
@@ -82,7 +90,7 @@ class FileExplorerContentPreviewModalStateController {
         });
     }
 
-    async applySave(draft: ContentPreviewTextDraftSnapshot, mimeType: string): Promise<ContentPreviewTextSaveResult | null> {
+    async applySave(draft: ContentPreviewTextDraftSnapshot): Promise<ContentPreviewTextSaveResult | null> {
         const path = this.#path;
         if (!path) {
             throw new Error('File content preview modal cannot save before a file is opened');
@@ -112,11 +120,6 @@ class FileExplorerContentPreviewModalStateController {
                 });
                 committedPath = outcome.committedPath;
                 if (outcome.renameError) {
-                    errorHandler.warn('FileExplorerContentPreview', 'File content committed before rename failed', {
-                        sourcePath: path,
-                        destinationPath: requestedPath,
-                        error: outcome.renameError
-                    });
                     if (this.#stateRevision !== stateRevision) {
                         return null;
                     }
@@ -124,7 +127,7 @@ class FileExplorerContentPreviewModalStateController {
                     this.#baselineContent = content;
                     this.#isNewFile = false;
                     this.#host.showNotification(i18n.t('fileExplorer.modal.saveRenameFailed'), 'warning');
-                    return buildCommittedTextSaveResult(path, content, mimeType);
+                    return await this.#committedResult(path, content, stateRevision);
                 }
             }
             if (this.#stateRevision !== stateRevision) {
@@ -134,10 +137,24 @@ class FileExplorerContentPreviewModalStateController {
             this.#baselineContent = content;
             this.#isNewFile = false;
             this.#host.showNotification(i18n.t('fileExplorer.modal.saveSuccess'), 'success');
-            return buildCommittedTextSaveResult(committedPath, content, mimeType);
+            return await this.#committedResult(committedPath, content, stateRevision);
         } finally {
             this.#saveInProgress = false;
         }
+    }
+
+    async #committedResult(path: string, content: string, stateRevision: number): Promise<ContentPreviewTextSaveResult | null> {
+        let headerDescription = resolveFileEntryTypeLabel('text');
+        try {
+            const metadata = await this.#host.loadMetadata(path);
+            headerDescription = resolveFileExplorerPreviewHeaderDescription(metadata);
+        } catch (error) {
+            if (this.#stateRevision !== stateRevision || isAbortError(error)) return null;
+            errorHandler.warn('FileExplorerContentPreview', 'File content committed before its metadata refresh failed', ensureError(error));
+            this.#host.showNotification(i18n.t('fileExplorer.errors.changeRefreshFailed'), 'warning');
+        }
+        if (this.#stateRevision !== stateRevision) return null;
+        return buildCommittedTextSaveResult(path, content, headerDescription);
     }
 
     async downloadCurrent(): Promise<void> {

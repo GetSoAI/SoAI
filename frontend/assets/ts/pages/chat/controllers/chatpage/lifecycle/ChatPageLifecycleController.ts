@@ -145,7 +145,9 @@ class ChatPageLifecycleController {
         this.#page.lifecycleResources.chatActivityExit = null;
         this.#page.runtimeServices.presence.setPageVisible(false);
         await suspendChatPageVisibilityRuntime({
-            saveStorageState: () => this.#page.conversationRuntime.requireStorage().saveState(true),
+            saveStorageState: () => {
+                if (this.#page.conversationRuntime.hasStorage()) this.#page.conversationRuntime.requireStorage().saveState(true);
+            },
             stopVoiceCallIfHidden: async () => this.#page.voiceSession.stopCall('hide'),
             disposeAudioManager: () => this.#page.voiceSession.disposeAudio(),
             stopTtsManager: () => this.#page.voiceSession.stopSpeaking(),
@@ -231,7 +233,7 @@ class ChatPageLifecycleController {
         this.#page.operations.suspendStreamPresentation();
         this.#controls.abortListeners('chat-page-destroy');
         this.#page.lifecycleResources.beginDestroy(this.#page.taskScope);
-        this.#page.turnRuntime.requireAgent().dispose();
+        this.#page.turnRuntime.optionalAgent()?.dispose();
         await this.#page.voiceSession.dispose();
         this.#page.lifecycleResources.clearViewportResizeCleanup();
         this.#page.operations.disposePage();

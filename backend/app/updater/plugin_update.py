@@ -6,16 +6,17 @@ from __future__ import annotations
 import ssl
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from urllib import request
+from urllib.parse import quote
 
 from app.updater.dependencies import PluginUpdateServiceDependencies
-from app.updater.networking import open_url
+from core.concurrency.deadlines import deadline_after
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from core.serialization.json_parsing import parse_json_value
-from core.system_api.route_paths import SOAI_ACTIONS_PREFIX
-from core.validation.boolean_coercion import coerce_payload_bool
+from core.plugins.backend_update_results import normalize_backend_update_result
+from core.system_api.route_paths import SOAI_ACTIONS_PREFIX, SOAI_TASKS_PREFIX
+from core.tasks.identifiers import normalize_optional_task_id
+from core.timing.constants import STANDARD_DELAY_SEC
+from core.timing.sleep import sleep_seconds
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -82,20 +83,23 @@ class PluginUpdateService:
             )
             return None
 
-    def _collect_plugins_to_update(self, updates_info: JSONDict) -> dict[str, JSONDict]:
+    def _collect_plugins_to_update(
+        self, updates_info: JSONDict
+    ) -> tuple[dict[str, JSONDict], int, int]:
         plugins_to_update: dict[str, JSONDict] = {}
+        current_count = 0
+        failure_count = 0
         for name, info in updates_info.items():
-            if not isinstance(name, str) or not isinstance(info, dict):
-                continue
-            if coerce_payload_bool(
-                info.get("update_available"),
-                logger=self._logger,
-                operation="application_updater.plugin_update.coerce_payload_bool",
-                default=False,
-                recover_message="Failed to parse plugin update payload boolean (non-critical).",
-            ):
-                plugins_to_update[name] = info
-        return plugins_to_update
+            result = normalize_backend_update_result(info, installed=True)
+            if result.status == "update_available":
+                plugins_to_update[name] = result.payload
+            elif result.status == "current":
+                current_count += 1
+            elif result.status == "check_failed":
+                error = result.payload.get("error")
+                if not isinstance(error, dict) or error.get("code") != "not_implemented":
+                    failure_count += 1
+        return plugins_to_update, current_count, failure_count
 
     def _emit_plugin_update_listing(self, plugins_to_update: dict[str, JSONDict]) -> None:
         self._logger.info("The following plugin updates are available:")
@@ -108,79 +112,73 @@ class PluginUpdateService:
             )
 
     def run_plugin_update(self) -> int:
-        self._logger.info("%s\nSoAI Plugin Updater Started\n%s", "=" * 60, "=" * 60)
-        context = self._get_plugin_updates_info()
-        if context is None:
-            return 1
-        plugins_to_update = self._collect_plugins_to_update(context.updates_info)
-        if not plugins_to_update:
-            self._logger.info("All installed plugins are up-to-date.")
-            return 0
-        self._emit_plugin_update_listing(plugins_to_update)
+        self._logger.info("Plugin backends will be checked and updated sequentially by SoAI.")
         if (not self._args.silent) and input(
-            "Proceed with plugin updates? (y/n): ",
+            "Proceed with plugin backend checks and updates? (y/n): ",
         ).lower().strip() != "y":
             self._logger.info("Plugin update cancelled by user.")
             return 0
-        self._logger.info("Starting plugin update process...")
         try:
-            request_obj = request.Request(
-                f"{context.base_url}{SOAI_ACTIONS_PREFIX}/plugins/update-all-backends",
-                method="POST",
-                headers=dict(context.request_headers),
+            base_url, headers, ssl_context = self._api_client.get_base_url_and_auth_headers(
+                timeout=self._api_timeout,
             )
-            with open_url(
-                request_obj,
-                timeout=self._stream_timeout,
-                context=context.ssl_context,
-                stream=True,
-                offline_mode=True,
-            ) as response:
-                if response.status_code not in (200, 202):
-                    self._logger.warning(
-                        "API error: %s %s\n%s",
-                        response.status_code,
-                        response.reason_phrase,
-                        response.text,
+            accepted = self._api_client.make_api_request(
+                method="POST",
+                url=f"{base_url}{SOAI_ACTIONS_PREFIX}/plugins/update-all-backends",
+                timeout=self._api_timeout,
+                headers=headers,
+                ssl_context=ssl_context,
+            )
+            task_id = normalize_optional_task_id(accepted.get("task_id")) if accepted else None
+            if task_id is None:
+                self._logger.error(
+                    "Backend update batch was not acknowledged with a task identity."
+                )
+                return 1
+            self._logger.info("Backend update batch accepted: %s", task_id)
+            deadline = deadline_after(self._stream_timeout)
+            previous_message = None
+            while not deadline.expired():
+                task = self._api_client.make_api_request(
+                    method="GET",
+                    url=f"{base_url}{SOAI_TASKS_PREFIX}/{quote(task_id, safe='')}",
+                    timeout=min(self._api_timeout, deadline.remaining_seconds()),
+                    headers=headers,
+                    ssl_context=ssl_context,
+                )
+                if task is None or task.get("task_id") != task_id:
+                    self._logger.error(
+                        "Backend update task status is unavailable; inspect task %s in SoAI.",
+                        task_id,
                     )
                     return 1
-                for line in response.iter_lines():
-                    line_str = (line or "").strip()
-                    if not line_str.startswith("data: "):
-                        continue
-                    try:
-                        data = parse_json_value(line_str[6:])
-                        if not isinstance(data, dict):
-                            continue
-                        plugin_value = data.get("plugin")
-                        plugin = plugin_value.strip() if isinstance(plugin_value, str) else ""
-                        message = data.get("message", "No message")
-                        log_prefix = f"[{plugin.capitalize()}] " if plugin else ""
-                        is_error = data.get("type") == "TaskCompleteEvent" and (
-                            not coerce_payload_bool(
-                                data.get("success"),
-                                logger=self._logger,
-                                operation="application_updater.plugin_update.coerce_payload_bool",
-                                default=False,
-                                recover_message="Failed to parse plugin update payload boolean (non-critical).",
-                            )
-                        )
-                        (self._logger.error if is_error else self._logger.info)(
-                            "%s%s",
-                            log_prefix,
-                            message,
-                        )
-                    except ValidationError:
-                        self._logger.info(line_str)
-            self._logger.info("Plugin update process finished successfully.")
-            return 0
+                message = task.get("status_message")
+                if isinstance(message, str) and message and message != previous_message:
+                    self._logger.info("%s", message)
+                    previous_message = message
+                status = task.get("status")
+                if status == "completed":
+                    self._logger.info("Backend update batch completed successfully.")
+                    return 0
+                if status in ("failed", "cancelled"):
+                    self._logger.error(
+                        "Backend update batch ended with status %s. Inspect task %s in SoAI.",
+                        status,
+                        task_id,
+                    )
+                    return 1
+                sleep_seconds(min(STANDARD_DELAY_SEC, deadline.remaining_seconds()))
+            self._logger.error(
+                "Backend update batch has not reached a terminal state. Inspect task %s in SoAI.",
+                task_id,
+            )
+            return 1
         except RECOVERABLE_EXCEPTIONS as exception:
             log_exception(
                 self._logger,
                 exception,
-                message="An error occurred during the plugin update process.",
+                message="Backend update batch could not complete.",
                 operation=OPERATION_APPLICATION_UPDATER_UPDATE_PLUGINS,
-                level="error",
             )
             return 1
 
@@ -189,10 +187,21 @@ class PluginUpdateService:
         context = self._get_plugin_updates_info()
         if context is None:
             return 1
-        plugins_to_update = self._collect_plugins_to_update(context.updates_info)
+        plugins_to_update, current_count, failure_count = self._collect_plugins_to_update(
+            context.updates_info
+        )
+        if plugins_to_update:
+            self._emit_plugin_update_listing(plugins_to_update)
+            self._logger.info("Install plugin updates from the SoAI Web UI.")
+        if failure_count:
+            self._logger.error(
+                "%s backend update check(s) failed. Inspect plugin status in SoAI and retry.",
+                failure_count,
+            )
+            return 1
         if not plugins_to_update:
-            self._logger.info("All installed plugins are up-to-date.")
-            return 0
-        self._emit_plugin_update_listing(plugins_to_update)
-        self._logger.info("\nInstall plugin updates from the SoAI Web UI.")
+            if current_count:
+                self._logger.info("Checked backend installations are up to date.")
+            else:
+                self._logger.info("No installed backends support update checking.")
         return 0

@@ -18,6 +18,7 @@ from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.di.validation import require_dependencies
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.public_projection import project_public_error
 from core.execution.owned_execution_tasks import (
     finalize_owned_execution_task,
     mark_owned_execution_running,
@@ -237,7 +238,7 @@ class SubagentBackgroundExecutor:
                 },
             )
             final_owned_status = AGENT_TURN_STATUS_ERROR
-            final_owned_error_message = str(coerced)
+            final_owned_error_message = project_public_error(coerced).message
             final_owned_status_message = "Failed"
             await cancel_subagent_active_inference_scope_noncritical(
                 api_dependencies=self._api_dependencies,
@@ -260,7 +261,7 @@ class SubagentBackgroundExecutor:
                         user_id=subagent_tool_context.user_id,
                         turn_id=subagent_context.agent_turn_id,
                         execution_token=subagent_context.agent_turn_execution_token,
-                        error_message=str(coerced),
+                        error_message=project_public_error(coerced).message,
                         error_type=AGENT_TURN_STATUS_ERROR,
                         operation=OPERATION_SUBAGENT_BACKGROUND_EXECUTE_ERROR,
                         log_message=(

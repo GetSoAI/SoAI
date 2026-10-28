@@ -7,6 +7,7 @@ import sqlite3
 
 import aiosqlite
 
+from core.errors.exceptions import StateError
 from core.plugins.backend_variant_ids import (
     AUTO_BACKEND_VARIANT_ID,
     require_backend_variant_id,
@@ -14,6 +15,8 @@ from core.plugins.backend_variant_ids import (
 from core.timing.epoch import epoch_ms
 from core.validation.strict_numbers import require_non_negative_int_strict
 from database.core.query_execution import query_to_dicts
+from database.core.savepoints import SQLiteSavepoint
+from database.repositories.plugins.backend_update_records import sync_invalidate_backend_update
 
 __all__ = (
     "get_backend_variant_id_query",
@@ -45,10 +48,20 @@ def sync_set_backend_variant_id(
     backend_variant_id: str,
 ) -> None:
     variant_id = require_backend_variant_id(backend_variant_id)
-    conn.execute(
-        "UPDATE plugins_catalog SET backend_variant_id = ?, last_seen_at_ms = ? WHERE plugin_name = ?",
-        (variant_id, epoch_ms(), plugin_name),
-    )
+    with SQLiteSavepoint(conn, "plugin_backend_variant_selection"):
+        row = conn.execute(
+            "SELECT backend_variant_id FROM plugins_catalog WHERE plugin_name = ?",
+            (plugin_name,),
+        ).fetchone()
+        if row is None:
+            raise StateError("Plugin backend variant selection is no longer available.")
+        previous_variant = require_backend_variant_id(row[0] or AUTO_BACKEND_VARIANT_ID)
+        if previous_variant != variant_id:
+            sync_invalidate_backend_update(conn, plugin_name)
+        conn.execute(
+            "UPDATE plugins_catalog SET backend_variant_id = ?, last_seen_at_ms = ? WHERE plugin_name = ?",
+            (variant_id, epoch_ms(), plugin_name),
+        )
 
 
 def sync_update_backend_variant_available_count(

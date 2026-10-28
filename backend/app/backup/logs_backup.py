@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
+from functools import partial
 from typing import TYPE_CHECKING
 
 from app.backup.backup_removal import safe_cleanup_path
@@ -13,6 +13,7 @@ from app.backup.copy_no_symlinks.tree_copy import (
 )
 from core.backup.paths import get_backup_relative_logs_path
 from core.backup.types import BackupManifestFiles
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.filesystem.async_queries import async_isdir, async_makedirs
@@ -41,11 +42,15 @@ async def backup_logs(
     await async_makedirs(data_dir, mode=0o700, exist_ok=True)
     logs_dest = os.path.join(data_dir, "logs")
     try:
-        size, directory_hash = await asyncio.to_thread(
-            sync_copy_directory_and_hash_no_symlinks,
-            logs_path,
-            logs_dest,
-            write_reservation=disk_reservation,
+        size, directory_hash = await run_joined_thread_call(
+            partial(
+                sync_copy_directory_and_hash_no_symlinks,
+                logs_path,
+                logs_dest,
+                write_reservation=disk_reservation,
+            ),
+            task_name="backup-logs-directory-copy",
+            retain_resources_until_complete=True,
         )
         results[get_backup_relative_logs_path()] = {
             "type": "directory",

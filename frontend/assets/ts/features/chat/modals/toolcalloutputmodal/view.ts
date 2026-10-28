@@ -14,9 +14,9 @@ const renderToolCallOutputModalContent = (dependencies: ToolCallOutputModalEscap
     };
     const rendered = renderStructuredFields(host, presentation.displayRecord, { depth: 0, scrollKeyPrefix: null, path: [] });
     const warningText = i18n.t('chat.toolCallOutputModal.outputDisplayLimitNotice');
-    const warningHtml = presentation.hasDisplayTruncation ? `<div class="tool-call-output-modal-warning">${dependencies.escapeHtml(warningText)}</div>` : '';
+    const warningHtml = presentation.hasDisplayTruncation ? `<div class="tool-call-output-modal-warning" data-modal-localize="text">${dependencies.escapeHtml(warningText)}</div>` : '';
     const loadMoreTooltip = dependencies.escapeAttribute(i18n.t('chat.toolCallOutputModal.loadMoreLiveHistory'));
-    const loadMoreHtml = presentation.nextBeforeLiveSequence === null ? '' : ['<div class="tool-call-output-modal-live-history-actions">', `<button type="button" data-action="tool-call-live-history-load-more" aria-label="${loadMoreTooltip}" data-tooltip="${loadMoreTooltip}">`, dependencies.escapeHtml(i18n.t('chat.toolCallOutputModal.loadMoreLiveHistory')), '</button>', '</div>'].join('');
+    const loadMoreHtml = presentation.nextBeforeLiveSequence === null ? '' : ['<div class="tool-call-output-modal-live-history-actions">', `<button type="button" data-action="tool-call-live-history-load-more" aria-label="${loadMoreTooltip}" data-tooltip="${loadMoreTooltip}" data-modal-localize="aria-label data-tooltip">`, dependencies.escapeHtml(i18n.t('chat.toolCallOutputModal.loadMoreLiveHistory')), '</button>', '</div>'].join('');
     return {
         html: `<div class="tool-call-output-modal-content">${warningHtml}${rendered}${loadMoreHtml}</div>`,
         copyText: presentation.copyText,

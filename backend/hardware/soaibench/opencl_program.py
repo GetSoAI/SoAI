@@ -21,7 +21,6 @@ __all__ = (
     "create_program",
     "enqueue_kernel",
     "finish_queue",
-    "read_float_buffer",
     "read_float_buffer_positions",
     "release_buffer",
     "release_kernel",
@@ -133,13 +132,20 @@ def set_uint_arg(runtime: OpenCLRuntime, kernel: int, index: int, value: int) ->
     check_opencl_result(int(code), "opencl_runtime_error", "OpenCL uint arg failed.")
 
 
-def enqueue_kernel(runtime: OpenCLRuntime, kernel: int, global_size_value: int) -> None:
+def enqueue_kernel(
+    runtime: OpenCLRuntime,
+    kernel: int,
+    global_size_value: int,
+    *,
+    global_offset_value: int = 0,
+) -> None:
     global_size = (ctypes.c_size_t * 1)(global_size_value)
+    global_offset = (ctypes.c_size_t * 1)(global_offset_value) if global_offset_value else None
     code = runtime.bindings.library.clEnqueueNDRangeKernel(
         ctypes.c_void_p(runtime.queue),
         ctypes.c_void_p(kernel),
         1,
-        None,
+        global_offset,
         global_size,
         None,
         0,
@@ -152,23 +158,6 @@ def enqueue_kernel(runtime: OpenCLRuntime, kernel: int, global_size_value: int) 
 def finish_queue(runtime: OpenCLRuntime) -> None:
     code = runtime.bindings.library.clFinish(ctypes.c_void_p(runtime.queue))
     check_opencl_result(int(code), "opencl_runtime_error", "OpenCL queue finish failed.")
-
-
-def read_float_buffer(runtime: OpenCLRuntime, buffer: int, count: int) -> list[float]:
-    data = (ctypes.c_float * count)()
-    code = runtime.bindings.library.clEnqueueReadBuffer(
-        ctypes.c_void_p(runtime.queue),
-        ctypes.c_void_p(buffer),
-        CL_TRUE,
-        0,
-        ctypes.sizeof(data),
-        ctypes.c_void_p(ctypes.addressof(data)),
-        0,
-        None,
-        None,
-    )
-    check_opencl_result(int(code), "opencl_runtime_error", "OpenCL buffer read failed.")
-    return [float(value) for value in data]
 
 
 def read_float_buffer_positions(

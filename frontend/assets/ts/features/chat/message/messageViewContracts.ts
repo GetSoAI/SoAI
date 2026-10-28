@@ -1,6 +1,7 @@
 /* SoAI - Chat message view dependency contracts [frontend/assets/ts/features/chat/message/messageViewContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { AssistantResponseDurationState } from '@features/chat/message/assistantResponseDuration.ts';
 import type { AgentCanonicalPlan } from '@core/chat/agentTypes.ts';
 import type { SanitizerApi } from '@core/pagecontext/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
@@ -37,6 +38,7 @@ interface ChatMessageViewDependencies {
     getCurrentRunningActivitySnapshot: () => ConversationRunningActivitySnapshot | null;
     getMessageSenderLabel: (source: ConversationMessage, defaultRole: string) => string;
     resolveMessageContentSegments: (message: ChatMessage) => MessageSegment[];
+    resolveAssistantResponseDuration(message: ChatMessage, nowMs: number): AssistantResponseDurationState;
     resolveRunningActivitySummaryForMarkup: (message: ChatMessage, nowMs: number) => RunningActivitySummary;
     getPreRenderedAssistantBodyHtml: (message: ChatMessage) => string | null;
     getLoadingActivityCollapsedState: (message: ChatMessage) => boolean | null;

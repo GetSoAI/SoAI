@@ -39,4 +39,6 @@ const resolveClosestModalId = (element: Element | null): string | null => {
     return id ? id : null;
 };
 
-export { getClientPoint, resolveClosestModalId };
+const resolveModalCloseTrigger = (target: Element | null): Element | null => target?.closest('[data-modal-close]') ?? null;
+
+export { getClientPoint, resolveClosestModalId, resolveModalCloseTrigger };

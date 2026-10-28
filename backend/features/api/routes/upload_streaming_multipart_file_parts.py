@@ -11,11 +11,13 @@ from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import PayloadTooLargeError, StateError, ValidationError
+from core.errors.public_projection import apply_public_error_payload, project_public_exception
 from core.files.generated_names import normalize_upload_suffix
 from core.files.operations import secure_filename
 from core.files.temp_files import create_secure_temp_file_descriptor
 from core.files.upload_size_validation import UPLOAD_MAX_SIZE_EXCEEDED_MESSAGE
 from core.filesystem.file_sync import flush_and_fsync_file
+from core.filesystem.operation_errors import build_filesystem_operation_error
 from core.logging.protocols import TraceLogger
 from features.api.routes.internal_protocols import (
     MultipartBytesReporter,
@@ -167,7 +169,9 @@ class StreamingMultipartTempFileWriter:
                     written_total += written
                     self._write_controller.record_written_bytes(written)
             except (OSError, ValueError) as exception:
-                raise StateError("Failed to write upload stream bytes.") from exception
+                raise _staging_io_failure(
+                    "Failed to write upload stream bytes.", exception
+                ) from exception
         self._size_bytes = next_size
         self._parts.file_bytes_done = next_total
         now = time.monotonic()
@@ -187,7 +191,9 @@ class StreamingMultipartTempFileWriter:
         try:
             flush_and_fsync_file(handle)
         except (OSError, ValueError) as exception:
-            raise StateError("Failed to finalize staged upload part.") from exception
+            raise _staging_io_failure(
+                "Failed to finalize staged upload part.", exception
+            ) from exception
         self._report_bytes(self._parts.file_bytes_done)
         staged = StreamingStagedPart(
             field_name=self._field_name,
@@ -241,3 +247,12 @@ def build_streaming_multipart_file_factory(
         )
 
     return create_writer
+
+
+def _staging_io_failure(message: str, cause: OSError | ValueError) -> StateError:
+    failure = StateError(message, cause=cause)
+    if isinstance(cause, OSError):
+        apply_public_error_payload(
+            failure, project_public_exception(build_filesystem_operation_error(cause))
+        )
+    return failure

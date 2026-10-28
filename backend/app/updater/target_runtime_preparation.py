@@ -7,6 +7,7 @@ import os
 from subprocess import CalledProcessError
 
 from app.edition_composition import UpdaterComposition
+from core.bootstrap.backend_bytecode import compile_backend_bytecode
 from core.bootstrap.python_dependencies import bootstrap_python_dependencies_if_needed
 from core.bootstrap.venv_paths import get_venv_path, get_venv_python_executable
 from core.config.numeric import coerce_int_or_none
@@ -54,6 +55,16 @@ def prepare_target_update_runtime(
             level="error",
         )
         return False
+    try:
+        compile_backend_bytecode(base_path)
+    except DEPENDENCY_PREPARATION_EXCEPTIONS as exception:
+        log_handled_exception(
+            logger,
+            exception,
+            message="Target backend bytecode preparation failed; SoAI compiles on demand.",
+            operation=OPERATION_PREPARE_DEPENDENCIES,
+            level="warning",
+        )
     hook_module = updater.post_update_hook_module
     hook_script = os.path.join(
         base_path,
@@ -74,13 +85,18 @@ def prepare_target_update_runtime(
                 if existing_pythonpath
                 else pythonpath
             )
-            result = run_argv_capture(
-                [runtime_python, "-P", "-m", hook_module],
-                cwd=base_path,
-                timeout=hook_timeout,
-                check=True,
-                env=env,
-            )
+            hook_argv = [runtime_python, "-P", "-m", hook_module]
+            result = run_argv_capture(hook_argv, cwd=base_path, timeout=hook_timeout, env=env)
+            if result.timed_out:
+                logger.error(
+                    "Post-update hook stopped at the configured %s limit of %d seconds.",
+                    "SYSTEM.UPDATER.POST_UPDATE_HOOK_TIMEOUT_SEC",
+                    hook_timeout,
+                )
+            if result.timed_out or result.return_code != 0:
+                raise CalledProcessError(
+                    result.return_code, hook_argv, output=result.stdout, stderr=result.stderr
+                )
             logger.info("Post-update hook finished successfully:\n%s", result.stdout)
         except CalledProcessError as exception:
             log_handled_exception(

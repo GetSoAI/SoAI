@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
+from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.serialization.json import serialize_json_compact_stable
 from core.tasks.status_transitions import update_progress
 from core.timing.epoch import epoch_ms
@@ -83,13 +85,25 @@ async def read_worker_telemetry(
     runtime_context: SoAIBenchWorkerRuntimeContext,
     accumulator: SoAIBenchTelemetryAccumulator,
 ) -> SoAIBenchTelemetrySnapshot:
-    telemetry = await read_soaibench_telemetry_snapshot(
-        runtime_context.hardware_manager,
-        device_id=runtime_context.identity.device_id,
-        temperature_limit_celsius=runtime_context.temperature_limit_celsius,
-        logger=runtime_context.logger,
-        diagnostics=runtime_context.telemetry_diagnostics,
-    )
+    read_task = runtime_context.state.telemetry_read_task
+    if read_task is None:
+        read_task = create_ephemeral_task(
+            read_soaibench_telemetry_snapshot(
+                runtime_context.hardware_manager,
+                device_id=runtime_context.identity.device_id,
+                temperature_limit_celsius=runtime_context.temperature_limit_celsius,
+                logger=runtime_context.logger,
+                diagnostics=runtime_context.telemetry_diagnostics,
+            ),
+            name="soaibench-telemetry-read",
+            log_exceptions=False,
+        )
+        runtime_context.state.telemetry_read_task = read_task
+    try:
+        telemetry = await asyncio.shield(read_task)
+    finally:
+        if read_task.done() and runtime_context.state.telemetry_read_task is read_task:
+            runtime_context.state.telemetry_read_task = None
     accumulator.add(telemetry)
     return telemetry
 

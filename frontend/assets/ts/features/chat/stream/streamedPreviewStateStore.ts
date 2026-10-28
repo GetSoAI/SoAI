@@ -18,9 +18,9 @@ interface StreamedPreviewState {
     renderedPreview: string;
     pendingText: string | null;
     streamSequence: number;
-    streamWords: string[] | null;
-    streamWordIndex: number;
-    streamWordsPerTick: number;
+    streamChunks: string[] | null;
+    streamChunkIndex: number;
+    streamChunksPerTick: number;
 }
 
 const stateByDocument = createDocumentScopedStringKeyMap<StreamedPreviewState>();

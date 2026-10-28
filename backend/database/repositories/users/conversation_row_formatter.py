@@ -70,6 +70,11 @@ def format_conversation_row(row: SQLiteRowDict | None) -> JSONDict | None:
         label="Conversation title",
         build_error=StateError,
     )
+    formatted["title_auto_update_allowed"] = require_row_bool(
+        row.get("title_auto_update_allowed"),
+        label="Conversation title_auto_update_allowed",
+        build_error=StateError,
+    )
     model_settings_value = row.get("model_settings")
     if model_settings_value is None:
         raise StateError("Conversation model_settings is missing or invalid.")

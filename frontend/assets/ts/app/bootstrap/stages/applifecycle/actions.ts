@@ -36,12 +36,15 @@ const runLifecycleStep = async (phase: 'login' | 'logout', label: string, action
     }
 };
 
-interface FailedBootstrapCleanupOptions {
+interface LifecycleBootstrapResources {
     navigationBootstrapUnsubscribe: (() => void) | null;
     connectionSubscription: (() => void) | null;
     dataHubConnectionSubscription: (() => void) | null;
     routerWarmupUnsubscribe: (() => void) | null;
     uiTracker: ResourceTracker | null;
+}
+
+interface FailedBootstrapCleanupOptions extends LifecycleBootstrapResources {
     releaseAuthHandlers: () => void;
     clearSoaiOsAccess: () => void;
     resetConnectionStatus: () => void;
@@ -56,20 +59,12 @@ interface FailedBootstrapCleanupOptions {
     toggleMainUI: (show: boolean) => void;
 }
 
-interface FailedBootstrapCleanupResult {
-    navigationBootstrapUnsubscribe: (() => void) | null;
-    connectionSubscription: (() => void) | null;
-    dataHubConnectionSubscription: (() => void) | null;
-    routerWarmupUnsubscribe: (() => void) | null;
-    uiTracker: ResourceTracker | null;
-}
-
-const cleanupFailedBootstrap = async (options: FailedBootstrapCleanupOptions): Promise<FailedBootstrapCleanupResult> => {
-    const navigationBootstrapUnsubscribe = clearLifecycleSubscription(options.navigationBootstrapUnsubscribe);
-    const connectionSubscription = clearLifecycleSubscription(options.connectionSubscription);
-    const dataHubConnectionSubscription = clearLifecycleSubscription(options.dataHubConnectionSubscription);
-    const routerWarmupUnsubscribe = clearLifecycleSubscription(options.routerWarmupUnsubscribe);
-    const uiTracker = cleanupLifecycleTracker(options.uiTracker);
+const cleanupFailedBootstrap = async (options: FailedBootstrapCleanupOptions): Promise<void> => {
+    clearLifecycleSubscription(options.navigationBootstrapUnsubscribe);
+    clearLifecycleSubscription(options.connectionSubscription);
+    clearLifecycleSubscription(options.dataHubConnectionSubscription);
+    clearLifecycleSubscription(options.routerWarmupUnsubscribe);
+    cleanupLifecycleTracker(options.uiTracker);
     options.releaseAuthHandlers();
     options.clearSoaiOsAccess();
     options.resetConnectionStatus();
@@ -88,13 +83,8 @@ const cleanupFailedBootstrap = async (options: FailedBootstrapCleanupOptions): P
     options.resetUiBoundState();
     options.clearBootstrapPromise();
     options.toggleMainUI(false);
-    return {
-        navigationBootstrapUnsubscribe,
-        connectionSubscription,
-        dataHubConnectionSubscription,
-        routerWarmupUnsubscribe,
-        uiTracker
-    };
 };
 
 export { cleanupFailedBootstrap, cleanupLifecycleTracker, clearLifecycleSubscription, clearLifecycleSubscriptionState, runLifecycleStep };
+
+export type { LifecycleBootstrapResources };

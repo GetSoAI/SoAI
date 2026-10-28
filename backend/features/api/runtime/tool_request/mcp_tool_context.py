@@ -80,6 +80,7 @@ async def build_mcp_tool_context(
     force_tool_approval_required: bool | None,
     forced_tool_names: tuple[str, ...] = (),
     force_tool_choice_auto: bool = False,
+    request_tool_names: tuple[str, ...] = (),
 ) -> MCPToolContext:
     trace_id = get_request_trace_id(request)
     message_count = await resolve_conversation_message_count(
@@ -111,6 +112,7 @@ async def build_mcp_tool_context(
             force_tool_approval_required=force_tool_approval_required,
             forced_tool_names=forced_tool_names,
             force_tool_choice_auto=force_tool_choice_auto,
+            request_tool_names=request_tool_names,
             supports_tool_calling=supports_tool_calling,
             sources=api_context.dependencies,
             local_tool_catalog_scope=conversation.local_tool_catalog_scope,

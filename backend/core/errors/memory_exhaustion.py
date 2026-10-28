@@ -50,6 +50,7 @@ ACCELERATOR_MEMORY_MARKERS: tuple[str, ...] = (
     "vk_error_out_of_device_memory",
     "accelerator memory was exhausted",
     "ran out of accelerator memory",
+    "is less than desired gpu memory utilization",
 )
 SYSTEM_MEMORY_MARKERS: tuple[str, ...] = (
     "memoryerror",

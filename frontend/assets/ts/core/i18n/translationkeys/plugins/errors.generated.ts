@@ -1,4 +1,30 @@
 /* SoAI - Frontend core Translation declarations for key group `plugins.errors` [frontend/assets/ts/core/i18n/translationkeys/plugins/errors.generated.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-export type PluginsErrorsTranslationKey = 'plugins.errors.changeHandlerFailed' | 'plugins.errors.clickHandlerFailed';
+export type PluginsErrorsTranslationKey =
+    | 'plugins.errors.backendCancellationCleanupFailed'
+    | 'plugins.errors.backendCpuInstructionsUnavailable'
+    | 'plugins.errors.backendDockerBuilderUnavailable'
+    | 'plugins.errors.backendDockerBuildxUnavailable'
+    | 'plugins.errors.backendDockerCliMissing'
+    | 'plugins.errors.backendDockerEngineUnavailable'
+    | 'plugins.errors.backendDockerStorageAccessDenied'
+    | 'plugins.errors.backendDockerStorageChanged'
+    | 'plugins.errors.backendDockerStorageUnavailable'
+    | 'plugins.errors.backendDockerStorageUnmapped'
+    | 'plugins.errors.backendLifecycleLocked'
+    | 'plugins.errors.backendRuntimeIncompatible'
+    | 'plugins.errors.backendRuntimeSelectionChanged'
+    | 'plugins.errors.backendRuntimeUnverified'
+    | 'plugins.errors.changeHandlerFailed'
+    | 'plugins.errors.clickHandlerFailed'
+    | 'plugins.errors.configurationApplyFailed'
+    | 'plugins.errors.configurationBusy'
+    | 'plugins.errors.configurationChanged'
+    | 'plugins.errors.managedCompilerUnavailable'
+    | 'plugins.errors.melottsContainerCleanupFailed'
+    | 'plugins.errors.modelConversionDependencyMissing'
+    | 'plugins.errors.modelConversionFailed'
+    | 'plugins.errors.ollamaResponsesSettingsUnsupported'
+    | 'plugins.errors.runtimeIllegalInstruction'
+    | 'plugins.errors.runtimeVerificationFailed';

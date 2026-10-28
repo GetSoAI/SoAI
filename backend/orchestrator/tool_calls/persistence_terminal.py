@@ -14,6 +14,7 @@ from core.tool_calls.status_values import (
     TOOL_CALL_STATUS_COMPLETED,
     TOOL_CALL_STATUS_ERROR,
     is_terminal_tool_call_status,
+    resolve_terminal_tool_call_payload,
 )
 from core.types.json import JSONValue
 from orchestrator.tool_calls.persistence import (
@@ -39,8 +40,9 @@ async def _persist_terminal_tool_call(
     duration_ms: int,
     error_message: str | None,
     code_diffs: JSONValue | None = None,
-) -> None:
+) -> JSONValue:
     completed_at_ms = epoch_ms()
+    terminal_result = result_payload
     published_status = status
     published_result = truncate_tool_result_payload_for_timeline(result_payload)
     published_error_message = error_message
@@ -74,7 +76,8 @@ async def _persist_terminal_tool_call(
                 else ""
             )
             if is_terminal_tool_call_status(persisted_status):
-                persisted_result = persisted.get("result")
+                terminal_result = resolve_terminal_tool_call_payload(persisted)
+                persisted_result = terminal_result
                 persisted_error = persisted.get("error")
                 persisted_duration = persisted.get("duration_ms")
                 published_status = persisted_status
@@ -104,6 +107,7 @@ async def _persist_terminal_tool_call(
         error_message=published_error_message,
         code_diffs=published_code_diffs,
     )
+    return terminal_result
 
 
 def _extract_code_diffs_payload(result_payload: JSONValue) -> JSONValue | None:
@@ -118,8 +122,8 @@ async def persist_tool_call_completed(
     record: ToolCallExecutionRecord,
     result_payload: JSONValue,
     duration_ms: int,
-) -> None:
-    await _persist_terminal_tool_call(
+) -> JSONValue:
+    return await _persist_terminal_tool_call(
         context,
         record=record,
         status=TOOL_CALL_STATUS_COMPLETED,
@@ -155,8 +159,8 @@ async def persist_tool_call_exception_result(
     result_payload: JSONValue,
     duration_ms: int,
     error_message: str,
-) -> None:
-    await _persist_terminal_tool_call(
+) -> JSONValue:
+    return await _persist_terminal_tool_call(
         context,
         record=record,
         status=TOOL_CALL_STATUS_ERROR,

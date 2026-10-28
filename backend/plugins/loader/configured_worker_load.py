@@ -4,11 +4,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from sys import exception
 from typing import TYPE_CHECKING
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exceptions import StateError
 from core.plugins.protocols_instance import PluginInstanceProtocol
 from core.types.json import JSONDict
+from plugins.load_cleanup import preserve_plugin_load_failure
 from plugins.manager.configuration import reconcile_plugin_configuration
 from plugins.package_cache_gc import collect_plugin_package_cache
 from plugins.package_preparation import prepare_plugin_package
@@ -48,34 +51,49 @@ async def load_plugin_worker_with_config(
         plugin_config=dict(initial_config),
     )
     final_instance = load_result.instance
-    default_configuration = dict(load_result.surface.default_configuration)
-    plugin_specific_config, success = await reconcile_plugin_configuration(
-        manager,
-        plugin_name,
-        default_configuration,
-        parameter_schema=dict(load_result.surface.parameter_schema),
-    )
-    if not success:
-        raise StateError("Failed to create or load plugin configuration.")
-    resolved_config = plugin_specific_config or {}
-    if resolved_config != initial_config:
-        load_result = await manager.worker_controller.load_plugin(
-            plugin_name=plugin_name,
-            plugin_package_root=prepared_package.package_root,
-            plugin_entrypoint_path=prepared_package.entrypoint_path,
-            plugin_file_hash=package_audit.content.archive_hash,
-            package_dependencies=list(preflight_result.dependency_snapshot.package_names),
-            plugin_config=resolved_config,
-        )
-        final_instance = load_result.instance
+    transferred = False
+    try:
         default_configuration = dict(load_result.surface.default_configuration)
-    await collect_plugin_package_cache(
-        manager,
-        plugin_name,
-        current_archive_hash=package_audit.content.archive_hash,
-    )
-    return ConfiguredPluginWorkerLoad(
-        instance=final_instance,
-        default_configuration=default_configuration,
-        parameter_schema=dict(load_result.surface.parameter_schema),
-    )
+        plugin_specific_config, success = await reconcile_plugin_configuration(
+            manager,
+            plugin_name,
+            default_configuration,
+            parameter_schema=dict(load_result.surface.parameter_schema),
+        )
+        if not success:
+            raise StateError("Failed to create or load plugin configuration.")
+        resolved_config = plugin_specific_config or {}
+        if resolved_config != initial_config:
+            load_result = await manager.worker_controller.load_plugin(
+                plugin_name=plugin_name,
+                plugin_package_root=prepared_package.package_root,
+                plugin_entrypoint_path=prepared_package.entrypoint_path,
+                plugin_file_hash=package_audit.content.archive_hash,
+                package_dependencies=list(preflight_result.dependency_snapshot.package_names),
+                plugin_config=resolved_config,
+            )
+            final_instance = load_result.instance
+            default_configuration = dict(load_result.surface.default_configuration)
+        await collect_plugin_package_cache(
+            manager,
+            plugin_name,
+            current_archive_hash=package_audit.content.archive_hash,
+        )
+        configured_load = ConfiguredPluginWorkerLoad(
+            instance=final_instance,
+            default_configuration=default_configuration,
+            parameter_schema=dict(load_result.surface.parameter_schema),
+        )
+        transferred = True
+        return configured_load
+    finally:
+        primary_exception = exception()
+        if not transferred:
+            try:
+                await uncancel_then_cleanup(
+                    manager.worker_controller.stop_plugin(
+                        plugin_name, expected_instance=final_instance
+                    )
+                )
+            finally:
+                preserve_plugin_load_failure(primary_exception, exception())

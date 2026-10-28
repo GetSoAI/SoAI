@@ -46,6 +46,7 @@ from database.repositories.plugins.service import DatabasePlugins
 from database.repositories.rag_knowledge_prompt_state import (
     DatabaseKnowledgePromptState,
 )
+from database.repositories.skills.repository import DatabaseSkills
 from database.repositories.system.database_operations import (
     DatabaseOperationStatusRepository,
 )
@@ -202,6 +203,7 @@ async def build_database_services(
         database_chat_identity_defaults = DatabaseChatIdentityDefaults(user_repos_deps)
         database_chat_model_defaults = DatabaseChatModelDefaults(user_repos_deps)
         database_chat_presets = DatabaseChatPresets(user_repos_deps)
+        database_skills = DatabaseSkills(user_repos_deps)
         database_external_accounts = DatabaseExternalAccounts(user_repos_deps)
         database_mail = DatabaseMail(user_repos_deps)
         database_calendar = DatabaseCalendar(user_repos_deps)
@@ -263,6 +265,7 @@ async def build_database_services(
             chat_identity_defaults=database_chat_identity_defaults,
             chat_model_defaults=database_chat_model_defaults,
             chat_presets=database_chat_presets,
+            skills=database_skills,
             external_accounts=database_external_accounts,
             mail=database_mail,
             calendar=database_calendar,

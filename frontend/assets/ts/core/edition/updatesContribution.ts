@@ -44,6 +44,7 @@ interface UpdatesProductRuntimeDependencies {
 }
 
 interface UpdatesProductController {
+    readonly hasHistory: boolean;
     initialize(): Promise<void>;
     checkUpdates(): Promise<UpdatesOperationOutcome>;
     handleAction(action: string, actionElement: HTMLElement): Promise<void> | void;
@@ -51,7 +52,6 @@ interface UpdatesProductController {
 }
 
 interface UpdatesEditionContribution {
-    readonly stats: readonly { id: string; label: string }[];
     render(dependencies: UpdatesProductRenderDependencies): TrustedHtml;
     isAction(value: string | undefined): value is string;
     createController(dependencies: UpdatesProductRuntimeDependencies): UpdatesProductController;

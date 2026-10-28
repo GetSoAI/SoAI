@@ -12,6 +12,8 @@ from core.database.mutation_requests import (
 )
 from core.database.task_requests import CreateUnifiedTaskRequest
 from core.errors.exceptions import StateError
+from core.plugins.backend_update_child import BackendUpdateChild
+from database.repositories.tasks.backend_update_children import sync_reserve_backend_update_child
 from database.repositories.tasks.internal_protocols import (
     DatabaseTasksQueueCoreOwnerProtocol,
 )
@@ -25,12 +27,17 @@ from database.repositories.tasks.mutation_lifecycle import (
     sync_validate_mutation_claim,
 )
 from database.repositories.tasks.mutation_recovery import (
+    sync_has_unsettled_backend_update,
     sync_quarantine_exhausted_mutations,
     sync_query_expired_mutation_recovery_candidates,
     sync_query_recovery_required_admissions,
+    sync_release_backend_update_recovery,
 )
 
 __all__ = (
+    "reserve_backend_update_child",
+    "has_unsettled_backend_update",
+    "release_backend_update_recovery",
     "accept_mutation_task",
     "advance_mutation_execution",
     "claim_mutation",
@@ -43,6 +50,31 @@ __all__ = (
     "renew_mutation_claim",
     "validate_mutation_claim",
 )
+
+
+async def reserve_backend_update_child(
+    self: DatabaseTasksQueueCoreOwnerProtocol,
+    parent_task_id: str,
+    proposed: BackendUpdateChild,
+) -> BackendUpdateChild:
+    return await self.core.writer.queue_write_operation(
+        sync_reserve_backend_update_child,
+        parent_task_id,
+        proposed,
+    )
+
+
+async def has_unsettled_backend_update(
+    self: DatabaseTasksQueueCoreOwnerProtocol,
+    plugin_name: str | None,
+    *,
+    excluded_task_id: str | None = None,
+) -> bool:
+    return await self.core.writer.queue_write_operation(
+        sync_has_unsettled_backend_update,
+        plugin_name,
+        excluded_task_id,
+    )
 
 
 async def advance_mutation_execution(
@@ -210,4 +242,12 @@ async def validate_mutation_claim(
         task_id,
         fencing_token,
         now_ms,
+    )
+
+
+async def release_backend_update_recovery(
+    self: DatabaseTasksQueueCoreOwnerProtocol, request_id: str, plugin_name: str, *, now_ms: int
+) -> bool:
+    return await self.core.writer.queue_write_operation(
+        sync_release_backend_update_recovery, request_id, plugin_name, now_ms
     )

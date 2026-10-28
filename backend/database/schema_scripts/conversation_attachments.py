@@ -8,7 +8,15 @@ import sqlite3
 from core.validation.epoch import EPOCH_MS_MIN
 from database.sql.script import execute_sql_script
 
-__all__ = ("apply_conversation_attachments_schema",)
+__all__ = (
+    "ATTACHMENT_MISSING_CAPABILITIES_COLUMN_SQL",
+    "apply_conversation_attachments_schema",
+)
+
+ATTACHMENT_MISSING_CAPABILITIES_COLUMN_SQL = (
+    "missing_capabilities TEXT CHECK(missing_capabilities IS NULL OR "
+    "(json_valid(missing_capabilities) AND json_type(missing_capabilities) = 'array'))"
+)
 
 
 def _build_conversation_attachments_schema_sql() -> str:
@@ -36,6 +44,7 @@ def _build_conversation_attachments_schema_sql() -> str:
             created_at_ms INTEGER NOT NULL CHECK(created_at_ms >= {EPOCH_MS_MIN}),
             updated_at_ms INTEGER NOT NULL CHECK(updated_at_ms >= {EPOCH_MS_MIN}),
             expires_at_ms INTEGER NOT NULL CHECK(expires_at_ms >= {EPOCH_MS_MIN}),
+            {ATTACHMENT_MISSING_CAPABILITIES_COLUMN_SQL},
             FOREIGN KEY(conv_id) REFERENCES webui_conversations(id) ON DELETE CASCADE,
             FOREIGN KEY(user_id) REFERENCES webui_users(id) ON DELETE CASCADE,
             FOREIGN KEY(file_id) REFERENCES files_catalog(id) ON DELETE CASCADE,

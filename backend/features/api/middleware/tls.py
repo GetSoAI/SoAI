@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from core.config.protocols import ConfigProtocol
 from core.errors.exceptions import ConfigurationError, ValidationError
+from core.meta.paths import get_repo_root
 from core.security.tls_policy import SERVER_TLS12_AEAD_CIPHERS
 from core.validation.boolean_coercion import coerce_bool_with_default
 from features.api.middleware.tls_certificates import (
@@ -58,7 +59,7 @@ def prepare_tls_configuration(config: ConfigProtocol) -> tuple[dict[str, str | i
             tls_options["ssl_cert_reqs"] = ssl.CERT_REQUIRED
         is_user_supplied = True
     else:
-        cert_path, key_path = ensure_auto_certificate(key_password)
+        cert_path, key_path = ensure_auto_certificate(key_password, get_repo_root())
         tls_options["ssl_certfile"] = cert_path
         tls_options["ssl_keyfile"] = key_path
     return (tls_options, is_user_supplied)

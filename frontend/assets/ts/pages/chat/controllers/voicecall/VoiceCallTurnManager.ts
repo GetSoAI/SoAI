@@ -6,7 +6,7 @@ import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { toTrimmedString } from '@core/normalize.ts';
-import type { ChatContentSegment } from '@features/chat/public.ts';
+import { resolveTranscriptionFailureText, type ChatContentSegment } from '@features/chat/public.ts';
 import { isString } from '@core/typeGuards.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 import type { QueuedSendGuardContext, QueuedSendGuardResult, QueuedSendOutcome } from '@pages/chat/controllers/chatmessagesendingcontroller/types.ts';
@@ -113,7 +113,7 @@ class VoiceCallTurnManager {
                 }
                 const runtimeError = ensureError(error);
                 this.#host.feedback.handle(runtimeError, 'Voice transcription failed');
-                const failureMessage = i18n.t('chat.voiceCall.transcriptionFailed');
+                const failureMessage = resolveTranscriptionFailureText(runtimeError, i18n.t('chat.voiceCall.transcriptionFailed'));
                 this.#host.onFailure(failureMessage);
             });
     }

@@ -32,6 +32,7 @@ if TYPE_CHECKING:
         TaskCancellationBinderProtocol,
         TaskFinalizerTrackerProtocol,
     )
+    from core.types.json import JSONDict
 
 __all__ = ("ApplicationRuntimeCoordinatorDependencies",)
 
@@ -48,10 +49,12 @@ class ApplicationRuntimeCoordinatorDependencies:
     module_dependencies: ApplicationRuntimeModuleDependencies
     finalizer_tracker: TaskFinalizerTrackerProtocol
     task_cancellation_binder: TaskCancellationBinderProtocol
+    replace_durable_acceptance_policy: Callable[[JSONDict], None]
     core_routing_applicator: CoreRoutingConfigApplicatorProtocol | None = None
     update_plugin_worker_runtime_flags: (
         Callable[[RuntimeFlagsViewProtocol], Awaitable[None]] | None
     ) = None
+    resolve_instance_id: Callable[[], Awaitable[str]] | None = None
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -62,6 +65,7 @@ class ApplicationRuntimeCoordinatorDependencies:
             runtime_flags=self.runtime_flags,
             runtime_state=self.runtime_state,
             task_cancellation_binder=self.task_cancellation_binder,
+            replace_durable_acceptance_policy=self.replace_durable_acceptance_policy,
         )
         if not isinstance(
             self.module_dependencies,

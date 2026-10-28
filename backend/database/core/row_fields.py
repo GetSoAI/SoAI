@@ -38,9 +38,7 @@ __all__ = (
     "require_row_json_object",
     "require_row_non_empty_str",
     "require_row_non_negative_int",
-    "require_row_optional_json_list",
     "require_row_optional_json_object",
-    "require_row_optional_non_negative_int",
     "require_row_positive_int",
 )
 
@@ -111,21 +109,6 @@ def require_row_non_negative_int(
         )
     except ValidationError as exception:
         raise build_error(error_message) from exception
-
-
-def require_row_optional_non_negative_int(
-    value: JSONValue,
-    *,
-    label: str,
-    build_error: ErrorBuilder,
-) -> int | None:
-    if value is None:
-        return None
-    error_message = _build_error_message(label)
-    normalized = coerce_exact_int_or_none(value)
-    if normalized is None or normalized < 0:
-        raise build_error(error_message)
-    return int(normalized)
 
 
 def coerce_row_optional_non_negative_int(value: JSONValue) -> int | None:
@@ -225,14 +208,3 @@ def require_row_json_list(
         return safe_json_deserialize_required_list(value, error_message=error_message)
     except ValidationError as exception:
         raise build_error(error_message) from exception
-
-
-def require_row_optional_json_list(
-    value: SQLiteValue,
-    *,
-    label: str,
-    build_error: ErrorBuilder,
-) -> list[JSONValue] | None:
-    if value is None:
-        return None
-    return require_row_json_list(value, label=label, build_error=build_error)

@@ -52,6 +52,7 @@ interface AiSetupCloudModelView {
 }
 
 interface AiSetupModelsView {
+    localSelectionLocked: boolean;
     showLocal: boolean;
     showCloud: boolean;
     localCards: AiSetupLocalCardView[];
@@ -59,6 +60,7 @@ interface AiSetupModelsView {
     limitedMessage: string | null;
     searchOpen: boolean;
     search: ModelSearchState;
+    selectedVariantIndex: number | null;
     providerName: string | null;
     cloudModels: AiSetupCloudModelView[];
     cloudFilter: string;

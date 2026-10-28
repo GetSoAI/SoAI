@@ -62,7 +62,11 @@ def classify_http_status_execution_failure(
         log_stack=affects_plugin_health,
         error_type=error_type,
         affects_plugin_health=affects_plugin_health,
-        allow_failover=True,
+        allow_failover=(
+            status_code == 404
+            or error_type is ErrorType.RATE_LIMIT
+            or should_allow_failover_for_external_upstream_error(error_type)
+        ),
     )
 
 
@@ -82,8 +86,9 @@ def classify_http_error_execution_failure(
         user_message = (
             exception.message if exception.http_status < 500 else "Request execution failed."
         )
-    if exception.public_message is not None:
-        user_message = project_public_error(exception).message
+    public_error = project_public_error(exception) if exception.public_message is not None else None
+    if public_error is not None:
+        user_message = public_error.message
     return ExecutionFailureDetails(
         user_message=user_message,
         state_reason=f"Task {task_id} failed with HTTP {exception.http_status}",
@@ -91,4 +96,5 @@ def classify_http_error_execution_failure(
         error_type=error_type,
         affects_plugin_health=affects_plugin_health,
         allow_failover=should_allow_failover_for_external_upstream_error(error_type),
+        public_error=public_error,
     )

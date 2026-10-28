@@ -48,7 +48,7 @@ async def bind_run_id_or_finish_failed(
             run_id=run_id,
         )
         if not bound:
-            raise ValidationError("SoAIBench activity lease binding failed.")
+            raise ValidationError("SoAI Bench activity lease binding failed.")
     except asyncio.CancelledError as exception:
         await _cleanup_bind_failure(deps, run, device_id, lease_id, exception)
         raise
@@ -80,7 +80,7 @@ async def _cleanup_bind_failure(
         lease_id=lease_id,
         reason="start_lease_bind_failed",
         operation=START_CLEANUP_OPERATION,
-        log_message="SoAIBench activity lease binding failed.",
+        log_message="SoAI Bench activity lease binding failed.",
         primary_exception=primary_exception,
     )
 
@@ -99,7 +99,7 @@ async def cleanup_cancelled_start(
             run=run,
             status=SoAIBenchRunStatus.CANCELLED,
             reason=None,
-            message="SoAIBench start was cancelled.",
+            message="SoAI Bench start was cancelled.",
             update_type="shutdown_cancelled",
             primary_exception=primary_exception,
         )
@@ -139,7 +139,7 @@ async def cleanup_failed_start(
             run=run,
             status=SoAIBenchRunStatus.FAILED,
             reason=reason,
-            message="SoAIBench could not start.",
+            message="SoAI Bench could not start.",
             update_type="terminal",
             primary_exception=primary_exception,
         )
@@ -199,11 +199,11 @@ async def _publish_terminal_preserving(
         )
     except asyncio.CancelledError as cleanup_exception:
         primary_exception.add_note(
-            f"SoAIBench failed-start terminal publication was cancelled: {cleanup_exception}",
+            f"SoAI Bench failed-start terminal publication was cancelled: {cleanup_exception}",
         )
     except HANDLED_RUNTIME_EXCEPTIONS as cleanup_exception:
         primary_exception.add_note(
-            f"SoAIBench failed-start terminal publication failed: {cleanup_exception}",
+            f"SoAI Bench failed-start terminal publication failed: {cleanup_exception}",
         )
         coerced_exception = coerce_to_soai_error(
             cleanup_exception,
@@ -212,7 +212,7 @@ async def _publish_terminal_preserving(
         log_exception(
             deps.logger,
             coerced_exception,
-            message="SoAIBench failed-start terminal publication failed.",
+            message="SoAI Bench failed-start terminal publication failed.",
             operation=PUBLISH_TERMINAL_OPERATION,
             details={"run_id": str(run["run_id"]), "update_type": update_type},
             level="warning",
@@ -232,10 +232,10 @@ async def release_start_lease_preserving(
         )
     except asyncio.CancelledError as cleanup_exception:
         primary_exception.add_note(
-            f"SoAIBench activity lease cleanup was cancelled: {cleanup_exception}",
+            f"SoAI Bench activity lease cleanup was cancelled: {cleanup_exception}",
         )
     except HANDLED_RUNTIME_EXCEPTIONS as cleanup_exception:
-        primary_exception.add_note(f"SoAIBench activity lease cleanup failed: {cleanup_exception}")
+        primary_exception.add_note(f"SoAI Bench activity lease cleanup failed: {cleanup_exception}")
         coerced_exception = coerce_to_soai_error(
             cleanup_exception,
             operation=RELEASE_LEASE_OPERATION,
@@ -243,7 +243,7 @@ async def release_start_lease_preserving(
         log_exception(
             deps.logger,
             coerced_exception,
-            message="SoAIBench activity lease cleanup failed.",
+            message="SoAI Bench activity lease cleanup failed.",
             operation=RELEASE_LEASE_OPERATION,
             level="warning",
         )

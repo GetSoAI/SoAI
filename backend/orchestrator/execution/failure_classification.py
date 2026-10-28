@@ -7,11 +7,13 @@ import asyncio
 
 import httpx2
 
+from core.errors.backend_lifecycle import IpcCancellationCleanupError
 from core.errors.error_types import ErrorType
 from core.errors.exceptions import (
     ApiError,
     ConfigurationError,
     IpcRemoteRequestError,
+    ModelOutputContractError,
     SoAIError,
     SoAITimeoutError,
     ValidationError,
@@ -21,11 +23,16 @@ from core.errors.memory_exhaustion import (
     ACCELERATOR_MEMORY_EXHAUSTED_MESSAGE,
     SYSTEM_MEMORY_EXHAUSTED_MESSAGE,
 )
-from core.errors.public_projection import project_public_error
+from core.errors.public_projection import project_public_error, project_specific_public_error
 from core.events.publication_errors import PublicationDeadlineExceededError
 from core.ipc.remote_error_metadata import REMOTE_ERROR_CODE_KEY
 from core.openai.chat_template_role_policy_resolver import is_chat_template_role_policy_rejection
 from core.openai.context_overflow_validation import extract_context_overflow_validation
+from core.openai.provider_transport import has_upstream_provider_marker
+from orchestrator.execution.execution_phase_timeouts import (
+    ExecutionPhaseTimeoutError,
+    build_execution_phase_timeout_failure,
+)
 from orchestrator.execution.failure_classification_models import ExecutionFailureDetails
 from orchestrator.execution.http_status_failure_classification import (
     build_chat_template_role_rejection_execution_failure,
@@ -34,6 +41,7 @@ from orchestrator.execution.http_status_failure_classification import (
 )
 from orchestrator.execution.requirement_failure_classification import (
     classify_configuration_execution_failure,
+    classify_requirement_execution_failure,
     classify_validation_execution_failure,
 )
 from orchestrator.execution.result_processing_error import ResultProcessingError
@@ -43,7 +51,6 @@ from orchestrator.execution.streaming import (
     StreamingIdleTimeoutError,
     StreamingSourceTimeoutError,
 )
-from orchestrator.execution.upstream_error_metadata import has_upstream_provider_marker
 from orchestrator.execution.upstream_failure_classification import (
     build_upstream_provider_failure_details,
 )
@@ -138,6 +145,18 @@ def classify_execution_failure(
             affects_plugin_health=True,
             allow_failover=True,
         )
+    if isinstance(root_exception, ExecutionPhaseTimeoutError):
+        return build_execution_phase_timeout_failure(task_id, root_exception)
+    if isinstance(root_exception, IpcCancellationCleanupError):
+        return ExecutionFailureDetails(
+            user_message=root_exception.public_message or root_exception.message,
+            state_reason=f"Task {task_id} failed: worker cancellation cleanup did not settle",
+            log_stack=False,
+            error_type=ErrorType.PLUGIN_UNAVAILABLE,
+            affects_plugin_health=True,
+            allow_failover=False,
+            public_error=project_specific_public_error(root_exception),
+        )
     if isinstance(root_exception, asyncio.TimeoutError):
         return ExecutionFailureDetails(
             user_message=f"Request timed out after {request_timeout}s.",
@@ -149,7 +168,7 @@ def classify_execution_failure(
         )
     if isinstance(root_exception, httpx2.TimeoutException):
         return ExecutionFailureDetails(
-            user_message=f"Request timed out after {request_timeout}s.",
+            user_message="The plugin backend transport timed out.",
             state_reason=f"Task {task_id} failed: upstream timeout",
             log_stack=False,
             error_type=ErrorType.TIMEOUT_ERROR,
@@ -194,8 +213,6 @@ def classify_execution_failure(
         )
     if isinstance(root_exception, httpx2.HTTPStatusError) and root_exception.response is not None:
         return classify_http_status_execution_failure(task_id, root_exception)
-    if isinstance(root_exception, ApiError):
-        return classify_http_error_execution_failure(task_id, root_exception)
     if isinstance(root_exception, SoAITimeoutError):
         publication_timeout = isinstance(root_exception, PublicationDeadlineExceededError)
         failure_label = "orchestration publication timeout" if publication_timeout else "timeout"
@@ -211,8 +228,9 @@ def classify_execution_failure(
         memory_failure = _classify_remote_memory_exhaustion(task_id, root_exception)
         if memory_failure is not None:
             return memory_failure
-    if isinstance(root_exception, IpcRemoteRequestError) and _is_remote_model_output_contract_error(
-        root_exception,
+    if isinstance(root_exception, ModelOutputContractError) or (
+        isinstance(root_exception, IpcRemoteRequestError)
+        and _is_remote_model_output_contract_error(root_exception)
     ):
         return ExecutionFailureDetails(
             user_message="Model output violated the required response contract.",
@@ -222,6 +240,12 @@ def classify_execution_failure(
             affects_plugin_health=False,
             allow_failover=False,
         )
+    if isinstance(root_exception, SoAIError) and has_upstream_provider_marker(root_exception):
+        if is_chat_template_role_policy_rejection(root_exception):
+            return build_chat_template_role_rejection_execution_failure(task_id)
+        return build_upstream_provider_failure_details(task_id, root_exception)
+    if isinstance(root_exception, ApiError):
+        return classify_http_error_execution_failure(task_id, root_exception)
     if isinstance(root_exception, IpcRemoteRequestError) and _is_remote_invalid_request_error(
         root_exception,
     ):
@@ -238,6 +262,9 @@ def classify_execution_failure(
                 affects_plugin_health=False,
                 allow_failover=False,
             )
+        requirement_failure = classify_requirement_execution_failure(task_id, root_exception)
+        if requirement_failure is not None:
+            return requirement_failure
         return ExecutionFailureDetails(
             user_message=project_public_error(root_exception).message,
             state_reason=f"Task {task_id} failed: remote request validation error.",
@@ -245,15 +272,12 @@ def classify_execution_failure(
             error_type=ErrorType.INVALID_REQUEST,
             affects_plugin_health=False,
             allow_failover=False,
+            public_error=project_specific_public_error(root_exception),
         )
     if isinstance(root_exception, IpcRemoteRequestError) and is_chat_template_role_policy_rejection(
         root_exception,
     ):
         return build_chat_template_role_rejection_execution_failure(task_id)
-    if isinstance(root_exception, IpcRemoteRequestError) and has_upstream_provider_marker(
-        root_exception,
-    ):
-        return build_upstream_provider_failure_details(task_id, root_exception)
     if isinstance(root_exception, ConfigurationError) or (
         isinstance(root_exception, IpcRemoteRequestError)
         and root_exception.code == ConfigurationError.code
@@ -277,8 +301,6 @@ def classify_execution_failure(
     ):
         return build_chat_template_role_rejection_execution_failure(task_id)
     if isinstance(root_exception, ExternalServiceError):
-        if has_upstream_provider_marker(root_exception):
-            return build_upstream_provider_failure_details(task_id, root_exception)
         return ExecutionFailureDetails(
             user_message="Upstream service request failed.",
             state_reason=f"Task {task_id} failed: upstream service error",

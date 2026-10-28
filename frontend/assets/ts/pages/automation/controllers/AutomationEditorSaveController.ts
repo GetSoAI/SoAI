@@ -19,7 +19,7 @@ import { AutomationConfigurationFieldStateController } from '@pages/automation/c
 import { AUTOMATION_CONFIGURATION_PARAMETERS_UPDATED_EVENT } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationParametersController.ts';
 import { AUTOMATION_CONFIGURATION_SCHEDULE_PREVIEW_EVENT } from '@pages/automation/controllers/configurationmodal/AutomationSchedulePreviewController.ts';
 import { AUTOMATION_CONFIGURATION_TURNS_UPDATED_EVENT } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationTurnsController.ts';
-import { AUTOMATION_CONFIGURATION_WORKSPACE_UPDATED_EVENT } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationModelSettingsController.ts';
+import { AUTOMATION_CONFIGURATION_MCP_UPDATED_EVENT, AUTOMATION_CONFIGURATION_WORKSPACE_UPDATED_EVENT } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationModelSettingsController.ts';
 import { notifyAutomationEditorSaveFailure, submitAutomationEditorSubmission, type AutomationEditorSaveOutcome } from '@pages/automation/controllers/AutomationEditorSubmissionDomain.ts';
 import { requireActionButton } from '@pages/automation/dom.ts';
 import { saveAutomationCreateDefaults } from '@pages/automation/state/AutomationCreateDefaultsManager.ts';
@@ -52,6 +52,7 @@ class AutomationEditorSaveController {
     readonly #handleTurnsTouched = (): void => this.#markTouched('turns');
     readonly #handleWorkspaceTouched = (): void => this.#markTouched('workspace');
     readonly #handleParametersTouched = (): void => this.#markTouched('parameters');
+    readonly #handleMcpTouched = (): void => this.#markTouched('mcp');
     readonly #handleSchedulePreview = (): void => {
         this.#fieldState?.sync();
         this.#save?.notifyChanged();
@@ -148,6 +149,7 @@ class AutomationEditorSaveController {
         modal.addEventListener(AUTOMATION_CONFIGURATION_TURNS_UPDATED_EVENT, this.#handleTurnsTouched, { signal });
         modal.addEventListener(AUTOMATION_CONFIGURATION_WORKSPACE_UPDATED_EVENT, this.#handleWorkspaceTouched, { signal });
         modal.addEventListener(AUTOMATION_CONFIGURATION_PARAMETERS_UPDATED_EVENT, this.#handleParametersTouched, { signal });
+        modal.addEventListener(AUTOMATION_CONFIGURATION_MCP_UPDATED_EVENT, this.#handleMcpTouched, { signal });
         modal.addEventListener(AUTOMATION_CONFIGURATION_SCHEDULE_PREVIEW_EVENT, this.#handleSchedulePreview, { signal });
     }
 
@@ -178,7 +180,7 @@ class AutomationEditorSaveController {
                 if (this.#modalSessionToken.isActive(sessionToken)) this.#dependencies.modal.setFrozen('saving', busy);
             },
             autoNotifyRoot: modal,
-            additionalDirtyEventNames: [AUTOMATION_CONFIGURATION_TURNS_UPDATED_EVENT, AUTOMATION_CONFIGURATION_WORKSPACE_UPDATED_EVENT, AUTOMATION_CONFIGURATION_PARAMETERS_UPDATED_EVENT]
+            additionalDirtyEventNames: [AUTOMATION_CONFIGURATION_TURNS_UPDATED_EVENT, AUTOMATION_CONFIGURATION_WORKSPACE_UPDATED_EVENT, AUTOMATION_CONFIGURATION_PARAMETERS_UPDATED_EVENT, AUTOMATION_CONFIGURATION_MCP_UPDATED_EVENT]
         });
         this.#removeCloseGuard = attachBeforeCloseConfirmationGuard({
             modal,

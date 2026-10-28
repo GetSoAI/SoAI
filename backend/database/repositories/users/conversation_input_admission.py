@@ -44,6 +44,7 @@ class ConversationInputAdmission:
     prompt_history_text: str | None
     attachment_content: list[JSONValue]
     model_settings_json: str | None
+    fallback_model_settings_json: str | None
     source_key: str
     client_id: str | None
     client_request_id: str | None
@@ -62,6 +63,7 @@ def normalize_conversation_input_admission(
     prompt_history_text: str | None,
     attachment_content: list[JSONValue],
     model_settings: JSONDict | None,
+    fallback_model_settings: JSONDict | None,
     expected_input_generation: int,
     client_id: str | None,
     client_request_id: str | None,
@@ -104,6 +106,8 @@ def normalize_conversation_input_admission(
         raise ValidationError("Prompt inputs require model_settings.")
     if normalized_input_type != "prompt" and model_settings is not None:
         raise ValidationError("Only prompt inputs may include model_settings.")
+    if normalized_input_type != "steer" and fallback_model_settings is not None:
+        raise ValidationError("Only steer inputs may include fallback_model_settings.")
     history_eligible = normalized_origin == "chat" and normalized_input_type in {"prompt", "steer"}
     if not history_eligible and prompt_history_text is not None:
         raise ValidationError("This input cannot include prompt_history_text.")
@@ -130,6 +134,11 @@ def normalize_conversation_input_admission(
         attachment_content=normalized_attachments,
         model_settings_json=(
             serialize_json_compact_stable(model_settings) if model_settings is not None else None
+        ),
+        fallback_model_settings_json=(
+            serialize_json_compact_stable(fallback_model_settings)
+            if fallback_model_settings is not None
+            else None
         ),
         source_key=source_key,
         client_id=normalized_client_id,

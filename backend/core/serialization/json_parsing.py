@@ -29,7 +29,6 @@ __all__ = (
     "parse_json_value_or_none",
     "parse_strict_json",
     "parse_optional_json_dict",
-    "parse_optional_json_value",
 )
 
 MAX_JSON_NESTING_DEPTH = 64
@@ -90,12 +89,6 @@ def parse_json_value_or_none(raw: str | bytes | None, *, field: str = "json") ->
         return parse_json_value(normalized, field=field)
     except ValidationError:
         return None
-
-
-def parse_optional_json_value(raw: str | bytes | None, *, field: str = "json") -> JSONValue | None:
-    if raw is None:
-        return None
-    return parse_json_value(raw, field=field)
 
 
 def parse_json_dict(

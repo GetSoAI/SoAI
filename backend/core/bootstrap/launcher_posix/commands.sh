@@ -10,6 +10,8 @@ soai_launcher__run_post_update_hook() {
     if [ ! -x "$python_bin" ]; then
         soai_managed_runtime__die "Cannot run post-update hook because managed Python is missing: ${python_bin}" || return 1
     fi
+    local SOAI_INSTALL_LOCK_HELD_PATH="${SOAI_INSTALL_LOCK_DIR:-${SOAI_INSTALL_LOCK_HELD_PATH:-}}"
+    export SOAI_INSTALL_LOCK_HELD_PATH
     local python_path="${SCRIPT_DIR}/backend"
     if [ -n "${PYTHONPATH:-}" ]; then
         python_path="${python_path}:${PYTHONPATH}"
@@ -18,11 +20,11 @@ soai_launcher__run_post_update_hook() {
         local previous_directory="$PWD"
         local status=0
         cd "$SCRIPT_DIR" || return 1
-        PYTHONPATH="$python_path" soai_install__run_noisy_command "$python_bin" -m app.updater.post_update_hook || status=$?
+        PYTHONPATH="$python_path" soai_install__run_noisy_command "$python_bin" -P -m "$SOAI_EXPLICIT_POST_UPDATE_HOOK_MODULE" || status=$?
         cd "$previous_directory" || return 1
         return "$status"
     fi
-    (cd "$SCRIPT_DIR" && PYTHONPATH="$python_path" soai_install__run_noisy_command "$python_bin" -m app.updater.post_update_hook)
+    (cd "$SCRIPT_DIR" && PYTHONPATH="$python_path" soai_install__run_noisy_command "$python_bin" -P -m "$SOAI_EXPLICIT_POST_UPDATE_HOOK_MODULE")
 }
 
 soai_launcher__run_backend_install_deps() {
@@ -99,9 +101,9 @@ soai_launcher__install_deps() {
         soai_launcher__install_deps_fail "$owns_install_lock" "$operation_root" "managed-runtime" "SoAI managed runtime preparation failed." || return 1
     fi
     soai_launcher__install_deps_emit_or_release "$owns_install_lock" "$operation_root" "install-deps" "managed-runtime" "completed" "SoAI managed runtime is ready." || return 1
-    soai_launcher__install_deps_emit_or_release "$owns_install_lock" "$operation_root" "install-deps" "soaibench-opencl" "started" "Checking optional SoAIBench OpenCL packages..." || return 1
+    soai_launcher__install_deps_emit_or_release "$owns_install_lock" "$operation_root" "install-deps" "soaibench-opencl" "started" "Checking optional SoAI Bench OpenCL packages..." || return 1
     soai_launcher__provision_soaibench_opencl
-    soai_launcher__install_deps_emit_or_release "$owns_install_lock" "$operation_root" "install-deps" "soaibench-opencl" "completed" "Optional SoAIBench OpenCL package check completed." || return 1
+    soai_launcher__install_deps_emit_or_release "$owns_install_lock" "$operation_root" "install-deps" "soaibench-opencl" "completed" "Optional SoAI Bench OpenCL package check completed." || return 1
     soai_launcher__install_deps_emit_or_release "$owns_install_lock" "$operation_root" "install-deps" "runtime-artifacts" "started" "Provisioning SoAI runtime artifacts..." || return 1
     if ! soai_launcher__run_backend_install_deps; then
         soai_launcher__install_deps_fail "$owns_install_lock" "$operation_root" "runtime-artifacts" "SoAI runtime artifact provisioning failed." || return 1
@@ -127,7 +129,7 @@ soai_launcher__run_mcp_stdio() {
     if [ -n "${PYTHONPATH:-}" ]; then
         python_path="${python_path}:${PYTHONPATH}"
     fi
-    cd "$SCRIPT_DIR"
+    cd "$SCRIPT_DIR" || return 1
     PYTHONPATH="$python_path" exec "${SOAI_VENV_PATH}/bin/python" -m app.mcp_stdio_proxy 1>&3 3>&-
 }
 

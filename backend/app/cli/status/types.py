@@ -26,10 +26,10 @@ class ProcessInfo:
 class NvidiaGpuInfo:
     index: int
     name: str
-    utilization_percent: float
-    memory_used_mb: float
-    memory_total_mb: float
-    temperature_c: float
+    utilization_percent: float | None
+    memory_used_mb: int | None
+    memory_total_mb: int | None
+    temperature_c: float | None
 
 
 @dataclasses.dataclass(frozen=True, slots=True)

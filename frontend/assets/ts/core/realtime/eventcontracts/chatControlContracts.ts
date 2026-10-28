@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { OpaqueJsonObject } from '@core/api/contracts/opaquePayload.ts';
+import { CONVERSATION_INPUT_TERMINAL_STATES, type ConversationInputTerminalState } from '@core/chat/protocols.ts';
 import { decodeTokenUsageSnapshot, type TokenUsageSnapshot } from '@core/api/contracts/tokenUsageContracts.ts';
 import { defineWebSocketEventContract } from '@core/realtime/eventcontracts/contracts.ts';
 import { readNullableFiniteIntegerValue, readRequiredFiniteNumberValue, readRequiredNonNegativeIntegerValue, readRequiredPositiveIntegerValue } from '@core/types/payloadNumberReaders.ts';
@@ -23,7 +24,7 @@ interface ConversationInputsChangedEvent extends ChatEventBase {
 interface ConversationInputTerminalEvent extends ChatEventBase {
     inputId: string;
     sourceMessageId: number | null;
-    terminalState: 'cancelled' | 'completed' | 'effect_unknown' | 'failed';
+    terminalState: ConversationInputTerminalState;
     terminalCode: string;
 }
 interface ConversationBoundEvent {
@@ -74,7 +75,7 @@ const decodeConversationInputTerminal = (payload: JsonValue): ConversationInputT
     const record = requireRecord(payload, 'Conversation input terminal event');
     const sourceMessageId = readNullableFiniteIntegerValue(record['source_message_id'], 'Conversation input terminal event.source_message_id');
     if (sourceMessageId !== null && sourceMessageId <= 0) throw new TypeError('Conversation input terminal event.source_message_id must be positive or null');
-    return { ...decodeChatEventBase(payload), inputId: readRequiredTrimmedStringValue(record['input_id'], 'Conversation input terminal event.input_id'), sourceMessageId, terminalState: readRequiredEnumValue(record['terminal_state'], 'Conversation input terminal event.terminal_state', ['cancelled', 'completed', 'effect_unknown', 'failed']), terminalCode: readRequiredTrimmedStringValue(record['terminal_code'], 'Conversation input terminal event.terminal_code') };
+    return { ...decodeChatEventBase(payload), inputId: readRequiredTrimmedStringValue(record['input_id'], 'Conversation input terminal event.input_id'), sourceMessageId, terminalState: readRequiredEnumValue(record['terminal_state'], 'Conversation input terminal event.terminal_state', CONVERSATION_INPUT_TERMINAL_STATES), terminalCode: readRequiredTrimmedStringValue(record['terminal_code'], 'Conversation input terminal event.terminal_code') };
 };
 
 const decodeConversationBound = (payload: JsonValue): ConversationBoundEvent => ({ convId: readRequiredTrimmedStringValue(requireRecord(payload, 'Conversation-bound event')['conv_id'], 'Conversation-bound event.conv_id') });

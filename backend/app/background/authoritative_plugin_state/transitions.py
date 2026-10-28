@@ -21,7 +21,11 @@ from core.errors.exceptions import ServiceUnavailableError
 from core.events.authoritative_state_encoding import (
     encode_authoritative_plugin_state_event,
 )
-from core.events.publication_errors import PublicationDeadlineExceededError
+from core.events.publication_errors import (
+    AuthoritativePluginStateCompletion,
+    PublicationDeadlineExceededError,
+    PublicationFailedError,
+)
 from core.events.types_plugins import (
     PluginInstallationStateChangedEvent,
     PluginRuntimeStateChangedEvent,
@@ -55,6 +59,7 @@ __all__ = (
 OPERATION_BEGIN_INSTALLATION_TRANSITION = (
     "authoritative_plugin_state_transitions.begin_installation_transition"
 )
+OPERATION_WAIT_FOR_COMPLETION = "authoritative_plugin_state_transitions.wait_for_completion"
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,12 +80,12 @@ class AuthoritativePluginStateTransitionsDependencies:
 @dataclass(frozen=True, slots=True)
 class RecordedAuthoritativePluginStateTransitionReceipt(AuthoritativePluginStateTransitionReceipt):
     event: PluginInstallationStateChangedEvent | PluginRuntimeStateChangedEvent
-    completion_waiter: asyncio.Future[None]
+    completion_waiter: asyncio.Future[AuthoritativePluginStateCompletion]
 
     @override
     async def wait_for_completion(self, deadline_monotonic: float) -> None:
         try:
-            await wait_for_hard_deadline(
+            completion = await wait_for_hard_deadline(
                 deadline_monotonic,
                 lambda remaining: asyncio.wait_for(
                     asyncio.shield(self.completion_waiter),
@@ -101,6 +106,12 @@ class RecordedAuthoritativePluginStateTransitionReceipt(AuthoritativePluginState
                 },
                 cause=exception,
             ) from exception
+        if completion.failure_message is not None:
+            raise PublicationFailedError(
+                completion.failure_message,
+                operation=OPERATION_WAIT_FOR_COMPLETION,
+                details={"event_id": completion.event_id},
+            )
 
 
 class AuthoritativePluginStateTransitions:

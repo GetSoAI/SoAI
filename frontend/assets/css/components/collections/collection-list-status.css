@@ -54,4 +54,8 @@
     .ui-collection-list__status:is(.status-grey, .status-neutral) {
         --status-color: var(--status-grey);
     }
+
+    :not([data-operation-active='true']) > .ui-collection-list__state:has(> .toggle-switch:not(.toggle-switch--checked) > input[type='checkbox']:not(:checked)) > .ui-collection-list__status {
+        display: none;
+    }
 }

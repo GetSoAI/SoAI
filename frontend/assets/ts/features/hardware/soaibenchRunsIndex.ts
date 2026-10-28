@@ -12,20 +12,20 @@ const getSoAIBenchRunsForDevice = (payload: JsonValue | null | undefined, device
         return [];
     }
     if (!isJsonObject(payload)) {
-        throw new TypeError('SoAIBench runs payload must be an object');
+        throw new TypeError('SoAI Bench runs payload must be an object');
     }
     const byDevice = payload['byDeviceId'];
     if (!isJsonObject(byDevice)) {
-        throw new TypeError('SoAIBench runs payload must include byDeviceId');
+        throw new TypeError('SoAI Bench runs payload must include byDeviceId');
     }
     const runs = byDevice[normalizedDeviceId];
     if (runs === undefined) {
         return [];
     }
     if (!Array.isArray(runs)) {
-        throw new TypeError('SoAIBench runs byDeviceId entry must be an array');
+        throw new TypeError('SoAI Bench runs byDeviceId entry must be an array');
     }
-    return runs.map((run, index) => requireDecodedSoAIBenchRun(run, `SoAIBench runs byDeviceId entry ${String(index)}`));
+    return runs.map((run, index) => requireDecodedSoAIBenchRun(run, `SoAI Bench runs byDeviceId entry ${String(index)}`));
 };
 
 const getSoAIBenchRunById = (payload: JsonValue | null | undefined, runId: string | null): DecodedSoAIBenchRun | null => {
@@ -34,31 +34,31 @@ const getSoAIBenchRunById = (payload: JsonValue | null | undefined, runId: strin
         return null;
     }
     if (!isJsonObject(payload)) {
-        throw new TypeError('SoAIBench runs payload must be an object');
+        throw new TypeError('SoAI Bench runs payload must be an object');
     }
     const byRun = payload['byRunId'];
     if (!isJsonObject(byRun)) {
-        throw new TypeError('SoAIBench runs payload must include byRunId');
+        throw new TypeError('SoAI Bench runs payload must include byRunId');
     }
     const run = byRun[normalizedRunId];
     if (run === undefined) {
         return null;
     }
-    return requireDecodedSoAIBenchRun(run, 'SoAIBench runs byRunId entry');
+    return requireDecodedSoAIBenchRun(run, 'SoAI Bench runs byRunId entry');
 };
 
 const getSoAIBenchRuns = (payload: JsonValue | null | undefined): readonly DecodedSoAIBenchRun[] => {
     if (isNullOrUndefined(payload)) return [];
     if (!isJsonObject(payload) || !Array.isArray(payload['runs'])) {
-        throw new TypeError('SoAIBench runs payload must include runs');
+        throw new TypeError('SoAI Bench runs payload must include runs');
     }
-    return payload['runs'].map((run, index) => requireDecodedSoAIBenchRun(run, `SoAIBench runs entry ${String(index)}`));
+    return payload['runs'].map((run, index) => requireDecodedSoAIBenchRun(run, `SoAI Bench runs entry ${String(index)}`));
 };
 
 const getDeletedSoAIBenchRunIds = (payload: JsonValue | null | undefined): readonly string[] => {
     if (isNullOrUndefined(payload)) return [];
     if (!isJsonObject(payload) || !isJsonObject(payload['deletedSeqByRunId'])) {
-        throw new TypeError('SoAIBench runs payload must include deletedSeqByRunId');
+        throw new TypeError('SoAI Bench runs payload must include deletedSeqByRunId');
     }
     return Object.keys(payload['deletedSeqByRunId']);
 };

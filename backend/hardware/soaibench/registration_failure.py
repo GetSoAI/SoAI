@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+from functools import partial
 from typing import TYPE_CHECKING
 
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
@@ -21,9 +22,13 @@ from hardware.soaibench.events import publish_soaibench_run_update
 from hardware.soaibench.types import SoAIBenchRunStatus
 
 if TYPE_CHECKING:
+    from hardware.soaibench.opencl_child import SoAIBenchOpenCLChild
     from hardware.soaibench.registration_context import SoAIBenchRegistrationContext
 
-__all__ = ("finish_start_registration_failed_preserving",)
+__all__ = (
+    "finish_start_registration_failed_preserving",
+    "release_degraded_lease_after_verified_exit",
+)
 
 REGISTRATION_CLEANUP_OPERATION = "hardware.soaibench.registration.cleanup"
 
@@ -35,8 +40,8 @@ async def finish_start_registration_failed_preserving(
     primary_exception: BaseException,
     status: SoAIBenchRunStatus = SoAIBenchRunStatus.FAILED,
     failure_reason: str | None = "start_registration_failed",
-    message: str = "SoAIBench worker registration failed.",
-    retain_degraded_lease: bool = False,
+    message: str = "SoAI Bench worker registration failed.",
+    retained_child: SoAIBenchOpenCLChild | None = None,
 ) -> None:
     try:
         await uncancel_then_cleanup(
@@ -46,15 +51,15 @@ async def finish_start_registration_failed_preserving(
                 status=status,
                 failure_reason=failure_reason,
                 message=message,
-                retain_degraded_lease=retain_degraded_lease,
+                retained_child=retained_child,
             ),
         )
     except asyncio.CancelledError as cleanup_exception:
         primary_exception.add_note(
-            f"SoAIBench registration cleanup was cancelled: {cleanup_exception}",
+            f"SoAI Bench registration cleanup was cancelled: {cleanup_exception}",
         )
     except HANDLED_RUNTIME_EXCEPTIONS as cleanup_exception:
-        primary_exception.add_note(f"SoAIBench registration cleanup failed: {cleanup_exception}")
+        primary_exception.add_note(f"SoAI Bench registration cleanup failed: {cleanup_exception}")
         coerced_exception = coerce_to_soai_error(
             cleanup_exception,
             operation=REGISTRATION_CLEANUP_OPERATION,
@@ -62,7 +67,7 @@ async def finish_start_registration_failed_preserving(
         log_exception(
             context.deps.logger,
             coerced_exception,
-            message="SoAIBench registration cleanup failed.",
+            message="SoAI Bench registration cleanup failed.",
             operation=REGISTRATION_CLEANUP_OPERATION,
             level="warning",
         )
@@ -75,7 +80,7 @@ async def _finish_start_registration_failed(
     status: SoAIBenchRunStatus,
     failure_reason: str | None,
     message: str,
-    retain_degraded_lease: bool,
+    retained_child: SoAIBenchOpenCLChild | None,
 ) -> None:
     completed_at_ms = epoch_ms()
     terminal_persistence_verified = False
@@ -127,18 +132,37 @@ async def _finish_start_registration_failed(
                 )
     finally:
         context.active_runs.unbind(run_id=context.run_id, lease_id=context.lease_id)
-        if retain_degraded_lease or not terminal_persistence_verified:
+        if retained_child is not None or not terminal_persistence_verified:
             await context.deps.activity_registry.mark_degraded(
                 device_id=context.device_id,
                 lease_id=context.lease_id,
                 reason=(
-                    "SoAIBench OpenCL child exit could not be verified."
-                    if retain_degraded_lease
-                    else "SoAIBench terminal persistence could not be verified."
+                    "SoAI Bench OpenCL child exit could not be verified."
+                    if retained_child is not None
+                    else "SoAI Bench terminal persistence could not be verified."
                 ),
             )
+            if retained_child is not None and terminal_persistence_verified:
+                await release_degraded_lease_after_verified_exit(
+                    context=context, child=retained_child
+                )
         else:
             await context.deps.activity_registry.release(
                 device_id=context.device_id,
                 lease_id=context.lease_id,
             )
+
+
+async def release_degraded_lease_after_verified_exit(
+    *,
+    context: SoAIBenchRegistrationContext,
+    child: SoAIBenchOpenCLChild,
+) -> None:
+    await context.deps.opencl_pool.release_after_verified_exit(
+        child,
+        partial(
+            context.deps.activity_registry.release,
+            device_id=context.device_id,
+            lease_id=context.lease_id,
+        ),
+    )

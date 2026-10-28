@@ -135,11 +135,9 @@ def configure_webui_static_assets(app_obj: FastAPI, config_obj: ConfigProtocol) 
         state.webui_static_dispatcher = dispatcher
     router.default = dispatcher
     if desired_directory is not None:
-        state.webui_static_directory = desired_directory
         state.webui_static_directories = (desired_directory, *fallback_paths)
         get_logger(LOGGER_NAME).debug("Serving WebUI from %s", static_webui_path)
     else:
-        state.webui_static_directory = None
         state.webui_static_directories = ()
         get_logger(LOGGER_NAME).warning(
             "WebUI path %s does not exist. WebUI assets are not available.",

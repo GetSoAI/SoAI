@@ -13,8 +13,10 @@ from typing import Self
 from core.concurrency.cancellation import TaskCancelledError
 from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exceptions import ValidationError
+from core.files.file_identity import FileIdentity
 from core.files.move_with_cancellation import MoveFileCommittedAfterCancellationError
 from core.files.temp_files import create_secure_temp_file_descriptor
+from core.filesystem.open_files import open_regular_binary_no_symlink
 from core.hardware.reservation_exceptions import preserve_primary_exception_cleanup_failure
 from core.network.protocols import DownloadInterruptionProtocol
 
@@ -123,6 +125,7 @@ class DownloadFile:
         interruption: DownloadInterruptionProtocol,
         *,
         cancellation_id: str = "download",
+        verified_identity: FileIdentity | None = None,
     ) -> None:
         await run_joined_thread_call(
             self._close,
@@ -136,6 +139,13 @@ class DownloadFile:
 
         def replace() -> None:
             interruption.raise_if_cancelled()
+            if verified_identity is not None:
+                with open_regular_binary_no_symlink(source_path) as verified_handle:
+                    if (
+                        FileIdentity.from_stat(os.fstat(verified_handle.fileno()))
+                        != verified_identity
+                    ):
+                        raise ValidationError("Verified artifact changed before publication.")
             os.replace(source_path, self.destination_path)
             self.committed = True
             self.path = ""

@@ -17,7 +17,7 @@ from core.config.gpu_binding import (
 )
 from core.config.gpu_binding_devices import (
     GpuBindingVisibilityTokens,
-    collect_gpu_binding_available_entries,
+    resolve_gpu_binding_selected_entries,
     resolve_gpu_binding_visibility_tokens,
 )
 from core.errors.exceptions import ConfigurationError, ValidationError
@@ -41,8 +41,7 @@ def build_accelerator_binding_environment(
         return {}
     if runtime_family == GPU_BINDING_RUNTIME_NONE:
         raise ConfigurationError(
-            "GPU_BINDING selected GPUs, but the current backend runtime does not expose "
-            "a supported GPU visibility contract.",
+            "GPU_BINDING selected GPUs, but the current backend runtime does not expose a supported GPU visibility contract.",
         )
     selected_gpus = _selected_gpu_entries(gpu_inventory, selected_ids)
     if runtime_family == GPU_BINDING_RUNTIME_CUDA:
@@ -87,33 +86,10 @@ def _selected_gpu_entries(
         raise ConfigurationError(
             "GPU_BINDING selected GPUs, but no hardware snapshot was provided.",
         )
-    entries = collect_gpu_binding_available_entries(gpu_inventory)
-    by_device_id: dict[str, JSONDict] = {}
-    for entry in entries:
-        device_id = _entry_device_id(entry)
-        if device_id is not None:
-            by_device_id[device_id] = entry
-    selected_entries: list[JSONDict] = []
-    missing_ids: list[str] = []
-    for device_id in selected_ids:
-        selected_entry = by_device_id.get(device_id)
-        if selected_entry is None:
-            missing_ids.append(device_id)
-        else:
-            selected_entries.append(selected_entry)
-    if missing_ids:
-        missing = ", ".join(sorted(missing_ids))
-        raise ConfigurationError(
-            f"GPU_BINDING references unavailable GPU device IDs: {missing}",
-        )
-    if not selected_entries:
-        raise ConfigurationError("GPU_BINDING did not resolve to any available GPUs.")
-    return selected_entries
-
-
-def _entry_device_id(entry: JSONDict) -> str | None:
-    device_id = entry.get("device_id")
-    return device_id.strip() if isinstance(device_id, str) and device_id.strip() else None
+    try:
+        return resolve_gpu_binding_selected_entries(gpu_inventory, selected_ids)
+    except ValidationError as exception:
+        raise ConfigurationError(str(exception), details=exception.details) from exception
 
 
 def _resolve_visibility_tokens(

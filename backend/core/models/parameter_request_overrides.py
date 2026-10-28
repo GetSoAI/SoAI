@@ -8,6 +8,7 @@ from core.models.context_parameter_mapping import (
     map_standardized_context_updates,
     resolve_context_parameter_name,
 )
+from core.models.context_window import coerce_positive_context_tokens
 from core.types.json import JSONDict, JSONValue, is_json_value
 from core.types.json_value import copy_json_value
 
@@ -31,9 +32,18 @@ def extract_payload_request_overrides(
     *,
     payload: JSONDict | None,
     parameter_definitions: JSONDict,
+    configured_parameters: JSONDict,
 ) -> JSONDict:
     if not isinstance(payload, dict):
         return {}
+    media_response_format = payload.get("_request_type") in (
+        "audio_transcription",
+        "audio_translation",
+        "audio_speech",
+        "image_generation",
+        "image_edit",
+        "image_variation",
+    )
     context_parameter_name = resolve_context_parameter_name(parameter_definitions)
     context_definition = (
         parameter_definitions.get(context_parameter_name)
@@ -59,6 +69,13 @@ def extract_payload_request_overrides(
         if not is_json_value(param_value):
             continue
         definition = parameter_definitions.get(param_key)
+        if (
+            param_key == "response_format"
+            and media_response_format
+            and isinstance(definition, dict)
+            and definition.get("type") == "object"
+        ):
+            continue
         if param_key == context_parameter_name:
             if context_request_overridable:
                 request_overrides[param_key] = copy_json_value(param_value)
@@ -72,4 +89,17 @@ def extract_payload_request_overrides(
             continue
         if is_request_overridable_parameter(definition):
             request_overrides[param_key] = copy_json_value(param_value)
+    if context_parameter_name is not None and context_parameter_name in request_overrides:
+        requested_context_tokens = coerce_positive_context_tokens(
+            request_overrides[context_parameter_name],
+        )
+        configured_context_tokens = coerce_positive_context_tokens(
+            configured_parameters.get(context_parameter_name),
+        )
+        if (
+            requested_context_tokens is not None
+            and requested_context_tokens == configured_context_tokens
+        ):
+            request_overrides.pop(context_parameter_name)
+            request_overrides.pop(FIT_CONTEXT_PARAMETER_NAME, None)
     return request_overrides

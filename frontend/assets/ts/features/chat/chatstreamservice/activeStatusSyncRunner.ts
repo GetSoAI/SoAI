@@ -75,7 +75,7 @@ class ChatStreamActiveStatusSyncRunner {
 
     #requestConversation(request: ActiveStatusSyncRunnerConversationRequest): Promise<ChatStreamMessageSavedReconciliation> {
         const existing = this.#inFlightByConversationId.get(request.conversationId);
-        if (existing && existing.context === request.context && existing.generation === request.generation) {
+        if (existing && !existing.abortController.signal.aborted && existing.context === request.context && existing.generation === request.generation) {
             existing.rerunRequested = true;
             return existing.promise;
         }
@@ -97,10 +97,11 @@ class ChatStreamActiveStatusSyncRunner {
     }
 
     async #syncUntilSettled(request: ActiveStatusSyncRunnerConversationRequest, entry: ConversationSyncEntry): Promise<ChatStreamMessageSavedReconciliation> {
+        const isEntryCurrent = (): boolean => request.isCurrent(request.generation) && !entry.abortController.signal.aborted;
         let result = requireCanonicalMessageLoad('stale-generation');
         do {
             entry.rerunRequested = false;
-            if (!request.isCurrent(request.generation)) {
+            if (!isEntryCurrent()) {
                 return requireCanonicalMessageLoad('stale-generation');
             }
             try {
@@ -109,7 +110,7 @@ class ChatStreamActiveStatusSyncRunner {
                     conversationId: request.conversationId,
                     signal: entry.abortController.signal,
                     followerSessions: request.followerSessions,
-                    isCurrent: () => request.isCurrent(request.generation)
+                    isCurrent: isEntryCurrent
                 });
             } catch (error) {
                 if (isAbortError(error)) {
@@ -120,7 +121,7 @@ class ChatStreamActiveStatusSyncRunner {
                 }
                 throw error;
             }
-        } while (entry.rerunRequested && request.isCurrent(request.generation));
+        } while (entry.rerunRequested && isEntryCurrent());
         return result;
     }
 }

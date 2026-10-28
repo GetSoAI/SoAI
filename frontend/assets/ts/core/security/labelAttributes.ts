@@ -12,7 +12,7 @@ interface LabelAttributesInput {
 const renderLabelAttributes = (input: string | LabelAttributesInput): TrustedHtml => {
     const ariaLabel = typeof input === 'string' ? input : input.ariaLabel;
     const tooltip = typeof input === 'string' ? input : (input.tooltip ?? input.ariaLabel);
-    return uiAttributes({ 'aria-label': ariaLabel, 'data-tooltip': tooltip });
+    return uiAttributes({ 'aria-label': ariaLabel, 'data-tooltip': tooltip, 'data-modal-localize-label': 'true' });
 };
 
 export { renderLabelAttributes };

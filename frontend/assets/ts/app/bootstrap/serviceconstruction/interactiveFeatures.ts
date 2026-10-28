@@ -9,6 +9,7 @@ import { getAuthManager } from '@core/auth/public.ts';
 import { ComponentRegistry } from '@core/componentsupport/public.ts';
 import { createConnectionStatus } from '@core/connectionstatus/public.ts';
 import { requireDocument } from '@core/environment/public.ts';
+import { requireRootButton } from '@core/dom/typedElementResolver.ts';
 import { LayoutHeader } from '@core/layout/header/Header.ts';
 import { LayoutSidebar } from '@core/layout/sidebar/Sidebar.ts';
 import { getMainStatusMonitor } from '@core/mainstatusmonitor/public.ts';
@@ -34,7 +35,7 @@ import { LogStream } from '@features/logging/logstreamservice/service.ts';
 import { LiveStatusOverlay } from '@features/indicators/service.ts';
 import { createPowerActionOverlay } from '@features/overlays/PowerAction.ts';
 import { RestartOverlay } from '@features/overlays/restart/service.ts';
-import { RESTART_OVERLAY_SERVICE_ID } from '@features/overlays/public.ts';
+import { RESTART_OVERLAY_SERVICE_ID, type CountdownOverlay } from '@features/overlays/public.ts';
 import { SearchComponent } from '@features/search/SearchPanel.ts';
 import { openPromptContentPreview } from '@features/prompts/public.ts';
 import { TaskManager } from '@features/tasks/TaskManager.ts';
@@ -42,6 +43,7 @@ import { TaskManagerStore } from '@features/tasks/taskmanagerstore/service.ts';
 import { LIVE_STATUS_OVERLAY_SERVICE_ID } from '@features/indicators/constants.ts';
 import { NotificationCenter } from '@features/notifications/public.ts';
 import { AiSetupAttentionService } from '@features/wizard/public.ts';
+import { wirePowerMode } from '@app/bootstrap/navigation/powerMode.ts';
 import { sendWebSocketMessage } from '@core/websocketclient/service.ts';
 
 interface BootstrapInteractiveFeatureDependencies {
@@ -57,6 +59,7 @@ interface BootstrapInteractiveFeatureDependencies {
     header: LayoutHeader;
     sidebarComponent: LayoutSidebar;
     overlay: LiveStatusOverlay;
+    countdownOverlay: CountdownOverlay;
 }
 
 interface BootstrapInteractiveFeatures {
@@ -95,6 +98,16 @@ const createBootstrapInteractiveFeatures = (dependencies: BootstrapInteractiveFe
     const powerOverlay = createPowerActionOverlay({
         api: dependencies.apiClient,
         maintenanceCoordinator: dependencies.maintenanceCoordinator
+    });
+    wirePowerMode({
+        api: dependencies.apiClient.system.power,
+        presenter: dependencies.modalPresenter,
+        getNavigationButton: () => requireRootButton(requireDocument().body, '#hamburger-menu', 'Shell navigation'),
+        router: dependencies.router,
+        auth: dependencies.authManager,
+        countdownOverlay: dependencies.countdownOverlay,
+        restartOverlay,
+        powerOverlay
     });
     const searchPanel = new SearchComponent({
         apiClient: dependencies.apiClient,

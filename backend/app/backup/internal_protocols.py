@@ -36,9 +36,9 @@ __all__ = (
     "BackupTargetParams",
     "ConfigProviderProtocol",
     "FilesProviderProtocol",
-    "RestoreCopyFuncProtocol",
     "RestoreRuntimeQuiescenceProtocol",
     "RestoreTaskRunnerContext",
+    "UserDataSource",
 )
 
 
@@ -54,6 +54,12 @@ class ConfigProviderProtocol(Protocol):
 
 class FilesProviderProtocol(Protocol):
     def resolve_path(self, path: str) -> str: ...
+
+
+@dataclass(frozen=True, slots=True)
+class UserDataSource:
+    archive_path: str
+    source_path: str
 
 
 class RestoreRuntimeQuiescenceProtocol(Protocol):
@@ -155,17 +161,6 @@ class RestoreTaskRunnerContext(BackupServiceContext, Protocol):
     def restore_runtime_quiescence(self) -> RestoreRuntimeQuiescenceProtocol: ...
 
 
-class RestoreCopyFuncProtocol(Protocol):
-    def __call__(
-        self,
-        source_path: str,
-        destination_path: str,
-        /,
-        *,
-        deadline_monotonic: float | None = None,
-    ) -> tuple[int, str]: ...
-
-
 @dataclass(frozen=True, slots=True)
 class BackupTargetParams:
     backup_dir: str
@@ -175,3 +170,4 @@ class BackupTargetParams:
     disk_reservation: DiskSpaceReservationLeaseProtocol | None
     total_enabled_targets: int
     task_id: str | None
+    user_data_sources: tuple[UserDataSource, ...]

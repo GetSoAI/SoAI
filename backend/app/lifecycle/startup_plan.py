@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 
 from app.lifecycle.entries import LifecycleEntry
 from app.lifecycle.startup_entries import startup_entry, timed_startup_entry
+from core.errors.exceptions import ValidationError
+from core.hardware.gpu_control_types import GPUControlStartupResult, GPURecoveryAdmissionState
 
 if TYPE_CHECKING:
     from app.startup_steps.dependencies import StartupStepDependencies
@@ -133,6 +135,15 @@ def build_background_startup_entries(
             action=infrastructure_services.mutation_command_supervisor.start,
         ),
     )
+    entries.append(
+        timed_startup_entry(
+            component_name="Backend Update Reconciliation",
+            metric_key="startup.background.backend_update_reconciliation_start_ms",
+            deps=deps,
+            action=application_context.services.plugins.backend_update_reconciliation.start,
+            critical=False,
+        )
+    )
     return tuple(entries)
 
 
@@ -156,7 +167,7 @@ def build_core_actor_startup_entries(
             action=inactivity_monitor_instance.start,
         ),
         startup_entry(
-            component_name="SoAIBench",
+            component_name="SoAI Bench",
             action=infrastructure_services.hardware.soaibench.reconcile_startup,
         ),
     ]
@@ -164,6 +175,20 @@ def build_core_actor_startup_entries(
 
         async def _start_hardware_monitoring() -> None:
             await infrastructure_services.hardware.manager.start_monitoring()
+
+        async def _start_gpu_tuning() -> None:
+            result = await infrastructure_services.hardware.gpu_tuning.apply_startup_gpu_settings()
+            if not isinstance(result, GPUControlStartupResult):
+                raise ValidationError("GPU startup did not return its actual typed readiness.")
+            if (
+                result.admission is not None
+                and result.admission.state != GPURecoveryAdmissionState.CLEAR
+            ):
+                application_context.logging.logger.warning(
+                    "GPU startup admission remains %s (operation %s).",
+                    result.admission.state.value,
+                    result.admission.operation_id,
+                )
 
         entries.extend(
             (
@@ -173,7 +198,7 @@ def build_core_actor_startup_entries(
                 ),
                 startup_entry(
                     component_name="Hardware GPU Tuning",
-                    action=infrastructure_services.hardware.gpu_tuning.apply_startup_gpu_settings,
+                    action=_start_gpu_tuning,
                 ),
             ),
         )

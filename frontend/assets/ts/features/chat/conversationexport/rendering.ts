@@ -1,6 +1,7 @@
 /* SoAI - Styled conversation export message rendering [frontend/assets/ts/features/chat/conversationexport/rendering.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { ChatMessageState } from '@features/chat/message/state.ts';
 import type { ChatToolIconServiceContract } from '@core/chat/protocols.ts';
 import type { SanitizerApi } from '@core/pagecontext/public.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -37,6 +38,7 @@ interface ConversationExportRenderDependencies {
 }
 
 const createConversationExportMessageView = (dependencies: ConversationExportRenderDependencies): ChatMessageView => {
+    const state = new ChatMessageState();
     return new ChatMessageView({
         sanitizer: dependencies.sanitizer,
         getCanonicalPlan: () => null,
@@ -55,6 +57,7 @@ const createConversationExportMessageView = (dependencies: ConversationExportRen
         getCurrentRunningActivitySnapshot: () => null,
         getMessageSenderLabel: (source, defaultRole) => dependencies.getMessageSenderLabel(source, defaultRole),
         resolveMessageContentSegments: (message) => buildMessageContentSegments(message.content),
+        resolveAssistantResponseDuration: (message, nowMs) => state.resolveAssistantResponseDuration(message, nowMs),
         resolveRunningActivitySummaryForMarkup: (message, nowMs) => resolveRunningActivitySummary(message, nowMs),
         getPreRenderedAssistantBodyHtml: () => null,
         getLoadingActivityCollapsedState: () => null,

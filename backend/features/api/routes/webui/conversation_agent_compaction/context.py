@@ -11,6 +11,7 @@ from core.conversations.conversation_model_settings_resolution import (
 )
 from core.errors.exceptions import StateError, ValidationError
 from core.model_settings.normalization import read_optional_agent_settings
+from core.model_settings.request_projection import read_execution_context_window_override
 from core.serialization.json import serialize_json_compact_stable
 from core.types.json_value import coerce_json_dict
 from core.validation.strings import coerce_optional_trimmed_str
@@ -149,13 +150,22 @@ async def resolve_compaction_model_and_budget(
         capability_key="chat_completions",
         label="Compaction model",
     )
-    compaction_budget = await resolve_compaction_budget_for_request_model(
-        config=api_context.dependencies.config,
-        model_name=model,
-        model_resolution_service=api_context.dependencies.model_resolution_service,
-        model_information_service=api_context.dependencies.model_information_service,
-        virtual_model_get=api_context.dependencies.model_virtual_model_service.virtual_model_get,
-    )
+    settings = require_conversation_model_settings(conversation_record.get("model_settings"))
+    context_window_override = read_execution_context_window_override(settings)
+    if context_window_override is None:
+        compaction_budget = await resolve_compaction_budget_for_request_model(
+            config=api_context.dependencies.config,
+            model_name=model,
+            model_resolution_service=api_context.dependencies.model_resolution_service,
+            model_information_service=api_context.dependencies.model_information_service,
+            virtual_model_get=api_context.dependencies.model_virtual_model_service.virtual_model_get,
+        )
+    else:
+        compaction_budget = resolve_compaction_budget_from_context_window(
+            config=api_context.dependencies.config,
+            context_window_tokens=context_window_override,
+            tokenizer_is_approximate=True,
+        )
     mode, compaction_limit = resolve_agent_mode_and_budget(
         api_context.dependencies.config,
         conversation_record,

@@ -12,6 +12,7 @@ from database.core.sqlite_errors import parse_sqlite_integrity_error
 from database.repositories.users.conversation_attachment_rows import (
     format_knowledge_attachment_row,
 )
+from database.repositories.users.conversation_knowledge_extraction import KNOWLEDGE_SUMMARY_COLUMNS
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -32,8 +33,8 @@ def fetch_knowledge_attachment_by_id(
 ) -> JSONDict | None:
     row = sync_fetch_one_as_dict(
         conn.execute(
-            """
-            SELECT *
+            f"""
+            SELECT {KNOWLEDGE_SUMMARY_COLUMNS}
             FROM webui_conversation_knowledge_attachments
             WHERE conv_id = ? AND user_id = ? AND id = ?
             """,
@@ -52,8 +53,8 @@ def fetch_knowledge_attachment_by_client_batch(
 ) -> JSONDict | None:
     row = sync_fetch_one_as_dict(
         conn.execute(
-            """
-            SELECT *
+            f"""
+            SELECT {KNOWLEDGE_SUMMARY_COLUMNS}
             FROM webui_conversation_knowledge_attachments
             WHERE conv_id = ? AND user_id = ? AND client_batch_id = ?
             """,

@@ -4,7 +4,7 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
-        "generate": "tsx scripts/generateCharacterMapCatalog.mts && tsx scripts/generateTranslationKeys.mts && tsx scripts/generateIconRegistry.mts && tsx scripts/buildThemePreinit.mts && tsx scripts/buildWallpaperPreinit.mts && tsx scripts/cspNonceVendorXterm.mts && tsx scripts/cspNonceVendorMermaid.mts",
+        "generate": "tsx scripts/syncSpinnerAppearance.mts && tsx scripts/generateCharacterMapCatalog.mts && tsx scripts/generateTranslationKeys.mts && tsx scripts/generateIconRegistry.mts && tsx scripts/buildThemePreinit.mts && tsx scripts/buildWallpaperPreinit.mts && tsx scripts/cspNonceVendorXterm.mts && tsx scripts/cspNonceVendorMermaid.mts",
         "dev": "vite dev",
         "prebuild:core": "npm run generate",
         "build:core": "vite build",
@@ -23,11 +23,23 @@
         "prettier": "^3.9.6",
         "tsx": "^4.23.12",
         "typescript": "^5.9.3",
-        "vite": "^8.2.2"
+        "vite": "8.3.5"
     },
     "dependencies": {
-        "dompurify": "^3.4.14",
+        "dompurify": "3.4.17",
         "katex": "^0.18.4",
-        "mermaid": "^11.17.0"
+        "mermaid": "file:vendor/security/mermaid-11.17.3-soai.1.tgz"
+    },
+    "overrides": {
+        "vite": "8.3.5",
+        "postcss-selector-parser": "7.1.7",
+        "source-map-js": "1.2.2",
+        "fast-uri@^3": "3.1.9",
+        "js-yaml@^3": "3.15.2",
+        "js-yaml@^4": "4.3.2",
+        "undici@^7": "7.30.1",
+        "brace-expansion@^1": "1.1.21",
+        "brace-expansion@^2": "2.1.7",
+        "brace-expansion@^5": "5.0.12"
     }
 }

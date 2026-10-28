@@ -27,7 +27,7 @@ const createConcurrentPluginsModalElement = (): HTMLElement => {
     const body = renderModalBody(
         uiHtml`
         <div class="form-group concurrent-plugins-form-group setting-change-surface">
-            <label id="${modalUiId(modalId, 'input-label')}" for="${modalUiId(modalId, 'input')}">${i18n.t('plugins.modal.concurrentPlugins.inputLabel')}</label>
+            <label id="${modalUiId(modalId, 'input-label')}" for="${modalUiId(modalId, 'input')}" data-modal-localize="text">${i18n.t('plugins.modal.concurrentPlugins.inputLabel')}</label>
             <input
                 type="range"
                 data-action="${PLUGINS_ACTION_CONCURRENT_SLIDER_INPUT}"
@@ -47,7 +47,7 @@ const createConcurrentPluginsModalElement = (): HTMLElement => {
                 max="${MAX_LIMIT}"
                 step="1"
             />
-            <div class="form-error u-hidden" id="${modalUiId(modalId, 'error')}">${i18n.t('plugins.modal.concurrentPlugins.validationError')}</div>
+            <div class="form-error u-hidden" id="${modalUiId(modalId, 'error')}" data-modal-localize="text">${i18n.t('plugins.modal.concurrentPlugins.validationError')}</div>
         </div>
     `
     );

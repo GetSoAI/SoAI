@@ -40,8 +40,6 @@ const OVERFLOW_NAV_TARGETS: readonly OverflowNavTargetConfig[] = Object.freeze([
 class HardwareOverflowNavController {
     #widgetsController: OverflowNavController | null = null;
     #gpuController: OverflowNavController | null = null;
-    #widgetsMutationObserver: MutationObserver | null = null;
-    #gpuMutationObserver: MutationObserver | null = null;
 
     initialize(root: HTMLElement, signal: AbortSignal): void {
         this.dispose();
@@ -54,10 +52,6 @@ class HardwareOverflowNavController {
     }
 
     dispose(): void {
-        this.#widgetsMutationObserver?.disconnect();
-        this.#widgetsMutationObserver = null;
-        this.#gpuMutationObserver?.disconnect();
-        this.#gpuMutationObserver = null;
         this.#widgetsController?.dispose();
         this.#widgetsController = null;
         this.#gpuController?.dispose();
@@ -88,16 +82,11 @@ class HardwareOverflowNavController {
         const controller = new OverflowNavController(resolved.scroller, resolved.leftButton, resolved.rightButton);
         controller.initialize((target, event, handler, options) => this.#bindEvent(target, event, handler, options, signal));
 
-        const observer = new MutationObserver(() => controller.update());
-        observer.observe(resolved.scroller, { childList: true });
-
         if (resolved.target === 'widgets') {
             this.#widgetsController = controller;
-            this.#widgetsMutationObserver = observer;
             return;
         }
         this.#gpuController = controller;
-        this.#gpuMutationObserver = observer;
     }
 
     #bindEvent(target: EventTarget, event: string, handler: EventListener, options: AddEventListenerOptions | undefined, signal: AbortSignal): () => void {

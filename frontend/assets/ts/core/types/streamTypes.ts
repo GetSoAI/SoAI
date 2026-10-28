@@ -24,6 +24,8 @@ export interface PluginData {
 export type GpuSlotSettings = JsonObject & { powerLimit?: number | 'auto' | null; coreClock?: number | 'auto' | null; memClock?: number | 'auto' | null; fanSpeed?: number | 'auto' | null; resetClocks?: boolean };
 export type GpuSlotFieldModes = JsonObject & { powerLimit?: 'auto' | 'manual'; coreClock?: 'auto' | 'manual'; memClock?: 'auto' | 'manual'; fanSpeed?: 'auto' | 'manual' };
 export type GpuSlotSavedState = JsonObject & { settings: GpuSlotSettings; fieldModes: GpuSlotFieldModes; savedAt?: string; lastAppliedAt?: string | null; signature?: string };
+export type GpuRecoveredProfile = JsonObject & { id: string; sourceDeviceId: string; sourceSlot: string; profile: GpuSlotSavedState | null; original: JsonValue };
+export type GpuSlotReconciliation = JsonObject & { bootConflict: boolean; recoveredProfiles: GpuRecoveredProfile[] };
 export type GpuSlotBootState = JsonObject & { enabled: boolean; slot: string | null; appliedSignature: string | null; appliedAt: string | null };
 export type GpuSlotCurrentSetting = JsonObject & { value: number; defaultValue?: number; isDefault?: boolean };
 export type GpuSlotLiveState = JsonObject & { deviceId: string; currentSettings: Record<string, GpuSlotCurrentSetting>; bootState: GpuSlotBootState; bootEnabled: boolean; bootSlot: string | null; activeSlot: string | null; activeSignature: string | null; activeAppliedAt: string | null };
@@ -36,6 +38,7 @@ export type GpuSlotDevice = JsonObject & {
     slots: Record<string, GpuSlotSavedState>;
     boot: GpuSlotBootState;
     live: GpuSlotLiveState;
+    reconciliation?: GpuSlotReconciliation;
 };
 
 export interface GpuSlotsData {

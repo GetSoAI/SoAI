@@ -50,7 +50,7 @@ const renderChatInputActionInlineButtonHtml = (action: ChatInputActionDescriptor
 };
 
 const renderChatInputActionMenuButtonHtml = (action: ChatInputActionDescriptor): string => {
-    return `<button type="button" class="${action.buttonClassName} ui-button chat-input-action chat-header-action chat-composer-overflow-action" data-action="${action.actionId}"${renderMicrophoneLabelDataAttributes(action)}${renderMenuKeepOpenAttribute(action)} ${renderLabelAttributes(action.label)}>${renderActionIconSlots(action)}<span class="chat-input-action-label chat-action-label">${securityApi.escapeHtml(action.label)}</span></button>`;
+    return `<button type="button" class="${action.buttonClassName} ui-button ui-icon-button chat-input-action chat-header-action chat-composer-overflow-action" data-action="${action.actionId}"${renderMicrophoneLabelDataAttributes(action)}${renderMenuKeepOpenAttribute(action)} ${renderLabelAttributes(action.label)}>${renderActionIconSlots(action)}<span class="chat-input-action-label chat-action-label">${securityApi.escapeHtml(action.label)}</span></button>`;
 };
 
 const renderChatInputActionButtonsInline = (context: ChatPageMarkupContext): { leading: string; auxiliary: string } => {
@@ -75,7 +75,7 @@ const renderChatHeaderOverflowComposerButtons = (context: ChatPageMarkupContext)
     const buttons = resolveChatInputActionDescriptors(context)
         .map((action) => renderChatInputActionMenuButtonHtml(action))
         .join('');
-    const tokenCounterButton = `<button type="button" class="chat-token-counter-btn chat-token-counter-menu ui-button chat-input-action chat-header-action chat-composer-overflow-action" data-action="chat:cycle-token-counter" data-page-actions-menu-keep-open="true" ${renderLabelAttributes(strings.tokenCounterTooltip)} aria-description="${securityApi.escapeAttribute(i18n.t('chat.holdShortcuts.parametersHint'))}" aria-pressed="false"><span class="chat-action-icon" aria-hidden="true"></span><span dir="ltr" class="chat-token-counter-label chat-action-label">${strings.tokenCounterInactive}</span></button>`;
+    const tokenCounterButton = `<button type="button" class="chat-token-counter-btn chat-token-counter-menu ui-button ui-icon-button chat-input-action chat-header-action chat-composer-overflow-action" data-action="chat:cycle-token-counter" data-page-actions-menu-keep-open="true" ${renderLabelAttributes(strings.tokenCounterTooltip)} aria-description="${securityApi.escapeAttribute(i18n.t('chat.holdShortcuts.parametersHint'))}" aria-pressed="false"><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span dir="ltr" class="chat-token-counter-label chat-action-label">${strings.tokenCounterInactive}</span></button>`;
     return `${tokenCounterButton}${buttons}`;
 };
 

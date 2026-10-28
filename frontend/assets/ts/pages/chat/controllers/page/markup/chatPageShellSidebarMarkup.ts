@@ -23,7 +23,7 @@ const buildChatContainerAndSidebarMarkup = (context: ChatPageMarkupContext): str
         <button type="button" class="new-conversation-btn ui-icon-button" data-action="chat:new-conversation" ${renderLabelAttributes(strings.newConversation)}></button>
         <div class="model-selector page-header-filter-select" data-chat-model-control="true" data-scope="sidebar" ${renderLabelAttributes(strings.selectModel)}></div>
         </div>
-        <div id="chat-search-container" class="chat-search-container"><button type="button" class="favorite-toggle-btn chat-header-action ui-button" data-action="chat:toggle-favorites" ${renderLabelAttributes(strings.toggleFavorites)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.toggleFavorites}</span></button></div>
+        <div id="chat-search-container" class="chat-search-container"><button type="button" class="favorite-toggle-btn chat-header-action ui-button ui-icon-button" data-action="chat:toggle-favorites" ${renderLabelAttributes(strings.toggleFavorites)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.toggleFavorites}</span></button></div>
         <div class="conversation-list-empty u-hidden" id="conversations-list-empty"></div>
         <div class="conversations-list" id="conversations-list"></div>
         ${toolbarHtml}

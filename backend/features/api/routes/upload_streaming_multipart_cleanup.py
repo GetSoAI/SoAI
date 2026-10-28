@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.errors.exceptions import StateError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 
 if TYPE_CHECKING:
@@ -30,10 +32,12 @@ def cleanup_staged_multipart_upload(
     *,
     opened_writers: list[MultipartStagingWriter],
     opened_paths: list[str],
+    remove_file: Callable[[str], None] | None = None,
 ) -> MultipartCleanupResult:
     failed_writers: list[MultipartStagingWriter] = []
     failed_paths: list[str] = []
     first_failure: Exception | None = None
+    remove_path = os.remove if remove_file is None else remove_file
     for writer in opened_writers:
         try:
             writer.close()
@@ -43,10 +47,10 @@ def cleanup_staged_multipart_upload(
                 first_failure = exception
     for staged_path in opened_paths:
         try:
-            os.remove(staged_path)
+            remove_path(staged_path)
         except FileNotFoundError:
             continue
-        except OSError as exception:
+        except (OSError, StateError) as exception:
             failed_paths.append(staged_path)
             if first_failure is None:
                 first_failure = exception

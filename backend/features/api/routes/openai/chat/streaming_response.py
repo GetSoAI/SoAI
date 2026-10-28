@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 from core.events.types_base import Event
 from core.openai.request_features import extract_usage_reporting_requested
 from core.openai.request_pipeline import is_openai_text_completions_path
+from core.openai.streaming_usage import OpenAIPublicUsageProjection
 from core.orchestrator.types import MCPToolContext
 from core.runtime.request_context import RequestContext
 from core.runtime.request_sources import RequestSource
@@ -31,6 +32,7 @@ from features.api.streaming.openai_stream_generator.generator import (
     create_stream_generator,
 )
 from features.api.streaming.sse_responses import create_sse_response
+from features.api.streaming.stream_generator_state import StreamGeneratorState
 from features.api.streaming.task_quota_metadata import read_task_quota_budget_inputs
 from features.api.streaming.types import StreamDependencies
 
@@ -73,6 +75,12 @@ def create_inference_streaming_response(
         if is_openai_text_completions_path(get_scope_path(request.scope))
         else "chat.completion.chunk"
     )
+    public_usage_projection = (
+        OpenAIPublicUsageProjection(include_usage=include_usage, object_hint=stream_object_hint)
+        if stream_transform is None
+        else None
+    )
+    stream_result_state = StreamGeneratorState()
     stream_gen: AsyncGenerator[bytes]
     if tool_context is None:
         quota_reservation, quota_prompt_tokens, _model_hint = read_task_quota_budget_inputs(task)
@@ -92,6 +100,8 @@ def create_inference_streaming_response(
             allow_image_events=allow_image_events,
             emit_done_marker=stream_transform is None,
             schedule_tool_calls=stream_transform is None,
+            stream_result_state=stream_result_state,
+            public_usage_projection=public_usage_projection,
         )
     else:
         cancel_on_disconnect = api_context.dependencies.config.get_bool(
@@ -110,11 +120,14 @@ def create_inference_streaming_response(
             request_source=request_source,
             include_usage=include_usage,
             cancel_on_disconnect=cancel_on_disconnect,
+            stream_result_state=stream_result_state,
+            public_usage_projection=public_usage_projection,
         )
     if chat_completion_storage is not None:
         stream_gen = wrap_stream_for_chat_completion_storage(
             stream_gen,
             storage=chat_completion_storage,
+            stream_result_state=stream_result_state,
         )
     if stream_transform is not None:
         stream_gen = stream_transform(stream_gen)

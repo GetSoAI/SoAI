@@ -9,6 +9,8 @@ from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.concurrency.task_groups import cancel_and_await
 from core.errors.exceptions import ProcessError
 from core.ipc.protocols import IpcConnectionWaitServerProtocol
+from core.system.async_process_spawning import ManagedAsyncProcess, wait_for_managed_process_group
+from core.system.native_runtime_probes import RuntimeStartupTimeoutError
 
 __all__ = ("wait_for_worker_or_exit",)
 
@@ -17,7 +19,7 @@ async def wait_for_worker_or_exit(
     server: IpcConnectionWaitServerProtocol,
     *,
     worker_id: int,
-    process: asyncio.subprocess.Process,
+    process: asyncio.subprocess.Process | ManagedAsyncProcess,
     diagnostic_log_path: str,
     startup_timeout_sec: float,
 ) -> None:
@@ -26,7 +28,11 @@ async def wait_for_worker_or_exit(
     wait_connected = create_ephemeral_task(
         server.wait_for_worker(worker_id_value, timeout_sec=timeout_value),
     )
-    wait_exited = create_ephemeral_task(process.wait())
+    wait_exited = create_ephemeral_task(
+        wait_for_managed_process_group(process.process)
+        if isinstance(process, ManagedAsyncProcess)
+        else process.wait()
+    )
     try:
         done, _ = await asyncio.wait(
             {wait_connected, wait_exited},
@@ -37,7 +43,11 @@ async def wait_for_worker_or_exit(
             wait_connected.result()
             return
         if wait_exited in done:
-            returncode = process.returncode
+            returncode = (
+                process.process.returncode
+                if isinstance(process, ManagedAsyncProcess)
+                else process.returncode
+            )
             if returncode is None:
                 try:
                     returncode = int(wait_exited.result())
@@ -52,7 +62,7 @@ async def wait_for_worker_or_exit(
                     "returncode": returncode,
                 },
             )
-        raise ProcessError(
+        raise RuntimeStartupTimeoutError(
             "IPC worker did not connect within startup timeout.",
             operation="core.ipc.managed_worker.spawn.connect_timeout",
             details={

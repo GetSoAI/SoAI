@@ -1,15 +1,13 @@
 /* SoAI - Chat UI manager actions [frontend/assets/ts/features/chat/chatuimanager/actions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { prefersReducedMotion } from '@core/animations/prefersReducedMotion.ts';
 import { renderExpandedActivityDetails, resolveActivityToggleContext, resolveCurrentActivityToggleContext, updateInlineActivityCollapsedState } from '@features/chat/chatuimanager/toolActivityExpansion.ts';
 import { detailsRootHasPopulatedContent, readInlineActivityDetailsRootSignature } from '@features/chat/message/inlineActivityDetailsLifecycle.ts';
 import { INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE, resolveDirectInlineActivityDetailsRoot } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
+import { closeInlineActivityDetailsWithMotion } from '@features/chat/message/inlineActivityDetailsMotion.ts';
 import { completeInlineActivityDetailsOpenState, isInlineActivityDetailsPending, resetInlineActivityDetailsClosedState } from '@features/chat/message/inlineActivityDetailsPendingState.ts';
 import { captureAssistantViewportStability, withCapturedAssistantViewportStability } from '@features/chat/message/assistantViewportStability.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
-
-const COLLAPSE_SETTLED_TRANSITION_PROPERTY = 'opacity';
 
 export async function toggleToolActivityItem(context: ChatUIManagerContext, header: Element | null): Promise<void> {
     if (!header) {
@@ -80,46 +78,9 @@ export async function toggleToolActivityItem(context: ChatUIManagerContext, head
         activeItem = currentResolved.item;
     }
     if (nextCollapsed) {
-        const details = resolveDirectInlineActivityDetailsRoot(activeItem);
-        if (details instanceof HTMLElement) {
-            if (prefersReducedMotion(details)) {
-                withCapturedAssistantViewportStability(viewportStability, () => {
-                    activeItem.removeAttribute('data-collapsing');
-                    activeItem.setAttribute('data-collapsed', 'true');
-                });
-            } else {
-                activeItem.setAttribute('data-collapsing', 'true');
-                let cleared = false;
-                const cleanup = (): void => {
-                    if (cleared) {
-                        return;
-                    }
-                    cleared = true;
-                    details.removeEventListener('transitionend', onEnd);
-                    activeItem.removeAttribute('data-collapsing');
-                };
-                const onEnd = (event: TransitionEvent): void => {
-                    if (event.target !== details || event.propertyName !== COLLAPSE_SETTLED_TRANSITION_PROPERTY) {
-                        return;
-                    }
-                    cleanup();
-                };
-                details.addEventListener('transitionend', onEnd);
-                requestAnimationFrame(() => {
-                    if (!activeItem.isConnected) {
-                        cleanup();
-                        return;
-                    }
-                    withCapturedAssistantViewportStability(viewportStability, () => {
-                        activeItem.setAttribute('data-collapsed', 'true');
-                    });
-                });
-            }
-        } else {
-            withCapturedAssistantViewportStability(viewportStability, () => {
-                activeItem.setAttribute('data-collapsed', 'true');
-            });
-        }
+        withCapturedAssistantViewportStability(viewportStability, () => {
+            closeInlineActivityDetailsWithMotion(activeItem);
+        });
     } else {
         if (!activeItem.isConnected) {
             updateInlineActivityCollapsedState(context, activeResolved, nextCollapsed);

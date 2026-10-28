@@ -1,6 +1,9 @@
 /* SoAI - Hardware page widgets memory swap panel controller [frontend/assets/ts/pages/hardware/widgets/memoryswap/MemorySwapPanelController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isHardwareObservationFresh, resolveHardwareObservation, shouldDimHardwareObservation } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
+import { serverEpochMs } from '@core/time/clock.ts';
+
 import { renderContentImmediately, transitionContentElements } from '@core/animations/contentFadeTransition.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { HardwareProcessesResource } from '@core/realtime/streammanager/resources/resourceValueContracts.ts';
@@ -13,6 +16,7 @@ import type { ProcessRecord } from '@pages/hardware/widgets/processes/types.ts';
 
 class MemorySwapPanelController {
     readonly #host: MemorySwapPanelHost;
+    #staleCounts: Record<string, number> = {};
     #mode: MemorySwapMode = 'ram';
     #snapshot: HardwarePageSnapshot | null = null;
     #processes: ProcessRecord[] = [];
@@ -50,6 +54,7 @@ class MemorySwapPanelController {
 
     handleSnapshot(snapshot: HardwarePageSnapshot): void {
         this.#snapshot = snapshot;
+        for (const component of ['memory', 'swap']) this.#staleCounts[component] = isHardwareObservationFresh(resolveHardwareObservation(snapshot, component)) ? 0 : (this.#staleCounts[component] ?? 0) + 1;
         this.#render();
     }
 
@@ -78,6 +83,7 @@ class MemorySwapPanelController {
 
     dispose(): void {
         this.#snapshot = null;
+        this.#staleCounts = {};
         this.#processes = [];
         this.#processDataReady = false;
         this.#summary = null;
@@ -99,6 +105,11 @@ class MemorySwapPanelController {
             processDataReady: this.#processDataReady,
             canViewProcesses: this.#canViewProcesses
         });
+        const interval = this.#snapshot?.capabilities.monitoringIntervalMs ?? 1000;
+        if (this.#snapshot) {
+            model.ramUsage.stale = shouldDimHardwareObservation(resolveHardwareObservation(this.#snapshot, 'memory'), this.#staleCounts['memory'] ?? 0, serverEpochMs(), interval);
+            model.swapUsage.stale = shouldDimHardwareObservation(resolveHardwareObservation(this.#snapshot, 'swap'), this.#staleCounts['swap'] ?? 0, serverEpochMs(), interval);
+        }
         this.#host.updateText(summary, model.summary);
         const toggleLabel = this.#mode === 'ram' ? i18n.t('hardware.cards.memorySwap.actions.showSwap') : i18n.t('hardware.cards.memorySwap.actions.showRam');
         toggle.setAttribute('aria-label', toggleLabel);

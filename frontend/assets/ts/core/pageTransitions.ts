@@ -1,9 +1,12 @@
 /* SoAI - Shared frontend page transitions [frontend/assets/ts/core/pageTransitions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { dom, DomObserver } from '@core/dom/dom.ts';
+import { dom } from '@core/dom/dom.ts';
 import { isReducedAnimationScope } from '@core/animations/speed.ts';
-import { getWindow } from '@core/environment/public.ts';
+import { isAbortError, raceWithAbortSignal, runWithAbortSignalScope, throwIfAborted } from '@core/errors/abort.ts';
+import { monotonicMs } from '@core/time/clock.ts';
+import { withAbortableTimeout } from '@core/primitives/withAbortableTimeout.ts';
+import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { isFunction, isThenable } from '@core/typeGuards.ts';
 
@@ -82,104 +85,63 @@ const readAnimations = (element: Element, subtree: boolean): Animation[] => {
     }
 };
 
-const resolveAnimationCandidates = async (element: Element, subtree: boolean): Promise<Animation[]> => {
+const resolveAnimationCandidates = async (element: Element, subtree: boolean, signal: AbortSignal): Promise<Animation[]> => {
     let candidates = readAnimations(element, subtree);
     if (candidates.length > 0) {
         return candidates;
     }
-    await DomObserver.animationFrame();
+    await awaitPresentationFrame(signal, 'Animation discovery aborted.');
+    throwIfAborted(signal);
     candidates = readAnimations(element, subtree);
     return candidates;
 };
 
-interface AbortWaitTask {
-    task: Promise<string>;
-    cleanup: () => void;
-}
-
-const createAbortWaitTask = (signal: AbortSignal | null): AbortWaitTask | null => {
-    if (!signal) {
-        return null;
-    }
-    if (signal.aborted) {
-        return { task: Promise.resolve('aborted'), cleanup: () => {} };
-    }
-    let abortHandler: (() => void) | null = null;
-    const task = new Promise<string>((resolve) => {
-        abortHandler = () => resolve('aborted');
-        signal.addEventListener('abort', abortHandler, { once: true });
-    });
-    const cleanup = (): void => {
-        if (abortHandler) {
-            signal.removeEventListener('abort', abortHandler);
-            abortHandler = null;
-        }
-    };
-    return { task, cleanup };
-};
-
-const waitForElementAnimations = async (element: Element, { ensureStarted = true, subtree = false, signal = null, requireAnimation = false }: { ensureStarted?: boolean; subtree?: boolean; signal?: AbortSignal | null; requireAnimation?: boolean } = {}): Promise<void> => {
+const waitForElementAnimations = async (element: Element, { ensureStarted = true, subtree = false, signal = null, requireAnimation = false, animations = null }: { ensureStarted?: boolean; subtree?: boolean; signal?: AbortSignal | null; requireAnimation?: boolean; animations?: readonly Animation[] | null } = {}): Promise<void> => {
     if (!element) {
         throw new Error('Page transition animation target is required');
     }
-    if (signal?.aborted) {
-        return;
-    }
-
-    if (ensureStarted) {
-        await DomObserver.animationFrame();
-    }
-    if (signal?.aborted) {
-        return;
-    }
-
-    const windowRef = getWindow();
-    const animationCandidates = await resolveAnimationCandidates(element, subtree);
-    if (signal?.aborted) {
-        return;
-    }
-    const waitTasks: Promise<void>[] = [];
-
-    let animationTaskCount = 0;
-    for (const candidate of animationCandidates) {
-        const finished = candidate.finished;
-        if (!isThenable(finished)) {
-            continue;
-        }
-        animationTaskCount += 1;
-        waitTasks.push(Promise.resolve(finished).then(() => undefined));
-    }
-
-    if (requireAnimation && animationTaskCount === 0) {
-        throw new Error(`Page transition target ${element.nodeName} did not start an animation`);
-    }
-
-    if (waitTasks.length === 0) {
-        return;
-    }
-
-    let timeoutId: number | null = null;
-    const timeoutTask: Promise<string> = new Promise((resolve) => {
-        timeoutId = windowRef.setTimeout(() => resolve('timeout'), ANIMATION_WAIT_TIMEOUT_MS);
-    });
-    const finishedTask: Promise<string> = Promise.all(waitTasks).then(() => 'done');
-    const raceTasks: Promise<string>[] = [finishedTask, timeoutTask];
-    const abortTask = createAbortWaitTask(signal);
-    if (abortTask) {
-        raceTasks.push(abortTask.task);
-    }
-
+    const document = element.ownerDocument;
+    if (signal?.aborted || document.visibilityState === 'hidden') return;
+    const timeoutMessage = `Page transition animation timed out after ${ANIMATION_WAIT_TIMEOUT_MS}ms for ${element.nodeName}`;
+    const deadline = monotonicMs() + ANIMATION_WAIT_TIMEOUT_MS;
+    const assertDeadline = (): void => {
+        if (monotonicMs() >= deadline) throw new Error(timeoutMessage);
+    };
+    const visibilityAbort = new AbortController();
+    const onVisibilityChange = (): void => {
+        if (document.visibilityState === 'hidden') visibilityAbort.abort();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
     try {
-        const outcome = await Promise.race(raceTasks);
-        if (outcome === 'timeout') {
-            throw new Error(`Page transition animation timed out after ${ANIMATION_WAIT_TIMEOUT_MS}ms for ${element.nodeName}`);
-        }
+        await runWithAbortSignalScope([signal, visibilityAbort.signal], (presentationSignal) =>
+            withAbortableTimeout(
+                (timeoutSignal) =>
+                    runWithAbortSignalScope([presentationSignal, timeoutSignal], async (waitSignal) => {
+                        throwIfAborted(waitSignal);
+                        if (ensureStarted) await awaitPresentationFrame(waitSignal, 'Animation startup aborted.');
+                        throwIfAborted(waitSignal);
+                        const animationCandidates = animations ?? (await resolveAnimationCandidates(element, subtree, waitSignal));
+                        throwIfAborted(waitSignal);
+                        assertDeadline();
+                        const waitTasks: Promise<void>[] = [];
+                        for (const candidate of animationCandidates) {
+                            const finished = candidate.finished;
+                            if (isThenable(finished)) waitTasks.push(Promise.resolve(finished).then(() => undefined));
+                        }
+                        if (requireAnimation && waitTasks.length === 0) {
+                            throw new Error(`Page transition target ${element.nodeName} did not start an animation`);
+                        }
+                        await raceWithAbortSignal(Promise.all(waitTasks), waitSignal);
+                        assertDeadline();
+                    }),
+                { timeoutMs: ANIMATION_WAIT_TIMEOUT_MS, timeoutMessage }
+            )
+        );
+    } catch (error) {
+        if (isAbortError(error) && (signal?.aborted || visibilityAbort.signal.aborted)) return;
+        throw error;
     } finally {
-        abortTask?.cleanup();
-        if (timeoutId !== null) {
-            windowRef.clearTimeout(timeoutId);
-            timeoutId = null;
-        }
+        document.removeEventListener('visibilitychange', onVisibilityChange);
     }
 };
 

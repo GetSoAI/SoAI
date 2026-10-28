@@ -11,6 +11,12 @@ import { commitAssistantRenderCacheUpdate, type AssistantRenderCacheUpdate } fro
 import { hasStreamingAssistantDom, normalizeSettledAssistantDom } from '@features/chat/message/assistantSettledDom.ts';
 import { withAssistantViewportStability, type AssistantViewportStabilityScope } from '@features/chat/message/assistantViewportStability.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
+import { dom } from '@core/dom/dom.ts';
+import { animatePresenceMorph, deferUntilPresenceExitsSettle, isPresenceMorphing, measurePresenceSize, prepareEnterWithPresence, stopPresenceAnimation } from '@core/animations/presence/public.ts';
+import { optionalClosestElement } from '@core/dom/attributes.ts';
+import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
+import { isMainTimelineAutoScrollLocked } from '@features/chat/mainTimelineScroll.ts';
+import { isSpinnerStatusTerminalTransitionActive } from '@features/chat/stream/streamMessageSpinnerStatusTerminalReconcile.ts';
 
 type AssistantRenderIntent = 'streamingChrome' | 'runningUpdate' | 'terminalFinalize' | 'idleRefresh' | 'activityToggle';
 
@@ -71,10 +77,13 @@ const commitAssistantTransactionRenderCache = (inputArguments: AssistantTransact
 
 const applyAssistantRenderTransaction = (inputArguments: AssistantRenderTransactionArguments): AssistantRenderTransactionResult => {
     const effectiveIntent = resolveEffectiveAssistantRenderIntent(inputArguments.existingMessageRoot, inputArguments.intent);
+    const existingFeedback = dom.resolve('.message-error', inputArguments.existingMessageRoot);
+    const previousFeedbackText = existingFeedback?.textContent;
     const messageText = resolveAssistantMessageParts(inputArguments.existingMessageRoot)?.text;
     if (effectiveIntent !== 'activityToggle' && messageText !== undefined) {
         cancelLoadingActivityTransition(messageText);
     }
+    const previousTextSize = effectiveIntent === 'terminalFinalize' && messageText !== undefined ? measurePresenceSize(messageText) : null;
     const assistantDomState = inputArguments.assistantDomState ?? collectAssistantDomState(inputArguments.existingMessageRoot);
     const forceTextPatch = effectiveIntent === 'terminalFinalize' && inputArguments.forceSettledAssistantBody === true;
     let changed = false;
@@ -111,6 +120,26 @@ const applyAssistantRenderTransaction = (inputArguments: AssistantRenderTransact
         if (shouldSettleLiveDom(effectiveIntent) && normalizeSettledAssistantDom(applied.root)) {
             changed = true;
             requiresPostRender = true;
+        }
+        if (effectiveIntent === 'terminalFinalize') {
+            const feedback = dom.resolve('.message-error', applied.root);
+            if (feedback instanceof HTMLElement && existingFeedback === null) prepareEnterWithPresence(feedback, true, true)();
+            const bodyChanged = applied.requiresPostRender || previousFeedbackText !== feedback?.textContent;
+            if (bodyChanged) {
+                const area = optionalClosestElement(applied.root, CHAT_SELECTORS.MESSAGES_AREA);
+                const actions = resolveAssistantMessageParts(applied.root)?.actions;
+                const holdsOutgoingStatus = actions !== undefined && actions !== null && isSpinnerStatusTerminalTransitionActive(actions);
+                if (area instanceof HTMLElement && (isMainTimelineAutoScrollLocked(area) || holdsOutgoingStatus) && messageText !== undefined && previousTextSize !== null) {
+                    if (isPresenceMorphing(messageText)) stopPresenceAnimation(messageText);
+                    const nextTextSize = measurePresenceSize(messageText);
+                    const outgoingActions = dom.resolve('.message-action-buttons-left', applied.root);
+                    const animation = nextTextSize === null ? null : animatePresenceMorph(messageText, previousTextSize, nextTextSize, { fadeChildren: false, preserveWrapping: true, ...(outgoingActions === null ? {} : { afterExitOf: outgoingActions }) });
+                    if (animation !== null && outgoingActions !== null)
+                        deferUntilPresenceExitsSettle(outgoingActions, () => {
+                            if (!isMainTimelineAutoScrollLocked(area) && (animation.playState === 'paused' || animation.playState === 'running')) withAssistantViewportStability(applied.root, () => animation.finish());
+                        });
+                }
+            }
         }
     };
 

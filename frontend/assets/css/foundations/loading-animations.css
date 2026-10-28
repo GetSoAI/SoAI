@@ -4,15 +4,11 @@
 @layer foundations {
     @keyframes task-progress-indeterminate {
         0% {
-            transform: translateX(calc(-60% * var(--dir-sign))) scaleX(0.4);
-        }
-
-        50% {
-            transform: translateX(calc(-10% * var(--dir-sign))) scaleX(0.9);
+            transform: translateX(calc(-100% * var(--dir-sign)));
         }
 
         100% {
-            transform: translateX(calc(80% * var(--dir-sign))) scaleX(0.4);
+            transform: translateX(calc(300% * var(--dir-sign)));
         }
     }
 
@@ -76,12 +72,12 @@
         0%,
         100% {
             background: var(--ui-button-bg);
-            border-color: var(--ui-button-border);
+            border-color: color-mix(in srgb, var(--ui-button-border) var(--control-button-border-strength), transparent);
             color: var(--ui-button-color);
         }
         50% {
             background: var(--ui-button-bg-hover);
-            border-color: var(--ui-button-border-hover);
+            border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
             color: var(--ui-button-color-hover);
         }
     }

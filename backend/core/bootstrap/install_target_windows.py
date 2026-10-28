@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import re
 from contextlib import ExitStack
 
 from core.bootstrap.install_locks import lock_dir_has_live_owner
@@ -108,11 +109,27 @@ def recognizable_windows_install_target(target_root: str) -> bool:
         return True
     if os.path.isfile(os.path.join(target_root, ".soai_install_in_progress")):
         return True
-    backend_entrypoint = os.path.join(target_root, SOAI_BACKEND_MAIN_SUBPATH)
+    backend_entrypoint = os.path.join(target_root, *SOAI_BACKEND_MAIN_SUBPATH.split("/"))
     windows_launcher = os.path.join(target_root, "soai.exe")
     posix_launcher = os.path.join(target_root, "soai.sh")
-    return os.path.isfile(backend_entrypoint) and (
+    if os.path.isfile(backend_entrypoint) and (
         os.path.isfile(windows_launcher) or os.path.isfile(posix_launcher)
+    ):
+        return True
+    retained_marker: bytes | None = None
+    try:
+        retained_marker = read_regular_file_no_symlink(
+            os.path.join(target_root, ".soai-install-root"), max_bytes=128
+        )
+    except (OSError, SoAIError):
+        retained_marker = None
+    return (
+        retained_marker is not None
+        and re.fullmatch(
+            rb"SoAI Windows Installer Root(?:\r\nVersion=[0-9]+\.[0-9]+\.[0-9]+)?(?:\r\n)?",
+            retained_marker,
+        )
+        is not None
     )
 
 

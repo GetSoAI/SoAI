@@ -54,7 +54,7 @@ const buildApiKeyQuotaModalBody = (host: ApiKeysManagerHost, key: ApiKey, summar
         .map((mode) => {
             const label = resolveQuotaModeLabel(mode);
             const selected = mode === modeValue ? ' selected' : '';
-            return `<option value="${mode}"${selected}>${host.api.sanitizeHtml(label)}</option>`;
+            return `<option value="${mode}"${selected} data-modal-localize="text">${host.api.sanitizeHtml(label)}</option>`;
         })
         .join('');
 
@@ -69,12 +69,12 @@ const buildApiKeyQuotaModalBody = (host: ApiKeysManagerHost, key: ApiKey, summar
     const keyLabel = key.label ? host.api.sanitizeHtml(key.label) : `<em>${i18n.t('settings.apiKeys.keyItem.prefix')}</em>`;
     const keyPrefix = host.api.sanitizeHtml(key.prefix || '');
     const usagePreview = renderApiKeyQuotaStatusPreview(host, summary).html;
-    const notice = `<p class="setting-help api-key-quota-modal-note">${i18n.t('settings.apiKeys.quota.modal.saveResetsUsage')}</p>`;
+    const notice = `<p class="setting-help api-key-quota-modal-note" data-modal-localize="text">${i18n.t('settings.apiKeys.quota.modal.saveResetsUsage')}</p>`;
 
     const userAssignmentItem = userAssignment
         ? (() => {
               const noneLabel = i18n.t('settings.apiKeys.quota.modal.assignedUserNone');
-              const userOptions = [`<option value="">${host.api.sanitizeHtml(noneLabel)}</option>`]
+              const userOptions = [`<option value="" data-modal-localize="text">${host.api.sanitizeHtml(noneLabel)}</option>`]
                   .concat(
                       userAssignment.users.map((user) => {
                           const selected = user.id === userAssignment.assignedUserId ? ' selected' : '';
@@ -92,7 +92,7 @@ const buildApiKeyQuotaModalBody = (host: ApiKeysManagerHost, key: ApiKey, summar
         : null;
 
     return toTrustedUiHtml(
-        `<div class="api-key-quota-modal"><div class="api-key-quota-modal-key"><div class="api-key-quota-modal-key-header"><span class="api-key-label">${keyLabel}</span><span class="api-key-prefix"><code>${keyPrefix}...</code></span></div></div>${notice}<div class="api-key-quota-modal-status">${usagePreview}</div>${renderSettingsGroup([
+        `<div class="api-key-quota-modal"><div class="api-key-quota-modal-key"><div class="api-key-quota-modal-key-header"><span class="api-key-label" data-modal-localize="text">${keyLabel}</span><span class="api-key-prefix"><code>${keyPrefix}...</code></span></div></div>${notice}<div class="api-key-quota-modal-status">${usagePreview}</div>${renderSettingsGroup([
             ...(userAssignmentItem ? [userAssignmentItem] : []),
             renderSettingItem({
                 label: i18n.t('settings.apiKeys.quota.modal.modeLabel'),
@@ -103,23 +103,23 @@ const buildApiKeyQuotaModalBody = (host: ApiKeysManagerHost, key: ApiKey, summar
             renderSettingItem({
                 label: i18n.t('settings.apiKeys.quota.windows.hourly'),
                 help: i18n.t('settings.apiKeys.quota.modal.hourlyHelp'),
-                control: `<div class="api-key-quota-modal-hourly"><input id="${modalUiId(modalId, 'hourly-limit')}" type="number" min="1" step="1" class="setting-input setting-input--full" value="${hourlyLimitValue}" placeholder="${host.api.sanitizeAttribute(limitPlaceholder)}"><input id="${modalUiId(modalId, 'hourly-window')}" type="number" min="1" step="1" class="setting-input setting-input--full" value="${hourlyWindowValue}" placeholder="${host.api.sanitizeAttribute(windowHoursPlaceholder)}"></div>`,
+                control: `<div class="api-key-quota-modal-hourly"><input id="${modalUiId(modalId, 'hourly-limit')}" type="number" min="1" step="1" class="setting-input setting-input--full" value="${hourlyLimitValue}" placeholder="${host.api.sanitizeAttribute(limitPlaceholder)}" data-modal-localize="placeholder"><input id="${modalUiId(modalId, 'hourly-window')}" type="number" min="1" step="1" class="setting-input setting-input--full" value="${hourlyWindowValue}" placeholder="${host.api.sanitizeAttribute(windowHoursPlaceholder)}" data-modal-localize="placeholder"></div>`,
                 className: 'api-key-quota-modal-hourly-item'
             }),
             renderSettingItem({
                 label: i18n.t('settings.apiKeys.quota.windows.daily'),
                 help: i18n.t('settings.apiKeys.quota.modal.dailyHelp'),
-                control: `<input id="${modalUiId(modalId, 'daily-limit')}" type="number" min="1" step="1" class="setting-input setting-input--wide setting-input--full" value="${dailyLimitValue}" placeholder="${host.api.sanitizeAttribute(limitPlaceholder)}">`
+                control: `<input id="${modalUiId(modalId, 'daily-limit')}" type="number" min="1" step="1" class="setting-input setting-input--wide setting-input--full" value="${dailyLimitValue}" placeholder="${host.api.sanitizeAttribute(limitPlaceholder)}" data-modal-localize="placeholder">`
             }),
             renderSettingItem({
                 label: i18n.t('settings.apiKeys.quota.windows.weekly'),
                 help: i18n.t('settings.apiKeys.quota.modal.weeklyHelp'),
-                control: `<input id="${modalUiId(modalId, 'weekly-limit')}" type="number" min="1" step="1" class="setting-input setting-input--wide setting-input--full" value="${weeklyLimitValue}" placeholder="${host.api.sanitizeAttribute(limitPlaceholder)}">`
+                control: `<input id="${modalUiId(modalId, 'weekly-limit')}" type="number" min="1" step="1" class="setting-input setting-input--wide setting-input--full" value="${weeklyLimitValue}" placeholder="${host.api.sanitizeAttribute(limitPlaceholder)}" data-modal-localize="placeholder">`
             }),
             renderSettingItem({
                 label: i18n.t('settings.apiKeys.quota.windows.monthly'),
                 help: i18n.t('settings.apiKeys.quota.modal.monthlyHelp'),
-                control: `<input id="${modalUiId(modalId, 'monthly-limit')}" type="number" min="1" step="1" class="setting-input setting-input--wide setting-input--full" value="${monthlyLimitValue}" placeholder="${host.api.sanitizeAttribute(limitPlaceholder)}">`
+                control: `<input id="${modalUiId(modalId, 'monthly-limit')}" type="number" min="1" step="1" class="setting-input setting-input--wide setting-input--full" value="${monthlyLimitValue}" placeholder="${host.api.sanitizeAttribute(limitPlaceholder)}" data-modal-localize="placeholder">`
             })
         ])}</div>`
     );

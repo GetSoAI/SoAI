@@ -3,10 +3,13 @@
 
 from __future__ import annotations
 
+from asyncio import get_running_loop
 from typing import TYPE_CHECKING
 
 from app.lifecycle.database_shutdown_entries import database_shutdown_entries
 from app.lifecycle.entries import LifecycleEntry
+from core.errors.exceptions import ValidationError
+from core.validation.strict_numbers import require_finite_float_strict
 
 if TYPE_CHECKING:
     from app.types_application import ApplicationContext
@@ -92,13 +95,22 @@ def build_hardware_shutdown_entries(
     *,
     component_timeout_sec: float,
 ) -> tuple[LifecycleEntry, ...]:
+    budget = require_finite_float_strict(
+        component_timeout_sec, error_message="GPU shutdown budget must be finite."
+    )
+    if budget < 0:
+        raise ValidationError("GPU shutdown budget must be nonnegative.")
+
+    async def clear_hardware_dirty_flag() -> None:
+        await application_context.services.infrastructure.hardware.gpu_tuning.clear_dirty_shutdown_flag(
+            deadline_monotonic=get_running_loop().time() + budget
+        )
+
     return (
         LifecycleEntry(
             component_name="Hardware Dirty Shutdown Flag",
             phase="shutdown",
-            action=(
-                application_context.services.infrastructure.hardware.gpu_tuning.clear_dirty_shutdown_flag
-            ),
+            action=clear_hardware_dirty_flag,
             timeout_sec=component_timeout_sec,
             critical=False,
         ),

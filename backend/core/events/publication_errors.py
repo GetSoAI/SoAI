@@ -3,9 +3,12 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from core.errors.exceptions import ServiceUnavailableError, SoAITimeoutError
 
 __all__ = (
+    "AuthoritativePluginStateCompletion",
     "HardDeadlineExceededError",
     "PublicationDeadlineExceededError",
     "PublicationFailedError",
@@ -28,3 +31,9 @@ class PublicationFailedError(ServiceUnavailableError):
     code: str | int = "publication_failed"
     http_status = 503
     is_transient = True
+
+
+@dataclass(frozen=True, slots=True)
+class AuthoritativePluginStateCompletion:
+    event_id: str
+    failure_message: str | None = None

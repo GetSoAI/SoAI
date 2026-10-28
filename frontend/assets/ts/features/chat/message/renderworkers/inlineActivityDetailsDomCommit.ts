@@ -4,6 +4,7 @@
 import { toTrustedUiHtml } from '@core/security/public.ts';
 import { parseSingleRootElement } from '@core/dom/parseSingleRootElement.ts';
 import { i18n } from '@core/i18n/index.ts';
+import type { SyntaxHighlighter } from '@core/syntaxhighlighter/public.ts';
 import { collectAssistantDomState } from '@features/chat/message/assistantDomState.ts';
 import { patchStreamingTimelineSegmentInPlace } from '@features/chat/message/assistantTimelineSegmentPatching.ts';
 import { patchInlineActivityDetailsContent } from '@features/chat/message/assistantToolDetailsPatching.ts';
@@ -11,11 +12,13 @@ import { withAssistantViewportStability } from '@features/chat/message/assistant
 import { inlineActivityDetailsSignatureIsCurrent, readInlineActivityDetailsSignature, syncInlineActivityDetailsRootSignature } from '@features/chat/message/inlineActivityDetailsLifecycle.ts';
 import { INLINE_ACTIVITY_DETAILS_SIGNATURE_ATTRIBUTE, resolveDirectInlineActivityDetailsRoot } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
 import { completeInlineActivityDetailsOpenState } from '@features/chat/message/inlineActivityDetailsPendingState.ts';
+import { highlightStableChatCodeBlocks } from '@features/chat/message/syntaxHighlightPostRender.ts';
 
 interface InlineActivityDetailsSuccessCommitRequest {
     item: HTMLElement;
     signature: string;
     html: string;
+    syntaxHighlighter: SyntaxHighlighter;
     postRenderEffects: (container: Element | null) => void;
 }
 
@@ -41,6 +44,7 @@ const commitInlineActivityDetailsRenderSuccess = (request: InlineActivityDetails
     const existingDetailsRoot = resolveDirectInlineActivityDetailsRoot(request.item);
     if (existingDetailsRoot instanceof HTMLElement && inlineActivityDetailsAlreadyCurrent(request.item, existingDetailsRoot, request.signature)) {
         withAssistantViewportStability(request.item, () => {
+            highlightStableChatCodeBlocks(existingDetailsRoot, request.syntaxHighlighter);
             completeInlineActivityDetailsOpenState(request.item);
         });
         request.postRenderEffects(existingDetailsRoot);
@@ -48,6 +52,7 @@ const commitInlineActivityDetailsRenderSuccess = (request: InlineActivityDetails
     }
     let committedDetailsRoot: HTMLElement | null = null;
     const created = createInlineActivityDetailsRoot(request.item, request.signature, request.html.trim());
+    highlightStableChatCodeBlocks(created, request.syntaxHighlighter);
     withAssistantViewportStability(request.item, () => {
         if (existingDetailsRoot instanceof HTMLElement) {
             syncInlineActivityDetailsRootSignature(request.item, existingDetailsRoot, request.signature);
@@ -73,7 +78,9 @@ const commitInlineActivityDetailsRenderFailure = (request: InlineActivityDetails
             request.item.appendChild(detailsRoot);
         }
         detailsRoot.textContent = '';
-        detailsRoot.appendChild(detailsRoot.ownerDocument.createTextNode(i18n.t('chat.message.renderFailed')));
+        const failureText = detailsRoot.ownerDocument.createElement('p');
+        failureText.textContent = i18n.t('chat.message.renderFailed');
+        detailsRoot.appendChild(failureText);
         completeInlineActivityDetailsOpenState(request.item);
     });
 };

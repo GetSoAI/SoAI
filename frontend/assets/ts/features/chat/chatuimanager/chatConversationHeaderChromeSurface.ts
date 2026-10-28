@@ -6,10 +6,12 @@ import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
 import { createChatChromeSurfaceController, type ChatChromeSurfaceController } from '@features/chat/chatuimanager/chatChromeSurfaceController.ts';
+import { CHAT_CHROME_AUTO_HIDE_DISTANCE_PX } from '@features/chat/chatuimanager/chatChromeVisibilityPolicy.ts';
 import { getElement } from '@features/chat/chatuimanager/dom.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 
 const AUTO_HIDDEN_CLASS = 'chat-main-container--conversation-header-auto-hidden';
+const CHAT_HEADER_START_BOUNCE_GUARD_PX = CHAT_CHROME_AUTO_HIDE_DISTANCE_PX * 4;
 const CONVERSATION_HEADER_SELECTOR = '.chat-conversation-header';
 const OPEN_MENU_SELECTOR = '.page-actions__menu--open';
 
@@ -28,21 +30,31 @@ const hasKeyboardFocus = (header: HTMLElement, documentRef: Document): boolean =
     return focused instanceof Element && header.contains(focused) && focused.matches(':focus-visible');
 };
 
-const isNearConversationStart = (context: ChatUIManagerContext, header: HTMLElement): boolean => {
+const isConversationStartPinned = (context: ChatUIManagerContext, header: HTMLElement): boolean => {
     if (context.dependencies.session.getCurrentConversation()?.history?.hasOlder === true) return false;
     const messagesArea = getElement(context, 'messagesArea');
-    return messagesArea !== null && messagesArea.scrollTop < measureLayoutBox(header).height;
+    if (messagesArea === null) return false;
+    const startOffset = measureLayoutBox(header).height + CHAT_CHROME_AUTO_HIDE_DISTANCE_PX;
+    if (messagesArea.scrollTop < startOffset) return true;
+    const container = header.parentElement;
+    if (container !== null && container.classList.contains(AUTO_HIDDEN_CLASS)) return false;
+    return messagesArea.scrollTop < startOffset + CHAT_HEADER_START_BOUNCE_GUARD_PX;
 };
 
 export const setupChatConversationHeaderChromeSurface = (context: ChatUIManagerContext, isGlobalPinned: () => boolean): ChatChromeSurfaceController => {
     const dependencies = context.dependencies;
     const documentRef = dependencies.dom.getDocument();
+    const resolveInteractionElements = (header: HTMLElement): readonly HTMLElement[] => {
+        const todo = dependencies.optionalUI('.agent-todo-panel-container');
+        return todo instanceof HTMLElement ? [header, todo] : [header];
+    };
 
     const controller = createChatChromeSurfaceController(context, {
         isGlobalPinned,
         config: {
             revealEdge: 'top',
             resolveElement: () => resolveConversationHeader(context),
+            resolveInteractionElements,
             resolveRevealBounds: (header) => {
                 const container = header.parentElement;
                 if (container === null) return null;
@@ -55,9 +67,10 @@ export const setupChatConversationHeaderChromeSurface = (context: ChatUIManagerC
                 const right = sidebarBounds === null || !rtl ? headerBounds.right : Math.min(headerBounds.right, sidebarBounds.left);
                 return { ...headerBounds, x: left, left, right, width: Math.max(0, right - left), y: containerTop, top: containerTop, bottom: containerTop + headerBounds.height };
             },
-            isPinned: (header) => !dependencies.settings.isAutoHideChatHeaderEnabled() || isTitleEditorOpen(context, header) || dependencies.optionalUI(OPEN_MENU_SELECTOR, header) !== null || hasKeyboardFocus(header, documentRef) || isNearConversationStart(context, header),
+            isPinned: (header) => !dependencies.settings.isAutoHideChatHeaderEnabled() || isTitleEditorOpen(context, header) || dependencies.optionalUI(OPEN_MENU_SELECTOR, header) !== null || resolveInteractionElements(header).some((surface) => hasKeyboardFocus(surface, documentRef)) || isConversationStartPinned(context, header),
             isRevealBlocked: () => false,
-            isPointerTargetIgnored: (target) => target instanceof Element && (target.closest(`${CONVERSATION_HEADER_SELECTOR} ${CHAT_SELECTORS.SIDEBAR_TOGGLE}`) !== null || target.closest(CHAT_SELECTORS.SIDEBAR) !== null),
+            isTemporaryHideExempt: () => false,
+            isPointerTargetIgnored: (target) => target instanceof Element && target.closest(`${CONVERSATION_HEADER_SELECTOR} ${CHAT_SELECTORS.SIDEBAR_TOGGLE}, ${CHAT_SELECTORS.SIDEBAR}, .message-avatar`) !== null,
             project: (header, visible) => {
                 const container = header.parentElement;
                 if (container !== null && container.classList.contains(AUTO_HIDDEN_CLASS) === visible) dependencies.toggleClassName(container, AUTO_HIDDEN_CLASS, !visible);
@@ -66,8 +79,8 @@ export const setupChatConversationHeaderChromeSurface = (context: ChatUIManagerC
     });
 
     const header = resolveConversationHeader(context);
-    if (header !== null) {
-        controller.addDisposer(dependencies.runtime.on(header, 'focusin', () => controller.commit(), { passive: true }));
+    for (const surface of header === null ? [] : resolveInteractionElements(header)) {
+        controller.addDisposer(dependencies.runtime.on(surface, 'focusin', () => controller.commit(), { passive: true }));
     }
 
     return controller;

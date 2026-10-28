@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from functools import partial
 from typing import TYPE_CHECKING
 
 from app.lifecycle.entries import LifecycleEntry
@@ -65,6 +66,13 @@ def _build_service_shutdown_entries(
     services = application_context.services
     infrastructure_services = services.infrastructure
     plugin_manager = services.plugins.plugin_manager
+    _append_shutdown_entry(
+        entries,
+        "Backend Update Reconciliation",
+        services.plugins.backend_update_reconciliation,
+        component_timeout_sec,
+        critical=False,
+    )
     if not preserve_restore_owners:
         _append_shutdown_entry(
             entries,
@@ -96,13 +104,14 @@ def _build_service_shutdown_entries(
             component_timeout_sec,
             critical=False,
         )
-    _append_shutdown_entry(
-        entries,
-        "Conversation Input Dispatcher",
-        infrastructure_services.conversation_input_dispatcher,
-        component_timeout_sec,
-        critical=False,
-    )
+    if preserve_restore_owners:
+        _append_shutdown_entry(
+            entries,
+            "Conversation Input Dispatcher",
+            infrastructure_services.conversation_input_dispatcher,
+            component_timeout_sec,
+            critical=False,
+        )
     _append_shutdown_entry(
         entries,
         "Mail Service",
@@ -110,6 +119,14 @@ def _build_service_shutdown_entries(
         component_timeout_sec,
         critical=False,
     )
+    if preserve_restore_owners:
+        _append_shutdown_entry(
+            entries,
+            "Media Transcription Tasks",
+            services.storage.media_parsing.transcription_runtime,
+            component_timeout_sec,
+            critical=False,
+        )
     _append_shutdown_entry(
         entries,
         "Model Services Coordinator",
@@ -158,7 +175,7 @@ def _build_service_shutdown_entries(
     )
     _append_shutdown_entry(
         entries,
-        "SoAIBench",
+        "SoAI Bench",
         infrastructure_services.hardware.soaibench,
         component_timeout_sec,
         critical=True,
@@ -269,12 +286,17 @@ def _build_service_shutdown_entries(
         component_timeout_sec,
         critical=False,
     )
-    _append_shutdown_entry(
-        entries,
-        "Hardware Manager",
-        infrastructure_services.hardware.manager,
-        component_timeout_sec,
-        critical=False,
+    entries.append(
+        LifecycleEntry(
+            component_name="Hardware Manager",
+            phase="shutdown",
+            action=partial(
+                infrastructure_services.hardware.manager.shutdown,
+                timeout_sec=component_timeout_sec,
+            ),
+            timeout_sec=component_timeout_sec,
+            critical=True,
+        )
     )
     return tuple(entries)
 

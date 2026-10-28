@@ -10,6 +10,7 @@ import type { ChatStreamSession } from '@features/chat/chatstreamservice/types.t
 import { resolveLatestTerminalTimelineError } from '@features/chat/chatstreamservice/streamRunSessionTerminalError.ts';
 
 type TerminalPolicyArguments = {
+    hydrated?: boolean;
     session: ChatStreamSession;
     runtime: StreamRuntime;
 };
@@ -18,6 +19,7 @@ const finalizeChatStreamOwnerCancellation = (inputArguments: TerminalPolicyArgum
     finalizeChatStreamTerminalState({
         session: inputArguments.session,
         runtime: inputArguments.runtime,
+        hydrated: inputArguments.hydrated === true,
         status: 'cancelled',
         finishReason: 'cancelled',
         lastError: null,
@@ -32,6 +34,7 @@ const finalizeChatStreamCommandCancelNotFound = (inputArguments: TerminalPolicyA
     finalizeChatStreamOwnerCancellation({
         session: inputArguments.session,
         runtime: inputArguments.runtime,
+        hydrated: inputArguments.hydrated === true,
         notifyUser: true
     });
 };
@@ -40,6 +43,7 @@ const finalizeChatStreamServerComplete = (inputArguments: TerminalPolicyArgument
     finalizeChatStreamTerminalState({
         session: inputArguments.session,
         runtime: inputArguments.runtime,
+        hydrated: inputArguments.hydrated === true,
         status: 'complete',
         finishReason: inputArguments.finishReason,
         lastError: null,
@@ -54,6 +58,7 @@ const finalizeChatStreamServerCancellation = (inputArguments: TerminalPolicyArgu
     finalizeChatStreamOwnerCancellation({
         session: inputArguments.session,
         runtime: inputArguments.runtime,
+        hydrated: inputArguments.hydrated === true,
         notifyUser: inputArguments.notifyUser
     });
 };
@@ -62,6 +67,7 @@ const finalizeChatStreamServerError = (inputArguments: TerminalPolicyArguments &
     finalizeChatStreamTerminalState({
         session: inputArguments.session,
         runtime: inputArguments.runtime,
+        hydrated: inputArguments.hydrated === true,
         status: 'error',
         finishReason: 'error',
         lastError: inputArguments.lastError,
@@ -74,10 +80,11 @@ const finalizeChatStreamServerError = (inputArguments: TerminalPolicyArguments &
 
 const finalizeChatStreamHydratedTerminal = (inputArguments: TerminalPolicyArguments & { status: TerminalSessionStatus; finishReason: string | null; notifyUser: boolean }): void => {
     const timelineError = inputArguments.status === 'error' ? resolveLatestTerminalTimelineError(inputArguments.session.assistantMessage.assistantEventTimeline) : null;
-    const presentation = timelineError !== null ? buildChatStreamServerErrorPresentation({ code: timelineError.code, technicalMessage: timelineError.message, referenceId: timelineError.referenceId, ...(timelineError.previewContract !== undefined ? { previewContract: timelineError.previewContract } : {}) }) : null;
+    const presentation = timelineError !== null ? buildChatStreamServerErrorPresentation({ code: timelineError.code, technicalMessage: timelineError.message, referenceId: timelineError.referenceId, explanation: timelineError.explanation, parameterName: timelineError.parameterName, details: timelineError.details, trustedSummary: true, ...(timelineError.previewContract !== undefined ? { previewContract: timelineError.previewContract } : {}) }) : null;
     finalizeChatStreamTerminalState({
         session: inputArguments.session,
         runtime: inputArguments.runtime,
+        hydrated: true,
         status: inputArguments.status,
         finishReason: inputArguments.finishReason,
         lastError: presentation?.lastError ?? null,

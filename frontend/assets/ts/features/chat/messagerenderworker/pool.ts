@@ -1,26 +1,19 @@
 /* SoAI - Main-thread WebWorker pool for chat message rendering [frontend/assets/ts/features/chat/messagerenderworker/pool.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import ChatRenderWorker from '@features/chat/messagerenderworker/worker.ts?worker&inline';
 import { generateSecureId } from '@core/primitives/idGenerator.ts';
-import type { JsonValue } from '@core/types/jsonValues.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { createAbortError } from '@core/errors/abort.ts';
-import type { RenderAssistantBodyFromMessageInput, RenderContext, RenderInlineDetailsFromMessageInput, RenderMessageCommonFields, WorkerRequest, WorkerResources } from '@features/chat/messagerenderworker/protocol.ts';
+import type { RenderAssistantBodyFromMessageInput, RenderContext, RenderInlineDetailsFromMessageInput, RenderMessageCommonFields, WorkerMessage, WorkerRequest, WorkerResources } from '@features/chat/messagerenderworker/protocol.ts';
 import { ChatRenderWorkerRequestQueue } from '@features/chat/messagerenderworker/workerRequestQueue.ts';
 import { computeWorkerCount, isWorkerReadyMessage, isWorkerResponse, requireModernWorkerSupport } from '@features/chat/messagerenderworker/workerPoolEnvironment.ts';
 import { minutesToMs, secondsToMs } from '@core/time/durations.ts';
-import { TimeoutTimer } from '@core/timers/timeoutTimer.ts';
-import { createDeferred, type Deferred } from '@core/runtime/deferred.ts';
+import { WorkerSession } from '@core/runtime/WorkerSession.ts';
 
 const CHAT_RENDER_WORKER_REQUEST_TIMEOUT_MS = secondsToMs(30);
 const CHAT_RENDER_WORKER_BOOTSTRAP_TIMEOUT_MS = minutesToMs(2);
-
-type WorkerBootstrap = Deferred<void> & {
-    instanceId: string;
-    ready: boolean;
-    timeout: TimeoutTimer;
-};
 
 const createRenderMessageCommonFields = (inputArguments: RenderAssistantBodyFromMessageInput | RenderInlineDetailsFromMessageInput): RenderMessageCommonFields => {
     return {
@@ -38,9 +31,8 @@ const createRenderMessageCommonFields = (inputArguments: RenderAssistantBodyFrom
 };
 
 class ChatMessageRenderWorkerPool {
-    readonly #workers: Worker[];
+    readonly #workers: Array<WorkerSession<WorkerRequest, WorkerMessage> | undefined>;
     readonly #workerInstanceIds: string[];
-    readonly #workerBootstraps: Array<WorkerBootstrap | undefined>;
     readonly #requestQueue: ChatRenderWorkerRequestQueue;
     #resources: WorkerResources;
     #resourcesReady: Promise<void>;
@@ -50,7 +42,6 @@ class ChatMessageRenderWorkerPool {
         const count = computeWorkerCount();
         this.#workers = [];
         this.#workerInstanceIds = [];
-        this.#workerBootstraps = [];
         this.#resources = resources;
         this.#resourcesReady = Promise.resolve();
         this.#requestQueue = new ChatRenderWorkerRequestQueue({
@@ -76,16 +67,14 @@ class ChatMessageRenderWorkerPool {
         return this.#requestQueue.getWorkerCount();
     }
 
-    dispose(): void {
-        this.#requestQueue.rejectAll(new Error('Chat render worker pool disposed'));
+    dispose(error: Error = new Error('Chat render worker pool disposed')): void {
+        this.#requestQueue.rejectAll(error);
         for (const [index, worker] of this.#workers.entries()) {
-            this.#rejectWorkerBootstrap(index, new Error('Chat render worker pool disposed'));
             this.#workerInstanceIds[index] = generateSecureId();
-            worker.terminate();
+            worker?.dispose(error);
         }
         this.#workers.length = 0;
         this.#workerInstanceIds.length = 0;
-        this.#workerBootstraps.length = 0;
     }
 
     updateResources(resources: WorkerResources): void {
@@ -95,13 +84,11 @@ class ChatMessageRenderWorkerPool {
         this.#resources = resources;
         this.#requestQueue.rejectAll(new Error('Chat render worker resources updated'));
         for (let index = 0; index < this.#workers.length; index += 1) {
-            this.#rejectWorkerBootstrap(index, new Error('Chat render worker resources updated'));
             this.#workerInstanceIds[index] = generateSecureId();
-            this.#workers[index]?.terminate();
+            this.#workers[index]?.dispose(new Error('Chat render worker resources updated'));
         }
         this.#workers.length = 0;
         this.#workerInstanceIds.length = 0;
-        this.#workerBootstraps.length = 0;
         this.#resourcesReady = this.#initializeWorkerFleet(resources);
         this.#observeReadinessFailure('Worker resource update failed');
     }
@@ -147,45 +134,27 @@ class ChatMessageRenderWorkerPool {
         );
     }
 
-    #createWorker(workerIndex: number): Worker {
+    #createWorker(workerIndex: number): WorkerSession<WorkerRequest, WorkerMessage> {
         const instanceId = generateSecureId();
         this.#workerInstanceIds[workerIndex] = instanceId;
-        const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module', name: `soai-chat-render-${workerIndex}` });
-        const bootstrap = createDeferred<void>();
-        const bootstrapTimeout = new TimeoutTimer(CHAT_RENDER_WORKER_BOOTSTRAP_TIMEOUT_MS, () => {
-            if (this.#workerInstanceIds[workerIndex] === instanceId) {
-                this.#failWorkerBootstrap(workerIndex, new Error('Chat render worker bootstrap timed out'));
+        return new WorkerSession({
+            createWorker: () => new ChatRenderWorker({ name: `soai-chat-render-${workerIndex}` }),
+            label: 'Chat render worker',
+            timeoutMs: CHAT_RENDER_WORKER_BOOTSTRAP_TIMEOUT_MS,
+            decode: (value) => {
+                if (isWorkerReadyMessage(value) || isWorkerResponse(value)) return value;
+                throw new Error('Chat render worker returned an invalid response');
+            },
+            isReady: isWorkerReadyMessage,
+            onMessage: (response) => {
+                if (this.#workerInstanceIds[workerIndex] === instanceId && isWorkerResponse(response)) this.#requestQueue.handleWorkerResponse(workerIndex, response);
+            },
+            onFailure: (error, wasReady) => {
+                if (this.#workerInstanceIds[workerIndex] !== instanceId) return;
+                if (wasReady) this.#replaceWorker(workerIndex, error);
+                else this.#requestQueue.rejectWorker(workerIndex, error);
             }
         });
-        this.#workerBootstraps[workerIndex] = {
-            ...bootstrap,
-            instanceId,
-            ready: false,
-            timeout: bootstrapTimeout
-        };
-        worker.onmessage = (event: MessageEvent): void => {
-            if (this.#workerInstanceIds[workerIndex] !== instanceId) {
-                return;
-            }
-            if (isWorkerReadyMessage(event.data)) {
-                this.#resolveWorkerBootstrap(workerIndex, instanceId);
-                return;
-            }
-            this.#handleWorkerMessage(workerIndex, event.data);
-        };
-        worker.onerror = (event: ErrorEvent): void => {
-            if (this.#workerInstanceIds[workerIndex] !== instanceId) {
-                return;
-            }
-            const error = this.#buildWorkerCrashError(event);
-            if (this.#workerBootstraps[workerIndex]?.ready === true) {
-                this.#replaceWorker(workerIndex, error);
-            } else {
-                this.#failWorkerBootstrap(workerIndex, error);
-            }
-        };
-        bootstrapTimeout.start();
-        return worker;
     }
 
     #replaceWorker(workerIndex: number, error: Error): void {
@@ -193,11 +162,20 @@ class ChatMessageRenderWorkerPool {
         if (!crashedWorker) {
             return;
         }
-        this.#rejectWorkerBootstrap(workerIndex, error);
         this.#requestQueue.rejectWorker(workerIndex, error);
         this.#workerInstanceIds[workerIndex] = generateSecureId();
-        crashedWorker.terminate();
-        this.#workers[workerIndex] = this.#createWorker(workerIndex);
+        crashedWorker.dispose(error);
+        try {
+            this.#workers[workerIndex] = this.#createWorker(workerIndex);
+        } catch (error) {
+            const failure = ensureError(error);
+            this.dispose(failure);
+            this.#resourcesReady = Promise.reject(failure);
+            void this.#resourcesReady.catch((error) => {
+                errorHandler.debug('ChatRenderWorkerPool', 'Worker replacement construction failed', ensureError(error));
+            });
+            return;
+        }
         const replacementInstanceId = this.#workerInstanceIds[workerIndex];
         const recovery = this.#initializeWorkerResources(workerIndex, this.#resources).catch((error) => {
             const runtimeError = ensureError(error);
@@ -210,81 +188,46 @@ class ChatMessageRenderWorkerPool {
             errorHandler.debug('ChatRenderWorkerPool', 'Previous worker resource initialization failed before replacement recovery', ensureError(error));
             return undefined;
         });
-        this.#resourcesReady = Promise.all([previousResourcesReady, recovery]).then(() => this.#initializeWorkerFleet(this.#resources));
+        this.#resourcesReady = Promise.all([previousResourcesReady, recovery]).then(() => {
+            if (this.#workerInstanceIds[workerIndex] !== replacementInstanceId) throw createAbortError('Chat render worker recovery was superseded');
+            return this.#initializeWorkerFleet(this.#resources);
+        });
         this.#observeReadinessFailure('Worker replacement failed');
-    }
-
-    #failWorkerBootstrap(workerIndex: number, error: Error): void {
-        const worker = this.#workers[workerIndex];
-        if (!worker) {
-            return;
-        }
-        this.#rejectWorkerBootstrap(workerIndex, error);
-        this.#requestQueue.rejectWorker(workerIndex, error);
-        this.#workerInstanceIds[workerIndex] = generateSecureId();
-        worker.terminate();
-    }
-
-    #buildWorkerCrashError(event: ErrorEvent): Error {
-        const details: string[] = [];
-        if (event.message) {
-            details.push(event.message);
-        }
-        if (event.filename) {
-            const location = event.lineno || event.colno ? `${event.filename}:${event.lineno}:${event.colno}` : event.filename;
-            details.push(location);
-        }
-        const message = details.length ? `Chat render worker crashed: ${details.join(' | ')}` : 'Chat render worker crashed';
-        return new Error(message);
-    }
-
-    #handleWorkerMessage(workerIndex: number, value: JsonValue | null | undefined): void {
-        if (!isWorkerResponse(value)) {
-            this.#replaceWorker(workerIndex, new Error('Chat render worker returned an invalid response'));
-            return;
-        }
-        this.#requestQueue.handleWorkerResponse(workerIndex, value);
-    }
-
-    #resolveWorkerBootstrap(workerIndex: number, instanceId: string): void {
-        const bootstrap = this.#workerBootstraps[workerIndex];
-        if (!bootstrap || bootstrap.instanceId !== instanceId) {
-            return;
-        }
-        bootstrap.timeout.stop();
-        bootstrap.ready = true;
-        bootstrap.resolve();
-    }
-
-    #rejectWorkerBootstrap(workerIndex: number, error: Error): void {
-        const bootstrap = this.#workerBootstraps[workerIndex];
-        if (!bootstrap) {
-            return;
-        }
-        this.#workerBootstraps[workerIndex] = undefined;
-        bootstrap.timeout.stop();
-        bootstrap.reject(error);
     }
 
     async #initializeWorkerFleet(resources: WorkerResources): Promise<void> {
         const workerCount = this.#requestQueue.getWorkerCount();
-        const createdWorkerIndexes: number[] = [];
-        for (let index = 0; index < workerCount; index += 1) {
-            if (this.#workers[index]) {
-                continue;
+        const createdWorkers: Array<{ index: number; worker: WorkerSession<WorkerRequest, WorkerMessage> }> = [];
+        const startups: Promise<void>[] = [];
+        try {
+            for (let index = 0; index < workerCount; index += 1) {
+                if (this.#workers[index]) continue;
+                const worker = this.#createWorker(index);
+                this.#workers[index] = worker;
+                createdWorkers.push({ index, worker });
+                startups.push(this.#initializeWorkerResources(index, resources));
             }
-            this.#workers[index] = this.#createWorker(index);
-            createdWorkerIndexes.push(index);
+            await Promise.all(startups);
+        } catch (error) {
+            const failure = ensureError(error);
+            for (const { index, worker } of createdWorkers) {
+                worker.dispose(failure);
+                if (this.#workers[index] === worker) {
+                    this.#workers[index] = undefined;
+                    this.#workerInstanceIds[index] = generateSecureId();
+                    this.#requestQueue.rejectWorker(index, failure);
+                }
+            }
+            await Promise.allSettled(startups);
+            throw failure;
         }
-        await Promise.all(createdWorkerIndexes.map(async (workerIndex) => await this.#initializeWorkerResources(workerIndex, resources)));
     }
 
     async #initializeWorkerResources(workerIndex: number, resources: WorkerResources): Promise<void> {
-        const bootstrap = this.#workerBootstraps[workerIndex];
-        if (!bootstrap || bootstrap.instanceId !== this.#workerInstanceIds[workerIndex]) {
-            throw new Error('Chat render worker bootstrap state is unavailable');
-        }
-        await bootstrap.promise;
+        const worker = this.#workers[workerIndex];
+        if (!worker) throw new Error('Chat render worker bootstrap state is unavailable');
+        await worker.ready;
+        if (this.#workers[workerIndex] !== worker) throw new Error('Chat render worker initialization was superseded');
         const requestId = generateSecureId();
         const payload: WorkerRequest = { type: 'initResources', requestId, resources };
         await this.#requestQueue.dispatchToWorker({ workerIndex, payload, signal: null });

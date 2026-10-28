@@ -1,206 +1,195 @@
-/* SoAI - Power page base styles [frontend/assets/css/pages/power/base.css] */
+/* SoAI - Immersive power mode surfaces [frontend/assets/css/pages/power/base.css] */
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer pages {
-    :where([data-section='power'], [data-page-scope='power']) .power-content {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-7);
-
-        --power-grid-bottom-padding: calc(var(--layout-container-padding) + var(--ui-safe-area-inset-bottom));
+    :where([data-section='power'], [data-page-scope='power']).power-mode {
+        --presence-enter-duration: var(--duration-1500);
+        --presence-exit-duration: var(--duration-600);
+        --presence-enter-ease: var(--ease-in-out);
+        --presence-exit-ease: var(--ease-in-out);
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-content .ui-collection-grid {
-        padding-bottom: var(--power-grid-bottom-padding);
+    :where([data-section='power'], [data-page-scope='power']).power-mode > .modal-overlay {
+        background: transparent;
+        -webkit-backdrop-filter: var(--modal-monochrome-backdrop-filter);
+        backdrop-filter: var(--modal-monochrome-backdrop-filter);
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-content .ui-collection-grid::after {
-        content: '';
-        display: block;
-        grid-column: 1 / -1;
-        height: var(--power-grid-bottom-padding);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-action {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        min-height: 360px;
-
-        --power-action-accent: var(--glass-border-strong);
-        --power-application-shutdown-accent: var(--prompts-color-red);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-action-card {
-        padding: 0;
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-action-card::after {
-        content: '';
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-surface {
         position: absolute;
-        inset-inline-start: 0;
-        inset-inline-end: 0;
-        bottom: 0;
-        height: 5px;
-        background: var(--power-action-accent);
-        border-end-start-radius: var(--border-radius);
-        border-end-end-radius: var(--border-radius);
+        inset: 0;
+        background: var(--modal-monochrome-overlay-surface);
+        pointer-events: auto;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-header {
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-above-sibling);
         pointer-events: none;
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-action--accent {
-        --power-action-accent: var(--accent-green-default);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-action[data-action-key='restartApplication'] {
-        --power-action-accent: var(--accent-yellow-dark);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-action--danger {
-        --power-action-accent: var(--status-red);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-action--warning {
-        --power-action-accent: var(--status-orange);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-action--info {
-        --power-action-accent: var(--status-blue);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-action--status-blue {
-        --power-action-accent: var(--status-blue);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-action--application-shutdown {
-        --power-action-accent: var(--power-application-shutdown-accent);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-action[data-action-key='suspendSystem'] {
-        --power-action-accent: var(--prompts-color-purple);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-action-header.action-header {
-        padding: var(--space-7) var(--space-7) var(--space-6);
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-        gap: var(--space-5);
-        text-align: center;
-        border-bottom: none;
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-icon-symbol {
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-header .hamburger-menu {
+        position: absolute;
+        inset-block-start: max(var(--header-menu-inset-block-start), var(--ui-safe-area-inset-top));
+        inset-inline-start: max(var(--header-menu-inset-inline-start), var(--ui-safe-area-inset-inline-start));
         display: inline-flex;
+        margin: 0;
+        pointer-events: auto;
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-restart-notice-icon svg {
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-navigation-icon {
+        --presence-enter-duration: var(--duration-400);
+        --presence-exit-duration: var(--duration-400);
+
+        display: grid;
+        place-items: center;
+        width: var(--icon-size);
+        height: var(--icon-size);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-navigation-glyph {
+        grid-area: 1 / 1;
+        display: inline-flex;
         width: 100%;
         height: 100%;
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-icon.ui-button {
-        width: 96px;
-        height: 96px;
-        border-radius: var(--border-radius);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        font-size: var(--font-size-zero);
-
-        --ui-button-bg: color-mix(in srgb, var(--power-action-accent) var(--interactive-tint-opacity-idle), var(--ui-button-inherited-underlay));
-        --ui-button-bg-hover: color-mix(in srgb, var(--power-action-accent) var(--interactive-tint-opacity-hover), var(--ui-button-inherited-underlay));
-        --ui-button-border: var(--power-action-accent);
-        --ui-button-border-hover: color-mix(in srgb, var(--power-action-accent) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
-        --ui-button-color: var(--power-action-accent);
-        --ui-button-color-hover: color-mix(in srgb, var(--power-action-accent) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
-        --ui-button-focus-ring: color-mix(in srgb, var(--power-action-accent) 35%, transparent);
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-navigation-glyph > .ui-icon {
+        width: 100%;
+        height: 100%;
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-icon.ui-button svg {
-        width: 40px;
-        height: 40px;
-        stroke-width: 1.5;
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-menu-glyph {
+        opacity: 0;
+        transform: rotate(-45deg);
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .action-info {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: var(--space-3);
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-header .hamburger-menu[aria-busy='true'] {
+        opacity: 1;
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .action-title {
-        margin: 0;
-        font-size: var(--font-size-heading-xs);
-        font-weight: 600;
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-scroll {
+        flex: 1;
+        position: relative;
+        display: grid;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+        margin-block-start: calc(var(--header-height) + var(--ui-safe-area-inset-top));
+        padding-block: var(--space-7) calc(var(--space-7) + var(--ui-safe-area-inset-bottom));
+        padding-inline: max(var(--space-5), var(--ui-safe-area-inset-inline-start)) max(var(--space-5), var(--ui-safe-area-inset-inline-end));
+        pointer-events: auto;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-chooser {
+        --presence-enter-duration: var(--duration-500);
+
+        align-self: center;
+        justify-self: center;
+        width: 100%;
+        max-width: var(--modal-size-lg-width);
+        min-width: 0;
+        text-align: center;
         color: var(--text-primary);
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-action-content .action-description {
-        margin: 0;
-        font-size: var(--font-size-body-lg);
-        color: var(--text-secondary);
-        line-height: 1.5;
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-groups {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-8);
+        align-items: start;
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-action-content {
-        padding: 0 var(--space-7) var(--space-7);
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-group {
+        min-width: 0;
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-action-body {
-        padding: 0 var(--space-7) var(--space-7);
-        display: flex;
-        flex-direction: column;
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--space-5);
-        margin-top: auto;
     }
 
-    :where([data-section='power'], [data-page-scope='power']) .power-action[data-action-key='restartApplication'] .power-action-body {
-        position: absolute;
-        inset-inline-start: 0;
-        inset-inline-end: 0;
-        bottom: 5px;
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-action-body .action-body {
-        padding: 0;
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-restart-notice {
-        display: flex;
-        align-items: flex-start;
-        gap: var(--space-3);
-        padding: var(--space-3);
-        border: var(--border-width-1) solid color-mix(in srgb, var(--status-orange) 45%, var(--glass-border-strong));
-        border-radius: var(--border-radius);
-        background: color-mix(in srgb, var(--status-orange) 12%, var(--glass-underlay-surface));
-        box-shadow: var(--glass-shadow-base);
-        color: var(--status-orange);
-        font-size: var(--font-size-body-sm);
-        line-height: 1.4;
-        transition:
-            opacity var(--transition-fast),
-            transform var(--transition-fast);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-restart-notice.u-hidden {
-        display: var(--hidden-display);
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-restart-notice-icon {
-        width: 1.5rem;
-        height: 1.5rem;
-        color: var(--status-orange);
-        flex-shrink: 0;
-    }
-
-    :where([data-section='power'], [data-page-scope='power']) .power-restart-notice-content {
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-action {
         display: flex;
         flex-direction: column;
-        gap: var(--space-15);
+        align-items: center;
+        gap: var(--space-3);
+        min-width: 0;
+        padding: var(--space-4) var(--space-3);
+        color: var(--power-action-accent);
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        line-height: var(--line-height-body-compact);
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-button.ui-icon-button {
+        --ui-button-color: var(--power-action-accent);
+        --ui-button-color-hover: var(--power-action-accent);
+        --ui-button-border: var(--power-action-accent);
+        --ui-button-border-hover: var(--power-action-accent);
+        --ui-button-bg: color-mix(in srgb, var(--power-action-accent) var(--interactive-tint-opacity-idle), var(--bg-primary));
+        --ui-button-bg-hover: color-mix(in srgb, var(--power-action-accent) var(--interactive-tint-opacity-hover), var(--bg-primary));
+        --control-button-border-strength: 100%;
+
+        width: calc(var(--icon-button-size) * 2);
+        height: calc(var(--icon-button-size) * 2);
+        min-width: calc(var(--icon-button-size) * 2);
+        min-height: calc(var(--icon-button-size) * 2);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-button > .ui-icon {
+        width: calc(var(--icon-size) * 1.5);
+        height: calc(var(--icon-size) * 1.5);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-button[data-restart-target]::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow: 0 0 var(--space-4) color-mix(in srgb, var(--power-action-accent) 35%, transparent);
+        pointer-events: none;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-button[data-restart-target]::after {
+        content: '';
+        position: absolute;
+        inset-block-start: calc(var(--status-led-size) * -0.625);
+        inset-inline-end: calc(var(--status-led-size) * -0.625);
+        width: calc(var(--status-led-size) * 1.25);
+        height: calc(var(--status-led-size) * 1.25);
+        border-radius: var(--border-radius);
+        background: var(--status-red);
+        box-shadow:
+            0 0 0 var(--border-width-2) var(--glass-surface-strong),
+            0 0 var(--space-2) var(--status-shadow-red-medium);
+        pointer-events: none;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-action[data-power-action='restartApplication'] {
+        --power-action-accent: var(--status-yellow);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-action.power-action--application-shutdown {
+        --power-action-accent: var(--accent-pink);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-action[data-power-action='rebootSystem'] {
+        --power-action-accent: var(--status-orange);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-action[data-power-action='shutdownSystem'] {
+        --power-action-accent: var(--status-red);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-action[data-power-action='suspendSystem'] {
+        --power-action-accent: var(--accent-purple);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-mode-action[data-power-action='hibernateSystem'] {
+        --power-action-accent: var(--status-blue);
     }
 }

@@ -1,6 +1,8 @@
 /* SoAI - Dashboard page controllers effects [frontend/assets/ts/pages/dashboard/controllers/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { insertWithPresence, removeWithPresence } from '@core/animations/presence/public.ts';
+import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { AnimationFrameRenderQueue } from '@core/animations/renderQueue.ts';
 import { DASHBOARD_SECTION_RENDER_ORDER } from '@pages/dashboard/contracts/constants.ts';
@@ -57,31 +59,34 @@ const syncKeyedList = <T>({ content, listClassName, rows, createList, createRow 
     const keyedRows = getKeyedRowMap(list);
     for (const [key, existing] of keyedRows) {
         if (!nextKeys.has(key)) {
-            existing.remove();
+            removeWithPresence(existing);
             keyedRows.delete(key);
         }
     }
 
+    const previousOrder = [...keyedRows.keys()];
+    const orderedRows = [...rows].sort((first, second) => {
+        const firstIndex = previousOrder.indexOf(first.key);
+        const secondIndex = previousOrder.indexOf(second.key);
+        return (firstIndex < 0 ? previousOrder.length : firstIndex) - (secondIndex < 0 ? previousOrder.length : secondIndex);
+    });
     let reference: ChildNode | null = list.firstChild;
-    for (let index = 0; index < rows.length; index += 1) {
-        const row = rows[index];
+    for (let index = 0; index < orderedRows.length; index += 1) {
+        const row = orderedRows[index];
         if (!row) {
             throw new Error('Dashboard keyed list row missing at render index');
         }
         const existing = keyedRows.get(row.key);
-        const element = existing && existing.dataset['dashboardRowSignature'] === row.signature ? existing : createRow(row.value, index);
+        const next = createRow(row.value, index);
+        const element = existing ?? next;
+        if (existing && existing.dataset['dashboardRowSignature'] !== row.signature) {
+            existing.className = next.className;
+            reconcileChildNodes(existing, Array.from(next.childNodes));
+        }
         element.dataset['dashboardRowKey'] = row.key;
         element.dataset['dashboardRowSignature'] = row.signature;
-        if (existing && existing !== element) {
-            existing.replaceWith(element);
-            keyedRows.set(row.key, element);
-            if (reference === existing) {
-                reference = element;
-            }
-        }
-        if (element !== reference) {
-            list.insertBefore(element, reference);
-        }
+        insertWithPresence(list, element, reference);
+        if (element !== reference) list.insertBefore(element, reference);
         reference = element.nextSibling;
     }
 
@@ -143,7 +148,7 @@ interface DashboardSectionRenderQueueDependencies {
 
 interface DashboardSectionRenderQueue {
     queueSectionRender(sectionId: DashboardSectionId): void;
-    setSectionsReady(isReady: boolean): Promise<void>;
+    setSectionsReady(isReady: boolean, signal?: AbortSignal | null): Promise<void>;
     clear(): void;
 }
 
@@ -155,6 +160,7 @@ const createDashboardSectionRenderQueue = (dependencies: DashboardSectionRenderQ
 
     const renderQueue = new AnimationFrameRenderQueue<ReadonlySet<DashboardSectionId>>({
         label: 'DashboardSectionRenderQueue',
+        required: true,
         isDisposed: dependencies.isDestroyed,
         merge: (previous, next): ReadonlySet<DashboardSectionId> => new Set<DashboardSectionId>([...(previous ?? []), ...next]),
         render: async (pending): Promise<void> => {
@@ -166,10 +172,12 @@ const createDashboardSectionRenderQueue = (dependencies: DashboardSectionRenderQ
                 if (!unordered.has(sectionId)) {
                     continue;
                 }
+                if (!sectionsReady || dependencies.isDestroyed()) return;
                 await dependencies.renderSection(sectionId);
                 unordered.delete(sectionId);
             }
             for (const sectionId of unordered) {
+                if (!sectionsReady || dependencies.isDestroyed()) return;
                 await dependencies.renderSection(sectionId);
             }
         }
@@ -186,7 +194,7 @@ const createDashboardSectionRenderQueue = (dependencies: DashboardSectionRenderQ
             }
             renderQueue.schedule(new Set([sectionId]));
         },
-        async setSectionsReady(isReady: boolean): Promise<void> {
+        async setSectionsReady(isReady: boolean, signal: AbortSignal | null = null): Promise<void> {
             sectionsReady = isReady;
             if (!isReady) {
                 return;
@@ -195,7 +203,7 @@ const createDashboardSectionRenderQueue = (dependencies: DashboardSectionRenderQ
                 renderQueue.schedule(new Set([sectionId]));
             }
             pendingSections.clear();
-            await renderQueue.waitForIdle();
+            await renderQueue.waitForIdle(signal);
         },
         clear(): void {
             sectionsReady = false;

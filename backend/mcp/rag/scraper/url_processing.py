@@ -35,6 +35,7 @@ from mcp.rag.scraper.parsing import (
 from mcp.rag.scraper.types import FetchedContent
 
 if TYPE_CHECKING:
+    from core.runtime.request_context import RequestContext
     from mcp.rag.scraper.internal_protocols import WebContentFetcherProtocol
 
 __all__ = ("process_fetched_url_content",)
@@ -44,6 +45,7 @@ async def process_fetched_url_content(
     self: WebContentFetcherProtocol,
     *,
     ocr_language: str,
+    request_context: RequestContext,
     content: bytes,
     content_type: str,
     final_url: str,
@@ -91,6 +93,7 @@ async def process_fetched_url_content(
                     effective_type,
                     final_url,
                     ocr_language=ocr_language,
+                    request_context=request_context,
                 ),
                 timeout=self.document_parse_timeout,
             )

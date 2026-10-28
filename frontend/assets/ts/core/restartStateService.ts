@@ -23,6 +23,7 @@ interface SubscribeOptions {
 
 interface SnapshotContext {
     type?: string;
+    lifecycle?: string;
 }
 
 class RestartStateService extends LifecycleModel {
@@ -33,6 +34,10 @@ class RestartStateService extends LifecycleModel {
     streamTask: Promise<void> | null;
     bootstrapTask: Promise<RestartState | undefined> | null;
     retryTimer: number | null;
+    #snapshotGeneration = 0;
+    #streamGeneration = 0;
+    #lastResourceSnapshot: ResourceReconciliationSnapshot | null = null;
+    #transitionLifecycle: string | null = null;
 
     constructor() {
         super({ name: 'core.restartStateService', type: 'service', moduleId: 'core.restartStateService' });
@@ -53,10 +58,13 @@ class RestartStateService extends LifecycleModel {
         if (this.bootstrapTask) {
             return this.bootstrapTask;
         }
+        const snapshotGeneration = this.#snapshotGeneration;
         this.bootstrapTask = (async () => {
             try {
                 const state = await fetchRestartState();
-                this.applyState(state);
+                if (snapshotGeneration === this.#snapshotGeneration) {
+                    this.applyState(this.#acceptConnectionTransition(state, null));
+                }
                 return state;
             } catch (error) {
                 const runtimeError = ensureError(error);
@@ -105,7 +113,7 @@ class RestartStateService extends LifecycleModel {
             this.lifecycleResources.clearTimer(this.retryTimer);
             this.retryTimer = null;
         }
-        if (!this.streamTask) {
+        if (!this.streamTask && this.unsubscribeStream === null) {
             this.streamTask = (async () => {
                 try {
                     await this.startStream();
@@ -118,6 +126,7 @@ class RestartStateService extends LifecycleModel {
                     this.scheduleRetry();
                 } finally {
                     this.streamTask = null;
+                    if (this.subscribers.size > 0 && this.unsubscribeStream === null) this.scheduleRetry();
                 }
             })();
         }
@@ -138,11 +147,17 @@ class RestartStateService extends LifecycleModel {
     }
 
     async startStream(): Promise<void> {
+        const streamGeneration = this.#streamGeneration;
         const manager = await this.ensureStreamResources([STREAM_ID], {
             allowDiscovery: true,
             strict: true
         });
+        if (streamGeneration !== this.#streamGeneration || this.subscribers.size === 0) return;
         const unsubscribe = manager.subscriptions.subscribeResourceState(STREAM_ID, (snapshot: ResourceReconciliationSnapshot) => this.handleResourceSnapshot(snapshot), { immediate: true });
+        if (streamGeneration !== this.#streamGeneration || this.subscribers.size === 0) {
+            if (isFunction(unsubscribe)) unsubscribe();
+            return;
+        }
         this.unsubscribeStream = () => {
             if (isFunction(unsubscribe)) {
                 unsubscribe();
@@ -152,6 +167,8 @@ class RestartStateService extends LifecycleModel {
     }
 
     stopStream(): void {
+        this.#streamGeneration += 1;
+        this.#snapshotGeneration += 1;
         if (this.unsubscribeStream) {
             this.unsubscribeStream();
         }
@@ -186,12 +203,30 @@ class RestartStateService extends LifecycleModel {
             this.triggerBootstrap(`recover-${eventType || 'error'}`);
             throw runtimeError;
         }
-        this.applyState(canonical);
+        this.applyState(this.#acceptConnectionTransition(canonical, snapshotContext.lifecycle ?? null));
     }
 
     handleResourceSnapshot(snapshot: ResourceReconciliationSnapshot): void {
-        if (snapshot.status !== 'ready') return;
-        this.handleSnapshot(snapshot.value, { type: snapshot.transitionType });
+        if (snapshot.status !== 'ready' || snapshot.retained) return;
+        const previous = this.#lastResourceSnapshot;
+        if (previous !== null && snapshot.lifecycleGeneration < previous.lifecycleGeneration) return;
+        if (previous !== null && snapshot.lifecycleGeneration === previous.lifecycleGeneration) {
+            if (snapshot.transportEpoch < previous.transportEpoch) return;
+            if (snapshot.transportEpoch === previous.transportEpoch && (snapshot.revision < previous.revision || snapshot.committedReconciliationRevision < previous.committedReconciliationRevision || snapshot.receiveSequence < previous.receiveSequence)) return;
+        }
+        this.#lastResourceSnapshot = snapshot;
+        this.#snapshotGeneration += 1;
+        this.handleSnapshot(snapshot.value, { type: snapshot.transitionType, lifecycle: `${String(snapshot.lifecycleGeneration)}:${String(snapshot.transportEpoch)}` });
+    }
+
+    #acceptConnectionTransition(state: RestartState, lifecycle: string | null): RestartState {
+        const current = this.state.connectionTransition;
+        const incoming = state.connectionTransition;
+        const sameLifecycle = lifecycle === null || lifecycle === this.#transitionLifecycle;
+        if (lifecycle !== null) this.#transitionLifecycle = lifecycle;
+        if (!sameLifecycle || current === null) return state;
+        const outdated = incoming === null || (incoming.instanceId === current.instanceId && incoming.configurationRevision < current.configurationRevision);
+        return outdated ? { ...state, connectionTransition: current } : state;
     }
 
     applyState(state: RestartState): void {
@@ -204,7 +239,15 @@ class RestartStateService extends LifecycleModel {
         this.notifySubscribers(state);
     }
 
+    dismissReminder(): void {
+        this.#snapshotGeneration += 1;
+        this.applyState({ ...createEmptyRestartState(), connectionTransition: this.state.connectionTransition });
+    }
+
     resetState(): void {
+        this.#snapshotGeneration += 1;
+        this.#lastResourceSnapshot = null;
+        this.#transitionLifecycle = null;
         this.applyState(createEmptyRestartState());
     }
 
@@ -245,10 +288,10 @@ const triggerRestartStateBootstrap = (reason: string): Promise<RestartState | un
 
 const getRestartState = (): RestartState => getRestartStateService().getState();
 
-const resetRestartState = (): void => {
-    getRestartStateService().resetState();
+const dismissRestartReminder = (): void => {
+    getRestartStateService().dismissReminder();
 };
 
 const subscribeRestartState = (listener: StateListener, options: SubscribeOptions = {}): (() => void) => getRestartStateService().subscribe(listener, options);
 
-export { RestartStateService, getRestartState, getRestartStateService, resetRestartState, resetRestartStateService, subscribeRestartState, triggerRestartStateBootstrap };
+export { RestartStateService, getRestartState, getRestartStateService, dismissRestartReminder, resetRestartStateService, subscribeRestartState, triggerRestartStateBootstrap };

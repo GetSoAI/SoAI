@@ -1,6 +1,7 @@
 /* SoAI - Metrics page tables [frontend/assets/ts/pages/metrics/controllers/page/tables.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { captureReorderMotion, resolveLeadingCellTextKey } from '@core/animations/reorderMotion.ts';
 import { requireClosestElement, requireTrimmedDataAttribute } from '@core/dom/attributes.ts';
 import { dom } from '@core/dom/dom.ts';
 import { isHTMLElement, isString } from '@core/typeGuards.ts';
@@ -48,12 +49,7 @@ const resolveMetricsTableBodyContext = (host: MetricsPageServiceHost, tableId: s
     return { table, bodyElement: bodyElement, rows };
 };
 
-const handleMetricsRootSortAction = (host: MetricsPageServiceHost, actionElement: Element): void => {
-    const column = requireTrimmedDataAttribute(actionElement, 'sort', 'Metrics sort action');
-    const tableId = requireClosestElement(actionElement, 'table', 'Metrics sort action').id;
-    if (!isString(tableId) || !tableId) {
-        throw new Error('Metrics sort action is missing required table scope');
-    }
+const applyMetricsTableSort = (host: MetricsPageServiceHost, tableId: string, column: string): void => {
     if (tableId === 'pluginHealthList') {
         handlePluginHealthSort(host, column);
         persistMetricsPageControls(host.state);
@@ -85,6 +81,19 @@ const handleMetricsRootSortAction = (host: MetricsPageServiceHost, actionElement
         return;
     }
     throw new Error(`Unsupported metrics sortable table: ${tableId}`);
+};
+
+const handleMetricsRootSortAction = (host: MetricsPageServiceHost, actionElement: Element): void => {
+    const column = requireTrimmedDataAttribute(actionElement, 'sort', 'Metrics sort action');
+    const table = requireClosestElement(actionElement, 'table', 'Metrics sort action');
+    const tableId = table.id;
+    if (!isString(tableId) || !tableId) {
+        throw new Error('Metrics sort action is missing required table scope');
+    }
+    const body = dom.resolve('tbody', table);
+    const motion = body instanceof HTMLElement ? captureReorderMotion(body, resolveLeadingCellTextKey) : null;
+    applyMetricsTableSort(host, tableId, column);
+    motion?.play();
 };
 
 const initializeMetricsTables = (host: MetricsPageServiceHost): void => {

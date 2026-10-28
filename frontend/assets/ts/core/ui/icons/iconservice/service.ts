@@ -96,6 +96,7 @@ const applySvgOptions = (svgContent: string, options: NormalizedIconOptions, nam
     }
 
     dom.addClass(first, 'ui-icon');
+    if (name) dom.setAttribute(first, 'data-icon-name', name);
     if (name && MIRRORED_ICON_KEYS.has(name)) {
         dom.setAttribute(first, 'data-icon-mirror', 'true');
     }

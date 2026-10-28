@@ -12,7 +12,7 @@ export type ChatChromeSurfaceVisibilityState = {
 
 export const CHAT_CHROME_AUTO_HIDE_DISTANCE_PX = 24;
 export const CHAT_CHROME_HOVER_DISMISS_DELAY_MS = 10000;
-export const CHAT_CHROME_HOVER_REVEAL_HEIGHT_PX = 48;
+export const CHAT_CHROME_HOVER_REVEAL_HEIGHT_PX = 24;
 
 export const createChatChromeSurfaceVisibilityState = (): ChatChromeSurfaceVisibilityState => ({ visible: true, upwardDistance: 0, downwardDistance: 0, hoverActive: false, hoverDismissAt: null, hoverSuppressed: false });
 
@@ -34,9 +34,9 @@ export const applyChatChromeSurfaceVisibilityScroll = (state: ChatChromeSurfaceV
 
 export const beginChatChromeSurfaceHoverReveal = (state: ChatChromeSurfaceVisibilityState, now: number): ChatChromeSurfaceVisibilityState => (state.visible || state.hoverSuppressed ? state : { ...state, visible: true, upwardDistance: 0, downwardDistance: 0, hoverActive: true, hoverDismissAt: now + CHAT_CHROME_HOVER_DISMISS_DELAY_MS });
 
-export const holdChatChromeSurfaceHoverReveal = (state: ChatChromeSurfaceVisibilityState): ChatChromeSurfaceVisibilityState => (state.hoverActive ? { ...state, hoverDismissAt: null } : state);
+export const holdChatChromeSurfaceHoverReveal = (state: ChatChromeSurfaceVisibilityState): ChatChromeSurfaceVisibilityState => (state.hoverActive && state.hoverDismissAt !== null ? { ...state, hoverDismissAt: null } : state);
 
-export const releaseChatChromeSurfaceHoverReveal = (state: ChatChromeSurfaceVisibilityState, now: number): ChatChromeSurfaceVisibilityState => (state.hoverActive ? { ...state, hoverDismissAt: now + CHAT_CHROME_HOVER_DISMISS_DELAY_MS } : state);
+export const releaseChatChromeSurfaceHoverReveal = (state: ChatChromeSurfaceVisibilityState, now: number): ChatChromeSurfaceVisibilityState => (state.hoverActive && state.hoverDismissAt === null ? { ...state, hoverDismissAt: now + CHAT_CHROME_HOVER_DISMISS_DELAY_MS } : state);
 
 export const dismissChatChromeSurfaceHoverReveal = (state: ChatChromeSurfaceVisibilityState, now: number): ChatChromeSurfaceVisibilityState => (state.hoverActive && state.hoverDismissAt !== null && now >= state.hoverDismissAt ? { ...state, visible: false, upwardDistance: 0, downwardDistance: 0, hoverActive: false, hoverDismissAt: null, hoverSuppressed: true } : state);
 

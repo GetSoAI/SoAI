@@ -11,7 +11,9 @@ from core.errors.external_service_exception import ExternalServiceError
 if TYPE_CHECKING:
     from core.types.json import JSONValue
 
-__all__ = ("RemoteModelSearchError",)
+__all__ = ("REMOTE_MODEL_SEARCH_TIMEOUT_ERROR_TYPE", "RemoteModelSearchError")
+
+REMOTE_MODEL_SEARCH_TIMEOUT_ERROR_TYPE = "remote_model_search_timeout"
 
 
 class RemoteModelSearchError(ExternalServiceError):

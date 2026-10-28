@@ -171,7 +171,6 @@ class SchedulerActionExecutionSelection:
                                 action.pending_key,
                                 f"Owner running limit reached for {owner_type}:{owner_id} ({running_count + selected_count}/{owner_limit}).",
                             )
-                        needs_followup = True
                         continue
                     owner_selected_counts[owner_key] = selected_count + 1
             actions_to_execute.append(action)

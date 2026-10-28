@@ -170,6 +170,7 @@ export interface ChatStreamingControllerContext {
     timers: ResourceTracker;
     presentationActive: boolean;
     presentationGeneration: number;
+    presentationAbort: AbortController;
     disposed: boolean;
 }
 

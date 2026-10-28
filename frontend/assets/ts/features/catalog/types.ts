@@ -42,6 +42,7 @@ interface CatalogStreamController {
 }
 
 interface PluginStoreApi {
+    isFresh(): boolean;
     ensureLoaded: (options?: { force?: boolean }) => Promise<ReadonlyArray<StoredPlugin>>;
     refresh: () => Promise<ReadonlyArray<StoredPlugin>>;
     subscribe: (callback: ResourceListener<ReadonlyArray<StoredPlugin>>, options?: { emitInitial?: boolean }) => () => void;

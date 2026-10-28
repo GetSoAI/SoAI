@@ -225,6 +225,8 @@ class ChartSettings {
             const candidate = typeof value === 'number' ? value : Number(value[side]);
             if (Number.isFinite(candidate) && candidate >= 0) this.#configuration.padding[side] = candidate;
         }
+        const right = typeof value === 'number' ? value : value.right;
+        if (typeof right === 'number' && Number.isFinite(right) && right >= 0) this.#configuration.rightPaddingOverride = right;
         this.#configuration.options.padding = { ...this.#configuration.padding };
         this.#surface.syncInteractionBounds();
         this.#redraw.request({ static: true, data: true, interaction: true });

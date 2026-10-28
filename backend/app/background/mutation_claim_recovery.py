@@ -16,6 +16,7 @@ from core.files.locking import async_guarded_file_lock
 from core.mutations.edition_composition import DurableMutationComposition
 from core.plugins.mutation_conflicts import extract_plugin_lifecycle_conflict_target
 from core.plugins.portable_identifiers import require_portable_plugin_identifier
+from core.skills.materialization import materialization_lock_path
 from plugins.lifecycle_advisory_lock import resolve_plugin_lifecycle_lock_path
 
 __all__ = ("claim_expired_mutation_candidate",)
@@ -33,6 +34,33 @@ async def claim_expired_mutation_candidate(
 ) -> MutationClaim | None:
     if candidate.conflict_keys != tuple(sorted(set(candidate.conflict_keys))):
         raise ValidationError("Mutation recovery requires canonical conflict identities.")
+    if candidate.operation_type == "wizard_model_download":
+        if len(candidate.conflict_keys) != 1 or not candidate.conflict_keys[0].startswith(
+            "wizard_model_download:http_user:"
+        ):
+            raise ValidationError("Wizard download recovery has invalid ownership.")
+        return await database_tasks.claim_mutation(
+            candidate.request_id, worker_id, now_ms=now_ms, lease_duration_ms=lease_duration_ms
+        )
+    if candidate.operation_type == "skill_materialize":
+        if len(candidate.conflict_keys) != 1 or not candidate.conflict_keys[0].startswith(
+            "skill_materialize:"
+        ):
+            raise ValidationError("Skill materialization recovery has invalid conflict identities.")
+        try:
+            async with async_guarded_file_lock(
+                materialization_lock_path(plugin_directory, candidate.request_id),
+                timeout=0.0,
+                preserve_lock_file=True,
+            ):
+                return await database_tasks.claim_mutation(
+                    candidate.request_id,
+                    worker_id,
+                    now_ms=now_ms,
+                    lease_duration_ms=lease_duration_ms,
+                )
+        except Timeout:
+            return None
     plugin_names = tuple(
         require_portable_plugin_identifier(plugin_name, field_name="plugin_name")
         for conflict_key in candidate.conflict_keys

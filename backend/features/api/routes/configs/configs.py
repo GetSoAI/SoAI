@@ -15,8 +15,16 @@ from core.config.merge import deep_merge_config, expand_dot_notation
 from core.config.protocols import ConfigManagerProtocol
 from core.config.redacted_patch_values import remove_redacted_sensitive_patch_values
 from core.config.value_validation import is_config_dict
+from core.errors.error_types import ErrorType
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import ConfigurationError, ValidationError
+from core.errors.exceptions import (
+    ConfigurationError,
+    ConflictError,
+    SoAIError,
+    StateError,
+    ValidationError,
+)
+from core.errors.public_projection import project_specific_public_error
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.plugins.errors import PluginCapabilityError
@@ -40,6 +48,7 @@ from features.api.runtime.errors import (
     raise_action_not_supported,
     raise_invalid_request,
     raise_not_found,
+    raise_public_error,
     raise_server_error,
 )
 from features.api.runtime.metadata_values import is_sensitive_key
@@ -217,6 +226,17 @@ def register_routes(routers: ApiRouters) -> None:
                 expand_dot_notation(payload.changes),
                 placeholder=REDACTED_PLACEHOLDER,
             )
+            if config_name != "core":
+                await plugin_manager_instance.patch_plugin_configuration(
+                    config_name, expanded_changes
+                )
+                return JSONResponse(
+                    status_code=status.HTTP_202_ACCEPTED,
+                    content={
+                        "success": True,
+                        "message": "Configuration saved; applying updates.",
+                    },
+                )
             current_config_data = await config_manager.load_config(config_name, force_reload=True)
             if current_config_data is None:
                 current_plain_config: JSONDict = {}
@@ -259,11 +279,6 @@ def register_routes(routers: ApiRouters) -> None:
                 updater=updater,
                 changed_keys=None,
             )
-            if config_name != "core":
-                await plugin_manager_instance.refresh_plugin_runtime_configuration(
-                    config_name,
-                    auto_load=False,
-                )
             return JSONResponse(
                 status_code=status.HTTP_202_ACCEPTED,
                 content={
@@ -271,12 +286,31 @@ def register_routes(routers: ApiRouters) -> None:
                     "message": "Configuration saved; applying updates.",
                 },
             )
+        except (ConflictError, StateError) as exception:
+            public = project_specific_public_error(exception)
+            if public is None:
+                raise
+            raise_public_error(public, error_type=ErrorType.SERVER_ERROR)
         except (ConfigurationError, ValidationError, ValueError, TypeError) as exception:
+            public = (
+                project_specific_public_error(exception)
+                if isinstance(exception, SoAIError)
+                else None
+            )
+            if public is not None:
+                raise_public_error(public, error_type=ErrorType.INVALID_REQUEST)
             raise_invalid_request(
                 request,
                 f"Failed to save configuration '{config_name}': {exception}",
             )
         except RECOVERABLE_EXCEPTIONS as exception:
+            public = (
+                project_specific_public_error(exception)
+                if isinstance(exception, SoAIError)
+                else None
+            )
+            if public is not None:
+                raise_public_error(public, error_type=ErrorType.SERVER_ERROR)
             trace_id = get_request_trace_id(request)
             log_exception(
                 get_logger(LOGGER_NAME),

@@ -17,7 +17,7 @@ import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
 import type { ChatMessageRuntimeOperations } from '@features/chat/message/runtimeOperations.ts';
 import type { ConversationRunningActivitySnapshot } from '@features/chat/storage/storageModels.ts';
 import type { ChatActivityDurationDisplayMode } from '@features/chat/message/messageview/activityDurationDisplay.ts';
-import type { ChatTurnAdmissionStreamIdentity } from '@features/chat/chatstreamservice/types.ts';
+import type { ChatStreamTerminalRenderState, ChatTurnAdmissionStreamIdentity } from '@features/chat/chatstreamservice/types.ts';
 
 interface ChatMessageBoundaryPort {
     apiClient: JsonApiClient;
@@ -47,7 +47,7 @@ interface ChatMessageSessionPort {
     getCurrentModel: () => string | null;
     getModelStreamHasPayload: () => boolean;
     isModelAvailable: (modelId: string) => boolean;
-    isTerminalRenderPending: (conversationId: string, message: ChatMessage) => boolean;
+    resolveTerminalRenderState: (conversationId: string, message: ChatMessage) => ChatStreamTerminalRenderState;
     isConversationExecuting: (conversationId: string) => boolean;
     getActiveComparisonRun: (conversationId: string) => { assistantTurnTimestamp: number; variantCount: number } | null;
     getActiveStreamIdentity: (conversationId: string) => ChatTurnAdmissionStreamIdentity | null;

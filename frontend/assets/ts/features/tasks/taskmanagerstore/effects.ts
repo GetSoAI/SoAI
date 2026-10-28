@@ -231,6 +231,7 @@ const reconcileOperations = async (context: TaskManagerStoreEffectContext): Prom
 };
 
 const handleOperationEvent = (context: TaskManagerStoreEffectContext, event: OperationEvent | null | undefined): void => {
+    if (event?.id && context.state.terminalTaskIds.has(event.id)) return;
     const update = buildOperationUpdate(event, {
         getDefinition: (type) => context.getOperationDefinition(type),
         getPluginKey: (name) => context.pluginKey(name),

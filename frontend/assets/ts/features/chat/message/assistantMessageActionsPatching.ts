@@ -1,8 +1,10 @@
 /* SoAI - Assistant message action DOM patching [frontend/assets/ts/features/chat/message/assistantMessageActionsPatching.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { insertWithPresence, isPresenceExiting, removeWithPresence } from '@core/animations/presence/public.ts';
+import { STREAMING_ACTION_CONTROLS_CLASS } from '@features/chat/message/messageActionStreamingPolicy.ts';
+import { exitWithPresence, insertWithPresence, isPresenceExiting, prepareEnterWithPresence, removeWithPresence, stopPresenceAnimation } from '@core/animations/presence/public.ts';
 import { syncElementShell } from '@core/dom/patching.ts';
+import { cancelSpinnerStatusTerminalTransition, deferSettledActionsUntilSpinnerExit, isSpinnerStatusTerminalTransitionActive } from '@features/chat/stream/streamMessageSpinnerStatusTerminalReconcile.ts';
 import { patchMessageActionButtons } from '@features/chat/message/assistantMessageActionButtonPatching.ts';
 import { patchAssistantActionButtons, requireAssistantActionButtonGroups, resolveAssistantActionFlowChildren } from '@features/chat/message/assistantMessageActionLayoutPatching.ts';
 import { resolveAssistantMessageParts } from '@features/chat/message/assistantMessageMarkupParts.ts';
@@ -40,6 +42,7 @@ const isStreamingActionsElement = (element: HTMLElement): boolean => {
 };
 
 const normalizeSettledAssistantActionsElement = (actions: HTMLElement): boolean => {
+    if (isSpinnerStatusTerminalTransitionActive(actions)) return false;
     let changed = false;
     if (actions.getAttribute('data-message-streaming') !== 'false') {
         actions.setAttribute('data-message-streaming', 'false');
@@ -87,6 +90,7 @@ const hasSettledAssistantActionsChrome = (root: HTMLElement): boolean => {
         return false;
     }
     const groups = requireAssistantActionButtonGroups(children.buttons);
+    if (groups.left.classList.contains(STREAMING_ACTION_CONTROLS_CLASS)) return false;
     const status = resolveAssistantActionFlowChildren(groups.left, groups.right).status;
     if (status === null) {
         return true;
@@ -104,19 +108,43 @@ const requiresAssistantActionLayoutPatching = (existingButtons: HTMLElement, cre
     return existingButtons.classList.contains('message-action-buttons--assistant') || createdButtons.classList.contains('message-action-buttons--assistant');
 };
 
+const hasSettledMessageControls = (buttons: HTMLElement): boolean => {
+    const group = requireAssistantActionButtonGroups(buttons).left;
+    return !group.classList.contains(STREAMING_ACTION_CONTROLS_CLASS) && Array.from(group.children).some((element) => element.classList.contains('message-action') && !isPresenceExiting(element));
+};
+
 const patchAssistantMessageActionsInPlace = (existingActions: HTMLElement, createdActions: HTMLElement, options: ChatMessageInsertAnimationOptions = {}): boolean => {
-    const preservedAttributeNames = resolveActionRuntimeAttributePreservation(existingActions, createdActions);
-    const preserveRuntimeStatusText = preservedAttributeNames !== undefined;
-    let changed = preservedAttributeNames ? syncElementShell({ target: existingActions, source: createdActions, preservedAttributeNames }) : syncElementShell({ target: existingActions, source: createdActions });
+    if (isStreamingActionsElement(createdActions)) cancelSpinnerStatusTerminalTransition(existingActions);
+    else if ((isStreamingActionsElement(existingActions) || isSpinnerStatusTerminalTransitionActive(existingActions)) && deferSettledActionsUntilSpinnerExit(existingActions, () => patchAssistantMessageActionsInPlace(existingActions, createdActions, { ...options, suppressInsertAnimations: true }))) return true;
+    const completingStream = isStreamingActionsElement(existingActions) && !isStreamingActionsElement(createdActions);
+    const startingStream = !isStreamingActionsElement(existingActions) && isStreamingActionsElement(createdActions);
     const existingChildren = resolveAssistantMessageActionsChildren(existingActions, true);
     const createdChildren = resolveAssistantMessageActionsChildren(createdActions);
     const existingButtons = existingChildren.buttons;
     const createdButtons = createdChildren.buttons;
+    const revealingSettledControls = !isStreamingActionsElement(createdActions) && existingButtons !== null && createdButtons !== null && requiresAssistantActionLayoutPatching(existingButtons, createdButtons) && !hasSettledMessageControls(existingButtons) && hasSettledMessageControls(createdButtons);
+    const preservedAttributeNames = resolveActionRuntimeAttributePreservation(existingActions, createdActions);
+    const preserveRuntimeStatusText = preservedAttributeNames !== undefined;
+    if (startingStream && existingButtons && requiresAssistantActionLayoutPatching(existingButtons, existingButtons)) {
+        const group = requireAssistantActionButtonGroups(existingButtons).left;
+        const view = existingActions.ownerDocument.defaultView;
+        if (view === null) throw new Error('Streaming controls require their owning window.');
+        const groupOpacity = Number(view.getComputedStyle(group).opacity);
+        stopPresenceAnimation(group);
+        for (const control of group.children) {
+            if (!(control instanceof HTMLElement) || !control.classList.contains('message-action')) continue;
+            const fromOpacity = groupOpacity * Number(view.getComputedStyle(control).opacity);
+            control.setAttribute('data-presence-visual-only', '');
+            exitWithPresence(control, null, () => control.removeAttribute('data-presence-visual-only'), { fromOpacity });
+        }
+    }
+    let changed = preservedAttributeNames ? syncElementShell({ target: existingActions, source: createdActions, preservedAttributeNames }) : syncElementShell({ target: existingActions, source: createdActions });
+    const patchOptions = completingStream || revealingSettledControls ? { ...options, suppressInsertAnimations: true } : options;
     if (existingButtons && createdButtons && isPresenceExiting(existingButtons)) {
         insertWithPresence(existingActions, existingButtons);
         changed = true;
     }
-    if (existingButtons && createdButtons && (requiresAssistantActionLayoutPatching(existingButtons, createdButtons) ? patchAssistantActionButtons(existingButtons, createdButtons, options, preserveRuntimeStatusText) : patchMessageActionButtons(existingButtons, createdButtons, options))) {
+    if (existingButtons && createdButtons && (requiresAssistantActionLayoutPatching(existingButtons, createdButtons) ? patchAssistantActionButtons(existingButtons, createdButtons, patchOptions, preserveRuntimeStatusText) : patchMessageActionButtons(existingButtons, createdButtons, options))) {
         changed = true;
     } else if (existingButtons && !createdButtons) {
         if (!isPresenceExiting(existingButtons)) {
@@ -130,6 +158,9 @@ const patchAssistantMessageActionsInPlace = (existingActions: HTMLElement, creat
         }
         insertWithPresence(existingActions, inserted, null, options.suppressInsertAnimations !== true);
         changed = true;
+    }
+    if ((completingStream || revealingSettledControls) && existingButtons && createdButtons && requiresAssistantActionLayoutPatching(existingButtons, createdButtons)) {
+        prepareEnterWithPresence(requireAssistantActionButtonGroups(existingButtons).left, true, true)();
     }
     return changed;
 };

@@ -4,11 +4,11 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
 from typing import TYPE_CHECKING, Protocol
 
-from core.concurrency.lock_types import BoundedLockResult
+from core.concurrency.lock_types import BoundedLockResult, LockHolderSnapshot
 from core.concurrency.protocols import (
     AsyncContextManagerProtocol,
     CancellationTokenProtocol,
@@ -27,6 +27,8 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
 
 __all__ = (
+    "PluginDiscoveryOperationProtocol",
+    "PluginDiscoveryOwnershipProtocol",
     "PluginLifecycleLocksProtocol",
     "PluginLifecycleProtocol",
     "SchedulableCommandProtocol",
@@ -51,6 +53,37 @@ class PluginLifecycleLocksProtocol(Protocol):
 
     def is_locked(self, key: str) -> bool: ...
     def is_owned_by_current_task(self, key: str) -> bool: ...
+    def describe_holder(self, key: str) -> LockHolderSnapshot | None: ...
+
+
+class PluginDiscoveryOperationProtocol(Protocol):
+    @property
+    def superseded(self) -> bool: ...
+
+    def begin_provider_phase(self, cancel_provider: Callable[[], bool]) -> bool: ...
+    async def await_reconciliation(self) -> None: ...
+    def freeze(self) -> bool: ...
+    def settle(self) -> None: ...
+    def record_cleanup_failure(self) -> None: ...
+
+
+class PluginDiscoveryOwnershipProtocol(Protocol):
+    def discovery_scope(
+        self,
+        plugin_name: str,
+        *,
+        timeout_seconds: float | None,
+    ) -> AbstractAsyncContextManager[PluginDiscoveryOperationProtocol | None]: ...
+
+    def control_scope(
+        self,
+        plugin_name: str,
+        *,
+        timeout_seconds: float,
+    ) -> AbstractAsyncContextManager[bool]: ...
+
+    def is_plugin_locked_by_discovery(self, plugin_name: str) -> bool: ...
+    def describe_ownership(self, plugin_name: str) -> JSONDict: ...
 
 
 class PluginLifecycleProtocol(Protocol):
@@ -66,6 +99,8 @@ class PluginLifecycleProtocol(Protocol):
     def cancellation_event_bus(self) -> CancellationEventBusProtocol: ...
     @property
     def token_collection(self) -> TokenCollectionProtocol: ...
+    @property
+    def discovery_ownership(self) -> PluginDiscoveryOwnershipProtocol: ...
 
     @property
     def disabled(self) -> bool: ...
@@ -76,6 +111,7 @@ class PluginLifecycleProtocol(Protocol):
     def require_enabled(self, service_name: str) -> None: ...
     def is_plugin_locked(self, plugin_name: str) -> bool: ...
     def is_plugin_lock_owned_by_current_task(self, plugin_name: str) -> bool: ...
+    def describe_plugin_lock_holder(self, plugin_name: str) -> LockHolderSnapshot | None: ...
 
     async def cancel_plugin_tasks(
         self,

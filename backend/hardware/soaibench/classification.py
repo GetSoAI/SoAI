@@ -105,7 +105,7 @@ def _has_complete_measured_pass(entry: JSONValue, index: int) -> bool:
 
 def _finite_number(value: JSONValue, *, positive: bool = False) -> bool:
     try:
-        number = require_finite_float_strict(value, error_message="SoAIBench evidence is invalid.")
+        number = require_finite_float_strict(value, error_message="SoAI Bench evidence is invalid.")
     except ValidationError:
         return False
     return not positive or number > 0

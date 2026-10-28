@@ -181,8 +181,7 @@ class LifecycleOutputProgressReporter:
         return self._last_percent_sent
 
     def _bump_output_progress(self) -> int:
-        self._last_percent_sent = min(self._last_percent_sent + 1, 95)
-        return self._last_percent_sent
+        return max(self._last_percent_sent, min(self._last_percent_sent + 1, 95))
 
     def _record_output_send_task(self, task: asyncio.Task[None]) -> None:
         self._output_send_tasks.add(task)

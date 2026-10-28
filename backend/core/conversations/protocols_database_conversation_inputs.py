@@ -32,6 +32,7 @@ class DatabaseConversationInputsProtocol(Protocol):
         messaging_ingress_id: str | None = None,
         source_metadata: JSONDict | None = None,
         media_descriptors: list[JSONDict] | None = None,
+        fallback_model_settings: JSONDict | None = None,
     ) -> JSONDict: ...
 
     async def list_active_inputs(
@@ -70,6 +71,13 @@ class DatabaseConversationInputsProtocol(Protocol):
         user_id: int,
         input_id: str,
     ) -> JSONDict: ...
+
+    async def resume_held_inputs(
+        self,
+        *,
+        conv_id: str,
+        user_id: int,
+    ) -> int: ...
 
     async def force_pending_steers(
         self,

@@ -99,7 +99,12 @@ interface SessionInvalidationResult {
     status: 'signedOut';
 }
 
+interface SessionReconciliationResult {
+    status: 'confirmed' | 'invalidated' | 'superseded';
+    authEpoch: number;
+}
+
 type AuthCallback = () => void | Promise<void>;
 type LoginCallback = (user: WebuiUser | null) => void | Promise<void>;
 
-export type { AuthCallback, InitializeOptions, LayoutShellInterface, LoginCallback, LoginResult, RouterInterface, SessionInvalidationResult, SessionPayload, SharedAuthState, StateManager, StorageInterface, ApiInterface, AuthApiInterface, TabStateEvent, WebuiUser, WizardApiInterface, WizardCompletionResult, WizardStatus };
+export type { AuthCallback, InitializeOptions, LayoutShellInterface, LoginCallback, LoginResult, RouterInterface, SessionInvalidationResult, SessionReconciliationResult, SessionPayload, SharedAuthState, StateManager, StorageInterface, ApiInterface, AuthApiInterface, TabStateEvent, WebuiUser, WizardApiInterface, WizardCompletionResult, WizardStatus };

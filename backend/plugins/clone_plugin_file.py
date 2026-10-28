@@ -20,7 +20,6 @@ from core.filesystem.atomic_binary_writes import atomic_write_binary
 from core.hardware.reservation_claims import claim_reserved_write
 from plugins.clone.clone_package_plan import (
     ENTRYPOINT_PATH,
-    inspect_clone_package_source,
     open_clone_package_plan,
     require_unchanged_clone_package_source,
 )
@@ -32,10 +31,7 @@ if TYPE_CHECKING:
         StorageManagerProtocol,
     )
 
-__all__ = (
-    "clone_plugin_file",
-    "estimate_clone_package_bytes",
-)
+__all__ = ("clone_plugin_file",)
 
 
 def _clone_member_info(member: ValidatedZipMember) -> zipfile.ZipInfo:
@@ -144,16 +140,6 @@ def _clone_package_snapshot(
     except (zipfile.BadZipFile, zipfile.LargeZipFile) as exception:
         raise ValidationError("Source plugin package must be a valid ZIP archive.") from exception
     return package_plan.display_name
-
-
-def estimate_clone_package_bytes(
-    source_plugin_file: str,
-    target_plugin_name: str,
-) -> int:
-    return inspect_clone_package_source(
-        source_plugin_file,
-        target_plugin_name,
-    ).required_bytes
 
 
 async def clone_plugin_file(

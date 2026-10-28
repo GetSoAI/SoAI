@@ -121,7 +121,7 @@ class ResponsesStreamTranscript:
                     )
                 self._terminal_observed = True
                 self._terminal_status = terminal_status
-            self._state.observe(payload)
+            self._state.observe(self._state.normalize_event_indexes(payload))
 
     def _output_items(self) -> list[JSONDict]:
         response = self._state.build_response_json(status=self._terminal_status or "completed")

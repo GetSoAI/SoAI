@@ -32,7 +32,7 @@ type SectionContentMode = 'progress' | 'report';
 const materializeElement = (markup: TrustedHtml): HTMLElement => {
     const element = dom.createFragment(markup).firstElementChild;
     if (!(element instanceof HTMLElement)) {
-        throw new Error('SoAIBench section markup did not produce an element');
+        throw new Error('SoAI Bench section markup did not produce an element');
     }
     return element;
 };
@@ -40,7 +40,7 @@ const materializeElement = (markup: TrustedHtml): HTMLElement => {
 const requireSlot = (root: HTMLElement, slot: string): HTMLElement => {
     const element = dom.resolve(`[data-soaibench-slot="${slot}"]`, root);
     if (!(element instanceof HTMLElement)) {
-        throw new Error(`SoAIBench section slot "${slot}" is missing`);
+        throw new Error(`SoAI Bench section slot "${slot}" is missing`);
     }
     return element;
 };
@@ -188,7 +188,7 @@ class SoAIBenchRunSectionView {
     #createActionButton(entry: SoAIBenchRunEntry, action: SoAIBenchSectionAction): HTMLButtonElement {
         const button = materializeElement(renderSectionActionButton(entry, action));
         if (!(button instanceof HTMLButtonElement)) {
-            throw new Error('SoAIBench section action markup did not produce a button');
+            throw new Error('SoAI Bench section action markup did not produce a button');
         }
         return button;
     }

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import override
 
 from core.errors.exception_logging import log_exception
+from core.errors.payload import ErrorPublicPayload
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.status_mapping import error_type_to_status_code
 from core.events.types_base import Event
@@ -51,6 +52,7 @@ class BinaryStreamPreparation:
     status_code: int | None = None
     error_message: str | None = None
     error_type: str | None = None
+    public_error: ErrorPublicPayload | None = None
 
 
 class BinaryStreamRuntimeFailure(Exception):
@@ -71,12 +73,14 @@ def _build_binary_stream_error(
     status_code: int,
     message: str,
     error_type: str,
+    public_error: ErrorPublicPayload | None = None,
 ) -> BinaryStreamPreparation:
     return BinaryStreamPreparation(
         stream=None,
         status_code=status_code,
         error_message=message,
         error_type=error_type,
+        public_error=public_error,
     )
 
 
@@ -232,6 +236,7 @@ async def prepare_binary_stream_payload(
                     error_type_to_status_code(event.error_type),
                     event.message or "Binary stream failed.",
                     event.error_type.value,
+                    event.public_error,
                 )
             if isinstance(event, TaskCompleteEvent):
                 await classified_iter.aclose()

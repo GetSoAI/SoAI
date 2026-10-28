@@ -14,6 +14,7 @@ import type { PageLayout } from '@core/routing/pages/basepagelayout/PageLayout.t
 import type { PageStreaming } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
 import type { ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
+import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { HistoryChartControlsManager, HistoryChartRuntime, HistoryRangeAvailability } from '@features/charts/public.ts';
 import type { ExportPreviewModal } from '@features/exportpreview/public.ts';
 import { HistoryStateManager, type SoAIBenchHistoryModal, type SoAIBenchHistoryPagePanel, type SoAIBenchRunModal, type SystemInfoModal } from '@features/hardware/public.ts';
@@ -168,6 +169,7 @@ const composeHardwarePageRuntime = (owners: HardwareCompositionOwners, dependenc
         exportHistoryCsv: () => openHardwareExportPreview(state, chartRuntime, historyControlsManager, dataController, ui.exportPreviewModal),
         persistPageControls,
         navigateToLogs: () => {
+            if (windowIdentity.isDetachedContext()) return;
             terminateHandledPromise(owners.router.navigate('logs'));
         },
         logger

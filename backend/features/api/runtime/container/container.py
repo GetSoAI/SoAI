@@ -54,6 +54,7 @@ def build_api_dependencies(
     api_runtime_services = build_api_runtime_services()
     licensing_services = services.licensing
     api_dependencies = ApiDependencies(
+        playwright_sessions=services.infrastructure.playwright_sessions,
         licensing_policy=licensing_services.policy,
         licensing_service=licensing_services.runtime,
         licensing_trust_material=licensing_services.trust_material,
@@ -127,6 +128,7 @@ def build_api_dependencies(
         database_chat_identity_defaults=services.databases.chat_identity_defaults,
         database_chat_model_defaults=services.databases.chat_model_defaults,
         database_chat_presets=services.databases.chat_presets,
+        database_skills=services.databases.skills,
         database_messages=services.databases.messages,
         database_conversation_attachments=services.databases.conversation_attachments,
         database_conversation_knowledge_attachments=(
@@ -174,6 +176,9 @@ def build_api_dependencies(
         soai_link_resolve_limiter=api_runtime_singletons.soai_link_resolve_limiter,
         enqueue_warning_tracker=api_runtime_singletons.enqueue_warning_tracker,
         multipart_parser_semaphore=api_runtime_singletons.multipart_parser_semaphore,
+        skill_import_pool=api_runtime_singletons.skill_import_pool,
+        file_content_pool=api_runtime_singletons.file_content_pool,
+        setup_status_connection_semaphore=api_runtime_singletons.setup_status_connection_semaphore,
         provider_video_projection_semaphore=(
             api_runtime_singletons.provider_video_projection_semaphore
         ),

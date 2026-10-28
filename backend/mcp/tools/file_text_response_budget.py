@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.errors.exceptions import ValidationError
 from core.serialization.json import serialize_json_compact_stable_strict
 
 if TYPE_CHECKING:
@@ -43,6 +44,7 @@ def _build_line_payload(
     truncation_reason: str | None,
     content_truncated: bool,
     indentation: JSONDict | None,
+    additional_fields: JSONDict | None = None,
 ) -> JSONDict:
     returned_lines = len(selected)
     end_line = (
@@ -57,6 +59,7 @@ def _build_line_payload(
     else:
         next_offset = None
     payload: JSONDict = {
+        **(additional_fields or {}),
         "path": path,
         "mode": mode,
         "offset": offset,
@@ -75,9 +78,10 @@ def _build_line_payload(
     }
     if indentation is not None:
         payload["indentation"] = indentation
-    payload["serialized_response_chars"] = len(
-        serialize_json_compact_stable_strict(payload, ensure_ascii=False),
-    )
+    serialized_chars = len(serialize_json_compact_stable_strict(payload, ensure_ascii=False))
+    while payload["serialized_response_chars"] != serialized_chars:
+        payload["serialized_response_chars"] = serialized_chars
+        serialized_chars = len(serialize_json_compact_stable_strict(payload, ensure_ascii=False))
     return payload
 
 
@@ -98,6 +102,7 @@ def build_prompt_safe_line_payload(
     render: str,
     line_limit_truncated: bool,
     indentation: JSONDict | None,
+    additional_fields: JSONDict | None = None,
 ) -> JSONDict:
     candidate = list(selected)
     reason = "line_limit" if line_limit_truncated else None
@@ -114,6 +119,7 @@ def build_prompt_safe_line_payload(
         truncation_reason=reason,
         content_truncated=False,
         indentation=indentation,
+        additional_fields=additional_fields,
     )
     while _payload_exceeds_budget(payload) and len(candidate) > 1:
         candidate = candidate[:-1]
@@ -130,9 +136,12 @@ def build_prompt_safe_line_payload(
             truncation_reason="serialized_size",
             content_truncated=False,
             indentation=indentation,
+            additional_fields=additional_fields,
         )
-    if not _payload_exceeds_budget(payload) or not candidate:
+    if not _payload_exceeds_budget(payload):
         return payload
+    if not candidate:
+        raise ValidationError("File response metadata exceeds the response budget.")
     shortened = str(candidate[0])
     while shortened and _payload_exceeds_budget(payload):
         shortened = shortened[: max(0, len(shortened) // 2)]
@@ -149,5 +158,8 @@ def build_prompt_safe_line_payload(
             truncation_reason="serialized_size",
             content_truncated=True,
             indentation=indentation,
+            additional_fields=additional_fields,
         )
+    if _payload_exceeds_budget(payload):
+        raise ValidationError("File response metadata exceeds the response budget.")
     return payload

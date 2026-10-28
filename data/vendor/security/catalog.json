@@ -1,0 +1,212 @@
+[
+  {
+    "name": "chromadb",
+    "ecosystem": "PyPI",
+    "upstream_version": "1.5.9",
+    "version": "1.5.9+soai.1",
+    "source_url": "https://files.pythonhosted.org/packages/dd/5b/3cced915244f43ed14b53fe9f63a37f05f865064f4e4fe7d9448d3f2a352/chromadb-1.5.9-cp39-abi3-macosx_10_12_x86_64.whl",
+    "source_filename": "chromadb-1.5.9-cp39-abi3-macosx_10_12_x86_64.whl",
+    "source_sha256": "60701011b5e6409647fa40d12c7c5a66b2b0bfcf33a52db2ad53a30a2abc4957",
+    "patch": "data/vendor/security/chromadb.diff",
+    "patch_sha256": "1bd085baca1ca63778103899e9335ab922092025a2ed750d6c5654ea004577ca",
+    "artifact_filename": "chromadb-1.5.9+soai.1-cp39-abi3-macosx_10_12_x86_64.whl",
+    "artifact_sha256": "aa0b1cb8c6c0cf10f9691026d87de4998ebf31ee1b0ff08e559b49ac6a70c919",
+    "files": {
+      "chromadb/__init__.py": "8a6c0a5eae818656e115df450573f298d8219e4761cfac0d6c78ab8159cfd1ce",
+      "chromadb/api/collection_configuration.py": "c96304e4f9617ac99157f8f9eb6133ddeeb58c086c566f599ccdc9bf7598da69",
+      "chromadb/auth/simple_rbac_authz/__init__.py": "aa8fdf95dcb928261e08bc7178f18b8ee9e08ea28154c3f753d6af4e34980c0c",
+      "chromadb/server/fastapi/__init__.py": "b6549831ccf22bcd1bd6cc09d2ded564906d6f4857e209f136d4ecf0e727e533",
+      "chromadb-1.5.9+soai.1.dist-info/METADATA": "df6538bae2ce94cd970119e4bf863126429b4d37de333599b5ecdeb27d37bf28"
+    },
+    "corrected_advisories": [
+      "PYSEC-2026-311",
+      "GHSA-f4j7-r4q5-qw2c",
+      "CVE-2026-45829",
+      "PYSEC-2026-3814",
+      "GHSA-36p7-vc44-83pf",
+      "CVE-2026-45833",
+      "PYSEC-2026-3815",
+      "GHSA-xph7-9rjv-w5fr",
+      "CVE-2026-45831",
+      "PYSEC-2026-3813",
+      "GHSA-2wm9-hf6c-p5cr",
+      "CVE-2026-45830"
+    ],
+    "builder_sha256": "2ab1d4b8878d10cdf25b40ee1f04c361065a9abdc9215374d9a77999cec9fb75",
+    "build_tools": {
+      "python": "3.13.12",
+      "wheel": "0.48.0",
+      "npm": "10.9.8"
+    },
+    "regression_source": "backend_check/pytest/tooling/test_patched_dependencies.py",
+    "regression_sha256": "49c7755fe72cfdc24400a25e98c2f685a6a7c5b008b30e763a8b3f9a950eced3"
+  },
+  {
+    "name": "chromadb",
+    "ecosystem": "PyPI",
+    "upstream_version": "1.5.9",
+    "version": "1.5.9+soai.1",
+    "source_url": "https://files.pythonhosted.org/packages/34/4c/adcef1f4e82a2ef69ccd3711d55fc289193d54c4c0ff7a0292a3631db46f/chromadb-1.5.9-cp39-abi3-macosx_11_0_arm64.whl",
+    "source_filename": "chromadb-1.5.9-cp39-abi3-macosx_11_0_arm64.whl",
+    "source_sha256": "814b9c95617377f6501e5757d63dfddb554a283a7739c87b9fa573850174e6f3",
+    "patch": "data/vendor/security/chromadb.diff",
+    "patch_sha256": "1bd085baca1ca63778103899e9335ab922092025a2ed750d6c5654ea004577ca",
+    "artifact_filename": "chromadb-1.5.9+soai.1-cp39-abi3-macosx_11_0_arm64.whl",
+    "artifact_sha256": "6b985ea84c6dfeb6b3c3781160cfb6953d68ff301256f4d91aa312370e91c4cb",
+    "files": {
+      "chromadb/__init__.py": "8a6c0a5eae818656e115df450573f298d8219e4761cfac0d6c78ab8159cfd1ce",
+      "chromadb/api/collection_configuration.py": "c96304e4f9617ac99157f8f9eb6133ddeeb58c086c566f599ccdc9bf7598da69",
+      "chromadb/auth/simple_rbac_authz/__init__.py": "aa8fdf95dcb928261e08bc7178f18b8ee9e08ea28154c3f753d6af4e34980c0c",
+      "chromadb/server/fastapi/__init__.py": "b6549831ccf22bcd1bd6cc09d2ded564906d6f4857e209f136d4ecf0e727e533",
+      "chromadb-1.5.9+soai.1.dist-info/METADATA": "df6538bae2ce94cd970119e4bf863126429b4d37de333599b5ecdeb27d37bf28"
+    },
+    "corrected_advisories": [
+      "PYSEC-2026-311",
+      "GHSA-f4j7-r4q5-qw2c",
+      "CVE-2026-45829",
+      "PYSEC-2026-3814",
+      "GHSA-36p7-vc44-83pf",
+      "CVE-2026-45833",
+      "PYSEC-2026-3815",
+      "GHSA-xph7-9rjv-w5fr",
+      "CVE-2026-45831",
+      "PYSEC-2026-3813",
+      "GHSA-2wm9-hf6c-p5cr",
+      "CVE-2026-45830"
+    ],
+    "builder_sha256": "2ab1d4b8878d10cdf25b40ee1f04c361065a9abdc9215374d9a77999cec9fb75",
+    "build_tools": {
+      "python": "3.13.12",
+      "wheel": "0.48.0",
+      "npm": "10.9.8"
+    },
+    "regression_source": "backend_check/pytest/tooling/test_patched_dependencies.py",
+    "regression_sha256": "49c7755fe72cfdc24400a25e98c2f685a6a7c5b008b30e763a8b3f9a950eced3"
+  },
+  {
+    "name": "chromadb",
+    "ecosystem": "PyPI",
+    "upstream_version": "1.5.9",
+    "version": "1.5.9+soai.1",
+    "source_url": "https://files.pythonhosted.org/packages/38/4e/937bc4d2e6f8ab9664ec79931fbbd69efff47e513ec2924b071e4b0ff774/chromadb-1.5.9-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+    "source_filename": "chromadb-1.5.9-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+    "source_sha256": "9192d111bd662241625867962333d99369a00769a50f8b2f58cb388731274d7e",
+    "patch": "data/vendor/security/chromadb.diff",
+    "patch_sha256": "1bd085baca1ca63778103899e9335ab922092025a2ed750d6c5654ea004577ca",
+    "artifact_filename": "chromadb-1.5.9+soai.1-cp39-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+    "artifact_sha256": "10bf028576d86f048b0e1c82880f11d3c101cb56bc8e6305967a8ca47c7b24ae",
+    "files": {
+      "chromadb/__init__.py": "8a6c0a5eae818656e115df450573f298d8219e4761cfac0d6c78ab8159cfd1ce",
+      "chromadb/api/collection_configuration.py": "c96304e4f9617ac99157f8f9eb6133ddeeb58c086c566f599ccdc9bf7598da69",
+      "chromadb/auth/simple_rbac_authz/__init__.py": "aa8fdf95dcb928261e08bc7178f18b8ee9e08ea28154c3f753d6af4e34980c0c",
+      "chromadb/server/fastapi/__init__.py": "b6549831ccf22bcd1bd6cc09d2ded564906d6f4857e209f136d4ecf0e727e533",
+      "chromadb-1.5.9+soai.1.dist-info/METADATA": "df6538bae2ce94cd970119e4bf863126429b4d37de333599b5ecdeb27d37bf28"
+    },
+    "corrected_advisories": [
+      "PYSEC-2026-311",
+      "GHSA-f4j7-r4q5-qw2c",
+      "CVE-2026-45829",
+      "PYSEC-2026-3814",
+      "GHSA-36p7-vc44-83pf",
+      "CVE-2026-45833",
+      "PYSEC-2026-3815",
+      "GHSA-xph7-9rjv-w5fr",
+      "CVE-2026-45831",
+      "PYSEC-2026-3813",
+      "GHSA-2wm9-hf6c-p5cr",
+      "CVE-2026-45830"
+    ],
+    "builder_sha256": "2ab1d4b8878d10cdf25b40ee1f04c361065a9abdc9215374d9a77999cec9fb75",
+    "build_tools": {
+      "python": "3.13.12",
+      "wheel": "0.48.0",
+      "npm": "10.9.8"
+    },
+    "regression_source": "backend_check/pytest/tooling/test_patched_dependencies.py",
+    "regression_sha256": "49c7755fe72cfdc24400a25e98c2f685a6a7c5b008b30e763a8b3f9a950eced3"
+  },
+  {
+    "name": "chromadb",
+    "ecosystem": "PyPI",
+    "upstream_version": "1.5.9",
+    "version": "1.5.9+soai.1",
+    "source_url": "https://files.pythonhosted.org/packages/e6/ec/0c42039e80b9acc534f67b73b7a42471948042859b3a64867b50a4a77fa3/chromadb-1.5.9-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+    "source_filename": "chromadb-1.5.9-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+    "source_sha256": "cc09b3df76e5a5cb386aed2715a2eea152e3949f9e1ba93c7119505377749929",
+    "patch": "data/vendor/security/chromadb.diff",
+    "patch_sha256": "1bd085baca1ca63778103899e9335ab922092025a2ed750d6c5654ea004577ca",
+    "artifact_filename": "chromadb-1.5.9+soai.1-cp39-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+    "artifact_sha256": "6b22ae2104b97fc2c8e4b7e2c34542126f712cefbe072809fd6f031cb2195f34",
+    "files": {
+      "chromadb/__init__.py": "8a6c0a5eae818656e115df450573f298d8219e4761cfac0d6c78ab8159cfd1ce",
+      "chromadb/api/collection_configuration.py": "c96304e4f9617ac99157f8f9eb6133ddeeb58c086c566f599ccdc9bf7598da69",
+      "chromadb/auth/simple_rbac_authz/__init__.py": "aa8fdf95dcb928261e08bc7178f18b8ee9e08ea28154c3f753d6af4e34980c0c",
+      "chromadb/server/fastapi/__init__.py": "b6549831ccf22bcd1bd6cc09d2ded564906d6f4857e209f136d4ecf0e727e533",
+      "chromadb-1.5.9+soai.1.dist-info/METADATA": "df6538bae2ce94cd970119e4bf863126429b4d37de333599b5ecdeb27d37bf28"
+    },
+    "corrected_advisories": [
+      "PYSEC-2026-311",
+      "GHSA-f4j7-r4q5-qw2c",
+      "CVE-2026-45829",
+      "PYSEC-2026-3814",
+      "GHSA-36p7-vc44-83pf",
+      "CVE-2026-45833",
+      "PYSEC-2026-3815",
+      "GHSA-xph7-9rjv-w5fr",
+      "CVE-2026-45831",
+      "PYSEC-2026-3813",
+      "GHSA-2wm9-hf6c-p5cr",
+      "CVE-2026-45830"
+    ],
+    "builder_sha256": "2ab1d4b8878d10cdf25b40ee1f04c361065a9abdc9215374d9a77999cec9fb75",
+    "build_tools": {
+      "python": "3.13.12",
+      "wheel": "0.48.0",
+      "npm": "10.9.8"
+    },
+    "regression_source": "backend_check/pytest/tooling/test_patched_dependencies.py",
+    "regression_sha256": "49c7755fe72cfdc24400a25e98c2f685a6a7c5b008b30e763a8b3f9a950eced3"
+  },
+  {
+    "name": "chromadb",
+    "ecosystem": "PyPI",
+    "upstream_version": "1.5.9",
+    "version": "1.5.9+soai.1",
+    "source_url": "https://files.pythonhosted.org/packages/eb/ce/0f7be6e5d0feafa2cda54b12e6542afeea7dea89d2d411e14da90f8abb96/chromadb-1.5.9-cp39-abi3-win_amd64.whl",
+    "source_filename": "chromadb-1.5.9-cp39-abi3-win_amd64.whl",
+    "source_sha256": "4fd0b560e56761b7f3cb4d5c6205fd5f20814484b4a3e4e9af9038c2b428fc6c",
+    "patch": "data/vendor/security/chromadb.diff",
+    "patch_sha256": "1bd085baca1ca63778103899e9335ab922092025a2ed750d6c5654ea004577ca",
+    "artifact_filename": "chromadb-1.5.9+soai.1-cp39-abi3-win_amd64.whl",
+    "artifact_sha256": "3f6a614819dcf5efaa11b74e7c490c4f833bc87e4bfcf1f54ce147eb41706411",
+    "files": {
+      "chromadb/__init__.py": "40637c6057b15d5be585e87acec1d244dc0231725d353232cc3ca197efa89a76",
+      "chromadb/api/collection_configuration.py": "3a6753359a30f52d8ab7ebbc81efc0f1ed8b124ef6ebf86048c571dcb50e1a37",
+      "chromadb/auth/simple_rbac_authz/__init__.py": "290f01de87cd5e7058226eb15d45aa0e8ac1649214943332623e047b9ac8ffa5",
+      "chromadb/server/fastapi/__init__.py": "6de3bda9add08dc98823d52f7062123bf05b6b45accd23d3df55326d20691a23",
+      "chromadb-1.5.9+soai.1.dist-info/METADATA": "1c4d566c317f36f8187df11e35be35ce19051ffbcf7a8349cc1d38e11c7dedb2"
+    },
+    "corrected_advisories": [
+      "PYSEC-2026-311",
+      "GHSA-f4j7-r4q5-qw2c",
+      "CVE-2026-45829",
+      "PYSEC-2026-3814",
+      "GHSA-36p7-vc44-83pf",
+      "CVE-2026-45833",
+      "PYSEC-2026-3815",
+      "GHSA-xph7-9rjv-w5fr",
+      "CVE-2026-45831",
+      "PYSEC-2026-3813",
+      "GHSA-2wm9-hf6c-p5cr",
+      "CVE-2026-45830"
+    ],
+    "builder_sha256": "2ab1d4b8878d10cdf25b40ee1f04c361065a9abdc9215374d9a77999cec9fb75",
+    "build_tools": {
+      "python": "3.13.12",
+      "wheel": "0.48.0",
+      "npm": "10.9.8"
+    },
+    "regression_source": "backend_check/pytest/tooling/test_patched_dependencies.py",
+    "regression_sha256": "49c7755fe72cfdc24400a25e98c2f685a6a7c5b008b30e763a8b3f9a950eced3"
+  }
+]

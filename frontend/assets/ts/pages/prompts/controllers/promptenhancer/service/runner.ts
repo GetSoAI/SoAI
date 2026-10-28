@@ -183,7 +183,7 @@ class PromptEnhancerRunner {
             if (controller.signal.aborted) {
                 state.status = 'aborted';
                 state.statusMessage = i18n.t('prompts.enhancer.status.aborted');
-                state.errorMessage = i18n.t('prompts.enhancer.errors.aborted');
+                state.errorMessage = null;
                 return;
             }
             let pendingOutput = '';
@@ -227,13 +227,17 @@ class PromptEnhancerRunner {
             }
             pendingOutput = '';
             state.output = response.output;
-            if (!state.output.trim()) {
-                throw new Error(i18n.t('prompts.enhancer.errors.empty'));
-            }
             if (controller.signal.aborted || state.status === 'aborted') {
                 state.status = 'aborted';
                 state.statusMessage = i18n.t('prompts.enhancer.status.aborted');
-                state.errorMessage = i18n.t('prompts.enhancer.errors.aborted');
+                state.errorMessage = null;
+                return;
+            }
+            if (!state.output.trim()) {
+                state.status = 'error';
+                state.statusMessage = i18n.t('prompts.enhancer.status.error');
+                state.errorMessage = i18n.t('prompts.enhancer.errors.empty');
+                this.#host.feedback.show(state.errorMessage, 'warning');
                 return;
             }
             state.status = 'success';
@@ -243,7 +247,7 @@ class PromptEnhancerRunner {
             if (state.status === 'aborted' || isAbortError(runtimeError) || controller.signal.aborted) {
                 state.status = 'aborted';
                 state.statusMessage = i18n.t('prompts.enhancer.status.aborted');
-                state.errorMessage = i18n.t('prompts.enhancer.errors.aborted');
+                state.errorMessage = null;
             } else {
                 this.#host.feedback.handle(runtimeError, 'Prompt enhancement failed');
                 state.status = 'error';
@@ -262,7 +266,7 @@ class PromptEnhancerRunner {
         const state = this.#state.get();
         state.status = 'aborted';
         state.statusMessage = i18n.t('prompts.enhancer.status.aborted');
-        state.errorMessage = i18n.t('prompts.enhancer.errors.aborted');
+        state.errorMessage = null;
         state.abortController?.abort();
         state.abortController = null;
         this.#render();

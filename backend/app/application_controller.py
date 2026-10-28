@@ -22,6 +22,7 @@ from app.runtime import ApplicationRuntimeCoordinator
 from app.runtime_dependencies import ApplicationRuntimeCoordinatorDependencies
 from app.types_application import ApplicationAssembly, ApplicationContext
 from core.logging.trace import get_logger
+from core.meta.instance_identity import resolve_instance_identity
 from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.protocols import RuntimeFlagsViewProtocol
 from core.timing.startup_timings import StartupTimingsRecorder
@@ -39,7 +40,7 @@ from features.api.runtime.power_operation_supervisor import (
 )
 
 if TYPE_CHECKING:
-    from core.app.protocols import ApplicationUpdateOutcome
+    from core.app.update_result import ApplicationUpdateResult
 
 __all__ = ("ApplicationController",)
 
@@ -84,8 +85,12 @@ class ApplicationController:
                 module_dependencies=module_dependencies.runtime,
                 finalizer_tracker=self._context.services.tasks.cancellation.finalizer_tracker,
                 task_cancellation_binder=(self._context.services.tasks.cancellation.binder),
+                replace_durable_acceptance_policy=(
+                    self._context.services.databases.tasks.replace_durable_acceptance_policy
+                ),
                 core_routing_applicator=self._context.services.orchestrator.lifecycle.routing,
                 update_plugin_worker_runtime_flags=self._update_plugin_worker_runtime_flags,
+                resolve_instance_id=self._resolve_instance_id,
             ),
         )
         self._controller_services = build_application_controller_services(
@@ -177,7 +182,7 @@ class ApplicationController:
     def restart(self) -> None:
         self._application_control.restart()
 
-    async def update(self) -> tuple[ApplicationUpdateOutcome, str]:
+    async def update(self) -> ApplicationUpdateResult:
         return await self._application_control.update()
 
     async def _update_plugin_worker_runtime_flags(
@@ -186,3 +191,8 @@ class ApplicationController:
     ) -> None:
         plugin_manager = self._context.services.plugins.plugin_manager
         await plugin_manager.update_runtime_flags(runtime_flags)
+
+    async def _resolve_instance_id(self) -> str:
+        databases = self._context.services.databases
+        identity = await resolve_instance_identity(databases.plugins, databases.licensing)
+        return identity.instance_id

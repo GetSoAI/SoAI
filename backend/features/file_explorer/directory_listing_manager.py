@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import Coroutine
+from collections.abc import Coroutine, Sequence
 
 from core.concurrency.cancellation_cleanup import (
     uncancel_then_cleanup,
@@ -14,6 +14,7 @@ from core.concurrency.cancellation_cleanup import (
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.errors.exceptions import ConflictError, NotFoundError, StateError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
+from core.files.directory_listing_errors import DirectoryListingExpiredError
 from core.files.directory_listing_models import (
     DirectoryListingAdmission,
     DirectoryListingEntryType,
@@ -24,6 +25,7 @@ from core.files.directory_listing_models import (
 )
 from core.files.operations import async_remove_if_exists
 from core.files.protocols_explorer import FileSystemRootScopeProtocol
+from core.filesystem.operation_errors import build_filesystem_operation_error
 from core.logging.trace import get_logger
 from core.tasks.type_catalog import TASK_TYPE_BACKGROUND_JOB
 from features.file_explorer.background_task_launching import (
@@ -43,6 +45,7 @@ from features.file_explorer.path_resolution import canonicalize_virtual_path
 __all__ = ("DirectoryListingManager",)
 
 LOGGER_NAME = "SoAI.features.file_explorer.directory_listing_manager"
+ADMISSION_CLEANUP_EXCEPTIONS = (asyncio.CancelledError,) + HANDLED_RUNTIME_EXCEPTIONS
 
 
 class DirectoryListingManager:
@@ -69,15 +72,25 @@ class DirectoryListingManager:
         root_scope: FileSystemRootScopeProtocol,
         virtual_path: str,
     ) -> DirectoryListingAdmission:
-        await self._reap_expired_records()
+        await self._reap_expired_records(user_id)
         virtual_path = canonicalize_virtual_path(root_scope, virtual_path)
-        record = await self._registry.admit(
+        admission = await self._registry.admit(
             listing_id=listing_id,
             user_id=user_id,
             workspace_path=root_scope.root_path,
             virtual_path=virtual_path,
         )
-        if not record.should_start:
+        try:
+            await self._release_records(admission.reclaimed_records)
+        except ADMISSION_CLEANUP_EXCEPTIONS:
+            if admission.record.should_start:
+                await uncancel_then_cleanup(
+                    self._registry.release(
+                        listing_id, user_id=user_id, expected_record=admission.record
+                    )
+                )
+            raise
+        if not admission.record.should_start:
             task_id = await self._registry.wait_for_task_id(listing_id, user_id=user_id)
             return DirectoryListingAdmission(
                 listing_id=listing_id,
@@ -135,7 +148,7 @@ class DirectoryListingManager:
         sort_direction: DirectoryListingSortDirection,
         entry_type: DirectoryListingEntryType,
     ) -> DirectoryListingPage:
-        await self._reap_expired_records()
+        await self._reap_expired_records(user_id, listing_id=listing_id)
         record = await self._require_ready_record(
             listing_id=listing_id,
             user_id=user_id,
@@ -143,7 +156,7 @@ class DirectoryListingManager:
         )
         async with record.io_lock:
             if await self._registry.get(listing_id, user_id=user_id) is None:
-                raise NotFoundError("Directory listing was released.")
+                raise DirectoryListingExpiredError("Directory listing is no longer available.")
             snapshot_path = self._require_snapshot_path(record)
             page = await self._await_snapshot_io(
                 asyncio.to_thread(
@@ -180,7 +193,7 @@ class DirectoryListingManager:
         sort_direction: DirectoryListingSortDirection,
         entry_type: DirectoryListingEntryType,
     ) -> DirectoryListingLocateResult:
-        await self._reap_expired_records()
+        await self._reap_expired_records(user_id, listing_id=listing_id)
         record = await self._require_ready_record(
             listing_id=listing_id,
             user_id=user_id,
@@ -189,7 +202,7 @@ class DirectoryListingManager:
         try:
             async with record.io_lock:
                 if await self._registry.get(listing_id, user_id=user_id) is None:
-                    raise NotFoundError("Directory listing was released.")
+                    raise DirectoryListingExpiredError("Directory listing is no longer available.")
                 offset = await self._await_snapshot_io(
                     asyncio.to_thread(
                         locate_directory_listing_entry,
@@ -209,7 +222,7 @@ class DirectoryListingManager:
         return DirectoryListingLocateResult(offset=offset)
 
     async def release(self, *, listing_id: str, user_id: int) -> None:
-        await self._reap_expired_records()
+        await self._reap_expired_records(user_id, listing_id=listing_id)
         record = await self._registry.get(listing_id, user_id=user_id)
         if record is None:
             await uncancel_then_cleanup(
@@ -233,16 +246,24 @@ class DirectoryListingManager:
     ) -> None:
         async with record.io_lock:
             if record.snapshot_path is not None:
-                removed = await async_remove_if_exists(
-                    record.snapshot_path,
-                    logger=get_logger(LOGGER_NAME),
-                )
+                try:
+                    removed = await async_remove_if_exists(
+                        record.snapshot_path,
+                        logger=get_logger(LOGGER_NAME),
+                        raise_on_failure=True,
+                    )
+                except OSError as exception:
+                    raise build_filesystem_operation_error(exception) from exception
                 if not removed and await asyncio.to_thread(os.path.exists, record.snapshot_path):
                     raise StateError("Directory listing snapshot could not be removed.")
-            await self._registry.release(listing_id, user_id=user_id)
+            await self._registry.release(listing_id, user_id=user_id, expected_record=record)
 
-    async def _reap_expired_records(self) -> None:
-        records = await self._registry.reap_expired()
+    async def _reap_expired_records(self, user_id: int, *, listing_id: str | None = None) -> None:
+        await self._release_records(
+            await self._registry.reap_expired(user_id=user_id, listing_id=listing_id)
+        )
+
+    async def _release_records(self, records: Sequence[DirectoryListingRecord]) -> None:
         for record in records:
             await self._release_record(
                 record,
@@ -258,10 +279,8 @@ class DirectoryListingManager:
         root_scope: FileSystemRootScopeProtocol,
     ) -> DirectoryListingRecord:
         record = await self._registry.get(listing_id, user_id=user_id)
-        if record is None:
-            raise NotFoundError("Directory listing was not found.")
-        if record.workspace_path != root_scope.root_path:
-            raise NotFoundError("Directory listing was not found.")
+        if record is None or record.workspace_path != root_scope.root_path:
+            raise DirectoryListingExpiredError("Directory listing is no longer available.")
         if record.status != "ready":
             raise ConflictError("Directory listing is not ready.")
         return record

@@ -9,14 +9,22 @@ from typing import TYPE_CHECKING
 from core.errors.exceptions import ConflictError, StateError, ValidationError
 from core.serialization.json import serialize_json_compact_stable
 from core.timing.epoch import epoch_ms
+from core.validation.epoch import EPOCH_MS_MIN
+from core.validation.record_fields import require_int, require_non_empty_str
 from database.core.query_execution import sync_fetch_one_as_dict
 from database.repositories.users.conversation_input_constants import TERMINAL_INPUT_STATES
+from database.repositories.users.conversation_input_dispatch_holds import (
+    sync_release_conversation_input_holds,
+)
 from database.repositories.users.conversation_input_row_mapping import (
     format_conversation_input_row,
 )
 from database.repositories.users.conversation_input_terminal_events import (
     sync_ensure_conversation_input_terminal_event,
     sync_require_existing_conversation_input_terminal_event,
+)
+from database.repositories.users.conversation_stream_cancellation_state import (
+    sync_has_chat_stream_cancellation_for_input,
 )
 
 if TYPE_CHECKING:
@@ -86,6 +94,17 @@ def sync_terminalize_conversation_input(
             terminal_code=terminal_code,
             created_at_ms=terminal_at_ms,
         )
+        request_id = formatted.get("request_id")
+        if terminal_state == "completed" and not (
+            isinstance(request_id, str)
+            and sync_has_chat_stream_cancellation_for_input(
+                sqlite_conn,
+                user_id,
+                conv_id,
+                request_id,
+            )
+        ):
+            sync_release_conversation_input_holds(sqlite_conn, conv_id, user_id)
         return formatted
     existing = sync_fetch_one_as_dict(
         sqlite_conn.execute(
@@ -94,25 +113,42 @@ def sync_terminalize_conversation_input(
         ),
     )
     formatted = format_conversation_input_row(existing)
-    if formatted is not None and formatted.get("state") == terminal_state:
-        if formatted.get("terminal_code") == terminal_code:
-            user_id = formatted.get("user_id")
-            conv_id = formatted.get("conv_id")
-            existing_terminal_at_ms = formatted.get("terminal_at_ms")
-            if (
-                not isinstance(user_id, int)
-                or not isinstance(conv_id, str)
-                or not isinstance(existing_terminal_at_ms, int)
-            ):
-                raise StateError("Terminal conversation input identity is invalid.")
-            sync_require_existing_conversation_input_terminal_event(
-                sqlite_conn,
-                input_id=input_id,
-                user_id=user_id,
-                conv_id=conv_id,
-                terminal_state=terminal_state,
-                terminal_code=terminal_code,
-                created_at_ms=existing_terminal_at_ms,
-            )
-            return formatted
+    if formatted is not None and formatted.get("state") in TERMINAL_INPUT_STATES:
+        user_id = require_int(
+            formatted.get("user_id"),
+            label="Terminal conversation input user",
+            build_error=StateError,
+            minimum=1,
+        )
+        conv_id = require_non_empty_str(
+            formatted.get("conv_id"),
+            label="Terminal conversation input conversation",
+            build_error=StateError,
+        )
+        existing_terminal_state = require_non_empty_str(
+            formatted.get("state"),
+            label="Terminal conversation input state",
+            build_error=StateError,
+        )
+        existing_terminal_code = require_non_empty_str(
+            formatted.get("terminal_code"),
+            label="Terminal conversation input code",
+            build_error=StateError,
+        )
+        existing_terminal_at_ms = require_int(
+            formatted.get("terminal_at_ms"),
+            label="Terminal conversation input timestamp",
+            build_error=StateError,
+            minimum=EPOCH_MS_MIN,
+        )
+        sync_require_existing_conversation_input_terminal_event(
+            sqlite_conn,
+            input_id=input_id,
+            user_id=user_id,
+            conv_id=conv_id,
+            terminal_state=existing_terminal_state,
+            terminal_code=existing_terminal_code,
+            created_at_ms=existing_terminal_at_ms,
+        )
+        return formatted
     raise ConflictError("Conversation input terminalization fence changed.")

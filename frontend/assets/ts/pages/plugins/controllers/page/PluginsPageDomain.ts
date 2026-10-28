@@ -1,6 +1,7 @@
 /* SoAI - Plugins page collection and controller aggregate [frontend/assets/ts/pages/plugins/controllers/page/PluginsPageDomain.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { synchronizePluginToggleMotion } from '@pages/plugins/rendering/pluginToggleMotionController.ts';
 import { CollectionDataRuntime } from '@core/collectionpage/CollectionDataRuntime.ts';
 import { CollectionPageState } from '@core/collectionpage/CollectionPageState.ts';
 import { toTrimmedString } from '@core/normalize.ts';
@@ -50,7 +51,9 @@ class PluginsPageDomain {
     readonly #behavior: CollectionCompositionBehavior;
     readonly #groupingController: ReturnType<typeof createPluginsGroupingController>;
     #pendingOptimisticPluginNames = new Set<string>();
+    readonly #toggleMotionStartedAt = new Map<string, number>();
     #controlsHydrated = false;
+    #unsubscribeBackendUpdateAccess: (() => void) | null = null;
 
     constructor({ pageDependencies, infrastructure, storage, pageHost, pageLifecycle, collectionOwners }: PluginsPageDomainOptions) {
         this.#infrastructure = infrastructure;
@@ -61,6 +64,7 @@ class PluginsPageDomain {
         this.#groupingController = createPluginsGroupingController({
             grouping: this.session.grouping,
             getSortBy: () => this.state.getSortBy() ?? 'none',
+            presentsHeadings: () => this.session.viewMode !== 'list',
             getItemCardId: (plugin) => this.runtime.coreControllers.dataController.getItemCardId(plugin),
             getPluginStatus: (plugin) => this.runtime.coreControllers.dataController.getPluginStatus(plugin),
             getStatusDescription: (status) => this.#infrastructure.stateManager.status.getDescription(status)
@@ -142,6 +146,7 @@ class PluginsPageDomain {
                 this.runtime.presentationController.revealRecentItem();
             },
             onCommit: (context) => {
+                synchronizePluginToggleMotion(context.mountedElements, this.#toggleMotionStartedAt);
                 this.runtime.progressController.synchronizeCommittedItems(context.mountedElements);
                 armCollectionCardRevealTargetsForCommit(context.enteringElements);
                 this.#infrastructure.pageElements.enableCheckerboard(context.container, '.plugin-card, .plugins-list-row', context.rangeStart);
@@ -257,6 +262,10 @@ class PluginsPageDomain {
 
     initializeView(): void {
         this.state.initializeView(this.collections, this.runtime.presentationController.collectionViewOverrides());
+        this.#unsubscribeBackendUpdateAccess?.();
+        this.#unsubscribeBackendUpdateAccess = this.session.subscribeBackendUpdateAccess(() => {
+            this.collections.view?.markDirty(this.session.catalogStore.getPlugins().flatMap((plugin) => (plugin.name ? [plugin.name] : [])));
+        });
     }
 
     setupLastUsed(): void {
@@ -268,7 +277,10 @@ class PluginsPageDomain {
     }
 
     dispose(): void {
+        this.#unsubscribeBackendUpdateAccess?.();
+        this.#unsubscribeBackendUpdateAccess = null;
         this.#pendingOptimisticPluginNames.clear();
+        this.#toggleMotionStartedAt.clear();
         this.lifecycle.dispose();
         this.data.destroy();
     }

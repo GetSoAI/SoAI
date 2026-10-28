@@ -1,0 +1,27 @@
+[
+    {
+        "name": "mermaid",
+        "ecosystem": "npm",
+        "upstream_version": "11.17.2",
+        "version": "11.17.3-soai.1",
+        "source_url": "https://registry.npmjs.org/mermaid/-/mermaid-11.17.2.tgz",
+        "source_filename": "mermaid-11.17.2.tgz",
+        "source_sha256": "6ad2f42c3fc26bbf9e45cbb6d11898972573ea52b33a5f4ff51952899f950ffd",
+        "patch": "frontend/vendor/security/mermaid.diff",
+        "patch_sha256": "94eda07d4126825c2e255a2c83c69a6517bc806165ffb529b91f036e87823f72",
+        "artifact_filename": "mermaid-11.17.3-soai.1.tgz",
+        "artifact_sha256": "266197ab525d94efc9bee2f145b859c446a5f6cc49e1c90d72ec0b4fa9125b81",
+        "files": {
+            "package.json": "f9e8b1d75dfc05b0b04d80255b1c0ec6e6295c87ba73eb0b90947a529c4db96d"
+        },
+        "corrected_advisories": [],
+        "builder_sha256": "2ab1d4b8878d10cdf25b40ee1f04c361065a9abdc9215374d9a77999cec9fb75",
+        "build_tools": {
+            "python": "3.13.12",
+            "wheel": "0.48.0",
+            "npm": "10.9.8"
+        },
+        "regression_source": "frontend_check/verification_tests/dependency_patch_evidence.mjs",
+        "regression_sha256": "58ff3d28934e058d834023a1221eebad3353e11688828eff7b29d278ed55a001"
+    }
+]

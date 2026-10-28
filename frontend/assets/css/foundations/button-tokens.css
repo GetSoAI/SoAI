@@ -3,9 +3,19 @@
 
 @layer foundations {
     :root {
+        --control-menu-item-hover-bg: color-mix(in srgb, var(--glass-surface-interactive) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        --control-menu-item-hover-border: color-mix(in srgb, color-mix(in srgb, var(--glass-border-strong) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle)) var(--control-button-border-hover-strength), transparent);
+        --control-button-border-strength: 30%;
+        --control-button-border-hover-strength: 50%;
+        --ui-button-disabled-opacity: 0.35;
+        --ui-button-subdued-opacity: 0.75;
+        --ui-button-busy-opacity: 0.7;
+        --ui-button-emphasis-opacity: 1;
         --interactive-tint-opacity-idle: 12%;
         --interactive-tint-opacity-hover: 20%;
-        --ui-button-inherited-underlay: color-mix(in srgb, var(--glass-underlay-surface) 70%, transparent);
+        --ui-button-underlay-base: transparent;
+        --ui-button-underlay-tint-strength: 30%;
+        --ui-button-inherited-underlay: color-mix(in srgb, color-mix(in srgb, var(--glass-underlay-surface) var(--ui-button-underlay-tint-strength), var(--ui-button-underlay-base)) 70%, transparent);
         --ui-button-surface-light: color-mix(in srgb, var(--glass-surface-light) 70%, var(--glass-surface-medium-base) 30%);
         --ui-button-surface-strong: color-mix(in srgb, var(--glass-surface-strong) 70%, var(--glass-surface-medium-base) 30%);
         --ui-button-surface-hover: color-mix(in srgb, var(--glass-surface-hover) 70%, var(--glass-surface-medium-base) 30%);

@@ -10,8 +10,6 @@ import { patchTimelineChildren, type ActiveStreamingTextRun } from '@features/ch
 import { isPassiveStreamRenderPatchType, messageHasStreamText } from '@features/chat/stream/streamMessageRenderMode.ts';
 import { syncStreamingMessagePassiveState } from '@features/chat/stream/streamMessageRenderState.ts';
 import type { RenderStreamingMessageContentArguments, RenderStreamingMessageContentResult } from '@features/chat/stream/streamMessageRenderingContracts.ts';
-import { syncStreamingSpinnerActivityFlags } from '@features/chat/stream/streamMessageSpinnerStatusActivityFlags.ts';
-import { reconcileStreamingSpinnerStatusSubtree } from '@features/chat/stream/streamMessageSpinnerStatusRuntime.ts';
 
 const isConnectedStreamingNode = (target: HTMLElement, node: HTMLElement | null): node is HTMLElement => node instanceof HTMLElement && node.isConnected && target.contains(node);
 
@@ -100,12 +98,6 @@ const renderActiveStreamingMessageContent = (inputArguments: RenderStreamingMess
     let streamSegmentsPostRenderTargets: HTMLElement[] = [];
 
     if (segments) {
-        if (inputArguments.cached.messageRoot instanceof HTMLElement) {
-            const spinnerActivityFlagsChanged = syncStreamingSpinnerActivityFlags(inputArguments.cached.messageRoot, segments);
-            if (spinnerActivityFlagsChanged) {
-                reconcileStreamingSpinnerStatusSubtree(inputArguments.cached.messageRoot);
-            }
-        }
         const timelineResult = patchTimelineChildren(inputArguments.message, inputArguments.cached, inputArguments.messageManager, streamSegments, segments);
         if (!timelineResult.supported) {
             return {
@@ -161,7 +153,7 @@ const renderActiveStreamingMessageContent = (inputArguments: RenderStreamingMess
         }
     }
 
-    if (syncStreamingMessagePassiveState({ message: inputArguments.message, target, messageManager: inputArguments.messageManager, cached: inputArguments.cached })) {
+    if (syncStreamingMessagePassiveState({ message: inputArguments.message, target, messageManager: inputArguments.messageManager, cached: inputArguments.cached, segments })) {
         updatedMarkup = true;
     }
     if (segments !== null) {

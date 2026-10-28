@@ -1,6 +1,7 @@
 /* SoAI - Chat feature assistant activity widgets [frontend/assets/ts/features/chat/message/messageview/assistantActivityWidgets.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { computeHash } from '@core/primitives/hash.ts';
 import { renderAssistantGeneratedImageWidget } from '@features/chat/message/messageview/assistantGeneratedImageWidget.ts';
 import { renderAssistantNewsWidget } from '@features/chat/message/messageview/assistantNewsWidget.ts';
 import { renderAssistantPlanWidget } from '@features/chat/message/messageview/assistantPlanWidget.ts';
@@ -67,9 +68,11 @@ const renderAssistantActivityWidgets = (host: ChatMessageRenderHost, segments: r
             continue;
         }
         seenCallIds.add(callId);
-        widgetsBySlot.set(resolveWidgetSlot(segment), widgetHtml);
+        const slot = resolveWidgetSlot(segment);
+        widgetsBySlot.set(slot, injectAssistantBodyRootAttributes(host, widgetHtml, `widget:${computeHash(slot).toString(36)}`, widgetHtml));
     }
-    const body = [renderAssistantPlanWidget(host, segments), ...widgetsBySlot.values()].join('');
+    const planHtml = renderAssistantPlanWidget(host, segments);
+    const body = [planHtml ? injectAssistantBodyRootAttributes(host, planHtml, 'widget:plan', planHtml) : '', ...widgetsBySlot.values()].join('');
     if (!body) {
         return '';
     }

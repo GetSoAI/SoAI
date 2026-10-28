@@ -10,8 +10,9 @@
     }
 
     .ui-collection-grid {
+        --layout-collection-grid-repeat: auto-fit;
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(var(--layout-collection-card-min-width), 1fr));
+        grid-template-columns: repeat(var(--layout-collection-grid-repeat), minmax(var(--layout-collection-card-min-width), 1fr));
         gap: var(--space-6);
         place-items: start center;
         place-content: start center;
@@ -81,7 +82,7 @@
 
     @container ui-viewport (width <= 1024px) {
         .ui-collection-grid {
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(var(--layout-collection-grid-repeat), minmax(300px, 1fr));
         }
     }
     @container ui-viewport (width <= 480px) {

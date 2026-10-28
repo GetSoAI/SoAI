@@ -4,6 +4,8 @@
 import type { ConversationSettingsSectionState } from '@features/chat/conversationsettings/types.ts';
 
 const createDefaultSectionState = (): ConversationSettingsSectionState => ({
+    skillsDirty: false,
+    skillsValid: true,
     ragDirty: false,
     ragValid: true,
     mcpDirty: false,

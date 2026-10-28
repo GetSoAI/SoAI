@@ -10,6 +10,12 @@ import aiosqlite
 from core.types.json import JSONDict
 from database.core.data_conversions import SQLITE_BATCH_SIZE
 from database.core.query_execution import query_to_dicts
+from database.core.sql_builders import build_placeholder_list
+from database.repositories.memory.entity_projection import (
+    append_grouped_memory_rows,
+    shape_entity_detail,
+    shape_managed_entry,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -27,10 +33,6 @@ def _entity_id(entity_row: SQLiteRowDict) -> str:
     return str(entity_row.get("id", ""))
 
 
-def _placeholders(values: list[str]) -> str:
-    return ",".join("?" for _ in values)
-
-
 def _entity_id_batches(entity_rows: list[SQLiteRowDict]) -> Iterable[list[str]]:
     entity_ids: list[str] = []
     seen_ids: set[str] = set()
@@ -44,18 +46,6 @@ def _entity_id_batches(entity_rows: list[SQLiteRowDict]) -> Iterable[list[str]]:
         yield entity_ids[start_index : start_index + SQLITE_BATCH_SIZE]
 
 
-def _append_grouped_rows(
-    groups: dict[str, list[SQLiteRowDict]],
-    rows: list[SQLiteRowDict],
-    group_key: str,
-) -> None:
-    for row in rows:
-        key_value = str(row.get(group_key, ""))
-        if key_value not in groups:
-            groups[key_value] = []
-        groups[key_value].append(row)
-
-
 async def _read_observations_by_entity(
     database: aiosqlite.Connection,
     entity_rows: list[SQLiteRowDict],
@@ -65,8 +55,8 @@ async def _read_observations_by_entity(
         sql = " ".join(
             (
                 "SELECT entity_id, id, content, source, created_at_ms FROM mcp_memory_observations",
-                f"WHERE entity_id IN ({_placeholders(entity_ids)})",
-                "ORDER BY entity_id ASC, created_at_ms DESC",
+                f"WHERE entity_id IN ({build_placeholder_list(len(entity_ids))})",
+                "ORDER BY entity_id ASC, created_at_ms DESC, id ASC",
             ),
         )
         rows = await query_to_dicts(
@@ -74,7 +64,7 @@ async def _read_observations_by_entity(
             sql,
             tuple(entity_ids),
         )
-        _append_grouped_rows(groups, rows, "entity_id")
+        append_grouped_memory_rows(groups, rows, "entity_id")
     return groups
 
 
@@ -86,9 +76,9 @@ async def _read_outbound_relations_by_entity(
     for entity_ids in _entity_id_batches(entity_rows):
         sql = " ".join(
             (
-                "SELECT r.from_entity_id, r.id, r.relation_type, r.created_at_ms, e.name as to_entity",
-                "FROM mcp_memory_relations r JOIN mcp_memory_entities e ON e.id = r.to_entity_id",
-                f"WHERE r.from_entity_id IN ({_placeholders(entity_ids)})",
+                "SELECT r.from_entity_id, r.to_entity_id, r.id, r.relation_type, r.created_at_ms, e.name as to_entity, src.name as from_entity",
+                "FROM mcp_memory_relations r JOIN mcp_memory_entities e ON e.id = r.to_entity_id JOIN mcp_memory_entities src ON src.id = r.from_entity_id",
+                f"WHERE r.from_entity_id IN ({build_placeholder_list(len(entity_ids))})",
             ),
         )
         rows = await query_to_dicts(
@@ -96,7 +86,7 @@ async def _read_outbound_relations_by_entity(
             sql,
             tuple(entity_ids),
         )
-        _append_grouped_rows(groups, rows, "from_entity_id")
+        append_grouped_memory_rows(groups, rows, "from_entity_id")
     return groups
 
 
@@ -108,9 +98,9 @@ async def _read_inbound_relations_by_entity(
     for entity_ids in _entity_id_batches(entity_rows):
         sql = " ".join(
             (
-                "SELECT r.to_entity_id, r.id, r.relation_type, r.created_at_ms, e.name as from_entity",
-                "FROM mcp_memory_relations r JOIN mcp_memory_entities e ON e.id = r.from_entity_id",
-                f"WHERE r.to_entity_id IN ({_placeholders(entity_ids)})",
+                "SELECT r.to_entity_id, r.from_entity_id, r.id, r.relation_type, r.created_at_ms, e.name as from_entity, dst.name as to_entity",
+                "FROM mcp_memory_relations r JOIN mcp_memory_entities e ON e.id = r.from_entity_id JOIN mcp_memory_entities dst ON dst.id = r.to_entity_id",
+                f"WHERE r.to_entity_id IN ({build_placeholder_list(len(entity_ids))})",
             ),
         )
         rows = await query_to_dicts(
@@ -118,77 +108,33 @@ async def _read_inbound_relations_by_entity(
             sql,
             tuple(entity_ids),
         )
-        _append_grouped_rows(groups, rows, "to_entity_id")
+        append_grouped_memory_rows(groups, rows, "to_entity_id")
     return groups
-
-
-def _shape_observations(rows: list[SQLiteRowDict]) -> list[JSONDict]:
-    return [
-        {
-            "id": observation.get("id", ""),
-            "content": observation.get("content", ""),
-            "source": observation.get("source"),
-            "created_at_ms": observation.get("created_at_ms", 0),
-        }
-        for observation in rows
-    ]
-
-
-def _shape_outbound_relations(rows: list[SQLiteRowDict]) -> list[JSONDict]:
-    return [
-        {
-            "id": relation.get("id", ""),
-            "relation_type": relation.get("relation_type", ""),
-            "to_entity": relation.get("to_entity", ""),
-            "created_at_ms": relation.get("created_at_ms", 0),
-        }
-        for relation in rows
-    ]
-
-
-def _shape_inbound_relations(rows: list[SQLiteRowDict]) -> list[JSONDict]:
-    return [
-        {
-            "id": relation.get("id", ""),
-            "relation_type": relation.get("relation_type", ""),
-            "from_entity": relation.get("from_entity", ""),
-            "created_at_ms": relation.get("created_at_ms", 0),
-        }
-        for relation in rows
-    ]
-
-
-def _shape_entity_detail(
-    entity_row: SQLiteRowDict,
-    observations_by_entity: dict[str, list[SQLiteRowDict]],
-    outbound_relations_by_entity: dict[str, list[SQLiteRowDict]],
-    inbound_relations_by_entity: dict[str, list[SQLiteRowDict]],
-) -> JSONDict:
-    entity_id = _entity_id(entity_row)
-    return {
-        "entity": {
-            "name": entity_row.get("name", ""),
-            "entity_type": entity_row.get("entity_type", ""),
-            "created_at_ms": entity_row.get("created_at_ms", 0),
-            "updated_at_ms": entity_row.get("updated_at_ms", 0),
-        },
-        "observations": _shape_observations(observations_by_entity.get(entity_id, [])),
-        "relations": _shape_outbound_relations(outbound_relations_by_entity.get(entity_id, []))
-        + _shape_inbound_relations(inbound_relations_by_entity.get(entity_id, [])),
-    }
 
 
 async def read_entity_details_for_rows(
     database: aiosqlite.Connection,
     entity_rows: list[SQLiteRowDict],
+    *,
+    managed: bool = False,
 ) -> list[JSONDict]:
     if not entity_rows:
         return []
     observations_by_entity = await _read_observations_by_entity(database, entity_rows)
     outbound_relations_by_entity = await _read_outbound_relations_by_entity(database, entity_rows)
     inbound_relations_by_entity = await _read_inbound_relations_by_entity(database, entity_rows)
+    if managed:
+        return [
+            shape_managed_entry(
+                entity_row,
+                observations_by_entity.get(_entity_id(entity_row), []),
+                outbound_relations_by_entity.get(_entity_id(entity_row), [])
+                + inbound_relations_by_entity.get(_entity_id(entity_row), []),
+            )
+            for entity_row in entity_rows
+        ]
     return [
-        _shape_entity_detail(
+        shape_entity_detail(
             entity_row,
             observations_by_entity,
             outbound_relations_by_entity,

@@ -8,7 +8,7 @@ import { stopMediaStreamTracks } from '@core/media/mediaCleanup.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { createDeferred } from '@core/runtime/deferred.ts';
 import { isFunction, isString } from '@core/typeGuards.ts';
-import { resolveSupportedRecordingMimeType, transcribeAudioBlob, type WebuiMediaApiClient } from '@features/chat/api/webuiMediaAudio.ts';
+import { resolveSupportedRecordingMimeType, resolveTranscriptionFailureText, transcribeAudioBlob, type WebuiMediaApiClient } from '@features/chat/api/webuiMediaAudio.ts';
 import { AudioRecordingSnapshotController } from '@features/chat/audio/AudioRecordingSnapshotController.ts';
 import type { ActiveAudioState, AudioRecordingIntent, AudioRecordingSnapshot, AudioRecordingStart, AudioRecordingTerminalOutcome, AudioRecordingTimerHost, AudioState } from '@features/chat/audio/audioRecordingTypes.ts';
 import type { ChatAttachmentErrorHandler } from '@features/chat/ChatTypes.ts';
@@ -196,7 +196,18 @@ class ChatAudioManager {
         try {
             const abortController = new AbortController();
             this.#transcriptionAbort = abortController;
-            const transcription = await transcribeAudioBlob({ apiClient: this.#apiClient, blob: audioBlob, mimeType, filenameStem: 'recording', model: this.#resolveSttModel(), signal: abortController.signal, context: 'ChatAudioManager' });
+            const transcription = await transcribeAudioBlob({
+                apiClient: this.#apiClient,
+                blob: audioBlob,
+                mimeType,
+                filenameStem: 'recording',
+                model: this.#resolveSttModel(),
+                signal: abortController.signal,
+                onDeadlineSettlement: () => {
+                    if (this.#isActive(session)) this.#snapshotController.markTranscriptionSettling();
+                },
+                context: 'ChatAudioManager'
+            });
             if (!this.#isActive(session)) return;
             const text = isString(transcription) ? transcription.trim() : '';
             this.#transcriptionAbort = null;
@@ -204,7 +215,8 @@ class ChatAudioManager {
             this.#finishIdle(session);
             this.#emitTerminal(session, text ? { status: 'transcript', sessionId: session.id, intent: session.intent, text } : { status: 'empty', sessionId: session.id, intent: session.intent });
         } catch (error) {
-            if (this.#isActive(session)) this.#handleError(session, ensureError(error), i18n.t('chat.audio.transcriptionFailed'));
+            const runtimeError = ensureError(error);
+            if (this.#isActive(session)) this.#handleError(session, runtimeError, resolveTranscriptionFailureText(runtimeError, i18n.t('chat.audio.transcriptionFailed')));
         } finally {
             if (this.#activeSession === session) this.#transcriptionAbort = null;
         }

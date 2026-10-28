@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Literal
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import ProcessError, StateError, ValidationError
 from core.files.windows_handle_operations import close_windows_handle
+from core.filesystem.descriptor_io import open_descriptor
 from core.logging.trace import get_logger
 from core.platform.os import is_windows
 from core.system.windows_ctypes import last_windows_error, load_kernel32
@@ -178,7 +179,7 @@ class _PosixSpeedTestFile:
 
     def __init__(self, path: str) -> None:
         logger = get_logger(LOGGER_NAME)
-        opened_file_descriptor = os.open(path, os.O_RDONLY)
+        opened_file_descriptor = open_descriptor(path, os.O_RDONLY)
         file_obj = None
         try:
             file_obj = os.fdopen(opened_file_descriptor, "rb", buffering=0)

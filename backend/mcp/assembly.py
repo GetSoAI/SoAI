@@ -13,7 +13,9 @@ from core.automation.protocols_database import (
     DatabaseAutomationRunsProtocol,
     DatabaseAutomationsProtocol,
 )
+from core.browser.playwright_session_resources import PlaywrightSessionResources
 from core.browser_adblock.protocols import EasyListAdblockServiceProtocol
+from core.concurrency.bounded_blocking import BoundedBlockingPool
 from core.config.protocols import ConfigProtocol
 from core.conversations.protocols_database_agents import (
     DatabaseAgentEventSequencesProtocol,
@@ -62,6 +64,7 @@ from core.read_video.protocols_database import DatabaseReadVideoJobsProtocol
 from core.runtime.protocols import RuntimeFlagsViewProtocol
 from core.runtime.request_context import RequestContext
 from core.secrets.handle_store import SecretHandleStore
+from core.skills.protocols import SkillRepositoryProtocol
 from core.tasks.protocols import (
     TaskCancellationBinderProtocol,
     TaskFinalizerTrackerProtocol,
@@ -96,11 +99,14 @@ def create_web_fetcher(
     storage_manager: StorageManagerProtocol,
     parser_registry_factory: Callable[[], dict[str, FileParserProtocol]],
     adblock_service: EasyListAdblockServiceProtocol | None = None,
+    *,
+    playwright_sessions: PlaywrightSessionResources,
 ) -> WebContentFetcherProtocol | None:
     if not http_client:
         return None
     return WebContentFetcher(
         build_web_content_fetcher_dependencies(
+            playwright_sessions=playwright_sessions,
             http_client=http_client,
             config=config,
             runtime_flags=runtime_flags,
@@ -112,6 +118,7 @@ def create_web_fetcher(
 
 
 def create_utility_tools(
+    numeric_math_pool: BoundedBlockingPool,
     http_client: httpx2.AsyncClient | None,
     web_fetcher: WebContentFetcherProtocol | None,
     config: ConfigProtocol,
@@ -141,6 +148,7 @@ def create_utility_tools(
     database_chat_model_defaults: DatabaseChatModelDefaultsProtocol,
     database_automation_runs: DatabaseAutomationRunsProtocol,
     database_tool_calls: DatabaseToolCallsProtocol,
+    database_skills: SkillRepositoryProtocol,
     database_read_video: DatabaseReadVideoJobsProtocol,
     task_registry: TaskRegistryProtocol,
     cancellation_binder: TaskCancellationBinderProtocol,
@@ -179,6 +187,7 @@ def create_utility_tools(
     logger.debug("MCP utility runtime session state is process-local.")
     utility_tools = MCPUtilityTools(
         MCPUtilityToolsDependencies(
+            numeric_math_pool=numeric_math_pool,
             config=config,
             runtime_flags=runtime_flags,
             storage_manager=storage_manager,
@@ -202,6 +211,7 @@ def create_utility_tools(
             database_conversations=database_conversations,
             database_messages=database_messages,
             database_read_video=database_read_video,
+            database_skills=database_skills,
             database_notifications=database_notifications,
             conversation_attention=conversation_attention,
             database_chat_identity_defaults=database_chat_identity_defaults,

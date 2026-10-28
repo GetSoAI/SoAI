@@ -135,7 +135,7 @@ const createDashboardIntroModalElement = (dependencies: DashboardIntroModalDefin
         sectionClassName: 'first-run-rich-text-section rich-text-section',
         titleClassName: 'first-run-rich-text-section-title rich-text-section-title'
     });
-    const body = renderModalBody(uiHtml`<div class="first-run-rich-text dashboard-first-run-copy">${richText}</div>`);
+    const body = renderModalBody(uiHtml`<div class="first-run-rich-text dashboard-first-run-copy" data-modal-localize="content">${richText}</div>`);
     const footer = renderSplitModalFooter({
         left: renderModalFooterCloseButton({ modalId, text: i18n.t('common.close') })
     });

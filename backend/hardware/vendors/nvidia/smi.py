@@ -15,12 +15,12 @@ from typing import TYPE_CHECKING
 from core.concurrency.deadlines import MonotonicDeadline, deadline_after
 from core.di.validation import require_dependencies
 from core.errors.exception_logging import log_handled_exception
+from core.errors.exceptions import ValidationError
 from core.files.temp_files import (
     acquire_directory_lock,
     release_directory_lock,
     system_temp_directory,
 )
-from core.system.commands import run_argv_capture
 from core.system.process_launcher import (
     DEVNULL_STREAM,
     SUBPROCESS_RECOVERABLE_EXCEPTIONS,
@@ -30,9 +30,14 @@ from core.timing.constants import (
     SHORT_POLL_INTERVAL_SEC,
 )
 from core.timing.sleep import sleep_seconds
+from hardware.gpu_inventory.executable_resolution import (
+    GpuExecutableResolution,
+    GpuExecutableState,
+)
 from hardware.vendors.nvidia.paths import nvidia_xorg_config_path
 from hardware.vendors.nvidia.smi_display_environment import (
     DisplaySearchStatus,
+    NvidiaDisplayQuery,
     detect_display_environment,
     display_process_environment,
     display_target_occupied,
@@ -43,6 +48,7 @@ from hardware.vendors.nvidia.smi_display_environment import (
 if TYPE_CHECKING:
     from core.logging.protocols import TraceLogger
     from core.system.process_launcher import ManagedProcess
+    from hardware.vendors.nvidia.internal_protocols import NvidiaSettingsCaptureProtocol
 
 __all__ = ("NvidiaSettingsController",)
 
@@ -57,9 +63,22 @@ RANGE_PATTERN_TEXT = "valid values for '[^']+' are in the range\\s+(-?\\d+)\\s+-
 @dataclass(frozen=True, slots=True)
 class NvidiaSettingsControllerDependencies:
     logger: TraceLogger
+    capture: NvidiaSettingsCaptureProtocol
+    executable: GpuExecutableResolution
 
     def __post_init__(self) -> None:
-        require_dependencies(owner="NvidiaSettingsControllerDependencies", logger=self.logger)
+        require_dependencies(
+            owner="NvidiaSettingsControllerDependencies",
+            logger=self.logger,
+            capture=self.capture,
+            executable=self.executable,
+        )
+        if not callable(self.capture):
+            raise ValidationError("NVIDIA settings command capture is invalid.")
+        if not isinstance(self.executable, GpuExecutableResolution) or (
+            self.executable.executable != "nvidia-settings"
+        ):
+            raise ValidationError("NVIDIA settings requires its exact executable authority.")
 
 
 class NvidiaSettingsController:
@@ -67,11 +86,16 @@ class NvidiaSettingsController:
         self, deps: NvidiaSettingsControllerDependencies, display: str | None = None
     ) -> None:
         self._logger = deps.logger
+        self._query = NvidiaDisplayQuery(deps.capture, deps.executable, display)
         self._lock = threading.Lock()
         self._display = display
         self._xserver_process: ManagedProcess | None = None
         self._env: dict[str, str] | None = None
         self._atexit_registered: bool = False
+
+    @property
+    def native_query(self) -> NvidiaDisplayQuery:
+        return self._query
 
     def _ensure_display(self, deadline: MonotonicDeadline | None = None) -> bool:
         operation_deadline = deadline or deadline_after(10.0)
@@ -79,15 +103,17 @@ class NvidiaSettingsController:
             display = self._env["DISPLAY"]
             xauthority = self._env.get("XAUTHORITY")
             self._env = None
-            result = validate_display(display, xauthority, operation_deadline)
+            result = validate_display(display, xauthority, operation_deadline, query=self._query)
             if result.status == DisplaySearchStatus.USABLE:
                 self._env = display_process_environment(display, xauthority)
                 return True
-        result = detect_display_environment(self._logger, operation_deadline)
+        result = detect_display_environment(self._logger, operation_deadline, query=self._query)
         if result.status == DisplaySearchStatus.USABLE and result.display is not None:
             selected_display = self._display or result.display
             if selected_display != result.display:
-                result = validate_display(selected_display, result.xauthority, operation_deadline)
+                result = validate_display(
+                    selected_display, result.xauthority, operation_deadline, query=self._query
+                )
                 if result.status != DisplaySearchStatus.USABLE:
                     return False
             self._env = display_process_environment(selected_display, result.xauthority)
@@ -121,7 +147,7 @@ class NvidiaSettingsController:
                 sleep_seconds(min(SHORT_POLL_INTERVAL_SEC, deadline.remaining_seconds()))
                 continue
             try:
-                result = detect_display_environment(self._logger, deadline)
+                result = detect_display_environment(self._logger, deadline, query=self._query)
                 if result.status == DisplaySearchStatus.USABLE and result.display is not None:
                     self._env = display_process_environment(result.display, result.xauthority)
                     return True
@@ -151,7 +177,7 @@ class NvidiaSettingsController:
             while deadline.remaining_seconds() >= 1:
                 if self._xserver_process.poll() is not None:
                     break
-                result = validate_display(display, None, deadline)
+                result = validate_display(display, None, deadline, query=self._query)
                 if result.status == DisplaySearchStatus.USABLE:
                     self._env = display_process_environment(display, None)
                     return True
@@ -203,11 +229,14 @@ class NvidiaSettingsController:
             self._cleanup_owned_process()
 
     def _run_nvidia_settings(self, args: list[str]) -> tuple[bool, str]:
+        executable = self._query.executable.path
+        if self._query.executable.state != GpuExecutableState.FOUND or executable is None:
+            return (False, "NVIDIA settings executable is unavailable.")
         if not self._ensure_display():
             return (False, "X display not available")
-        cmd = ["nvidia-settings"] + args
+        cmd = [executable] + args
         try:
-            result = run_argv_capture(cmd, env=self._env, timeout=10)
+            result = self._query.capture(cmd, env=self._env, timeout=10)
             output = result.stdout + result.stderr
             return (result.return_code == 0, output)
         except SUBPROCESS_RECOVERABLE_EXCEPTIONS as exception:
@@ -266,8 +295,14 @@ class NvidiaSettingsController:
         fan_index: int | None = None,
     ) -> tuple[bool, str]:
         with self._lock:
-            resolved_fan_index = gpu_index if fan_index is None else fan_index
-            self._run_nvidia_settings(["-a", f"[gpu:{gpu_index}]/GPUFanControlState=1"])
+            if fan_index is None:
+                return (False, "An explicit related fan member is required.")
+            resolved_fan_index = fan_index
+            mode_success, mode_output = self._run_nvidia_settings(
+                ["-a", f"[gpu:{gpu_index}]/GPUFanControlState=1"]
+            )
+            if not mode_success:
+                return (False, mode_output)
             success, output = self._run_nvidia_settings(
                 ["-a", f"[fan:{resolved_fan_index}]/GPUTargetFanSpeed={speed}"],
             )

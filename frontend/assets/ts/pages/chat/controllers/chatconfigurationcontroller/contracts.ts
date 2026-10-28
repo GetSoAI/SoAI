@@ -2,7 +2,18 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ChatPresetSections, WebuiChatPresetRecord } from '@core/api/contracts/webuiChatPresetContractTypes.ts';
-import type { ChatPresetSectionId } from '@features/chat/public.ts';
+import type { ChatPageApi, ChatPresetSectionId } from '@features/chat/public.ts';
+
+interface ChatPresetLibraryHost {
+    root: HTMLElement;
+    api: ChatPageApi['webui']['chat']['presets'];
+    configuration: ChatPresetConfigurationPort;
+    acquireOperation(): (() => void) | null;
+    isOperationPending(): boolean;
+    subscribeOperation(listener: () => void): () => void;
+    runTask<Result>(operationId: string, task: () => Promise<Result> | Result): Promise<Result | undefined>;
+    show(message: string, type: 'error' | 'info' | 'success' | 'warning'): void;
+}
 
 type ChatPresetEditorMode = 'create' | 'rename' | 'replace';
 
@@ -70,4 +81,4 @@ const createChatPresetRecordEditorDraft = (mode: Exclude<ChatPresetEditorMode, '
 };
 
 export { createChatPresetEditorDraft, createChatPresetRecordEditorDraft };
-export type { ChatPresetApplyResult, ChatPresetConfigurationPort, ChatPresetEditorDraft, ChatPresetEditorMode, ChatPresetLibraryViewState, ChatPresetSectionChoice, ChatPresetSnapshotResult };
+export type { ChatPresetLibraryHost, ChatPresetApplyResult, ChatPresetConfigurationPort, ChatPresetEditorDraft, ChatPresetEditorMode, ChatPresetLibraryViewState, ChatPresetSectionChoice, ChatPresetSnapshotResult };

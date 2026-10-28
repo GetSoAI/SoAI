@@ -5,12 +5,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.errors.exceptions import ValidationError
 from core.openai.content_text_rendering import render_openai_content_text
 from core.openai.truncation import (
     SOAI_TRUNCATION_MARKER_TEXT,
     build_prefix_truncation_text,
 )
+from core.skills.prompt_projection import is_skill_context_message
 from core.types.json import is_json_list
+from features.agent.runtime.context_compaction.digest import (
+    prioritize_context_summary_entries,
+    render_context_summary_entries,
+)
 from features.agent.runtime.context_compaction.rewrite import rewrite_tool_message
 from features.agent.runtime.context_compaction.summary import (
     extract_summary_text_from_message,
@@ -51,16 +57,22 @@ def _truncate_context_summary_to_fit_budget(
     if original_summary is None:
         updated_history[message_index] = target_message
         return updated_history
-    summary_lines = original_summary.splitlines()
-    low, high = 0, len(original_summary)
+    if history_within_budget(
+        prompt_token_counter=prompt_token_counter,
+        base_request_payload=base_request_payload,
+        message_history=updated_history,
+        max_prompt_tokens=max_prompt_tokens,
+        token_estimation_profile=token_estimation_profile,
+    ):
+        return updated_history
+    entries = prioritize_context_summary_entries(original_summary)
+    low, high = 0, len(entries)
     best_content = wrap_context_summary_text(SOAI_TRUNCATION_MARKER_TEXT)
     while low <= high:
         mid = (low + high) // 2
-        candidate_summary = _build_context_summary_candidate(
-            original_summary=original_summary,
-            summary_lines=summary_lines,
-            suffix_length=mid,
-        )
+        candidate_summary = render_context_summary_entries(entries[:mid])
+        if mid < len(entries):
+            candidate_summary = f"{SOAI_TRUNCATION_MARKER_TEXT}\n{candidate_summary}".strip()
         candidate_message = dict(target_message)
         candidate_content = wrap_context_summary_text(candidate_summary)
         candidate_message["content"] = candidate_content
@@ -81,37 +93,6 @@ def _truncate_context_summary_to_fit_budget(
     final_message["content"] = best_content
     updated_history[message_index] = final_message
     return updated_history
-
-
-def _build_context_summary_candidate(
-    *,
-    original_summary: str,
-    summary_lines: list[str],
-    suffix_length: int,
-) -> str:
-    if suffix_length >= len(original_summary):
-        return original_summary
-    if not summary_lines:
-        return SOAI_TRUNCATION_MARKER_TEXT
-    remaining = max(0, suffix_length)
-    kept_lines: list[str] = []
-    for line in reversed(summary_lines):
-        line_size = len(line) + (1 if kept_lines else 0)
-        if kept_lines and line_size > remaining:
-            break
-        if not kept_lines and 0 < remaining < len(line):
-            kept_lines.append(line[max(0, len(line) - remaining) :])
-            break
-        kept_lines.append(line)
-        remaining -= line_size
-        if remaining <= 0:
-            break
-    kept_lines.reverse()
-    body = "\n".join(entry for entry in kept_lines if entry)
-    marker = SOAI_TRUNCATION_MARKER_TEXT
-    if not body:
-        return marker
-    return f"{marker}\n{body}"
 
 
 def _normalize_content_part_type(value: JSONValue) -> str | None:
@@ -179,6 +160,8 @@ def truncate_message_content_to_fit_budget(
         return message_history
     updated_history: list[JSONDict] = [dict(message) for message in message_history]
     target_message = dict(updated_history[message_index])
+    if is_skill_context_message(target_message):
+        raise ValidationError("Skill instructions cannot be truncated to fit the context budget.")
     if target_message.get("role") == "tool":
         updated_history[message_index] = rewrite_tool_message(target_message)
         return updated_history

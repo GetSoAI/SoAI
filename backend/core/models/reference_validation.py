@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
+from core.errors.model_reference_error import ModelReferenceNotFoundError
 from core.models.model_info_fields import is_model_info_active_and_enabled
 from core.models.reference_resolution import (
     load_model_info_records,
@@ -85,7 +86,7 @@ async def validate_active_model_reference(
         virtual_model_get=virtual_model_get,
     )
     if reference is None:
-        raise ValidationError(unknown_message, details=details)
+        raise ModelReferenceNotFoundError(unknown_message, details=details)
     if reference.is_virtual:
         if not reference.is_enabled:
             raise ValidationError(disabled_message, details=details)

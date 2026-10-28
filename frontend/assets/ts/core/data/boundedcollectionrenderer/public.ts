@@ -3,4 +3,4 @@
 
 export { BoundedCollectionRenderer } from '@core/data/boundedcollectionrenderer/service.ts';
 export { createEdgeLoader } from '@core/data/boundedcollectionrenderer/transaction.ts';
-export type { BoundedCollectionCommitContext, BoundedCollectionRendererOptions, BoundedCollectionUpdate, CollectionViewportAnchor } from '@core/data/boundedcollectionrenderer/types.ts';
+export type { BoundedCollectionCommitContext, BoundedCollectionRendererOptions, BoundedCollectionUpdate, CollectionRevealOptions, CollectionViewportAnchor } from '@core/data/boundedcollectionrenderer/types.ts';

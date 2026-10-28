@@ -28,8 +28,8 @@ const renderTabsMarkup = (tabs: TabConfig[], className: string, activeTab: strin
     <button class="${className}-tab" data-tab="${tab.id}" id="${tab.id}-tab" type="button" role="tab" aria-selected="${tab.id === activeTab ? 'true' : 'false'}" aria-label="${label}" data-tooltip="${label}">
         ${iconMarkup}
         <span class="${className}-tab-label">${tab.label}</span>
-        ${tab.badge ? `<span class="tab-notify-badge" id="${tab.id}-badge">${tab.badge}</span>` : ''}
-        ${tab.notifyBadge ? `<span class="tab-notify-badge" id="${tab.id}-notify" aria-label="${notify} notifications">${tab.notifyBadge}</span>` : ''}
+        ${tab.badge ? `<span data-presence class="tab-notify-badge" id="${tab.id}-badge">${tab.badge}</span>` : ''}
+        ${tab.notifyBadge ? `<span data-presence class="tab-notify-badge" id="${tab.id}-notify" aria-label="${notify} notifications">${tab.notifyBadge}</span>` : ''}
     </button>
     `;
             })

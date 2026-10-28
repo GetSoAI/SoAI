@@ -11,6 +11,7 @@ from database.core.query_execution import sync_fetch_one_as_dict
 from database.repositories.users.conversation_attachment_rows import (
     format_knowledge_attachment_row,
 )
+from database.repositories.users.conversation_knowledge_extraction import KNOWLEDGE_SUMMARY_COLUMNS
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -26,10 +27,10 @@ def sync_delete_knowledge_attachment_by_id(
 ) -> JSONDict | None:
     row = sync_fetch_one_as_dict(
         conn.execute(
-            """
+            f"""
             DELETE FROM webui_conversation_knowledge_attachments
             WHERE conv_id = ? AND user_id = ? AND id = ?
-            RETURNING *
+            RETURNING {KNOWLEDGE_SUMMARY_COLUMNS}
             """,
             (conv_id, user_id, knowledge_attachment_id),
         ),

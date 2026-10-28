@@ -24,6 +24,7 @@ type MessageWindowBackgroundDirection = 'before' | 'after';
 
 type LoadConversationMessagesOptions = {
     signal?: AbortSignal;
+    isCurrentOperation?: () => boolean;
     expectedMessageCount?: number;
     allowAuthoritativeCountDecrease?: boolean;
     force?: boolean;
@@ -79,6 +80,7 @@ type ConversationHistoryState = {
 type Conversation = ConversationContract & {
     id: string;
     title: string;
+    titleAutoUpdateAllowed?: boolean;
     createdAt: number;
     updatedAt: number;
     modelSettings: ConversationModelSettings;
@@ -101,6 +103,7 @@ type Conversation = ConversationContract & {
 type ArchivedConversationSummary = {
     id: string;
     title: string;
+    titleAutoUpdateAllowed?: boolean;
     updatedAt: number;
     color: string | null;
     isFavorite: boolean;

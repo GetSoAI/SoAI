@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.openai.chat_role_sets import OPENAI_PINNED_ROLES
+from core.skills.prompt_projection import is_skill_context_message
 from features.agent.runtime.tool_image_relay_messages import (
     is_tool_image_relay_message,
 )
@@ -17,6 +18,7 @@ __all__ = (
     "combine_compaction_buckets",
     "count_tool_blocks",
     "is_assistant_tool_call_message",
+    "is_user_history_message",
     "resolve_preserved_user_index",
     "split_after_anchor_for_compaction",
     "split_compaction_buckets",
@@ -35,11 +37,18 @@ def is_assistant_tool_call_message(message: JSONDict) -> bool:
     return any(isinstance(item, dict) for item in tool_calls)
 
 
+def is_user_history_message(message: JSONDict) -> bool:
+    return (
+        message.get("role") == "user"
+        and not is_tool_image_relay_message(message)
+        and not is_skill_context_message(message)
+    )
+
+
 def resolve_preserved_user_index(message_history: list[JSONDict]) -> int | None:
     preserved_index: int | None = None
     for index, message in enumerate(message_history):
-        role = message.get("role")
-        if isinstance(role, str) and role == "user" and not is_tool_image_relay_message(message):
+        if is_user_history_message(message):
             preserved_index = index
     return preserved_index
 
@@ -66,7 +75,7 @@ def split_compaction_buckets(
     preserved_user_index = resolve_preserved_user_index(message_history)
     for index, message in enumerate(message_history):
         role = message.get("role")
-        if isinstance(role, str) and role in _PINNED_ROLES:
+        if (isinstance(role, str) and role in _PINNED_ROLES) or is_skill_context_message(message):
             pinned_prefix.append(message)
             continue
         if preserved_user_index is not None and index == preserved_user_index:
@@ -87,9 +96,10 @@ def combine_compaction_buckets(
     *,
     summary_message: JSONDict | None = None,
 ) -> list[JSONDict]:
-    combined = list(pinned_prefix)
+    combined = [message for message in pinned_prefix if not is_skill_context_message(message)]
     if summary_message is not None:
         combined.append(summary_message)
+    combined.extend(message for message in pinned_prefix if is_skill_context_message(message))
     combined.extend(before_anchor)
     if anchor_message is not None:
         combined.append(anchor_message)

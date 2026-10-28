@@ -4,11 +4,9 @@
 import type { JsonRecord, JsonValue } from '@core/types/jsonValues.ts';
 import { isBoolean, isNumber, isPlainObject, isPositiveInteger, isString } from '@core/typeGuards.ts';
 import { WEBSOCKET_EVENT_TYPES } from '@core/websocketEvents.ts';
-import type { ChatStreamTranslationKey } from '@core/i18n/translationkeys/chat/stream.generated.ts';
+import type { ChatStreamPreviewTranslationKey } from '@core/i18n/translationkeys/chat/stream__preview.generated.ts';
 import { isEpochMsValue } from '@core/time/epochMs.ts';
 import { toTrimmedString } from '@core/normalize.ts';
-
-type ChatStreamPreviewTranslationKey = Extract<ChatStreamTranslationKey, `chat.stream.preview.${string}`>;
 
 type ChatStreamStatusPreviewEventEnvelope = {
     type: string;

@@ -1,10 +1,11 @@
 /* SoAI - Chat feature stream message spinner status runtime transition [frontend/assets/ts/features/chat/stream/streamMessageSpinnerStatusRuntimeTransition.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { stopPresenceAnimation } from '@core/animations/presence/public.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { startFadingTextSwap } from '@features/chat/stream/fadingTextScheduler.ts';
 import { type SpinnerStatusState, clearStateTimers, getRuntimeStateByMessageId, removeRuntimeStateByMessageId } from '@features/chat/stream/streamMessageSpinnerStatusState.ts';
-import { hasActiveMessageActionButton } from '@features/chat/stream/streamMessageSpinnerStatusDomPolicy.ts';
+import { hasActiveMessageActionButton, resolveActionButtonsLeftElement } from '@features/chat/stream/streamMessageSpinnerStatusDomPolicy.ts';
 
 export const FADING_CLASS = 'message-streaming-status-label-text-fading';
 export const VISIBILITY_FADING_CLASS = 'message-streaming-status-visibility-fading';
@@ -116,12 +117,17 @@ const applyStatusText = (state: SpinnerStatusState, text: string): void => {
 
 const finalizeState = (documentRef: Document, state: SpinnerStatusState): void => {
     clearStateTimers(state);
+    state.pendingSettledActions = null;
+    if (getRuntimeStateByMessageId(documentRef, state.messageId) === state) {
+        removeRuntimeStateByMessageId(documentRef, state.messageId);
+    }
+    if (state.terminalTransitionActive && state.actionsElement !== null) {
+        stopPresenceAnimation(resolveActionButtonsLeftElement(state.actionsElement));
+    }
+    state.spinnerElement?.classList.remove(FADING_CLASS);
     if (state.textElement) {
         finishStatusTextTransitionElement(state.textElement);
         state.textElement.classList.remove(VISIBILITY_FADING_CLASS);
-    }
-    if (getRuntimeStateByMessageId(documentRef, state.messageId) === state) {
-        removeRuntimeStateByMessageId(documentRef, state.messageId);
     }
 };
 

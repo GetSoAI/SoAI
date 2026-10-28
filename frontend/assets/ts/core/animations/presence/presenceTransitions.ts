@@ -1,7 +1,8 @@
 /* SoAI - Presence enter/exit orchestration with exit holds [frontend/assets/ts/core/animations/presence/presenceTransitions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { animatePresenceExit, preparePresenceEnter, stopPresenceAnimation } from '@core/animations/presence/presenceMotion.ts';
+import { CSS_CLASSES } from '@core/cssConstants.ts';
+import { animatePresenceExit, preparePresenceEnter, stopPresenceAnimation, validatePresenceExitOptions, type PresenceExitOptions } from '@core/animations/presence/presenceMotion.ts';
 
 const PRESENCE_STATE_ATTRIBUTE = 'data-presence-state';
 const PRESENCE_EXITING_STATE = 'exiting';
@@ -18,6 +19,9 @@ interface PresenceHold {
 
 const presenceHolds = new WeakMap<Element, PresenceHold>();
 const presenceEnterRequests = new WeakMap<Element, boolean>();
+const completedHiddenExits = new WeakSet<Element>();
+
+const consumeCompletedHiddenExit = (element: Element): boolean => completedHiddenExits.delete(element);
 const requestPresenceEnter = (element: Element, animate = true): void => {
     presenceEnterRequests.set(element, animate);
 };
@@ -71,10 +75,11 @@ const settlePresenceExit = (element: HTMLElement, hold: PresenceHold): void => {
     }
     releasePresenceHold(element, hold);
     hold.completions.forEach((complete) => complete(element));
+    if (element.hidden || element.classList.contains(CSS_CLASSES.HIDDEN)) completedHiddenExits.add(element);
 };
 
-const runPresenceExitAnimation = (element: HTMLElement, hold: PresenceHold): void => {
-    const animation = animatePresenceExit(element);
+const runPresenceExitAnimation = (element: HTMLElement, hold: PresenceHold, options: PresenceExitOptions): void => {
+    const animation = animatePresenceExit(element, false, options);
     if (!animation) {
         settlePresenceExit(element, hold);
         return;
@@ -93,7 +98,8 @@ const runPresenceExitAnimation = (element: HTMLElement, hold: PresenceHold): voi
     );
 };
 
-const exitWithPresence = (element: HTMLElement, heldDisplay: string | null, complete: PresenceCompletion | null): void => {
+const exitWithPresence = (element: HTMLElement, heldDisplay: string | null, complete: PresenceCompletion | null, options: PresenceExitOptions = {}): void => {
+    validatePresenceExitOptions(options);
     const existing = presenceHolds.get(element);
     if (existing) {
         if (complete) {
@@ -105,7 +111,7 @@ const exitWithPresence = (element: HTMLElement, heldDisplay: string | null, comp
     if (complete) {
         hold.completions.add(complete);
     }
-    runPresenceExitAnimation(element, hold);
+    runPresenceExitAnimation(element, hold, options);
 };
 const revivePresence = (element: HTMLElement): void => {
     const hold = presenceHolds.get(element);
@@ -116,6 +122,7 @@ const revivePresence = (element: HTMLElement): void => {
 };
 
 const prepareEnterWithPresence = (element: HTMLElement, animate: boolean, visualOnly = false): (() => void) => {
+    completedHiddenExits.delete(element);
     revivePresence(element);
     if (animate && !findExitingAncestor(element)) {
         const start = preparePresenceEnter(element, visualOnly);
@@ -126,4 +133,4 @@ const prepareEnterWithPresence = (element: HTMLElement, animate: boolean, visual
     return () => stopPresenceAnimation(element);
 };
 
-export { PRESENCE_EXITING_SELECTOR, consumePresenceEnterRequest, exitWithPresence, isPresenceExiting, prepareEnterWithPresence, requestPresenceEnter };
+export { PRESENCE_EXITING_SELECTOR, consumeCompletedHiddenExit, consumePresenceEnterRequest, exitWithPresence, isPresenceExiting, prepareEnterWithPresence, requestPresenceEnter };

@@ -82,8 +82,15 @@ const decodeAssistantTimelinePayload = (eventType: string, value: JsonValue | nu
         const message = value['message'];
         const code = value['code'];
         const referenceId = value['reference_id'];
+        const explanation = value['explanation'];
+        const explanationText = isString(explanation) && explanation.trim() ? explanation.trim() : null;
         if (!isString(message) || !message.trim() || !isString(code) || !code.trim() || !isString(referenceId) || !referenceId.trim()) return null;
-        return { ...identity, message: message.trim(), code: code.trim(), referenceId: referenceId.trim(), ...(value['preview_contract'] !== undefined ? { previewContract: value['preview_contract'] } : {}) };
+        if (explanation !== undefined && explanationText === null) return null;
+        const parameterName = value['param'];
+        const details = value['details'];
+        if (parameterName !== undefined && (!isString(parameterName) || !parameterName.trim())) return null;
+        if (details !== undefined && !isJsonObject(details)) return null;
+        return { ...identity, message: message.trim(), code: code.trim(), referenceId: referenceId.trim(), ...(isString(parameterName) ? { 'param': parameterName.trim() } : {}), ...(details !== undefined ? { details } : {}), ...(explanationText !== null ? { explanation: explanationText } : {}), ...(value['preview_contract'] !== undefined ? { previewContract: value['preview_contract'] } : {}) };
     }
     return null;
 };

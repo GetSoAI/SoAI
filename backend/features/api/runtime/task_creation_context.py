@@ -46,6 +46,7 @@ async def create_working_task_from_request_context(
     metadata: dict[str, JSONValue],
     progress_total: int = 100,
     task_id: str | None = None,
+    owner_id: str | None = None,
 ) -> CreatedWorkingTask:
     if is_orchestrated_inference_task_type(task_type):
         raise ValidationError(
@@ -58,7 +59,7 @@ async def create_working_task_from_request_context(
         registry,
         task_type=task_type,
         user_id=ownership.user_id,
-        owner_id=ownership.owner_id,
+        owner_id=ownership.owner_id if owner_id is None else owner_id,
         owner_type=ownership.owner_type,
         task_id=task_id,
         cancellation_id=ownership.cancellation_id,

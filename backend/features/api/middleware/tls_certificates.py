@@ -22,6 +22,7 @@ from core.filesystem.atomic_binary_writes import atomic_write_binary_content
 from core.filesystem.open_files import open_binary
 from core.logging.trace import get_logger
 from core.platform.os import is_windows
+from core.security.tls_policy import resolve_auto_tls_certificate_paths
 from core.timing.formatting import utc_now
 
 __all__ = (
@@ -42,9 +43,6 @@ def _is_pem_private_key_encrypted(key_data: bytes) -> bool:
     )
 
 
-_DEFAULT_CERT_FILENAME = "soai-selfsigned.crt"
-_DEFAULT_KEY_FILENAME = "soai-selfsigned.key"
-_DEFAULT_CERT_DIR = "~/.soai/certs"
 _CERT_VALIDITY_DAYS = 365
 _CERT_RENEWAL_THRESHOLD_DAYS = 14
 
@@ -66,13 +64,10 @@ def _ensure_private_dir(path: str) -> None:
         )
 
 
-def _default_cert_paths() -> tuple[str, str]:
-    cert_dir = os.path.abspath(os.path.expanduser(os.fspath(_DEFAULT_CERT_DIR)))
-    _ensure_private_dir(cert_dir)
-    return (
-        os.path.join(cert_dir, _DEFAULT_CERT_FILENAME),
-        os.path.join(cert_dir, _DEFAULT_KEY_FILENAME),
-    )
+def _default_cert_paths(base_dir: str) -> tuple[str, str]:
+    cert_path, key_path = resolve_auto_tls_certificate_paths(base_dir)
+    _ensure_private_dir(os.path.dirname(cert_path))
+    return cert_path, key_path
 
 
 def _load_pem_certificate(path: str) -> x509.Certificate:
@@ -165,8 +160,8 @@ def _generate_self_signed_certificate(
     atomic_write_binary_content(key_path, key_bytes, file_mode=key_mode)
 
 
-def ensure_auto_certificate(password: str | None) -> tuple[str, str]:
-    cert_path, key_path = _default_cert_paths()
+def ensure_auto_certificate(password: str | None, base_dir: str) -> tuple[str, str]:
+    cert_path, key_path = _default_cert_paths(base_dir)
     if os.path.exists(cert_path) and os.path.exists(key_path):
         certificate = _load_pem_certificate(cert_path)
         private_key = _load_private_key(key_path, password)

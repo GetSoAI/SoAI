@@ -154,7 +154,7 @@ const showPersistentNotification = (options: NotificationOptions | string, type?
         notification.dataset['notificationDedupeKey'] = dedupeKey;
     }
 
-    const iconMarkup = getIconFromStringSync(config.icon || resolvedType, { size: 18 });
+    const iconMarkup = getIconFromStringSync(config.icon || NOTIFICATION_ICON_MAP[resolvedType], { size: 18 });
     const buttonMarkup = config.buttons.map((button, index) => {
         const icon = button.icon ? getIconFromStringSync(button.icon, { size: 14 }) : EMPTY_UI_HTML;
         const hasIcon = Boolean(icon.html.trim());
@@ -277,7 +277,7 @@ const copyNotificationMessage = async (message: string): Promise<void> => {
         },
         {
             text: message,
-            successMessage: i18n.t('common.clipboard.copied'),
+            successMessage: i18n.t('common.clipboard.notificationCopied'),
             errorMessage: i18n.t('common.clipboard.copyFailed'),
             unavailableMessage: i18n.t('common.clipboard.copyUnavailable')
         }

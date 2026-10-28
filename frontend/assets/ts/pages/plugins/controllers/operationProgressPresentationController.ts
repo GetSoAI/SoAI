@@ -6,7 +6,7 @@ import type { StatusManager } from '@core/state/statusmanager/service.ts';
 import { PLUGIN_STATUS_BACKEND_INSTALLING, PLUGIN_STATUS_BACKEND_UPDATING } from '@core/state/pluginStatus.ts';
 import { matches } from '@core/dom/dom.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
-import { clearProgressUsageClass, syncDeterminateProgress } from '@core/ui/progressWidths.ts';
+import { syncDeterminateProgress } from '@core/ui/progressWidths.ts';
 import { formatPercent } from '@core/primitives/percent.ts';
 import { resolveTaskOperationTypeLabelText } from '@core/tasks/operationText.ts';
 
@@ -108,8 +108,8 @@ class PluginOperationProgressPresentationController {
             fillElement: element,
             progress,
             progressbarElement: element,
-            syncUsageClass: true,
-            setStyle: (target, _property, value) => this.#dependencies.pageDom.updateStyle(target, CARD_PROGRESS_STYLE_PROPERTY, value),
+            colorize: true,
+            setStyle: (target, property, value) => this.#dependencies.pageDom.updateStyle(target, property === 'width' ? CARD_PROGRESS_STYLE_PROPERTY : property, value),
             setAttribute: (target, name, value) => this.#dependencies.pageDom.updateAttribute(target, name, value)
         });
     }
@@ -117,7 +117,7 @@ class PluginOperationProgressPresentationController {
     #clearCardProgress(element: HTMLElement): void {
         if (!element.classList.contains(CARD_PROGRESS_CLASS)) return;
         this.#dependencies.pageDom.removeClass(element, CARD_PROGRESS_CLASS);
-        clearProgressUsageClass(element);
+        this.#dependencies.pageDom.updateStyle(element, '--soai-progress-color', null);
         this.#dependencies.pageDom.updateStyle(element, CARD_PROGRESS_STYLE_PROPERTY, null);
         for (const name of ['role', 'aria-valuemin', 'aria-valuemax', 'aria-valuenow']) this.#dependencies.pageDom.updateAttribute(element, name, null);
     }

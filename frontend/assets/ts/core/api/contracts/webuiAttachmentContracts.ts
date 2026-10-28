@@ -1,6 +1,7 @@
 /* SoAI - Frontend WebUI attachment response contracts [frontend/assets/ts/core/api/contracts/webuiAttachmentContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { readTrimmedStringArrayOrEmptyValue } from '@core/types/payloadArrayReaders.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { decodeWebuiMessageContentPart, type WebuiMessageContentPart } from '@core/api/contracts/webuiMessageContentPartContract.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
@@ -20,6 +21,7 @@ interface PhysicalAttachmentResponse {
     providerTextTruncated: boolean | null;
     parseState: string;
     parseError: string | null;
+    missingCapabilities?: string[];
     createdAtMs: number;
     updatedAtMs: number;
     attachmentRevision: number;
@@ -28,6 +30,7 @@ interface PhysicalAttachmentResponse {
     downloadUrl: string;
 }
 interface KnowledgeAttachmentSummary {
+    missingCapabilities?: string[];
     knowledgeAttachmentId: string;
     summaryId: string;
     convId: string;
@@ -57,6 +60,7 @@ interface KnowledgeAttachmentSummary {
     expiresAtMs: number;
 }
 interface KnowledgeAttachmentItem {
+    missingCapabilities?: string[];
     id: number;
     knowledgeAttachmentId: string;
     documentId: string | null;
@@ -101,6 +105,7 @@ interface KnowledgeAttachmentItemsResponse {
     attachmentRevision: number;
 }
 interface KnowledgeAttachmentPreviewDocument {
+    missingCapabilities?: string[];
     sourceConvId: string;
     sourceUserId: number;
     sourceKnowledgeAttachmentId: string;
@@ -153,6 +158,7 @@ const decodePhysicalAttachment = (value: ApiResponsePayload): PhysicalAttachment
         previewType: requiredString(record, 'preview_type', 'Physical attachment response'),
         providerMode: nullableString(record, 'provider_mode', 'Physical attachment response'),
         providerTextTruncated: record['provider_text_truncated'] === null || record['provider_text_truncated'] === undefined ? null : readRequiredBooleanValue(record['provider_text_truncated'], 'Physical attachment response.provider_text_truncated'),
+        missingCapabilities: readTrimmedStringArrayOrEmptyValue(record['missing_capabilities'], 'Physical attachment.missing_capabilities'),
         parseState: requiredString(record, 'parse_state', 'Physical attachment response'),
         parseError: nullableString(record, 'parse_error', 'Physical attachment response'),
         createdAtMs: readRequiredEpochMsValue(record['created_at_ms'], 'Physical attachment response.created_at_ms'),
@@ -166,6 +172,7 @@ const decodePhysicalAttachment = (value: ApiResponsePayload): PhysicalAttachment
 const decodeKnowledgeSummary = (value: JsonValue, label = 'Knowledge attachment summary'): KnowledgeAttachmentSummary => {
     const record = requireRecord(value, label);
     return {
+        missingCapabilities: readTrimmedStringArrayOrEmptyValue(record['missing_capabilities'], `${label}.missing_capabilities`),
         knowledgeAttachmentId: requiredString(record, 'knowledge_attachment_id', label),
         summaryId: requiredString(record, 'summary_id', label),
         convId: requiredString(record, 'conv_id', label),
@@ -209,7 +216,7 @@ const decodeClaim = (value: ApiResponsePayload): KnowledgeAttachmentClaimRespons
 };
 const decodeItem = (value: JsonValue, label: string): KnowledgeAttachmentItem => {
     const record = requireRecord(value, label);
-    return { id: requiredCount(record, 'id', label), knowledgeAttachmentId: requiredString(record, 'knowledge_attachment_id', label), documentId: nullableString(record, 'document_id', label), eventId: nullableCount(record, 'event_id', label), itemIndex: requiredCount(record, 'item_index', label), filename: requiredString(record, 'filename', label), fileType: nullableString(record, 'file_type', label), fileSizeBytes: nullableCount(record, 'file_size_bytes', label), ragStatus: nullableString(record, 'rag_status', label), operationType: requiredString(record, 'operation_type', label), errorMessage: nullableString(record, 'error_message', label), createdAtMs: readRequiredEpochMsValue(record['created_at_ms'], `${label}.created_at_ms`) };
+    return { missingCapabilities: readTrimmedStringArrayOrEmptyValue(record['missing_capabilities'], `${label}.missing_capabilities`), id: requiredCount(record, 'id', label), knowledgeAttachmentId: requiredString(record, 'knowledge_attachment_id', label), documentId: nullableString(record, 'document_id', label), eventId: nullableCount(record, 'event_id', label), itemIndex: requiredCount(record, 'item_index', label), filename: requiredString(record, 'filename', label), fileType: nullableString(record, 'file_type', label), fileSizeBytes: nullableCount(record, 'file_size_bytes', label), ragStatus: nullableString(record, 'rag_status', label), operationType: requiredString(record, 'operation_type', label), errorMessage: nullableString(record, 'error_message', label), createdAtMs: readRequiredEpochMsValue(record['created_at_ms'], `${label}.created_at_ms`) };
 };
 const decodePreview = (value: ApiResponsePayload): KnowledgeAttachmentPreviewResponse => {
     const record = requireRecord(value, 'Knowledge attachment preview response');
@@ -218,6 +225,7 @@ const decodePreview = (value: ApiResponsePayload): KnowledgeAttachmentPreviewRes
         state: 'available',
         previewType: requiredString(record, 'preview_type', 'Knowledge attachment preview response'),
         document: {
+            missingCapabilities: readTrimmedStringArrayOrEmptyValue(document['missing_capabilities'], 'Knowledge preview.missing_capabilities'),
             sourceConvId: requiredString(document, 'source_conv_id', 'Knowledge attachment preview document'),
             sourceUserId: requiredCount(document, 'source_user_id', 'Knowledge attachment preview document'),
             sourceKnowledgeAttachmentId: requiredString(document, 'source_knowledge_attachment_id', 'Knowledge attachment preview document'),

@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.openai.tool_call_arguments import normalize_openai_tool_call_arguments
-from core.tool_calls.status_values import resolve_tool_call_status_from_result_payload
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
@@ -17,13 +16,8 @@ __all__ = (
     "AgentToolCallPostprocessContext",
     "AgentToolCallPostprocessResult",
     "coerce_in_progress_tool_result_to_error",
-    "resolve_tool_completion_status",
     "serialize_tool_arguments_for_event",
 )
-
-
-def resolve_tool_completion_status(result_payload: JSONValue) -> str:
-    return resolve_tool_call_status_from_result_payload(result_payload)
 
 
 def serialize_tool_arguments_for_event(tool_call: JSONDict) -> str | None:

@@ -54,12 +54,14 @@ const disposeChatPageLifecycle = (page: ChatPageDisposeSource): void => {
     page.characterMapSession.dispose();
     page.taskScope.dispose();
     page.configurationSession.dispose();
-    page.configurationRuntime.requireConfiguration().dispose();
+    page.configurationRuntime.optionalConfiguration()?.dispose();
     disposePrimaryControllerGroup(page);
     page.pageDom.optional(CHAT_SELECTORS.SEARCH_CONTAINER)?.remove();
     page.viewState.searchUiHost = null;
-    page.conversationRuntime.requireStorage().saveState(true);
-    page.conversationRuntime.requireStorage().dispose();
+    if (page.conversationRuntime.hasStorage()) {
+        page.conversationRuntime.requireStorage().saveState(true);
+        page.conversationRuntime.requireStorage().dispose();
+    }
     page.lifecycleResources.autoSaveCleanup?.();
     page.lifecycleResources.autoSaveCleanup = null;
     disposeUiControllerGroup(page);

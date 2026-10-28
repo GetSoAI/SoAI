@@ -7,13 +7,14 @@ import sys
 from collections.abc import AsyncIterator, Callable, Mapping
 from contextlib import AbstractAsyncContextManager, AsyncExitStack
 from types import TracebackType
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 import httpx2
 
 from core.concurrency.cancellation_cleanup import cancellation_cleanup
 from core.errors.exceptions import ValidationError
 from core.hardware.reservation_exceptions import preserve_primary_exception_cleanup_failure
+from core.network.http_download_progress import emit_download_activity
 from core.network.protocols import DownloadInterruptionProtocol
 from core.network.resumable_downloads import DownloadReplayRequired, DownloadStreamState
 from core.network.transfer_retry import (
@@ -21,6 +22,9 @@ from core.network.transfer_retry import (
     HTTP_TRANSFER_EXCEPTIONS,
     wait_for_transfer_retry,
 )
+
+if TYPE_CHECKING:
+    from core.network.http_download_progress import DownloadActivityCallback
 
 __all__ = ("ResumableHTTPStream",)
 
@@ -32,10 +36,12 @@ class ResumableHTTPStream:
         *,
         state: DownloadStreamState,
         interruption: DownloadInterruptionProtocol | None = None,
+        on_activity: DownloadActivityCallback | None = None,
     ) -> None:
         self.cursor = state
         self._opener = opener
         self._interruption = interruption
+        self._on_activity = on_activity
         self._stack = AsyncExitStack()
         self._reader: AsyncIterator[bytes] | None = None
         self._pending: bytes | None = None
@@ -91,8 +97,20 @@ class ResumableHTTPStream:
                 response = await self._stack.enter_async_context(
                     self._opener(self.cursor.request_headers(), self.cursor.timeout)
                 )
+                if self.cursor.accept_complete_range(response):
+                    return
                 response.raise_for_status()
                 self.cursor.accept(response)
+                await emit_download_activity(
+                    self._on_activity,
+                    "replaying" if self.cursor.replay_pending else "downloading",
+                    0 if self.cursor.replay_pending else self.cursor.position,
+                    (
+                        self.cursor.position
+                        if self.cursor.replay_pending
+                        else self.cursor.total_length
+                    ),
+                )
                 self._reader = response.aiter_raw()
                 self._check_interruption()
                 return
@@ -119,6 +137,9 @@ class ResumableHTTPStream:
                 return chunk
 
     async def _read_chunk(self) -> bytes | None:
+        if self.cursor.range_complete:
+            self.cursor.finish()
+            return None
         if self._reader is None:
             raise ValidationError("The artifact response is not open.")
         try:
@@ -126,7 +147,18 @@ class ResumableHTTPStream:
         except StopAsyncIteration:
             self.cursor.finish()
             return None
-        return self.cursor.consume(chunk)
+        replaying = self.cursor.replay_pending
+        replay_length = self.cursor.position
+        accepted = self.cursor.consume(chunk)
+        if replaying:
+            await emit_download_activity(
+                self._on_activity, "replaying", self.cursor.replayed_bytes, replay_length
+            )
+        if accepted:
+            await emit_download_activity(
+                self._on_activity, "downloading", self.cursor.position, self.cursor.total_length
+            )
+        return accepted
 
     async def _restart(self, exception: DownloadReplayRequired) -> None:
         await self._close_response(exception)

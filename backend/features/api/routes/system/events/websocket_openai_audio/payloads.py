@@ -12,6 +12,7 @@ from core.system_api.websocket_run_events import (
 from features.api.routes.system.events.internal_protocols import WebSocketEventTypes
 
 if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
@@ -64,10 +65,12 @@ def build_openai_audio_transcription_cancelled(
     *,
     run_id: str,
     reason: str,
+    task_id: str | None = None,
 ) -> JSONDict:
     return build_websocket_run_event(
         event_type=WebSocketEventTypes.OPENAI_AUDIO_TRANSCRIPTION_CANCELLED,
         run_id=run_id,
+        task_id=task_id,
         fields={"reason": reason},
     )
 
@@ -78,6 +81,7 @@ def build_openai_audio_transcription_error(
     message: str,
     code: str,
     task_id: str | None = None,
+    public_error: ErrorPublicPayload | None = None,
 ) -> JSONDict:
     return build_websocket_run_error_event(
         event_type=WebSocketEventTypes.OPENAI_AUDIO_TRANSCRIPTION_ERROR,
@@ -85,6 +89,7 @@ def build_openai_audio_transcription_error(
         message=message,
         code=code,
         task_id=task_id,
+        public_error=public_error,
     )
 
 
@@ -244,6 +249,7 @@ def build_openai_audio_speech_session_error(
     message: str,
     code: str,
     task_id: str | None = None,
+    param: str | None = None,
 ) -> JSONDict:
     return build_websocket_run_error_event(
         event_type=WebSocketEventTypes.OPENAI_AUDIO_SPEECH_SESSION_ERROR,
@@ -251,4 +257,5 @@ def build_openai_audio_speech_session_error(
         message=message,
         code=code,
         task_id=task_id,
+        param=param,
     )

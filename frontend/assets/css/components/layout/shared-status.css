@@ -21,10 +21,10 @@
     .progress-bar {
         --soai-progress-color: var(--status-orange);
         width: 100%;
-        height: 6px;
-        background: var(--glass-surface-medium);
-        border: var(--border-width-1) solid var(--glass-border-strong);
-        border-radius: var(--border-radius);
+        height: var(--control-progress-height);
+        background: var(--control-progress-track-background);
+        border: var(--border-width-1) solid var(--control-progress-track-border);
+        border-radius: var(--control-progress-radius);
         overflow: hidden;
     }
     .progress-fill {
@@ -36,52 +36,29 @@
         background-color: var(--soai-progress-color);
     }
 
-    .progress-red {
-        --soai-progress-color: var(--status-red);
-    }
-
     .progress-orange {
         --soai-progress-color: var(--status-orange);
     }
 
-    .progress-yellow {
-        --soai-progress-color: var(--status-yellow);
+    .progress-bar--continuous {
+        position: relative;
+        height: var(--control-progress-height);
     }
 
-    .progress-green {
-        --soai-progress-color: var(--status-green);
+    .progress-bar--continuous .progress-fill {
+        border-radius: var(--control-progress-radius);
+        transition:
+            width var(--transition-slow),
+            background-color var(--transition-slow);
     }
 
-    .progress-bar--inverted .progress-red {
-        --soai-progress-color: var(--status-green);
-    }
-
-    .progress-value--inverted.progress-red {
-        --soai-progress-color: var(--status-green);
-    }
-
-    .progress-bar--inverted .progress-orange {
-        --soai-progress-color: var(--status-yellow);
-    }
-
-    .progress-value--inverted.progress-orange {
-        --soai-progress-color: var(--status-yellow);
-    }
-
-    .progress-bar--inverted .progress-yellow {
-        --soai-progress-color: var(--status-orange);
-    }
-
-    .progress-value--inverted.progress-yellow {
-        --soai-progress-color: var(--status-orange);
-    }
-
-    .progress-bar--inverted .progress-green {
-        --soai-progress-color: var(--status-red);
-    }
-
-    .progress-value--inverted.progress-green {
-        --soai-progress-color: var(--status-red);
+    .progress-bar--continuous .progress-fill:not(.hardware-network-bar-fill),
+    .ui-collection-card__status-line:not(.ui-collection-card__status-line--progress),
+    .ui-collection-card__status-line--progress::after,
+    .hardware-widget__bottom-bar,
+    .section-status-line {
+        background-image: var(--control-progress-fill-surface);
+        box-shadow: var(--control-progress-fill-shadow);
     }
 
     .is-loading {

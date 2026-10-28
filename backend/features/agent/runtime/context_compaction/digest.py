@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 
 __all__ = (
     "digest_compaction_unit",
+    "prioritize_context_summary_entries",
+    "render_context_summary_entries",
     "merge_context_summary",
 )
 
@@ -199,3 +201,41 @@ def merge_context_summary(existing_summary: str | None, summary_lines: list[str]
         rendered.append(f"{section}:")
         rendered.extend(f"- {line}" for line in lines)
     return "\n".join(rendered).strip() or None
+
+
+def prioritize_context_summary_entries(summary: str) -> list[tuple[str, str]]:
+    sections: dict[str, list[str]] = {name: [] for name in _SECTION_PRIORITY}
+    current_section = "STATE"
+    for raw_line in summary.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        header = _strip_bullet_prefix(line).rstrip(":").strip().upper()
+        if header == "KEY DECISIONS":
+            header = "DECISIONS"
+        if header in sections:
+            current_section = header
+        elif sections[current_section] and (
+            raw_line[:1].isspace()
+            or (
+                sections[current_section][-1].startswith(("- ", "* ", "• "))
+                and not line.startswith(("- ", "* ", "• "))
+            )
+        ):
+            sections[current_section][-1] = f"{sections[current_section][-1]}\n{raw_line}"
+        else:
+            sections[current_section].append(line)
+    return [
+        (section, entry) for section in _SECTION_PRIORITY for entry in reversed(sections[section])
+    ]
+
+
+def render_context_summary_entries(entries: list[tuple[str, str]]) -> str:
+    sections: dict[str, list[str]] = {name: [] for name in _SECTION_ORDER}
+    for section, entry in entries:
+        sections[section].append(entry)
+    return "\n".join(
+        "\n".join([f"{section}:", *reversed(sections[section])])
+        for section in _SECTION_ORDER
+        if sections[section]
+    )

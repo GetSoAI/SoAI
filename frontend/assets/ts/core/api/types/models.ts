@@ -10,6 +10,7 @@ interface ModelDownloadParameters {
 
 interface GetVariantsOptions {
     includeSpeedTests?: boolean;
+    signal?: AbortSignal;
 }
 
 export type { ModelDownloadParameters, GetVariantsOptions };

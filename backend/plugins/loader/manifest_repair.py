@@ -37,7 +37,6 @@ async def extract_plugin_manifest_with_recovery(
     try:
         package_audit = await audit_plugin_package(manager, plugin_name)
         manifest = read_plugin_manifest_from_disk(
-            manager,
             plugin_name,
             enforce_safety_validation=True,
             package_audit=package_audit,

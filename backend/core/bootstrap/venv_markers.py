@@ -7,3 +7,4 @@ __all__ = ()
 
 DEPENDENCY_CHECK_MARKER_FILENAME = ".last_dependency_check"
 REQUIREMENTS_HASH_FILENAME = ".soai_requirements_sha256"
+VERIFIED_ENVIRONMENT_MARKER_FILENAME = ".soai_verified_environment"

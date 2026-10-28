@@ -17,7 +17,6 @@ interface UpdatesPageViewDependencies {
     generateStandardHeader: GenerateStandardHeader;
     getIconSync: GetIconSync;
     productMarkup: TrustedHtml | null;
-    productStats: readonly { id: string; label: string }[];
 }
 
 const renderUpdatesPageView = (dependencies: UpdatesPageViewDependencies): TrustedHtml => {
@@ -41,27 +40,27 @@ const renderUpdatesPageView = (dependencies: UpdatesPageViewDependencies): Trust
                 type: 'button',
                 content: uiHtml`${checkUpdatesIcon}<span data-button-text>${i18n.t('updates.actions.checkUpdates')}</span>`,
                 variant: 'ui-variant-neutral',
+                class: 'updates-check-button',
                 id: 'checkUpdatesBtn',
                 attributes: { 'data-action': UPDATES_ACTION_CHECK },
                 ariaLabel: i18n.t('updates.ariaLabels.checkUpdates')
             }
-        ],
-        stats: [...dependencies.productStats]
+        ]
     });
     const productMarkup = dependencies.productMarkup?.html ?? '';
     const content = `
         <div class="updates-layout">
             <section class="updates-page-notice" id="updatesPageNotice" aria-live="polite">
                 <div class="status-body" id="updatesPageNoticeBody">
-                    <span class="status-indicator grey" id="updatesPageNoticeIndicator"></span>
-                    <div class="status-copy">
+                    <div class="status-copy" data-presence-morph>
+                        <span class="status-indicator grey" id="updatesPageNoticeIndicator" aria-hidden="true"></span>
                         <div class="status-heading-row"><div class="status-heading" id="updatesPageNoticeHeading">${i18n.t('updates.status.idle')}</div></div>
                         <div class="status-detail u-hidden" id="updatesPageNoticeDetail"></div>
                     </div>
                 </div>
                 <div class="updates-page-progress u-hidden" id="updatesPageProgress"></div>
             </section>
-            <section class="updates-status" id="updatesStatus" aria-live="polite">
+            <section class="updates-status u-hidden" id="updatesStatus" data-presence data-presence-atomic data-presence-morph aria-live="polite">
                 <div class="updates-application-header">
                     <div>
                         <h2 class="updates-application-title">${i18n.t('updates.application.title')}</h2>
@@ -78,14 +77,16 @@ const renderUpdatesPageView = (dependencies: UpdatesPageViewDependencies): Trust
                         <div class="status-detail u-hidden" id="updatesStatusDetail"></div>
                     </div>
                 </div>
+                <p class="updates-history u-hidden" id="updatesHistoryText" data-presence></p>
             </section>
-            <section class="updates-details u-hidden" id="updatesDetails">
+            <section class="updates-details u-hidden" id="updatesDetails" data-presence data-presence-atomic>
                 <div class="update-summary" id="updateSummary"></div>
-                <div class="release-notes u-hidden" id="releaseNotesContainer">
+                <div class="release-notes u-hidden" id="releaseNotesContainer" data-presence data-presence-atomic>
                     <div class="release-notes-header"><h3 id="releaseNotesTitle">${i18n.t('updates.metadata.release_notes')}</h3></div>
                     <div class="release-notes-body" id="release_notes"></div>
                 </div>
             </section>
+            <section class="update-summary u-hidden" id="backendUpdates" data-presence data-presence-atomic aria-live="polite"></section>
             ${productMarkup}
         </div>
     `;

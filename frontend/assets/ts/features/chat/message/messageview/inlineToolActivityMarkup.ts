@@ -90,8 +90,7 @@ const renderInlineToolActivityMarkup = (host: ChatMessageRenderHost, segment: In
         segment,
         mainIconHtml: renderToolIcon(host, segment, toolLeafName),
         previewHtml: renderSubagentHeaderPreview(host, segment, toolLeafName, previewText),
-        previewText,
-        expansionState: openRequested ? 'expanded' : 'collapsed'
+        previewText
     });
     const activityTypeClass = isContextCompaction ? ' inline-activity-context-compaction' : '';
     const activityClasses = `inline-activity inline-activity-type-tool${activityTypeClass} ${chrome.statusClass}`;

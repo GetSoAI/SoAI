@@ -46,13 +46,14 @@ def sync_set_intel_settings(
 ) -> JSONDict:
     control_backend = request.control_backend
     if control_backend is None:
-        return build_gpu_result(errors=["Intel control backend is required."])
+        return build_gpu_result(errors=["Intel control backend is required."], changed=False)
     if control_backend != "intel_xpum":
         return build_gpu_result(
             errors=[f"Intel control backend '{control_backend}' is unsupported."],
+            changed=False,
         )
     if not is_xpu_smi_available():
-        return build_gpu_result(errors=["xpu-smi not found for Intel GPU control."])
+        return build_gpu_result(errors=["xpu-smi not found for Intel GPU control."], changed=False)
     gpu_result, messages, errors = build_gpu_result_message_lists()
     try:
         steps = resolve_intel_apply_commands(executor, logger, vendor_id, request, capabilities)

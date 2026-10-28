@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { CSS_CLASSES } from '@core/cssConstants.ts';
+import { requireInputElement, requireSelectElement } from '@core/dom/typedElements.ts';
+import { splitModelVariantInput } from '@core/modelactions/variantInput.ts';
+import { createModalElementResolver } from '@core/modals/modalElementResolver.ts';
+import { toTrimmedString } from '@core/normalize.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { setControlDisabledState } from '@core/ui/controls/disabledState.ts';
@@ -10,6 +14,29 @@ import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { getManualDiscoveryState, resetManualDiscoveryState } from '@features/models/modals/downloadmodal/manager/state.ts';
 import type { DownloadModalManagerRuntime } from '@features/models/modals/downloadmodal/manager/contracts.ts';
 
+const updateSelectedModelDisplay = (runtime: DownloadModalManagerRuntime): void => {
+    const modalId = runtime.modalId;
+    const modalRoot = runtime.host.session.modals.requireElement(modalId);
+    const display = runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'selected-model-display'), modalRoot);
+    const downloadTab = runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'download-tab'), modalRoot);
+    const resolver = createModalElementResolver(modalRoot, 'Download modal');
+    const isDownloadTabActive = runtime.host.session.dom.hasClass(downloadTab, CSS_CLASSES.ACTIVE);
+    const hasPlugin = Boolean(toTrimmedString(requireSelectElement(resolver, modalUiSelector(modalId, 'download-plugin-select'), 'Download modal download-plugin-select', modalRoot).value));
+    const modelId = toTrimmedString(requireInputElement(resolver, modalUiSelector(modalId, 'model-id'), 'Download modal model-id', modalRoot).value);
+
+    const shouldShow = isDownloadTabActive && hasPlugin && Boolean(modelId);
+    runtime.host.view.toggleClassName(display, CSS_CLASSES.HIDDEN, !shouldShow);
+    runtime.host.view.updateAttribute(display, 'aria-hidden', shouldShow ? 'false' : 'true');
+    if (!shouldShow) {
+        return;
+    }
+
+    const inlineVariant = splitModelVariantInput(modelId);
+    const quant = inlineVariant.variantToken || toTrimmedString(requireInputElement(resolver, modalUiSelector(modalId, 'model-quant'), 'Download modal model-quant', modalRoot).value);
+    const displayModelId = inlineVariant.variantToken ? inlineVariant.modelId : modelId;
+    runtime.host.view.updateText(runtime.host.session.requireHTMLElement('.download-model-selected-model-id', display), displayModelId);
+    runtime.host.view.updateText(runtime.host.session.requireHTMLElement('.download-model-selected-model-quant', display), quant);
+};
 const updateVariantControlsVisibility = (runtime: DownloadModalManagerRuntime): void => {
     const modalId = runtime.modalId;
     const modalRoot = runtime.host.session.modals.requireElement(modalId);
@@ -71,6 +98,7 @@ const updateDownloadModalUI = (runtime: DownloadModalManagerRuntime, activeTab: 
     updateTabSelectionState(downloadTab, downloadPanel, isDownload);
     updateTabSelectionState(providerTab, providerPanel, isProvider);
     updateTabSelectionState(manualTab, manualPanel, isManual);
+    updateSelectedModelDisplay(runtime);
     setHidden('manual-discovery-button', !isManual);
     setHidden('manual-copy-path', !isManual);
     setHidden('manual-open-file-explorer', !isManual);
@@ -148,4 +176,4 @@ const updateModalTabsVisibility = (runtime: DownloadModalManagerRuntime, autoSwi
     }
 };
 
-export { updateDownloadModalUI, updateModalTabsVisibility, updateVariantControlsVisibility };
+export { updateDownloadModalUI, updateModalTabsVisibility, updateSelectedModelDisplay, updateVariantControlsVisibility };

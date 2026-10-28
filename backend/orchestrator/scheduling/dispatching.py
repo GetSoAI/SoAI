@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from core.concurrency.lock_registry import TTLAsyncLockRegistry, TTLAsyncLockRegistryDependencies
 from core.concurrency.protocols import QueueGetNowaitProtocol
 from core.concurrency.task_groups import cancel_and_await
 from core.logging.rate_limited_logger import RateLimitedLogger
@@ -36,6 +37,9 @@ class SchedulerDispatching:
     def __init__(self, deps: SchedulerDispatchingDependencies) -> None:
         self._deps = deps
         self._dispatcher_lock = asyncio.Lock()
+        self._owner_admission_locks = TTLAsyncLockRegistry[tuple[str, str]](
+            TTLAsyncLockRegistryDependencies()
+        )
         self._plugin_queue_dispatchers: dict[str, asyncio.Task[None]] = {}
         self._purge_state = SchedulerPurgeState()
         self._dispatch_waiters_not_ready_warners: dict[str, RateLimitedLogger] = {}
@@ -129,6 +133,7 @@ class SchedulerDispatching:
             plugin_queue_dispatcher_loop=self._plugin_queue_dispatcher_loop,
             dispatch_not_ready_warners=self._dispatch_not_ready_warners,
             dispatcher_lock=self._dispatcher_lock,
+            owner_admission_locks=self._owner_admission_locks,
             plugin_queue_dispatchers=self._plugin_queue_dispatchers,
             purge_state=self._purge_state,
             cleanup_plugin_queue_dispatcher=self._cleanup_plugin_queue_dispatcher,

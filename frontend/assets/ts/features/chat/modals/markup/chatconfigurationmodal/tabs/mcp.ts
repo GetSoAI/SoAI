@@ -20,7 +20,7 @@ const buildMcpTabMarkup = (context: ChatPageMarkupContext): string => {
 <div id="${uiIdAttr('mcp-content')}" class="tab-content chat-configuration-mcp-content">
   <div class="chat-config-grid">
   <div class="chat-config-span-2">
-    <div class="chat-configuration-hint mcp-automation-ephemeral-hint u-hidden">${i18n.html(sanitizer, 'chat.configuration.mcp.automationEphemeralHint')}</div>
+    <div class="chat-configuration-hint mcp-automation-ephemeral-hint u-hidden" data-modal-localize="text">${i18n.html(sanitizer, 'chat.configuration.mcp.automationEphemeralHint')}</div>
     ${buildMcpConversationSettingsBodyMarkup({
         modalId,
         toolsEnabledToggle: {

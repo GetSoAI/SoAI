@@ -19,20 +19,22 @@ class AutomationPageOperationRunner {
     }
 
     run(operation: string, task: () => Promise<void> | void): void {
-        terminateHandledPromise(
-            this.#dependencies.runWithBoundary(operation, async () => {
-                try {
-                    await task();
-                } catch (error) {
-                    const runtimeError = ensureError(error);
-                    if (runtimeError instanceof AutomationUserNotifiedError) {
-                        throw runtimeError;
-                    }
-                    this.#dependencies.errorNotifier.notifyErrorOnce(runtimeError);
+        terminateHandledPromise(this.runAsync(operation, task));
+    }
+
+    runAsync(operation: string, task: () => Promise<void> | void): Promise<void> {
+        return this.#dependencies.runWithBoundary(operation, async () => {
+            try {
+                await task();
+            } catch (error) {
+                const runtimeError = ensureError(error);
+                if (runtimeError instanceof AutomationUserNotifiedError) {
                     throw runtimeError;
                 }
-            })
-        );
+                this.#dependencies.errorNotifier.notifyErrorOnce(runtimeError);
+                throw runtimeError;
+            }
+        });
     }
 }
 

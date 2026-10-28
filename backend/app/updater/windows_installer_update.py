@@ -182,6 +182,7 @@ def perform_windows_installer_update(
             release_bundle.manifest.version,
             "-UpdaterPid",
             str(os.getpid()),
+            "-ServiceManaged",
         ]
         transaction_paths = allocate_update_transaction(base_path)
         record_update_activation_identity(
@@ -200,6 +201,10 @@ def perform_windows_installer_update(
             base_path=base_path,
             release_bundle=release_bundle,
             logger=logger,
+            native_images=(
+                downloaded_installer.file_path,
+                os.path.join(transaction_paths.transaction_path, "native_job"),
+            ),
         ) as prepared_installer:
             if report_preparation:
                 write_preparation_progress(base_path, task_id, "staging")

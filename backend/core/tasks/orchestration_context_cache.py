@@ -7,15 +7,27 @@ from collections.abc import Callable
 from dataclasses import replace
 
 from core.errors.exceptions import StateError
+from core.tasks.execution_budget import earliest_execution_budget
 from core.tasks.orchestration_context import OrchestrationContext
 from core.tasks.protocols import TaskRegistryLifecycleView
 from core.tasks.task import Task
 from core.tasks.task_lock_control import load_task_with_drop_control, task_lock_control
 
 __all__ = (
+    "is_current_execution_attempt",
     "merge_orchestration_context_snapshot",
     "update_orchestration_context_from_current",
 )
+
+
+def is_current_execution_attempt(task: Task, current: Task | None) -> bool:
+    if current is None or current.task_id != task.task_id:
+        return False
+    expected = task.orchestration_context
+    actual = current.orchestration_context
+    return (expected.execution_generation if expected is not None else 0) == (
+        actual.execution_generation if actual is not None else 0
+    )
 
 
 def _merge_context_snapshot(
@@ -23,13 +35,20 @@ def _merge_context_snapshot(
     current: OrchestrationContext,
     incoming: OrchestrationContext,
 ) -> OrchestrationContext:
+    if incoming.execution_generation < current.execution_generation:
+        return current
     event = incoming.event if incoming.event is not None else current.event
     return replace(
         incoming,
         event=event,
         delivery_in_progress=current.delivery_in_progress or incoming.delivery_in_progress,
         delivery_version=max(current.delivery_version, incoming.delivery_version),
+        execution_timeout_claim=current.execution_timeout_claim or incoming.execution_timeout_claim,
         streaming_started=current.streaming_started or incoming.streaming_started,
+        execution_budget=earliest_execution_budget(
+            current.execution_budget,
+            incoming.execution_budget,
+        ),
         prompt_slot_active=current.prompt_slot_active or incoming.prompt_slot_active,
         prompt_slot_generation=(
             current.prompt_slot_generation

@@ -4,14 +4,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING
 
+from core.concurrency.bounded_blocking import BoundedBlockingPool, run_bounded_blocking_call
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
 from core.types.json_value import coerce_json_dict_or_empty
 from core.validation.numbers import coerce_float_from_json
 from hardware.control_snapshots import find_gpu_entry
-from hardware.soaibench.amd_telemetry import read_amd_fast_telemetry
 from hardware.soaibench.nvidia_telemetry import read_nvidia_fast_telemetry
 from hardware.soaibench.telemetry_aggregation import SoAIBenchTelemetryAccumulator
 from hardware.soaibench.telemetry_observation import SoAIBenchTelemetrySnapshot
@@ -34,6 +36,7 @@ TELEMETRY_READ_OPERATION = "hardware.soaibench.telemetry.read"
 
 @dataclass(slots=True)
 class SoAIBenchTelemetryDiagnostics:
+    blocking_pool: BoundedBlockingPool
     provider_failure_active: bool = False
 
 
@@ -46,17 +49,22 @@ async def read_soaibench_telemetry_snapshot(
     diagnostics: SoAIBenchTelemetryDiagnostics,
 ) -> SoAIBenchTelemetrySnapshot:
     try:
-        snapshot = await _acquire_soaibench_telemetry_snapshot(
-            hardware_manager,
-            device_id=device_id,
-            temperature_limit_celsius=temperature_limit_celsius,
+        snapshot = await run_bounded_blocking_call(
+            diagnostics.blocking_pool,
+            partial(
+                _acquire_soaibench_telemetry_snapshot,
+                hardware_manager,
+                device_id=device_id,
+                temperature_limit_celsius=temperature_limit_celsius,
+            ),
+            total_timeout_sec=LOCAL_IO_TIMEOUT_SEC,
         )
     except RECOVERABLE_EXCEPTIONS as exception:
         if not diagnostics.provider_failure_active:
             log_exception(
                 logger,
                 exception,
-                message="SoAIBench telemetry provider became unavailable (non-critical).",
+                message="SoAI Bench telemetry provider became unavailable (non-critical).",
                 operation=TELEMETRY_READ_OPERATION,
                 level="trace",
             )
@@ -69,7 +77,7 @@ async def read_soaibench_telemetry_snapshot(
     return snapshot
 
 
-async def _acquire_soaibench_telemetry_snapshot(
+def _acquire_soaibench_telemetry_snapshot(
     hardware_manager: HardwareManagerProtocol,
     *,
     device_id: str,
@@ -79,8 +87,6 @@ async def _acquire_soaibench_telemetry_snapshot(
         device_id,
         nvml_gate=hardware_manager.nvidia_nvml_gate,
     )
-    if fast_telemetry is None:
-        fast_telemetry = read_amd_fast_telemetry(device_id)
     if fast_telemetry is not None:
         return _snapshot_from_metrics(
             temperature=_numeric(fast_telemetry.get("temperature_celsius")),
@@ -90,9 +96,17 @@ async def _acquire_soaibench_telemetry_snapshot(
             temperature_limit_celsius=temperature_limit_celsius,
             diagnostic_code=_optional_string(fast_telemetry.get("diagnostic_code")),
         )
-    snapshot = await hardware_manager.get_system_info(["gpu"], cache=False)
+    snapshot = hardware_manager.sync_get_system_info(
+        components=["gpu"], cache=False, include_gpu_capabilities=False
+    )
     gpu = find_gpu_entry(snapshot, device_id)
-    if gpu is None:
+    status = snapshot.get("component_status")
+    gpu_status = status.get("gpu") if isinstance(status, dict) else None
+    stale_component = isinstance(gpu_status, dict) and gpu_status.get("status") not in (
+        "available",
+        "partial",
+    )
+    if gpu is None or stale_component or gpu.get("telemetry_available") is False:
         return _unavailable_snapshot(
             "gpu_telemetry_unavailable",
             temperature_limit_celsius=temperature_limit_celsius,

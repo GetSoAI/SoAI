@@ -18,7 +18,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "fetch_imap_message_bytes_sync",
-    "fetch_imap_message_payload",
     "fetch_imap_message_payloads",
     "normalize_imap_response_data",
     "parse_imap_uid_sequence",
@@ -26,28 +25,6 @@ __all__ = (
 
 _FETCH_QUERY = "(UID FLAGS INTERNALDATE RFC822)"
 _FETCH_BATCH_SIZE = 100
-
-
-def fetch_imap_message_payload(
-    *,
-    connection: imaplib.IMAP4,
-    runtime_state: MailAccountRuntimeState,
-    remote_mailbox: str,
-    uidvalidity: int,
-    uid: int,
-    snippet_max_chars: int,
-) -> JSONDict:
-    payloads = fetch_imap_message_payloads(
-        connection=connection,
-        runtime_state=runtime_state,
-        remote_mailbox=remote_mailbox,
-        uidvalidity=uidvalidity,
-        uids=[uid],
-        snippet_max_chars=snippet_max_chars,
-    )
-    if len(payloads) != 1:
-        raise StateError("IMAP FETCH returned an invalid message count.")
-    return payloads[0]
 
 
 def fetch_imap_message_payloads(

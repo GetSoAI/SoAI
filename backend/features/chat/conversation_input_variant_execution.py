@@ -10,10 +10,12 @@ from core.concurrency.cancellation import TaskCancelledError
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
+from core.errors.public_projection import project_public_error
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.openai.openai_sse_error_escalation import OpenAIStreamError
+from core.runtime.shutdown_errors import SERVER_SHUTDOWN_MESSAGE
 from core.tasks.interaction_secrets import InteractionSecretEffectUnknownError
 from features.api.routes.system.events.websocket_chat_stream.completion_followups import (
     track_auto_title_generation,
@@ -222,7 +224,11 @@ async def execute_conversation_input_variant(
                 status_preview_enabled=True,
             )
         runtime.cancellation_requested = True
-        runtime.cancellation_reason = "Chat stream was cancelled."
+        runtime.cancellation_reason = (
+            SERVER_SHUTDOWN_MESSAGE
+            if api_dependencies.shutdown_event.is_set()
+            else runtime.cancellation_reason or "Chat stream was cancelled."
+        )
         await finalize_ws_chat_stream_cancellation_noncritical(
             session=session,
             database_agent_turns=api_dependencies.database_agent_turns,
@@ -236,6 +242,7 @@ async def execute_conversation_input_variant(
         return ("cancelled", runtime.input_terminal_code or "cancelled")
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
         coerced = coerce_to_soai_error(exception, operation=OPERATION)
+        public_error = project_public_error(coerced)
         effect_unknown = isinstance(exception, InteractionSecretEffectUnknownError)
         if isinstance(coerced, OpenAIStreamError):
             log_handled_exception(
@@ -261,7 +268,7 @@ async def execute_conversation_input_variant(
                 context=context,
                 runtime=runtime,
                 logger=logger,
-                reason=str(coerced),
+                reason=public_error.message,
             )
         if session is None:
             session = create_assistant_timeline_session(
@@ -277,10 +284,11 @@ async def execute_conversation_input_variant(
             logger=logger,
             context=context,
             tool_context=prepared.tool_context if prepared is not None else None,
-            error_message=coerced.message,
+            error_message=public_error.message,
             error_code=str(coerced.code),
-            turn_error_message=str(coerced),
+            turn_error_message=public_error.message,
             turn_error_type=str(coerced.code),
+            public_error=public_error,
         )
         if effect_unknown:
             return ("effect_unknown", "secret_tool_effect_unknown")

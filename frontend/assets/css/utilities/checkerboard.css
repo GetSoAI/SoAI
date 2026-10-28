@@ -146,6 +146,11 @@
         box-shadow: none;
     }
 
+    .ui-page-header-stats__card.checkerboard-light .ui-round-button--settings {
+        --ui-round-button-surface: var(--control-round-button-modal-close-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-modal-close-bg-hover);
+    }
+
     .ui-mini-stat-strip__card.checkerboard-light {
         background: var(--alternating-grey-light);
     }

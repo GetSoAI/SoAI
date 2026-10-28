@@ -20,7 +20,9 @@ from core.automation.protocols_database import (
     DatabaseAutomationRunsProtocol,
     DatabaseAutomationsProtocol,
 )
+from core.browser.playwright_session_resources import PlaywrightSessionResources
 from core.calendar.protocols import CalendarServiceProtocol
+from core.concurrency.bounded_blocking import create_bounded_thread_pool
 from core.config.protocols import ConfigProtocol
 from core.conversations.protocols_database_agents import (
     DatabaseAgentEventSequencesProtocol,
@@ -68,6 +70,7 @@ from core.read_video.protocols_database import DatabaseReadVideoJobsProtocol
 from core.runtime.protocols import RuntimeFlagsViewProtocol
 from core.runtime.request_context import RequestContext
 from core.secrets.handle_store import SecretHandleStore
+from core.skills.protocols import SkillRepositoryProtocol
 from core.tasks.protocols import (
     CancellationEventBusProtocol,
     CancellationHistoryProtocol,
@@ -103,6 +106,7 @@ __all__ = ("build_mcp_services_coordinator",)
 
 def build_mcp_services_coordinator(
     *,
+    playwright_sessions: PlaywrightSessionResources,
     config: ConfigProtocol,
     runtime_flags: RuntimeFlagsViewProtocol,
     http_client: httpx2.AsyncClient,
@@ -130,6 +134,7 @@ def build_mcp_services_coordinator(
     database_chat_model_defaults: DatabaseChatModelDefaultsProtocol,
     database_automation_runs: DatabaseAutomationRunsProtocol,
     database_tool_calls: DatabaseToolCallsProtocol,
+    database_skills: SkillRepositoryProtocol,
     database_read_video: DatabaseReadVideoJobsProtocol,
     database_plugins: DatabasePluginsProtocol,
     database_tasks: DatabaseTasksProtocol,
@@ -204,6 +209,13 @@ def build_mcp_services_coordinator(
     )
 
     mcp_server_dependencies = MCPServerDependencies(
+        numeric_math_pool=create_bounded_thread_pool(
+            label="numeric calculator",
+            thread_name_prefix="soai-calculator",
+            max_workers=2,
+            max_in_flight=2,
+        ),
+        playwright_sessions=playwright_sessions,
         config=config,
         licensing_status=licensing_status,
         storage_manager=storage_manager,
@@ -235,6 +247,7 @@ def build_mcp_services_coordinator(
         database_automation_runs=database_automation_runs,
         database_tool_calls=database_tool_calls,
         database_read_video=database_read_video,
+        database_skills=database_skills,
         database_plugins=database_plugins,
         database_tasks=database_tasks,
         event_bus=event_bus,

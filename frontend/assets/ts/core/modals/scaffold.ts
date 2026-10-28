@@ -30,6 +30,7 @@ interface ModalFooterSectionConfig {
 interface StandardModalHeaderConfig {
     modalId: string;
     title: ModalScaffoldContent;
+    localizeTitle?: boolean | undefined;
     titleId?: string | undefined;
     description?: ModalScaffoldContent | null | undefined;
     descriptionId?: string | undefined;
@@ -137,7 +138,7 @@ const renderModalCloseButton = (config: ModalCloseButtonConfig): TrustedHtml => 
     const roleAttributes = uiAttributes({ [MODAL_HEADER_BUTTON_ROLE_ATTRIBUTE]: 'close' });
     const content = config.content ? toHtml(config.content) : renderModalHeaderButtonIcon('close');
 
-    return uiHtml`<button class="${uiAttr(className)}" type="button"${identityAttributes}${extraAttributes} aria-label="${uiAttr(label)}" data-tooltip="${uiAttr(label)}" data-modal-close="${uiAttr(targetId)}"${roleAttributes}>${content}</button>`;
+    return uiHtml`<button class="${uiAttr(className)}" type="button"${identityAttributes}${extraAttributes} data-modal-localize="aria-label data-tooltip" aria-label="${uiAttr(label)}" data-tooltip="${uiAttr(label)}" data-modal-close="${uiAttr(targetId)}"${roleAttributes}>${content}</button>`;
 };
 
 const renderModalFooterSection = (config: ModalFooterSectionConfig): TrustedHtml => {
@@ -183,8 +184,8 @@ const renderStandardModalHeader = (config: StandardModalHeaderConfig): TrustedHt
     const descriptionText = typeof config.description === 'string' ? config.description.trim() : '';
     const descriptionHiddenClassName = typeof config.description === 'string' && !descriptionText ? ' u-hidden' : '';
     const descriptionClassName = `modal-header-description${descriptionHiddenClassName}`;
-    const descriptionMarkup = shouldRenderDescription ? uiHtml`<p id="${uiAttr(descriptionId)}" class="${uiAttr(descriptionClassName)}">${toHtml(config.description ?? '')}</p>` : EMPTY_UI_HTML;
-    const titleMarkup = uiHtml`<div class="modal-header-title-copy"><h3 class="modal-title" id="${uiAttr(titleId)}">${toHtml(config.title)}</h3>${descriptionMarkup}</div>`;
+    const descriptionMarkup = shouldRenderDescription ? uiHtml`<p id="${uiAttr(descriptionId)}" class="${uiAttr(descriptionClassName)}" data-modal-localize="text">${toHtml(config.description ?? '')}</p>` : EMPTY_UI_HTML;
+    const titleMarkup = uiHtml`<div class="modal-header-title-copy"><h3 class="modal-title" id="${uiAttr(titleId)}"${uiAttributes({ 'data-modal-localize': config.localizeTitle === false ? undefined : 'text', 'data-modal-localization-owner': config.localizeTitle === false ? 'session' : undefined })}>${toHtml(config.title)}</h3>${descriptionMarkup}</div>`;
     const titleGroup = config.titleGroupClassName ? uiHtml`<div class="${uiAttr(config.titleGroupClassName)}">${leading}${titleMarkup}${trailing}</div>` : joinUiHtml([leading, titleMarkup, trailing]);
 
     return uiHtml`<div class="${uiAttr(headerClassName)}"><div class="${uiAttr(topClassName)}">${titleGroup}${headerActions}</div>${sections}</div>`;
@@ -205,7 +206,7 @@ const renderModalTabPanel = (config: ModalTabPanelConfig): TrustedHtml => {
 const renderModalTabIntro = (config: ModalTabIntroConfig): TrustedHtml => {
     const className = `ui-modal-tab-intro${config.className ? ` ${config.className}` : ''}`;
     const descriptionAttributes = uiAttributes({ id: config.descriptionId });
-    return uiHtml`<div class="${uiAttr(className)}"><strong class="ui-modal-tab-title">${toHtml(config.title)}</strong><div${descriptionAttributes} class="ui-modal-tab-description">${toHtml(config.description)}</div></div>`;
+    return uiHtml`<div class="${uiAttr(className)}"><strong class="ui-modal-tab-title" data-modal-localize="text">${toHtml(config.title)}</strong><div${descriptionAttributes} class="ui-modal-tab-description" data-modal-localize="text">${toHtml(config.description)}</div></div>`;
 };
 
 const renderModalLoadingState = (config: ModalLoadingStateConfig): TrustedHtml => {
@@ -219,7 +220,7 @@ const renderModalLoadingState = (config: ModalLoadingStateConfig): TrustedHtml =
     if (config.className) {
         classes.push(config.className);
     }
-    return uiHtml`<div${uiAttributes({ id: config.id })} class="${uiAttr(classes.join(' '))}" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><span class="loading-text">${toHtml(config.text)}</span></div>`;
+    return uiHtml`<div${uiAttributes({ id: config.id })} class="${uiAttr(classes.join(' '))}" aria-live="polite"><span class="loading-spinner" aria-hidden="true"></span><span class="loading-text" data-modal-localize="text">${toHtml(config.text)}</span></div>`;
 };
 
 const renderSplitModalFooter = (config: SplitModalFooterConfig): TrustedHtml => {

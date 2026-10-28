@@ -9,6 +9,7 @@ import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/Pa
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 import type { PageLifecycleOwnerHost } from '@core/routing/pages/basepage/PageLifecycle.ts';
 import type { PageStreamingOwnerHost } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
+import type { ModelDetailParameterAuthority } from '@pages/modeldetail/state/ModelDetailParameterAuthorityState.ts';
 import type { ModelDetailSession } from '@pages/modeldetail/state/ModelDetailSession.ts';
 import type { ModelDetailViewHost } from '@pages/modeldetail/controllers/page/view/types.ts';
 
@@ -16,9 +17,12 @@ type ParametersData = ModelDetailParametersData;
 
 interface ModelDetailEffectsStatePort extends PageResourcesOwnerHost {
     isDestroyed: boolean;
+    signal: AbortSignal | null;
     modelId: string | null;
     model: ModelRecord | null;
     parametersData: ParametersData | null;
+    parameterAuthority: ModelDetailParameterAuthority;
+    isParameterEditorDirty: () => boolean;
     activeTab: string;
     pluginCollectionSnapshot: JsonValue[];
     currentMetrics: JsonObject | null;
@@ -34,6 +38,9 @@ interface ModelDetailEffectsRenderPort {
     applyParametersPayload: (payload: ParametersData) => void;
     populateModelInfo: () => void;
     renderParametersInterface: () => void;
+    renderParameterAvailability: () => void;
+    notifySaveChanged: () => void;
+    notifyParametersUnavailable: (message: string) => void;
     persistSnapshots: (modelSnapshot: ModelRecord | null, parameterSnapshot: ParametersData | null) => void;
     updateBackendDocumentationLink: (options?: { ensurePlugins?: boolean; plugins?: JsonValue[] | null }) => Promise<void>;
     updateTestPluginStatusDisplay: () => void;
@@ -48,17 +55,23 @@ interface ModelDetailEffectsHost {
     rendering: ModelDetailEffectsRenderPort;
 }
 
+interface ModelDetailParameterAvailabilityPort {
+    renderParameterAvailability: ModelDetailEffectsHost['rendering']['renderParameterAvailability'];
+    notifySaveChanged: ModelDetailEffectsHost['rendering']['notifySaveChanged'];
+}
+
 interface ModelDetailEffectsDependencies extends PageResourcesOwnerHost, PageFeedbackOwnerHost, PageLifecycleOwnerHost, PageStreamingOwnerHost {
     session: ModelDetailSession;
     view: ModelDetailViewHost;
     isDestroyed: boolean;
     streamManager: StreamRuntimeOwners;
-    parameterView: ModelDetailEffectsHost['state']['parameterView'];
+    parameterView: ModelDetailEffectsHost['state']['parameterView'] & { hasParameterChanges: () => boolean };
     reconcileOpenAICapabilityState: (model: ModelRecord | null) => void;
     setLoadError: ModelDetailEffectsHost['rendering']['setLoadError'];
     applyParametersPayload: ModelDetailEffectsHost['rendering']['applyParametersPayload'];
     populateModelInfo: ModelDetailEffectsHost['rendering']['populateModelInfo'];
     renderParametersInterface: ModelDetailEffectsHost['rendering']['renderParametersInterface'];
+    parameterAvailability: ModelDetailParameterAvailabilityPort;
     updateBackendDocButtonVisibility: () => void;
     updateTestPluginStatusDisplay: ModelDetailEffectsHost['rendering']['updateTestPluginStatusDisplay'];
     populateDetailCards: ModelDetailEffectsHost['rendering']['populateDetailCards'];

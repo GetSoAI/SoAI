@@ -26,31 +26,40 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { detachedParameters, ensureCommonIconsPreloaded, ensureEntrypointBootstrapBase, ensureLanguageInitialized, initializeScrollModule, requireAppLifecycle, renderDetachedError, waitForDomReady, waitForWindowLoad, whenBackendReady } from '@app/entrypoints/actions.ts';
 import { setupCleanupHandlers } from '@app/entrypoints/events.ts';
+import { reportInitializationFailure, runInitializationStage } from '@app/bootstrap/stages/initializationStage.ts';
 
 const logBootstrapStage = (stage: string, detail: JsonObject | null = null): void => {
     errorHandler.info('Bootstrap', stage, detail, { stage });
 };
 
+const prepareEntrypoint = (): Promise<void> =>
+    runInitializationStage('entrypoint', async () => {
+        await ensureEntrypointBootstrapBase();
+        await ensureLanguageInitialized();
+    });
+
 const primaryStart = async (): Promise<void> => {
     logBootstrapStage('bootstrap:start');
-    await ensureEntrypointBootstrapBase();
-    await ensureLanguageInitialized();
-    const backendReadyPromise = whenBackendReady({ allowDiscovery: true });
-    terminateHandledPromise(backendReadyPromise);
-    logBootstrapStage('backend:pending');
-    logBootstrapStage('kernel:start');
+    await prepareEntrypoint();
+    const appLifecycle = await runInitializationStage('criticalServices', async () => {
+        const backendReadyPromise = whenBackendReady({ allowDiscovery: true });
+        terminateHandledPromise(backendReadyPromise);
+        logBootstrapStage('backend:pending');
+        logBootstrapStage('kernel:start');
 
-    await getKernel().start();
-    logBootstrapStage('kernel:ready');
+        await getKernel().start();
+        logBootstrapStage('kernel:ready');
 
-    await backendReadyPromise;
-    logBootstrapStage('backend:ready');
+        await backendReadyPromise;
+        logBootstrapStage('backend:ready');
 
-    await getKernel().refresh();
-    logBootstrapStage('kernel:refresh');
+        await getKernel().refresh();
+        logBootstrapStage('kernel:refresh');
 
-    const appLifecycle = requireAppLifecycle();
-    await ensureCommonIconsPreloaded();
+        const lifecycle = requireAppLifecycle();
+        await ensureCommonIconsPreloaded();
+        return lifecycle;
+    });
     await appLifecycle.bootstrap();
 
     const router = requireRouter();
@@ -135,19 +144,25 @@ const initializeDetached = async (pageId: string, windowId: string): Promise<voi
     };
 
     const mountPage = async (): Promise<void> => {
-        await ensureDetachedAuthentication();
-        await initializeAuthenticatedSessionServices();
-        await ensureStreamManagerReady(streamResources, { allowDiscovery: true });
+        await runInitializationStage('authentication', ensureDetachedAuthentication);
+        getWindowService().confirmDetachedContextOwner(authManager.user?.id ?? null);
+        await runInitializationStage('session', async () => {
+            await initializeAuthenticatedSessionServices();
+            await ensureStreamManagerReady(streamResources, { allowDiscovery: true });
+        });
         detached.set({ pageId, windowId, parameters: finalParameters, host: null, instance: null, stage: 'stream-ready' });
         detached.set({ pageId, windowId, parameters: finalParameters, host: pageHost, instance: null, stage: 'mounting' });
-        await pageHost.prepare(pageId, finalParameters);
-        const instance = await pageHost.commitPrepared();
-        if (!instance) throw new Error(`Detached page ${pageId} lost mount ownership`);
-        detached.set({ instance, host: pageHost, pageId, windowId, parameters: finalParameters, stage: 'mounted' });
-        await pageHost.whenReady({ waitForReveal: false });
-        revealMountedPageSection(mainContentElement);
-        pageHost.allowReveal();
-        await pageHost.whenReady({ waitForData: true });
+        const instance = await runInitializationStage('routeRendering', async () => {
+            await pageHost.prepare(pageId, finalParameters);
+            const committed = await pageHost.commitPrepared();
+            if (!committed) throw new Error(`Detached page ${pageId} lost mount ownership`);
+            detached.set({ instance: committed, host: pageHost, pageId, windowId, parameters: finalParameters, stage: 'mounted' });
+            await pageHost.whenReady({ waitForReveal: false });
+            revealMountedPageSection(mainContentElement);
+            pageHost.allowReveal();
+            await pageHost.whenReady({ waitForData: true });
+            return committed;
+        });
         await finalizePreloader().catch((error) => {
             errorHandler.warn('Detached', 'Preloader finalization failed after detached mount', ensureError(error));
         });
@@ -163,8 +178,12 @@ const initializeDetached = async (pageId: string, windowId: string): Promise<voi
         await mountPage();
     } catch (error) {
         const runtimeError = ensureError(error);
-        await destroyPage('failed');
-        await resetSessionState();
+        try {
+            await destroyPage('failed');
+            await resetSessionState();
+        } catch (cleanupError) {
+            reportInitializationFailure('Detached', 'Detached initialization cleanup failed', runtimeError, ensureError(cleanupError));
+        }
         throw runtimeError;
     }
 
@@ -178,6 +197,7 @@ const initializeDetached = async (pageId: string, windowId: string): Promise<voi
     });
 
     const unsubscribeLogout = authManager.onLogout(() => {
+        getWindowService().suspendDetachedContextOwner();
         void enqueueAuthTransition(async () => {
             await destroyPage('auth-required');
             await resetSessionState();
@@ -212,12 +232,14 @@ const startPrimaryApp = (): Promise<void> => {
     if (!primaryPromise) {
         const runPrimaryStart = async (): Promise<void> => {
             await waitForDomReady();
+            const disposePageTermination = registerPageTerminationListeners();
             try {
                 await primaryStart();
                 setupCleanupHandlers();
             } catch (error) {
+                disposePageTermination();
                 const runtimeError = ensureError(error);
-                errorHandler.error('Main', 'Application bootstrap failed', runtimeError);
+                reportInitializationFailure('Main', 'Application bootstrap failed', runtimeError);
                 renderLifecycleInitializationError(runtimeError, () => finalizePreloader());
                 throw runtimeError;
             }
@@ -237,8 +259,7 @@ const startDetachedWindow = (): Promise<void> => {
             const windowId = windowIdentity.current();
             await waitForDomReady();
             try {
-                await ensureEntrypointBootstrapBase();
-                await ensureLanguageInitialized();
+                await prepareEntrypoint();
                 const { pageId } = detachedParameters();
                 const doc = requireDocument();
                 if (!isString(pageId) || !pageId.trim()) {
@@ -249,10 +270,10 @@ const startDetachedWindow = (): Promise<void> => {
                 const normalizedPageId = pageId.trim();
                 const capitalizedPageId = normalizedPageId.charAt(0).toUpperCase() + normalizedPageId.slice(1);
                 doc.title = i18n.t('app.detachedWindow.pageTitle', { page: capitalizedPageId });
-                await initializeDetached(normalizedPageId, windowId);
+                await runInitializationStage('criticalServices', () => initializeDetached(normalizedPageId, windowId));
             } catch (error) {
                 const runtimeError = ensureError(error);
-                errorHandler.error('Detached', 'Failed to initialize detached page', runtimeError);
+                reportInitializationFailure('Detached', 'Failed to initialize detached page', runtimeError);
                 clearDetachedWindowContextForWindow(windowId);
                 renderLifecycleInitializationError(runtimeError, () => finalizePreloader(), { surface: 'detached', missingPage });
                 throw runtimeError;

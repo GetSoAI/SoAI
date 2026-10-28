@@ -1,0 +1,23 @@
+/* SoAI - Shared disabled control hit testing and cursors [frontend/assets/css/utilities/disabled-controls.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    :where([aria-busy='true']) :is(button, input, select, textarea):disabled {
+        cursor: progress;
+        pointer-events: auto;
+    }
+
+    :is(button, input, select, textarea, a, label, [role], .ui-button, .ui-icon-button, .ui-round-button, .toggle-switch):is(:disabled, [aria-disabled='true']):not(:where([aria-busy='true'], [aria-busy='true'] *, [data-pending], [data-pending] *)) {
+        cursor: no-drop;
+        pointer-events: auto;
+    }
+
+    :is(button, a, label, [role], .ui-button, .ui-icon-button, .ui-round-button, .toggle-switch):is(:disabled, [aria-disabled='true']):not(:where([aria-busy='true'], [aria-busy='true'] *, [data-pending], [data-pending] *)) * {
+        cursor: inherit;
+    }
+
+    label:has(input:disabled):not(:where([aria-busy='true'] *, [data-pending] *)),
+    input:disabled + .slider:not(:where([aria-busy='true'] *, [data-pending] *)) {
+        cursor: no-drop;
+    }
+}

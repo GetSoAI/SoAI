@@ -8,6 +8,7 @@ import posixpath
 import tarfile
 
 from core.errors.exceptions import SecurityError, ValidationError
+from core.filesystem.directory_walk import raise_directory_walk_error
 
 __all__ = (
     "sync_calculate_backup_export_archive_max_size",
@@ -40,7 +41,9 @@ def sync_calculate_backup_export_archive_max_size(backup_path: str, backup_id: s
     sync_raise_if_symlink(backup_path, context="backup export source")
 
     tar_bytes = _tar_member_upper_bound(0)
-    for root, dir_names, file_names in os.walk(backup_path, topdown=True, followlinks=False):
+    for root, dir_names, file_names in os.walk(
+        backup_path, topdown=True, followlinks=False, onerror=raise_directory_walk_error
+    ):
         dir_names.sort()
         file_names.sort()
         for directory_name in dir_names:
@@ -67,7 +70,9 @@ def sync_write_backup_export_archive(backup_path: str, archive_path: str, backup
 
     with tarfile.open(archive_path, "w:gz") as tar_archive:
         tar_archive.add(backup_path, arcname=backup_id, recursive=False)
-        for root, dir_names, file_names in os.walk(backup_path, topdown=True, followlinks=False):
+        for root, dir_names, file_names in os.walk(
+            backup_path, topdown=True, followlinks=False, onerror=raise_directory_walk_error
+        ):
             dir_names.sort()
             file_names.sort()
             rel_root = os.path.relpath(root, backup_path)

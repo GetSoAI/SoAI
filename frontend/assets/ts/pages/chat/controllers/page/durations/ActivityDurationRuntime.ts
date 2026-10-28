@@ -70,7 +70,7 @@ class ActivityDurationRuntime {
             return;
         }
         const nowEpochMs = this.#options.nowEpochMs();
-        reconcileActivityDurationPresentation(root, displayMode, nowEpochMs);
+        reconcileActivityDurationPresentation(root, displayMode);
         for (const activity of collectRunningActivities(root, displayMode)) {
             if (!this.#owns(activity, displayMode)) {
                 continue;

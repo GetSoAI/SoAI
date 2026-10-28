@@ -1,0 +1,72 @@
+/* SoAI - Shared checkbox and radio control surfaces [frontend/assets/css/components/controls/selection-controls.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    input:is([type='checkbox'], [type='radio']):not(.toggle-switch input) {
+        --control-selection-color: var(--ui-button-neutral-color);
+        --control-selection-surface: var(--ui-button-neutral-bg);
+        --control-selection-border-strength: var(--control-button-border-strength);
+        appearance: none;
+        display: inline-grid;
+        place-content: center;
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        padding: 0;
+        flex-shrink: 0;
+        vertical-align: middle;
+        background-color: var(--control-selection-surface);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--control-selection-color) var(--control-selection-border-strength), transparent);
+        border-radius: var(--border-radius);
+        color: var(--control-selection-color);
+        cursor: pointer;
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            box-shadow var(--transition-fast);
+    }
+
+    :is(input[type='checkbox']:is(:checked, :indeterminate), input[type='radio']:checked):not(.toggle-switch input) {
+        --control-selection-color: var(--ui-button-accent-color);
+        --control-selection-surface: color-mix(in srgb, var(--control-selection-color) var(--interactive-tint-opacity-idle), var(--ui-button-inherited-underlay));
+    }
+
+    input:is([type='checkbox'], [type='radio']):not(.toggle-switch input):focus-visible {
+        box-shadow: 0 0 0 var(--control-focus-ring-width) color-mix(in srgb, var(--control-selection-color) 35%, transparent);
+    }
+
+    input:is([type='checkbox'], [type='radio']):not(.toggle-switch input):is(:hover, :focus-visible):not(:disabled, [aria-disabled='true']) {
+        --control-selection-border-strength: var(--control-button-border-hover-strength);
+        background-color: color-mix(in srgb, var(--control-selection-surface) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+    }
+
+    input:is([type='checkbox'], [type='radio']):not(.toggle-switch input)::before {
+        content: '';
+        width: var(--control-icon-size-compact);
+        height: var(--control-icon-size-compact);
+        background-color: currentcolor;
+        mask: var(--control-selection-check-image) center / contain no-repeat;
+        opacity: 0;
+        transition: opacity var(--transition-fast);
+        pointer-events: none;
+    }
+
+    :is(input[type='checkbox']:is(:checked, :indeterminate), input[type='radio']:checked):not(.toggle-switch input)::before {
+        opacity: 1;
+    }
+
+    input[type='checkbox']:indeterminate::before {
+        mask-image: var(--control-selection-minus-image);
+    }
+
+    input[type='radio']:not(.toggle-switch input) {
+        border-radius: var(--border-round);
+    }
+
+    input[type='radio']:not(.toggle-switch input)::before {
+        border-radius: var(--border-round);
+        width: var(--space-2);
+        height: var(--space-2);
+        mask: none;
+    }
+}

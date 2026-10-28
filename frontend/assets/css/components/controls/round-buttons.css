@@ -17,7 +17,7 @@
         background: var(--ui-round-button-surface);
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
-        border: var(--border-width-1) solid var(--ui-round-button-border-color);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--ui-round-button-border-color) var(--control-button-border-strength), transparent);
         border-radius: var(--border-radius);
         color: var(--ui-round-button-color);
         box-shadow: var(--glass-shadow-base);
@@ -49,9 +49,14 @@
         stroke-width: 1.6;
     }
 
+    :is(.ui-round-button, .ui-corner-badge, .remove-file-btn) svg :is(path, circle, ellipse, line, polyline, polygon, rect) {
+        vector-effect: non-scaling-stroke;
+        stroke-width: var(--control-round-button-icon-stroke);
+    }
+
     .ui-round-button:hover:not(:disabled, [aria-disabled='true']) {
         background: var(--ui-round-button-surface-hover);
-        border-color: var(--ui-round-button-border-color);
+        border-color: color-mix(in srgb, var(--ui-round-button-border-color) var(--control-button-border-strength), transparent);
     }
 
     .ui-collection-card__action-bar > .ui-round-button:first-child {
@@ -65,7 +70,7 @@
         inset: auto;
     }
 
-    :where(.ui-round-button--delete, .ui-round-button--edit, .ui-round-button--copy, .ui-round-button--clone, .ui-round-button--run-now, .ui-round-button--success, .ui-round-button--settings, .ui-round-button--neutral, .ui-round-button--violet, .ui-round-button--alert, .ui-round-button--stop) {
+    :where(.ui-round-button--delete, .ui-round-button--edit, .ui-round-button--copy, .ui-round-button--update, .ui-round-button--clone, .ui-round-button--run-now, .ui-round-button--success, .ui-round-button--settings, .ui-round-button--neutral, .ui-round-button--violet, .ui-round-button--alert, .ui-round-button--stop) {
         --ui-round-button-color: var(--control-round-button-foreground);
     }
 
@@ -93,7 +98,8 @@
         --ui-round-button-surface-hover: var(--control-round-button-neutral-bg-hover);
     }
 
-    .ui-round-button--copy {
+    .ui-round-button--copy,
+    .ui-round-button--update {
         --ui-round-button-surface: var(--control-round-button-primary-bg);
         --ui-round-button-surface-hover: var(--control-round-button-primary-bg-hover);
     }
@@ -104,6 +110,7 @@
     }
 
     .ui-round-button--copy svg,
+    .ui-round-button--update svg,
     .ui-round-button--clone svg {
         stroke-width: 1;
     }

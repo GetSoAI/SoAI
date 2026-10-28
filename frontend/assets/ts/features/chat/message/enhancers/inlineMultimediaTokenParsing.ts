@@ -4,13 +4,11 @@
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { createInlineMediaPendingCard } from '@features/chat/message/enhancers/inlineMultimediaPendingCard.ts';
 import { isElementInOwnDocument, isHTMLElementInOwnDocument, isTextInOwnDocument, shouldSkipInlineMediaSurface } from '@features/chat/message/enhancers/inlineMultimediaDomSafety.ts';
-import { PREVIEW_REFERENCE_PATTERN, parsePreviewReferenceTokenMatch, type PreviewReferenceToken, type PreviewReferenceType } from '@features/chat/message/enhancers/inlineMultimediaPreviewContract.ts';
+import { PREVIEW_REFERENCE_PATTERN, parsePreviewReferenceTokenMatch, type PreviewReferenceToken } from '@features/chat/message/enhancers/inlineMultimediaPreviewContract.ts';
 import { resolveInlineMultimediaPreviewTokenRoute } from '@features/chat/message/enhancers/inlineMultimediaPreviewTokenResolution.ts';
 
-type InlineMediaTokenType = PreviewReferenceType;
 type InlineMediaToken = PreviewReferenceToken;
-type InlineMediaTokenRenderer = (doc: Document, token: InlineMediaToken) => Node;
-type InlineMediaOptionalTokenRenderer = (doc: Document, token: InlineMediaToken) => Node | null;
+type InlineMediaTokenRenderer = (doc: Document, token: InlineMediaToken) => Node | null;
 
 interface InlineMediaTokenNodeMatch {
     token: InlineMediaToken;
@@ -154,7 +152,7 @@ const collectInlineMediaTokensInContainer = (container: HTMLElement, options: { 
     return tokens;
 };
 
-const replaceInlineMediaTokensWithOptionalRenderer = (container: HTMLElement, options: { includeStreamingTail: boolean; maxTokens: number | null; requireConnectedNodes: boolean; renderToken: InlineMediaOptionalTokenRenderer }): number => {
+const replaceInlineMediaTokensWithRenderer = (container: HTMLElement, options: { includeStreamingTail: boolean; maxTokens: number | null; requireConnectedNodes: boolean; renderToken: InlineMediaTokenRenderer }): number => {
     const doc = container.ownerDocument;
     if (!doc) {
         return 0;
@@ -203,15 +201,6 @@ const replaceInlineMediaTokensWithOptionalRenderer = (container: HTMLElement, op
     return replacedCount;
 };
 
-const replaceInlineMediaTokensWithRenderer = (container: HTMLElement, options: { includeStreamingTail: boolean; maxTokens: number | null; requireConnectedNodes: boolean; renderToken: InlineMediaTokenRenderer }): number => {
-    return replaceInlineMediaTokensWithOptionalRenderer(container, {
-        includeStreamingTail: options.includeStreamingTail,
-        maxTokens: options.maxTokens,
-        requireConnectedNodes: options.requireConnectedNodes,
-        renderToken: options.renderToken
-    });
-};
-
 const replaceInlineMediaTokensInContainer = (container: HTMLElement, options: { includeStreamingTail: boolean; maxTokens: number; requireConnectedNodes: boolean }): number => {
     return replaceInlineMediaTokensWithRenderer(container, {
         includeStreamingTail: options.includeStreamingTail,
@@ -229,5 +218,5 @@ const replaceInlineMediaTokensInContainer = (container: HTMLElement, options: { 
     });
 };
 
-export { collectInlineMediaTokensInContainer, replaceInlineMediaTokensInContainer, replaceInlineMediaTokensWithOptionalRenderer, replaceInlineMediaTokensWithRenderer };
-export type { InlineMediaOptionalTokenRenderer, InlineMediaToken, InlineMediaTokenRenderer, InlineMediaTokenType };
+export { collectInlineMediaTokensInContainer, replaceInlineMediaTokensInContainer, replaceInlineMediaTokensWithRenderer };
+export type { InlineMediaToken, InlineMediaTokenRenderer };

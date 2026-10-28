@@ -156,7 +156,10 @@ class FileExplorerSelectionActionsController {
             if (typeof path !== 'string' || !path.trim()) {
                 throw new Error('File Explorer selection path is invalid');
             }
-            await this.#operations.deletePath(path);
+            const deletion = this.#selection.captureSelection(selection);
+            await this.#operations.deletePath(path, () => {
+                if (!this.#disposed) this.#selection.removeDeletedPaths(deletion, [path]);
+            });
             return;
         }
         const taskId = await this.#batch.batchDeleteTask(selection);

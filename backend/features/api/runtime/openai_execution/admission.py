@@ -78,6 +78,7 @@ async def accept_openai_execution(
                 attach_reply_queue=admission.attach_reply_queue,
             ),
         )
+        admission.context.task_id = receipt.task.task_id
         if admission.attach_reply_queue and receipt.reply_queue is None:
             missing_reply_queue = StateError(
                 "Durable OpenAI execution admission did not return a reply queue.",

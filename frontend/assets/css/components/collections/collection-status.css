@@ -43,6 +43,7 @@
         width: var(--ui-collection-card-progress);
         content: '';
         background-color: var(--soai-progress-color);
+        border-radius: var(--control-progress-radius);
         transition:
             width var(--transition-normal),
             background-color var(--transition-slow);

@@ -1,31 +1,22 @@
 /* SoAI - Hardware page GPU control validation [frontend/assets/ts/pages/hardware/controllers/gpucontrol/gpuControlValidation.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { GpuCapabilities, GpuClockCapabilityInfo } from '@core/realtime/streammanager/resources/gpuCapabilitiesContracts.ts';
-import type { GpuSettingsUpdatePayload } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
+import type { GpuCapabilities } from '@core/realtime/streammanager/resources/gpuCapabilitiesContracts.ts';
+import { GPU_CONTROLS_CONFIG, GPU_SLIDER_CONFIG } from '@pages/hardware/controllers/gpucontrol/gpuControlConfig.ts';
+import { isGpuCapabilityActionable } from '@pages/hardware/controllers/gpucontrol/gpucontrolmanager/guards.ts';
+import type { GpuSettingsState, GpuSettingsUpdatePayload } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 
-const collectSupportedClockBackend = (backends: Set<string>, info: GpuClockCapabilityInfo | undefined): void => {
-    if (info?.supported && typeof info.controlBackend === 'string' && info.controlBackend) {
-        backends.add(info.controlBackend);
-    }
-};
-
-const hasSupportedClockResetBackend = (caps: GpuCapabilities): boolean => {
-    const backends = new Set<string>();
-    collectSupportedClockBackend(backends, caps.coreClockMhz);
-    collectSupportedClockBackend(backends, caps.memClockMhz);
-    return backends.size > 0;
-};
-
-export const buildGpuResetPayload = (caps: GpuCapabilities | null): GpuSettingsUpdatePayload | null => {
-    if (!caps) return null;
+export const buildGpuResetPayload = (caps: GpuCapabilities | null, live: GpuSettingsState | null): GpuSettingsUpdatePayload | null => {
+    if (!caps || !live) return null;
     const payload: GpuSettingsUpdatePayload = {};
-    if (caps.powerLimitWatts?.supported) payload.powerLimit = 'auto';
-    if (caps.fanSpeedPercent?.supported) payload.fanSpeed = 'auto';
-    if (hasSupportedClockResetBackend(caps)) {
-        payload.resetClocks = true;
+    for (const { capabilityKey, type } of GPU_SLIDER_CONFIG) {
+        const settingKey = GPU_CONTROLS_CONFIG[type].settingKey;
+        const requiresReset = live[settingKey].mode !== 'auto';
+        if (isGpuCapabilityActionable(caps[capabilityKey], 'auto') && requiresReset) payload[settingKey] = 'auto';
     }
     return Object.keys(payload).length ? payload : null;
 };
+
+export const hasGpuResettableSettings = (caps: GpuCapabilities | null, live: GpuSettingsState | null, draft: GpuSettingsState | null = null): boolean => buildGpuResetPayload(caps, live) !== null || buildGpuResetPayload(caps, draft) !== null;
 
 export const hasGpuStorableSettings = (payload: GpuSettingsUpdatePayload): boolean => Object.values(payload).some((value) => value !== true && value !== undefined);

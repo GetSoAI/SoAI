@@ -27,11 +27,9 @@ __all__ = (
     "require_number",
     "require_optional_bool",
     "require_optional_int",
-    "require_optional_json_list",
     "require_optional_json_object",
     "require_optional_non_empty_str",
     "require_optional_str",
-    "require_scalar",
     "require_str_list",
 )
 
@@ -181,23 +179,6 @@ def require_json_list(
     return list(value)
 
 
-def require_optional_json_list(
-    value: JSONValue,
-    *,
-    label: str,
-    build_error: ErrorBuilder,
-    invalid_message: str | None = None,
-) -> list[JSONValue] | None:
-    if value is None:
-        return None
-    return require_json_list(
-        value,
-        label=label,
-        build_error=build_error,
-        invalid_message=invalid_message,
-    )
-
-
 def require_json_object_list(
     value: JSONValue,
     *,
@@ -255,22 +236,3 @@ def require_number(
     if isinstance(value, float) and not math.isfinite(value):
         raise build_error(finite_message or invalid_message or f"{label} is invalid.")
     return value
-
-
-def require_scalar(
-    value: JSONValue,
-    *,
-    label: str,
-    build_error: ErrorBuilder,
-    invalid_message: str | None = None,
-    finite_message: str | None = None,
-) -> str | int | float:
-    if isinstance(value, str):
-        return value
-    return require_number(
-        value,
-        label=label,
-        build_error=build_error,
-        invalid_message=invalid_message,
-        finite_message=finite_message,
-    )

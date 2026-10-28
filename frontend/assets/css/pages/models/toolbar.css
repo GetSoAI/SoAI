@@ -221,9 +221,6 @@
         flex: 0 1 auto;
         width: 120px;
         min-width: 60px;
-        transition:
-            border-color var(--transition-fast),
-            box-shadow var(--transition-fast);
     }
 
     :where([data-section='models'], [data-page-scope='models']) .no-parameters {

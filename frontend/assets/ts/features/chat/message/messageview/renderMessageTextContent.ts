@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ensureError } from '@core/errors/coerce.ts';
+import { renderSpeechSetupPlaceholder } from '@core/speechsetup/presentation.ts';
 import { isArray } from '@core/typeGuards.ts';
-import { resolveLoadingActivityErrorText } from '@features/chat/assistanteventtimeline/loadingActivityErrorText.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { resolveLoadingActivityToggleEnabled } from '@features/chat/message/messageview/loadingActivityToggleEnabled.ts';
 import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
@@ -21,7 +21,7 @@ interface RenderMessageTextContentDependencies extends CollapsedLoadingSummaryDe
     getLoadingActivityCollapsedState: (message: ChatMessage) => boolean | null;
     renderSegmentsWithOptions: (segments: MessageSegment[], options?: MessageRenderOptions) => string;
     renderAssistantActivityWidgets: (segments: readonly MessageSegment[]) => string;
-    renderMessageErrorMarkup: (errorText: string) => string;
+    renderMessageFeedbackMarkup: (message: ChatMessage) => string;
     handleMessageRenderError: (message: ChatMessage, error: Error, context: string) => string;
 }
 
@@ -65,7 +65,7 @@ const isAssistantWidgetRenderReady = (presentation: ChatMessageRenderPresentatio
 
 const renderSegmentsWithLoadingGroup = (dependencies: RenderMessageTextContentDependencies, message: ChatMessage, segments: MessageSegment[], presentation: ChatMessageRenderPresentation): string => {
     if (presentation.normalizedRole !== 'assistant') {
-        return dependencies.renderSegmentsWithOptions(segments, createMessageRenderOptions(dependencies, presentation.normalizedRole, resolveLoadingActivityToggleEnabled(segments)));
+        return dependencies.renderSegmentsWithOptions(segments, { ...createMessageRenderOptions(dependencies, presentation.normalizedRole, resolveLoadingActivityToggleEnabled(segments)), ...(message.attachmentMissingCapabilities === undefined ? {} : { attachmentMissingCapabilities: message.attachmentMissingCapabilities }) });
     }
     if (resolveLoadingActivitiesCollapsed(dependencies, message) === true) {
         return renderCollapsedLoadingSummary(dependencies, message, segments, presentation);
@@ -94,12 +94,13 @@ const renderMessageTextContent = (dependencies: RenderMessageTextContentDependen
     }
 
     try {
-        const errorText = resolveLoadingActivityErrorText(message);
         const contentHtml = renderSegmentsWithLoadingGroup(dependencies, message, resolvedSegments, presentation);
-        const errorHtml = errorText ? dependencies.renderMessageErrorMarkup(errorText) : '';
+        const errorHtml = dependencies.renderMessageFeedbackMarkup(message);
 
         if (presentation.normalizedRole !== 'assistant') {
-            return { html: `${contentHtml}${errorHtml}`, resolvedSegments };
+            const missingSpeech = Object.values(message.attachmentMissingCapabilities ?? {}).some((capabilities) => capabilities.includes('speech_to_text'));
+            const speechNote = missingSpeech ? renderSpeechSetupPlaceholder(true, 'labelled').html : '';
+            return { html: `${contentHtml}${speechNote}${errorHtml}`, resolvedSegments };
         }
 
         const widgetsHtml = isAssistantWidgetRenderReady(presentation, forceSettledAssistantBody) ? dependencies.renderAssistantActivityWidgets(resolvedSegments) : '';

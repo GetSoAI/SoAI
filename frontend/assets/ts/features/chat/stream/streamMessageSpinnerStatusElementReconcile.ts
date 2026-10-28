@@ -31,7 +31,7 @@ const cancelVisibilityRevealTimer = (state: SpinnerStatusState): void => {
 };
 
 const scheduleVisibilityReveal = (documentRef: Document, state: SpinnerStatusState): void => {
-    if (state.visibilitySuppressed) {
+    if (state.terminalTransitionActive) {
         return;
     }
     if (state.visibilityRevealTimer !== null && state.scheduledVisibilityRevealAtServerMs === state.visibilityRevealAtServerMs) {
@@ -63,7 +63,7 @@ const scheduleVisibilityReveal = (documentRef: Document, state: SpinnerStatusSta
 };
 
 const reconcileVisibility = (documentRef: Document, state: SpinnerStatusState, actionsElement: HTMLElement, messageRoot: HTMLElement, hasPreview: boolean): void => {
-    if (state.visibilitySuppressed) {
+    if (state.terminalTransitionActive) {
         applyVisibilityWithFade(documentRef, state, actionsElement, false);
         return;
     }
@@ -151,13 +151,17 @@ const reconcileStreamingSpinnerStatusElement = (inputArguments: { documentRef: D
     const spinnerElement = resolveSpinnerElement(actionsElement);
     const overrideText = resolveSpinnerOverrideText(messageRoot, actionsElement);
     const isStreamingMessage = actionsElement.getAttribute('data-message-streaming') === 'true';
-    const existing = getRuntimeStateByMessageId(documentRef, messageId) ?? null;
+    let existing = getRuntimeStateByMessageId(documentRef, messageId) ?? null;
 
     if (!isStreamingMessage) {
         reconcileNonStreamingSpinnerStatusElement({ documentRef, state: existing, statusElement, labelElement, actionsElement, bodyElement });
         return;
     }
 
+    if (existing?.terminalTransitionActive) {
+        finalizeState(documentRef, existing);
+        existing = null;
+    }
     const { text: previewText, hasPreview } = resolveStreamingPreviewState(actionsElement);
     const reboundElements = existing !== null && (existing.messageRoot !== messageRoot || existing.statusElement !== statusElement || existing.labelElement !== labelElement || existing.textElement !== bodyElement || existing.actionsElement !== actionsElement || existing.spinnerElement !== spinnerElement);
     const state = existing ?? createSpinnerStatusRuntimeState({ documentRef, messageId, messageRoot, statusElement, labelElement, bodyElement, actionsElement, spinnerElement, previewText, hasPreview });

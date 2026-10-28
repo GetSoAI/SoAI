@@ -4,6 +4,10 @@
 import { requireChatRagIngestionService } from '@core/chat/ragIngestionServiceAccess.ts';
 import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import { ChangeNotificationSource } from '@core/primitives/changeNotificationSource.ts';
+import { errorHandler } from '@core/errorHandler.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { i18n } from '@core/i18n/index.ts';
+import { notifyObservedSpeechOutcome } from '@core/speechsetup/notifications.ts';
 import { KnowledgeTerminalNotificationRegistry, type RagIngestionStatus } from '@features/chat/public.ts';
 import { refreshComposerState, resolveCurrentConversationSelection } from '@pages/chat/controllers/chatmessagesendingcontroller/effects.ts';
 import { KnowledgeAttachmentDraftCache, refreshKnowledgeAttachmentDraftCache } from '@pages/chat/controllers/chatmessagesendingcontroller/knowledgeAttachmentDraftCacheManager.ts';
@@ -121,8 +125,11 @@ class ChatRagAttachmentSession {
 
     #applyKnowledgeSummary(summary: KnowledgeAttachmentSummary): string {
         const application = this.#knowledgeDrafts.applyChangedSummary(summary);
-        const notification = application.notificationSummary === null ? null : this.#terminalNotifications.take(application.notificationSummary);
-        if (notification !== null) this.#host.platform.feedback.show(notification.message, notification.type);
+        requireChatRagIngestionService().reconcileKnowledgeAttachment(summary);
+        const notificationSummary = application.notificationSummary;
+        const notification = notificationSummary === null ? null : this.#terminalNotifications.take(notificationSummary);
+        if (notificationSummary !== null && notification?.speechNotTranscribed === true) void notifyObservedSpeechOutcome(notification.message, `knowledge:${String(notificationSummary.knowledgeAttachmentId)}:${String(notificationSummary.attachmentRevision)}`, null, 'auto', 'media', i18n.t('speechSetup.notTranscribedAskAdministrator')).catch((error) => errorHandler.warn('SpeechSetup', 'Speech setup notification could not be shown', ensureError(error)));
+        else if (notification !== null) this.#host.platform.feedback.show(notification.message, notification.type);
         const selection = resolveCurrentConversationSelection(this.#host);
         if (selection?.conversationId === application.conversationId) this.#host.services.getAttachmentManager().markKnowledgeAttachmentChanged();
         return application.conversationId;

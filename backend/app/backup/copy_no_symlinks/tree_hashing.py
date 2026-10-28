@@ -13,6 +13,7 @@ from app.backup.copy_no_symlinks.tree_hash_format import (
     update_tree_hasher_for_relative_file,
 )
 from core.errors.exceptions import ValidationError
+from core.filesystem.directory_walk import raise_directory_walk_error
 from core.filesystem.path_coercion import normalize_filesystem_path
 from files.archive import sync_raise_if_symlink
 
@@ -34,7 +35,10 @@ def sync_hash_directory_no_symlinks(
     total_bytes = 0
 
     for filesystem_root, dir_names, file_names in os.walk(
-        normalize_filesystem_path(source_root), topdown=True, followlinks=False
+        normalize_filesystem_path(source_root),
+        topdown=True,
+        followlinks=False,
+        onerror=raise_directory_walk_error,
     ):
         root = os.path.normpath(
             os.path.join(

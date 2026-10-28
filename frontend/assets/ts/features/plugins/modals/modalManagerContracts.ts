@@ -5,11 +5,11 @@ import type { EscapeSanitizerApi } from '@core/security/protocols.ts';
 import type { StatusManager } from '@core/state/statusmanager/service.ts';
 import type { HardwareApi } from '@features/plugins/modals/config/types.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
+import type { BackendUpdateAccess } from '@core/plugins/backendUpdates.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import type { BackendOperationHost } from '@features/plugins/modals/backend/backendTypes.ts';
 import type { ManageBackendModalManager } from '@features/plugins/modals/backend/managebackendmodal/service.ts';
 import type { CloneModalManager } from '@features/plugins/modals/CloneModalManager.ts';
-import type { ConcurrentManagerHost } from '@features/plugins/modals/concurrentmanager/types.ts';
 import type { ConcurrentModalManager } from '@features/plugins/modals/ConcurrentModalManager.ts';
 import type { ConfigManager } from '@features/plugins/modals/ConfigManager.ts';
 import type { DownloadManagerHost, PluginDownloadModalManager } from '@features/plugins/modals/downloadmanager/service.ts';
@@ -17,7 +17,8 @@ import type { InfoManager } from '@features/plugins/modals/InfoManager.ts';
 import type { PluginCapabilityDescriptor } from '@features/plugins/modals/info/types.ts';
 import type { PluginsManagerHostCallbacks } from '@features/plugins/modals/modalCallbacks.ts';
 import type { ConfigUpdateResponse } from '@core/api/contracts/configContracts.ts';
-import type { BackendVariantsResponse, PluginBackendUpdatesResponse, PluginBackendUpdateStatus } from '@core/api/contracts/pluginManagementContracts.ts';
+import type { BackendVariantsResponse, PluginBackendUpdateStatus } from '@core/api/contracts/pluginManagementContracts.ts';
+import type { ManageBackendManagerHost } from '@features/plugins/modals/backend/managebackendmodal/types.ts';
 
 interface PluginsModalManagers {
     downloadModalManager: PluginDownloadModalManager;
@@ -41,7 +42,6 @@ interface PluginsModalManagersApi {
         update(name: string, config: JsonValue): Promise<ConfigUpdateResponse>;
     };
     hardware: HardwareApi;
-    system?: ConcurrentManagerHost['operations']['api']['system'];
 }
 
 interface PluginsModalFoundationPort {
@@ -54,7 +54,6 @@ interface PluginsModalFoundationPort {
 }
 
 interface PluginsModalConcurrencyPort {
-    getRestartOverlay(): ConcurrentManagerHost['operations']['getRestartOverlay'] extends () => infer Value ? Value : never;
     getMaxConcurrentPlugins(): number | null;
     setMaxConcurrentPlugins(value: number | null): void;
     getConcurrentPluginsOriginalValue(): number | null;
@@ -91,6 +90,9 @@ interface PluginsModalPresentationPort {
 }
 
 interface PluginsModalStatePort {
+    backendUpdateAccess(plugin: PluginRecord): BackendUpdateAccess;
+    subscribeBackendUpdateAccess(listener: () => void): () => void;
+    catalog: ManageBackendManagerHost['catalog'];
     subscribeModalLedUpdates(): void;
     unsubscribeModalLedUpdates(): void;
     setCurrentManagingPlugin(plugin: PluginRecord | null): void;
@@ -99,8 +101,8 @@ interface PluginsModalStatePort {
 
 interface PluginsModalUpdatePort {
     normalizeVersion(value: JsonValue | null | undefined): { raw: string | null; safe: string | null };
-    checkUpdates(): Promise<PluginBackendUpdatesResponse>;
-    getBackendVariants(pluginName: string): Promise<BackendVariantsResponse>;
+    checkBackendUpdate(pluginName: string, options?: { signal?: AbortSignal }): Promise<PluginBackendUpdateStatus>;
+    getBackendVariants(pluginName: string, options?: { signal?: AbortSignal }): Promise<BackendVariantsResponse>;
     saveBackendVariantSelection(pluginName: string, variantId: string): Promise<BackendVariantsResponse>;
 }
 

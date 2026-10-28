@@ -55,7 +55,6 @@ const populateModelDetailExternalProviderCard = (host: ModelDetailCardSectionsHo
         ['modeldetail-provider-name', providerMetadata['name']],
         ['modeldetail-provider-api-url', providerMetadata['apiUrl'], (value: JsonValue | null | undefined): string | null => (isString(value) ? maskModelDetailApiUrl(value) : null)],
         ['modeldetail-provider-id', providerMetadata['id']],
-        ['modeldetail-provider-status', providerMetadata['status']],
         ['modeldetail-provider-created', providerMetadata['createdAtMs'], (value: JsonValue | null | undefined): string | null => (isNumber(value) ? formatModelDetailDateTime(value) : null)]
     ];
     fields.forEach((field) => host.setInfo(field[0], field[1], field[2]));

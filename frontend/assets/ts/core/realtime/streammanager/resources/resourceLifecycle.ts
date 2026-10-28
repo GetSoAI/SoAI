@@ -1,9 +1,11 @@
 /* SoAI - Frontend resource reconciliation lifecycle [frontend/assets/ts/core/realtime/streammanager/resources/resourceLifecycle.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { createAbortError, isAbortError, throwIfAborted } from '@core/errors/abort.ts';
+import { createAbortError, isAbortError, runWithAbortSignalScope, throwIfAborted } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { LifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { withAbortableTimeout } from '@core/primitives/withAbortableTimeout.ts';
 import type { ResourceConfig, ResourceContext, ResourceEntry } from '@core/realtime/streammanager/types.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 
@@ -135,12 +137,35 @@ const ensureStart = async (
     if (!retainedResource) throw new Error(`Missing resource: ${resourceName}`);
     if (retainedResource.status === 'ready') return retainedResource.value;
     if (retainedResource.maintenance && retainedResource.value !== null) return retainedResource.value;
+    const reconciler = retainedResource.reconciler;
+    const lifecycleGeneration = reconciler.snapshot.lifecycleGeneration;
+    const transportEpoch = reconciler.snapshot.transportEpoch;
+    const configurationRevision = retainedResource.configurationRevision;
+    const requireOwnedResource = (): ResourceEntry => {
+        const readyResource = dependencies.getResource(resourceName);
+        if (!readyResource) throw new Error(`Missing resource: ${resourceName}`);
+        if (readyResource !== retainedResource || readyResource.reconciler !== reconciler || readyResource.configurationRevision !== configurationRevision || reconciler.snapshot.lifecycleGeneration !== lifecycleGeneration || reconciler.snapshot.transportEpoch !== transportEpoch) throw new LifecycleCancellationError(`Resource ${resourceName} start was superseded`, 'resource-start-superseded');
+        return readyResource;
+    };
     await dependencies.ensureReady(options);
-    await dependencies.startResource(resourceName, options);
-    const readyResource = dependencies.getResource(resourceName);
-    if (!readyResource) throw new Error(`Missing resource: ${resourceName}`);
-    if (readyResource.status !== 'ready') throw new Error(`Resource did not become ready: ${resourceName}`);
-    return readyResource.value;
+    throwIfAborted(options.signal);
+    requireOwnedResource();
+    return withAbortableTimeout(
+        (timeoutSignal) =>
+            runWithAbortSignalScope([timeoutSignal, options.signal], async (signal) => {
+                for (;;) {
+                    await dependencies.startResource(resourceName, { signal });
+                    throwIfAborted(signal);
+                    const readyResource = requireOwnedResource();
+                    if (readyResource.status !== 'ready') {
+                        if ((readyResource.status === 'initializing' || readyResource.status === 'recovering') && reconciler.reconciling) continue;
+                        throw new Error(`Resource did not become ready: ${resourceName}`);
+                    }
+                    return readyResource.value;
+                }
+            }),
+        { timeoutMs: reconciler.completionTimeoutMs, timeoutMessage: `Resource ${resourceName} readiness deadline exceeded` }
+    );
 };
 
 export { ensureStart, startResource, startWebSocketResource };

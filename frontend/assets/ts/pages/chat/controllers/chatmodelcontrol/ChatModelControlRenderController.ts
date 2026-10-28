@@ -2,11 +2,15 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { readScrollInlineStart, scrollToInlineStart } from '@core/layout/direction.ts';
-import { PRESENCE_EXITING_SELECTOR } from '@core/animations/presence/public.ts';
+import { PRESENCE_EXITING_SELECTOR, exitWithPresence, isPresenceExiting } from '@core/animations/presence/public.ts';
 import { parseSingleRootElement } from '@core/dom/parseSingleRootElement.ts';
 import { dom } from '@core/dom/dom.ts';
 import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
+import { waitForElementAnimations } from '@core/pageTransitions.ts';
+import { errorHandler } from '@core/errorHandler.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import type { SanitizerApi } from '@core/pagecontext/public.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { ModelData } from '@core/types/modelTypes.ts';
@@ -64,7 +68,6 @@ class ChatModelControlRenderController {
 
     renderOpenMenuState(openMenu: ModelControlMenuOpenState, menuSearchQuery: string): ModelControlMenuOpenState {
         const state = this.#resolveRenderState(openMenu, menuSearchQuery);
-        this.#releaseMenuLayout();
         for (const root of this.#queryRoots()) {
             const scope = requireChatModelControlScopeFromRoot(root);
             this.#closeRootMenu(root);
@@ -90,8 +93,8 @@ class ChatModelControlRenderController {
             if (animations.length === 0) scrollToEnd();
             else
                 terminateHandledPromise(
-                    Promise.allSettled(animations.map((animation) => animation.finished)).then((results) => {
-                        if (results.every((result) => result.status === 'fulfilled')) scrollToEnd();
+                    waitForElementAnimations(slots, { ensureStarted: false, animations }).then(scrollToEnd, (error) => {
+                        if (!isAbortError(error)) errorHandler.warn('ChatModelControl', 'Model slot motion did not complete', ensureError(error));
                     })
                 );
         }
@@ -138,7 +141,7 @@ class ChatModelControlRenderController {
         }
         let needsMenuLayout = true;
         if (currentControl instanceof HTMLElement) {
-            const currentMenu = dom.resolve(CHAT_MODEL_MENU_SELECTOR, currentControl);
+            const currentMenu = dom.resolve(CHAT_MODEL_OPEN_MENU_SELECTOR, currentControl);
             const currentTrigger = state.nextOpenMenu === null ? null : this.#resolveTrigger(currentControl, state.nextOpenMenu.slotIndex);
             reconcileChatModelControl(currentControl, nextControl);
             const nextMenu = dom.resolve(CHAT_MODEL_MENU_SELECTOR, nextControl);
@@ -177,12 +180,19 @@ class ChatModelControlRenderController {
     }
 
     #closeRootMenu(root: HTMLElement): void {
-        if (this.#menuLayout !== null && root.contains(this.#menuLayout.menu)) this.#releaseMenuLayout();
+        const layout = this.#menuLayout !== null && root.contains(this.#menuLayout.menu) ? this.#menuLayout : null;
+        if (layout) this.#menuLayout = null;
         for (const menu of dom.resolveAll(CHAT_MODEL_MENU_SELECTOR, root)) {
-            dom.remove(menu);
+            if (!(menu instanceof HTMLElement) || isPresenceExiting(menu)) continue;
+            dom.removeClass(menu, 'is-open');
+            exitWithPresence(menu, null, () => {
+                if (layout?.menu === menu) layout.dispose();
+                dom.remove(menu);
+            });
         }
         for (const trigger of dom.resolveAll(CHAT_MODEL_OPEN_TRIGGER_SELECTOR, root)) {
             dom.removeClass(trigger, 'is-open');
+            dom.setAttribute(trigger, 'aria-expanded', 'false');
         }
     }
 
@@ -207,6 +217,7 @@ class ChatModelControlRenderController {
             throw new Error('Chat model control menu opening requires a matching trigger and menu');
         }
         dom.addClass(trigger, 'is-open');
+        dom.setAttribute(trigger, 'aria-expanded', 'true');
         dom.appendChild(currentControl, nextMenu);
         this.#openMenuLayout(nextMenu, trigger, scope);
         applyChatModelMenuSearchFilter(nextMenu, state.menuSearchQuery);

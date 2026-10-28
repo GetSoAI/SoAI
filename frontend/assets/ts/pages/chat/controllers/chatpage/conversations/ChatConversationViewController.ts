@@ -31,7 +31,7 @@ import { initializeEmptyStateNav } from '@pages/chat/controllers/page/renderer/e
 import { buildAiSetupResumeRoute } from '@core/routing/router/aiSetupRoutes.ts';
 import type { ChatPageStorageSource } from '@pages/chat/controllers/chatpage/construction/baseHost.ts';
 import { ConversationListPresentationController } from '@pages/chat/controllers/page/renderer/ConversationListPresentationController.ts';
-import { syncCurrentConversationColorAttribute } from '@pages/chat/controllers/page/renderer/currentConversationStateController.ts';
+import { syncCurrentConversationColorAttribute, syncCurrentConversationTitleUi } from '@pages/chat/controllers/page/renderer/currentConversationStateController.ts';
 
 interface ChatConversationViewStatePort extends ChatComposerSurfaceRuntimeOwner, ChatConfigurationRuntimeOwner, ChatConversationRuntimeOwner, ChatTurnRuntimeOwner, ChatConversationStateHost, ChatSettingsStateHost, ChatViewStateHost, ChatRuntimeServicesHost {}
 
@@ -54,6 +54,7 @@ class ChatConversationViewController implements ChatConversationViewContract {
     readonly #renderedHandlers = new Set<(outcome: ChatConversationRenderOutcome) => void>();
     readonly #emptyState = new ChatPageEmptyState();
     readonly #listPresentation: ConversationListPresentationController;
+    #disposed = false;
     #actions: ChatConversationActionsContract | null = null;
 
     constructor(dependencies: ChatConversationViewDependencies) {
@@ -103,6 +104,7 @@ class ChatConversationViewController implements ChatConversationViewContract {
     }
 
     dispose(): void {
+        this.#disposed = true;
         this.#actions?.dispose();
         this.#actions = null;
         this.#listPresentation.dispose();
@@ -141,9 +143,14 @@ class ChatConversationViewController implements ChatConversationViewContract {
     }
 
     async refreshListAndHeader(): Promise<void> {
+        const signal = this.#dependencies.pageLifecycle.signal();
+        if (this.#disposed || this.#dependencies.pageLifecycle.isDestroyed || signal?.aborted) return;
         await this.#renderList();
+        if (this.#disposed || this.#dependencies.pageLifecycle.isDestroyed || signal?.aborted || this.#dependencies.pageLifecycle.signal() !== signal) return;
+        const conversation = this.current();
+        syncCurrentConversationTitleUi(this.#currentRender, conversation);
         const messagesContainer = this.#dependencies.pageDom.optional(CHAT_SELECTORS.MESSAGES_CONTAINER);
-        if (messagesContainer) syncCurrentConversationColorAttribute(this.#currentRender, messagesContainer, this.current());
+        if (messagesContainer) syncCurrentConversationColorAttribute(this.#currentRender, messagesContainer, conversation);
         this.#updateHeaderActions();
     }
 

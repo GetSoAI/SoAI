@@ -92,7 +92,7 @@ interface PageOutletService {
     getState?: (() => string) | undefined;
 }
 
-type PageOutletConstructor = new (options: { emitEvent: RouterEventEmitter; onPreservedPageFailure: () => void; onRetry: () => void; pageRegistry: PageRegistry }) => PageOutletService;
+type PageOutletConstructor = new (options: { emitEvent: RouterEventEmitter; onPreservedPageFailure: () => void; onRetry: () => void; pageRegistry: PageRegistry; spinnerWorkerUrl?: string | undefined }) => PageOutletService;
 
 interface ResourceTrackerClass {
     new (): ResourceTrackerInstance;
@@ -115,6 +115,7 @@ interface ErrorBoundaryInstance {
 type RouterEventEmitter = (stage: string, data?: Record<string, JsonValue | null | undefined>, severity?: string) => void;
 
 interface RouterDependencies {
+    spinnerWorkerUrl?: string | undefined;
     dom: DomService;
     storage: StorageService;
     auth: AuthService;

@@ -20,15 +20,16 @@ from core.events.publication_errors import HardDeadlineExceededError
 from core.events.types_base import Event
 from core.features.protocols import CommandDispatcherProtocol
 from core.logging.trace import get_logger
+from core.mutations.dispatch_notification import (
+    notify_mutation_dispatch_requested,
+)
 from core.runtime.request_source_resolution import resolve_request_source_for_request
 from core.tasks.protocols import TaskRegistryProtocol
+from core.timing.monotonic import monotonic_ms
 from features.api.runtime.audit import log_audit_event
 from features.api.runtime.command_publishing import construct_and_publish_command
 from features.api.runtime.errors import raise_invalid_request
 from features.api.runtime.metadata_values import sanitize_dict_for_logging
-from features.api.runtime.mutation_dispatch_notification import (
-    notify_mutation_dispatch_requested,
-)
 from features.api.runtime.response_cleanup import (
     handle_dispatch_cancellation,
     handle_dispatch_soai_error,
@@ -118,12 +119,14 @@ class CommandDispatcher(CommandDispatcherProtocol[Event]):
             for field_name, field_value in resolved_command_fields.items()
         }
         command_type: type[Event] = command_class
+        acceptance_started_ms = monotonic_ms()
         log_audit_event(
             request,
             audit_action,
             audit_target,
             dict(audit_details) if audit_details is not None else None,
         )
+        audit_completed_ms = monotonic_ms()
         get_logger(LOGGER_NAME).debug(
             "Dispatching %s with fields %s",
             command_type.__name__,
@@ -137,6 +140,7 @@ class CommandDispatcher(CommandDispatcherProtocol[Event]):
             dict(audit_details) if audit_details is not None else None,
             presentation_command_fields,
         )
+        preparation_completed_ms = monotonic_ms()
         task, reply_queue = await create_dispatch_task(
             request,
             self._task_registry,
@@ -145,6 +149,15 @@ class CommandDispatcher(CommandDispatcherProtocol[Event]):
             request_source=resolve_request_source_for_request(request),
             delivery_mode="blocking" if normalized_response_type == "final" else "async",
             mutation_admission=mutation_admission,
+        )
+        persistence_completed_ms = monotonic_ms()
+        get_logger(LOGGER_NAME).trace(
+            "Command %s acceptance stages: audit=%sms preparation=%sms persistence=%sms task=%s",
+            command_type.__name__,
+            audit_completed_ms - acceptance_started_ms,
+            preparation_completed_ms - audit_completed_ms,
+            persistence_completed_ms - preparation_completed_ms,
+            task.task_id,
         )
         if mutation_admission is not None:
             if task.mutation_admission_outcome == "accepted":
@@ -161,6 +174,12 @@ class CommandDispatcher(CommandDispatcherProtocol[Event]):
             task.task_id,
             reply_queue,
             resolved_command_fields,
+        )
+        get_logger(LOGGER_NAME).trace(
+            "Command %s delivery completed in %sms task=%s",
+            command_type.__name__,
+            monotonic_ms() - persistence_completed_ms,
+            task.task_id,
         )
         return await self._handle_response(
             request,

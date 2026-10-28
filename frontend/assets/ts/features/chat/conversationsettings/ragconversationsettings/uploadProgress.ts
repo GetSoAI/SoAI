@@ -6,6 +6,7 @@ import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { requireTaskOperationsApi } from '@core/tasks/serviceAccess.ts';
 import type { RagIngestionStatus } from '@features/chat/ingestion/types.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
+import { isRagIngestionTerminal } from '@features/chat/ragingestion/finalization/state.ts';
 
 const buildProgressKey = (conversationId: string): string => `rag-ingestion:${conversationId}`;
 
@@ -60,7 +61,7 @@ const syncRagUploadProgress = (conversationId: string | null, status: RagIngesti
         requireTaskOperationsApi().removeLocalOperation(progressKey);
         return;
     }
-    if (status.state === 'submitted' || status.state === 'cancelled') {
+    if (isRagIngestionTerminal(status)) {
         requireTaskOperationsApi().removeLocalOperation(progressKey);
         return;
     }

@@ -1,8 +1,10 @@
 /* SoAI - Frontend application lifecycle DOM contracts [frontend/assets/ts/app/bootstrap/stages/applifecycle/dom.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { animateShellEntrance, cancelShellEntrance } from '@core/layout/shellEntrance.ts';
 import { toTrustedUiHtml } from '@core/security/public.ts';
 import { querySelectorStrict } from '@app/bootstrap/stages/appLifecycleSupport.ts';
+import { describeInitializationFailure, type InitializationStage } from '@app/bootstrap/stages/initializationStage.ts';
 import { clearActiveWallpaperReadiness } from '@core/backgroundtasks/wallpaperReadiness.ts';
 import { getDiscoveryService } from '@core/discoveryservice/public.ts';
 import { dom } from '@core/dom/dom.ts';
@@ -18,6 +20,25 @@ import type { StateManager } from '@core/state/public.ts';
 import { EMPTY_UI_HTML, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 import { isArray, isInstanceOf, isThenable } from '@core/typeGuards.ts';
 
+const describeInitializationStage = (stage: InitializationStage | null, messages: ReturnType<typeof resolveBootMessages>): string => {
+    switch (stage) {
+        case 'entrypoint':
+            return i18n.t('app.errors.stages.entrypoint', undefined, messages);
+        case 'criticalServices':
+            return i18n.t('app.errors.stages.criticalServices', undefined, messages);
+        case 'authentication':
+            return i18n.t('app.errors.stages.authentication', undefined, messages);
+        case 'session':
+            return i18n.t('app.errors.stages.session', undefined, messages);
+        case 'routeRendering':
+            return i18n.t('app.errors.stages.routeRendering', undefined, messages);
+        case 'background':
+            return i18n.t('app.errors.stages.background', undefined, messages);
+        case null:
+            return i18n.t('app.errors.unknown', undefined, messages);
+    }
+};
+
 export const prepareLifecycleEnvironment = (): void => {
     const body = requireDocument().body;
     if (!body) {
@@ -26,7 +47,7 @@ export const prepareLifecycleEnvironment = (): void => {
     dom.addClass(body, ['ui-ready', 'ui-animated']);
 };
 
-export const toggleMainUIVisibility = (show: boolean, stateManager: StateManager): void => {
+export const toggleMainUIVisibility = (show: boolean, stateManager: StateManager, animateEntrance = false): void => {
     const elements = ['.header', '.sidebar'].map((selector) => {
         const element = querySelectorStrict(selector);
         if (!isInstanceOf(element, HTMLElement)) {
@@ -35,6 +56,7 @@ export const toggleMainUIVisibility = (show: boolean, stateManager: StateManager
         return element;
     });
 
+    if (!show) cancelShellEntrance(elements);
     elements.forEach((element) => {
         if (show) {
             dom.removeClass(element, 'u-hidden');
@@ -50,6 +72,7 @@ export const toggleMainUIVisibility = (show: boolean, stateManager: StateManager
         if (body) {
             dom.removeClass(body, ['page-login', 'page-wizard']);
         }
+        if (animateEntrance) animateShellEntrance(elements);
     }
 };
 
@@ -74,7 +97,8 @@ export const renderLifecycleInitializationError = (error: Error, finalizePreload
     container.lang = messages.language;
     container.dir = messages.direction;
     const editionIntegrityFailure = isBackendEditionIntegrityError(error);
-    const message = editionIntegrityFailure ? i18n.t('app.errors.editionIntegrity.message', undefined, messages) : options.missingPage ? i18n.t('app.detachedWindow.errors.noPageSpecified', undefined, messages) : detached ? i18n.t('app.detachedWindow.errors.initializationFailed', undefined, messages) : i18n.t('app.errors.unknown', undefined, messages);
+    const failure = describeInitializationFailure(error);
+    const message = editionIntegrityFailure ? i18n.t('app.errors.editionIntegrity.message', undefined, messages) : options.missingPage ? i18n.t('app.detachedWindow.errors.noPageSpecified', undefined, messages) : detached ? i18n.t('app.detachedWindow.errors.initializationFailed', undefined, messages) : describeInitializationStage(failure.stage, messages);
     const discoveryError = error instanceof BackendDiscoveryError;
 
     let detailsMarkup = EMPTY_UI_HTML;
@@ -119,7 +143,10 @@ export const renderLifecycleInitializationError = (error: Error, finalizePreload
                         </div>
                     </div>
 
-                    <div class="initialization-error__details">${detailsMarkup}</div>
+                    <div class="initialization-error__details">
+                        ${detailsMarkup}
+                        <p>${i18n.t('app.errors.reference', { reference: failure.reference }, messages)}</p>
+                    </div>
 
                     <div class="initialization-error__actions">
                         <button

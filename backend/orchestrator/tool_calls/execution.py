@@ -15,6 +15,7 @@ from core.errors.external_service_exception import MCPError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.orchestrator.types import MCPToolContext
 from core.runtime.request_context import RequestContext
+from core.skills.execution_policy import require_skill_tool_permission, skill_foreign_tool_guidance
 from core.tool_calls.plan_mode_policy import plan_mode_block_reason
 from core.tool_calls.visibility import should_persist_visible_tool_call_rows
 from orchestrator.tool_calls.claimed_call_wait import wait_for_claimed_tool_call_result
@@ -94,6 +95,9 @@ async def execute_single_tool_call(
                     record=tool_call_record,
                     tool_name=prepared_input.tool_name,
                     tool_map=tool_context.tool_map,
+                    compatibility_guidance=skill_foreign_tool_guidance(
+                        request_context.skill_execution_context, prepared_input.tool_name
+                    ),
                 ),
             )
         except ConflictError:
@@ -189,6 +193,9 @@ async def execute_single_tool_call(
         return build_execution_boundary_error_payload(coerced)
     start_time = time.monotonic()
     try:
+        require_skill_tool_permission(
+            request_context.skill_execution_context, prepared_input.tool_name
+        )
         executor_identity = resolve_tool_call_executor_identity(
             tool_context=tool_context,
             chronology=prepared_input.chronology,
@@ -217,14 +224,12 @@ async def execute_single_tool_call(
         )
         if deferred_acceptance is not None:
             return deferred_acceptance.result
-        result = raw_result
-        await persist_tool_call_completed_result(
+        return await persist_tool_call_completed_result(
             persistence_context,
             record=tool_call_record,
-            result_payload=result,
+            result_payload=raw_result,
             duration_ms=duration_ms,
         )
-        return result
     except asyncio.CancelledError:
         duration_ms = int((time.monotonic() - start_time) * 1000)
         try:

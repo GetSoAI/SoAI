@@ -9,17 +9,14 @@ from typing import TYPE_CHECKING
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import ProcessError
+from core.errors.exceptions import ProcessError, SoAITimeoutError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
-from core.types.json_value import coerce_json_dict_or_empty
-from core.validation.numberish import require_int_from_numberish
 from hardware.soaibench.errors import SoAIBenchHeartbeatSuperseded, SoAIBenchUnsupported
 from hardware.soaibench.events import publish_soaibench_worker_update
 from hardware.soaibench.preflight import run_preflight
 from hardware.soaibench.start_state import persist_preflight_summary
 from hardware.soaibench.telemetry import SoAIBenchTelemetryDiagnostics
-from hardware.soaibench.types import SoAIBenchBenchmarkMode, SoAIBenchProfile
 from hardware.soaibench.worker_cancellation import (
     finish_direct_cancellation_preserving,
 )
@@ -30,12 +27,13 @@ from hardware.soaibench.worker_context import (
 )
 from hardware.soaibench.worker_inputs import (
     base_summary_from_run,
-    temperature_limit_from_summary,
+    parse_worker_run_inputs,
 )
 from hardware.soaibench.worker_profiles import run_selected_profile
 from hardware.soaibench.worker_runtime_conditions import finish_cancelled_runtime_profile
 from hardware.soaibench.worker_settlement import (
     close_execution_or_fail,
+    settle_execution_failure,
     settle_soaibench_terminal,
 )
 from hardware.soaibench.worker_terminal import (
@@ -45,6 +43,7 @@ from hardware.soaibench.worker_terminal import (
 )
 
 if TYPE_CHECKING:
+    from core.concurrency.bounded_blocking import BoundedBlockingPool
     from core.events.protocols import EventBusProtocol
     from core.hardware.protocols import HardwareManagerProtocol
     from core.hardware.protocols_soaibench import DatabaseSoAIBenchProtocol
@@ -71,6 +70,7 @@ async def run_soaibench_worker(
     event_bus: EventBusProtocol,
     logger: LoggerProtocol,
     hardware_manager: HardwareManagerProtocol,
+    telemetry_pool: BoundedBlockingPool,
     opencl_pool: SoAIBenchOpenCLExecutionProtocol,
     run: JSONDict,
     identity: SoAIBenchGpuIdentity,
@@ -80,11 +80,7 @@ async def run_soaibench_worker(
     stop_event: asyncio.Event,
     deferred_tool_activity: DeferredToolCallActivity | None,
 ) -> None:
-    profile = SoAIBenchProfile(str(run["profile"]))
-    benchmark_mode = SoAIBenchBenchmarkMode(str(run.get("benchmark_mode") or "quick"))
-    started_at_ms = require_int_from_numberish(run["started_at_ms"], field="started_at_ms")
-    base_summary = base_summary_from_run(run)
-    temperature_limit_celsius = temperature_limit_from_summary(base_summary)
+    run_inputs = parse_worker_run_inputs(run)
     event_context = SoAIBenchWorkerEventContext(
         event_bus=event_bus,
         logger=logger,
@@ -99,12 +95,12 @@ async def run_soaibench_worker(
         run_id=run_id,
         task_id=task_id,
         identity=identity,
-        started_at_ms=started_at_ms,
-        base_summary=base_summary,
-        settings_snapshot=coerce_json_dict_or_empty(run.get("settings_snapshot")),
-        temperature_limit_celsius=temperature_limit_celsius,
+        started_at_ms=run_inputs.started_at_ms,
+        base_summary=run_inputs.base_summary,
+        settings_snapshot=run_inputs.settings_snapshot,
+        temperature_limit_celsius=run_inputs.temperature_limit_celsius,
         stop_event=stop_event,
-        telemetry_diagnostics=SoAIBenchTelemetryDiagnostics(),
+        telemetry_diagnostics=SoAIBenchTelemetryDiagnostics(blocking_pool=telemetry_pool),
         state=worker_state,
     )
     try:
@@ -112,7 +108,7 @@ async def run_soaibench_worker(
             await opencl_pool.close()
             terminal = await finish_cancelled_runtime_profile(
                 runtime_context=runtime_context,
-                profile=profile,
+                profile=run_inputs.profile,
             )
             await settle_soaibench_terminal(
                 event_context=event_context,
@@ -128,15 +124,15 @@ async def run_soaibench_worker(
             match=match,
         )
         worker_state.current_run = preflight_run
-        base_summary.clear()
-        base_summary.update(base_summary_from_run(preflight_run))
+        run_inputs.base_summary.clear()
+        run_inputs.base_summary.update(base_summary_from_run(preflight_run))
         await publish_soaibench_worker_update(event_context, preflight_run, "preflight")
         await run_selected_profile(
             opencl_pool=opencl_pool,
             runtime_context=runtime_context,
             event_context=event_context,
-            profile=profile,
-            benchmark_mode=benchmark_mode,
+            profile=run_inputs.profile,
+            benchmark_mode=run_inputs.benchmark_mode,
         )
         if worker_state.terminal_run is not None:
             await settle_soaibench_terminal(
@@ -153,10 +149,10 @@ async def run_soaibench_worker(
                 terminal = await finish_failure(
                     database_hardware=database_hardware,
                     run_id=run_id,
-                    started_at_ms=started_at_ms,
-                    base_summary=base_summary,
+                    started_at_ms=run_inputs.started_at_ms,
+                    base_summary=run_inputs.base_summary,
                     reason="opencl_child_termination_failed",
-                    message="SoAIBench OpenCL child termination could not be verified.",
+                    message="SoAI Bench OpenCL child termination could not be verified.",
                 )
                 await settle_soaibench_terminal(
                     event_context=event_context,
@@ -166,11 +162,11 @@ async def run_soaibench_worker(
                 )
                 raise
             exception.add_note(
-                f"SoAIBench OpenCL child exited during cancellation: {cleanup_exception}"
+                f"SoAI Bench OpenCL child exited during cancellation: {cleanup_exception}"
             )
         await finish_direct_cancellation_preserving(
             runtime_context=runtime_context,
-            profile=profile,
+            profile=run_inputs.profile,
             primary_exception=exception,
         )
         if worker_state.terminal_run is not None:
@@ -181,34 +177,15 @@ async def run_soaibench_worker(
                 run=worker_state.terminal_run,
             )
         raise
-    except ProcessError as exception:
-        if not await close_execution_or_fail(
-            opencl_pool=opencl_pool,
-            primary_exception=exception,
-            runtime_context=runtime_context,
-            event_context=event_context,
-            deferred_tool_activity=deferred_tool_activity,
-        ):
-            return
-        terminal = await finish_failure(
-            database_hardware=database_hardware,
-            run_id=run_id,
-            started_at_ms=started_at_ms,
-            base_summary=base_summary,
-            reason="opencl_runtime_error",
-            message="SoAIBench OpenCL child communication failed.",
-        )
-        await settle_soaibench_terminal(
-            event_context=event_context,
-            task_registry=task_registry,
-            deferred_tool_activity=deferred_tool_activity,
-            run=terminal,
-        )
-        log_exception(
-            logger,
-            exception,
-            message="SoAIBench OpenCL child communication failed.",
-            operation=WORKER_OPERATION,
+    except (ProcessError, SoAITimeoutError) as exception:
+        await uncancel_then_cleanup(
+            settle_execution_failure(
+                opencl_pool=opencl_pool,
+                exception=exception,
+                runtime_context=runtime_context,
+                event_context=event_context,
+                deferred_tool_activity=deferred_tool_activity,
+            )
         )
     except SoAIBenchHeartbeatSuperseded as exception:
         if exception.durable_run.get("status") == "running":
@@ -223,7 +200,7 @@ async def run_soaibench_worker(
             return
         terminal = await finish_cancelled_runtime_profile(
             runtime_context=runtime_context,
-            profile=profile,
+            profile=run_inputs.profile,
         )
         await settle_soaibench_terminal(
             event_context=event_context,
@@ -244,8 +221,8 @@ async def run_soaibench_worker(
             terminal = await finish_unstable(
                 database_hardware=database_hardware,
                 run_id=run_id,
-                started_at_ms=started_at_ms,
-                base_summary=base_summary,
+                started_at_ms=run_inputs.started_at_ms,
+                base_summary=base_summary_from_run(worker_state.current_run),
                 reason=exception.reason,
                 message=exception.message,
             )
@@ -259,8 +236,8 @@ async def run_soaibench_worker(
         terminal = await finish_unsupported(
             database_hardware=database_hardware,
             run_id=run_id,
-            started_at_ms=started_at_ms,
-            base_summary=base_summary,
+            started_at_ms=run_inputs.started_at_ms,
+            base_summary=base_summary_from_run(worker_state.current_run),
             exception=exception,
         )
         await settle_soaibench_terminal(
@@ -281,16 +258,16 @@ async def run_soaibench_worker(
         log_exception(
             logger,
             exception,
-            message="SoAIBench recoverable worker failure.",
+            message="SoAI Bench recoverable worker failure.",
             operation=WORKER_OPERATION,
         )
         terminal = await finish_failure(
             database_hardware=database_hardware,
             run_id=run_id,
-            started_at_ms=started_at_ms,
-            base_summary=base_summary,
+            started_at_ms=run_inputs.started_at_ms,
+            base_summary=base_summary_from_run(worker_state.current_run),
             reason="opencl_runtime_error",
-            message="SoAIBench failed while executing the OpenCL workload.",
+            message="SoAI Bench failed while executing the OpenCL workload.",
         )
         await settle_soaibench_terminal(
             event_context=event_context,
@@ -314,16 +291,16 @@ async def run_soaibench_worker(
         log_exception(
             logger,
             coerced_exception,
-            message="SoAIBench worker failure.",
+            message="SoAI Bench worker failure.",
             operation=WORKER_OPERATION,
         )
         terminal = await finish_failure(
             database_hardware=database_hardware,
             run_id=run_id,
-            started_at_ms=started_at_ms,
-            base_summary=base_summary,
+            started_at_ms=run_inputs.started_at_ms,
+            base_summary=base_summary_from_run(worker_state.current_run),
             reason="opencl_runtime_error",
-            message="SoAIBench failed while executing the OpenCL workload.",
+            message="SoAI Bench failed while executing the OpenCL workload.",
         )
         await settle_soaibench_terminal(
             event_context=event_context,

@@ -4,12 +4,13 @@
 import { resolveAssistantTimelineRenderEntries } from '@features/chat/assistanteventtimeline/timelineRenderEntries.ts';
 import type { AssistantTimelineIndexState } from '@features/chat/assistanteventtimeline/timelineIndexState.ts';
 import { resolveAnchoredAssistantSegments } from '@features/chat/message/anchoredAssistantSegments.ts';
+import { resolveAssistantCancellationReason } from '@features/chat/message/assistantOutputNotice.ts';
 import { isCancelledAssistantMessage } from '@features/chat/message/placeholderAssistantMessage.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
 
 const ensureCancelledPlaceholder = (cancelledPlaceholderText: string, message: ChatMessage, segments: MessageSegment[]): MessageSegment[] => {
-    if (segments.length > 0) {
+    if (segments.length > 0 || resolveAssistantCancellationReason(message) !== null) {
         return segments;
     }
     if (!isCancelledAssistantMessage(message)) {

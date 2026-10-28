@@ -36,7 +36,7 @@ class PromptListRowRenderer extends BaseCardRenderer<PromptRecord | null | undef
         const content = editing ? this.renderContentEditor(prompt) : this.renderContentText(prompt);
         const actions = editing ? this.renderEditActions(prompt) : this.renderViewActions();
         const markup = `
-            <tr class="${this.cards.escapeAttribute(className)}" data-render-mode="list"${rowActionAttribute} data-prompt-id="${this.cards.escapeAttribute(prompt.id)}" data-selected-color="${this.cards.escapeAttribute(normalizedColor)}"${colorAttribute}>
+            <tr class="${this.cards.escapeAttribute(className)}" data-render-mode="list" data-presence-atomic${rowActionAttribute} data-prompt-id="${this.cards.escapeAttribute(prompt.id)}" data-selected-color="${this.cards.escapeAttribute(normalizedColor)}"${colorAttribute}>
                 <td class="prompts-list-cell prompts-list-selection-cell"><input type="checkbox" aria-label="${openLabel}"${selected ? ' checked' : ''}></td>
                 <td class="prompts-list-cell prompts-list-cell-main">
                     ${title}

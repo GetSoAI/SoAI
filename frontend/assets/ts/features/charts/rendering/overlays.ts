@@ -131,7 +131,13 @@ const drawCrosshair = (scene: ChartRenderingScene, context: CanvasRenderingConte
 
     if (!scene.state.chartOptions.showAxisCoordinates || !isFiniteNumber(value)) return;
     if (!crosshair.gap) {
-        drawCoordinateLabel(context, dims.right + 4 + (context.measureText(isolateLtrText(scene.format.formatValue(value))).width + 16) / 2, yCoordinate, isolateLtrText(scene.format.formatValue(value)), {
+        const label = isolateLtrText(scene.format.formatValue(value));
+        context.save();
+        context.font = '600 12px sans-serif';
+        const labelWidth = context.measureText(label).width + 16;
+        context.restore();
+        const labelCenter = Math.max(labelWidth / 2 + 4, Math.min(dims.width - labelWidth / 2 - 4, dims.right + 4 + labelWidth / 2));
+        drawCoordinateLabel(context, labelCenter, yCoordinate, label, {
             bgColor: requireThemeColor(themeStyles, 'crosshairValueBackground'),
             textColor: requireThemeColor(themeStyles, 'crosshairValueTextColor')
         });
@@ -213,6 +219,8 @@ const drawLegend = (scene: ChartRenderingScene, context: CanvasRenderingContext2
     const metricNamePrefix = options.metricName ? `${options.metricName}${metricNameSeparator}` : '';
     const textStyle = getChartTextStyle(scene.state.element);
     const chartDims = scene.geometry.getChartDimensions();
+    const narrow = chartDims.width <= 600;
+    const legendMaxWidth = max(1, chartDims.width - 8 - scene.state.padding.left);
     const startX = scene.state.padding.left;
     const endX = chartDims.width - 8;
     const rtl = textStyle.direction === 'rtl';
@@ -220,6 +228,12 @@ const drawLegend = (scene: ChartRenderingScene, context: CanvasRenderingContext2
     const anchorX = rtl ? endX : startX;
     context.save();
     Object.assign(context, { font: `12px ${textStyle.fontFamily}`, direction: textStyle.direction, textAlign: rtl ? 'right' : 'left', textBaseline: 'top' });
+    if (narrow) {
+        const fullText = `${status ? statusMarkerSpacing : ''}${metricNamePrefix}${parts.join(partSeparator)}`;
+        const fullWidth = context.measureText(fullText).width;
+        const fontSize = max(9, min(11, Math.floor((12 * legendMaxWidth) / max(1, fullWidth))));
+        context.font = `${fontSize}px ${textStyle.fontFamily}`;
+    }
     const colors: ColorPalette = options.colors;
     const themeStyles = scene.geometry.getThemeStyles();
     const legendColor = resolveThemeColor(themeStyles, colors, ['legendTextColor', 'text', 'textSecondary', 'axisGuideColor', 'statusYellow']);
@@ -238,8 +252,7 @@ const drawLegend = (scene: ChartRenderingScene, context: CanvasRenderingContext2
         }
     }
     const lineHeight = 18;
-    const maxRows = max(1, Math.floor((scene.state.padding.top - 4) / lineHeight));
-    const legendMaxWidth = max(1, endX - startX);
+    const maxRows = narrow ? 1 : max(1, Math.floor((scene.state.padding.top - 4) / lineHeight));
     const separatorWidth = context.measureText(partSeparator).width;
     for (let index = 0; index < parts.length; index += 1) {
         const part = `${index === 0 ? metricNamePrefix : ''}${parts[index] ?? ''}`;

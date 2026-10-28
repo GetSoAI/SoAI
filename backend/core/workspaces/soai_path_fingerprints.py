@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import os
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
 from core.files.content_hashing import hash_descriptor_content
@@ -16,6 +17,9 @@ from core.files.workspace_listing import (
 )
 from core.serialization.json import serialize_json_compact_stable
 from core.types.json import JSONDict
+
+if TYPE_CHECKING:
+    from core.concurrency.deadlines import MonotonicDeadline
 
 __all__ = (
     "build_soai_path_folder_listing_fingerprint_value",
@@ -63,6 +67,7 @@ def _file_fingerprint(
     *,
     effective_workspace_root: str,
     conversation_virtual_path: str,
+    deadline: MonotonicDeadline | None = None,
 ) -> JSONDict:
     opened = open_workspace_file_descriptor(
         effective_workspace_root,
@@ -70,7 +75,7 @@ def _file_fingerprint(
         error_cls=ValidationError,
     )
     try:
-        content_hash = hash_descriptor_content(opened.descriptor)
+        content_hash = hash_descriptor_content(opened.descriptor, deadline=deadline)
     finally:
         os.close(opened.descriptor)
     return {
@@ -100,11 +105,15 @@ def build_soai_path_target_fingerprint(
     effective_workspace_root: str,
     conversation_virtual_path: str,
     entry_type: str,
+    deadline: MonotonicDeadline | None = None,
 ) -> JSONDict:
+    if deadline is not None and deadline.expired():
+        raise TimeoutError("Linked file verification exceeded its operation deadline.")
     if entry_type == "file":
         return _file_fingerprint(
             effective_workspace_root=effective_workspace_root,
             conversation_virtual_path=conversation_virtual_path,
+            deadline=deadline,
         )
     if entry_type == "folder":
         return _folder_fingerprint(

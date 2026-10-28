@@ -47,6 +47,7 @@ LOGGER_NAME = "SoAI.features.api.single_staging"
 @dataclass(frozen=True, slots=True)
 class PreparedSingleUpload:
     staged_path: str
+    content_sha256: str
     staged_size: int
     safe_filename: str
     virtual_destination: str
@@ -127,6 +128,7 @@ async def prepare_single_staged_upload(
         result = PreparedSingleUpload(
             staged_path=staged.part.temp_path,
             staged_size=staged.part.size_bytes,
+            content_sha256=staged.part.content_sha256,
             safe_filename=safe_filename,
             virtual_destination=virtual_destination,
             real_destination=real_destination,

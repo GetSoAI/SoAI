@@ -18,6 +18,7 @@ from core.tasks.protocols import (
     TaskCancellationBinderProtocol,
     TaskFinalizerTrackerProtocol,
 )
+from hardware.gpu_inventory.memory_metrics import gpu_capacity_is_current
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -53,6 +54,8 @@ def sum_vram_gb(gpu_info: JSONDict | None) -> float:
     total_mb = 0.0
     for gpu in gpus:
         if not isinstance(gpu, dict):
+            continue
+        if not gpu_capacity_is_current(gpu):
             continue
         memory_total = gpu.get("memory_total_mb", 0)
         if isinstance(memory_total, int | float) and math.isfinite(memory_total):

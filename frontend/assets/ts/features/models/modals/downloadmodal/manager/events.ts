@@ -25,6 +25,7 @@ import { updateManualDiscoveryMessage } from '@features/models/modals/downloadmo
 import { getModelSearchInputValue, getModelSearchState } from '@features/models/modals/downloadmodal/manager/state.ts';
 import { handleVariantCheck } from '@features/models/modals/downloadmodal/manager/variantEvents.ts';
 import { cancelModelSearchRequest, clearModelSearchResults, handleVariantInputChange, updateDownloadModalUI, updateModelSearchButtonState } from '@features/models/modals/downloadmodal/manager/view.ts';
+import { resolveModelSearchErrorMessage } from '@features/models/search/modelSearchErrors.ts';
 import { parseModelSearchResults } from '@features/models/search/modelSearchResults.ts';
 import { highlightModelSearchSelection, renderModelSearchError, renderModelSearchLoading, renderModelSearchResults } from '@features/models/search/modelSearchRendering.ts';
 
@@ -131,7 +132,7 @@ const handleModelSearch = async (runtime: DownloadModalManagerRuntime, event?: E
         }
         const runtimeError = ensureError(error);
         errorHandler.error('DownloadModalController', 'Failed to search remote models', runtimeError);
-        renderModelSearchError({ host: runtime.host, sanitizer, message: null, modalId, modalRoot });
+        renderModelSearchError({ host: runtime.host, sanitizer, message: resolveModelSearchErrorMessage(runtimeError), modalId, modalRoot });
         state.loading = false;
         state.abortController = null;
         state.token = null;
@@ -187,7 +188,7 @@ const applyModelSearchSelection = (runtime: DownloadModalManagerRuntime, target:
     handleVariantInputChange(runtime);
     terminateHandledPromise(handleVariantCheck(runtime));
     scrollDownloadModalSectionIntoView(runtime, 'model-id-group');
-    input.focus();
+    input.focus({ preventScroll: true });
 };
 
 const handleModelIdGroupScrollTriggerClick = (runtime: DownloadModalManagerRuntime, event: Event, _target: Element): void => {
@@ -212,8 +213,7 @@ const handleRepositoryLinkClick = async (runtime: DownloadModalManagerRuntime, _
             url,
             confirmText: i18n.t('models.confirmations.externalLinkConfirm'),
             cancelText: i18n.t('models.confirmations.externalLinkCancel'),
-            variant: 'info',
-            icon: 'external-link'
+            variant: 'info'
         }))
     ) {
         return;

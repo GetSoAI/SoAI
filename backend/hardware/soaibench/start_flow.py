@@ -5,12 +5,20 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from functools import partial
 from typing import TYPE_CHECKING
 
-from core.errors.exceptions import ValidationError
+from core.concurrency.joined_thread_call import run_joined_thread_call
+from core.errors.exceptions import ConflictError, ServiceUnavailableError, ValidationError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
+from core.hardware.gpu_control_types import GPURecoveryAdmission, GPURecoveryAdmissionState
+from core.hardware.gpu_physical_identity import GPUPhysicalBindingState
+from core.hardware.soaibench_persistence import task_id_for_run
 from core.tool_calls.deferred_tool_call_streamer import DeferredToolCallActivity
 from hardware.activity_leases import lease_conflict_payload
+from hardware.control_snapshots import find_gpu_entry
+from hardware.gpu_inventory.identity import snapshot_gpu_entries
+from hardware.gpu_inventory.physical_binding import resolve_gpu_physical_binding
 from hardware.soaibench.active_runs import ActiveSoAIBenchRun, ActiveSoAIBenchRuns
 from hardware.soaibench.deferred_tool_activity import (
     mark_soaibench_deferred_tool_activity_accepted,
@@ -21,7 +29,6 @@ from hardware.soaibench.gpu_identity import resolve_gpu_identity
 from hardware.soaibench.registration import register_soaibench_worker
 from hardware.soaibench.registration_context import SoAIBenchRegistrationContext
 from hardware.soaibench.responses import run_response
-from hardware.soaibench.runtime import task_id_for_run
 from hardware.soaibench.start_cleanup import (
     bind_run_id_or_finish_failed,
     cleanup_cancelled_start,
@@ -55,6 +62,30 @@ async def start_soaibench_run(
     temperature_limit_celsius: float | None,
     deferred_tool_activity: DeferredToolCallActivity | None,
 ) -> JSONDict:
+    gpu_snapshot = await deps.hardware_manager.get_system_info(
+        ["os", "cpus", "memory", "gpu"], cache=False
+    )
+    try:
+        identity = resolve_gpu_identity(gpu_snapshot, device_id)
+        selected = find_gpu_entry(gpu_snapshot, device_id)
+        if selected is None:
+            raise ValidationError("GPU inventory identity is unavailable.")
+        if selected.get("control_binding_state") in (
+            GPUPhysicalBindingState.IDENTITY_CONFLICT,
+            GPUPhysicalBindingState.INVALID_RESPONSE,
+        ):
+            raise ValidationError("GPU inventory already records a physical identity conflict.")
+        binding = resolve_gpu_physical_binding(selected, snapshot_gpu_entries(gpu_snapshot))
+        if binding.state != GPUPhysicalBindingState.BOUND or binding.device is None:
+            raise ValidationError("GPU inventory physical identity is unavailable or conflicting.")
+    except ValidationError as exception:
+        raise SoAIBenchUnsupported(
+            reason="gpu_inventory_unavailable",
+            message="Refresh GPU inventory before starting SoAI Bench.",
+        ) from exception
+    target = binding.device
+    device_id = target.device_id
+    await deps.opencl_pool.reconcile_retained()
     acquire = await deps.activity_registry.acquire(
         device_id=device_id,
         activity_type=f"soaibench_{profile.value}",
@@ -66,7 +97,7 @@ async def start_soaibench_run(
     if acquire.lease is None:
         raise SoAIBenchUnsupported(
             reason="opencl_runtime_error",
-            message="SoAIBench activity lease acquisition failed.",
+            message="SoAI Bench activity lease acquisition failed.",
         )
     run_id = uuid.uuid4().hex
     lease_id = acquire.lease.lease_id
@@ -95,16 +126,57 @@ async def start_soaibench_run(
     worker_registered = False
     try:
         try:
-            gpu_snapshot = await deps.hardware_manager.get_system_info(
-                ["os", "cpus", "memory", "gpu"], cache=False
+            admission = await run_joined_thread_call(
+                partial(deps.recovery_admission.inspect, target),
+                task_name=f"soaibench-{run_id}:recovery-admission",
+                retain_resources_until_complete=True,
             )
-            try:
-                identity = resolve_gpu_identity(gpu_snapshot, device_id)
-            except ValidationError as exception:
-                raise SoAIBenchUnsupported(
-                    reason="gpu_inventory_unavailable",
-                    message=str(exception),
-                ) from exception
+            if not isinstance(admission, GPURecoveryAdmission) or not isinstance(
+                admission.state, GPURecoveryAdmissionState
+            ):
+                raise ValidationError("GPU recovery admission returned invalid typed evidence.")
+        except asyncio.CancelledError as exception:
+            await cleanup_cancelled_start(
+                deps=deps,
+                run=None,
+                device_id=device_id,
+                lease_id=lease_id,
+                primary_exception=exception,
+            )
+            raise
+        except HANDLED_RUNTIME_EXCEPTIONS as exception:
+            await cleanup_failed_start(
+                deps=deps,
+                run=None,
+                device_id=device_id,
+                lease_id=lease_id,
+                reason="recovery_admission_failed",
+                operation=START_FLOW_OPERATION,
+                log_message="SoAI Bench recovery admission failed.",
+                primary_exception=exception,
+            )
+            raise
+        if admission.state != GPURecoveryAdmissionState.CLEAR:
+            rejection = (
+                ServiceUnavailableError(
+                    "GPU recovery state is unavailable. Retry after recovery is available.",
+                    operation=START_FLOW_OPERATION,
+                )
+                if admission.state == GPURecoveryAdmissionState.STORE_UNAVAILABLE
+                else ConflictError(
+                    "GPU recovery must complete before benchmarking this device.",
+                    operation=START_FLOW_OPERATION,
+                    details={"recovery_state": admission.state.value},
+                )
+            )
+            await release_start_lease_preserving(
+                deps=deps,
+                device_id=device_id,
+                lease_id=lease_id,
+                primary_exception=rejection,
+            )
+            raise rejection
+        try:
             run = await create_initial_run(
                 deps=deps,
                 gpu_snapshot=gpu_snapshot,
@@ -148,7 +220,7 @@ async def start_soaibench_run(
                 lease_id=lease_id,
                 reason="start_initialization_failed",
                 operation=START_FLOW_OPERATION,
-                log_message="SoAIBench start failed before worker registration.",
+                log_message="SoAI Bench start failed before worker registration.",
                 primary_exception=exception,
             )
             raise
@@ -230,7 +302,7 @@ async def _mark_deferred_accepted_or_cleanup(
             lease_id=lease_id,
             reason="deferred_tool_activity_acceptance_failed",
             operation=START_FLOW_OPERATION,
-            log_message="SoAIBench deferred tool activity acceptance failed.",
+            log_message="SoAI Bench deferred tool activity acceptance failed.",
             primary_exception=exception,
         )
         raise

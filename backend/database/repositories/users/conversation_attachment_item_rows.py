@@ -6,8 +6,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import StateError
+from core.files.extraction_summary import read_missing_capabilities
 from core.types.json_value import coerce_json_dict
 from core.validation.epoch import EPOCH_MS_MIN
+from database.core.row_fields import require_row_optional_json_object
 from database.core.sqlite_row_scalars import (
     require_sqlite_row_int,
     require_sqlite_row_non_empty_str,
@@ -78,6 +80,12 @@ def format_knowledge_attachment_item_row(row: SQLiteRow) -> JSONDict:
             minimum=EPOCH_MS_MIN,
         ),
     }
+    metadata = require_row_optional_json_object(
+        row.get("document_metadata"), label="Document extraction metadata", build_error=StateError
+    )
+    missing_capabilities = read_missing_capabilities(metadata)
+    if missing_capabilities:
+        payload["missing_capabilities"] = list(missing_capabilities)
     normalized = coerce_json_dict(payload)
     if normalized is None:
         raise StateError("Knowledge attachment item row is invalid.")

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { renderLabelAttributes, toTrustedUiHtml } from '@core/security/public.ts';
+import { getPluginFallbackLogoPath } from '@features/catalog/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { BaseCardRenderer, type RoundButtonConfig } from '@core/ui/BaseCardRenderer.ts';
 import type { ButtonConfig, DatasetProps } from '@core/uiprimitives/public.ts';
@@ -79,7 +80,7 @@ class PluginCardRenderer extends BaseCardRenderer<PluginRecord | null | undefine
         const typeLabel = plugin.isBuiltin ? i18n.t('plugins.badges.builtin') : i18n.t('plugins.badges.thirdparty');
         const statusClass = this.buildClassList([data.statusBadgeClass]);
         const pluginLogo = this.host.presentation.getPluginLogo(plugin);
-        const pluginLogoFallback = this.host.presentation.getPluginLogoFallback(plugin);
+        const pluginLogoFallback = getPluginFallbackLogoPath(plugin);
         const facts: readonly PluginListFact[] = [
             {
                 metricKey: 'version',
@@ -91,7 +92,7 @@ class PluginCardRenderer extends BaseCardRenderer<PluginRecord | null | undefine
             { metricKey: 'type', label: i18n.t('plugins.badges.type'), value: typeLabel, clickable: false }
         ];
         const markup = `
-            <tr class="${this.builder.combineClasses('plugins-list-row', data.statusClass, compatibilityIncompatible ? 'plugins-list-row--incompatible' : '', !toggleChecked ? this.constants.classNames.disabled : '', this.host.actions.isNewItem(plugin) ? 'session-recent-row' : '')}" data-render-mode="list" data-action="${PLUGINS_ACTION_OPEN_PLUGIN}" data-plugin="${this.host.presentation.sanitizeText(data.cardId)}" data-status="${this.host.presentation.sanitizeText(data.status)}" data-circuit-breaker="${circuitBreakerActive ? 'active' : 'inactive'}">
+            <tr class="${this.builder.combineClasses('plugins-list-row', data.statusClass, compatibilityIncompatible ? 'plugins-list-row--incompatible' : '', !toggleChecked ? this.constants.classNames.disabled : '', this.host.actions.isNewItem(plugin) ? 'session-recent-row' : '')}" data-render-mode="list" data-presence-atomic data-action="${PLUGINS_ACTION_OPEN_PLUGIN}" data-plugin="${this.host.presentation.sanitizeText(data.cardId)}" data-status="${this.host.presentation.sanitizeText(data.status)}" data-circuit-breaker="${circuitBreakerActive ? 'active' : 'inactive'}">
                 <td class="plugins-list-cell plugins-list-cell-main">
                     <button type="button" class="plugins-list-open" data-action="${PLUGINS_ACTION_OPEN_PLUGIN}" ${renderLabelAttributes(listTitle)}>
                         <span class="plugins-list-title-row">

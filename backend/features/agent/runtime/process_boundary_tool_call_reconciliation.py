@@ -5,20 +5,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from core.agent.status_values import (
-    AGENT_TURN_STATUS_ABANDONED,
-    AGENT_TURN_STATUS_CANCELLED,
-    AGENT_TURN_STATUS_ERROR,
-)
-from core.errors.exception_logging import log_exception
+from core.concurrency.cancellation import TaskCancelledError
+from core.errors.exception_logging import log_handled_exception
+from core.errors.exceptions import ProcessError, SoAIError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.serialization.json import serialize_json_compact_stable_strict
 from core.timing.epoch import epoch_ms
-from core.tool_calls.status_values import (
-    TOOL_CALL_STATUS_CANCELLED,
-    TOOL_CALL_STATUS_ERROR,
-)
 from core.validation.integers import is_strict_int
+from features.agent.runtime.stale_turn_tool_call_finalization import (
+    resolve_terminal_root_tool_call_error_message,
+    resolve_terminal_root_tool_call_status,
+)
 from features.agent.subagents.parent_tool_call_persistence import (
     build_terminal_tool_result,
     resolve_parent_tool_call_error_message,
@@ -43,32 +41,12 @@ __all__ = ("repair_active_tool_calls_for_terminal_turns",)
 _OPERATION = "features.agent.runtime.reconcile_tool_call_at_process_boundary"
 
 
-def _resolve_terminal_root_tool_call_status(turn_status: str) -> str:
-    normalized_status = str(turn_status or "").strip()
-    if normalized_status in {AGENT_TURN_STATUS_CANCELLED, AGENT_TURN_STATUS_ABANDONED}:
-        return TOOL_CALL_STATUS_CANCELLED
-    return TOOL_CALL_STATUS_ERROR
-
-
-def _resolve_terminal_root_tool_call_error_message(record: JSONDict) -> str:
-    turn_status = str(record.get("turn_status") or "").strip()
-    turn_message = str(record.get("turn_error_message") or "").strip()
-    if turn_status == AGENT_TURN_STATUS_CANCELLED:
-        return turn_message or "Tool call cancelled because the agent turn was cancelled."
-    if turn_status == AGENT_TURN_STATUS_ABANDONED:
-        return turn_message or "Tool call cancelled because the agent turn was abandoned."
-    if turn_status == AGENT_TURN_STATUS_ERROR:
-        return turn_message or "Tool call failed because the agent turn ended with an error."
-    return (
-        turn_message or "Tool call did not finish before the agent turn reached a terminal state."
-    )
-
-
-async def _finalize_subagent_parent_tool_call_noncritical(
+async def _finalize_subagent_parent_tool_call(
     *,
     database_tool_calls: DatabaseToolCallsProtocol,
     record: JSONDict,
     logger: LoggerProtocol,
+    failures: list[SoAIError] | None,
 ) -> None:
     snapshot = build_subagent_snapshot(record)
     if snapshot is None or snapshot.finished_at_ms is None:
@@ -105,22 +83,32 @@ async def _finalize_subagent_parent_tool_call_noncritical(
             duration_ms=max(0, int(snapshot.finished_at_ms) - int(snapshot.started_at_ms)),
             completed_at_ms=int(snapshot.finished_at_ms),
         )
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_exception(
-            logger,
-            exception,
-            message="Failed to finalize stale subagent parent tool call at process boundary.",
+    except TaskCancelledError:
+        raise
+    except HANDLED_RUNTIME_EXCEPTIONS as exception:
+        if failures is None and not isinstance(exception, RECOVERABLE_EXCEPTIONS):
+            raise
+        failure = ProcessError(
+            "Failed to finalize stale subagent parent tool call at process boundary.",
             operation=_OPERATION,
+            cause=exception,
             details={
                 "conv_id": snapshot.conv_id,
                 "turn_id": snapshot.subagent_id,
                 "parent_tool_call_id": snapshot.parent_tool_call_id,
-                "parent_turn_id": snapshot.parent_turn_id,
-                "status": status,
-                "error_message": snapshot.error_message,
             },
-            level="warning",
         )
+        if failures is not None:
+            failures.append(failure)
+        else:
+            log_handled_exception(
+                logger,
+                exception,
+                message=failure.message,
+                operation=_OPERATION,
+                details=failure.details,
+                level="warning",
+            )
 
 
 async def _repair_active_parent_tool_calls_for_terminal_subagents(
@@ -128,17 +116,37 @@ async def _repair_active_parent_tool_calls_for_terminal_subagents(
     database_agent_turn_process_boundary: DatabaseAgentTurnProcessBoundaryProtocol,
     database_tool_calls: DatabaseToolCallsProtocol,
     logger: LoggerProtocol,
+    failures: list[SoAIError] | None,
     limit: int,
 ) -> None:
     records = await database_agent_turn_process_boundary.query_terminal_subagent_turns_with_active_parent_tool_calls(
-        limit=limit,
+        limit=limit
     )
     for record in records:
-        await _finalize_subagent_parent_tool_call_noncritical(
-            database_tool_calls=database_tool_calls,
-            record=record,
-            logger=logger,
-        )
+        try:
+            await _finalize_subagent_parent_tool_call(
+                database_tool_calls=database_tool_calls,
+                record=record,
+                logger=logger,
+                failures=failures,
+            )
+        except TaskCancelledError:
+            raise
+        except HANDLED_RUNTIME_EXCEPTIONS as exception:
+            if failures is None:
+                raise
+            failures.append(
+                ProcessError(
+                    "Failed to reconcile subagent parent tool call at process boundary.",
+                    operation=_OPERATION,
+                    cause=exception,
+                    details={
+                        "conv_id": str(record.get("conv_id") or ""),
+                        "turn_id": str(record.get("turn_id") or ""),
+                        "parent_tool_call_id": str(record.get("parent_tool_call_id") or ""),
+                    },
+                )
+            )
 
 
 async def _repair_active_tool_calls_for_terminal_root_turns(
@@ -146,6 +154,7 @@ async def _repair_active_tool_calls_for_terminal_root_turns(
     database_agent_turn_process_boundary: DatabaseAgentTurnProcessBoundaryProtocol,
     database_tool_calls: DatabaseToolCallsProtocol,
     logger: LoggerProtocol,
+    failures: list[SoAIError] | None,
     limit: int,
 ) -> None:
     records = await database_agent_turn_process_boundary.query_terminal_root_turn_active_tool_calls(
@@ -161,16 +170,22 @@ async def _repair_active_tool_calls_for_terminal_root_turns(
         try:
             await database_tool_calls.finalize_tool_call_if_unfinished(
                 storage_call_id,
-                status=_resolve_terminal_root_tool_call_status(turn_status),
-                error_message=_resolve_terminal_root_tool_call_error_message(record),
+                status=resolve_terminal_root_tool_call_status(turn_status),
+                error_message=resolve_terminal_root_tool_call_error_message(
+                    turn_status,
+                    str(record.get("turn_error_message") or ""),
+                ),
                 completed_at_ms=completed_at_ms,
             )
-        except RECOVERABLE_EXCEPTIONS as exception:
-            log_exception(
-                logger,
-                exception,
-                message="Failed to finalize stale root-turn tool call at process boundary.",
+        except TaskCancelledError:
+            raise
+        except HANDLED_RUNTIME_EXCEPTIONS as exception:
+            if failures is None and not isinstance(exception, RECOVERABLE_EXCEPTIONS):
+                raise
+            failure = ProcessError(
+                "Failed to finalize stale root-turn tool call at process boundary.",
                 operation=_OPERATION,
+                cause=exception,
                 details={
                     "conv_id": str(record.get("conv_id") or ""),
                     "turn_id": str(record.get("turn_id") or ""),
@@ -178,8 +193,18 @@ async def _repair_active_tool_calls_for_terminal_root_turns(
                     "tool_name": str(record.get("tool_name") or ""),
                     "turn_status": turn_status,
                 },
-                level="warning",
             )
+            if failures is not None:
+                failures.append(failure)
+            else:
+                log_handled_exception(
+                    logger,
+                    exception,
+                    message=failure.message,
+                    operation=_OPERATION,
+                    details=failure.details,
+                    level="warning",
+                )
 
 
 async def repair_active_tool_calls_for_terminal_turns(
@@ -187,17 +212,31 @@ async def repair_active_tool_calls_for_terminal_turns(
     database_agent_turn_process_boundary: DatabaseAgentTurnProcessBoundaryProtocol,
     database_tool_calls: DatabaseToolCallsProtocol,
     logger: LoggerProtocol,
+    failures: list[SoAIError] | None,
     limit: int,
 ) -> None:
-    await _repair_active_parent_tool_calls_for_terminal_subagents(
-        database_agent_turn_process_boundary=database_agent_turn_process_boundary,
-        database_tool_calls=database_tool_calls,
-        logger=logger,
-        limit=limit,
-    )
-    await _repair_active_tool_calls_for_terminal_root_turns(
-        database_agent_turn_process_boundary=database_agent_turn_process_boundary,
-        database_tool_calls=database_tool_calls,
-        logger=logger,
-        limit=limit,
-    )
+    for group_name, repair in (
+        ("Subagent Parent Tool Calls", _repair_active_parent_tool_calls_for_terminal_subagents),
+        ("Root Turn Tool Calls", _repair_active_tool_calls_for_terminal_root_turns),
+    ):
+        try:
+            await repair(
+                database_agent_turn_process_boundary=database_agent_turn_process_boundary,
+                database_tool_calls=database_tool_calls,
+                logger=logger,
+                failures=failures,
+                limit=limit,
+            )
+        except TaskCancelledError:
+            raise
+        except HANDLED_RUNTIME_EXCEPTIONS as exception:
+            if failures is None:
+                raise
+            failures.append(
+                ProcessError(
+                    f"Failed to query tool calls at process boundary for {group_name}.",
+                    operation=_OPERATION,
+                    cause=exception,
+                    details={"group": group_name},
+                )
+            )

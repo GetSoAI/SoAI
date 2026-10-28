@@ -5,12 +5,15 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 from typing import TYPE_CHECKING, TypeGuard
 
-from core.errors.error_types import ErrorType
-from core.errors.exception_logging import log_exception
+from core.errors.exception_coercion import coerce_to_soai_error
+from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import ValidationError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.errors.http_status_classification import resolve_execution_error_type_for_http_status
+from core.errors.public_projection import project_public_error
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.protocols import LoggerProtocol
 from core.tasks.action_queue import run_action_queue_processor
 from core.tasks.api_events import send_task_complete_event
@@ -24,6 +27,7 @@ from models.parameters.mutation.types import (
 )
 
 if TYPE_CHECKING:
+    from core.events.types_base import Event
     from core.tasks.protocols import TaskRegistryProtocol
     from core.types.json import JSONDict
 
@@ -81,6 +85,34 @@ def _parse_delete_payload(payload: UpdateQueuePayload) -> DeleteTaskPayload:
     }
 
 
+async def _send_parameter_mutation_failure(
+    reply: asyncio.Queue[Event],
+    exception: Exception,
+    *,
+    task_registry: TaskRegistryProtocol,
+    logger: LoggerProtocol,
+    message: str,
+    operation: str,
+) -> None:
+    error = coerce_to_soai_error(exception, operation=operation)
+    log_handled_exception(
+        logger,
+        error,
+        message=message,
+        operation=operation,
+        level="debug" if error.http_status < 500 else "warning",
+    )
+    public_error = project_public_error(error)
+    status_code = public_error.http_status or error.http_status
+    await send_error_event_and_finalize(
+        reply,
+        public_error.message,
+        resolve_execution_error_type_for_http_status(status_code),
+        registry=task_registry,
+        public_error=replace(public_error, http_status=status_code),
+    )
+
+
 async def _execute_update_task(
     *,
     payload: UpdateTaskPayload,
@@ -100,18 +132,14 @@ async def _execute_update_task(
             "Parameters updated successfully.",
             registry=task_registry,
         )
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_exception(
-            logger,
+    except HANDLED_RUNTIME_EXCEPTIONS as exception:
+        await _send_parameter_mutation_failure(
+            reply,
             exception,
+            task_registry=task_registry,
+            logger=logger,
             message="Error executing parameter update task",
             operation=OPERATION_MODELS_PARAMETERS_MUTATION_UPDATE_QUEUE_WORKER_UPDATE,
-        )
-        await send_error_event_and_finalize(
-            reply,
-            str(exception),
-            ErrorType.SERVER_ERROR,
-            registry=task_registry,
         )
 
 
@@ -134,18 +162,14 @@ async def _execute_delete_task(
             "Parameters deleted successfully.",
             registry=task_registry,
         )
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_exception(
-            logger,
+    except HANDLED_RUNTIME_EXCEPTIONS as exception:
+        await _send_parameter_mutation_failure(
+            reply,
             exception,
+            task_registry=task_registry,
+            logger=logger,
             message="Error executing parameter delete task",
             operation=OPERATION_MODELS_PARAMETERS_MUTATION_UPDATE_QUEUE_WORKER_DELETE,
-        )
-        await send_error_event_and_finalize(
-            reply,
-            str(exception),
-            ErrorType.SERVER_ERROR,
-            registry=task_registry,
         )
 
 

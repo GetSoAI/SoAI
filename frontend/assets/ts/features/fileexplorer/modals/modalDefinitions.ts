@@ -24,7 +24,7 @@ const fileExplorerMetadataModalDefinition: ModalDefinition = Object.freeze({
             id: FILE_EXPLORER_METADATA_MODAL_ID,
             rootAttributes: { 'data-page-scope': 'fileExplorer' },
             header: renderStandardModalHeader({ modalId: FILE_EXPLORER_METADATA_MODAL_ID, title: i18n.t('fileExplorer.modal.metadataTitle'), description: i18n.t('common.modalDescriptions.fileExplorerMetadata'), closeLabel }),
-            body: renderModalBody(uiHtml`<div id="${modalUiId(FILE_EXPLORER_METADATA_MODAL_ID, 'body')}" class="file-explorer-metadata-body">${i18n.t('fileExplorer.labels.noMetadata')}</div>`),
+            body: renderModalBody(uiHtml`<div id="${modalUiId(FILE_EXPLORER_METADATA_MODAL_ID, 'body')}" class="file-explorer-metadata-body" data-modal-localize="text">${i18n.t('fileExplorer.labels.noMetadata')}</div>`),
             footer: renderSplitModalFooter({
                 left: renderModalFooterCloseButton({ modalId: FILE_EXPLORER_METADATA_MODAL_ID, text: closeLabel }),
                 right: renderModalFooterActionButton({ text: copyLabel, variant: 'primary', action: FILE_EXPLORER_ACTION_METADATA_COPY })

@@ -60,6 +60,7 @@ class ArchiveParser(FileParserProtocol):
                 metadata={"archive_type": extension},
                 extraction_state=result.extraction_state,
                 warnings=result.warnings,
+                missing_capabilities=result.missing_capabilities,
             )
 
     async def _extract(self, source_path: str, temp_dir: str, extension: str) -> None:

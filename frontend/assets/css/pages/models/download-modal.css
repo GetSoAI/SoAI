@@ -2,13 +2,45 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer pages {
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .ui-operation-progress-list {
+        scroll-margin-block-start: var(--modal-body-padding);
+    }
+
     :where([data-section='models'], [data-page-scope='models']).download-model-modal :is(.model-search-group, .model-id-group) {
         container-type: inline-size;
     }
 
-    :where([data-section='models'], [data-page-scope='models']).download-model-modal .model-search-group .form-row-split--search {
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal :is(.form-row-split--search, .form-row-split--with-action) {
+        flex-direction: row;
         flex-wrap: wrap;
+        align-items: flex-end;
         justify-content: flex-end;
+        row-gap: var(--space-2);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .form-row-split > .form-col-main {
+        flex: 7 1 var(--control-field-wide-min-inline-size);
+        min-inline-size: min(100%, var(--control-field-wide-min-inline-size));
+        width: auto;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .form-row-split > .form-col-secondary:not(.form-col-action) {
+        flex: 3 1 var(--control-field-min-inline-size);
+        min-inline-size: min(100%, var(--control-field-min-inline-size));
+        width: auto;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .form-row-split > .form-col-action {
+        flex: 0 0 auto;
+        min-inline-size: 0;
+        width: auto;
+        max-inline-size: 100%;
+        margin-inline-start: auto;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .form-col-action > .ui-button {
+        max-inline-size: 100%;
+        white-space: normal;
     }
 
     :where([data-section='models'], [data-page-scope='models']).download-model-modal :is(.form-row-split .form-input, .searchbar-container--collection, .searchbar-container--collection .searchbar-input) {

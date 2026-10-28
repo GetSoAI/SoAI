@@ -4,24 +4,21 @@
 import { AnimationFrameRenderQueue } from '@core/animations/renderQueue.ts';
 
 interface AutomationPageRenderSchedulerDependencies {
-    requestAnimationFrame: (callback: () => void) => number;
-    run: (operation: string, task: () => Promise<void> | void) => void;
+    run: (operation: string, task: () => Promise<void> | void) => Promise<void>;
     isDestroyed: () => boolean;
     render: () => void;
 }
 
 class AutomationPageRenderScheduler {
-    readonly #dependencies: AutomationPageRenderSchedulerDependencies;
     readonly #queue: AnimationFrameRenderQueue<boolean>;
 
     constructor(dependencies: AutomationPageRenderSchedulerDependencies) {
-        this.#dependencies = dependencies;
         this.#queue = new AnimationFrameRenderQueue({
             label: 'AutomationPageRenderScheduler',
-            render: () => this.#render(),
+            required: true,
+            render: () => dependencies.run('automation:render', () => dependencies.render()),
             merge: () => true,
-            isDisposed: () => this.#dependencies.isDestroyed(),
-            requestAnimationFrame: (callback) => this.#dependencies.requestAnimationFrame(callback)
+            isDisposed: dependencies.isDestroyed
         });
     }
 
@@ -29,12 +26,12 @@ class AutomationPageRenderScheduler {
         this.#queue.schedule(true);
     }
 
-    async waitForIdle(): Promise<void> {
-        await this.#queue.waitForIdle();
+    async waitForIdle(signal: AbortSignal | null = null): Promise<void> {
+        await this.#queue.waitForIdle(signal);
     }
 
-    #render(): void {
-        this.#dependencies.run('automation:render', () => this.#dependencies.render());
+    dispose(): void {
+        this.#queue.dispose();
     }
 }
 

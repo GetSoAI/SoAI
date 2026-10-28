@@ -85,10 +85,12 @@ def _resolve_claimed_turn_cancellation_id(
 def mark_conversation_stream_runtime_cancellation_requested(
     runtime: AssistantTimelineRuntime,
     reason: str,
+    code: str = "cancelled",
 ) -> None:
     if not runtime.cancellation_requested:
         runtime.cancellation_requested = True
         runtime.cancellation_reason = reason
+        runtime.cancellation_code = code
     if runtime.detach_event is None:
         runtime.detach_event = Event()
     runtime.detach_event.set()
@@ -97,6 +99,7 @@ def mark_conversation_stream_runtime_cancellation_requested(
 async def claim_conversation_stream_runtime_cancellation(
     runtime: AssistantTimelineRuntime,
     reason: str,
+    code: str = "cancelled",
 ) -> bool:
     lock = ensure_chat_stream_publish_lock(runtime)
     async with lock:
@@ -105,7 +108,7 @@ async def claim_conversation_stream_runtime_cancellation(
             and not runtime.terminal_finalization_started
             and not runtime.terminal_event_emitted
         ):
-            mark_conversation_stream_runtime_cancellation_requested(runtime, reason)
+            mark_conversation_stream_runtime_cancellation_requested(runtime, reason, code)
             return True
         if (
             runtime.terminal_outcome_claim is not None
@@ -114,7 +117,7 @@ async def claim_conversation_stream_runtime_cancellation(
         ):
             return False
         runtime.terminal_outcome_claim = "cancelled"
-        mark_conversation_stream_runtime_cancellation_requested(runtime, reason)
+        mark_conversation_stream_runtime_cancellation_requested(runtime, reason, code)
         return True
 
 

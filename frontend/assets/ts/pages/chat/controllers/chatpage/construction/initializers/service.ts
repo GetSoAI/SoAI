@@ -78,6 +78,11 @@ const initializeUIManager = (page: ChatControllerInitializationContext): void =>
                 getDraftKnowledgeAttachments: () => page.sessions.messageSending.rag.currentKnowledgeDrafts(),
                 refreshDraftKnowledgeAttachments: () => page.sessions.messageSending.rag.refreshKnowledgeDrafts(),
                 cancelRagIngestion: () => page.sessions.messageSending.rag.cancelCurrent(),
+                hasDispatchingConversationInput: () => {
+                    const conversationId = page.state.conversationState.currentConversationId;
+                    const manager = page.runtime.turnRuntime.optionalConversationInputs();
+                    return conversationId !== null && manager !== null && manager.hasDispatchingInput(conversationId);
+                },
                 getConversationInputs: () => {
                     const conversationId = page.state.conversationState.currentConversationId;
                     if (!conversationId) {
@@ -93,7 +98,8 @@ const initializeUIManager = (page: ChatControllerInitializationContext): void =>
                         inputType: prompt.inputType === 'steer' ? 'steer' : 'prompt',
                         state: prompt.state,
                         text: prompt.text,
-                        attachmentContent: prompt.attachmentContent
+                        attachmentContent: prompt.attachmentContent,
+                        isHeld: prompt.isHeld
                     }));
                     const retryable = manager.getRetryableRegeneration(conversationId);
                     if (retryable) {
@@ -102,7 +108,8 @@ const initializeUIManager = (page: ChatControllerInitializationContext): void =>
                             inputType: 'prompt',
                             state: 'regeneration_failed',
                             text: i18n.t('pageOutlet.retry'),
-                            attachmentContent: []
+                            attachmentContent: [],
+                            isHeld: false
                         });
                     }
                     return previews;

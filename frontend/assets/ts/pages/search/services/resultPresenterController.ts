@@ -50,27 +50,12 @@ const resolveSearchFailureStatusCopy = (serviceUnavailable: boolean, permissionF
     ...(permissionFailure ? { reload: true } : {})
 });
 
-const renderFileStateMarkup = (fileStatus: FileSearchStatus, query: string): TrustedHtml => {
-    if (fileStatus === 'loading') {
-        return renderSearchCategoryStateMarkup({
-            category: 'files',
-            type: 'loading',
-            message: i18n.t('search.status.searchingFiles')
-        });
-    }
-    if (fileStatus === 'error') {
-        return renderSearchCategoryStateMarkup({
-            category: 'files',
-            type: 'error',
-            message: i18n.t('search.errors.fileSearchFailed')
-        });
-    }
-    return renderSearchCategoryStateMarkup({
+const renderFileStateMarkup = (fileStatus: 'loading' | 'error'): TrustedHtml =>
+    renderSearchCategoryStateMarkup({
         category: 'files',
-        type: 'empty',
-        message: i18n.t('search.noResults.filesNotFound', { query })
+        type: fileStatus,
+        message: fileStatus === 'loading' ? i18n.t('search.status.searchingFiles') : i18n.t('search.errors.fileSearchFailed')
     });
-};
 
 class SearchPageResultPresenter {
     readonly #dependencies: Pick<SearchPageServiceDependencies, 'view' | 'renderController' | 'searchHistory'>;
@@ -153,7 +138,7 @@ class SearchPageResultPresenter {
             this.showStatus('notFound', state.query, aggregateResults.length === 0 ? options.clearBadgesWhenEmpty : false);
             return;
         }
-        this.#renderResultsMarkup((state.fileStatus === 'loading' || state.fileStatus === 'error') && state.currentFilter === 'all' ? toTrustedUiHtml(`${output.html.html}${renderFileStateMarkup(state.fileStatus, state.query).html}`) : output.html);
+        this.#renderResultsMarkup((state.fileStatus === 'loading' || state.fileStatus === 'error') && state.currentFilter === 'all' ? toTrustedUiHtml(`${output.html.html}${renderFileStateMarkup(state.fileStatus).html}`) : output.html);
     }
 
     #renderFilesFilter(state: SearchPageResultsState, options: SearchResultsViewOptions): void {
@@ -172,11 +157,12 @@ class SearchPageResultPresenter {
         if (options.updateBadges && state.currentFilter === 'files') {
             this.#updateAggregateBadges(state);
         }
-        if (state.fileStatus === 'empty' && state.currentFilter === 'all' && !state.primaryResults.length) {
-            this.showStatus('notFound', state.query, options.clearBadgesWhenEmpty);
+        if (state.fileStatus === 'idle' || state.fileStatus === 'empty') {
+            const hasOtherResults = state.primaryResults.length > 0;
+            this.showStatus('notFound', state.query, hasOtherResults ? false : options.clearBadgesWhenEmpty);
             return;
         }
-        this.#renderResultsMarkup(renderFileStateMarkup(state.fileStatus === 'idle' ? 'empty' : state.fileStatus, state.query));
+        this.#renderResultsMarkup(renderFileStateMarkup(state.fileStatus));
     }
 
     #renderSearchResults(results: SearchItem[], currentFilter: SearchFilter): SearchResultsRenderOutput {

@@ -90,6 +90,9 @@
         font-size: var(--font-size-caption-plus);
         color: var(--text-secondary);
         font-family: var(--font-family-mono);
+        font-variant-numeric: tabular-nums lining-nums;
+        text-align: end;
+        flex-shrink: 0;
         white-space: nowrap;
     }
 
@@ -99,7 +102,7 @@
     }
 
     :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-progress {
-        height: 8px;
+        height: var(--control-progress-height);
     }
 
     :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal-note {

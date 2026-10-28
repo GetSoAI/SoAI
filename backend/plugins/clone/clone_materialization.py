@@ -218,7 +218,7 @@ async def materialize_clone(
     )
     async with (
         plugin_manager.dependencies.infrastructure.config_manager.plugin_config_mutation_scope(
-            plan.target_plugin_name
+            plan.target_plugin_name, operation="plugin_clone.materialization"
         )
     ):
         await _require_phase_transition(repository, task_id, "staging", "staged")

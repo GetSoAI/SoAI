@@ -10,20 +10,23 @@ const updateConversationTitle = async (dependencies: ConversationMetadataOperati
     const normalizedConversationId = requireConversationId(conversationId, 'Conversation');
     const conversation = requireConversationStateEntry(dependencies.conversations, normalizedConversationId);
     const normalizedTitle = requireConversationTitle(title, 'Conversation');
-    if (conversation.title === normalizedTitle) {
+    if (conversation.title === normalizedTitle && conversation.committedTitleMetadata?.title === normalizedTitle && conversation.committedTitleMetadata.autoUpdateAllowed === false) {
         return;
     }
     const previousTitle = conversation.title;
+    const previousAuthority = conversation.titleAutoUpdateAllowed;
+    if (!conversation.committedTitleMetadata && previousAuthority !== undefined) conversation.committedTitleMetadata = { title: previousTitle, autoUpdateAllowed: previousAuthority, updatedAt: conversation.updatedAt };
+    let expectedObservation = conversation.committedTitleMetadata;
     const mutationVersion = dependencies.mutationSequencer.begin(normalizedConversationId, 'title');
-    let expectedUpdatedAt = conversation.updatedAt;
     conversation.title = normalizedTitle;
+    conversation.titleAutoUpdateAllowed = false;
     dependencies.conversations.set(normalizedConversationId, conversation);
     try {
         await dependencies.ensureConversationPersisted(conversation);
-        if (!dependencies.mutationSequencer.isCurrent(normalizedConversationId, 'title', mutationVersion) || dependencies.conversations.get(normalizedConversationId) !== conversation || conversation.title !== normalizedTitle) {
+        if (!dependencies.mutationSequencer.isCurrent(normalizedConversationId, 'title', mutationVersion) || dependencies.conversations.get(normalizedConversationId) !== conversation) {
             return;
         }
-        expectedUpdatedAt = conversation.updatedAt;
+        expectedObservation = conversation.committedTitleMetadata;
         const updated = await dependencies.chatApi.updateTitle(normalizedConversationId, normalizedTitle);
         if (!dependencies.mutationSequencer.isCurrent(normalizedConversationId, 'title', mutationVersion) || dependencies.conversations.get(normalizedConversationId) !== conversation) {
             return;
@@ -31,11 +34,17 @@ const updateConversationTitle = async (dependencies: ConversationMetadataOperati
         applyConversationMetadataSnapshot(conversation, parseConversationRecordForId(updated, normalizedConversationId, 'Updated conversation title payload'));
         dependencies.conversations.set(normalizedConversationId, conversation);
     } catch (error) {
-        if (!dependencies.mutationSequencer.isCurrent(normalizedConversationId, 'title', mutationVersion) || dependencies.conversations.get(normalizedConversationId) !== conversation || conversation.title !== normalizedTitle || conversation.updatedAt !== expectedUpdatedAt) {
+        if (!dependencies.mutationSequencer.isCurrent(normalizedConversationId, 'title', mutationVersion) || dependencies.conversations.get(normalizedConversationId) !== conversation) {
             return;
         }
-        conversation.title = previousTitle;
-        dependencies.conversations.set(normalizedConversationId, conversation);
+        if (conversation.title === normalizedTitle && conversation.titleAutoUpdateAllowed === false && conversation.committedTitleMetadata === expectedObservation) {
+            const committed = conversation.committedTitleMetadata;
+            conversation.title = committed?.title ?? previousTitle;
+            const authority = committed?.autoUpdateAllowed ?? previousAuthority;
+            if (authority === undefined) delete conversation.titleAutoUpdateAllowed;
+            else conversation.titleAutoUpdateAllowed = authority;
+            dependencies.conversations.set(normalizedConversationId, conversation);
+        }
         throw error;
     }
 };

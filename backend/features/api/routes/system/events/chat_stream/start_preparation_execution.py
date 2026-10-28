@@ -13,6 +13,7 @@ from core.conversations.assistant_turn_variant_identity import (
 )
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.public_projection import project_public_error
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.validation.strict_numbers import coerce_optional_non_negative_int_strict
 from features.api.routes.system.events.chat_stream.start_pipeline_cleanup import (
@@ -167,7 +168,7 @@ async def prepare_registered_ws_chat_stream_runtime(
             runtime=runtime,
             placeholder_persisted=placeholder_persisted or runtime.assistant_placeholder_persisted,
             error_code=str(coerced.code),
-            error_message=str(coerced),
+            error_message=project_public_error(coerced).message,
             trace_id=trace_id,
             logger=logger,
         )

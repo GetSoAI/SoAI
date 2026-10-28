@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import StateError
-from core.serialization.json_parsing import parse_json_dict
+from core.serialization.json_parsing import parse_json_dict, parse_json_str_list
 from core.validation.epoch import EPOCH_MS_MIN
 from database.core.sqlite_row_scalars import (
     require_sqlite_row_int,
@@ -15,9 +15,12 @@ from database.core.sqlite_row_scalars import (
     sqlite_row_optional_int,
     sqlite_row_optional_str,
 )
+from database.repositories.users.conversation_knowledge_extraction import (
+    knowledge_summary_missing_capabilities,
+)
 
 if TYPE_CHECKING:
-    from core.types.json import JSONDict
+    from core.types.json import JSONDict, JSONValue
     from database.core.sqlite_values import SQLiteRow
 
 __all__ = (
@@ -35,6 +38,18 @@ def _status_counts(row: SQLiteRow) -> JSONDict:
     if not isinstance(raw, str | bytes):
         raise StateError("Knowledge attachment status_counts_json is invalid.")
     return parse_json_dict(raw, field="status_counts_json")
+
+
+def _missing_capabilities(row: SQLiteRow) -> list[JSONValue]:
+    raw = row.get("missing_capabilities")
+    if raw is None:
+        return []
+    if not isinstance(raw, str | bytes):
+        raise StateError("Attachment missing_capabilities is invalid.")
+    values: list[JSONValue] = list(
+        parse_json_str_list(raw, field="missing_capabilities", strip_items=True, drop_empty=True)
+    )
+    return values
 
 
 def format_attachment_row(row: SQLiteRow | None) -> JSONDict | None:
@@ -114,6 +129,7 @@ def format_attachment_row(row: SQLiteRow | None) -> JSONDict | None:
             label=ATTACHMENT_ROW_FIELD_LABEL,
             minimum=EPOCH_MS_MIN,
         ),
+        "missing_capabilities": _missing_capabilities(row),
         "state": require_sqlite_row_non_empty_str(row, "state", label=ATTACHMENT_ROW_FIELD_LABEL),
         "conversation_input_id": sqlite_row_optional_str(
             row,
@@ -271,4 +287,7 @@ def format_knowledge_attachment_row(row: SQLiteRow | None) -> JSONDict | None:
             minimum=EPOCH_MS_MIN,
         ),
     }
+    missing = knowledge_summary_missing_capabilities(row)
+    if missing:
+        payload["missing_capabilities"] = list(missing)
     return payload

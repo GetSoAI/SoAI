@@ -125,7 +125,7 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
     const { signal } = abort;
     let disposed = false;
     let lastBusy: boolean | null = null;
-    const boundSaveButtons = new WeakSet<HTMLButtonElement>();
+    const boundSaveButtons = new Set<HTMLButtonElement>();
     const busySaveButtonTokens = new Map<HTMLButtonElement, BusyDisabledToken>();
 
     const clearBusySaveButtons = (): void => {
@@ -146,7 +146,7 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
         if (!(event.currentTarget instanceof HTMLButtonElement)) {
             throw new TypeError('Save button click target must be an HTMLButtonElement');
         }
-        if (event.currentTarget.disabled) {
+        if (disposed || !requireSaveButtons(resolveSaveButtons).includes(event.currentTarget) || event.currentTarget.disabled) {
             return;
         }
         event.preventDefault();
@@ -171,10 +171,21 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
         if (onBusyChange && busyChanged) {
             onBusyChange(busy);
         }
+        if (disposed) return;
         if (!busy) {
             clearBusySaveButtons();
         }
-        const buttons = requireSaveButtons(resolveSaveButtons);
+        const buttons = new Set(requireSaveButtons(resolveSaveButtons));
+        for (const button of boundSaveButtons) {
+            if (buttons.has(button)) continue;
+            button.removeEventListener('click', requestButtonSave);
+            boundSaveButtons.delete(button);
+            const token = busySaveButtonTokens.get(button);
+            if (token !== undefined) {
+                endLoadingButton(button, token);
+                busySaveButtonTokens.delete(button);
+            }
+        }
         const dirtyClassName = options.buttonDirtyClassName;
         for (const button of buttons) {
             if (!boundSaveButtons.has(button)) {
@@ -237,6 +248,7 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
             }
             clearBusySaveButtons();
             abort.abort();
+            boundSaveButtons.clear();
             unsubscribe();
             headerActionController?.dispose();
             if (onBusyChange && lastBusy === true) {

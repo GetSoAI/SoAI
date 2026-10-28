@@ -130,12 +130,14 @@ async def execute_turn_loop(
     )
     assistant_text: str | None = None
     tool_calls: list[JSONDict] = []
+    reasoning_text = ""
     execute_tool_phase = resumed_tool_phase is not None
     if resumed_tool_phase is not None:
         iteration_index = resumed_tool_phase.iteration_index
         current_cancellation_id = resumed_tool_phase.cancellation_id
         assistant_text = resumed_tool_phase.assistant_text
         tool_calls = resumed_tool_phase.tool_calls
+        reasoning_text = resumed_tool_phase.reasoning_text
         outcome.final_text = assistant_text
     while True:
         if await turn_cancelled():
@@ -184,6 +186,7 @@ async def execute_turn_loop(
             post_inference = await resolve_turn_loop_post_inference(
                 final_payload=outcome.final_payload,
                 assistant_text=current_inference.assistant_text,
+                reasoning_text=current_inference.reasoning_text,
                 assistant_output_published=current_inference.assistant_output_published,
                 current_inference_tool_calls=current_inference.tool_calls,
                 current_inference_detected_tool_calls=current_inference.detected_tool_calls,
@@ -210,6 +213,7 @@ async def execute_turn_loop(
             )
             assistant_text = post_inference.assistant_text
             tool_calls = post_inference.tool_calls
+            reasoning_text = post_inference.reasoning_text
             if post_inference.assistant_output_published and assistant_text:
                 outcome.final_text = assistant_text
             if await turn_cancelled():
@@ -259,6 +263,7 @@ async def execute_turn_loop(
                 current_cancellation_id=current_cancellation_id,
                 iteration_index=iteration_index,
                 assistant_text=assistant_text,
+                reasoning_text=reasoning_text,
                 tool_calls=tool_calls,
                 message_history=message_history,
                 boundary_source_messages=boundary_source_messages,

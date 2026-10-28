@@ -14,7 +14,7 @@ from hardware.gpu_tuning.apply_at_boot_flag import parse_apply_at_boot_flag_or_e
 from hardware.gpu_tuning.service_dependencies import GpuServiceDependencies
 from hardware.gpu_tuning.slot_errors import (
     SlotOperationContext,
-    load_locked_slot_operation_context_for_device,
+    load_slot_operation_context,
     resolve_slot_identifier_or_error,
 )
 
@@ -60,12 +60,12 @@ def _load_prepared_slot_operation_context(
     slot_id: str,
     gpu_services: GpuServiceDependencies,
 ) -> PreparedSlotOperation | JSONDict:
-    context = load_locked_slot_operation_context_for_device(
-        executor,
-        storage,
-        detailed_gpu_info,
-        device_id,
-        gpu_services,
+    context = load_slot_operation_context(
+        executor=executor,
+        storage=storage,
+        detailed_gpu_info=detailed_gpu_info,
+        device_id=device_id,
+        gpu_services=gpu_services,
     )
     if context.error:
         return context.error

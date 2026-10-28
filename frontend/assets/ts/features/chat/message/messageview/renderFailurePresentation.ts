@@ -27,7 +27,7 @@ export const createRenderFailurePresenter = (dependencies: { renderHost: ChatMes
     };
 
     const renderMessageRenderErrorWithPreservedContent = (message: ChatMessage, errorText: string, context: string): string => {
-        const errorHtml = renderMessageError(dependencies.renderHost, errorText);
+        const errorHtml = renderMessageError(dependencies.renderHost, errorText, null);
         let preservedContent = '';
         try {
             preservedContent = dependencies.renderPreservedContentOnlyMarkup(message);

@@ -70,6 +70,10 @@ from features.api.routes.system.events.snapshots.handlers_routing import (
     snapshot_routing_config,
     snapshot_routing_virtual_models,
 )
+from features.api.routes.system.events.snapshots.handlers_skills import (
+    snapshot_conversation_skills,
+    snapshot_skill_library,
+)
 from features.api.routes.system.events.snapshots.handlers_system import (
     snapshot_system_health,
     snapshot_system_info,
@@ -108,6 +112,8 @@ __all__ = ("resolve_snapshot_handler",)
 
 SNAPSHOT_HANDLER_RULES: tuple[tuple[str, SnapshotHandler], ...] = (
     ("prompts.collection", snapshot_prompts_collection),
+    ("skills.library", snapshot_skill_library),
+    ("skills.selection", snapshot_conversation_skills),
     ("models.collection", snapshot_models_collection),
     ("models.last_used", snapshot_models_last_used),
     ("models.parameters", snapshot_model_parameters),

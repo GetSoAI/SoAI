@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_exception
 from core.filesystem.atomic_writes import atomic_write_text_content
-from core.hardware.protocols import GpuSlotStorageManagerProtocol
 from core.logging.protocols import LoggerProtocol
 from core.timing.formatting import utc_now_iso
 from hardware.control.profiles import compute_slot_signature, default_boot_payload
@@ -26,7 +25,6 @@ OPERATION = "hardware.presets.slot_mutations.touch_dirty_flag"
 
 
 def store_slot_unlocked(
-    storage: GpuSlotStorageManagerProtocol,
     payload: JSONDict,
     device_id: str,
     slot_id: str,
@@ -65,12 +63,10 @@ def store_slot_unlocked(
         "last_applied_at": None,
         "signature": signature,
     }
-    storage.write_payload(payload)
     return {"signature": signature, "saved_at": saved_at}
 
 
 def record_slot_application_unlocked(
-    storage: GpuSlotStorageManagerProtocol,
     payload: JSONDict,
     device_id: str,
     slot_id: str | None,
@@ -106,8 +102,6 @@ def record_slot_application_unlocked(
                 slot_entry["last_applied_at"] = applied_at
     if boot_changed:
         entry["boot"] = boot
-    if boot_changed:
-        storage.write_payload(payload)
     return (boot_changed, entry.copy())
 
 

@@ -6,7 +6,7 @@ import { announceDesktopLauncherBootReveal } from '@core/desktophost/desktopLaun
 import { getPerformance, requireDocument } from '@core/environment/public.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { waitForElementAnimations } from '@core/pageTransitions.ts';
-import { awaitAnimationFrame } from '@core/runtime/animationFrames.ts';
+import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
 import { isArray } from '@core/typeGuards.ts';
 
 const PRELOADER_EXITING_CLASS = 'page-preloader--exiting';
@@ -35,8 +35,8 @@ const resolvePreloader = (): HTMLElement | null => {
 };
 
 const establishVisiblePreloaderFrame = async (): Promise<void> => {
-    await awaitAnimationFrame(null, 'Preloader exit was cancelled before its initial frame');
-    await awaitAnimationFrame(null, 'Preloader exit was cancelled before its painted frame');
+    await awaitPresentationFrame(null, 'Preloader exit was cancelled before its initial frame');
+    await awaitPresentationFrame(null, 'Preloader exit was cancelled before its painted frame');
 };
 
 const removePreloader = (preloader: HTMLElement): void => {

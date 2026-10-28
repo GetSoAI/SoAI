@@ -114,6 +114,7 @@ from core.logging.trace import get_logger
 recovered = recover_interrupted_update_transactions(
     sys.argv[1], get_logger('SoAI.app.updater.recovery_bootstrap'),
     allow_pending_activation=True, cleanup_after_recovery=False,
+    defer_to_inherited_installer=True,
 )
 raise SystemExit(0 if recovered else 1)
 """,

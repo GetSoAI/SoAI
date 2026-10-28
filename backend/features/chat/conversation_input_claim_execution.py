@@ -13,6 +13,7 @@ from core.events.conversation_publication import (
     publish_conversation_updated_and_message_saved,
 )
 from core.validation.record_fields import (
+    require_bool,
     require_int,
     require_json_object,
     require_non_empty_str,
@@ -81,6 +82,15 @@ async def _publish_materialization(
             if conversation_title_value is not None
             else None
         )
+        conversation_title_auto_update_allowed = (
+            require_bool(
+                materialized.get("conversation_title_auto_update_allowed"),
+                label="Materialized conversation input title authority",
+                build_error=StateError,
+            )
+            if conversation_title is not None
+            else None
+        )
         publication = publish_conversation_updated_and_message_saved(
             api_dependencies.event_bus,
             user_id=user_id,
@@ -94,6 +104,7 @@ async def _publish_materialization(
                 invalid_message="Materialized conversation input message is invalid.",
             ),
             title=conversation_title,
+            title_auto_update_allowed=conversation_title_auto_update_allowed,
         )
         try:
             await publication

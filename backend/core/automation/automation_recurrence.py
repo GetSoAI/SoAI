@@ -11,14 +11,12 @@ from core.automation.automation_local_time import (
 )
 from core.automation.automation_recurrence_candidates import (
     advance_occurrence_naive,
-    most_recent_occurrence_naive_at_or_before,
     next_occurrence_naive_after,
 )
 from core.errors.exceptions import OneShotAutomationStartNotFutureError, ValidationError
 
 __all__ = (
     "iter_occurrences_in_window",
-    "resolve_due_run_slot_and_next_run_at",
     "resolve_due_run_slots_and_next_run_at",
     "resolve_next_run_at",
 )
@@ -50,35 +48,6 @@ def resolve_next_run_at(
         inclusive=False,
     )
     return resolve_local_naive_to_utc_ms(candidate_naive, timezone_name)
-
-
-def resolve_due_run_slot_and_next_run_at(
-    *,
-    timezone_name: str,
-    start_local: str,
-    recurrence: str,
-    now_ms: int,
-) -> tuple[int, int | None]:
-    start_naive = parse_start_local(start_local)
-    if recurrence == "none":
-        scheduled_at = resolve_local_naive_to_utc_ms(start_naive, timezone_name)
-        return (scheduled_at, None)
-    now_local_naive = local_naive_from_utc_ms(now_ms, timezone_name)
-    due_naive = most_recent_occurrence_naive_at_or_before(
-        start_naive=start_naive,
-        recurrence=recurrence,
-        pivot_naive=now_local_naive,
-    )
-    next_naive = next_occurrence_naive_after(
-        start_naive=start_naive,
-        recurrence=recurrence,
-        pivot_naive=now_local_naive,
-        inclusive=False,
-    )
-    return (
-        resolve_local_naive_to_utc_ms(due_naive, timezone_name),
-        resolve_local_naive_to_utc_ms(next_naive, timezone_name),
-    )
 
 
 def resolve_due_run_slots_and_next_run_at(

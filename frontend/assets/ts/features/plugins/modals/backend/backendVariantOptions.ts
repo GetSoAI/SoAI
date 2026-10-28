@@ -13,6 +13,8 @@ interface BackendVariantOption {
 
 const AUTO_BACKEND_VARIANT_ID = 'auto';
 
+const hasResolvedBackendInstallation = (payload: BackendVariantsResponse): boolean => payload.installedVariantResolution !== 'unavailable' && payload.installedVariantResolution !== 'not_requested';
+
 const normalizeBackendVariantOptions = (payload: BackendVariantsResponse): { selected: string; installed: string | null; installedLabel: string | null; options: BackendVariantOption[] } => {
     const options = payload.options.map((item) => ({
         id: item.id,
@@ -26,5 +28,5 @@ const normalizeBackendVariantOptions = (payload: BackendVariantsResponse): { sel
     return { selected: payload.selectedVariantId, installed: installedOption?.id ?? null, installedLabel: installedOption?.label ?? null, options };
 };
 
-export { AUTO_BACKEND_VARIANT_ID, normalizeBackendVariantOptions };
+export { AUTO_BACKEND_VARIANT_ID, hasResolvedBackendInstallation, normalizeBackendVariantOptions };
 export type { BackendVariantOption };

@@ -39,16 +39,16 @@ const renderSection = (options: SectionOptions): string => {
 };
 
 const renderSectionHeader = (options: SectionOptions): string => {
-    const description = options.description ? `<p class="section-description">${options.description}</p>` : '';
-    const header = `<h2 class="section-title">${options.title}</h2>`;
-    return `<div class="section-header"><div>${header}${description}</div>${renderSectionHeaderActions(options.trailing)}</div>`;
+    const description = options.description ? `<p class="section-description" data-modal-localize="text">${options.description}</p>` : '';
+    const header = `<h2 class="section-title" data-modal-localize="text">${options.title}</h2>`;
+    return `<div class="section-header"><div data-modal-localize="text">${header}${description}</div>${renderSectionHeaderActions(options.trailing)}</div>`;
 };
 
 const renderSectionHeaderActions = (trailing?: string): string => {
     return trailing ? `<div class="section-header-end">${trailing}</div>` : '';
 };
 
-const renderSettingItem = ({ label, help, control, className, fieldKey, dataset: dataAttributesMap, attributes }: SettingItemOptions): string => {
+const renderSettingItem = ({ label, help, control, className, fieldKey, dataset: dataAttributesMap, attributes, footer }: SettingItemOptions): string => {
     const resolvedClassName = className ? `setting-change-surface ${securityApi.escapeAttribute(className)}` : 'setting-change-surface';
     const attributesMarkup = renderAttributesMarkup(attributes);
 
@@ -67,7 +67,8 @@ const renderSettingItem = ({ label, help, control, className, fieldKey, dataset:
             }
         }
     }
-    return `<div class="setting-item ${resolvedClassName}"${dataAttributes}${attributesMarkup}><div class="setting-info"><label class="setting-label">${label}</label>${help ? `<span class="setting-help">${help}</span>` : ''}</div><div class="setting-control">${control}</div></div>`;
+    const footerMarkup = footer ? `<div class="setting-item__footer">${footer}</div>` : '';
+    return `<div class="setting-item ${resolvedClassName}${footer ? ' setting-item--with-footer' : ''}"${dataAttributes}${attributesMarkup}><div class="setting-info"><label class="setting-label" data-modal-localize="text">${label}</label>${help ? `<span class="setting-help" data-modal-localize="text">${help}</span>` : ''}</div><div class="setting-control">${control}</div>${footerMarkup}</div>`;
 };
 
 const renderSettingsGroup = (items: string[], options: SettingsGroupOptions = {}): string => {
@@ -79,10 +80,10 @@ const renderSettingsGroup = (items: string[], options: SettingsGroupOptions = {}
 const renderSettingsSubgroup = (options: SettingsSubgroupOptions): string => {
     const classSuffix = options.className ? ` ${securityApi.escapeAttribute(options.className)}` : '';
     const attributesMarkup = renderAttributesMarkup(options.attributes);
-    const description = options.description ? `<p class="subgroup-description">${options.description}</p>` : '';
+    const description = options.description ? `<p class="subgroup-description" data-modal-localize="text">${options.description}</p>` : '';
     const trailing = options.trailing ? `<div class="subgroup-header-actions">${options.trailing}</div>` : '';
     const tagName = options.tagName ?? 'div';
-    return `<${tagName} class="settings-subgroup${classSuffix}"${attributesMarkup}><div class="subgroup-header"><div><h3 class="subgroup-title">${options.title}</h3>${description}</div>${trailing}</div>${options.content}</${tagName}>`;
+    return `<${tagName} class="settings-subgroup${classSuffix}"${attributesMarkup}><div class="subgroup-header"><div><h3 class="subgroup-title" data-modal-localize="text">${options.title}</h3>${description}</div>${trailing}</div>${options.content}</${tagName}>`;
 };
 
 const renderSettingsRecordList = (options: SettingsRecordListOptions): string => {
@@ -94,7 +95,7 @@ const renderSettingsRecordList = (options: SettingsRecordListOptions): string =>
 };
 
 const renderSettingsStatusBadge = (label: string, tone: SettingsStatusBadgeTone): string => {
-    return `<span class="settings-record-badge settings-record-badge--${tone}">${securityApi.escapeHtml(label)}</span>`;
+    return `<span class="settings-record-badge settings-record-badge--${tone}" data-modal-localize="text">${securityApi.escapeHtml(label)}</span>`;
 };
 
 const renderSettingsTextValue = (value: string, id?: string): string => {
@@ -132,7 +133,7 @@ const renderSelectControl = ({ id, options, selected, disabled, wide, compact, f
             const value = option.value === null || option.value === undefined ? '' : option.value;
             const isSelected = value === selectedValue;
             const countryCodeAttribute = option.countryCode ? ` data-country-code="${requireFlagCountryCode(option.countryCode)}"` : '';
-            return `<option value="${securityApi.escapeAttribute(value)}"${countryCodeAttribute}${isSelected ? ' selected' : ''}${option.disabled ? ' disabled' : ''}>${securityApi.escapeHtml(option.label)}</option>`;
+            return `<option value="${securityApi.escapeAttribute(value)}"${countryCodeAttribute}${isSelected ? ' selected' : ''}${option.disabled ? ' disabled' : ''} data-modal-localize="text">${securityApi.escapeHtml(option.label)}</option>`;
         })
         .join('')}</select>`;
     if (flagPrefix === true) return renderFlagSelectControl(selectMarkup);
@@ -140,7 +141,7 @@ const renderSelectControl = ({ id, options, selected, disabled, wide, compact, f
 };
 
 const renderSliderControl = ({ id, valueId, min, max, step, value, valueLabel }: SliderControlOptions): string => {
-    return `<div class="settings-slider-control"><input type="range" id="${securityApi.escapeAttribute(id)}" class="settings-slider" min="${securityApi.escapeAttribute(String(min))}" max="${securityApi.escapeAttribute(String(max))}" value="${securityApi.escapeAttribute(String(value))}" step="${securityApi.escapeAttribute(String(step))}"><span id="${securityApi.escapeAttribute(valueId)}" class="settings-slider-value">${securityApi.escapeHtml(valueLabel)}</span></div>`;
+    return `<div class="settings-slider-control"><input type="range" id="${securityApi.escapeAttribute(id)}" class="settings-slider" min="${securityApi.escapeAttribute(String(min))}" max="${securityApi.escapeAttribute(String(max))}" value="${securityApi.escapeAttribute(String(value))}" step="${securityApi.escapeAttribute(String(step))}"><span id="${securityApi.escapeAttribute(valueId)}" class="settings-slider-value" data-modal-localize="text">${securityApi.escapeHtml(valueLabel)}</span></div>`;
 };
 
 export { renderSection, renderSelectControl, renderSettingItem, renderSettingsCodeValue, renderSettingsGroup, renderSettingsRecordList, renderSettingsStatusBadge, renderSettingsSubgroup, renderSettingsTextValue, renderSliderControl, renderToggleControl };

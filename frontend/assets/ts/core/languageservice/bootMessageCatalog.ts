@@ -3,7 +3,7 @@
 
 import type { TranslationKey } from '@core/i18n/index.ts';
 
-const BOOT_MESSAGE_KEYS = ['app.errors.initFailed', 'app.errors.unknown', 'app.errors.editionIntegrity.title', 'app.errors.editionIntegrity.message', 'app.errors.discoveryHelp.heading', 'app.errors.discoveryHelp.items.backendRunning', 'app.errors.discoveryHelp.items.discoveryReachable', 'app.errors.discoveryHelp.items.noFirewall', 'app.errors.discoveryHelp.defaultPorts', 'common.actions.reloadPage', 'detached.errors.initFailed', 'app.detachedWindow.errors.noPageSpecified', 'app.detachedWindow.errors.initializationFailed'] satisfies readonly TranslationKey[];
+const BOOT_MESSAGE_KEYS = ['app.errors.initFailed', 'app.errors.unknown', 'app.errors.reference', 'app.errors.stages.entrypoint', 'app.errors.stages.criticalServices', 'app.errors.stages.authentication', 'app.errors.stages.session', 'app.errors.stages.routeRendering', 'app.errors.stages.background', 'app.errors.editionIntegrity.title', 'app.errors.editionIntegrity.message', 'app.errors.discoveryHelp.heading', 'app.errors.discoveryHelp.items.backendRunning', 'app.errors.discoveryHelp.items.discoveryReachable', 'app.errors.discoveryHelp.items.noFirewall', 'app.errors.discoveryHelp.defaultPorts', 'common.actions.reloadPage', 'detached.errors.initFailed', 'app.detachedWindow.errors.noPageSpecified', 'app.detachedWindow.errors.initializationFailed'] satisfies readonly TranslationKey[];
 
 type BootMessageKey = (typeof BOOT_MESSAGE_KEYS)[number];
 interface BootMessageLocale {

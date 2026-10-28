@@ -121,6 +121,7 @@ def build_model_stack_and_manager(
         model_record_locks=model_record_locks,
         model_actions_service=model_actions_service,
         model_information_service=model_information_service,
+        plugin_lifecycle=plugin_manager.lifecycle,
         shutdown_event=model_services_shutdown_event,
     )
     model_resolution_service = ModelResolutionService(

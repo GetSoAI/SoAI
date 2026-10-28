@@ -1,6 +1,7 @@
 /* SoAI - Shared layout dropdown controller [frontend/assets/ts/core/layout/header/dropdownController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { exitWithPresence, isPresenceExiting, prepareEnterWithPresence, requestPresenceEnter } from '@core/animations/presence/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { drainCleanupStack } from '@core/lifecycle/cleanup.ts';
@@ -37,6 +38,9 @@ class HeaderDropdownController {
         this.reset();
         this.#button = button;
         this.#dropdown = dropdown;
+        dropdown.setAttribute('data-presence', '');
+        dropdown.setAttribute('data-presence-visual-only', '');
+        dropdown.setAttribute('data-presence-atomic', '');
         this.#addCleanup(
             this.#host.on(dropdown, 'keydown', (event: Event) => {
                 if (!(event instanceof KeyboardEvent) || event.key !== 'Escape') {
@@ -60,7 +64,13 @@ class HeaderDropdownController {
     }
 
     reset(): void {
-        this.hide();
+        if (this.#dropdown) {
+            prepareEnterWithPresence(this.#dropdown, false)();
+            this.#dropdown.classList.add('u-hidden');
+            this.#dropdown.removeAttribute('data-presence-atomic');
+            this.#dropdown.removeAttribute('data-presence');
+            setHeaderDropdownState(this.#button, false);
+        }
         drainCleanupStack(this.#cleanups, (runtimeError) => {
             errorHandler.warn('Header', 'Dropdown binding cleanup failed', runtimeError);
         });
@@ -74,16 +84,23 @@ class HeaderDropdownController {
     }
 
     show(): void {
+        if (this.#isOpen) return;
         const dropdown = this.requireDropdown();
+        const reopening = isPresenceExiting(dropdown);
+        const start = prepareEnterWithPresence(dropdown, reopening, true);
+        if (!reopening) requestPresenceEnter(dropdown);
         dropdown.classList.remove('u-hidden');
+        start();
         this.#isOpen = true;
         setHeaderDropdownState(this.#button, true);
     }
 
     hide(): void {
         const dropdown = this.#dropdown;
-        if (dropdown) {
-            dropdown.classList.add('u-hidden');
+        if (dropdown && this.#isOpen) {
+            exitWithPresence(dropdown, null, () => {
+                dropdown.classList.add('u-hidden');
+            });
         }
         this.#isOpen = false;
         setHeaderDropdownState(this.#button, false);

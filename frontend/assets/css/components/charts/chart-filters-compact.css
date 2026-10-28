@@ -21,7 +21,7 @@
     .chart-filters-bar[data-compact-filters='true'] .chart-filters-trigger-summary {
         max-width: 22ch;
         overflow: hidden;
-        color: var(--text-secondary);
+        color: inherit;
         font-size: var(--font-size-compact);
         font-weight: 500;
         text-overflow: ellipsis;
@@ -33,10 +33,11 @@
         width: var(--control-icon-size-compact);
         height: var(--control-icon-size-compact);
         margin-inline-start: var(--space-1);
-        background-image: var(--control-select-arrow-image);
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: var(--control-icon-size-compact);
+        background-color: currentcolor;
+        mask-image: var(--control-select-arrow-image);
+        mask-repeat: no-repeat;
+        mask-position: center;
+        mask-size: var(--control-icon-size-compact);
         transition: transform var(--transition-fast);
     }
 

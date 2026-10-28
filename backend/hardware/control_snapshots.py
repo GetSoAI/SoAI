@@ -7,14 +7,18 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
+from core.hardware.gpu_physical_identity import GPUPhysicalBindingState
 from core.types.json_value import coerce_json_dict_or_empty, copy_json_dict
-from core.validation.text_numbers import coerce_float_from_text
 from hardware.gpu_capabilities.aggregate_payloads import (
     collect_control_backends,
     get_capabilities_for_device,
 )
 from hardware.gpu_capabilities.payloads import CONTROL_CAPABILITY_KEYS
 from hardware.gpu_inventory.identity import normalize_identity_index
+from hardware.gpu_inventory.physical_binding import (
+    gpu_entry_accepts_device_id,
+    match_gpu_physical_identity,
+)
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -23,28 +27,54 @@ __all__ = (
     "build_control_list_payload",
     "find_gpu_capabilities",
     "find_gpu_entry",
-    "metric_float",
 )
 
 
 def find_gpu_entry(snapshot: JSONDict, device_id: str) -> JSONDict | None:
     gpu_payload = coerce_json_dict_or_empty(snapshot.get("gpu"))
     by_device = gpu_payload.get("by_device_id")
-    if isinstance(by_device, Mapping):
-        entry = by_device.get(device_id)
-        if isinstance(entry, dict):
-            return copy_json_dict(entry)
+    mapped = by_device.get(device_id) if isinstance(by_device, Mapping) else None
     gpus_value = gpu_payload.get("gpus")
+    entries: list[JSONDict]
     if isinstance(gpus_value, list):
-        for entry in gpus_value:
-            if isinstance(entry, dict) and entry.get("device_id") == device_id:
-                return copy_json_dict(entry)
-    return None
+        entries = [entry for entry in gpus_value if isinstance(entry, dict)]
+    elif isinstance(by_device, Mapping):
+        entries = []
+        for entry in by_device.values():
+            if isinstance(entry, dict) and entry not in entries:
+                entries.append(entry)
+    else:
+        return None
+    matches = [entry for entry in entries if entry.get("device_id") == device_id]
+    if not matches:
+        matches = [entry for entry in entries if gpu_entry_accepts_device_id(entry, device_id)]
+    if len(matches) != 1:
+        return None
+    selected = matches[0]
+    if isinstance(mapped, dict) and not _snapshot_identity_agrees(selected, mapped):
+        return None
+    return copy_json_dict(selected)
+
+
+def _snapshot_identity_agrees(selected: JSONDict, mapped: JSONDict) -> bool:
+    mapped_id = mapped.get("device_id")
+    if not isinstance(mapped_id, str) or not gpu_entry_accepts_device_id(selected, mapped_id):
+        return False
+    relation = match_gpu_physical_identity(selected, mapped)
+    if relation == GPUPhysicalBindingState.BOUND:
+        return True
+    if relation != GPUPhysicalBindingState.IDENTITY_UNAVAILABLE:
+        return False
+    if mapped_id != selected.get("device_id"):
+        return False
+    selected_index = normalize_identity_index(selected.get("index"))
+    mapped_index = normalize_identity_index(mapped.get("index"))
+    return selected_index is None or mapped_index is None or selected_index == mapped_index
 
 
 def find_gpu_capabilities(capabilities: JSONDict, gpu: JSONDict, device_id: str) -> JSONDict:
     gpu_index = normalize_identity_index(gpu.get("index"))
-    cap_entry = get_capabilities_for_device(capabilities, device_id, gpu_index)
+    cap_entry = get_capabilities_for_device(capabilities, device_id, gpu_index, selected_gpu=gpu)
     if cap_entry is None:
         raise ValidationError(f"GPU capabilities are unavailable for {device_id}.")
     return cap_entry
@@ -68,8 +98,17 @@ def build_control_list_payload(snapshot: JSONDict, capabilities: JSONDict) -> JS
             capabilities,
             device_id,
             normalize_identity_index(gpu.get("index")),
+            selected_gpu=gpu,
         )
         controls = _control_sections(cap_entry if isinstance(cap_entry, dict) else {})
+        binding_state = gpu.get("control_binding_state")
+        reason = gpu.get("control_binding_reason")
+        if find_gpu_entry(snapshot, device_id) is None:
+            binding_state, reason = GPUPhysicalBindingState.IDENTITY_CONFLICT, "identity_conflict"
+        if binding_state is not None and binding_state != GPUPhysicalBindingState.BOUND:
+            for section in controls.values():
+                section["supported"] = False
+                section["unsupported_reason"] = reason or binding_state
         payload = {
             "device_id": device_id,
             "name": gpu.get("name"),
@@ -85,17 +124,6 @@ def build_control_list_payload(snapshot: JSONDict, capabilities: JSONDict) -> JS
             payload["unsupported_reason"] = _unsupported_reason(controls)
             unsupported.append(payload)
     return {"supported_gpus": supported, "unsupported_gpus": unsupported}
-
-
-def metric_float(entry: JSONDict, key: str) -> float | None:
-    if key in entry:
-        return coerce_float_from_text(entry.get(key), default=None)
-    clock_value = entry.get("clock")
-    if key == "core_clock_mhz" and isinstance(clock_value, Mapping):
-        return coerce_float_from_text(clock_value.get("core_mhz"), default=None)
-    if key == "mem_clock_mhz" and isinstance(clock_value, Mapping):
-        return coerce_float_from_text(clock_value.get("memory_mhz"), default=None)
-    return None
 
 
 def _control_sections(capabilities: JSONDict) -> dict[str, JSONDict]:

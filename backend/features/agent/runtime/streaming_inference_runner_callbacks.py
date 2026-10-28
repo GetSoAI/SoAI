@@ -48,7 +48,9 @@ __all__ = ("build_agent_streaming_inference_runner",)
 
 
 def _build_stream_transcript(task: Task, model: str | None) -> OpenAIStreamTranscript:
-    return OpenAIStreamTranscript(model_hint=resolve_task_stream_model(task, model))
+    return OpenAIStreamTranscript(
+        model_hint=resolve_task_stream_model(task, model), error_origin="local_terminal"
+    )
 
 
 def _build_runner_cancel_callbacks(
@@ -105,6 +107,7 @@ def build_agent_streaming_inference_runner(
     token_estimation_profile: TokenEstimationProfile | None = None,
     cancellation_history: CancellationHistoryProtocol | None = None,
     on_task_ready: Callable[[Task, int], Awaitable[None] | None] | None = None,
+    public_error_state: StreamGeneratorStateProtocol | None = None,
     build_context: Callable[[RequestContext, str, int, str | None], RequestContext] | None = None,
     create_additional_task: (
         Callable[
@@ -236,5 +239,7 @@ def build_agent_streaming_inference_runner(
             should_skip_error_chunk=should_skip_error_chunk,
             read_cancel_state=read_cancel_state,
             resolve_stream_id=_resolve_stream_id,
+            public_error_state=public_error_state,
+            read_terminal_task=api_dependencies.task_registry.get,
         ),
     )

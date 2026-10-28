@@ -7,7 +7,6 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
-from core.concurrency.task_groups import DEFAULT_CANCELLATION_TIMEOUT_SEC
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
@@ -15,7 +14,8 @@ from core.events.bus_callback_identity import describe_callback
 from core.events.bus_dispatch_callback_execution import execute_callback_with_timeout
 from core.events.bus_dispatch_waiting import (
     await_cancelled_callback_tasks,
-    wait_until_done,
+    resolve_cancellation_wait_timeout,
+    wait_for_owned_callback_tasks,
 )
 from core.events.bus_stuck_callback_registry import EventBusStuckCallbackRegistry
 from core.events.types_base import Event
@@ -35,10 +35,6 @@ __all__ = (
 )
 
 OPERATION = "event_bus.dispatch.callback"
-
-
-def _resolve_cancellation_wait_timeout(dispatch_timeout: float) -> float:
-    return max(float(dispatch_timeout), DEFAULT_CANCELLATION_TIMEOUT_SEC)
 
 
 async def dispatch_single_callback(
@@ -76,31 +72,15 @@ async def dispatch_single_callback(
         owner="event-bus-dispatch",
         owner_observes_result=True,
     )
-    if dispatch_timeout is None:
-        try:
-            result = await task
-        except HANDLED_RUNTIME_EXCEPTIONS as exception:
-            coerced = coerce_to_soai_error(
-                exception,
-                trace_id=trace_id,
-                operation=OPERATION,
-            )
-            log_exception(
-                logger,
-                coerced,
-                message="Unhandled exception while dispatching event bus callback.",
-                trace_id=trace_id,
-                operation=OPERATION,
-                details={
-                    "callback": callback_name,
-                    "event_type": type(event).__name__,
-                },
-            )
-            return False, exception
-        return False, result
     try:
-        finished = await wait_until_done(task, dispatch_timeout)
-        if not finished:
+        pending_tasks = await wait_for_owned_callback_tasks(
+            tasks=[task],
+            callbacks=[callback],
+            event=event,
+            logger=logger,
+            dispatch_timeout=dispatch_timeout,
+        )
+        if pending_tasks:
             logger.warning(
                 "Aggregate dispatch timed out after %.3fs for %s.",
                 dispatch_timeout,
@@ -112,7 +92,7 @@ async def dispatch_single_callback(
                 callbacks=[callback],
                 event=event,
                 logger=logger,
-                cancellation_wait_timeout=_resolve_cancellation_wait_timeout(dispatch_timeout),
+                cancellation_wait_timeout=resolve_cancellation_wait_timeout(dispatch_timeout),
             )
             return True, None
         result = task.result()
@@ -178,12 +158,14 @@ async def dispatch_multiple_callbacks(
         for index, callback in enumerate(callbacks)
     ]
     results_by_task: dict[asyncio.Task[Exception | None], BaseException | None] = {}
-    if dispatch_timeout is None:
-        gathered_results = list(await asyncio.gather(*tasks, return_exceptions=True))
-        for task, result in zip(tasks, gathered_results, strict=True):
-            results_by_task[task] = result
-        return False, results_by_task, tasks
-    completed_tasks, pending_tasks = await asyncio.wait(tasks, timeout=dispatch_timeout)
+    pending_tasks = await wait_for_owned_callback_tasks(
+        tasks=tasks,
+        callbacks=callbacks,
+        event=event,
+        logger=logger,
+        dispatch_timeout=dispatch_timeout,
+    )
+    completed_tasks = [task for task in tasks if task not in pending_tasks]
     for completed_task in completed_tasks:
         completed_result: BaseException | None
         try:
@@ -226,6 +208,6 @@ async def dispatch_multiple_callbacks(
         callbacks=pending_callbacks,
         event=event,
         logger=logger,
-        cancellation_wait_timeout=_resolve_cancellation_wait_timeout(dispatch_timeout),
+        cancellation_wait_timeout=resolve_cancellation_wait_timeout(dispatch_timeout),
     )
     return True, results_by_task, tasks

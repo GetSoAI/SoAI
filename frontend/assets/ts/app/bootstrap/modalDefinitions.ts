@@ -9,6 +9,7 @@ import { FOLDER_PICKER_MODAL_DEFINITIONS } from '@core/fileexplorerbrowser/folde
 import { LICENSE_MODAL_DEFINITIONS } from '@core/licenseservice/modalDefinitions.ts';
 import { DIALOGS_MODAL_DEFINITIONS } from '@core/ui/modals/dialogs/modalDefinitions.ts';
 import { CONTENT_PREVIEW_MODAL_DEFINITIONS } from '@core/ui/modals/contentpreview/modalDefinitions.ts';
+import { POWER_MODAL_DEFINITIONS } from '@features/power/public.ts';
 import { ABOUT_MODAL_DEFINITIONS } from '@features/about/modals/easterEggModal.ts';
 import { createChatModalDefinitions } from '@features/chat/modals/modalDefinitions.ts';
 import { createDashboardIntroModalDefinition, type DashboardIntroDriverPresenceState, type DashboardIntroStreamManager } from '@features/firstrunmodals/public.ts';
@@ -28,6 +29,7 @@ import type { DashboardIntroProductContribution } from '@features/firstrunmodals
 const getAppModalDefinitions = (dependencies: { storage: FirstRunStateStorage; apiClient: ApiClientContext & { webui?: Pick<WebuiUserEndpoints, 'memory'> | undefined }; dashboardIntroDriverPresence: DashboardIntroDriverPresenceState; dashboardIntroProduct: DashboardIntroProductContribution | null; streamManager: DashboardIntroStreamManager }): readonly ModalDefinition[] => {
     return [
         ...DIALOGS_MODAL_DEFINITIONS,
+        ...POWER_MODAL_DEFINITIONS,
         ...LICENSE_MODAL_DEFINITIONS,
         ...CONTENT_PREVIEW_MODAL_DEFINITIONS,
         ...EXPORT_PREVIEW_MODAL_DEFINITIONS,

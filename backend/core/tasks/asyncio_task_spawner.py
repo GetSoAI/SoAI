@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable, Coroutine
-from typing import TYPE_CHECKING, TypeGuard
+from typing import TYPE_CHECKING
 
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.errors.exception_logging import log_handled_exception
@@ -13,13 +13,17 @@ from core.errors.exceptions import ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.protocols import LoggerProtocol
 from core.logging.trace import get_logger
-from core.tasks.asyncio_task_finalizers import create_tracked_task_lifecycle
+from core.tasks.asyncio_task_finalizers import (
+    attach_tracked_task_lifecycle,
+    create_tracked_task_lifecycle,
+)
 from core.tasks.asyncio_task_tracking import (
     cancel_and_await_tracked_task,
     track_task_or_cancel,
 )
 from core.tasks.awaitable_cleanup import (
     await_wrapper,
+    is_coroutine,
     token_is_cancelled,
     try_close_unawaited,
 )
@@ -54,12 +58,6 @@ def _require_cancellation_binding(cancellation_id: str | None, owner: str) -> tu
     return cancellation_id_value, owner_value
 
 
-def _is_coroutine[TaskResult](
-    value: Coroutine[None, None, TaskResult] | Awaitable[TaskResult],
-) -> TypeGuard[Coroutine[None, None, TaskResult]]:
-    return isinstance(value, Coroutine)
-
-
 def spawn_tracked_task[TaskResult](
     coro: Coroutine[None, None, TaskResult] | Awaitable[TaskResult],
     *,
@@ -75,7 +73,7 @@ def spawn_tracked_task[TaskResult](
     owner_observes_result: bool = False,
 ) -> asyncio.Task[TaskResult]:
     awaitable_value: Awaitable[TaskResult] = coro
-    closable_coroutine = coro if _is_coroutine(coro) else None
+    closable_coroutine = coro if is_coroutine(coro) else None
     if loop is not None and loop.is_closed():
         if closable_coroutine is not None:
             try_close_unawaited(closable_coroutine)
@@ -97,6 +95,7 @@ def spawn_tracked_task[TaskResult](
         return task
     cancellation_id_value, owner_value = _require_cancellation_binding(cancellation_id, owner)
     binding_ready = asyncio.Event()
+    binding_attached = asyncio.Event()
 
     async def _gated() -> TaskResult:
         try:
@@ -114,14 +113,14 @@ def spawn_tracked_task[TaskResult](
         loop=loop,
         name=name,
         rejection_cleanup=(gated_coroutine, *rejection_cleanup),
-        logger=logger,
-        done_callback=done_callback,
+        logger=None,
         callback_awaitable=closable_coroutine,
         finalizer_tracker=finalizer_tracker,
-        owner_observes_result=owner_observes_result,
+        owner_observes_result=owner_observes_result or logger is not None,
     )
 
     async def _bind_task() -> None:
+        await binding_attached.wait()
         task_logger = get_logger(LOGGER_NAME)
         try:
             token = await cancellation_binder.bind_task(
@@ -151,22 +150,32 @@ def spawn_tracked_task[TaskResult](
             binding_ready.set()
 
     binder_name = f"bind-task-{cancellation_id_value}"
-    bind_task: asyncio.Task[None]
-    bind_task_created = False
+    bind_task: asyncio.Task[None] | None = None
+    bind_task_attached = False
     try:
         bind_task = create_ephemeral_task(
             _bind_task(),
             name=binder_name,
             log_exceptions=finalizer_tracker is None,
         )
-        bind_task_created = True
+        if finalizer_tracker is not None:
+            finalizer_tracker.track_finalizer(bind_task)
+        attach_tracked_task_lifecycle(
+            task,
+            logger=logger,
+            done_callback=done_callback,
+            owner_observes_result=owner_observes_result,
+        )
+        bind_task_attached = True
+        binding_attached.set()
+        return task
     finally:
-        if not bind_task_created:
-            binding_ready.set()
+        if not bind_task_attached:
+            if bind_task is not None:
+                bind_task.cancel()
             task.cancel()
-    if finalizer_tracker is not None:
-        finalizer_tracker.track_finalizer(bind_task)
-    return task
+            if closable_coroutine is not None:
+                try_close_unawaited(closable_coroutine)
 
 
 async def create_tracked_task[TaskResult](
@@ -182,7 +191,7 @@ async def create_tracked_task[TaskResult](
 ) -> asyncio.Task[TaskResult]:
     cancellation_id_value, owner_value = _require_cancellation_binding(cancellation_id, owner)
     awaitable_value: Awaitable[TaskResult] = coro
-    closable_coroutine = coro if _is_coroutine(coro) else None
+    closable_coroutine = coro if is_coroutine(coro) else None
     binding_ready = asyncio.Event()
 
     async def _gated() -> TaskResult:

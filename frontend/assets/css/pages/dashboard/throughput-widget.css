@@ -4,21 +4,20 @@
 @layer pages {
     :where([data-section='dashboard'], [data-page-scope='dashboard']) [data-section-id='throughput'] .section-content {
         display: grid;
-        place-items: center;
+        place-items: stretch;
         min-height: 0;
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput {
-        --throughput-arc: 0%;
         --throughput-intensity: 0;
         --dashboard-throughput-accent: color-mix(in srgb, var(--accent-red) calc(var(--throughput-intensity) * 100%), var(--accent-cyan));
         display: grid;
         justify-items: stretch;
-        align-content: center;
+        align-content: start;
         gap: var(--space-2);
         inline-size: 100%;
         min-height: 0;
-        padding: var(--space-2);
+        padding: var(--dashboard-dial-padding-block-start) var(--space-3) var(--space-3);
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-ring-shell {
@@ -71,11 +70,10 @@
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-ring-arc {
+        --ring-gauge-color: var(--dashboard-throughput-accent);
+
         inset: var(--border-width-1);
         z-index: var(--z-base);
-        background: conic-gradient(from 0deg, var(--dashboard-throughput-accent) 0 var(--throughput-arc), color-mix(in srgb, var(--dashboard-throughput-accent) 12%, transparent) var(--throughput-arc) 100%);
-        mask: radial-gradient(farthest-side, transparent calc(100% - var(--throughput-center-inset)), var(--color-black) calc(100% - var(--throughput-center-inset) + 0.02rem));
-        transition: background var(--transition-normal) var(--ease-material);
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-ring-face {

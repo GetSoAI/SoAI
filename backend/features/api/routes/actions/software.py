@@ -8,11 +8,13 @@ from fastapi import Depends, Request, status
 from starlette.responses import JSONResponse, Response
 
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import ValidationError
 from core.errors.http_recoverable import HTTP_RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.meta.software_update_platforms import delivery_type_for_platform
 from core.runtime.platform import get_runtime_platform
 from core.state.access import AccessAction
+from core.tasks.identifiers import validate_optional_task_id
 from features.api.runtime.access_dependencies import (
     require_action_dependencies,
     restart_protected_dependencies,
@@ -22,6 +24,7 @@ from features.api.runtime.container.api_routers import ApiRouters
 from features.api.runtime.context import ApiContext, resolve_api_context
 from features.api.runtime.current_user import CurrentUser, get_current_user
 from features.api.runtime.errors import (
+    raise_bad_request,
     raise_conflict,
     raise_not_found,
     raise_offline_mode,
@@ -47,6 +50,30 @@ def register_routes(routers: ApiRouters) -> None:
             await api_context.dependencies.application_control.get_update_preparation_status()
         )
         return JSONResponse(status_code=status.HTTP_200_OK, content=progress)
+
+    @routers.software.get(
+        "/update-diagnostics/{task_id}",
+        dependencies=require_action_dependencies(AccessAction.SOFTWARE_UPDATE),
+    )
+    async def get_update_diagnostics(
+        request: Request,
+        task_id: str,
+        api_context: ApiContext = Depends(resolve_api_context),
+    ) -> Response:
+        try:
+            validated_task_id = validate_optional_task_id(
+                task_id, field_name="software update task_id"
+            )
+        except ValidationError as exception:
+            raise_bad_request(request, str(exception), error_type="invalid_task_id")
+        if validated_task_id is None:
+            raise_bad_request(
+                request, "Software update task_id is required.", error_type="invalid_task_id"
+            )
+        diagnostics = await api_context.dependencies.application_control.get_update_diagnostics(
+            validated_task_id
+        )
+        return JSONResponse(status_code=status.HTTP_200_OK, content=diagnostics)
 
     @routers.webui.get(
         "/software-update-notice",
@@ -133,7 +160,8 @@ def register_routes(routers: ApiRouters) -> None:
                 "SYSTEM.RUNTIME.STAY_OFFLINE is enabled. Software updates are disabled.",
             )
         log_audit_event(request, "TRIGGER_SELF_UPDATE", "soai_core")
-        outcome, message = await api_context.dependencies.application_control.update()
+        result = await api_context.dependencies.application_control.update()
+        outcome, message = result.outcome, result.message
         if outcome == "conflict":
             raise_conflict(request, message, error_type="update_in_progress")
         if outcome == "unavailable":
@@ -158,6 +186,7 @@ def register_routes(routers: ApiRouters) -> None:
             status_code=status.HTTP_202_ACCEPTED,
             content={
                 "status": "accepted",
+                "task_id": result.task_id,
                 "message": message,
                 "platform_id": platform_id,
                 "delivery_type": delivery_type,

@@ -10,10 +10,19 @@ from typing import TYPE_CHECKING
 
 from core.di.validation import require_dependencies
 from core.errors.exceptions import ValidationError
+from core.hardware.gpu_control_types import (
+    GPUControlStartupDisposition,
+    GPUControlStartupResult,
+    GPURecoveryAdmission,
+    GPURecoveryAdmissionState,
+)
+from core.hardware.protocols import GPURecoveryAdmissionProtocol, HardwareManagerProtocol
 from core.hardware.types import GPUSettingsOutcome
 from core.logging.protocols import TraceLogger
+from core.validation.strict_numbers import require_finite_float_strict
 
 if TYPE_CHECKING:
+    from core.hardware.gpu_physical_identity import GPUPhysicalDevice
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
@@ -40,6 +49,14 @@ class NullHardwareGpuTuningService:
     def __init__(self, deps: NullHardwareGpuTuningServiceDependencies) -> None:
         self.logger: TraceLogger = deps.logger
         self._gpu_operation_lock = asyncio.Lock()
+
+    @property
+    def recovery_admission(self) -> GPURecoveryAdmissionProtocol:
+        return self
+
+    def inspect(self, target: GPUPhysicalDevice) -> GPURecoveryAdmission:
+        del target
+        return GPURecoveryAdmission(GPURecoveryAdmissionState.STORE_UNAVAILABLE, None)
 
     @property
     def gpu_operation_lock(self) -> asyncio.Lock:
@@ -119,6 +136,26 @@ class NullHardwareGpuTuningService:
         _ = (device_id, settings)
         raise ValidationError("Hardware manager is not available.")
 
+    async def apply_gpu_settings_with_snapshots(
+        self, device_id: str, settings: JSONDict, *, hardware_manager: HardwareManagerProtocol
+    ) -> JSONDict:
+        del settings, hardware_manager
+        return {
+            "action": "set",
+            "device_id": device_id,
+            "status": "failed",
+            "before_snapshot": None,
+            "normalized_settings": {},
+            "apply_result": {
+                "success": False,
+                "code": "hardware_unavailable",
+                "error": "GPU tuning is not available in this configuration.",
+            },
+            "after_snapshot": None,
+            "no_op": False,
+            "failure_reason": "hardware_unavailable",
+        }
+
     async def apply_gpu_settings_direct_unlocked(
         self,
         device_id: str,
@@ -136,8 +173,10 @@ class NullHardwareGpuTuningService:
             operation=operation_name,
         )
 
-    async def apply_startup_gpu_settings(self) -> None:
-        return
+    async def apply_startup_gpu_settings(self) -> GPUControlStartupResult:
+        return GPUControlStartupResult(GPUControlStartupDisposition.SKIPPED_POLICY_DISABLED, None)
 
-    async def clear_dirty_shutdown_flag(self) -> None:
-        return
+    async def clear_dirty_shutdown_flag(self, *, deadline_monotonic: float) -> None:
+        require_finite_float_strict(
+            deadline_monotonic, error_message="GPU shutdown deadline must be finite."
+        )

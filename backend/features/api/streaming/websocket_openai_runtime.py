@@ -7,6 +7,7 @@ import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
+from core.concurrency.deadlines import MonotonicDeadline
 from core.types.json import JSONDict
 
 if TYPE_CHECKING:
@@ -17,14 +18,22 @@ if TYPE_CHECKING:
         "failed",
         "finished",
     ]
+    type OpenAiAudioTranscriptionCancellationCause = Literal["client", "disconnect", "deadline"]
 
 __all__ = (
     "OpenAiAudioSpeechRuntime",
     "OpenAiAudioSpeechSessionRuntime",
     "OpenAiAudioSpeechSessionSegment",
+    "OpenAiAudioTranscriptionCancellation",
     "OpenAiAudioTranscriptionRuntime",
     "OpenAiImageGenerationRuntime",
 )
+
+
+@dataclass(frozen=True, slots=True)
+class OpenAiAudioTranscriptionCancellation:
+    cause: OpenAiAudioTranscriptionCancellationCause
+    reason: str
 
 
 @dataclass(slots=True)
@@ -43,6 +52,9 @@ class OpenAiAudioTranscriptionRuntime:
     lock: asyncio.Lock
     state: OpenAiAudioTranscriptionState
     sealed_bytes: int
+    deadline: MonotonicDeadline
+    cancellation: OpenAiAudioTranscriptionCancellation | None
+    cancellation_requested: asyncio.Event
 
 
 @dataclass(slots=True)

@@ -10,7 +10,7 @@ import { modelActions } from '@core/modelactions/public.ts';
 import { readModelVariantDownloadReference, readModelVariantRepository } from '@core/modelactions/variantInput.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { isJsonValue } from '@core/types/jsonValues.ts';
-import { parseModelSearchResults, type ModelSearchResults } from '@features/models/public.ts';
+import { parseModelSearchResults, resolveModelSearchErrorMessage, type ModelSearchResults } from '@features/models/public.ts';
 import type { LocalModelPick } from '@pages/wizard/services/aisetup/state.ts';
 
 const MODEL_SEARCH_LIMIT = 20;
@@ -70,7 +70,7 @@ class AiSetupModelSearchController {
             const runtimeError = ensureError(error);
             if (isAbortError(runtimeError)) return;
             errorHandler.warn('WizardAiSetup', 'Model search failed', runtimeError);
-            this.state = { ...this.state, status: 'error', error: extractUserFacingErrorMessage(runtimeError) };
+            this.state = { ...this.state, status: 'error', error: resolveModelSearchErrorMessage(runtimeError) ?? extractUserFacingErrorMessage(runtimeError) };
         }
         this.#onChange();
     }
@@ -81,7 +81,7 @@ class AiSetupModelSearchController {
         this.state = { ...this.state, repositoryId, variantStatus: 'loading', variants: [], variantError: null };
         this.#onChange();
         try {
-            const variants = await this.#probes.runLatest(() => modelActions.probeModelVariants(pluginName, repositoryId));
+            const variants = await this.#probes.runLatest((run) => modelActions.probeModelVariants(pluginName, repositoryId, { includeSpeedTests: true, signal: run.signal }));
             if (variants === null) return;
             this.state = { ...this.state, variantStatus: 'ready', variants };
         } catch (error) {

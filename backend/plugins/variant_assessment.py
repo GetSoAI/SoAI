@@ -6,7 +6,6 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
@@ -22,6 +21,7 @@ from core.models.capacity import evaluate_variant_capacity
 from core.plugins.protocols_database import DatabasePluginsProtocol
 from core.types.json import is_json_dict
 from core.validation.coercion import coerce_float_with_bool, coerce_int
+from plugins.manager.catalog_reads import borrow_model_catalog_plugin
 from plugins.manager.model_variants import get_model_variants
 from plugins.protocols_internal.runtime.internal_protocols import (
     PluginManagerRuntimeProtocol,
@@ -62,19 +62,9 @@ class PluginVariantAssessor:
         if not normalized_name:
             raise ValidationError(f"Plugin '{plugin_name}' not found.")
         await manager.ensure_plugin_compatible(normalized_name)
-        release_after_discovery = await manager.get_plugin_instance(normalized_name) is None
-        try:
+        async with borrow_model_catalog_plugin(manager, normalized_name) as instance:
             variants = await get_model_variants(manager, normalized_name, normalized_model_id)
-            instance = await manager.get_plugin_instance(normalized_name)
-            if instance is None:
-                models_dir = None
-            else:
-                models_dir = instance.get_models_directory()
-        finally:
-            if release_after_discovery:
-                await uncancel_then_cleanup(
-                    manager.release_discovery_plugin_instance(normalized_name),
-                )
+            models_dir = instance.get_models_directory()
         active_hw_mgr = (
             hw_manager if hw_manager is not None else manager.dependencies.infrastructure.hw_manager
         )

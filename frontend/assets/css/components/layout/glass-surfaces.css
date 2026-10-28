@@ -125,11 +125,6 @@
         border-color: var(--text-field-border);
     }
 
-    .glass-input:hover:not(:focus) {
-        --glass-surface-bg: var(--text-field-bg-hover);
-        border-color: var(--text-field-border-hover);
-    }
-
     .glass-surface--bordered {
         border: var(--border-width-1) solid var(--glass-border-strong);
     }

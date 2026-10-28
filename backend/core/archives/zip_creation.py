@@ -32,6 +32,7 @@ class PortableZipPathIndex:
     def __init__(self) -> None:
         self._canonical_paths: dict[str, str] = {}
         self._directory_paths: set[str] = set()
+        self._directory_spellings: dict[str, str] = {}
         self._file_paths: set[str] = set()
         self._next_root_ordinal: dict[str, int] = {}
 
@@ -52,7 +53,7 @@ class PortableZipPathIndex:
             candidate = normalized if ordinal == 1 else _append_copy_number(normalized, ordinal)
             _validate_portable_member_path(candidate, is_directory=is_directory)
             canonical = unicodedata.normalize("NFC", candidate).casefold()
-            if not self._has_conflict(canonical, is_directory=is_directory):
+            if not self._has_conflict(canonical):
                 self._register(candidate, canonical=canonical, is_directory=is_directory)
                 self._next_root_ordinal[root_key] = ordinal + 1
                 return candidate + ("/" if is_directory else "")
@@ -71,8 +72,13 @@ class PortableZipPathIndex:
                 f"ZIP archive paths conflict across supported filesystems: '{previous}' and '{normalized}'.",
             )
         path_parts = canonical.split("/")
+        original_parts = normalized.split("/")
         for index in range(1, len(path_parts)):
             parent = "/".join(path_parts[:index])
+            original_parent = "/".join(original_parts[:index])
+            previous_parent = self._directory_spellings.get(parent)
+            if previous_parent is not None and previous_parent != original_parent:
+                raise ValidationError("ZIP archive contains conflicting parent directory names.")
             if parent in self._file_paths:
                 raise ValidationError(
                     f"ZIP archive path is nested beneath a file: '{normalized}'.",
@@ -81,8 +87,11 @@ class PortableZipPathIndex:
             raise ValidationError(
                 f"ZIP archive file conflicts with an existing directory path: '{normalized}'.",
             )
+        if is_directory and canonical in self._directory_spellings:
+            if self._directory_spellings[canonical] != normalized:
+                raise ValidationError("ZIP archive contains conflicting directory names.")
 
-    def _has_conflict(self, canonical: str, *, is_directory: bool) -> bool:
+    def _has_conflict(self, canonical: str) -> bool:
         if canonical in self._canonical_paths:
             return True
         path_parts = canonical.split("/")
@@ -90,14 +99,18 @@ class PortableZipPathIndex:
             "/".join(path_parts[:index]) in self._file_paths for index in range(1, len(path_parts))
         ):
             return True
-        return not is_directory and canonical in self._directory_paths
+        return canonical in self._directory_paths
 
     def _register(self, normalized: str, *, canonical: str, is_directory: bool) -> None:
         path_parts = canonical.split("/")
+        original_parts = normalized.split("/")
         for index in range(1, len(path_parts)):
-            self._directory_paths.add("/".join(path_parts[:index]))
+            parent = "/".join(path_parts[:index])
+            self._directory_paths.add(parent)
+            self._directory_spellings[parent] = "/".join(original_parts[:index])
         if is_directory:
             self._directory_paths.add(canonical)
+            self._directory_spellings[canonical] = normalized
         else:
             self._file_paths.add(canonical)
         self._canonical_paths[canonical] = normalized

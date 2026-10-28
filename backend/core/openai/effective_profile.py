@@ -22,10 +22,12 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
+    "OPENAI_MODALITY_CHAT_FEATURE_LINKS",
     "build_openai_capability_overrides_payload",
     "compute_effective_openai_model_profile",
     "is_openai_capability_enabled",
     "normalize_openai_base_modalities",
+    "parse_openai_capability_enabled_overrides",
     "parse_openai_capability_overrides",
 )
 
@@ -39,9 +41,13 @@ _IMAGE_FEATURE_TOKENS: tuple[str, ...] = (
     OpenAIImageFeature.IMAGE_EDITS.value,
     OpenAIImageFeature.IMAGE_VARIATIONS.value,
 )
+OPENAI_MODALITY_CHAT_FEATURE_LINKS: tuple[tuple[str, str], ...] = (
+    (OpenAIModality.VISION.value, _VISION_CHAT_FEATURE_TOKEN),
+    (OpenAIModality.AUDIO.value, _AUDIO_CHAT_FEATURE_TOKEN),
+)
 
 
-def parse_openai_capability_overrides(value: JSONValue) -> dict[str, set[str]]:
+def _parse_override_section(value: JSONValue, section: str) -> dict[str, set[str]]:
     if isinstance(value, str):
         overrides = normalize_openai_capabilities(value)
     elif isinstance(value, Mapping):
@@ -52,11 +58,11 @@ def parse_openai_capability_overrides(value: JSONValue) -> dict[str, set[str]]:
         }
     else:
         overrides = {}
-    disabled_value = overrides.get("disabled")
-    if not isinstance(disabled_value, Mapping):
+    section_value = overrides.get(section)
+    if not isinstance(section_value, Mapping):
         return {}
-    disabled: dict[str, set[str]] = {}
-    for category, tokens_value in disabled_value.items():
+    parsed: dict[str, set[str]] = {}
+    for category, tokens_value in section_value.items():
         if not isinstance(category, str) or category not in _OPENAI_OVERRIDE_CATEGORIES:
             continue
         if not isinstance(tokens_value, Sequence) or isinstance(tokens_value, str | bytes):
@@ -67,24 +73,54 @@ def parse_openai_capability_overrides(value: JSONValue) -> dict[str, set[str]]:
             if isinstance(token, str) and token.strip()
         }
         if tokens:
-            disabled[category] = tokens
-    return disabled
+            parsed[category] = tokens
+    return parsed
+
+
+def parse_openai_capability_overrides(value: JSONValue) -> dict[str, set[str]]:
+    return _parse_override_section(value, "disabled")
+
+
+def parse_openai_capability_enabled_overrides(value: JSONValue) -> dict[str, set[str]]:
+    disabled = parse_openai_capability_overrides(value)
+    enabled: dict[str, set[str]] = {}
+    for category, tokens in _parse_override_section(value, "enabled").items():
+        remaining = tokens - (disabled.get(category) or set())
+        if remaining:
+            enabled[category] = remaining
+    return enabled
+
+
+def _build_override_section(
+    tokens_by_category: Mapping[str, set[str]],
+    excluded: Mapping[str, list[str]],
+) -> dict[str, list[str]]:
+    section: dict[str, list[str]] = {}
+    for category in sorted(_OPENAI_OVERRIDE_CATEGORIES):
+        tokens = tokens_by_category.get(category)
+        if not tokens:
+            continue
+        excluded_tokens = excluded.get(category) or []
+        normalized = sorted(
+            {token.strip().lower() for token in tokens if token.strip()} - set(excluded_tokens)
+        )
+        if normalized:
+            section[category] = normalized
+    return section
 
 
 def build_openai_capability_overrides_payload(
     disabled: Mapping[str, set[str]],
+    enabled: Mapping[str, set[str]] | None = None,
 ) -> JSONDict | None:
-    disabled_payload: JSONDict = {}
-    for category in _OPENAI_OVERRIDE_CATEGORIES:
-        tokens = disabled.get(category)
-        if not tokens:
-            continue
-        normalized = sorted({token.strip().lower() for token in tokens if token.strip()})
-        if normalized:
-            disabled_payload[category] = normalized
-    if not disabled_payload:
-        return None
-    return {"disabled": disabled_payload}
+    disabled_payload = _build_override_section(disabled, {})
+    enabled_payload = _build_override_section(enabled or {}, disabled_payload)
+    payload: JSONDict = {}
+    if disabled_payload:
+        payload["disabled"] = dict(disabled_payload)
+    if enabled_payload:
+        payload["enabled"] = dict(enabled_payload)
+    return payload or None
 
 
 def compute_effective_openai_model_profile(
@@ -135,10 +171,9 @@ def compute_effective_openai_model_profile(
         modalities_value = effective_caps.get("modalities")
         if isinstance(modalities_value, list):
             effective_caps["modalities"] = list(effective_modalities)
-    if OpenAIModality.VISION.value not in effective_modalities:
-        _force_disable_capability(effective_caps, "chat_features", _VISION_CHAT_FEATURE_TOKEN)
-    if OpenAIModality.AUDIO.value not in effective_modalities:
-        _force_disable_capability(effective_caps, "chat_features", _AUDIO_CHAT_FEATURE_TOKEN)
+    for modality, feature in OPENAI_MODALITY_CHAT_FEATURE_LINKS:
+        if modality not in effective_modalities:
+            _force_disable_capability(effective_caps, "chat_features", feature)
     if not is_openai_capability_enabled(effective_caps, "endpoints", _IMAGES_ENDPOINT_TOKEN):
         for token in _IMAGE_FEATURE_TOKENS:
             _force_disable_capability(effective_caps, "image_features", token)

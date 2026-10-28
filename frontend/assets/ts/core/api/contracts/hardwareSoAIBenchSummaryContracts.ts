@@ -111,6 +111,9 @@ const decodeGpuSoAIBenchSummary = (value: JsonValue | undefined, label: string):
     assignNumber(value, decoded, 'score_confidence', 'scoreConfidence', label);
     assignString(value, decoded, 'message', 'message', label);
     assignString(value, decoded, 'guidance', 'guidance', label);
+    assignString(value, decoded, 'failed_operation', 'failedOperation', label);
+    assignString(value, decoded, 'failed_phase', 'failedPhase', label);
+    assignNumber(value, decoded, 'deadline_seconds', 'deadlineSeconds', label);
     assignBoolean(value, decoded, 'telemetry_available', 'telemetryAvailable', label);
     assignBoolean(value, decoded, 'throttle_detected', 'throttleDetected', label);
     assignBoolean(value, decoded, 'leaderboard_eligible', 'leaderboardEligible', label);
@@ -192,6 +195,9 @@ const serializeGpuSoAIBenchSummary = (summary: GpuSoAIBenchSummary): JsonObject 
     assignWireValue(summary, wire, 'scoreConfidence', 'score_confidence');
     assignWireValue(summary, wire, 'message', 'message');
     assignWireValue(summary, wire, 'guidance', 'guidance');
+    assignWireValue(summary, wire, 'failedOperation', 'failed_operation');
+    assignWireValue(summary, wire, 'failedPhase', 'failed_phase');
+    assignWireValue(summary, wire, 'deadlineSeconds', 'deadline_seconds');
     assignWireValue(summary, wire, 'telemetryAvailable', 'telemetry_available');
     assignWireValue(summary, wire, 'throttleDetected', 'throttle_detected');
     assignWireValue(summary, wire, 'unavailableSensors', 'unavailable_sensors');

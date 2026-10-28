@@ -115,7 +115,7 @@ const renderUsersSection = (context: UsersManagerRenderContext): string => {
             title: i18n.t('settings.users.sessions.title'),
             description: i18n.t('settings.users.sessions.description'),
             attributes: { id: 'webui-sessions-subgroup' },
-            content: renderSettingsRecordList({ id: 'webui-sessions-list', items: [], empty: renderSessionsContent(null), className: 'settings-record-list--sessions' })
+            content: renderSettingsRecordList({ id: 'webui-sessions-list', items: [], empty: renderSessionsContent(null).html, className: 'settings-record-list--sessions' })
         })}${context.productSection}`
     });
 };

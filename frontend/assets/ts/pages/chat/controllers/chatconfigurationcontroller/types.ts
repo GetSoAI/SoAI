@@ -80,6 +80,7 @@ export interface ConversationSettingsAction {
 
 export interface ConversationSettingsSavePlan {
     conversation: ConversationSettingsAction | null;
+    skills: ConversationSettingsAction | null;
     knowledge: ConversationSettingsAction | null;
     tools: ConversationSettingsAction | null;
 }

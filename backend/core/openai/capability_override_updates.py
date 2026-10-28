@@ -7,13 +7,14 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import ConflictError, ValidationError
 from core.openai.capabilities import normalize_openai_capabilities
 from core.openai.capability_checks import is_openai_capability_enabled
 from core.openai.capability_taxonomy import OPENAI_CAPABILITY_CATEGORIES, OpenAIModality
 from core.openai.effective_profile import (
     build_openai_capability_overrides_payload,
     normalize_openai_base_modalities,
+    parse_openai_capability_enabled_overrides,
     parse_openai_capability_overrides,
 )
 
@@ -22,6 +23,9 @@ if TYPE_CHECKING:
 
 __all__ = (
     "OpenAICapabilityOverrideUpdate",
+    "normalize_openai_capability_override_snapshot",
+    "require_current_openai_capability_override_snapshot",
+    "resolve_openai_capability_override_replacement",
     "resolve_openai_capability_override_update",
 )
 
@@ -47,14 +51,8 @@ def resolve_openai_capability_override_update(
     normalized_token = str(token or "").strip().lower()
     if not normalized_category or not normalized_token:
         raise ValidationError("category and token are required.")
-    normalized_base_modalities = _normalize_plugin_modalities(
-        base_modalities,
-        plugin_name=plugin_name,
-    )
-    base_caps = (
-        normalize_openai_capabilities(base_openai_capabilities)
-        if not isinstance(base_openai_capabilities, Mapping)
-        else normalize_openai_capabilities(dict(base_openai_capabilities))
+    normalized_base_modalities, base_caps = _normalize_plugin_profile(
+        base_modalities, base_openai_capabilities, plugin_name=plugin_name
     )
     _validate_requested_override(
         category=normalized_category,
@@ -64,8 +62,14 @@ def resolve_openai_capability_override_update(
         plugin_name=plugin_name,
     )
     stored_disabled = parse_openai_capability_overrides(current_overrides)
+    stored_enabled = parse_openai_capability_enabled_overrides(current_overrides)
     current_disabled = _filter_supported_openai_overrides(
         stored_disabled,
+        base_modalities=normalized_base_modalities,
+        base_caps=base_caps,
+    )
+    current_enabled = _filter_supported_openai_overrides(
+        stored_enabled,
         base_modalities=normalized_base_modalities,
         base_caps=base_caps,
     )
@@ -80,8 +84,8 @@ def resolve_openai_capability_override_update(
         category_disabled.add(normalized_token)
     if not category_disabled:
         next_disabled.pop(normalized_category, None)
-    stored_payload = build_openai_capability_overrides_payload(stored_disabled)
-    next_payload = build_openai_capability_overrides_payload(next_disabled)
+    stored_payload = build_openai_capability_overrides_payload(stored_disabled, stored_enabled)
+    next_payload = build_openai_capability_overrides_payload(next_disabled, current_enabled)
     _validate_effective_modalities(
         category=normalized_category,
         disabled_modalities=category_disabled,
@@ -94,14 +98,119 @@ def resolve_openai_capability_override_update(
     )
 
 
-def _normalize_plugin_modalities(value: JSONValue, *, plugin_name: str) -> list[str]:
+def normalize_openai_capability_override_snapshot(value: JSONValue) -> JSONDict | None:
+    return build_openai_capability_overrides_payload(
+        parse_openai_capability_overrides(value),
+        parse_openai_capability_enabled_overrides(value),
+    )
+
+
+def require_current_openai_capability_override_snapshot(
+    *,
+    current_overrides: JSONValue,
+    expected_overrides: JSONValue,
+    universal_id: str,
+) -> JSONDict | None:
+    current_snapshot = normalize_openai_capability_override_snapshot(current_overrides)
+    if current_snapshot != normalize_openai_capability_override_snapshot(expected_overrides):
+        raise ConflictError(
+            (
+                f"OpenAI capability overrides for model '{universal_id}' changed. "
+                "Reload the model and apply the changes again."
+            ),
+        )
+    return current_snapshot
+
+
+def resolve_openai_capability_override_replacement(
+    *,
+    base_modalities: JSONValue,
+    base_openai_capabilities: JSONValue,
+    disabled: Mapping[str, Sequence[str]],
+    enabled: Mapping[str, Sequence[str]],
+    universal_id: str,
+    plugin_name: str,
+) -> JSONDict | None:
+    normalized_base_modalities, base_caps = _normalize_plugin_profile(
+        base_modalities, base_openai_capabilities, plugin_name=plugin_name
+    )
+    requested = {
+        section: _collect_requested_overrides(
+            tokens_by_category,
+            enabled=section == "enabled",
+            base_modalities=normalized_base_modalities,
+            base_caps=base_caps,
+            plugin_name=plugin_name,
+        )
+        for section, tokens_by_category in (("disabled", disabled), ("enabled", enabled))
+    }
+    for category, enabled_tokens in requested["enabled"].items():
+        if enabled_tokens & (requested["disabled"].get(category) or set()):
+            raise ValidationError(
+                f"OpenAI capability '{category}' tokens cannot be both enabled and disabled.",
+            )
+    _validate_effective_modalities(
+        category="modalities",
+        disabled_modalities=requested["disabled"].get("modalities") or set(),
+        base_modalities=normalized_base_modalities,
+        universal_id=universal_id,
+    )
+    return build_openai_capability_overrides_payload(requested["disabled"], requested["enabled"])
+
+
+def _collect_requested_overrides(
+    tokens_by_category: Mapping[str, Sequence[str]],
+    *,
+    enabled: bool,
+    base_modalities: list[str],
+    base_caps: JSONDict,
+    plugin_name: str,
+) -> dict[str, set[str]]:
+    collected: dict[str, set[str]] = {}
+    for category, tokens in tokens_by_category.items():
+        normalized_category = str(category or "").strip().lower()
+        normalized_tokens = {str(token or "").strip().lower() for token in tokens}
+        if not normalized_tokens:
+            continue
+        if not normalized_category or "" in normalized_tokens:
+            raise ValidationError("category and token are required.")
+        if (
+            enabled
+            and normalized_category == "modalities"
+            and (OpenAIModality.TEXT.value in normalized_tokens)
+        ):
+            raise ValidationError("The 'text' modality is always enabled.")
+        for token in normalized_tokens:
+            _validate_requested_override(
+                category=normalized_category,
+                token=token,
+                base_modalities=base_modalities,
+                base_caps=base_caps,
+                plugin_name=plugin_name,
+            )
+        collected[normalized_category] = normalized_tokens
+    return collected
+
+
+def _normalize_plugin_profile(
+    base_modalities: JSONValue,
+    base_openai_capabilities: JSONValue,
+    *,
+    plugin_name: str,
+) -> tuple[list[str], JSONDict]:
     message = f"Plugin '{plugin_name}' has invalid modalities metadata."
-    return normalize_openai_base_modalities(
-        value,
+    normalized_base_modalities = normalize_openai_base_modalities(
+        base_modalities,
         invalid_collection_message=message,
         invalid_entry_message=message,
         empty_entry_message=message,
     )
+    base_caps = (
+        normalize_openai_capabilities(base_openai_capabilities)
+        if not isinstance(base_openai_capabilities, Mapping)
+        else normalize_openai_capabilities(dict(base_openai_capabilities))
+    )
+    return (normalized_base_modalities, base_caps)
 
 
 def _validate_requested_override(

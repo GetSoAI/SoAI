@@ -35,6 +35,7 @@ import type { RichTextTranslationKey } from '@core/i18n/translationkeys/richText
 import type { RouterTranslationKey } from '@core/i18n/translationkeys/router.generated.ts';
 import type { SearchTranslationKey } from '@core/i18n/translationkeys/search.generated.ts';
 import type { SettingsTranslationKey } from '@core/i18n/translationkeys/settings.generated.ts';
+import type { SpeechSetupTranslationKey } from '@core/i18n/translationkeys/speechSetup.generated.ts';
 import type { StatusCatalogTranslationKey } from '@core/i18n/translationkeys/statusCatalog.generated.ts';
 import type { SyntaxHighlighterTranslationKey } from '@core/i18n/translationkeys/syntaxHighlighter.generated.ts';
 import type { TabsTranslationKey } from '@core/i18n/translationkeys/tabs.generated.ts';
@@ -79,6 +80,7 @@ export type TranslationKey =
     | RouterTranslationKey
     | SearchTranslationKey
     | SettingsTranslationKey
+    | SpeechSetupTranslationKey
     | StatusCatalogTranslationKey
     | SyntaxHighlighterTranslationKey
     | TabsTranslationKey

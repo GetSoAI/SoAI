@@ -16,6 +16,7 @@ type ConversationPatch = {
     updatedAt: number;
     messageCount?: number;
     title?: string;
+    titleAutoUpdateAllowed?: boolean;
     isFavorite?: boolean;
     color?: string | null;
     modelSettings?: Conversation['modelSettings'];
@@ -25,13 +26,18 @@ type ConversationPatch = {
 
 const parseBackendConversationRecord = (value: WebuiConversationResponse, options: { context?: string; messagesHydrated?: boolean } = {}): Conversation => {
     const context = options.context ?? 'Backend conversation';
+    const title = requireBackendConversationTitle(value.title, context);
+    const updatedAt = requireEpochMs(value.lastModifiedAtMs, 'last_modified_at_ms', context);
+    const autoUpdateAllowed = value.titleAutoUpdateAllowed === undefined ? undefined : requireConversationBoolean(value.titleAutoUpdateAllowed, 'title_auto_update_allowed', context);
     return {
         id: requireConversationId(value.id, context),
-        title: requireBackendConversationTitle(value.title, context),
+        title,
+        ...(autoUpdateAllowed === undefined ? {} : { titleAutoUpdateAllowed: autoUpdateAllowed }),
+        committedTitleMetadata: { title, updatedAt, ...(autoUpdateAllowed === undefined ? {} : { autoUpdateAllowed }) },
         messages: [],
         messagesHydrated: options.messagesHydrated === true,
         createdAt: requireEpochMs(value.createdAtMs, 'created_at_ms', context),
-        updatedAt: requireEpochMs(value.lastModifiedAtMs, 'last_modified_at_ms', context),
+        updatedAt,
         modelSettings: parseRequiredModelSettings(value.modelSettings, context),
         isFavorite: requireConversationBoolean(value.isFavorite, 'is_favorite', context),
         color: requireConversationColor(value.color, context),
@@ -149,6 +155,7 @@ const parseBackendConversationUpdateEvent = (value: ConversationUpdatedEvent, cu
     const context = 'Conversation update event payload';
     const patch: ConversationPatch = { updatedAt: value.lastModifiedAtMs, settingsAuthorityChanged: value.settingsAuthorityChanged };
     if (value.title !== undefined) patch.title = value.title;
+    if (value.titleAutoUpdateAllowed !== undefined) patch.titleAutoUpdateAllowed = value.titleAutoUpdateAllowed;
     if (value.isFavorite !== undefined) patch.isFavorite = value.isFavorite;
     if (value.color !== undefined) patch.color = value.color;
     if (value.modelSettings !== undefined) patch.modelSettings = mergeModelSettingsPatch(currentSettings, value.modelSettings, context);
@@ -164,6 +171,7 @@ const parseArchivedConversationSummary = (value: ArchivedConversationResponse, c
     return {
         id: requireConversationId(value.id, context),
         title: requireBackendConversationTitle(value.title, context),
+        ...(value.titleAutoUpdateAllowed === undefined ? {} : { titleAutoUpdateAllowed: requireConversationBoolean(value.titleAutoUpdateAllowed, 'title_auto_update_allowed', context) }),
         updatedAt: requireEpochMs(value.lastModifiedAtMs, 'last_modified_at_ms', context),
         color: requireConversationColor(value.color, context),
         isFavorite: requireConversationBoolean(value.isFavorite, 'is_favorite', context),

@@ -106,9 +106,10 @@
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-process-fill {
         height: 100%;
-        border-radius: 0;
+        border-radius: var(--control-progress-radius);
         background-color: var(--memory-swap-process-accent);
-        background-image: none;
+        background-image: var(--control-progress-fill-surface);
+        box-shadow: var(--control-progress-fill-shadow);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-status,

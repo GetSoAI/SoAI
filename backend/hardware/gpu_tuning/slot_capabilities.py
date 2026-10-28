@@ -34,6 +34,7 @@ def snapshot_tuning_inventory(
         gpu_vendor_detection_service=gpu_services.gpu_vendor_detection_service,
         nvidia_nvml_gate=gpu_services.nvidia_nvml_gate,
         nvidia_capabilities_cache_service=gpu_services.nvidia_capabilities_cache_service,
+        adl_runtime=gpu_services.adl_runtime,
     )
 
 
@@ -51,6 +52,7 @@ def get_tuning_capabilities_for_services(
         nvidia_capabilities_cache_service=gpu_services.nvidia_capabilities_cache_service,
         logger=logger,
         nvidia_settings_controller=gpu_services.nvidia_settings_controller,
+        adl_runtime=gpu_services.adl_runtime,
     )
 
 
@@ -68,4 +70,5 @@ async def async_get_tuning_capabilities(
         nvidia_capabilities_cache_service=gpu_services.nvidia_capabilities_cache_service,
         logger=logger,
         nvidia_settings_controller=gpu_services.nvidia_settings_controller,
+        adl_runtime=gpu_services.adl_runtime,
     )

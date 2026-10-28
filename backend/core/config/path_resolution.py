@@ -5,7 +5,8 @@ from __future__ import annotations
 
 import os
 import re
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.meta.paths import get_config_yaml_path
@@ -15,6 +16,8 @@ if TYPE_CHECKING:
 
 __all__ = (
     "ConfigPathResolutionError",
+    "ConfigPathSetting",
+    "iter_config_path_settings",
     "resolve_all_paths_in_config_with_layout",
     "resolve_config_file_path",
     "resolve_default_config_schema_path",
@@ -26,6 +29,15 @@ _UNRESOLVED_WINDOWS_ENV_PATTERN = r"%(?P<name>[A-Za-z_][A-Za-z0-9_]*)%"
 
 
 class ConfigPathResolutionError(Exception): ...
+
+
+@dataclass(frozen=True, slots=True)
+class ConfigPathSetting:
+    dotted_key: str
+    parent: MutableMapping[str, ConfigValue]
+    key: str
+    value: str
+    relative_to_system_data: bool
 
 
 def resolve_default_config_schema_path(config_path: str) -> str:
@@ -78,6 +90,36 @@ def resolve_config_file_path(
     return get_config_yaml_path(base_path)
 
 
+def iter_config_path_settings(
+    current_dict: MutableMapping[str, ConfigValue],
+    *,
+    state_dotted_keys: frozenset[str],
+    base_dotted_keys: frozenset[str],
+) -> Iterator[ConfigPathSetting]:
+    def _iterate_mapping(
+        mapping: MutableMapping[str, ConfigValue], prefix: list[str]
+    ) -> Iterator[ConfigPathSetting]:
+        for key, value in mapping.items():
+            if isinstance(value, MutableMapping):
+                nested_mapping: MutableMapping[str, ConfigValue] = value
+                yield from _iterate_mapping(nested_mapping, prefix + [key])
+                continue
+            if not isinstance(value, str) or not value.strip():
+                continue
+            dotted = ".".join(prefix + [key])
+            if dotted in base_dotted_keys:
+                relative_to_system_data = False
+            elif dotted in state_dotted_keys or "PATHS" in prefix:
+                relative_to_system_data = True
+            elif key.endswith(("_PATH", "_DIR", "_FILE")):
+                relative_to_system_data = False
+            else:
+                continue
+            yield ConfigPathSetting(dotted, mapping, key, value, relative_to_system_data)
+
+    yield from _iterate_mapping(current_dict, [])
+
+
 def resolve_all_paths_in_config_with_layout(
     current_dict: MutableMapping[str, ConfigValue],
     *,
@@ -86,24 +128,14 @@ def resolve_all_paths_in_config_with_layout(
     state_dotted_keys: frozenset[str],
     base_dotted_keys: frozenset[str],
 ) -> None:
-    def _resolve_mapping(mapping: MutableMapping[str, ConfigValue], prefix: list[str]) -> None:
-        for key, value in mapping.items():
-            if isinstance(value, MutableMapping):
-                nested_mapping: MutableMapping[str, ConfigValue] = value
-                _resolve_mapping(nested_mapping, prefix + [key])
-                continue
-            if not isinstance(value, str) or not value.strip():
-                continue
-            dotted = ".".join(prefix + [key])
-            if dotted in base_dotted_keys:
-                resolved = resolve_path(value, base_path)
-            elif dotted in state_dotted_keys or "PATHS" in prefix:
-                resolved = resolve_path(value, system_data_path)
-            elif key.endswith(("_PATH", "_DIR", "_FILE")):
-                resolved = resolve_path(value, base_path)
-            else:
-                continue
-            if resolved is not None:
-                mapping[key] = resolved
-
-    _resolve_mapping(current_dict, [])
+    for setting in iter_config_path_settings(
+        current_dict,
+        state_dotted_keys=state_dotted_keys,
+        base_dotted_keys=base_dotted_keys,
+    ):
+        resolved = resolve_path(
+            setting.value,
+            system_data_path if setting.relative_to_system_data else base_path,
+        )
+        if resolved is not None:
+            setting.parent[setting.key] = resolved

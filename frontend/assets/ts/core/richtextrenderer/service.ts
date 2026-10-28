@@ -81,8 +81,7 @@ export class RichTextRenderer {
         );
     }
 
-    #renderTextBlock(value: string, footnotes: Map<string, FootnoteDefinition> = new Map(), options: RenderOptions = {}): string {
-        const normalized = normalizeMultilineInput(value);
+    #renderTextBlock(normalized: string, footnotes: Map<string, FootnoteDefinition> = new Map(), options: RenderOptions = {}): string {
         if (!normalized) {
             return '<p dir="auto"></p>';
         }
@@ -101,8 +100,7 @@ export class RichTextRenderer {
         return processTextLines(withTables, footnotes, inlineRenderer);
     }
 
-    #renderCodeBlock(value: string, languageHint: string | null, wrapper?: (descriptor: CodeBlockDescriptor) => string): string {
-        const normalized = normalizeMultilineInput(value);
+    #renderCodeBlock(normalized: string, languageHint: string | null, wrapper?: (descriptor: CodeBlockDescriptor) => string): string {
         const language = languageHint && languageHint.length > 0 ? languageHint : null;
 
         if (language) {

@@ -28,6 +28,15 @@
         flex: 1;
     }
 
+    .setting-item--with-footer {
+        flex-wrap: wrap;
+    }
+
+    .setting-item__footer {
+        flex-basis: 100%;
+        min-inline-size: 0;
+    }
+
     .setting-item > .setting-info {
         display: flex;
         flex-direction: column;

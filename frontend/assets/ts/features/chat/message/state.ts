@@ -1,8 +1,11 @@
 /* SoAI - Chat feature message state [frontend/assets/ts/features/chat/message/state.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { resolveAssistantResponseDurationState, type AssistantResponseDurationState } from '@features/chat/message/assistantResponseDuration.ts';
+import { resolveAssistantTimelineOverlays } from '@features/chat/assistanteventtimeline/timelineIndexResolution.ts';
 import { isObject } from '@core/typeGuards.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { getLocalizationSnapshot } from '@core/localization/public.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
 import { isJsonObject } from '@core/types/jsonValues.ts';
 import { createAssistantTimelineIndexState, type AssistantTimelineIndexState } from '@features/chat/assistanteventtimeline/timelineIndexState.ts';
@@ -106,6 +109,20 @@ class ChatMessageState {
         const created = createAssistantTimelineIndexState();
         this.#assistantTimelineIndexCache.set(message, created);
         return created;
+    }
+
+    resolveAssistantResponseDuration(message: ChatMessage, nowMs: number): AssistantResponseDurationState {
+        const state = this.#requireAssistantTimelineIndexState(message);
+        try {
+            if (!this.#assistantTimelineIndexReadyForReuse.has(message)) updateAssistantTimelineIndexState(state, message);
+            this.#assistantTimelineIndexReadyForReuse.add(message);
+            const tools = resolveAssistantTimelineOverlays(message, state).toolActivity;
+            return resolveAssistantResponseDurationState(message, nowMs, tools);
+        } catch (error) {
+            this.#assistantTimelineIndexCache.delete(message);
+            this.#assistantTimelineIndexReadyForReuse.delete(message);
+            throw error;
+        }
     }
 
     resetPreRenderedAssistantBodyCache(): void {
@@ -253,7 +270,7 @@ class ChatMessageState {
             if (timelineIndexState !== null) {
                 updateAssistantTimelineIndexState(timelineIndexState, message);
             }
-            const segmentProjectionSignature = isAssistantMessageRole(message) ? resolveChatMessageSegmentProjectionSignature(message, timelineIndexState) : null;
+            const segmentProjectionSignature = isAssistantMessageRole(message) ? [resolveChatMessageSegmentProjectionSignature(message, timelineIndexState), getLocalizationSnapshot().preferences.language].join('|') : null;
             let resolved: MessageSegment[] | null = null;
             if (assistantRevision !== null) {
                 const cached = this.#segmentsCache.get(message);

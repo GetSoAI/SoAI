@@ -146,22 +146,14 @@
         border: var(--border-width-1) solid var(--text-field-border);
         border-radius: var(--border-radius);
         background: var(--text-field-bg);
-        color: var(--text-primary);
+        color: var(--text-field-color);
         font-size: var(--font-size-sm);
         font-weight: 600;
         line-height: 1.2;
-        transition:
-            background var(--transition-fast),
-            border-color var(--transition-fast);
     }
 
     :where(.chat-container) .conversation-item-title-input:focus {
-        border-color: var(--accent-green);
-    }
-
-    :where(.chat-container) .conversation-item-title-input:hover:not(:focus) {
-        background: var(--text-field-bg-hover);
-        border-color: var(--text-field-border-hover);
+        border-color: var(--text-field-border-active);
     }
 
     :where(.chat-container) .conversation-title-wrapper {

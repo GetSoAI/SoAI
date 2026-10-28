@@ -1,6 +1,9 @@
 /* SoAI - Hardware feature storage card view [frontend/assets/ts/features/hardware/storageCardView.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { dom } from '@core/dom/dom.ts';
+import { isHardwareObservationFresh } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
+import { syncHardwareRowObservationPresentation } from '@features/hardware/rowObservationPresentation.ts';
 import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { narrowHTMLElement } from '@core/dom/narrowElement.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -9,9 +12,9 @@ import { formatGigabytesAsStorageUnit } from '@core/primitives/byteSize.ts';
 import { clampPercent } from '@core/primitives/clampNumber.ts';
 import { formatPercent } from '@core/primitives/percent.ts';
 import { isNullOrUndefined } from '@core/typeGuards.ts';
-import { resolveProgressUsageClass } from '@core/ui/progressWidths.ts';
+import { resolveProgressColor } from '@core/ui/progressColors.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
-import type { VolumeModel } from '@features/hardware/models/types.ts';
+import type { HardwareSnapshot, VolumeModel } from '@features/hardware/models/types.ts';
 
 interface StorageCardViewHost {
     createElement: (tagName: string, options?: { className?: string }, text?: string) => Element;
@@ -63,19 +66,22 @@ const resolveFillStep = (value: number): string => {
 };
 
 const createStorageInterfaceRow = ({ host, volume, index, labels }: StorageRowOptions): HTMLElement => {
-    const usageClass = resolveProgressUsageClass(volume.percentUsed);
+    const progressColor = resolveProgressColor(volume.percentUsed, 'usage');
     const rowClasses = [`hardware-storage-row hardware-resource-row ${resolveCheckerboardClass(index)}`];
     const row = narrowHTMLElement(host.createElement('div', { className: rowClasses.join(' ') }), 'storage row');
+    row.dataset['hardwareRowKey'] = `${volume.deviceId}|${volume.mount}`;
 
     const header = narrowHTMLElement(host.createElement('div', { className: 'hardware-storage-row-header hardware-resource-row-header' }), 'storage row header');
     const nameElement = narrowHTMLElement(host.createElement('span', { className: 'hardware-storage-name hardware-resource-name' }, volume.filesystem), 'storage row name');
     nameElement.dir = 'ltr';
     setTooltipText(nameElement, volume.filesystem);
-    const usageElement = narrowHTMLElement(host.createElement('span', { className: `hardware-storage-usage hardware-resource-value progress-value--inverted ${usageClass}` }, formatPercent(volume.percentUsed)), 'storage row usage');
+    const usageElement = narrowHTMLElement(host.createElement('span', { className: 'hardware-storage-usage hardware-resource-value' }, formatPercent(volume.percentUsed)), 'storage row usage');
+    dom.setStyle(usageElement, '--soai-progress-color', progressColor);
     header.append(nameElement, usageElement);
 
-    const bar = narrowHTMLElement(host.createElement('div', { className: 'hardware-storage-bar hardware-resource-bar progress-bar--inverted' }), 'storage row bar');
-    const fill = narrowHTMLElement(host.createElement('div', { className: `hardware-resource-bar-fill ${usageClass}` }), 'storage row bar fill');
+    const bar = narrowHTMLElement(host.createElement('div', { className: 'hardware-storage-bar progress-bar progress-bar--continuous' }), 'storage row bar');
+    const fill = narrowHTMLElement(host.createElement('div', { className: 'hardware-resource-bar-fill progress-fill' }), 'storage row bar fill');
+    dom.setStyle(fill, '--soai-progress-color', progressColor);
     fill.dataset['fillStep'] = resolveFillStep(volume.percentUsed);
     bar.appendChild(fill);
 
@@ -96,6 +102,20 @@ const createStorageInterfaceRow = ({ host, volume, index, labels }: StorageRowOp
     return row;
 };
 
+const syncStorageObservationPresentation = (container: Element, snapshot: HardwareSnapshot | null | undefined, volumes: readonly VolumeModel[]): void => {
+    const rows = dom.resolveAll('.hardware-storage-row', container);
+    volumes.forEach((volume) => {
+        const row = rows.find((entry) => entry instanceof HTMLElement && entry.dataset['hardwareRowKey'] === `${volume.deviceId}|${volume.mount}`);
+        if (!(row instanceof HTMLElement)) return;
+        syncHardwareRowObservationPresentation(row, volume.observationStatus, snapshot?.capabilities?.monitoringIntervalMs);
+    });
+};
+
+const isStorageUnavailable = (snapshot: HardwareSnapshot | null | undefined): boolean => {
+    const status = snapshot?.componentStatus?.['disk'];
+    return status !== undefined && (!isHardwareObservationFresh(status) || (status.status === 'partial' && !snapshot?.disk?.some((volume) => volume.totalBytes !== undefined)));
+};
+
 const buildStorageSummaryText = (volumes: readonly VolumeModel[]): string => {
     if (!volumes.length) {
         return i18n.t('hardware.cards.storage.summary.none');
@@ -109,5 +129,5 @@ const buildStorageSummaryText = (volumes: readonly VolumeModel[]): string => {
     });
 };
 
-export { buildStorageSummaryText, createStorageInterfaceRow };
+export { buildStorageSummaryText, createStorageInterfaceRow, syncStorageObservationPresentation, isStorageUnavailable };
 export type { StorageCardLabelSet, StorageCardViewHost };

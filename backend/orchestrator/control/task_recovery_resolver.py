@@ -45,6 +45,7 @@ class OrchestratedTaskRecoveryResolver:
         status: TaskStatus,
         *,
         error_code: int | None = None,
+        error_type: str | None = None,
         error_message: str | None = None,
         status_message: str | None = None,
     ) -> None:
@@ -54,6 +55,7 @@ class OrchestratedTaskRecoveryResolver:
             task.task_id,
             status,
             error_code=error_code,
+            error_type=error_type,
             error_message=error_message,
             status_message=status_message,
         )

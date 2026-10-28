@@ -11,6 +11,7 @@ import type { ChatParameters, Conversation } from '@features/chat/storage/storag
 
 interface ChatStorageConversationManager {
     isConversationPersisted(conversationId: string): boolean;
+    isConversationCreationPending(conversationId: string): boolean;
     ensureConversationPersisted(conversation: Conversation): Promise<void>;
     markConversationPersisted(conversationId: string): void;
     markAllConversationsPersisted(): void;

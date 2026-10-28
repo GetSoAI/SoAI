@@ -39,6 +39,7 @@ def serialize_physical_attachment(row: JSONDict) -> JSONDict:
         "provider_text_truncated": row.get("provider_text_truncated"),
         "parse_state": row.get("parse_state"),
         "parse_error": row.get("parse_error"),
+        "missing_capabilities": row.get("missing_capabilities") or [],
         "created_at_ms": row.get("created_at_ms"),
         "updated_at_ms": row.get("updated_at_ms"),
         "attachment_revision": row.get("attachment_revision"),

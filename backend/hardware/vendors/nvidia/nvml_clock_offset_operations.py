@@ -11,11 +11,9 @@ from hardware.result_messages import append_log_message
 from hardware.vendors.nvidia.nvml_modern_clock_offsets import set_modern_clock_offset
 
 if TYPE_CHECKING:
-    import ctypes
-
     from core.logging.protocols import TraceLogger
+    from hardware.vendors.nvidia.internal_protocols import NvmlDeviceHandle
 
-    type NvmlDeviceHandle = ctypes.c_void_p
 
 __all__ = ("reset_clock_offsets", "set_clock_offset")
 

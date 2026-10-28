@@ -68,6 +68,7 @@ class AudioTranscriptionRequestReceived(ReplyableUserCommand):
     chunking_strategy: JSONDict | str | None = None
     known_speaker_names: list[str] | None = None
     known_speaker_references: list[str] | None = None
+    decoding_parameters: JSONDict | None = None
     required_capabilities: tuple[str, ...] = field(default_factory=tuple)
     required_modalities: tuple[str, ...] = field(default_factory=tuple)
 
@@ -82,6 +83,9 @@ class AudioTranslationRequestReceived(ReplyableUserCommand):
     prompt: str | None = None
     response_format: str | None = None
     temperature: float | None = None
+    language: str | None = None
+    timestamp_granularities: list[str] | None = None
+    decoding_parameters: JSONDict | None = None
     required_capabilities: tuple[str, ...] = field(default_factory=tuple)
     required_modalities: tuple[str, ...] = field(default_factory=tuple)
     _request_type: str = field(default="audio_translation")

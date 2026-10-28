@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
-from contextlib import AsyncExitStack
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -25,22 +24,19 @@ from core.state.protocols import StateAggregatorProtocol
 from core.tasks.periodic import run_periodic_task
 from core.timing.constants import RESPONSIVE_TIMEOUT_SEC
 from core.timing.monotonic import monotonic_ms
-from models.catalog_locking import (
-    enter_available_plugin_lifecycle_locks,
-    enter_plugin_lifecycle_locks,
-)
 from models.discovery.database_update import (
     ModelDiscoveryUpdateDependencies,
     update_discovered_models_in_db,
 )
+from models.discovery.discovery_pass import DiscoveryPassContext, run_discovery_pass
 from models.discovery.invalid_virtual_cleanup import cleanup_invalid_virtual_models
-from models.discovery.provider_bounded_execution import PluginCheckUnchanged
-from models.discovery.provider_execution import run_discovery_providers
+from models.discovery.provider_execution import DiscoveryProviderContext
 from models.discovery.startup_phase import resolve_plugin_reconciliation_startup_blocker
 from models.internal_protocols import ModelMutationEffectsProtocol
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
+    from models.discovery.provider_bounded_execution import PluginDiscoveryResult
 
 __all__ = (
     "ModelDiscoveryService",
@@ -189,35 +185,25 @@ class ModelDiscoveryService:
         scan_plugins = (
             set(plugins_to_scan) if plugins_to_scan else self._deps.installed_plugin_names_ref()
         )
-        async with AsyncExitStack() as plugin_lock_stack:
-            if available_plugins_only:
-                scan_plugins = await enter_available_plugin_lifecycle_locks(
-                    plugin_lock_stack,
-                    self._deps.plugin_manager.lifecycle,
-                    scan_plugins,
-                    timeout_seconds=RESPONSIVE_TIMEOUT_SEC,
-                )
-            else:
-                await enter_plugin_lifecycle_locks(
-                    plugin_lock_stack,
-                    self._deps.plugin_manager.lifecycle,
-                    scan_plugins,
-                )
-            if not scan_plugins:
-                return
-            existing_models = await self._deps.database_models.get_all_models_by_plugin()
-            discovered_data = await run_discovery_providers(
-                scan_plugins,
-                self._deps.plugin_manager,
-                self._deps.state_aggregator,
-                existing_models,
-                self._download_discovery_logged,
-                self._disabled_discovery_logged,
-                reuse_existing_models_for_unloaded_plugins=(
-                    reuse_existing_models_for_unloaded_plugins
+        if not await run_discovery_pass(
+            scan_plugins,
+            DiscoveryPassContext(
+                ownership=self._deps.plugin_manager.lifecycle.discovery_ownership,
+                lock_timeout_seconds=RESPONSIVE_TIMEOUT_SEC if available_plugins_only else None,
+                provider=DiscoveryProviderContext(
+                    plugin_manager=self._deps.plugin_manager,
+                    state_aggregator=self._deps.state_aggregator,
+                    download_discovery_logged=self._download_discovery_logged,
+                    disabled_discovery_logged=self._disabled_discovery_logged,
+                    reuse_existing_models_for_unloaded_plugins=(
+                        reuse_existing_models_for_unloaded_plugins
+                    ),
                 ),
-            )
-            await self.model_update_in_db(discovered_data, existing_models)
+                load_existing_models=self._deps.database_models.get_all_models_by_plugin,
+                reconcile=self.model_update_in_db,
+            ),
+        ):
+            return
         self._deps.metrics.record_timing(
             "model_manager",
             "timings",
@@ -227,10 +213,7 @@ class ModelDiscoveryService:
 
     async def model_update_in_db(
         self,
-        discovered_data: dict[
-            str,
-            dict[str, JSONDict] | Exception | PluginCheckUnchanged | None,
-        ],
+        discovered_data: dict[str, PluginDiscoveryResult],
         existing_models: dict[str, dict[str, JSONDict]],
     ) -> None:
         async with self._update_lock:

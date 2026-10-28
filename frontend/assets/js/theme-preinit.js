@@ -8,6 +8,10 @@
     const ANIMATION_SPEED_ATTRIBUTE = 'data-animation-speed';
     const INTERFACE_SCALE_STORAGE_KEY = 'soai.ui.interface_scale';
     const INTERFACE_SCALE_ATTRIBUTE = 'data-interface-scale';
+    const THEME_FAVICON_HREFS = {
+        light: './assets/img/soai/soai-favicon-light.svg',
+        dark: './assets/img/soai/soai-favicon-dark.svg'
+    };
     const DEFAULT_THEME = 'dark';
     const DEFAULT_THEME_PREFERENCE = 'auto';
     const DEFAULT_ANIMATION_SPEED = 'normal';
@@ -168,6 +172,25 @@
         root.dataset['soaiThemePreference'] = preference;
         root.style.setProperty('color-scheme', actualTheme);
     };
+    const syncThemeFavicon = (root, favicon) => {
+        const href = THEME_FAVICON_HREFS[root.classList.contains('theme-light') ? 'light' : 'dark'];
+        if (favicon.getAttribute('href') !== href) {
+            favicon.setAttribute('href', href);
+        }
+    };
+    const appendThemeFavicon = (root) => {
+        const head = root.ownerDocument.head;
+        if (!(head instanceof HTMLHeadElement)) {
+            return;
+        }
+        const favicon = root.ownerDocument.createElement('link');
+        favicon.rel = 'icon';
+        favicon.type = 'image/svg+xml';
+        syncThemeFavicon(root, favicon);
+        head.appendChild(favicon);
+        const observer = new MutationObserver(() => syncThemeFavicon(root, favicon));
+        observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+    };
     const applyAnimationSpeed = (root, speed) => {
         root.setAttribute(ANIMATION_SPEED_ATTRIBUTE, speed);
     };
@@ -185,6 +208,7 @@
             applyTheme(documentElement, preference, actualTheme);
             applyAnimationSpeed(documentElement, animationSpeed);
             applyInterfaceScale(documentElement, interfaceScale);
+            appendThemeFavicon(documentElement);
         }
     };
     try {

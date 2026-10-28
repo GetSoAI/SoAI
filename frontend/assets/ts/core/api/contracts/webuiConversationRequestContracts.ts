@@ -8,6 +8,7 @@ import type { ApiQueryParameters } from '@core/api/types/request.ts';
 interface ConversationCreateRequest {
     id: string;
     title: string;
+    titleAutoUpdateAllowed?: boolean;
 }
 
 interface ConversationCloneRequest {
@@ -21,7 +22,7 @@ interface ConversationMessageWindowRequest {
     anchor?: { createdAtMs: number; id: number };
 }
 
-const serializeConversationCreateRequest = (request: ConversationCreateRequest): JsonObject => ({ id: request.id, title: request.title });
+const serializeConversationCreateRequest = (request: ConversationCreateRequest): JsonObject => ({ id: request.id, title: request.title, ...(request.titleAutoUpdateAllowed === undefined ? {} : { 'title_auto_update_allowed': request.titleAutoUpdateAllowed }) });
 
 const serializeConversationCloneRequest = (request: ConversationCloneRequest): JsonObject => ({ id: request.id });
 

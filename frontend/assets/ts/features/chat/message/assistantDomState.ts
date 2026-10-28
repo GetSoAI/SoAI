@@ -59,7 +59,7 @@ const collectAssistantDomState = (root: HTMLElement): AssistantDomStatePreservat
     return {
         collapsedActivityState: readCollapsedActivityState(root),
         expandedActivityDetails: collectExpandedActivityDetails(root),
-        inlineMediaCards: collectInlineMediaCardPreservation(root),
+        inlineMediaCards: collectInlineMediaCardPreservation([root]),
         mermaidContainers: collectMermaidContainersByKey(root),
         scrollState: readKeyedScrollableState(root),
         markdownTableSortState: collectMarkdownTableSortState(root)

@@ -11,6 +11,7 @@ from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.tasks.cancellation import publish_cancel
 from core.timing.constants import BACKGROUND_TIMEOUT_SEC, LOCAL_IO_TIMEOUT_SEC
 from core.timing.monotonic import monotonic_ms
+from features.assistant_timeline.activity_status_sets import TIMELINE_ACTIVITY_STATUS_RUNNING
 from features.assistant_timeline.models import AssistantTimelineRuntime
 from features.chat.conversation_stream_cancellation import (
     mark_conversation_stream_runtime_cancellation_requested,
@@ -47,6 +48,10 @@ def _runtime_is_stale(
     stale_threshold_ms: int,
 ) -> bool:
     if runtime.terminal_persistence_completed:
+        return False
+    if runtime.running_tool_call_ids:
+        return False
+    if runtime.wait_for_user_activity.status == TIMELINE_ACTIVITY_STATUS_RUNNING:
         return False
     return now_ms - runtime.last_visible_activity_monotonic_ms > stale_threshold_ms
 
@@ -115,6 +120,18 @@ async def _scan_chat_stream_registry(
             continue
         if not _runtime_is_stale(runtime, now_ms=now_ms, stale_threshold_ms=stale_threshold_ms):
             continue
+        if runtime.active_task_id is not None:
+            task = await application_context.services.tasks.task_registry.get(
+                runtime.active_task_id
+            )
+            if task is not None:
+                context = task.orchestration_context
+                if task.execution_timeout_pending or (
+                    not task.status.is_terminal()
+                    and context is not None
+                    and context.execution_budget is not None
+                ):
+                    continue
         await _cancel_stale_runtime(
             application_context,
             runtime,

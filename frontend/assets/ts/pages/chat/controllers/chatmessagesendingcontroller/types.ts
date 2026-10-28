@@ -3,13 +3,16 @@
 
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
+import type { ConversationInputAdmission } from '@core/api/contracts/chatQueueDraftContracts.ts';
 import type { ConversationExecutionRunResult } from '@core/chat/protocols.ts';
 import type { ConversationModelSettingsUpdate } from '@core/chat/executionSettingsTypes.ts';
-import type { ChatAttachment, ChatContentSegment, ChatPageApi, ChatParameters, ChatStreamLifecycle, ChatStreamResponseOptions, ChatStreamStartAdmission, ChatStreamStopOptions, ChatTurnAdmissionSnapshot, Conversation, ConversationExportModelDescriptor, ConversationMessage, LoadConversationMessagesOptions, RagIngestionAttachmentSource, RagIngestionStatus, SoaiPathDraftRecord } from '@features/chat/public.ts';
+import type { ChatAttachment, ChatContentSegment, ChatPageApi, ChatParameters, ChatStreamLifecycle, ChatStreamResponseOptions, ChatStreamStartAdmission, ChatStreamStopOptions, ChatTurnAdmissionSnapshot, Conversation, ConversationExportModelDescriptor, ConversationInputEnqueuePayload, ConversationMessage, LoadConversationMessagesOptions, RagIngestionAttachmentSource, RagIngestionStatus, SoaiPathDraftRecord } from '@features/chat/public.ts';
 import type { ComposerSoaiLinkResolutionManager } from '@pages/chat/controllers/chatmessagesendingcontroller/composerSoaiLinkResolutionManager.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
+
+import type { ConversationActivationSnapshot } from '@pages/chat/controllers/page/concurrency/ChatConcurrencyController.ts';
 
 type Message = ConversationMessage;
 
@@ -119,8 +122,10 @@ interface ConversationManager {
     updateConversationTitle: (conversationId: string, title: string) => Promise<void>;
 }
 
+type AcceptedConversationInput = Pick<ConversationInputAdmission, 'inputId' | 'inputType' | 'acceptedAtMs' | 'isDispatchableHead'>;
+
 interface ConversationInputsManager {
-    enqueue: (conversationId: string, payload: { intent: 'queued' | 'steer'; text: string | null; sourceText: string | null; attachmentContent: readonly ChatContentSegment[] }) => Promise<{ inputId: string; acceptedAtMs: number; isDispatchableHead: boolean }>;
+    enqueue: (conversationId: string, payload: ConversationInputEnqueuePayload) => Promise<AcceptedConversationInput>;
 }
 
 interface QueuedSendGuardContext {
@@ -157,13 +162,14 @@ interface MessageSendingPresentationPort {
     renderCurrentConversation: () => Promise<void>;
     flushDOMUpdates: () => void;
     renderAttachedFilesPreview: () => void;
-    hideAttachedFilesPreview: () => void;
     updateExportButtonVisibility: () => void;
     shouldAutoScrollAfterContentUpdate: () => boolean;
-    forceTimelineScrollToBottom: () => void;
+    forceTimelineScrollToBottom: (behavior?: ScrollBehavior) => void;
 }
 
 interface MessageSendingConversationPort {
+    captureConversationActivation: () => ConversationActivationSnapshot;
+    isConversationActivationCurrent: (activation: ConversationActivationSnapshot, conversationId: string) => boolean;
     getCurrentConversation: () => Conversation | null;
     getConversationById: (conversationId: string) => Conversation | null;
     isConversationExecuting: (conversationId: string) => boolean;
@@ -204,4 +210,4 @@ interface MessageSendingHost {
     services: MessageSendingServicePort;
 }
 
-export type { AttachmentManager, ConversationInputsManager, StorageManager, ChatMessageSendingPort, ChatRagAttachmentPort, ChatStreamingController, ConversationManager, MessageSendingHost, ConversationInputComposerOutcome, QueueConversationInputOptions, QueuedSendBlockReason, QueuedSendGuard, QueuedSendGuardContext, QueuedSendGuardResult, QueuedSendOutcome, SendMessageOptions, StartRagIngestionArguments, ChatParameters, ChatPageApi, Conversation, Message };
+export type { AcceptedConversationInput, AttachmentManager, ConversationInputsManager, StorageManager, ChatMessageSendingPort, ChatRagAttachmentPort, ChatStreamingController, ConversationManager, MessageSendingHost, ConversationInputComposerOutcome, QueueConversationInputOptions, QueuedSendBlockReason, QueuedSendGuard, QueuedSendGuardContext, QueuedSendGuardResult, QueuedSendOutcome, SendMessageOptions, StartRagIngestionArguments, ChatParameters, ChatPageApi, Conversation, Message };

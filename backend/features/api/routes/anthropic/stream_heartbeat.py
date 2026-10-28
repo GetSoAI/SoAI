@@ -6,8 +6,9 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator
 
-from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
+from core.concurrency.async_iterators import close_async_iterator_after_read
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
+from core.tasks.protocols import TaskFinalizerTrackerProtocol
 
 __all__ = ("iter_anthropic_chunks_with_heartbeats",)
 
@@ -17,6 +18,8 @@ _NEXT_CHUNK_TASK_NAME = "features.api.routes.anthropic.stream_heartbeat.next_chu
 
 async def iter_anthropic_chunks_with_heartbeats(
     upstream: AsyncGenerator[bytes],
+    *,
+    finalizer_tracker: TaskFinalizerTrackerProtocol,
 ) -> AsyncGenerator[bytes | None]:
     next_chunk_task: asyncio.Task[bytes] | None = None
     try:
@@ -37,12 +40,10 @@ async def iter_anthropic_chunks_with_heartbeats(
                 chunk = next_chunk_task.result()
             except StopAsyncIteration:
                 break
-            next_chunk_task = None
+            finally:
+                next_chunk_task = None
             yield chunk
     finally:
-        if next_chunk_task is not None and not next_chunk_task.done():
-            next_chunk_task.cancel()
-            try:
-                await uncancel_then_cleanup(next_chunk_task)
-            except asyncio.CancelledError:
-                next_chunk_task = None
+        await close_async_iterator_after_read(
+            upstream, next_chunk_task, finalizer_tracker=finalizer_tracker
+        )

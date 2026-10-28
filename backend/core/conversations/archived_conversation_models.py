@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 __all__ = (
     "ArchivedConversationSettingsAuthority",
@@ -32,6 +32,7 @@ class ArchivedConversationSummary(BaseModel):
 
     id: str = Field(..., min_length=1)
     title: str = Field(..., min_length=1)
+    title_auto_update_allowed: StrictBool = False
     last_modified_at_ms: int = Field(..., ge=1)
     color: str | None = Field(default=None, min_length=1)
     is_favorite: bool

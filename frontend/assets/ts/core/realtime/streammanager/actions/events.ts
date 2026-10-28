@@ -4,6 +4,8 @@
 import type { OperationEvent, OperationMetadata, TaskTerminalEvent, TaskTerminalListener, TaskWatcher } from '@core/realtime/streammanager/types.ts';
 import type { StreamTaskRuntimeState } from '@core/realtime/streammanager/actions/internalContracts.ts';
 import type { StreamTaskSafeInvoker } from '@core/realtime/streammanager/actions/types.ts';
+import { recordTaskTerminal } from '@core/realtime/streammanager/actions/taskSnapshotTransactions.ts';
+
 import { isCancelledTaskStatus, normalizeTaskStatusText } from '@core/tasks/operationPayloads.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import { isFiniteNumber, isFunction, isString } from '@core/typeGuards.ts';
@@ -62,6 +64,8 @@ const buildTerminalTaskEvent = (taskId: string, payload: JsonObject, meta: Opera
 };
 
 const emitTerminalTaskEvent = (options: { module: string; eventTarget: EventTarget; state: StreamTaskRuntimeState; safeInvoker: StreamTaskSafeInvoker; logDebug: (module: string, message: string, error: Error) => void; taskId: string; payload: JsonObject; meta?: OperationMetadata | null }): void => {
+    if (options.state.terminalTaskIds.has(options.taskId)) return;
+    recordTaskTerminal(options.state, options.taskId);
     const event = buildTerminalTaskEvent(options.taskId, options.payload, options.meta ?? null);
     options.state.terminalTaskListeners.forEach((listener) => {
         options.safeInvoker(() => listener(event));
@@ -100,7 +104,7 @@ const notifyTaskProgress = (state: StreamTaskRuntimeState, safeInvoker: StreamTa
     watchers.forEach((watcher) => {
         if (watcher.settled) return;
         safeInvoker(watcher.handlers.onUpdate, payload);
-        safeInvoker(watcher.handlers.onProgress, payload);
+        if (watcher.handlers.onProgress !== watcher.handlers.onUpdate) safeInvoker(watcher.handlers.onProgress, payload);
     });
 };
 

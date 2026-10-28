@@ -12,6 +12,11 @@ from core.database.provider_mutation_requests import (
     ProviderMutationReplayRequest,
     ProviderUpdateMutationRequest,
 )
+from core.plugins.backend_update_records import (
+    BackendAutoAttempt,
+    BackendUpdateIdentity,
+    BackendUpdateRecord,
+)
 from core.state.circuit_breaker import CircuitBreakerState
 from core.state.compatibility import CompatibilityInfo
 
@@ -211,3 +216,35 @@ class DatabasePluginsProtocol(Protocol):
     async def clear_runtime_processes(self, plugin_name: str) -> None: ...
 
     async def list_plugins_with_runtime_processes(self) -> list[PluginRuntimeProcessesPayload]: ...
+
+    async def get_backend_update_catalog(
+        self,
+    ) -> tuple[list[JSONDict], dict[str, BackendUpdateRecord]]: ...
+
+    async def get_backend_updates(self) -> dict[str, BackendUpdateRecord]: ...
+
+    async def get_backend_update(self, plugin_name: str) -> BackendUpdateRecord | None: ...
+
+    async def materialize_backend_update(
+        self, identity: BackendUpdateIdentity
+    ) -> BackendUpdateRecord: ...
+
+    async def commit_backend_update(
+        self, expected: BackendUpdateRecord, result: BackendUpdateRecord
+    ) -> bool: ...
+
+    async def invalidate_backend_update(self, plugin_name: str) -> bool: ...
+
+    async def delete_backend_update(self, plugin_name: str) -> None: ...
+
+    async def reserve_backend_update(
+        self, expected: BackendUpdateRecord, attempt: BackendAutoAttempt
+    ) -> bool: ...
+
+    async def set_backend_update_failure(
+        self, attempt: BackendAutoAttempt, failed: bool
+    ) -> bool: ...
+
+    async def get_backend_update_cooldown(self) -> int | None: ...
+
+    async def extend_backend_update_cooldown(self, not_before_ms: int) -> None: ...

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { APIError } from '@core/apiError.ts';
+import { resolveHandledOperationCause } from '@core/operationErrorNotifier.ts';
 
 interface FileExplorerBrowserErrorMessages {
     forbidden: () => string;
@@ -12,6 +13,10 @@ interface FileExplorerBrowserErrorMessages {
 }
 
 const resolveFileExplorerBrowserStatusMessage = (error: Error, messages: FileExplorerBrowserErrorMessages): string => {
+    const cause = resolveHandledOperationCause(error);
+    if (cause !== null) {
+        return cause;
+    }
     if (!(error instanceof APIError)) {
         return messages.fallback();
     }

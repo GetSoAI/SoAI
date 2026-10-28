@@ -36,7 +36,8 @@
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-nav.is-active {
-        opacity: 0.5;
+        --ui-button-emphasis-opacity: var(--ui-button-subdued-opacity);
+        opacity: var(--ui-control-opacity);
         pointer-events: auto;
         visibility: visible;
         transition:
@@ -45,12 +46,14 @@
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-row-wrapper:is(:hover, :focus-within) .hardware-overflow-nav.is-active {
-        opacity: 1;
+        --ui-button-emphasis-opacity: 1;
+        opacity: var(--ui-control-opacity);
     }
 
     @container ui-viewport (width <= 640px) {
         :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-nav.is-active {
-            opacity: 1;
+            --ui-button-emphasis-opacity: 1;
+            opacity: var(--ui-control-opacity);
         }
     }
 

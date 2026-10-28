@@ -102,7 +102,7 @@ def _require_publication(
     )
     publication = _materialize(sync_fetch_one_as_dict(cursor))
     if publication is None:
-        raise StateError("SoAIBench publication ledger mutation did not produce a row.")
+        raise StateError("SoAI Bench publication ledger mutation did not produce a row.")
     return publication
 
 
@@ -116,7 +116,7 @@ def _materialize(row: SQLiteRowDict | None) -> JSONDict | None:
         if receipt_json is None
         else parse_json_dict(
             str(receipt_json),
-            field="SoAIBench publication receipt",
+            field="SoAI Bench publication receipt",
             reject_duplicate_keys=True,
         )
     )

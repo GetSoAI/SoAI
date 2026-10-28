@@ -8,6 +8,7 @@ from collections.abc import AsyncGenerator
 
 from fastapi import Request
 
+from core.concurrency.async_iterators import close_async_iterator_if_supported
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
@@ -114,13 +115,15 @@ async def responses_passthrough_stream_generator(
         keepalive_chunk=sse_keepalive_chunk(),
     )
 
+    timed_stream = iter_openai_classified_items_with_flush_timer(
+        stream_iter,
+        finalizer_tracker=stream_dependencies.finalizer_tracker,
+        should_flush=lambda: bool(persistence.store and persistence.has_pending_events),
+        flush_interval_ms=int(persistence.flush_interval_ms),
+        flush=lambda: persistence.flush_if_needed(force=False),
+    )
     try:
-        async for item in iter_openai_classified_items_with_flush_timer(
-            stream_iter,
-            should_flush=lambda: bool(persistence.store and persistence.has_pending_events),
-            flush_interval_ms=int(persistence.flush_interval_ms),
-            flush=lambda: persistence.flush_if_needed(force=False),
-        ):
+        async for item in timed_stream:
             if isinstance(item, StreamTermination):
                 classified = item
                 if stream_completed:
@@ -235,6 +238,7 @@ async def responses_passthrough_stream_generator(
                         done_chunk=done_chunk,
                         code=str(code),
                         message=str(message),
+                        public_error=event.public_error,
                     ):
                         yield chunk
                     stream_completed = True
@@ -283,10 +287,13 @@ async def responses_passthrough_stream_generator(
         yield terminal_chunk
         return
     finally:
-        if persistence.store and not stream_completed:
-            await flush_response_stream_on_exit(
-                persistence=persistence,
-                logger=logger,
-                context=context,
-                task_id=task.task_id,
-            )
+        try:
+            await close_async_iterator_if_supported(timed_stream)
+        finally:
+            if persistence.store and not stream_completed:
+                await flush_response_stream_on_exit(
+                    persistence=persistence,
+                    logger=logger,
+                    context=context,
+                    task_id=task.task_id,
+                )

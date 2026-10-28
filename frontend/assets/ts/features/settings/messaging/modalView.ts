@@ -38,8 +38,8 @@ const renderCredentialInput = (modalId: string, providerId: string, field: (type
 const renderSelect = (id: string, options: string): string => renderStandardDropdownSelectControl(`<select id="${uiAttr(id).html}" class="setting-input setting-input--wide setting-input--full form-input">${options}</select>`);
 
 const renderIdentityGroup = (modalId: string): string => {
-    const providers = MESSAGING_PROVIDER_DESCRIPTORS.map((descriptor) => `<option value="${uiAttr(descriptor.id).html}">${uiText(resolveMessagingProviderTitle(descriptor.id)).html}</option>`).join('');
-    const locales = `<option value="en">${uiText(i18n.t('settings.messaging.editor.localeEnglish')).html}</option><option value="it">${uiText(i18n.t('settings.messaging.editor.localeItalian')).html}</option>`;
+    const providers = MESSAGING_PROVIDER_DESCRIPTORS.map((descriptor) => `<option value="${uiAttr(descriptor.id).html}" data-modal-localize="text">${uiText(resolveMessagingProviderTitle(descriptor.id)).html}</option>`).join('');
+    const locales = `<option value="en" data-modal-localize="text">${uiText(i18n.t('settings.messaging.editor.localeEnglish')).html}</option><option value="it" data-modal-localize="text">${uiText(i18n.t('settings.messaging.editor.localeItalian')).html}</option>`;
     return renderSettingsSubgroup({
         title: i18n.t('settings.messaging.editor.identityTitle'),
         description: i18n.t('settings.messaging.editor.identityDescription'),
@@ -76,7 +76,7 @@ const renderCredentialGroup = (modalId: string): string => {
                 control: renderCredentialInput(modalId, descriptor.id, field)
             })
         );
-        return `<section id="${uiAttr(modalUiId(modalId, `credentials-${descriptor.id}`)).html}" class="messaging-provider-credentials" data-platform="${uiAttr(descriptor.id).html}"><h4 class="messaging-provider-credentials__title">${uiText(resolveMessagingProviderTitle(descriptor.id)).html}</h4><p class="subgroup-description">${uiText(resolveMessagingProviderDescription(descriptor.id)).html}</p>${renderSettingsGroup(fields)}</section>`;
+        return `<section id="${uiAttr(modalUiId(modalId, `credentials-${descriptor.id}`)).html}" class="messaging-provider-credentials" data-platform="${uiAttr(descriptor.id).html}"><h4 class="messaging-provider-credentials__title" data-modal-localize="text">${uiText(resolveMessagingProviderTitle(descriptor.id)).html}</h4><p class="subgroup-description" data-modal-localize="text">${uiText(resolveMessagingProviderDescription(descriptor.id)).html}</p>${renderSettingsGroup(fields)}</section>`;
     }).join('');
     return renderSettingsSubgroup({
         title: i18n.t('settings.messaging.editor.credentialsTitle'),
@@ -104,7 +104,7 @@ const renderAccessGroup = (modalId: string): string =>
                 label: i18n.t('settings.messaging.editor.authorizedSenders'),
                 help: i18n.t('settings.messaging.editor.authorizedSendersHint'),
                 fieldKey: 'authorized-senders',
-                control: `<textarea id="${uiAttr(modalUiId(modalId, 'authorized-senders')).html}" class="setting-textarea setting-textarea--wide setting-input--full form-input" rows="4" placeholder="${uiAttr(i18n.t('settings.messaging.editor.authorizedSendersPlaceholder')).html}"></textarea>`
+                control: `<textarea id="${uiAttr(modalUiId(modalId, 'authorized-senders')).html}" class="setting-textarea setting-textarea--wide setting-input--full form-input" rows="4" placeholder="${uiAttr(i18n.t('settings.messaging.editor.authorizedSendersPlaceholder')).html}" data-modal-localize="placeholder"></textarea>`
             }),
             renderSettingItem({
                 label: i18n.t('settings.messaging.editor.plaintextSecrets'),
@@ -123,7 +123,7 @@ const renderAccessGroup = (modalId: string): string =>
     });
 
 const renderExecutionGroup = (modalId: string): string => {
-    const modes = `<option value="chat">${uiText(i18n.t('chat.agent.mode.chat')).html}</option><option value="plan">${uiText(i18n.t('chat.agent.mode.plan')).html}</option><option value="execute">${uiText(i18n.t('chat.agent.mode.execute')).html}</option>`;
+    const modes = `<option value="chat" data-modal-localize="text">${uiText(i18n.t('chat.agent.mode.chat')).html}</option><option value="plan" data-modal-localize="text">${uiText(i18n.t('chat.agent.mode.plan')).html}</option><option value="execute" data-modal-localize="text">${uiText(i18n.t('chat.agent.mode.execute')).html}</option>`;
     const workspace = buildWorkspaceFolderFieldMarkup({
         pathInputId: modalUiId(modalId, 'workspace'),
         changeButtonId: modalUiId(modalId, 'workspace-change'),
@@ -164,7 +164,7 @@ const renderExecutionGroup = (modalId: string): string => {
                 help: i18n.t('settings.messaging.editor.parameters.description'),
                 fieldKey: 'parameters',
                 className: 'messaging-account-modal__parameters',
-                control: `<div class="form-row-split form-row-split--with-action messaging-account-modal__parameters-row"><div class="form-col-main"><input id="${uiAttr(modalUiId(modalId, 'parameters-summary')).html}" class="setting-input setting-input--wide setting-input--full form-input" type="text" readonly></div><div class="form-col-action"><button type="button" id="${uiAttr(modalUiId(modalId, 'parameters-button')).html}" class="ui-button" data-action="${uiAttr(MESSAGING_MODAL_ACTION_PARAMETERS).html}" aria-label="${uiAttr(i18n.t('settings.messaging.editor.parameters.button')).html}" data-tooltip="${uiAttr(i18n.t('settings.messaging.editor.parameters.button')).html}">${uiText(i18n.t('settings.messaging.editor.parameters.button')).html}</button></div></div>`
+                control: `<div class="form-row-split form-row-split--with-action messaging-account-modal__parameters-row"><div class="form-col-main"><input id="${uiAttr(modalUiId(modalId, 'parameters-summary')).html}" class="setting-input setting-input--wide setting-input--full form-input" type="text" readonly></div><div class="form-col-action"><button type="button" id="${uiAttr(modalUiId(modalId, 'parameters-button')).html}" class="ui-button" data-action="${uiAttr(MESSAGING_MODAL_ACTION_PARAMETERS).html}" aria-label="${uiAttr(i18n.t('settings.messaging.editor.parameters.button')).html}" data-tooltip="${uiAttr(i18n.t('settings.messaging.editor.parameters.button')).html}" data-modal-localize="text aria-label data-tooltip">${uiText(i18n.t('settings.messaging.editor.parameters.button')).html}</button></div></div>`
             })
         ])
     });
@@ -207,7 +207,7 @@ const createMessagingAccountModalElement = (modalId: string): HTMLElement => {
         titleId: modalUiId(modalId, 'title')
     });
     const submitLabel = uiAttr(i18n.t('common.save')).html;
-    const form = `<form id="${uiAttr(modalUiId(modalId, 'form')).html}" class="messaging-account-modal__form" novalidate>${renderIdentityGroup(modalId)}${renderCredentialGroup(modalId)}${renderAccessGroup(modalId)}${renderExecutionGroup(modalId)}${renderMcpGroup(modalId)}<button type="submit" aria-label="${submitLabel}" data-tooltip="${submitLabel}" hidden></button></form>`;
+    const form = `<form id="${uiAttr(modalUiId(modalId, 'form')).html}" class="messaging-account-modal__form" novalidate>${renderIdentityGroup(modalId)}${renderCredentialGroup(modalId)}${renderAccessGroup(modalId)}${renderExecutionGroup(modalId)}${renderMcpGroup(modalId)}<button type="submit" aria-label="${submitLabel}" data-tooltip="${submitLabel}" hidden data-modal-localize="aria-label data-tooltip"></button></form>`;
     const error = `<div id="${uiAttr(modalUiId(modalId, 'error')).html}" class="messaging-account-modal__error settings-card-surface" role="alert" aria-live="assertive" aria-atomic="true" hidden></div>`;
     const body = renderModalBody(toTrustedUiHtml(`${form}${error}`), { className: 'messaging-account-modal__body' });
     const footer = renderSplitModalFooter({

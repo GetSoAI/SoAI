@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.models.model_info_fields import coerce_plugin_name
+from core.openai.request_requirement_failures import OpenAIRequestRequirementMismatch
 from core.orchestrator.execution_plan import (
     EXECUTION_PLAN_FAILURE_INVALID_REQUEST,
     EXECUTION_PLAN_STATUS_AVAILABLE,
@@ -132,6 +133,10 @@ def _build_unsupported_plan(
     plugin_name = coerce_plugin_name(model_info if isinstance(model_info, dict) else None)
     plan = _build_unavailable_plan()
     plan["failure_error_type"] = EXECUTION_PLAN_FAILURE_INVALID_REQUEST
+    plan["requirement_mismatch"] = OpenAIRequestRequirementMismatch(
+        missing_capabilities=evaluation.missing_capabilities if evaluation else (),
+        missing_modalities=evaluation.missing_modalities if evaluation else (),
+    )
     plan["failure_reason"] = format_requirements_failure_reason(
         model_label=model_label,
         plugin_name=plugin_name,

@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
-import { awaitAnimationFrame } from '@core/runtime/animationFrames.ts';
+import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { isObject } from '@core/typeGuards.ts';
 import { monotonicMs } from '@core/time/clock.ts';
 import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
+import { isObsoleteStreamingUpdate } from '@features/chat/chatstreamservice/controller/canonicalAssistantIdentity.ts';
 import { upsertAssistantMessage } from '@features/chat/chatstreamservice/mappers.ts';
 import { refreshActivityClock, shouldRefreshStreamActivityClock } from '@features/chat/chatstreamservice/controller/activityClock.ts';
 import { clearStreamingContext, getConversationStreamState, isConversationStreamingUiActive, requireConversationStreamState, requireScheduleStreamRender, syncStreamingControls } from '@features/chat/chatstreamservice/controller/state.ts';
@@ -15,10 +17,14 @@ import { renderCurrentConversationSafely } from '@features/chat/chatstreamservic
 import { resolveStableMessageDomId } from '@features/chat/message/messageDomIds.ts';
 import { resolveStreamRenderPatchType, resolveStreamRenderSnapshot, resolveStreamTextAppend } from '@features/chat/stream/streamRenderPatchType.ts';
 import { resolveMountedStreamingAssistantRoot } from '@features/chat/stream/streamDomCache.ts';
-import type { ChatStreamingControllerContext, ConversationStreamState, StreamUpdate } from '@features/chat/chatstreamservice/controller/types.ts';
+import type { ChatStreamingControllerContext, ChatStreamTerminalUpdate, ConversationStreamState, StreamUpdate } from '@features/chat/chatstreamservice/controller/types.ts';
 import { scheduleRequestTerminalization } from '@features/chat/chatstreamservice/controller/terminalLifecycle.ts';
 import { reportChatStreamTerminalizationFailureOnce } from '@features/chat/chatstreamservice/controller/terminalizationError.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
+import { isChatTurnSuperseded } from '@features/chat/chatstreamservice/controller/turnSupersession.ts';
+import { isChatMessage } from '@features/chat/message/chatMessageGuards.ts';
+import { resolveDurableAssistantTerminalState } from '@features/chat/message/assistantTerminalState.ts';
+import { findAssistantMessageByTimestamp } from '@features/chat/toolactivity/toolProjectionMutation.ts';
 import { isExpectedComparisonVariantUpdate, isFinalComparisonVariantTerminal, matchesActiveStreamUpdateIdentity, syncActiveComparisonRunFromUpdate } from '@features/chat/chatstreamservice/controller/comparisonRunUpdates.ts';
 import { acceptStreamingServiceUpdateLifecycle, acceptTerminalServiceUpdateLifecycle, reconcileMismatchedTerminalServiceUpdate } from '@features/chat/chatstreamservice/controller/streamLifecycle.ts';
 
@@ -92,6 +98,28 @@ const ensureCurrentConversationStreamingMessageMounted = (context: ChatStreaming
     return true;
 };
 
+const isSupersedingLiveStreamUpdate = (context: ChatStreamingControllerContext, conversationId: string, state: ConversationStreamState, update: StreamUpdate): boolean => {
+    if (update.status !== 'streaming' || state.assistantTimestamp === null || state.phase === 'starting') {
+        return false;
+    }
+    const liveIdentity = context.dependencies.chatStreamService.getStreamIdentity(conversationId);
+    if (liveIdentity === null || liveIdentity.requestId !== update.requestId || liveIdentity.assistantTimestamp !== update.assistantTimestamp) {
+        return false;
+    }
+    return isChatTurnSuperseded(context.dependencies.chatStreamService, { conversationId, assistantTimestamp: state.assistantTimestamp });
+};
+
+const resolveSupersededTerminalUpdate = (context: ChatStreamingControllerContext, conversationId: string, state: ConversationStreamState): ChatStreamTerminalUpdate | null => {
+    const assistantTimestamp = state.assistantTimestamp;
+    const conversation = context.dependencies.conversations.get(conversationId);
+    if (assistantTimestamp === null || !conversation) {
+        return null;
+    }
+    const supersededAssistant = findAssistantMessageByTimestamp(conversation.messages.filter(isChatMessage), assistantTimestamp);
+    const status = supersededAssistant === null ? null : resolveDurableAssistantTerminalState(supersededAssistant);
+    return status === null ? null : { conversationId, requestId: state.requestId, assistantTimestamp, status, conversationListRenderAlreadyScheduled: false };
+};
+
 export const handleServiceUpdate = async (context: ChatStreamingControllerContext, update: StreamUpdate): Promise<void> => {
     if (!context.presentationActive) {
         return;
@@ -133,6 +161,8 @@ export const handleServiceUpdate = async (context: ChatStreamingControllerContex
     const hasMismatchedActiveRequestId = Boolean(hadActiveStreamLifecycle && state.requestId !== null && updateRequestId !== state.requestId);
     const hasMismatchedActiveAssistantTimestamp = Boolean(hadActiveStreamLifecycle && state.assistantTimestamp !== null && updateAssistantTimestamp !== state.assistantTimestamp);
     const hasMismatchedActiveIdentity = hasMismatchedActiveRequestId || hasMismatchedActiveAssistantTimestamp;
+    const adoptsSupersedingStream = hasMismatchedActiveIdentity && !isPassiveTimelinePatch && isSupersedingLiveStreamUpdate(context, conversationId, state, update);
+    const supersededTerminalUpdate = adoptsSupersedingStream ? resolveSupersededTerminalUpdate(context, conversationId, state) : null;
     if (hasMismatchedActiveIdentity && !isExpectedComparisonVariantUpdate(state, update, updateRequestId)) {
         if (update.status !== 'streaming') {
             if (!matchesActiveStreamUpdateIdentity(state, update, updateRequestId)) {
@@ -143,9 +173,12 @@ export const handleServiceUpdate = async (context: ChatStreamingControllerContex
                 });
                 return;
             }
-        } else if (hasActiveServiceStream || state.phase === 'starting') {
+        } else if ((hasActiveServiceStream || state.phase === 'starting') && !adoptsSupersedingStream) {
             return;
         }
+    }
+    if (state.requestId === updateRequestId && state.assistantTimestamp === updateAssistantTimestamp && isObsoleteStreamingUpdate(context.dependencies.conversations.get(conversationId), update)) {
+        return;
     }
     if (isFinalComparisonVariantTerminal(state, update, updateRequestId)) {
         state.requestId = updateRequestId;
@@ -161,12 +194,19 @@ export const handleServiceUpdate = async (context: ChatStreamingControllerContex
     const treatAsPassiveStreamUpdate = update.status === 'streaming' && !hasActiveServiceStream && !isCurrentConversationUpdate && (!hadActiveStreamLifecycle || !matchesActiveLifecycle);
 
     if (update.status === 'streaming' && !treatAsPassiveStreamUpdate && !isPassiveTimelinePatch) {
+        if (adoptsSupersedingStream) {
+            state.comparisonRun = null;
+        }
         acceptStreamingServiceUpdateLifecycle(context, {
             conversationId,
             state,
             requestId: updateRequestId,
-            assistantTimestamp: updateAssistantTimestamp
+            assistantTimestamp: updateAssistantTimestamp,
+            adoptsSupersedingStream
         });
+        if (supersededTerminalUpdate !== null) {
+            context.dependencies.onStreamTerminalUpdate?.(supersededTerminalUpdate);
+        }
     } else if (!treatAsPassiveStreamUpdate && !isPassiveTimelinePatch) {
         syncStreamingControls(context);
     }
@@ -178,7 +218,8 @@ export const handleServiceUpdate = async (context: ChatStreamingControllerContex
         }
         return;
     }
-    if (mutationType === 'initial-timeline') {
+    const requiresCanonicalTimeline = mutationType === 'initial-timeline' || adoptsSupersedingStream;
+    if (requiresCanonicalTimeline) {
         try {
             await context.dependencies.storageManager.loadConversationMessages(conversationId, { force: true, mergeStreamingAssistants: true });
         } catch (error) {
@@ -193,6 +234,9 @@ export const handleServiceUpdate = async (context: ChatStreamingControllerContex
         }
     }
     const assistantTimestamp = updateAssistantTimestamp;
+    if (isObsoleteStreamingUpdate(conversation, update)) {
+        return;
+    }
     const assistantUpsert = upsertAssistantMessage(conversation, assistantTimestamp, update.message);
     if (!assistantUpsert.accepted) {
         return;
@@ -232,19 +276,20 @@ export const handleServiceUpdate = async (context: ChatStreamingControllerContex
 
     if (context.dependencies.state.getCurrentConversationId() === conversationId) {
         const isUiMounted = context.dependencies.presentation.optionalUI(CHAT_SELECTORS.MESSAGES) !== null;
-        if (isUiMounted && patchType !== 'none') {
+        if (isUiMounted && patchType !== 'none' && assistantUpsert.placement === 'loaded-window') {
             const scheduleStreamRender = requireScheduleStreamRender(context);
-            if (mutationType === 'initial-timeline') {
-                await context.dependencies.presentation.renderCurrentConversation();
-                if (context.disposed || !context.presentationActive || context.presentationGeneration !== presentationGeneration || context.dependencies.state.getCurrentConversationId() !== conversationId) {
-                    return;
+            if (requiresCanonicalTimeline) {
+                const presentationSignal = context.presentationAbort.signal;
+                try {
+                    await context.dependencies.presentation.renderCurrentConversation();
+                    if (!context.disposed && context.presentationActive && context.presentationGeneration === presentationGeneration && context.dependencies.state.getCurrentConversationId() === conversationId && getConversationStreamState(context, conversationId) === state && state.streamRenderSnapshot === nextSnapshot) {
+                        scheduleStreamRender({ message: assistantMessage, conversationId, patchType, assistantRevision: nextSnapshot.assistantRevision, textAppend });
+                        await awaitPresentationFrame(presentationSignal, 'Chat initial timeline visual checkpoint aborted.');
+                        await awaitPresentationFrame(presentationSignal, 'Chat initial timeline visual checkpoint aborted.');
+                    }
+                } catch (error) {
+                    if (!isAbortError(error)) throw error;
                 }
-                scheduleStreamRender({ message: assistantMessage, conversationId, patchType, assistantRevision: nextSnapshot.assistantRevision, textAppend });
-                await awaitAnimationFrame(null, 'Chat initial timeline visual checkpoint aborted.');
-                if (!context.presentationActive || context.presentationGeneration !== presentationGeneration) {
-                    return;
-                }
-                await awaitAnimationFrame(null, 'Chat initial timeline visual checkpoint aborted.');
             } else if (isPassiveTimelinePatch) {
                 if (hasMountedAssistantMessageRoot(context, conversationId, assistantMessage)) {
                     scheduleStreamRender({ message: assistantMessage, conversationId, patchType, assistantRevision: nextSnapshot.assistantRevision, textAppend });
@@ -258,7 +303,7 @@ export const handleServiceUpdate = async (context: ChatStreamingControllerContex
         }
     }
 
-    if (update.status !== 'streaming') {
+    if (!context.disposed && getConversationStreamState(context, conversationId) === state && update.status !== 'streaming') {
         const resolvedRequestIdForTerminal = updateRequestId;
         const terminalLifecycleKnown = hadActiveStreamLifecycle || hasActiveServiceStream || isCurrentConversationUpdate;
         const shouldScheduleTerminal = terminalLifecycleKnown && (state.requestId === null || resolvedRequestIdForTerminal === state.requestId);

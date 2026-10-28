@@ -80,6 +80,7 @@ from core.openai.protocols_database_responses import DatabaseOpenAIResponsesProt
 from core.plugins.protocols_database import DatabasePluginsProtocol
 from core.prompts.protocols_database import DatabasePromptsProtocol
 from core.rag.protocols import DatabaseKnowledgePromptStateProtocol
+from core.skills.protocols import SkillRepositoryProtocol
 from core.tool_calls.protocols import DatabaseToolCallsProtocol
 from core.users.protocols_database import DatabaseUsersProtocol
 from core.users.protocols_identity_mutations import DatabaseUserMutationsProtocol
@@ -107,6 +108,7 @@ class ApiDatabaseDependencies:
     database_chat_identity_defaults: DatabaseChatIdentityDefaultsProtocol
     database_chat_model_defaults: DatabaseChatModelDefaultsProtocol
     database_chat_presets: ChatPresetRepositoryProtocol
+    database_skills: SkillRepositoryProtocol
     database_messages: DatabaseMessagesProtocol
     database_conversation_attachments: DatabaseConversationAttachmentsProtocol
     database_conversation_knowledge_attachments: DatabaseConversationKnowledgeAttachmentsProtocol
@@ -152,6 +154,7 @@ class ApiDatabaseDependencies:
             database_chat_identity_defaults=self.database_chat_identity_defaults,
             database_chat_model_defaults=self.database_chat_model_defaults,
             database_chat_presets=self.database_chat_presets,
+            database_skills=self.database_skills,
             database_conversations=self.database_conversations,
             database_files=self.database_files,
             database_knowledge_prompt_state=self.database_knowledge_prompt_state,

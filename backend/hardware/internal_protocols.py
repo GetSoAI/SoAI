@@ -5,39 +5,95 @@ from __future__ import annotations
 
 import asyncio
 import threading
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
 from core.logging.protocols import TraceLogger
 
 if TYPE_CHECKING:
+    from concurrent.futures import Executor
+
+    from core.concurrency.deadlines import MonotonicDeadline
+    from core.errors.exceptions import SoAIError
     from core.hardware.protocols import DatabaseHardwareProtocol
     from core.types.json import JSONDict
     from hardware.manager.manager_state import HardwareManagerState
 
 __all__ = (
-    "DiskSpeedDatabaseProtocol",
     "DiskSpeedManagerProtocol",
     "GPUInfoCacheServiceProtocol",
+    "GPUInfoObservation",
+    "GPUProbeExecutorFactoryProtocol",
     "GPUVendorDetectionServiceProtocol",
     "GpuCapabilitiesServiceProtocol",
     "MinimumSpecsManagerProtocol",
     "MonitoringCoordinatorProtocol",
     "MonitoringManagerProtocol",
-    "NetworkSpeedDatabaseProtocol",
     "NetworkSpeedManagerProtocol",
     "SystemInfoSnapshotManagerProtocol",
 )
 
 
+@dataclass(frozen=True, slots=True)
+class GPUInfoObservation:
+    payload: JSONDict
+    observed_at_ms: int | None
+    sampled_current: bool
+    refresh_failed: bool
+    inventory_revision: int | None = None
+    valid_until_ms: int | None = None
+    diagnostics: tuple[SoAIError, ...] = ()
+    coverage_complete: bool = True
+    refresh_error: SoAIError | None = None
+
+
+class GPUProbeExecutorFactoryProtocol(Protocol):
+    def __call__(self) -> Executor: ...
+
+
 class GPUInfoCacheServiceProtocol(Protocol):
+    def acquire_observation(
+        self,
+        cache_key: bool,
+        acquisition: Callable[[int, int], GPUInfoObservation],
+        *,
+        monotonic_clock_ms: Callable[[], float],
+        deadline: MonotonicDeadline | None = None,
+    ) -> GPUInfoObservation: ...
+
+    @property
+    def lock(self) -> threading.RLock: ...
+
     def get_cached(self, cache_key: bool, now: float) -> JSONDict | None: ...
 
     def get_cached_with_gpus(self, now: float) -> JSONDict | None: ...
 
+    def get_cached_observation(self, cache_key: bool, now: float) -> GPUInfoObservation | None: ...
+
+    def get_retained_observation(self) -> GPUInfoObservation | None: ...
+
+    def get_retained_observations(self) -> tuple[GPUInfoObservation, ...]: ...
+
+    def begin_acquisition(self, cache_key: bool) -> int: ...
+
+    def is_current_acquisition(self, cache_key: bool, sequence: int) -> bool: ...
+
     def set_cached(self, cache_key: bool, now: float, payload: JSONDict) -> None: ...
 
-    def invalidate_cache(self) -> None: ...
+    def publish_acquisition(
+        self, cache_key: bool, now: float, payload: JSONDict, *, revision: int, sequence: int
+    ) -> GPUInfoObservation: ...
+
+    def invalidate_cache(self, *, owner: str, reason: str) -> None: ...
+
+    def shutdown(self) -> None: ...
+
+    def start(self) -> None: ...
+
+    def observation_diagnostics(self) -> JSONDict: ...
+
+    def request_refresh(self) -> None: ...
 
     def revision(self) -> int: ...
 
@@ -56,12 +112,6 @@ class GpuCapabilitiesServiceProtocol(Protocol):
     async def get_cached_capabilities(self) -> JSONDict | None: ...
 
     async def get_capabilities(self, enrich_fn: Callable[[JSONDict], JSONDict]) -> JSONDict: ...
-
-
-class DiskSpeedDatabaseProtocol(Protocol):
-    def get_latest_speed_test_snapshot(
-        self,
-    ) -> Coroutine[None, None, JSONDict | None]: ...
 
 
 class DiskSpeedManagerProtocol(Protocol):
@@ -125,13 +175,10 @@ class MonitoringManagerProtocol(Protocol):
     def monitoring_coordinator(self) -> MonitoringCoordinatorProtocol: ...
 
 
-class NetworkSpeedDatabaseProtocol(Protocol):
-    def get_latest_network_speed_snapshot(
-        self,
-    ) -> Coroutine[None, None, JSONDict]: ...
-
-
 class NetworkSpeedManagerProtocol(Protocol):
+    @property
+    def state(self) -> HardwareManagerState: ...
+
     @property
     def last_network_stats(self) -> dict[str, JSONDict]: ...
 

@@ -17,6 +17,13 @@ import type { WebSocketDispatchContext } from '@core/websocketclient/types.ts';
 import type { WebSocketClient } from '@core/websocketclient/WebSocketClient.ts';
 import { isWebSocketProtocolErrorEventType } from '@core/websocketEvents.ts';
 
+interface WebSocketRunDeadlineSettlement {
+    timeoutMs: number;
+    onStart(): void;
+    createCancelledError(): Error;
+    createUnconfirmedError(): Error;
+}
+
 interface WebSocketRunCorrelationOptions<T> {
     runId: string;
     acceptedTypes: readonly string[];
@@ -24,10 +31,11 @@ interface WebSocketRunCorrelationOptions<T> {
     eventError: string;
     signal?: AbortSignal | undefined;
     onCancelSend: () => Promise<void>;
-    onMessage: (payload: JsonValue, resolve: (value: T) => void, reject: (error: Error) => void) => void;
+    onMessage: (payload: JsonValue, resolve: (value: T) => void, reject: (error: Error) => void, eventType: string) => void;
     connectionEpoch?: number;
     timeoutMs?: number;
     deadlineMs?: number;
+    deadlineSettlement?: WebSocketRunDeadlineSettlement | undefined;
     client?: Pick<WebSocketClient, 'connectionEpoch' | 'isConnected' | 'sendMessage' | 'subscribeAll'>;
 }
 
@@ -80,6 +88,7 @@ const createWebSocketRunCorrelation = <T>(options: WebSocketRunCorrelationOption
     const connectionEpoch = options.connectionEpoch ?? ws.connectionEpoch;
     const deadlineMs = resolveCorrelationDeadline(options);
     let settled = false;
+    let deadlineSettling = false;
     let cancellationSent = false;
     let unsubscribe: (() => void) | null = null;
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -123,13 +132,26 @@ const createWebSocketRunCorrelation = <T>(options: WebSocketRunCorrelationOption
         }
         if (options.signal) options.signal.addEventListener('abort', abortListener, { once: true });
 
+        const expireDeadline = (): void => {
+            const settlement = options.deadlineSettlement;
+            if (!settlement) {
+                rejectExternally?.(createRunTimeoutError(), true);
+                return;
+            }
+            deadlineSettling = true;
+            sendCancellation();
+            timeout = setTimeout(() => rejectExternally?.(settlement.createUnconfirmedError(), false), settlement.timeoutMs);
+            settlement.onStart();
+        };
+
         if (deadlineMs !== null) {
             const remainingMs = deadlineMs - monotonicMs();
             if (remainingMs <= 0) {
-                rejectExternally(createRunTimeoutError(), true);
-                return;
+                expireDeadline();
+                if (settled) return;
+            } else {
+                timeout = setTimeout(expireDeadline, remainingMs);
             }
-            timeout = setTimeout(() => rejectExternally?.(createRunTimeoutError(), true), remainingMs);
         }
 
         unsubscribe = ws.subscribeAll((eventType: string, payload: JsonValue, context: WebSocketDispatchContext) => {
@@ -142,7 +164,7 @@ const createWebSocketRunCorrelation = <T>(options: WebSocketRunCorrelationOption
             const runIdValue = payload['run_id'];
             if (typeof runIdValue !== 'string' || runIdValue.trim() !== options.runId) return;
             if (eventType === options.eventCancelled) {
-                rejectExternally?.(new Error('Request cancelled'), false);
+                rejectExternally?.(deadlineSettling && options.deadlineSettlement ? options.deadlineSettlement.createCancelledError() : new Error('Request cancelled'), false);
                 return;
             }
             if (eventType === options.eventError || isWebSocketProtocolErrorEventType(eventType)) {
@@ -154,7 +176,8 @@ const createWebSocketRunCorrelation = <T>(options: WebSocketRunCorrelationOption
                 options.onMessage(
                     payload,
                     (value) => settle(() => resolve(value), false),
-                    (error) => rejectExternally?.(error, true)
+                    (error) => rejectExternally?.(error, true),
+                    eventType
                 );
             } catch (error) {
                 rejectExternally?.(ensureError(error), true);
@@ -208,4 +231,4 @@ const prepareWebSocketRun = async <T>(options: PreparedWebSocketRunOptions<T>): 
 };
 
 export { createWebSocketRunCorrelation, createWebSocketRunId, prepareWebSocketRun, waitForWebSocketRunResult };
-export type { WebSocketRunCorrelation };
+export type { WebSocketRunCorrelation, WebSocketRunDeadlineSettlement };

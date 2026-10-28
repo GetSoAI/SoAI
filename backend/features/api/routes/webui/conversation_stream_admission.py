@@ -6,7 +6,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
-from core.errors.exceptions import ConflictError
 from features.api.runtime.chat_stream_registry import ChatStreamRegistrySnapshot
 
 if TYPE_CHECKING:
@@ -14,7 +13,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "ConversationStreamAdmission",
-    "require_input_queue_enqueue_admitted",
     "resolve_conversation_stream_admission",
 )
 
@@ -78,16 +76,3 @@ def resolve_conversation_stream_admission(
         can_accept_queued_prompt=True,
         can_accept_steer_prompt=stream_lifecycle == "streaming" and not user_interaction_pending,
     )
-
-
-def require_input_queue_enqueue_admitted(
-    admission: ConversationStreamAdmission,
-    intent: Literal["queued", "steer"],
-) -> None:
-    if intent == "queued" and admission.can_accept_queued_prompt:
-        return
-    if intent == "steer" and admission.can_accept_steer_prompt:
-        return
-    if intent == "steer" and admission.stream_lifecycle == "terminalizing":
-        raise ConflictError("Cannot steer a stream that is already terminalizing.")
-    raise ConflictError("Input queue enqueue requires an active conversation stream.")

@@ -47,6 +47,7 @@ async def accept_chat_inference_task(
     async_accept_requested: bool,
     is_streaming: bool,
     request_source: RequestSource,
+    task_id: str | None = None,
 ) -> tuple[Task, asyncio.Queue[Event] | None]:
     delivery_mode: InferenceDeliveryMode
     if async_accept_requested:
@@ -76,6 +77,7 @@ async def accept_chat_inference_task(
             required_modalities=tuple(required_modalities),
             request_source=request_source,
             delivery_mode=delivery_mode,
+            task_id=task_id,
             attach_reply_queue=attach_reply_queue,
         ),
     )

@@ -12,18 +12,26 @@ import unicodedata
 from collections.abc import Awaitable, Callable, Mapping
 from contextlib import AbstractAsyncContextManager, AsyncExitStack
 from functools import partial
+from types import TracebackType
 from typing import TYPE_CHECKING
 
 import httpx2
 
 from core.bootstrap.runtime_directories import LOCKS_PATH_ENV
+from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.concurrency.joined_thread_call import run_joined_thread_call
+from core.concurrency.task_groups import cancel_and_await
 from core.config.byte_sizes import MIB_BYTES
 from core.config.locks import get_lock_path, resolve_lock_directory
 from core.errors.exceptions import ValidationError
+from core.files.file_identity import FileIdentity
 from core.files.locking import async_guarded_file_lock
 from core.network.download_temp_files import DownloadFile, create_download_temp_handle
-from core.network.http_download_progress import emit_download_progress, emit_final_download_progress
+from core.network.http_download_progress import (
+    emit_download_activity,
+    emit_download_progress,
+    emit_final_download_progress,
+)
 from core.network.outbound_http_profiles import build_outbound_request_headers
 from core.network.resumable_downloads import DownloadStreamState
 from core.network.resumable_http_stream import ResumableHTTPStream
@@ -40,6 +48,7 @@ from plugin_sdk.contracts.resumable_downloads import (
 from plugin_sdk.filesystem.directory_creation import ensure_parent_dirs_exist
 
 if TYPE_CHECKING:
+    from core.network.http_download_progress import DownloadActivityCallback
     from core.plugins.protocols_runtime import (
         PluginStorageReservationLeaseProtocol,
         PluginStorageRuntimeProtocol,
@@ -54,13 +63,35 @@ __all__ = ("async_stream_download_to_file",)
 class _DownloadInterruption:
     def __init__(self, shutdown_event: asyncio.Event | None) -> None:
         self.event = shutdown_event if shutdown_event is not None else asyncio.Event()
+        self._watcher: asyncio.Task[None] | None = None
+
+    async def __aenter__(self) -> _DownloadInterruption:
+        self.raise_if_cancelled()
+        owner = asyncio.current_task()
+
+        async def interrupt() -> None:
+            await self.event.wait()
+            if owner is not None and not owner.done() and not owner.cancelling():
+                owner.cancel("Download cancelled.")
+
+        self._watcher = create_ephemeral_task(interrupt(), name="plugin-download-interruption")
+        return self
+
+    async def __aexit__(
+        self,
+        exception_type: type[BaseException] | None,
+        exception: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        if self._watcher is not None:
+            await cancel_and_await((self._watcher,), task_label="plugin download interruption")
 
     async def wait(self) -> None:
         await self.event.wait()
 
     def raise_if_cancelled(self) -> None:
         if self.event.is_set():
-            raise ValidationError("Download cancelled.")
+            raise asyncio.CancelledError("Download cancelled.")
 
 
 async def async_stream_download_to_file(
@@ -82,13 +113,16 @@ async def async_stream_download_to_file(
     reservation_operation: str = "plugin_sdk.downloads.stream_download",
     reservation_details: Mapping[str, JSONValue] | None = None,
     resume_partial: bool = False,
+    expected_sha256: str | None = None,
+    expected_size: int | None = None,
+    on_activity: DownloadActivityCallback | None = None,
 ) -> None:
     if not url.strip():
         raise ValidationError("url must be provided.")
     if not destination_path.strip():
         raise ValidationError("destination_path must be provided.")
     if shutdown_event is not None and shutdown_event.is_set():
-        raise ValidationError("Shutdown requested before download start.")
+        raise asyncio.CancelledError("Shutdown requested before download start.")
     require_non_negative_int_strict(
         flush_threshold_bytes, error_message="Flush threshold must be nonnegative."
     )
@@ -101,6 +135,8 @@ async def async_stream_download_to_file(
         policy=build_http_transfer_retry_policy("artifact"),
         timeout=timeout,
         max_bytes=max_bytes,
+        expected_sha256=expected_sha256,
+        expected_size=expected_size,
     )
     destination_path = os.path.abspath(destination_path)
     await ensure_parent_dirs_exist([destination_path])
@@ -117,6 +153,7 @@ async def async_stream_download_to_file(
     interruption = _DownloadInterruption(shutdown_event)
     resume_path = f"{destination_path}.partial"
     async with (
+        interruption,
         async_guarded_file_lock(
             lock_path,
             timeout=0.0,
@@ -128,14 +165,22 @@ async def async_stream_download_to_file(
         interruption.raise_if_cancelled()
         prefix = RetainedDownloadPrefix()
         if resume_partial:
+            await emit_download_activity(on_activity, "hashing", 0, expected_size)
             prefix = await run_joined_thread_call(
-                inspect_resumable_download,
-                resume_path,
-                max_bytes,
+                partial(
+                    inspect_resumable_download,
+                    resume_path,
+                    max_bytes,
+                    cancellation_check=interruption.raise_if_cancelled,
+                    on_chunk=state.hash_retained_chunk if expected_sha256 is not None else None,
+                    read_timeout=state.timeout,
+                ),
                 task_name="download-prefix-verification",
                 retain_resources_until_complete=True,
+                on_cancel=interruption.event.set,
             )
             state.retain_prefix(prefix.length, prefix.sha256)
+            await emit_download_activity(on_activity, "hashing", prefix.length, prefix.length)
 
         def open_response(
             effective_headers: Mapping[str, str], io_timeout: float
@@ -150,7 +195,7 @@ async def async_stream_download_to_file(
 
         started_at = time.monotonic()
         async with ResumableHTTPStream(
-            open_response, state=state, interruption=interruption
+            open_response, state=state, interruption=interruption, on_activity=on_activity
         ) as stream:
             declared_reservation: PluginStorageReservationLeaseProtocol | None = None
             details: dict[str, JSONValue] = {
@@ -235,7 +280,37 @@ async def async_stream_download_to_file(
             interruption.raise_if_cancelled()
             await flush()
         interruption.raise_if_cancelled()
-        await download_file.publish(interruption)
+        verified_identity = None
+        if expected_sha256 is not None:
+            await run_joined_thread_call(
+                handle.flush,
+                task_name="download-verification-flush",
+                retain_resources_until_complete=True,
+            )
+            await emit_download_activity(on_activity, "verifying", 0, state.position)
+            verified = await run_joined_thread_call(
+                partial(
+                    inspect_resumable_download,
+                    download_file.path,
+                    max_bytes,
+                    cancellation_check=interruption.raise_if_cancelled,
+                    read_timeout=state.timeout,
+                ),
+                task_name="download-artifact-verification",
+                retain_resources_until_complete=True,
+                on_cancel=interruption.event.set,
+            )
+            if (
+                verified.sha256 != expected_sha256
+                or verified.length != state.position
+                or verified.status is None
+            ):
+                raise ValidationError(
+                    "Downloaded artifact does not match its trusted SHA-256 checksum."
+                )
+            verified_identity = FileIdentity.from_stat(verified.status)
+            await emit_download_activity(on_activity, "verifying", verified.length, verified.length)
+        await download_file.publish(interruption, verified_identity=verified_identity)
     await emit_final_download_progress(
         on_progress,
         bytes_written=bytes_written,

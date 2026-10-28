@@ -132,7 +132,7 @@ class ChatConfigurationDestinationController {
             const target = dom.resolve(modalUiSelector(CHAT_CONFIGURATION_MODAL_ID, 'chat-model-context-window-tokens-group'), modal);
             const scroller = dom.resolve('.chat-configuration-scroll', modal);
             if (!(target instanceof HTMLElement) || !(scroller instanceof HTMLElement)) throw new Error('Chat configuration context-window attention target is unavailable');
-            scrollElementToScrollerCenter(scroller, target, { behavior: 'auto' });
+            scrollElementToScrollerCenter(scroller, target);
             target.focus({ preventScroll: true });
             this.#attentionPulse = playAttentionPulse(target);
         });

@@ -3,13 +3,11 @@
 
 import { dom } from '@core/dom/dom.ts';
 import { MODAL_HEADER_FULLSCREEN_SELECTOR } from '@core/modals/headerButtons.ts';
-import { resolveClosestModalId } from '@core/modals/modalhost/guards.ts';
+import { resolveClosestModalId, resolveModalCloseTrigger } from '@core/modals/modalhost/guards.ts';
 import { toggleFullscreen } from '@core/modals/modalhost/eventsFullscreen.ts';
 import type { ModalHostState } from '@core/modals/modalhost/contracts.ts';
 import type { ModalCloseOptions } from '@core/modals/types.ts';
 import { handleModalTabNavigation } from '@core/modals/modalhost/focusIsolation.ts';
-
-const resolveCloseTrigger = (targetElement: Element | null): Element | null => targetElement?.closest?.('[data-modal-close]') ?? null;
 
 const resolveOverlayTarget = (targetElement: Element | null): Element | null => targetElement?.closest?.('.modal-overlay') ?? null;
 
@@ -18,6 +16,7 @@ const handleKeyDown = (state: ModalHostState, event: KeyboardEvent, closeModal: 
         return;
     }
     if (event.key !== 'Escape') {
+        if (state.activeStack.some((modalId) => state.resolveModalElement(modalId)?.getAttribute('data-modal-presentation') === 'viewport')) event.stopImmediatePropagation();
         return;
     }
 
@@ -31,10 +30,9 @@ const handleKeyDown = (state: ModalHostState, event: KeyboardEvent, closeModal: 
         return;
     }
 
-    if (closeModal(top, { reason: 'escape' })) {
-        event.stopPropagation();
-        event.preventDefault();
-    }
+    closeModal(top, { reason: 'escape' });
+    event.stopImmediatePropagation();
+    event.preventDefault();
 };
 
 const consumeModalClick = (event: Event): void => {
@@ -44,7 +42,7 @@ const consumeModalClick = (event: Event): void => {
 
 const handleDocumentClick = (state: ModalHostState, event: Event, closeModal: (id: string, options: ModalCloseOptions) => boolean): void => {
     const targetElement = event.target instanceof Element ? event.target : null;
-    const trigger = resolveCloseTrigger(targetElement);
+    const trigger = resolveModalCloseTrigger(targetElement);
     if (trigger) {
         const dataId = dom.getData(trigger, 'modalClose');
         const resolved = dataId ? dataId : resolveClosestModalId(trigger);

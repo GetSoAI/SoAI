@@ -50,10 +50,11 @@ const normalizeParameterValue = (state: ParameterStateManager, parameterKey: str
 };
 
 const parseJsonParameterValue = (json: string): ParameterValue => {
-    if (json === '') {
+    if (json.trim() === '') {
         return null;
     }
     const parsed = parseRequiredJsonText(json);
+    if (parsed !== null && !isObject(parsed)) throw new TypeError('Object parameter requires a JSON object or null');
     return toParameterValue(parsed);
 };
 

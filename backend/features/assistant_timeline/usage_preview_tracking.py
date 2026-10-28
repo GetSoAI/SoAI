@@ -94,7 +94,6 @@ def update_runtime_completion_usage_preview_if_due(
     )
     completion_tokens = runtime.usage_preview_estimated_completion_tokens + token_delta
     runtime.usage_preview_estimated_completion_tokens = completion_tokens
-    runtime.usage_preview_last_completion_tokens = completion_tokens
     _update_completion_rate(
         runtime=runtime,
         token_delta=token_delta,
@@ -165,7 +164,6 @@ def finalize_runtime_usage_preview(
     snapshot["completion_rate_tokens_per_second"] = 0.0
     runtime.usage_preview_snapshot = snapshot
     runtime.usage_preview_completion_rate_tokens_per_second = 0.0
-    runtime.usage_preview_last_completion_tokens = completion_tokens
     runtime.usage_preview_estimated_completion_tokens = completion_tokens
     runtime.usage_preview_last_token_at_ms = None
     return dict(snapshot)
@@ -274,7 +272,6 @@ def freeze_runtime_usage_preview(
     snapshot["preview_revision"] = runtime.usage_preview_revision
     snapshot["completion_rate_tokens_per_second"] = 0.0
     runtime.usage_preview_snapshot = snapshot
-    runtime.usage_preview_last_completion_tokens = completion_tokens
     runtime.usage_preview_estimated_completion_tokens = completion_tokens
     runtime.usage_preview_completion_rate_tokens_per_second = 0.0
     runtime.usage_preview_last_token_at_ms = None

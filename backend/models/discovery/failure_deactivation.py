@@ -10,10 +10,9 @@ from core.logging.trace import get_logger
 from core.metrics.protocols import MetricsManagerProtocol
 from core.models.protocols_database import DatabaseModelsProtocol
 from core.plugins.protocols import PluginManagerProtocol
-from models.discovery.provider_bounded_execution import PluginCheckUnchanged
 
 if TYPE_CHECKING:
-    from core.types.json import JSONDict
+    from models.discovery.provider_bounded_execution import PluginDiscoveryResult
 
 __all__ = ("deactivate_models_for_failed_plugins",)
 
@@ -22,10 +21,7 @@ OPERATION = "model_discovery.deactivate_models_for_failed_plugins"
 
 
 async def deactivate_models_for_failed_plugins(
-    discovered_data: dict[
-        str,
-        dict[str, JSONDict] | Exception | PluginCheckUnchanged | None,
-    ],
+    discovered_data: dict[str, PluginDiscoveryResult],
     database_models: DatabaseModelsProtocol,
     plugin_manager: PluginManagerProtocol,
     metrics: MetricsManagerProtocol,

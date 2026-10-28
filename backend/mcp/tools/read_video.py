@@ -10,14 +10,19 @@ from typing import TYPE_CHECKING
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.logging.trace import get_logger
+from core.media.speech_errors import SpeechToTextUnavailableError
+from core.runtime.request_context_cloning import clone_request_context
 from core.runtime.soai_identifiers import build_soai_id
 from core.tasks.creation import create
 from core.tasks.enums import TaskStatus
 from core.tasks.finalization import finalize
 from core.tasks.type_catalog import TASK_TYPE_MCP_TOOL_CALL
 from core.timing.epoch import epoch_ms
-from mcp.tools.argument_runtime import require_authenticated_user_id
-from mcp.tools.error import MCPToolError
+from mcp.tools.argument_runtime import (
+    require_authenticated_user_id,
+    resolve_tool_request_context,
+)
+from mcp.tools.error import MCPToolError, tool_error_from_soai_error
 from mcp.tools.internal_protocols import MCPUtilityToolsProtocol
 from mcp.tools.read_video_arguments import (
     ReadVideoArguments,
@@ -30,6 +35,7 @@ from mcp.tools.read_video_engine_types import (
     ReadVideoEngineRequest,
 )
 from mcp.tools.read_video_task_updates import publish_read_video_progress
+from mcp.tools.speech_setup_visibility import scope_speech_setup_error
 
 if TYPE_CHECKING:
     from core.tasks.task import Task
@@ -165,6 +171,10 @@ async def tool_read_video(utility_tools: MCPUtilityToolsProtocol, arguments: JSO
                     task_id=task.task_id,
                 ),
                 clock=epoch_ms,
+                speech_request_context=clone_request_context(
+                    resolve_tool_request_context(utility_tools, tool_name="read_video"),
+                    task_id=task.task_id,
+                ),
             ),
         )
     except asyncio.CancelledError:
@@ -178,6 +188,19 @@ async def tool_read_video(utility_tools: MCPUtilityToolsProtocol, arguments: JSO
             ),
         )
         raise
+    except SpeechToTextUnavailableError as exception:
+        tool_error = tool_error_from_soai_error(
+            await scope_speech_setup_error(utility_tools, exception),
+        )
+        await finalize(
+            utility_tools.task_registry,
+            task.task_id,
+            TaskStatus.FAILED,
+            error_code=int(tool_error.code),
+            error_message=tool_error.message,
+            status_message="read_video failed",
+        )
+        raise tool_error from exception
     except MCPToolError as exception:
         await finalize(
             utility_tools.task_registry,

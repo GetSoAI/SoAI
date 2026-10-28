@@ -99,13 +99,13 @@ const compactSidebarState = (state: SidebarState): boolean => {
     return wasPeeking;
 };
 
-const toggleSidebarState = (state: SidebarState): void => {
+const toggleSidebarState = (state: SidebarState, hoverPeekOpening: boolean = false): void => {
     if (state.mobile) {
         state.open = !state.open;
         return;
     }
+    state.collapsed = isSidebarExpanded(state) && !(state.peeking && hoverPeekOpening);
     state.peeking = false;
-    state.collapsed = !state.collapsed;
     state.lastDesktopCollapsed = state.collapsed;
 };
 

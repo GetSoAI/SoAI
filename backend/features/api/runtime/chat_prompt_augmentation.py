@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from core.openai.content_text_coercion import coerce_openai_content_text
 from features.api.runtime.content_preview_feedback import (
     build_content_preview_feedback_system_message,
 )
@@ -28,7 +27,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "build_webui_chat_extra_system_messages",
-    "extract_latest_user_message_excerpt",
     "request_requires_preview_contract",
 )
 
@@ -49,22 +47,6 @@ def request_requires_preview_contract(request_json: JSONDict) -> bool:
         if content.startswith(_PREVIEW_CONTRACT_REQUIREMENT_TAG):
             return True
     return False
-
-
-def extract_latest_user_message_excerpt(request_json: JSONDict) -> str:
-    messages_value = request_json.get("messages")
-    if not isinstance(messages_value, list):
-        return ""
-    for entry in reversed(messages_value):
-        if not isinstance(entry, dict):
-            continue
-        if entry.get("role") != "user":
-            continue
-        text = coerce_openai_content_text(entry.get("content")).strip()
-        if not text:
-            return ""
-        return text[:2048]
-    return ""
 
 
 def build_webui_chat_extra_system_messages(

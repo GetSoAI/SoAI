@@ -5,7 +5,6 @@ import { resolveTaskOperationDetailText, resolveTaskOperationLabelText, resolveT
 import { securityApi } from '@core/security/public.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { readRequiredTrimmedStringMessageValue } from '@core/types/payloadValueReaders.ts';
-import { resolveProgressUsageClass } from '@core/ui/progressWidths.ts';
 import type { OperationEntry, OperationMeta, PluginEntry } from '@features/tasks/taskmanager/taskManagerModels.ts';
 import type { TaskManagerStoreApi } from '@features/tasks/taskmanager/taskManagerTypes.ts';
 
@@ -15,7 +14,7 @@ interface OperationContext {
 }
 
 interface OperationLabelDependencies {
-    store: TaskManagerStoreApi;
+    store: Pick<TaskManagerStoreApi, 'normalizeProgress'>;
 }
 
 interface StopAllTargets {
@@ -58,7 +57,7 @@ const buildOperationSignature = (op: OperationEntry): string => {
     const id = readRequiredTrimmedStringMessageValue(op.id, 'TaskManager operation signature requires an identifier');
     const type = toTrimmedString(op.type);
     const cancelable = op.cancelable === true ? '1' : '0';
-    return `${id}:${type}:${cancelable}`;
+    return `${id}:${type}:${cancelable}:${op.meta?.['indeterminate'] === true}`;
 };
 
 const renderOperationRow = (op: OperationEntry, dependencies: OperationLabelDependencies): string => {
@@ -68,11 +67,11 @@ const renderOperationRow = (op: OperationEntry, dependencies: OperationLabelDepe
     const label = resolveTaskOperationLabelText(op);
     const detail = resolveTaskOperationDetailText(op);
 
-    return `<div class="task-operation-row task-operation-row--inline" data-operation="${escapedId}">
+    return `<div class="task-operation-row task-operation-row--inline" data-operation="${escapedId}" data-presence data-presence-atomic>
         <div class="task-operation-label">${securityApi.escapeHtml(label)}</div>
         <div class="task-operation-detail">${securityApi.escapeHtml(detail)}</div>
-        <div class="task-progress task-progress--operation" role="progressbar" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100">
-        <span class="task-progress-bar task-progress-bar--determinate ${resolveProgressUsageClass(progress)}" data-progress="${progress}"></span>
+        <div class="task-progress task-progress--operation ${op.meta?.['indeterminate'] === true ? 'task-progress--indeterminate' : ''}" role="progressbar" ${op.meta?.['indeterminate'] === true ? '' : `aria-valuenow="${progress}"`} aria-valuemin="0" aria-valuemax="100">
+        <span class="task-progress-bar ${op.meta?.['indeterminate'] === true ? '' : 'task-progress-bar--determinate'}" ${op.meta?.['indeterminate'] === true ? '' : `data-progress="${progress}"`}></span>
         </div>
         </div>`;
 };

@@ -3,6 +3,7 @@
 
 @layer foundations {
     .theme-dark {
+        --control-menu-item-hover-bg: var(--glass-surface-hover-strong);
         color-scheme: dark;
 
         --control-select-arrow-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%23e6e6e6' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
@@ -128,13 +129,5 @@
         --live-status-overlay-text-muted: rgb(242 251 246 / 64%);
         --toggle-handle-bg-off: color-mix(in srgb, var(--text-secondary) 25%, var(--color-white) 75%);
         --toggle-handle-bg-on: var(--color-white);
-        --soai-animated-logo-ring-edge: #e5e5e5;
-        --soai-animated-logo-ring-mid: #ffffff;
-        --soai-animated-logo-ring-border: #b8b8b8;
-        --soai-animated-logo-dot-fill: #b4b4b4;
-        --soai-animated-logo-center-fill: #bedc00;
-        --soai-animated-logo-pulse-color: rgba(190, 220, 0, 0.8);
-        --soai-animated-logo-pico-dot-fill: #cdcdcd;
-        --soai-animated-logo-pico-pulse-color: rgba(190, 220, 0, 0.96);
     }
 }

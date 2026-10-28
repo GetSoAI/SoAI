@@ -36,7 +36,7 @@ class PageOutlet {
     #commitCompletion: Promise<void> | null = null;
     #supersededPage: PageInstance | null = null;
     #settleSupersededNavigation: (() => void) | null = null;
-    constructor({ emitEvent = null, onPreservedPageFailure = null, onRetry = null, pageRegistry = null }: PageOutletConstructorOptions = {}) {
+    constructor({ emitEvent = null, onPreservedPageFailure = null, onRetry = null, pageRegistry = null, spinnerWorkerUrl }: PageOutletConstructorOptions = {}) {
         this.#container = null;
         this.#pageHost = null;
         this.#emitEvent = isFunction(emitEvent) ? emitEvent : null;
@@ -47,6 +47,7 @@ class PageOutlet {
         this.#pageRegistry = pageRegistry;
         this.#overlayController = new PageOutletOverlayController({
             resources: this.#resources,
+            spinnerWorkerUrl,
             clearSkeleton: () => this.clearSkeleton()
         });
         this.#visualTransaction = new PageOutletVisualTransaction({

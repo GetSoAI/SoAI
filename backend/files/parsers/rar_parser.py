@@ -72,6 +72,7 @@ class RARParser(FileParserProtocol):
             metadata={"archive_type": "rar"},
             extraction_state=parsed_contents.extraction_state,
             warnings=parsed_contents.warnings,
+            missing_capabilities=parsed_contents.missing_capabilities,
         )
 
     def _extract_archive_sync(self, file_path: str, temp_dir: str) -> None:

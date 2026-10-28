@@ -233,6 +233,7 @@ const composeChatControllerRuntime = (composition: ChatControllerRuntimeDependen
     sessions.modelSession.initializeModelControllers(models, modelControl);
     const messageSending = createChatMessageSendingController(
         {
+            taskScope: agentComposition.sessions.taskScope,
             conversationRuntime: domain.conversationRuntime,
             turnRuntime: domain.turnRuntime,
             composerSurface: domain.composerSurface,

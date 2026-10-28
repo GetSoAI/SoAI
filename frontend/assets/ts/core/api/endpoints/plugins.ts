@@ -2,22 +2,25 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { normalizeModelsFilter, normalizeNonEmptyString } from '@core/api/apiNormalizers.ts';
-import { decodeBackendVariantsResponse, decodePluginBackendUpdatesResponse, decodePluginCompatibilityOverrideResponse, serializeBackendVariantSelectionRequest, type BackendVariantsResponse, type PluginBackendUpdatesResponse, type PluginCompatibilityOverrideResponse } from '@core/api/contracts/pluginManagementContracts.ts';
+import { decodeBackendVariantsResponse, decodePluginBackendUpdateResponse, type PluginBackendUpdateStatus, decodePluginBackendUpdatesResponse, decodePluginCompatibilityOverrideResponse, serializeBackendVariantSelectionRequest, type BackendVariantsResponse, type PluginBackendUpdatesResponse, type PluginCompatibilityOverrideResponse } from '@core/api/contracts/pluginManagementContracts.ts';
 import { decodeManualInstallPathResponse, type ManualInstallPathResponse } from '@core/api/contracts/manualInstallPathContracts.ts';
 import { decodeExternalProviderCreateResponse, decodeExternalProviderListResponse, decodeExternalProviderRecord, type ExternalProviderCreateResponse, type ExternalProviderRecord } from '@core/api/contracts/pluginProviderContracts.ts';
 import { decodeRemoteModelSearchResponse, type RemoteModelSearchResult } from '@core/api/contracts/pluginSearchContracts.ts';
 import { decodeSuccessfulMutationResponse, type SuccessfulMutationResponse } from '@core/api/contracts/successfulMutationContract.ts';
 import { decodeModelTaskAcceptedResponse, type ModelTaskAcceptedResponse } from '@core/api/contracts/modelOperationContracts.ts';
 import { decodeNoContentResponse } from '@core/api/contracts/noContentContract.ts';
-import { buildSignalRequestOptions } from '@core/api/requestOptions.ts';
+import { buildSignalRequestOptions, type SignalOptions } from '@core/api/requestOptions.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import type { ApiQueryParameters } from '@core/api/types/request.ts';
 import type { ProviderAddOptions, ProviderUpdateOptions, SearchModelsOptions } from '@core/api/types/plugins.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { executeMutationWithClockRecovery } from '@core/mutations/mutationExecution.ts';
+import { secondsToMs } from '@core/time/durations.ts';
 import { serializeProviderMutation } from '@core/plugins/pluginMutationContracts.ts';
 import { isDefined, isFiniteNumber, isNullOrUndefined, isNumber } from '@core/typeGuards.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
+
+const REMOTE_MODEL_SEARCH_REQUEST_TIMEOUT_MS = secondsToMs(35);
 
 const createPluginsEndpoints = (
     api: ApiClientContext
@@ -26,8 +29,9 @@ const createPluginsEndpoints = (
     searchModels: (name: string, query: string, options?: SearchModelsOptions) => Promise<RemoteModelSearchResult[]>;
     delete: (name: string, deleteModels?: boolean) => Promise<ModelTaskAcceptedResponse>;
     overrideIncompatibility: (name: string, override: boolean) => Promise<PluginCompatibilityOverrideResponse>;
-    getBackendVariants: (name: string) => Promise<BackendVariantsResponse>;
+    getBackendVariants: (name: string, options?: SignalOptions) => Promise<BackendVariantsResponse>;
     saveBackendVariantSelection: (name: string, variantId: string) => Promise<BackendVariantsResponse>;
+    checkBackendUpdate: (name: string, options?: SignalOptions) => Promise<PluginBackendUpdateStatus>;
     checkUpdates: () => Promise<PluginBackendUpdatesResponse>;
     resetCircuitBreaker: (name: string) => Promise<SuccessfulMutationResponse>;
     providers: { list: (name: string) => Promise<ExternalProviderRecord[]>; add: (name: string, options: ProviderAddOptions) => Promise<ExternalProviderCreateResponse>; update: (pName: string, pId: string, revision: number, updates: ProviderUpdateOptions) => Promise<ExternalProviderRecord>; delete: (pName: string, pId: string, revision: number) => Promise<void> };
@@ -44,14 +48,16 @@ const createPluginsEndpoints = (
             return decodeRemoteModelSearchResponse(
                 await api.get(`/api/v1/plugins/${api.encodePathSegment(pluginName)}/model-search`, {
                     query: queryParameters,
+                    timeoutMs: REMOTE_MODEL_SEARCH_REQUEST_TIMEOUT_MS,
                     ...buildSignalRequestOptions(options)
                 })
             );
         },
         delete: async (name: string, deleteModels: boolean = false): Promise<ModelTaskAcceptedResponse> => decodeModelTaskAcceptedResponse(await api.delete(`/api/v1/plugins/${api.encodePathSegment(name)}`, { query: { 'delete_models': deleteModels } })),
         overrideIncompatibility: async (name: string, override: boolean): Promise<PluginCompatibilityOverrideResponse> => decodePluginCompatibilityOverrideResponse(await api.post(`/api/v1/plugins/${api.encodePathSegment(name)}/override-incompatibility`, { override })),
-        getBackendVariants: async (name: string): Promise<BackendVariantsResponse> => decodeBackendVariantsResponse(await api.get(`/api/v1/plugins/${api.encodePathSegment(name)}/backend-variants`)),
+        getBackendVariants: async (name: string, options: SignalOptions = {}): Promise<BackendVariantsResponse> => decodeBackendVariantsResponse(await api.get(`/api/v1/plugins/${api.encodePathSegment(name)}/backend-variants`, buildSignalRequestOptions(options))),
         saveBackendVariantSelection: async (name: string, variantId: string): Promise<BackendVariantsResponse> => decodeBackendVariantsResponse(await api.put(`/api/v1/plugins/${api.encodePathSegment(name)}/backend-variant-selection`, serializeBackendVariantSelectionRequest(variantId))),
+        checkBackendUpdate: async (name: string, options: SignalOptions = {}): Promise<PluginBackendUpdateStatus> => decodePluginBackendUpdateResponse(await api.post(`/api/v1/actions/plugins/${api.encodePathSegment(name)}/check-for-updates`, undefined, buildSignalRequestOptions(options))),
         checkUpdates: async (): Promise<PluginBackendUpdatesResponse> => decodePluginBackendUpdatesResponse(await api.post('/api/v1/actions/plugins/check-for-updates')),
         resetCircuitBreaker: async (name: string): Promise<SuccessfulMutationResponse> => decodeSuccessfulMutationResponse(await api.post(`/api/v1/system/plugins/${api.encodePathSegment(name)}/reset-circuit-breaker`), 'Plugin circuit breaker reset response'),
         providers: {

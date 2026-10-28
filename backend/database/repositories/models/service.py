@@ -27,7 +27,6 @@ from database.repositories.models.parameters import (
     get_model_custom_parameters_query,
     get_parameter_version_query,
     get_universal_ids_with_custom_parameters_query,
-    sync_increment_parameter_version,
     sync_update_model_parameters,
 )
 from database.repositories.models.resolution import (
@@ -146,12 +145,6 @@ class DatabaseModels:
             universal_id,
             parameters,
             increment_version,
-        )
-
-    async def increment_parameter_version(self, universal_id: str) -> int:
-        return await self._core.writer.queue_write_operation(
-            sync_increment_parameter_version,
-            universal_id,
         )
 
     async def update_model_alias(self, universal_id: str, updates: JSONDict) -> bool:

@@ -102,10 +102,20 @@ const runAcceptedTaskLifecycle = (options: AcceptedTaskLifecycleOptions): Stream
         cancelDispatched = true;
         const cancelTask = options.cancelTask;
         if (!cancelTask) {
-            cancellationCompletion.reject(new Error('Task cancellation service is unavailable'));
+            const cancellation = cancellationCompletion;
+            cancellationCompletion = null;
+            cancelDispatched = false;
+            cancellation.reject(new Error('Task cancellation service is unavailable'));
             return;
         }
-        void cancelTask(taskId, cancellationReason).then(cancellationCompletion.resolve, (error) => cancellationCompletion?.reject(ensureError(error)));
+        const attempt = cancellationCompletion;
+        void cancelTask(taskId, cancellationReason).then(attempt.resolve, (error) => {
+            if (cancellationCompletion === attempt) {
+                cancellationCompletion = null;
+                cancelDispatched = false;
+            }
+            attempt.reject(ensureError(error));
+        });
     };
 
     const requestCancellation = (reason: string | null): Promise<TaskCancellationResponse> => {
@@ -113,9 +123,10 @@ const runAcceptedTaskLifecycle = (options: AcceptedTaskLifecycleOptions): Stream
         if (cancellationCompletion) return cancellationCompletion.promise;
         cancelRequested = true;
         cancellationReason = reason;
-        cancellationCompletion = createDeferred<TaskCancellationResponse>();
+        const cancellation = createDeferred<TaskCancellationResponse>();
+        cancellationCompletion = cancellation;
         dispatchCancellation();
-        return cancellationCompletion.promise;
+        return cancellation.promise;
     };
 
     const cancel = (): void => {

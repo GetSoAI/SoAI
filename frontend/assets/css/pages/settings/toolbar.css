@@ -101,12 +101,12 @@
     :where([data-section='settings'], [data-page-scope='settings']) .settings-slider {
         flex: 1;
         min-width: 120px;
-        height: 4px;
-        background: var(--glass-surface-light);
-        -webkit-backdrop-filter: var(--glass-blur-base);
-        backdrop-filter: var(--glass-blur-base);
-        box-shadow: var(--glass-shadow-base);
-        border: var(--border-width-1) solid var(--glass-border-strong);
+        height: var(--control-progress-height);
+        background: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        box-shadow: none;
+        border: none;
         border-radius: var(--border-radius);
         appearance: none;
     }

@@ -188,6 +188,7 @@ def sync_materialize_claimed_conversation_input(
     result["materialized_message"] = materialization.message
     if materialization.conversation_title is not None:
         result["conversation_title"] = materialization.conversation_title
+        result["conversation_title_auto_update_allowed"] = True
     if materialization.write_result.knowledge_attachment_summaries:
         result["knowledge_attachment_summaries"] = (
             materialization.write_result.knowledge_attachment_summaries

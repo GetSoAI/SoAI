@@ -44,12 +44,12 @@ __all__ = (
 
 def validate_public_workload(workload: JSONDict) -> int:
     if set(workload) != set(WORKLOAD_FIELDS):
-        raise ValidationError("SoAIBench workload evidence fields are invalid.")
+        raise ValidationError("SoAI Bench workload evidence fields are invalid.")
     accounting: list[PhaseAccounting] = []
     for name in WORKLOAD_FIELDS:
         phase = coerce_json_dict_or_empty(workload.get(name))
         if set(phase) != set(WORKLOAD_PHASE_FIELDS):
-            raise ValidationError("SoAIBench workload phase evidence fields are invalid.")
+            raise ValidationError("SoAI Bench workload phase evidence fields are invalid.")
         elapsed = require_public_number(phase.get("elapsed_seconds"), minimum=1.0)
         element_count = require_public_integer(phase.get("element_count"))
         rounds = require_public_integer(phase.get("rounds"))
@@ -62,12 +62,12 @@ def validate_public_workload(workload: JSONDict) -> int:
         positions_value = phase.get("sample_positions")
         samples_value = phase.get("sample_values")
         if not isinstance(positions_value, list) or not isinstance(samples_value, list):
-            raise ValidationError("SoAIBench workload samples are invalid.")
+            raise ValidationError("SoAI Bench workload samples are invalid.")
         positions = tuple(require_public_integer(value) for value in positions_value)
         samples = tuple(
             require_finite_float_strict(
                 value,
-                error_message="SoAIBench workload samples are invalid.",
+                error_message="SoAI Bench workload samples are invalid.",
             )
             for value in samples_value
         )

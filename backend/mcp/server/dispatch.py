@@ -95,10 +95,15 @@ async def handle_mcp_request(
         return build_error_response(rpc_id, -32602, str(exception))
     effective_session_id = session_id or self.session.resolve_session_id(client_id)
     await self.session.update_session_activity(effective_session_id)
-    pending_key: MCPServerPendingRequestKey | None = None
-    if rpc_id is not None:
-        pending_key = MCPServerPendingRequestKey(session_id=effective_session_id, rpc_id=rpc_id)
-        async with self.pending_server_requests_lock:
+    pending_key = (
+        MCPServerPendingRequestKey(session_id=effective_session_id, rpc_id=rpc_id)
+        if rpc_id is not None
+        else None
+    )
+    async with self.pending_server_requests_lock:
+        if not self.server_mode_active:
+            return build_error_response(rpc_id, -32602, "Request cancelled")
+        if pending_key is not None:
             existing_task = self.pending_server_requests.get(pending_key)
             if existing_task is not None and not existing_task.done():
                 return build_error_response(
@@ -106,18 +111,6 @@ async def handle_mcp_request(
                     -32600,
                     f"Duplicate request ID: a request with id {rpc_id} is already pending",
                 )
-            task = create_ephemeral_task(
-                _dispatch_method(
-                    self,
-                    method,
-                    parameters,
-                    client_id,
-                    effective_session_id,
-                    protocol_version,
-                ),
-            )
-            self.pending_server_requests[pending_key] = task
-    else:
         task = create_ephemeral_task(
             _dispatch_method(
                 self,
@@ -128,7 +121,9 @@ async def handle_mcp_request(
                 protocol_version,
             ),
         )
-    self.task_method_map[task] = method
+        if pending_key is not None:
+            self.pending_server_requests[pending_key] = task
+        self.task_method_map[task] = method
     try:
         result = await task
         self.metrics_manager.increment_counter(*MCP_SERVER_COUNTER_REQUESTS_HANDLED)
@@ -145,7 +140,13 @@ async def handle_mcp_request(
         return build_error_response(rpc_id, -32602, "Request cancelled")
     except MCPJSONRPCError as exception:
         self.metrics_manager.increment_counter(*MCP_SERVER_COUNTER_REQUESTS_FAILED)
-        return build_error_response(rpc_id, exception.rpc_code, exception.message, exception.data)
+        return build_error_response(
+            rpc_id,
+            exception.rpc_code,
+            exception.message,
+            exception.data,
+            public_error=exception.public_error,
+        )
     except MCPError as exception:
         self.metrics_manager.increment_counter(*MCP_SERVER_COUNTER_REQUESTS_FAILED)
         exception_data = exception.rpc_data
@@ -154,6 +155,7 @@ async def handle_mcp_request(
             exception.rpc_code,
             exception.message,
             exception_data,
+            public_error=exception.public_error,
         )
     except RECOVERABLE_EXCEPTIONS as exception:
         log_exception(

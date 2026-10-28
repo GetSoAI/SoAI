@@ -33,7 +33,7 @@ class SoAIBenchRunModalRenderer {
     constructor(dependencies: SoAIBenchRunModalRendererDependencies) {
         this.#dependencies = dependencies;
         this.#queue = new AnimationFrameRenderQueue<true>({
-            label: 'Hardware SoAIBench run modal',
+            label: 'Hardware SoAI Bench run modal',
             render: () => this.#render(),
             merge: () => true,
             isDisposed: () => !this.#visible

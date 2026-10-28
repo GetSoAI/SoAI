@@ -7,16 +7,21 @@ import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.agent.prompt_replay import AgentInferencePromptReplay
 from core.errors.exceptions import StateError
+from core.openai.agent_tool_messages import build_post_tool_prompt_messages
 from core.tool_calls.conversation_stop_signal import (
     STOP_CONVERSATION_TOOL_NAME,
     is_stop_conversation_signal,
 )
-from features.agent.runtime.openai_messages import build_post_tool_prompt_messages
+from features.agent.runtime.skill_activation import build_skill_activation_callback
 from features.agent.runtime.tool_call_execution_support import (
     AgentToolCallExecutionOutcome,
 )
 from features.agent.runtime.tool_execution import execute_tool_calls_with_agent_events
+from features.agent.runtime.tool_execution_steer_interrupt import (
+    AgentTurnInterruptedBySteer,
+)
 from features.agent.runtime.tool_image_relay_messages import (
     build_tool_image_relay_message_for_prompt,
 )
@@ -36,7 +41,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "ToolPhaseOutcome",
-    "append_post_tool_messages",
+    "build_post_tool_messages",
     "build_persisted_tool_calls",
     "execute_turn_tool_phase",
 )
@@ -88,6 +93,16 @@ def _has_stop_conversation_outcome(
     )
 
 
+async def _consume_checkpointed_interaction_secrets(
+    phase_context: ToolPhaseExecutionContext,
+) -> None:
+    if phase_context.task_registry is not None:
+        await phase_context.task_registry.database_tasks.consume_interaction_secrets_after_turn_checkpoint(
+            turn_id=phase_context.primitives.turn_id,
+            iteration_index=phase_context.iteration_index,
+        )
+
+
 async def execute_turn_tool_phase(
     *,
     phase_context: ToolPhaseExecutionContext,
@@ -103,6 +118,16 @@ async def execute_turn_tool_phase(
     completed_tool_count = len(prior_tool_results)
     if completed_tool_count > len(phase_context.tool_calls):
         raise StateError("Persisted tool results exceed persisted tool calls.")
+    if (
+        phase_context.request_context.skill_execution_context is not None
+        and phase_context.request_context.skill_execution_context.snapshot.available
+    ):
+        phase_context.request_context.skill_activation_callback = build_skill_activation_callback(
+            phase=phase_context,
+            prompt_token_counter=prompt_token_counter,
+            base_request_payload=base_request_payload,
+            settings=settings,
+        )
 
     async def persist_tool_progress(
         current_tool_calls: list[JSONDict],
@@ -123,33 +148,41 @@ async def execute_turn_tool_phase(
             ],
         )
 
-    tool_outcomes = await execute_tool_calls_with_agent_events(
-        request_context=phase_context.request_context,
-        tool_context=phase_context.tool_context,
-        tool_call_processor=phase_context.tool_call_processor,
-        database_tool_calls=phase_context.database_tool_calls,
-        task_registry=phase_context.task_registry,
-        database_notifications=phase_context.database_notifications,
-        conversation_attention=phase_context.conversation_attention,
-        database_input_queue=phase_context.database_input_queue,
-        database_users=phase_context.database_users,
-        raw_tool_calls=phase_context.tool_calls[completed_tool_count:],
-        message_index=int(phase_context.tool_context.message_index),
-        logger=phase_context.logger,
-        cancellation_history=phase_context.cancellation_history,
-        cancellation_id=phase_context.current_cancellation_id,
-        turn_id=phase_context.primitives.turn_id,
-        iteration_index=phase_context.iteration_index,
-        next_action_sequence=phase_context.sequence_tracker.next_sequence,
-        publish_event=phase_context.emit_event,
-        deadline_monotonic=None,
-        persist_progress=persist_tool_progress,
-        postprocess_tool_result=build_turn_tool_result_postprocessor(
-            primitives=phase_context.primitives,
-            turn_state_writer=phase_context.turn_state_writer,
+    try:
+        tool_outcomes = await execute_tool_calls_with_agent_events(
+            request_context=phase_context.request_context,
+            tool_context=phase_context.tool_context,
+            tool_call_processor=phase_context.tool_call_processor,
+            database_tool_calls=phase_context.database_tool_calls,
+            task_registry=phase_context.task_registry,
+            database_notifications=phase_context.database_notifications,
+            conversation_attention=phase_context.conversation_attention,
+            database_input_queue=phase_context.database_input_queue,
+            database_users=phase_context.database_users,
+            raw_tool_calls=phase_context.tool_calls[completed_tool_count:],
+            message_index=int(phase_context.tool_context.message_index),
+            logger=phase_context.logger,
+            cancellation_history=phase_context.cancellation_history,
+            cancellation_id=phase_context.current_cancellation_id,
+            turn_id=phase_context.primitives.turn_id,
+            iteration_index=phase_context.iteration_index,
             next_action_sequence=phase_context.sequence_tracker.next_sequence,
-        ),
-    )
+            publish_event=phase_context.emit_event,
+            deadline_monotonic=None,
+            persist_progress=persist_tool_progress,
+            postprocess_tool_result=build_turn_tool_result_postprocessor(
+                primitives=phase_context.primitives,
+                turn_state_writer=phase_context.turn_state_writer,
+                next_action_sequence=phase_context.sequence_tracker.next_sequence,
+            ),
+        )
+    except AgentTurnInterruptedBySteer as exception:
+        await _consume_checkpointed_interaction_secrets(phase_context)
+        raise AgentTurnInterruptedBySteer(
+            completed_tool_count + exception.executed_tool_calls,
+        ) from exception
+    finally:
+        phase_context.request_context.skill_activation_callback = None
     if await phase_context.turn_cancelled():
         raise asyncio.CancelledError()
     tool_results: list[JSONValue] = [
@@ -161,67 +194,71 @@ async def execute_turn_tool_phase(
         tool_outcomes,
     )
     stop_requested = _has_stop_conversation_outcome(tool_outcomes)
-    await phase_context.turn_state_writer.after_tools(
-        iteration_index=phase_context.iteration_index,
-        assistant_text=phase_context.assistant_text,
-        tool_calls=persisted_tool_calls,
-        tool_results=tool_results,
-    )
-    if phase_context.task_registry is not None:
-        await phase_context.task_registry.database_tasks.consume_interaction_secrets_after_turn_checkpoint(
-            turn_id=phase_context.primitives.turn_id,
-            iteration_index=phase_context.iteration_index,
-        )
+    post_tool_messages = []
     if not stop_requested:
-        await append_post_tool_messages(
+        post_tool_messages = await build_post_tool_messages(
             message_history=phase_context.message_history,
-            boundary_source_messages=phase_context.boundary_source_messages,
             persisted_tool_calls=persisted_tool_calls,
             tool_results=tool_results,
             assistant_text=phase_context.assistant_text,
+            reasoning_text=phase_context.reasoning_text,
             logger=phase_context.logger,
             prompt_token_counter=prompt_token_counter,
             base_request_payload=base_request_payload,
             settings=settings,
             shape_cache=phase_context.shape_cache,
         )
+    await phase_context.turn_state_writer.after_tools(
+        iteration_index=phase_context.iteration_index,
+        assistant_text=phase_context.assistant_text,
+        tool_calls=persisted_tool_calls,
+        tool_results=tool_results,
+        prompt_replay=(
+            AgentInferencePromptReplay.from_messages(messages=post_tool_messages)
+            if not stop_requested
+            else None
+        ),
+    )
+    await _consume_checkpointed_interaction_secrets(phase_context)
+    phase_context.message_history.extend(dict(message) for message in post_tool_messages)
+    phase_context.boundary_source_messages.extend(dict(message) for message in post_tool_messages)
     return ToolPhaseOutcome(
         tool_results_count=len(tool_results),
         stop_requested=stop_requested,
     )
 
 
-async def append_post_tool_messages(
+async def build_post_tool_messages(
     *,
     message_history: list[JSONDict],
-    boundary_source_messages: list[JSONDict],
     persisted_tool_calls: list[JSONDict],
     tool_results: list[JSONValue],
     assistant_text: str | None,
+    reasoning_text: str,
     logger: LoggerProtocol,
     prompt_token_counter: PromptTokenCounter,
     base_request_payload: JSONDict,
     settings: AgentSettings,
     shape_cache: ToolResultPromptShapeCache,
-) -> None:
+) -> list[JSONDict]:
     post_tool_messages = build_post_tool_prompt_messages(
         tool_calls=persisted_tool_calls,
         tool_results=tool_results,
         assistant_text=assistant_text,
+        reasoning_content=reasoning_text,
         settings=settings,
         shape_cache=shape_cache,
     )
     prior_history = list(message_history)
-    message_history.extend(post_tool_messages)
-    boundary_source_messages.extend(dict(message) for message in post_tool_messages)
     if not settings.tool_result_image_relay_enabled:
-        return
+        return post_tool_messages
     relay_message = await build_tool_image_relay_message_for_prompt(
         logger=logger,
         prompt_token_counter=prompt_token_counter,
         base_request_payload=base_request_payload,
         message_history=prior_history,
         pending_messages=post_tool_messages,
+        tool_calls=persisted_tool_calls,
         tool_results=tool_results,
         max_prompt_tokens=settings.compaction_trigger_prompt_tokens,
         max_encoded_chars=settings.tool_result_image_relay_max_encoded_chars,
@@ -229,5 +266,5 @@ async def append_post_tool_messages(
         max_pixels=settings.tool_result_image_relay_max_pixels,
     )
     if relay_message is not None:
-        message_history.append(relay_message)
-        boundary_source_messages.append(dict(relay_message))
+        post_tool_messages.append(relay_message)
+    return post_tool_messages

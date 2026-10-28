@@ -84,6 +84,9 @@ const resolveConversationSectionActionState = ({ activeTab, sectionState, sectio
 };
 
 const resolveConversationSectionStateTransition = (sectionState: ConversationSettingsSectionState, section: ConversationSettingsSection, hasChanges: boolean, isValid = true): ConversationSettingsSectionStateTransition => {
+    if (section === 'skills') {
+        return { changed: sectionState.skillsDirty !== hasChanges || sectionState.skillsValid !== isValid, state: { ...sectionState, skillsDirty: hasChanges, skillsValid: isValid } };
+    }
     if (section === 'rag' && sectionState.ragDirty === hasChanges && sectionState.ragValid === isValid) {
         return { changed: false, state: sectionState };
     }

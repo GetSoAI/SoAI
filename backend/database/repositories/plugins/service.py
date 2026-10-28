@@ -14,8 +14,26 @@ from core.database.provider_mutation_requests import (
     ProviderMutationReplayRequest,
 )
 from core.events.protocols import EventBusProtocol
+from core.plugins.backend_update_records import (
+    BackendAutoAttempt,
+    BackendUpdateIdentity,
+    BackendUpdateRecord,
+)
 from core.state.compatibility import CompatibilityInfo
 from core.state.state_names import PLUGIN_STATE_ABSENT
+from database.repositories.plugins.backend_update_records import (
+    get_backend_update_catalog_query,
+    get_backend_update_cooldown_query,
+    get_backend_update_query,
+    get_backend_updates_query,
+    sync_commit_backend_update,
+    sync_delete_backend_update,
+    sync_extend_backend_update_cooldown,
+    sync_invalidate_backend_update,
+    sync_materialize_backend_update,
+    sync_reserve_backend_update,
+    sync_set_backend_update_failure,
+)
 from database.repositories.plugins.backend_variants import (
     get_backend_variant_id_query,
     sync_set_backend_variant_id,
@@ -205,3 +223,56 @@ class DatabasePlugins(DatabasePluginsOperations):
 
     async def get_stats_for_plugins(self, plugin_names: list[str]) -> dict[str, dict[str, int]]:
         return await compute_plugin_stats(self.core.reader, plugin_names)
+
+    async def get_backend_update_catalog(
+        self,
+    ) -> tuple[list[JSONDict], dict[str, BackendUpdateRecord]]:
+        return await self.core.reader.execute_read(get_backend_update_catalog_query)
+
+    async def get_backend_updates(self) -> dict[str, BackendUpdateRecord]:
+        return await self.core.reader.execute_read(get_backend_updates_query)
+
+    async def get_backend_update(self, plugin_name: str) -> BackendUpdateRecord | None:
+        return await self.core.reader.execute_read(get_backend_update_query, plugin_name)
+
+    async def materialize_backend_update(
+        self, identity: BackendUpdateIdentity
+    ) -> BackendUpdateRecord:
+        return await self.core.writer.queue_write_operation(
+            sync_materialize_backend_update, identity
+        )
+
+    async def commit_backend_update(
+        self, expected: BackendUpdateRecord, result: BackendUpdateRecord
+    ) -> bool:
+        return await self.core.writer.queue_write_operation(
+            sync_commit_backend_update, expected, result
+        )
+
+    async def invalidate_backend_update(self, plugin_name: str) -> bool:
+        return await self.core.writer.queue_write_operation(
+            sync_invalidate_backend_update, plugin_name
+        )
+
+    async def delete_backend_update(self, plugin_name: str) -> None:
+        await self.core.writer.queue_write_operation(sync_delete_backend_update, plugin_name)
+
+    async def reserve_backend_update(
+        self, expected: BackendUpdateRecord, attempt: BackendAutoAttempt
+    ) -> bool:
+        return await self.core.writer.queue_write_operation(
+            sync_reserve_backend_update, expected, attempt
+        )
+
+    async def set_backend_update_failure(self, attempt: BackendAutoAttempt, failed: bool) -> bool:
+        return await self.core.writer.queue_write_operation(
+            sync_set_backend_update_failure, attempt, failed
+        )
+
+    async def get_backend_update_cooldown(self) -> int | None:
+        return await self.core.reader.execute_read(get_backend_update_cooldown_query)
+
+    async def extend_backend_update_cooldown(self, not_before_ms: int) -> None:
+        await self.core.writer.queue_write_operation(
+            sync_extend_backend_update_cooldown, not_before_ms
+        )

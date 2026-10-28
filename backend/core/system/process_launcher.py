@@ -53,6 +53,9 @@ def spawn_managed_process(
     encoding: str | None = None,
     errors: str | None = None,
     startupinfo: StartupInfoProtocol | None = None,
+    user: int | None = None,
+    group: int | None = None,
+    extra_groups: Sequence[int] | None = None,
 ) -> ManagedProcess:
     process_paths = resolve_subprocess_paths(command, cwd)
     return subprocess.Popen(
@@ -71,6 +74,9 @@ def spawn_managed_process(
         encoding=encoding,
         errors=errors,
         startupinfo=resolve_subprocess_startupinfo(startupinfo),
+        user=user,
+        group=group,
+        extra_groups=extra_groups,
     )
 
 
@@ -90,6 +96,9 @@ def spawn_background_process(
     encoding: str | None = None,
     errors: str | None = None,
     startupinfo: StartupInfoProtocol | None = None,
+    user: int | None = None,
+    group: int | None = None,
+    extra_groups: Sequence[int] | None = None,
 ) -> None:
     if subprocess.PIPE in (stdout, stderr):
         raise ValueError(
@@ -111,6 +120,9 @@ def spawn_background_process(
         encoding=encoding,
         errors=errors,
         startupinfo=startupinfo,
+        user=user,
+        group=group,
+        extra_groups=extra_groups,
     )
     first_argv = command[0] if command else "unknown"
     command_label = first_argv.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]

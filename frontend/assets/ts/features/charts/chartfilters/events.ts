@@ -1,6 +1,7 @@
 /* SoAI - Charts feature chart filters events [frontend/assets/ts/features/charts/chartfilters/events.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { exitWithPresence, isPresenceExiting, prepareEnterWithPresence } from '@core/animations/presence/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
@@ -67,7 +68,17 @@ const closeCompactPanel = (context: ChartFiltersCompactModeContext, state: Chart
     state.compactOutsideClickHandler = null;
     context.elements.compactPanel?.setAttribute('data-open', 'false');
     context.elements.compactTrigger?.setAttribute('aria-expanded', 'false');
-    context.container.dataset['filtersPanelOpen'] = 'false';
+    const panel = context.elements.compactPanel;
+    if (panel && context.container.dataset['compactFilters'] === 'true' && context.container.dataset['filtersPanelOpen'] === 'true') {
+        panel.setAttribute('data-presence-atomic', '');
+        exitWithPresence(panel, null, () => {
+            context.container.dataset['filtersPanelOpen'] = 'false';
+            panel.removeAttribute('data-presence-atomic');
+        });
+    } else {
+        panel?.removeAttribute('data-presence-atomic');
+        context.container.dataset['filtersPanelOpen'] = 'false';
+    }
 };
 
 const bindCompactOutsideClick = (context: ChartFiltersCompactModeContext, state: ChartFiltersCompactModeState): void => {
@@ -75,24 +86,13 @@ const bindCompactOutsideClick = (context: ChartFiltersCompactModeContext, state:
         state.outsideClickDisposer();
         state.outsideClickDisposer = null;
     }
-    const closePanel = (): void => {
-        if (!context.elements.compactPanel || !context.elements.compactTrigger) {
-            closeCompactPanel(context, state);
-            return;
-        }
-        const activeElement = context.container.ownerDocument.activeElement;
-        if ((activeElement !== null && context.elements.compactPanel.contains(activeElement)) || (activeElement !== null && context.elements.compactTrigger.contains(activeElement))) {
-            return;
-        }
-        closeCompactPanel(context, state);
-    };
     state.compactOutsideClickHandler = (event: Event): void => {
         const target = event.target instanceof Node ? event.target : null;
         if (!target) return;
         if (context.elements.compactPanel?.contains(target) || context.elements.compactTrigger?.contains(target)) {
             return;
         }
-        closePanel();
+        closeCompactPanel(context, state);
     };
     const handler = state.compactOutsideClickHandler;
     context.resources.setTimeout(() => {
@@ -108,15 +108,17 @@ const openCompactPanel = (context: ChartFiltersCompactModeContext, state: ChartF
 };
 
 const toggleCompactPanel = (context: ChartFiltersCompactModeContext, state: ChartFiltersCompactModeState): void => {
-    const isOpen = context.container.dataset['filtersPanelOpen'] === 'true';
-    const nextState = !isOpen;
-    context.container.dataset['filtersPanelOpen'] = String(nextState);
-    context.elements.compactTrigger?.setAttribute('aria-expanded', String(nextState));
-    if (nextState) {
-        openCompactPanel(context, state);
+    const isOpen = context.elements.compactTrigger?.getAttribute('aria-expanded') === 'true';
+    if (isOpen) {
+        closeCompactPanel(context, state);
         return;
     }
-    closeCompactPanel(context, state);
+    if (context.elements.compactPanel) prepareEnterWithPresence(context.elements.compactPanel, isPresenceExiting(context.elements.compactPanel), true)();
+    context.elements.compactPanel?.removeAttribute('data-presence-atomic');
+    context.container.dataset['filtersPanelOpen'] = 'true';
+    context.elements.compactPanel?.setAttribute('data-open', 'true');
+    context.elements.compactTrigger?.setAttribute('aria-expanded', 'true');
+    openCompactPanel(context, state);
 };
 
 const bindCompactTrigger = (context: ChartFiltersCompactModeContext, state: ChartFiltersCompactModeState): void => {
@@ -152,6 +154,7 @@ const setupCompactMode = (context: ChartFiltersCompactModeContext, state: ChartF
 
     const breakpointExclusive = Math.max(0, Math.round(context.config.compactBreakpoint) - 1);
     const applyCompactMode = (matches: boolean): void => {
+        if (!matches && context.elements.compactPanel) prepareEnterWithPresence(context.elements.compactPanel, false)();
         context.container.dataset['compactFilters'] = matches ? 'true' : 'false';
         if (matches) {
             bindCompactTrigger(context, state);
@@ -183,6 +186,8 @@ const disposeCompactMode = (context: ChartFiltersCompactModeContext, state: Char
         state.compactChangeDisposer = null;
     }
     unbindCompactTrigger(state);
+    if (context.elements.compactPanel) prepareEnterWithPresence(context.elements.compactPanel, false)();
+    context.container.dataset['filtersPanelOpen'] = 'false';
     closeCompactPanel(context, state);
 };
 
@@ -208,8 +213,7 @@ const updateFullscreenIcon = (context: ChartFiltersFullscreenContext): void => {
     const icon = isFullscreen ? FILTER_ICON_NAMES.FULLSCREEN_EXIT : FILTER_ICON_NAMES.FULLSCREEN_ENTER;
     dom.setHTML(context.button, resolveIconMarkup(icon), { escape: false });
     context.button.setAttribute('aria-pressed', String(isFullscreen));
-    context.button.classList.toggle('ui-variant-primary', isFullscreen);
-    context.button.classList.toggle('ui-variant-neutral', !isFullscreen);
+    context.button.classList.toggle('is-active', isFullscreen);
 };
 
 export type { ChartFiltersCompactModeContext, ChartFiltersCompactModeState, ChartFiltersFullscreenContext };

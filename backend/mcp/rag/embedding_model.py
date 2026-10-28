@@ -188,7 +188,6 @@ async def prepare_ingest_context(
         raise ValidationError(
             f"Cannot {reindex_error_verb} while reindex is in progress for conversation {resolved_conv_id}",
         )
-    await ensure_conversation_rag_enabled(self.database_files, resolved_conv_id)
     resolution = await resolve_embedding_model_with_precedence(
         self,
         resolved_conv_id,
@@ -197,21 +196,27 @@ async def prepare_ingest_context(
     )
     resolved_embedding_model = resolution.model_id
     normalized_candidate = coerce_optional_trimmed_str(resolved_embedding_model) or "auto"
-    if (
+    automatic_selection = (
         is_auto_embedding_model_sentinel(normalized_candidate)
         or normalized_candidate.lower() == "auto"
-    ):
+    )
+    if automatic_selection:
         resolved_embedding_model = await ensure_any_embedding_model_available(self.storage)
+        resolved_embedding_model, _embedding_dimensions = (
+            await validate_and_resolve_embedding_model(self.storage, resolved_embedding_model)
+        )
+    else:
+        resolved_embedding_model = await resolve_embedding_model_for_embeddings_request(
+            self.storage,
+            normalized_candidate,
+        )
+    await ensure_conversation_rag_enabled(self.database_files, resolved_conv_id)
+    if automatic_selection:
         await persist_effective_embedding_model(
             self,
             conv_id=resolved_conv_id,
             user_id=user_id,
             embedding_model=resolved_embedding_model,
             expected_embedding_selector=resolution.stored_selector,
-        )
-    else:
-        resolved_embedding_model = await resolve_embedding_model_for_embeddings_request(
-            self.storage,
-            normalized_candidate,
         )
     return (resolved_conv_id, resolved_embedding_model)

@@ -16,9 +16,7 @@ from app.server_api_runtime import initialize_unified_api_runtime
 from app.server_startup_settings import resolve_unified_server_startup_settings
 from app.server_uvicorn_runtime import start_uvicorn_server_runtime
 from core.di.validation import require_dependencies
-from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError, ValidationError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.licensing.types import Edition
 from core.logging.trace import get_logger
 from core.meta.instance_identity import resolve_instance_identity
@@ -36,6 +34,7 @@ from features.api.middleware.tls_network import get_accessible_network_addresses
 
 if TYPE_CHECKING:
     from app.application_host_instance import ApplicationHostInstance
+    from app.lifecycle.results import LifecycleFailure
     from core.config.runtime_config import Config
     from core.licensing.protocols import LicensingRepositoryProtocol
     from core.logging.protocols import LoggingManagerProtocol
@@ -56,8 +55,6 @@ __all__ = (
     "ApplicationServerCoordinatorDependencies",
 )
 
-OPERATION_APPLICATION_SERVER_SHUTDOWN_SERVERS = "application_server.shutdown_servers"
-OPERATION_APPLICATION_SERVER_STOP_DISCOVERY_SERVER = "application_server.stop_discovery_server"
 LOGGER_NAME = "SoAI.app.server"
 
 
@@ -166,15 +163,7 @@ class ApplicationServerCoordinator:
             self._deps.logging.logger.debug("Discovery server is not running; skipping stop.")
             return
         self._deps.logging.logger.info("Stopping discovery server...")
-        try:
-            await discovery_service.stop()
-        except RECOVERABLE_EXCEPTIONS as exception:
-            log_exception(
-                self._deps.logging.logger,
-                exception,
-                message="Failed to stop discovery server",
-                operation=OPERATION_APPLICATION_SERVER_STOP_DISCOVERY_SERVER,
-            )
+        await discovery_service.stop()
 
     async def start_unified_server(self, application_instance: ApplicationHostInstance) -> None:
         configuration = self._deps.configuration
@@ -267,23 +256,15 @@ class ApplicationServerCoordinator:
         if network_message:
             self._deps.logging.logger.info(network_message)
 
-    async def shutdown_servers(self, timeout: float) -> None:
+    async def shutdown_servers(self, timeout: float) -> list[LifecycleFailure]:
         if timeout < 0:
             raise ValidationError("Shutdown timeout must be non-negative.")
         lifecycle_coordinator = self._deps.lifecycle_coordinator
         if not lifecycle_coordinator.has_servers():
             self._deps.logging.logger.debug("No active servers registered for shutdown.")
-            return
+            return []
         self._deps.logging.logger.info(
             "Initiating unified server shutdown with a %.2fs timeout.",
             timeout,
         )
-        try:
-            await lifecycle_coordinator.shutdown_servers(timeout)
-        except RECOVERABLE_EXCEPTIONS as exception:
-            log_exception(
-                self._deps.logging.logger,
-                exception,
-                message="Unified server shutdown encountered an error",
-                operation=OPERATION_APPLICATION_SERVER_SHUTDOWN_SERVERS,
-            )
+        return await lifecycle_coordinator.shutdown_servers(timeout)

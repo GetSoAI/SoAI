@@ -10,12 +10,16 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 from hardware.vendors.nvidia.internal_protocols import NvmlPciInfoProtocol
 
 if TYPE_CHECKING:
+    import asyncio
+    from contextlib import AbstractAsyncContextManager
+
+    from core.hardware.gpu_physical_identity import GPUPhysicalDevice
+    from core.hardware.opencl_runtime_types import OpenCLRuntimeTarget
     from core.types.json import JSONDict
     from hardware.soaibench.types import SoAIBenchGpuIdentity
     from hardware.soaibench.workload_common import SoAIBenchPhaseResult
 
 __all__ = (
-    "MAX_CHILD_MESSAGE_BYTES",
     "NvidiaClockEventNvmlModuleProtocol",
     "NvidiaPowerNvmlModuleProtocol",
     "NvidiaTelemetryNvmlModuleProtocol",
@@ -24,10 +28,9 @@ __all__ = (
     "NvidiaUtilizationNvmlModuleProtocol",
     "NvidiaUtilizationProtocol",
     "SoAIBenchOpenCLExecutionProtocol",
+    "SoAIBenchOpenCLPoolProtocol",
     "SoAIBenchPublicationProtocol",
 )
-
-MAX_CHILD_MESSAGE_BYTES = 64 * 1024
 
 
 class SoAIBenchPublicationProtocol(Protocol):
@@ -49,6 +52,11 @@ class NvidiaTemperatureNvmlModuleProtocol(Protocol):
     NVMLError: type[Exception]
     NVML_TEMPERATURE_GPU: int
     nvmlDeviceGetTemperature: Callable[[ctypes.c_void_p, int], int]
+
+
+@runtime_checkable
+class NvidiaUuidNvmlModuleProtocol(Protocol):
+    nvmlDeviceGetUUID: Callable[[ctypes.c_void_p], str | bytes]
 
 
 @runtime_checkable
@@ -82,6 +90,10 @@ class NvidiaThrottleNvmlModuleProtocol(Protocol):
 
 
 class SoAIBenchOpenCLExecutionProtocol(Protocol):
+    async def discover_runtime(
+        self, target: GPUPhysicalDevice, *, timeout_sec: float
+    ) -> OpenCLRuntimeTarget: ...
+
     @property
     def degraded(self) -> bool: ...
 
@@ -102,3 +114,9 @@ class SoAIBenchOpenCLExecutionProtocol(Protocol):
         stress: bool,
         timeout_sec: float,
     ) -> SoAIBenchPhaseResult: ...
+
+
+class SoAIBenchOpenCLPoolProtocol(Protocol):
+    def lease(
+        self, stop_event: asyncio.Event | None = None
+    ) -> AbstractAsyncContextManager[SoAIBenchOpenCLExecutionProtocol]: ...

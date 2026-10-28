@@ -31,7 +31,8 @@ from core.bootstrap.runtime_record_path import resolve_temp_directory_bootstrap
 from core.bootstrap.stage0_environment import is_running_in_soai_venv
 from core.bootstrap.venv_paths import get_venv_path
 from core.errors.exception_coercion import coerce_to_soai_error
-from core.errors.exception_logging import log_exception
+from core.errors.exception_logging import log_exception, log_handled_exception
+from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import UNEXPECTED_RUNTIME_EXCEPTIONS
 from core.logging.bootstrap import setup_bootstrap_logger
@@ -42,6 +43,7 @@ from core.prompts.system_prompts import load_system_prompts_catalog
 from core.runtime.event_loop_runner import run_coroutine_in_new_event_loop
 from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.windows_event_loop_policy import configure_windows_event_loop_policy
+from core.state.errors import DatabaseUnavailableError
 from core.system.privileges import is_admin
 from core.system.resource_limits import configure_resource_limits
 from core.validation.runtime import ensure_minimum_python_version
@@ -170,13 +172,24 @@ def runtime_entrypoint(
                 lifecycle_logger.info("KeyboardInterrupt received. Shutting down.")
             except RECOVERABLE_EXCEPTIONS as exception:
                 process_exit_deadline.begin_finalization()
-                log_exception(
-                    lifecycle_logger,
-                    exception,
-                    message="Fatal error in application runtime or final event loop cleanup.",
-                    operation=OPERATION,
-                    level="critical",
-                )
+                if isinstance(exception, DatabaseUnavailableError) and isinstance(
+                    exception.__cause__, StateError
+                ):
+                    log_handled_exception(
+                        lifecycle_logger,
+                        exception.__cause__,
+                        message="Database initialization failed. Startup stopped.",
+                        operation=OPERATION,
+                        level="critical",
+                    )
+                else:
+                    log_exception(
+                        lifecycle_logger,
+                        exception,
+                        message="Fatal error in application runtime or final event loop cleanup.",
+                        operation=OPERATION,
+                        level="critical",
+                    )
                 final_exit_code = 1
             except UNEXPECTED_RUNTIME_EXCEPTIONS as exception:
                 process_exit_deadline.begin_finalization()

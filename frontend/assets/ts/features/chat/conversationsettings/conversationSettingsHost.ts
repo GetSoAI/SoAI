@@ -32,6 +32,7 @@ interface ConversationSettingsActionInput {
 
 interface ConversationSettingsSavePlanInput {
     conversation?: ConversationSettingsActionInput | null | undefined;
+    skills?: ConversationSettingsActionInput | null | undefined;
     knowledge?: ConversationSettingsActionInput | null | undefined;
     tools?: ConversationSettingsActionInput | null | undefined;
 }

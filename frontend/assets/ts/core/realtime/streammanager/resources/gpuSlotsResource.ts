@@ -3,11 +3,12 @@
 
 import { extractErrorMessage } from '@core/errors/coerce.ts';
 import { toTrimmedString } from '@core/normalize.ts';
-import { decodeBoot, decodeGpuSlotDevice, decodeLive, decodeSlots } from '@core/realtime/streammanager/resources/gpuSlotContracts.ts';
+import { decodeBoot, decodeGpuSlotDevice, decodeGpuSlotWarning, decodeLive, decodeSlots } from '@core/realtime/streammanager/resources/gpuSlotContracts.ts';
 import type { ResourceConfig } from '@core/realtime/streammanager/types.ts';
 import { hasOwn, isArray, isFunction, isObject, isString } from '@core/typeGuards.ts';
 import type { GpuSlotDevice, GpuSlotsBuilderResult } from '@core/types/streamTypes.ts';
 import { isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
+import { SnapshotError } from '@core/websocketclient/snapshotManager.ts';
 
 interface CreateGpuSlotsResourceOptions {
     fetch: (options?: { signal?: AbortSignal | undefined }) => Promise<JsonValue | null>;
@@ -38,7 +39,7 @@ const buildGpuSlotsResult = (previousValue: GpuSlotsBuilderResult, update: Parti
         version: update.version ?? previousValue.version,
         byDeviceId,
         byIndex,
-        warnings: update.warnings ?? previousValue.warnings,
+        warnings: hasOwn(update, 'warnings') ? (update.warnings ?? null) : previousValue.warnings,
         error: hasOwn(update, 'error') ? (update.error ?? null) : previousValue.error
     };
 };
@@ -46,11 +47,10 @@ const buildGpuSlotsResult = (previousValue: GpuSlotsBuilderResult, update: Parti
 const decodeGpuSlotsSnapshot = (payload: JsonValue | null, previousValue: GpuSlotsBuilderResult = EMPTY_GPU_SLOTS_RESULT): GpuSlotsBuilderResult => {
     if (!isJsonObject(payload)) throw new TypeError('GPU slots snapshot must be an object');
     if (payload['success'] === false) {
-        const errorInfo: { code?: string; message?: string } = {};
-        if (payload['code'] != null) errorInfo.code = String(payload['code']);
         const message = extractErrorMessage(payload['error'] ?? payload['message'] ?? payload['error_message'] ?? payload['detail']);
-        if (message) errorInfo.message = message;
-        return buildGpuSlotsResult(previousValue, { byDeviceId: {}, error: errorInfo });
+        const error = isJsonObject(payload['error']) ? payload['error'] : null;
+        const traceId = error && isString(error['trace_id']) ? error['trace_id'] : undefined;
+        throw new SnapshotError(message ?? 'GPU slot observation is unavailable', payload['error'], traceId);
     }
     const devicesRecord = isJsonObject(payload['devices']) ? payload['devices'] : null;
     if (devicesRecord === null) throw new TypeError('GPU slots snapshot.devices must be an object');
@@ -59,7 +59,8 @@ const decodeGpuSlotsSnapshot = (payload: JsonValue | null, previousValue: GpuSlo
         devices[deviceId] = decodeGpuSlotDevice(deviceId, entry, `GPU slots snapshot.devices.${deviceId}`);
     }
     if (payload['version'] !== 1) throw new TypeError('GPU slots snapshot.version must be V1');
-    return buildGpuSlotsResult(previousValue, { version: 1, byDeviceId: devices, error: null });
+    const warnings = hasOwn(payload, 'warnings') ? decodeGpuSlotWarning(payload['warnings']) : previousValue.warnings;
+    return buildGpuSlotsResult(previousValue, { version: 1, byDeviceId: devices, warnings, error: null });
 };
 
 const createGpuSlotsResource = (options: CreateGpuSlotsResourceOptions): Partial<ResourceConfig<GpuSlotsBuilderResult>> => {
@@ -80,6 +81,8 @@ const createGpuSlotsResource = (options: CreateGpuSlotsResourceOptions): Partial
             const record = isJsonObject(payload) ? payload : null;
             const isWebsocketUpdate = Boolean(updateType && updateType.startsWith('websocket'));
             const isSnapshotUpdate = updateType === 'fetch' || Boolean(isWebsocketUpdate && record && hasOwn(record, 'devices'));
+
+            if (record?.['success'] === false) return decodeGpuSlotsSnapshot(record, prev);
 
             if (isSnapshotUpdate) {
                 return decodeGpuSlotsSnapshot(record, prev);

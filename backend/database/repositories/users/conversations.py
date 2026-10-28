@@ -89,6 +89,8 @@ class DatabaseConversations:
         model_settings: JSONDict,
         is_automation: bool,
         conv_id: str | None = None,
+        *,
+        title_auto_update_allowed: bool = False,
     ) -> JSONDict:
         self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)
         return await self.core.writer.queue_write_operation(
@@ -98,6 +100,7 @@ class DatabaseConversations:
             model_settings,
             is_automation,
             conv_id,
+            title_auto_update_allowed=title_auto_update_allowed,
         )
 
     async def get_conversation(self, conv_id: str, user_id: int) -> JSONDict | None:
@@ -201,6 +204,8 @@ class DatabaseConversations:
         user_id: int,
         expected_title: str,
         new_title: str,
+        *,
+        require_title_auto_update_allowed: bool = False,
     ) -> JSONDict | None:
         self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)
         return await self.core.writer.queue_write_operation(
@@ -209,6 +214,7 @@ class DatabaseConversations:
             user_id,
             expected_title,
             new_title,
+            require_title_auto_update_allowed=require_title_auto_update_allowed,
         )
 
     async def update_conversation_settings(

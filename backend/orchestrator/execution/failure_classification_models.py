@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from core.errors.error_types import ErrorType
+from core.errors.payload import ErrorPublicPayload
 
 __all__ = ("ExecutionFailureDetails",)
 
@@ -18,3 +19,4 @@ class ExecutionFailureDetails:
     error_type: ErrorType
     affects_plugin_health: bool
     allow_failover: bool
+    public_error: ErrorPublicPayload | None = None

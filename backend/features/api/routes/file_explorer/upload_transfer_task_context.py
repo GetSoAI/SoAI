@@ -8,7 +8,11 @@ from typing import TYPE_CHECKING
 
 from fastapi import Request
 
-from core.tasks.type_catalog import TASK_TYPE_FILE_EXPLORER_OP
+from core.tasks.type_catalog import (
+    TASK_OWNER_FILE_EXPLORER_UPLOAD_BATCH,
+    TASK_OWNER_FILE_EXPLORER_UPLOAD_SINGLE,
+    TASK_TYPE_FILE_EXPLORER_OP,
+)
 from features.api.runtime.context import ApiContext
 from features.api.runtime.task_creation_context import (
     create_working_task_from_request_context,
@@ -64,6 +68,11 @@ async def create_upload_task_context(
         request=request,
         api_context=api_context,
         task_type=TASK_TYPE_FILE_EXPLORER_OP,
+        owner_id=(
+            TASK_OWNER_FILE_EXPLORER_UPLOAD_BATCH
+            if metadata.get("operation") == "file_explorer_upload_batch"
+            else TASK_OWNER_FILE_EXPLORER_UPLOAD_SINGLE
+        ),
         status_message=status_message,
         metadata=metadata,
     )

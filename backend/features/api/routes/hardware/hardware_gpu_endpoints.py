@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 
 from core.errors.exceptions import StateError
+from core.hardware.gpu_slot_failures import build_gpu_settings_failure_error
 from core.hardware.protocols import HardwareGpuTuningProtocol
 from core.logging.trace import get_logger
 from core.state.access import AccessAction
@@ -21,7 +22,8 @@ from features.api.runtime.audit import log_audit_event
 from features.api.runtime.container.api_routers import ApiRouters
 from features.api.runtime.context import (
     ApiContext,
-    raise_api_error,
+    get_request_trace_id,
+    log_api_exception,
     resolve_api_context,
 )
 from features.api.runtime.gpu_slot_error_responses import raise_slot_operation_error
@@ -80,13 +82,16 @@ async def set_gpu_settings(
     )
     log_audit_event(request, outcome.audit_action, outcome.audit_target, outcome.audit_details)
     if not outcome.success:
-        raise_api_error(
+        error = build_gpu_settings_failure_error(outcome, trace_id=get_request_trace_id(request))
+        log_api_exception(
+            get_logger(LOGGER_NAME),
             request,
-            outcome.status_code,
-            outcome.error_type or "gpu_error",
-            outcome.error_message or "GPU settings operation failed.",
-            extra=outcome.error_detail,
+            error,
+            message="GPU settings operation failed.",
+            operation="hardware.gpu.settings.update",
+            level="error" if error.http_status >= 500 else "debug",
         )
+        raise error
     return JSONResponse(status_code=outcome.status_code, content=outcome.payload or {})
 
 

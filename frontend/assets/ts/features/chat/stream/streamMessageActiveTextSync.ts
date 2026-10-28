@@ -70,7 +70,7 @@ const syncVerifiedStreamingTextAppend = (inputArguments: { textDelta: string; me
     const text = `${projection.source}${inputArguments.textDelta}`;
     let updated = syncStreamingTextVisibility(inputArguments.streamText, text.trim().length > 0);
     const richTextResult = updateStreamRichTextFromText({
-        text,
+        textDelta: inputArguments.textDelta,
         streamTextRunKey,
         cached,
         messageManager: inputArguments.messageArguments.messageManager

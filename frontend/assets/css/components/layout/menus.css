@@ -2,8 +2,29 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    @keyframes menu-open {
+        from {
+            opacity: 0;
+            translate: 0 var(--motion-menu-enter-offset);
+            scale: var(--motion-menu-enter-scale);
+        }
+
+        to {
+            opacity: 1;
+            translate: 0 0;
+            scale: 1;
+        }
+    }
+
     :where(.soai-dropdown-menu, .page-actions--dropdown .page-actions__menu, .chart-filters-bar[data-compact-filters='true'] .chart-filters-panel, .chat-model-menu) {
-        --soai-dropdown-surface: var(--bg-secondary);
+        --soai-dropdown-surface: var(--glass-surface-medium-base);
+        --presence-enter-duration: var(--motion-menu-enter-duration);
+        --presence-enter-ease: var(--ease-menu-enter);
+        --presence-exit-duration: var(--motion-menu-exit-duration);
+        --presence-exit-ease: var(--ease-menu-enter);
+        --presence-scale-from: var(--motion-menu-enter-scale);
+        --presence-blur-from: 0;
+        --presence-translate-from: 0 var(--motion-menu-enter-offset);
         background-color: var(--soai-dropdown-surface);
         border: var(--border-width-1) solid var(--glass-border-strong);
         border-radius: var(--border-radius);
@@ -12,10 +33,15 @@
         backdrop-filter: none;
         filter: none;
         isolation: isolate;
+        transform-origin: top center;
+        scale: 1;
+        translate: 0 0;
+        will-change: opacity, scale, translate;
+        animation: menu-open var(--motion-menu-enter-duration) var(--ease-menu-enter) backwards;
     }
 
-    body:not(.glass-disabled) :where(.soai-dropdown-menu, .page-actions--dropdown .page-actions__menu, .chart-filters-bar[data-compact-filters='true'] .chart-filters-panel, .chat-model-menu) {
-        background-color: color-mix(in srgb, var(--soai-dropdown-surface) 95%, transparent);
+    .soai-dropdown-menu[data-presence] {
+        animation: none;
     }
 
     :is(.soai-dropdown-menu, .page-actions--dropdown .page-actions__menu, .chart-filters-bar[data-compact-filters='true'] .chart-filters-panel, .chat-model-menu)::before,
@@ -24,7 +50,7 @@
     }
 
     :where(.theme-dark) :where(.soai-dropdown-menu, .page-actions--dropdown .page-actions__menu, .chart-filters-bar[data-compact-filters='true'] .chart-filters-panel, .chat-model-menu) {
-        --soai-dropdown-surface: color-mix(in srgb, var(--bg-secondary) 45%, var(--bg-tertiary) 55%);
+        --soai-dropdown-surface: color-mix(in srgb, var(--bg-secondary-base) 45%, var(--bg-tertiary-base) 55%);
     }
 
     :where(.soai-dropdown-menu, .page-actions--dropdown .page-actions__menu, .chart-filters-bar[data-compact-filters='true'] .chart-filters-panel, .chat-model-menu) :is(.dropdown-item, .search-item):first-child {
@@ -44,18 +70,25 @@
         text-align: start;
         background-color: transparent;
         border: var(--border-width-1) solid transparent;
-        color: var(--text-primary);
+        color: var(--ui-button-neutral-color);
         font-size: var(--font-size-sm);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast);
     }
 
-    .dropdown-item:hover {
-        background-color: color-mix(in srgb, var(--glass-surface-interactive) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
-        border-color: color-mix(in srgb, var(--glass-border-strong) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
-        color: var(--text-primary);
+    :is(.settings-dropdown, .user-dropdown) {
+        --ui-button-neutral-color: var(--text-primary);
+        --ui-button-neutral-color-hover: var(--text-primary);
+        --control-menu-item-hover-bg: color-mix(in srgb, var(--ui-button-neutral-color-hover) var(--interactive-tint-opacity-idle), transparent);
+        --control-menu-item-hover-border: transparent;
     }
 
-    .theme-dark .dropdown-item:hover {
-        background-color: var(--glass-surface-hover-strong);
+    .dropdown-item:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true']) {
+        background-color: var(--control-menu-item-hover-bg);
+        border-color: var(--control-menu-item-hover-border);
+        color: var(--ui-button-neutral-color-hover);
     }
 
     .soai-dropdown-menu.settings-dropdown .dropdown-item,

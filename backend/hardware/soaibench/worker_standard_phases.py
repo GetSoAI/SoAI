@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from core.tasks.status_transitions import update_progress
 from hardware.soaibench.phase_telemetry import PhaseTelemetryRunResult, run_phase_with_telemetry
+from hardware.soaibench.runtime import STANDARD_PHASE_TIMEOUT_SECONDS
 from hardware.soaibench.telemetry import SoAIBenchTelemetryAccumulator
 from hardware.soaibench.worker_execution import (
     run_alu_phase,
@@ -35,9 +36,8 @@ if TYPE_CHECKING:
     from hardware.soaibench.worker_context import SoAIBenchWorkerRuntimeContext
     from hardware.soaibench.workload_common import SoAIBenchPhaseResult
 
-__all__ = ("STANDARD_PHASE_TIMEOUT_SECONDS", "StandardPhaseRunResult", "run_standard_phases")
+__all__ = ("StandardPhaseRunResult", "run_standard_phases")
 
-STANDARD_PHASE_TIMEOUT_SECONDS = 300.0
 STANDARD_TELEMETRY_SAMPLE_INTERVAL_SECONDS = 0.25
 
 
@@ -79,7 +79,7 @@ async def run_standard_phases(
         checkpoint,
         compute_run,
         30,
-        "SoAIBench compute phase completed.",
+        "SoAI Bench compute phase completed.",
     ):
         return None
     compute = compute_run.require_phase_result()
@@ -92,7 +92,7 @@ async def run_standard_phases(
         ),
         "soaibench-standard-alu",
     )
-    if not await _checkpoint(checkpoint, alu_run, 48, "SoAIBench ALU phase completed."):
+    if not await _checkpoint(checkpoint, alu_run, 48, "SoAI Bench ALU phase completed."):
         return None
     alu = alu_run.require_phase_result()
     matrix_run = await _run_monitored_phase(
@@ -104,7 +104,7 @@ async def run_standard_phases(
         ),
         "soaibench-standard-matrix",
     )
-    if not await _checkpoint(checkpoint, matrix_run, 62, "SoAIBench matrix phase completed."):
+    if not await _checkpoint(checkpoint, matrix_run, 62, "SoAI Bench matrix phase completed."):
         return None
     matrix = matrix_run.require_phase_result()
     latency_run = await _run_monitored_phase(
@@ -116,7 +116,7 @@ async def run_standard_phases(
         ),
         "soaibench-standard-latency",
     )
-    if not await _checkpoint(checkpoint, latency_run, 70, "SoAIBench latency phase completed."):
+    if not await _checkpoint(checkpoint, latency_run, 70, "SoAI Bench latency phase completed."):
         return None
     latency = latency_run.require_phase_result()
     memory_run = await _run_monitored_phase(
@@ -128,7 +128,7 @@ async def run_standard_phases(
         ),
         "soaibench-standard-memory",
     )
-    if not await _checkpoint(checkpoint, memory_run, 82, "SoAIBench memory phase completed."):
+    if not await _checkpoint(checkpoint, memory_run, 82, "SoAI Bench memory phase completed."):
         return None
     memory = memory_run.require_phase_result()
     mixed_run = await _run_monitored_phase(
@@ -141,7 +141,7 @@ async def run_standard_phases(
         ),
         "soaibench-standard-mixed",
     )
-    if not await _checkpoint(checkpoint, mixed_run, 90, "SoAIBench mixed phase completed."):
+    if not await _checkpoint(checkpoint, mixed_run, 90, "SoAI Bench mixed phase completed."):
         return None
     mixed = mixed_run.require_phase_result()
     return StandardPhaseRunResult(

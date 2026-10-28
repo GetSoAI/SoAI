@@ -11,6 +11,8 @@ from core.errors.http_status_classification import (
     resolve_soai_error_code_for_http_status,
 )
 from core.errors.public_projection import project_public_error
+from core.logging.trace import get_logger
+from core.timing.constants import CONTROL_TIMEOUT_SEC
 from features.api.routes.system.events.internal_protocols import WebSocketEventTypes
 from features.api.routes.system.events.websocket_error_payloads import (
     build_websocket_error_event,
@@ -34,7 +36,37 @@ __all__ = (
     "enqueue_websocket_invalid_request_error",
     "enqueue_websocket_not_found_error",
     "enqueue_websocket_soai_error",
+    "send_terminal_websocket_error",
 )
+
+LOGGER_NAME = "SoAI.features.api.websocket_errors"
+
+
+async def send_terminal_websocket_error(
+    connection: WebsocketConnection,
+    shutdown_event: asyncio.Event,
+    trace_id: str | None,
+    message: str,
+) -> None:
+    if shutdown_event.is_set():
+        return
+    delivery = connection.terminal_error
+    delivery.payload = build_websocket_error_event(
+        trace_id=trace_id,
+        error_type=WebSocketEventTypes.INVALID_REQUEST,
+        message=message,
+        code="invalid_request_error",
+    )
+    delivery.requested.set()
+    try:
+        async with asyncio.timeout(CONTROL_TIMEOUT_SEC):
+            await delivery.delivered.wait()
+    except TimeoutError:
+        get_logger(LOGGER_NAME).debug(
+            "WebSocket terminal error delivery timed out (trace %s).", trace_id
+        )
+    finally:
+        shutdown_event.set()
 
 
 async def enqueue_websocket_error(

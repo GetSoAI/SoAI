@@ -109,13 +109,13 @@ const selectRecommendations = (catalog: readonly ModelCatalogEntry[], hardware: 
     if (entries.length === 0) {
         return { cards: [], emptyReason: null, emptyDetail: null };
     }
-    const gpuBudget = engine.usesGpu ? resolveGpuBudget(hardware) : null;
+    const gpuBudget = engine.gpuBudgetEligible ? resolveGpuBudget(hardware) : null;
     const gpuFitting = gpuBudget === null ? [] : fitEntries(entries, gpuBudget);
     if (gpuFitting.length > 0) {
         return { cards: assignRoles(gpuFitting, 'gpu'), emptyReason: null, emptyDetail: null };
     }
     if (hardware.systemRamBytes === null) {
-        return selectUnassessed(entries, engine.usesGpu ? 'gpu' : 'cpu');
+        return selectUnassessed(entries, engine.gpuBudgetEligible ? 'gpu' : 'cpu');
     }
     const cpuBudget = cpuBudgetBytes(hardware.systemRamBytes);
     const cpuFitting = fitEntries(entries, cpuBudget);

@@ -4,21 +4,32 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
+from core.timing.retry_backoff import normalize_retry_after_header
 from core.types.json import JSONDict, JSONValue
 from core.validation.integers import is_strict_int
 from core.validation.string_mappings import validate_string_mapping
 
+if TYPE_CHECKING:
+    from core.errors.exceptions import SoAIError
+
 __all__ = (
     "build_openai_provider_headers",
     "build_openai_upstream_error_details",
+    "has_upstream_provider_marker",
     "compose_openai_provider_url",
     "normalize_openai_provider_query_params",
 )
 
 SOAI_REFERER = "https://soai.to/"
 SOAI_TITLE = "SoAI"
+
+
+def has_upstream_provider_marker(exception: SoAIError) -> bool:
+    provider_value = exception.details.get("upstream_provider") if exception.details else None
+    return isinstance(provider_value, str) and bool(provider_value.strip())
 
 
 def compose_openai_provider_url(
@@ -84,7 +95,7 @@ def build_openai_upstream_error_details(
         details["upstream_http_status"] = status
     if transport_error:
         details["upstream_transport_error"] = True
-    normalized_retry_after = retry_after.strip() if isinstance(retry_after, str) else ""
-    if normalized_retry_after:
+    normalized_retry_after = normalize_retry_after_header(retry_after)
+    if normalized_retry_after is not None:
         details["upstream_retry_after"] = normalized_retry_after
     return details

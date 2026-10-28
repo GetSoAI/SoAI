@@ -18,7 +18,6 @@ __all__ = (
     "resolve_process_shutdown_marker_path",
 )
 
-OPERATION_CLEAR = "core.runtime.shutdown_marker.clear"
 OPERATION_MARK_STARTED = "core.runtime.shutdown_marker.mark_started"
 
 
@@ -28,10 +27,6 @@ def resolve_process_shutdown_marker_path(system_data_path: str) -> str:
 
 async def mark_process_started(path: str, logger: LoggerProtocol) -> bool:
     unclean_shutdown_detected = await async_path_exists(path)
-    if unclean_shutdown_detected:
-        logger.warning(
-            "SoAI did not shut down cleanly during its previous run. Checking database integrity before startup continues...",
-        )
     try:
         await asyncio.to_thread(
             atomic_write_text_content,
@@ -54,15 +49,9 @@ async def mark_process_started(path: str, logger: LoggerProtocol) -> bool:
     return unclean_shutdown_detected
 
 
-async def clear_process_shutdown_marker(path: str, logger: LoggerProtocol) -> None:
+async def clear_process_shutdown_marker(path: str) -> None:
     try:
         if await async_path_exists(path):
             await async_remove(path)
-    except OSError as exception:
-        log_exception(
-            logger,
-            exception,
-            message="Failed to clear the SoAI process shutdown marker.",
-            operation=OPERATION_CLEAR,
-            level="warning",
-        )
+    except FileNotFoundError:
+        return

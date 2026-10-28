@@ -16,6 +16,7 @@ interface CharacterMapModalRefs {
     retry: HTMLButtonElement;
     empty: HTMLElement;
     grid: HTMLElement;
+    cells: HTMLElement;
     status: HTMLElement;
     codePoints: HTMLElement;
     name: HTMLElement;

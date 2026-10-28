@@ -19,7 +19,10 @@ interface RouterInitializationEventsDependencies {
     errorHandler: ErrorHandlerService;
     renderCriticalError: (message: string) => void;
     isInitialized: () => boolean;
+    isBrowserNavigationSuspended: () => boolean;
     getCurrentRoute: () => string | null;
+    refreshLanguage: () => void;
+    resumeLanguageRefresh: () => void;
 }
 
 const normalizeRouteOrDefault = (dependencies: Pick<RouterInitializationEventsDependencies, 'parseRoute' | 'getDefaultRoute' | 'errorHandler'>, route: string): string => {
@@ -36,7 +39,7 @@ const normalizeRouteOrDefault = (dependencies: Pick<RouterInitializationEventsDe
     return dependencies.getDefaultRoute();
 };
 
-const reportNavigationEventFailure = (dependencies: RouterInitializationEventsDependencies, message: string, error: Error): void => {
+const reportNavigationEventFailure = (dependencies: Pick<RouterInitializationEventsDependencies, 'errorHandler'>, message: string, error: Error): void => {
     if (!claimErrorReporting(error)) {
         return;
     }
@@ -48,6 +51,7 @@ const registerRouterInitializationEvents = (dependencies: RouterInitializationEv
     const win = dependencies.getWindow();
 
     dependencies.resources.addEventListener(win, 'hashchange', async () => {
+        if (dependencies.isBrowserNavigationSuspended()) return;
         const route = dependencies.getRouteFromHash();
         if (!route) {
             return;
@@ -87,16 +91,8 @@ const registerRouterInitializationEvents = (dependencies: RouterInitializationEv
         }
     });
 
-    dependencies.resources.addEventListener(win, 'soai:language:changed', () => {
-        const currentRoute = dependencies.getCurrentRoute();
-        if (!currentRoute || !dependencies.isInitialized()) {
-            return;
-        }
-        dependencies.navigate(currentRoute, { pushState: false, force: true }).catch((error) => {
-            const runtimeError = ensureError(error);
-            reportNavigationEventFailure(dependencies, 'Navigation failed on language change', runtimeError);
-        });
-    });
+    dependencies.resources.addEventListener(win, 'soai:language:changed', dependencies.refreshLanguage);
+    dependencies.resources.addEventListener(win, 'core.modal.close', dependencies.resumeLanguageRefresh);
 };
 
 const buildQueryRoute = (path: string, queryParameters: Record<string, string> = {}): string => {
@@ -122,4 +118,4 @@ const getQueryParametersFromHash = (hash: string): Record<string, string> => {
     return queryString ? Object.fromEntries(new URLSearchParams(queryString)) : {};
 };
 
-export { buildQueryRoute, buildRouteWithoutQueryParameters, getQueryParametersFromHash, registerRouterInitializationEvents };
+export { buildQueryRoute, buildRouteWithoutQueryParameters, getQueryParametersFromHash, registerRouterInitializationEvents, reportNavigationEventFailure };

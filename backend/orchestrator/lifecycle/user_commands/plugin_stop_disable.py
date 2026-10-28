@@ -35,7 +35,9 @@ from orchestrator.lifecycle.user_commands.plugin_stop_disable_transitions import
     send_incompatible_disable_error,
     send_missing_plugin_error,
 )
-from orchestrator.lifecycle.user_commands.runner import run_lifecycle_command
+from orchestrator.lifecycle.user_commands.runner import (
+    run_discovery_preempting_lifecycle_command,
+)
 
 __all__ = (
     "handle_plugin_disable_command",
@@ -151,7 +153,7 @@ async def handle_plugin_stop_command(
                 registry=deps.task_registry,
             )
 
-    await run_lifecycle_command(
+    await run_discovery_preempting_lifecycle_command(
         deps,
         plugin_name=plugin_name,
         command=command,
@@ -250,7 +252,7 @@ async def handle_plugin_disable_command(
             registry=deps.task_registry,
         )
 
-    await run_lifecycle_command(
+    await run_discovery_preempting_lifecycle_command(
         deps,
         plugin_name=plugin_name,
         command=command,

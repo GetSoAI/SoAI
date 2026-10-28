@@ -1,6 +1,7 @@
 /* SoAI - Shared DOM child node reconciliation [frontend/assets/ts/core/dom/childNodeReconciliation.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { applyTextContent, isFadingTextTarget } from '@core/dom/textContent.ts';
 import { createHtmlFragment } from '@core/dom/html.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 
@@ -32,6 +33,10 @@ const canPatchInPlace = (target: ChildNode | null | undefined, source: ChildNode
 };
 
 const reconcileChildNodes = (targetParent: Element, sourceNodes: ReadonlyArray<ChildNode>): void => {
+    if (isFadingTextTarget(targetParent) && sourceNodes.every((node) => node.nodeType === Node.TEXT_NODE)) {
+        applyTextContent(targetParent, sourceNodes.map((node) => node.textContent ?? '').join(''));
+        return;
+    }
     let targetChild: ChildNode | null = targetParent.firstChild;
     let sourceIndex = 0;
 

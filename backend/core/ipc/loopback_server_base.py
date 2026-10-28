@@ -15,6 +15,7 @@ __all__ = ("LoopbackIpcServerBase",)
 
 class LoopbackIpcServerBase:
     def __init__(self, *, codec: NdjsonCodec) -> None:
+        self._start_lock = asyncio.Lock()
         self._codec = codec
         self._server: asyncio.base_events.Server | None = None
         self._token = secrets.token_hex(32)
@@ -42,25 +43,27 @@ class LoopbackIpcServerBase:
         return self._codec.max_line_bytes
 
     async def start(self) -> None:
-        if self._server is not None:
-            return
-        bound_server = await bind_loopback_ipc_server(
-            self._handle_connection,
-            stream_limit_bytes=self._codec.stream_limit_bytes,
-        )
-        self._server = bound_server.server
-        self._bound_host = bound_server.host
-        self._bound_port = bound_server.port
+        async with self._start_lock:
+            if self._server is not None:
+                return
+            bound_server = await bind_loopback_ipc_server(
+                self._handle_connection,
+                stream_limit_bytes=self._codec.stream_limit_bytes,
+            )
+            self._server = bound_server.server
+            self._bound_host = bound_server.host
+            self._bound_port = bound_server.port
 
     async def _shutdown_server(self) -> None:
-        server = self._server
-        self._server = None
-        self._bound_host = None
-        self._bound_port = None
-        if server is None:
-            return
-        server.close()
-        await server.wait_closed()
+        async with self._start_lock:
+            server = self._server
+            self._server = None
+            self._bound_host = None
+            self._bound_port = None
+            if server is None:
+                return
+            server.close()
+            await server.wait_closed()
 
     async def _handle_connection(
         self,

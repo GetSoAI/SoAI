@@ -6,10 +6,12 @@ from __future__ import annotations
 import sqlite3
 from typing import TYPE_CHECKING
 
+import aiosqlite
+
 from core.errors.exceptions import StateError
 from core.serialization.json import serialize_json_compact_stable_strict
 from core.validation.integers import is_strict_int
-from database.core.query_execution import sync_fetch_all_as_json_dicts
+from database.core.query_execution import query_one_to_dict, sync_fetch_all_as_json_dicts
 from database.repositories.outbox.status_writes import (
     sync_record_outbox_row_retryable_failure,
 )
@@ -18,6 +20,7 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
 
 __all__ = (
+    "query_pending_domain_event_candidate",
     "sync_claim_pending_domain_events",
     "sync_enqueue_domain_event",
     "sync_enqueue_domain_event_payload",
@@ -111,18 +114,7 @@ def sync_ensure_domain_event_payload(
     )
 
 
-def sync_claim_pending_domain_events(
-    conn: sqlite3.Connection,
-    now_ms: int,
-    limit: int,
-    processing_timeout_ms: int,
-) -> list[JSONDict]:
-    batch_limit = max(int(limit) or 1, 1)
-    timeout_ms = max(int(processing_timeout_ms) or 1, 1)
-    now_value = int(now_ms)
-    expired_processing_before = now_value - timeout_ms
-    cursor = conn.execute(
-        """
+DOMAIN_EVENT_CANDIDATES_SQL = """
         SELECT id, event_id, event_type, payload_json, attempts
         FROM webui_domain_event_outbox
         WHERE
@@ -137,7 +129,33 @@ def sync_claim_pending_domain_events(
             )
         ORDER BY id
         LIMIT ?
-        """,
+        """
+
+
+async def query_pending_domain_event_candidate(
+    database: aiosqlite.Connection, now_ms: int, processing_timeout_ms: int
+) -> bool:
+    expired_processing_before = int(now_ms) - max(int(processing_timeout_ms) or 1, 1)
+    return (
+        await query_one_to_dict(
+            database, DOMAIN_EVENT_CANDIDATES_SQL, (int(now_ms), expired_processing_before, 1)
+        )
+        is not None
+    )
+
+
+def sync_claim_pending_domain_events(
+    conn: sqlite3.Connection,
+    now_ms: int,
+    limit: int,
+    processing_timeout_ms: int,
+) -> list[JSONDict]:
+    batch_limit = max(int(limit) or 1, 1)
+    timeout_ms = max(int(processing_timeout_ms) or 1, 1)
+    now_value = int(now_ms)
+    expired_processing_before = now_value - timeout_ms
+    cursor = conn.execute(
+        DOMAIN_EVENT_CANDIDATES_SQL,
         (now_value, expired_processing_before, batch_limit),
     )
     events = sync_fetch_all_as_json_dicts(cursor)

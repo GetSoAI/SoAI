@@ -4,60 +4,14 @@
 from __future__ import annotations
 
 import asyncio
-import os
-from collections.abc import Callable, Iterable
-from contextlib import AbstractContextManager
+from collections.abc import Iterable
 
-from core.errors.exceptions import ValidationError
 from core.files.operations import async_remove
-from core.files.protocols import SeekableStreamProtocol
-from core.files.staged_transfer import iter_reader_chunks, stage_chunks_to_temp_file
 
 __all__ = (
     "cleanup_temp_file",
     "cleanup_temp_files",
-    "resolve_stream_size",
-    "stage_stream_to_file",
 )
-
-
-async def resolve_stream_size(stream: SeekableStreamProtocol) -> int:
-    def _resolve_size_sync() -> int:
-        stream.seek(0, os.SEEK_END)
-        size = stream.tell()
-        stream.seek(0)
-        return size
-
-    try:
-        return await asyncio.to_thread(_resolve_size_sync)
-    except (OSError, ValueError, TypeError) as exception:
-        raise ValidationError(f"Upload stream is not seekable: {exception}") from exception
-
-
-async def stage_stream_to_file(
-    stream: SeekableStreamProtocol,
-    *,
-    temp_dir: str,
-    suffix: str,
-    on_chunk_write_scope: Callable[[int], AbstractContextManager[None]],
-    on_chunk_written: Callable[[int], None] | None = None,
-    max_bytes: int | None = None,
-    expected_size: int | None = None,
-) -> str:
-    def _write_to_temp() -> str:
-        stream.seek(0)
-        staged = stage_chunks_to_temp_file(
-            iter_reader_chunks(stream.read),
-            temp_dir=temp_dir,
-            suffix=suffix,
-            max_bytes=max_bytes,
-            expected_size=expected_size,
-            on_chunk_write_scope=on_chunk_write_scope,
-            on_chunk_written=on_chunk_written,
-        )
-        return staged.file_path
-
-    return await asyncio.to_thread(_write_to_temp)
 
 
 async def cleanup_temp_file(path: str | None) -> None:

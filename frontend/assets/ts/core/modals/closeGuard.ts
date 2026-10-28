@@ -12,6 +12,7 @@ type BeforeCloseConfirmationGuardOptions = {
     modalId: string;
     shouldConfirmClose: () => boolean;
     confirmClose: () => Promise<boolean>;
+    captureCloseValidity?: () => () => boolean;
 };
 
 const attachBeforeCloseConfirmationGuard = (options: BeforeCloseConfirmationGuardOptions): (() => void) => {
@@ -25,12 +26,13 @@ const attachBeforeCloseConfirmationGuard = (options: BeforeCloseConfirmationGuar
         if (confirmationInFlight) {
             return;
         }
+        const isStillValid = options.captureCloseValidity?.();
         confirmationInFlight = true;
         terminateHandledPromise(
             (async (): Promise<void> => {
                 try {
                     const shouldClose = await options.confirmClose();
-                    if (shouldClose) {
+                    if (shouldClose && (isStillValid?.() ?? true)) {
                         options.presenter.close(options.modalId, {
                             force: true,
                             reason: 'discard-confirmed'

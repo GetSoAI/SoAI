@@ -7,7 +7,10 @@
         display: block;
         margin-bottom: var(--space-5);
         padding-bottom: var(--space-5);
-        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+        background-image: var(--ui-separator-gradient-horizontal);
+        background-position: center bottom;
+        background-repeat: no-repeat;
+        background-size: 100% var(--border-width-1);
     }
 
     :where([data-section='plugins'], [data-page-scope='plugins']).plugin-config-modal .plugin-gpu-binding-header {

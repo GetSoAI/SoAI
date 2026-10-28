@@ -37,46 +37,11 @@ const selectLatestPlanWidgetModel = (segments: readonly MessageSegment[]): Assis
     return latest;
 };
 
-const normalizePlanHeadingText = (value: string): string => {
-    return value
-        .replace(/[#*_`~]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .toLocaleLowerCase();
-};
-
-const resolvePlanLeadingLine = (markdown: string): string | null => {
-    for (const line of markdown.split('\n')) {
-        if (line.trim()) {
-            return line;
-        }
-    }
-    return null;
-};
-
-const isPlanTitleRepeatedInBody = (title: string, markdown: string): boolean => {
-    const leadingLine = resolvePlanLeadingLine(markdown);
-    if (leadingLine === null) {
-        return false;
-    }
-    const normalizedTitle = normalizePlanHeadingText(title);
-    return normalizedTitle.length > 0 && normalizePlanHeadingText(leadingLine) === normalizedTitle;
-};
-
-const renderPlanMetrics = (host: ChatMessageRenderHost, markdown: string): string => {
-    const trimmedMarkdown = markdown.trim();
-    const metricsLabel = i18n.t('chat.planWidget.metrics', {
-        lines: i18n.formatNumber(trimmedMarkdown.split('\n').length),
-        characters: i18n.formatNumber(trimmedMarkdown.length)
-    });
-    return `<span class="assistant-plan-widget__plan-metrics">${host.escapeHtml(metricsLabel)}</span>`;
-};
-
 const renderPlanSubtitle = (host: ChatMessageRenderHost, payload: ToolResultPlanPayload): string => {
-    if (payload.title === null || isPlanTitleRepeatedInBody(payload.title, payload.markdown)) {
-        return renderPlanMetrics(host, payload.markdown);
+    if (payload.title === null) {
+        return '';
     }
-    return `<span dir="auto" class="assistant-plan-widget__plan-title">${host.escapeHtml(payload.title)}</span>`;
+    return `<span dir="auto" class="assistant-activity-widget__subtitle">${host.escapeHtml(payload.title)}</span>`;
 };
 
 const renderPlanScope = (host: ChatMessageRenderHost, payload: ToolResultPlanPayload): string => {

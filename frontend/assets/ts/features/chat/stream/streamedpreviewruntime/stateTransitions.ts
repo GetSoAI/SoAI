@@ -2,17 +2,18 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { stripTrailingPreviewDot, STREAMED_PREVIEW_ATTRIBUTE_NAMES } from '@features/chat/message/messageview/inlineActivityText.ts';
+import { syncTextContent } from '@core/dom/patching.ts';
 import { clearStreamedPreviewTimers, deleteStreamedPreviewState, type StreamedPreviewState } from '@features/chat/stream/streamedPreviewStateStore.ts';
 import { readStreamedPreviewAttribute, requireStreamedPreviewWindow } from '@features/chat/stream/streamedpreviewruntime/dom.ts';
 
 const resetStreamingBuffer = (state: StreamedPreviewState): void => {
     state.pendingText = null;
-    state.streamWords = null;
-    state.streamWordIndex = 0;
+    state.streamChunks = null;
+    state.streamChunkIndex = 0;
 };
 
 const applyRenderedStreamedPreviewText = (state: StreamedPreviewState, preview: string, options?: { syncVisibleAttribute?: boolean }): void => {
-    const normalizedPreview = stripTrailingPreviewDot(preview);
+    const normalizedPreview = options?.syncVisibleAttribute === false ? preview : stripTrailingPreviewDot(preview);
     const queryElement = state.queryElement;
     const textElement = state.textElement;
     const shouldSyncAttribute = options?.syncVisibleAttribute !== false;
@@ -24,9 +25,7 @@ const applyRenderedStreamedPreviewText = (state: StreamedPreviewState, preview: 
     }
     state.renderedPreview = normalizedPreview;
     if (textElement) {
-        if (textElement.textContent !== normalizedPreview) {
-            textElement.textContent = normalizedPreview;
-        }
+        syncTextContent(textElement, normalizedPreview);
     }
 };
 
@@ -40,7 +39,7 @@ const bindStreamedPreviewState = (state: StreamedPreviewState, queryElement: HTM
     state.textElement = textElement;
     state.view = requireStreamedPreviewWindow(queryElement);
     applyRenderedStreamedPreviewText(state, state.renderedPreview, {
-        syncVisibleAttribute: state.pendingText === null && state.streamWords === null
+        syncVisibleAttribute: state.pendingText === null && state.streamChunks === null
     });
     textElement.classList.remove('inline-activity-preview-text-fading');
 };

@@ -45,6 +45,7 @@ async def persist_unavailable_tool_call_error(
     record: ToolCallExecutionRecord,
     tool_name: str,
     tool_map: dict[str, dict[str, JSONValue]],
+    compatibility_guidance: list[JSONValue] | None = None,
 ) -> JSONDict:
     suggestions = suggest_tool_names(
         tool_name,
@@ -54,11 +55,14 @@ async def persist_unavailable_tool_call_error(
         "MCP tool is not available for this conversation.",
         suggestions,
     )
+    payload = build_unavailable_tool_result_payload(
+        error_message=availability_error_message,
+        suggested_tool_names=suggestions,
+    )
+    if compatibility_guidance:
+        payload["skill_compatibility_guidance"] = compatibility_guidance
     return await persist_tool_call_invalid_tool_error(
         persistence_context,
         record=record,
-        result_payload=build_unavailable_tool_result_payload(
-            error_message=availability_error_message,
-            suggested_tool_names=suggestions,
-        ),
+        result_payload=payload,
     )

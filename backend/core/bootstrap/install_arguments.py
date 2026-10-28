@@ -10,7 +10,6 @@ from dataclasses import dataclass
 __all__ = (
     "INSTALL_COMMANDS",
     "ParsedInstallArguments",
-    "contains_install_command",
     "contains_install_command_or_option",
     "parse_install_arguments",
 )
@@ -49,13 +48,6 @@ class ParsedInstallArguments:
     status_file: str
     install_options_used: bool
     passthrough_args: tuple[str, ...]
-
-
-def contains_install_command(argv: Sequence[str]) -> bool:
-    for arg in argv:
-        if arg in INSTALL_COMMANDS:
-            return True
-    return False
 
 
 def contains_install_command_or_option(argv: Sequence[str]) -> bool:

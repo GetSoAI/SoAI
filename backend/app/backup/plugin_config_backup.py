@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from functools import partial
 from typing import TYPE_CHECKING
 
 from filelock import Timeout
@@ -13,10 +14,12 @@ from app.backup.backup_removal import sync_remove_tree_no_symlinks
 from app.backup.copy_no_symlinks.file_copy import sync_copy_file_and_hash_no_symlinks
 from core.backup.paths import get_backup_relative_plugin_config_path
 from core.backup.types import BackupManifestFiles
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.config.protocols import ConfigManagerProtocol
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import SoAITimeoutError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from core.files.locking import guarded_file_lock
+from core.files.locking import async_guarded_file_lock
 from core.filesystem.async_queries import (
     async_isdir,
     async_isfile,
@@ -65,17 +68,23 @@ async def backup_plugin_configs(
             plugin_entry: str = entry,
             timeout: float = lock_timeout_seconds,
         ) -> Exception:
-            return RuntimeError(
+            return SoAITimeoutError(
                 f"Could not acquire lock on {plugin_entry} for backup ({timeout}s).",
             )
 
         try:
-            with guarded_file_lock(lock_path, timeout=lock_timeout_seconds, on_timeout=on_timeout):
-                size, file_hash = await asyncio.to_thread(
-                    sync_copy_file_and_hash_no_symlinks,
-                    src_path,
-                    dest_path,
-                    write_reservation=disk_reservation,
+            async with async_guarded_file_lock(
+                lock_path, timeout=lock_timeout_seconds, on_timeout=on_timeout
+            ):
+                size, file_hash = await run_joined_thread_call(
+                    partial(
+                        sync_copy_file_and_hash_no_symlinks,
+                        src_path,
+                        dest_path,
+                        write_reservation=disk_reservation,
+                    ),
+                    task_name="backup-plugin-config-copy",
+                    retain_resources_until_complete=True,
                 )
             results[get_backup_relative_plugin_config_path(entry)] = {
                 "type": "file",

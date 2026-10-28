@@ -169,6 +169,8 @@ const droppedOlderMessages = (mergedWindow: readonly ChatStorageMessageRecord[],
     return comparePersistedMessageCursors(boundedFirst, mergedFirst) > 0;
 };
 
+const isConversationWindowAtTail = (conversation: Conversation): boolean => conversation.history === undefined || conversation.history.hasNewer !== true;
+
 const shouldPreserveRetainedHistory = (conversation: Conversation, readResult: MessageWindowResponse, direction: MessageWindowDirection, replaceLocalAssistantTail: boolean): boolean => {
     if (direction !== 'tail' || conversation.history === undefined || replaceLocalAssistantTail) {
         return false;
@@ -198,14 +200,14 @@ const applyWindowToConversation = (manager: Pick<ChatStorageManagerContract, 'ch
     const boundedWindow = boundRenderMessages(mergedWindow, direction);
     const boundingDroppedNewer = droppedNewerMessages(mergedWindow, boundedWindow);
     const boundingDroppedOlder = droppedOlderMessages(mergedWindow, boundedWindow);
+    const hasNewer = boundingDroppedNewer || resolveHasNewer(conversation, readResult, direction);
     const assistantMergeSource = replaceLocalAssistantTail ? boundedWindow : currentMessages;
-    const mergedMessages = mergeStreamingAssistants ? mergeStreamingAssistantMessages(assistantMergeSource, boundedWindow, activeAssistantMessage) : boundedWindow;
+    const mergedMessages = mergeStreamingAssistants ? mergeStreamingAssistantMessages(assistantMergeSource, boundedWindow, activeAssistantMessage, !hasNewer) : boundedWindow;
     conversation.messages = preservePendingLocalUserMessages(currentMessages, mergedMessages);
     const historyMessages = collectStorageMessageRecords(conversation.messages);
     const retainedRanges = buildRetainedRange(historyMessages);
     const retainedRange = retainedRanges[0] ?? null;
     const hasOlder = boundingDroppedOlder || resolveHasOlder(conversation, readResult, direction, preserveRetainedHistory);
-    const hasNewer = boundingDroppedNewer || resolveHasNewer(conversation, readResult, direction);
     conversation.updatedAt = Math.max(conversation.updatedAt, readResult.lastModifiedAtMs);
     conversation.messageCount = readResult.totalCount;
     conversation.history = {
@@ -226,4 +228,4 @@ const applyWindowToConversation = (manager: Pick<ChatStorageManagerContract, 'ch
     conversation.messagesHydrated = true;
 };
 
-export { applyWindowToConversation, countPersistedConversationMessages, resolveKnownPersistedMessageCount };
+export { applyWindowToConversation, countPersistedConversationMessages, isConversationWindowAtTail, resolveKnownPersistedMessageCount };

@@ -3,6 +3,7 @@
 
 import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { publishChatPresetLibraryInvalidation, subscribeChatPresetLibraryInvalidation } from '@core/chat/chatPresetLibraryInvalidation.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -10,25 +11,13 @@ import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import { isChatPresetNameValid, serializeChatPresetRenameRequest } from '@core/api/contracts/webuiChatPresetContracts.ts';
 import { FieldStateTracker } from '@core/forms/fieldStateTracker.ts';
 import type { ChatPresetSections, WebuiChatPresetListResponse, WebuiChatPresetRecord } from '@core/api/contracts/webuiChatPresetContractTypes.ts';
-import { type ChatPageApi, type ChatPresetSectionId } from '@features/chat/public.ts';
+import { type ChatPresetSectionId } from '@features/chat/public.ts';
 import { cloneChatPresetRecord, cloneChatPresetSections, executeChatPresetMutation, executeChatPresetReset, reconcileCommittedChatPresetRecord, reportChatPresetActionFailure, translateChatPresetMutationFailure, type ChatPresetMutationRequest, type ChatPresetMutationResult } from '@pages/chat/controllers/chatconfigurationcontroller/chatPresetLibraryMutationDomain.ts';
-import { applyChatPresetLibraryOperationState, disconnectChatPresetLibraryPresentation, readPresetId, renderChatPresetLibrary, syncChatPresetEditorNamePresentation } from '@pages/chat/controllers/chatconfigurationcontroller/chatPresetLibraryPresentationDomain.ts';
-import { createChatPresetEditorDraft, createChatPresetRecordEditorDraft, type ChatPresetConfigurationPort, type ChatPresetEditorDraft, type ChatPresetLibraryViewState } from '@pages/chat/controllers/chatconfigurationcontroller/contracts.ts';
+import { initializeChatPresetLibraryPresentation, applyChatPresetLibraryOperationState, disconnectChatPresetLibraryPresentation, readPresetId, renderChatPresetLibrary, syncChatPresetEditorNamePresentation } from '@pages/chat/controllers/chatconfigurationcontroller/chatPresetLibraryPresentationDomain.ts';
+import { createChatPresetEditorDraft, createChatPresetRecordEditorDraft, type ChatPresetLibraryHost, type ChatPresetEditorDraft, type ChatPresetLibraryViewState } from '@pages/chat/controllers/chatconfigurationcontroller/contracts.ts';
 import { executeChatPresetApply } from '@pages/chat/controllers/chatconfigurationcontroller/chatPresetApplyDomain.ts';
 import { dom } from '@core/dom/dom.ts';
-
-type ChatPresetApi = ChatPageApi['webui']['chat']['presets'];
-
-interface ChatPresetLibraryHost {
-    root: HTMLElement;
-    api: ChatPresetApi;
-    configuration: ChatPresetConfigurationPort;
-    acquireOperation(): (() => void) | null;
-    isOperationPending(): boolean;
-    subscribeOperation(listener: () => void): () => void;
-    runTask<Result>(operationId: string, task: () => Promise<Result> | Result): Promise<Result | undefined>;
-    show(message: string, type: 'error' | 'info' | 'success' | 'warning'): void;
-}
+import { bindWindowReactivation } from '@core/dom/windowReactivation.ts';
 
 type ListResult = Readonly<{ status: 'ready'; response: WebuiChatPresetListResponse }> | Readonly<{ status: 'failed'; error: Error }>;
 
@@ -41,10 +30,12 @@ class ChatPresetLibraryController {
     #invalidationEpoch = 0;
     #unsubscribe: (() => void) | null = null;
     #readSignal: AbortSignal | null = null;
+    #reactivationDisposer: (() => void) | null = null;
     #state: ChatPresetLibraryViewState = { phase: 'idle', records: [], searchQuery: '', stale: false, lastSuccessAtMs: null, structurallyInvalidCount: 0, editor: null, sectionChoices: [], operationPending: false };
 
     constructor(host: ChatPresetLibraryHost) {
         this.#host = host;
+        initializeChatPresetLibraryPresentation(host.root);
         this.#nameTracker = new FieldStateTracker({ getElement: () => dom.resolve('[data-chat-preset-editor-name="true"]', host.root) });
         this.#operationDisposer = host.subscribeOperation(() => {
             this.#state = { ...this.#state, operationPending: host.isOperationPending() };
@@ -58,6 +49,7 @@ class ChatPresetLibraryController {
         this.#readSignal = readSignal;
         this.#state = { ...this.#state, phase: 'idle', stale: false, editor: null, sectionChoices: this.#host.configuration.sectionChoices(), operationPending: this.#host.isOperationPending() };
         this.#unsubscribe = subscribeChatPresetLibraryInvalidation(() => this.#handleInvalidation(), true);
+        this.#reactivationDisposer = bindWindowReactivation(() => this.refresh());
         this.refresh();
     }
 
@@ -65,6 +57,8 @@ class ChatPresetLibraryController {
         this.#session += 1;
         this.#sequence.invalidate();
         this.#unsubscribe?.();
+        this.#reactivationDisposer?.();
+        this.#reactivationDisposer = null;
         disconnectChatPresetLibraryPresentation(this.#host.root);
         this.#unsubscribe = null;
         this.#readSignal = null;
@@ -75,19 +69,23 @@ class ChatPresetLibraryController {
         this.close();
         this.#operationDisposer();
     }
+    refreshLocalization(): void {
+        this.#setState(this.#state);
+    }
+
     refresh(): void {
         const session = this.#session;
         const sequence = this.#sequence.next();
         const epoch = this.#invalidationEpoch;
         const readSignal = this.#readSignal;
-        this.#setState({ ...this.#state, phase: 'loading', stale: this.#state.records.length > 0 });
+        this.#setState({ ...this.#state, phase: 'loading' });
         void this.#host
             .runTask<ListResult>('chat:presetLibrary:refresh', async () => {
                 try {
                     return { status: 'ready', response: await this.#host.api.list(readSignal ? { signal: readSignal } : {}) };
                 } catch (error) {
                     const failure = ensureError(error);
-                    errorHandler.warn('ChatPresetLibrary', 'Preset refresh failed', failure);
+                    if (!isAbortError(error)) errorHandler.warn('ChatPresetLibrary', 'Preset refresh failed', failure);
                     return { status: 'failed', error: failure };
                 }
             })
@@ -321,4 +319,3 @@ class ChatPresetLibraryController {
 }
 
 export { ChatPresetLibraryController };
-export type { ChatPresetLibraryHost };

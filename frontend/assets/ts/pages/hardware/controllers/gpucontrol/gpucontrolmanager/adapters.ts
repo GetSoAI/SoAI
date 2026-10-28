@@ -18,7 +18,7 @@ interface BuildGpuControlManagerViewContextDependencies {
     ensureUiState: (index: string | number) => GpuUiState;
     refreshApplyState: (index: string | number) => void;
     setSliderToAuto: (index: string | number, type: string, explicitDefault?: string | number | null, options?: { preserveManual?: boolean }) => void;
-    setSliderToManual: (index: string | number, type: string, manualValue?: string | number | null) => void;
+    setSliderToManual: (index: string | number, type: string, manualValue?: string | number | null, options?: { alignToSupportedValue?: boolean }) => void;
     getSliderElements: (index: string | number, type: string) => SliderElements;
 }
 

@@ -10,8 +10,6 @@ from core.errors.exceptions import StateError
 from core.model_settings.normalization import resolve_execution_model_sequence
 from core.serialization.json import serialize_json_compact_stable
 from core.timing.epoch import epoch_ms
-from core.types.json import is_json_dict
-from database.core.json_codec import safe_json_deserialize
 from database.core.query_execution import (
     sync_fetch_all_as_dicts,
     sync_fetch_one_as_dict,
@@ -24,6 +22,9 @@ from database.repositories.users.conversation_input_assistant_recovery import (
 )
 from database.repositories.users.conversation_input_cancellation_recovery import (
     sync_recover_cancelled_conversation_input,
+)
+from database.repositories.users.conversation_input_execution_settings import (
+    sync_read_conversation_input_execution_settings,
 )
 from database.repositories.users.conversation_input_row_mapping import (
     format_conversation_input_row,
@@ -164,14 +165,10 @@ def sync_reconcile_abandoned_conversation_input_claims(
     rows = sync_fetch_all_as_dicts(
         sqlite_conn.execute(
             """
-            SELECT candidate.*,
-                   COALESCE(candidate.model_settings_json, target.model_settings_json)
-                       AS execution_model_settings_json
-            FROM webui_conversation_inputs AS candidate
-            LEFT JOIN webui_conversation_inputs AS target
-              ON target.input_id = candidate.target_input_id
-            WHERE candidate.state IN ('materializing', 'running')
-            ORDER BY candidate.accepted_at_ms ASC, candidate.id ASC
+            SELECT *
+            FROM webui_conversation_inputs
+            WHERE state IN ('materializing', 'running')
+            ORDER BY accepted_at_ms ASC, id ASC
             """,
         ),
     )
@@ -221,12 +218,10 @@ def sync_reconcile_abandoned_conversation_input_claims(
             continue
         if not isinstance(stored_request_id, str) or not stored_request_id:
             raise StateError("Recoverable running input request id is invalid.")
-        settings_json = row.get("execution_model_settings_json")
-        if not isinstance(settings_json, str) or not settings_json:
-            raise StateError("Recoverable running input settings are unavailable.")
-        model_settings = safe_json_deserialize(settings_json)
-        if not is_json_dict(model_settings):
-            raise StateError("Recoverable running input settings are invalid.")
+        model_settings = sync_read_conversation_input_execution_settings(
+            sqlite_conn,
+            input_id,
+        ).model_settings
         _recover_running_input(
             sqlite_conn,
             input_id=input_id,

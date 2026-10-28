@@ -170,11 +170,17 @@ class ModelDetailPageDomain {
         resetModelDetailPageBeforeInitialize(this.session, this.capabilityState, parameters);
     }
 
-    async setup(): Promise<void> {
+    async setup(routeParameters: JsonObject): Promise<void> {
         this.#owners.modalPresenter.requireElement(MODELS_RENAME_MODEL_MODAL_ID);
         this.#owners.modalPresenter.requireElement(MODEL_DETAIL_TEST_MODAL_ID);
         const store = requireCatalogStore();
         await store.ensureCapabilityManifestReady();
+        this.#owners.pageResources.track(
+            this.#owners.layout.registerUnsavedChanges({
+                hasUnsavedChanges: () => this.#domains.save.isSaving() || this.#domains.save.hasChanges(),
+                confirmMessage: i18n.t('common.unsavedChanges')
+            })
+        );
         await setupModelDetailPage(this.session, {
             layout: this.#owners.layout,
             pageResources: this.#owners.pageResources,
@@ -182,7 +188,7 @@ class ModelDetailPageDomain {
             setupHeaderButtons: () => this.#setupHeaderButtons(),
             notifySaveChanged: () => this.saveRequests.notify(),
             parameterView: this.parameterView,
-            router: this.#owners.router,
+            routeParameters,
             initializeTabsComponent: () => this.#initializeTabs(),
             onTabChange: (tabId) => this.#onTabChange(tabId)
         });

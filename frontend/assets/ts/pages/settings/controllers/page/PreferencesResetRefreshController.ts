@@ -25,9 +25,7 @@ const PreferencesResetRefreshController = async (page: SettingsRuntimeContext, s
     if (!storageLanguage) {
         throw new TypeError('Storage language must be a non-empty string');
     }
-    if (storageLanguage !== page.owners.languageService.getLanguage()) {
-        await page.owners.languageService.setLanguage(storageLanguage);
-    }
+    await page.owners.languageService.setLanguage(storageLanguage);
     if (page.controls.isDestroyed()) {
         return;
     }

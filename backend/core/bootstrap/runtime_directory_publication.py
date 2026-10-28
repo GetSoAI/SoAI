@@ -4,13 +4,17 @@
 from __future__ import annotations
 
 import os
-import shutil
 import stat
 import uuid
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import StateError
 from core.files.windows_reparse_points import is_windows_reparse_point
+from core.filesystem.windows_sharing_conflicts import (
+    remove_path_with_sharing_retry,
+    replace_with_sharing_retry,
+)
+from core.logging.trace import get_logger
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -21,6 +25,8 @@ __all__ = (
     "publish_runtime_directory",
     "recover_runtime_directory_publication",
 )
+
+LOGGER_NAME = "SoAI.core.bootstrap.runtime_directory_publication"
 
 
 def recover_runtime_directory_publication(
@@ -68,8 +74,8 @@ def recover_runtime_directory_publication(
         return
     backup_directory = backups[0]
     try:
-        os.replace(backup_directory, install_directory)
-    except OSError as exception:
+        replace_with_sharing_retry(backup_directory, install_directory)
+    except (OSError, StateError) as exception:
         raise StateError("Managed runtime backup restoration failed.") from exception
     _remove_retained_directories(
         install_directory,
@@ -93,23 +99,23 @@ def publish_runtime_directory(
     try:
         if os.path.lexists(install_directory):
             _require_directory(install_directory, "Managed runtime installation")
-            os.replace(install_directory, backup_directory)
+            replace_with_sharing_retry(install_directory, backup_directory)
             moved_existing = True
-        os.replace(staging_directory, install_directory)
+        replace_with_sharing_retry(staging_directory, install_directory)
         promoted = True
         validate_directory(install_directory)
     except (OSError, StateError, ValueError) as exception:
         if promoted and os.path.lexists(install_directory):
             try:
-                os.replace(install_directory, failed_directory)
-            except OSError as quarantine_exception:
+                replace_with_sharing_retry(install_directory, failed_directory)
+            except (OSError, StateError) as quarantine_exception:
                 raise StateError(
                     "Managed runtime promotion failed and could not be retained for recovery."
                 ) from quarantine_exception
         if moved_existing:
             try:
-                os.replace(backup_directory, install_directory)
-            except OSError as restoration_exception:
+                replace_with_sharing_retry(backup_directory, install_directory)
+            except (OSError, StateError) as restoration_exception:
                 raise StateError(
                     "Managed runtime promotion failed and its backup was retained."
                 ) from restoration_exception
@@ -117,7 +123,12 @@ def publish_runtime_directory(
             _remove_owned_directory(install_directory, failed_directory, purpose="failed")
         raise StateError("Managed runtime directory publication failed.") from exception
     if moved_existing:
-        _remove_owned_directory(install_directory, backup_directory, purpose="backup")
+        try:
+            _remove_owned_directory(install_directory, backup_directory, purpose="backup")
+        except StateError as exception:
+            get_logger(LOGGER_NAME).warning(
+                "Managed runtime backup cleanup is pending: %s", exception
+            )
 
 
 def _restore_retained_backup(
@@ -126,13 +137,13 @@ def _restore_retained_backup(
 ) -> None:
     failed_directory = _new_owned_directory(install_directory, purpose="failed")
     try:
-        os.replace(install_directory, failed_directory)
+        replace_with_sharing_retry(install_directory, failed_directory)
         try:
-            os.replace(backup_directory, install_directory)
-        except OSError:
-            os.replace(failed_directory, install_directory)
+            replace_with_sharing_retry(backup_directory, install_directory)
+        except (OSError, StateError):
+            replace_with_sharing_retry(failed_directory, install_directory)
             raise
-    except OSError as exception:
+    except (OSError, StateError) as exception:
         raise StateError(
             "Managed runtime recovery could not restore its retained backup."
         ) from exception
@@ -203,8 +214,8 @@ def _remove_owned_directory(
         raise StateError("Managed runtime residue ownership validation failed.")
     _require_directory(resolved_directory, "Managed runtime retained directory")
     try:
-        shutil.rmtree(resolved_directory)
-    except OSError as exception:
+        remove_path_with_sharing_retry(resolved_directory)
+    except (OSError, StateError) as exception:
         raise StateError("Managed runtime retained directory could not be removed.") from exception
 
 

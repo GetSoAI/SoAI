@@ -21,4 +21,5 @@ class TurnRuntimeExecution:
     result: AgentTurnResult
     usage_aggregate: CanonicalUsage | None
     stream_id: str | None
+    final_status: str
     persisted_terminal_turn_replay: PersistedTerminalTurnReplay | None = None

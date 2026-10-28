@@ -24,7 +24,6 @@ def apply_auth_decision_to_request_state(
     request.state.user = decision.user
     request.state.token_payload = decision.token_payload
     request.state.granted_actions = decision.granted_actions
-    request.state.auth_failure_category = decision.failure_category
     if decision.auth_method in {"jwt_cookie", "jwt_cookie_rotation_recovery"}:
         request.state.authenticated_at_ms = epoch_ms()
     if decision.user:

@@ -19,7 +19,7 @@ const createModelDetailSaveController = (dependencies: ModelDetailSaveController
             {
                 id: 'model-detail',
                 hasChanges: () => dependencies.actions.parameterView.hasParameterChanges(),
-                isValid: () => dependencies.actions.parameterView.areParametersValid(),
+                isValid: () => dependencies.actions.parameterView.areParametersValid() && dependencies.actions.parameterAuthority.canSubmit,
                 save: async () => {
                     await saveModelDetailParameters(dependencies.actions);
                 }

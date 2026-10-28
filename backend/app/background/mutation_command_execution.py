@@ -97,6 +97,16 @@ async def execute_mutation_claim(
             status_message="Mutation authorization failed closed.",
         )
         return
+    if claim.operation_type == "wizard_model_download" and claim.attempt_count > 1:
+        await finalize(
+            deps.task_registry,
+            claim.task_id,
+            TaskStatus.FAILED,
+            error_message="The download was interrupted. Inspect Models before retrying.",
+            status_message="Wizard download interrupted.",
+            mutation_fencing_token=claim.fencing_token,
+        )
+        return
     claim_cancellation_id = context.cancellation_id
     try:
         command = decode_mutation_command(

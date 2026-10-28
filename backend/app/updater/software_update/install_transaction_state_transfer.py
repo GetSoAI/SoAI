@@ -6,26 +6,73 @@ from __future__ import annotations
 import os
 
 from app.backup.backup_removal import sync_remove_tree_no_symlinks
+from app.updater.software_update.install_transaction_inventory import installed_original_path
 from app.updater.software_update.install_transaction_persisted_state import (
+    PERSISTED_STATE_DIRECTORY,
     PersistedUpdateState,
     persisted_directory_staging,
 )
-from app.updater.software_update.install_transaction_state import UpdateTransactionPaths
+from app.updater.software_update.install_transaction_state import (
+    MANAGED_INSTALL_METADATA_RELATIVE_COMPONENTS,
+    MANAGED_ROLLBACK_DIR,
+    UpdateTransactionPaths,
+    is_preserved_top_level_item,
+)
 from core.bootstrap.install_payload_transaction import copy_install_entry, replace_install_entry
 from core.errors.exceptions import StateError
 from core.filesystem.atomic_write_primitives import fsync_directory
 from core.filesystem.file_sync import fsync_install_entry
 
 __all__ = (
+    "remove_candidate_application_roots",
+    "restore_application_update_state",
     "copy_persisted_update_state",
     "install_persisted_update_directories",
     "restore_persisted_update_state",
 )
 
 
-def copy_persisted_update_state(paths: UpdateTransactionPaths, state: PersistedUpdateState) -> None:
+def remove_candidate_application_roots(
+    *,
+    base_path: str,
+    top_level_ignore_patterns: tuple[str, ...],
+    replacement_roots: tuple[str, ...] | None,
+    rollback_old_path: str,
+) -> None:
+    for item_name in os.listdir(base_path) if replacement_roots is None else replacement_roots:
+        if (item_name,) == MANAGED_INSTALL_METADATA_RELATIVE_COMPONENTS:
+            continue
+        if is_preserved_top_level_item(item_name, top_level_ignore_patterns):
+            continue
+        if os.path.lexists(os.path.join(rollback_old_path, item_name)):
+            continue
+        sync_remove_tree_no_symlinks(os.path.join(base_path, item_name))
+
+
+def restore_application_update_state(
+    paths: UpdateTransactionPaths, *, persisted_state_present: bool
+) -> None:
+    for item_name in os.listdir(paths.rollback_old_path):
+        if item_name == MANAGED_ROLLBACK_DIR or (
+            persisted_state_present and item_name == PERSISTED_STATE_DIRECTORY
+        ):
+            continue
+        source_item = os.path.join(paths.rollback_old_path, item_name)
+        destination_item = os.path.join(paths.base_path, item_name)
+        replace_install_entry(source_item, paths.base_path, staging_root=paths.transaction_path)
+        fsync_install_entry(destination_item)
+
+
+def copy_persisted_update_state(
+    paths: UpdateTransactionPaths,
+    state: PersistedUpdateState,
+    *,
+    retained_installation_root: str | None = None,
+) -> None:
     for slot in state.original_entries:
-        source = state.destinations[slot]
+        source = installed_original_path(
+            paths, slot, state, retained_installation_root=retained_installation_root
+        )
         destination = os.path.join(paths.rollback_old_path, *slot.split("/"))
         copy_install_entry(source, os.path.dirname(destination))
         fsync_install_entry(destination)

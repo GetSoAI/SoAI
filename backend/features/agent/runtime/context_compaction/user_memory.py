@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
-from core.openai.content_text_rendering import render_openai_content_text
 from core.serialization.json import (
     normalize_for_json,
     serialize_json_compact_stable_strict,
@@ -15,8 +14,8 @@ from core.serialization.json import (
 from core.serialization.json_parsing import parse_json_value_or_none
 from core.types.json_value import coerce_json_dict
 from features.agent.runtime.context_compaction.tag_blocks import extract_tag_block_text
-from features.agent.runtime.tool_image_relay_messages import (
-    is_tool_image_relay_message,
+from features.agent.runtime.context_compaction.user_memory_selection import (
+    collect_user_message_texts,
 )
 
 if TYPE_CHECKING:
@@ -27,7 +26,6 @@ __all__ = (
     "build_user_message_memory_message",
     "evict_one_low_priority_entry",
     "extract_user_message_memory_from_message",
-    "is_user_message_memory_message",
     "merge_user_message_memory",
     "remove_user_memory_entries_present_as_user_messages",
     "render_user_message_memory_content",
@@ -47,15 +45,6 @@ class UserMessageMemory:
 
     def is_empty(self) -> bool:
         return not (self.head or self.tail or self.extra)
-
-
-def is_user_message_memory_message(message: JSONDict) -> bool:
-    if message.get("role") != "system":
-        return False
-    content = message.get("content")
-    if not isinstance(content, str) or not content:
-        return False
-    return _OPEN_TAG in content and _CLOSE_TAG in content
 
 
 def _normalize_text_entries(value: JSONValue) -> tuple[str, ...]:
@@ -151,7 +140,7 @@ def merge_user_message_memory(
         return tuple(result)
 
     head_deduped = _dedupe(combined_head)
-    tail_deduped = _dedupe(combined_tail)
+    tail_deduped = tuple(reversed(_dedupe(list(reversed(combined_tail)))))
     extra_deduped = _dedupe(combined_extra)
     memory = UserMessageMemory(head=head_deduped, tail=tail_deduped, extra=extra_deduped)
     return None if memory.is_empty() else memory
@@ -178,13 +167,7 @@ def remove_user_memory_entries_present_as_user_messages(
 ) -> UserMessageMemory | None:
     if memory is None:
         return None
-    present_messages: list[str] = []
-    for message in message_history:
-        if message.get("role") != "user" or is_tool_image_relay_message(message):
-            continue
-        present_text = render_openai_content_text(message.get("content")).strip()
-        if present_text:
-            present_messages.append(present_text)
+    present_messages = collect_user_message_texts(message_history)
     if not present_messages:
         return memory
     head = tuple(
@@ -225,7 +208,7 @@ def evict_one_low_priority_entry(memory: UserMessageMemory) -> UserMessageMemory
     if extra:
         extra.pop()
     elif tail:
-        tail.pop()
+        tail.pop(0)
     elif head:
         head.pop()
     updated = UserMessageMemory(head=tuple(head), tail=tuple(tail), extra=tuple(extra))

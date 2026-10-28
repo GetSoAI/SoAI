@@ -8,6 +8,7 @@ import { EMPTY_UI_HTML, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
 import { renderIconSlot } from '@core/ui/icons/view.ts';
 import { syncDeterminateProgress } from '@core/ui/progressWidths.ts';
+import { resolveTaskPhaseText } from '@core/tasks/operationText.ts';
 
 const resolveCancelIconMarkup = (): TrustedHtml => {
     return getIconSync('close', {
@@ -25,27 +26,29 @@ const createProgressElement = (key: string, message: string, options: { showCanc
         dom.setData(progressElement, 'extraClassName', extraClassName);
     }
     dom.setData(progressElement, 'operationProgressKey', key);
+    progressElement.setAttribute('data-presence', '');
+    progressElement.setAttribute('data-presence-atomic', '');
 
     const cancelButton = showCancel
         ? (() => {
               const cancelIcon = resolveCancelIconMarkup();
               const cancelLabel = i18n.t('common.cancel');
-              return uiHtml`<button type="button" class="ui-round-button ui-round-button--delete" data-operation-progress-action="cancel" aria-label="${uiAttr(cancelLabel)}" data-tooltip="${uiAttr(cancelLabel)}">${renderIconSlot(cancelIcon)}</button>`;
+              return uiHtml`<button type="button" class="ui-round-button ui-round-button--delete ui-round-button--inline" data-operation-progress-action="cancel" aria-label="${uiAttr(cancelLabel)}" data-tooltip="${uiAttr(cancelLabel)}">${renderIconSlot(cancelIcon)}</button>`;
           })()
         : EMPTY_UI_HTML;
     const badgeSlot = showBadge ? uiHtml`<span class="ui-operation-progress__badge" hidden></span>` : EMPTY_UI_HTML;
 
     dom.setHTML(
         progressElement,
-        uiHtml`<div class="ui-operation-progress__header"><span class="ui-operation-progress__message">${message}</span>${badgeSlot}${cancelButton}</div>
+        uiHtml`<div class="ui-operation-progress__header"><span class="ui-operation-progress__message">${resolveTaskPhaseText(message)}</span><div class="ui-operation-progress__percentage">0%</div>${cancelButton}</div>
           <div>
-              <div class="ui-operation-progress__bar progress-bar">
+              <div class="ui-operation-progress__bar progress-bar progress-bar--continuous">
                   <div class="ui-operation-progress__fill progress-fill"></div>
               </div>
           </div>
           <div class="ui-operation-progress__info">
               <div dir="auto" class="ui-operation-progress__details"></div>
-              <div class="ui-operation-progress__percentage">0%</div>
+              ${badgeSlot}
           </div>`,
         { escape: false }
     );
@@ -62,7 +65,7 @@ const updateProgressElement = (element: HTMLElement, progress: number | undefine
     const cancelButton = dom.resolve('button[data-operation-progress-action="cancel"]', element);
 
     if (messageElement && message !== undefined) {
-        dom.setText(messageElement, message);
+        dom.setText(messageElement, resolveTaskPhaseText(message));
     }
 
     if (badgeElement instanceof HTMLElement && badge !== undefined) {
@@ -76,7 +79,7 @@ const updateProgressElement = (element: HTMLElement, progress: number | undefine
             fillElement,
             progress,
             valueElement: percentageElement,
-            syncUsageClass: true
+            colorize: true
         });
     }
 
@@ -95,13 +98,15 @@ const updateProgressElement = (element: HTMLElement, progress: number | undefine
 
     if (indeterminate !== undefined) {
         dom.toggleClass(element, 'ui-operation-progress--indeterminate', indeterminate);
-        if (indeterminate && fillElement instanceof HTMLElement) fillElement.style.removeProperty('width');
+        if (indeterminate && fillElement instanceof HTMLElement) dom.setStyle(fillElement, 'width', null);
         if (percentageElement instanceof HTMLElement) percentageElement.hidden = indeterminate;
     }
 
     if (cancelButton instanceof HTMLButtonElement && cancelable !== undefined) {
+        cancelButton.dataset['cancelable'] = String(cancelable);
+        if (!cancelable) delete cancelButton.dataset['cancelRequested'];
         const enabled = cancelable && cancelButton.dataset['cancelRequested'] !== '1';
-        cancelButton.hidden = !enabled;
+        cancelButton.hidden = !cancelable;
         cancelButton.disabled = !enabled;
         cancelButton.setAttribute('aria-disabled', enabled ? 'false' : 'true');
     }

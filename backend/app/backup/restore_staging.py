@@ -171,11 +171,13 @@ async def stage_restore_item(
                 allow_existing_empty_destination=True,
             ),
             task_name="backup-restore-stage-directory-copy",
+            retain_resources_until_complete=True,
         )
         await run_joined_thread_call(
             sync_fsync_directory_tree,
             staged_paths.staging_path,
             task_name="backup-restore-stage-directory-sync",
+            retain_resources_until_complete=True,
         )
         return copy_result
     return await run_joined_thread_call(
@@ -186,6 +188,7 @@ async def stage_restore_item(
             deadline_monotonic=deadline_monotonic,
         ),
         task_name="backup-restore-stage-file-copy",
+        retain_resources_until_complete=True,
     )
 
 

@@ -68,8 +68,6 @@ const ensureDomRuntime = (): DomRuntime => {
         getDomWindow,
         generateSecureId,
         dom: {
-            addClass: (element, classes) => dom.addClass(element, classes),
-            removeClass: (element, classes) => dom.removeClass(element, classes),
             getData: (element, name) => dom.getData(element, name),
             setData: (element, name, value) => dom.setData(element, name, value)
         }

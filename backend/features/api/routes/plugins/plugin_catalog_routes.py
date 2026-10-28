@@ -8,13 +8,16 @@ from starlette.responses import JSONResponse, Response
 
 from core.errors.error_types import ErrorType
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import IpcRemoteRequestError, ValidationError
+from core.errors.exceptions import IpcRemoteRequestError, SoAITimeoutError, ValidationError
 from core.errors.external_service_exception import ExternalServiceError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.ipc.remote_error_metadata import REMOTE_ERROR_CODE_KEY
 from core.logging.trace import get_logger
 from core.manual_install_paths import build_manual_install_path_payload
-from core.models.remote_model_search_error import RemoteModelSearchError
+from core.models.remote_model_search_error import (
+    REMOTE_MODEL_SEARCH_TIMEOUT_ERROR_TYPE,
+    RemoteModelSearchError,
+)
 from core.plugins.errors import PluginIncompatibleError
 from core.runtime.network_policy import OfflineModeError
 from core.state.access import AccessAction
@@ -30,6 +33,7 @@ from features.api.runtime.context import (
 from features.api.runtime.errors import (
     raise_bad_gateway,
     raise_bad_request,
+    raise_gateway_timeout,
     raise_not_found,
     raise_offline_mode,
     raise_server_error,
@@ -43,6 +47,11 @@ __all__ = ("register_routes",)
 LOGGER_NAME = "SoAI.features.api.plugin_catalog_routes"
 OPERATION_API_PLUGIN_GET_MODEL_VARIANTS_FOR_PLUGIN = "api_plugin.get_model_variants_for_plugin"
 OPERATION_API_PLUGIN_SEARCH_REMOTE_MODELS_FOR_PLUGIN = "api_plugin.search_remote_models_for_plugin"
+MODEL_REPOSITORY_UNAVAILABLE_CODE = "model_repository_unavailable"
+MODEL_REPOSITORY_UNAVAILABLE_MESSAGE = (
+    "The model repository or revision could not be accessed. Check its identifier; a private or "
+    "gated repository also needs an authorized repository token and accepted access terms."
+)
 
 
 def _redact_plugin_technical_fields(
@@ -127,7 +136,8 @@ def register_routes(routers: ApiRouters) -> None:
             if remote_code == ErrorType.NOT_FOUND.value:
                 raise_not_found(
                     request,
-                    "The model repository or revision was not found. Check its identifier and access permissions.",
+                    MODEL_REPOSITORY_UNAVAILABLE_MESSAGE,
+                    error_type=MODEL_REPOSITORY_UNAVAILABLE_CODE,
                 )
             if remote_code == ExternalServiceError.code:
                 raise_bad_gateway(
@@ -189,6 +199,10 @@ def register_routes(routers: ApiRouters) -> None:
             if status_code == status.HTTP_401_UNAUTHORIZED:
                 raise_unauthorized(request, str(exception), error_type="remote_search_error")
             raise_bad_gateway(request, str(exception), error_type="remote_search_error")
+        except SoAITimeoutError as exception:
+            raise_gateway_timeout(
+                request, str(exception), error_type=REMOTE_MODEL_SEARCH_TIMEOUT_ERROR_TYPE
+            )
         except OfflineModeError as exception:
             raise_offline_mode(request, str(exception))
         except RECOVERABLE_EXCEPTIONS as exception:

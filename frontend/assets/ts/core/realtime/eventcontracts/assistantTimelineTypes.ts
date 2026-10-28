@@ -90,6 +90,9 @@ interface AssistantTimelinePayload {
     reason?: string | null;
     code?: string | null;
     message?: string | null;
+    explanation?: string;
+    'param'?: string;
+    details?: JsonValue;
     referenceId?: string | null;
 }
 

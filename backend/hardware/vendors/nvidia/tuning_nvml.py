@@ -3,9 +3,12 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from core.errors.exception_logging import log_handled_exception
-from core.errors.exceptions import StateError
+from core.errors.exceptions import StateError, ValidationError
 from core.hardware.gpu_operation_results import build_gpu_result
+from core.hardware.gpu_recovery_records import GPURecoveryMember
 from core.hardware.protocols import (
     NvidiaCapabilitiesCacheServiceProtocol,
     NvmlGateProtocol,
@@ -13,17 +16,25 @@ from core.hardware.protocols import (
 from core.imports.availability import module_available
 from core.logging.trace import TraceLogger
 from core.types.json import JSONDict
+from core.validation.strict_numbers import require_int_in_range_strict
 from hardware.gpu_tuning.settings_request import GpuSettingsApplyRequest
 from hardware.result_messages import ensure_message_list
 from hardware.vendors.nvidia.internal_protocols import (
+    NvmlControlModuleProtocol,
+    NvmlControlObservation,
     NvmlDeviceGetHandleByIndexProtocol,
 )
 from hardware.vendors.nvidia.nvml_power_limit_resolution import (
     resolve_nvml_power_limit_functions,
+    resolve_nvml_power_readback_function,
 )
 from hardware.vendors.nvidia.tuning_nvml_clock_offsets import apply_nvml_clock_settings
 from hardware.vendors.nvidia.tuning_nvml_controls import apply_nvml_fan_setting
 from hardware.vendors.nvidia.tuning_power_limit import apply_nvml_power_limit_setting
+
+if TYPE_CHECKING:
+    from hardware.vendors.nvidia.internal_protocols import NvmlDeviceHandle
+
 
 __all__ = ("sync_set_nvidia_settings_via_nvml",)
 
@@ -54,10 +65,12 @@ def sync_set_nvidia_settings_via_nvml(
     errors = ensure_message_list(gpu_result, "errors")
     if not _pynvml_available() or not nvml_gate.nvml_available:
         errors.append("pynvml/NVML is unavailable on this system.")
+        gpu_result["changed"] = False
         return gpu_result
     pynvml_module = pynvml_module_ref
     if pynvml_module is None:
         errors.append("pynvml/NVML is unavailable on this system.")
+        gpu_result["changed"] = False
         return gpu_result
     try:
         with nvml_gate.session():
@@ -138,9 +151,18 @@ def sync_set_nvidia_settings_via_nvml(
                         power_limit=power_limit,
                         power_default_limit_function=power_default_limit_function,
                         power_set_limit_function=power_set_limit_function,
+                        power_current_limit_function=resolve_nvml_power_readback_function(
+                            pynvml_module
+                        ),
                     )
                     gpu_result["changed"] = True
-                except (ValueError, pynvml_module.NVMLError, RuntimeError) as exception:
+                except (
+                    StateError,
+                    ValidationError,
+                    ValueError,
+                    pynvml_module.NVMLError,
+                    RuntimeError,
+                ) as exception:
                     errors.append(f"Failed to set power limit: {exception}")
                     capabilities_cache_service.invalidate(vendor_id)
                     return gpu_result
@@ -181,3 +203,59 @@ def sync_set_nvidia_settings_via_nvml(
         )
     capabilities_cache_service.invalidate(vendor_id)
     return gpu_result
+
+
+def read_nvml_persistence_member(
+    module: NvmlControlModuleProtocol, handle: NvmlDeviceHandle, member: GPURecoveryMember
+) -> NvmlControlObservation:
+    if (
+        (member.member_id, member.domain_id, member.pstate_id, member.native_unit)
+        != ("persistence", None, None, "policy")
+        or member.requested_mode != 1
+        or member.requested_value is not None
+    ):
+        raise ValidationError("NVML retained persistence routing is invalid.")
+    mode = require_int_in_range_strict(
+        module.nvmlDeviceGetPersistenceMode(handle),
+        minimum=0,
+        maximum=1,
+        error_message="NVML actual persistence mode is invalid.",
+    )
+    return NvmlControlObservation(None, mode, True, True, None)
+
+
+def invoke_nvml_persistence_member(
+    module: NvmlControlModuleProtocol, handle: NvmlDeviceHandle, *, native_mode: int | str | None
+) -> None:
+    mode = require_int_in_range_strict(
+        native_mode,
+        minimum=0,
+        maximum=1,
+        error_message="NVML frozen persistence target is invalid.",
+    )
+    module.nvmlDeviceSetPersistenceMode(handle, mode)
+
+
+def read_nvml_original_persistence_member(
+    module: NvmlControlModuleProtocol, handle: NvmlDeviceHandle, member: GPURecoveryMember
+) -> NvmlControlObservation:
+    if (member.member_id, member.domain_id, member.pstate_id, member.native_unit) != (
+        "persistence",
+        None,
+        None,
+        "policy",
+    ) or member.original_value is not None:
+        raise ValidationError("NVML original persistence routing is invalid.")
+    require_int_in_range_strict(
+        member.original_mode,
+        minimum=0,
+        maximum=1,
+        error_message="NVML original persistence policy is invalid.",
+    )
+    mode = require_int_in_range_strict(
+        module.nvmlDeviceGetPersistenceMode(handle),
+        minimum=0,
+        maximum=1,
+        error_message="NVML actual persistence mode is invalid.",
+    )
+    return NvmlControlObservation(None, mode, True, True, None)

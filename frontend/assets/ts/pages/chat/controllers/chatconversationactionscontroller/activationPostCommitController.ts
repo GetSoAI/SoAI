@@ -5,7 +5,7 @@ import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { awaitAnimationFrame } from '@core/runtime/animationFrames.ts';
+import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
 import type { ChatConversationActionsControllerRuntime } from '@pages/chat/controllers/chatconversationactionscontroller/types.ts';
 import type { ConversationActivationSnapshot } from '@pages/chat/controllers/page/concurrency/ChatConcurrencyController.ts';
 import { APIError } from '@core/apiError.ts';
@@ -39,9 +39,9 @@ const presentConversationActivationFailure = (runtime: ChatConversationActionsCo
     return true;
 };
 
-const prepareSelectedConversationHydrationState = (runtime: ChatConversationActionsControllerRuntime, conversationId: string, isVisualActivation: boolean): boolean => {
+const prepareSelectedConversationHydrationState = (runtime: ChatConversationActionsControllerRuntime, conversationId: string, isVisualActivation: boolean, hydrate: boolean): boolean => {
     const conversation = runtime.state.getConversation(conversationId);
-    const shouldHydrate = runtime.conversationManager.isConversationPersisted(conversationId);
+    const shouldHydrate = hydrate && runtime.conversationManager.isConversationPersisted(conversationId);
     if (shouldHydrate && conversation) {
         conversation.messages = [];
         conversation.messagesHydrated = false;
@@ -66,7 +66,7 @@ const awaitConversationLoadingVisualCommit = async (runtime: ChatConversationAct
     }
     runtime.host.view.flushDOMUpdates();
     try {
-        await awaitAnimationFrame(activation.signal, 'Chat conversation loading visual commit aborted.');
+        await awaitPresentationFrame(activation.signal, 'Chat conversation loading visual commit aborted.');
     } catch (error) {
         if (isAbortError(error)) {
             return;

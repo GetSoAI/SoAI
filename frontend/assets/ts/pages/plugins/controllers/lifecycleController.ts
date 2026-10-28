@@ -44,12 +44,14 @@ interface PluginsLifecycleRealtimePort {
 }
 
 interface PluginsLifecycleServicePort {
+    refreshBackendUpdatePermissions(): Promise<void>;
     getCatalogStore(): {
         ensureLoaded(options: { force: boolean }): Promise<ReadonlyArray<PluginRecord>>;
     };
     getCatalogSubscriptionManager(): CatalogSubscriptionManager;
     getFirstRunModals(): FirstRunModalService;
     openDownloadPluginModal(): void;
+    openSpeechSetupAction(pluginName: string, enable: boolean): Promise<void>;
     clearInitialQuery(keys: readonly string[]): void;
 }
 
@@ -63,6 +65,7 @@ interface PluginsLifecycleControllerDependencies extends PageDomOwnerHost {
 const buildLifecycleSignalOptions = (signal?: AbortSignal | undefined): { signal?: AbortSignal } => (signal ? { signal } : {});
 
 class PluginsLifecycleController {
+    #initialSpeechPlugin = '';
     readonly #dependencies: PluginsLifecycleControllerDependencies;
     #initialModal: string | null = null;
 
@@ -133,10 +136,11 @@ class PluginsLifecycleController {
     async beforePageInitialize(parameters: JsonValue): Promise<void> {
         this.#dependencies.filters.setSearchQuery('');
         this.#initialModal = isObject(parameters) ? toTrimmedString(parameters['modal']) : null;
+        this.#initialSpeechPlugin = isObject(parameters) ? toTrimmedString(parameters['plugin']) : '';
     }
 
     async loadInitialData(): Promise<void> {
-        await Promise.all([this.#dependencies.services.getCatalogStore().ensureLoaded({ force: false }), this.loadCoreConfig()]);
+        await Promise.all([this.#dependencies.services.getCatalogStore().ensureLoaded({ force: false }), this.loadCoreConfig(), this.#dependencies.services.refreshBackendUpdatePermissions()]);
     }
 
     async onRefresh(): Promise<void> {
@@ -148,12 +152,22 @@ class PluginsLifecycleController {
     }
 
     async startLiveUpdates(): Promise<void> {
-        await this.#dependencies.services.getFirstRunModals().handlePageShow('plugins');
+        if (this.#initialModal === 'speech-backend' || this.#initialModal === 'speech-enable') {
+            const enable = this.#initialModal === 'speech-enable';
+            const plugin = this.#initialSpeechPlugin;
+            this.#initialModal = null;
+            this.#initialSpeechPlugin = '';
+            this.#dependencies.services.clearInitialQuery(['modal', 'plugin']);
+            if (plugin) await this.#dependencies.services.openSpeechSetupAction(plugin, enable);
+            return;
+        }
         if (this.#initialModal === 'add-plugin') {
             this.#initialModal = null;
             this.#dependencies.services.openDownloadPluginModal();
             this.#dependencies.services.clearInitialQuery(['modal']);
+            return;
         }
+        await this.#dependencies.services.getFirstRunModals().handlePageShow('plugins');
     }
 
     async onCollectionShellReady(): Promise<void> {

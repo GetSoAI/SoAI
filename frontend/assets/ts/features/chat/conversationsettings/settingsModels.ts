@@ -34,6 +34,7 @@ type RagDocument = {
     fileSizeBytes: number | null;
     status: string;
     statusDetails: string | null;
+    missingCapabilities?: string[];
     totalChunks: number | null;
     processedChunks: number | null;
     createdAtMs: number | null;

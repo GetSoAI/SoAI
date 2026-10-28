@@ -30,6 +30,7 @@ from mcp.registry.tool_result_envelopes import (
     build_proxied_task_error_payload,
 )
 from mcp.shared.exception_boundary import (
+    build_jsonrpc_error_from_mcp_error,
     resolve_mcp_boundary_rpc_code,
     resolve_mcp_boundary_rpc_data,
 )
@@ -66,14 +67,6 @@ def _build_unknown_mcp_tool_error(
             "requested_tool_name": tool_name,
             "suggested_tool_names": list(suggestions),
         },
-    )
-
-
-def _build_jsonrpc_error_from_mcp_error(exception: MCPError) -> MCPJSONRPCError:
-    return MCPJSONRPCError(
-        exception.rpc_code,
-        exception.message,
-        exception.rpc_data,
     )
 
 
@@ -123,7 +116,7 @@ async def execute_mcp_tool(
     except MCPJSONRPCError:
         raise
     except MCPError as exception:
-        raise _build_jsonrpc_error_from_mcp_error(exception) from exception
+        raise build_jsonrpc_error_from_mcp_error(exception) from exception
     except Exception as exception:
         logger = get_logger(LOGGER_NAME)
         coerced = coerce_to_soai_error(

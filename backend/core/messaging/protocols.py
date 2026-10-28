@@ -147,6 +147,8 @@ class DatabaseMessagingDeliveriesProtocol(Protocol):
         current_server_boot_id: str,
     ) -> int: ...
 
+    async def has_due_delivery(self) -> bool: ...
+
     async def claim_next_delivery_attempt(
         self,
         *,

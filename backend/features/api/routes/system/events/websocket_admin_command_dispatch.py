@@ -12,7 +12,14 @@ from core.errors.exceptions import SoAIError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.events.types_base import Event, ReplyableCommand
 from core.logging.trace import get_logger
+from core.mutations.dispatch_notification import (
+    notify_mutation_dispatch_requested,
+)
 from core.mutations.identifiers import require_mutation_request_id
+from core.plugins.backend_mutation_admission import (
+    build_backend_mutation_admission,
+    resolve_backend_mutation_operation,
+)
 from core.runtime.ownership import resolve_http_owner_id
 from core.runtime.request_source_resolution import resolve_request_source_for_request
 from core.system_api.websocket_payloads import build_websocket_event_payload
@@ -31,20 +38,13 @@ from features.api.routes.system.events.websocket_errors import (
 from features.api.runtime.audit import log_audit_event
 from features.api.runtime.container.enqueue_warning_tracker import EnqueueWarningTracker
 from features.api.runtime.event_enqueue import enqueue_event_or_warn
-from features.api.runtime.mutation_dispatch_notification import (
-    notify_mutation_dispatch_requested,
-)
-from features.api.runtime.plugin_mutation_admission import (
-    build_backend_mutation_admission,
-    resolve_backend_mutation_operation,
-)
 from features.api.runtime.task_metadata import build_command_task_metadata
 
 if TYPE_CHECKING:
+    from core.plugins.backend_mutation_admission import BackendMutationType
     from core.runtime.protocols import RequestProtocol
     from core.types.json import JSONValue
     from features.api.runtime.context import ApiContext
-    from features.api.runtime.plugin_mutation_admission import BackendMutationType
     from features.api.streaming.websocket import WebsocketConnection
 
 __all__ = ("dispatch_replyable_command_accepted",)
@@ -88,6 +88,7 @@ async def dispatch_replyable_command_accepted(
     requires_mutation_id: bool,
     run_id: str | None,
     command_fields: dict[str, JSONValue],
+    admission: MutationAdmissionDraft | None = None,
 ) -> str | None:
     context = request.state.context
     validated_task_id: str | None
@@ -132,7 +133,7 @@ async def dispatch_replyable_command_accepted(
         resolve_request_source_for_request(request) if is_orchestrated_inference else None
     )
     mutation_admission = (
-        _build_mutation_admission(command_type, validated_task_id, command_fields)
+        admission or _build_mutation_admission(command_type, validated_task_id, command_fields)
         if requires_mutation_id
         else None
     )

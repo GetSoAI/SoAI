@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
+from core.models.context_window import MODEL_PARAM_STANDARDIZED_NAME, coerce_positive_context_tokens
 from core.openai.token_accounting import (
     PromptOccupancy,
     build_prompt_occupancy_snapshot,
@@ -35,10 +36,7 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
     from features.assistant_timeline.models import AssistantTimelineRuntime
 
-__all__ = (
-    "refresh_chat_stream_usage_preview_from_inference_payload",
-    "refresh_chat_stream_usage_preview_from_prompt_occupancy",
-)
+__all__ = ("refresh_chat_stream_usage_preview_from_inference_payload",)
 
 
 def _resolve_runtime_model_name(runtime: AssistantTimelineRuntime) -> str | None:
@@ -99,7 +97,6 @@ def _apply_prompt_usage_preview_snapshot(
     runtime.usage_preview_snapshot["preview_revision"] = runtime.usage_preview_revision
     runtime.usage_preview_last_emit_ms = 0
     runtime.usage_preview_last_compute_ms = 0
-    runtime.usage_preview_last_completion_tokens = None
     runtime.usage_preview_last_token_at_ms = None
     runtime.usage_preview_completion_rate_tokens_per_second = 0.0
 
@@ -124,6 +121,9 @@ async def refresh_chat_stream_usage_preview_from_inference_payload(
     request_context: RequestContext,
     stream_transcript: OpenAIStreamTranscript | None = None,
 ) -> None:
+    runtime.execution_context_window_override_tokens = coerce_positive_context_tokens(
+        inference_request_payload.get(MODEL_PARAM_STANDARDIZED_NAME),
+    )
     occupancy, runtime_profile = await count_model_aware_prompt_occupancy(
         config=config,
         prompt_token_counter=prompt_token_counter,
@@ -145,24 +145,6 @@ async def refresh_chat_stream_usage_preview_from_inference_payload(
         context_window_tokens=runtime_profile.context_window_tokens,
         context_window_unverified=runtime_profile.context_window_unverified,
         token_estimation_profile=runtime_profile.token_estimation_profile,
-        stream_transcript=stream_transcript,
-        prompt_token_counter=prompt_token_counter,
-    )
-
-
-def refresh_chat_stream_usage_preview_from_prompt_occupancy(
-    *,
-    runtime: AssistantTimelineRuntime,
-    occupancy: PromptOccupancy,
-    stream_transcript: OpenAIStreamTranscript,
-    prompt_token_counter: PromptTokenCounter,
-) -> None:
-    _apply_prompt_usage_preview_snapshot(
-        runtime=runtime,
-        occupancy=occupancy,
-        context_window_tokens=runtime.usage_preview_context_window_tokens,
-        context_window_unverified=runtime.usage_preview_context_window_unverified,
-        token_estimation_profile=runtime.usage_preview_token_estimation_profile,
         stream_transcript=stream_transcript,
         prompt_token_counter=prompt_token_counter,
     )

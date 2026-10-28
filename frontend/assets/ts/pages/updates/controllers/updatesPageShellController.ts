@@ -21,6 +21,8 @@ const initializeUpdatesPageShell = (dependencies: UpdatesPageShellDependencies):
     const controller = new UpdatesSystemController({
         host: dependencies.createSystemHost(),
         ui: {
+            historyText: dependencies.ui.historyText,
+            statusSection: dependencies.ui.statusSection,
             statusIcon: dependencies.ui.statusIcon,
             statusSpinner: dependencies.ui.statusSpinner,
             statusHeading: dependencies.ui.statusHeading,

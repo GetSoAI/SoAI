@@ -4,6 +4,6 @@
 import type { TrustedHtml } from '@core/security/public.ts';
 import { uiHtml } from '@core/security/uiHtml.ts';
 
-const renderAdminOnlyNotice = (message: string): TrustedHtml => uiHtml`<div class="settings-admin-only-notice">${message}</div>`;
+const renderAdminOnlyNotice = (message: string): TrustedHtml => uiHtml`<div class="settings-admin-only-notice" data-modal-localize="text">${message}</div>`;
 
 export { renderAdminOnlyNotice };

@@ -2,7 +2,7 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
-    .prompt-enhancer-modal .prompt-enhancer-layout {
+    .prompt-enhancer-modal.prompt-view-modal .prompt-enhancer-layout {
         display: flex;
         flex-direction: column;
         gap: var(--space-4);
@@ -20,6 +20,12 @@
     .prompt-enhancer-modal .prompt-enhancer-meta {
         display: grid;
         gap: var(--space-2);
+    }
+
+    .prompt-enhancer-modal .setting-control {
+        flex: 1;
+        min-width: 0;
+        max-width: 100%;
     }
 
     .prompt-enhancer-modal .model-selector {
@@ -58,7 +64,7 @@
         grid-template-columns: minmax(0, 1fr);
         gap: var(--space-4);
         flex: 1;
-        min-height: 0;
+        min-height: var(--layout-prompt-enhancer-pane-min-height);
         height: 100%;
         align-items: stretch;
         grid-template-rows: minmax(0, 1fr);
@@ -200,9 +206,11 @@
     @container ui-viewport (width <= 768px) {
         .prompt-enhancer-modal .prompt-enhancer-panes.prompt-enhancer-panes--split {
             grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: repeat(2, minmax(0, 1fr));
+            min-height: calc(2 * var(--layout-prompt-enhancer-pane-min-height) + var(--space-4));
         }
 
-        .prompt-enhancer-modal .prompt-enhancer-pane-separator {
+        .prompt-enhancer-modal .prompt-enhancer-panes.prompt-enhancer-panes--split .prompt-enhancer-pane-separator {
             display: none;
         }
     }
@@ -211,6 +219,10 @@
         .prompt-enhancer-modal .prompt-enhancer-meta-row {
             flex-direction: column;
             align-items: flex-start;
+        }
+
+        .prompt-enhancer-modal .setting-control {
+            width: 100%;
         }
     }
 }

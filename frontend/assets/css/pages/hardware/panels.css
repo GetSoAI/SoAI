@@ -6,8 +6,11 @@
         display: flex;
         justify-content: center;
         margin-top: auto;
-        padding-top: var(--space-3);
-        border-top: var(--border-width-1) solid var(--surface-card-border);
+        padding-top: calc(var(--space-3) + var(--border-width-1));
+        background-image: var(--ui-separator-gradient-horizontal);
+        background-size: 100% var(--border-width-1);
+        background-position: center top;
+        background-repeat: no-repeat;
         width: 100%;
     }
 
@@ -16,34 +19,39 @@
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-soaibench-actions {
         display: flex;
         align-items: center;
-        gap: var(--space-15);
+        gap: var(--space-1);
         justify-content: center;
         min-width: 0;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-primary-actions:not(.gpu-primary-action-group, .gpu-soaibench-actions) {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         justify-content: space-between;
         width: 100%;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-primary-action-group:not(.gpu-primary-actions, .gpu-soaibench-actions) {
-        flex: 0 1 auto;
+        flex: 1 1 auto;
+        flex-wrap: nowrap;
         justify-content: flex-end;
         margin-inline-start: auto;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-soaibench-actions:not(.gpu-primary-actions, .gpu-primary-action-group) {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         justify-content: flex-end;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-primary-action-group > [data-presence-state='exiting'] {
+        overflow: clip;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slot-group {
         display: inline-flex;
         align-items: stretch;
         justify-content: flex-start;
-        gap: var(--space-15);
-        flex: 0 1 auto;
+        gap: var(--space-1);
+        flex: 0 0 auto;
         min-width: 0;
     }
 
@@ -58,7 +66,7 @@
         --ui-button-color-hover: var(--ui-button-neutral-color-hover);
         --ui-button-focus-ring: color-mix(in srgb, var(--ui-button-accent-color) 28%, transparent);
         position: relative;
-        min-width: 2.25rem;
+        min-width: 2rem;
         padding: var(--space-1) var(--space-2);
         font-size: var(--font-size-062);
         font-weight: 600;
@@ -66,7 +74,7 @@
         letter-spacing: var(--tracking-045px);
         line-height: 1;
         isolation: isolate;
-        flex: 1 1 auto;
+        flex: 0 0 auto;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slot-button::before {
@@ -91,10 +99,11 @@
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slot-button--empty {
+        --ui-button-emphasis-opacity: var(--ui-button-subdued-opacity);
         --ui-button-border: color-mix(in srgb, var(--surface-card-border) 65%, var(--ui-button-inherited-underlay));
         --ui-button-bg: color-mix(in srgb, var(--button-surface-bg) 88%, transparent);
         --ui-button-color: color-mix(in srgb, var(--text-tertiary) 88%, transparent);
-        opacity: 0.8;
+        opacity: var(--ui-control-opacity);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slot-button--filled {
@@ -105,7 +114,7 @@
         --ui-button-color: color-mix(in srgb, var(--text-primary) 88%, var(--text-secondary));
         --ui-button-color-hover: var(--text-primary);
         --ui-button-focus-ring: color-mix(in srgb, var(--text-primary) 22%, transparent);
-        opacity: 1;
+        opacity: var(--ui-control-opacity);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slot-button--preview {
@@ -128,7 +137,7 @@
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slot-button--boot::before {
         opacity: 1;
-        border-color: color-mix(in srgb, var(--ui-button-primary-color) 55%, var(--ui-button-inherited-underlay));
+        border-color: color-mix(in srgb, color-mix(in srgb, var(--ui-button-primary-color) 55%, var(--ui-button-inherited-underlay)) var(--control-button-border-strength), transparent);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slot-button:is(.gpu-slot-button--boot, .gpu-slot-button--preview)::before {
@@ -163,24 +172,32 @@
         :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slot-button.is-flashing {
             animation: none;
             background: var(--ui-button-bg-hover);
-            border-color: var(--ui-button-border-hover);
+            border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
             color: var(--ui-button-color-hover);
         }
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-boot-toggle-row {
         display: grid;
+        flex-shrink: 0;
         align-items: center;
         align-self: stretch;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: var(--space-3);
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-1);
+        min-block-size: var(--gpu-slider-header-height);
         inline-size: 100%;
         margin-top: var(--space-3);
         width: 100%;
     }
 
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-boot-toggle-row > * {
+        grid-area: 1 / 1;
+    }
+
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-boot-telemetry {
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: var(--space-15);
         inline-size: 100%;
         max-width: none;
         min-width: 0;
@@ -188,7 +205,14 @@
         color: var(--text-secondary);
         letter-spacing: var(--tracking-015px);
         overflow-wrap: normal;
-        white-space: normal;
+        white-space: nowrap;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-telemetry-metric {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        white-space: nowrap;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-boot-telemetry--warning {
@@ -206,12 +230,13 @@
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-boot-toggle-container {
         display: flex;
         align-items: center;
-        justify-content: flex-end;
+        justify-content: flex-start;
         gap: var(--space-2);
-        min-width: calc(var(--space-16) + var(--space-16) + var(--space-4));
+        min-width: 0;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-boot-toggle-container--reserved {
+        display: none;
         opacity: 0;
         pointer-events: none;
         visibility: hidden;
@@ -224,44 +249,60 @@
         text-align: end;
     }
 
-    @container ui-viewport (width <= 1200px) {
-        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact th:nth-child(5),
-        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact td:nth-child(5) {
-            display: none;
+    @container ui-viewport (width <= 360px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slot-button {
+            min-width: var(--space-7);
+        }
+
+        .hardware-container:where([data-section='hardware'], [data-page-scope='hardware']) :is(.gpu-control-actions, .gpu-soaibench-actions) .ui-button {
+            padding-inline: var(--space-15);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-boot-telemetry {
+            font-size: min(var(--font-size-compact-sm), var(--font-size-068));
         }
     }
 
-    @container ui-viewport (width <= 1024px) {
-        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-insights-grid {
-            --hardware-insight-size: 250px;
-            grid-template-columns: repeat(auto-fit, var(--hardware-insight-size));
+    @container ui-viewport (width <= 280px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-primary-actions:not(.gpu-primary-action-group:not(.gpu-primary-actions, .gpu-soaibench-actions), .gpu-soaibench-actions:not(.gpu-primary-actions, .gpu-primary-action-group)) {
+            flex-wrap: wrap;
             justify-content: center;
-            max-width: none;
-            padding: var(--space-4);
-            gap: var(--space-4);
-            overflow-x: auto;
-            scroll-snap-type: x proximity;
+            align-content: center;
+            min-block-size: calc(3 * (var(--font-size-compact-plus) * var(--line-height-compact) + 2 * var(--space-1) + 2 * var(--border-width-1)) + 2 * var(--space-1));
         }
 
-        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-controls-container {
-            grid-auto-columns: minmax(min(100%, var(--gpu-panel-min)), min(100%, var(--gpu-panel-max)));
-            grid-template-columns: none;
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-primary-action-group:not(.gpu-primary-actions, .gpu-soaibench-actions) {
+            flex: 0 1 auto;
+            margin-inline-start: 0;
         }
 
-        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-panel {
-            width: 100%;
-            max-width: min(100%, var(--gpu-panel-max));
+        :where([data-section='hardware'], [data-page-scope='hardware']) :is(.gpu-primary-action-group:not(.gpu-primary-actions, .gpu-soaibench-actions), .gpu-soaibench-actions:not(.gpu-primary-actions, .gpu-primary-action-group)) {
+            max-inline-size: 100%;
+            flex-wrap: wrap;
         }
-    }
 
-    @container ui-viewport (width <= 640px) {
-        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-controls-container {
-            padding: var(--space-2);
+        .hardware-container:where([data-section='hardware'], [data-page-scope='hardware']) :is(.gpu-control-actions, .gpu-soaibench-actions) .ui-button {
+            padding-inline: var(--space-1);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-boot-toggle-row {
+            min-block-size: calc(2 * var(--gpu-slider-header-height));
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-boot-telemetry {
+            white-space: normal;
+            flex-wrap: wrap;
         }
     }
 
     @container ui-viewport (width <= 1200px) {
-        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-grid.movable-sections-grid.is-collapsed :is(.gpu-control-section, .hardware-process-card).hardware-section.is-collapsed {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-grid.movable-sections-grid.is-collapsed .gpu-control-section.hardware-section.is-collapsed {
+            height: 34rem;
+            max-height: 34rem;
+            overflow: hidden;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-grid.movable-sections-grid.is-collapsed .hardware-process-card.hardware-section.is-collapsed {
             height: min(34rem, calc(calc(100 * var(--ui-viewport-small-height-unit)) - var(--layout-container-padding) * 2));
             max-height: min(34rem, calc(calc(100 * var(--ui-viewport-small-height-unit)) - var(--layout-container-padding) * 2));
             overflow: hidden;

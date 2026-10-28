@@ -1,6 +1,7 @@
 /* SoAI - Wizard AI setup stored state transitions [frontend/assets/ts/pages/wizard/services/aisetup/state.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ModelTestFailureMetadata } from '@core/openai/modelTestStreamOutcome.ts';
 import { AI_SETUP_MAX_MODELS, AI_SETUP_MAX_PROVIDERS, AI_SETUP_STEPS, isAiSetupModelReady, type AiSetupDisposition, type AiSetupEngineMode, type AiSetupModel, type AiSetupProvider, type AiSetupState, type AiSetupStep, type AiSetupTestOutcome } from '@core/storage/aisetup/aiSetupTypes.ts';
 import { generateSecureId } from '@core/primitives/idGenerator.ts';
 
@@ -17,9 +18,11 @@ interface CloudModelPick {
     modelId: string;
 }
 
-const UNTESTED: AiSetupModel['test'] = { status: 'not_run', outcome: null, configurationFingerprint: null, testedAtMs: null };
+const UNTESTED: AiSetupModel['test'] = { status: 'not_run', outcome: null, configurationFingerprint: null, testedAtMs: null, failure: null };
 
 const createAiSetupState = (): AiSetupState => ({
+    committedLocalItemId: null,
+    lastLocalDownloadTaskId: null,
     disposition: 'in_progress',
     step: 'ai_sources',
     sources: { local: false, cloud: false },
@@ -41,6 +44,7 @@ const pruneReferences = (state: AiSetupState): AiSetupState => {
     const handoffItemId = state.handoff.itemId !== null && itemIds.has(state.handoff.itemId) ? state.handoff.itemId : null;
     return {
         ...state,
+        committedLocalItemId: state.committedLocalItemId !== null && itemIds.has(state.committedLocalItemId) ? state.committedLocalItemId : null,
         firstChatItemId: state.firstChatItemId !== null && selectable.has(state.firstChatItemId) ? state.firstChatItemId : null,
         handoff: { pending: state.handoff.pending && handoffItemId !== null, itemId: handoffItemId },
         pendingToastShownFor: state.pendingToastShownFor.filter((itemId) => itemIds.has(itemId))
@@ -71,7 +75,7 @@ const withEngineChoice = (state: AiSetupState, mode: AiSetupEngineMode, choices:
 };
 
 const withBackendTask = (state: AiSetupState, pluginName: string, variantId: string, taskId: string | null): AiSetupState => {
-    const backend = { pluginName, variantId, taskId, excluded: false };
+    const backend = { pluginName, variantId, taskId, excluded: state.engine.backends.find((entry) => entry.pluginName === pluginName)?.excluded ?? false };
     const exists = state.engine.backends.some((entry) => entry.pluginName === pluginName);
     const backends = exists ? state.engine.backends.map((entry) => (entry.pluginName === pluginName ? backend : entry)) : [...state.engine.backends, backend];
     return { ...state, engine: { ...state.engine, backends } };
@@ -115,6 +119,7 @@ const reconcileSelection = (state: AiSetupState, source: AiSetupModel['source'],
 const isSameArtifact = (model: AiSetupModel, pick: LocalModelPick): boolean => model.pluginName === pick.pluginName && model.repositoryId === pick.repositoryId && model.artifactReference === pick.artifactReference;
 
 const withLocalSelection = (state: AiSetupState, picks: readonly LocalModelPick[]): AiSetupState => {
+    if (picks.length > 1) throw new RangeError('AI setup allows one local model');
     const existing = state.models.filter((model) => model.source === 'local');
     const additions = picks.filter((pick) => !existing.some((model) => isSameArtifact(model, pick))).map((pick) => createModel({ source: 'local', pluginName: pick.pluginName, catalogId: pick.catalogId, repositoryId: pick.repositoryId, artifactReference: pick.artifactReference, artifactName: pick.artifactName, modelId: null }));
     return reconcileSelection(state, 'local', (model) => picks.some((pick) => isSameArtifact(model, pick)), additions);
@@ -127,13 +132,16 @@ const withCloudSelection = (state: AiSetupState, picks: readonly CloudModelPick[
     return reconcileSelection(state, 'cloud', (model) => picks.some((pick) => matches(model, pick)), additions);
 };
 
-const withModelTask = (state: AiSetupState, itemId: string, downloadTaskId: string | null): AiSetupState => updateModel(state, itemId, (model) => ({ ...model, downloadTaskId }));
+const withModelTask = (state: AiSetupState, itemId: string, downloadTaskId: string | null, wizardAccepted = false): AiSetupState => ({
+    ...updateModel(state, itemId, (model) => ({ ...model, downloadTaskId })),
+    lastLocalDownloadTaskId: wizardAccepted && downloadTaskId !== null ? downloadTaskId : state.lastLocalDownloadTaskId
+});
 
 const withModelDiscovered = (state: AiSetupState, itemId: string, modelId: string): AiSetupState => updateModel(state, itemId, (model) => ({ ...model, modelId }));
 
 const withConfiguration = (state: AiSetupState, itemId: string, configurationFingerprint: string): AiSetupState => updateModel(state, itemId, (model) => ({ ...model, test: { ...UNTESTED, configurationFingerprint } }));
 
-const withTestResult = (state: AiSetupState, itemId: string, outcome: AiSetupTestOutcome, configurationFingerprint: string | null, testedAtMs: number): AiSetupState => updateModel(state, itemId, (model) => ({ ...model, test: { status: outcome === 'passed' ? 'passed' : 'failed', outcome, configurationFingerprint, testedAtMs } }));
+const withTestResult = (state: AiSetupState, itemId: string, outcome: AiSetupTestOutcome, configurationFingerprint: string | null, testedAtMs: number, failure: ModelTestFailureMetadata | null = null): AiSetupState => updateModel(state, itemId, (model) => ({ ...model, test: { status: outcome === 'passed' ? 'passed' : 'failed', outcome, configurationFingerprint, testedAtMs, failure: outcome === 'passed' ? null : failure } }));
 
 const withTestStale = (state: AiSetupState, itemId: string): AiSetupState => updateModel(state, itemId, (model) => (model.test.status === 'passed' ? { ...model, test: { ...model.test, status: 'stale' } } : model));
 
@@ -163,3 +171,46 @@ const resolveHandoffItemId = (state: AiSetupState, isReady: (model: AiSetupModel
 
 export { activeProvider, createAiSetupState, resolveDefaultFirstChatItemId, resolveHandoffItemId, selectedModels, withBackendExcluded, withBackendTask, withCloudSelection, withConfiguration, withDisposition, withEngineChoice, withFirstChat, withHandoff, withItemExcluded, withLocalSelection, withModelDiscovered, withModelTask, withProvider, withSources, withStepReached, withTestResult, withTestStale, withToastShown };
 export type { CloudModelPick, LocalModelPick };
+
+const withLocalDownloadCommitted = (state: AiSetupState): AiSetupState => {
+    const local = state.models.filter((model) => model.source === 'local' && !model.excluded);
+    if (local.length > 1) throw new RangeError('AI setup allows one local model');
+    return { ...withStepReached(state, 'ai_progress'), committedLocalItemId: local[0]?.itemId ?? null };
+};
+
+export { withLocalDownloadCommitted };
+
+const readLocalModelPick = (model: AiSetupModel): LocalModelPick | null => (model.source !== 'local' || model.repositoryId === null || model.artifactReference === null ? null : { catalogId: model.catalogId, pluginName: model.pluginName, repositoryId: model.repositoryId, artifactReference: model.artifactReference, artifactName: model.artifactName ?? model.artifactReference });
+
+const withCompletedLocalDownload = (state: AiSetupState, itemId: string): AiSetupState => {
+    const item = state.models.find((model) => model.itemId === itemId);
+    if (item === undefined || !item.excluded) return state;
+    const pick = readLocalModelPick(item);
+    if (pick === null) throw new Error('Completed local download identity is invalid');
+    return withLocalDownloadCommitted(withLocalSelection(state, [pick]));
+};
+
+export { readLocalModelPick, withCompletedLocalDownload };
+
+const isDownloadCommitted = (setup: AiSetupState): boolean => setup.committedLocalItemId !== null;
+
+const withBackendRepaired = (state: AiSetupState, pluginName: string): AiSetupState => ({
+    ...state,
+    models: state.models.map((model) => (model.source === 'local' && !model.excluded && model.pluginName === pluginName && model.test.failure?.code === 'openvino_tensor_shape_incompatible' ? { ...model, test: { ...UNTESTED, configurationFingerprint: model.test.configurationFingerprint } } : model))
+});
+
+export { isDownloadCommitted, withBackendRepaired };
+
+const withAcceptedLocalDownload = (state: AiSetupState, pick: LocalModelPick, taskId: string, retryable: boolean): AiSetupState => {
+    if (retryable) {
+        const existing = state.models.find((model) => isSameArtifact(model, pick));
+        const item = existing ?? createModel({ source: 'local', pluginName: pick.pluginName, catalogId: pick.catalogId, repositoryId: pick.repositoryId, artifactReference: pick.artifactReference, artifactName: pick.artifactName, modelId: null });
+        return pruneReferences({ ...state, lastLocalDownloadTaskId: taskId, models: [...state.models.filter((model) => model.itemId !== item.itemId), { ...item, downloadTaskId: taskId, excluded: existing?.excluded ?? true }] });
+    }
+    const selected = withLocalSelection(state, [pick]);
+    const item = selected.models.find((model) => isSameArtifact(model, pick));
+    if (item === undefined) throw new Error('Accepted local model identity is unavailable');
+    return withLocalDownloadCommitted(withModelTask(selected, item.itemId, taskId, true));
+};
+
+export { withAcceptedLocalDownload };

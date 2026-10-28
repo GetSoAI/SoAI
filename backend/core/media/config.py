@@ -17,10 +17,15 @@ if TYPE_CHECKING:
     from core.config.protocols import ConfigProtocol
 
 __all__ = (
+    "SPEECH_MODEL_SETTING_KEY",
     "MediaParsingConfig",
+    "read_speech_model_setting",
     "resolve_media_parse_timeout",
     "resolve_media_parsing_config",
 )
+
+SPEECH_MODEL_SETTING_KEY = "TOOLS.MCP.READ_VIDEO.WHISPER_MODEL"
+_RELEASED_BLANK_SPEECH_MODEL = "base"
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,7 +73,7 @@ def resolve_media_parsing_config(config: ConfigProtocol) -> MediaParsingConfig:
             default=21_600,
             minimum=1,
         ),
-        whisper_model=_whisper_model(config),
+        whisper_model=read_speech_model_setting(config),
         audio_chunk_seconds=_positive_read_video_int(config, "AUDIO_CHUNK_SECONDS", 300),
         probe_timeout_sec=_positive_read_video_int(config, "PROBE_TIMEOUT_SEC", 60),
         frame_extraction_timeout_sec=_positive_read_video_int(
@@ -99,9 +104,11 @@ def _positive_read_video_int(config: ConfigProtocol, suffix: str, default: int) 
     )
 
 
-def _whisper_model(config: ConfigProtocol) -> str:
-    value = config.get("TOOLS.MCP.READ_VIDEO.WHISPER_MODEL")
-    return value.strip() if isinstance(value, str) and value.strip() else "base"
+def read_speech_model_setting(config: ConfigProtocol) -> str:
+    value = config.get(SPEECH_MODEL_SETTING_KEY)
+    return (
+        value.strip() if isinstance(value, str) and value.strip() else _RELEASED_BLANK_SPEECH_MODEL
+    )
 
 
 def resolve_media_parse_timeout(

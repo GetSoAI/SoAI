@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
+from core.openai.provider_error_reports import normalize_provider_error_token
 from core.openai.sse_frame_payloads import parse_openai_sse_frame_payloads
 from core.types.json_value import coerce_json_dict
 
@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 __all__ = (
     "build_openai_error_object",
     "build_openai_error_payload",
-    "coerce_openai_error_details_mapping",
     "extract_openai_error_fields_from_http_exception_detail",
     "extract_openai_error_fields_from_payload",
     "extract_openai_error_message_and_type_from_envelope",
@@ -53,7 +52,7 @@ def extract_openai_error_fields_from_payload(
     error_type = (
         error_type_value if isinstance(error_type_value, str) and error_type_value else None
     )
-    code = code_value if isinstance(code_value, str) and code_value else None
+    code = normalize_provider_error_token(code_value)
     return (message, error_type, code)
 
 
@@ -70,8 +69,8 @@ def extract_openai_error_fields_from_http_exception_detail(
     )
     param_value = error_obj.get("param")
     code_value = error_obj.get("code")
-    param = param_value if isinstance(param_value, str) and param_value else None
-    code = code_value if isinstance(code_value, str) and code_value else None
+    param = normalize_provider_error_token(param_value)
+    code = normalize_provider_error_token(code_value)
     return (message_text, error_type, param, code)
 
 
@@ -93,14 +92,22 @@ def parse_openai_sse_error_frame(
     frame: bytes | str,
 ) -> tuple[str, str | None, str | None, str | None] | None:
     for payload in parse_openai_sse_frame_payloads(frame):
-        if "error" not in payload:
-            continue
         error_obj = payload.get("error")
+        if "error" not in payload:
+            response = payload.get("response")
+            if (
+                payload.get("type") != "response.failed"
+                or not isinstance(response, dict)
+                or response.get("status") != "failed"
+                or not isinstance(response.get("error"), dict)
+            ):
+                continue
+            error_obj = response["error"]
         message, error_type, code = extract_openai_error_fields_from_payload(error_obj)
         if message is None:
             message = "Upstream provider request failed."
         param_value = error_obj.get("param") if isinstance(error_obj, dict) else None
-        param = param_value if isinstance(param_value, str) and param_value else None
+        param = normalize_provider_error_token(param_value)
         return (message, error_type, param, code)
     return None
 
@@ -150,11 +157,3 @@ def normalize_openai_error_code_subtype(
     if normalized == canonical_error_type:
         return None
     return normalized
-
-
-def coerce_openai_error_details_mapping(
-    details: Mapping[str, JSONValue] | None,
-) -> Mapping[str, JSONValue]:
-    if not isinstance(details, dict):
-        return {}
-    return details

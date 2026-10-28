@@ -6,10 +6,25 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.database.protocols import DatabaseCoreProtocol
+from database.repositories.memory.entry_mutations import (
+    sync_create_entry,
+    sync_delete_entry,
+    sync_delete_observation,
+    sync_update_entry,
+)
+from database.repositories.memory.management_snapshots import (
+    read_managed_entry,
+    read_management_library,
+)
+from database.repositories.memory.profile_mutations import sync_save_profile
 from database.repositories.memory.read_queries import (
     read_get_entity,
     read_list_entities,
     read_search_entities,
+)
+from database.repositories.memory.relation_mutations import (
+    sync_delete_relation,
+    sync_update_relation,
 )
 from database.repositories.memory.write_queries import (
     sync_replace_entity_observations_for_source,
@@ -99,4 +114,74 @@ class DatabaseMemory:
             entity_names,
             observation_ids,
             relation_ids,
+        )
+
+    async def read_library(self, user_id: int) -> JSONDict:
+        return await self.core.reader.execute_read(read_management_library, user_id)
+
+    async def read_entry(self, user_id: int, entry_id: str) -> JSONDict:
+        return await self.core.reader.execute_read(read_managed_entry, user_id, entry_id)
+
+    async def create_entry(self, user_id: int, entry_id: str, name: str, content: str) -> JSONDict:
+        return await self.core.writer.queue_write_operation(
+            sync_create_entry, user_id, entry_id, name, content
+        )
+
+    async def update_entry(
+        self,
+        user_id: int,
+        entry_id: str,
+        expected_revision: str,
+        name: str | None,
+        observation: JSONDict | None,
+    ) -> JSONDict:
+        return await self.core.writer.queue_write_operation(
+            sync_update_entry, user_id, entry_id, expected_revision, name, observation
+        )
+
+    async def delete_entry(self, user_id: int, entry_id: str, expected_revision: str) -> JSONDict:
+        return await self.core.writer.queue_write_operation(
+            sync_delete_entry, user_id, entry_id, expected_revision
+        )
+
+    async def delete_observation(
+        self, user_id: int, entry_id: str, observation_id: str, expected_revision: str
+    ) -> JSONDict:
+        return await self.core.writer.queue_write_operation(
+            sync_delete_observation, user_id, entry_id, observation_id, expected_revision
+        )
+
+    async def update_relation(
+        self,
+        user_id: int,
+        entry_id: str,
+        relation_id: str,
+        expected_revision: str,
+        from_entity_id: str,
+        to_entity_id: str,
+        relation_type: str,
+    ) -> JSONDict:
+        return await self.core.writer.queue_write_operation(
+            sync_update_relation,
+            user_id,
+            entry_id,
+            relation_id,
+            expected_revision,
+            from_entity_id,
+            to_entity_id,
+            relation_type,
+        )
+
+    async def delete_relation(
+        self, user_id: int, entry_id: str, relation_id: str, expected_revision: str
+    ) -> JSONDict:
+        return await self.core.writer.queue_write_operation(
+            sync_delete_relation, user_id, entry_id, relation_id, expected_revision
+        )
+
+    async def save_profile(
+        self, user_id: int, payload: JSONDict, expected_revision: str | None = None
+    ) -> JSONDict:
+        return await self.core.writer.queue_write_operation(
+            sync_save_profile, user_id, payload, expected_revision
         )

@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Mapping
 from typing import TYPE_CHECKING
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.config.clamped_numeric import read_config_nonnegative_int
 from core.errors.exceptions import ValidationError
 from core.hardware.protocols import DatabaseHardwareProtocol
@@ -17,6 +18,7 @@ from core.history.request.preparation import (
 )
 from core.history.request.resolution import resolve_aligned_history_query_start
 from core.logging.protocols import TraceLogger
+from hardware.manager.gpu_device_resolution import GPUHistoryDeviceResolution
 from hardware.manager.ohlc_post_processing import post_process_ohlc_data
 
 if TYPE_CHECKING:
@@ -35,7 +37,7 @@ async def get_historical_data(
     monitoring_interval_ms: int,
     last_full_info: JSONDict,
     get_system_info: Callable[[list[str] | None, bool], Awaitable[JSONDict]],
-    resolve_gpu_device_id: Callable[[int], str | None],
+    resolve_gpu_device_id: Callable[[int], GPUHistoryDeviceResolution | None],
     component: str,
     start_ts_ms: int,
     end_ts_ms: int,
@@ -73,13 +75,21 @@ async def get_historical_data(
         history_request.resolution.interval_ms,
     )
     resolved_identifier = identifier.strip() if isinstance(identifier, str) else None
+    identity_observation: JSONDict | None = None
     if component_normalized == "gpu":
         resolved_identifier = None
         if gpu_index is None:
             raise ValidationError("gpu_index is required for GPU historical data")
-        resolved_identifier = resolve_gpu_device_id(gpu_index)
-        if not resolved_identifier:
+        resolution = await run_joined_thread_call(
+            resolve_gpu_device_id,
+            gpu_index,
+            task_name="hardware-history-gpu-identity",
+            retain_resources_until_complete=True,
+        )
+        if resolution is None:
             raise ValidationError(f"Unknown gpu_index '{gpu_index}' for GPU historical data")
+        resolved_identifier = resolution.device.device_id
+        identity_observation = resolution.metadata()
     elif resolved_identifier and component_normalized in {"cpu", "disk", "network"}:
         snapshot = last_full_info if isinstance(last_full_info, dict) else {}
         if not snapshot:
@@ -154,6 +164,8 @@ async def get_historical_data(
         },
     )
     history_data["metadata"] = metadata
+    if identity_observation is not None:
+        metadata["identity_observation"] = identity_observation
     return history_data
 
 

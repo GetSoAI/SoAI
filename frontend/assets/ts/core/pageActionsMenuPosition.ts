@@ -21,9 +21,8 @@ const syncPageActionsMenuPosition = (menu: HTMLElement, trigger: HTMLElement, op
     const maxWidth = Math.max(0, viewportWidth - MENU_VIEWPORT_GAP_PX * 2);
     dom.setStyle(menu, '--page-actions-menu-max-width', `${String(maxWidth)}px`);
     const triggerRect = measureLayoutBox(trigger);
-    const menuRect = measureLayoutBox(menu);
-    const menuWidth = Math.min(menuRect.width, maxWidth);
-    const menuHeight = menuRect.height;
+    const menuWidth = Math.min(menu.offsetWidth, maxWidth);
+    const menuHeight = menu.offsetHeight;
     const alignLeft = options.alignment === 'start' ? !isRtl(trigger) : isRtl(trigger);
     const preferredLeft = alignLeft ? triggerRect.left : triggerRect.right - menuWidth;
     const maxLeft = Math.max(MENU_VIEWPORT_GAP_PX, viewportWidth - menuWidth - MENU_VIEWPORT_GAP_PX);

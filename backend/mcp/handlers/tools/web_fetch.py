@@ -19,6 +19,7 @@ from mcp.handlers.tools.web_fetch_parsing import (
 )
 from mcp.handlers.tools.web_fetch_screenshot import capture_web_fetch_screenshot
 from mcp.protocol.types import MCPJSONRPCError
+from mcp.rag.scraper.extraction_projection import fetched_extraction_fields
 from mcp.rag.scraper.text_formatting import resolve_extract_mode_content, truncate_text
 from mcp.shared.protocol_arguments import get_required_str
 from mcp.tools.browser.download_flow_hints import build_download_flow_hints
@@ -132,6 +133,7 @@ class WebFetchTool(RAGToolBase):
                 "fetched_at": fetched_at,
                 "content": truncated_content,
                 "page_count": fetched.page_count,
+                **fetched_extraction_fields(fetched),
                 "persisted": False,
             }
             if is_document_response:

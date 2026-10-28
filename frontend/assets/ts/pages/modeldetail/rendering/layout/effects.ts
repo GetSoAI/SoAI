@@ -8,17 +8,14 @@ import { renderToggleSwitch } from '@core/toggleSwitch.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
 import { renderIconSlot } from '@core/ui/icons/view.ts';
-import { ACTION_DELETE_MODEL, ACTION_MANAGE_ALIAS, ACTION_RESET_OPENAI_CAPABILITIES, ACTION_STOP_PLUGIN, ACTION_TOGGLE_MODEL_ENABLED } from '@features/modeldetail/public.ts';
+import { ACTION_DELETE_MODEL, ACTION_MANAGE_ALIAS, ACTION_STOP_PLUGIN, ACTION_TOGGLE_MODEL_ENABLED } from '@features/modeldetail/public.ts';
 import { DETAIL_ROWS, EXTERNAL_PROVIDER_ROWS, STATUS_ROWS } from '@pages/modeldetail/rendering/layout/constants.ts';
 import { MODEL_DETAIL_FACT_CLASS, renderCard, renderSpecRow, renderSpecRows } from '@pages/modeldetail/rendering/layout/rendering.ts';
 
-const renderActionButton = (options: { id: string; action: string; label: string; variant: string; icon?: IconName; size: 'sm' | 'titlebar'; hidden?: boolean; dataset?: Record<string, string> }): string => {
+const renderActionButton = (options: { id: string; action: string; label: string; variant: string; icon?: IconName; hidden?: boolean }): string => {
     const icon = options.icon ? renderIconSlot(getIconSync(options.icon, { size: 14, strokeWidth: 1.6 })).html : '';
-    const className = ['ui-button', `ui-button--${options.size}`, options.variant, options.hidden ? 'u-hidden' : ''].filter(Boolean).join(' ');
-    const dataset = Object.entries(options.dataset ?? {})
-        .map(([key, value]) => ` data-${key}="${securityApi.escapeAttribute(value)}"`)
-        .join('');
-    return `<button type="button" class="${className}" id="${options.id}" data-action="${options.action}"${dataset} ${renderLabelAttributes(options.label).html}>${icon}<span>${options.label}</span></button>`;
+    const className = ['ui-button', 'ui-button--sm', options.variant, options.hidden ? 'u-hidden' : ''].filter(Boolean).join(' ');
+    return `<button type="button" class="${className}" id="${options.id}" data-action="${options.action}" ${renderLabelAttributes(options.label).html}>${icon}<span>${options.label}</span></button>`;
 };
 
 const renderStatusRow = (options: { nameId: string; label: string; statusId: string; statusLabel: string; copyable?: boolean }): string =>
@@ -56,7 +53,7 @@ const renderStatusCard = (): string => {
         className: 'modeldetail-enabled-toggle u-hidden',
         attributes: { id: 'modeldetail-enabled-toggle' }
     });
-    const actions = [renderActionButton({ id: ACTION_MANAGE_ALIAS, action: ACTION_MANAGE_ALIAS, label: i18n.t('modelDetail.cards.status.manageAlias'), variant: 'ui-variant-neutral', size: 'sm' }), renderActionButton({ id: ACTION_STOP_PLUGIN, action: ACTION_STOP_PLUGIN, label: i18n.t('modelDetail.cards.status.stopPlugin'), variant: 'ui-variant-warning', icon: 'stop', size: 'sm', hidden: true }), renderActionButton({ id: ACTION_DELETE_MODEL, action: ACTION_DELETE_MODEL, label: i18n.t('modelDetail.cards.status.delete'), variant: 'ui-variant-danger', icon: 'delete', size: 'sm' })].join('');
+    const actions = [renderActionButton({ id: ACTION_MANAGE_ALIAS, action: ACTION_MANAGE_ALIAS, label: i18n.t('modelDetail.cards.status.manageAlias'), variant: 'ui-variant-neutral' }), renderActionButton({ id: ACTION_STOP_PLUGIN, action: ACTION_STOP_PLUGIN, label: i18n.t('modelDetail.cards.status.stopPlugin'), variant: 'ui-variant-warning', icon: 'stop', hidden: true }), renderActionButton({ id: ACTION_DELETE_MODEL, action: ACTION_DELETE_MODEL, label: i18n.t('modelDetail.cards.status.delete'), variant: 'ui-variant-danger' })].join('');
     const pluginRow = renderStatusRow({ nameId: 'modeldetail-plugin', label: i18n.t('modelDetail.cards.plugin.title'), statusId: 'modeldetail-plugin-status', statusLabel: i18n.t('modelDetail.cards.status.title') });
     return renderCard({
         id: 'modeldetail-status-card',
@@ -71,7 +68,7 @@ const renderExternalProviderCard = (): string =>
     renderCard({
         id: 'modeldetail-external-provider-card',
         title: i18n.t('modelDetail.cards.externalProvider.title'),
-        content: `<dl class="modeldetail-spec">${renderStatusRow({ nameId: 'modeldetail-provider-name', label: i18n.t('modelDetail.cards.externalProvider.name'), statusId: 'modeldetail-provider-status', statusLabel: i18n.t('modelDetail.cards.externalProvider.status'), copyable: true })}${renderSpecRows(EXTERNAL_PROVIDER_ROWS)}</dl>`,
+        content: `<dl class="modeldetail-spec">${renderSpecRow({ id: 'modeldetail-provider-name', label: i18n.t('modelDetail.cards.externalProvider.name'), copyable: true, hidden: true })}${renderSpecRows(EXTERNAL_PROVIDER_ROWS)}</dl>`,
         bodyClassName: 'modeldetail-card-body--stack',
         hidden: true
     });
@@ -98,7 +95,6 @@ const renderCapabilitiesCard = (): string =>
         title: i18n.t('modelDetail.cards.capabilities.title'),
         content: '<div class="modeldetail-capabilities" id="modeldetail-status-capabilities-list"></div>',
         className: 'modeldetail-status-capabilities',
-        headerActions: renderActionButton({ id: 'modeldetail-openai-capabilities-reset', action: ACTION_RESET_OPENAI_CAPABILITIES, label: i18n.t('modelDetail.cards.capabilities.reset'), variant: 'ui-variant-neutral', icon: 'undo', size: 'titlebar', hidden: true, dataset: { 'openai-capability-reset': 'true' } }),
         hidden: true
     });
 

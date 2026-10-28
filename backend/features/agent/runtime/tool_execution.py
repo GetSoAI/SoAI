@@ -16,6 +16,7 @@ from core.orchestrator.types import MCPToolContext
 from core.runtime.request_context import RequestContext
 from core.runtime.request_context_cloning import clone_request_context
 from core.runtime.soai_identifiers import create_prefixed_hex_id
+from core.skills.execution_policy import skill_tool_is_permitted
 from core.timing.epoch import epoch_ms
 from core.tool_calls.conversation_stop_signal import (
     STOP_CONVERSATION_TOOL_NAME,
@@ -123,6 +124,12 @@ async def execute_tool_calls_with_agent_events(
             cancellation_id,
         ):
             raise asyncio.CancelledError()
+        if await should_interrupt_turn_for_steer(
+            request_context=request_context,
+            database_input_queue=database_input_queue,
+            tool_context=tool_context,
+        ):
+            raise AgentTurnInterruptedBySteer(len(outcomes))
         tool_call_id = str(tool_call.get("id") or "").strip()
         if not tool_call_id:
             tool_call_id = create_prefixed_hex_id("call")
@@ -134,7 +141,10 @@ async def execute_tool_calls_with_agent_events(
         tool_call["started_at_ms"] = started_at_ms
         tool_call.pop("duration_ms", None)
         approval_projection_persisted = False
-        if approval_task_registry is not None and persist_visible_rows:
+        skill_permits_tool = skill_tool_is_permitted(
+            iteration_request_context.skill_execution_context, tool_name
+        )
+        if skill_permits_tool and approval_task_registry is not None and persist_visible_rows:
             await uncancel_then_cleanup(
                 persist_pending_visible_tool_call_projection(
                     database_tool_calls=database_tool_calls,
@@ -151,7 +161,12 @@ async def execute_tool_calls_with_agent_events(
         try:
             if persist_progress is not None:
                 await persist_progress(raw_tool_calls, outcomes)
-            if approval_task_registry is not None:
+            if (
+                skill_tool_is_permitted(
+                    iteration_request_context.skill_execution_context, tool_name
+                )
+                and approval_task_registry is not None
+            ):
                 approved = await resolve_tool_approval_decision(
                     request_context=request_context,
                     tool_context=tool_context,
@@ -266,9 +281,4 @@ async def execute_tool_calls_with_agent_events(
             tool_outcome.result_payload,
         ):
             break
-        if await should_interrupt_turn_for_steer(
-            database_input_queue=database_input_queue,
-            tool_context=tool_context,
-        ):
-            raise AgentTurnInterruptedBySteer(len(outcomes))
     return outcomes

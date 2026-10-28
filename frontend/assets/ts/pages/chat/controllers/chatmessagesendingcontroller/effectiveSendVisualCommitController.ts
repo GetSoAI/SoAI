@@ -1,16 +1,16 @@
 /* SoAI - Effective chat timeline send visual commit sequencing [frontend/assets/ts/pages/chat/controllers/chatmessagesendingcontroller/effectiveSendVisualCommitController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { awaitAnimationFrame } from '@core/runtime/animationFrames.ts';
+import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
+import { throwIfAborted } from '@core/errors/abort.ts';
 import { clearComposerInput } from '@pages/chat/controllers/chatmessagesendingcontroller/effects.ts';
 
 type EffectiveSendVisualCommitArguments = {
+    scrollToBottomOnSend?: boolean;
     composerTextForClearing: string | null;
     abortSignal: AbortSignal | null;
     renderCurrentConversation: () => Promise<void>;
     prepareComposerSurfaceForEffectiveSend?: (() => void) | undefined;
-    onComposerSurfacePrepared?: (() => void) | undefined;
-    onComposerCleared?: (() => void) | undefined;
 };
 
 type EffectiveSendVisualCommitHost = {
@@ -23,33 +23,36 @@ type EffectiveSendVisualCommitHost = {
     presentation: {
         flushDOMUpdates: () => void;
         shouldAutoScrollAfterContentUpdate: () => boolean;
-        forceTimelineScrollToBottom: () => void;
+        forceTimelineScrollToBottom: (behavior?: ScrollBehavior) => void;
     };
 };
 
 const commitEffectiveSendVisualState = async (host: EffectiveSendVisualCommitHost, inputArguments: EffectiveSendVisualCommitArguments): Promise<void> => {
+    throwIfAborted(inputArguments.abortSignal);
     const shouldScrollToBottomAfterCommit = host.presentation.shouldAutoScrollAfterContentUpdate();
     if (inputArguments.prepareComposerSurfaceForEffectiveSend) {
         inputArguments.prepareComposerSurfaceForEffectiveSend();
-        inputArguments.onComposerSurfacePrepared?.();
         host.presentation.flushDOMUpdates();
-        await awaitAnimationFrame(inputArguments.abortSignal, 'Chat effective send visual commit aborted.');
+        await awaitPresentationFrame(inputArguments.abortSignal, 'Chat effective send visual commit aborted.');
     }
-    const didClearComposerInput = inputArguments.composerTextForClearing === null ? false : clearComposerInput(host, inputArguments.composerTextForClearing);
-    if (didClearComposerInput) {
-        inputArguments.onComposerCleared?.();
+    throwIfAborted(inputArguments.abortSignal);
+    if (inputArguments.composerTextForClearing !== null) {
+        clearComposerInput(host, inputArguments.composerTextForClearing);
     }
     host.presentation.flushDOMUpdates();
-    await awaitAnimationFrame(inputArguments.abortSignal, 'Chat effective send visual commit aborted.');
+    await awaitPresentationFrame(inputArguments.abortSignal, 'Chat effective send visual commit aborted.');
+    throwIfAborted(inputArguments.abortSignal);
     await inputArguments.renderCurrentConversation();
+    throwIfAborted(inputArguments.abortSignal);
     host.presentation.flushDOMUpdates();
-    if (shouldScrollToBottomAfterCommit) {
-        host.presentation.forceTimelineScrollToBottom();
+    if (inputArguments.scrollToBottomOnSend || shouldScrollToBottomAfterCommit) {
+        host.presentation.forceTimelineScrollToBottom(inputArguments.scrollToBottomOnSend ? 'smooth' : 'instant');
         host.presentation.flushDOMUpdates();
     }
-    await awaitAnimationFrame(inputArguments.abortSignal, 'Chat effective send visual commit aborted.');
+    await awaitPresentationFrame(inputArguments.abortSignal, 'Chat effective send visual commit aborted.');
+    throwIfAborted(inputArguments.abortSignal);
     host.presentation.flushDOMUpdates();
-    await awaitAnimationFrame(inputArguments.abortSignal, 'Chat effective send visual commit aborted.');
+    await awaitPresentationFrame(inputArguments.abortSignal, 'Chat effective send visual commit aborted.');
 };
 
 export { commitEffectiveSendVisualState };

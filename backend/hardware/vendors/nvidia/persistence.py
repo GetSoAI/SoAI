@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import copy
 import threading
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from shutil import which
 from typing import TYPE_CHECKING, Literal
@@ -86,6 +88,11 @@ class NvidiaCapabilitiesCacheService:
         with self._entries_lock:
             return self._expiry
 
+    @contextmanager
+    def publication_snapshot(self) -> Generator[tuple[int, int], None, None]:
+        with self._entries_lock:
+            yield self._revision, self._expiry
+
     def expire_inventory_snapshot(self) -> int:
         with self._entries_lock:
             self._entries.clear()
@@ -115,11 +122,13 @@ class NvidiaCapabilitiesCacheService:
             if sequence <= self._accepted_observation:
                 return
             self._accepted_observation = sequence
-            if signature is None or self._signature != signature:
+            changed = self._signature != signature or (signature is None and self._entries)
+            if changed or signature is None:
                 self._generation += 1
-                self._revision += 1
                 self._entries.clear()
                 self._vendor_generations.clear()
+            if changed:
+                self._revision += 1
             self._signature = signature
             if signature is not None:
                 present = {entry[1] for entry in signature}

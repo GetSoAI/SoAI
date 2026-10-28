@@ -15,7 +15,6 @@ from core.openai.request_field_validation import (
     raise_unsupported_field,
 )
 from core.openai.request_options import (
-    extract_openai_bool_flag,
     extract_openai_store_flag,
     validate_openai_stream_options,
 )
@@ -31,7 +30,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "build_openai_invalid_request_response",
-    "extract_openai_bool_flag_or_response",
     "extract_openai_store_flag_or_response",
     "extract_unknown_extra_fields",
     "reject_unknown_openai_fields",
@@ -72,35 +70,6 @@ def build_openai_invalid_request_response(
         trace_id=trace_id,
         headers=None,
     )
-
-
-def extract_openai_bool_flag_or_response(
-    payload_json: dict[str, JSONValue],
-    *,
-    key: str,
-    default: bool,
-    trace_id: str,
-    invalid_message: str,
-) -> tuple[bool, JSONResponse | None]:
-    try:
-        return (
-            extract_openai_bool_flag(
-                payload_json,
-                key=key,
-                default=default,
-                trace_id=trace_id,
-            ),
-            None,
-        )
-    except ValidationError:
-        return (
-            bool(default),
-            build_openai_invalid_request_response(
-                message=invalid_message,
-                param=str(key),
-                trace_id=trace_id,
-            ),
-        )
 
 
 def extract_openai_store_flag_or_response(

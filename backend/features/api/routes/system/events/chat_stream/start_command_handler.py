@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ValidationError
+from core.errors.public_projection import project_public_error
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.openai.request_fields import resolve_optional_model_name
@@ -253,5 +254,5 @@ async def handle_chat_stream_start(
         await finalize_chat_stream_start_failure(
             context=failure_context,
             error_code=str(coerced.code),
-            error_message=str(coerced),
+            error_message=project_public_error(coerced).message,
         )

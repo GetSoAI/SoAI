@@ -8,6 +8,8 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { getMaintenanceCoordinator } from '@core/maintenanceCoordinator.ts';
 import { isFunction, isNumber } from '@core/typeGuards.ts';
+import { monotonicMs, serverEpochMs } from '@core/time/clock.ts';
+import { msToSeconds, secondsToMs } from '@core/time/durations.ts';
 import { syncDeterminateProgress } from '@core/ui/progressWidths.ts';
 
 const MODULE_ID = 'features.overlays.Countdown';
@@ -26,6 +28,7 @@ interface CountdownElements {
 interface ShowOptions {
     title?: string | undefined;
     seconds?: number | undefined;
+    executeAtMs?: number | undefined;
     prefixText?: string | undefined;
     suffixText?: string | undefined;
     cancelLabel?: string | undefined;
@@ -45,6 +48,9 @@ class CountdownOverlay extends LifecycleModel {
     maintenanceToken: symbol | null = null;
     cancelButtonDisposer: (() => void) | null = null;
     cancelInProgress: boolean = false;
+    #presentationSequence = 0;
+    #deadline: { type: 'server' | 'duration'; atMs: number } | null = null;
+    #removeVisibilityListener: (() => void) | null = null;
 
     constructor() {
         super({ moduleId: MODULE_ID });
@@ -63,19 +69,24 @@ class CountdownOverlay extends LifecycleModel {
     }
 
     override async onDestroy(): Promise<void> {
+        this.#presentationSequence += 1;
         this.#stopTimers();
         this.#releaseCancelButton();
         this.elements = null;
         this.#releaseMaintenance();
     }
 
-    show({ title, seconds, prefixText, suffixText, cancelLabel, onCancel, onComplete }: ShowOptions = {}): void {
+    show({ title, seconds, executeAtMs, prefixText, suffixText, cancelLabel, onCancel, onComplete }: ShowOptions = {}): void {
+        if (executeAtMs !== undefined && !Number.isFinite(executeAtMs)) throw new Error('Countdown execution deadline must be finite');
+        this.#presentationSequence += 1;
+        const presentationSequence = this.#presentationSequence;
         const normalizedSeconds = typeof seconds === 'number' && Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
         this.#ensureElements();
         this.#stopTimers();
         this.#releaseCancelButton();
-        this.remainingSeconds = normalizedSeconds;
-        this.totalSeconds = normalizedSeconds;
+        this.#deadline = executeAtMs !== undefined ? { type: 'server', atMs: executeAtMs } : normalizedSeconds > 0 ? { type: 'duration', atMs: monotonicMs() + secondsToMs(normalizedSeconds) } : null;
+        this.remainingSeconds = this.#deadline === null ? 0 : this.#remainingSeconds();
+        this.totalSeconds = this.remainingSeconds;
         this.cancelInProgress = false;
         this.cancelHandler = isFunction(onCancel) ? onCancel : null;
         this.completeHandler = isFunction(onComplete) ? onComplete : null;
@@ -97,24 +108,17 @@ class CountdownOverlay extends LifecycleModel {
 
         this.#updateRemaining(valueNode, progressNode);
 
-        this.cancelButtonDisposer = this.lifecycleResources.addEventListener(cancelButton, 'click', () => terminateHandledPromise(this.#handleCancelClick()));
+        this.cancelButtonDisposer = this.lifecycleResources.addEventListener(cancelButton, 'click', () => terminateHandledPromise(this.#handleCancelClick(presentationSequence)));
 
-        if (normalizedSeconds > 0) {
-            this.timerHandle = this.lifecycleResources.setTimer(
-                () => {
-                    this.remainingSeconds -= 1;
-                    this.#updateRemaining(valueNode, progressNode);
-                    if (this.remainingSeconds <= 0 && !this.cancelInProgress) {
-                        this.hide({ canceled: false });
-                    }
-                },
-                1000,
-                { repeat: true }
-            );
+        if (this.#deadline !== null) {
+            this.#removeVisibilityListener = this.lifecycleResources.addEventListener(dom.getDocument(), 'visibilitychange', () => this.#refreshCountdown(presentationSequence));
+            this.timerHandle = this.lifecycleResources.setTimer(() => this.#refreshCountdown(presentationSequence), 1000, { repeat: true });
+            this.#refreshCountdown(presentationSequence);
         }
     }
 
     hide({ canceled }: { canceled?: boolean | undefined } = {}): void {
+        this.#presentationSequence += 1;
         this.#stopTimers();
         this.#releaseCancelButton();
         const { overlay } = this.elements ?? {};
@@ -133,8 +137,8 @@ class CountdownOverlay extends LifecycleModel {
         }
     }
 
-    async #handleCancelClick(): Promise<void> {
-        if (this.cancelInProgress) {
+    async #handleCancelClick(presentationSequence: number): Promise<void> {
+        if (presentationSequence !== this.#presentationSequence || this.cancelInProgress) {
             return;
         }
         this.cancelInProgress = true;
@@ -146,19 +150,36 @@ class CountdownOverlay extends LifecycleModel {
             errorHandler.error(MODULE_ID, 'Countdown cancellation handler failed', ensureError(error));
             cancelled = false;
         }
+        if (presentationSequence !== this.#presentationSequence) return;
         if (cancelled) {
             this.hide({ canceled: true });
             return;
         }
         this.cancelInProgress = false;
-        if (this.remainingSeconds <= 0) {
-            this.hide({ canceled: false });
-        } else if (this.elements) {
-            this.elements.cancelButton.disabled = false;
-        }
+        this.#refreshCountdown(presentationSequence);
+        if (presentationSequence !== this.#presentationSequence) return;
+        if (this.remainingSeconds === 0) this.hide({ canceled: false });
+        else if (this.elements) this.elements.cancelButton.disabled = false;
+    }
+
+    #remainingSeconds(): number {
+        const deadline = this.#deadline;
+        if (deadline === null) return 0;
+        const now = deadline.type === 'server' ? serverEpochMs() : monotonicMs();
+        return Math.max(0, Math.ceil(msToSeconds(deadline.atMs - now)));
+    }
+
+    #refreshCountdown(presentationSequence: number): void {
+        if (presentationSequence !== this.#presentationSequence || this.#deadline === null || this.elements === null) return;
+        this.remainingSeconds = this.#remainingSeconds();
+        this.#updateRemaining(this.elements.valueNode, this.elements.progressNode);
+        if (this.remainingSeconds === 0 && !this.cancelInProgress) this.hide({ canceled: false });
     }
 
     #stopTimers(): void {
+        this.#deadline = null;
+        this.#removeVisibilityListener?.();
+        this.#removeVisibilityListener = null;
         if (this.timerHandle !== null) {
             this.lifecycleResources.clearTimer(this.timerHandle);
             this.timerHandle = null;
@@ -211,47 +232,36 @@ class CountdownOverlay extends LifecycleModel {
             dom.appendChild(content, [icon, titleNode, message, progress, cancelButton]);
             dom.appendChild(overlay, content);
             dom.appendChild(body, overlay);
-
-            this.elements = {
-                overlay,
-                titleNode,
-                prefixNode,
-                suffixNode,
-                valueNode,
-                progressNode,
-                cancelButton
-            };
-        } else {
-            const titleNode = this.lifecycleDom.requireHTMLElement('.restart-title', overlay);
-            const prefixNode = this.lifecycleDom.requireHTMLElement('.countdown-prefix', overlay);
-            const suffixNode = this.lifecycleDom.requireHTMLElement('.countdown-suffix', overlay);
-            const valueNode = this.lifecycleDom.requireHTMLElement('.countdown-value', overlay);
-            const progressNode = this.lifecycleDom.requireHTMLElement('.restart-progress-bar', overlay);
-            const progressContainer = progressNode.parentElement;
-            if (!(progressContainer instanceof HTMLElement)) {
-                throw new Error('Countdown progress bar requires a progress container');
-            }
-            progressContainer.classList.add('restart-progress', 'progress-bar');
-            progressContainer.setAttribute('role', 'progressbar');
-            progressContainer.setAttribute('aria-valuemin', '0');
-            progressContainer.setAttribute('aria-valuemax', '100');
-            progressNode.classList.add('restart-progress-bar', 'progress-fill');
-            const cancelButtonCandidate = this.lifecycleDom.requireHTMLElement('.countdown-cancel-btn', overlay);
-            if (!(cancelButtonCandidate instanceof HTMLButtonElement)) {
-                throw new Error('Countdown cancel button must be a HTMLButtonElement');
-            }
-            const cancelButton = cancelButtonCandidate;
-
-            this.elements = {
-                overlay,
-                titleNode,
-                prefixNode,
-                suffixNode,
-                valueNode,
-                progressNode,
-                cancelButton
-            };
         }
+        const titleNode = this.lifecycleDom.requireHTMLElement('.restart-title', overlay);
+        const prefixNode = this.lifecycleDom.requireHTMLElement('.countdown-prefix', overlay);
+        const suffixNode = this.lifecycleDom.requireHTMLElement('.countdown-suffix', overlay);
+        const valueNode = this.lifecycleDom.requireHTMLElement('.countdown-value', overlay);
+        const progressNode = this.lifecycleDom.requireHTMLElement('.restart-progress-bar', overlay);
+        const progressContainer = progressNode.parentElement;
+        if (!(progressContainer instanceof HTMLElement)) {
+            throw new Error('Countdown progress bar requires a progress container');
+        }
+        progressContainer.classList.add('restart-progress', 'progress-bar');
+        progressContainer.setAttribute('role', 'progressbar');
+        progressContainer.setAttribute('aria-valuemin', '0');
+        progressContainer.setAttribute('aria-valuemax', '100');
+        progressNode.classList.add('restart-progress-bar', 'progress-fill');
+        const cancelButtonCandidate = this.lifecycleDom.requireHTMLElement('.countdown-cancel-btn', overlay);
+        if (!(cancelButtonCandidate instanceof HTMLButtonElement)) {
+            throw new Error('Countdown cancel button must be a HTMLButtonElement');
+        }
+        const cancelButton = cancelButtonCandidate;
+
+        this.elements = {
+            overlay,
+            titleNode,
+            prefixNode,
+            suffixNode,
+            valueNode,
+            progressNode,
+            cancelButton
+        };
     }
 
     #updateRemaining(valueNode: HTMLElement, progressNode: HTMLElement): void {
@@ -262,6 +272,7 @@ class CountdownOverlay extends LifecycleModel {
         } else {
             this.#syncProgressNode(progressNode, 100);
         }
+        dom.flush();
     }
 
     #syncProgressNode(progressNode: HTMLElement, percent: number): void {

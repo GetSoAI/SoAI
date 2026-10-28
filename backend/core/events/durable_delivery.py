@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import SoAITimeoutError, ValidationError
+from core.errors.exceptions import DurableDeliveryDeferredError, SoAITimeoutError, ValidationError
 from core.errors.trace_logging import ensure_trace_logging
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.events.bus_callback_identity import describe_callback
@@ -151,6 +151,8 @@ class DurableEventDelivery:
                     "Durable event delivery cancelled for subscriber %s.",
                     callback_name,
                 )
+                raise
+            except DurableDeliveryDeferredError:
                 raise
             except HANDLED_RUNTIME_EXCEPTIONS as exception:
                 coerced = coerce_to_soai_error(

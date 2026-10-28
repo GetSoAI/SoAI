@@ -1,6 +1,7 @@
 /* SoAI - WebUI chat preset section wire validation [frontend/assets/ts/core/api/contracts/webuiChatPresetSectionContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { requireSkillIds } from '@core/api/contracts/webuiSkillContracts.ts';
 import type { ChatPresetSectionId, ChatPresetSections } from '@core/api/contracts/webuiChatPresetContractTypes.ts';
 import { isChatMobileAuxiliaryAction } from '@core/chat/parameters/mobileAuxiliaryAction.ts';
 import { isReasoningEffortLevel } from '@core/chat/parameters/reasoningEffort.ts';
@@ -16,10 +17,11 @@ const SECTION_FIELDS: Record<ChatPresetSectionId, readonly string[]> = {
     voice: ['voice_tts_model', 'voice_stt_model'],
     files: ['workspace_path'],
     knowledge: ['enabled', 'retrieval_strategy', 'top_k', 'similarity_threshold', 'chunking_strategy', 'chunk_size', 'chunk_overlap', 'embedding_model'],
+    skills: ['skill_ids'],
     tools: ['tools_enabled', 'tool_approval_required', 'servers', 'modes']
 };
 
-const SECTION_IDS: readonly ChatPresetSectionId[] = ['general', 'appearance', 'completion', 'voice', 'files', 'knowledge', 'tools'];
+const SECTION_IDS: readonly ChatPresetSectionId[] = ['general', 'appearance', 'completion', 'voice', 'files', 'knowledge', 'skills', 'tools'];
 const RETRIEVAL_STRATEGIES = new Set(['similarity', 'mmr', 'hybrid']);
 const CHUNKING_STRATEGIES = new Set(['token_based', 'fixed_size', 'paragraph', 'semantic']);
 const TOOL_MODES = new Set(['default', 'plan', 'execute']);
@@ -134,6 +136,10 @@ const validateSectionField = (section: ChatPresetSectionId, field: string, value
     if (section === 'voice') return requireString(value, label, false);
     if (section === 'files') return requireString(value, label, true);
     if (section === 'knowledge') return validateKnowledge(field, value, label);
+    if (section === 'skills') {
+        requireSkillIds(value);
+        return;
+    }
     if (field === 'servers') return requireBooleanMap(value, label);
     if (field === 'modes') return requireToolModes(value, label);
     requireBoolean(value, label);
@@ -160,6 +166,7 @@ const decodeChatPresetSections = (value: JsonValue | undefined): ChatPresetSecti
         else if (section === 'voice') sections.voice = decodeSection(section, sectionValue);
         else if (section === 'files') sections.files = decodeSection(section, sectionValue);
         else if (section === 'knowledge') sections.knowledge = decodeSection(section, sectionValue);
+        else if (section === 'skills') sections.skills = decodeSection(section, sectionValue);
         else if (section === 'tools') sections.tools = decodeSection(section, sectionValue);
         else fail('Chat preset sections');
     });
@@ -182,6 +189,7 @@ const serializeChatPresetSections = (sections: ChatPresetSections): JsonObject =
     if (sections.voice !== undefined) record['voice'] = canonicalizeOutboundSection(sections.voice);
     if (sections.files !== undefined) record['files'] = canonicalizeOutboundSection(sections.files);
     if (sections.knowledge !== undefined) record['knowledge'] = canonicalizeOutboundSection(sections.knowledge);
+    if (sections.skills !== undefined) record['skills'] = canonicalizeOutboundSection(sections.skills);
     if (sections.tools !== undefined) record['tools'] = canonicalizeOutboundSection(sections.tools);
     decodeChatPresetSections(record);
     return record;

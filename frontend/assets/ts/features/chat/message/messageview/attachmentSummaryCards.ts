@@ -93,7 +93,8 @@ const renderSoaiFileCard = (host: ChatAttachmentCardRenderHost, segment: SoaiFil
     const previewUrl = buildWebuiConversationAttachmentContentPath(conversationId, segment.attachmentId, false);
     const downloadUrl = buildWebuiConversationAttachmentContentPath(conversationId, segment.attachmentId, true);
     const badge = renderBadge(host, i18n.t('chat.attachments.badge.attachment'));
-    const status = `${segment.mimeType} - ${formatBytes(segment.sizeBytes, 1)}`;
+    const missingSpeech = options.attachmentMissingCapabilities?.[segment.attachmentId]?.includes('speech_to_text') === true;
+    const status = `${segment.mimeType} - ${formatBytes(segment.sizeBytes, 1)}${missingSpeech ? ` - ${i18n.t('speechSetup.notTranscribed')}` : ''}`;
     const attachmentId = host.escapeAttribute(segment.attachmentId);
     const fileId = host.escapeAttribute(segment.fileId);
     const iconName = resolveFileEntryIconName({ name: segment.filename, mimeType: segment.mimeType, isDirectory: false });
@@ -199,9 +200,10 @@ const renderSoaiPathCard = (host: ChatAttachmentCardRenderHost, segment: SoaiPat
     });
 };
 
-const renderSoaiKnowledgeCard = (host: ChatAttachmentCardRenderHost, segment: SoaiKnowledgeSegment): string => {
+const renderSoaiKnowledgeCard = (host: ChatAttachmentCardRenderHost, segment: SoaiKnowledgeSegment, options: MessageRenderOptions): string => {
     const badge = renderBadge(host, i18n.t('chat.attachments.badge.knowledge'));
-    const status = `${String(segment.visibleCount)} / ${String(segment.totalCount)}`;
+    const missingSpeech = options.attachmentMissingCapabilities?.[segment.knowledgeAttachmentId]?.includes('speech_to_text') === true;
+    const status = `${String(segment.visibleCount)} / ${String(segment.totalCount)}${missingSpeech ? ` - ${i18n.t('speechSetup.notTranscribed')}` : ''}`;
     if (segment.sourceType === 'linked_knowledge') {
         return renderDocumentStaticCard(host, {
             className: 'chat-attachment-summary-card--knowledge',
@@ -241,7 +243,7 @@ const renderAttachmentCard = (host: ChatAttachmentCardRenderHost, segment: Attac
         return renderImageAttachmentCard(host, segment);
     }
     if (segment.type === 'soai_knowledge') {
-        return renderSoaiKnowledgeCard(host, segment);
+        return renderSoaiKnowledgeCard(host, segment, options);
     }
     if (segment.type === 'soai_file_unavailable' || segment.type === 'soai_knowledge_unavailable') {
         return renderUnavailableCard(host, segment);

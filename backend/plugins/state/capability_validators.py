@@ -5,6 +5,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.errors.exceptions import ServiceUnavailableError, SoAITimeoutError
+from core.errors.public_projection import project_public_error
+from core.hardware.gpu_inventory_errors import require_gpu_discovery_capabilities
 from core.logging.trace import get_logger
 from core.validation.boolean_coercion import coerce_bool_with_recovery
 from plugins.state.capability_normalization import format_capability_values
@@ -28,6 +31,24 @@ __all__ = (
 LOGGER_NAME = "SoAI.plugins.state.capability_validators"
 
 
+def _validate_gpu_discovery(
+    capability: str, raw_requirement: list[str], host_snapshot: JSONDict
+) -> CapabilityValidationResult | None:
+    try:
+        require_gpu_discovery_capabilities(host_snapshot)
+    except (ServiceUnavailableError, SoAITimeoutError) as exception:
+        public_error = project_public_error(exception)
+        return create_capability_failure(
+            capability,
+            "unknown",
+            raw_requirement,
+            [],
+            public_error.message,
+            error=public_error.to_dict(),
+        )
+    return None
+
+
 def validate_gpu_capability(
     normalized_requirement: list[str] | None,
     raw_requirement: list[str],
@@ -35,6 +56,9 @@ def validate_gpu_capability(
 ) -> CapabilityValidationResult | None:
     if normalized_requirement is None:
         return None
+    discovery_failure = _validate_gpu_discovery("gpu", raw_requirement, host_snapshot)
+    if discovery_failure is not None:
+        return discovery_failure
     gpu_info_value = host_snapshot.get("gpu")
     gpu_info = gpu_info_value if isinstance(gpu_info_value, dict) else {}
     vendors_value = gpu_info.get("vendors")
@@ -98,6 +122,9 @@ def validate_gpu_features_capability(
         return None
     if "any" in normalized_requirement:
         return create_capability_success("gpu_features")
+    discovery_failure = _validate_gpu_discovery("gpu_features", raw_requirement, host_snapshot)
+    if discovery_failure is not None:
+        return discovery_failure
     gpu_info_value = host_snapshot.get("gpu")
     gpu_info = gpu_info_value if isinstance(gpu_info_value, dict) else {}
     detected_features: list[str] = []
@@ -129,6 +156,11 @@ def validate_drivers_capability(
 ) -> CapabilityValidationResult | None:
     if normalized_requirement is None:
         return None
+    if not normalized_requirement:
+        return create_capability_success("drivers")
+    discovery_failure = _validate_gpu_discovery("drivers", raw_requirement, host_snapshot)
+    if discovery_failure is not None:
+        return discovery_failure
     normalized_value = host_snapshot.get("normalized_drivers")
     normalized_available = normalized_value if isinstance(normalized_value, list) else []
     detected_value = host_snapshot.get("drivers")
@@ -172,9 +204,13 @@ def to_detail_dict(result: CapabilityValidationResult) -> JSONDict:
         or result.detected is None
         else str(result.detected)
     )
-    return {
+    detail: JSONDict = {
         "capability": result.capability,
         "status": result.status,
         "required": required_value,
         "detected": detected_value,
     }
+
+    if result.error is not None:
+        detail["error"] = result.error
+    return detail

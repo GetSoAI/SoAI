@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
+from core.agent.compaction_budget_errors import ContextBudgetUnavailableError
 from core.agent.settings_types import AgentSettings
 from core.agent.turn_scope_values import TURN_SCOPE_ROOT
 from core.errors.exceptions import ConfigurationError, ValidationError
@@ -99,6 +100,8 @@ async def resolve_agent_request_settings(
             model_settings=model_settings or {},
             request_model=request_model,
         )
+    except ContextBudgetUnavailableError:
+        raise
     except ValidationError as exception:
         raise_invalid_request(request, str(exception))
     except ConfigurationError as exception:

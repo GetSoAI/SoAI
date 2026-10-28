@@ -16,7 +16,7 @@ interface SettingsMenuManagerHost {
     resolveService: HeaderServiceResolver;
 }
 
-const MENU_ITEM_KEYS: readonly string[] = Object.freeze(['logs', 'settings', 'updates', 'about', 'logout']);
+const MENU_ITEM_KEYS: readonly string[] = Object.freeze(['logs', 'settings', 'power', 'updates', 'about', 'logout']);
 
 interface Router {
     navigate(page: string): Promise<void>;

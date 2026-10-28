@@ -15,6 +15,10 @@ __all__ = ("build_mutation_claim_request_context",)
 
 
 def _resolve_access_action(authorization_scope: str) -> AccessAction:
+    if authorization_scope == "mcp_use":
+        return AccessAction.MCP_USE
+    if authorization_scope == "model_admin":
+        return AccessAction.MODEL_ADMIN
     if authorization_scope == "plugin_admin":
         return AccessAction.PLUGIN_ADMIN
     if authorization_scope == "host_management_admin":

@@ -17,11 +17,29 @@ from core.logging.protocols import LoggerProtocol, TraceLogger
 from core.runtime.protocols import RuntimePlatformViewProtocol
 
 if TYPE_CHECKING:
+    from core.hardware.gpu_architecture import NvidiaArchitectureSnapshot
+    from core.hardware.gpu_control_types import (
+        GPUControlCommitAcknowledgement,
+        GPUControlResult,
+        GPUControlStartupResult,
+        GPUPreparedControl,
+        GPURecoveryAdmission,
+        GPUSlotReadResult,
+    )
+    from core.hardware.gpu_physical_identity import GPUPhysicalDevice
+    from core.hardware.gpu_recovery_records import GPUControlMemberKey, GPURecoveryRecord
     from core.history.request.availability import HistoryAvailabilityQuery
+    from core.system.protocols import CommandExecutorProtocol
     from core.types.json import JSONDict, JSONValue
     from core.types.protocols import HttpClientProtocol
 
 __all__ = ()
+
+
+class NvidiaArchitectureReaderProtocol(Protocol):
+    async def read_architectures(
+        self, *, command_executor: CommandExecutorProtocol, acquisition_id: str
+    ) -> NvidiaArchitectureSnapshot: ...
 
 
 class HardwareManagerProtocol(Protocol):
@@ -34,6 +52,14 @@ class HardwareManagerProtocol(Protocol):
     @property
     def nvidia_nvml_gate(self) -> NvmlGateProtocol: ...
     def get_network_info(self) -> JSONDict: ...
+    def sync_get_gpu_info(self, detailed: bool = True) -> JSONDict: ...
+    def sync_get_system_info(
+        self,
+        *,
+        cache: bool,
+        include_gpu_capabilities: bool = True,
+        components: Sequence[str] | None = None,
+    ) -> JSONDict: ...
     async def get_system_capabilities(self) -> JSONDict: ...
     async def get_system_info(
         self,
@@ -64,7 +90,7 @@ class HardwareManagerProtocol(Protocol):
         http_client: HttpClientProtocol | None = None,
     ) -> VariantSupportContextProtocol: ...
     async def start_monitoring(self) -> bool: ...
-    async def shutdown(self) -> None: ...
+    async def shutdown(self, *, timeout_sec: float | None = None) -> None: ...
 
 
 class VariantSupportContextProtocol(Protocol):
@@ -78,6 +104,9 @@ class VariantSupportContextProtocol(Protocol):
 
 class HardwareGpuTuningProtocol(Protocol):
     logger: TraceLogger
+
+    @property
+    def recovery_admission(self) -> GPURecoveryAdmissionProtocol: ...
 
     @property
     def gpu_operation_lock(self) -> asyncio.Lock: ...
@@ -113,14 +142,17 @@ class HardwareGpuTuningProtocol(Protocol):
         apply_at_boot: bool | None = None,
     ) -> JSONDict: ...
     async def apply_gpu_settings_direct(self, device_id: str, settings: JSONDict) -> JSONDict: ...
+    async def apply_gpu_settings_with_snapshots(
+        self, device_id: str, settings: JSONDict, *, hardware_manager: HardwareManagerProtocol
+    ) -> JSONDict: ...
     async def apply_gpu_settings_direct_unlocked(
         self,
         device_id: str,
         settings: JSONDict,
     ) -> JSONDict: ...
     def invalidate_gpu_caches(self) -> None: ...
-    async def apply_startup_gpu_settings(self) -> None: ...
-    async def clear_dirty_shutdown_flag(self) -> None: ...
+    async def apply_startup_gpu_settings(self) -> GPUControlStartupResult: ...
+    async def clear_dirty_shutdown_flag(self, *, deadline_monotonic: float) -> None: ...
 
 
 class HardwareControlServiceProtocol(Protocol):
@@ -143,8 +175,36 @@ class GpuSlotStorageManagerProtocol(Protocol):
 
     @property
     def lock(self) -> threading.RLock: ...
-    def read_payload(self) -> tuple[JSONDict, bool]: ...
-    def write_payload(self, payload: JSONDict) -> None: ...
+    def read_payload(self) -> GPUSlotReadResult: ...
+    def write_payload(
+        self, payload: JSONDict, *, expected_read: GPUSlotReadResult | None = None
+    ) -> None: ...
+    def remove_empty_payload(
+        self, payload: JSONDict, *, expected_read: GPUSlotReadResult
+    ) -> None: ...
+    def synchronize_revision(self, *, expected_revision: str) -> None: ...
+
+
+class GPURecoveryAdmissionProtocol(Protocol):
+    def inspect(self, target: GPUPhysicalDevice) -> GPURecoveryAdmission: ...
+
+
+class GPUControlRecoveryProtocol(Protocol):
+    def prepare(
+        self, target: GPUPhysicalDevice, record: GPURecoveryRecord
+    ) -> GPUPreparedControl: ...
+
+    def before_effect(
+        self, prepared: GPUPreparedControl, member_key: GPUControlMemberKey
+    ) -> GPUPreparedControl: ...
+
+    def record_result(
+        self, prepared: GPUPreparedControl, result: GPUControlResult
+    ) -> GPUPreparedControl: ...
+
+    def finish(
+        self, prepared: GPUPreparedControl, result: GPUControlResult
+    ) -> GPUControlCommitAcknowledgement | None: ...
 
 
 class GetGpuInfoCallable(Protocol):
@@ -191,29 +251,6 @@ class DatabaseHardwareProtocol(DatabaseSoAIBenchProtocol, Protocol):
     ) -> JSONDict: ...
 
 
-class NvApiClocksProtocol(Protocol):
-    def __init__(self, *, core: int, memory: int) -> None: ...
-
-    core: int
-    memory: int
-
-
-class NvApiOverclockProtocol(Protocol):
-    core: int | float | None
-    memory: int | float | None
-
-
-class NvApiGpuProtocol(Protocol):
-    handle: int
-    name: str
-    fan: int | float | None
-    power_limit: int | float | None
-
-    def get_overclock(self) -> NvApiOverclockProtocol | None: ...
-
-    def set_overclock(self, clocks: NvApiClocksProtocol) -> None: ...
-
-
 class NvApiSupportProtocol(Protocol):
     @property
     def can_attempt(self) -> bool: ...
@@ -224,13 +261,10 @@ class NvApiSupportProtocol(Protocol):
     @property
     def status_message(self) -> str | None: ...
 
+    @property
+    def native_query_interface(self) -> Callable[[int], int | None] | None: ...
+
     def ensure_initialized(self) -> bool: ...
-
-    def get_phys_gpu(self, vendor_id: int) -> NvApiGpuProtocol | None: ...
-
-    def build_clocks(self, *, core: int, memory: int) -> NvApiClocksProtocol | None: ...
-
-    def restore_coolers(self, handle: int) -> None: ...
 
 
 class NvmlGateProtocol(Protocol):
@@ -267,6 +301,8 @@ class NvidiaCapabilitiesCacheServiceProtocol(Protocol):
     def revision(self) -> int: ...
 
     def expiry_sequence(self) -> int: ...
+
+    def publication_snapshot(self) -> AbstractContextManager[tuple[int, int]]: ...
 
     def expire_inventory_snapshot(self) -> int: ...
 

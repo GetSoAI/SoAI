@@ -17,6 +17,7 @@ __all__ = (
     "DeleteModelParametersCommand",
     "ModelDeleteCommand",
     "ModelDownloadCommand",
+    "ReplaceModelOpenAICapabilityOverridesCommand",
     "ResetModelOpenAICapabilityOverridesCommand",
     "TriggerModelDiscoveryCommand",
     "UpdateModelAliasCommand",
@@ -88,6 +89,15 @@ class UpdateModelOpenAICapabilityOverrideCommand(ReplyableUserCommand):
     category: str
     token: str
     enabled: bool
+    context: RequestContext | None = None
+
+
+@dataclass(slots=True)
+class ReplaceModelOpenAICapabilityOverridesCommand(ReplyableUserCommand):
+    universal_id: str
+    disabled: dict[str, list[str]]
+    enabled: dict[str, list[str]]
+    expected: JSONDict
     context: RequestContext | None = None
 
 

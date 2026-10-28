@@ -65,7 +65,8 @@ const syncCurrentConversationTitleUi = (host: ChatCurrentConversationRenderDepen
     }
     if (titleInputElement instanceof HTMLInputElement) {
         titleInputElement.classList.toggle('u-hidden', !isEditing);
-        titleInputElement.value = isEditing && renameState ? renameState.draft : titleValue;
+        const nextValue = isEditing && renameState ? renameState.draft : titleValue;
+        if (titleInputElement.value !== nextValue && (!isEditing || titleInputElement.ownerDocument.activeElement !== titleInputElement)) titleInputElement.value = nextValue;
     }
     if (saveButton instanceof HTMLElement) {
         saveButton.classList.toggle('u-hidden', !isEditing);

@@ -19,6 +19,7 @@ from core.events.types_models_model_events import (
 )
 from core.events.types_models_streaming import StreamChunkEvent
 from core.events.types_system import (
+    GPUSavedSettingsChangedEvent,
     HardwareHistoryResetEvent,
     HardwareSnapshotUpdatedEvent,
     MetricsHistoryResetEvent,
@@ -59,6 +60,12 @@ def event_to_transport_payload(event: Event | JSONDict) -> JSONDict:
         ) from exception
     data.pop("reply_channel", None)
     data.pop("context", None)
+    if isinstance(event, GPUSavedSettingsChangedEvent):
+        data.pop("observation_failure", None)
+        if event.observation_failure is not None:
+            data.pop("live", None)
+            data["success"] = False
+            data["error"] = event.observation_failure.to_dict()
     if isinstance(
         event,
         ModelLoadedEvent | LoadFailedEvent | ModelParametersRequireReloadEvent,
@@ -103,7 +110,13 @@ def event_to_transport_payload(event: Event | JSONDict) -> JSONDict:
         data["operation"] = event.operation.value
         data.pop("workspace_root_path", None)
     if isinstance(event, ConversationUpdatedEvent):
-        for optional_field in ("title", "is_favorite", "model_settings", "is_archived"):
+        for optional_field in (
+            "title",
+            "title_auto_update_allowed",
+            "is_favorite",
+            "model_settings",
+            "is_archived",
+        ):
             if data.get(optional_field) is None:
                 data.pop(optional_field, None)
         color_present = data.pop("color_present", False)

@@ -5,6 +5,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { isString } from '@core/typeGuards.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { compactQueryWhitespace } from '@features/chat/toolactivity/payloadTextParsing.ts';
+import { resolveCancellationCodeNotice } from '@features/chat/message/assistantOutputNotice.ts';
 import { renderInlineActivityChrome } from '@features/chat/message/messageview/inlineActivityChrome.ts';
 import { renderInlineStatusActivityLifecycleKeyAttribute } from '@features/chat/message/inlineStatusActivityIdentity.ts';
 import { resolveInlineActivityName } from '@features/chat/message/messageview/inlineActivityName.ts';
@@ -35,9 +36,10 @@ const renderInlineSimpleActivity = (
     const leadingIconHtml = renderInlineActivityLeadingIcon(host, { variant: 'hourglass', iconName: 'hourglass', options: { size: HOURGLASS_LEADING_ICON_SIZE_PX, strokeWidth: 1.5 } });
     const reason = isString(segment.reason) ? compactQueryWhitespace(segment.reason) : '';
     const errorType = isString(segment.errorType) ? compactQueryWhitespace(segment.errorType) : '';
-    const detailText = [reason, errorType].filter((value) => value.length > 0).join(' · ');
+    const cancellationNotice = segment.status === 'cancelled' ? resolveCancellationCodeNotice(errorType) : null;
+    const detailText = cancellationNotice ?? [reason, errorType].filter((value) => value.length > 0).join(' · ');
     const detailPreview = detailText ? clampInlineLabel(detailText, 120) : inputArguments.extraClassName === 'inline-activity-type-loading' ? i18n.t('chat.loading.modelPreview') : '';
-    const chrome = renderInlineActivityChrome(host, { segment, defaultIconName: inputArguments.iconName, previewText: detailPreview, expansionState: 'collapsed' });
+    const chrome = renderInlineActivityChrome(host, { segment, defaultIconName: inputArguments.iconName, previewText: detailPreview });
     const headerHtml = renderInlineActivityHeaderRow(host, {
         tagName: 'div',
         leadingIconHtml,
@@ -75,10 +77,7 @@ const renderThinkingDetailsContent = (host: ChatMessageRenderHost, content: stri
         const escaped = host.escapeHtml(content);
         return `<p>${escaped.replace(/\n/g, '<br>')}</p>`;
     }
-    return host.renderRichText(content, (descriptor) => {
-        const escaped = host.escapeHtml(descriptor.value);
-        return `<pre class="code-block-plain"><code>${escaped}</code></pre>`;
-    });
+    return host.renderRichText(content, (descriptor) => descriptor.html);
 };
 
 const renderInlineThinkingDetails = (host: ChatMessageRenderHost, segment: InlineThinkingActivitySegment, detailsSignature: string = resolveInlineActivityDetailsSignature({ ...segment, collapsed: false }, host.nowMs())): string => {
@@ -98,8 +97,7 @@ const renderInlineThinkingActivity = (host: ChatMessageRenderHost, segment: Inli
     const chrome = renderInlineActivityChrome(host, {
         segment,
         defaultIconName: 'thinking',
-        previewHtml: renderThinkingHeaderQuery(host, resolvedStatus, segment.text),
-        expansionState: openRequested ? 'expanded' : 'collapsed'
+        previewHtml: renderThinkingHeaderQuery(host, resolvedStatus, segment.text)
     });
 
     const detailsSignature = resolveInlineActivityDetailsSignature({ ...segment, collapsed: false }, host.nowMs());

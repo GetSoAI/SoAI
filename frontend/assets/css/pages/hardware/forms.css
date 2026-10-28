@@ -2,6 +2,41 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer pages {
+    @container ui-viewport (width <= 1200px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact th:nth-child(5),
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact td:nth-child(5) {
+            display: none;
+        }
+    }
+
+    @container ui-viewport (width <= 1024px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-insights-grid {
+            --hardware-insight-size: 250px;
+            grid-template-columns: repeat(auto-fit, var(--hardware-insight-size));
+            justify-content: center;
+            max-width: none;
+            padding: var(--space-4);
+            gap: var(--space-4);
+            overflow-x: auto;
+            scroll-snap-type: x proximity;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-controls-container {
+            grid-auto-columns: minmax(min(100%, var(--gpu-panel-min)), min(100%, var(--gpu-panel-max)));
+            grid-template-columns: none;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-panel {
+            width: 100%;
+            max-width: min(100%, var(--gpu-panel-max));
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-controls-container {
+            padding: var(--space-2);
+        }
+    }
     @container ui-viewport (width <= 900px) {
         :where([data-section='hardware'], [data-page-scope='hardware']) .table-compact th,
         :where([data-section='hardware'], [data-page-scope='hardware']) .table-compact td {

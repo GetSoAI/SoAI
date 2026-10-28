@@ -64,6 +64,9 @@ class NullHardwareManager:
         return {}
 
     async def get_system_capabilities(self) -> JSONDict:
+        return self._system_capabilities()
+
+    def _system_capabilities(self) -> JSONDict:
         runtime_platform = get_runtime_platform()
         system_ram_gb = round(psutil.virtual_memory().total / 1024**3, 2)
         total_vram_gb = 0.0
@@ -96,19 +99,17 @@ class NullHardwareManager:
         include_gpu_capabilities: bool = True,
     ) -> JSONDict:
         _ = (components, cache, include_gpu_capabilities)
-        capabilities = await self.get_system_capabilities()
-        system_ram_gb = coerce_float_with_bool(capabilities.get("system_ram_gb")) or 0.0
-        total_vram_gb = coerce_float_with_bool(capabilities.get("total_vram_gb")) or 0.0
-        summary: JSONDict = {
-            "total_system_ram_gb": system_ram_gb,
-            "total_vram_gb": total_vram_gb,
-            "total_system_memory_gb": round(system_ram_gb + total_vram_gb, 2),
-        }
-        return {
-            "timestamp_ms": epoch_ms(),
-            "summary": summary,
-            "capabilities": capabilities,
-        }
+        return _system_info_from_capabilities(await self.get_system_capabilities())
+
+    def sync_get_system_info(
+        self,
+        *,
+        cache: bool,
+        include_gpu_capabilities: bool = True,
+        components: Sequence[str] | None = None,
+    ) -> JSONDict:
+        _ = (components, cache, include_gpu_capabilities)
+        return _system_info_from_capabilities(self._system_capabilities())
 
     async def get_gpu_capabilities(self) -> JSONDict:
         return {}
@@ -160,5 +161,20 @@ class NullHardwareManager:
     async def start_monitoring(self) -> bool:
         return False
 
-    async def shutdown(self) -> None:
-        return
+    async def shutdown(self, *, timeout_sec: float | None = None) -> None:
+        del timeout_sec
+
+    def sync_get_gpu_info(self, detailed: bool = True) -> JSONDict:
+        del detailed
+        return {"gpus": [], "compute_drivers": {}}
+
+
+def _system_info_from_capabilities(capabilities: JSONDict) -> JSONDict:
+    system_ram_gb = coerce_float_with_bool(capabilities.get("system_ram_gb")) or 0.0
+    total_vram_gb = coerce_float_with_bool(capabilities.get("total_vram_gb")) or 0.0
+    summary: JSONDict = {
+        "total_system_ram_gb": system_ram_gb,
+        "total_vram_gb": total_vram_gb,
+        "total_system_memory_gb": round(system_ram_gb + total_vram_gb, 2),
+    }
+    return {"timestamp_ms": epoch_ms(), "summary": summary, "capabilities": capabilities}

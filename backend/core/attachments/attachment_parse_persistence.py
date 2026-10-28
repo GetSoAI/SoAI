@@ -35,4 +35,5 @@ async def persist_attachment_parse_outcome(
         parse_error=outcome.parse_error,
         parsed_at_ms=now_ms,
         updated_at_ms=now_ms,
+        missing_capabilities=outcome.missing_capabilities,
     )

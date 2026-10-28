@@ -18,10 +18,10 @@ const createChatPageMarkupContext = (sanitizer: SanitizerApi, isDetached: boolea
     const resolvedSanitizer = requireSanitizer(sanitizer);
     const strings = resolveTemplateStrings(resolvedSanitizer);
 
-    const settingsLinkButton = `<button type="button" class="ui-button chat-settings-link" data-action="chat:goto-settings-mcp" aria-label="${strings.settingsLinkTitle}" data-tooltip="${strings.settingsLinkTitle}">${strings.settingsLabel}</button>`;
-    const modelSettingsLinkButton = `<button type="button" class="ui-button model-settings-link" data-action="chat:goto-model-settings" aria-label="${strings.settingsLinkTitle}" data-tooltip="${strings.settingsLinkTitle}">${strings.settingsLabel}</button>`;
-    const sectionHeader = (label: string): string => `<div class="chat-configuration-section-header"><div class="chat-configuration-section-title">${label}</div>${settingsLinkButton}</div>`;
-    const modelSectionHeader = (label: string): string => `<div class="chat-configuration-section-header"><div class="chat-configuration-section-title">${label}</div>${modelSettingsLinkButton}</div>`;
+    const settingsLinkButton = `<button type="button" class="ui-button chat-settings-link" data-action="chat:goto-settings-mcp" aria-label="${strings.settingsLinkTitle}" data-tooltip="${strings.settingsLinkTitle}" data-modal-localize="text aria-label data-tooltip">${strings.settingsLabel}</button>`;
+    const modelSettingsLinkButton = `<button type="button" class="ui-button model-settings-link" data-action="chat:goto-model-settings" aria-label="${strings.settingsLinkTitle}" data-tooltip="${strings.settingsLinkTitle}" data-modal-localize="text aria-label data-tooltip">${strings.settingsLabel}</button>`;
+    const sectionHeader = (label: string): string => (isDetached ? '' : `<div class="chat-configuration-section-header"><div class="chat-configuration-section-title" data-modal-localize="text">${label}</div>${settingsLinkButton}</div>`);
+    const modelSectionHeader = (label: string): string => (isDetached ? '' : `<div class="chat-configuration-section-header"><div class="chat-configuration-section-title" data-modal-localize="text">${label}</div>${modelSettingsLinkButton}</div>`);
 
     return Object.freeze({
         strings,

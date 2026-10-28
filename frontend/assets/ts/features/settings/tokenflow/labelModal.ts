@@ -20,7 +20,7 @@ import type { SettingsTokenLabelModalConfig } from '@features/settings/tokenflow
 const renderLabelInputMarkup = (config: SettingsTokenLabelModalConfig): TrustedHtml => {
     const placeholderMarkup = config.placeholder ? uiHtml` placeholder="${uiAttr(config.placeholder)}"` : uiHtml``;
     return uiHtml`
-        <input type="text" id="${uiAttr(modalUiId(config.modalId, 'input'))}" class="form-input" aria-label="${uiAttr(config.text.message)}" spellcheck="false" autocapitalize="off" autocomplete="off"${placeholderMarkup}>
+        <input type="text" id="${uiAttr(modalUiId(config.modalId, 'input'))}" class="form-input" data-modal-localize="aria-label placeholder" aria-label="${uiAttr(config.text.message)}" spellcheck="false" autocapitalize="off" autocomplete="off"${placeholderMarkup}>
     `;
 };
 
@@ -35,11 +35,11 @@ const createSettingsTokenLabelModalElement = (config: SettingsTokenLabelModalCon
         body: renderModalBody(
             uiHtml`
                 <div class="confirmation-body">
-                    <div class="confirmation-icon" aria-hidden="true">${getIconSync('key', { size: 25, strokeWidth: 1.6 })}</div>
-                    <div class="confirmation-message">${labelMarkup}</div>
-                    <div class="confirmation-description">${config.text.description}</div>
+                    <div class="confirmation-icon" aria-hidden="true">${getIconSync('key-modal', { size: 28 })}</div>
+                    <div class="confirmation-message" data-modal-localize="text">${labelMarkup}</div>
+                    <div class="confirmation-description" data-modal-localize="text">${config.text.description}</div>
                 </div>
-                <div class="form-group settings-token-flow-modal__field">${renderLabelInputMarkup(config)}</div>
+                <div class="form-group settings-token-flow-modal__field" data-modal-localize="text">${renderLabelInputMarkup(config)}</div>
             `,
             { className: 'prompt-modal-content' }
         ),
@@ -73,9 +73,13 @@ const showSettingsTokenLabelModal = async (config: SettingsTokenLabelModalConfig
             const nextButton = requireButtonElement(resolver, modalUiSelector(config.modalId, 'next'), `${config.contextLabel} next button`, modal);
 
             inputElement.value = defaultValue;
-            if (!config.placeholder) {
-                inputElement.placeholder = config.text.message;
-            }
+            const syncPlaceholder = (): void => {
+                if (config.placeholder) return;
+                const placeholder = inputElement.getAttribute('aria-label');
+                if (placeholder === null) throw new Error('Token label input requires a localized label');
+                inputElement.placeholder = placeholder;
+            };
+            syncPlaceholder();
 
             const syncNextButtonState = (): void => {
                 setControlDisabledState(nextButton, config.required && readTrimmedInputValue(inputElement).length === 0);
@@ -96,6 +100,7 @@ const showSettingsTokenLabelModal = async (config: SettingsTokenLabelModalConfig
             syncNextButtonState();
             bindEventGroup(
                 [
+                    { target: modal, type: 'core.modal.localize', listener: syncPlaceholder },
                     { target: nextButton, type: 'click', listener: submit },
                     { target: inputElement, type: 'input', listener: syncNextButtonState }
                 ],

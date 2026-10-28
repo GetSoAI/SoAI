@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     from core.orchestrator.protocols_lifecycle import OrchestratorLifecycleProtocol
     from core.plugins.protocols_instance import PluginInstanceProtocol
     from core.runtime.protocols import RuntimeFlagsViewProtocol
+    from core.types.json import JSONDict
     from plugins.protocols_internal.state.internal_protocols import PluginStateProtocol
 
 __all__ = ("PluginManager",)
@@ -136,6 +137,9 @@ class PluginManager(PluginManagerOperations):
     async def update_runtime_flags(self, runtime_flags: RuntimeFlagsViewProtocol) -> None:
         await self.worker_controller.update_runtime_flags(runtime_flags)
 
+    def describe_worker_ownership(self, plugin_name: str) -> JSONDict:
+        return self.worker_controller.describe_worker_ownership(plugin_name)
+
     async def wait_for_initial_reconciliation(self, timeout: float | None = None) -> bool:
         return await self._lifecycle_controller.wait_for_initial_reconciliation(timeout)
 
@@ -207,27 +211,23 @@ class PluginManager(PluginManagerOperations):
         infrastructure = self.dependencies.infrastructure
         database = self.dependencies.databases.plugins
         async with asyncio.timeout(CONTROL_TIMEOUT_SEC):
-            async with self.lifecycle.bounded_plugin_lock_scope(
+            if infrastructure.lifecycle.shutdown_event.is_set():
+                raise StateError("Plugin artwork preparation is unavailable.")
+            records = await database.get_all_listable_plugins(plugin_name)
+            if not records or records[0].get("file_hash") != archive_hash:
+                return None
+            result = await run_bounded_blocking_call(
+                infrastructure.logo_preparation_pool,
+                prepare_archive_logo,
                 plugin_name,
-                timeout_seconds=CONTROL_TIMEOUT_SEC,
-            ) as lock_result:
-                if lock_result.acquired:
-                    if infrastructure.lifecycle.shutdown_event.is_set():
-                        raise StateError("Plugin artwork preparation is unavailable.")
-                    records = await database.get_all_listable_plugins(plugin_name)
-                    if not records or records[0].get("file_hash") != archive_hash:
-                        return None
-                    result = await run_bounded_blocking_call(
-                        infrastructure.logo_preparation_pool,
-                        prepare_archive_logo,
-                        plugin_name,
-                        get_plugin_file_path(self, plugin_name),
-                        archive_hash,
-                        infrastructure.logo_cache,
-                        total_timeout_sec=CONTROL_TIMEOUT_SEC,
-                    )
-                    current_records = await database.get_all_listable_plugins(plugin_name)
-                    if not current_records or current_records[0].get("file_hash") != archive_hash:
-                        return None
-                    return result
-            raise StateError("Plugin artwork preparation lock timed out.")
+                get_plugin_file_path(self, plugin_name),
+                archive_hash,
+                infrastructure.logo_cache,
+                total_timeout_sec=CONTROL_TIMEOUT_SEC,
+            )
+            if infrastructure.lifecycle.shutdown_event.is_set():
+                raise StateError("Plugin artwork preparation is unavailable.")
+            current_records = await database.get_all_listable_plugins(plugin_name)
+            if not current_records or current_records[0].get("file_hash") != archive_hash:
+                return None
+            return result

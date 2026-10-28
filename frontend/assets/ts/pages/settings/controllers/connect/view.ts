@@ -48,7 +48,7 @@ const renderAddressChooser = (state: ConnectViewState): string => {
             const selected = index === state.selectedIndex;
             const browserHint = candidate.origin === 'browser' ? i18n.t('settings.connect.browserAddress') : null;
             const labels = browserHint === null ? { ariaLabel: candidate.displayHost, tooltip: candidate.displayHost } : { ariaLabel: `${candidate.displayHost} · ${browserHint}`, tooltip: browserHint };
-            return `<button type="button" class="settings-connect__chip${selected ? ' is-selected' : ''}" role="radio" aria-checked="${selected}" tabindex="${selected ? 0 : -1}" data-action="connect-select-address" data-address-index="${index}" ${renderLabelAttributes(labels)}>${selected ? icon('check', 14) : ''}<span>${escaped(candidate.displayHost)}</span></button>`;
+            return `<button type="button" class="ui-button ui-variant-neutral settings-connect__chip${selected ? ' is-selected' : ''}" role="radio" aria-checked="${selected}" tabindex="${selected ? 0 : -1}" data-action="connect-select-address" data-address-index="${index}" ${renderLabelAttributes(labels)}>${selected ? icon('check', 14) : ''}<span>${escaped(candidate.displayHost)}</span></button>`;
         })
         .join('');
     return `<div class="settings-connect__chooser"><span class="settings-connect__chooser-label" id="settings-connect-chooser-label">${escaped(label)}</span><div class="settings-connect__chips" role="radiogroup" aria-labelledby="settings-connect-chooser-label">${chips}</div></div>`;

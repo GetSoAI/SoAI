@@ -28,6 +28,8 @@ interface StreamCommandOptions {
 }
 
 interface OperationMeta {
+    operationKey?: string;
+    requestId?: string;
     type: string;
     plugin?: string | null | undefined;
     pluginName?: string | null | undefined;
@@ -39,6 +41,7 @@ interface OperationMeta {
 }
 
 interface DownloadParameters {
+    wizard?: { previousTaskId: string | null };
     plugin?: string;
     modelId?: string;
     universalId?: string;
@@ -69,7 +72,7 @@ interface SearchOptions {
 interface ApiInterface {
     whenReady?: (options: { allowDiscovery: boolean }) => Promise<string>;
     models?: {
-        getVariants: (plugin: string, modelId: string, options: Record<string, JsonValue | null | undefined>) => Promise<ModelVariantResponse[]>;
+        getVariants: (plugin: string, modelId: string, options: { includeSpeedTests?: boolean; signal?: AbortSignal }) => Promise<ModelVariantResponse[]>;
         updateAlias: (id: string, request: ModelAliasUpdateRequest) => Promise<SuccessfulMutationResponse>;
         deleteAlias: (id: string) => Promise<SuccessfulMutationResponse>;
     };

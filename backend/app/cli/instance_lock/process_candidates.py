@@ -19,7 +19,6 @@ __all__ = (
     "discover_running_instance_pids",
     "find_pids_holding_lock_file",
     "is_process_running",
-    "process_matches_base_dir",
 )
 
 
@@ -98,22 +97,6 @@ def _markers_describe_soai_instance(
     if "soai" in name.lower() and ("backend" in joined or "app.cli.entrypoint" in joined):
         return True
     return False
-
-
-def process_matches_base_dir(pid: int, base_dir: str) -> bool:
-    base_dir_str = os.path.realpath(base_dir)
-    try:
-        process = psutil.Process(pid)
-    except psutil.Error:
-        return False
-    candidates: list[str] = []
-    try:
-        candidates.extend(process.cmdline())
-    except psutil.Error:
-        candidates.append("")
-    candidates.append(_process_cwd(process))
-    candidates.append(_process_exe(process))
-    return is_soai_owned_process_markers(candidates, base_dir=base_dir_str)
 
 
 def _pid_hint_is_soai_instance(pid: int, base_dir: str) -> bool:

@@ -95,6 +95,7 @@ def build_orchestrator_execution(
     )
     engine = ExecutorEngine(
         ExecutorEngineDependencies(
+            finalizer_tracker=deps.task_finalizer_tracker,
             queue=queue,
             lifecycle=lifecycle,
             capacity=capacity,

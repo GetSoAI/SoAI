@@ -7,10 +7,20 @@ import io
 import os
 import tempfile
 import uuid
+from typing import TYPE_CHECKING
 
 from core.errors.exceptions import StateError, ValidationError
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
+from core.files.commit_receipt import FileCleanupIncompleteError
+from core.files.managed_storage_traversal import close_file_descriptor_stack
+from core.files.windows_handle_operations import mark_windows_file_descriptor_for_deletion
 from core.filesystem.component_limits import filesystem_component_limit, filesystem_component_size
+from core.filesystem.descriptor_io import open_descriptor
 from core.filesystem.path_coercion import normalize_filesystem_path
+from core.types.json import JSONDict
+
+if TYPE_CHECKING:
+    from core.files.protocols_anchored import AnchoredDirectoryProtocol
 
 __all__ = (
     "acquire_directory_lock",
@@ -84,7 +94,7 @@ def _allocate_windows_temp_file(directory: str | None, prefix: str, suffix: str)
     for attempt in range(3):
         temp_path = os.path.join(parent, f"{prefix}{uuid.uuid4().hex}{suffix}")
         try:
-            descriptor = os.open(
+            descriptor = open_descriptor(
                 normalize_filesystem_path(temp_path),
                 os.O_RDWR | os.O_CREAT | os.O_EXCL | 0x8000,
                 0o600,
@@ -108,19 +118,15 @@ def create_secure_temp_file_descriptor(
     else:
         file_descriptor, temp_path = tempfile.mkstemp(prefix=prefix, suffix=suffix, dir=directory)
     try:
-        os.chmod(normalize_filesystem_path(temp_path), 0o600)
+        if os.name != "nt":
+            os.fchmod(file_descriptor, 0o600)
     except OSError as exception:
-        try:
-            os.close(file_descriptor)
-        except OSError as close_exception:
-            exception.add_note(f"Failed to close temp file descriptor: {close_exception}")
-        try:
-            os.remove(normalize_filesystem_path(temp_path))
-        except OSError as remove_exception:
-            exception.add_note(
-                f"Failed to remove temp file after chmod failure: {remove_exception}",
-            )
-        raise
+        close_file_descriptor_stack([file_descriptor], primary_exception=exception)
+        raise FileCleanupIncompleteError(
+            "Temporary allocation could not be safely removed.",
+            details={"retained_paths": [temp_path]},
+            cause=exception,
+        ) from exception
     return (file_descriptor, temp_path)
 
 
@@ -129,24 +135,33 @@ def create_secure_temp_binary_handle(
     directory: str | None,
     prefix: str,
     suffix: str = "",
+    directory_authority: AnchoredDirectoryProtocol | None = None,
+    delete_access: bool = False,
 ) -> tuple[io.BufferedRandom, str]:
-    file_descriptor, temp_path = create_secure_temp_file_descriptor(
-        directory=directory,
-        prefix=prefix,
-        suffix=suffix,
+    file_descriptor, temp_path = (
+        create_secure_temp_file_descriptor(directory=directory, prefix=prefix, suffix=suffix)
+        if directory_authority is None
+        else _allocate_anchored_temp_file(
+            directory, directory_authority, prefix, suffix, delete_access
+        )
     )
     try:
         file_handle = os.fdopen(file_descriptor, "w+b")
     except (OSError, ValueError) as exception:
-        try:
-            os.close(file_descriptor)
-        except OSError as close_exception:
-            exception.add_note(f"Failed to close temporary file descriptor: {close_exception}")
-        try:
-            os.remove(normalize_filesystem_path(temp_path))
-        except OSError as remove_exception:
-            exception.add_note(f"Failed to remove temporary file: {remove_exception}")
-        raise
+        if os.name == "nt" and delete_access:
+            try:
+                mark_windows_file_descriptor_for_deletion(file_descriptor)
+            except HANDLED_RUNTIME_EXCEPTIONS as cleanup_exception:
+                exception.add_note(f"Temporary handle deletion failed: {cleanup_exception}")
+            else:
+                close_file_descriptor_stack([file_descriptor], primary_exception=exception)
+                raise
+        close_file_descriptor_stack([file_descriptor], primary_exception=exception)
+        raise FileCleanupIncompleteError(
+            "Temporary allocation could not be safely removed.",
+            details={"retained_paths": [temp_path]},
+            cause=exception,
+        ) from exception
     if not isinstance(file_handle, io.BufferedRandom):
         invariant_error = StateError(
             "Secure temporary binary handle must be buffered and seekable.",
@@ -156,12 +171,43 @@ def create_secure_temp_binary_handle(
             file_handle.close()
         except OSError as close_exception:
             invariant_error.add_note(f"Failed to close temporary file: {close_exception}")
-        try:
-            os.remove(normalize_filesystem_path(temp_path))
-        except OSError as remove_exception:
-            invariant_error.add_note(f"Failed to remove temporary file: {remove_exception}")
-        raise invariant_error
+        raise FileCleanupIncompleteError(
+            "Temporary allocation could not be safely removed.",
+            details={"retained_paths": [temp_path]},
+            cause=invariant_error,
+        ) from invariant_error
     return file_handle, temp_path
+
+
+def _allocate_anchored_temp_file(
+    directory: str | None,
+    authority: AnchoredDirectoryProtocol,
+    prefix: str,
+    suffix: str,
+    delete_access: bool,
+) -> tuple[int, str]:
+    if directory is None:
+        raise ValidationError("An anchored temporary file requires its directory path.")
+    if os.name == "nt":
+        _validate_windows_temporary_component(directory, prefix, suffix)
+    for attempt in range(3):
+        name = f"{prefix}{uuid.uuid4().hex}{suffix}"
+        try:
+            descriptor = (
+                authority.open_file(name, create=True, delete=True)
+                if delete_access
+                else authority.open_file(name, create=True)
+            )
+        except FileExistsError:
+            if attempt == 2:
+                raise
+        except FileCleanupIncompleteError as exception:
+            retained_details: JSONDict = {"retained_paths": [os.path.join(directory, name)]}
+            exception.details = retained_details
+            raise
+        else:
+            return descriptor, os.path.join(directory, name)
+    raise StateError("Anchored temporary allocation exhausted without an explicit outcome.")
 
 
 def create_secure_temp_directory(

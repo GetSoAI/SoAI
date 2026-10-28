@@ -3,10 +3,16 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from types import TracebackType
 from typing import Protocol
 
+from core.config.protocols import ConfigProtocol
+from core.events.protocols import EventBusProtocol
+from core.metrics.protocols import MetricsManagerProtocol
+from core.plugins.protocols import PluginManagerProtocol
+from core.plugins.protocols_instance import FilesProtocol
 from core.plugins.protocols_runtime import (
     BasePluginCapabilitySurfaceProtocol,
     DefaultConfigurationProviderProtocol,
@@ -23,9 +29,12 @@ from core.plugins.protocols_runtime import (
     PluginStorageWriteClaimProtocol,
     PluginSurfaceProtocol,
 )
-from core.types.json import JSONValue
+from core.runtime.protocols import RuntimeFlagsViewProtocol
+from core.types.json import JSONDict, JSONValue
+from core.types.protocols import HttpClientProtocol
 
 __all__ = (
+    "PluginSdkRuntimeAttributesProtocol",
     "BasePluginCapabilitySurfaceProtocol",
     "AcceleratorInventoryProviderProtocol",
     "ReservedWriteDiskReservationLeaseProtocol",
@@ -48,11 +57,33 @@ __all__ = (
 )
 
 
+class PluginSdkRuntimeAttributesProtocol(Protocol):
+    logger: logging.Logger
+    plugin_name: str
+    config: ConfigProtocol
+    event_bus: EventBusProtocol
+    metrics: MetricsManagerProtocol
+    model_registry: PluginModelRegistryRuntimeProtocol
+    plugin_manager: PluginManagerProtocol
+    runtime_reporter: PluginRuntimeFailureReporterProtocol
+    hw_manager: PluginHardwareRuntimeProtocol | None
+    storage_manager: PluginStorageRuntimeProtocol
+    runtime_flags: RuntimeFlagsViewProtocol
+    files: FilesProtocol
+    plugin_config: JSONDict
+    http_client: HttpClientProtocol
+    install_path: str
+    temp_directory: str
+    openai_capabilities: JSONDict
+
+
 class LazyPluginSdkExportProtocol(Protocol): ...
 
 
 class AcceleratorInventoryProviderProtocol(Protocol):
-    async def get_system_info(self, components: list[str], cache: bool) -> JSONValue: ...
+    async def get_system_info(
+        self, components: list[str], cache: bool, include_gpu_capabilities: bool = True
+    ) -> JSONValue: ...
 
 
 class ReservedWriteDiskWriteClaimProtocol(Protocol):

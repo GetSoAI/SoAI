@@ -6,21 +6,15 @@ from __future__ import annotations
 import hashlib
 import re
 import uuid
-from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
 
-if TYPE_CHECKING:
-    from collections.abc import Iterable
-
 __all__ = (
-    "build_hashed_identifier",
     "build_soai_id",
     "create_prefixed_hex_id",
     "create_request_id",
     "create_system_id",
     "extend_soai_id",
-    "normalize_segments",
     "safe_or_hashed_segment",
 )
 
@@ -98,19 +92,6 @@ def safe_or_hashed_segment(value: str) -> str:
         return normalized
     digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
     return f"h_{digest}"
-
-
-def build_hashed_identifier(label: str, value: str) -> str:
-    label_segment = _normalize_required_segment(label, label="label")
-    hashed = safe_or_hashed_segment(value)
-    return f"{label_segment}_{hashed}"
-
-
-def normalize_segments(values: Iterable[str]) -> tuple[str, ...]:
-    normalized: list[str] = []
-    for value in values:
-        normalized.append(_normalize_required_segment(value, label="segment"))
-    return tuple(normalized)
 
 
 def _normalize_required_segment(value: str, *, label: str) -> str:

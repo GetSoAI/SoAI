@@ -6,6 +6,8 @@ from __future__ import annotations
 import os
 import stat
 
+from core.filesystem.descriptor_io import open_descriptor
+
 __all__ = (
     "RUNTIME_CONFIG_FILE_MODE",
     "runtime_config_atomic_file_mode",
@@ -27,7 +29,7 @@ def secure_runtime_config_file_permissions(path: str) -> None:
         return
     flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW
     try:
-        descriptor = os.open(path, flags)
+        descriptor = open_descriptor(path, flags)
     except FileNotFoundError:
         return
     try:

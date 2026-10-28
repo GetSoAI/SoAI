@@ -11,6 +11,10 @@
         pointer-events: none;
     }
 
+    .sidebar .sidebar-plugin-indicator.sidebar-plugin-indicator--update {
+        background-color: var(--status-blue);
+    }
+
     .sidebar .sidebar-chat-indicator {
         width: var(--status-led-size);
         height: var(--status-led-size);
@@ -90,7 +94,7 @@
     }
 
     .hamburger-menu.ui-icon-button.is-active {
-        opacity: 1;
+        opacity: var(--ui-control-opacity);
         pointer-events: auto;
         transition: opacity var(--transition-header);
     }

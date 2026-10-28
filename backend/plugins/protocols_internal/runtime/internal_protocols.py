@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Protocol
 
 from core.logging.protocols import LoggerProtocol
@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 
     from core.events.types_base import Event
     from core.hardware.protocols import HardwareManagerProtocol
-    from core.models.remote_model_search_types import RemoteModelSearchResult
     from core.orchestrator.protocols_lifecycle import OrchestratorLifecycleProtocol
     from core.plugins.protocols_database import DatabasePluginsProtocol
     from core.plugins.protocols_guardian import UpdaterModuleDependenciesProtocol
@@ -47,17 +46,7 @@ __all__ = (
     "FetchSoAIReleaseHistoryAsyncProtocol",
     "PluginDownloadManagerProtocol",
     "PluginManagerRuntimeProtocol",
-    "RemoteSearchPluginProtocol",
 )
-
-
-class RemoteSearchPluginProtocol(Protocol):
-    async def search_remote_models(
-        self,
-        query: str,
-        *,
-        limit: int = ...,
-    ) -> Sequence[RemoteModelSearchResult | JSONDict]: ...
 
 
 class FetchLatestSoAIReleaseAsyncProtocol(Protocol):
@@ -90,9 +79,17 @@ class PluginWorkerControllerProtocol(Protocol):
 
     async def shutdown(self) -> None: ...
 
-    async def stop_plugin(self, plugin_name: str) -> None: ...
+    async def stop_plugin(
+        self,
+        plugin_name: str,
+        *,
+        expected_instance: PluginInstanceProtocol | None = None,
+        expected_worker_id: int | None = None,
+    ) -> None: ...
 
     async def delete_plugin_environment(self, plugin_name: str) -> None: ...
+
+    def describe_worker_ownership(self, plugin_name: str) -> JSONDict: ...
 
     async def update_runtime_flags(self, runtime_flags: RuntimeFlagsViewProtocol) -> None: ...
 
@@ -242,7 +239,14 @@ class PluginManagerRuntimeProtocol(Protocol):
 
     async def reload_plugin_instance(self, plugin_name: str) -> None: ...
 
-    async def release_discovery_plugin_instance(self, plugin_name: str) -> None: ...
+    async def release_discovery_plugin_instance(
+        self,
+        plugin_name: str,
+        *,
+        expected_instance: PluginInstanceProtocol | None = None,
+    ) -> None: ...
+
+    async def check_backend_update(self, plugin_name: str) -> JSONDict: ...
 
     async def check_for_backend_updates(self) -> dict[str, JSONDict]: ...
 

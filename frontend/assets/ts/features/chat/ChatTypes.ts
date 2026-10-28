@@ -102,6 +102,7 @@ interface SoaiCompactionMarker {
 }
 
 interface ChatMessageFields {
+    attachmentMissingCapabilities?: Record<string, string[]>;
     id?: string | number;
     content?: ChatContent;
     timestamp?: number;
@@ -152,6 +153,8 @@ type ConversationMessage = ChatMessage;
 interface ConversationContract {
     id?: string;
     title?: string;
+    titleAutoUpdateAllowed?: boolean;
+    committedTitleMetadata?: { title: string; autoUpdateAllowed?: boolean; updatedAt: number };
     messages: ConversationMessage[];
     modelSettings?: ConversationModelSettings;
     createdAt?: number;
@@ -253,6 +256,7 @@ interface ChatAttachment {
     providerMode?: string | null;
     providerTextTruncated?: boolean;
     parseState?: 'pending' | 'ready' | 'failed';
+    missingCapabilities?: string[];
     state?: string;
     attachmentRevision?: number;
     createdAtMs?: number;

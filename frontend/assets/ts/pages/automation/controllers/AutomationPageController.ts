@@ -139,10 +139,10 @@ class AutomationPageController {
             getConnections: () => this.#interactionController.getConnections()
         });
         this.#renderScheduler = new AutomationPageRenderScheduler({
-            requestAnimationFrame: runtime.requestAnimationFrame,
-            run: (operation, task) => this.#operationRunner.run(operation, task),
+            run: (operation, task) => this.#operationRunner.runAsync(operation, task),
             isDestroyed: () => this.#destroyed,
             render: () => {
+                if (this.#destroyed) return;
                 this.#calendarTransition.playPending(this.#viewController.render(this.#state));
                 this.#interactionController.getOccurrenceModal()?.syncZones(this.#state.zones, this.#state.calendarSettings, !this.#dataController.getStatus().stale);
             }
@@ -160,7 +160,7 @@ class AutomationPageController {
             applySplit: (percent) => this.#applySplit(percent),
             queueRender: () => this.#renderRequests.notify(),
             refreshData: () => this.#dataController.refresh(),
-            waitForRenderIdle: () => this.#renderScheduler.waitForIdle(),
+            waitForRenderIdle: (signal) => this.#renderScheduler.waitForIdle(signal),
             getStyleProp: runtime.getStyleProp,
             showWarningNotification: (message) => runtime.showNotification(message, 'warning'),
             preferencesStatus: this.#preferencesStatus
@@ -236,6 +236,7 @@ class AutomationPageController {
 
     destroy(): void {
         this.#destroyed = true;
+        this.#renderScheduler.dispose();
         this.#unsubscribeRenderRequests();
         this.#renderRequests.clear();
         this.#monthMaxChipsPerDay = AUTOMATION_DEFAULT_MONTH_MAX_ZONES_PER_DAY;

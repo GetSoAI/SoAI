@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 from core.config.upload_limits import UploadLimitType, resolve_upload_limit_bytes
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import InsufficientDiskSpaceError, ValidationError
-from core.files.upload_staging import cleanup_temp_file
 from core.logging.trace import get_logger
 from core.state.access import AccessAction
 from features.api.routes.system.events.websocket_openai_audio.payloads import (
@@ -17,15 +16,15 @@ from features.api.routes.system.events.websocket_openai_audio.payloads import (
 )
 from features.api.routes.system.events.websocket_openai_audio.runtime import (
     append_bytes_to_file,
+    discard_transcription_upload,
+    fail_transcription_upload,
+    request_transcription_cancellation,
     require_base64_chunk,
     require_run_id,
     with_locked_active_transcription_runtime,
 )
 from features.api.routes.system.events.websocket_openai_cancel_handling import (
     handle_openai_ws_cancel_with_lock,
-)
-from features.api.routes.system.events.websocket_openai_runtime_cancellation import (
-    cancel_openai_ws_active_task_runtime,
 )
 from features.api.routes.system.events.websocket_run_payloads import (
     require_non_negative_sequence,
@@ -50,7 +49,6 @@ __all__ = (
 )
 
 LOGGER_NAME = "SoAI.features.api.transcription_upload_chunks"
-OPERATION_TRANSCRIPTION_CANCEL = "api_system.websocket.openai_audio.transcription.cancel"
 OPERATION_TRANSCRIPTION_CHUNK_APPEND = (
     "api_system.websocket.openai_audio.transcription.chunk.append"
 )
@@ -88,6 +86,7 @@ async def handle_openai_audio_transcription_chunk(
         transcriptions: dict[str, OpenAiAudioTranscriptionRuntime],
         runtime: OpenAiAudioTranscriptionRuntime,
     ) -> None:
+        del transcriptions
         if runtime.state != "uploading":
             enqueue_event_or_warn(
                 enqueue_warning_tracker,
@@ -118,21 +117,13 @@ async def handle_openai_audio_transcription_chunk(
         )
         new_total = runtime.received_bytes + len(chunk)
         if new_total > max_upload_bytes:
-            runtime.state = "cancelled"
-            if runtime.detach_event is not None:
-                runtime.detach_event.set()
-            await cleanup_temp_file(runtime.temp_path)
-            if transcriptions.get(run_id) is runtime:
-                transcriptions.pop(run_id, None)
-            enqueue_event_or_warn(
-                enqueue_warning_tracker,
-                connection.queue,
-                build_openai_audio_transcription_error(
-                    run_id=run_id,
-                    message="Audio upload exceeded configured limit.",
-                    code="invalid_request_error",
-                ),
-                "OpenAI audio transcription error",
+            await fail_transcription_upload(
+                runtime=runtime,
+                connection=connection,
+                enqueue_warning_tracker=enqueue_warning_tracker,
+                state="cancelled",
+                message="Audio upload exceeded configured limit.",
+                code="invalid_request_error",
             )
             return
         try:
@@ -158,27 +149,17 @@ async def handle_openai_audio_transcription_chunk(
                 trace_id=trace_id,
                 level="error",
             )
-            runtime.state = "failed"
-            if runtime.detach_event is not None:
-                runtime.detach_event.set()
-            await cleanup_temp_file(runtime.temp_path)
-            if transcriptions.get(run_id) is runtime:
-                transcriptions.pop(run_id, None)
             if isinstance(exception, InsufficientDiskSpaceError):
-                error_message = str(exception.message)
-                error_code = str(exception.code)
+                error_message, error_code = str(exception.message), str(exception.code)
             else:
-                error_message = "Failed writing upload chunk."
-                error_code = "server_error"
-            enqueue_event_or_warn(
-                enqueue_warning_tracker,
-                connection.queue,
-                build_openai_audio_transcription_error(
-                    run_id=run_id,
-                    message=error_message,
-                    code=error_code,
-                ),
-                "OpenAI audio transcription error",
+                error_message, error_code = "Failed writing upload chunk.", "server_error"
+            await fail_transcription_upload(
+                runtime=runtime,
+                connection=connection,
+                enqueue_warning_tracker=enqueue_warning_tracker,
+                state="failed",
+                message=error_message,
+                code=error_code,
             )
             return
         runtime.received_bytes = new_total
@@ -199,24 +180,27 @@ async def handle_openai_audio_transcription_cancel(
     api_context: ApiContext,
     enqueue_warning_tracker: EnqueueWarningTracker,
 ) -> None:
-    async def cancel_runtime(runtime: OpenAiAudioTranscriptionRuntime, reason: str) -> None:
-        runtime.state = "cancelled"
-        cancel_openai_ws_active_task_runtime(
+    del api_context
+    transcriptions = connection.openai_audio_transcriptions
+
+    async def cancel_runtime(runtime: OpenAiAudioTranscriptionRuntime, reason: str) -> bool:
+        if runtime.runner_task is not None:
+            request_transcription_cancellation(runtime, cause="client", reason=reason)
+            return False
+        await discard_transcription_upload(
+            run_id=runtime.run_id,
             runtime=runtime,
-            api_context=api_context,
-            connection=connection,
-            reason=reason,
-            operation=OPERATION_TRANSCRIPTION_CANCEL,
-            logger=get_logger(LOGGER_NAME),
+            transcriptions=transcriptions,
+            state="cancelled",
         )
-        await cleanup_temp_file(runtime.temp_path)
+        return True
 
     await handle_openai_ws_cancel_with_lock(
         data,
         connection=connection,
         enqueue_warning_tracker=enqueue_warning_tracker,
         require_run_id=require_run_id,
-        runtimes=connection.openai_audio_transcriptions,
+        runtimes=transcriptions,
         cancel_runtime=cancel_runtime,
         build_cancelled_event=lambda run_id, reason: build_openai_audio_transcription_cancelled(
             run_id=run_id,

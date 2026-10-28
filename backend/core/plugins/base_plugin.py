@@ -6,8 +6,9 @@ from __future__ import annotations
 import abc
 import asyncio
 import io
-from collections.abc import AsyncGenerator, Awaitable, Callable, Mapping, Sequence
-from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator, Awaitable, Callable, Generator, Mapping, Sequence
+from contextlib import asynccontextmanager, contextmanager
+from contextvars import ContextVar
 from typing import TYPE_CHECKING, override
 
 from core.config.protocols import ConfigProtocol
@@ -69,6 +70,28 @@ class BasePlugin(BasePluginDefaults, abc.ABC):
                 "Plugin runtime must provide a RuntimeFlagsViewProtocol-compatible helper.",
             )
         self.temp_directory = initialize_temp_directory(config)
+        self._backend_lifecycle_shutdown: ContextVar[asyncio.Event | None] = ContextVar(
+            "backend_lifecycle_shutdown", default=None
+        )
+
+    @property
+    def backend_lifecycle_shutdown_event(self) -> asyncio.Event | None:
+        return self._backend_lifecycle_shutdown.get()
+
+    def raise_if_backend_lifecycle_cancelled(self) -> None:
+        event = self.backend_lifecycle_shutdown_event
+        if event is not None and event.is_set():
+            raise asyncio.CancelledError("Backend operation cancelled.")
+
+    @contextmanager
+    def backend_lifecycle_cancellation_scope(
+        self, shutdown_event: asyncio.Event
+    ) -> Generator[None]:
+        token = self._backend_lifecycle_shutdown.set(shutdown_event)
+        try:
+            yield
+        finally:
+            self._backend_lifecycle_shutdown.reset(token)
 
     get_models_directory = get_models_directory
     supports_modality = supports_modality
@@ -78,6 +101,15 @@ class BasePlugin(BasePluginDefaults, abc.ABC):
     async def refresh_runtime_configuration(self) -> JSONDict:
         latest_config = await self.plugin_manager.get_plugin_configuration(self.plugin_name)
         return await self.apply_runtime_configuration(dict(latest_config))
+
+    async def validate_runtime_configuration(
+        self,
+        current_config: Mapping[str, JSONValue],
+        proposed_config: Mapping[str, JSONValue],
+        capabilities: Mapping[str, JSONValue],
+        gpu_inventory: Mapping[str, JSONValue] | None,
+    ) -> None:
+        _ = current_config, proposed_config, capabilities, gpu_inventory
 
     async def apply_runtime_configuration(self, config_data: JSONDict) -> JSONDict:
         refreshed_config = dict(config_data)

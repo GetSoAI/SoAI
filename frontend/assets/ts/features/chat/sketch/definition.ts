@@ -77,8 +77,8 @@ const renderWorkbench = (modalId: string): TrustedHtml => {
     return uiHtml`
         <div class="chat-sketch-workbench">
             <div class="chat-sketch-toolbar">
-                <div class="chat-sketch-toolbar__group" role="group" aria-label="${uiAttr(i18n.t('chat.sketch.toolsLabel'))}">${renderToolButtons(modalId)}</div>
-                <div class="chat-sketch-toolbar__group chat-sketch-palette" role="group" aria-label="${uiAttr(i18n.t('chat.sketch.colorsLabel'))}">
+                <div class="chat-sketch-toolbar__group" role="group" aria-label="${uiAttr(i18n.t('chat.sketch.toolsLabel'))}" data-modal-localize="aria-label">${renderToolButtons(modalId)}</div>
+                <div class="chat-sketch-toolbar__group chat-sketch-palette" role="group" aria-label="${uiAttr(i18n.t('chat.sketch.colorsLabel'))}" data-modal-localize="aria-label">
                     <div class="chat-sketch-swatches">${renderColorSwatches()}</div>
                     <input type="color" id="${uiAttr(colorId)}" class="chat-sketch-color-input" value="${uiAttr(CHAT_SKETCH_DEFAULT_COLOR)}" style="--chat-sketch-spectrum:${uiAttr(CHAT_SKETCH_SPECTRUM)};" ${renderLabelAttributes(i18n.t('chat.sketch.customColor'))}>
                 </div>
@@ -91,7 +91,7 @@ const renderWorkbench = (modalId: string): TrustedHtml => {
             </div>
             <div id="${uiAttr(modalUiId(modalId, 'stage'))}" class="chat-sketch-stage">
                 <div class="chat-sketch-frame">
-                    <canvas id="${uiAttr(modalUiId(modalId, 'canvas'))}" class="chat-sketch-canvas" width="${uiAttr(String(CHAT_SKETCH_CANVAS_WIDTH))}" height="${uiAttr(String(CHAT_SKETCH_CANVAS_HEIGHT))}" role="img" aria-label="${uiAttr(i18n.t('chat.sketch.canvasLabel'))}" data-sketch-tool="${uiAttr(CHAT_SKETCH_DEFAULT_TOOL)}"></canvas>
+                    <canvas id="${uiAttr(modalUiId(modalId, 'canvas'))}" class="chat-sketch-canvas" width="${uiAttr(String(CHAT_SKETCH_CANVAS_WIDTH))}" height="${uiAttr(String(CHAT_SKETCH_CANVAS_HEIGHT))}" role="img" aria-label="${uiAttr(i18n.t('chat.sketch.canvasLabel'))}" data-sketch-tool="${uiAttr(CHAT_SKETCH_DEFAULT_TOOL)}" data-modal-localize="aria-label"></canvas>
                     <button type="button" id="${uiAttr(modalUiId(modalId, 'resize'))}" class="chat-sketch-resize" ${renderLabelAttributes(i18n.t('chat.sketch.resize'))}>${getIconSync('resize-corner', CHAT_SKETCH_ICON_OPTIONS)}</button>
                 </div>
             </div>

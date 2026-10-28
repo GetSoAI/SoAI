@@ -10,6 +10,7 @@ from core.errors.exceptions import StateError, ValidationError
 from core.files.database_types import RAGConversationConfigRecord
 from core.mcp.protocols_rag import MCPRAGProtocol
 from core.mcp.schema import AUTO_EMBEDDING_MODEL_SELECTOR
+from core.rag.availability_errors import require_indexed_document_count
 from core.rag.parameter_validation import validate_chunking_window
 from core.rag.preferences import (
     read_chat_default_embedding_model,
@@ -216,6 +217,10 @@ async def reindex_rag(
             config_model if isinstance(config_model, str) else None,
         )
     if model_id is None or model_id.lower() == "auto":
+        counts = await api_context.dependencies.database_files.get_rag_counts_for_conversation(
+            resolved_id
+        )
+        require_indexed_document_count(counts)
         raise_invalid_request(request, "embedding_model must be provided or set in the RAG config.")
     reindex_result = await rag_engine.reindex_conversation(
         resolved_id,

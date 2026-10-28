@@ -10,8 +10,8 @@ import { TimeoutTimer } from '@core/timers/timeoutTimer.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import { getWebSocketClient } from '@core/websocketclient/service.ts';
 import { WEBSOCKET_EVENT_TYPES, WEBSOCKET_LIFECYCLE_EVENT_TYPES, WEBSOCKET_MESSAGE_TYPES } from '@core/websocketEvents.ts';
-import { ModelTestStreamError, readModelTestStreamResult, type ModelTestStreamFailureOutcome, type ModelTestStreamResult } from '@core/openai/modelTestStreamOutcome.ts';
-import { readModelTestDeltaText, readModelTestErrorMessage, readModelTestEventType, readModelTestRunId, readModelTestSequence } from '@core/openai/modelTestStreamParsing.ts';
+import { ModelTestStreamError, normalizeModelTestFailureMetadata, readModelTestStreamResult, type ModelTestStreamFailureOutcome, type ModelTestStreamResult } from '@core/openai/modelTestStreamOutcome.ts';
+import { readModelTestErrorCode, readModelTestDeltaText, readModelTestErrorMessage, readModelTestEventType, readModelTestRunId, readModelTestSequence } from '@core/openai/modelTestStreamParsing.ts';
 
 interface ModelTestStreamMessage {
     role: 'user' | 'assistant' | 'system' | 'tool';
@@ -111,7 +111,7 @@ const runOpenAiModelTestStream = async (options: ModelTestStreamRunOptions): Pro
     const fail = (error: Error, outcome: ModelTestStreamFailureOutcome): void => {
         if (settled) return;
         cleanup();
-        completion.reject(new ModelTestStreamError(error.message, outcome));
+        completion.reject(new ModelTestStreamError(error.message, outcome, error instanceof ModelTestStreamError ? error.failure : normalizeModelTestFailureMetadata(null, options.runId)));
     };
 
     const cancelRemoteRun = (): void => {
@@ -177,7 +177,7 @@ const runOpenAiModelTestStream = async (options: ModelTestStreamRunOptions): Pro
             return;
         }
         if (eventType === 'error') {
-            fail(new Error(readModelTestErrorMessage(payload) || options.errorMessageFallback), 'load_error');
+            fail(new ModelTestStreamError(readModelTestErrorMessage(payload) || options.errorMessageFallback, 'load_error', normalizeModelTestFailureMetadata(readModelTestErrorCode(payload), runId)), 'load_error');
             return;
         }
         fail(new Error(`Unsupported model test stream event type: ${eventType}`), 'load_error');

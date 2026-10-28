@@ -26,7 +26,7 @@ class GpuSoAIBenchController {
     constructor(dependencies: GpuSoAiBenchControllerDependencies) {
         this.#dependencies = dependencies;
         this.#renderQueue = new AnimationFrameRenderQueue<JsonValue>({
-            label: 'Hardware SoAIBench GPU controls',
+            label: 'Hardware SoAI Bench GPU controls',
             render: () => this.#dependencies.syncSoAIBenchUi(),
             merge: (_previous, next) => next
         });

@@ -6,6 +6,7 @@ import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { syncAutoScrollLockAttribute } from '@features/chat/chatuimanager/autoScrollLockRuntime.ts';
 import { mapAdvancedScrollPreviewClickToScrollTop } from '@features/chat/chatuimanager/advancedScrollPreviewMath.ts';
+import { writeMainTimelineScrollTop } from '@features/chat/mainTimelineScroll.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 
 type DragVisibilityState = {
@@ -34,7 +35,6 @@ export type AdvancedScrollPreviewDragRuntime = {
 
 export const createAdvancedScrollPreviewDragRuntime = (input: DragRuntimeInput): AdvancedScrollPreviewDragRuntime => {
     const doc = input.context.dependencies.dom.getDocument();
-    let isDragging = false;
     let activePointerId: number | null = null;
     let dragOffsetY = 0;
     let dragMoveDisposer: (() => void) | null = null;
@@ -60,12 +60,13 @@ export const createAdvancedScrollPreviewDragRuntime = (input: DragRuntimeInput):
     };
 
     const stop = (): void => {
-        if (!isDragging) {
+        if (activePointerId === null) {
             clearDocumentDragListeners();
             return;
         }
-        isDragging = false;
+        const capturedPointerId = activePointerId;
         activePointerId = null;
+        if (input.overlay.hasPointerCapture(capturedPointerId)) input.overlay.releasePointerCapture(capturedPointerId);
         dragOffsetY = 0;
         input.onDragStateChange(false);
         input.context.dependencies.toggleClassName(input.overlay, CSS_CLASSES.HOVER, false);
@@ -76,7 +77,7 @@ export const createAdvancedScrollPreviewDragRuntime = (input: DragRuntimeInput):
         if (!(event instanceof PointerEvent)) {
             return;
         }
-        if (!isDragging || activePointerId === null || event.pointerId !== activePointerId) {
+        if (activePointerId === null || event.pointerId !== activePointerId) {
             return;
         }
         const state = input.getVisibilityState();
@@ -93,7 +94,7 @@ export const createAdvancedScrollPreviewDragRuntime = (input: DragRuntimeInput):
         const ratio = trackHeight > 0 ? desiredThumbTop / trackHeight : 0;
         const targetScrollTop = clampNumber(ratio * state.maxScrollTop, 0, state.maxScrollTop);
         markMinimapScrollIntent();
-        input.messagesArea.scrollTop = targetScrollTop;
+        writeMainTimelineScrollTop(input.messagesArea, targetScrollTop);
         event.preventDefault();
         input.scheduleThumbUpdate();
     };
@@ -129,7 +130,7 @@ export const createAdvancedScrollPreviewDragRuntime = (input: DragRuntimeInput):
         const yCoordinate = clampNumber(point.y - overlayRect.top, 0, state.grooveHeight);
 
         stop();
-        isDragging = true;
+        input.overlay.setPointerCapture(event.pointerId);
         activePointerId = event.pointerId;
         input.onDragStateChange(true);
         input.context.dependencies.toggleClassName(input.overlay, CSS_CLASSES.HOVER, true);
@@ -146,7 +147,7 @@ export const createAdvancedScrollPreviewDragRuntime = (input: DragRuntimeInput):
                 clientHeight: state.clientHeight
             });
             markMinimapScrollIntent();
-            input.messagesArea.scrollTop = targetScrollTop;
+            writeMainTimelineScrollTop(input.messagesArea, targetScrollTop);
         }
 
         dragMoveDisposer = input.context.dependencies.runtime.on(doc, 'pointermove', handleDragPointerMove, { passive: false });
@@ -158,11 +159,13 @@ export const createAdvancedScrollPreviewDragRuntime = (input: DragRuntimeInput):
     };
 
     const onPointerDownDisposer = input.context.dependencies.runtime.on(input.overlay, 'pointerdown', handlePointerDown, { passive: false });
+    const lostCaptureDisposer = input.context.dependencies.runtime.on(input.overlay, 'lostpointercapture', handleDragPointerUp);
 
     return {
         stop,
         dispose: () => {
             onPointerDownDisposer();
+            lostCaptureDisposer();
             stop();
         }
     };

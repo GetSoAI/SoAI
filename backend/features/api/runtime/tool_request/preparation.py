@@ -129,6 +129,12 @@ async def prepare_mcp_tools_for_request(
                 conversation=conversation,
             ),
             force_tool_choice_auto=True,
+            request_tool_names=(
+                ("skill_read",)
+                if context.skill_execution_context is not None
+                and context.skill_execution_context.snapshot.available
+                else ()
+            ),
         )
         resolved_tool_context = normalize_tool_context_for_agent_settings(
             agent_settings=conversation.agent_settings,

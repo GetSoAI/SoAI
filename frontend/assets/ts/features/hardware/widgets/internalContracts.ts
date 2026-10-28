@@ -1,30 +1,34 @@
 /* SoAI - Hardware widget domain contracts [frontend/assets/ts/features/hardware/widgets/internalContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { HardwareCpuSnapshot, HardwareMemorySnapshot, HardwareNetworkInterface } from '@core/api/contracts/hardwareContractTypes.ts';
 import type { HardwareHistoryResponse, HardwareGpuSnapshot } from '@core/api/contracts/hardwareContracts.ts';
-import type { CpuRaw, HardwareSnapshot, MemoryRaw, NetworkInterfaceRaw } from '@features/hardware/models/types.ts';
+import type { HardwareSnapshot } from '@features/hardware/models/types.ts';
+import type { HardwareComponentObservation } from '@core/api/contracts/hardwareComponentObservationContracts.ts';
 
-type CPURawData = CpuRaw;
+type CPURawData = HardwareCpuSnapshot;
 type GPURawData = HardwareGpuSnapshot;
-type NetworkRawData = NetworkInterfaceRaw;
-type MemoryData = MemoryRaw;
+type NetworkRawData = HardwareNetworkInterface;
+type MemoryData = HardwareMemorySnapshot;
 type HardwareData = HardwareSnapshot;
 
 interface CPUDeviceData {
-    utilization: number;
-    memoryUsedMb: number;
-    memoryTotalMb: number;
-    temperature: number;
-    powerWatts: number;
-    powerLimit: number;
+    utilization?: number | undefined;
+    memoryUsedMb?: number | undefined;
+    memoryTotalMb?: number | undefined;
+    temperature?: number | undefined;
+    powerWatts?: number | undefined;
+    powerLimit?: number | undefined;
 }
 interface GPUDeviceData {
-    utilization: number;
-    memoryUsedMb: number;
-    memoryTotalMb: number;
-    powerWatts: number;
-    temperature: number;
-    powerLimit: number;
+    telemetryObservation?: HardwareComponentObservation | undefined;
+    memoryTotalObservation?: HardwareComponentObservation | undefined;
+    utilization?: number | undefined;
+    memoryUsedMb?: number | undefined;
+    memoryTotalMb?: number | undefined;
+    powerWatts?: number | undefined;
+    temperature?: number | undefined;
+    powerLimit?: number | undefined;
     telemetryAvailable: boolean;
 }
 interface CPUDevice {
@@ -36,14 +40,15 @@ interface CPUDevice {
     data: CPUDeviceData;
 }
 interface GPUDevice {
+    deviceId?: string | undefined;
     index: number;
     name: string;
     data: GPUDeviceData;
 }
 interface NetworkDeviceData {
-    downloadMbps: number;
-    uploadMbps: number;
-    linkSpeedMbps: number;
+    downloadMbps?: number | undefined;
+    uploadMbps?: number | undefined;
+    linkSpeedMbps?: number | undefined;
 }
 interface NetworkDevice {
     deviceId: string;

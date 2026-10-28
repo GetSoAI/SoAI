@@ -158,6 +158,7 @@ async def render_conversation_pdf_artifact(
                 footer_template="",
                 timeout_sec=settings.render_timeout_sec,
             ),
+            playwright_sessions=api_context.dependencies.playwright_sessions,
         )
         await report_progress_without_status_change(
             registry,
@@ -181,6 +182,7 @@ async def render_conversation_pdf_artifact(
                 ),
                 timeout_sec=settings.render_timeout_sec,
             ),
+            playwright_sessions=api_context.dependencies.playwright_sessions,
         )
         await report_progress_without_status_change(registry, task_id, 70, status_message="Merging")
         await validate_conversation_pdf_export_snapshot(

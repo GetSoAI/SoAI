@@ -58,7 +58,7 @@ const createPromptEnhancerModalElement = (): HTMLElement => {
         <div class="prompt-modal-content prompt-enhancer-layout">
             <div class="prompt-enhancer-meta">
                 <div class="prompt-enhancer-meta-row" id="${modelSettingId}">
-                    <span class="prompt-enhancer-meta-label">${i18n.t('prompts.enhancer.model')}</span>
+                    <span class="prompt-enhancer-meta-label" data-modal-localize="text">${i18n.t('prompts.enhancer.model')}</span>
                     <div class="setting-control">
                         ${toTrustedUiHtml(modelSelectMarkup)}
                     </div>
@@ -67,7 +67,7 @@ const createPromptEnhancerModalElement = (): HTMLElement => {
                     <span class="prompt-enhancer-meta-value prompt-enhancer-meta-hint" id="${modelHelpId}"></span>
                 </div>
                 <div class="prompt-enhancer-meta-row">
-                    <span class="prompt-enhancer-meta-label">${i18n.t('prompts.enhancer.status.label')}</span>
+                    <span class="prompt-enhancer-meta-label" data-modal-localize="text">${i18n.t('prompts.enhancer.status.label')}</span>
                     <span class="ui-status-badge neutral" id="${statusBadgeId}">
                         <span class="status-indicator grey" id="${statusLedId}"></span>
                         <span id="${statusValueId}"></span>
@@ -78,7 +78,7 @@ const createPromptEnhancerModalElement = (): HTMLElement => {
             <div class="prompt-enhancer-panes" id="${panesId}">
                 <section class="prompt-enhancer-pane prompt-enhancer-pane--original u-hidden" id="${originalPaneId}" aria-hidden="true">
                     <div class="card-title-bar card-title-bar--no-border">
-                        <h4 class="card-title">${i18n.t('prompts.enhancer.panes.original')}</h4>
+                        <h4 class="card-title" data-modal-localize="text">${i18n.t('prompts.enhancer.panes.original')}</h4>
                         <span class="prompt-enhancer-char-count u-hidden" id="${originalCharCountId}"></span>
                     </div>
                     <div class="prompt-enhancer-pane-body">
@@ -89,7 +89,7 @@ const createPromptEnhancerModalElement = (): HTMLElement => {
                 <section class="prompt-enhancer-pane prompt-enhancer-pane--enhanced" id="${enhancedPaneId}">
                     <div class="card-title-bar card-title-bar--no-border">
                         <div class="prompt-enhancer-title-group">
-                            <h4 class="card-title">${i18n.t('prompts.enhancer.panes.enhanced')}</h4>
+                            <h4 class="card-title" data-modal-localize="text">${i18n.t('prompts.enhancer.panes.enhanced')}</h4>
                             <span class="prompt-enhancer-done-led u-hidden" id="${enhancedDoneLedId}" aria-hidden="true"></span>
                         </div>
                         <span class="prompt-enhancer-char-count u-hidden" id="${enhancedCharCountId}"></span>
@@ -99,7 +99,7 @@ const createPromptEnhancerModalElement = (): HTMLElement => {
                             <div class="prompt-enhancer-output-spinner u-hidden" id="${outputSpinnerId}" aria-hidden="true">
                                 <span class="spinner"></span>
                             </div>
-                            <div class="prompt-enhancer-output-wait-message u-hidden" id="${waitMessageId}">
+                            <div class="prompt-enhancer-output-wait-message u-hidden" id="${waitMessageId}" data-modal-localize="text">
                                 ${i18n.t('prompts.enhancer.pleaseWait')}
                             </div>
                         </div>

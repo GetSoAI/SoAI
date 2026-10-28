@@ -3,9 +3,14 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from core.mcp.error_mapping import project_mcp_error_fields
 from core.mcp.mcp_2025_11_25 import JSON_RPC_VERSION
 from core.types.json import JSONDict, JSONValue
+
+if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
 
 __all__ = ("build_error_response", "build_success_response")
 
@@ -19,8 +24,14 @@ def build_error_response(
     code: int,
     message: str,
     data: JSONValue | None = None,
+    *,
+    public_error: ErrorPublicPayload | None = None,
 ) -> JSONDict:
-    public_message, public_data = project_mcp_error_fields(code, message, data)
+    public_message, public_data = (
+        (public_error.message, public_error.to_dict())
+        if public_error is not None
+        else project_mcp_error_fields(code, message, data)
+    )
     payload: JSONDict = {"code": code, "message": public_message}
     if public_data is not None:
         payload["data"] = public_data

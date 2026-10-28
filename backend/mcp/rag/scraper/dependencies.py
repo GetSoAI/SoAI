@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import httpx2
 from charset_normalizer import from_bytes
 
+from core.browser.playwright_session_resources import PlaywrightSessionResources
 from core.browser_adblock.protocols import EasyListAdblockServiceProtocol
 from core.config.protocols import ConfigProtocol
 from core.di.validation import require_dependencies
@@ -36,6 +37,7 @@ LOGGER_NAME = "SoAI.mcp.rag.dependencies"
 
 @dataclass(frozen=True, slots=True)
 class WebContentFetcherDependencies:
+    playwright_sessions: PlaywrightSessionResources
     http_client: httpx2.AsyncClient
     config: ConfigProtocol
     runtime_flags: RuntimeFlagsViewProtocol
@@ -49,6 +51,7 @@ class WebContentFetcherDependencies:
     def __post_init__(self) -> None:
         require_dependencies(
             owner="WebContentFetcherDependencies",
+            playwright_sessions=self.playwright_sessions,
             charset_detector=self.charset_detector,
             config=self.config,
             html_parser=self.html_parser,
@@ -96,6 +99,8 @@ def build_web_content_fetcher_dependencies(
     storage_manager: StorageManagerProtocol,
     parser_registry_factory: Callable[[], dict[str, FileParserProtocol]],
     adblock_service: EasyListAdblockServiceProtocol | None = None,
+    *,
+    playwright_sessions: PlaywrightSessionResources,
 ) -> WebContentFetcherDependencies:
     if http_client is None:
         raise ValidationError("HTTP client is required for web fetcher.")
@@ -108,6 +113,7 @@ def build_web_content_fetcher_dependencies(
     if parser_registry_factory is None:
         raise ValidationError("Parser registry factory is required for web fetcher.")
     return WebContentFetcherDependencies(
+        playwright_sessions=playwright_sessions,
         http_client=http_client,
         config=config,
         runtime_flags=runtime_flags,

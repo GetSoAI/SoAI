@@ -189,6 +189,10 @@ def build_manager_preconditions(
         task_services.cancellation.finalizer_tracker,
         message="Task finalizer tracker must be initialized before managers are built.",
     )
+    task_type_routing_service = require_initialized(
+        task_services.task_type_routing_service,
+        message="Task type routing service must be initialized before managers are built.",
+    )
     return ManagerPreconditions(
         event_bus=event_bus,
         log_manager=log_manager,
@@ -222,6 +226,7 @@ def build_manager_preconditions(
         database_password_vault=database_services.password_vault,
         database_tool_calls=database_tool_calls,
         database_read_video=database_services.read_video,
+        database_skills=database_services.skills,
         database_files=database_files,
         database_operation_status=database_services.operation_status,
         database_conversation_knowledge_attachments=(
@@ -240,4 +245,5 @@ def build_manager_preconditions(
         token_collection=token_collection,
         cancellation_binder=cancellation_binder,
         finalizer_tracker=finalizer_tracker,
+        task_type_routing_service=task_type_routing_service,
     )

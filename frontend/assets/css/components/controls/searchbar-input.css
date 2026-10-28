@@ -2,13 +2,14 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
-    .searchbar-input {
+    .searchbar-input,
+    .searchbar-input.form-input {
         width: 100%;
         height: var(--searchbar-height);
         padding-block: var(--searchbar-padding-block) var(--searchbar-padding-block);
         padding-inline: var(--searchbar-padding-inline) var(--searchbar-padding-inline-end);
         font-size: var(--searchbar-font-size);
-        border: var(--border-width-1) solid var(--searchbar-border);
+        border: var(--border-width-1) solid var(--searchbar-stroke-color);
         border-radius: var(--border-radius);
 
         background-color: var(--searchbar-bg);
@@ -17,12 +18,13 @@
         -webkit-backdrop-filter: var(--searchbar-backdrop);
         backdrop-filter: var(--searchbar-backdrop);
         color: var(--searchbar-color);
-        transition:
-            background-color var(--transition-fast),
-            border-color var(--transition-fast),
-            box-shadow var(--transition-fast),
-            color var(--transition-fast);
         box-shadow: var(--searchbar-shadow);
+    }
+
+    .header-search--expanded .header-search__button {
+        --ui-button-color: var(--searchbar-icon-color);
+        --ui-button-color-hover: var(--searchbar-icon-color);
+        --ui-button-bg-hover: var(--ui-button-bg);
     }
 
     .searchbar-input:autofill,
@@ -35,7 +37,7 @@
 
     .searchbar-input:focus {
         background-color: var(--searchbar-bg-focus);
-        border-color: var(--searchbar-border-focus);
+        border-color: var(--searchbar-stroke-color);
         box-shadow: var(--searchbar-shadow-focus);
     }
 
@@ -56,11 +58,6 @@
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
         box-shadow: var(--searchbar-shadow-focus);
-    }
-
-    .searchbar-input:hover:not(:focus) {
-        background-color: var(--searchbar-bg-hover);
-        border-color: var(--searchbar-border-hover);
     }
 
     .searchbar-input:-webkit-autofill:hover,
@@ -121,13 +118,14 @@
     .searchbar-container:focus-within .searchbar-input,
     .searchbar-container.is-focused .searchbar-input {
         background-color: var(--searchbar-bg-focus);
-        border-color: var(--searchbar-border-focus);
+        border-color: var(--searchbar-stroke-color);
         box-shadow: var(--searchbar-shadow-focus);
     }
 
     .searchbar-input::placeholder {
         font-size: var(--control-dropdown-font-size);
-        color: var(--text-tertiary);
+        color: var(--searchbar-color);
+        opacity: 1;
     }
 
     .searchbar-icon {
@@ -137,7 +135,7 @@
         transform: translateY(-50%);
         width: var(--control-icon-size);
         height: var(--control-icon-size);
-        color: var(--text-tertiary);
+        color: var(--searchbar-icon-color);
         pointer-events: none;
         transition: color var(--transition-fast);
         display: flex;
@@ -153,7 +151,7 @@
 
     .searchbar-container:not(.header-search) > .searchbar-icon {
         inset-inline-end: var(--control-padding-inline);
-        transition: none;
+        transition: color var(--transition-fast);
     }
 
     .searchbar-clear {
@@ -169,13 +167,14 @@
         padding: 0;
         border: none;
         background: transparent;
-        color: var(--text-tertiary);
+        color: var(--searchbar-icon-color);
+        transition: color var(--transition-fast);
         cursor: pointer;
     }
 
     .searchbar-clear:hover,
     .searchbar-clear:focus-visible {
-        color: var(--text-primary);
+        color: var(--searchbar-icon-color);
     }
 
     .searchbar-clear svg {
@@ -198,7 +197,7 @@
 
     .searchbar-container.header-search:focus-within .searchbar-icon,
     .searchbar-container.header-search.is-focused .searchbar-icon {
-        color: var(--text-primary);
+        color: var(--searchbar-icon-color);
     }
 
     .searchbar-container:has(.searchbar-input:not(:placeholder-shown)) > .searchbar-icon {

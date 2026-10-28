@@ -4,7 +4,7 @@
 import { resolveAssistantMessageIdentity } from '@core/chat/assistantIdentity.ts';
 import type { ChatMessage, ConversationContract } from '@features/chat/ChatTypes.ts';
 import { compareChatStreamMessageOrderIdentities } from '@features/chat/chatstreamservice/streamIdentity.ts';
-import type { ChatTurnAdmissionStreamIdentity } from '@features/chat/chatstreamservice/types.ts';
+import type { ChatStreamTerminalRenderState, ChatTurnAdmissionStreamIdentity } from '@features/chat/chatstreamservice/types.ts';
 import { hasTerminalAssistantState } from '@features/chat/message/assistantTerminalState.ts';
 import { resolveMessageDomId } from '@features/chat/message/messageDomIds.ts';
 import { isAssistantMessageRole } from '@features/chat/message/messageRole.ts';
@@ -25,13 +25,13 @@ type ActiveStreamingAssistantSelection = {
     meta: ActiveStreamingAssistantMeta | null;
 };
 
-type TerminalRenderPendingPredicate = (conversationId: string, message: ChatMessage) => boolean;
+type TerminalRenderStateResolver = (conversationId: string, message: ChatMessage) => ChatStreamTerminalRenderState;
 
 type ActiveStreamingAssistantResolutionArguments = {
     isConversationStreaming: boolean;
     activeComparisonRun: ActiveComparisonRun | null;
     activeStreamIdentity: ChatTurnAdmissionStreamIdentity | null;
-    isTerminalRenderPending?: TerminalRenderPendingPredicate;
+    resolveTerminalRenderState?: TerminalRenderStateResolver;
 };
 
 const EMPTY_SELECTION: ActiveStreamingAssistantSelection = { domIds: new Set<string>(), meta: null };
@@ -79,8 +79,12 @@ const resolveActiveStreamingAssistantSelection = (conversation: ConversationCont
         if (identity === null) {
             continue;
         }
+        const terminalRenderState = inputArguments.resolveTerminalRenderState?.(conversationId, message) ?? 'none';
+        if (terminalRenderState === 'settled') {
+            continue;
+        }
         const isTerminal = hasTerminalAssistantState(message);
-        const isTerminalPending = inputArguments.isTerminalRenderPending?.(conversationId, message) === true;
+        const isTerminalPending = terminalRenderState === 'pending';
         if (activeStreamIdentity !== null) {
             const isExactActiveStream = identityMatchesActiveStream(identity, activeStreamIdentity);
             if (alignedComparisonTurn ? identity.assistantTurnTimestamp !== activeStreamIdentity.assistantTurnTimestamp : !isExactActiveStream) {
@@ -127,4 +131,4 @@ const resolveActiveStreamingAssistantSelection = (conversation: ConversationCont
 };
 
 export { resolveActiveStreamingAssistantSelection };
-export type { ActiveComparisonRun, ActiveStreamingAssistantMeta, ActiveStreamingAssistantResolutionArguments, ActiveStreamingAssistantSelection, TerminalRenderPendingPredicate };
+export type { ActiveComparisonRun, ActiveStreamingAssistantMeta, ActiveStreamingAssistantResolutionArguments, ActiveStreamingAssistantSelection, TerminalRenderStateResolver };

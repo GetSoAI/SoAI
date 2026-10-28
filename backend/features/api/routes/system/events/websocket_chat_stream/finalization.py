@@ -6,7 +6,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
+from core.errors.payload import ErrorPublicPayload
 from core.runtime.request_context import RequestContext
+from core.runtime.shutdown_errors import SERVER_SHUTDOWN_MESSAGE
 from features.agent.runtime.turn_finalization import cancel_active_subagent_turns
 from features.agent.runtime.turn_lifecycle.finalize import (
     finalize_running_turn_noncritical,
@@ -78,6 +80,7 @@ async def finalize_ws_chat_stream_cancellation_noncritical(
             finalize_assistant_timeline_cancelled(
                 session,
                 runtime.cancellation_reason or "Chat stream was cancelled.",
+                code=runtime.cancellation_code,
             ),
         )
     if tool_context is None:
@@ -103,6 +106,11 @@ async def finalize_ws_chat_stream_cancellation_noncritical(
                 execution_token=runtime.agent_turn_execution_token,
                 operation="webui_ws_chat_stream.finalize_agent_turn_after_cancellation",
                 log_message="Failed to finalize claimed agent turn after WebSocket chat stream cancellation (non-critical).",
+                error_message=(
+                    SERVER_SHUTDOWN_MESSAGE
+                    if runtime.cancellation_reason == SERVER_SHUTDOWN_MESSAGE
+                    else None
+                ),
             ),
         ),
     )
@@ -120,6 +128,7 @@ async def finalize_ws_chat_stream_error_noncritical(
     error_code: str,
     turn_error_message: str,
     turn_error_type: str,
+    public_error: ErrorPublicPayload | None = None,
 ) -> None:
     runtime = session.runtime
     if not runtime.terminal_event_emitted and not runtime.terminal_finalization_started:
@@ -130,6 +139,7 @@ async def finalize_ws_chat_stream_error_noncritical(
                 session,
                 message=error_message,
                 code=error_code,
+                public_error=public_error,
             ),
         )
     if tool_context is None:

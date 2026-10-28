@@ -141,46 +141,6 @@ class SQLiteFTS5BM25Index:
         finally:
             connection.close()
 
-    def add_documents(self, documents: list[tuple[str, str]]) -> None:
-        if not documents:
-            return
-        connection = self._connect()
-        try:
-            self._ensure_ready_on_connection(connection)
-            connection.execute("BEGIN")
-            try:
-                for chunk_id, content in documents:
-                    processed_content = self._apply_stopwords_to_content(content)
-                    row = connection.execute(
-                        "SELECT rowid FROM chunk_map WHERE chunk_id = ?",
-                        (chunk_id,),
-                    ).fetchone()
-                    if row:
-                        rowid = int(row[0])
-                        connection.execute("DELETE FROM chunks_fts WHERE rowid = ?", (rowid,))
-                        connection.execute(
-                            "INSERT INTO chunks_fts(rowid, chunk_id, content) VALUES (?, ?, ?)",
-                            (rowid, chunk_id, processed_content),
-                        )
-                    else:
-                        connection.execute(
-                            "INSERT INTO chunks_fts(chunk_id, content) VALUES (?, ?)",
-                            (chunk_id, processed_content),
-                        )
-                        rowid = int(connection.execute("SELECT last_insert_rowid()").fetchone()[0])
-                        connection.execute(
-                            "INSERT INTO chunk_map(chunk_id, rowid) VALUES (?, ?)",
-                            (chunk_id, rowid),
-                        )
-                row = connection.execute("SELECT COUNT(*) FROM chunk_map").fetchone()
-                set_fts_meta_value(connection, "chunk_count", str(int(row[0]) if row else 0))
-                connection.execute("COMMIT")
-            except RECOVERABLE_EXCEPTIONS:
-                connection.execute("ROLLBACK")
-                raise
-        finally:
-            connection.close()
-
     def remove_documents(self, chunk_ids: list[str]) -> None:
         if not chunk_ids:
             return

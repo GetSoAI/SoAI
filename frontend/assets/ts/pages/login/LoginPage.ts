@@ -7,7 +7,7 @@ import { bindFormSubmit } from '@core/dom/formSubmit.ts';
 import { bindPageActionDispatcher } from '@core/dom/dataActionBinding.ts';
 import { getWindowOpen } from '@core/environment/public.ts';
 import { AUTH_ROUTE_LOGIN } from '@core/routing/router/authRouteTarget.ts';
-import { toTrustedHtml, type TrustedHtml } from '@core/security/public.ts';
+import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { StaticBasePage, type RenderContext } from '@core/StaticBasePage.ts';
 import { SOAI_WEBSITE_URL } from '@core/ui/branding/pageBranding.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -40,7 +40,7 @@ class LoginPage extends StaticBasePage {
     }
 
     override async renderView(_context: RenderContext): Promise<TrustedHtml> {
-        return toTrustedHtml(renderLoginPageView({ sanitizer: this.pageContext.sanitizer }));
+        return toTrustedUiHtml(renderLoginPageView({ sanitizer: this.pageContext.sanitizer }));
     }
 
     override async loadData(): Promise<void> {

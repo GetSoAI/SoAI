@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "build_core_app_info",
+    "build_jsonrpc_cancellation_notification",
     "build_jsonrpc_notification",
     "build_jsonrpc_request",
     "coerce_jsonrpc_id_to_int_for_lookup",
@@ -62,6 +63,13 @@ def build_jsonrpc_notification(method: str, params: JSONDict | None = None) -> J
         "method": method,
         **({"params": params} if params else {}),
     }
+
+
+def build_jsonrpc_cancellation_notification(request_id: str | int, reason: str) -> JSONDict:
+    return build_jsonrpc_notification(
+        "notifications/cancelled",
+        {"requestId": request_id, "rpcId": request_id, "reason": reason},
+    )
 
 
 def get_preferred_protocol_versions() -> tuple[str, ...]:

@@ -16,7 +16,7 @@ from core.tasks.protocols import (
     TaskFinalizerTrackerProtocol,
 )
 from core.types.json import JSONDict
-from hardware.gpu_tuning.gpu_settings import GpuSettingsApplyDependencies
+from hardware.gpu_tuning.dependencies import GpuSettingsApplyDependencies
 from hardware.gpu_tuning.service_dependencies import GpuServiceDependencies
 from hardware.vendors.nvidia.smi import NvidiaSettingsController
 

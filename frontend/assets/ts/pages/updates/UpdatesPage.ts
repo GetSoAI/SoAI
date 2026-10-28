@@ -9,6 +9,7 @@ import type { TrustedHtml } from '@core/security/public.ts';
 import { StaticBasePage, type RenderContext } from '@core/StaticBasePage.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
+import { UpdatesBackendController } from '@pages/updates/controllers/UpdatesBackendController.ts';
 import { isUpdatesActionId } from '@pages/updates/actions.ts';
 import type { UpdatesPageDependencies } from '@pages/updates/contracts/contracts.ts';
 import { handleUpdatesPageClick } from '@pages/updates/controllers/events.ts';
@@ -22,6 +23,8 @@ export const PAGE_ID = 'updates';
 
 class UpdatesPage extends StaticBasePage {
     #workflowController: UpdatesPageWorkflowController;
+    readonly #catalog: UpdatesPageDependencies['catalogStore'];
+    #backendController: UpdatesBackendController | null = null;
     #productController: UpdatesProductController | null = null;
     readonly #product: UpdatesEditionContribution | null;
 
@@ -44,6 +47,7 @@ class UpdatesPage extends StaticBasePage {
             storage: this.dependencies.storage
         });
         this.#product = dependencies.product;
+        this.#catalog = dependencies.catalogStore;
     }
 
     override async renderView(_context: RenderContext): Promise<TrustedHtml> {
@@ -54,8 +58,7 @@ class UpdatesPage extends StaticBasePage {
             productMarkup:
                 product?.render({
                     getIconSync: (iconName, options) => this.services.getIconSync(iconName, options)
-                }) ?? null,
-            productStats: product?.stats ?? []
+                }) ?? null
         });
     }
 
@@ -92,6 +95,8 @@ class UpdatesPage extends StaticBasePage {
         }
         this.#productController = productController;
         this.#workflowController.setControllers(systemController, productController);
+        this.#backendController = new UpdatesBackendController({ pageResources: this.pageResources, catalog: this.#catalog, pageDom: this.pageDom, pageElements: this.pageElements });
+        await this.#backendController.initialize();
         this.layout.setupResponsive();
     }
 
@@ -111,7 +116,7 @@ class UpdatesPage extends StaticBasePage {
                             handleUpdatesPageClick({
                                 event,
                                 actionElement,
-                                handlers: this.#workflowController.createActionHandlers()
+                                handlers: { ...this.#workflowController.createActionHandlers(), onOpenPlugins: () => this.pageLifecycle.run('updates.openPlugins', () => this.dependencies.router.navigate('plugins')) }
                             });
                             return;
                         }
@@ -139,6 +144,8 @@ class UpdatesPage extends StaticBasePage {
 
     #cleanupPageState(): void {
         this.pageLifecycle.abortListeners('updates-cleanup');
+        this.#backendController?.destroy();
+        this.#backendController = null;
         this.#productController = null;
         this.#workflowController.cleanup();
     }

@@ -15,6 +15,8 @@ from core.metrics.keyspace_paths_mcp_search import (
     MCP_SEARCH_COUNTER_FETCHES_TOTAL,
     MCP_SEARCH_TIMING_FETCH_LATENCY_MS,
 )
+from core.runtime.request_context import create_system_context
+from core.runtime.request_context_cloning import clone_request_context
 from core.runtime.soai_identifiers import build_soai_id
 from core.tasks.creation import create
 from core.tasks.enums import TaskStatus
@@ -44,6 +46,7 @@ if TYPE_CHECKING:
 __all__ = ("fetch_url",)
 
 LOGGER_NAME = "SoAI.mcp.search.web_fetching"
+WEB_FETCH_CONTEXT_REASON = "web_fetch"
 
 
 async def fetch_url(
@@ -110,7 +113,14 @@ async def fetch_url(
                 logger=logger,
             )
         fetch_coro = fetching.fetch_url(
-            web_fetcher, url, ocr_language=ocr_language, progress_callback=reporter
+            web_fetcher,
+            url,
+            ocr_language=ocr_language,
+            request_context=clone_request_context(
+                create_system_context(WEB_FETCH_CONTEXT_REASON, user_id=user_id),
+                task_id=task.task_id if task is not None else None,
+            ),
+            progress_callback=reporter,
         )
         result = (
             await fetch_coro

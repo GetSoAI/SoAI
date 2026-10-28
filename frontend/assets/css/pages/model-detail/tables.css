@@ -65,10 +65,6 @@
                     padding: var(--space-2) 0;
                 }
 
-                .modeldetail-copy-button {
-                    opacity: 1;
-                }
-
                 .model-parameter-item {
                     flex-direction: column;
                     align-items: stretch;

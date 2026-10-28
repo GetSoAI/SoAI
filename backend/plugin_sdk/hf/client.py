@@ -129,8 +129,9 @@ async def hf_fetch_catalog(
     if not query:
         return entries
     library_candidates = libraries or (None,)
+    last_error: RemoteModelSearchError | None = None
     for library in library_candidates:
-        params: dict[str, str | int] = {"search": query, "limit": limit}
+        params: dict[str, str | int] = {"search": query, "limit": limit, "full": "true"}
         if library:
             params["library"] = library
         try:
@@ -145,6 +146,7 @@ async def hf_fetch_catalog(
         except RemoteModelSearchError as exception:
             if exception.status_code in (401, 403):
                 raise
+            last_error = exception
             continue
         if not isinstance(payload, list):
             continue
@@ -164,6 +166,8 @@ async def hf_fetch_catalog(
                 break
         if entries:
             break
+    if not entries and last_error is not None:
+        raise last_error
     return entries
 
 

@@ -17,11 +17,9 @@ from core.runtime.protocols import RequestProtocol
 from core.runtime.request_context import RequestContext
 from core.runtime.request_context_cloning import clone_request_context
 from core.tasks.type_catalog import TaskTypeId
+from core.validation.requirements import require_non_negative_exact_int
 from features.agent.runtime.context_compaction.omission_digest import (
     render_omitted_messages_digest,
-)
-from features.agent.session.compaction_config_values import (
-    resolve_compaction_summary_max_tokens,
 )
 from features.agent.session.compaction_limits import AGENT_SUMMARIZER_MAX_MESSAGES
 from features.api.routes.openai.agent_inference_task_creation import (
@@ -31,7 +29,6 @@ from features.api.routes.openai.chat.chat_ops import (
     get_effective_routing_config,
     resolve_non_streaming_timeout,
 )
-from features.api.routes.openai.compaction.content import project_message_for_summary
 from features.api.routes.openai.compaction.payload import build_summary_payload
 from features.api.routes.openai.compaction.streaming import (
     await_streaming_summary_text,
@@ -52,7 +49,7 @@ __all__ = ("prepare_agent_compaction_summarizer",)
 
 def _build_visible_output_retry_message() -> JSONDict:
     return build_internal_retry_user_message(
-        "Return the summary now as normal visible assistant text. Do not output hidden reasoning, chain-of-thought, or meta-analysis. Do not include sections such as Thinking Process. Use the required summary structure only. Return only the corrected summary.",
+        "Return only the required summary as visible assistant text. No hidden reasoning, chain-of-thought, or meta-analysis.",
     )
 
 
@@ -69,6 +66,7 @@ def prepare_agent_compaction_summarizer(
     owner_id: str,
     prompt_token_counter: PromptTokenCounter,
     max_prompt_tokens: int,
+    max_output_tokens: int,
     on_text_delta: Callable[[str], Awaitable[None]] | None,
 ) -> Callable[[list[JSONDict]], Awaitable[str]]:
     resolved_max = int(max_prompt_tokens)
@@ -78,7 +76,11 @@ def prepare_agent_compaction_summarizer(
     if not prompt_text:
         raise ValidationError("compaction system_prompt_text must be a non-empty string.")
     timeout = resolve_non_streaming_timeout(get_effective_routing_config(api_context), None)
-    summary_max_tokens = resolve_compaction_summary_max_tokens(api_context.dependencies.config)
+    summary_max_tokens = require_non_negative_exact_int(
+        max_output_tokens,
+        type_message="compaction summarizer max_output_tokens must be an integer.",
+        range_message="compaction summarizer max_output_tokens must be non-negative.",
+    )
 
     def _count_summary_prompt_tokens_result(chunk: list[JSONDict]) -> tuple[int, bool]:
         payload = build_summary_payload(
@@ -170,7 +172,21 @@ def prepare_agent_compaction_summarizer(
             raise asyncio.CancelledError()
         retry_chunk = list(chunk)
         retry_chunk.append(_build_visible_output_retry_message())
-        return await _run_summary_request(retry_chunk, disable_reasoning=False)
+        retry_start = await prompt_token_counter.run_blocking(
+            _resolve_kept_start_index,
+            retry_chunk,
+        )
+        if retry_start >= len(chunk):
+            raise ValidationError("Compaction retry leaves no room for conversation context.")
+        retry_summary = await _run_summary_request(
+            retry_chunk[retry_start:],
+            disable_reasoning=False,
+        )
+        retry_omissions = render_omitted_messages_digest(
+            dropped=chunk[:retry_start],
+            omitted_count=retry_start,
+        )
+        return f"{retry_omissions}\n\n{retry_summary}" if retry_omissions else retry_summary
 
     async def summarize_messages(messages: list[JSONDict]) -> str:
         normalized_messages = [message for message in messages if isinstance(message, dict)]
@@ -183,33 +199,22 @@ def prepare_agent_compaction_summarizer(
         if base_omitted > 0:
             base_dropped_tail = normalized_messages[max(0, base_omitted - 200) : base_omitted]
             normalized_messages = normalized_messages[base_omitted:]
-        projected = [project_message_for_summary(message) for message in normalized_messages]
-        kept_start = await prompt_token_counter.run_blocking(
-            _resolve_kept_start_index,
-            projected,
-        )
-        prepared_kept = await prompt_token_counter.run_blocking(
+        prepared = await prompt_token_counter.run_blocking(
             partial(
                 prepare_messages_for_summary,
                 prompt_token_counter=prompt_token_counter,
                 model=model,
                 system_prompt_text=prompt_text,
-                messages=normalized_messages[kept_start:],
+                messages=normalized_messages,
                 max_prompt_tokens=resolved_max,
                 max_output_tokens=summary_max_tokens,
             ),
         )
-        kept_tokens, kept_capped = await prompt_token_counter.run_blocking(
-            _count_summary_prompt_tokens_result,
-            prepared_kept,
+        kept_start = await prompt_token_counter.run_blocking(
+            _resolve_kept_start_index,
+            prepared,
         )
-        if kept_capped or kept_tokens > resolved_max:
-            extra_drop = await prompt_token_counter.run_blocking(
-                _resolve_kept_start_index,
-                prepared_kept,
-            )
-            kept_start += extra_drop
-            prepared_kept = prepared_kept[extra_drop:]
+        prepared_kept = prepared[kept_start:]
         omitted_total = base_omitted + kept_start
         dropped_for_digest = list(base_dropped_tail)
         if kept_start > 0:

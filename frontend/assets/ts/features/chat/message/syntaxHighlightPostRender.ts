@@ -4,8 +4,9 @@
 import { dom } from '@core/dom/dom.ts';
 import type { SyntaxHighlighter } from '@core/syntaxhighlighter/public.ts';
 import { CHAT_CODE_BLOCK_SELECTOR } from '@features/chat/message/chatMessagePostRenderCapabilities.ts';
+import { STREAMING_TAIL_SELECTOR } from '@features/chat/message/enhancers/inlineMultimediaDomSafety.ts';
 
-const highlightStableChatCodeBlocks = (container: HTMLElement, syntaxHighlighter: SyntaxHighlighter, streamingTailSelector: string): void => {
+const highlightStableChatCodeBlocks = (container: HTMLElement, syntaxHighlighter: SyntaxHighlighter): void => {
     const blocks = dom.resolveAll(CHAT_CODE_BLOCK_SELECTOR, container);
     if (blocks.length === 0) {
         return;
@@ -14,7 +15,7 @@ const highlightStableChatCodeBlocks = (container: HTMLElement, syntaxHighlighter
         if (!(block instanceof HTMLPreElement)) {
             continue;
         }
-        if (block.closest(streamingTailSelector) !== null) {
+        if (block.closest(STREAMING_TAIL_SELECTOR) !== null) {
             continue;
         }
         syntaxHighlighter.highlightElement(block);

@@ -24,6 +24,7 @@ const cloneChatPresetSections = (sections: ChatPresetSections): ChatPresetSectio
     ...(sections.completion ? { completion: cloneJsonObject(sections.completion) } : {}),
     ...(sections.voice ? { voice: cloneJsonObject(sections.voice) } : {}),
     ...(sections.files ? { files: cloneJsonObject(sections.files) } : {}),
+    ...(sections.skills ? { skills: cloneJsonObject(sections.skills) } : {}),
     ...(sections.knowledge ? { knowledge: cloneJsonObject(sections.knowledge) } : {}),
     ...(sections.tools ? { tools: cloneJsonObject(sections.tools) } : {})
 });

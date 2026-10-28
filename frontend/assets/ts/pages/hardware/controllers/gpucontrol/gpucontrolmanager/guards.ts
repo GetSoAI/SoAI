@@ -4,6 +4,7 @@
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isObject } from '@core/typeGuards.ts';
 import { GPU_CONTROLS_CONFIG } from '@pages/hardware/controllers/gpucontrol/gpuControlConfig.ts';
+import { resolveClockDomain } from '@pages/hardware/controllers/gpucontrol/gpuClockDomain.ts';
 import type { GpuCapabilities, GpuCapabilitiesByIndex, GpuCapabilityControlInfo, GpuClockCapabilityInfo } from '@core/realtime/streammanager/resources/gpuCapabilitiesContracts.ts';
 import type { GpuControlType, GpuSettingKey } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 
@@ -20,12 +21,15 @@ export const isGpuControlType = (value: JsonValue): value is GpuControlType => {
     return value === 'power' || value === 'core' || value === 'memory' || value === 'fan';
 };
 
-export const isGpuCapabilityActionable = (value: GpuCapabilityActionableCandidate | null | undefined): boolean => {
+export const isGpuCapabilityActionable = (value: GpuCapabilityActionableCandidate | null | undefined, mode?: 'auto' | 'manual'): boolean => {
     if (!isObject(value)) {
         return false;
     }
     const controlBackend = value.controlBackend;
-    return value.supported === true && typeof controlBackend === 'string' && controlBackend.trim().length > 0;
+    const numericSupported = value.numericSupported !== false;
+    const autoSupported = value.autoSupported !== false;
+    const modeSupported = mode === 'manual' ? numericSupported : mode === 'auto' ? autoSupported : numericSupported || autoSupported;
+    return value.supported === true && typeof controlBackend === 'string' && controlBackend.trim().length > 0 && modeSupported && resolveClockDomain(value).type !== 'invalid';
 };
 
 export const hasActionableGpuControls = (capabilities: GpuCapabilities | null | undefined): boolean => {
@@ -36,7 +40,7 @@ export const hasAnyActionableGpuControls = (capabilitiesByIndex: GpuCapabilities
     return !!capabilitiesByIndex && Object.values(capabilitiesByIndex).some((capabilities) => hasActionableGpuControls(capabilities));
 };
 
-export const isControlSupported = (capabilitiesByIndex: GpuCapabilitiesByIndex | null, index: string | number, type: string): boolean => {
+export const isControlSupported = (capabilitiesByIndex: GpuCapabilitiesByIndex | null, index: string | number, type: string, mode?: 'auto' | 'manual'): boolean => {
     if (!isGpuControlType(type)) {
         return false;
     }
@@ -52,9 +56,9 @@ export const isControlSupported = (capabilitiesByIndex: GpuCapabilitiesByIndex |
         return false;
     }
 
-    return isGpuCapabilityActionable(info);
+    return isGpuCapabilityActionable(info, mode);
 };
 
-export const isGpuSettingSupported = (capabilitiesByIndex: GpuCapabilitiesByIndex | null, index: string | number, key: GpuSettingKey): boolean => {
-    return isControlSupported(capabilitiesByIndex, index, CONTROL_TYPE_BY_SETTING_KEY[key]);
+export const isGpuSettingSupported = (capabilitiesByIndex: GpuCapabilitiesByIndex | null, index: string | number, key: GpuSettingKey, mode?: 'auto' | 'manual'): boolean => {
+    return isControlSupported(capabilitiesByIndex, index, CONTROL_TYPE_BY_SETTING_KEY[key], mode);
 };

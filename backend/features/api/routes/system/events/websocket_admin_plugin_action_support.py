@@ -7,6 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.database.mutation_requests import MutationAdmissionDraft
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import SoAIError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
@@ -173,6 +174,7 @@ async def dispatch_plugin_admin_command_accepted(
     command_fields: dict[str, JSONValue],
     task_id: str | None,
     requires_mutation_id: bool,
+    admission: MutationAdmissionDraft | None = None,
 ) -> str | None:
     action_allowed = await ensure_plugin_admin_action_allowed(
         request=request,
@@ -202,6 +204,7 @@ async def dispatch_plugin_admin_command_accepted(
         audit_details=audit_details,
         task_id=task_id,
         requires_mutation_id=requires_mutation_id,
+        admission=admission,
         run_id=run_id,
         command_fields=command_fields,
     )
@@ -218,6 +221,7 @@ class PluginAdminDispatchContext:
     plugin_name: str
     task_id: str | None = None
     requires_mutation_id: bool = False
+    admission: MutationAdmissionDraft | None = None
 
 
 async def dispatch_plugin_admin_command_accepted_for_context(
@@ -254,4 +258,5 @@ async def dispatch_plugin_admin_command_accepted_for_context(
         command_fields=command_fields,
         task_id=context.task_id,
         requires_mutation_id=context.requires_mutation_id,
+        admission=context.admission,
     )

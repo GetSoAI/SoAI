@@ -46,10 +46,10 @@ async def finish_preworker_failure_preserving(
         )
     except asyncio.CancelledError as cleanup_exception:
         primary_exception.add_note(
-            f"SoAIBench pre-worker cleanup was cancelled: {cleanup_exception}",
+            f"SoAI Bench pre-worker cleanup was cancelled: {cleanup_exception}",
         )
     except HANDLED_RUNTIME_EXCEPTIONS as cleanup_exception:
-        primary_exception.add_note(f"SoAIBench pre-worker cleanup failed: {cleanup_exception}")
+        primary_exception.add_note(f"SoAI Bench pre-worker cleanup failed: {cleanup_exception}")
         coerced_exception = coerce_to_soai_error(
             cleanup_exception,
             operation=PREWORKER_FAILURE_OPERATION,
@@ -57,7 +57,7 @@ async def finish_preworker_failure_preserving(
         log_exception(
             deps.logger,
             coerced_exception,
-            message="SoAIBench pre-worker cleanup failed.",
+            message="SoAI Bench pre-worker cleanup failed.",
             operation=PREWORKER_FAILURE_OPERATION,
             level="warning",
         )
@@ -86,5 +86,5 @@ async def _finish_preworker_failure(
         },
     )
     if mutation.run is None:
-        raise StateError("SoAIBench pre-worker terminal row was not materialized.")
+        raise StateError("SoAI Bench pre-worker terminal row was not materialized.")
     return mutation.run

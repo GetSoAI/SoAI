@@ -17,7 +17,7 @@ export type GpuFieldMode = 'auto' | 'manual';
 export type GpuCapabilityKey = 'powerLimitWatts' | 'coreClockMhz' | 'memClockMhz' | 'fanSpeedPercent';
 
 export interface GpuSettingState {
-    mode: GpuFieldMode;
+    mode: GpuFieldMode | null;
     value: number | null;
 }
 
@@ -53,7 +53,7 @@ export interface GpuUiState {
     saveMode: boolean;
     previewSlot: string | null;
     previewSettings: GpuSettingsState | null;
-    previewSource: 'live' | 'slot';
+    previewSource: 'live' | 'slot' | 'recovered';
     previewHydrated: boolean;
     applyAtBootDesired: boolean;
     bootToggleDirty: boolean;
@@ -90,11 +90,13 @@ export interface SliderElements {
     valueLabel?: HTMLElement;
     toggle?: HTMLInputElement;
     toggleLabel?: HTMLElement;
+    valueInput?: HTMLInputElement;
+    valueTrigger?: HTMLButtonElement;
     container?: HTMLElement;
 }
 
 export interface GpuSnapshotControl {
-    mode: 'auto' | 'manual';
+    mode: GpuFieldMode | null;
     value: number | null;
 }
 
@@ -158,6 +160,7 @@ export interface ChartOhlcNumeric {
 }
 
 export interface TaskOptions {
+    errorToastMessage?: string;
     displayName: string;
     telemetryContext: JsonObject;
     telemetryTags: string[];

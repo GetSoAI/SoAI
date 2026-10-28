@@ -40,6 +40,8 @@ def error_type_to_status_code(error_type: ErrorType) -> int:
             return 409
         case ErrorType.RATE_LIMIT:
             return 429
+        case ErrorType.PAYMENT_REQUIRED:
+            return 402
         case ErrorType.LOCKED:
             return 423
         case ErrorType.ACTION_NOT_SUPPORTED:

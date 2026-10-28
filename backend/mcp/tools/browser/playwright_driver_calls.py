@@ -13,6 +13,7 @@ from core.browser.playwright_driver_errors import (
 from core.errors.cancellation import raise_cancelled_error
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import ProcessGroupCleanupError
 
 if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
@@ -33,6 +34,8 @@ async def await_playwright_driver_call[DriverResult](
         return await pending
     except asyncio.CancelledError as exception:
         raise_cancelled_error(exception)
+    except ProcessGroupCleanupError:
+        raise
     except Exception as exception:
         driver_error = classify_playwright_driver_connection_closed_exception(
             exception,

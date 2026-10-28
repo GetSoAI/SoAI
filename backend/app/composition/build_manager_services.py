@@ -49,6 +49,10 @@ from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.protocols import RuntimeFlagsViewProtocol, RuntimeStateStoreProtocol
 from core.timing.monotonic import monotonic_ms
 from core.webui_manager.protocols import WebUIManagerDatabaseDependencies
+from plugins.manager.backend_update_reconciliation import (
+    BackendUpdateReconciliation,
+    BackendUpdateReconciliationDependencies,
+)
 
 if TYPE_CHECKING:
     from app.composition.manager_bootstrap_types import ModelBootstrapComponents
@@ -146,7 +150,8 @@ async def build_manager_services(
         model_record_locks,
     )
     step_started_ms = monotonic_ms()
-    plugin_manager = await build_plugin_manager_instance(
+    plugin_manager_instance = await build_plugin_manager_instance(
+        runtime_health=runtime_state,
         config=config,
         files=files,
         routing_config=routing_config,
@@ -160,6 +165,13 @@ async def build_manager_services(
         preconditions=preconditions,
         config_manager=config_manager,
         model_bootstrap_components=model_bootstrap_components,
+    )
+    backend_update_reconciliation = BackendUpdateReconciliation(
+        BackendUpdateReconciliationDependencies(
+            manager=plugin_manager_instance,
+            runtime=runtime_state,
+            notifications=database_notifications,
+        )
     )
     startup_timings.record_since_ms("assembly.manager.plugin_manager_instance_ms", step_started_ms)
     step_started_ms = monotonic_ms()
@@ -175,7 +187,7 @@ async def build_manager_services(
         routing_config=routing_config,
         lifecycle_coordinator=lifecycle_coordinator,
         preconditions=preconditions,
-        plugin_manager=plugin_manager,
+        plugin_manager=plugin_manager_instance,
         model_bootstrap_components=model_bootstrap_components,
         prompt_token_counter=infrastructure_services.prompt_token_counter,
         chat_template_role_policy_resolver=(
@@ -244,6 +256,7 @@ async def build_manager_services(
     startup_timings.record_since_ms("assembly.manager.webui_manager_ms", step_started_ms)
     plugin_services = PluginServices(
         plugin_manager=plugin_manager,
+        backend_update_reconciliation=backend_update_reconciliation,
         webui_manager=webui_manager,
     )
     step_started_ms = monotonic_ms()

@@ -48,7 +48,6 @@ class BackupManager {
                 setBackupOperation: (operation) => host.state.setBackupOperation(operation),
                 trackAcceptedTask: (taskId, options) => host.tasks.trackAcceptedTask(taskId, options),
                 feedback: host.notifications.feedback,
-                restartApplication: () => host.api.restartApplication(),
                 showRestartOverlay: (value) => host.api.showRestartOverlay(value)
             },
             renderProgress: () => this.#renderProgress(),
@@ -145,6 +144,7 @@ class BackupManager {
         }
 
         try {
+            this.#progressController.resume();
             this.#host.state.setBackupListLoadStatus('loading');
             this.#updateBackupList();
             const response = await this.#host.execution.runWithBoundary('settings:loadBackups', async () => this.#host.api.listBackups({ signal: reloadRun.signal }));
@@ -177,6 +177,7 @@ class BackupManager {
         try {
             this.#lifecycle.dispose('backup-dispose');
         } finally {
+            this.#progressController.dispose();
             this.#progressWidget.reset();
         }
     }

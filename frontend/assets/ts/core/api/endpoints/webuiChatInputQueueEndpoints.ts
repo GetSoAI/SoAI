@@ -10,6 +10,7 @@ interface WebuiInputQueueEndpoints {
     list(id: string): Promise<ConversationInputListResponse>;
     enqueue(id: string, payload: ConversationInputEnqueueRequest): Promise<ConversationInputAdmission>;
     cancel(id: string, inputId: string): Promise<void>;
+    resume(id: string): Promise<void>;
 }
 
 const createInputQueueEndpoints = (api: ApiClientContext, paths: WebuiConversationPaths): WebuiInputQueueEndpoints => {
@@ -18,6 +19,9 @@ const createInputQueueEndpoints = (api: ApiClientContext, paths: WebuiConversati
         enqueue: async (id, payload): Promise<ConversationInputAdmission> => decodeConversationInputCreated(await api.post(paths.inputQueue(id), serializeConversationInputEnqueueRequest(payload))),
         cancel: async (id, inputId): Promise<void> => {
             decodeNoContentResponse(await api.delete(paths.inputQueuePrompt(id, inputId)), 'Conversation input cancellation response');
+        },
+        resume: async (id): Promise<void> => {
+            decodeNoContentResponse(await api.post(paths.inputQueueResume(id)), 'Conversation input queue resume response');
         }
     };
 };

@@ -5,17 +5,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from core.errors.exception_logging import log_handled_exception
-
 if TYPE_CHECKING:
-    from core.errors.exceptions import SoAIError
-    from core.logging.protocols import LoggerProtocol
     from core.types.json import JSONDict
 
-__all__ = (
-    "build_noncritical_turn_details",
-    "log_noncritical_turn_exception",
-)
+__all__ = ("build_noncritical_turn_details",)
 
 
 def build_noncritical_turn_details(
@@ -33,23 +26,3 @@ def build_noncritical_turn_details(
     if request_id is not None:
         details["request_id"] = request_id
     return details
-
-
-def log_noncritical_turn_exception(
-    *,
-    logger: LoggerProtocol,
-    exception: SoAIError,
-    message: str,
-    trace_id: str,
-    operation: str,
-    details: JSONDict,
-) -> None:
-    log_handled_exception(
-        logger,
-        exception,
-        message=message,
-        trace_id=trace_id,
-        operation=operation,
-        level="debug",
-        details=details,
-    )

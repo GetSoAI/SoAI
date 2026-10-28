@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 from types import FrameType
 
 from core.errors.exceptions import StateError
+from core.filesystem.descriptor_io import open_descriptor
 from core.system.commands import CommandResult
 from core.system.process_launcher import spawn_managed_process
 
@@ -52,9 +53,9 @@ class InstallDiagnostics:
         attempt = tempfile.mkdtemp(prefix="command.", dir=self.directory)
         stdout_path = os.path.join(attempt, "stdout.log")
         stderr_path = os.path.join(attempt, "stderr.log")
-        stdout_fd = os.open(stdout_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        stdout_fd = open_descriptor(stdout_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         try:
-            stderr_fd = os.open(stderr_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            stderr_fd = open_descriptor(stderr_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             try:
                 with spawn_managed_process(
                     command,
@@ -96,7 +97,7 @@ class InstallDiagnostics:
             stdout = stream.read()
         with open(os.path.join(attempt, "stderr.log"), encoding="utf-8", errors="strict") as stream:
             stderr = stream.read()
-        log_fd = os.open(
+        log_fd = open_descriptor(
             os.path.join(self.directory, "install.log"),
             os.O_WRONLY | os.O_APPEND | os.O_NOFOLLOW,
         )
@@ -112,7 +113,9 @@ class InstallDiagnostics:
             self._write(os.path.join(self.directory, "excerpt.log"), stdout + stderr)
 
     def _write(self, path: str, text: str) -> None:
-        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+        descriptor = open_descriptor(
+            path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600
+        )
         with os.fdopen(descriptor, "w", encoding="utf-8", errors="strict") as stream:
             stream.write(_safe_text(text))
 

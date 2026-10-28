@@ -1,8 +1,10 @@
 /* SoAI - Shared scrolling primitives [frontend/assets/ts/core/scroll.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { getPageHeaderAnimator } from '@core/animations/service.ts';
 import { measureLayoutBox, measureLayoutViewport } from '@core/layout/elementGeometry.ts';
 import { dom, resolveAll } from '@core/dom/dom.ts';
+import { cancelScrollRestore } from '@core/dom/state.ts';
 import { getMatchMedia, getScrollTo, getWindow } from '@core/environment/public.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
 import { errorHandler } from '@core/errorHandler.ts';
@@ -23,35 +25,40 @@ interface ScrollIntoViewOptions {
     inline?: ScrollLogicalPosition;
 }
 
-const createReducedMotionQuery = (): MediaQueryList => {
-    const matchMedia = getMatchMedia();
-    const query = matchMedia('(prefers-reduced-motion: reduce)');
-    if (!query || typeof query.matches !== 'boolean') {
-        throw new Error('matchMedia must return a MediaQueryList with matches property');
-    }
-    return query;
+const resolveScrollBehavior = (behavior?: ScrollBehavior): ScrollBehavior => {
+    if (behavior === 'instant') return behavior;
+    const query = getMatchMedia()('(prefers-reduced-motion: reduce)');
+    if (!query || typeof query.matches !== 'boolean') throw new Error('matchMedia must return a MediaQueryList with matches property');
+    return query.matches ? 'auto' : (behavior ?? 'smooth');
 };
 
 const scrollElementIntoView = (target: Element, options: ScrollIntoViewOptions = {}): void => {
     if (!target || !isFunction(target.scrollIntoView)) {
         throw new Error('scrollElementIntoView target must provide scrollIntoView');
     }
-    const query = createReducedMotionQuery();
-    const prefersReducedMotion = query.matches === true;
-    const behavior = options.behavior ?? (prefersReducedMotion ? 'auto' : 'smooth');
+    const behavior = resolveScrollBehavior(options.behavior);
     const block = options.block ?? 'nearest';
+    for (let ancestor: Element | null = target; ancestor !== null; ancestor = ancestor.parentElement) {
+        cancelScrollRestore(ancestor, 'top');
+        cancelScrollRestore(ancestor, 'left');
+    }
     target.scrollIntoView({ ...options, behavior, block });
 };
 
+const scrollElementTo = (target: HTMLElement, options: ScrollToOptions): void => {
+    const behavior = resolveScrollBehavior(options.behavior);
+    if (options.top !== undefined) cancelScrollRestore(target, 'top');
+    if (options.left !== undefined) cancelScrollRestore(target, 'left');
+    target.scrollTo({ ...options, behavior });
+};
+
 const scrollElementToScrollerCenter = (scroller: HTMLElement, target: HTMLElement, options: { behavior?: ScrollBehavior } = {}): void => {
-    const query = createReducedMotionQuery();
-    const behavior = options.behavior ?? (query.matches === true ? 'auto' : 'smooth');
     const scrollerRect = measureLayoutBox(scroller);
     const targetRect = measureLayoutBox(target);
     const targetOffsetWithinScroller = scroller.scrollTop + (targetRect.top - scrollerRect.top);
     const centeredTop = targetOffsetWithinScroller - (scroller.clientHeight - targetRect.height) / 2;
     const maxScrollTop = scroller.scrollHeight - scroller.clientHeight;
-    scroller.scrollTo({ top: Math.max(0, Math.min(centeredTop, maxScrollTop)), behavior });
+    scrollElementTo(scroller, { ...options, top: Math.max(0, Math.min(centeredTop, maxScrollTop)) });
 };
 
 class ScrollToTop {
@@ -261,11 +268,12 @@ class ScrollToTop {
 
     private scrollToTop(): void {
         const scrollTo = getScrollTo();
-        scrollTo({ top: 0, behavior: 'smooth' });
+        scrollTo({ top: 0, behavior: resolveScrollBehavior() });
 
         this.getTrackedScrollableElements().forEach((element) => {
             if (element.scrollTop > 0) {
-                element.scrollTo({ top: 0, behavior: 'smooth' });
+                getPageHeaderAnimator().reveal(element);
+                element.scrollTo({ top: 0, behavior: resolveScrollBehavior() });
             }
         });
     }
@@ -298,4 +306,4 @@ const getScrollModule = (): ScrollToTop => {
     return scrollModuleInstance;
 };
 
-export { ScrollToTop, getScrollModule, scrollElementIntoView, scrollElementToScrollerCenter };
+export { ScrollToTop, getScrollModule, scrollElementIntoView, scrollElementTo, scrollElementToScrollerCenter };

@@ -11,6 +11,11 @@ from database.schema_scripts.assistant_usage_triggers_sql import (
 )
 from database.sql.script import execute_sql_script
 
+CONVERSATION_TITLE_AUTO_UPDATE_ALLOWED_COLUMN_SQL = (
+    "title_auto_update_allowed INTEGER NOT NULL DEFAULT 0"
+    " CHECK(title_auto_update_allowed IN (0, 1))"
+)
+
 
 def build_webui_chat_storage_schema_sql() -> str:
     return f"""
@@ -46,6 +51,7 @@ def build_webui_chat_storage_schema_sql() -> str:
             is_archived INTEGER NOT NULL DEFAULT 0 CHECK(is_archived IN (0, 1)),
             input_generation INTEGER NOT NULL DEFAULT 0 CHECK(input_generation >= 0),
             message_count INTEGER NOT NULL DEFAULT 0 CHECK(message_count >= 0),
+            {CONVERSATION_TITLE_AUTO_UPDATE_ALLOWED_COLUMN_SQL},
             CHECK(is_automation = 0 OR is_messaging = 0),
             CHECK(
                 (is_messaging = 1 AND messaging_platform IS NOT NULL
@@ -125,6 +131,7 @@ def apply_webui_chat_storage_schema(conn: sqlite3.Connection) -> None:
 
 
 __all__ = (
+    "CONVERSATION_TITLE_AUTO_UPDATE_ALLOWED_COLUMN_SQL",
     "apply_webui_chat_storage_schema",
     "build_webui_chat_storage_schema_sql",
 )

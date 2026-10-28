@@ -15,7 +15,7 @@ import { applyAdaptiveNumbers, renderAdaptiveNumber } from '@core/ui/adaptiveNum
 import { renderMetricsTableStateRow } from '@pages/metrics/rendering/layout/service.ts';
 import type { PluginHealthRow } from '@pages/metrics/types.ts';
 import { updateModelTableSortIndicators, updatePluginHealthSortIndicators } from '@pages/metrics/widgets/effects.ts';
-import { resolvePluginName, resolvePluginRequestCount, resolvePluginTokenCount } from '@pages/metrics/widgets/mappers.ts';
+import { createPluginMetricLookup, resolvePluginName, resolvePluginRequestCount, resolvePluginTokenCount, type PluginMetricLookup } from '@pages/metrics/widgets/mappers.ts';
 import type { MetricsPageWidgetHost } from '@pages/metrics/widgets/types.ts';
 
 const sortPluginHealthRows = (host: MetricsPageWidgetHost, rows: PluginHealthRow[]): PluginHealthRow[] => {
@@ -110,12 +110,12 @@ const renderPluginHealthRows = (host: MetricsPageWidgetHost, bodyElement: HTMLEl
     applyAdaptiveNumbers(bodyElement);
 };
 
-const createPluginHealthRow = (host: MetricsPageWidgetHost, plugin: JsonObject, status: string): PluginHealthRow => {
+const createPluginHealthRow = (host: MetricsPageWidgetHost, plugin: JsonObject, status: string, lookup: PluginMetricLookup): PluginHealthRow => {
     const description = host.owners.stateManager.status.getDescription(status);
     const badgeLabel = host.owners.services.sanitizeText(description);
     const badgeClass = host.owners.stateManager.status.getCollectionBadgeClass(status);
-    const requests = resolvePluginRequestCount(host.state.currentMetrics, plugin);
-    const tokens = resolvePluginTokenCount(host.state.currentMetrics, plugin);
+    const requests = resolvePluginRequestCount(host.state.currentMetrics, plugin, lookup);
+    const tokens = resolvePluginTokenCount(host.state.currentMetrics, plugin, lookup);
     return {
         name: host.owners.services.sanitizeText(resolvePluginName(plugin)),
         requests,
@@ -128,16 +128,16 @@ const createPluginHealthRow = (host: MetricsPageWidgetHost, plugin: JsonObject, 
     };
 };
 
-const collectMetricPluginRows = (host: MetricsPageWidgetHost): PluginHealthRow[] => {
-    const pluginMetrics = host.state.currentMetrics?.plugins;
-    if (!isJsonObject(pluginMetrics)) {
+const collectMetricPluginRows = (host: MetricsPageWidgetHost, lookup: PluginMetricLookup): PluginHealthRow[] => {
+    const pluginMetrics = lookup.readMap(host.state.currentMetrics?.plugins);
+    if (!pluginMetrics) {
         return [];
     }
     return Object.keys(pluginMetrics)
         .filter((pluginName) => pluginName.trim())
         .map((pluginName) => {
             const plugin: JsonObject = { name: pluginName };
-            return createPluginHealthRow(host, plugin, host.owners.stateManager.status.normalizeStatus('unknown'));
+            return createPluginHealthRow(host, plugin, host.owners.stateManager.status.normalizeStatus('unknown'), lookup);
         });
 };
 
@@ -147,12 +147,13 @@ const updatePluginHealth = (host: MetricsPageWidgetHost): void => {
     if (!countElement || !bodyElement) {
         return;
     }
+    const lookup = createPluginMetricLookup();
     const rows = host.state.currentPlugins
         ? host.state.currentPlugins.filter(isJsonObject).map((plugin) => {
               const status = resolvePluginStatusFromRecord(plugin, (value: JsonValue): string => host.owners.stateManager.status.normalizeStatus(value));
-              return createPluginHealthRow(host, plugin, status);
+              return createPluginHealthRow(host, plugin, status, lookup);
           })
-        : collectMetricPluginRows(host);
+        : collectMetricPluginRows(host, lookup);
     host.owners.pageElements.setValue('pluginHealthCount', i18n.plural('metrics.plugin_health.count', rows.length, { count: rows.length }));
     if (rows.length === 0) {
         renderPluginHealthPlaceholder(host, bodyElement);

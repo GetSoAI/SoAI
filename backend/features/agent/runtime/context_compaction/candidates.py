@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from core.openai.chat_role_sets import OPENAI_PINNED_ROLES
 from core.openai.content_text_rendering import render_openai_content_text
+from core.skills.prompt_projection import is_skill_context_message
 from features.agent.runtime.context_compaction.digest import (
     digest_compaction_unit,
     merge_context_summary,
@@ -112,7 +113,7 @@ def resolve_truncation_target_index(message_history: list[JSONDict]) -> int | No
             index == preserved_user_index
         ):
             continue
-        if is_tool_image_relay_message(message):
+        if is_tool_image_relay_message(message) or is_skill_context_message(message):
             continue
         if role == "tool":
             if size > tool_size:
