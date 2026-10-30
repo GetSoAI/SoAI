@@ -15,6 +15,12 @@ from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ValidationError
 from core.network.http_json import read_http_json_value
 from core.network.outbound_http_profiles import build_model_registry_headers
+from core.network.transfer_retry import (
+    HTTP_TRANSFER_EXCEPTIONS,
+    HTTPTransferAttempts,
+    build_http_transfer_retry_policy,
+    wait_for_transfer_retry,
+)
 from core.types.json_value import coerce_json_dict
 from core.types.protocols import HttpClientProtocol
 from plugin_sdk.hf.types import RemoteModelSearchError, RemoteModelSearchVariant
@@ -62,16 +68,25 @@ async def _hf_request_json(
     timeout: float,
     logger: LoggerProtocol | None = None,
 ) -> JSONValue:
+    attempts = HTTPTransferAttempts(build_http_transfer_retry_policy("interactive"), url=url)
     try:
-        response = await client.get(
-            url,
-            params=params,
-            headers=headers,
-            timeout=timeout,
-            follow_redirects=True,
-        )
-        response.raise_for_status()
-        return read_http_json_value(response, field="Hugging Face response")
+        while True:
+            attempts.start()
+            try:
+                response = await client.get(
+                    url,
+                    params=params,
+                    headers=headers,
+                    timeout=attempts.policy.bounded_timeout(timeout),
+                    follow_redirects=True,
+                )
+                response.raise_for_status()
+                return read_http_json_value(response, field="Hugging Face response")
+            except HTTP_TRANSFER_EXCEPTIONS as exception:
+                delay = attempts.retry_delay(exception)
+                if delay is None:
+                    raise
+                await wait_for_transfer_retry(delay, interruption=None)
     except httpx2.HTTPStatusError as exception:
         status_code = exception.response.status_code
         message = f"Hugging Face request failed ({status_code})"

@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "正在等待生成图像",
+                "imageGenerating": "正在生成图像",
+                "imageUnavailable": "图像预览不可用。",
+                "imageRetry": "请尝试重新生成图像。",
                 "requestedAt": "请求时间 {time}"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "隐藏消息对话",
                 "hideMessagingConversationsHint": "启用后，消息账户对话会从侧边栏列表中隐藏",
                 "inputActions": {
+                    "newConversationHint": "在聊天输入区显示新建对话按钮",
+                    "findHint": "在聊天输入区显示对话搜索按钮",
                     "prompts": "已保存的提示词",
                     "title": "输入操作",
                     "tokenCounter": "Token 计数器",
@@ -758,7 +764,6 @@
                     "description": "持久记忆帮助 SoAI 了解你的偏好、目标和反复出现的上下文，无需每次都使用自定义提示词",
                     "empty": "暂无已存储记忆",
                     "openProfile": "打开个人资料表单",
-                    "refresh": "刷新记忆",
                     "title": "记忆设置",
                     "userMemoriesTitle": "用户记忆"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "将此参数发送给模型",
                 "maxCompletionTokens": "最大完成 Token 数",
-                "maxCompletionTokensHint": "推理模型 (o1, o3) 包含推理过程的 Token 上限。会覆盖最大 Token 数",
+                "maxCompletionTokensHint": "推理模型包含推理过程的 Token 上限。会覆盖最大 Token 数",
                 "agentMaxIterations": "智能体最大迭代次数",
                 "agentMaxIterationsHint": "对话停止前智能体循环的最大迭代次数。使用非常大的值可实现实际上不设上限的运行",
                 "maxTokens": "最大 Token 数：",
@@ -974,7 +979,6 @@
                     "omittedSettings": "已省略 {count} 个不受支持或无效的已保存设置",
                     "replaceAction": "替换",
                     "renameAction": "重命名",
-                    "retryAction": "重试",
                     "resetAction": "重置预设库",
                     "resetMessage": "永久删除所有已保存的聊天配置预设？这是用于修复损坏预设记录的恢复操作，且无法撤销。",
                     "resetFailed": "无法重置预设库。你保存的预设并未显示为已删除；请重试。",
@@ -986,15 +990,13 @@
                     "searchLabel": "搜索预设",
                     "searchPlaceholder": "搜索预设...",
                     "saved": "预设库已更新。",
-                    "stale": "正在显示 {value} 时最后一次成功获取的预设列表。编辑前请刷新。",
                     "structurallyInvalid": "有 {count} 条损坏的预设记录无法显示。",
                     "status": {
                         "emptyDetail": "从此模态框中的暂存值创建预设，并准确选择要包含的部分。",
                         "emptyTitle": "创建你的第一个可复用配置",
                         "errorTitle": "预设库不可用",
                         "noMatchesTitle": "没有匹配的预设",
-                        "recoveryTitle": "部分预设需要处理",
-                        "staleTitle": "预设列表可能已过期"
+                        "recoveryTitle": "部分预设需要处理"
                     },
                     "errors": {
                         "ambiguous": "请求结果尚不确定。正在协调预设列表；请在重试前检查列表。",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "从技能库和聊天的后续选择中移除此技能？已接受的任务保留其技能包。工作区文件和对话历史记录会保留。",
                     "conflict": "选择已在其他位置更改。保存草稿前，请检查当前选择",
                     "keepDraft": "保留我的选择",
-                    "stale": "技能尚未更新。保存前请重新连接或重试",
+                    "stale": "技能尚未更新。请等待连接恢复后再保存。",
                     "search": "搜索技能...",
                     "emptyTitle": "添加你的第一个技能",
                     "noMatchesTitle": "没有匹配的技能",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "技能导入的 {field} 超出限制：{measured} > {limit}。请缩小压缩包或删除未使用的技能后重试。",
                         "manifestPosition": "第 {line} 行、第 {column} 列的 YAML 无效。请修正 SKILL.md 后重试。"
                     },
-                    "importUncertain": "导入结果尚不确定。请保持选中此文件，重试前使用“刷新”检查回执。",
+                    "importUncertain": "导入结果尚未确定。请保持文件选中，并选择“重试导入”以检查回执。",
                     "invalidSelection": "部分已选技能不可用或超出技能库上限。请刷新，然后在保存前调整选择",
                     "status": {
                         "importTitle": "导入结果尚不确定",
                         "conflictTitle": "选择已在其他位置更改",
-                        "staleTitle": "技能列表可能已过期",
                         "unavailableTitle": "技能选择不可用",
                         "invalidTitle": "选择需要检查"
-                    }
+                    },
+                    "useLatest": "使用最新版本",
+                    "retryImport": "重试导入",
+                    "aboutTitle": "技能的工作方式"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "添加记忆",
                     "search": "搜索记忆",
                     "noMatches": "没有匹配的记忆",
-                    "stale": "已保存的数据已过期。上次刷新：{time}。请刷新以查看当前数据。",
                     "deleteFact": "删除此事实或关系？",
                     "deleteEntry": "删除“{title}”，包括 {facts} 条事实和 {relations} 条关系？",
                     "savedHidden": "已保存。清除搜索即可查看此记忆。",
@@ -1468,7 +1471,6 @@
                     "from": "起点",
                     "to": "终点",
                     "type": "关系类型",
-                    "staleTitle": "记忆列表可能已过期",
                     "errorTitle": "记忆库不可用"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "请将其中一个端点保持连接到此记忆。",
                     "invalidText": "请输入非空的标题和正文。",
                     "missing": "此记录不可用或已不属于此记忆。请刷新并查看。",
-                    "unconfirmed": "无法确认结果。请保留草稿，刷新并查看当前数据后再尝试。",
+                    "unconfirmed": "无法确认结果。请保留草稿，检查当前数据后再重试。",
                     "loadFailed": "无法加载记忆。请刷新以重试。"
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "retry": "重试"
                 },
                 "viewer": {
-                    "none": "无",
                     "observations": "观察",
                     "relations": "关系"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "加载提示词历史记录失败。"
             },
             "sketch": {
+                "capacityReached": "已达到绘图容量上限。请撤销并替换一次编辑、附加图像，或放弃草图后重新开始。",
                 "open": "打开草图",
                 "mobileOption": "草图",
                 "preference": "草图",
@@ -1711,7 +1713,9 @@
                 "attach": "附加",
                 "discardConfirm": "放弃此草图？",
                 "discard": "放弃",
-                "exportFailed": "无法导出草图，请重试。"
+                "exportFailed": "无法导出草图，请重试。",
+                "draftChangedConfirm": "绘画期间聊天草稿已更改。要将此绘画附加到当前草稿吗？取消后仍会保留绘画。",
+                "draftChangedAgain": "聊天草稿再次更改。绘画已保留。请重新尝试附加。"
             },
             "characterMap": {
                 "allEmoji": "所有表情符号",
@@ -2514,6 +2518,28 @@
                     "metric": "公制"
                 },
                 "wind": "风"
+            },
+            "find": {
+                "open": "在对话中查找",
+                "placeholder": "在对话中查找…",
+                "close": "关闭",
+                "previous": "上一个匹配项",
+                "next": "下一个匹配项",
+                "count": "{current} / {total}",
+                "none": "无匹配项",
+                "updating": "正在更新结果…",
+                "stale": "连接已断开 · 上次检查于 {seconds} 秒前",
+                "incomplete": "搜索未完成。请重试。",
+                "error": "搜索失败。请重试。",
+                "tooLong": "最多输入 256 个字符。",
+                "limited": "超过 5,000 条匹配消息 · 导航范围为保留的结果",
+                "editing": "请完成或取消编辑，以显示此匹配项。",
+                "missing": "此匹配项已更改或被删除。请重试。",
+                "timeout": "显示此匹配项超时。请重试。",
+                "retry": "重试",
+                "before": "前面有 {count} 个匹配项",
+                "after": "后面有 {count} 个匹配项",
+                "disconnected": "连接已断开。请重新连接以搜索。"
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "清除"
+                "clear": "清除",
+                "downloadAll": "下载所有日志"
             },
             "ariaLabels": {
                 "clearLogs": "清除日志",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "正在重新连接日志流...",
-            "windowTitle": "SoAI 日志"
+            "windowTitle": "SoAI 日志",
+            "errors": {
+                "download": "无法下载日志。请检查连接后重试。",
+                "missing": "日志目录不存在。请检查日志设置。",
+                "changed": "捕获期间日志发生变化。请重新下载。",
+                "unsafe": "发现不安全的路径或不支持的条目。请移除链接后重试。",
+                "paths": "请检查配置的日志目录和临时目录。",
+                "permission": "访问被拒绝。请检查目录权限和文件共享设置后重试。",
+                "limits": "超出归档限制或不符合文件名要求。请缩小日志目录树或更正名称。",
+                "timeout": "日志导出超时。请在服务器较空闲时重试。",
+                "write": "无法写入归档。请检查临时存储后重试。",
+                "response": "服务器未返回有效的 ZIP 附件。请重新下载。"
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "开始搜索",
                 "filesNotFound": "未找到与“{query}”匹配的文件或文件夹",
                 "notFound": "未找到与“{query}”匹配的结果",
-                "title": "未找到结果"
+                "title": "未找到结果",
+                "minimumCharacters": "请输入至少 {count} 个字符进行搜索。"
             },
             "pages": {
                 "about": {

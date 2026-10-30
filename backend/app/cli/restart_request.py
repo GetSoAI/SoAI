@@ -96,15 +96,16 @@ def write_lifecycle_request(
 
 async def wait_for_lifecycle_request(
     *,
-    base_dir: str,
+    pid_file_path: str,
     stop_event: asyncio.Event,
     logger: logging.Logger,
     config: ConfigProtocol,
     process_exit_deadline: ProcessExitDeadline,
 ) -> Literal["restart", "stop"] | None:
+    request_path = os.path.join(os.path.dirname(pid_file_path), LIFECYCLE_REQUEST_FILENAME)
     while not stop_event.is_set():
         action = _consume_matching_lifecycle_request(
-            base_dir, logger, config=config, process_exit_deadline=process_exit_deadline
+            request_path, logger, config=config, process_exit_deadline=process_exit_deadline
         )
         if action is not None:
             stop_event.set()
@@ -121,7 +122,7 @@ async def wait_for_lifecycle_request(
 
 def start_lifecycle_request_watch(
     *,
-    base_dir: str,
+    pid_file_path: str,
     stop_event: asyncio.Event,
     logger: logging.Logger,
     config: ConfigProtocol,
@@ -129,7 +130,7 @@ def start_lifecycle_request_watch(
 ) -> asyncio.Task[Literal["restart", "stop"] | None]:
     return create_ephemeral_task(
         wait_for_lifecycle_request(
-            base_dir=base_dir,
+            pid_file_path=pid_file_path,
             stop_event=stop_event,
             logger=logger,
             config=config,
@@ -173,13 +174,12 @@ def _coerce_lifecycle_action(value: JSONValue) -> Literal["restart", "stop"] | N
 
 
 def _consume_matching_lifecycle_request(
-    base_dir: str,
+    request_path: str,
     logger: logging.Logger,
     *,
     config: ConfigProtocol,
     process_exit_deadline: ProcessExitDeadline,
 ) -> Literal["restart", "stop"] | None:
-    request_path = _resolve_lifecycle_request_path(base_dir, logger)
     request = _read_lifecycle_request(request_path, logger)
     if request is None:
         return None

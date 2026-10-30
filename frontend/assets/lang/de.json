@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "Warten auf die Bilderzeugung",
+                "imageGenerating": "Bild wird erzeugt",
+                "imageUnavailable": "Bildvorschau nicht verfügbar.",
+                "imageRetry": "Versuchen Sie, das Bild erneut zu erzeugen.",
                 "requestedAt": "Angefordert {time}"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "Messaging-Unterhaltungen ausblenden",
                 "hideMessagingConversationsHint": "Wenn aktiviert, werden Unterhaltungen von Messaging-Konten in der Seitenleistenliste ausgeblendet",
                 "inputActions": {
+                    "newConversationHint": "Die Aktion für eine neue Unterhaltung im Chat-Eingabebereich anzeigen",
+                    "findHint": "Die Aktion zum Durchsuchen der Unterhaltung im Chat-Eingabebereich anzeigen",
                     "prompts": "Gespeicherte Prompts",
                     "title": "Eingabeaktionen",
                     "tokenCounter": "Token-Zähler",
@@ -758,7 +764,6 @@
                     "description": "Dauerhafte Erinnerungen helfen SoAI, Ihre Präferenzen, Ziele und wiederkehrende Kontexte zu verstehen, ohne jedes Mal einen benutzerdefinierten Prompt zu benötigen",
                     "empty": "Noch keine Erinnerungen gespeichert",
                     "openProfile": "Profilformular öffnen",
-                    "refresh": "Erinnerungen aktualisieren",
                     "title": "Erinnerungseinstellungen",
                     "userMemoriesTitle": "Benutzererinnerungen"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "Diesen Parameter an das Modell senden",
                 "maxCompletionTokens": "Max. Completion-Tokens",
-                "maxCompletionTokensHint": "Token-Limit einschließlich Reasoning für Reasoning-Modelle (o1, o3). Überschreibt die maximale Token-Anzahl",
+                "maxCompletionTokensHint": "Token-Limit einschließlich Reasoning für Reasoning-Modelle. Überschreibt die maximale Token-Anzahl",
                 "agentMaxIterations": "Max. Agent-Iterationen",
                 "agentMaxIterationsHint": "Maximale Anzahl von Agent-Schleifeniterationen, bevor die Unterhaltung beendet wird. Verwenden Sie einen sehr großen Wert für praktisch unbegrenzte Ausführungen",
                 "maxTokens": "Max. Tokens:",
@@ -974,7 +979,6 @@
                     "omittedSettings": "{count} nicht unterstützte oder ungültige gespeicherte Einstellung(en) wurde(n) ausgelassen",
                     "replaceAction": "Ersetzen",
                     "renameAction": "Umbenennen",
-                    "retryAction": "Erneut versuchen",
                     "resetAction": "Bibliothek zurücksetzen",
                     "resetMessage": "Alle gespeicherten Presets der Chat-Konfiguration dauerhaft löschen? Dies ist die Wiederherstellungsaktion für beschädigte Preset-Datensätze und kann nicht rückgängig gemacht werden.",
                     "resetFailed": "Die Preset-Bibliothek konnte nicht zurückgesetzt werden. Ihre gespeicherten Presets wurden nicht als gelöscht angezeigt; versuchen Sie es erneut.",
@@ -986,15 +990,13 @@
                     "searchLabel": "Presets durchsuchen",
                     "searchPlaceholder": "Presets durchsuchen...",
                     "saved": "Preset-Bibliothek aktualisiert.",
-                    "stale": "Die letzte erfolgreich geladene Preset-Liste von {value} wird angezeigt. Aktualisieren Sie sie vor dem Bearbeiten.",
                     "structurallyInvalid": "{count} beschädigte(r) Preset-Datensatz/-Datensätze konnte(n) nicht angezeigt werden.",
                     "status": {
                         "emptyDetail": "Erstellen Sie aus den vorgemerkten Werten in diesem Dialog ein Preset und wählen Sie genau aus, welche Bereiche enthalten sein sollen.",
                         "emptyTitle": "Erstes wiederverwendbares Setup erstellen",
                         "errorTitle": "Preset-Bibliothek nicht verfügbar",
                         "noMatchesTitle": "Keine passenden Presets",
-                        "recoveryTitle": "Einige Presets erfordern Aufmerksamkeit",
-                        "staleTitle": "Die Preset-Liste ist möglicherweise veraltet"
+                        "recoveryTitle": "Einige Presets erfordern Aufmerksamkeit"
                     },
                     "errors": {
                         "ambiguous": "Das Ergebnis der Anfrage ist ungewiss. Die Preset-Liste wird abgeglichen; prüfen Sie sie, bevor Sie es erneut versuchen.",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "Diesen Skill aus deiner Bibliothek und aus künftigen Auswahlen deiner Chats entfernen? Angenommene Aufgaben behalten das Paket. Arbeitsbereichsdateien und der Gesprächsverlauf bleiben erhalten.",
                     "conflict": "Die Auswahl wurde anderswo geändert. Prüfe die aktuelle Auswahl, bevor du deinen Entwurf speicherst",
                     "keepDraft": "Meine Auswahl behalten",
-                    "stale": "Die Skills sind nicht aktuell. Stelle die Verbindung wieder her oder versuche es vor dem Speichern erneut",
+                    "stale": "Die Skills sind veraltet. Warte vor dem Speichern, bis die Verbindung wiederhergestellt ist.",
                     "search": "Skills suchen...",
                     "emptyTitle": "Ersten Skill hinzufügen",
                     "noMatchesTitle": "Keine passenden Skills",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "Skill-Importgrenze für {field} überschritten: {measured} > {limit}. Verkleinere das Archiv oder entferne ungenutzte Skills und versuche es erneut.",
                         "manifestPosition": "Ungültiges YAML in Zeile {line}, Spalte {column}. Korrigiere SKILL.md und versuche es erneut."
                     },
-                    "importUncertain": "Das Importergebnis ist unklar. Lass diese Datei ausgewählt und prüfe den Beleg mit Aktualisieren, bevor du es erneut versuchst.",
+                    "importUncertain": "Das Ergebnis des Imports ist unklar. Lass die Datei ausgewählt und wähle „Import erneut versuchen“, um die Bestätigung zu prüfen.",
                     "invalidSelection": "Einige ausgewählte Skills sind nicht verfügbar oder überschreiten das Bibliothekslimit. Aktualisiere und passe die Auswahl vor dem Speichern an",
                     "status": {
                         "importTitle": "Importergebnis unklar",
                         "conflictTitle": "Auswahl wurde anderswo geändert",
-                        "staleTitle": "Die Skill-Liste ist möglicherweise veraltet",
                         "unavailableTitle": "Skill-Auswahl nicht verfügbar",
                         "invalidTitle": "Auswahl muss geprüft werden"
-                    }
+                    },
+                    "useLatest": "Aktuellen Stand übernehmen",
+                    "retryImport": "Import erneut versuchen",
+                    "aboutTitle": "So funktionieren Fähigkeiten"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "Erinnerung hinzufügen",
                     "search": "Erinnerungen durchsuchen",
                     "noMatches": "Keine passenden Erinnerungen",
-                    "stale": "Die gespeicherten Daten sind veraltet. Zuletzt aktualisiert: {time}. Zum Prüfen aktueller Daten aktualisieren.",
                     "deleteFact": "Diesen Fakt oder diese Beziehung löschen?",
                     "deleteEntry": "„{title}“ mit {facts} Fakten und {relations} Beziehungen löschen?",
                     "savedHidden": "Gespeichert. Suche leeren, um diese Erinnerung zu sehen.",
@@ -1468,7 +1471,6 @@
                     "from": "Von",
                     "to": "Zu",
                     "type": "Beziehungstyp",
-                    "staleTitle": "Die Erinnerungsliste ist möglicherweise veraltet",
                     "errorTitle": "Erinnerungsbibliothek nicht verfügbar"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "Ein Endpunkt muss mit dieser Erinnerung verbunden bleiben.",
                     "invalidText": "Gib einen nicht leeren Titel und Text ein.",
                     "missing": "Dieser Datensatz ist nicht verfügbar oder gehört nicht mehr zu dieser Erinnerung. Aktualisiere und prüfe ihn.",
-                    "unconfirmed": "Das Ergebnis konnte nicht bestätigt werden. Behalte den Entwurf und aktualisiere zur Prüfung der aktuellen Daten vor einem erneuten Versuch.",
+                    "unconfirmed": "Das Ergebnis konnte nicht bestätigt werden. Behalte deinen Entwurf und prüfe die aktuellen Daten vor einem erneuten Versuch.",
                     "loadFailed": "Erinnerungen konnten nicht geladen werden. Aktualisiere für einen erneuten Versuch."
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "retry": "Erneut versuchen"
                 },
                 "viewer": {
-                    "none": "Keine",
                     "observations": "Beobachtungen",
                     "relations": "Beziehungen"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "Prompt-Verlauf konnte nicht geladen werden."
             },
             "sketch": {
+                "capacityReached": "Das Zeichenlimit ist erreicht. Eine Änderung rückgängig machen und ersetzen, das Bild anhängen oder die Skizze verwerfen und neu beginnen.",
                 "open": "Skizze öffnen",
                 "mobileOption": "Skizze",
                 "preference": "Skizze",
@@ -1711,7 +1713,9 @@
                 "attach": "Anhängen",
                 "discardConfirm": "Diese Skizze verwerfen?",
                 "discard": "Verwerfen",
-                "exportFailed": "Die Skizze konnte nicht exportiert werden. Bitte versuche es erneut."
+                "exportFailed": "Die Skizze konnte nicht exportiert werden. Bitte versuche es erneut.",
+                "draftChangedConfirm": "Der Chatentwurf hat sich während des Zeichnens geändert. Diese Zeichnung an den aktuellen Entwurf anhängen? Mit Abbrechen bleibt deine Zeichnung erhalten.",
+                "draftChangedAgain": "Der Chatentwurf hat sich erneut geändert. Deine Zeichnung bleibt erhalten. Versuche erneut, sie anzuhängen."
             },
             "characterMap": {
                 "allEmoji": "Alle Emojis",
@@ -2514,6 +2518,28 @@
                     "metric": "Metrisch"
                 },
                 "wind": "Wind"
+            },
+            "find": {
+                "open": "In Unterhaltung suchen",
+                "placeholder": "In Unterhaltung suchen…",
+                "close": "Schließen",
+                "previous": "Vorheriger Treffer",
+                "next": "Nächster Treffer",
+                "count": "{current} von {total}",
+                "none": "Keine Treffer",
+                "updating": "Ergebnisse werden aktualisiert…",
+                "stale": "Getrennt · zuletzt vor {seconds} s geprüft",
+                "incomplete": "Suche unvollständig. Erneut versuchen.",
+                "error": "Suche fehlgeschlagen. Erneut versuchen.",
+                "tooLong": "Höchstens 256 Zeichen verwenden.",
+                "limited": "5.000+ Nachrichten mit Treffern · Navigation umfasst gespeicherte Ergebnisse",
+                "editing": "Bearbeitung abschließen oder abbrechen, um diesen Treffer anzuzeigen.",
+                "missing": "Dieser Treffer wurde geändert oder entfernt. Erneut versuchen.",
+                "timeout": "Zeitlimit beim Anzeigen dieses Treffers erreicht. Erneut versuchen.",
+                "retry": "Erneut versuchen",
+                "before": "{count} Treffer davor",
+                "after": "{count} Treffer danach",
+                "disconnected": "Getrennt. Zum Suchen erneut verbinden."
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "Leeren"
+                "clear": "Leeren",
+                "downloadAll": "Alle Protokolle herunterladen"
             },
             "ariaLabels": {
                 "clearLogs": "Logs leeren",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "Verbindung zum Logstream wird wiederhergestellt...",
-            "windowTitle": "SoAI-Logs"
+            "windowTitle": "SoAI-Logs",
+            "errors": {
+                "download": "Protokolle konnten nicht heruntergeladen werden. Verbindung prüfen und erneut versuchen.",
+                "missing": "Das Protokollverzeichnis fehlt. Protokolleinstellungen prüfen.",
+                "changed": "Protokolle wurden während der Erfassung geändert. Download erneut versuchen.",
+                "unsafe": "Unsichere Pfade oder nicht unterstützte Einträge gefunden. Verknüpfungen entfernen und erneut versuchen.",
+                "paths": "Konfigurierte Protokoll- und temporäre Verzeichnisse prüfen.",
+                "permission": "Zugriff verweigert. Verzeichnisberechtigungen und Dateifreigaben prüfen und erneut versuchen.",
+                "limits": "Archivgrenzen oder Anforderungen an Dateinamen überschritten. Protokollbaum verkleinern oder Namen korrigieren.",
+                "timeout": "Zeitüberschreitung beim Protokollexport. Bei geringerer Serverlast erneut versuchen.",
+                "write": "Archiv konnte nicht geschrieben werden. Temporären Speicher prüfen und erneut versuchen.",
+                "response": "Der Server hat keinen gültigen ZIP-Anhang zurückgegeben. Download erneut versuchen."
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "Suche starten",
                 "filesNotFound": "Keine Dateien oder Ordner für \"{query}\" gefunden",
                 "notFound": "Keine Ergebnisse für \"{query}\" gefunden",
-                "title": "Keine Ergebnisse gefunden"
+                "title": "Keine Ergebnisse gefunden",
+                "minimumCharacters": "Gib mindestens {count} Zeichen ein, um zu suchen."
             },
             "pages": {
                 "about": {

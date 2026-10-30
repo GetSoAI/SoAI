@@ -1,12 +1,14 @@
 /* SoAI - Owner-private skill library endpoint owner [frontend/assets/ts/core/api/endpoints/webuiSkillEndpoints.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { decodeBufferedFileResponse } from '@core/api/contracts/downloadContracts.ts';
+
 import type { SkillBatchImportReceipt, SkillDetails, SkillImportReceipt, SkillLibrary, SkillSelection } from '@core/api/contracts/webuiSkillContractTypes.ts';
 import { decodeSkillBatchImportReceipt, decodeSkillDetails, decodeSkillImportReceipt, decodeSkillLibrary, decodeSkillRemoval, decodeSkillSelection, requireSkillId, requireSkillIds, requireSkillRevision } from '@core/api/contracts/webuiSkillContracts.ts';
 import { getJsonResponse, putJsonResponse, requireJsonResponse } from '@core/api/jsonResponse.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import type { BufferedApiResponse } from '@core/api/bufferedResponse.ts';
-import { decodeBufferedFileResponse } from '@core/api/contracts/fileExplorerContracts.ts';
+
 import type { RequestOptions } from '@core/api/types/request.ts';
 
 interface WebuiSkillEndpoints {

@@ -30,7 +30,6 @@ type KnowledgeMcpAgent = Pick<
     | 'memoryUserMemoriesTitle'
     | 'memoryDescription'
     | 'memoryOpenProfile'
-    | 'memoryRefresh'
     | 'memoryEmpty'
     | 'knowledgeDownloadModel'
     | 'knowledgeDownloadModelAttr'
@@ -98,7 +97,6 @@ const resolveKnowledgeMcpAgentTemplateStrings = (sanitizer: SanitizerApi): Knowl
         memoryUserMemoriesTitle: i18n.html(sanitizer, 'chat.configuration.memory.userMemoriesTitle'),
         memoryDescription: i18n.html(sanitizer, 'chat.configuration.memory.description'),
         memoryOpenProfile: i18n.html(sanitizer, 'chat.configuration.memory.openProfile'),
-        memoryRefresh: i18n.html(sanitizer, 'chat.configuration.memory.refresh'),
         memoryEmpty: i18n.html(sanitizer, 'chat.configuration.memory.empty'),
         knowledgeDownloadModel: i18n.html(sanitizer, 'chat.configuration.knowledge.downloadModel'),
         knowledgeDownloadModelAttr: i18n.attr(sanitizer, 'chat.configuration.knowledge.downloadModel'),

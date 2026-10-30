@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
 from collections.abc import Mapping
 from secrets import token_hex
@@ -13,6 +12,7 @@ from starlette.datastructures import MutableHeaders
 from starlette.responses import FileResponse
 from starlette.types import Send
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exceptions import StateError
 
 __all__ = ("FileDescriptorResponse",)
@@ -158,11 +158,13 @@ class FileDescriptorResponse(FileResponse):
             return
         offset = start
         while offset < end:
-            chunk = await asyncio.to_thread(
+            chunk = await run_joined_thread_call(
                 _read_descriptor_chunk,
                 self._descriptor,
                 offset,
                 min(self.chunk_size, end - offset),
+                task_name="file-descriptor-response-read",
+                retain_resources_until_complete=True,
             )
             if not chunk:
                 raise StateError(

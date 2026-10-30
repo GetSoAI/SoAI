@@ -132,12 +132,19 @@
         }
 
         .model-parameter-group {
+            display: flex;
+            flex-wrap: wrap;
             padding: var(--space-3);
             align-items: stretch;
         }
 
         .model-parameter-item {
+            flex: 1 1 min(100%, var(--setting-grid-column-min));
             min-width: 0;
+        }
+
+        .model-parameter-item.full-width {
+            flex-basis: 100%;
         }
 
         .model-parameter-item > .setting-info {

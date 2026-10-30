@@ -9,7 +9,7 @@ import { isPlainObject, isString } from '@core/typeGuards.ts';
 import { isStringRecordValue } from '@core/types/runtimeCollectionGuards.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { decodeChatMessage } from '@features/chat/message/chatMessageGuards.ts';
-import type { InitializeResourcesRequest, RenderAssistantBodyFromMessageRequest, RenderContext, RenderInlineDetailsFromMessageRequest, RenderMessageCommonFields, WorkerRequest, WorkerResources } from '@features/chat/messagerenderworker/protocol.ts';
+import type { InitializeResourcesRequest, RenderAssistantBodyFromMessageRequest, RenderContext, RenderInlineDetailsFromMessageRequest, RenderMessageCommonFields, RenderSearchTextRequest, WorkerRequest, WorkerResources } from '@features/chat/messagerenderworker/protocol.ts';
 import type { ChatActivityDurationDisplayMode } from '@features/chat/message/messageview/activityDurationDisplay.ts';
 
 type DecodedWorkerRequest = WorkerRequest;
@@ -177,6 +177,21 @@ const decodeRenderInlineDetailsRequest = (request: JsonObject, requestId: string
     };
 };
 
+const decodeSearchTextRequest = (request: JsonObject, requestId: string): RenderSearchTextRequest => {
+    const role = request['role'];
+    const content = request['content'];
+    if ((role !== 'user' && role !== 'assistant') || typeof content !== 'string') throw new Error('Chat search text requires a user or assistant text segment');
+    return {
+        type: 'renderSearchText',
+        requestId,
+        role,
+        content,
+        isRichTextEnabled: requireBoolean(request['isRichTextEnabled'], 'Search rich text'),
+        codeRecognitionEnabled: requireBoolean(request['codeRecognitionEnabled'], 'Search code recognition'),
+        isInlineMultimediaPreviewsEnabled: requireBoolean(request['isInlineMultimediaPreviewsEnabled'], 'Search media previews')
+    };
+};
+
 const decodeWorkerRequest = (request: JsonValue | null | undefined): DecodedWorkerRequest => {
     if (!isPlainObject(request)) {
         throw new Error('Chat render worker received an invalid request');
@@ -198,6 +213,7 @@ const decodeWorkerRequest = (request: JsonValue | null | undefined): DecodedWork
     if (type === 'renderInlineDetailsFromMessage') {
         return decodeRenderInlineDetailsRequest(request, requestId);
     }
+    if (type === 'renderSearchText') return decodeSearchTextRequest(request, requestId);
     throw new Error('Chat render worker received an unknown request type');
 };
 

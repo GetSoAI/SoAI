@@ -1,6 +1,34 @@
 
 # SoAI Release Notes
 
+## 1.4.1
+
+SoAI 1.4.1 adds search within conversations and downloadable log archives. It also keeps Chat libraries current automatically, reduces startup and WebUI overhead, and fixes attachment handling, camera capture, model settings, and scrolling.
+
+### Highlights
+
+- Find text within a conversation with Ctrl+F or Cmd+F. Matches are highlighted and counted, and navigation loads earlier messages or opens the matching comparison reply when needed. You can also enable Find in conversation under Chat configuration > Appearance > Input actions.
+- Download log files as a ZIP from Logs > Download all logs. The archive includes recognized log files, configured main and audit logs, their rotations and compressed copies, and diagnostic information about the capture.
+- Memory, Skills, and chat configuration presets refresh automatically as their contents change. Reopening a library during a disconnect keeps its saved contents visible with an out-of-date status until the connection recovers.
+
+### Improvements
+
+- Chat, charts, navigation, and the Automation calendar do less repeated rendering and layout work. Chat activity timers also perform fewer updates.
+- Windows startup avoids unnecessary waits and repeated discovery work, including when SoAI is already running.
+- Chat configuration has clearer explanations for input actions and generation parameters. Skills provides separate Use latest and Retry import actions for selection conflicts and uncertain imports.
+- Search fields give clearer guidance for queries that are too short, and shared buttons, toggles, and search cards behave more consistently.
+
+### Fixes
+
+- Model search retries temporary connection and server failures. Searching or cancelling while a plugin is loading no longer leaves its temporary search runtime behind or releases another operation's runtime.
+- Uploads, camera captures, and Workspace selections remain tied to the conversation and draft where they began, preventing delayed results from appearing in a different chat.
+- If the draft changes while you are drawing, attaching the sketch asks whether to use the current draft. Cancelling keeps the drawing, and another draft change during confirmation leaves it available for a fresh attempt. The sketch pad also reports when its drawing capacity is reached.
+- Camera switching cycles through available cameras, and capture can recover from a temporary startup rejection after camera permission has been granted.
+- Generated-image status text follows interface-language changes, and image previews handle cached loads, failures, and source changes without applying an old result to a newer preview.
+- Saving model parameters preserves the page's scroll position. Saving OpenAI capability overrides keeps the model's automatic capability information available.
+- Expanded Chat activities keep their close icon during streamed updates. Chat headers cover the message area correctly at different interface scales, and scrolling controls remain stable as content changes.
+- The setup wizard places selected models consistently, and Hardware hides VRAM summary cards when no usable VRAM total is available.
+
 ## 1.4.0
 
 SoAI 1.4.0 adds reusable assistant skills, an editable Memory library and automatic backend updates. It includes extensive bug fixes and WebUI improvements, with better model handling, installation and recovery. The calculator tool now supports exact large integers and symbolic mathematics.

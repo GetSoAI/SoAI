@@ -11,7 +11,7 @@ import { ASSISTANT_ACTIVITY_WIDGETS_ATTRIBUTE } from '@features/chat/message/ass
 import { resolveToolResultNewsPayload } from '@features/chat/message/messageview/toolResultNewsPayload.ts';
 import { resolveToolResultWeatherPayload } from '@features/chat/message/messageview/toolResultWeatherPayload.ts';
 import type { ChatMessageRenderHost, InlineToolActivitySegment, MessageSegment } from '@features/chat/message/messageview/types.ts';
-import { buildToolImagePayloadSignature, resolveToolImagePayload } from '@features/chat/toolactivity/toolImagePayload.ts';
+import { resolveActivityWidgetSegments, resolveGeneratedImagePresentation, type ActivityWidgetVisibility } from '@features/chat/toolactivity/generatedImagePresentation.ts';
 import { normalizeToolLeafName } from '@features/chat/toolactivity/toolLeafName.ts';
 
 type AssistantActivityWidgetRenderer = (host: ChatMessageRenderHost, segment: MessageSegment) => string;
@@ -33,12 +33,7 @@ const resolveWidgetSlot = (segment: InlineToolActivitySegment): string => {
             return `news:${JSON.stringify(payload)}`;
         }
     }
-    if (toolLeafName === 'generate_image') {
-        const payload = resolveToolImagePayload(segment.result);
-        if (payload !== null) {
-            return `generate_image:${buildToolImagePayloadSignature('flat', payload)}`;
-        }
-    }
+    if (toolLeafName === 'generate_image') return `generate_image:call:${segment.callId.trim()}`;
     return `call:${segment.callId.trim()}`;
 };
 
@@ -52,10 +47,11 @@ const renderWidgetForSegment = (host: ChatMessageRenderHost, segment: MessageSeg
     return '';
 };
 
-const renderAssistantActivityWidgets = (host: ChatMessageRenderHost, segments: readonly MessageSegment[]): string => {
+const renderAssistantActivityWidgets = (host: ChatMessageRenderHost, segments: readonly MessageSegment[], visibility: ActivityWidgetVisibility = 'settled'): string => {
     const seenCallIds = new Set<string>();
     const widgetsBySlot = new Map<string, string>();
-    for (const segment of segments) {
+    const visibleSegments = resolveActivityWidgetSegments(segments, visibility);
+    for (const segment of visibleSegments) {
         if (!segment || segment.type !== 'inline_tool_activity') {
             continue;
         }
@@ -69,9 +65,11 @@ const renderAssistantActivityWidgets = (host: ChatMessageRenderHost, segments: r
         }
         seenCallIds.add(callId);
         const slot = resolveWidgetSlot(segment);
-        widgetsBySlot.set(slot, injectAssistantBodyRootAttributes(host, widgetHtml, `widget:${computeHash(slot).toString(36)}`, widgetHtml));
+        const image = resolveGeneratedImagePresentation(segment);
+        const key = image === null ? `widget:${computeHash(slot).toString(36)}` : `widget:${slot}`;
+        widgetsBySlot.set(slot, injectAssistantBodyRootAttributes(host, widgetHtml, key, image === null ? widgetHtml : image.signature));
     }
-    const planHtml = renderAssistantPlanWidget(host, segments);
+    const planHtml = visibility === 'settled' ? renderAssistantPlanWidget(host, visibleSegments) : '';
     const body = [planHtml ? injectAssistantBodyRootAttributes(host, planHtml, 'widget:plan', planHtml) : '', ...widgetsBySlot.values()].join('');
     if (!body) {
         return '';

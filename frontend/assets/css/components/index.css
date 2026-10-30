@@ -132,6 +132,7 @@
 @import url('./chat/chat-inline-media-card-media.css') layer(components);
 @import url('./chat/chat-inline-media-card-content.css') layer(components);
 @import url('./chat/chat-assistant-activity-widget-shell.css') layer(components);
+@import url('./chat/chat-image-widget.css') layer(components);
 @import url('./chat/chat-news-widget.css') layer(components);
 @import url('./chat/chat-news-widget-list.css') layer(components);
 @import url('./chat/chat-plan-widget.css') layer(components);

@@ -1,24 +1,83 @@
 /* SoAI - Chat feature stream message timeline children [frontend/assets/ts/features/chat/stream/streamMessageTimelineChildren.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { dom } from '@core/dom/dom.ts';
+import { replaceChildrenFromTrustedHtml } from '@core/dom/html.ts';
+import { resolveHTMLElement, syncAttributes, syncClass } from '@core/dom/patching.ts';
+import type { TrustedHtml } from '@core/security/public.ts';
+import { ASSISTANT_ACTIVITY_WIDGETS_ATTRIBUTE } from '@features/chat/message/assistantResponseMarkup.ts';
+import { patchInlineActivityHeaderChildrenInPlace } from '@features/chat/message/messageview/inlineActivityHeaderChildrenPatching.ts';
+import { COLLAPSED_LOADING_CONTENT_SELECTOR, COLLAPSED_LOADING_SUMMARY_SELECTOR } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
+import { resolveActiveImageWidgetsSignature } from '@features/chat/toolactivity/generatedImagePresentation.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
 import { normalizeMultilineInput } from '@core/richtextrenderer/mappers.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
-import { ASSISTANT_BODY_KEY_ATTRIBUTE_NAME } from '@features/chat/message/assistantMessageMarkupParts.ts';
+import { ASSISTANT_BODY_KEY_ATTRIBUTE_NAME, ASSISTANT_BODY_SIGNATURE_ATTRIBUTE_NAME } from '@features/chat/message/assistantMessageMarkupParts.ts';
 import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
-import { patchStreamingKeyedChildren } from '@features/chat/message/assistantBodyKeyedReconciler.ts';
+import { patchAssistantBodyChildrenInPlace, patchStreamingKeyedChildren } from '@features/chat/message/assistantBodyKeyedReconciler.ts';
 import { patchStreamingTimelineSegmentInPlace, type StreamingTextSettlementProof } from '@features/chat/message/assistantTimelineSegmentPatching.ts';
 import { buildTimelineRenderItems, type TimelineRenderItem } from '@features/chat/message/messageTimelineRenderItems.ts';
 import type { StreamingElementCache } from '@features/chat/stream/streamDomCache.ts';
 import type { StreamMessageManager } from '@features/chat/stream/streamMessageRenderingContracts.ts';
 import { STREAM_TEXT_SLOT_MARKUP } from '@features/chat/stream/streamMessageStreamingStructure.ts';
 
+const LIVE_CONTENT_PRESERVED_ATTRIBUTE_NAMES = new Set<string>([ASSISTANT_BODY_SIGNATURE_ATTRIBUTE_NAME]);
+
+const patchCollapsedLoadingSummary = (currentSummary: HTMLElement, nextSummary: HTMLElement): boolean => {
+    const currentHeader = resolveHTMLElement(':scope > .inline-activity-header', currentSummary);
+    const nextHeader = resolveHTMLElement(':scope > .inline-activity-header', nextSummary);
+    if (!(currentHeader instanceof HTMLElement) || !(nextHeader instanceof HTMLElement)) {
+        return false;
+    }
+    let changed = false;
+    if (syncClass(currentSummary, nextSummary)) {
+        changed = true;
+    }
+    if (syncAttributes({ target: currentSummary, source: nextSummary })) {
+        changed = true;
+    }
+    if (patchInlineActivityHeaderChildrenInPlace(currentHeader, nextHeader)) {
+        changed = true;
+    }
+    return changed;
+};
+
+export const patchCollapsedLoadingChrome = (target: HTMLElement, contentHtml: TrustedHtml): { patched: boolean; changed: boolean; summary: HTMLElement | null; widgetsChanged?: boolean } => {
+    const currentSummary = dom.resolve(COLLAPSED_LOADING_SUMMARY_SELECTOR, target);
+    const currentContent = dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, target);
+    if (!(currentSummary instanceof HTMLElement) || !(currentContent instanceof HTMLElement)) {
+        return { patched: false, changed: false, summary: null };
+    }
+    const scratch = target.ownerDocument.createElement('div');
+    replaceChildrenFromTrustedHtml({ element: scratch, html: contentHtml, context: scratch });
+    const nextSummary = dom.resolve(COLLAPSED_LOADING_SUMMARY_SELECTOR, scratch);
+    const nextContent = dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, scratch);
+    if (!(nextSummary instanceof HTMLElement) || !(nextContent instanceof HTMLElement)) {
+        return { patched: false, changed: false, summary: null };
+    }
+    let changed = patchCollapsedLoadingSummary(currentSummary, nextSummary);
+    if (syncAttributes({ target: currentContent, source: nextContent, preservedAttributeNames: LIVE_CONTENT_PRESERVED_ATTRIBUTE_NAMES })) {
+        changed = true;
+    }
+    if (dom.resolve(`[${ASSISTANT_ACTIVITY_WIDGETS_ATTRIBUTE}]`, target) === null && dom.resolve(`[${ASSISTANT_ACTIVITY_WIDGETS_ATTRIBUTE}]`, scratch) === null) return { patched: true, changed, summary: currentSummary };
+    const currentBody = currentContent.parentElement;
+    const nextBody = nextContent.parentElement;
+    if (!(currentBody instanceof HTMLElement) || !(nextBody instanceof HTMLElement)) return { patched: false, changed: false, summary: null };
+    const widgetsChanged = patchAssistantBodyChildrenInPlace({
+        container: currentBody,
+        nextContainer: nextBody,
+        patchExistingChild: (argumentsValue) => (argumentsValue.existing.hasAttribute(ASSISTANT_ACTIVITY_WIDGETS_ATTRIBUTE) ? patchStreamingTimelineSegmentInPlace(argumentsValue) : { patched: true, detailsChanged: false, retainedSignature: argumentsValue.existing.getAttribute(ASSISTANT_BODY_SIGNATURE_ATTRIBUTE_NAME) ?? '' })
+    });
+    if (widgetsChanged === null) return { patched: false, changed: false, summary: null };
+    return { patched: true, changed: changed || widgetsChanged, summary: currentSummary, widgetsChanged };
+};
+
 export interface ActiveStreamingTextRun {
     key: string;
     text: string;
 }
 
-const buildStreamingFlowLayout = (segments: MessageSegment[], messageManager: StreamMessageManager, cache: { markupByKey: Map<string, string> | null; signatureByKey: Map<string, string> | null }): { activeTextRun: ActiveStreamingTextRun | null; items: TimelineRenderItem[] } => {
+const buildStreamingFlowLayout = (segments: MessageSegment[], messageManager: StreamMessageManager, cache: { markupByKey: Map<string, string> | null; signatureByKey: Map<string, string> | null }, includeWidgets: boolean): { activeTextRun: ActiveStreamingTextRun | null; items: TimelineRenderItem[] } => {
     const result = buildTimelineRenderItems({
         segments,
         nowMs: serverEpochMs(),
@@ -27,6 +86,13 @@ const buildStreamingFlowLayout = (segments: MessageSegment[], messageManager: St
         activeTextSlot: { markup: STREAM_TEXT_SLOT_MARKUP },
         sortableTextTables: true
     });
+    const signature = resolveActiveImageWidgetsSignature(segments);
+    if (includeWidgets && signature !== '[]') {
+        const key = 'assistant_activity_widgets:1';
+        const cachedMarkup = cache.signatureByKey?.get(key) === signature ? cache.markupByKey?.get(key) : null;
+        const markup = cachedMarkup ?? messageManager.renderAssistantActivityWidgets(segments, 'active');
+        if (markup) result.items.push({ key, signature, markup, textSource: null });
+    }
     return { activeTextRun: result.activeTextRun, items: result.items };
 };
 
@@ -60,9 +126,9 @@ const resolveStreamingTextSettlementProof = (inputArguments: { cached: Streaming
     };
 };
 
-export const patchTimelineChildren = (message: ChatMessage, cached: StreamingElementCache, messageManager: StreamMessageManager, streamSegments: HTMLElement, segmentsOverride?: MessageSegment[] | null): { supported: boolean; activeTextRun: ActiveStreamingTextRun | null; updated: boolean; changedElements: HTMLElement[] } => {
+export const patchTimelineChildren = (message: ChatMessage, cached: StreamingElementCache, messageManager: StreamMessageManager, streamSegments: HTMLElement, segmentsOverride?: MessageSegment[] | null, includeWidgets = true): { supported: boolean; activeTextRun: ActiveStreamingTextRun | null; updated: boolean; changedElements: HTMLElement[] } => {
     const segments = segmentsOverride ?? messageManager.resolveMessageContentSegments(message);
-    const layout = buildStreamingFlowLayout(segments, messageManager, { markupByKey: cached.segmentMarkupByKey, signatureByKey: cached.segmentSignatureByKey });
+    const layout = buildStreamingFlowLayout(segments, messageManager, { markupByKey: cached.segmentMarkupByKey, signatureByKey: cached.segmentSignatureByKey }, includeWidgets);
     const settlementItem = cached.activeStreamTextRunKey === null ? undefined : layout.items.find((item) => item.key === cached.activeStreamTextRunKey);
     const nonReplaceableKeys = resolveNonReplaceableActiveTextKeys(layout.activeTextRun, cached, streamSegments);
     const patchResult = patchStreamingKeyedChildren({

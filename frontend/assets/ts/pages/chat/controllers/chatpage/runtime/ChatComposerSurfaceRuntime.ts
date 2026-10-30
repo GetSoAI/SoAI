@@ -1,13 +1,25 @@
 /* SoAI - Chat composer UI and attachment lifecycle ownership [frontend/assets/ts/pages/chat/controllers/chatpage/runtime/ChatComposerSurfaceRuntime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { AttachModalController } from '@features/attachmodal/public.ts';
 import type { ChatAttachmentManager, ChatUIManager } from '@features/chat/public.ts';
 import type { ComposerSoaiLinkResolutionManager } from '@pages/chat/controllers/chatmessagesendingcontroller/composerSoaiLinkResolutionManager.ts';
 
 class ChatComposerSurfaceRuntime {
+    #attachModal: AttachModalController | null = null;
     #ui: ChatUIManager | null = null;
     #attachments: ChatAttachmentManager | null = null;
     #soaiLinkResolution: ComposerSoaiLinkResolutionManager | null = null;
+
+    initializeAttachModal(controller: AttachModalController): void {
+        if (this.#attachModal !== null) throw new Error('Attachment dialog is already initialized');
+        this.#attachModal = controller;
+    }
+
+    requireAttachModal(): AttachModalController {
+        if (this.#attachModal === null) throw new Error('Attachment dialog is not initialized');
+        return this.#attachModal;
+    }
 
     initializeSoaiLinkResolution(manager: ComposerSoaiLinkResolutionManager): void {
         if (this.#soaiLinkResolution) throw new Error('Composer SoAI link resolution is already initialized');
@@ -62,6 +74,8 @@ class ChatComposerSurfaceRuntime {
     }
 
     dispose(): void {
+        this.#attachModal?.disposeForPageDestroy();
+        this.#attachModal = null;
         this.#attachments?.dispose();
         this.#attachments = null;
         this.#ui?.dispose();

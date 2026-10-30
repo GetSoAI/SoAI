@@ -7,17 +7,19 @@ import { measureElementLayoutDimensions } from '@core/layout/elementGeometry.ts'
 import { getComputedStyleStrict } from '@core/environment/public.ts';
 
 const entrances = new WeakMap<HTMLElement, Animation>();
+const revealedSurfaces = new WeakSet<HTMLElement>();
 
 const cancelShellEntrance = (elements: readonly HTMLElement[]): void => {
     for (const element of elements) {
         entrances.get(element)?.cancel();
         entrances.delete(element);
+        revealedSurfaces.delete(element);
     }
 };
 
 const animateShellEntrance = (elements: readonly HTMLElement[]): void => {
     for (const element of elements) {
-        if (entrances.has(element)) continue;
+        if (revealedSurfaces.has(element)) continue;
         if (typeof element.animate !== 'function' || isReducedAnimationScope(element)) continue;
         const style = getComputedStyleStrict(element);
         const duration = parseMaxCssDurationMs(style.getPropertyValue('--motion-shell-enter-duration'));
@@ -33,6 +35,7 @@ const animateShellEntrance = (elements: readonly HTMLElement[]): void => {
             { duration, easing: style.getPropertyValue('--motion-shell-enter-ease').trim(), fill: 'backwards' }
         );
         entrances.set(element, animation);
+        revealedSurfaces.add(element);
         const forget = (): void => {
             if (entrances.get(element) === animation) entrances.delete(element);
         };

@@ -1,6 +1,8 @@
 /* SoAI - Chat sketch modal session controller [frontend/assets/ts/pages/chat/controllers/modals/sketch/ChatSketchModalController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { DrawingDocument } from '@core/drawing/DrawingDocument.ts';
+import type { DrawingMutationResult } from '@core/drawing/drawingRecords.ts';
 import { resolveDelegatedActionElement } from '@core/dom/dataAction.ts';
 import { bindEventGroup } from '@core/dom/eventBindingGroup.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -8,10 +10,11 @@ import { i18n } from '@core/i18n/index.ts';
 import { encodeCanvasImage } from '@core/media/canvasImageEncoding.ts';
 import { attachBeforeCloseConfirmationGuard, attachPendingOperationCloseGuard } from '@core/modals/closeGuard.ts';
 import { showUnsavedChangesConfirmation } from '@core/modals/unsavedChangesConfirmation.ts';
+import { isAvailableFocusTarget } from '@core/modals/modalhost/focusIsolation.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { createBusyDisabledToken, setBusyDisabledState, type BusyDisabledToken } from '@core/ui/controls/busyDisabledState.ts';
-import { CHAT_SKETCH_ACTIONS, CHAT_SKETCH_DEFAULT_COLOR, CHAT_SKETCH_DEFAULT_TOOL, CHAT_SKETCH_FILE_NAME, CHAT_SKETCH_FILE_TYPE, CHAT_SKETCH_MODAL_ID, CHAT_SKETCH_SIZE_MAX, CHAT_SKETCH_SIZE_MIN, CHAT_SKETCH_TOOLS, ChatSketchDocument, findChatSketchTool, isChatSketchAction, normalizeChatSketchColor, type ChatSketchAction, type ChatSketchToolType } from '@features/chat/public.ts';
+import { CHAT_SKETCH_LIMITS, CHAT_SKETCH_ACTIONS, CHAT_SKETCH_DEFAULT_COLOR, CHAT_SKETCH_DEFAULT_TOOL, CHAT_SKETCH_FILE_NAME, CHAT_SKETCH_FILE_TYPE, CHAT_SKETCH_MODAL_ID, CHAT_SKETCH_SIZE_MAX, CHAT_SKETCH_SIZE_MIN, CHAT_SKETCH_TOOLS, findChatSketchTool, isChatSketchAction, normalizeChatSketchColor, type ChatSketchFreehandToolType, type ChatSketchShapeType, type ChatSketchAction, type ChatSketchToolType } from '@features/chat/public.ts';
 import { resolveChatSketchModalRefs } from '@pages/chat/controllers/modals/sketch/dom.ts';
 import { SketchCanvasWidget } from '@pages/chat/controllers/modals/sketch/SketchCanvasWidget.ts';
 import { SketchPointerInputController } from '@pages/chat/controllers/modals/sketch/SketchPointerInputController.ts';
@@ -23,7 +26,7 @@ class ChatSketchModalController {
     readonly #host: ChatSketchModalHost;
     readonly #signal: AbortSignal;
     readonly #refs: ChatSketchModalRefs;
-    readonly #document = new ChatSketchDocument();
+    readonly #document = new DrawingDocument<ChatSketchFreehandToolType, ChatSketchShapeType>(CHAT_SKETCH_LIMITS);
     readonly #canvas: SketchCanvasWidget;
     readonly #pointer: SketchPointerInputController;
     readonly #resize: SketchResizeController;
@@ -45,10 +48,17 @@ class ChatSketchModalController {
             isEnabled: () => !this.#isSubmitting() && !this.#resize.isResizing(),
             resolveStyle: () => this.#resolveStyle(),
             onPreview: (operation) => this.#canvas.preview(operation),
+            capacity: (points, type) => this.#document.capacity(points, type),
+            onCapacityRejected: () => this.#showCapacity(),
             onCommit: (operation) => {
-                this.#document.commit(operation);
-                this.#canvas.commit(operation);
-                this.#projectHistory();
+                const result = this.#document.commit(operation);
+                if (result.type === 'applied') {
+                    this.#canvas.commit(operation);
+                    this.#projectHistory();
+                } else {
+                    this.#canvas.preview(null);
+                    if (result.type === 'capacity-rejected') this.#showCapacity();
+                }
             },
             onCancel: () => this.#canvas.preview(null)
         });
@@ -82,6 +92,7 @@ class ChatSketchModalController {
         this.#disposed = true;
         for (const detach of this.#detachGuards) detach();
         this.#releaseAttachToken();
+        this.#pointer.dispose();
         this.#resize.dispose();
         this.#canvas.dispose();
     }
@@ -129,9 +140,9 @@ class ChatSketchModalController {
         if (action === CHAT_SKETCH_ACTIONS.SELECT_COLOR) this.#selectColor(element?.dataset['sketchColor']);
         if (action === CHAT_SKETCH_ACTIONS.ATTACH) this.#attach();
         if (this.#pointer.isDrawing() || this.#resize.isResizing()) return;
-        if (action === CHAT_SKETCH_ACTIONS.UNDO && this.#document.undo()) this.#rebuild();
-        if (action === CHAT_SKETCH_ACTIONS.REDO && this.#document.redo()) this.#rebuild();
-        if (action === CHAT_SKETCH_ACTIONS.CLEAR && this.#document.clear()) this.#rebuild();
+        if (action === CHAT_SKETCH_ACTIONS.UNDO) this.#applyHistory(this.#document.undo());
+        if (action === CHAT_SKETCH_ACTIONS.REDO) this.#applyHistory(this.#document.redo());
+        if (action === CHAT_SKETCH_ACTIONS.CLEAR) this.#applyHistory(this.#document.clear());
     }
 
     #selectTool(value: string | undefined): void {
@@ -164,6 +175,18 @@ class ChatSketchModalController {
         return { tool: this.#tool, color: this.#color, width: this.#resolveSize() };
     }
 
+    #showCapacity(): void {
+        this.#refs.status.textContent = i18n.t('chat.sketch.capacityReached');
+        this.#refs.status.hidden = false;
+    }
+
+    #applyHistory(result: DrawingMutationResult): void {
+        if (result.type === 'applied') {
+            this.#refs.status.hidden = true;
+            this.#rebuild();
+        } else if (result.type === 'capacity-rejected') this.#showCapacity();
+    }
+
     #rebuild(): void {
         this.#canvas.rebuild(this.#document.visibleOperations());
         this.#projectHistory();
@@ -178,7 +201,7 @@ class ChatSketchModalController {
     }
 
     #attach(): void {
-        if (!this.#document.hasContent() || this.#pointer.isDrawing() || this.#resize.isResizing()) return;
+        if (!this.#document.hasContent() || !this.#canvas.isProjected() || this.#pointer.isDrawing() || this.#resize.isResizing()) return;
         this.#attachToken = setBusyDisabledState(this.#refs.attach, { isBusy: true, createToken: createBusyDisabledToken });
         this.#projectHistory();
         terminateHandledPromise(this.#export());
@@ -188,14 +211,17 @@ class ChatSketchModalController {
         try {
             const blob = await encodeCanvasImage(this.#canvas.exportCanvas, CHAT_SKETCH_FILE_TYPE);
             if (this.#disposed || this.#signal.aborted) return;
-            this.#releaseAttachToken();
-            this.#host.submit(new File([blob], CHAT_SKETCH_FILE_NAME, { type: CHAT_SKETCH_FILE_TYPE }));
+            await this.#host.submit(new File([blob], CHAT_SKETCH_FILE_NAME, { type: CHAT_SKETCH_FILE_TYPE }));
         } catch (error) {
             if (this.#disposed || this.#signal.aborted) return;
             this.#host.feedback.handle(ensureError(error), 'Chat sketch export failed', { notify: false });
             this.#host.feedback.show(i18n.t('chat.sketch.exportFailed'), 'error');
-            this.#releaseAttachToken();
-            this.#projectHistory();
+        } finally {
+            if (!this.#disposed && !this.#signal.aborted) {
+                this.#releaseAttachToken();
+                this.#projectHistory();
+                if (this.#refs.attach.isConnected && isAvailableFocusTarget(this.#refs.attach) && !this.#refs.modal.contains(this.#refs.modal.ownerDocument.activeElement)) this.#refs.attach.focus({ preventScroll: true });
+            }
         }
     }
 

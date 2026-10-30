@@ -23,7 +23,6 @@ const buildMemoryTabMarkup = (context: ChatPageMarkupContext): string => {
         <input id="${uiIdAttr('memory-search')}" class="searchbar-input" type="search" autocomplete="off" spellcheck="false" aria-label="${i18n.attr(sanitizer, 'chat.memory.library.search')}" placeholder="${i18n.attr(sanitizer, 'chat.memory.library.search')}" / data-modal-localize="placeholder aria-label">
       </div>
       <div class="chat-configuration-actions">
-        <button type="button" class="ui-button" data-action="chat:refresh-memory" aria-label="${strings.memoryRefresh}" data-tooltip="${strings.memoryRefresh}" data-modal-localize="text aria-label data-tooltip">${strings.memoryRefresh}</button>
         <button type="button" class="ui-button ui-variant-accent" data-action="chat:add-memory" aria-label="${i18n.attr(sanitizer, 'chat.memory.library.add')}" data-tooltip="${i18n.attr(sanitizer, 'chat.memory.library.add')}" data-modal-localize="text aria-label data-tooltip">${i18n.html(sanitizer, 'chat.memory.library.add')}</button>
       </div>
     </div>

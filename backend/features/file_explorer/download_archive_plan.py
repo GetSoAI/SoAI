@@ -10,6 +10,11 @@ from core.archives.zip_creation import (
     PortableZipPathIndex,
     calculate_zip_archive_upper_bound,
 )
+from core.archives.zip_creation_models import (
+    ZipArchiveDirectory,
+    ZipArchiveEntry,
+    ZipArchivePlan,
+)
 from core.errors.exceptions import (
     ConflictError,
     NotFoundError,
@@ -18,6 +23,9 @@ from core.errors.exceptions import (
     StateError,
     ValidationError,
 )
+from core.files.directory_snapshot import (
+    read_directory_entries,
+)
 from core.files.file_identity import FileIdentity
 from core.files.managed_path_access import stat_managed_path
 from core.files.managed_storage_errors import FileStorageSecurityError
@@ -25,14 +33,6 @@ from core.files.path_policy import ensure_path_within_base_lexical
 from core.validation.strict_numbers import require_positive_int_strict
 from features.file_explorer.download_archive_cancellation import (
     raise_if_download_archive_cancelled,
-)
-from features.file_explorer.download_archive_directory_access import (
-    read_download_directory_entries,
-)
-from features.file_explorer.download_archive_models import (
-    DownloadArchiveDirectory,
-    DownloadArchiveEntry,
-    DownloadArchivePlan,
 )
 
 __all__ = ("build_download_archive_plan",)
@@ -45,7 +45,7 @@ def build_download_archive_plan(
     maximum_members: int,
     maximum_archive_bytes: int,
     cancellation_event: Event,
-) -> DownloadArchivePlan:
+) -> ZipArchivePlan:
     member_limit = require_positive_int_strict(
         maximum_members,
         error_message="maximum_members must be a positive integer",
@@ -53,8 +53,8 @@ def build_download_archive_plan(
     if not selected_paths:
         raise ValidationError("At least one file explorer download path is required.")
     registry = PortableZipPathIndex()
-    entries: list[DownloadArchiveEntry] = []
-    directories: list[DownloadArchiveDirectory] = []
+    entries: list[ZipArchiveEntry] = []
+    directories: list[ZipArchiveDirectory] = []
     first_source_identity: FileIdentity | None = None
     first_archive_name = ""
     for source_path in selected_paths:
@@ -75,7 +75,7 @@ def build_download_archive_plan(
             is_directory=source_identity.is_directory,
         )
         entries.append(
-            DownloadArchiveEntry(
+            ZipArchiveEntry(
                 source_path=validated_source,
                 archive_path=archive_path,
                 identity=source_identity,
@@ -106,7 +106,7 @@ def build_download_archive_plan(
         and first_source_identity.is_directory
         else "file-explorer-selection.zip"
     )
-    return DownloadArchivePlan(
+    return ZipArchivePlan(
         entries=tuple(entries),
         directories=tuple(directories),
         required_bytes=required_bytes,
@@ -121,8 +121,8 @@ def _scan_directory(
     source_identity: FileIdentity,
     root_path: str,
     registry: PortableZipPathIndex,
-    entries: list[DownloadArchiveEntry],
-    directories: list[DownloadArchiveDirectory],
+    entries: list[ZipArchiveEntry],
+    directories: list[ZipArchiveDirectory],
     maximum_members: int,
     cancellation_event: Event,
 ) -> None:
@@ -138,13 +138,27 @@ def _scan_directory(
                 "File explorer download source changed while the archive was being planned.",
                 operation="file_explorer.download_archive.plan",
             )
-        child_entries = read_download_directory_entries(
+        admitted_count = len(entries)
+
+        def admit_entry(_name: str, _identity: FileIdentity) -> None:
+            nonlocal admitted_count
+            admitted_count += 1
+            if admitted_count > maximum_members:
+                raise PayloadTooLargeError(
+                    "File explorer download archive exceeds the configured member limit.",
+                    details={"maximum_members": maximum_members, "member_count": admitted_count},
+                    operation="file_explorer.download_archive.plan",
+                )
+
+        child_entries = read_directory_entries(
             root_path,
             current_source,
             expected_identity=current_identity,
+            admit_entry=admit_entry,
+            cancellation_event=cancellation_event,
         )
         directories.append(
-            DownloadArchiveDirectory(
+            ZipArchiveDirectory(
                 source_path=current_source,
                 identity=current_identity,
                 child_names=tuple(name for name, _identity in child_entries),
@@ -164,7 +178,7 @@ def _scan_directory(
                 is_directory=identity.is_directory,
             )
             entries.append(
-                DownloadArchiveEntry(
+                ZipArchiveEntry(
                     source_path=child_path,
                     archive_path=child_archive,
                     identity=identity,
@@ -179,6 +193,10 @@ def _scan_directory(
 def _read_source_identity(root_path: str, source_path: str) -> FileIdentity:
     try:
         identity = FileIdentity.from_stat(stat_managed_path(root_path, source_path))
+        if os.name == "nt" and identity.is_regular_file:
+            identity = FileIdentity.from_stat(
+                stat_managed_path(root_path, source_path, file_descriptor_snapshot=True)
+            )
     except FileStorageSecurityError as exception:
         if isinstance(exception.__cause__, FileNotFoundError):
             raise NotFoundError(
@@ -203,7 +221,7 @@ def _read_source_identity(root_path: str, source_path: str) -> FileIdentity:
     return identity
 
 
-def _require_member_limit(entries: list[DownloadArchiveEntry], maximum_members: int) -> None:
+def _require_member_limit(entries: list[ZipArchiveEntry], maximum_members: int) -> None:
     if len(entries) <= maximum_members:
         return
     raise PayloadTooLargeError(

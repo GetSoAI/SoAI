@@ -35,9 +35,9 @@ class ChatElicitationPreview {
             this.#dependencies.toggleClass(target, CSS_CLASSES.HIDDEN, !visible);
             this.#dependencies.updateAttribute(target, 'aria-hidden', visible ? 'false' : 'true');
         }
-        const previewsContainer = this.#dependencies.optionalUI('.chat-previews-container');
-        if (previewsContainer instanceof HTMLElement) previewsContainer.scrollTop = 0;
         this.#syncLayout();
+        const previewsContainer = this.#dependencies.optionalUI('.chat-previews-container');
+        if (previewsContainer instanceof HTMLElement && !previewsContainer.classList.contains(CSS_CLASSES.HIDDEN)) previewsContainer.scrollTop = 0;
     }
 
     #syncLayout(): void {

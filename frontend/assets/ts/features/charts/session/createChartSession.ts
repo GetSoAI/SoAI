@@ -71,7 +71,7 @@ const createChartSession = (container: HTMLElement | string | null, options: Par
         },
         hover: interaction
     });
-    const painter = new ChartFramePainter({ scene: renderingScene, redraw, surface, model });
+    const painter = new ChartFramePainter({ scene: renderingScene, redraw, surface, model, theme });
     const renderer = new ChartRenderer({ redraw, viewport, painter, preview, morph });
     const viewportResize = new ChartViewportResize({ surface, viewport });
     const lifecycle = new ChartSessionLifecycle({ events, redraw, surface, theme, viewportResize, renderer, interaction });

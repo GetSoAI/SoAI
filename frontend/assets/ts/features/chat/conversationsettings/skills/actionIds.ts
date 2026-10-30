@@ -3,9 +3,9 @@
 
 import { createActionIdSet } from '@core/dom/actions/actionIdGuard.ts';
 
-type SkillAction = 'skills-add' | 'skills-upload' | 'skills-toggle' | 'skills-search' | 'skills-details' | 'skills-remove' | 'skills-reload' | 'skills-keep' | 'skills-download' | 'skills-close-details';
+type SkillAction = 'skills-add' | 'skills-upload' | 'skills-toggle' | 'skills-search' | 'skills-details' | 'skills-remove' | 'skills-use-latest' | 'skills-retry-import' | 'skills-keep' | 'skills-download' | 'skills-close-details';
 
-const { guard: isSkillAction } = createActionIdSet<SkillAction>('skills-add', 'skills-upload', 'skills-toggle', 'skills-search', 'skills-details', 'skills-remove', 'skills-reload', 'skills-keep', 'skills-download', 'skills-close-details');
+const { guard: isSkillAction } = createActionIdSet<SkillAction>('skills-add', 'skills-upload', 'skills-toggle', 'skills-search', 'skills-details', 'skills-remove', 'skills-use-latest', 'skills-retry-import', 'skills-keep', 'skills-download', 'skills-close-details');
 
 export { isSkillAction };
 export type { SkillAction };

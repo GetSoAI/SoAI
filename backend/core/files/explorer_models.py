@@ -6,15 +6,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
-from core.files.file_identity import FileIdentity
-
 __all__ = (
     "BatchMetadataItemResult",
     "BatchMetadataResult",
     "BatchOperationItemResult",
     "BatchOperationResult",
     "FileEntryInfo",
-    "FileExplorerDownloadArchive",
     "FileMetadata",
     "ListDirectoryResult",
     "SearchResult",
@@ -47,13 +44,6 @@ if TYPE_CHECKING:
         "unknownFile",
         "video",
     ]
-
-
-@dataclass(frozen=True, slots=True)
-class FileExplorerDownloadArchive:
-    archive_path: str
-    download_filename: str
-    identity: FileIdentity
 
 
 @dataclass(frozen=True, slots=True)

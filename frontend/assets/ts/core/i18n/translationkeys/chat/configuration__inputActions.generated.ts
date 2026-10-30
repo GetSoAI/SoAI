@@ -23,6 +23,8 @@ export type ChatConfigurationInputActionsTranslationKey =
     | 'chat.configuration.inputActions.cameraHint'
     | 'chat.configuration.inputActions.exportToPdf'
     | 'chat.configuration.inputActions.exportToPdfHint'
+    | 'chat.configuration.inputActions.findHint'
+    | 'chat.configuration.inputActions.newConversationHint'
     | 'chat.configuration.inputActions.prompts'
     | 'chat.configuration.inputActions.promptsHint'
     | 'chat.configuration.inputActions.title'

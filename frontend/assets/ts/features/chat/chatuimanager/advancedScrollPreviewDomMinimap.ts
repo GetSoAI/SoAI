@@ -27,6 +27,8 @@ type AdvancedScrollPreviewDomMinimapMeasurement = {
 
 const isMessageId = (value: string | null): value is string => typeof value === 'string' && value.trim().length > 0;
 
+const projectAdvancedScrollPosition = (topPx: number, scrollHeight: number, overlayHeight: number): number => (scrollHeight > 0 ? clampNumber(topPx / scrollHeight, 0, 1) * Math.max(0, overlayHeight) : 0);
+
 const collectSourceEntries = (messagesRoot: HTMLElement): HTMLElement[] => {
     const entries: HTMLElement[] = [];
     for (const child of Array.from(messagesRoot.children)) {
@@ -88,7 +90,7 @@ export const createAdvancedScrollPreviewDomMinimapRuntime = (input: { coordinato
         }
         const projectedScale = overlayWidth > 0 && overlayHeight > 0 ? clampNumber(overlayHeight / scrollHeight, 0.001, 1) : 0;
         return {
-            topRatio: clampNumber(geometry.topPx / scrollHeight, 0, 1),
+            topRatio: projectAdvancedScrollPosition(geometry.topPx, scrollHeight, 1),
             heightRatio: clampNumber(geometry.heightPx / scrollHeight, 0, 1),
             projectedHeightPx: geometry.heightPx * projectedScale
         };
@@ -311,5 +313,7 @@ export const createAdvancedScrollPreviewDomMinimapRuntime = (input: { coordinato
 
     return { markDirtyFromMutations, markDirtyFromResize, measure, apply, hasVisibleContent, dispose };
 };
+
+export { projectAdvancedScrollPosition };
 
 export type { AdvancedScrollPreviewDomMinimapMeasurement };

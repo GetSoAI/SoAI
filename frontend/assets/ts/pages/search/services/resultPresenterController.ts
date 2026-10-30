@@ -6,6 +6,7 @@ import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { checkerboardService, dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { renderSearchCategoryStateMarkup } from '@core/search/searchCategoryStateMarkup.ts';
+import { SEARCH_MINIMUM_QUERY_LENGTH, normalizeSearchMatchQuery } from '@core/search/searchQuery.ts';
 import type { SearchFilter } from '@core/search/searchCategory.ts';
 import type { SearchItem } from '@core/search/searchTypes.ts';
 import { EMPTY_UI_HTML, uiHtml } from '@core/security/uiHtml.ts';
@@ -33,6 +34,7 @@ const resolveSearchStatusCopy = (statusType: SearchStatusType, query: string): S
         };
     }
     if (statusType === 'notFound') {
+        if (normalizeSearchMatchQuery(query).length < SEARCH_MINIMUM_QUERY_LENGTH) return { title: i18n.t('search.noResults.emptyTitle'), message: i18n.t('search.noResults.minimumCharacters', { count: SEARCH_MINIMUM_QUERY_LENGTH }) };
         return {
             title: i18n.t('search.noResults.title'),
             message: i18n.t('search.noResults.notFound', { query })

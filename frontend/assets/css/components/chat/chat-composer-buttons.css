@@ -3,7 +3,6 @@
 
 @layer components {
     :where(.chat-container) .chat-action-btn > .chat-action-icon {
-        grid-area: 1 / 1;
         transition: opacity var(--transition-fast);
     }
 

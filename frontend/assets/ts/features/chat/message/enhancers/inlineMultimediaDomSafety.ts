@@ -4,7 +4,7 @@
 import { isAbsoluteHttpUrl } from '@core/security/public.ts';
 
 const STREAMING_TAIL_SELECTOR = '[data-stream-text-tail="true"]';
-const INLINE_MEDIA_EXCLUDED_ANCESTORS_SELECTOR = 'pre, code, .chat-inline-media-card, .message-error, .inline-activity-details, .assistant-news-widget, .assistant-plan-widget, .assistant-weather-widget, .chat-message.user';
+const INLINE_MEDIA_EXCLUDED_ANCESTORS_SELECTOR = 'pre, code, .chat-inline-media-card, .message-error, .inline-activity-details, .assistant-news-widget, .assistant-plan-widget, .assistant-weather-widget, .assistant-image-widget, .chat-message.user';
 
 const isElementInOwnDocument = (node: Node): node is Element => {
     const ownerDocument = node.ownerDocument;

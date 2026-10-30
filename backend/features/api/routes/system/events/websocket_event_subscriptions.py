@@ -21,6 +21,10 @@ from core.events.protocols import (
     EventWithDeliveryProtocol,
 )
 from core.events.types_base import Event, EventDelivery
+from core.events.types_chat_libraries import (
+    ChatPresetLibraryChangedEvent,
+    MemoryLibraryChangedEvent,
+)
 from core.events.types_conversation_durable import (
     ConversationAttentionChangedEvent,
     ConversationInputTerminalEvent,
@@ -89,6 +93,8 @@ _CRITICAL_CHRONOLOGY_EVENTS: frozenset[type[Event]] = frozenset(
         ChatStreamEvent,
         ChatStreamActivityChangedEvent,
         ConversationAttentionChangedEvent,
+        MemoryLibraryChangedEvent,
+        ChatPresetLibraryChangedEvent,
         SkillLibraryChangedEvent,
         ConversationSkillsChangedEvent,
         ConversationInputTerminalEvent,
@@ -114,42 +120,6 @@ def _notification_event_visible_to_connection(
         can_read_plugins=AccessAction.PLUGIN_READ in connection.granted_actions,
     )
     return notification_source_is_visible(event.source, excluded_sources)
-
-
-async def _enqueue_critical_event_or_shutdown(
-    *,
-    connection: WebsocketConnection,
-    event_data: JSONDict,
-    queue_label: str,
-    shutdown_event: asyncio.Event,
-    drop_tracker: QueueDropTracker,
-) -> None:
-    await _enqueue_event_with_backpressure(
-        connection=connection,
-        event_data=event_data,
-        queue_label=queue_label,
-        shutdown_event=shutdown_event,
-        backpressure_timeout=_CRITICAL_CHRONOLOGY_BACKPRESSURE_TIMEOUT_SECONDS,
-        drop_tracker=drop_tracker,
-    )
-
-
-async def _enqueue_agent_action_event_or_shutdown(
-    *,
-    connection: WebsocketConnection,
-    event_data: JSONDict,
-    queue_label: str,
-    shutdown_event: asyncio.Event,
-    drop_tracker: QueueDropTracker,
-) -> None:
-    await _enqueue_event_with_backpressure(
-        connection=connection,
-        event_data=event_data,
-        queue_label=queue_label,
-        shutdown_event=shutdown_event,
-        backpressure_timeout=_AGENT_ACTION_BACKPRESSURE_TIMEOUT_SECONDS,
-        drop_tracker=drop_tracker,
-    )
 
 
 def _event_requires_critical_chronology(event: Event) -> bool:
@@ -282,21 +252,19 @@ def register_websocket_event_subscriptions(
                         mode="json"
                     )
             queue_label = f"WebSocket for {connection.user.get('username', 'unknown')}"
-            if _event_requires_critical_chronology(event):
-                await _enqueue_critical_event_or_shutdown(
-                    connection=connection,
-                    event_data=event_data,
-                    queue_label=queue_label,
-                    shutdown_event=shutdown_event,
-                    drop_tracker=drop_tracker,
+            critical_chronology = _event_requires_critical_chronology(event)
+            if critical_chronology or event_type in REALTIME_AGENT_ACTION_EVENT_TYPES:
+                backpressure_timeout = (
+                    _CRITICAL_CHRONOLOGY_BACKPRESSURE_TIMEOUT_SECONDS
+                    if critical_chronology
+                    else _AGENT_ACTION_BACKPRESSURE_TIMEOUT_SECONDS
                 )
-                return
-            if event_type in REALTIME_AGENT_ACTION_EVENT_TYPES:
-                await _enqueue_agent_action_event_or_shutdown(
+                await _enqueue_event_with_backpressure(
                     connection=connection,
                     event_data=event_data,
                     queue_label=queue_label,
                     shutdown_event=shutdown_event,
+                    backpressure_timeout=backpressure_timeout,
                     drop_tracker=drop_tracker,
                 )
                 return

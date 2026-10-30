@@ -11,14 +11,14 @@ import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import type { AssistantTimelineIndexState } from '@features/chat/assistanteventtimeline/timelineIndexState.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
-import { buildIconKey, type RenderAssistantBodyFromMessageInput, type RenderInlineDetailsFromMessageInput, type WorkerResources } from '@features/chat/messagerenderworker/protocol.ts';
+import { buildIconKey, type RenderAssistantBodyFromMessageInput, type RenderInlineDetailsFromMessageInput, type RenderSearchTextInput, type WorkerResources } from '@features/chat/messagerenderworker/protocol.ts';
 import { findInlineActivitySegment } from '@features/chat/message/inlineActivitySegmentLookup.ts';
 import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
 import { resolveMessageContentSegmentsForRendering } from '@features/chat/message/messageSegmentsResolution.ts';
 import { isThinkingRenderSegment } from '@features/chat/message/messageSegmentTypes.ts';
 import { renderAssistantActivityWidgets } from '@features/chat/message/messageview/assistantActivityWidgets.ts';
 import type { ChatActivityDurationDisplayMode } from '@features/chat/message/messageview/activityDurationDisplay.ts';
-import { renderInlineActivityDetails, renderTimelineMarkup } from '@features/chat/message/messageview/effects.ts';
+import { renderInlineActivityDetails, renderSegments, renderTimelineMarkup } from '@features/chat/message/messageview/effects.ts';
 import { renderMessageFeedback } from '@features/chat/message/messageview/renderMessageFeedback.ts';
 import type { ChatMessageRenderHost } from '@features/chat/message/messageview/types.ts';
 
@@ -75,7 +75,7 @@ class ChatMessageWorkerRenderer {
         this.#richTextRendererWithoutCodeRecognition = new RichTextRenderer({ sanitizer, translateFootnoteBackRef: () => i18n.t('richText.footnotes.backToReference'), isCodeRecognitionEnabled: () => false });
     }
 
-    #createRenderHost(inputArguments: { isRichTextEnabled: boolean; codeRecognitionEnabled: boolean; isShowActivitiesEnabled: boolean; activityDurationDisplayMode: ChatActivityDurationDisplayMode; isCurrentConversationExecuting: boolean; canonicalPlan: AgentCanonicalPlan | null; nowMs: number }): ChatMessageRenderHost {
+    #createRenderHost(inputArguments: { isRichTextEnabled: boolean; codeRecognitionEnabled: boolean; isShowActivitiesEnabled: boolean; activityDurationDisplayMode: ChatActivityDurationDisplayMode; isCurrentConversationExecuting: boolean; canonicalPlan: AgentCanonicalPlan | null; nowMs: number; isInlineMultimediaPreviewsEnabled?: boolean }): ChatMessageRenderHost {
         const richTextRenderer = inputArguments.codeRecognitionEnabled ? this.#richTextRendererWithCodeRecognition : this.#richTextRendererWithoutCodeRecognition;
         return {
             nowMs: () => inputArguments.nowMs,
@@ -93,7 +93,7 @@ class ChatMessageWorkerRenderer {
             },
             getToolIconHtml: (): string | null => null,
             isRichTextEnabled: () => inputArguments.isRichTextEnabled,
-            isInlineMultimediaPreviewsEnabled: () => false,
+            isInlineMultimediaPreviewsEnabled: () => inputArguments.isInlineMultimediaPreviewsEnabled === true,
             isShowActivitiesEnabled: () => inputArguments.isShowActivitiesEnabled,
             getActivityDurationDisplayMode: () => inputArguments.activityDurationDisplayMode,
             isCurrentConversationExecuting: () => inputArguments.isCurrentConversationExecuting,
@@ -119,6 +119,12 @@ class ChatMessageWorkerRenderer {
         const contentHtml = renderTimelineMarkup(host, segments, { sortableTextTables: true });
         const widgetsHtml = inputArguments.suppressAssistantActivityWidgets ? '' : renderAssistantActivityWidgets(host, segments);
         return `${contentHtml}${widgetsHtml}${renderMessageFeedback(host, inputArguments.message)}`;
+    }
+
+    renderSearchTextHtml(inputArguments: Omit<RenderSearchTextInput, 'signal'>): string {
+        const host = this.#createRenderHost({ ...inputArguments, isShowActivitiesEnabled: false, activityDurationDisplayMode: 'all', isCurrentConversationExecuting: false, canonicalPlan: null, nowMs: 0 });
+        const segment: MessageSegment = { type: 'text', text: inputArguments.content, value: inputArguments.content };
+        return inputArguments.role === 'assistant' ? renderTimelineMarkup(host, [segment]) : renderSegments(host, [segment]);
     }
 }
 

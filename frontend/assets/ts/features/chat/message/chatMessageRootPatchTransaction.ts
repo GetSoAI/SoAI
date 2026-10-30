@@ -144,14 +144,16 @@ const patchMessageContent = (target: HTMLElement, source: HTMLElement): boolean 
     return changed;
 };
 
-const applyChatMessageRootPatchTransaction = (inputArguments: { existingRoot: HTMLElement; nextMarkup: TrustedHtml; messageDomId: string }): ChatMessageRootPatchResult => {
+const applyChatMessageRootPatchTransaction = (inputArguments: { existingRoot: HTMLElement; nextMarkup: TrustedHtml; messageDomId: string; replacement?: HTMLElement | undefined }): ChatMessageRootPatchResult => {
     const preserved = preserveChatMessageInlineState(inputArguments.existingRoot);
-    const replacement = parseRenderedMarkupRoot({
-        documentRef: inputArguments.existingRoot.ownerDocument,
-        nextMarkup: inputArguments.nextMarkup,
-        context: inputArguments.existingRoot.ownerDocument,
-        failureMessage: 'Chat message root patch failed to parse rendered markup.'
-    });
+    const replacement =
+        inputArguments.replacement ??
+        parseRenderedMarkupRoot({
+            documentRef: inputArguments.existingRoot.ownerDocument,
+            nextMarkup: inputArguments.nextMarkup,
+            context: inputArguments.existingRoot.ownerDocument,
+            failureMessage: 'Chat message root patch failed to parse rendered markup.'
+        });
     if (!replacement.classList.contains('chat-message')) {
         throw new Error('Chat message root patch requires a canonical chat message root.');
     }

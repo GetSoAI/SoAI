@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 export type ChatConfigurationSkillsTranslationKey =
+    | 'chat.configuration.skills.aboutTitle'
     | 'chat.configuration.skills.add'
     | 'chat.configuration.skills.automatic'
     | 'chat.configuration.skills.automaticOnly'
@@ -38,12 +39,13 @@ export type ChatConfigurationSkillsTranslationKey =
     | 'chat.configuration.skills.keepDraft'
     | 'chat.configuration.skills.noMatchesTitle'
     | 'chat.configuration.skills.removeConfirm'
+    | 'chat.configuration.skills.retryImport'
     | 'chat.configuration.skills.search'
     | 'chat.configuration.skills.stale'
     | 'chat.configuration.skills.status.conflictTitle'
     | 'chat.configuration.skills.status.importTitle'
     | 'chat.configuration.skills.status.invalidTitle'
-    | 'chat.configuration.skills.status.staleTitle'
     | 'chat.configuration.skills.status.unavailableTitle'
     | 'chat.configuration.skills.title'
-    | 'chat.configuration.skills.unavailable';
+    | 'chat.configuration.skills.unavailable'
+    | 'chat.configuration.skills.useLatest';

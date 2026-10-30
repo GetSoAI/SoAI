@@ -16,6 +16,7 @@ from core.types.json import JSONDict
 from core.validation.epoch import EPOCH_MS_MAX, EPOCH_MS_MIN
 from core.validation.integers import is_positive_strict_int
 from core.validation.javascript_integer import JAVASCRIPT_SAFE_INTEGER_MAX
+from database.repositories.event_outbox.library_changes import sync_enqueue_library_changed
 from database.repositories.users.chat_preset_rows import (
     project_chat_preset_row,
     read_owned_chat_preset_row,
@@ -129,6 +130,7 @@ def sync_create_chat_preset(
             if _is_integrity_error(exception, _NAME_UNIQUE_ERROR):
                 return _result("name_conflict")
             raise
+        sync_enqueue_library_changed(conn, user_id, "ChatPresetLibraryChangedEvent")
         return _project_success(
             read_owned_chat_preset_row(conn, user_id=user_id, preset_id=preset_id),
         )
@@ -209,6 +211,7 @@ def _sync_update_chat_preset(
         if _is_integrity_error(exception, _NAME_UNIQUE_ERROR):
             return _result("name_conflict")
         raise
+    sync_enqueue_library_changed(conn, user_id, "ChatPresetLibraryChangedEvent")
     return _project_success(
         read_owned_chat_preset_row(conn, user_id=user_id, preset_id=preset_id),
     )
@@ -270,9 +273,13 @@ def sync_delete_chat_preset(
         "DELETE FROM webui_chat_presets WHERE id = ? AND user_id = ?",
         (preset_id, user_id),
     )
+    sync_enqueue_library_changed(conn, user_id, "ChatPresetLibraryChangedEvent")
     return _result("success")
 
 
 def sync_reset_chat_presets(conn: sqlite3.Connection, user_id: int) -> int:
     cursor = conn.execute("DELETE FROM webui_chat_presets WHERE user_id = ?", (user_id,))
-    return max(0, int(cursor.rowcount))
+    deleted = max(0, int(cursor.rowcount))
+    if deleted:
+        sync_enqueue_library_changed(conn, user_id, "ChatPresetLibraryChangedEvent")
+    return deleted

@@ -1,6 +1,7 @@
 /* SoAI - Chat feature attachment manager [frontend/assets/ts/features/chat/ChatAttachmentManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { ChangeNotificationSource } from '@core/primitives/changeNotificationSource.ts';
 import type { ConversationAttachmentChangedEvent } from '@core/realtime/eventcontracts/attachmentContracts.ts';
@@ -8,7 +9,7 @@ import { isArray } from '@core/typeGuards.ts';
 import type { ChatAttachment, ChatAttachmentDraftSource } from '@features/chat/ChatTypes.ts';
 import { buildChatAttachmentContentFragmentsFromAttachments, type ContentFragment } from '@features/chat/attachments/attachmentContentFragments.ts';
 import { ChatAttachmentCreation } from '@features/chat/attachments/attachmentCreation.ts';
-import type { ChatAttachmentManagerOptions } from '@features/chat/attachments/attachmentManagerContracts.ts';
+import type { ChatAttachmentIntake, ChatAttachmentManagerOptions } from '@features/chat/attachments/attachmentManagerContracts.ts';
 import { applyPhysicalAttachmentChangedEvent, deleteStagedPhysicalAttachment } from '@features/chat/attachments/attachmentPhysicalLifecycle.ts';
 import { ChatAttachmentProcessingQueue } from '@features/chat/attachments/attachmentProcessingQueue.ts';
 import { handleChatAttachmentUploadPipeline, type AttachmentUploadSource } from '@features/chat/attachments/attachmentUploadPipeline.ts';
@@ -17,6 +18,8 @@ import { isSoaiPathDraftRecord, type SoaiPathDraftRecord } from '@features/chat/
 import { SoaiPathImagePreviewLifecycle } from '@features/chat/attachments/soaiPathImagePreviewLifecycle.ts';
 
 class ChatAttachmentManager {
+    readonly #captureIntake: () => ChatAttachmentIntake;
+    #disposed = false;
     #uiManager: ChatAttachmentManagerOptions['uiManager'];
     #logger: ChatAttachmentManagerOptions['logger'];
     #errorHandler: ChatAttachmentManagerOptions['errorHandler'];
@@ -35,7 +38,7 @@ class ChatAttachmentManager {
         this.#draftChangeNotifier.notify();
     }
 
-    constructor({ attachmentProcessor, uiManager, logger, errorHandler, deletePhysicalAttachment, subscribeAttachmentChanged, loadSoaiPathImagePreview }: ChatAttachmentManagerOptions) {
+    constructor({ captureIntake, attachmentProcessor, uiManager, logger, errorHandler, deletePhysicalAttachment, subscribeAttachmentChanged, loadSoaiPathImagePreview }: ChatAttachmentManagerOptions) {
         if (!attachmentProcessor) {
             throw new Error('ChatAttachmentManager requires an attachment processor');
         }
@@ -48,6 +51,7 @@ class ChatAttachmentManager {
         if (!errorHandler) {
             throw new Error('ChatAttachmentManager requires an error handler');
         }
+        this.#captureIntake = captureIntake;
         this.#uiManager = uiManager;
         this.#logger = logger;
         this.#errorHandler = errorHandler;
@@ -226,17 +230,33 @@ class ChatAttachmentManager {
         }
     }
 
-    async handleFiles(files: File[], options: { forceDocument?: boolean; draftSource?: Extract<ChatAttachmentDraftSource, 'upload' | 'camera'> } = {}): Promise<void> {
+    captureIntake(): ChatAttachmentIntake {
+        const intake = this.#captureIntake();
+        const epoch = this.#draftCommitEpoch;
+        return { scope: { signal: intake.scope.signal, isCurrent: () => !this.#disposed && this.#draftCommitEpoch === epoch && intake.scope.isCurrent() }, acceptConversation: () => intake.acceptConversation() };
+    }
+
+    async #handleFiles(files: File[], options: { forceDocument?: boolean; draftSource?: Extract<ChatAttachmentDraftSource, 'upload' | 'camera'> }, intake: ChatAttachmentIntake): Promise<void> {
         if (!isArray(files) || files.length === 0) {
             return;
         }
+        let attachments: ChatAttachment[];
+        let conversationId: string | null;
+        try {
+            attachments = await this.#attachmentCreation.createAttachments(files, options, intake.scope);
+            if (attachments.length === 0 || !intake.scope.isCurrent()) return;
+            conversationId = await intake.acceptConversation();
+            if (conversationId === null || !intake.scope.isCurrent()) return;
+        } catch (error) {
+            if (!intake.scope.isCurrent() || isAbortError(error)) return;
+            throw ensureError(error);
+        }
         const pendingOperations: Promise<void>[] = [];
-        const attachments = await this.#attachmentCreation.createAttachments(files, options);
         for (const attachment of attachments) {
             this.#files.push(attachment);
             this.#bumpDraftRevision();
             this.#syncUiAfterAttachmentsChanged();
-            pendingOperations.push(this.#processingQueue.processAttachment(attachment));
+            pendingOperations.push(this.#processingQueue.processAttachment(attachment, conversationId));
         }
         const settledResults = await Promise.allSettled(pendingOperations);
         const failures = settledResults.filter((settledResult): settledResult is PromiseRejectedResult => settledResult.status === 'rejected');
@@ -246,12 +266,15 @@ class ChatAttachmentManager {
         this.#syncUiAfterAttachmentsChanged();
     }
 
-    async handleUpload(files: File[], inputArguments: { source: AttachmentUploadSource; visionSupported: boolean }): Promise<void> {
+    async handleUpload(files: File[], inputArguments: { source: AttachmentUploadSource; visionSupported: boolean; intake?: ChatAttachmentIntake }): Promise<void> {
+        const intake = inputArguments.intake ?? this.captureIntake();
+        if (!intake.scope.isCurrent()) return;
         await handleChatAttachmentUploadPipeline({
+            scope: intake.scope,
             files,
             source: inputArguments.source,
             visionSupported: inputArguments.visionSupported,
-            handleFiles: (nextFiles, options) => this.handleFiles(nextFiles, options),
+            handleFiles: (nextFiles, options) => this.#handleFiles(nextFiles, options ?? {}, intake),
             logger: this.#logger,
             errorHandler: this.#errorHandler
         });
@@ -282,6 +305,7 @@ class ChatAttachmentManager {
     }
 
     dispose(): void {
+        this.#disposed = true;
         this.#processingQueue.clear();
         this.#soaiPathImagePreviewLifecycle.dispose();
         const unsubscribe = this.#unsubscribeAttachmentChanged;

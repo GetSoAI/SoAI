@@ -14,6 +14,7 @@ from app.internal_protocols import LifecycleCoordinatorProtocol
 from app.lifecycle.signals import require_runtime_restart
 from app.media_parsing_services import MediaParsingServices
 from app.types_services_runtime import StorageServices
+from core.concurrency.bounded_blocking import BoundedBlockingPool
 from core.config.protocols import ConfigManagerProtocol, ConfigProtocol
 from core.database.protocols import DatabaseCoreProtocol, DatabaseOperationStatusProtocol
 from core.events.protocols import DurableEventDeliveryProtocol, EventBusProtocol
@@ -70,6 +71,7 @@ def build_storage_services(
     lifecycle_coordinator: LifecycleCoordinatorProtocol,
     media_parsing: MediaParsingServices,
     process_exit_deadline: ProcessExitDeadline,
+    logs_export_pool: BoundedBlockingPool,
 ) -> StorageServices:
     _ = domain_event_delivery
     storage_root = resolve_managed_files_storage_root(config, files)
@@ -120,6 +122,7 @@ def build_storage_services(
                 process_exit_deadline=process_exit_deadline,
             ),
             startup_ready_event=runtime_state.startup_ready_event,
+            logs_export_pool=logs_export_pool,
         ),
     )
     lifecycle_coordinator.register_actor(backup_service)

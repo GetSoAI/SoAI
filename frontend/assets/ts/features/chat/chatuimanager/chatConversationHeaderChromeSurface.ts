@@ -67,7 +67,7 @@ export const setupChatConversationHeaderChromeSurface = (context: ChatUIManagerC
                 const right = sidebarBounds === null || !rtl ? headerBounds.right : Math.min(headerBounds.right, sidebarBounds.left);
                 return { ...headerBounds, x: left, left, right, width: Math.max(0, right - left), y: containerTop, top: containerTop, bottom: containerTop + headerBounds.height };
             },
-            isPinned: (header) => !dependencies.settings.isAutoHideChatHeaderEnabled() || isTitleEditorOpen(context, header) || dependencies.optionalUI(OPEN_MENU_SELECTOR, header) !== null || resolveInteractionElements(header).some((surface) => hasKeyboardFocus(surface, documentRef)) || isConversationStartPinned(context, header),
+            isPinned: (header) => !dependencies.settings.isAutoHideChatHeaderEnabled() || dependencies.session.isConversationFindOpen?.() === true || isTitleEditorOpen(context, header) || dependencies.optionalUI(OPEN_MENU_SELECTOR, header) !== null || resolveInteractionElements(header).some((surface) => hasKeyboardFocus(surface, documentRef)) || isConversationStartPinned(context, header),
             isRevealBlocked: () => false,
             isTemporaryHideExempt: () => false,
             isPointerTargetIgnored: (target) => target instanceof Element && target.closest(`${CONVERSATION_HEADER_SELECTOR} ${CHAT_SELECTORS.SIDEBAR_TOGGLE}, ${CHAT_SELECTORS.SIDEBAR}, .message-avatar`) !== null,

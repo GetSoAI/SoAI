@@ -15,7 +15,7 @@ import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import { createAbortError } from '@core/errors/abort.ts';
 import { ensureStart, startResource } from '@core/realtime/streammanager/resources/resourceLifecycle.ts';
 import { handleStreamWebSocketEvent } from '@core/realtime/streammanager/transport/webSocketLifecycle.ts';
-import { hasResourceLiveDemand, listAutoResourceStarts, listReconnectResources, startListenedResources } from '@core/realtime/streammanager/resources/resourceActivationPolicy.ts';
+import { releaseResourceDemand, hasResourceLiveDemand, listAutoResourceStarts, listReconnectResources, startListenedResources } from '@core/realtime/streammanager/resources/resourceActivationPolicy.ts';
 import { resetResourceRuntime } from '@core/realtime/streammanager/resources/resourceRuntimeReset.ts';
 import { bindResourceReconciliation } from '@core/realtime/streammanager/resources/resourceSnapshotProjection.ts';
 import { applyResourceTransportEvent } from '@core/realtime/streammanager/resources/resourceTransportEpoch.ts';
@@ -62,6 +62,11 @@ class StreamResourceStore {
         return this.#resources.has(name);
     }
 
+    hasLiveDemand(name: string): boolean {
+        const resource = this.get(name);
+        return resource !== null && hasResourceLiveDemand(resource);
+    }
+
     isAutoStart(name: string): boolean {
         return this.#resources.get(name)?.config.autoStart === true;
     }
@@ -80,6 +85,7 @@ class StreamResourceStore {
         runtime: {
             shouldDeferInitialization(): boolean;
             isGenerationActive(generation: number): boolean;
+            waitForResourceInterest?(name: string, signal: AbortSignal): Promise<void>;
             getWebSocket(): { waitForConnection(timeoutMs?: number, options?: { signal?: AbortSignal | undefined }): Promise<void>; requestSnapshot(resource: string, parameters?: JsonObject | null, options?: { signal?: AbortSignal | undefined }): Promise<{ data: JsonValue; resource: string; timestampMs: number | null } | null> } | null;
         }
     ): Promise<JsonValue | null> {
@@ -88,7 +94,8 @@ class StreamResourceStore {
             shouldDeferInitialization: runtime.shouldDeferInitialization,
             isMaintenanceActive: () => this.maintenanceActive,
             isGenerationActive: runtime.isGenerationActive,
-            getWebSocket: runtime.getWebSocket
+            getWebSocket: runtime.getWebSocket,
+            ...(runtime.waitForResourceInterest ? { waitForResourceInterest: runtime.waitForResourceInterest } : {})
         });
     }
 
@@ -218,7 +225,7 @@ class StreamResourceStore {
             active = false;
             signal?.removeEventListener('abort', unsubscribe);
             resource.listeners.delete(listener);
-            resource.reconciler.setLiveDemand(hasResourceLiveDemand(resource));
+            releaseResourceDemand(resource);
             runtime.releaseInterest(token);
         };
         signal?.addEventListener('abort', unsubscribe, { once: true });

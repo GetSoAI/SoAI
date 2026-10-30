@@ -24,7 +24,7 @@ import { buildChatFilePreviewItemDocumentMarkup } from '@features/chat/chatuiman
 import { isSoaiPathDraftRecord, requireSoaiPathDraftRecordVirtualPath, resolveSoaiPathDraftRecordMediaMetadata, resolveSoaiPathDraftRecordRootFingerprint } from '@features/chat/attachments/soaiPathDraftRecords.ts';
 import { knowledgeSummaryMatchesIngestion } from '@features/chat/knowledgeAttachmentPresentation.ts';
 import type { InlineMediaOpenAction } from '@features/chat/message/enhancers/inlineMultimediaCardTypes.ts';
-import { renderChatMultimediaPreviewOpenActionAttributes, resolveChatMultimediaPreviewSourceReferenceForUrl } from '@features/chat/message/multimediaPreviewDataset.ts';
+import { renderChatMultimediaPreviewActionAttributes, resolveChatMultimediaPreviewSourceReferenceForUrl } from '@features/chat/message/multimediaPreviewDataset.ts';
 import type { ChatAttachment } from '@features/chat/ChatTypes.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
@@ -101,7 +101,7 @@ const renderImageAttachmentMedia = (context: ChatUIManagerContext, attachment: C
             const openAction = resolveImageAttachmentOpenAction(context, attachment, srcValue);
             return {
                 markup: uiHtml`<span class="chat-attachment-visual" data-attachment-image-state="loading" data-attachment-processing-state="${uiAttr(statusKey)}"><span class="file-preview-leading-icon" aria-hidden="true">${icon}</span><img src="${uiAttr(srcValue)}" alt="${uiAttr(attachment.name)}" loading="lazy" decoding="async" data-chat-attachment-thumbnail="true"/>${loadingOverlay}</span>`,
-                actionAttributes: renderChatMultimediaPreviewOpenActionAttributes(openAction)
+                actionAttributes: renderChatMultimediaPreviewActionAttributes(openAction)
             };
         }
     }

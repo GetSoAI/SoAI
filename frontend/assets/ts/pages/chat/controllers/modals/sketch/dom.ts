@@ -20,6 +20,7 @@ const requireActionButtons = (modal: HTMLElement, action: string, label: string)
 
 const resolveChatSketchModalRefs = (modal: HTMLElement): ChatSketchModalRefs => ({
     modal,
+    status: requireUiElement(modal, 'status', HTMLElement, 'capacity status'),
     canvas: requireUiElement(modal, 'canvas', HTMLCanvasElement, 'canvas'),
     tools: requireActionButtons(modal, CHAT_SKETCH_ACTIONS.SELECT_TOOL, 'tools'),
     swatches: requireActionButtons(modal, CHAT_SKETCH_ACTIONS.SELECT_COLOR, 'color swatches'),

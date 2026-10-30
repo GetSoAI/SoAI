@@ -251,7 +251,8 @@ const animatePresenceMorph = (element: HTMLElement, from: PresenceSize, to: Pres
     }
     const animationOptions: KeyframeAnimationOptions = { duration: tokens.morphDurationMs, easing: tokens.enterEasing, fill: 'backwards' };
     const retainedChildAnimations: Animation[] = [];
-    if (options.fadeChildren !== false || options.preserveChildInlineSize === true) {
+    const fadeChildren = options.fadeChildren !== false && tokens.morphFadeFrom !== 1;
+    if (fadeChildren || options.preserveChildInlineSize === true) {
         for (const child of Array.from(element.children)) {
             if (!(child instanceof HTMLElement) || !canAnimate(child) || !canAnimatePresence(child)) continue;
             const firstFrame: PresenceKeyframe = {};
@@ -263,7 +264,7 @@ const animatePresenceMorph = (element: HTMLElement, from: PresenceSize, to: Pres
                     firstFrame['inlineSize'] = lastFrame['inlineSize'] = `${size.width}px`;
                 }
             }
-            if (options.fadeChildren !== false) firstFrame['opacity'] = isPresenceMorphing(child) ? (readComputedStyle(child)?.opacity ?? tokens.morphFadeFrom) : tokens.morphFadeFrom;
+            if (fadeChildren) firstFrame['opacity'] = isPresenceMorphing(child) ? (readComputedStyle(child)?.opacity ?? tokens.morphFadeFrom) : tokens.morphFadeFrom;
             if (Object.keys(firstFrame).length === 0) continue;
             stopPresenceAnimation(child);
             retainedChildAnimations.push(trackPresenceAnimation(child, child.animate([firstFrame, lastFrame], animationOptions), 'morph'));

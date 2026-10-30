@@ -1,7 +1,12 @@
 /* SoAI - Validated resource reconciliation policy [frontend/assets/ts/core/realtime/streammanager/resources/resourceReconciliationPolicy.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { ReconciliationPolicy } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
+import { MEMORY_LIBRARY, CHAT_PRESETS } from '@core/realtime/streammanager/resources/ids.ts';
+import type { ResourceReconciliationSnapshot, ReconciliationPolicy } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
+
+const isSubscriptionOwnedResource = (name: string): boolean => name === MEMORY_LIBRARY || name === CHAT_PRESETS;
+
+const isResourceRecoveryBlocked = (snapshot: ResourceReconciliationSnapshot): boolean => snapshot.maintenance || snapshot.status === 'disconnected' || ['resource-interest-rejected', 'library-access-denied', 'library-protocol-invalid'].includes(snapshot.authoritativeReason ?? '');
 
 const DEFAULT_RECONCILIATION_POLICY: Readonly<ReconciliationPolicy> = Object.freeze({
     maximumAttempts: 3,
@@ -22,4 +27,4 @@ const validateReconciliationPolicy = (policy: ReconciliationPolicy): Reconciliat
     return Object.freeze({ ...policy });
 };
 
-export { DEFAULT_RECONCILIATION_POLICY, validateReconciliationPolicy };
+export { isSubscriptionOwnedResource, isResourceRecoveryBlocked, DEFAULT_RECONCILIATION_POLICY, validateReconciliationPolicy };

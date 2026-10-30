@@ -7,7 +7,7 @@ import { cloneInlineMediaCardsIntoPreservedPositions, restoreInlineMediaCardsFro
 import { collectAssistantDomState, discardInlineMediaCardsFromAssistantDomState, restoreAssistantDomState, type AssistantDomStatePreservation } from '@features/chat/message/assistantDomState.ts';
 import { readPreviewImageOpenSource, readPreviewImageSource } from '@features/chat/message/multimediaPreviewImageIdentity.ts';
 
-type AssistantDomReconcileMode = 'streamingRichText' | 'terminalFinalize' | 'messageBodyPatch';
+type AssistantDomReconcileMode = 'streamingRichText' | 'retainedChildren' | 'terminalFinalize' | 'messageBodyPatch';
 type ConnectedReplacementCommit = {
     target: HTMLElement;
     replacementRoot: HTMLElement;
@@ -98,9 +98,9 @@ const reconcileConnectedReplacement = (target: HTMLElement, source: HTMLElement,
     restoreAssistantDomState(target, state);
 };
 
-const reconcileStreamingRichText = (target: HTMLElement, source: HTMLElement, state: AssistantDomStatePreservation): void => {
+const reconcileRetainedChildren = (target: HTMLElement, source: HTMLElement, state: AssistantDomStatePreservation): void => {
     if (target === source) {
-        throw new Error('Assistant streaming DOM reconciliation requires separate target and source elements.');
+        throw new Error('Assistant incremental DOM reconciliation requires separate target and source elements.');
     }
     const sourceRoot = target.ownerDocument.createElement('div');
     sourceRoot.append(...Array.from(source.childNodes));
@@ -112,8 +112,8 @@ const reconcileStreamingRichText = (target: HTMLElement, source: HTMLElement, st
 
 const reconcileAssistantDom = (inputArguments: { target: HTMLElement; source: HTMLElement; mode: AssistantDomReconcileMode; state?: AssistantDomStatePreservation | null }): void => {
     const state = resolveAssistantDomState(inputArguments.target, inputArguments.state);
-    if (inputArguments.mode === 'streamingRichText') {
-        reconcileStreamingRichText(inputArguments.target, inputArguments.source, state);
+    if (inputArguments.mode === 'streamingRichText' || inputArguments.mode === 'retainedChildren') {
+        reconcileRetainedChildren(inputArguments.target, inputArguments.source, state);
         return;
     }
     reconcileConnectedReplacement(inputArguments.target, inputArguments.source, state);

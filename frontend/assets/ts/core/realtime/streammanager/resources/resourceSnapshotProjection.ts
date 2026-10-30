@@ -26,4 +26,6 @@ const bindResourceReconciliation = (resource: ResourceEntry, onTransition: (snap
     );
 };
 
-export { bindResourceReconciliation, projectReconciliationSnapshot };
+const hasSameResourceAuthority = (captured: ResourceReconciliationSnapshot, current: ResourceReconciliationSnapshot): boolean => captured.lifecycleGeneration === current.lifecycleGeneration && captured.configurationRevision === current.configurationRevision && captured.transportEpoch === current.transportEpoch && captured.committedReconciliationRevision === current.committedReconciliationRevision;
+
+export { hasSameResourceAuthority, bindResourceReconciliation, projectReconciliationSnapshot };

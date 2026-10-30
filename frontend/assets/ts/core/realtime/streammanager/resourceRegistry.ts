@@ -1,6 +1,8 @@
 /* SoAI - Typed stream resource registry [frontend/assets/ts/core/realtime/streammanager/resourceRegistry.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { MemoryLibrary } from '@core/api/contracts/webuiMemoryContracts.ts';
+import type { WebuiChatPresetListResponse } from '@core/api/contracts/webuiChatPresetContracts.ts';
 import type { SystemStatusResponse } from '@core/api/contracts/systemContracts.ts';
 import type { PowerOperationResponse } from '@core/api/contracts/powerContracts.ts';
 import type { ConversationAttentionResource } from '@core/chat/conversationAttentionSnapshot.ts';
@@ -12,6 +14,8 @@ import type { LatestUsageResource } from '@core/realtime/streammanager/resources
 type SystemStatusResource = Omit<SystemStatusResponse, 'mainState'> & { mainState: string };
 
 interface StreamResourceRegistry {
+    'memory.library': MemoryLibrary;
+    'chat.presets': WebuiChatPresetListResponse;
     'models.collection': ModelsResource;
     'plugins.collection': PluginsResource;
     'models.last_used': LatestUsageResource;

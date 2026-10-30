@@ -3,8 +3,10 @@
 
 import { createHtmlFragment } from '@core/dom/html.ts';
 import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
+import { CHECKERBOARD_CLASS_NAMES } from '@core/dom/checkerboardAssignment.ts';
 import { dom } from '@core/dom/dom.ts';
-import { syncElementShell } from '@core/dom/patching.ts';
+import { patchOrderedChildren } from '@core/dom/orderedChildPatching.ts';
+import { syncAttributeValue, syncElementShell } from '@core/dom/patching.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { uiAttr } from '@core/security/uiHtml.ts';
@@ -50,7 +52,6 @@ const syncCalendarScrollShell = (calendarRoot: HTMLElement, viewMode: Automation
         throw new Error('Automation calendar scroll shell missing');
     }
     scroll.className = `automation-calendar-scroll automation-calendar-scroll--${viewMode}`;
-    scroll.style.setProperty('--automation-calendar-viewport-height', `${scroll.clientHeight}px`);
 };
 
 const renderBufferedPeriod = (entry: BufferedAutomationWindowEntry, content: string): string => {
@@ -185,6 +186,8 @@ const parseCalendarTrack = (stage: HTMLElement, markup: string): HTMLElement => 
     return track;
 };
 
+const CALENDAR_RECONCILIATION_OPTIONS = { preservedClassNames: CHECKERBOARD_CLASS_NAMES, preservedAttributeNames: new Set(['data-checkerboard-id']) };
+
 const reconcileCalendarTrack = (stage: HTMLElement, markup: string, timeFormat: AutomationCalendarTimeFormat): void => {
     const existingTrack = optionalAutomationCalendarTrack(stage);
     if (!existingTrack) {
@@ -192,39 +195,37 @@ const reconcileCalendarTrack = (stage: HTMLElement, markup: string, timeFormat: 
         return;
     }
     const nextTrack = parseCalendarTrack(stage, markup);
-    existingTrack.className = nextTrack.className;
-    const nextPeriods = Array.from(nextTrack.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
-    const existingPeriods = Array.from(existingTrack.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
-    const reusable = new Map<string, HTMLElement>();
-    for (const period of existingPeriods) {
-        const signature = period.dataset['automationPeriodSignature'];
-        if (signature) {
-            reusable.set(signature, period);
+    syncAttributeValue(existingTrack, 'class', nextTrack.className);
+    patchOrderedChildren({
+        existingParent: existingTrack,
+        createdParent: nextTrack,
+        resolveChildKey: (period) => period.dataset['automationPeriodSignature'] ?? null,
+        insertChild: (parent, period, anchor) => {
+            parent.insertBefore(period, anchor);
+            return period;
+        },
+        patchChild: (existingPeriod, nextPeriod) => {
+            const nextCreateControls = dom.resolveAll('[data-automation-keyboard-create="true"]', nextPeriod);
+            for (const control of dom.resolveAll('[data-automation-keyboard-create="true"]', existingPeriod)) {
+                if (!(control instanceof HTMLButtonElement)) continue;
+                const replacement = nextCreateControls.find((candidate) => candidate instanceof HTMLButtonElement && candidate.dataset['date'] === control.dataset['date']);
+                if (!(replacement instanceof HTMLButtonElement)) continue;
+                const minutes = control.dataset['keyboardMinutes'];
+                if (minutes === undefined) continue;
+                replacement.dataset['keyboardMinutes'] = minutes;
+                const label = formatAutomationCreateAtLabel(replacement.dataset['date'] ?? '', Number(minutes), timeFormat);
+                replacement.setAttribute('aria-label', label);
+                setTooltipText(replacement, label);
+            }
+            const shellChanged = syncElementShell({ target: existingPeriod, source: nextPeriod });
+            return reconcileChildNodes(existingPeriod, Array.from(nextPeriod.childNodes), CALENDAR_RECONCILIATION_OPTIONS) || shellChanged;
+        },
+        removeChild: (period) => period.remove(),
+        replaceUnsupportedChildren: () => {
+            existingTrack.replaceChildren(...Array.from(nextTrack.childNodes));
+            return true;
         }
-    }
-    const ordered = nextPeriods.map((nextPeriod) => {
-        const signature = nextPeriod.dataset['automationPeriodSignature'];
-        const existingPeriod = signature ? (reusable.get(signature) ?? null) : null;
-        if (!existingPeriod) {
-            return nextPeriod;
-        }
-        const nextCreateControls = dom.resolveAll('[data-automation-keyboard-create="true"]', nextPeriod);
-        for (const control of dom.resolveAll('[data-automation-keyboard-create="true"]', existingPeriod)) {
-            if (!(control instanceof HTMLButtonElement)) continue;
-            const replacement = nextCreateControls.find((candidate) => candidate instanceof HTMLButtonElement && candidate.dataset['date'] === control.dataset['date']);
-            if (!(replacement instanceof HTMLButtonElement)) continue;
-            const minutes = control.dataset['keyboardMinutes'];
-            if (minutes === undefined) continue;
-            replacement.dataset['keyboardMinutes'] = minutes;
-            const label = formatAutomationCreateAtLabel(replacement.dataset['date'] ?? '', Number(minutes), timeFormat);
-            replacement.setAttribute('aria-label', label);
-            setTooltipText(replacement, label);
-        }
-        syncElementShell({ target: existingPeriod, source: nextPeriod });
-        reconcileChildNodes(existingPeriod, Array.from(nextPeriod.childNodes));
-        return existingPeriod;
     });
-    if (ordered.length !== existingTrack.children.length || ordered.some((period, index) => existingTrack.children[index] !== period)) existingTrack.replaceChildren(...ordered);
 };
 
 const renderAutomationCalendar = (state: AutomationPageState, host: AutomationCalendarRenderHost, cache: AutomationCalendarRenderCache, monthMaxChipsPerDay: number): string => {

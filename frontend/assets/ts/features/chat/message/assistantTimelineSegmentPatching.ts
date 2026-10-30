@@ -231,7 +231,7 @@ const patchKeyedContainerMarkup = (inputArguments: { preserveActiveStreamingText
     };
 };
 
-export const patchStreamingTimelineSegmentInPlace = (inputArguments: { preserveActiveStreamingText?: boolean; existing: HTMLElement; created: HTMLElement; assistantDomState?: AssistantDomStatePreservation | null; applyStreamingReveal?: boolean; streamingTextSettlementProof?: StreamingTextSettlementProof | null }): { patched: boolean; detailsChanged: boolean; retainedSignature?: string } => {
+export const patchStreamingTimelineSegmentInPlace = (inputArguments: { preserveActiveStreamingText?: boolean; existing: HTMLElement; created: HTMLElement; assistantDomState?: AssistantDomStatePreservation | null; applyStreamingReveal?: boolean; disableInsertAnimation?: boolean; streamingTextSettlementProof?: StreamingTextSettlementProof | null }): { patched: boolean; detailsChanged: boolean; retainedSignature?: string } => {
     const { existing, created } = inputArguments;
     const applyStreamingReveal = inputArguments.applyStreamingReveal === true;
     if (inputArguments.preserveActiveStreamingText === true && isStreamingTextRoot(existing) && isTimelineTextRoot(created)) {
@@ -249,7 +249,7 @@ export const patchStreamingTimelineSegmentInPlace = (inputArguments: { preserveA
             return patchKeyedContainerMarkup({ existing, created, container: resolveDirectStreamSegments(existing) ?? existing, disableInsertAnimation: true, preserveActiveStreamingText: inputArguments.preserveActiveStreamingText === true, assistantDomState: inputArguments.assistantDomState ?? null });
         }
         if (existing.hasAttribute(ASSISTANT_ACTIVITY_WIDGETS_ATTRIBUTE) && created.hasAttribute(ASSISTANT_ACTIVITY_WIDGETS_ATTRIBUTE)) {
-            return patchKeyedContainerMarkup({ existing, created, container: existing, disableInsertAnimation: false, preserveActiveStreamingText: false, assistantDomState: inputArguments.assistantDomState ?? null });
+            return patchKeyedContainerMarkup({ existing, created, container: existing, disableInsertAnimation: inputArguments.disableInsertAnimation === true, preserveActiveStreamingText: false, assistantDomState: inputArguments.assistantDomState ?? null });
         }
         let changed = false;
         let completedStreamingTextInPlace = false;
@@ -269,7 +269,8 @@ export const patchStreamingTimelineSegmentInPlace = (inputArguments: { preserveA
             changed = true;
         }
         if (!completedStreamingTextInPlace && !haveEqualChildNodes(existing, created)) {
-            reconcileAssistantDom({ target: existing, source: created, mode: isTimelineTextRoot(existing) && isTimelineTextRoot(created) ? 'streamingRichText' : 'messageBodyPatch', state: inputArguments.assistantDomState ?? null });
+            const retainedImage = existing.classList.contains('assistant-image-widget') && created.classList.contains('assistant-image-widget');
+            reconcileAssistantDom({ target: existing, source: created, mode: retainedImage ? 'retainedChildren' : isTimelineTextRoot(existing) && isTimelineTextRoot(created) ? 'streamingRichText' : 'messageBodyPatch', state: inputArguments.assistantDomState ?? null });
             changed = true;
         }
         return { patched: true, detailsChanged: changed };

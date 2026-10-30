@@ -59,10 +59,11 @@ const editMemoryRelationship = async (host: MemoryMutationHost, entry: ManagedMe
                         isValid: host.isCurrent,
                         save: async () => {
                             const controls = [fromSelect, toSelect, typeInput].map((control) => ({ control, token: setBusyDisabledState(control, { isBusy: true, createToken: createBusyDisabledToken, spinner: 'none' }) }));
+                            const present = host.captureCommitPresentation();
                             try {
                                 const committed = await host.api.updateRelation(entry.entity.id, relationId, payload);
                                 saved = true;
-                                presentMemoryCommit(host, committed);
+                                presentMemoryCommit(host, present, committed);
                                 return;
                             } catch (error) {
                                 const failure = ensureError(error);

@@ -40,7 +40,7 @@
         display: contents;
     }
 
-    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-stack:has(> .wizard-ai-contents:only-child:empty) {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-stack:empty {
         display: none;
     }
 

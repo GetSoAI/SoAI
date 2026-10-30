@@ -15,6 +15,7 @@ from core.config.protocols import ConfigProtocol
 from core.di.validation import require_dependencies
 from core.errors.exceptions import StateError, ValidationError
 from core.logging.banner import LogBannerSystem, get_colorized_ascii_banner_lines
+from core.logging.configuration_constants import DEFAULT_MAIN_LOG_FILENAME
 from core.logging.formatter_support import ROOT_LOGGER_NAME
 from core.logging.handlers.streaming import StreamingLogHandler
 from core.logging.log_path_resolution import resolve_full_log_path
@@ -109,7 +110,9 @@ class LoggingManager:
         return (
             ""
             if self.disabled
-            else self.get_full_log_path(config, "OBSERVABILITY.LOGGING.MAIN_LOG", "soai.log")
+            else self.get_full_log_path(
+                config, "OBSERVABILITY.LOGGING.MAIN_LOG", DEFAULT_MAIN_LOG_FILENAME
+            )
         )
 
     def get_streaming_handler(self, name: str) -> StreamingLogHandler | None:

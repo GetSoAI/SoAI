@@ -6,16 +6,9 @@ import { formatBytes } from '@core/primitives/byteSize.ts';
 import { resolveFileEntryIconName } from '@core/fileexplorerbrowser/entryIconResolution.ts';
 import { resolveFileEntryTypeLabel } from '@core/fileexplorerbrowser/entryTypeLabels.ts';
 import type { FileBrowserEntry } from '@core/fileexplorerbrowser/types.ts';
-import { getCurrentLocale } from '@core/languageservice/service.ts';
-import { getCollator } from '@core/localization/intlCache.ts';
 import { isImageMimeType } from '@core/media/mimeTypes.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
-import type { SortDirection, SortState } from '@core/ui/tables/sortableTable.ts';
 import { i18n } from '@core/i18n/index.ts';
-
-type ChatAttachBrowseSortColumn = 'name' | 'type' | 'size' | 'modified';
-
-type ChatAttachBrowseSortState = SortState<ChatAttachBrowseSortColumn>;
 
 type ChatAttachBrowseResult =
     | {
@@ -51,15 +44,6 @@ type ChatAttachBrowseResult =
           completedCount: number;
           useMaxItems: number;
       };
-
-const CHAT_ATTACH_BROWSE_SORT_COLUMNS: readonly ChatAttachBrowseSortColumn[] = ['name', 'type', 'size', 'modified'];
-
-const CHAT_ATTACH_BROWSE_SORT_COLUMN_DEFAULT_DIRECTIONS: Readonly<Record<ChatAttachBrowseSortColumn, SortDirection>> = {
-    name: 'asc',
-    type: 'asc',
-    size: 'desc',
-    modified: 'desc'
-};
 
 const isImageMime = (value: string): boolean => isImageMimeType(value.toLowerCase());
 
@@ -130,31 +114,7 @@ const parseReusableKnowledgeResults = (payload: KnowledgeAttachmentCollectionRes
     return results;
 };
 
-const compareText = (left: string, right: string, collator: Intl.Collator): number => collator.compare(left, right);
-
-const sortBrowseResults = (results: readonly ChatAttachBrowseResult[], sortState: ChatAttachBrowseSortState): ChatAttachBrowseResult[] => {
-    const multiplier = sortState.direction === 'asc' ? 1 : -1;
-    const collator = getCollator(getCurrentLocale(), { sensitivity: 'base' });
-    return [...results].sort((left, right) => {
-        switch (sortState.column) {
-            case 'name':
-                return multiplier * compareText(left.title, right.title, collator);
-            case 'type': {
-                const typeComparison = compareText(left.typeLabel, right.typeLabel, collator);
-                if (typeComparison !== 0) {
-                    return multiplier * typeComparison;
-                }
-                return compareText(left.title, right.title, collator);
-            }
-            case 'size':
-                return multiplier * (left.sortSize - right.sortSize);
-            case 'modified':
-                return multiplier * (left.sortModified - right.sortModified);
-        }
-    });
-};
-
 const buildWorkspaceBrowseResults = (entries: readonly FileBrowserEntry[]): ChatAttachBrowseResult[] => entries.map((entry) => createWorkspaceResult(entry));
 
-export { CHAT_ATTACH_BROWSE_SORT_COLUMN_DEFAULT_DIRECTIONS, CHAT_ATTACH_BROWSE_SORT_COLUMNS, buildWorkspaceBrowseResults, parseReusableKnowledgeResults, sortBrowseResults };
-export type { ChatAttachBrowseResult, ChatAttachBrowseSortColumn, ChatAttachBrowseSortState };
+export { buildWorkspaceBrowseResults, parseReusableKnowledgeResults };
+export type { ChatAttachBrowseResult };

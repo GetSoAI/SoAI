@@ -9,6 +9,7 @@ import { isFunction, isObject, isString } from '@core/typeGuards.ts';
 import type { Action, ActionEntry, ActionZoneManagerHost, ActionZoneManagerState } from '@core/layout/header/actionzonemanager/types.ts';
 import { resolveString } from '@core/layout/header/actionzonemanager/mappers.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { syncAttributeValue } from '@core/dom/patching.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 
 const BUTTON_BASE_CLASS = 'header-action-button';
@@ -44,6 +45,7 @@ const createActionEntry = (id: string): ActionEntry => {
         badge,
         requestedIcon: null,
         renderedIcon: null,
+        declarativeClassNames: new Set(['ui-icon-button', BUTTON_BASE_CLASS]),
         iconApplyInFlight: false,
         cleanup: null,
         handler: null
@@ -113,22 +115,19 @@ const updateActionEntry = (state: ActionZoneManagerState, header: ActionZoneMana
     const ariaLabel = resolveString(action.ariaLabel);
     const className = resolveString(action.className);
 
-    entry.element.dataset['actionId'] = action.id;
-    entry.element.disabled = Boolean(action.disabled);
-    entry.element.setAttribute('type', 'button');
-    entry.element.setAttribute('aria-label', ariaLabel || label || tooltipText);
-    if (action.pressed === null || action.pressed === undefined) {
-        entry.element.removeAttribute('aria-pressed');
-    } else {
-        entry.element.setAttribute('aria-pressed', action.pressed ? 'true' : 'false');
-    }
+    syncAttributeValue(entry.element, 'data-action-id', action.id);
+    const disabled = Boolean(action.disabled);
+    if (entry.element.disabled !== disabled) entry.element.disabled = disabled;
+    syncAttributeValue(entry.element, 'type', 'button');
+    syncAttributeValue(entry.element, 'aria-label', ariaLabel || label || tooltipText);
+    syncAttributeValue(entry.element, 'aria-pressed', action.pressed === null || action.pressed === undefined ? null : action.pressed ? 'true' : 'false');
 
     setTooltipText(entry.element, tooltipText);
 
-    entry.element.className = `ui-icon-button ${BUTTON_BASE_CLASS}`;
-    if (className) {
-        entry.element.className += ` ${className}`;
-    }
+    const declarativeClassNames = new Set(['ui-icon-button', BUTTON_BASE_CLASS, ...className.split(/[\t\n\f\r ]+/u).filter(Boolean)]);
+    const retainedClassNames = Array.from(entry.element.classList).filter((name) => !entry.declarativeClassNames.has(name) && !declarativeClassNames.has(name));
+    syncAttributeValue(entry.element, 'class', [...declarativeClassNames, ...retainedClassNames].join(' '));
+    entry.declarativeClassNames = declarativeClassNames;
 
     const badgeValue = resolveString(action.badge);
     if (badgeValue) {

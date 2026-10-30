@@ -51,6 +51,14 @@ class FileIdentity:
             observed_ctime_ns=int(value.st_ctime_ns),
         )
 
+    def matches_file_object(self, other: FileIdentity) -> bool:
+        return (
+            self.device == other.device
+            and self.inode == other.inode
+            and self.mode == other.mode
+            and (not is_windows() or self.identity_timestamp_ns == other.identity_timestamp_ns)
+        )
+
     def matches_descriptor_snapshot(self, other: FileIdentity) -> bool:
         return self == other and self.observed_ctime_ns == other.observed_ctime_ns
 

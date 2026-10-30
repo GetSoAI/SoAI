@@ -6,6 +6,7 @@ import type { TimeoutTimer } from '@core/timers/timeoutTimer.ts';
 
 type PendingRequest = {
     readonly workerIndex: number;
+    readonly expectedResponseType: 'ok' | 'rendered' | 'searchText';
     readonly resolve: (html: string) => void;
     readonly reject: (error: Error) => void;
     abortDisposer: (() => void) | null;

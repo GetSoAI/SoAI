@@ -6,15 +6,24 @@ from __future__ import annotations
 import hashlib
 import os
 import stat
+import sys
+from dataclasses import dataclass
+from threading import Event
 from typing import TYPE_CHECKING
 
 from app.backup.copy_no_symlinks.deadlines import check_deadline
+from core.concurrency.cancellation import check_cancellation_deadline
+from core.concurrency.deadlines import MonotonicDeadline
 from core.config.byte_sizes import MIB_BYTES
-from core.errors.exceptions import SecurityError, StateError, ValidationError
+from core.errors.exception_logging import log_exception
+from core.errors.exceptions import ConflictError, SecurityError, StateError, ValidationError
+from core.files.file_identity import FileIdentity
+from core.files.managed_file_opening import open_managed_file_descriptor
 from core.files.temp_files import create_secure_temp_file_descriptor
 from core.filesystem.descriptor_io import open_descriptor
 from core.filesystem.file_sync import flush_and_fsync_file
 from core.filesystem.path_coercion import normalize_filesystem_path
+from core.hardware.reservation_exceptions import preserve_primary_exception_cleanup_failure
 from core.hardware.reserved_writes import write_reserved_bytes
 from core.logging.trace import get_logger
 from files.archive import sync_raise_if_symlink
@@ -24,11 +33,33 @@ if TYPE_CHECKING:
 
 __all__ = (
     "sync_copy_file_and_hash_no_symlinks",
+    "BoundedFileCapture",
     "sync_copy_file_no_symlinks",
 )
 
 LOGGER_NAME = "SoAI.app.backup.file_copy"
+OPERATION_LOG_CAPTURE_CLOSE = "logs.export.capture.close"
 BACKUP_FILE_COPY_BUFFER_BYTES = MIB_BYTES
+
+
+@dataclass(frozen=True, slots=True)
+class BoundedFileCapture:
+    source_root: str
+    identity: FileIdentity
+    byte_count: int
+    allow_append: bool
+    cancellation_event: Event
+
+    def validate(self, actual: FileIdentity) -> None:
+        check_cancellation_deadline(self.cancellation_event, operation="logs.export.capture")
+        if self.byte_count != self.identity.size or self.byte_count < 0:
+            raise ValidationError("Invalid bounded file capture size.")
+        if not actual.is_regular_file or not self.identity.matches_file_object(actual):
+            raise ConflictError("Log file was replaced during capture.")
+        if actual.size < self.byte_count or (
+            not self.allow_append and not self.identity.matches_descriptor_snapshot(actual)
+        ):
+            raise ConflictError("Log file changed during capture.")
 
 
 def _sync_copy_file_secure(
@@ -38,6 +69,7 @@ def _sync_copy_file_secure(
     deadline_monotonic: float | None,
     compute_hash: bool,
     write_reservation: DiskSpaceReservationLeaseProtocol | None,
+    capture: BoundedFileCapture | None = None,
 ) -> tuple[int, str | None]:
     logger = get_logger(LOGGER_NAME)
     if not isinstance(source_path, str) or not source_path.strip():
@@ -67,10 +99,19 @@ def _sync_copy_file_secure(
     temp_fd: int | None = None
     temp_path: str | None = None
     try:
-        source_fd = open_descriptor(normalize_filesystem_path(source_path), read_flags)
+        if capture is None:
+            source_fd = open_descriptor(normalize_filesystem_path(source_path), read_flags)
+        else:
+            source_fd = open_managed_file_descriptor(
+                capture.source_root,
+                source_path,
+                concurrent_leaf_read=True,
+            ).descriptor
         stat_info = os.fstat(source_fd)
         if not stat.S_ISREG(stat_info.st_mode):
             raise ValidationError(f"Expected a regular file at {source_path}.")
+        if capture is not None:
+            capture.validate(FileIdentity.from_stat(stat_info))
         source_handle = os.fdopen(source_fd, "rb", buffering=0)
         source_fd = None
 
@@ -91,9 +132,29 @@ def _sync_copy_file_secure(
         try:
             buffer_size = BACKUP_FILE_COPY_BUFFER_BYTES
             while True:
-                check_deadline(deadline_monotonic, context=f"file_copy:{source_path}")
-                data = source_handle.read(buffer_size)
+                if capture is None:
+                    check_deadline(deadline_monotonic, context=f"file_copy:{source_path}")
+                if capture is not None:
+                    check_cancellation_deadline(
+                        capture.cancellation_event,
+                        (
+                            MonotonicDeadline(deadline_monotonic)
+                            if deadline_monotonic is not None
+                            else None
+                        ),
+                        operation="logs.export.capture",
+                    )
+                    if total_bytes == capture.byte_count:
+                        break
+                read_size = (
+                    buffer_size
+                    if capture is None
+                    else min(buffer_size, capture.byte_count - total_bytes)
+                )
+                data = source_handle.read(read_size)
                 if not data:
+                    if capture is not None and total_bytes < capture.byte_count:
+                        raise ConflictError("Log file shrank during capture.")
                     break
                 if destination_handle is not None:
                     write_reserved_bytes(
@@ -104,15 +165,40 @@ def _sync_copy_file_secure(
                 if hasher is not None:
                     hasher.update(data)
                 total_bytes += len(data)
+            if capture is not None:
+                capture.validate(FileIdentity.from_stat(os.fstat(source_handle.fileno())))
             if destination_handle is not None:
                 flush_and_fsync_file(destination_handle)
         finally:
             if destination_handle is not None:
+                primary_exception = sys.exception()
                 try:
                     destination_handle.close()
-                except OSError:
-                    logger.debug("Failed to close destination handle for %s", temp_path)
+                except OSError as close_exception:
+                    if capture is not None:
+                        if primary_exception is not None:
+                            log_exception(
+                                logger,
+                                close_exception,
+                                message="Log capture destination closure failed.",
+                                operation=OPERATION_LOG_CAPTURE_CLOSE,
+                            )
+                        preserve_primary_exception_cleanup_failure(
+                            primary_exception,
+                            close_exception,
+                            cleanup_action="Log capture destination closure",
+                        )
+                    else:
+                        logger.debug("Failed to close destination handle for %s", temp_path)
 
+        if capture is not None:
+            source_handle.close()
+            source_handle = None
+            check_cancellation_deadline(
+                capture.cancellation_event,
+                MonotonicDeadline(deadline_monotonic) if deadline_monotonic is not None else None,
+                operation="logs.export.capture",
+            )
         if destination_path is not None:
             if temp_path is None:
                 raise StateError("Secure copy failed to produce a temp file.")
@@ -153,6 +239,7 @@ def sync_copy_file_no_symlinks(
     *,
     deadline_monotonic: float | None = None,
     write_reservation: DiskSpaceReservationLeaseProtocol | None = None,
+    capture: BoundedFileCapture | None = None,
 ) -> tuple[int, str | None]:
     return _sync_copy_file_secure(
         source_path,
@@ -160,6 +247,7 @@ def sync_copy_file_no_symlinks(
         deadline_monotonic=deadline_monotonic,
         compute_hash=False,
         write_reservation=write_reservation,
+        capture=capture,
     )
 
 
@@ -169,6 +257,7 @@ def sync_copy_file_and_hash_no_symlinks(
     *,
     deadline_monotonic: float | None = None,
     write_reservation: DiskSpaceReservationLeaseProtocol | None = None,
+    capture: BoundedFileCapture | None = None,
 ) -> tuple[int, str]:
     size, file_hash = _sync_copy_file_secure(
         source_path,
@@ -176,6 +265,7 @@ def sync_copy_file_and_hash_no_symlinks(
         deadline_monotonic=deadline_monotonic,
         compute_hash=True,
         write_reservation=write_reservation,
+        capture=capture,
     )
     if not isinstance(file_hash, str) or not file_hash:
         raise SecurityError("Failed to compute hash while copying file.")

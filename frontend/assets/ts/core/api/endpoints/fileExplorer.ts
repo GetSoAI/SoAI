@@ -1,11 +1,13 @@
 /* SoAI - Shared API file explorer [frontend/assets/ts/core/api/endpoints/fileExplorer.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { decodeBufferedFileResponse } from '@core/api/contracts/downloadContracts.ts';
+
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import { FILE_EXPLORER_BASE_PATH } from '@core/api/endpoints/fileExplorerPaths.ts';
 import { buildSignalRequestOptions, requireNonBlankRequestString, requireNonBlankRequestStrings } from '@core/api/requestOptions.ts';
 import { FILE_TRANSFER_REQUEST_TIMEOUT_MS } from '@core/api/fileTransferTimeout.ts';
-import { decodeBufferedFileResponse, decodeFileExplorerBatchMetadataResponse, decodeFileExplorerBatchResponse, decodeFileExplorerBatchUploadResponse, decodeFileExplorerListResponse, decodeFileExplorerMetadataResponse, decodeFileExplorerMoveMutationResponse, decodeFileExplorerPathMutationResponse, decodeFileExplorerReadResponse, decodeFileExplorerSearchResponse, decodeFileExplorerTaskAcceptedResponse, decodeFileExplorerUploadResponse, serializeFileExplorerBatchMoveRequest } from '@core/api/contracts/fileExplorerContracts.ts';
+import { decodeFileExplorerBatchMetadataResponse, decodeFileExplorerBatchResponse, decodeFileExplorerBatchUploadResponse, decodeFileExplorerListResponse, decodeFileExplorerMetadataResponse, decodeFileExplorerMoveMutationResponse, decodeFileExplorerPathMutationResponse, decodeFileExplorerReadResponse, decodeFileExplorerSearchResponse, decodeFileExplorerTaskAcceptedResponse, decodeFileExplorerUploadResponse, serializeFileExplorerBatchMoveRequest } from '@core/api/contracts/fileExplorerContracts.ts';
 import type { FileExplorerBatchMetadataResponse, FileExplorerBatchResponse, FileExplorerBatchUploadResponse, FileExplorerListResponse, FileExplorerMetadataResponse, FileExplorerMoveMutationResponse, FileExplorerPathMutationResponse, FileExplorerReadResponse, FileExplorerSearchResponse, FileExplorerTaskAcceptedResponse, FileExplorerUploadResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
 import type { BufferedApiResponse } from '@core/api/bufferedResponse.ts';
 import { createFileExplorerListingEndpoints, type FileExplorerListingEndpoints } from '@core/api/endpoints/fileExplorerListingEndpoints.ts';

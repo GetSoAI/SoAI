@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ResourceRecoverySupervisor } from '@core/realtime/streammanager/resources/resourceRecoverySupervisor.ts';
+import { SnapshotProtocolError } from '@core/websocketclient/snapshotManager.ts';
 import { createResourceAttempt, executeResourceAttempt } from '@core/realtime/streammanager/resources/resourceReconciliationExecution.ts';
 import { admitResourceReconciliation, admitResourceRecovery } from '@core/realtime/streammanager/resources/resourceReconciliationAdmission.ts';
-import { DEFAULT_RECONCILIATION_POLICY, validateReconciliationPolicy } from '@core/realtime/streammanager/resources/resourceReconciliationPolicy.ts';
+import { isResourceRecoveryBlocked, isSubscriptionOwnedResource, DEFAULT_RECONCILIATION_POLICY, validateReconciliationPolicy } from '@core/realtime/streammanager/resources/resourceReconciliationPolicy.ts';
 import { ResourceAttemptQueue } from '@core/realtime/streammanager/resources/resourceReconciliationQueue.ts';
 import { ResourceAttemptRetirement } from '@core/realtime/streammanager/resources/resourceReconciliationRetirement.ts';
 import { ResourcePushOrdering } from '@core/realtime/streammanager/resources/resourcePushOrdering.ts';
@@ -222,6 +223,7 @@ export class ResourceReconciler {
         if (outcome.type === 'failed' && this.#ownsAttempt(attempt)) {
             this.#transitions.markError(outcome.error, 'finite-attempt-exhausted');
             this.#waiters.reject(outcome.error, attempt.targetReconciliationRevision);
+            if (isSubscriptionOwnedResource(this.#name) && outcome.error instanceof SnapshotProtocolError) this.markUnavailable('library-protocol-invalid');
         }
         this.#attemptRetirement.clearCleanupTimer(attempt);
         if (this.#attemptRetirement.releaseOrphan(attempt.identity)) {
@@ -286,7 +288,7 @@ export class ResourceReconciler {
 
     #scheduleRecovery(): void {
         this.#recovery.schedule(
-            () => !this.#disposed && !this.#maintenance && !this.#activeAttempt && !this.#attemptRetirement.hasOrphan && this.#recoveryTemplate !== null,
+            () => !this.#disposed && !this.#maintenance && !isResourceRecoveryBlocked(this.snapshot) && !this.#activeAttempt && !this.#attemptRetirement.hasOrphan && this.#recoveryTemplate !== null,
             (): void => {
                 const template = this.#recoveryTemplate;
                 if (!template) return;

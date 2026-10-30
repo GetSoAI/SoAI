@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "Menunggu pembuatan gambar",
+                "imageGenerating": "Membuat gambar",
+                "imageUnavailable": "Pratinjau gambar tidak tersedia.",
+                "imageRetry": "Coba buat gambar lagi.",
                 "requestedAt": "Diminta {time}"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "Sembunyikan percakapan perpesanan",
                 "hideMessagingConversationsHint": "Jika diaktifkan, percakapan akun perpesanan disembunyikan dari daftar bilah samping",
                 "inputActions": {
+                    "newConversationHint": "Tampilkan tindakan percakapan baru di area penulisan pesan",
+                    "findHint": "Tampilkan tindakan pencarian percakapan di area penulisan pesan",
                     "prompts": "Prompt tersimpan",
                     "title": "Tindakan input",
                     "tokenCounter": "Penghitung token",
@@ -758,7 +764,6 @@
                     "description": "Memori persisten membantu SoAI memahami preferensi, tujuan, dan konteks berulang Anda tanpa memerlukan prompt khusus setiap kali",
                     "empty": "Belum ada memori yang tersimpan",
                     "openProfile": "Buka formulir profil",
-                    "refresh": "Segarkan memori",
                     "title": "Pengaturan memori",
                     "userMemoriesTitle": "Memori pengguna"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "Kirim parameter ini ke model",
                 "maxCompletionTokens": "Token completion maksimum",
-                "maxCompletionTokensHint": "Batas token termasuk penalaran untuk model penalaran (o1, o3). Menggantikan batas token maksimum",
+                "maxCompletionTokensHint": "Batas token termasuk penalaran untuk model penalaran. Menggantikan batas token maksimum",
                 "agentMaxIterations": "Iterasi maksimum agen",
                 "agentMaxIterationsHint": "Jumlah maksimum iterasi loop agen sebelum percakapan berhenti. Gunakan nilai yang sangat besar untuk eksekusi yang secara praktis tanpa batas",
                 "maxTokens": "Token maksimum:",
@@ -974,7 +979,6 @@
                     "omittedSettings": "{count} pengaturan tersimpan yang tidak didukung atau tidak valid diabaikan",
                     "replaceAction": "Ganti",
                     "renameAction": "Ganti nama",
-                    "retryAction": "Coba lagi",
                     "resetAction": "Reset pustaka",
                     "resetMessage": "Hapus secara permanen semua preset konfigurasi chat yang tersimpan? Ini adalah tindakan pemulihan untuk rekaman preset yang rusak dan tidak dapat dibatalkan.",
                     "resetFailed": "Pustaka preset tidak dapat direset. Preset tersimpan Anda tidak ditampilkan sebagai telah dihapus; coba lagi.",
@@ -986,15 +990,13 @@
                     "searchLabel": "Cari preset",
                     "searchPlaceholder": "Cari preset...",
                     "saved": "Pustaka preset diperbarui.",
-                    "stale": "Menampilkan daftar preset terakhir yang berhasil dari {value}. Segarkan sebelum mengedit.",
                     "structurallyInvalid": "{count} rekaman preset yang rusak tidak dapat ditampilkan.",
                     "status": {
                         "emptyDetail": "Buat preset dari nilai sementara dalam modal ini dan pilih dengan tepat bagian mana yang akan disertakan.",
                         "emptyTitle": "Buat pengaturan pertama yang dapat digunakan kembali",
                         "errorTitle": "Pustaka preset tidak tersedia",
                         "noMatchesTitle": "Tidak ada preset yang cocok",
-                        "recoveryTitle": "Beberapa preset memerlukan perhatian",
-                        "staleTitle": "Daftar preset mungkin sudah tidak mutakhir"
+                        "recoveryTitle": "Beberapa preset memerlukan perhatian"
                     },
                     "errors": {
                         "ambiguous": "Hasil permintaan tidak pasti. Daftar preset sedang direkonsiliasi; tinjau sebelum mencoba lagi.",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "Hapus keterampilan ini dari pustaka dan pilihan mendatang di chat Anda? Pekerjaan yang sudah diterima tetap menyimpan paketnya. Berkas ruang kerja dan riwayat percakapan tetap ada.",
                     "conflict": "Pilihan berubah di tempat lain. Tinjau pilihan saat ini sebelum menyimpan draf",
                     "keepDraft": "Pertahankan pilihan saya",
-                    "stale": "Keterampilan belum mutakhir. Sambungkan kembali atau coba lagi sebelum menyimpan",
+                    "stale": "Keterampilan belum diperbarui. Tunggu hingga koneksi pulih sebelum menyimpan.",
                     "search": "Cari keterampilan...",
                     "emptyTitle": "Tambahkan keterampilan pertama Anda",
                     "noMatchesTitle": "Tidak ada keterampilan yang cocok",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "Batas impor keterampilan untuk {field} terlampaui: {measured} > {limit}. Perkecil arsip atau hapus keterampilan yang tidak digunakan, lalu coba lagi.",
                         "manifestPosition": "YAML tidak valid pada baris {line}, kolom {column}. Perbaiki SKILL.md dan coba lagi."
                     },
-                    "importUncertain": "Hasil impor belum pasti. Biarkan berkas ini dipilih dan gunakan Segarkan untuk memeriksa tanda terima sebelum mencoba lagi.",
+                    "importUncertain": "Hasil impor belum pasti. Biarkan berkas tetap dipilih dan pilih Coba impor lagi untuk memeriksa tanda terimanya.",
                     "invalidSelection": "Beberapa keterampilan yang dipilih tidak tersedia atau melebihi batas pustaka. Segarkan, lalu sesuaikan pilihan sebelum menyimpan",
                     "status": {
                         "importTitle": "Hasil impor belum pasti",
                         "conflictTitle": "Pilihan berubah di tempat lain",
-                        "staleTitle": "Daftar keterampilan mungkin sudah tidak mutakhir",
                         "unavailableTitle": "Pilihan keterampilan tidak tersedia",
                         "invalidTitle": "Pilihan perlu ditinjau"
-                    }
+                    },
+                    "useLatest": "Gunakan versi terbaru",
+                    "retryImport": "Coba impor lagi",
+                    "aboutTitle": "Cara kerja keterampilan"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "Tambah memori",
                     "search": "Cari memori",
                     "noMatches": "Tidak ada memori yang cocok",
-                    "stale": "Data tersimpan sudah usang. Penyegaran terakhir: {time}. Segarkan untuk meninjau data terkini.",
                     "deleteFact": "Hapus fakta atau hubungan ini?",
                     "deleteEntry": "Hapus “{title}”, termasuk {facts} fakta dan {relations} hubungan?",
                     "savedHidden": "Tersimpan. Hapus pencarian untuk melihat memori ini.",
@@ -1468,7 +1471,6 @@
                     "from": "Dari",
                     "to": "Ke",
                     "type": "Jenis hubungan",
-                    "staleTitle": "Daftar memori mungkin sudah tidak mutakhir",
                     "errorTitle": "Pustaka memori tidak tersedia"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "Pertahankan satu ujung terhubung ke memori ini.",
                     "invalidText": "Masukkan judul dan teks yang tidak kosong.",
                     "missing": "Catatan ini tidak tersedia atau tidak lagi menjadi bagian memori ini. Segarkan dan tinjau.",
-                    "unconfirmed": "Hasil tidak dapat dikonfirmasi. Simpan draf dan segarkan untuk meninjau data terkini sebelum mencoba lagi.",
+                    "unconfirmed": "Hasil tidak dapat dikonfirmasi. Simpan draf Anda dan tinjau data terkini sebelum mencoba lagi.",
                     "loadFailed": "Memori tidak dapat dimuat. Segarkan untuk mencoba lagi."
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "retry": "Coba lagi"
                 },
                 "viewer": {
-                    "none": "Tidak ada",
                     "observations": "Observasi",
                     "relations": "Relasi"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "Gagal memuat riwayat prompt."
             },
             "sketch": {
+                "capacityReached": "Kapasitas gambar tercapai. Urungkan dan ganti suntingan, lampirkan gambar, atau buang sketsa dan mulai lagi.",
                 "open": "Buka sketsa",
                 "mobileOption": "Sketsa",
                 "preference": "Sketsa",
@@ -1711,7 +1713,9 @@
                 "attach": "Lampirkan",
                 "discardConfirm": "Buang sketsa ini?",
                 "discard": "Buang",
-                "exportFailed": "Sketsa tidak dapat diekspor. Silakan coba lagi."
+                "exportFailed": "Sketsa tidak dapat diekspor. Silakan coba lagi.",
+                "draftChangedConfirm": "Draf obrolan berubah saat Anda menggambar. Lampirkan gambar ini ke draf saat ini? Membatalkan akan mempertahankan gambar Anda.",
+                "draftChangedAgain": "Draf obrolan berubah lagi. Gambar Anda tetap tersimpan. Coba lampirkan lagi."
             },
             "characterMap": {
                 "allEmoji": "Semua emoji",
@@ -2514,6 +2518,28 @@
                     "metric": "Metrik"
                 },
                 "wind": "Angin"
+            },
+            "find": {
+                "open": "Cari dalam percakapan",
+                "placeholder": "Cari dalam percakapan…",
+                "close": "Tutup",
+                "previous": "Kecocokan sebelumnya",
+                "next": "Kecocokan berikutnya",
+                "count": "{current} dari {total}",
+                "none": "Tidak ada kecocokan",
+                "updating": "Memperbarui hasil…",
+                "stale": "Terputus · terakhir diperiksa {seconds} dtk lalu",
+                "incomplete": "Pencarian belum lengkap. Coba lagi.",
+                "error": "Pencarian gagal. Coba lagi.",
+                "tooLong": "Gunakan maksimal 256 karakter.",
+                "limited": "5.000+ pesan yang cocok · navigasi mencakup hasil yang disimpan",
+                "editing": "Selesaikan atau batalkan pengeditan untuk menampilkan kecocokan ini.",
+                "missing": "Kecocokan ini berubah atau dihapus. Coba lagi.",
+                "timeout": "Waktu untuk menampilkan kecocokan ini habis. Coba lagi.",
+                "retry": "Coba lagi",
+                "before": "{count} kecocokan sebelumnya",
+                "after": "{count} kecocokan setelahnya",
+                "disconnected": "Terputus. Hubungkan kembali untuk mencari."
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "Bersihkan"
+                "clear": "Bersihkan",
+                "downloadAll": "Unduh semua log"
             },
             "ariaLabels": {
                 "clearLogs": "Bersihkan log",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "Menghubungkan kembali ke stream log...",
-            "windowTitle": "Log SoAI"
+            "windowTitle": "Log SoAI",
+            "errors": {
+                "download": "Log tidak dapat diunduh. Periksa koneksi dan coba lagi.",
+                "missing": "Direktori log tidak ada. Periksa pengaturan pencatatan.",
+                "changed": "Log berubah saat direkam. Coba unduh lagi.",
+                "unsafe": "Ditemukan jalur tidak aman atau entri yang tidak didukung. Hapus tautan dan coba lagi.",
+                "paths": "Periksa direktori log dan sementara yang dikonfigurasi.",
+                "permission": "Akses ditolak. Periksa izin direktori dan berbagi berkas, lalu coba lagi.",
+                "limits": "Batas arsip atau persyaratan nama berkas terlampaui. Kurangi pohon log atau perbaiki nama.",
+                "timeout": "Ekspor log kehabisan waktu. Coba lagi saat server tidak terlalu sibuk.",
+                "write": "Arsip tidak dapat ditulis. Periksa penyimpanan sementara dan coba lagi.",
+                "response": "Server tidak mengembalikan lampiran ZIP yang valid. Coba unduh lagi."
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "Mulai pencarian",
                 "filesNotFound": "Tidak ditemukan file atau folder untuk \"{query}\"",
                 "notFound": "Tidak ditemukan hasil untuk \"{query}\"",
-                "title": "Tidak ditemukan hasil"
+                "title": "Tidak ditemukan hasil",
+                "minimumCharacters": "Masukkan setidaknya {count} karakter untuk mencari."
             },
             "pages": {
                 "about": {

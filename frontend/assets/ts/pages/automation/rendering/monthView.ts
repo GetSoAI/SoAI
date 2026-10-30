@@ -1,6 +1,7 @@
 /* SoAI - Automation page month view [frontend/assets/ts/pages/automation/rendering/monthView.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { uiAttr, uiText } from '@core/security/uiHtml.ts';
@@ -90,8 +91,8 @@ const renderMonthView = (options: {
     const maxZones = options.maxChipsPerDay;
     const anySparkline = options.days.some((entry) => entry.zones.length > 0 && (maxZones === 0 || entry.zones.length > maxZones));
 
-    const dayCellMarkup = options.days.map((entry) => {
-        const classes = ['automation-month-day'];
+    const dayCellMarkup = options.days.map((entry, index) => {
+        const classes = ['automation-month-day', resolveCheckerboardClass(index, { columns: options.showWeekNumbers ? 8 : 7, start: 'checkerboard-dark' })];
         if (entry.isOutside) classes.push('is-outside');
         if (entry.isToday) classes.push('is-today');
         if (entry.isSelected) classes.push('is-selected');

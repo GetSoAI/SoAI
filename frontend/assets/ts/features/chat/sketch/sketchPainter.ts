@@ -1,8 +1,7 @@
 /* SoAI - Frontend chat sketch canvas painter [frontend/assets/ts/features/chat/sketch/sketchPainter.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { CHAT_SKETCH_BACKGROUND_COLOR, requireChatSketchTool } from '@features/chat/sketch/sketchCatalog.ts';
-import type { ChatSketchDrawOperation, ChatSketchShapeOperation, ChatSketchStrokeOperation } from '@features/chat/sketch/sketchDocument.ts';
+import { CHAT_SKETCH_BACKGROUND_COLOR, requireChatSketchTool, type ChatSketchDrawOperation, type ChatSketchShapeOperation, type ChatSketchStrokeOperation } from '@features/chat/sketch/sketchCatalog.ts';
 
 const paintChatSketchBackground = (context: CanvasRenderingContext2D): void => {
     context.save();

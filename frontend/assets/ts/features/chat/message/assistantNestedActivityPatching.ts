@@ -13,6 +13,7 @@ type ActivityPatchArguments = {
     created: HTMLElement;
     assistantDomState: AssistantDomStatePreservation | null;
     applyStreamingReveal?: boolean;
+    disableInsertAnimation?: boolean;
 };
 type ActivityPatchHandler = (inputArguments: ActivityPatchArguments) => ActivityPatchResult;
 

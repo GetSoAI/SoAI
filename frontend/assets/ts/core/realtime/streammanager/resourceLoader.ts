@@ -11,6 +11,9 @@ import { toBundleList } from '@core/realtime/streammanager/internals.ts';
 import { startAutoResources } from '@core/realtime/streammanager/resources/autoResourceLifecycle.ts';
 import { getAutoResourceState, subscribeAutoResourceState } from '@core/realtime/streammanager/autoresources/state.ts';
 import { createGpuSlotsResource } from '@core/realtime/streammanager/resources/gpuSlotsResource.ts';
+import { isResourceRecoveryBlocked, isSubscriptionOwnedResource } from '@core/realtime/streammanager/resources/resourceReconciliationPolicy.ts';
+import { invalidateResourceDemand } from '@core/realtime/streammanager/resources/resourceActivationPolicy.ts';
+import type { ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
 import { HARDWARE_GPU_SLOTS } from '@core/realtime/streammanager/resources/ids.ts';
 import type { StreamResourceStore } from '@core/realtime/streammanager/resourceStore.ts';
 import { StreamReadiness } from '@core/realtime/streammanager/streamReadiness.ts';
@@ -49,6 +52,24 @@ class StreamResourceLoader {
     getResource(name: string, options?: { state?: boolean }): ResourceSnapshot | JsonValue | null;
     getResource(name: string, options: { state?: boolean } = {}): ResourceSnapshot | JsonValue | null {
         return options.state ? this.#store.snapshot(name) : this.#store.value(name);
+    }
+
+    getReconciliationSnapshot(name: string): ResourceReconciliationSnapshot {
+        const resource = this.#store.get(name);
+        if (!resource) throw new Error(`Missing resource: ${name}`);
+        return resource.reconciler.snapshot;
+    }
+
+    invalidate(name: string, reason: string): void {
+        this.#requireActive();
+        const resource = this.#store.get(name);
+        if (!resource) throw new Error(`Missing resource: ${name}`);
+        if (this.#store.maintenanceActive) return;
+        invalidateResourceDemand(resource, reason, () => {
+            this.ensureResourceStarted(name).catch((error) => {
+                if (!isLifecycleCancellationError(error) && !isAbortError(error) && this.#store.get(name) === resource && resource.reconciler.snapshot.status !== 'error' && !isResourceRecoveryBlocked(resource.reconciler.snapshot)) resource.reconciler.reportOperationalFailure(ensureError(error));
+            });
+        });
     }
 
     getDiagnostics(): DiagnosticsSnapshot {
@@ -110,7 +131,8 @@ class StreamResourceLoader {
                 {
                     shouldDeferInitialization: () => this.shouldDeferInitialization(),
                     isGenerationActive: (startedGeneration) => startedGeneration === this.#readiness.generation,
-                    getWebSocket: () => this.#transport.webSocket
+                    getWebSocket: () => this.#transport.webSocket,
+                    waitForResourceInterest: (resourceName, signal) => this.#transport.waitForResourceInterest(resourceName, signal)
                 }
             );
         } finally {
@@ -222,7 +244,7 @@ class StreamResourceLoader {
         if (!previouslyActive) return;
         const task = (async () => {
             await this.startAuto();
-            const restore = previouslyActive.filter((name) => !this.#store.isAutoStart(name));
+            const restore = previouslyActive.filter((name) => !this.#store.isAutoStart(name) && (!isSubscriptionOwnedResource(name) || this.#store.hasLiveDemand(name)));
             await Promise.allSettled(restore.map((name) => this.startResource(name, { forceRefresh: true })));
         })().finally(() => {
             if (this.#restoreTask === task) this.#restoreTask = null;

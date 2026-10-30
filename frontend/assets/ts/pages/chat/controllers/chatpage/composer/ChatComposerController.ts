@@ -95,6 +95,7 @@ class ChatComposerController implements ChatComposerContract {
             throw new Error('Conversation regeneration retry requires a current conversation revision.');
         }
         await this.#dependencies.runtime.turnRuntime.requireConversationInputs().retryRegeneration(conversationId, inputId, Number(revision));
+        this.#dependencies.sessions.taskScope.concurrency.invalidateMessageWindowIntent();
         await this.#dependencies.runtime.conversationRuntime.requireStorage().loadConversationMessages(conversationId, { force: true });
     }
 

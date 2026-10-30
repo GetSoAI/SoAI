@@ -1,66 +1,22 @@
 /* SoAI - Chat feature stream message collapsed loading [frontend/assets/ts/features/chat/stream/streamMessageCollapsedLoading.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
+import { toTrustedUiHtml } from '@core/security/public.ts';
 import { dom } from '@core/dom/dom.ts';
-import { replaceChildrenFromTrustedHtml } from '@core/dom/html.ts';
-import { resolveHTMLElement, syncAttributes, syncClass } from '@core/dom/patching.ts';
 import { stampAssistantBodySegmentSignature } from '@features/chat/message/assistantKeyedChildRetention.ts';
-import { ASSISTANT_BODY_SIGNATURE_ATTRIBUTE_NAME, formatAssistantBodySegmentSignature } from '@features/chat/message/assistantMessageMarkupParts.ts';
+import { formatAssistantBodySegmentSignature } from '@features/chat/message/assistantMessageMarkupParts.ts';
 import { applyAssistantMessageTextMarkup } from '@features/chat/message/assistantMessageTextDomApply.ts';
 import { captureAssistantViewportStability, restoreAssistantViewportStability } from '@features/chat/message/assistantViewportStability.ts';
-import { patchInlineActivityHeaderChildrenInPlace } from '@features/chat/message/messageview/inlineActivityHeaderChildrenPatching.ts';
-import { COLLAPSED_LOADING_CONTENT_SELECTOR, COLLAPSED_LOADING_SUMMARY_SELECTOR } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
+import { COLLAPSED_LOADING_CONTENT_SELECTOR } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
 import { resolveCollapsedLoadingContentSegments } from '@features/chat/message/messageview/collapsedLoadingSummaryRendering.ts';
 import { collectMermaidContainersByKey, resetStreamingActivityCacheState, restoreMermaidContainersByKey } from '@features/chat/stream/streamDomCache.ts';
 import { syncActiveStreamingTextRun } from '@features/chat/stream/streamMessageActiveTextSync.ts';
-import { patchTimelineChildren } from '@features/chat/stream/streamMessageTimelineChildren.ts';
+import { patchCollapsedLoadingChrome, patchTimelineChildren } from '@features/chat/stream/streamMessageTimelineChildren.ts';
 import { isPassiveStreamRenderPatchType } from '@features/chat/stream/streamMessageRenderMode.ts';
 import { syncStreamingMessagePassiveState } from '@features/chat/stream/streamMessageRenderState.ts';
 import { ensureStreamingSegmentsContainer } from '@features/chat/stream/streamMessageStreamingStructure.ts';
 import { applyKeyedScrollableState, readKeyedScrollableState } from '@features/chat/stream/streamScrollableState.ts';
 import type { RenderStreamingMessageContentArguments, RenderStreamingMessageContentResult } from '@features/chat/stream/streamMessageRenderingContracts.ts';
-
-const LIVE_CONTENT_PRESERVED_ATTRIBUTE_NAMES = new Set<string>([ASSISTANT_BODY_SIGNATURE_ATTRIBUTE_NAME]);
-
-const patchCollapsedLoadingSummary = (currentSummary: HTMLElement, nextSummary: HTMLElement): boolean => {
-    const currentHeader = resolveHTMLElement(':scope > .inline-activity-header', currentSummary);
-    const nextHeader = resolveHTMLElement(':scope > .inline-activity-header', nextSummary);
-    if (!(currentHeader instanceof HTMLElement) || !(nextHeader instanceof HTMLElement)) {
-        return false;
-    }
-    let changed = false;
-    if (syncClass(currentSummary, nextSummary)) {
-        changed = true;
-    }
-    if (syncAttributes({ target: currentSummary, source: nextSummary })) {
-        changed = true;
-    }
-    if (patchInlineActivityHeaderChildrenInPlace(currentHeader, nextHeader)) {
-        changed = true;
-    }
-    return changed;
-};
-
-const patchCollapsedLoadingChrome = (target: HTMLElement, contentHtml: TrustedHtml): { patched: boolean; changed: boolean; summary: HTMLElement | null } => {
-    const currentSummary = dom.resolve(COLLAPSED_LOADING_SUMMARY_SELECTOR, target);
-    const currentContent = dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, target);
-    if (!(currentSummary instanceof HTMLElement) || !(currentContent instanceof HTMLElement)) {
-        return { patched: false, changed: false, summary: null };
-    }
-    const scratch = target.ownerDocument.createElement('div');
-    replaceChildrenFromTrustedHtml({ element: scratch, html: contentHtml, context: scratch });
-    const nextSummary = dom.resolve(COLLAPSED_LOADING_SUMMARY_SELECTOR, scratch);
-    const nextContent = dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, scratch);
-    if (!(nextSummary instanceof HTMLElement) || !(nextContent instanceof HTMLElement)) {
-        return { patched: false, changed: false, summary: null };
-    }
-    let changed = patchCollapsedLoadingSummary(currentSummary, nextSummary);
-    if (syncAttributes({ target: currentContent, source: nextContent, preservedAttributeNames: LIVE_CONTENT_PRESERVED_ATTRIBUTE_NAMES })) {
-        changed = true;
-    }
-    return { patched: true, changed, summary: currentSummary };
-};
 
 const patchCollapsedLoadingStreamingContent = (inputArguments: RenderStreamingMessageContentArguments, target: HTMLElement, resolvedSegments: ReturnType<RenderStreamingMessageContentArguments['messageManager']['resolveMessageContentSegments']> | null): { supported: boolean; changed: boolean } => {
     const currentContent = dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, target);
@@ -69,7 +25,7 @@ const patchCollapsedLoadingStreamingContent = (inputArguments: RenderStreamingMe
     }
     const segments = resolveCollapsedLoadingContentSegments(resolvedSegments ?? inputArguments.messageManager.resolveMessageContentSegments(inputArguments.message));
     const { streamSegments } = ensureStreamingSegmentsContainer(currentContent, inputArguments.cached);
-    const timelineResult = patchTimelineChildren(inputArguments.message, inputArguments.cached, inputArguments.messageManager, streamSegments, segments);
+    const timelineResult = patchTimelineChildren(inputArguments.message, inputArguments.cached, inputArguments.messageManager, streamSegments, segments, false);
     if (!timelineResult.supported) {
         return { supported: false, changed: false };
     }
@@ -141,7 +97,7 @@ const renderCollapsedLoadingMessageContent = (inputArguments: RenderStreamingMes
     inputArguments.cached.lastCollapsedLoadingHtml = contentHtml;
     resetStreamingActivityCacheState(inputArguments.cached);
     inputArguments.cached.renderMode = 'collapsedLoading';
-    if (rebuiltChrome || streamingContentPatch.changed) {
+    if (rebuiltChrome || streamingContentPatch.changed || patchResult.widgetsChanged === true) {
         inputArguments.messageManager.postRender(target);
     } else if (patchResult.changed && patchResult.summary !== null) {
         inputArguments.messageManager.postRenderRequest(patchResult.summary, 'streamingTimeline');

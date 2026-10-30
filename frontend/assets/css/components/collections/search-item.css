@@ -53,10 +53,6 @@
             var(--shadow-lift-soft);
     }
 
-    .search-item--card:active {
-        transform: translateY(1px);
-    }
-
     .search-item-header {
         display: flex;
         align-items: center;

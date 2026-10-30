@@ -275,11 +275,9 @@ class PluginManagerOperations(PluginManagerTransferOperations):
         if current_state in ACTIVE_RESOURCE_STATES:
             return
         if expected_instance is None:
-            await clear_loaded_plugin_state(self, normalized_plugin_name)
-            await self.dependencies.databases.plugins.update_plugin_runtime_loaded(
-                normalized_plugin_name, False
-            )
-            return
+            expected_instance = await get_plugin_instance(self, normalized_plugin_name)
+            if expected_instance is None:
+                return
         await clear_loaded_plugin_state(
             self, normalized_plugin_name, expected_instance=expected_instance
         )

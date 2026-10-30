@@ -1,6 +1,7 @@
 /* SoAI - Streaming visibility signatures for tool projections [frontend/assets/ts/features/chat/toolactivity/toolProjectionStreamingSignature.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { resolveGeneratedImagePresentation } from '@features/chat/toolactivity/generatedImagePresentation.ts';
 import { isJsonArray, isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { isString } from '@core/typeGuards.ts';
 import type { ToolActivityItem } from '@features/chat/ChatTypes.ts';
@@ -88,7 +89,7 @@ const resolveToolProjectionVisibleStructureStreamingSignature = (projection: Too
 };
 
 const resolveToolProjectionVisibleStreamingSignature = (projection: ToolActivityItem): string => {
-    return [resolveToolProjectionVisibleStructureStreamingSignature(projection), resolveInlineToolActivityHeaderPreviewSignature(buildInlineToolActivitySegment(projection))].join('|');
+    return [resolveToolProjectionVisibleStructureStreamingSignature(projection), resolveInlineToolActivityHeaderPreviewSignature(buildInlineToolActivitySegment(projection)), ...(normalizeToolLeafName(projection.toolName) === 'generate_image' ? [resolveGeneratedImagePresentation(projection)?.signature ?? ''] : [])].join('|');
 };
 
 const resolveToolProjectionActiveStreamingSignature = (projection: ToolActivityItem): string => {

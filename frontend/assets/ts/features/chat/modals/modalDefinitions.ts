@@ -17,7 +17,6 @@ import type { FirstRunStateStorage } from '@core/firstrun/protocols.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import type { WebuiUserEndpoints } from '@core/api/endpoints/webuiUserEndpoints.ts';
 import { CHAT_CONVERSATION_INPUT_MODAL_ID, AGENT_PLAN_MODAL_ID, ARCHIVED_CONVERSATIONS_MODAL_ID, CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, CHAT_TOOL_CALL_OUTPUT_MODAL_ID } from '@features/chat/modals/constants.ts';
-import { createChatAttachModalDefinition } from '@features/chat/composerattachmodal/definition.ts';
 import { CHARACTER_MAP_MODAL_DEFINITION } from '@features/chat/charactermap/definition.ts';
 import { CHAT_SKETCH_MODAL_DEFINITION } from '@features/chat/sketch/definition.ts';
 import { createChatMemoryProfileModalDefinition } from '@features/chat/modals/chatMemoryProfileModal.ts';
@@ -232,7 +231,7 @@ const archivedConversationsModalDefinition: ModalDefinition = {
 };
 
 const createChatModalDefinitions = (dependencies: { storage: FirstRunStateStorage; apiClient: ApiClientContext & { webui?: Pick<WebuiUserEndpoints, 'memory'> | undefined } }): readonly ModalDefinition[] => {
-    return Object.freeze([conversationInputModalDefinition, messageInfoModalDefinition, toolCallOutputModalDefinition, createChatAttachModalDefinition(), attachmentOverflowModalDefinition, CHARACTER_MAP_MODAL_DEFINITION, CHAT_SKETCH_MODAL_DEFINITION, chatConfigurationModalDefinition, chatMcpDefaultToolsModalDefinition, agentPlanModalDefinition, archivedConversationsModalDefinition, createChatMemoryProfileModalDefinition(dependencies), CHAT_MEMORY_RECORD_MODAL_DEFINITION, createVoiceCallModalDefinition()]);
+    return Object.freeze([conversationInputModalDefinition, messageInfoModalDefinition, toolCallOutputModalDefinition, attachmentOverflowModalDefinition, CHARACTER_MAP_MODAL_DEFINITION, CHAT_SKETCH_MODAL_DEFINITION, chatConfigurationModalDefinition, chatMcpDefaultToolsModalDefinition, agentPlanModalDefinition, archivedConversationsModalDefinition, createChatMemoryProfileModalDefinition(dependencies), CHAT_MEMORY_RECORD_MODAL_DEFINITION, createVoiceCallModalDefinition()]);
 };
 
 export { conversationInputModalDefinition, createChatModalDefinitions };

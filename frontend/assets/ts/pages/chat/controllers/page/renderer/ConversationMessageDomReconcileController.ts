@@ -1,24 +1,19 @@
 /* SoAI - DOM reconciliation for chat conversation message lists [frontend/assets/ts/pages/chat/controllers/page/renderer/ConversationMessageDomReconcileController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { TrustedHtml } from '@core/security/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { applyChatMessageDeletedExitAnimation, applyConversationEntryMutation, type ChatPostRenderRequestType, type ConversationRenderEntry } from '@features/chat/public.ts';
-import type { ChatCurrentConversationRenderDependencies, ConversationRenderCache } from '@pages/chat/controllers/page/renderer/contracts.ts';
-import { renderConversationEntryMarkup } from '@pages/chat/controllers/page/renderer/conversationEntryRendererController.ts';
+import type { ConversationRenderCache } from '@pages/chat/controllers/page/renderer/contracts.ts';
 import { decideConversationEntryDomRefresh, shouldAnimateInsertedConversationEntry, type ConversationEntryRefreshDecision } from '@pages/chat/controllers/page/renderer/conversationEntryRefreshController.ts';
 import { setConversationRenderCacheSignature } from '@pages/chat/controllers/page/renderer/currentConversationStateController.ts';
 import { resolveMigratedMessageNode } from '@pages/chat/controllers/page/renderer/identitymigration/service.ts';
+type PreparedConversationEntry = { markup: TrustedHtml; replacement?: HTMLElement | undefined };
 type ExistingMessageNodes = { byId: Map<string, HTMLElement>; idsInOrder: string[]; entriesInOrder: HTMLElement[]; duplicateNodes: HTMLElement[]; unkeyedNodes: HTMLElement[]; hasUnstableEntries: boolean };
 type ConversationEntryRefresh = { entry: ConversationRenderEntry; node: HTMLElement; nextSignature: string; decision: Exclude<ConversationEntryRefreshDecision, 'skip'> };
 
 const isConversationEntryRoot = (node: Element): node is HTMLElement => {
     return node instanceof HTMLElement && (node.classList.contains('chat-message') || node.classList.contains('chat-comparison-turn'));
-};
-
-const applyPostRenderRequests = (host: ChatCurrentConversationRenderDependencies, requests: { root: HTMLElement; type: ChatPostRenderRequestType }[]): void => {
-    for (const request of requests) {
-        host.conversationRuntime.requireMessages().postRenderRequest(request.root, request.type);
-    }
 };
 
 class ConversationMessageDomReconcileController {
@@ -44,7 +39,7 @@ class ConversationMessageDomReconcileController {
         return { byId, idsInOrder, entriesInOrder: nodes, duplicateNodes, unkeyedNodes, hasUnstableEntries: duplicateNodes.length > 0 || unkeyedNodes.length > 0 };
     }
 
-    static reconcileConversationDom(inputArguments: { host: ChatCurrentConversationRenderDependencies; container: Element; conversationId: string; renderEntries: ConversationRenderEntry[]; renderSignatureByDomId: ReadonlyMap<string, string>; expectedDomIds: ReadonlySet<string>; existing: ExistingMessageNodes; cache: ConversationRenderCache; isCurrentStreaming: boolean }): { postRenderRequests: { root: HTMLElement; type: ChatPostRenderRequestType }[]; removedIds: string[]; finalNodesByDomId: Map<string, HTMLElement> } {
+    static reconcileConversationDom(inputArguments: { container: Element; renderEntries: ConversationRenderEntry[]; renderSignatureByDomId: ReadonlyMap<string, string>; expectedDomIds: ReadonlySet<string>; existing: ExistingMessageNodes; cache: ConversationRenderCache; isCurrentStreaming: boolean; preparedEntriesByDomId: ReadonlyMap<string, PreparedConversationEntry> }): { postRenderRequests: { root: HTMLElement; type: ChatPostRenderRequestType }[]; removedIds: string[]; finalNodesByDomId: Map<string, HTMLElement> } {
         const documentRef = inputArguments.container.ownerDocument;
         const existing = inputArguments.existing;
         const postRenderRequests: { root: HTMLElement; type: ChatPostRenderRequestType }[] = [];
@@ -78,11 +73,13 @@ class ConversationMessageDomReconcileController {
                 }
             }
             if (!node) {
-                const markup = renderConversationEntryMarkup(inputArguments.host, entry, inputArguments.conversationId);
+                const prepared = inputArguments.preparedEntriesByDomId.get(domId);
+                if (prepared === undefined) throw new Error(`Prepared conversation markup missing for ${domId}`);
                 const insertion = applyConversationEntryMutation({
                     intent: 'insert',
                     documentRef,
-                    nextMarkup: markup,
+                    nextMarkup: prepared.markup,
+                    replacement: prepared.replacement,
                     messageDomId: domId,
                     animate: shouldAnimateInsertedConversationEntry(inputArguments.isCurrentStreaming)
                 });
@@ -165,27 +162,28 @@ class ConversationMessageDomReconcileController {
         return refreshes;
     }
 
-    static refreshMessageMarkupIfNeeded(inputArguments: { host: ChatCurrentConversationRenderDependencies; conversationId: string; refreshes: readonly ConversationEntryRefresh[]; cache: ConversationRenderCache; isCurrentStreaming: boolean }): void {
+    static refreshMessageMarkupIfNeeded(inputArguments: { refreshes: readonly ConversationEntryRefresh[]; cache: ConversationRenderCache; isCurrentStreaming: boolean; preparedEntriesByDomId: ReadonlyMap<string, PreparedConversationEntry> }): { root: HTMLElement; type: ChatPostRenderRequestType }[] {
+        const postRenderRequests: { root: HTMLElement; type: ChatPostRenderRequestType }[] = [];
         for (const refresh of inputArguments.refreshes) {
             const { entry, node, nextSignature, decision } = refresh;
             const domId = entry.domId;
+            const prepared = inputArguments.preparedEntriesByDomId.get(domId);
+            if (prepared === undefined) throw new Error(`Prepared conversation markup missing for ${domId}`);
             if (decision === 'skip-dom-streaming') {
                 if (entry.type !== 'message') {
                     throw new Error('Streaming conversation entry refresh requires a message render entry.');
                 }
-                const nextMarkup = renderConversationEntryMarkup(inputArguments.host, entry, inputArguments.conversationId);
                 const mutation = applyConversationEntryMutation({
                     intent: 'streamUpdate',
                     existingRoot: node,
                     entry,
-                    nextMarkup,
+                    nextMarkup: prepared.markup,
                     viewportStabilityScope: 'caller'
                 });
-                applyPostRenderRequests(inputArguments.host, mutation.postRenderRequests);
+                postRenderRequests.push(...mutation.postRenderRequests);
                 setConversationRenderCacheSignature({ cache: inputArguments.cache, domId, signature: nextSignature });
                 continue;
             }
-            const nextMarkup = renderConversationEntryMarkup(inputArguments.host, entry, inputArguments.conversationId);
             if (node.classList.contains('chat-comparison-turn')) {
                 if (entry.type !== 'comparisonTurn') {
                     throw new Error('Comparison turn refresh requires a comparison render entry.');
@@ -193,12 +191,12 @@ class ConversationMessageDomReconcileController {
                 const mutation = applyConversationEntryMutation({
                     intent: 'comparisonUpdate',
                     existingRoot: node,
-                    nextMarkup,
+                    nextMarkup: prepared.markup,
                     isCurrentStreaming: inputArguments.isCurrentStreaming,
                     entry,
                     viewportStabilityScope: 'caller'
                 });
-                applyPostRenderRequests(inputArguments.host, mutation.postRenderRequests);
+                postRenderRequests.push(...mutation.postRenderRequests);
                 setConversationRenderCacheSignature({ cache: inputArguments.cache, domId, signature: nextSignature });
                 continue;
             }
@@ -210,27 +208,31 @@ class ConversationMessageDomReconcileController {
                     const mutation = applyConversationEntryMutation({
                         intent: 'refresh',
                         existingRoot: node,
-                        nextMarkup,
+                        nextMarkup: prepared.markup,
                         entry,
                         assistantRenderIntent: entry.isActiveStreamingEntry ? 'runningUpdate' : 'idleRefresh',
                         viewportStabilityScope: 'caller'
                     });
-                    applyPostRenderRequests(inputArguments.host, mutation.postRenderRequests);
+                    postRenderRequests.push(...mutation.postRenderRequests);
                     setConversationRenderCacheSignature({ cache: inputArguments.cache, domId, signature: nextSignature });
                     continue;
                 }
             }
             const mutation = applyConversationEntryMutation({
                 intent: 'replace',
+                replacement: prepared.replacement,
                 existingRoot: node,
-                nextMarkup,
+                nextMarkup: prepared.markup,
                 messageDomId: domId
             });
-            applyPostRenderRequests(inputArguments.host, mutation.postRenderRequests);
+            postRenderRequests.push(...mutation.postRenderRequests);
             setConversationRenderCacheSignature({ cache: inputArguments.cache, domId, signature: nextSignature });
         }
+        return postRenderRequests;
     }
 }
 
 export { ConversationMessageDomReconcileController };
 export { decideConversationEntryDomRefresh };
+
+export type { PreparedConversationEntry };

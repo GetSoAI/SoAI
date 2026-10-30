@@ -22,6 +22,7 @@ class ChartTheme {
     readonly #resources = new LifecycleResources();
     #cancelRefresh: (() => void) | null = null;
     #active = false;
+    #frameStyles: { value: ThemeStyles | null } | null = null;
 
     constructor({ configuration, surface, settings }: ChartThemeDependencies) {
         this.#configuration = configuration;
@@ -38,8 +39,19 @@ class ChartTheme {
         this.#resources.addEventListener(win, 'themeChanged', () => this.#scheduleRefresh());
     }
 
+    beginFrame(): void {
+        if (this.#frameStyles !== null) throw new Error('Chart theme frame is already active');
+        this.#frameStyles = { value: null };
+    }
+
+    endFrame(): void {
+        this.#frameStyles = null;
+    }
+
     getStyles(): ThemeStyles {
-        return getThemeStyles(this.#surface.element, this.#configuration.options.colors);
+        if (this.#frameStyles === null) return getThemeStyles(this.#surface.element, this.#configuration.options.colors);
+        this.#frameStyles.value ??= getThemeStyles(this.#surface.element, this.#configuration.options.colors);
+        return this.#frameStyles.value;
     }
 
     applyAlpha(color: ChartColorInput, alpha: number | string | null | undefined, fallback: string | null = null): string {
@@ -67,6 +79,7 @@ class ChartTheme {
 
     async destroy(): Promise<void> {
         this.#active = false;
+        this.#frameStyles = null;
         this.#cancelRefresh?.();
         this.#cancelRefresh = null;
         await this.#resources.cleanup();

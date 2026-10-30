@@ -20,6 +20,7 @@ from core.types.json import JSONDict, JSONValue
 from core.validation.record_fields import require_json_object
 from core.validation.strings import coerce_optional_trimmed_str
 from database.core.query_execution import sync_fetch_all_as_dicts, sync_fetch_one_as_dict
+from database.repositories.event_outbox.library_changes import sync_enqueue_library_changed
 from database.repositories.memory.graph_records import (
     sync_insert_memory_entity,
     sync_insert_memory_observation,
@@ -86,6 +87,7 @@ def legacy_memory_snapshot(library: JSONDict) -> JSONDict:
 def sync_save_profile(
     conn: sqlite3.Connection, user_id: int, payload: JSONDict, expected_revision: str | None
 ) -> JSONDict:
+    changes_before = conn.total_changes
     current = sync_read_management_library(conn, user_id)
     if expected_revision is not None:
         require_memory_revision(expected_revision, str(current["profile_revision"]))
@@ -165,4 +167,6 @@ def sync_save_profile(
         conn.execute(
             "UPDATE mcp_memory_entities SET updated_at_ms = ? WHERE id = ?", (now, entity["id"])
         )
+    if conn.total_changes != changes_before:
+        sync_enqueue_library_changed(conn, user_id, "MemoryLibraryChangedEvent")
     return legacy_memory_snapshot(sync_read_management_library(conn, user_id))

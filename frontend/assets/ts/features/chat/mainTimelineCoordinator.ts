@@ -1,7 +1,8 @@
 /* SoAI - Shared main timeline observation and animation-frame coordination [frontend/assets/ts/features/chat/mainTimelineCoordinator.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { isMainTimelineKeyboardScrollEvent } from '@features/chat/mainTimelineScroll.ts';
+import { animateElementScroll } from '@core/animations/scrollMotion.ts';
+import { beginMainTimelineProgrammaticScroll, isMainTimelineKeyboardScrollEvent } from '@features/chat/mainTimelineScroll.ts';
 
 type TimelineFrameWrite = () => void;
 type TimelineFrameMeasure = () => TimelineFrameWrite | null;
@@ -10,6 +11,8 @@ type TimelineMutationListener = (records: readonly MutationRecord[]) => void;
 type NativeGesturePhase = 'idle' | 'touching' | 'settling';
 
 type MainTimelineCoordinator = {
+    beginProgrammaticScroll: () => () => void;
+    scrollTo: (top: number, signal: AbortSignal) => Promise<void>;
     scheduleFrame: (key: string, measure: TimelineFrameMeasure) => void;
     cancelFrame: (key: string) => void;
     observeResize: (element: Element) => () => void;
@@ -240,6 +243,8 @@ const createMainTimelineCoordinatorState = (messagesArea: HTMLElement, messagesR
         }
     };
     const coordinator: MainTimelineCoordinator = {
+        beginProgrammaticScroll: () => beginMainTimelineProgrammaticScroll(messagesArea),
+        scrollTo: (top, signal) => animateElementScroll(messagesArea, { top }, signal),
         scheduleFrame,
         cancelFrame,
         observeResize,

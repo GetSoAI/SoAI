@@ -55,9 +55,7 @@
 
     :where(select):not(.chat-page-mode-indicator-select, [multiple]):focus-visible {
         border-color: color-mix(in srgb, var(--filter-control-border-hover) var(--control-button-border-strength), transparent);
-        box-shadow:
-            0 0 0 var(--control-focus-ring-width) var(--filter-control-focus-ring),
-            0 4px 12px var(--shadow-medium);
+        box-shadow: 0 0 0 var(--control-focus-ring-width) var(--filter-control-focus-ring);
     }
 
     :where(select):not(.chat-page-mode-indicator-select, [multiple]) :is(option, optgroup) {
@@ -188,9 +186,7 @@
     }
 
     .dropdown-select:where(.ui-variant-accent, .ui-variant-danger, .ui-variant-warning, .ui-variant-success, .ui-variant-primary, .ui-variant-violet) > select:not(.chart-filter-select, [multiple], :focus-visible) {
-        box-shadow:
-            0 2px 4px var(--surface-drop-shadow-soft),
-            0 0 0 1px var(--surface-outline-highlight-soft);
+        box-shadow: var(--control-button-shadow);
     }
 
     .dropdown-select:has(> select:not(.chart-filter-select, [multiple]):is(:hover, :focus-visible):not(:disabled, [aria-disabled='true'])) {

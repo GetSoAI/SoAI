@@ -9,6 +9,8 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { TimeoutTimer } from '@core/timers/timeoutTimer.ts';
 import type { ChatRenderWorkerRequestQueueDependencies, PendingRequest, QueuedRequest } from '@features/chat/messagerenderworker/workerRequestQueueTypes.ts';
 
+const expectedResponseType = (payload: WorkerRequest): PendingRequest['expectedResponseType'] => (payload.type === 'initResources' ? 'ok' : payload.type === 'renderSearchText' ? 'searchText' : 'rendered');
+
 class ChatRenderWorkerRequestQueue {
     readonly #dependencies: ChatRenderWorkerRequestQueueDependencies;
     readonly #pending: Map<string, PendingRequest>;
@@ -86,6 +88,7 @@ class ChatRenderWorkerRequestQueue {
         this.#workerBusy[inputArguments.workerIndex] = true;
         const pending: PendingRequest = {
             workerIndex: inputArguments.workerIndex,
+            expectedResponseType: expectedResponseType(inputArguments.payload),
             resolve: (html: string): void => deferred.resolve(html),
             reject: (error: Error): void => deferred.reject(error),
             abortDisposer: null,
@@ -142,6 +145,10 @@ class ChatRenderWorkerRequestQueue {
             this.#dependencies.recoverWorker(workerIndex, new Error('Chat render worker response routing mismatch'));
             return;
         }
+        if (response.type !== 'error' && response.type !== pending.expectedResponseType) {
+            this.#dependencies.recoverWorker(workerIndex, new Error('Chat render worker response type does not match the request'));
+            return;
+        }
         this.#pending.delete(response.requestId);
         this.#clearPendingLifecycle(pending);
         this.#workerBusy[workerIndex] = false;
@@ -149,7 +156,7 @@ class ChatRenderWorkerRequestQueue {
             this.#pumpQueue();
             return;
         }
-        if (response.type === 'rendered') {
+        if (response.type === 'rendered' || response.type === 'searchText') {
             pending.resolve(response.html);
             this.#pumpQueue();
             return;
@@ -213,7 +220,7 @@ class ChatRenderWorkerRequestQueue {
             }
             this.#queue.delete(next.requestId);
             this.#workerBusy[workerIndex] = true;
-            const pending: PendingRequest = { workerIndex, resolve: next.resolve, reject: next.reject, abortDisposer: next.abortDisposer, deadlineTimer: null, cancelled: false };
+            const pending: PendingRequest = { workerIndex, expectedResponseType: expectedResponseType(next.payload), resolve: next.resolve, reject: next.reject, abortDisposer: next.abortDisposer, deadlineTimer: null, cancelled: false };
             this.#pending.set(next.requestId, pending);
             next.abortDisposer = null;
             this.#armDeadline(next.requestId, pending);

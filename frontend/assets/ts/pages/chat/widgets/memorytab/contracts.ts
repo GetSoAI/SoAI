@@ -9,7 +9,6 @@ interface MemoryLibraryState {
     snapshot: MemoryLibrary | null;
     phase: 'idle' | 'loading' | 'ready' | 'failed';
     stale: boolean;
-    refreshedAt: number | null;
     query: string;
     opening: boolean;
     editorOpen: boolean;
@@ -18,7 +17,7 @@ interface MemoryLibraryState {
 interface MemoryMutationHost {
     api: MemoryApi;
     isCurrent(): boolean;
-    committed(entry?: ManagedMemoryEntry): void;
+    captureCommitPresentation(): (entry?: ManagedMemoryEntry) => void;
     report(error: Error, message?: string): void;
     show(message: string, type: 'error' | 'info' | 'success' | 'warning'): void;
 }

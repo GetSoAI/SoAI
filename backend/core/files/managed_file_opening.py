@@ -73,13 +73,16 @@ def _open_regular_file_via_dir_fd(dir_fd: int, leaf: str) -> ManagedFileDescript
             close_file_descriptor_stack([descriptor])
 
 
-def open_managed_file_descriptor(storage_root: str, file_path: str) -> ManagedFileDescriptor:
+def open_managed_file_descriptor(
+    storage_root: str, file_path: str, *, concurrent_leaf_read: bool = False
+) -> ManagedFileDescriptor:
     if os.name == "nt":
         with open_windows_managed_path_handles(
             storage_root,
             file_path,
             require_directory=False,
             read_leaf=True,
+            concurrent_leaf_read=concurrent_leaf_read,
         ) as opened_path:
             descriptor = opened_path.detach_leaf_file_descriptor()
             return ManagedFileDescriptor(

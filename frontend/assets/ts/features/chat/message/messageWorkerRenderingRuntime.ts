@@ -7,9 +7,10 @@ import type { SyntaxHighlighter } from '@core/syntaxhighlighter/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import { ChatMessageRenderEffectsCoordinator } from '@features/chat/message/postrender/chatMessageRenderEffectsCoordinator.ts';
-import type { ChatMessageBoundaryPort, ChatMessageInteractionPort, ChatMessagePresentationPort, ChatMessageRenderingPort, ChatMessageSessionPort, ChatPostRenderCommit, ChatPostRenderRequestType } from '@features/chat/message/types.ts';
+import type { ChatMessageBoundaryPort, ChatMessageInteractionPort, ChatMessagePresentationPort, ChatMessageRenderingPort, ChatMessageSessionPort, ChatPostRenderCommit, ChatPostRenderRequest, ChatPostRenderRequestType } from '@features/chat/message/types.ts';
 import type { ChatMessage, ConversationContract } from '@features/chat/ChatTypes.ts';
 import { ChatMessageRenderWorkerClient } from '@features/chat/message/renderworkers/chatMessageRenderWorkerClient.ts';
+import { createMessageSearchProjection, type MessageSearchTextProjection } from '@features/chat/message/searchTextProjection.ts';
 import { ChatMessageAssistantBodyWorkerRenderer } from '@features/chat/message/renderworkers/assistantBodyWorkerRenderer.ts';
 import { ChatMessageInlineActivityDetailsRenderer } from '@features/chat/message/renderworkers/inlineActivityDetailsRenderer.ts';
 import { InlineActivityDetailsRefreshScheduler, containerHasRefreshableInlineActivityDetails } from '@features/chat/message/renderworkers/inlineActivityDetailsRefresh.ts';
@@ -132,6 +133,15 @@ class ChatMessageWorkerRenderingRuntime {
 
     #postRenderRequest(container: Element | null, type: ChatPostRenderRequestType, onCommitted?: ChatPostRenderCommit): void {
         this.#renderEffectsCoordinator.postRenderRequest(container, type, onCommitted);
+        this.#queueInlineDetailsRefresh(container, type);
+    }
+
+    postRenderRequests(requests: readonly ChatPostRenderRequest[]): void {
+        this.#renderEffectsCoordinator.postRenderRequests(requests);
+        for (const request of requests) this.#queueInlineDetailsRefresh(request.root, request.type);
+    }
+
+    #queueInlineDetailsRefresh(container: Element | null, type: ChatPostRenderRequestType): void {
         if (type === 'initialConversation' || type === 'full' || type === 'terminal' || (type === 'streamingTimeline' && containerHasRefreshableInlineActivityDetails(container))) {
             this.#inlineDetailsRefreshScheduler.queue(container);
         }
@@ -139,6 +149,13 @@ class ChatMessageWorkerRenderingRuntime {
 
     hasPendingPostRenderWork(): boolean {
         return this.#renderEffectsCoordinator.hasPendingWork();
+    }
+
+    createSearchTextProjection(documentRef: Document): MessageSearchTextProjection {
+        const isRichTextEnabled = this.#dependencies.presentation.isRichTextEnabled();
+        const codeRecognitionEnabled = this.#dependencies.presentation.isCodeRecognitionEnabled();
+        const isInlineMultimediaPreviewsEnabled = this.#dependencies.presentation.isInlineMultimediaPreviewsEnabled();
+        return createMessageSearchProjection((content, role, signal) => this.#renderWorkerClient.renderSearchText({ content, role, signal, isRichTextEnabled, codeRecognitionEnabled, isInlineMultimediaPreviewsEnabled }), documentRef);
     }
 
     async preRenderConversationAssistantBodies(conversation: ConversationContract, options: { signal: AbortSignal | null }): Promise<void> {

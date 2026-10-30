@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { getPageHeaderAnimator } from '@core/animations/service.ts';
-import { measureLayoutBox, measureLayoutViewport } from '@core/layout/elementGeometry.ts';
+import { measureLayoutBox, measureLayoutViewport, type GeometryBox } from '@core/layout/elementGeometry.ts';
 import { dom, resolveAll } from '@core/dom/dom.ts';
 import { cancelScrollRestore } from '@core/dom/state.ts';
 import { getMatchMedia, getScrollTo, getWindow } from '@core/environment/public.ts';
@@ -52,13 +52,22 @@ const scrollElementTo = (target: HTMLElement, options: ScrollToOptions): void =>
     target.scrollTo({ ...options, behavior });
 };
 
+const calculateScrollTopForBand = (scroller: { viewportTop: number; viewportHeight: number; scrollTop: number; scrollHeight: number }, rectangle: Pick<GeometryBox, 'top' | 'height'>, options: { topInset?: number; bottomInset?: number; onlyIfOutside?: boolean; oversizedPlacement?: 'center' | 'start' } = {}): number => {
+    const bandTop = scroller.viewportTop + Math.max(0, options.topInset ?? 0);
+    const bandHeight = Math.max(0, scroller.viewportHeight - Math.max(0, options.topInset ?? 0) - Math.max(0, options.bottomInset ?? 0));
+    const maxScrollTop = Math.max(0, scroller.scrollHeight - scroller.viewportHeight);
+    const currentTop = Math.max(0, Math.min(scroller.scrollTop, maxScrollTop));
+    if (bandHeight === 0 || (options.onlyIfOutside === true && rectangle.top >= bandTop && rectangle.top + rectangle.height <= bandTop + bandHeight)) return currentTop;
+    const alignmentOffset = options.oversizedPlacement === 'start' && rectangle.height > bandHeight ? 0 : (bandHeight - rectangle.height) / 2;
+    const targetTop = scroller.scrollTop + rectangle.top - bandTop - alignmentOffset;
+    return Math.max(0, Math.min(targetTop, maxScrollTop));
+};
+
 const scrollElementToScrollerCenter = (scroller: HTMLElement, target: HTMLElement, options: { behavior?: ScrollBehavior } = {}): void => {
     const scrollerRect = measureLayoutBox(scroller);
     const targetRect = measureLayoutBox(target);
-    const targetOffsetWithinScroller = scroller.scrollTop + (targetRect.top - scrollerRect.top);
-    const centeredTop = targetOffsetWithinScroller - (scroller.clientHeight - targetRect.height) / 2;
-    const maxScrollTop = scroller.scrollHeight - scroller.clientHeight;
-    scrollElementTo(scroller, { ...options, top: Math.max(0, Math.min(centeredTop, maxScrollTop)) });
+    const top = calculateScrollTopForBand({ viewportTop: scrollerRect.top, viewportHeight: scroller.clientHeight, scrollTop: scroller.scrollTop, scrollHeight: scroller.scrollHeight }, targetRect);
+    scrollElementTo(scroller, { ...options, top });
 };
 
 class ScrollToTop {
@@ -306,4 +315,4 @@ const getScrollModule = (): ScrollToTop => {
     return scrollModuleInstance;
 };
 
-export { ScrollToTop, getScrollModule, scrollElementIntoView, scrollElementTo, scrollElementToScrollerCenter };
+export { ScrollToTop, calculateScrollTopForBand, getScrollModule, scrollElementIntoView, scrollElementTo, scrollElementToScrollerCenter };

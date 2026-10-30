@@ -12,6 +12,7 @@ from database.core.sqlite_numbers import (
     coerce_required_int_from_sqlite_row,
     coerce_required_nonempty_str_from_sqlite_row,
 )
+from database.repositories.event_outbox.library_changes import sync_enqueue_library_changed
 from database.repositories.memory.graph_records import (
     sync_insert_memory_entity,
     sync_insert_memory_observation,
@@ -56,6 +57,7 @@ def sync_replace_entity_observations_for_source(
     for content in contents:
         sync_insert_memory_observation(conn, uuid.uuid4().hex, entity_id, content, source, now)
     conn.execute("UPDATE mcp_memory_entities SET updated_at_ms = ? WHERE id = ?", (now, entity_id))
+    sync_enqueue_library_changed(conn, user_id, "MemoryLibraryChangedEvent")
     if not delete_entity_if_empty:
         return
     observations_count = sync_fetch_one_as_dict(

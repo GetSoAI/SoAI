@@ -6,6 +6,7 @@ from __future__ import annotations
 import socket
 import ssl
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from socketserver import TCPServer
 from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, override
 
@@ -52,6 +53,12 @@ class DiscoveryHTTPServer(ThreadingHTTPServer):
         super().__init__(server_address, request_handler_class)
         self._worker_slots: BoundedSemaphore = BoundedSemaphore(DISCOVERY_MAX_WORKERS)
         self._tls_context: ssl.SSLContext | None = None
+
+    @override
+    def server_bind(self) -> None:
+        TCPServer.server_bind(self)
+        self.server_name = str(self.server_address[0])
+        self.server_port = self.server_address[1]
 
     def set_transport_layer_security_context(self, context: ssl.SSLContext) -> None:
         self._tls_context = context

@@ -115,13 +115,12 @@ class CheckerboardService {
             this.#lastAssignments.delete(containerId);
             return;
         }
-        this.#reapplyKnownAssignments(containerId, items);
         const allTableRows = items.every((item) => item instanceof HTMLTableRowElement);
         const columns = allTableRows ? 0 : this.#resolveColumnCount(container);
         const classSignature = items.map((item) => this.#resolveStableClassSignature(item)).join('|');
         const signature = `${itemSelector}:${items.length}:${allTableRows ? 0 : container.clientWidth}:${columns}:${resolvedOffset}:${classSignature}`;
-        const hasAppliedClasses = items.every((item) => item.classList.contains('checkerboard-light') || item.classList.contains('checkerboard-dark'));
-        if (hasAppliedClasses && this.#lastSignatures.get(containerId) === signature && this.#itemsMatchLastRun(containerId, items)) {
+        if (this.#lastSignatures.get(containerId) === signature && this.#itemsMatchLastRun(containerId, items)) {
+            this.#reapplyKnownAssignments(containerId, items);
             return;
         }
         this.#lastSignatures.set(containerId, signature);

@@ -21,6 +21,7 @@ from app.types_services_runtime import (
     OrchestratorServices,
     StorageServices,
 )
+from core.concurrency.bounded_blocking import BoundedBlockingPool
 from core.config.protocols import ConfigManagerProtocol, ConfigProtocol
 from core.files.upload_policy import resolve_temp_directory_runtime
 from core.licensing.protocols import LicensingStatusProtocol
@@ -100,6 +101,7 @@ def build_manager_runtime_services(
     licensing_status: LicensingStatusProtocol,
     edition: Edition,
     process_exit_deadline: ProcessExitDeadline,
+    logs_export_pool: BoundedBlockingPool,
 ) -> tuple[
     OrchestratorServices,
     StorageServices,
@@ -223,6 +225,7 @@ def build_manager_runtime_services(
         lifecycle_coordinator=lifecycle_coordinator,
         media_parsing=media_parsing,
         process_exit_deadline=process_exit_deadline,
+        logs_export_pool=logs_export_pool,
     )
     inactivity_monitor_instance = build_inactivity_monitor(
         config=config,

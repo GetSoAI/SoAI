@@ -93,8 +93,8 @@ class ChatComposerDraftManager {
         return { conversationId: ownership.conversationId, generation: ownership.generation, mutationToken: ownership.mutationToken, surfaceRevision: this.#surfaceRevision, mode: ownership.mode, signature: this.#projectCurrent().signature };
     }
 
-    matchesSurfaceSnapshot(snapshot: ComposerDraftSurfaceSnapshot, adoptedConversationId?: string): boolean {
-        return this.#ownership.matchesCurrentOrAdopted(snapshot, adoptedConversationId) && !this.#ownership.surfaceChangedSince(snapshot) && this.#surfaceRevision === snapshot.surfaceRevision && this.#projectCurrent().signature === snapshot.signature;
+    matchesSurfaceSnapshot(snapshot: ComposerDraftSurfaceSnapshot, adoptedConversationId?: string, options: { content?: 'unchanged' | 'allow-changes' } = {}): boolean {
+        return !this.#disposed && this.#ownership.matchesCurrentOrAdopted(snapshot, adoptedConversationId) && (options.content === 'allow-changes' || (!this.#ownership.surfaceChangedSince(snapshot) && this.#surfaceRevision === snapshot.surfaceRevision && this.#projectCurrent().signature === snapshot.signature));
     }
 
     async flushNow(reason: string, options: ComposerDraftFlushOptions = {}): Promise<void> {

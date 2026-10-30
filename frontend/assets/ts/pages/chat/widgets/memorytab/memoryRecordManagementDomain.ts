@@ -46,22 +46,19 @@ const patchMemoryRecordRows = (list: HTMLElement, html: TrustedHtml): void => {
     });
 };
 
-const renderMemoryRecordManagement = (content: HTMLElement, entry: ManagedMemoryEntry, staleMessage: string | null): void => {
+const renderMemoryRecordManagement = (content: HTMLElement, entry: ManagedMemoryEntry): void => {
     const modal = content.closest(`#${CHAT_MEMORY_RECORD_MODAL_ID}`);
     if (modal instanceof HTMLElement) {
         const title = dom.resolve('[data-memory-record-title]', modal);
         if (!(title instanceof HTMLElement)) throw new Error('Memory record modal title is missing');
         title.textContent = entry.entity.name;
     }
-    const signature = `${entry.revision}:${staleMessage ?? ''}`;
+    const signature = entry.revision;
     if (content.dataset['memoryRevision'] === signature) return;
     const entryId = entry.entity.id;
     const facts = entry.observations.map((fact) => uiHtml`<li class="chat-memory-record-row" data-memory-record-id="${uiAttr(fact.id)}"><div><p>${uiText(fact.content)}</p><span class="text-muted">${uiText(fact.source ?? '')}</span></div><div class="ui-collection-list__actions chat-memory-actions">${fact.profileField ? memoryAction(CHAT_ACTIONS.OPEN_MEMORY_PROFILE, i18n.t('chat.configuration.memory.openProfile'), 'edit', entryId, fact.id) : uiHtml`${memoryAction(CHAT_ACTIONS.DELETE_MEMORY_OBSERVATION, i18n.t('common.delete'), 'close', entryId, fact.id)}${memoryAction(CHAT_ACTIONS.VIEW_MEMORY, i18n.t('common.view'), 'eye-open', entryId, fact.id)}${memoryAction(CHAT_ACTIONS.EDIT_MEMORY_OBSERVATION, i18n.t('common.edit'), 'edit', entryId, fact.id)}`}</div></li>`);
     const relations = entry.relations.map((relation) => uiHtml`<li class="chat-memory-record-row" data-memory-record-id="${uiAttr(relation.id)}"><p>${uiText(relation.fromEntity)} → ${uiText(relation.relationType)} → ${uiText(relation.toEntity)}</p><div class="ui-collection-list__actions chat-memory-actions">${memoryAction(CHAT_ACTIONS.DELETE_MEMORY_RELATION, i18n.t('common.delete'), 'close', entryId, relation.id)}${memoryAction(CHAT_ACTIONS.EDIT_MEMORY_RELATION, i18n.t('common.edit'), 'edit', entryId, relation.id)}</div></li>`);
-    if (!content.hasChildNodes()) dom.setHTML(content, uiHtml`<p data-memory-record-status role="status" class="chat-configuration-hint u-hidden"></p><section><h3 data-memory-record-fact-heading></h3><ul data-memory-record-facts></ul></section><section><h3 data-memory-record-relation-heading></h3><ul data-memory-record-relations></ul></section>`);
-    const status = requireMemoryRecordElement(content, '[data-memory-record-status]');
-    status.classList.toggle('u-hidden', staleMessage === null);
-    status.textContent = staleMessage ?? '';
+    if (!content.hasChildNodes()) dom.setHTML(content, uiHtml`<section><h3 data-memory-record-fact-heading></h3><ul data-memory-record-facts></ul></section><section><h3 data-memory-record-relation-heading></h3><ul data-memory-record-relations></ul></section>`);
     requireMemoryRecordElement(content, '[data-memory-record-fact-heading]').textContent = `${i18n.t('chat.memory.viewer.observations')} (${entry.observations.length})`;
     requireMemoryRecordElement(content, '[data-memory-record-relation-heading]').textContent = `${i18n.t('chat.memory.viewer.relations')} (${entry.relations.length})`;
     patchMemoryRecordRows(requireMemoryRecordElement(content, '[data-memory-record-facts]'), joinUiHtml(facts));
@@ -74,7 +71,7 @@ const openMemoryRecordManagement = (entry: ManagedMemoryEntry): HTMLElement => {
     const modal = presenter.requireElement(CHAT_MEMORY_RECORD_MODAL_ID);
     const content = dom.resolve('[data-memory-record-content]', modal);
     if (!(content instanceof HTMLElement)) throw new Error('Memory record modal is incomplete');
-    renderMemoryRecordManagement(content, entry, null);
+    renderMemoryRecordManagement(content, entry);
     presenter.open(CHAT_MEMORY_RECORD_MODAL_ID);
     return content;
 };

@@ -38,9 +38,12 @@ const applyCheckerboardClasses = (items: readonly Element[], assignments: readon
         item.classList.remove(previous);
         item.classList.add(assigned);
     });
-    changes.forEach(({ item, animations }) => {
-        if (typeof item.getAnimations !== 'function') return;
-        for (const animation of item.getAnimations({ subtree: true })) {
+    const updatedAnimations = changes.map(({ item, animations }) => ({
+        animations,
+        current: typeof item.getAnimations === 'function' ? item.getAnimations({ subtree: true }) : []
+    }));
+    updatedAnimations.forEach(({ animations, current }) => {
+        for (const animation of current) {
             if (!animations.has(animation) && 'transitionProperty' in animation && (animation.transitionProperty === 'background-color' || animation.transitionProperty === 'background-image' || animation.transitionProperty === 'box-shadow')) {
                 animation.finish();
             }

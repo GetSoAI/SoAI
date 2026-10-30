@@ -26,6 +26,7 @@
         --button-surface-hover: color-mix(in srgb, var(--button-surface-bg) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
         --ui-button-neutral-color: var(--status-grey);
         --ui-button-neutral-color-hover: color-mix(in srgb, var(--ui-button-neutral-color) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
+        --control-button-shadow: 0 2px 4px var(--surface-drop-shadow-soft);
         --ui-button-neutral-focus-ring: color-mix(in srgb, var(--ui-button-neutral-color) 35%, transparent);
         --ui-button-neutral-bg: color-mix(in srgb, var(--ui-button-neutral-color) var(--interactive-tint-opacity-idle), var(--ui-button-inherited-underlay));
         --ui-button-neutral-bg-hover: color-mix(in srgb, var(--ui-button-neutral-bg) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));

@@ -12,6 +12,20 @@ const isMainTimelineKeyboardScrollEvent = (event: Event): event is KeyboardEvent
 
 const MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE = 'data-auto-scroll-lock';
 const programmaticScrollOffsets = new WeakMap<HTMLElement, number>();
+const programmaticScrollOwners = new WeakMap<HTMLElement, Set<symbol>>();
+
+const beginMainTimelineProgrammaticScroll = (element: HTMLElement): (() => void) => {
+    const owners = programmaticScrollOwners.get(element) ?? new Set<symbol>();
+    const owner = Symbol();
+    owners.add(owner);
+    programmaticScrollOwners.set(element, owners);
+    return () => {
+        owners.delete(owner);
+        if (owners.size === 0 && programmaticScrollOwners.get(element) === owners) programmaticScrollOwners.delete(element);
+    };
+};
+
+const isMainTimelineProgrammaticScrollActive = (element: HTMLElement): boolean => (programmaticScrollOwners.get(element)?.size ?? 0) > 0;
 
 type MainTimelineScrollMeasurement = {
     clientHeight: number;
@@ -55,5 +69,5 @@ const consumeMainTimelineProgrammaticScrollOffset = (element: HTMLElement): numb
     return offset;
 };
 
-export { MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, consumeMainTimelineProgrammaticScrollOffset, isEditableKeyTarget, isMainTimelineKeyboardScrollEvent, isMainTimelineAtBottom, isMainTimelineAutoScrollLocked, isMainTimelineScrollRestoring, isMainTimelineMeasurementAtBottom, measureMainTimelineScroll, writeMainTimelineScrollOffset, writeMainTimelineScrollTop };
+export { beginMainTimelineProgrammaticScroll, isMainTimelineProgrammaticScrollActive, MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, consumeMainTimelineProgrammaticScrollOffset, isEditableKeyTarget, isMainTimelineKeyboardScrollEvent, isMainTimelineAtBottom, isMainTimelineAutoScrollLocked, isMainTimelineScrollRestoring, isMainTimelineMeasurementAtBottom, measureMainTimelineScroll, writeMainTimelineScrollOffset, writeMainTimelineScrollTop };
 export type { MainTimelineScrollMeasurement };

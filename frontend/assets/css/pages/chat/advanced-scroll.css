@@ -16,9 +16,9 @@
         will-change: opacity;
         contain: layout paint;
         border-radius: var(--border-radius);
-        border: var(--border-width-1) solid color-mix(in srgb, var(--glass-border-strong-base) 30%, transparent);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--ui-button-neutral-color) var(--control-button-border-strength), transparent);
         background: color-mix(in srgb, var(--glass-surface-light) 75%, transparent);
-        box-shadow: var(--shadow-lift-soft);
+        box-shadow: var(--glass-shadow-base);
         overflow: hidden;
         user-select: none;
         touch-action: none;
@@ -36,7 +36,7 @@
         pointer-events: none;
     }
 
-    :where([data-section='chat'], [data-page-scope='chat']) .chat-main-container:has(.chat-input-wrapper--auto-hidden:not(.chat-input-wrapper--floating-stop)) .chat-advanced-scroll {
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-main-container:has(.chat-input-wrapper--auto-hidden:not(.chat-input-wrapper--floating-stop)) :is(.chat-advanced-scroll, .conversation-find-spatial--after) {
         bottom: var(--space-2);
     }
 

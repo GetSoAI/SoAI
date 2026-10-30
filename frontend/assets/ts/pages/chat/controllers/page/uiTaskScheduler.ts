@@ -15,6 +15,7 @@ const isModelControlOperation = (operationId: string): boolean => {
 };
 
 const resolveChatUiTaskRoute = (operationId: string): UiTaskRoute => {
+    if (operationId === 'chat:find:paint' || operationId === 'chat:find:live' || operationId === 'chat:find:search') return { key: operationId, policy: 'start-latest' };
     if (isSendMessageOperation(operationId)) {
         return { key: operationId, policy: 'serialize' };
     }

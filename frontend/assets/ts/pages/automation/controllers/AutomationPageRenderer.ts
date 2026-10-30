@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
+import { uiHtml, uiText } from '@core/security/uiHtml.ts';
 import { reconcileRepeatedElementChildrenFromTrustedHtml } from '@core/dom/childNodeReconciliation.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { isSameDay } from '@core/time/localCalendar.ts';
@@ -140,9 +141,12 @@ const renderAutomationPage = (
     renderTodayButtonState(state, host.ui, now);
     const registryScrollTop = host.ui.registryScroll.scrollTop;
 
-    host.ui.rangeTitle.textContent = formatRangeTitle(window, state.calendarSettings);
+    const rangeTitle = formatRangeTitle(window, state.calendarSettings);
+    if (host.ui.rangeTitle.textContent !== rangeTitle) {
+        host.replaceElementContent(host.ui.rangeTitle, uiHtml`<span class="automation-range-title-text">${uiText(rangeTitle)}</span>`, { escape: false });
+    }
     host.ui.rangeTitle.dataset['viewMode'] = window.viewMode;
-    setTooltipText(host.ui.rangeTitle, host.ui.rangeTitle.textContent || '');
+    setTooltipText(host.ui.rangeTitle, rangeTitle);
     host.ui.rangeTitle.classList.toggle('is-current-range', isCurrentRange(window, now));
     const renderedWindowSignature = renderAutomationCalendar(state, host, options.calendarCache, options.monthMaxChipsPerDay);
     reconcileRepeatedElementChildrenFromTrustedHtml({

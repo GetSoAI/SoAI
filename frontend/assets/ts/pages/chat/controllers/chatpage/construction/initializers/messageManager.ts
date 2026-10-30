@@ -106,6 +106,7 @@ const initializeMessageManager = (page: ChatControllerInitializationContext): vo
                 if (!page.runtime.conversationRuntime.hasStorage()) {
                     throw new Error('ChatMessageManager requires a storage manager');
                 }
+                if (page.state.conversationState.currentConversationId === conversationId) page.sessions.taskScope.concurrency.invalidateMessageWindowIntent();
                 await page.runtime.conversationRuntime.requireStorage().loadConversationMessages(conversationId, options);
             },
             refreshRunningActivitySnapshot: async (conversationId) => {

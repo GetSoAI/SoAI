@@ -1,16 +1,17 @@
 /* SoAI - Chat page current conversation message controller [frontend/assets/ts/pages/chat/controllers/page/renderer/currentConversationMessageController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { TrustedHtml } from '@core/security/public.ts';
+import { waitForTimerDelay } from '@core/concurrency/timerDelay.ts';
+import { monotonicMs } from '@core/time/clock.ts';
 import { joinUiHtml } from '@core/security/uiHtml.ts';
 import { formatHashSignature } from '@core/realtime/streammanager/hashSignature.ts';
 import { arraysEqual } from '@core/primitives/equality.ts';
-import { resolveConversationEntryElements, resolveConversationRenderEntrySignature, withAssistantViewportStability, type ConversationMessage, type ConversationRenderEntry } from '@features/chat/public.ts';
+import { applyConversationEntryMutation, resolveConversationEntryElements, resolveConversationRenderEntrySignature, withAssistantViewportStability, type Conversation, type ConversationMessage, type ChatPostRenderRequestType, type ConversationRenderEntry } from '@features/chat/public.ts';
 import type { ChatCurrentConversationRenderDependencies, ConversationRenderCache } from '@pages/chat/controllers/page/renderer/contracts.ts';
-import { ConversationMessageDomReconcileController } from '@pages/chat/controllers/page/renderer/ConversationMessageDomReconcileController.ts';
+import { ConversationMessageDomReconcileController, type PreparedConversationEntry } from '@pages/chat/controllers/page/renderer/ConversationMessageDomReconcileController.ts';
 import { renderConversationEntryMarkup } from '@pages/chat/controllers/page/renderer/conversationEntryRendererController.ts';
 import { messageWindowLoadingElementsMatch, renderMessageWindowLoadingMarkup, syncMessageWindowLoadingElements } from '@pages/chat/controllers/page/renderer/currentConversationMessageWindowLoadingController.ts';
-import { createConversationRenderCache, deleteConversationRenderCacheSignature, getOrCreateConversationRenderCache, replaceConversationRenderCacheIndex, setConversationRenderCacheSignature } from '@pages/chat/controllers/page/renderer/currentConversationStateController.ts';
+import { createConversationRenderCache, deleteConversationRenderCacheSignature, getOrCreateConversationRenderCache, replaceConversationRenderCacheIndex } from '@pages/chat/controllers/page/renderer/currentConversationStateController.ts';
 
 type RenderCurrentConversationMessageStateArguments = {
     host: ChatCurrentConversationRenderDependencies;
@@ -21,6 +22,9 @@ type RenderCurrentConversationMessageStateArguments = {
     isCurrentStreaming: boolean;
     showEarlierMessagesLoading: boolean;
     showNewerMessagesLoading: boolean;
+    isCurrent(): boolean;
+    history: Conversation['history'];
+    viewportStabilityScope: 'transaction' | 'caller';
 };
 
 type ConversationPresentationSignatureSnapshot = {
@@ -114,44 +118,57 @@ const buildConversationRenderPlan = (host: ChatCurrentConversationRenderDependen
     return { domIdsInOrder, domIdSet, signatureByDomId: signatures };
 };
 
-const buildConversationMessagesMarkup = (host: ChatCurrentConversationRenderDependencies, inputArguments: { conversationKey: string; renderEntries: ConversationRenderEntry[]; isCurrentStreaming: boolean; showEarlierMessagesLoading: boolean; showNewerMessagesLoading: boolean }): { markup: TrustedHtml; cache: ConversationRenderCache } => {
-    const parts: TrustedHtml[] = [];
-    const cache = createConversationRenderCache({ conversationKey: inputArguments.conversationKey, viewState: 'messages' });
-    if (inputArguments.showEarlierMessagesLoading) {
-        parts.push(renderMessageWindowLoadingMarkup('before'));
+const prepareConversationMarkup = async (inputArguments: RenderCurrentConversationMessageStateArguments, signatures: ReadonlyMap<string, string>, unchangedDomIds: ReadonlySet<string>, prepareRoots: boolean): Promise<Map<string, PreparedConversationEntry> | null> => {
+    const preparedEntriesByDomId = new Map<string, PreparedConversationEntry>();
+    let sliceStartedAt = monotonicMs();
+    for (const entry of inputArguments.renderEntries) {
+        const domId = entry.domId;
+        if (!domId || unchangedDomIds.has(domId)) continue;
+        if (!inputArguments.isCurrent()) return null;
+        const markup = renderConversationEntryMarkup(inputArguments.host, entry, inputArguments.conversationKey);
+        const replacement = prepareRoots && entry.type === 'message' && entry.presentation.normalizedRole !== 'assistant' ? applyConversationEntryMutation({ intent: 'insert', documentRef: inputArguments.container.ownerDocument, nextMarkup: markup, messageDomId: domId, animate: false }).root : undefined;
+        preparedEntriesByDomId.set(domId, { markup, replacement });
+        if (monotonicMs() - sliceStartedAt >= 6) {
+            await waitForTimerDelay(inputArguments.container.ownerDocument.defaultView, 0, null);
+            sliceStartedAt = monotonicMs();
+        }
     }
-    traverseConversationRenderEntries(host, inputArguments.renderEntries, inputArguments.isCurrentStreaming, (entry, domId, signature) => {
-        const markup = renderConversationEntryMarkup(host, entry, inputArguments.conversationKey);
-        setConversationRenderCacheSignature({ cache, domId, signature });
-        cache.domIdsInOrder.push(domId);
-        parts.push(markup);
-    });
-    if (inputArguments.showNewerMessagesLoading) {
-        parts.push(renderMessageWindowLoadingMarkup('after'));
+    if (!inputArguments.isCurrent()) return null;
+    if (preparedEntriesByDomId.size > 0) await waitForTimerDelay(inputArguments.container.ownerDocument.defaultView, 0, null);
+    if (!inputArguments.isCurrent()) return null;
+    const currentPlan = buildConversationRenderPlan(inputArguments.host, inputArguments.renderEntries, inputArguments.isCurrentStreaming);
+    if (currentPlan.signatureByDomId.size !== signatures.size) return null;
+    for (const [domId, signature] of signatures) {
+        if (currentPlan.signatureByDomId.get(domId) !== signature) return null;
     }
-    return { markup: joinUiHtml(parts), cache };
+    return preparedEntriesByDomId;
 };
 
-const renderCurrentConversationMessageState = (inputArguments: RenderCurrentConversationMessageStateArguments): 'unchanged' | 'updated' => {
-    const cache = getOrCreateConversationRenderCache(inputArguments.host, { conversationKey: inputArguments.conversationKey, viewState: 'messages' });
+const renderCurrentConversationMessageState = async (inputArguments: RenderCurrentConversationMessageStateArguments): Promise<'unchanged' | 'updated' | 'superseded'> => {
+    const renderPlan = buildConversationRenderPlan(inputArguments.host, inputArguments.renderEntries, inputArguments.isCurrentStreaming);
     const shouldBulkRender = !inputArguments.previousCache || inputArguments.previousCache.conversationKey !== inputArguments.conversationKey || inputArguments.previousCache.viewState !== 'messages';
+    const existingBeforePreparation = ConversationMessageDomReconcileController.resolveExistingMessageNodes(inputArguments.container);
+    const refreshesBeforePreparation = inputArguments.previousCache === null ? [] : ConversationMessageDomReconcileController.resolveEntryRefreshes({ renderEntries: inputArguments.renderEntries, cache: inputArguments.previousCache, nodesByDomId: existingBeforePreparation.byId, renderSignatureByDomId: renderPlan.signatureByDomId, isCurrentStreaming: inputArguments.isCurrentStreaming });
+    const refreshDomIds = new Set(refreshesBeforePreparation.map((refresh) => refresh.entry.domId));
+    const unchangedDomIds = new Set(shouldBulkRender ? [] : renderPlan.domIdsInOrder.filter((domId) => existingBeforePreparation.byId.has(domId) && !refreshDomIds.has(domId)));
+    const preparedEntriesByDomId = await prepareConversationMarkup(inputArguments, renderPlan.signatureByDomId, unchangedDomIds, !shouldBulkRender);
+    if (preparedEntriesByDomId === null || !inputArguments.isCurrent() || inputArguments.host.viewState.conversationRenderCache !== inputArguments.previousCache) return 'superseded';
+    const cache = getOrCreateConversationRenderCache(inputArguments.host, { conversationKey: inputArguments.conversationKey, viewState: 'messages' });
     if (shouldBulkRender) {
-        const bulk = buildConversationMessagesMarkup(inputArguments.host, {
-            conversationKey: inputArguments.conversationKey,
-            renderEntries: inputArguments.renderEntries,
-            isCurrentStreaming: inputArguments.isCurrentStreaming,
-            showEarlierMessagesLoading: inputArguments.showEarlierMessagesLoading,
-            showNewerMessagesLoading: inputArguments.showNewerMessagesLoading
-        });
-        inputArguments.host.viewState.conversationRenderCache = bulk.cache;
-        inputArguments.host.pageDom.updateHtml(inputArguments.container, bulk.markup, { escape: false });
+        const parts = [...preparedEntriesByDomId.values()].map((prepared) => prepared.markup);
+        if (inputArguments.showEarlierMessagesLoading) parts.unshift(renderMessageWindowLoadingMarkup('before'));
+        if (inputArguments.showNewerMessagesLoading) parts.push(renderMessageWindowLoadingMarkup('after'));
+        const bulkCache = createConversationRenderCache({ conversationKey: inputArguments.conversationKey, viewState: 'messages' });
+        replaceConversationRenderCacheIndex({ cache: bulkCache, domIdsInOrder: renderPlan.domIdsInOrder, signatures: renderPlan.signatureByDomId });
+        inputArguments.host.viewState.conversationRenderCache = bulkCache;
+        inputArguments.host.pageDom.updateHtml(inputArguments.container, joinUiHtml(parts), { escape: false });
         inputArguments.host.conversationRuntime.requireMessages().postRenderRequest(inputArguments.container, 'initialConversation');
+        bulkCache.renderedHistory = inputArguments.history;
         return 'updated';
     }
 
-    const renderPlan = buildConversationRenderPlan(inputArguments.host, inputArguments.renderEntries, inputArguments.isCurrentStreaming);
     const expectedDomIds = renderPlan.domIdsInOrder;
-    const existing = ConversationMessageDomReconcileController.resolveExistingMessageNodes(inputArguments.container);
+    const existing = existingBeforePreparation;
     const nextSignatureByDomId = renderPlan.signatureByDomId;
     const structureMatches = !existing.hasUnstableEntries && arraysEqual(existing.idsInOrder, expectedDomIds);
     let entryRefreshes = structureMatches ? ConversationMessageDomReconcileController.resolveEntryRefreshes({ renderEntries: inputArguments.renderEntries, cache, nodesByDomId: existing.byId, renderSignatureByDomId: nextSignatureByDomId, isCurrentStreaming: inputArguments.isCurrentStreaming }) : [];
@@ -160,27 +177,28 @@ const renderCurrentConversationMessageState = (inputArguments: RenderCurrentConv
         showEarlier: inputArguments.showEarlierMessagesLoading,
         showNewer: inputArguments.showNewerMessagesLoading
     };
-    if (messageDomStable && messageWindowLoadingElementsMatch(inputArguments.container, loadingVisibility, existing.entriesInOrder)) return 'unchanged';
+    if (messageDomStable && messageWindowLoadingElementsMatch(inputArguments.container, loadingVisibility, existing.entriesInOrder)) {
+        cache.renderedHistory = inputArguments.history;
+        return 'unchanged';
+    }
     let loadingElementsUpdated = false;
-    withAssistantViewportStability(inputArguments.container, () => {
+    const postRenderRequests: { root: HTMLElement; type: ChatPostRenderRequestType }[] = [];
+    const reconcile = (): void => {
         let currentEntries = existing.entriesInOrder;
         if (!messageDomStable) {
             let finalNodesByDomId = existing.byId;
             if (!structureMatches) {
                 const reconcileResult = ConversationMessageDomReconcileController.reconcileConversationDom({
-                    host: inputArguments.host,
                     container: inputArguments.container,
-                    conversationId: inputArguments.conversationKey,
                     renderEntries: inputArguments.renderEntries,
                     renderSignatureByDomId: nextSignatureByDomId,
                     expectedDomIds: renderPlan.domIdSet,
                     existing,
                     cache,
-                    isCurrentStreaming: inputArguments.isCurrentStreaming
+                    isCurrentStreaming: inputArguments.isCurrentStreaming,
+                    preparedEntriesByDomId
                 });
-                for (const request of reconcileResult.postRenderRequests) {
-                    inputArguments.host.conversationRuntime.requireMessages().postRenderRequest(request.root, request.type);
-                }
+                postRenderRequests.push(...reconcileResult.postRenderRequests);
                 for (const removedId of reconcileResult.removedIds) {
                     deleteConversationRenderCacheSignature(cache, removedId);
                 }
@@ -188,18 +206,23 @@ const renderCurrentConversationMessageState = (inputArguments: RenderCurrentConv
                 entryRefreshes = ConversationMessageDomReconcileController.resolveEntryRefreshes({ renderEntries: inputArguments.renderEntries, cache, nodesByDomId: finalNodesByDomId, renderSignatureByDomId: nextSignatureByDomId, isCurrentStreaming: inputArguments.isCurrentStreaming });
             }
 
-            ConversationMessageDomReconcileController.refreshMessageMarkupIfNeeded({
-                host: inputArguments.host,
-                conversationId: inputArguments.conversationKey,
-                refreshes: entryRefreshes,
-                cache,
-                isCurrentStreaming: inputArguments.isCurrentStreaming
-            });
+            postRenderRequests.push(
+                ...ConversationMessageDomReconcileController.refreshMessageMarkupIfNeeded({
+                    refreshes: entryRefreshes,
+                    cache,
+                    isCurrentStreaming: inputArguments.isCurrentStreaming,
+                    preparedEntriesByDomId
+                })
+            );
             currentEntries = resolveConversationEntryElements(inputArguments.container);
         }
 
         loadingElementsUpdated = syncMessageWindowLoadingElements(inputArguments.container, loadingVisibility, currentEntries);
-    });
+        if (postRenderRequests.length > 0) inputArguments.host.conversationRuntime.requireMessages().postRenderRequests(postRenderRequests);
+    };
+    if (inputArguments.viewportStabilityScope === 'caller') reconcile();
+    else withAssistantViewportStability(inputArguments.container, reconcile);
+    cache.renderedHistory = inputArguments.history;
     if (messageDomStable) {
         return loadingElementsUpdated ? 'updated' : 'unchanged';
     }

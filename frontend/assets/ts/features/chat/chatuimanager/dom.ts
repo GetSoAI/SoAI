@@ -284,18 +284,23 @@ export function scheduleScrollToBottom(context: ChatUIManagerContext, delayMs: n
     );
 }
 
-export function revealElementFromUserAction(context: ChatUIManagerContext, target: Element | null, options: ScrollIntoViewOptions = {}): void {
-    if (!target || !isFunction(target.scrollIntoView)) {
-        return;
-    }
-
+export function prepareUserScrollReveal(context: ChatUIManagerContext): void {
     markUserScrollIntent(context);
+    context.state.conversationScrollRestoreGeneration += 1;
+    context.state.pendingConversationScrollRestoreConversationId = null;
     cancelActiveConversationScrollRestore(context, true);
     clearTimer(context, context.state.scrollTimer);
     context.state.scrollTimer = null;
     context.state.autoScrollEnabled = false;
     syncAutoScrollLockAttribute(context, getElement(context, 'messagesArea'));
     syncInputWrapperScrollState(context);
+}
+
+export function revealElementFromUserAction(context: ChatUIManagerContext, target: Element | null, options: ScrollIntoViewOptions = {}): void {
+    if (!target || !isFunction(target.scrollIntoView)) {
+        return;
+    }
+    prepareUserScrollReveal(context);
     scrollElementIntoView(target, options);
 }
 

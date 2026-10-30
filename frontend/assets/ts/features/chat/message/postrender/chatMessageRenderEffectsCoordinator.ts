@@ -17,7 +17,7 @@ import { runQueuedChatMessagePostRenderEffects } from '@features/chat/message/po
 import { resolveChatPostRenderTargets } from '@features/chat/message/postrender/chatMessagePostRenderTargets.ts';
 import { prepareInlineMultimediaForPostRender, resolveStreamingTextPostRenderCapabilities } from '@features/chat/message/postrender/inlineMultimediaPostRender.ts';
 import { StreamingTimelinePostRenderQueue } from '@features/chat/message/postrender/streamingTimelinePostRenderQueue.ts';
-import type { ChatPostRenderCommit, ChatPostRenderContainerKey, ChatPostRenderRequestType, ChatQueuedPostRenderMode } from '@features/chat/message/types.ts';
+import type { ChatPostRenderCommit, ChatPostRenderContainerKey, ChatPostRenderRequest, ChatPostRenderRequestType, ChatQueuedPostRenderMode } from '@features/chat/message/types.ts';
 import { disposeStreamedPreviewRuntime, reconcileStreamedPreviewSubtree } from '@features/chat/stream/streamedPreviewRuntime.ts';
 import { disposeStreamingSpinnerStatusRuntime, reconcileStreamingSpinnerStatusSubtree } from '@features/chat/stream/streamMessageSpinnerStatusRuntime.ts';
 import { syncAssistantBodyCacheFromDom } from '@features/chat/message/postrender/assistantBodyCacheSync.ts';
@@ -42,12 +42,17 @@ class ChatMessageRenderEffectsCoordinator {
     #activeEnhancerKey: ChatPostRenderContainerKey | null;
     #pendingAsyncLayoutWorkCount: number;
     #isDisposed: boolean;
+    #notificationDepth = 0;
+    #notificationPending = false;
 
     constructor(inputArguments: { apiClient: JsonApiClient; getDocument: () => Document; syntaxHighlighter: SyntaxHighlighter; notifyDomChanged: () => void; getCurrentConversationId: () => string | null; getCurrentConversation: () => ConversationContract | null; resolveMessageForDomId: (conversation: ConversationContract, messageDomId: string) => ChatMessage | null; getPreRenderedAssistantBodyHtml: (message: ChatMessage, workerEpoch: number) => string | null; storePreRenderedAssistantBodyHtml: (message: ChatMessage, html: string, workerEpoch: number) => void; getWorkerRenderEpoch: () => number; isInlineMultimediaPreviewsEnabled: () => boolean; shouldCacheSettledAssistantBody: (message: ChatMessage) => boolean }) {
         this.#documentRef = inputArguments.getDocument();
         this.#syntaxHighlighter = inputArguments.syntaxHighlighter;
         this.#apiClient = inputArguments.apiClient;
-        this.#notifyDomChanged = inputArguments.notifyDomChanged;
+        this.#notifyDomChanged = () => {
+            if (this.#notificationDepth > 0) this.#notificationPending = true;
+            else inputArguments.notifyDomChanged();
+        };
         this.#isInlineMultimediaPreviewsEnabled = inputArguments.isInlineMultimediaPreviewsEnabled;
         this.#getCurrentConversationId = inputArguments.getCurrentConversationId;
         this.#getCurrentConversation = inputArguments.getCurrentConversation;
@@ -102,6 +107,19 @@ class ChatMessageRenderEffectsCoordinator {
             return;
         }
         this.#queueResolvedRequest(container, type, onCommitted);
+    }
+
+    postRenderRequests(requests: readonly ChatPostRenderRequest[]): void {
+        this.#notificationDepth += 1;
+        try {
+            for (const request of requests) this.postRenderRequest(request.root, request.type);
+        } finally {
+            this.#notificationDepth -= 1;
+            if (this.#notificationDepth === 0 && this.#notificationPending) {
+                this.#notificationPending = false;
+                this.#notifyDomChanged();
+            }
+        }
     }
 
     #queueResolvedRequest(container: HTMLElement, mode: ChatQueuedPostRenderMode, onCommitted?: ChatPostRenderCommit): void {

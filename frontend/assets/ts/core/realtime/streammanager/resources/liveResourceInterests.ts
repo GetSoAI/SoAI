@@ -1,7 +1,10 @@
 /* SoAI - Shared realtime live resource interests [frontend/assets/ts/core/realtime/streammanager/resources/liveResourceInterests.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { HARDWARE, HARDWARE_PROCESSES, METRICS, MODELS_LAST_USED, PLUGINS_LAST_USED, POWER_OPERATIONS, WEBUI_CHAT_ACTIVITY, WEBUI_CHAT_PRESENTATION } from '@core/realtime/streammanager/resources/ids.ts';
+import { createDeferred, type Deferred } from '@core/runtime/deferred.ts';
+import { createAbortError } from '@core/errors/abort.ts';
+import { LifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
+import { MEMORY_LIBRARY, CHAT_PRESETS, HARDWARE, HARDWARE_PROCESSES, METRICS, MODELS_LAST_USED, PLUGINS_LAST_USED, POWER_OPERATIONS, WEBUI_CHAT_ACTIVITY, WEBUI_CHAT_PRESENTATION } from '@core/realtime/streammanager/resources/ids.ts';
 import { arraysEqual } from '@core/primitives/equality.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { isNonNegativeInteger, isString } from '@core/typeGuards.ts';
@@ -16,10 +19,21 @@ type LiveResourceInterestServerOutcome = { type: 'acknowledged' | 'rejected'; re
 
 const RESOURCE_INTEREST_REJECTION_REASONS = new Set(['malformed', 'unknown_resource', 'unknown_conversation', 'forbidden', 'stale_generation', 'generation_conflict']);
 
-const isLiveResourceInterest = (resource: string): boolean => resource === METRICS || resource === HARDWARE || resource === HARDWARE_PROCESSES || resource === POWER_OPERATIONS || resource === WEBUI_CHAT_ACTIVITY || resource === WEBUI_CHAT_PRESENTATION || resource === MODELS_LAST_USED || resource === PLUGINS_LAST_USED;
+const isLiveResourceInterest = (resource: string): boolean => resource === MEMORY_LIBRARY || resource === CHAT_PRESETS || resource === METRICS || resource === HARDWARE || resource === HARDWARE_PROCESSES || resource === POWER_OPERATIONS || resource === WEBUI_CHAT_ACTIVITY || resource === WEBUI_CHAT_PRESENTATION || resource === MODELS_LAST_USED || resource === PLUGINS_LAST_USED;
+
+interface PendingInterestAcknowledgement {
+    resource: string;
+    token: string | null;
+    conversationId: string | null;
+    minimumGeneration: number;
+    completion: Deferred<void>;
+    cleanup(): void;
+}
 
 class LiveResourceInterestState {
     readonly #resourceByToken = new Map<string, string>();
+    readonly #pending = new Set<PendingInterestAcknowledgement>();
+    #acknowledgedGeneration = -1;
     #generation = 0;
     #sequence = 0;
     #chatPresentationConversationId: string | null = null;
@@ -111,8 +125,66 @@ class LiveResourceInterestState {
         return { type: 'rejected', resources, generation };
     }
 
+    acknowledge(generation: number): void {
+        this.#acknowledgedGeneration = generation;
+        for (const pending of [...this.#pending]) {
+            if (generation < pending.minimumGeneration || !this.#ownsPending(pending)) continue;
+            this.#settle(pending);
+        }
+    }
+
+    reject(generation: number): void {
+        for (const pending of [...this.#pending]) {
+            if (generation >= pending.minimumGeneration) this.#settle(pending, new Error('Resource interest was rejected'));
+        }
+    }
+
+    disconnect(reason: string): void {
+        this.#acknowledgedGeneration = -1;
+        for (const pending of [...this.#pending]) this.#settle(pending, new LifecycleCancellationError('Resource interest acknowledgement was cancelled', reason));
+    }
+
+    cancelSuperseded(): void {
+        for (const pending of [...this.#pending]) {
+            if (!this.#ownsPending(pending)) this.#settle(pending, new LifecycleCancellationError('Resource interest was superseded', 'resource-interest-superseded'));
+        }
+    }
+
+    waitForResource(resource: string, signal: AbortSignal): Promise<void> {
+        return this.#wait(resource, null, null, signal);
+    }
+
+    waitForChatPresentation(token: string, conversationId: string): Promise<void> {
+        return this.#wait(WEBUI_CHAT_PRESENTATION, token, conversationId);
+    }
+
+    #wait(resource: string, token: string | null, conversationId: string | null, signal?: AbortSignal): Promise<void> {
+        if (signal?.aborted) return Promise.reject(createAbortError());
+        const completion = createDeferred<void>();
+        const abort = (): void => this.#settle(pending, createAbortError());
+        const pending: PendingInterestAcknowledgement = { resource, token, conversationId, minimumGeneration: this.#generation, completion, cleanup: () => signal?.removeEventListener('abort', abort) };
+        if (!this.#ownsPending(pending)) return Promise.reject(new LifecycleCancellationError('Resource interest was superseded', 'resource-interest-superseded'));
+        if (this.#acknowledgedGeneration >= this.#generation) return Promise.resolve();
+        this.#pending.add(pending);
+        signal?.addEventListener('abort', abort, { once: true });
+        return completion.promise;
+    }
+
+    #ownsPending(pending: PendingInterestAcknowledgement): boolean {
+        if (pending.token !== null) return this.chatPresentationGeneration(pending.token, pending.conversationId ?? '') !== null;
+        return [...this.#resourceByToken.values()].includes(pending.resource);
+    }
+
+    #settle(pending: PendingInterestAcknowledgement, error?: Error): void {
+        if (!this.#pending.delete(pending)) return;
+        pending.cleanup();
+        if (error) pending.completion.reject(error);
+        else pending.completion.resolve();
+    }
+
     clear(): void {
         if (this.#resourceByToken.size > 0) this.#generation += 1;
+        this.disconnect('resource-interests-cleared');
         this.#resourceByToken.clear();
         this.#chatPresentationConversationId = null;
     }

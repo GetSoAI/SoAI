@@ -1,6 +1,7 @@
 /* SoAI - Chat attachment manager constructor contracts [frontend/assets/ts/features/chat/attachments/attachmentManagerContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { AttachmentAcquisitionScope } from '@core/attachments/protocols.ts';
 import type { ConversationAttachmentChangedEvent } from '@core/realtime/eventcontracts/attachmentContracts.ts';
 import type { ModuleLogger } from '@core/moduleContext.ts';
 import type { ChatAttachmentUIManager } from '@features/chat/ChatTypes.ts';
@@ -11,7 +12,13 @@ interface ChatAttachmentErrorHandler {
     (error: Error, title: string, options?: { notify?: boolean }): void;
 }
 
+interface ChatAttachmentIntake {
+    readonly scope: AttachmentAcquisitionScope;
+    acceptConversation(): Promise<string | null>;
+}
+
 interface ChatAttachmentManagerOptions {
+    captureIntake(): ChatAttachmentIntake;
     attachmentProcessor: ChatAttachmentProcessorContract;
     uiManager: ChatAttachmentUIManager;
     logger: ModuleLogger;
@@ -21,4 +28,4 @@ interface ChatAttachmentManagerOptions {
     loadSoaiPathImagePreview?: SoaiPathImagePreviewLoader | null;
 }
 
-export type { ChatAttachmentErrorHandler, ChatAttachmentManagerOptions };
+export type { ChatAttachmentIntake, ChatAttachmentErrorHandler, ChatAttachmentManagerOptions };

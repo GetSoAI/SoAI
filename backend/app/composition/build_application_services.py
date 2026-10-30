@@ -20,6 +20,7 @@ from app.types_services_runtime import (
     PluginServices,
     StorageServices,
 )
+from core.concurrency.bounded_blocking import BoundedBlockingPool
 from core.licensing.protocols import LicensingStatusProtocol
 from core.runtime.process_exit_deadline import ProcessExitDeadline
 
@@ -52,6 +53,7 @@ async def build_application_services(
     edition_composition: EditionComposition,
     licensing_status: LicensingStatusProtocol,
     process_exit_deadline: ProcessExitDeadline,
+    logs_export_pool: BoundedBlockingPool,
 ) -> ApplicationServiceComposition:
     (
         infrastructure_services,
@@ -79,6 +81,7 @@ async def build_application_services(
         licensing_status=licensing_status,
         edition=edition_composition.licensing.edition,
         process_exit_deadline=process_exit_deadline,
+        logs_export_pool=logs_export_pool,
     )
     host_management_builder = edition_composition.host_management.build_services
     host_management_services = None

@@ -1,6 +1,7 @@
 /* SoAI - Automation page time grid view [frontend/assets/ts/pages/automation/rendering/timeGridView.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { i18n } from '@core/i18n/index.ts';
 
 import { renderLabelAttributes } from '@core/security/labelAttributes.ts';
@@ -63,7 +64,7 @@ const renderWeekTimeGrid = (options: { dayLabels: readonly string[]; dayFullLabe
             const iso = options.dayIsoDates[index] ?? '';
             const isToday = iso !== '' && iso === options.todayIsoDate;
             const isSelected = iso !== '' && iso === options.selectedIsoDate;
-            const classes = ['automation-week-header-day', 'ui-button', isToday && isSelected ? 'ui-variant-accent' : 'ui-variant-neutral'];
+            const classes = ['automation-week-header-day', resolveCheckerboardClass(index, { columns: 7, start: 'checkerboard-dark' }), 'ui-button', isToday && isSelected ? 'ui-variant-accent' : 'ui-variant-neutral'];
             if (isToday) classes.push('is-today');
             if (isSelected) classes.push('is-selected', 'is-active');
             const fullLabel = options.dayFullLabels[index] ?? label;
@@ -74,7 +75,7 @@ const renderWeekTimeGrid = (options: { dayLabels: readonly string[]; dayFullLabe
     const dayColumns = options.dayZones
         .map((zones, dayIndex) => {
             const iso = options.dayIsoDates[dayIndex] ?? '';
-            const columnClasses = ['automation-week-column'];
+            const columnClasses = ['automation-week-column', resolveCheckerboardClass(dayIndex, { columns: 7, start: 'checkerboard-dark' })];
             if (iso && iso === options.todayIsoDate) columnClasses.push('is-today');
             if (iso && iso === options.selectedIsoDate) columnClasses.push('is-selected');
             const nowLine = options.nowLine && options.nowLine.dayIndex === dayIndex ? `<div class="automation-now-line" style="top:${uiAttr(String(options.nowLine.topPx)).html}px"></div>` : '';

@@ -43,7 +43,7 @@ const buildGpuTelemetryMetrics = (telemetry: GpuControlTelemetry | null): GpuTel
     if (isFiniteNumber(telemetry.temperatureCelsius)) metrics.push({ label: i18n.t('hardware.gpu.telemetry.temperatures'), value: formatTemperature(telemetry.temperatureCelsius, 0), icon: null, temperature: true });
     if (isFiniteNumber(telemetry.coreUtilizationPercent)) metrics.push({ label: i18n.t('hardware.gpu.telemetry.coreUtilization'), value: formatPercent(telemetry.coreUtilizationPercent, 0), icon: 'device-gpu', temperature: false });
     if (isFiniteNumber(telemetry.memoryUtilizationPercent)) metrics.push({ label: i18n.t('hardware.gpu.telemetry.memoryUtilization'), value: formatPercent(telemetry.memoryUtilizationPercent, 0), icon: null, temperature: false });
-    if (isFiniteNumber(telemetry.powerDrawWatts) && isFiniteNumber(telemetry.powerLimitWatts) && telemetry.powerLimitWatts > 0) metrics.push({ label: i18n.t('hardware.gpu.telemetry.powerDraw'), value: formatPercent((telemetry.powerDrawWatts / telemetry.powerLimitWatts) * 100, 0), icon: 'power', temperature: false });
+    if (isFiniteNumber(telemetry.powerDrawWatts) && isFiniteNumber(telemetry.powerLimitWatts) && telemetry.powerLimitWatts > 0) metrics.push({ label: i18n.t('hardware.gpu.telemetry.powerDraw'), value: formatPercent((telemetry.powerDrawWatts / telemetry.powerLimitWatts) * 100, 0), icon: 'zap', temperature: false });
     return metrics;
 };
 

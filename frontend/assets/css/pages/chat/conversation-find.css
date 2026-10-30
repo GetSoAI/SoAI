@@ -1,0 +1,275 @@
+/* SoAI - Conversation find title slot, highlights and spatial controls [frontend/assets/css/pages/chat/conversation-find.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-title-wrapper {
+        --presence-morph-fade-from: 1;
+        flex: 0 1 auto;
+        min-height: var(--control-height);
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) :is(.conversation-title, .conversation-find, .conversation-find-spatial) {
+        --presence-scale-from: 1;
+        --presence-blur-from: 0;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-title {
+        min-height: var(--control-height);
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-title-text {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-title-wrapper:has(.conversation-find:not(.u-hidden)) {
+        width: 500px;
+        max-width: 500px;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-title-wrapper:has(.conversation-find:not(.u-hidden)) > .conversation-title {
+        position: absolute;
+        inset-inline-start: 0;
+        inset-block-start: 0;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find {
+        --presence-enter-duration: var(--duration-220);
+        --presence-exit-duration: var(--duration-150);
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        width: min(500px, 100%);
+        min-width: 0;
+        position: relative;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find[data-presence-state='exiting'] {
+        position: absolute;
+        inset-inline-start: 0;
+        inset-block-start: 0;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-field {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-search.searchbar-container {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-search .searchbar-input {
+        width: 100%;
+        min-width: 0;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-counter {
+        flex: 0 0 auto;
+        max-width: 30%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption);
+        font-variant-numeric: tabular-nums;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find :is(.conversation-find-prev, .conversation-find-next) {
+        flex: 0 0 auto;
+        width: var(--control-height-compact);
+        height: var(--control-height-compact);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-close {
+        flex: 0 0 auto;
+        padding-inline: var(--space-2);
+        min-height: var(--control-height-compact);
+        font-size: var(--font-size-sm);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-close-icon {
+        display: none;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-status {
+        position: absolute;
+        inset-block-start: calc(100% + var(--space-2));
+        inset-inline: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-strong);
+        box-shadow: var(--shadow-lift-soft);
+        padding: var(--space-2) var(--space-3);
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption);
+        z-index: var(--z-overlay);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-conversation-header:has(.conversation-find:not(.u-hidden)) {
+        overflow: visible;
+        z-index: var(--z-overlay);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-pop-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        contain: layout paint;
+        direction: ltr;
+        mix-blend-mode: multiply;
+        z-index: var(--z-sticky);
+    }
+
+    .theme-dark :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-pop-layer {
+        mix-blend-mode: screen;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-pop {
+        --find-rect-left: 0;
+        --find-rect-top: 0;
+        --find-rect-width: 0;
+        --find-rect-height: 0;
+        position: absolute;
+        inset-inline-start: var(--find-rect-left);
+        top: var(--find-rect-top);
+        width: var(--find-rect-width);
+        height: var(--find-rect-height);
+        border-radius: 0;
+        background: var(--ui-tone-green-surface-selected);
+        outline: var(--border-width-1) solid var(--ui-tone-green-border-selected);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-pop-layer--playing .conversation-find-pop {
+        animation: conversation-find-pop calc(var(--duration-400) + var(--duration-050)) var(--ease-out) both;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-pop-layer--fallback .conversation-find-pop {
+        animation: none;
+        opacity: 1;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-marks {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: var(--z-sticky);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-mark {
+        --find-mark-top: 0;
+        position: absolute;
+        inset-inline: 0;
+        top: var(--find-mark-top);
+        height: var(--border-width-2);
+        background: var(--ui-tone-green);
+        opacity: 0.7;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-mark--active {
+        height: var(--space-1);
+        background: var(--ui-tone-green-text-selected);
+        opacity: 1;
+        z-index: var(--z-sticky);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-spatial {
+        position: absolute;
+        inset-inline-end: calc(var(--chat-composer-inset-inline) + var(--chat-input-wrapper-padding) + var(--chat-advanced-scroll-width) + var(--space-2));
+        gap: var(--space-1);
+        border-radius: var(--border-radius);
+        min-height: var(--control-height-compact);
+        color: var(--ui-tone-green-text-selected);
+        background: var(--glass-surface-strong);
+        box-shadow: var(--shadow-lift-soft);
+        z-index: var(--z-sticky);
+        font-size: var(--font-size-caption);
+        font-variant-numeric: tabular-nums;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-spatial--before {
+        top: calc(var(--chat-conversation-header-offset) + var(--chat-plan-overlay-height) + var(--space-2));
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-spatial--after {
+        bottom: var(--chat-advanced-scroll-bottom-offset);
+    }
+
+    @container ui-viewport (width <= 1200px) {
+        :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-spatial {
+            display: none;
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='chat'], [data-page-scope='chat']) .chat-conversation-header:has(.conversation-find:not(.u-hidden)) .chat-header-actions {
+            display: none;
+        }
+
+        :where([data-section='chat'], [data-page-scope='chat']) .conversation-find {
+            gap: 0;
+        }
+
+        :where([data-section='chat'], [data-page-scope='chat']) .chat-conversation-header:has(.conversation-find:not(.u-hidden)) .chat-sidebar-toggle-btn,
+        :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-close-label {
+            display: none;
+        }
+
+        :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-close-icon {
+            display: inline-flex;
+        }
+
+        :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-close {
+            width: var(--control-height-compact);
+            min-width: var(--control-height-compact);
+            padding-inline: 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where([data-section='chat'], [data-page-scope='chat']) .conversation-find-pop-layer--playing .conversation-find-pop {
+            animation: none;
+        }
+    }
+}
+
+:where([data-section='chat'], [data-page-scope='chat']) ::highlight(soai-conversation-find) {
+    background-color: color-mix(in srgb, var(--ui-tone-green) 28%, transparent);
+    color: inherit;
+}
+
+:where([data-section='chat'], [data-page-scope='chat']) ::highlight(soai-conversation-find-active) {
+    background-color: color-mix(in srgb, var(--ui-tone-green) 62%, var(--glass-surface-strong));
+    color: var(--text-primary);
+}
+
+@keyframes conversation-find-pop {
+    0% {
+        opacity: 0.9;
+        background: color-mix(in srgb, var(--accent-yellow) 62%, var(--glass-surface-strong));
+        outline-color: var(--accent-yellow);
+    }
+    70% {
+        opacity: 0.9;
+        background: var(--ui-tone-green-surface-selected);
+        outline-color: var(--ui-tone-green-border-selected);
+    }
+    100% {
+        opacity: 0;
+        background: var(--ui-tone-green-surface-selected);
+        outline-color: var(--ui-tone-green-border-selected);
+    }
+}

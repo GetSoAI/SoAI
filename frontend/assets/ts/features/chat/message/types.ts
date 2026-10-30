@@ -83,6 +83,8 @@ interface ChatMessageManagerDependencies {
     interaction: ChatMessageInteractionPort;
 }
 
+type ChatPostRenderRequest = Readonly<{ root: HTMLElement; type: ChatPostRenderRequestType }>;
+
 type ChatPostRenderRequestType = 'initialConversation' | 'canonicalFull' | 'full' | 'streamingText' | 'streamingTimeline' | 'terminal';
 type ChatPostRenderCommit = () => void;
 type ChatPostRenderContainerKey = {
@@ -92,4 +94,4 @@ type ChatPostRenderContainerKey = {
 type ChatQueuedPostRenderMode = 'initialConversation' | 'canonicalFull' | 'full' | 'terminal';
 
 export type { ChatMessageBoundaryPort, ChatMessageInteractionPort, ChatMessageManagerDependencies, ChatMessagePresentationPort, ChatMessageRenderingPort, ChatMessageSessionPort };
-export type { ChatContent, ChatMessage, ChatMessageRenderModel, ChatPostRenderCommit, ChatPostRenderContainerKey, ChatPostRenderRequestType, ChatQueuedPostRenderMode, ConversationContract, ConversationMessage, MessageSegment, IconName, IconOptions };
+export type { ChatContent, ChatMessage, ChatMessageRenderModel, ChatPostRenderCommit, ChatPostRenderContainerKey, ChatPostRenderRequest, ChatPostRenderRequestType, ChatQueuedPostRenderMode, ConversationContract, ConversationMessage, MessageSegment, IconName, IconOptions };

@@ -6,9 +6,10 @@ import type { LogsAriaLabelsTranslationKey } from '@core/i18n/translationkeys/lo
 import type { LogsClearedAtTranslationKey } from '@core/i18n/translationkeys/logs/clearedAt.generated.ts';
 import type { LogsConnectingTranslationKey } from '@core/i18n/translationkeys/logs/connecting.generated.ts';
 import type { LogsDescriptionTranslationKey } from '@core/i18n/translationkeys/logs/description.generated.ts';
+import type { LogsErrorsTranslationKey } from '@core/i18n/translationkeys/logs/errors.generated.ts';
 import type { LogsLogLineLimitTranslationKey } from '@core/i18n/translationkeys/logs/logLineLimit.generated.ts';
 import type { LogsLogSourceTranslationKey } from '@core/i18n/translationkeys/logs/logSource.generated.ts';
 import type { LogsReconnectingTranslationKey } from '@core/i18n/translationkeys/logs/reconnecting.generated.ts';
 import type { LogsWindowTitleTranslationKey } from '@core/i18n/translationkeys/logs/windowTitle.generated.ts';
 
-export type LogsTranslationKey = LogsActionsTranslationKey | LogsAriaLabelsTranslationKey | LogsClearedAtTranslationKey | LogsConnectingTranslationKey | LogsDescriptionTranslationKey | LogsLogLineLimitTranslationKey | LogsLogSourceTranslationKey | LogsReconnectingTranslationKey | LogsWindowTitleTranslationKey;
+export type LogsTranslationKey = LogsActionsTranslationKey | LogsAriaLabelsTranslationKey | LogsClearedAtTranslationKey | LogsConnectingTranslationKey | LogsDescriptionTranslationKey | LogsErrorsTranslationKey | LogsLogLineLimitTranslationKey | LogsLogSourceTranslationKey | LogsReconnectingTranslationKey | LogsWindowTitleTranslationKey;

@@ -194,5 +194,10 @@ class LiveMessageRenderPresentationResolver {
     }
 }
 
-export { LiveMessageRenderPresentationResolver, requireCanonicalMessageIndex, resolveConversationMessageRenderPresentations, resolveLiveMessageRenderPresentation, resolveMessageRenderPresentation };
+const resolveActiveStreamMessageRenderPresentation = (message: ChatMessage): ChatMessageRenderPresentation => {
+    const normalizedRole = resolveNormalizedMessageRole(message, 'user');
+    return { normalizedRole, isPendingDeletion: false, isActiveStreamingAssistant: normalizedRole === 'assistant', assistantTriggerUserTimestamp: null, canResendUserMessage: false };
+};
+
+export { resolveActiveStreamMessageRenderPresentation, LiveMessageRenderPresentationResolver, requireCanonicalMessageIndex, resolveConversationMessageRenderPresentations, resolveLiveMessageRenderPresentation, resolveMessageRenderPresentation };
 export type { ChatMessageRenderPresentation, MessagePendingDeletionPredicate };

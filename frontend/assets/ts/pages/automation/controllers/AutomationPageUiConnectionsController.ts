@@ -6,6 +6,7 @@ import { AutomationMonthLayoutController } from '@pages/automation/controllers/A
 import { connectAutomationNowLineLiveUpdates } from '@pages/automation/controllers/automationNowLineLiveUpdates.ts';
 import { AutomationSplitterController } from '@pages/automation/controllers/AutomationSplitterController.ts';
 import { AutomationTimeGridInteractionController } from '@pages/automation/controllers/AutomationTimeGridInteractionController.ts';
+import { AutomationRangeTitleController } from '@pages/automation/controllers/AutomationRangeTitleController.ts';
 import { AUTOMATION_SPLIT_MAX_PERCENT, AUTOMATION_SPLIT_MIN_PERCENT } from '@pages/automation/state/preferences.ts';
 import type { AutomationCalendarTimeFormat, AutomationUiRefs, AutomationViewMode } from '@pages/automation/types.ts';
 
@@ -29,6 +30,7 @@ interface AutomationPageUiConnectionsControllerDependencies {
 class AutomationPageUiConnectionsController {
     readonly #dependencies: AutomationPageUiConnectionsControllerDependencies;
     readonly #pager: AutomationCalendarPagerController;
+    readonly #rangeTitle: AutomationRangeTitleController;
     #splitter: AutomationSplitterController | null = null;
     #timeGridInteractions: AutomationTimeGridInteractionController | null = null;
     #monthLayoutController: AutomationMonthLayoutController | null = null;
@@ -40,6 +42,11 @@ class AutomationPageUiConnectionsController {
 
     constructor(dependencies: AutomationPageUiConnectionsControllerDependencies) {
         this.#dependencies = dependencies;
+        this.#rangeTitle = new AutomationRangeTitleController({
+            calendarRoot: dependencies.ui.calendarRoot,
+            rangeTitle: dependencies.ui.rangeTitle,
+            getViewMode: dependencies.getViewMode
+        });
         this.#pager = new AutomationCalendarPagerController({
             calendarRoot: dependencies.ui.calendarRoot,
             requestShift: (offset) => this.#dependencies.shiftVisiblePeriod(offset),
@@ -127,6 +134,7 @@ class AutomationPageUiConnectionsController {
 
     afterRender(): void {
         this.#pager.syncFromDom();
+        this.#rangeTitle.syncFromDom();
     }
 
     destroy(): void {
@@ -134,6 +142,7 @@ class AutomationPageUiConnectionsController {
         this.#connectionAbortController?.abort();
         this.#connectionAbortController = null;
         this.#pager.disconnect();
+        this.#rangeTitle.destroy();
         this.#splitter?.destroy();
         this.#splitter = null;
         this.#timeGridInteractions?.destroy();

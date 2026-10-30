@@ -1,0 +1,132 @@
+/* SoAI - Generated image activity widget [frontend/assets/css/components/chat/chat-image-widget.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .assistant-image-widget {
+        display: flex;
+        flex-direction: column;
+        border: var(--border-width-1) solid var(--glass-border-medium);
+        background: var(--glass-surface-strong);
+    }
+
+    :where(.chat-container) .assistant-image-widget__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+        min-inline-size: 0;
+    }
+
+    :where(.chat-container) .assistant-image-widget__title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-weight: 600;
+        min-inline-size: 0;
+        overflow-wrap: anywhere;
+    }
+
+    :where(.chat-container) .assistant-image-widget__duration {
+        color: var(--text-tertiary);
+        font-size: var(--font-size-sm);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .assistant-image-widget__prompt {
+        margin: 0;
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        overflow-wrap: anywhere;
+        max-block-size: 6lh;
+        overflow: auto;
+    }
+
+    :where(.chat-container) .assistant-image-widget__stage {
+        --assistant-image-aspect: 1;
+        --assistant-image-ratio: 1;
+
+        position: relative;
+        display: grid;
+        place-items: center;
+        inline-size: min(100%, calc(26rem * var(--assistant-image-ratio)));
+        align-self: center;
+        aspect-ratio: var(--assistant-image-aspect);
+        max-block-size: 26rem;
+        min-block-size: 0;
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        isolation: isolate;
+        background: var(--glass-surface-medium);
+    }
+
+    :where(.chat-container) .assistant-image-widget:is([data-image-widget-status='completed'], [data-image-widget-status='error'], [data-image-widget-status='cancelled']) .assistant-image-widget__stage:has(> .assistant-image-widget__placeholder) {
+        min-block-size: min-content;
+    }
+
+    :where(.chat-container) .assistant-image-widget__backdrop {
+        position: absolute;
+        inset: 0;
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: cover;
+        filter: var(--glass-blur-base);
+        opacity: var(--chat-generated-image-backdrop-opacity);
+        pointer-events: none;
+    }
+
+    :where(.chat-container) .assistant-image-widget__preview {
+        position: relative;
+        display: block;
+        inline-size: 100%;
+        block-size: 100%;
+        min-block-size: 0;
+        padding: 0;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+    }
+
+    :where(.chat-container) .assistant-image-widget__image {
+        display: block;
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: contain;
+    }
+
+    :where(.chat-container) :is(.assistant-image-widget__placeholder, .assistant-image-widget__load-error) {
+        position: relative;
+        padding: var(--space-4);
+        color: var(--text-secondary);
+        text-align: center;
+        overflow-wrap: anywhere;
+        max-inline-size: 100%;
+        max-block-size: 26rem;
+        overflow: auto;
+    }
+
+    :where(.chat-container) .assistant-image-widget__load-error {
+        display: none;
+    }
+
+    :where(.chat-container) .assistant-image-widget__stage[data-media-load-state='error'] :is(.assistant-image-widget__preview, .assistant-image-widget__backdrop) {
+        visibility: hidden;
+    }
+
+    :where(.chat-container) .assistant-image-widget__stage[data-media-load-state='error'] .assistant-image-widget__load-error {
+        display: block;
+        position: absolute;
+        inset-inline: 0;
+    }
+
+    :where(.chat-container) .assistant-image-widget__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    :where(.chat-container) :is(.assistant-image-widget__preview, .assistant-image-widget__actions > a):focus-visible {
+        outline: var(--border-width-2) solid var(--control-focus-ring-color);
+        outline-offset: var(--space-1);
+    }
+}

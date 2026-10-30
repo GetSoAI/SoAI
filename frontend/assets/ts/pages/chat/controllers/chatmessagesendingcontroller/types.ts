@@ -67,14 +67,15 @@ interface ChatMessageSendingPort {
     removeDraftKnowledgeAttachment: (knowledgeAttachmentId: string) => Promise<void>;
     exportConversation: (conversationId: string | null) => void;
     handleFileUpload: (event: Event) => Promise<void>;
-    handleSelectedUploadFiles: (files: File[]) => Promise<void>;
-    handleCameraCaptureFile: (file: File) => Promise<void>;
+    handleSelectedUploadFiles: (files: File[], intake?: import('@features/chat/public.ts').ChatAttachmentIntake) => Promise<void>;
+    handleCameraCaptureFile: (file: File, intake?: import('@features/chat/public.ts').ChatAttachmentIntake) => Promise<void>;
     handleFolderUpload: (event: Event) => Promise<void>;
-    handleSelectedFolderUploadFiles: (files: File[]) => Promise<void>;
+    handleSelectedFolderUploadFiles: (files: File[], intake?: import('@features/chat/public.ts').ChatAttachmentIntake) => Promise<void>;
     dispose: () => void;
 }
 
 interface AttachmentManager {
+    captureIntake(): import('@features/chat/public.ts').ChatAttachmentIntake;
     hasPendingAttachmentProcessing: () => boolean;
     getAttachments: () => ChatAttachment[];
     getDraftRevision: () => number;
@@ -88,8 +89,7 @@ interface AttachmentManager {
     discardSoaiPathDraftAttachments: (materializeRecord: (record: SoaiPathDraftRecord) => void) => number;
     checkoutAttachments: (attachments?: readonly ChatAttachment[]) => ChatAttachment[];
     restoreAttachments: (attachments: ChatAttachment[]) => void | Promise<void>;
-    handleFiles: (files: File[], options?: { forceDocument?: boolean }) => Promise<void>;
-    handleUpload: (files: File[], inputArguments: { source: 'picker' | 'camera' | 'folder'; visionSupported: boolean }) => Promise<void>;
+    handleUpload: (files: File[], inputArguments: { source: 'picker' | 'camera' | 'folder'; visionSupported: boolean; intake?: import('@features/chat/public.ts').ChatAttachmentIntake }) => Promise<void>;
     removeAttachedFile: (fileId: string, materializeRecord: (record: SoaiPathDraftRecord) => void) => Promise<void>;
 }
 

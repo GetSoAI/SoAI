@@ -1,6 +1,7 @@
 /* SoAI - Chat conversation rendering and preparation ownership [frontend/assets/ts/pages/chat/controllers/chatpage/conversations/ChatConversationViewController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
 import { initializeChatSearch, refreshConversationsUI, renderCurrentConversationView, type ChatConversationListRenderDependencies, type ChatConversationRenderOutcome, type ChatCurrentConversationRenderDependencies, type ChatSearchDependencies } from '@pages/chat/controllers/page/view.ts';
 import { CHAT_SELECTORS, ChatPageEmptyState, resolveConversationChatStreaming, resolveConversationExecutionState, type Conversation } from '@features/chat/public.ts';
 import type { ChatConversationActionsContract } from '@pages/chat/controllers/chatconversationactionscontroller/contracts.ts';
@@ -8,7 +9,7 @@ import { replaceChatConversationRoute } from '@pages/chat/controllers/navigation
 import { invalidateCurrentConversationMarkup } from '@pages/chat/controllers/page/renderer/chatMarkupInvalidationController.ts';
 import { getCurrentConversation, reportRequestFailure } from '@pages/chat/controllers/page/state.ts';
 import type { ChatConversationTerminalIndicator } from '@core/chat/protocols.ts';
-import type { ChatConversationViewContract, ConversationSidebarStatus, ConversationSidebarStatusSyncOptions, SidebarListReadiness } from '@pages/chat/controllers/chatpage/conversations/contracts.ts';
+import type { ChatConversationRenderOptions, ChatConversationViewContract, ConversationSidebarStatus, ConversationSidebarStatusSyncOptions, SidebarListReadiness } from '@pages/chat/controllers/chatpage/conversations/contracts.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 import type { ChatConfigurationRuntimeOwner } from '@pages/chat/controllers/chatpage/runtime/ChatConfigurationRuntime.ts';
 import type { ChatComposerSurfaceRuntimeOwner } from '@pages/chat/controllers/chatpage/runtime/ChatComposerSurfaceRuntime.ts';
@@ -186,8 +187,12 @@ class ChatConversationViewController implements ChatConversationViewContract {
         return await this.#listPresentation.syncVisibility(visible);
     }
 
-    async renderCurrent(): Promise<void> {
-        const outcome = await renderCurrentConversationView(this.#currentRender);
+    async renderCurrent(options?: ChatConversationRenderOptions): Promise<void> {
+        const outcome = await renderCurrentConversationView(this.#currentRender, options);
+        if (options?.viewportStabilityScope === 'caller' && outcome === 'dom-reconciled') {
+            await awaitPresentationFrame(this.#dependencies.pageLifecycle.signal(), 'Conversation reveal presentation cancelled');
+            if (options.canCommit?.() === false) return;
+        }
         this.#emitRendered(outcome);
     }
 
@@ -200,6 +205,10 @@ class ChatConversationViewController implements ChatConversationViewContract {
 
     current(): Conversation | null {
         return getCurrentConversation(this.#dependencies);
+    }
+
+    syncTitle(): void {
+        syncCurrentConversationTitleUi(this.#currentRender, this.current());
     }
 
     invalidate(scope: 'current' | 'list' | 'both' = 'both'): void {

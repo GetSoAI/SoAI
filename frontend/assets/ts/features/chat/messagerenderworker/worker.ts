@@ -67,6 +67,11 @@ const renderDecodedRequest = (decoded: DecodedWorkerRequest): void => {
         throw new Error('Chat render worker not initialized (missing message renderer)');
     }
 
+    if (decoded.type === 'renderSearchText') {
+        post({ type: 'searchText', requestId: decoded.requestId, html: renderer.renderSearchTextHtml(decoded) });
+        return;
+    }
+
     if (decoded.type === 'renderAssistantBodyFromMessage') {
         const timelineIndexState = cache.requireState(decoded.context);
         const html = renderer.renderAssistantBodyFromMessageHtml({

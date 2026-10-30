@@ -10,6 +10,7 @@ from core.errors.exceptions import ValidationError
 from database.core.query_execution import sync_fetch_all_as_dicts
 from database.core.sql_builders import build_placeholder_list, validate_sql_identifier
 from database.core.sqlite_numbers import coerce_required_nonempty_str_from_sqlite_row
+from database.repositories.event_outbox.library_changes import sync_enqueue_library_changed
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -167,6 +168,8 @@ def sync_delete_graph(
     relations_deleted_total = relations_deleted_direct + relations_deleted_cascade
     records_deleted_total = entities_deleted + observations_deleted_total + relations_deleted_total
 
+    if records_deleted_total > 0:
+        sync_enqueue_library_changed(conn, user_id, "MemoryLibraryChangedEvent")
     return {
         "entities_deleted": entities_deleted,
         "observations_deleted_direct": observations_deleted_direct,

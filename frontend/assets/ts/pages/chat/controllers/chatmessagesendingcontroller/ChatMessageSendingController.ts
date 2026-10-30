@@ -4,9 +4,9 @@
 import type { ConversationExecutionRunResult } from '@core/chat/protocols.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
 import { toTrimmedString } from '@core/normalize.ts';
-import { normalizeFolderUploadFiles, resolveUploadFilesFromEvent, type ChatContentSegment, type SoaiPathDraftRecord } from '@features/chat/public.ts';
+import { normalizeFolderUploadFiles, resolveUploadFilesFromEvent, type ChatContentSegment, type ChatAttachmentIntake, type SoaiPathDraftRecord } from '@features/chat/public.ts';
 import { exportConversation } from '@pages/chat/controllers/chatmessagesendingcontroller/conversationExportController.ts';
-import { handleAttachmentUploadFiles, handleAttachmentUploadFromEvent } from '@pages/chat/controllers/chatmessagesendingcontroller/attachmentUploadEventController.ts';
+import { handleAttachmentUploadFiles } from '@pages/chat/controllers/chatmessagesendingcontroller/attachmentUploadEventController.ts';
 import { ConversationSendLockManager } from '@pages/chat/controllers/chatmessagesendingcontroller/ConversationSendLockManager.ts';
 import { runWithConversationSendLockIfIdle, sendConversationInputFromComposer, sendMessageFromComposer, sendMessageFromPayload, sendQueuedTextMessage } from '@pages/chat/controllers/chatmessagesendingcontroller/sendMessageFlowController.ts';
 import { refreshComposerState, resolveCurrentConversationSelection } from '@pages/chat/controllers/chatmessagesendingcontroller/effects.ts';
@@ -154,33 +154,36 @@ class ChatMessageSendingController implements ChatMessageSendingPort {
     }
 
     async handleFileUpload(event: Event): Promise<void> {
-        this.#requireActive();
-        await this.#ensureInitialized();
-        await handleAttachmentUploadFromEvent(this.#host, event, 'picker');
+        await this.handleSelectedUploadFiles(resolveUploadFilesFromEvent(event));
     }
 
-    async handleSelectedUploadFiles(files: File[]): Promise<void> {
+    async handleSelectedUploadFiles(files: File[], capturedIntake?: ChatAttachmentIntake): Promise<void> {
         this.#requireActive();
+        const intake = capturedIntake ?? this.#host.services.getAttachmentManager().captureIntake();
         await this.#ensureInitialized();
-        await handleAttachmentUploadFiles(this.#host, files, 'picker');
+        if (!intake.scope.isCurrent()) return;
+        await handleAttachmentUploadFiles(this.#host, files, 'picker', intake);
     }
 
-    async handleCameraCaptureFile(file: File): Promise<void> {
+    async handleCameraCaptureFile(file: File, capturedIntake?: ChatAttachmentIntake): Promise<void> {
         this.#requireActive();
+        const intake = capturedIntake ?? this.#host.services.getAttachmentManager().captureIntake();
         await this.#ensureInitialized();
-        await handleAttachmentUploadFiles(this.#host, [file], 'camera');
+        if (!intake.scope.isCurrent()) return;
+        await handleAttachmentUploadFiles(this.#host, [file], 'camera', intake);
     }
 
     async handleFolderUpload(event: Event): Promise<void> {
         this.#requireActive();
-        await this.#ensureInitialized();
         await this.handleSelectedFolderUploadFiles(resolveUploadFilesFromEvent(event));
     }
 
-    async handleSelectedFolderUploadFiles(files: File[]): Promise<void> {
+    async handleSelectedFolderUploadFiles(files: File[], capturedIntake?: ChatAttachmentIntake): Promise<void> {
         this.#requireActive();
+        const intake = capturedIntake ?? this.#host.services.getAttachmentManager().captureIntake();
         await this.#ensureInitialized();
-        await handleAttachmentUploadFiles(this.#host, normalizeFolderUploadFiles(files), 'folder');
+        if (!intake.scope.isCurrent()) return;
+        await handleAttachmentUploadFiles(this.#host, normalizeFolderUploadFiles(files), 'folder', intake);
     }
 
     dispose(): void {

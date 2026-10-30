@@ -10,7 +10,7 @@ import { isConversationScrollRestoreActive } from '@features/chat/chatuimanager/
 import { getElement, isAnyElementShown } from '@features/chat/chatuimanager/dom.ts';
 import { syncInputWrapperScrollState } from '@features/chat/chatuimanager/scrollState.ts';
 import type { ChatChromeVisibilityRuntime, ChatUIManagerContext, ElementSelectorKey } from '@features/chat/chatuimanager/types.ts';
-import { consumeMainTimelineProgrammaticScrollOffset } from '@features/chat/mainTimelineScroll.ts';
+import { consumeMainTimelineProgrammaticScrollOffset, isMainTimelineProgrammaticScrollActive } from '@features/chat/mainTimelineScroll.ts';
 
 const ATTENTION_PREVIEW_KEYS: readonly ElementSelectorKey[] = ['toolApprovalPreview', 'askUserPreview', 'secretPromptPreview'];
 
@@ -24,11 +24,13 @@ export const setupChatChromeVisibilityRuntime = (context: ChatUIManagerContext):
     const dependencies = context.dependencies;
     const documentRef = dependencies.dom.getDocument();
     let lastScrollTop: number | null = null;
+    let lastScrollWasProgrammatic = false;
     let lastMousePointerPoint: { x: number; y: number } | null = null;
 
     const isGlobalPinned = (): boolean => context.state.activeConversationTransitionId !== null || isAnyElementShown(context, ATTENTION_PREVIEW_KEYS);
 
-    const surfaces = [setupChatConversationHeaderChromeSurface(context, isGlobalPinned), setupChatComposerChromeSurface(context, isGlobalPinned)];
+    const composer = setupChatComposerChromeSurface(context, isGlobalPinned);
+    const surfaces = [setupChatConversationHeaderChromeSurface(context, isGlobalPinned), composer];
 
     const resolveHideableDistance = (messagesArea: HTMLElement): number => {
         if (dependencies.session.getCurrentConversation()?.history?.hasNewer === true) return Number.POSITIVE_INFINITY;
@@ -42,6 +44,8 @@ export const setupChatChromeVisibilityRuntime = (context: ChatUIManagerContext):
         const scrollTop = messagesArea.scrollTop;
         const delta = lastScrollTop === null || isConversationScrollRestoreActive(context) ? 0 : scrollTop - lastScrollTop - programmaticOffset;
         lastScrollTop = scrollTop;
+        lastScrollWasProgrammatic = isMainTimelineProgrammaticScrollActive(messagesArea);
+        if (lastScrollWasProgrammatic) return;
         const hideableDistance = resolveHideableDistance(messagesArea);
         for (const surface of surfaces) surface.observeDelta(delta, hideableDistance);
     };
@@ -49,7 +53,7 @@ export const setupChatChromeVisibilityRuntime = (context: ChatUIManagerContext):
     const sync = (): void => {
         syncInputWrapperScrollState(context);
         const messagesArea = getElement(context, 'messagesArea');
-        const hideableDistance = messagesArea === null ? null : resolveHideableDistance(messagesArea);
+        const hideableDistance = messagesArea === null || lastScrollWasProgrammatic || isMainTimelineProgrammaticScrollActive(messagesArea) ? null : resolveHideableDistance(messagesArea);
         for (const surface of surfaces) surface.sync(hideableDistance);
     };
 
@@ -75,8 +79,10 @@ export const setupChatChromeVisibilityRuntime = (context: ChatUIManagerContext):
     return {
         observeScroll,
         sync,
+        revealComposer: () => composer.reset(),
         reset: () => {
             lastScrollTop = null;
+            lastScrollWasProgrammatic = false;
             for (const surface of surfaces) surface.reset();
         },
         dispose: () => {

@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "Görsel oluşturma bekleniyor",
+                "imageGenerating": "Görsel oluşturuluyor",
+                "imageUnavailable": "Görsel önizlemesi kullanılamıyor.",
+                "imageRetry": "Görseli yeniden oluşturmayı deneyin.",
                 "requestedAt": "{time} tarihinde istendi"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "Mesajlaşma sohbetlerini gizle",
                 "hideMessagingConversationsHint": "Etkinleştirildiğinde, mesajlaşma hesabı sohbetleri kenar çubuğu listesinden gizlenir",
                 "inputActions": {
+                    "newConversationHint": "Sohbet yazma alanında yeni konuşma düğmesini göster",
+                    "findHint": "Sohbet yazma alanında konuşma arama düğmesini göster",
                     "prompts": "Kaydedilmiş istemler",
                     "title": "Giriş eylemleri",
                     "tokenCounter": "Token sayacı",
@@ -758,7 +764,6 @@
                     "description": "Kalıcı bellek, her seferinde özel bir istem gerektirmeden SoAI'nin tercihlerinizi, hedeflerinizi ve yinelenen bağlamınızı anlamasına yardımcı olur",
                     "empty": "Henüz bellekte kayıt yok",
                     "openProfile": "Profil formunu aç",
-                    "refresh": "Belleği yenile",
                     "title": "Bellek ayarları",
                     "userMemoriesTitle": "Kullanıcı bellek kayıtları"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "Bu parametreyi modele gönder",
                 "maxCompletionTokens": "Maksimum tamamlama token'ı",
-                "maxCompletionTokensHint": "Akıl yürütme modelleri (o1, o3) için akıl yürütme dahil token sınırı. Maksimum token ayarını geçersiz kılar",
+                "maxCompletionTokensHint": "Akıl yürütme modelleri için akıl yürütme dahil token sınırı. Maksimum token ayarını geçersiz kılar",
                 "agentMaxIterations": "Ajan maksimum yineleme sayısı",
                 "agentMaxIterationsHint": "Sohbet durmadan önceki maksimum ajan döngüsü yineleme sayısı. Pratikte sınırsız çalıştırmalar için çok büyük bir değer kullanın",
                 "maxTokens": "Maksimum token:",
@@ -974,7 +979,6 @@
                     "omittedSettings": "Desteklenmeyen veya geçersiz kaydedilmiş {count} ayar atlandı",
                     "replaceAction": "Değiştir",
                     "renameAction": "Yeniden adlandır",
-                    "retryAction": "Yeniden dene",
                     "resetAction": "Kitaplığı sıfırla",
                     "resetMessage": "Kaydedilmiş tüm sohbet yapılandırması ön ayarları kalıcı olarak silinsin mi? Bu, bozulmuş ön ayar kayıtları için kurtarma işlemidir ve geri alınamaz.",
                     "resetFailed": "Ön ayar kitaplığı sıfırlanamadı. Kaydedilmiş ön ayarlarınız silinmiş gibi gösterilmedi; yeniden deneyin.",
@@ -986,15 +990,13 @@
                     "searchLabel": "Ön ayarlarda ara",
                     "searchPlaceholder": "Ön ayarlarda ara...",
                     "saved": "Ön ayar kitaplığı güncellendi.",
-                    "stale": "{value} tarihli son başarılı ön ayar listesi gösteriliyor. Düzenlemeden önce yenileyin.",
                     "structurallyInvalid": "Bozulmuş {count} ön ayar kaydı gösterilemedi.",
                     "status": {
                         "emptyDetail": "Bu modaldeki bekleyen değerlerden bir ön ayar oluşturun ve hangi bölümleri içereceğini tam olarak seçin.",
                         "emptyTitle": "İlk yeniden kullanılabilir yapılandırmanızı oluşturun",
                         "errorTitle": "Ön ayar kitaplığı kullanılamıyor",
                         "noMatchesTitle": "Eşleşen ön ayar yok",
-                        "recoveryTitle": "Bazı ön ayarlar ilgi gerektiriyor",
-                        "staleTitle": "Ön ayar listesi güncel olmayabilir"
+                        "recoveryTitle": "Bazı ön ayarlar ilgi gerektiriyor"
                     },
                     "errors": {
                         "ambiguous": "İsteğin sonucu belirsiz. Ön ayar listesi uzlaştırılıyor; yeniden denemeden önce listeyi inceleyin.",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "Bu beceri kitaplığınızdan ve sohbetlerinizdeki gelecekteki seçimlerden kaldırılsın mı? Kabul edilmiş işler paketi korur. Çalışma alanı dosyaları ve konuşma geçmişi kalır.",
                     "conflict": "Seçim başka bir yerde değiştirildi. Taslağınızı kaydetmeden önce güncel seçimi inceleyin",
                     "keepDraft": "Seçimimi koru",
-                    "stale": "Beceriler güncel değil. Kaydetmeden önce yeniden bağlanın veya tekrar deneyin",
+                    "stale": "Beceriler güncel değil. Kaydetmeden önce bağlantının düzelmesini bekleyin.",
                     "search": "Beceri ara...",
                     "emptyTitle": "İlk becerinizi ekleyin",
                     "noMatchesTitle": "Eşleşen beceri yok",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "{field} için beceri içe aktarma sınırı aşıldı: {measured} > {limit}. Arşivi küçültün veya kullanılmayan becerileri kaldırıp tekrar deneyin.",
                         "manifestPosition": "{line}. satır, {column}. sütunda geçersiz YAML. SKILL.md dosyasını düzeltip yeniden deneyin."
                     },
-                    "importUncertain": "İçe aktarma sonucu belirsiz. Bu dosyayı seçili tutun ve yeniden denemeden önce kaydı denetlemek için Yenile düğmesini kullanın.",
+                    "importUncertain": "İçe aktarma sonucu belirsiz. Dosyayı seçili tutun ve alındı kaydını denetlemek için İçe aktarmayı yeniden dene seçeneğini kullanın.",
                     "invalidSelection": "Seçilen becerilerden bazıları kullanılamıyor veya kitaplık sınırını aşıyor. Yenileyin, ardından kaydetmeden önce seçimi düzenleyin",
                     "status": {
                         "importTitle": "İçe aktarma sonucu belirsiz",
                         "conflictTitle": "Seçim başka bir yerde değiştirildi",
-                        "staleTitle": "Beceri listesi güncel olmayabilir",
                         "unavailableTitle": "Beceri seçimi kullanılamıyor",
                         "invalidTitle": "Seçimin incelenmesi gerekiyor"
-                    }
+                    },
+                    "useLatest": "Güncel sürümü kullan",
+                    "retryImport": "İçe aktarmayı yeniden dene",
+                    "aboutTitle": "Beceriler nasıl çalışır"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "Anı ekle",
                     "search": "Anılarda ara",
                     "noMatches": "Eşleşen anı yok",
-                    "stale": "Kaydedilen veriler güncel değil. Son yenileme: {time}. Güncel verileri incelemek için yenileyin.",
                     "deleteFact": "Bu bilgi veya ilişki silinsin mi?",
                     "deleteEntry": "“{title}”, {facts} bilgi ve {relations} ilişki dahil silinsin mi?",
                     "savedHidden": "Kaydedildi. Bu anıyı görmek için aramayı temizleyin.",
@@ -1468,7 +1471,6 @@
                     "from": "Kaynak",
                     "to": "Hedef",
                     "type": "İlişki türü",
-                    "staleTitle": "Anı listesi güncel olmayabilir",
                     "errorTitle": "Bellek kitaplığı kullanılamıyor"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "Bir uç noktayı bu anıya bağlı tutun.",
                     "invalidText": "Boş olmayan bir başlık ve metin girin.",
                     "missing": "Bu kayıt kullanılamıyor veya artık bu anıya ait değil. Yenileyip inceleyin.",
-                    "unconfirmed": "Sonuç doğrulanamadı. Tekrar denemeden önce taslağınızı koruyup güncel verileri incelemek için yenileyin.",
+                    "unconfirmed": "Sonuç doğrulanamadı. Taslağınızı koruyun ve yeniden denemeden önce güncel verileri inceleyin.",
                     "loadFailed": "Anılar yüklenemedi. Tekrar denemek için yenileyin."
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "retry": "Tekrar dene"
                 },
                 "viewer": {
-                    "none": "Yok",
                     "observations": "Gözlemler",
                     "relations": "İlişkiler"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "İstem geçmişi yüklenemedi."
             },
             "sketch": {
+                "capacityReached": "Çizim sınırına ulaşıldı. Bir düzenlemeyi geri alıp değiştirin, resmi ekleyin veya taslağı atıp yeniden başlayın.",
                 "open": "Çizimi aç",
                 "mobileOption": "Çizim",
                 "preference": "Çizim",
@@ -1711,7 +1713,9 @@
                 "attach": "Ekle",
                 "discardConfirm": "Bu çizim silinsin mi?",
                 "discard": "Sil",
-                "exportFailed": "Çizim dışa aktarılamadı. Lütfen tekrar deneyin."
+                "exportFailed": "Çizim dışa aktarılamadı. Lütfen tekrar deneyin.",
+                "draftChangedConfirm": "Siz çizerken sohbet taslağı değişti. Bu çizim geçerli taslağa eklensin mi? İptal ederseniz çiziminiz korunur.",
+                "draftChangedAgain": "Sohbet taslağı yeniden değişti. Çiziminiz korunuyor. Tekrar eklemeyi deneyin."
             },
             "characterMap": {
                 "allEmoji": "Tüm emojiler",
@@ -2514,6 +2518,28 @@
                     "metric": "Metrik"
                 },
                 "wind": "Rüzgâr"
+            },
+            "find": {
+                "open": "Konuşmada bul",
+                "placeholder": "Konuşmada bul…",
+                "close": "Kapat",
+                "previous": "Önceki eşleşme",
+                "next": "Sonraki eşleşme",
+                "count": "{current} / {total}",
+                "none": "Eşleşme yok",
+                "updating": "Sonuçlar güncelleniyor…",
+                "stale": "Bağlantı kesildi · son kontrol {seconds} sn önce",
+                "incomplete": "Arama tamamlanamadı. Yeniden deneyin.",
+                "error": "Arama başarısız oldu. Yeniden deneyin.",
+                "tooLong": "En fazla 256 karakter kullanın.",
+                "limited": "5.000’den fazla eşleşen mesaj · gezinme tutulan sonuçları kapsar",
+                "editing": "Bu eşleşmeyi göstermek için düzenlemeyi bitirin veya iptal edin.",
+                "missing": "Bu eşleşme değişti veya kaldırıldı. Yeniden deneyin.",
+                "timeout": "Bu eşleşmeyi gösterme süresi doldu. Yeniden deneyin.",
+                "retry": "Yeniden dene",
+                "before": "Öncesinde {count} eşleşme",
+                "after": "Sonrasında {count} eşleşme",
+                "disconnected": "Bağlantı kesildi. Aramak için yeniden bağlanın."
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "Temizle"
+                "clear": "Temizle",
+                "downloadAll": "Tüm günlükleri indir"
             },
             "ariaLabels": {
                 "clearLogs": "Günlükleri temizle",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "Günlük akışına yeniden bağlanılıyor...",
-            "windowTitle": "SoAI günlükleri"
+            "windowTitle": "SoAI günlükleri",
+            "errors": {
+                "download": "Günlükler indirilemedi. Bağlantıyı kontrol edip yeniden deneyin.",
+                "missing": "Günlük dizini bulunamadı. Günlük ayarlarını kontrol edin.",
+                "changed": "Yakalama sırasında günlükler değişti. İndirmeyi yeniden deneyin.",
+                "unsafe": "Güvenli olmayan yollar veya desteklenmeyen girdiler bulundu. Bağlantıları kaldırıp yeniden deneyin.",
+                "paths": "Yapılandırılmış günlük ve geçici dizinleri kontrol edin.",
+                "permission": "Erişim reddedildi. Dizin izinlerini ve dosya paylaşımını kontrol edip yeniden deneyin.",
+                "limits": "Arşiv sınırları veya dosya adı gereksinimleri aşıldı. Günlük ağacını küçültün veya adları düzeltin.",
+                "timeout": "Günlük dışa aktarma zaman aşımına uğradı. Sunucu daha az meşgulken yeniden deneyin.",
+                "write": "Arşiv yazılamadı. Geçici depolamayı kontrol edip yeniden deneyin.",
+                "response": "Sunucu geçerli bir ZIP eki döndürmedi. İndirmeyi yeniden deneyin."
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "Aramaya başlayın",
                 "filesNotFound": "\"{query}\" için dosya veya klasör bulunamadı",
                 "notFound": "\"{query}\" için sonuç bulunamadı",
-                "title": "Sonuç bulunamadı"
+                "title": "Sonuç bulunamadı",
+                "minimumCharacters": "Aramak için en az {count} karakter girin."
             },
             "pages": {
                 "about": {

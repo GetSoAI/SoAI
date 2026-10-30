@@ -65,7 +65,8 @@ function buildPluginEnabledToggle(options: PluginEnabledToggleOptions): string {
     return renderActionToggleSwitch({
         action: PLUGINS_ACTION_TOGGLE_ENABLED,
         checked: options.checked,
-        label: options.label,
+        label: pending ? '' : options.label,
+        ariaLabel: options.label,
         wrapperTag: 'div',
         wrapperClassName: 'plugin-enable-toggle ui-collection-card__toggle',
         inputClassName: inputClasses.join(' '),

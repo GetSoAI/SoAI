@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "Đang chờ tạo hình ảnh",
+                "imageGenerating": "Đang tạo hình ảnh",
+                "imageUnavailable": "Không có bản xem trước hình ảnh.",
+                "imageRetry": "Hãy thử tạo lại hình ảnh.",
                 "requestedAt": "Đã yêu cầu {time}"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "Ẩn cuộc trò chuyện nhắn tin",
                 "hideMessagingConversationsHint": "Khi bật, các cuộc trò chuyện của tài khoản nhắn tin sẽ bị ẩn khỏi danh sách thanh bên",
                 "inputActions": {
+                    "newConversationHint": "Hiển thị nút tạo cuộc trò chuyện mới ở vùng soạn tin nhắn",
+                    "findHint": "Hiển thị nút tìm kiếm trong cuộc trò chuyện ở vùng soạn tin nhắn",
                     "prompts": "Prompt đã lưu",
                     "title": "Thao tác nhập",
                     "tokenCounter": "Bộ đếm token",
@@ -758,7 +764,6 @@
                     "description": "Bộ nhớ lâu dài giúp SoAI hiểu tùy chọn, mục tiêu và ngữ cảnh lặp lại của bạn mà không cần prompt tùy chỉnh mỗi lần",
                     "empty": "Chưa lưu bộ nhớ nào",
                     "openProfile": "Mở biểu mẫu hồ sơ",
-                    "refresh": "Làm mới bộ nhớ",
                     "title": "Cài đặt bộ nhớ",
                     "userMemoriesTitle": "Bộ nhớ người dùng"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "Gửi tham số này tới mô hình",
                 "maxCompletionTokens": "Token hoàn thành tối đa",
-                "maxCompletionTokensHint": "Giới hạn token, bao gồm phần suy luận đối với mô hình suy luận (o1, o3). Ghi đè giới hạn token tối đa",
+                "maxCompletionTokensHint": "Giới hạn token, bao gồm phần suy luận đối với mô hình suy luận. Ghi đè giới hạn token tối đa",
                 "agentMaxIterations": "Số vòng lặp agent tối đa",
                 "agentMaxIterationsHint": "Số vòng lặp agent tối đa trước khi cuộc trò chuyện dừng. Dùng giá trị rất lớn để lượt chạy gần như không bị giới hạn",
                 "maxTokens": "Token tối đa:",
@@ -974,7 +979,6 @@
                     "omittedSettings": "Đã bỏ qua {count} cài đặt đã lưu không được hỗ trợ hoặc không hợp lệ",
                     "replaceAction": "Thay thế",
                     "renameAction": "Đổi tên",
-                    "retryAction": "Thử lại",
                     "resetAction": "Đặt lại thư viện",
                     "resetMessage": "Xóa vĩnh viễn mọi cấu hình trò chuyện đặt sẵn đã lưu? Đây là thao tác khôi phục dành cho các bản ghi cấu hình đặt sẵn bị hỏng và không thể hoàn tác.",
                     "resetFailed": "Không thể đặt lại thư viện cấu hình đặt sẵn. Các cấu hình đặt sẵn đã lưu của bạn không được hiển thị là đã xóa; hãy thử lại.",
@@ -986,15 +990,13 @@
                     "searchLabel": "Tìm kiếm cấu hình đặt sẵn",
                     "searchPlaceholder": "Tìm kiếm cấu hình đặt sẵn...",
                     "saved": "Đã cập nhật thư viện cấu hình đặt sẵn.",
-                    "stale": "Đang hiển thị danh sách cấu hình đặt sẵn được tải thành công gần nhất từ {value}. Hãy làm mới trước khi chỉnh sửa.",
                     "structurallyInvalid": "Không thể hiển thị {count} bản ghi cấu hình đặt sẵn bị hỏng.",
                     "status": {
                         "emptyDetail": "Tạo cấu hình đặt sẵn từ các giá trị đang chờ trong hộp thoại này và chọn chính xác các phần cần đưa vào.",
                         "emptyTitle": "Tạo thiết lập có thể tái sử dụng đầu tiên",
                         "errorTitle": "Thư viện cấu hình đặt sẵn không khả dụng",
                         "noMatchesTitle": "Không có cấu hình đặt sẵn phù hợp",
-                        "recoveryTitle": "Một số cấu hình đặt sẵn cần được xử lý",
-                        "staleTitle": "Danh sách cấu hình đặt sẵn có thể đã lỗi thời"
+                        "recoveryTitle": "Một số cấu hình đặt sẵn cần được xử lý"
                     },
                     "errors": {
                         "ambiguous": "Kết quả của yêu cầu chưa chắc chắn. Danh sách cấu hình đặt sẵn đang được đối soát; hãy kiểm tra trước khi thử lại.",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "Xóa kỹ năng này khỏi thư viện và các lựa chọn trong tương lai của các cuộc trò chuyện? Công việc đã tiếp nhận vẫn giữ gói kỹ năng. Tệp trong không gian làm việc và lịch sử trò chuyện vẫn còn.",
                     "conflict": "Lựa chọn đã thay đổi ở nơi khác. Xem lại lựa chọn hiện tại trước khi lưu bản nháp",
                     "keepDraft": "Giữ lựa chọn của tôi",
-                    "stale": "Kỹ năng chưa được cập nhật. Kết nối lại hoặc thử lại trước khi lưu",
+                    "stale": "Các kỹ năng chưa được cập nhật. Hãy đợi kết nối khôi phục trước khi lưu.",
                     "search": "Tìm kỹ năng...",
                     "emptyTitle": "Thêm kỹ năng đầu tiên",
                     "noMatchesTitle": "Không có kỹ năng phù hợp",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "Vượt giới hạn nhập kỹ năng cho {field}: {measured} > {limit}. Giảm tệp nén hoặc xóa kỹ năng không dùng rồi thử lại.",
                         "manifestPosition": "YAML không hợp lệ tại dòng {line}, cột {column}. Sửa SKILL.md rồi thử lại."
                     },
-                    "importUncertain": "Kết quả nhập chưa rõ. Giữ tệp này được chọn và dùng Làm mới để kiểm tra biên nhận trước khi thử lại.",
+                    "importUncertain": "Kết quả nhập chưa chắc chắn. Giữ tệp được chọn và chọn Thử nhập lại để kiểm tra biên nhận.",
                     "invalidSelection": "Một số kỹ năng đã chọn không khả dụng hoặc vượt quá giới hạn thư viện. Làm mới, rồi điều chỉnh lựa chọn trước khi lưu",
                     "status": {
                         "importTitle": "Kết quả nhập chưa rõ",
                         "conflictTitle": "Lựa chọn đã thay đổi ở nơi khác",
-                        "staleTitle": "Danh sách kỹ năng có thể đã lỗi thời",
                         "unavailableTitle": "Không thể chọn kỹ năng",
                         "invalidTitle": "Cần xem lại lựa chọn"
-                    }
+                    },
+                    "useLatest": "Dùng phiên bản mới nhất",
+                    "retryImport": "Thử nhập lại",
+                    "aboutTitle": "Cách kỹ năng hoạt động"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "Thêm bộ nhớ",
                     "search": "Tìm trong bộ nhớ",
                     "noMatches": "Không có bộ nhớ phù hợp",
-                    "stale": "Dữ liệu đã lưu đã cũ. Lần làm mới gần nhất: {time}. Làm mới để xem xét dữ liệu hiện tại.",
                     "deleteFact": "Xóa thông tin hoặc mối quan hệ này?",
                     "deleteEntry": "Xóa “{title}”, bao gồm {facts} thông tin và {relations} mối quan hệ?",
                     "savedHidden": "Đã lưu. Xóa tìm kiếm để thấy bộ nhớ này.",
@@ -1468,7 +1471,6 @@
                     "from": "Từ",
                     "to": "Đến",
                     "type": "Loại mối quan hệ",
-                    "staleTitle": "Danh sách bộ nhớ có thể đã lỗi thời",
                     "errorTitle": "Thư viện bộ nhớ không khả dụng"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "Giữ một đầu nối với bộ nhớ này.",
                     "invalidText": "Nhập tiêu đề và nội dung không trống.",
                     "missing": "Bản ghi này không có sẵn hoặc không còn thuộc bộ nhớ này. Làm mới và xem xét lại.",
-                    "unconfirmed": "Không thể xác nhận kết quả. Giữ bản nháp và làm mới để xem xét dữ liệu hiện tại trước khi thử lại.",
+                    "unconfirmed": "Không thể xác nhận kết quả. Hãy giữ bản nháp và kiểm tra dữ liệu hiện tại trước khi thử lại.",
                     "loadFailed": "Không thể tải bộ nhớ. Làm mới để thử lại."
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "retry": "Thử lại"
                 },
                 "viewer": {
-                    "none": "Không có",
                     "observations": "Quan sát",
                     "relations": "Mối quan hệ"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "Không thể tải lịch sử prompt."
             },
             "sketch": {
+                "capacityReached": "Đã đạt giới hạn vẽ. Hoàn tác và thay thế một chỉnh sửa, đính kèm hình ảnh hoặc bỏ bản phác thảo rồi bắt đầu lại.",
                 "open": "Mở bản phác thảo",
                 "mobileOption": "Phác thảo",
                 "preference": "Phác thảo",
@@ -1711,7 +1713,9 @@
                 "attach": "Đính kèm",
                 "discardConfirm": "Hủy bản phác thảo này?",
                 "discard": "Hủy",
-                "exportFailed": "Không thể xuất bản phác thảo. Vui lòng thử lại."
+                "exportFailed": "Không thể xuất bản phác thảo. Vui lòng thử lại.",
+                "draftChangedConfirm": "Bản nháp trò chuyện đã thay đổi trong khi bạn vẽ. Đính kèm bản vẽ này vào bản nháp hiện tại? Hủy sẽ giữ lại bản vẽ của bạn.",
+                "draftChangedAgain": "Bản nháp trò chuyện lại thay đổi. Bản vẽ của bạn vẫn được giữ lại. Hãy thử đính kèm lại."
             },
             "characterMap": {
                 "allEmoji": "Tất cả emoji",
@@ -2514,6 +2518,28 @@
                     "metric": "Chỉ số"
                 },
                 "wind": "Gió"
+            },
+            "find": {
+                "open": "Tìm trong cuộc trò chuyện",
+                "placeholder": "Tìm trong cuộc trò chuyện…",
+                "close": "Đóng",
+                "previous": "Kết quả trước",
+                "next": "Kết quả tiếp theo",
+                "count": "{current} / {total}",
+                "none": "Không có kết quả",
+                "updating": "Đang cập nhật kết quả…",
+                "stale": "Mất kết nối · kiểm tra lần cuối {seconds} giây trước",
+                "incomplete": "Tìm kiếm chưa hoàn tất. Hãy thử lại.",
+                "error": "Tìm kiếm thất bại. Hãy thử lại.",
+                "tooLong": "Dùng tối đa 256 ký tự.",
+                "limited": "Hơn 5.000 tin nhắn khớp · chỉ điều hướng trong các kết quả được giữ lại",
+                "editing": "Hoàn tất hoặc hủy chỉnh sửa để hiển thị kết quả này.",
+                "missing": "Kết quả này đã thay đổi hoặc bị xóa. Hãy thử lại.",
+                "timeout": "Đã hết thời gian hiển thị kết quả này. Hãy thử lại.",
+                "retry": "Thử lại",
+                "before": "{count} kết quả phía trước",
+                "after": "{count} kết quả phía sau",
+                "disconnected": "Mất kết nối. Kết nối lại để tìm kiếm."
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "Xóa"
+                "clear": "Xóa",
+                "downloadAll": "Tải xuống tất cả nhật ký"
             },
             "ariaLabels": {
                 "clearLogs": "Xóa nhật ký",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "Đang kết nối lại tới luồng nhật ký...",
-            "windowTitle": "Nhật ký SoAI"
+            "windowTitle": "Nhật ký SoAI",
+            "errors": {
+                "download": "Không thể tải nhật ký. Kiểm tra kết nối rồi thử lại.",
+                "missing": "Không tìm thấy thư mục nhật ký. Kiểm tra cài đặt ghi nhật ký.",
+                "changed": "Nhật ký đã thay đổi trong khi thu thập. Hãy thử tải lại.",
+                "unsafe": "Phát hiện đường dẫn không an toàn hoặc mục không được hỗ trợ. Xóa liên kết rồi thử lại.",
+                "paths": "Kiểm tra thư mục nhật ký và thư mục tạm đã cấu hình.",
+                "permission": "Truy cập bị từ chối. Kiểm tra quyền thư mục và chia sẻ tệp rồi thử lại.",
+                "limits": "Vượt giới hạn tệp lưu trữ hoặc yêu cầu về tên tệp. Giảm cây nhật ký hoặc sửa tên.",
+                "timeout": "Xuất nhật ký đã hết thời gian chờ. Thử lại khi máy chủ ít bận hơn.",
+                "write": "Không thể ghi tệp lưu trữ. Kiểm tra bộ nhớ tạm rồi thử lại.",
+                "response": "Máy chủ không trả về tệp đính kèm ZIP hợp lệ. Hãy thử tải lại."
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "Bắt đầu tìm kiếm",
                 "filesNotFound": "Không tìm thấy tệp hoặc thư mục nào cho \"{query}\"",
                 "notFound": "Không tìm thấy kết quả cho \"{query}\"",
-                "title": "Không tìm thấy kết quả"
+                "title": "Không tìm thấy kết quả",
+                "minimumCharacters": "Nhập ít nhất {count} ký tự để tìm kiếm."
             },
             "pages": {
                 "about": {

@@ -5,7 +5,7 @@ import { handleApiResult } from '@core/api/apiResultHandler.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { isAbortError, throwIfAborted } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import { createSearchCacheKey, normalizeSearchDisplayQuery, normalizeSearchMatchQuery } from '@core/search/searchQuery.ts';
+import { SEARCH_MINIMUM_QUERY_LENGTH, createSearchCacheKey, normalizeSearchDisplayQuery, normalizeSearchMatchQuery } from '@core/search/searchQuery.ts';
 import { normalizeRemoteResults } from '@core/search/searchResultNormalization.ts';
 import type { SearchResultsResponse } from '@core/api/contracts/searchContracts.ts';
 import type { SearchItem, SearchOptions } from '@core/search/searchTypes.ts';
@@ -121,7 +121,7 @@ const scheduleRemoteSearch = (context: SearchExecutionContext, query: string, li
 
 const searchCatalog = async (context: SearchExecutionContext, query: string, limitOrOptions: number | SearchOptions = 10, options: SearchOptions = {}): Promise<SearchItem[]> => {
     const searchTerm = normalizeSearchMatchQuery(query);
-    if (!searchTerm || searchTerm.length < 2) {
+    if (!searchTerm || searchTerm.length < SEARCH_MINIMUM_QUERY_LENGTH) {
         return [];
     }
     const remoteQuery = normalizeSearchDisplayQuery(query);

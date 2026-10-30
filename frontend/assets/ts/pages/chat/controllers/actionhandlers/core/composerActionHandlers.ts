@@ -9,7 +9,6 @@ import { CHAT_ACTIONS } from '@features/chat/public.ts';
 import { createCollapsedActionHandlers, createCollapsedElementActionHandler, createMappedActionHandlers, createPreventDefaultStoppedActionHandler, requireCurrentConversationId, runCollapsedUiTask } from '@pages/chat/controllers/actionhandlers/core/effects.ts';
 import type { ChatActionHandler, ChatAttachmentActionPort, ChatAudioActionPort, ChatComposerActionPort, ChatConfigurationActionPort, ChatConversationActionPort, ChatExecutionActionPort, ChatPresentationActionPort, ChatRagActionPort, ChatSharedActionPort } from '@pages/chat/controllers/actionhandlers/core/contracts.ts';
 import { executeComposerPrimaryAction } from '@pages/chat/controllers/actionhandlers/core/composerPrimaryActionController.ts';
-import { openChatAttachModal } from '@pages/chat/controllers/modals/chatattach/chatAttachModal.ts';
 import { openChatSketchModal } from '@pages/chat/controllers/modals/sketch/chatSketchModal.ts';
 
 interface ChatComposerActionsHost {
@@ -47,14 +46,14 @@ const resolveToolActivityToggleTaskId = (actionElement: HTMLElement): string => 
 };
 
 const openChatAttachmentModal = (host: ChatComposerActionsHost): void => {
-    openChatAttachModal(host);
+    host.attachments.openDialog();
 };
 
 const openChatCameraModal = (host: ChatComposerActionsHost): void => {
     if (!host.attachments.cameraEnabled()) {
         throw new Error('Chat camera capture is not available');
     }
-    openChatAttachModal(host, { initialTab: 'camera' });
+    host.attachments.openDialog({ initialTab: 'camera' });
 };
 
 const createChatComposerActionHandlers = (host: ChatComposerActionsHost): Record<ChatComposerActionId, ChatActionHandler> => {

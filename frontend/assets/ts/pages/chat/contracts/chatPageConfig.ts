@@ -35,6 +35,7 @@ const CHAT_INPUT_ACTION_ICON_MAP: Record<string, IconDefinition> = {
     '.attach-add-btn .chat-action-icon': icon('paperclip', CHAT_ICON_SIZE_MD),
     '.camera-btn .chat-action-icon': icon('camera', CHAT_ICON_SIZE_MD),
     '.goto-prompts-btn .chat-action-icon': icon('prompt', CHAT_ICON_SIZE_MD),
+    '.conversation-find-open .chat-action-icon': icon('search', CHAT_ICON_SIZE_MD),
     [`${CHAT_SELECTORS.CHARACTER_MAP_BTN} .chat-action-icon`]: icon('character-map', CHAT_ICON_SIZE_MD),
     [`${CHAT_SELECTORS.SKETCH_BTN} .chat-action-icon`]: icon('sketch', CHAT_ICON_SIZE_MD),
     '.chat-action-btn .chat-action-icon--send': icon('arrow-up', CHAT_ICON_SIZE_MD),

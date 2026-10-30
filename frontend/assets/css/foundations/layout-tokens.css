@@ -4,7 +4,7 @@
 @layer foundations {
     @property --page-header-sticky-offset {
         syntax: '<length>';
-        inherits: true;
+        inherits: false;
         initial-value: 0;
     }
 

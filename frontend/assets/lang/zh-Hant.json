@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "正在等待產生影像",
+                "imageGenerating": "正在產生影像",
+                "imageUnavailable": "無法預覽影像。",
+                "imageRetry": "請嘗試重新產生影像。",
                 "requestedAt": "請求時間：{time}"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "隱藏訊息對話",
                 "hideMessagingConversationsHint": "啟用後，訊息帳戶對話會從側邊欄清單中隱藏",
                 "inputActions": {
+                    "newConversationHint": "在聊天輸入區顯示新增對話按鈕",
+                    "findHint": "在聊天輸入區顯示對話搜尋按鈕",
                     "prompts": "已儲存的提示詞",
                     "title": "輸入操作",
                     "tokenCounter": "Token 計數器",
@@ -758,7 +764,6 @@
                     "description": "持久記憶可協助 SoAI 理解您的偏好、目標與經常出現的脈絡，而不必每次都提供自訂提示詞",
                     "empty": "目前尚未儲存任何記憶",
                     "openProfile": "開啟個人資料表單",
-                    "refresh": "重新整理記憶",
                     "title": "記憶設定",
                     "userMemoriesTitle": "使用者記憶"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "將此參數傳送給模型",
                 "maxCompletionTokens": "最大完成 Token 數",
-                "maxCompletionTokensHint": "推理模型 (o1, o3) 的 Token 上限，包含推理 Token。會覆寫最大 Token 數",
+                "maxCompletionTokensHint": "推理模型的 Token 上限，包含推理 Token。會覆寫最大 Token 數",
                 "agentMaxIterations": "代理程式最大迭代次數",
                 "agentMaxIterationsHint": "對話停止前代理程式迴圈的最大迭代次數。使用非常大的值，可達到實際上近乎無上限的執行",
                 "maxTokens": "最大 Token 數：",
@@ -974,7 +979,6 @@
                     "omittedSettings": "已略過 {count} 個不支援或無效的已儲存設定",
                     "replaceAction": "取代",
                     "renameAction": "重新命名",
-                    "retryAction": "再試一次",
                     "resetAction": "重設預設集資料庫",
                     "resetMessage": "要永久刪除所有已儲存的聊天設定預設集嗎？這是用於修復損毀預設集記錄的復原操作，且無法復原。",
                     "resetFailed": "無法重設預設集資料庫。您已儲存的預設集並未標示為已刪除；請再試一次。",
@@ -986,15 +990,13 @@
                     "searchLabel": "搜尋預設集",
                     "searchPlaceholder": "搜尋預設集...",
                     "saved": "預設集資料庫已更新。",
-                    "stale": "目前顯示的是 {value} 時最後一次成功載入的預設集清單。編輯前請先重新整理。",
                     "structurallyInvalid": "有 {count} 筆損毀的預設集記錄無法顯示。",
                     "status": {
                         "emptyDetail": "使用此對話框中的暫存值建立預設集，並選擇要包含哪些區段。",
                         "emptyTitle": "建立第一個可重複使用的設定",
                         "errorTitle": "預設集資料庫無法使用",
                         "noMatchesTitle": "沒有相符的預設集",
-                        "recoveryTitle": "部分預設集需要處理",
-                        "staleTitle": "預設集清單可能不是最新版本"
+                        "recoveryTitle": "部分預設集需要處理"
                     },
                     "errors": {
                         "ambiguous": "請求結果尚不確定。系統正在重新比對預設集清單；請檢查清單後再試一次。",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "從技能庫和聊天的後續選擇中移除此技能？已接受的任務會保留技能套件。工作區檔案和對話歷史記錄會保留。",
                     "conflict": "選擇已在其他位置變更。儲存草稿前，請檢查目前的選擇",
                     "keepDraft": "保留我的選擇",
-                    "stale": "技能尚未更新。儲存前請重新連線或重試",
+                    "stale": "技能尚未更新。請等待連線恢復後再儲存。",
                     "search": "搜尋技能...",
                     "emptyTitle": "新增你的第一個技能",
                     "noMatchesTitle": "沒有符合的技能",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "技能匯入的 {field} 超出限制：{measured} > {limit}。請縮小壓縮檔或刪除未使用的技能後重試。",
                         "manifestPosition": "第 {line} 行、第 {column} 欄的 YAML 無效。請修正 SKILL.md 後重試。"
                     },
-                    "importUncertain": "匯入結果尚不確定。請保持選取此檔案，重試前使用「重新整理」檢查回執。",
+                    "importUncertain": "匯入結果尚未確定。請保持檔案選取，並選擇「重試匯入」以檢查回執。",
                     "invalidSelection": "部分已選技能無法使用或超出技能庫上限。請重新整理，然後在儲存前調整選擇",
                     "status": {
                         "importTitle": "匯入結果尚不確定",
                         "conflictTitle": "選擇已在其他位置變更",
-                        "staleTitle": "技能清單可能不是最新版本",
                         "unavailableTitle": "技能選擇無法使用",
                         "invalidTitle": "選擇需要檢查"
-                    }
+                    },
+                    "useLatest": "使用最新版本",
+                    "retryImport": "重試匯入",
+                    "aboutTitle": "技能的運作方式"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "新增記憶",
                     "search": "搜尋記憶",
                     "noMatches": "沒有符合的記憶",
-                    "stale": "已儲存的資料已過期。上次重新整理：{time}。請重新整理以檢視目前資料。",
                     "deleteFact": "刪除此事實或關係？",
                     "deleteEntry": "刪除「{title}」，包括 {facts} 筆事實與 {relations} 筆關係？",
                     "savedHidden": "已儲存。清除搜尋即可檢視此記憶。",
@@ -1468,7 +1471,6 @@
                     "from": "起點",
                     "to": "終點",
                     "type": "關係類型",
-                    "staleTitle": "記憶清單可能不是最新版本",
                     "errorTitle": "記憶庫無法使用"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "請將其中一個端點保持連接至此記憶。",
                     "invalidText": "請輸入非空白的標題與內文。",
                     "missing": "此紀錄無法使用或已不屬於此記憶。請重新整理並檢視。",
-                    "unconfirmed": "無法確認結果。請保留草稿，重新整理並檢視目前資料後再試。",
+                    "unconfirmed": "無法確認結果。請保留草稿，檢查目前資料後再重試。",
                     "loadFailed": "無法載入記憶。請重新整理以重試。"
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "retry": "重試"
                 },
                 "viewer": {
-                    "none": "無",
                     "observations": "觀察",
                     "relations": "關聯"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "無法載入提示詞歷程記錄。"
             },
             "sketch": {
+                "capacityReached": "已達到繪圖容量上限。請復原並取代一次編輯、附加影像，或捨棄草圖後重新開始。",
                 "open": "開啟草圖",
                 "mobileOption": "草圖",
                 "preference": "草圖",
@@ -1711,7 +1713,9 @@
                 "attach": "附加",
                 "discardConfirm": "要捨棄此草圖嗎？",
                 "discard": "捨棄",
-                "exportFailed": "無法匯出草圖，請再試一次。"
+                "exportFailed": "無法匯出草圖，請再試一次。",
+                "draftChangedConfirm": "繪畫期間聊天草稿已變更。要將此繪畫附加至目前的草稿嗎？取消後仍會保留繪畫。",
+                "draftChangedAgain": "聊天草稿再次變更。繪畫已保留。請重新嘗試附加。"
             },
             "characterMap": {
                 "allEmoji": "所有表情符號",
@@ -2514,6 +2518,28 @@
                     "metric": "指標"
                 },
                 "wind": "風速"
+            },
+            "find": {
+                "open": "在對話中尋找",
+                "placeholder": "在對話中尋找…",
+                "close": "關閉",
+                "previous": "上一個相符項目",
+                "next": "下一個相符項目",
+                "count": "{current} / {total}",
+                "none": "沒有相符項目",
+                "updating": "正在更新結果…",
+                "stale": "連線已中斷 · 上次檢查於 {seconds} 秒前",
+                "incomplete": "搜尋尚未完成。請重試。",
+                "error": "搜尋失敗。請重試。",
+                "tooLong": "最多輸入 256 個字元。",
+                "limited": "超過 5,000 則相符訊息 · 導覽範圍為保留的結果",
+                "editing": "請完成或取消編輯，以顯示此相符項目。",
+                "missing": "此相符項目已變更或遭刪除。請重試。",
+                "timeout": "顯示此相符項目逾時。請重試。",
+                "retry": "重試",
+                "before": "前方有 {count} 個相符項目",
+                "after": "後方有 {count} 個相符項目",
+                "disconnected": "連線已中斷。請重新連線以搜尋。"
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "清除"
+                "clear": "清除",
+                "downloadAll": "下載所有日誌"
             },
             "ariaLabels": {
                 "clearLogs": "清除日誌",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "正在重新連接日誌串流...",
-            "windowTitle": "SoAI 日誌"
+            "windowTitle": "SoAI 日誌",
+            "errors": {
+                "download": "無法下載日誌。請檢查連線後重試。",
+                "missing": "日誌目錄不存在。請檢查日誌設定。",
+                "changed": "擷取期間日誌發生變更。請重新下載。",
+                "unsafe": "發現不安全的路徑或不支援的項目。請移除連結後重試。",
+                "paths": "請檢查設定的日誌目錄和暫存目錄。",
+                "permission": "存取遭拒。請檢查目錄權限和檔案共用設定後重試。",
+                "limits": "超出封存限制或不符合檔名要求。請縮小日誌目錄樹或更正名稱。",
+                "timeout": "日誌匯出逾時。請在伺服器較空閒時重試。",
+                "write": "無法寫入封存檔。請檢查暫存空間後重試。",
+                "response": "伺服器未傳回有效的 ZIP 附件。請重新下載。"
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "開始搜尋",
                 "filesNotFound": "找不到符合「{query}」的檔案或資料夾",
                 "notFound": "找不到「{query}」的結果",
-                "title": "找不到結果"
+                "title": "找不到結果",
+                "minimumCharacters": "請輸入至少 {count} 個字元以進行搜尋。"
             },
             "pages": {
                 "about": {

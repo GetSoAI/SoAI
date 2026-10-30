@@ -6,7 +6,7 @@ import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import { getLocalizationSnapshot } from '@core/localization/public.ts';
 import { buildChatMessageWorkerTranslations } from '@features/chat/message/messageview/chatMessageTranslations.ts';
 import { ChatMessageRenderWorkerPool } from '@features/chat/messagerenderworker/pool.ts';
-import { buildIconKey, type IconKey, type RenderAssistantBodyFromMessageInput, type RenderInlineDetailsFromMessageInput, type WorkerResources } from '@features/chat/messagerenderworker/protocol.ts';
+import { buildIconKey, type IconKey, type RenderAssistantBodyFromMessageInput, type RenderInlineDetailsFromMessageInput, type RenderSearchTextInput, type WorkerResources } from '@features/chat/messagerenderworker/protocol.ts';
 import { NEWS_HEADER_ICON_OPTIONS, NEWS_LINK_ICON_OPTIONS, NEWS_PLACEHOLDER_ICON_OPTIONS } from '@features/chat/message/messageview/assistantNewsIcons.ts';
 import { PLAN_WIDGET_ACTION_ICON_OPTIONS, PLAN_WIDGET_HEADER_ICON_OPTIONS } from '@features/chat/message/messageview/assistantPlanWidgetIcons.ts';
 import { WEATHER_FORECAST_ICON_OPTIONS, WEATHER_HEADER_ICON_OPTIONS, WEATHER_ICON_OPTIONS } from '@features/chat/message/messageview/weatherWidgetIcons.ts';
@@ -54,6 +54,10 @@ class ChatMessageRenderWorkerClient {
         return this.#renderWorkers.getWorkerCount();
     }
 
+    renderSearchText(inputArguments: RenderSearchTextInput): Promise<string> {
+        return this.#renderWorkers.renderSearchText(inputArguments);
+    }
+
     #buildWorkerIconsByKey(): Record<IconKey, string> {
         const entries: Array<{ name: IconName; options?: IconOptions }> = [
             { name: 'copy', options: { size: 14, strokeWidth: 1.5 } },
@@ -77,6 +81,7 @@ class ChatMessageRenderWorkerClient {
             { name: 'file-document', options: { size: 16, strokeWidth: 1.5 } },
             { name: 'file-generic', options: { size: 16, strokeWidth: 1.5 } },
             { name: 'file-image', options: { size: 16, strokeWidth: 1.5 } },
+            { name: 'download', options: { size: 16, strokeWidth: 1.5 } },
             { name: 'file-text', options: { size: 16, strokeWidth: 1.5 } },
             { name: 'file-video', options: { size: 16, strokeWidth: 1.5 } },
             { name: 'news', options: NEWS_HEADER_ICON_OPTIONS },

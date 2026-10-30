@@ -16,6 +16,8 @@ import { collectMermaidContainersByKey, restoreMermaidContainersByKey } from '@f
 import { applyKeyedScrollableState, readKeyedScrollableState } from '@features/chat/stream/streamScrollableState.ts';
 import { applyStreamingTextFadeToElement, markStreamingTextContinuation } from '@features/chat/stream/streamingTextFadeWrap.ts';
 
+const validatedMarkupByContainer = new WeakMap<HTMLElement, { documentRef: Document; markupByKey: ReadonlyMap<string, string> }>();
+
 const shouldApplyInsertAnimation = (node: HTMLElement, disabled: boolean): boolean => {
     if (disabled) {
         return false;
@@ -57,12 +59,16 @@ const repositionExistingChild = (container: HTMLElement, existing: HTMLElement, 
 };
 
 export const patchStreamingKeyedChildren = (inputArguments: PatchStreamingKeyedChildrenArguments): AssistantKeyedPatchResult => {
-    const { container, items, cachedMarkupByKey } = inputArguments;
+    const { container, items } = inputArguments;
+    const cachedMarkupByKey = inputArguments.cachedMarkupByKey === null ? null : new Map(inputArguments.cachedMarkupByKey);
     const policy = resolveAssistantKeyedPatchPolicy(inputArguments.policy);
     if (buildAssistantBodyItems(container) === null) {
         return createUnsupportedAssistantKeyedPatchResult();
     }
 
+    const previousValidation = validatedMarkupByContainer.get(container);
+    const validatedMarkupByKey = previousValidation?.documentRef === container.ownerDocument ? previousValidation.markupByKey : null;
+    const childRegistry = createAssistantKeyedChildRegistry(container, ASSISTANT_BODY_KEY_ATTRIBUTE_NAME);
     const nextMarkupByKey = new Map<string, string>();
     const nextSignatureByKey = new Map<string, string>();
     const desiredSignatureByKey = new Map<string, string | null>();
@@ -76,7 +82,9 @@ export const patchStreamingKeyedChildren = (inputArguments: PatchStreamingKeyedC
         if (!item.key.trim() || !item.signature.trim() || itemKeys.has(item.key) || hasMarkup === hasElement) {
             return createUnsupportedAssistantKeyedPatchResult();
         }
-        let created = item.element ?? null;
+        const existing = childRegistry.existingByKey.get(item.key) ?? null;
+        const previouslyValidatedMarkup = hasMarkup && validatedMarkupByKey?.get(item.key) === item.markup && cachedMarkupByKey?.get(item.key) === item.markup;
+        let created = item.element ?? (previouslyValidatedMarkup ? existing : null);
         try {
             created ??= parseSingleRootElement({ documentRef: container.ownerDocument, html: toTrustedUiHtml(item.markup ?? ''), context: container.ownerDocument });
         } catch {
@@ -94,6 +102,7 @@ export const patchStreamingKeyedChildren = (inputArguments: PatchStreamingKeyedC
     }
 
     if (canSkipAssistantKeyedPatch({ container, orderedKeys, desiredSignatureByKey })) {
+        validatedMarkupByContainer.set(container, { documentRef: container.ownerDocument, markupByKey: new Map(nextMarkupByKey) });
         return createUnchangedAssistantKeyedPatchResult();
     }
 
@@ -111,7 +120,6 @@ export const patchStreamingKeyedChildren = (inputArguments: PatchStreamingKeyedC
         return assistantDomState;
     };
 
-    const childRegistry = createAssistantKeyedChildRegistry(container, ASSISTANT_BODY_KEY_ATTRIBUTE_NAME);
     const existingByKey = childRegistry.existingByKey;
     const retainedChildren = childRegistry.retainedChildren;
 
@@ -148,7 +156,7 @@ export const patchStreamingKeyedChildren = (inputArguments: PatchStreamingKeyedC
         stampAssistantBodySegmentSignature(created, desiredSignature);
 
         if (existing) {
-            const patchResult = inputArguments.patchExistingChild({ existing, created, assistantDomState: getAssistantDomState(), applyStreamingReveal: policy.applyStreamingReveal });
+            const patchResult = inputArguments.patchExistingChild({ existing, created, assistantDomState: getAssistantDomState(), applyStreamingReveal: policy.applyStreamingReveal, disableInsertAnimation: policy.disableInsertAnimation });
             if (patchResult.patched) {
                 stampAssistantBodySegmentSignature(existing, patchResult.retainedSignature ?? desiredSignature);
                 const nextAssistantDomState = getAssistantDomState();
@@ -218,6 +226,7 @@ export const patchStreamingKeyedChildren = (inputArguments: PatchStreamingKeyedC
         restoreAssistantViewportStability(viewportStability);
     }
 
+    validatedMarkupByContainer.set(container, { documentRef: container.ownerDocument, markupByKey: new Map(nextMarkupByKey) });
     inputArguments.setCachedMarkupByKey?.(nextMarkupByKey);
     inputArguments.setCachedSignatureByKey?.(nextSignatureByKey);
     return createUpdatedAssistantKeyedPatchResult(changedElements);

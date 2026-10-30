@@ -46,6 +46,7 @@ const applyInputActionVisibility = (host: ChatInputActionHost & VisionSupportHos
             newConversationEnabled: parameters.inputActionNewConversationEnabled === true,
             characterMapEnabled: parameters.inputActionCharacterMapEnabled === true,
             sketchEnabled: parameters.inputActionSketchEnabled === true,
+            findEnabled: parameters.inputActionFindEnabled === true,
             tokenCounterEnabled: parameters.inputActionTokenCounterEnabled === true && auxiliaryAction !== 'token_counter',
             tokenCounterAuxiliaryEnabled: auxiliaryAction === 'token_counter'
         }

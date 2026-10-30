@@ -11,6 +11,7 @@ import { DIALOGS_MODAL_DEFINITIONS } from '@core/ui/modals/dialogs/modalDefiniti
 import { CONTENT_PREVIEW_MODAL_DEFINITIONS } from '@core/ui/modals/contentpreview/modalDefinitions.ts';
 import { POWER_MODAL_DEFINITIONS } from '@features/power/public.ts';
 import { ABOUT_MODAL_DEFINITIONS } from '@features/about/modals/easterEggModal.ts';
+import { createAttachModalDefinition } from '@features/attachmodal/public.ts';
 import { createChatModalDefinitions } from '@features/chat/modals/modalDefinitions.ts';
 import { createDashboardIntroModalDefinition, type DashboardIntroDriverPresenceState, type DashboardIntroStreamManager } from '@features/firstrunmodals/public.ts';
 import { EXPORT_PREVIEW_MODAL_DEFINITIONS } from '@features/exportpreview/public.ts';
@@ -39,6 +40,7 @@ const getAppModalDefinitions = (dependencies: { storage: FirstRunStateStorage; a
             product: dependencies.dashboardIntroProduct,
             streamManager: dependencies.streamManager
         }),
+        createAttachModalDefinition(),
         ...createChatModalDefinitions({ storage: dependencies.storage, apiClient: dependencies.apiClient }),
         ...METRICS_MODAL_DEFINITIONS,
         ...AUTOMATION_MODAL_DEFINITIONS,

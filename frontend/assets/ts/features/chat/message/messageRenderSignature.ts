@@ -12,6 +12,11 @@ import { resolveSubagentResultSignature } from '@features/chat/message/subagentR
 import { normalizeToolLeafName } from '@features/chat/toolactivity/toolLeafName.ts';
 import { resolveToolProjectionActiveStreamingSignature } from '@features/chat/toolactivity/toolProjectionStreamingSignature.ts';
 
+import type { ConversationFindEntry } from '@features/chat/conversationfind/contracts.ts';
+import { requireAssistantMessageVariantIdentity, resolveAssistantSemanticIdentityKey } from '@features/chat/message/assistantMessageIdentity.ts';
+import { resolveConversationInputMessageIdentifierFromMessage, resolveStableMessageDomId } from '@features/chat/message/messageDomIds.ts';
+import { resolvePersistedMessageCursor } from '@features/chat/message/persistedMessageIdentity.ts';
+
 type ChatMessageRenderSignatureMode = 'full' | 'active-streaming';
 
 const resolveComparisonTurnSignatureValue = (comparisonTurn: ChatComparisonTurnRenderModel | null): string => {
@@ -148,4 +153,16 @@ const resolveChatMessageRenderCacheSignature = (domId: string, message: ChatMess
 
 const resolveChatMessageActiveStreamingSignature = (message: ChatMessage, comparisonTurn: ChatComparisonTurnRenderModel | null): string => resolveChatMessageRenderSignatureByMode(message, comparisonTurn, 'active-streaming');
 
-export { resolveChatMessageActiveStreamingSignature, resolveChatMessageRenderCacheSignature, resolveChatMessageRenderSignature };
+const createConversationFindEntry = (message: ChatMessage, count: number, orderMessage: ChatMessage = message): ConversationFindEntry => {
+    const messageId = resolveStableMessageDomId(message);
+    if (messageId === null) throw new Error('Conversation search requires a stable message identity');
+    const comparison = message.role === 'assistant' ? requireAssistantMessageVariantIdentity(message, 'Conversation search') : null;
+    const inputId = resolveConversationInputMessageIdentifierFromMessage(message);
+    const semanticId = message.role === 'assistant' ? resolveAssistantSemanticIdentityKey(message, 'Conversation search') : inputId === null ? messageId : `ci:${inputId}`;
+    const orderTimestamp = orderMessage.timestamp;
+    if (typeof orderTimestamp !== 'number' || !Number.isSafeInteger(orderTimestamp) || orderTimestamp < 0) throw new Error('Conversation search requires a message timestamp');
+    if (!Number.isSafeInteger(count) || count < 0) throw new Error('Conversation search count must be a non-negative integer');
+    return { messageId, semanticId, cursor: resolvePersistedMessageCursor(message), comparison, count, sourceRevision: resolveChatMessageRenderSignature(message, null), orderCursor: resolvePersistedMessageCursor(orderMessage), orderTimestamp };
+};
+
+export { createConversationFindEntry, resolveChatMessageActiveStreamingSignature, resolveChatMessageRenderCacheSignature, resolveChatMessageRenderSignature };

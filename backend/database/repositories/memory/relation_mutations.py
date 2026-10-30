@@ -8,6 +8,7 @@ import sqlite3
 from core.memory.revisions import memory_management_error
 from core.timing.epoch import epoch_ms
 from core.types.json import JSONDict
+from database.repositories.event_outbox.library_changes import sync_enqueue_library_changed
 from database.repositories.memory.entry_mutations import require_entry_revision, require_memory_text
 from database.repositories.memory.management_snapshots import sync_read_managed_entry
 from database.repositories.memory.write_queries_graph_delete import sync_delete_graph
@@ -83,6 +84,7 @@ def sync_update_relation(
         conn.execute(
             "UPDATE mcp_memory_entities SET updated_at_ms = ? WHERE id = ?", (now, endpoint_id)
         )
+    sync_enqueue_library_changed(conn, user_id, "MemoryLibraryChangedEvent")
     return sync_read_managed_entry(conn, user_id, entry_id)
 
 

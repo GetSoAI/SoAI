@@ -5,7 +5,7 @@ import { requireModalPresenter, type ModalPresenterApi } from '@core/modals/moda
 import { closeConversationInputModal, openConversationInputModal, syncConversationInputModal } from '@features/chat/chatuimanager/conversationInputModal.ts';
 import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
 import { toggleToolActivityItem } from '@features/chat/chatuimanager/actions.ts';
-import { clearAttachedFiles, forceScrollToBottom, getElement, isAutoScrollEnabled, requestOlderMessagesIfAtTop, revealElementFromUserAction, scheduleScrollToBottom, scrollIntoView, scrollToBottom, setAutoScrollEnabled, setElementVisibility, setupScrollListener, shouldAutoScrollAfterContentUpdate, updateMicrophoneAvailability } from '@features/chat/chatuimanager/dom.ts';
+import { clearAttachedFiles, forceScrollToBottom, getElement, isAutoScrollEnabled, prepareUserScrollReveal, requestOlderMessagesIfAtTop, revealElementFromUserAction, scheduleScrollToBottom, scrollIntoView, scrollToBottom, setAutoScrollEnabled, setElementVisibility, setupScrollListener, shouldAutoScrollAfterContentUpdate, updateMicrophoneAvailability } from '@features/chat/chatuimanager/dom.ts';
 import { beginConversationScrollRestore, captureCurrentConversationScrollSnapshot, forgetConversationScrollSnapshot, prepareConversationScrollRestore, resolveConversationScrollRestoreCursor, setupConversationScrollSnapshotPersistence } from '@features/chat/chatuimanager/conversationScrollRestoration.ts';
 import { isMainTimelineMeasurementAtBottom } from '@features/chat/mainTimelineScroll.ts';
 import type { MessageCursor } from '@features/chat/storage/storageModels.ts';
@@ -108,6 +108,14 @@ class ChatUIManager {
 
     syncChatChromeVisibility(): void {
         this.#context.state.chatChromeVisibilityRuntime?.sync();
+    }
+
+    focusComposerFromUserAction(): boolean {
+        const input = getElement(this.#context, 'input');
+        if (!(input instanceof HTMLTextAreaElement) || !input.isConnected || this.#context.dependencies.messageManager.isMessageEditing()) return false;
+        this.#context.state.chatChromeVisibilityRuntime?.revealComposer();
+        input.focus({ preventScroll: true });
+        return input.ownerDocument.activeElement === input;
     }
 
     updateInputQueuePreview(): void {
@@ -224,6 +232,10 @@ class ChatUIManager {
 
     revealElementFromUserAction(target: Element | null, options: ScrollIntoViewOptions = {}): void {
         revealElementFromUserAction(this.#context, target, options);
+    }
+
+    prepareUserScrollReveal(): void {
+        prepareUserScrollReveal(this.#context);
     }
 
     clearTimer(timer: number | null | undefined): void {

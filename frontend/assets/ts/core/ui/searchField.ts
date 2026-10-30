@@ -7,7 +7,7 @@ import { resolveOptionalKernelService } from '@core/runtime/runtimeContext.ts';
 import { type TrustedHtml } from '@core/security/public.ts';
 import { uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
-import { createIconSlot } from '@core/ui/icons/view.ts';
+import { createIconSlot, renderIconSlot } from '@core/ui/icons/view.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 
 const SEARCH_FIELD_CLEAR_ATTRIBUTE = 'data-searchbar-clear';
@@ -19,7 +19,7 @@ const renderSearchFieldActions = (className: string = ''): TrustedHtml => {
     const clearLabel = i18n.t('common.search.clear');
     const searchClass = searchFieldActionClass('searchbar-icon', className);
     const clearClass = searchFieldActionClass('searchbar-clear', className);
-    return uiHtml`<span class="${uiAttr(searchClass)}" aria-hidden="true">${getIconSync('search', { size: 16, strokeWidth: 1.5 })}</span><button type="button" class="${uiAttr(clearClass)}" ${SEARCH_FIELD_CLEAR_ATTRIBUTE} aria-label="${uiAttr(clearLabel)}" data-tooltip="${uiAttr(clearLabel)}" data-modal-localize="aria-label data-tooltip">${getIconSync('close', { size: 16, strokeWidth: 1.5 })}</button>`;
+    return uiHtml`<span class="${uiAttr(searchClass)}" aria-hidden="true">${getIconSync('search', { size: 16, strokeWidth: 1.5 })}</span><button type="button" class="${uiAttr(clearClass)}" ${SEARCH_FIELD_CLEAR_ATTRIBUTE} aria-label="${uiAttr(clearLabel)}" data-tooltip="${uiAttr(clearLabel)}" data-modal-localize="aria-label data-tooltip">${renderIconSlot(getIconSync('close', { size: 16, strokeWidth: 1.5 }), { className: 'ui-icon searchbar-clear-icon' })}<span class="loading-spinner searchbar-spinner" aria-hidden="true"></span></button>`;
 };
 
 const createSearchFieldActions = (documentRef: Document, className: string = ''): readonly HTMLElement[] => {
@@ -32,8 +32,18 @@ const createSearchFieldActions = (documentRef: Document, className: string = '')
     const clearLabel = i18n.t('common.search.clear');
     clearButton.setAttribute('aria-label', clearLabel);
     setTooltipText(clearButton, clearLabel);
-    clearButton.appendChild(createIconSlot(documentRef, getIconSync('close', { size: 16, strokeWidth: 1.5 })));
+    clearButton.appendChild(createIconSlot(documentRef, getIconSync('close', { size: 16, strokeWidth: 1.5 }), { className: 'ui-icon searchbar-clear-icon' }));
+    const spinner = documentRef.createElement('span');
+    spinner.className = 'loading-spinner searchbar-spinner';
+    spinner.setAttribute('aria-hidden', 'true');
+    clearButton.append(spinner);
     return [searchIcon, clearButton];
+};
+
+const setSearchFieldLoading = (container: HTMLElement, loading: boolean): void => {
+    if (container.classList.contains('header-search')) return;
+    const value = loading ? 'true' : 'false';
+    if (container.getAttribute('aria-busy') !== value) container.setAttribute('aria-busy', value);
 };
 
 const resolveSearchFieldClearButton = (event: Event): HTMLButtonElement | null => {
@@ -99,5 +109,5 @@ const resetSearchFieldActionService = (): void => {
     if (candidate && 'destroy' in candidate && typeof candidate.destroy === 'function') candidate.destroy();
 };
 
-export { createSearchFieldActions, createSearchFieldActionService, renderSearchFieldActions, resetSearchFieldActionService };
+export { createSearchFieldActions, createSearchFieldActionService, renderSearchFieldActions, resetSearchFieldActionService, setSearchFieldLoading };
 export type { SearchFieldActionService };

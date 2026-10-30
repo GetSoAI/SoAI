@@ -31,6 +31,25 @@ const createHtmlFragment = (inputArguments: { documentRef: Document; html: strin
     return range.createContextualFragment(normalized);
 };
 
+const createInertHtmlParser = (documentRef: Document): ((markup: string, checkpoint: () => Promise<void>) => Promise<HTMLElement>) => {
+    const inertDocument = documentRef.implementation.createHTMLDocument('');
+    return async (markup, checkpoint) => {
+        await checkpoint();
+        inertDocument.open();
+        try {
+            inertDocument.write('<!doctype html><html><head></head><body>');
+            for (let offset = 0; offset < markup.length; offset += 8192) {
+                await checkpoint();
+                inertDocument.write(markup.slice(offset, offset + 8192));
+            }
+        } finally {
+            inertDocument.close();
+        }
+        if (!inertDocument.body) throw new Error('Inert HTML parsing did not create a body');
+        return inertDocument.body;
+    };
+};
+
 const createHtmlTableRow = (inputArguments: { documentRef: Document; html: TrustedHtml; context?: HTMLTableSectionElement | null }): HTMLTableRowElement => {
     const context = inputArguments.context ?? inputArguments.documentRef.createElement('tbody');
     const fragment = createHtmlFragment({
@@ -91,4 +110,4 @@ const appendHtml = (inputArguments: { element: Element; html: string; context?: 
     element.appendChild(fragment);
 };
 
-export { appendHtml, createHtmlFragment, createHtmlTableRow, insertHtmlBefore, replaceChildrenFromHtml, replaceChildrenFromTrustedHtml, serializeElementChildrenToHtml, serializeElementToHtml, serializeNodeToHtml };
+export { appendHtml, createHtmlFragment, createHtmlTableRow, createInertHtmlParser, insertHtmlBefore, replaceChildrenFromHtml, replaceChildrenFromTrustedHtml, serializeElementChildrenToHtml, serializeElementToHtml, serializeNodeToHtml };

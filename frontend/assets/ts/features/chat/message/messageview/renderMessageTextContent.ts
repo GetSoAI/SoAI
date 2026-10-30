@@ -1,6 +1,7 @@
 /* SoAI - Chat feature render message text content [frontend/assets/ts/features/chat/message/messageview/renderMessageTextContent.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ActivityWidgetVisibility } from '@features/chat/toolactivity/generatedImagePresentation.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { renderSpeechSetupPlaceholder } from '@core/speechsetup/presentation.ts';
 import { isArray } from '@core/typeGuards.ts';
@@ -20,7 +21,7 @@ interface RenderMessageTextContentDependencies extends CollapsedLoadingSummaryDe
     getPreRenderedAssistantBodyHtml: (message: ChatMessage) => string | null;
     getLoadingActivityCollapsedState: (message: ChatMessage) => boolean | null;
     renderSegmentsWithOptions: (segments: MessageSegment[], options?: MessageRenderOptions) => string;
-    renderAssistantActivityWidgets: (segments: readonly MessageSegment[]) => string;
+    renderAssistantActivityWidgets: (segments: readonly MessageSegment[], visibility: ActivityWidgetVisibility) => string;
     renderMessageFeedbackMarkup: (message: ChatMessage) => string;
     handleMessageRenderError: (message: ChatMessage, error: Error, context: string) => string;
 }
@@ -54,13 +55,6 @@ const createMessageRenderOptions = (dependencies: RenderMessageTextContentDepend
 
 const shouldUsePreRenderedAssistantBody = (dependencies: RenderMessageTextContentDependencies, message: ChatMessage): boolean => {
     return !resolveLoadingActivitiesCollapsed(dependencies, message);
-};
-
-const isAssistantWidgetRenderReady = (presentation: ChatMessageRenderPresentation, forceSettledAssistantBody: boolean): boolean => {
-    if (forceSettledAssistantBody) {
-        return true;
-    }
-    return !presentation.isActiveStreamingAssistant;
 };
 
 const renderSegmentsWithLoadingGroup = (dependencies: RenderMessageTextContentDependencies, message: ChatMessage, segments: MessageSegment[], presentation: ChatMessageRenderPresentation): string => {
@@ -103,7 +97,7 @@ const renderMessageTextContent = (dependencies: RenderMessageTextContentDependen
             return { html: `${contentHtml}${speechNote}${errorHtml}`, resolvedSegments };
         }
 
-        const widgetsHtml = isAssistantWidgetRenderReady(presentation, forceSettledAssistantBody) ? dependencies.renderAssistantActivityWidgets(resolvedSegments) : '';
+        const widgetsHtml = dependencies.renderAssistantActivityWidgets(resolvedSegments, forceSettledAssistantBody || !presentation.isActiveStreamingAssistant ? 'settled' : 'active');
         return { html: buildAssistantResponseMarkup({ bodyHtml: `${contentHtml}${widgetsHtml}${errorHtml}` }), resolvedSegments };
     } catch (error) {
         const runtimeError = ensureError(error);

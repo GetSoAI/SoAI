@@ -9,7 +9,6 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { signalAborted } from '@core/lifecycle/abortSignals.ts';
 import { optionalTrimmedString } from '@core/types/payloadValueReaders.ts';
-import { PageActionsMenuManager } from '@core/pageActionsMenu.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import { StaticBasePage, type RenderContext } from '@core/StaticBasePage.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -38,10 +37,10 @@ class AutomationPage extends StaticBasePage {
     #controller: AutomationPageController | null = null;
     #initialRunId: string | null = null;
     #initialModal: string | null = null;
-    #toolbarOverflowMenu: PageActionsMenuManager | null = null;
 
     constructor(dependencies: AutomationPageDependencies, basePageDependencies: BasePageDependencies) {
         super(PAGE_ID, { dependencies: basePageDependencies });
+        this.layout.configure({ getActionsMenuBreakpoint: () => 900, collapseActionsMenuToFit: false });
         this.#dependencies = dependencies;
     }
 
@@ -123,19 +122,6 @@ class AutomationPage extends StaticBasePage {
         }
         const signal = this.pageLifecycle.beginListeners();
         controller.connect(signal);
-        this.#toolbarOverflowMenu?.dispose();
-        this.#toolbarOverflowMenu = new PageActionsMenuManager({
-            host: {
-                on: (target: EventTarget, event: string, handler: EventListener) => this.pageResources.on(target, event, handler)
-            },
-            breakpoint: 900,
-            selectors: {
-                wrapper: '.automation-toolbar-overflow',
-                trigger: '.automation-toolbar-overflow-trigger',
-                menu: '.automation-toolbar-overflow-menu'
-            }
-        });
-        this.#toolbarOverflowMenu.initialize(ui.root);
         const modalPresenter = requireModalPresenter();
         const configurationModal = modalPresenter.requireElement(AUTOMATION_CONFIGURATION_MODAL_ID);
         const calendarSettingsModal = modalPresenter.requireElement(AUTOMATION_CALENDAR_SETTINGS_MODAL_ID);
@@ -231,8 +217,6 @@ class AutomationPage extends StaticBasePage {
 
     override async onDestroy(): Promise<void> {
         this.pageLifecycle.abortListeners();
-        this.#toolbarOverflowMenu?.dispose();
-        this.#toolbarOverflowMenu = null;
         this.#controller?.destroy();
         this.#controller = null;
         this.#initialRunId = null;

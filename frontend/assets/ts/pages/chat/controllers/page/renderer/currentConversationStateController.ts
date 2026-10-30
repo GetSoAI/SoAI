@@ -44,13 +44,22 @@ const syncCurrentConversationTitleUi = (host: ChatCurrentConversationRenderDepen
     const pageHeaderOverflowTrigger = host.pageDom.optional('.chat-header-overflow > .page-actions__trigger');
     const renameState = host.conversationState.conversationRenameState;
     const isEditing = Boolean(renameState && renameState.scope === 'header' && renameState.conversationId === host.conversationState.currentConversationId);
+    const canFind = conversation !== null && host.viewState.conversationRenderCache?.viewState === 'messages' && host.viewState.conversationRenderCache.conversationKey === conversation.id;
+    const isFinding = canFind && !isEditing && host.viewState.conversationFindOpen;
+    const findSlot = host.pageDom.optional('.conversation-find');
+    const wasFinding = findSlot !== null && !findSlot.classList.contains('u-hidden');
+    for (const button of host.pageDom.query('.conversation-find-open')) {
+        button.toggleAttribute('disabled', !canFind || isEditing);
+        button.setAttribute('aria-pressed', isFinding ? 'true' : 'false');
+    }
+    findSlot?.classList.toggle('u-hidden', !isFinding);
     const titleValue = conversation ? resolveConversationDisplayTitleFromConversation(conversation, i18n.t('chat.conversation.untitled')) : i18n.t('chat.conversation.newTitle');
 
     if (titleElement instanceof HTMLElement) {
-        if (!isEditing && titleElement.classList.contains('u-hidden')) {
+        if (!isEditing && !isFinding && !wasFinding && titleElement.classList.contains('u-hidden')) {
             requestPresenceEnter(titleElement, false);
         }
-        titleElement.classList.toggle('u-hidden', isEditing);
+        titleElement.classList.toggle('u-hidden', isEditing || isFinding);
         if (!isEditing) {
             const titleText = host.pageDom.optional('.conversation-title-text', titleElement);
             syncConversationTitleIndicator(host, { titleElement, selector: '.conversation-title-automation-indicator', visible: conversation?.isAutomation === true, iconName: 'clock' });

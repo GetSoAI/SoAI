@@ -2,24 +2,24 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { readChatAttachKnowledgeCapabilities } from '@pages/chat/controllers/modals/chatattach/chatAttachKnowledgeCapabilitiesController.ts';
-import type { ChatAttachKnowledgeElements } from '@pages/chat/controllers/modals/chatattach/types.ts';
-import { openFilePicker } from '@pages/chat/controllers/modals/chatattach/view.ts';
 
-const openKnowledgeDocumentsPicker = (elements: ChatAttachKnowledgeElements): void => {
+import { openAttachFilePicker, type AttachKnowledgeElements } from '@features/attachmodal/public.ts';
+
+const openKnowledgeDocumentsPicker = (elements: AttachKnowledgeElements): void => {
     if (!readChatAttachKnowledgeCapabilities().documentsEnabled) {
         return;
     }
-    openFilePicker(elements.documentInput);
+    openAttachFilePicker(elements.documentInput);
 };
 
-const openKnowledgeFolderPicker = (elements: ChatAttachKnowledgeElements): void => {
+const openKnowledgeFolderPicker = (elements: AttachKnowledgeElements): void => {
     if (!readChatAttachKnowledgeCapabilities().foldersEnabled) {
         return;
     }
-    openFilePicker(elements.folderInput);
+    openAttachFilePicker(elements.folderInput);
 };
 
-const openKnowledgePrimaryPicker = (elements: ChatAttachKnowledgeElements): void => {
+const openKnowledgePrimaryPicker = (elements: AttachKnowledgeElements): void => {
     if (readChatAttachKnowledgeCapabilities().documentsEnabled) {
         openKnowledgeDocumentsPicker(elements);
         return;

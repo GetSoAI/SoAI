@@ -21,6 +21,9 @@ from database.repositories.users.chat_preset_mutations import (
     sync_reset_chat_presets,
 )
 from database.repositories.users.chat_preset_rows import list_chat_preset_rows
+from database.repositories.users.domain_event_outbox_dispatch_signal import (
+    notify_domain_event_outbox_dispatch_requested,
+)
 
 if TYPE_CHECKING:
     from core.chat_presets.contracts import (
@@ -36,6 +39,7 @@ __all__ = ("DatabaseChatPresets",)
 class DatabaseChatPresets:
     def __init__(self, deps: DatabaseRepositoryDependencies) -> None:
         self.core = deps.core
+        self._event_bus = deps.event_bus
 
     def _require_user_id(self, user_id: int) -> int:
         self.core.features.ensure_feature_enabled(FEATURE_AUTH)
@@ -58,12 +62,14 @@ class DatabaseChatPresets:
         resolved_user_id = self._require_user_id(user_id)
         canonical_name = canonicalize_chat_preset_name(name)
         canonical_sections = canonicalize_chat_preset_sections(sections)
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_create_chat_preset,
             resolved_user_id,
             canonical_name,
             canonical_sections,
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result
 
     async def rename_chat_preset(
         self,
@@ -74,13 +80,15 @@ class DatabaseChatPresets:
         name: str,
     ) -> ChatPresetMutationResult:
         resolved_user_id = self._require_user_id(user_id)
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_rename_chat_preset,
             resolved_user_id,
             require_chat_preset_id(preset_id),
             require_chat_preset_revision(expected_revision),
             canonicalize_chat_preset_name(name),
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result
 
     async def replace_chat_preset(
         self,
@@ -92,7 +100,7 @@ class DatabaseChatPresets:
         sections: ChatPresetSections,
     ) -> ChatPresetMutationResult:
         resolved_user_id = self._require_user_id(user_id)
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_replace_chat_preset,
             resolved_user_id,
             require_chat_preset_id(preset_id),
@@ -100,6 +108,8 @@ class DatabaseChatPresets:
             canonicalize_chat_preset_name(name),
             canonicalize_chat_preset_sections(sections),
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result
 
     async def delete_chat_preset(
         self,
@@ -109,16 +119,20 @@ class DatabaseChatPresets:
         expected_revision: int,
     ) -> ChatPresetMutationResult:
         resolved_user_id = self._require_user_id(user_id)
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_delete_chat_preset,
             resolved_user_id,
             require_chat_preset_id(preset_id),
             require_chat_preset_revision(expected_revision),
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result
 
     async def reset_chat_presets(self, user_id: int) -> int:
         resolved_user_id = self._require_user_id(user_id)
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_reset_chat_presets,
             resolved_user_id,
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result

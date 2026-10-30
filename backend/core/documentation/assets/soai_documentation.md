@@ -696,7 +696,7 @@ Chat shows actions when they apply. Visibility and availability depend on the mo
 | Message actions | Hover over a message or focus it with the keyboard. The message role and current state decide whether actions such as Edit, Resend message, Regenerate, Speak, or Message info apply. History-changing actions stay unavailable during a turn. |
 | Model selector in the header | The sidebar model selector is the main control while the sidebar is open. The header selector appears when the sidebar is closed or Chat is in a detached window. |
 | Previous variant and Next variant | These appear only on a comparison turn that has more than one model reply. |
-| Saved prompts, character map, sketch, token counter, voice, attachments, and camera | Turn each action on under **Chat configuration** > **Appearance** > **Input actions**. The Upload and Scan panes follow the attachment and camera choices. Dictation can remain disabled when the page or browser cannot record audio or permission is missing. Voice Call also requires a selected conversation model. Scan needs browser camera support and permission. |
+| Saved prompts, character map, sketch, Find in conversation, token counter, voice, attachments, and camera | Turn each action on under **Chat configuration** > **Appearance** > **Input actions**. The Upload and Scan panes follow the attachment and camera choices. Dictation can remain disabled when the page or browser cannot record audio or permission is missing. Voice Call also requires a selected conversation model. Scan needs browser camera support and permission. |
 | Toggle plan bar and Toggle todo bar | These appear after the current conversation has a plan or todo list. |
 
 #### Page layout
@@ -774,6 +774,7 @@ The button label tells you what will happen. An approval, agent question, secret
 
 | Shortcut | Action |
 | --- | --- |
+| `Ctrl`+`F` or `Cmd`+`F` | Open or close [Find in conversation](#find-in-a-conversation). |
 | `Ctrl`+`Enter` or `Cmd`+`Enter` | Send when idle, stop when running, or save an active message edit. |
 | `Shift`+`Enter` | Insert a new line. |
 | `Tab` | Send when idle. During an active turn that accepts more input, queue the composer text and attachments. |
@@ -908,6 +909,16 @@ Under **Chat configuration > Appearance**, turn on **Inline multimedia previews*
 
 **Edit, resend, and regenerate rewrite the continuation of the transcript.** Export or clone the conversation first if you need to preserve the later turns. SoAI disables history-changing message actions while the conversation runs.
 
+#### Find in a conversation
+
+Open a conversation with messages, then press `Ctrl`+`F` or `Cmd`+`F` to open **Find in conversation**. To show its composer button, enable **Chat configuration** > **Appearance** > **Input actions** > **Find in conversation**, then select **Save**. The button is hidden by default.
+
+Enter the text to find, then use **Previous match** and **Next match** to move through the highlighted results. SoAI loads earlier messages and opens the matching comparison reply when needed. Select **Close** to return to the conversation.
+
+Search matches literal text in your messages and assistant replies, excluding reasoning, tool details, and attachment contents. Queries can contain up to 256 characters. If more than 5,000 messages match, narrow the query to reach older results. Use [Global search](#global-search) to find a different conversation.
+
+Select **Retry** if searching or opening a match fails. Disconnected results remain marked as out of date until the connection recovers. If a message is being edited, finish or cancel the edit before opening its match.
+
 #### Use the token counter and compact context
 
 Open **Chat configuration** > **Appearance** > **Input actions**, turn on **Token counter**, and select **Save**. The counter beside the composer shows estimated or measured prompt use and the model's context window when SoAI knows it. Select the counter to switch between token use and generation speed, or hold it to open **Parameters** with the context length in view. Its color changes as the prompt approaches the limit. Prompt use includes the enabled [SoAI system prompt](#soai-system-prompt) and its runtime context.
@@ -1003,7 +1014,7 @@ Open **Chat configuration > Memory** to search your saved memories. Select **Add
 
 Deleting a fact preserves its memory and relationships. Deleting a memory asks you to confirm the affected facts and relationships. Use **Open profile form** to edit structured personal facts; deleting that profile's memory leaves separately saved user and assistant display names intact.
 
-Select **Refresh memory** if entries are out of date. Review newer data before saving a conflicting edit. If a save cannot be confirmed, keep your draft and refresh to check the saved state before retrying.
+Review current data before saving a conflicting edit. If a save cannot be confirmed, keep your draft and check whether the change was saved before retrying.
 
 #### Export a conversation
 
@@ -1291,6 +1302,8 @@ If **Add attachments** is not visible, open **Chat configuration**, choose **App
 
 **Open sketch** is a separate composer action. Enable **Sketch** under **Chat configuration > Appearance > Input actions**, draw in the sketch pad, then select **Attach**. SoAI uploads the drawing through the same direct-file path as Upload; review its card before sending. Closing a sketch with unsaved strokes asks whether to discard them.
 
+If the chat draft changes while you are drawing, **Attach** asks whether to use the current draft. Cancelling keeps the drawing open. If the sketch reaches its drawing capacity, undo and replace an edit, attach the image, or discard the sketch and start again.
+
 ##### Controls that appear only when they apply
 
 | Control | Condition |
@@ -1371,7 +1384,7 @@ The provider receives a prepared projection of each attachment. SoAI chooses it 
 
 Common image formats can be attached through Upload, Workspace, a SoAI link, Scan, or Sketch. A vision-capable model receives normalized visual input within the configured pixel and encoded-size limits. OCR text can accompany the image. If visual preparation fails and OCR succeeded, SoAI can still use the extracted text.
 
-**Scan** captures a browser camera frame as a JPEG. **Switch camera** requests the other facing mode on devices that offer one. Select **Capture**, use **Retake** if needed, then select **Use photo**. A vision-capable selected model receives prepared visual input. Other cases use the document and OCR path. Camera support and permission come from the browser and operating system.
+**Scan** captures a browser camera frame as a JPEG. **Switch camera** cycles through the cameras available to the browser. Select **Capture**, use **Retake** if needed, then select **Use photo**. A vision-capable selected model receives prepared visual input. Other cases use the document and OCR path. Camera support and permission come from the browser and operating system.
 
 ##### Video and audio
 
@@ -1631,7 +1644,7 @@ Use the search field to find a skill by name or description. Disable it and save
 
 Work already accepted keeps the skill content it started with, including when a skill is removed while the assistant is working, or while a prompt waits in the queue. Steering that work uses the same skill selection; a newly accepted prompt or regenerated reply uses the selection saved at that time. To replace a skill, remove the old one, import the revised package, and select it again in the chats and presets where you want it.
 
-If another tab changes the selection while you are editing it, review the conflict before saving. Refresh to use the saved selection, or keep your draft after reviewing the newer selection. During a disconnect, SoAI retains your draft and waits for a current snapshot before allowing a save.
+If another tab changes the selection while you are editing it, review the conflict before saving. Select **Use latest** to use the saved selection, or **Keep my selection** to retain your draft after reviewing the newer selection. During a disconnect, SoAI retains your draft and waits for current data before allowing a save.
 
 #### Imports and limits
 
@@ -1653,7 +1666,7 @@ Removed skills may still occupy storage while accepted work uses them. If an imp
 
 Import retains the skill packages and the supporting files they reference, without running scripts, installing dependencies, registering hooks, or connecting services. Collection materialization preserves source-relative positions and returns the actual skill directory together with its source root. Use that root for `CLAUDE_PLUGIN_ROOT` paths. Install or configure a missing prerequisite explicitly before running the workflow. Tool declarations never grant permissions; supported restrictions continue to apply to remaining actions and delegated tool selection. An `allowed-tools` list that omits `skill_read` still lets the assistant read the active skill's supporting files; list it under `disallowed-tools` to block those reads. Unsupported restrictive syntax must be corrected before activation.
 
-If the upload response is lost, use its retry action before starting another import. Closing the dialog does not undo an import; reopen it to check the library. Use each skill's **Delete** action to remove it.
+If the upload response is lost, select **Retry import** to check whether the import completed before starting another one. Closing the dialog does not undo an import; reopen it to check the library. Use each skill's **Delete** action to remove it.
 
 Skills are available in ordinary SoAI chats and their delegated work. They are not personal instructions for [automations](#automations), [messaging integrations](#connect-messaging-apps-to-soai), [external inference API requests](#http-api-reference), or [clients connected to SoAI's MCP server](#use-soai-as-an-mcp-server). A copied conversation history does not select or activate skills for the new conversation.
 
@@ -4875,7 +4888,7 @@ Open the **Memory** tab to search your saved entries. Select **Add memory** to w
 
 Use **Open profile form** to save your preferred name, communication preferences, role, current goals, recurring projects, and anything to avoid. These facts give later conversations useful background without making you repeat it. Removing the profile's memory leaves separately saved user and assistant display names intact.
 
-Select **Refresh memory** to load changes made by an agent or another session. If a save conflicts with newer data, review that data before saving again. If SoAI cannot confirm a save, keep your draft and refresh to check whether the change was saved before retrying. See [Manage memory](#manage-memory) for the Chat workflow.
+Review current data before saving a conflicting edit. If a save cannot be confirmed, keep your draft and check whether the change was saved before retrying. See [Manage memory](#manage-memory) for the Chat workflow.
 
 #### Write and maintain the memory graph
 
@@ -5458,7 +5471,11 @@ Drag or swipe the chart to move through time, and use the mouse wheel or a pinch
 
 The visible-line choices are 100, 250, 500, 1,000, 2,000, and 5,000. With no saved preference, the page defaults to 250 lines, and the browser remembers the selected source and line count. **Clear** empties the browser view but does not delete a log file, and new stream entries continue to arrive. The page follows incoming entries while you remain at the bottom of the view. If server logging is disabled, no log sources are available.
 
-The main log directory and file name come from [`OBSERVABILITY.LOGGING.LOGS_PATH`](#config-OBSERVABILITY.LOGGING.LOGS_PATH) and [`OBSERVABILITY.LOGGING.MAIN_LOG`](#config-OBSERVABILITY.LOGGING.MAIN_LOG). By default, SoAI rotates the main log daily at local midnight, retains 5 rotated files, and leaves compression off. The settings are [`OBSERVABILITY.LOGGING.MAIN_LOG_BACKUP_COUNT`](#config-OBSERVABILITY.LOGGING.MAIN_LOG_BACKUP_COUNT) and [`OBSERVABILITY.LOGGING.LOGGING_SYSTEM.MAIN_LOG_COMPRESS_LOGS`](#config-OBSERVABILITY.LOGGING.LOGGING_SYSTEM.MAIN_LOG_COMPRESS_LOGS).
+Select **Download all logs** to save a ZIP of log files from the configured logs directory, including the configured main and audit logs and their rotated or compressed copies. The selected source and visible-line limit affect the live viewer only; they do not restrict the download.
+
+Logging continues during capture. The archive includes `diagnostics.json` with capture times and a file inventory, so it describes the captured contents rather than one simultaneous snapshot. See [Build a reproducible report](#build-a-reproducible-report) before sharing an archive, or [Log download recovery](#watching-logs-and-cancelling-tasks) if capture fails.
+
+The main log directory and file name come from [`OBSERVABILITY.LOGGING.LOGS_PATH`](#config-OBSERVABILITY.LOGGING.LOGS_PATH) and [`OBSERVABILITY.LOGGING.MAIN_LOG`](#config-OBSERVABILITY.LOGGING.MAIN_LOG). The audit log path comes from [`OBSERVABILITY.LOGGING.AUDIT.PATH`](#config-OBSERVABILITY.LOGGING.AUDIT.PATH). By default, SoAI rotates the main log daily at local midnight, retains 5 rotated files, and leaves compression off. The settings are [`OBSERVABILITY.LOGGING.MAIN_LOG_BACKUP_COUNT`](#config-OBSERVABILITY.LOGGING.MAIN_LOG_BACKUP_COUNT) and [`OBSERVABILITY.LOGGING.LOGGING_SYSTEM.MAIN_LOG_COMPRESS_LOGS`](#config-OBSERVABILITY.LOGGING.LOGGING_SYSTEM.MAIN_LOG_COMPRESS_LOGS).
 
 #### Connection freshness and recovery
 
@@ -5805,7 +5822,9 @@ To remove a model, open it from Models, select **Delete model**, and read the wa
 
 #### Watching logs and cancelling tasks
 
-Open **Logs** from the **Settings** menu at the right of the header to inspect current Core and plugin output. Select the Core or plugin source, choose how many lines to display, and keep the view open while reproducing a failure. Use the Tasks panel in the WebUI header to inspect running operations.
+With **Log access** ([`LOG_ACCESS`](#acl-LOG_ACCESS)), open **Logs** from the **Settings** menu at the right of the header to inspect current Core and plugin output. Select the Core or plugin source, choose how many lines to display, and keep the view open while reproducing a failure. Use the Tasks panel in the WebUI header to inspect running operations.
+
+Use **Download all logs** to save the available log files. If logs change during capture, retry the download. For a permission or storage failure, correct the reported cause before retrying. See [Log archive contents and capture behavior](#logs) for what the download includes.
 
 To cancel an operation, open Tasks and select **Cancel running task** when that control is available for the entry. Cancellation is a request, so wait for the final status before retrying. **Stop all activity** appears only when the panel contains a stoppable non-persistent plugin or visible cancelable operation; persistent plugins cannot be stopped from this panel. See [Tasks and notifications](#tasks-and-notifications) for the panel controls and outcomes.
 
@@ -6181,7 +6200,7 @@ The report is designed to be pasted into a [GitHub](https://github.com/) issue o
 - Include the exact final status, HTTP status, task ID, trace ID, or reference ID shown by SoAI.
 - State whether the problem affects Core, one plugin, one model, one browser, or every client.
 - Attach the reviewed System information report. Add the relevant GPU driver and any model or provider details that the generated report does not contain.
-- Attach only the log window and configuration fields needed to reproduce the failure.
+- Attach only the log excerpts and configuration fields needed to reproduce the failure. If a full archive is needed, select **Download all logs** on the [Logs page](#logs) and review the ZIP before sharing it. Its `diagnostics.json` includes the machine name, platform, architecture, capture times, and file inventory.
 
 Remove API keys, passwords, cookies, authorization headers, provider credentials, private prompts, personal data, proprietary file contents, and unrelated configuration values from every attachment. Replace each removed value with a label so the report remains understandable. **Do not send a full configuration export unless an approved private support channel explicitly requires it.**
 
@@ -6643,7 +6662,7 @@ A signed-in human account can manage its own [skill library](#skills) without pl
 | Internal search access | `SEARCH_READ` | Search across internal SoAI resources. | Standard: default |
 | Internal session-cookie access | `AUTH_COOKIE` | Use internal HTTP and realtime surfaces with an authenticated WebUI session. | Standard: default |
 | Licensing administration | `LICENSING_ADMIN` | Review licensing status and perform licensing maintenance and recovery actions. | Administrator only; required |
-| Log access | `LOG_ACCESS` | View system logs. | Administrator only |
+| Log access | `LOG_ACCESS` | View system logs and download log archives. | Administrator only |
 | MCP administration | `MCP_ADMIN` | Install, configure, and remove MCP servers. | Administrator only |
 | MCP usage | `MCP_USE` | Use MCP tools and resources. | Standard: default |
 | Metrics reset | `METRICS_RESET` | Clear system metrics and statistics. | Administrator only |
@@ -8919,6 +8938,10 @@ A `steer` sent to `/api/v1/webui/conversations/{conv_id}/input-queue` returns HT
 
 The authenticated WebUI skill routes manage a human account's private [skill library](#skills) and the saved selection of an ordinary conversation. They do not enable personal skills for external inference calls. Import takes a multipart file and an `upload_id`; reuse that ID only for the same bytes when recovering an uncertain result, and query its receipt before retrying. Selection updates supply `expected_revision` and `skill_ids`. A stale revision returns `409` with the current selection so the client can review the conflict instead of overwriting it.
 
+##### Download log archives
+
+`GET /api/v1/system/logs/export/archive` requires an authenticated WebUI session and **Log access** ([`LOG_ACCESS`](#acl-LOG_ACCESS)). It returns an `application/zip` attachment with `Cache-Control: no-store`. The archive covers the configured logs directory rather than the live viewer's selected source or line limit. See [Logs in Monitoring and observability](#logs) for archive contents and capture behavior.
+
 #### Transport and network boundaries
 
 `/api/v1/system/ws` is the WebUI WebSocket endpoint. **It carries subscribed real-time resources and interactive sessions; it is not a general replacement for [OpenAI](https://openai.com/) streaming, MCP streamable HTTP, or the REST API.** See [Monitoring and observability](#monitoring-and-observability) for the freshness and reconnect behavior users see in the WebUI.
@@ -9225,6 +9248,7 @@ This table covers every OpenAPI operation in the current Core route composition,
 | `PUT` | `/api/v1/system/instance-name` | Update instance name |
 | `GET` | `/api/v1/system/license` | System license |
 | `GET` | `/api/v1/system/limits` | Get system limits |
+| `GET` | `/api/v1/system/logs/export/archive` | Export logs archive |
 | `GET` | `/api/v1/system/logs/sources` | Get log sources |
 | `GET` | `/api/v1/system/logs/{source_name}` | Get logs snapshot |
 | `POST` | `/api/v1/system/metrics/reset` | Reset all metrics |

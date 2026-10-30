@@ -8,7 +8,7 @@ import type { StreamTransport } from '@core/realtime/streammanager/streamTranspo
 import type { BundleDefinition, BundleHandlers, ResourceListener, ResourceSubscriptionOptions } from '@core/realtime/streammanager/types.ts';
 import type { ResourceStateListener, ResourceValueListener } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
 import { bindResourceTypedSubscription, createResourceTypedSubscription, removeResourceTypedSubscription } from '@core/realtime/streammanager/resources/resourceTypedSubscriptions.ts';
-import { hasResourceLiveDemand } from '@core/realtime/streammanager/resources/resourceActivationPolicy.ts';
+import { hasResourceLiveDemand, releaseResourceDemand } from '@core/realtime/streammanager/resources/resourceActivationPolicy.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import { LifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
 
@@ -38,7 +38,7 @@ class StreamSubscriptions {
         resource.reconciler.setLiveDemand(hasResourceLiveDemand(resource));
         const unsubscribe = (): void => {
             removeResourceTypedSubscription(resource, typedSubscriber);
-            resource.reconciler.setLiveDemand(hasResourceLiveDemand(resource));
+            releaseResourceDemand(resource);
             this.#transport.releaseInterest(interestToken);
         };
         const dispose = this.#own(unsubscribe);

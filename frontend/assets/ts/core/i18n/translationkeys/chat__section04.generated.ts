@@ -1,6 +1,7 @@
 /* SoAI - Frontend core Translation declarations for `chat` namespace section 04 [frontend/assets/ts/core/i18n/translationkeys/chat__section04.generated.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ChatStreamErrorsTranslationKey } from '@core/i18n/translationkeys/chat/stream__errors.generated.ts';
 import type { ChatStreamFailedToGetResponseTranslationKey } from '@core/i18n/translationkeys/chat/stream__failedToGetResponse.generated.ts';
 import type { ChatStreamModelUnavailableTranslationKey } from '@core/i18n/translationkeys/chat/stream__modelUnavailable.generated.ts';
 import type { ChatStreamNoModelSelectedTranslationKey } from '@core/i18n/translationkeys/chat/stream__noModelSelected.generated.ts';
@@ -21,4 +22,4 @@ import type { ChatVoiceCallModalTranslationKey } from '@core/i18n/translationkey
 import type { ChatWaitForUserTranslationKey } from '@core/i18n/translationkeys/chat/waitForUser.generated.ts';
 import type { ChatWeatherTranslationKey } from '@core/i18n/translationkeys/chat/weather.generated.ts';
 
-export type ChatSection04TranslationKey = ChatStreamFailedToGetResponseTranslationKey | ChatStreamModelUnavailableTranslationKey | ChatStreamNoModelSelectedTranslationKey | ChatStreamPreviewTranslationKey | ChatStreamStatusMessagesTranslationKey | ChatSuggestionsTranslationKey | ChatSyncTranslationKey | ChatThinkingTranslationKey | ChatTimeTranslationKey | ChatTokenCounterTranslationKey | ChatToolActivityTranslationKey | ChatToolApprovalTranslationKey | ChatToolbarTranslationKey | ChatToolCallOutputModalTranslationKey | ChatUploadTranslationKey | ChatVoiceCallTranslationKey | ChatVoiceCallModalTranslationKey | ChatWaitForUserTranslationKey | ChatWeatherTranslationKey;
+export type ChatSection04TranslationKey = ChatStreamErrorsTranslationKey | ChatStreamFailedToGetResponseTranslationKey | ChatStreamModelUnavailableTranslationKey | ChatStreamNoModelSelectedTranslationKey | ChatStreamPreviewTranslationKey | ChatStreamStatusMessagesTranslationKey | ChatSuggestionsTranslationKey | ChatSyncTranslationKey | ChatThinkingTranslationKey | ChatTimeTranslationKey | ChatTokenCounterTranslationKey | ChatToolActivityTranslationKey | ChatToolApprovalTranslationKey | ChatToolbarTranslationKey | ChatToolCallOutputModalTranslationKey | ChatUploadTranslationKey | ChatVoiceCallTranslationKey | ChatVoiceCallModalTranslationKey | ChatWaitForUserTranslationKey | ChatWeatherTranslationKey;

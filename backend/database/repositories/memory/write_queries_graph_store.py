@@ -18,6 +18,7 @@ from database.core.sqlite_numbers import (
     coerce_required_int_from_sqlite_row,
     coerce_required_nonempty_str_from_sqlite_row,
 )
+from database.repositories.event_outbox.library_changes import sync_enqueue_library_changed
 from database.repositories.memory.graph_records import (
     sync_insert_memory_entity,
     sync_insert_memory_observation,
@@ -251,6 +252,8 @@ def sync_store_graph(
             },
         )
 
+    if entities_inserted or entities_updated or touched_entity_ids:
+        sync_enqueue_library_changed(conn, user_id, "MemoryLibraryChangedEvent")
     return {
         "entities_inserted": entities_inserted,
         "entities_updated": entities_updated,

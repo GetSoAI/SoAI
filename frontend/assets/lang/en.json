@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "Waiting for image generation",
+                "imageGenerating": "Generating image",
+                "imageUnavailable": "Image preview unavailable.",
+                "imageRetry": "Try generating the image again.",
                 "requestedAt": "Requested {time}"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "Hide messaging conversations",
                 "hideMessagingConversationsHint": "When enabled, messaging account conversations are hidden from the sidebar list",
                 "inputActions": {
+                    "newConversationHint": "Show the new conversation action in the chat composer",
+                    "findHint": "Show the conversation search action in the chat composer",
                     "prompts": "Saved prompts",
                     "title": "Input actions",
                     "tokenCounter": "Token counter",
@@ -758,7 +764,6 @@
                     "description": "Persistent memory helps SoAI understand your preferences, goals, and recurring context without requiring a custom prompt every time",
                     "empty": "No memory stored yet",
                     "openProfile": "Open profile form",
-                    "refresh": "Refresh memory",
                     "title": "Memory settings",
                     "userMemoriesTitle": "User memories"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "Send this parameter to the model",
                 "maxCompletionTokens": "Max completion tokens",
-                "maxCompletionTokensHint": "Token limit including reasoning for reasoning models (o1, o3). Overrides max tokens",
+                "maxCompletionTokensHint": "Token limit including reasoning for reasoning models. Overrides max tokens",
                 "agentMaxIterations": "Agent max iterations",
                 "agentMaxIterationsHint": "Maximum agent loop iterations before the conversation stops. Use a very large value for practically uncapped runs",
                 "maxTokens": "Max tokens:",
@@ -974,7 +979,6 @@
                     "omittedSettings": "{count} unsupported or invalid saved setting(s) were omitted",
                     "replaceAction": "Replace",
                     "renameAction": "Rename",
-                    "retryAction": "Try again",
                     "resetAction": "Reset library",
                     "resetMessage": "Permanently delete every saved chat configuration preset? This is the recovery action for corrupted preset records and cannot be undone.",
                     "resetFailed": "The preset library could not be reset. Your saved presets were not presented as deleted; try again.",
@@ -986,15 +990,13 @@
                     "searchLabel": "Search presets",
                     "searchPlaceholder": "Search presets...",
                     "saved": "Preset library updated.",
-                    "stale": "Showing the last successful preset list from {value}. Refresh before editing.",
                     "structurallyInvalid": "{count} corrupted preset record(s) could not be shown.",
                     "status": {
                         "emptyDetail": "Create a preset from the staged values in this modal and choose exactly which sections it should include.",
                         "emptyTitle": "Build your first reusable setup",
                         "errorTitle": "Preset library unavailable",
                         "noMatchesTitle": "No matching presets",
-                        "recoveryTitle": "Some presets need attention",
-                        "staleTitle": "Preset list may be out of date"
+                        "recoveryTitle": "Some presets need attention"
                     },
                     "errors": {
                         "ambiguous": "The request outcome is uncertain. The preset list is being reconciled; review it before trying again.",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "Remove this skill from your library and future selections in your chats? Accepted work keeps its package. Workspace files and conversation history remain.",
                     "conflict": "The selection changed elsewhere. Review the current selection before saving your draft",
                     "keepDraft": "Keep my selection",
-                    "stale": "Skills are not up to date. Reconnect or retry before saving",
+                    "stale": "Skills are out of date. Wait for the connection to recover before saving.",
                     "search": "Search skills...",
                     "emptyTitle": "Add your first skill",
                     "noMatchesTitle": "No matching skills",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "Skill import limit exceeded for {field}: {measured} > {limit}. Reduce the archive or remove unused skills before retrying.",
                         "manifestPosition": "Invalid YAML at line {line}, column {column}. Correct SKILL.md and retry."
                     },
-                    "importUncertain": "The import outcome is uncertain. Keep this file selected and use Refresh to check the receipt before retrying.",
+                    "importUncertain": "The import outcome is uncertain. Keep the file selected and choose Retry import to check its receipt.",
                     "invalidSelection": "Some selected skills are unavailable or exceed the library limit. Refresh, then adjust the selection before saving",
                     "status": {
                         "importTitle": "Import outcome uncertain",
                         "conflictTitle": "Selection changed elsewhere",
-                        "staleTitle": "Skill list may be out of date",
                         "unavailableTitle": "Skill selection unavailable",
                         "invalidTitle": "Selection needs review"
-                    }
+                    },
+                    "useLatest": "Use latest",
+                    "retryImport": "Retry import",
+                    "aboutTitle": "How skills work"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "Add memory",
                     "search": "Search memories",
                     "noMatches": "No matching memories",
-                    "stale": "Saved data is stale. Last refresh: {time}. Refresh to review current data.",
                     "deleteFact": "Delete this fact or relationship?",
                     "deleteEntry": "Delete “{title}”, including {facts} facts and {relations} relationships?",
                     "savedHidden": "Saved. Clear the search to see this memory.",
@@ -1468,7 +1471,6 @@
                     "from": "From",
                     "to": "To",
                     "type": "Relationship type",
-                    "staleTitle": "Memory list may be out of date",
                     "errorTitle": "Memory library unavailable"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "Keep one endpoint connected to this memory.",
                     "invalidText": "Enter a nonblank title and text.",
                     "missing": "This record is unavailable or no longer belongs to this memory. Refresh and review it.",
-                    "unconfirmed": "The result could not be confirmed. Keep your draft and refresh to review current data before trying again.",
+                    "unconfirmed": "The result could not be confirmed. Keep your draft and review the current data before retrying.",
                     "loadFailed": "Memories could not be loaded. Refresh to try again."
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "title": "Help SoAI know you"
                 },
                 "viewer": {
-                    "none": "None",
                     "observations": "Observations",
                     "relations": "Relations"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "Failed to load prompt history."
             },
             "sketch": {
+                "capacityReached": "Drawing capacity reached. Undo and replace an edit, attach the image, or discard the sketch and start again.",
                 "open": "Open sketch",
                 "mobileOption": "Sketch",
                 "preference": "Sketch",
@@ -1711,7 +1713,9 @@
                 "attach": "Attach",
                 "discardConfirm": "Discard this sketch?",
                 "discard": "Discard",
-                "exportFailed": "The sketch could not be exported. Please try again."
+                "exportFailed": "The sketch could not be exported. Please try again.",
+                "draftChangedConfirm": "The chat draft changed while you were drawing. Attach this drawing to the current draft? Cancel keeps your drawing.",
+                "draftChangedAgain": "The chat draft changed again. Your drawing is kept. Try attaching again."
             },
             "characterMap": {
                 "allEmoji": "All Emoji",
@@ -2514,6 +2518,28 @@
                     "metric": "Metric"
                 },
                 "wind": "Wind"
+            },
+            "find": {
+                "open": "Find in conversation",
+                "placeholder": "Find in conversation…",
+                "close": "Close",
+                "previous": "Previous match",
+                "next": "Next match",
+                "count": "{current} of {total}",
+                "none": "No matches",
+                "updating": "Updating results…",
+                "stale": "Disconnected · last checked {seconds}s ago",
+                "incomplete": "Search incomplete. Retry.",
+                "error": "Search failed. Retry.",
+                "tooLong": "Use at most 256 characters.",
+                "limited": "5,000+ matching messages · navigation covers retained results",
+                "editing": "Finish or cancel editing to reveal this match.",
+                "missing": "This match changed or was removed. Retry.",
+                "timeout": "Revealing this match timed out. Retry.",
+                "retry": "Retry",
+                "before": "{count} matches before",
+                "after": "{count} matches after",
+                "disconnected": "Disconnected. Reconnect to search."
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "Clear"
+                "clear": "Clear",
+                "downloadAll": "Download all logs"
             },
             "ariaLabels": {
                 "clearLogs": "Clear logs",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "Reconnecting to log stream...",
-            "windowTitle": "SoAI logs"
+            "windowTitle": "SoAI logs",
+            "errors": {
+                "download": "Could not download logs. Check the connection and retry.",
+                "missing": "The logs directory is missing. Check logging settings.",
+                "changed": "Logs changed during capture. Retry the download.",
+                "unsafe": "Unsafe paths or unsupported entries were found. Remove links and retry.",
+                "paths": "Check the configured logs and temporary directories.",
+                "permission": "Access was denied. Check directory permissions and file sharing, then retry.",
+                "limits": "Archive limits or filename requirements were exceeded. Reduce the logs tree or correct names.",
+                "timeout": "Logs export timed out. Retry when the server is less busy.",
+                "write": "Could not write the archive. Check temporary storage and retry.",
+                "response": "The server did not return a valid ZIP attachment. Retry the download."
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "Start a search",
                 "filesNotFound": "No files or folders found for \"{query}\"",
                 "notFound": "No results found for \"{query}\"",
-                "title": "No results found"
+                "title": "No results found",
+                "minimumCharacters": "Enter at least {count} characters to search."
             },
             "pages": {
                 "about": {

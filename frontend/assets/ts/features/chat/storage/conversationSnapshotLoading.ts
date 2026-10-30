@@ -11,11 +11,36 @@ import type { ChatStorageMessageRecord, Conversation, MessageCursor } from '@fea
 
 const CONVERSATION_SNAPSHOT_PAGE_LIMIT = 1000;
 
-type ConversationSnapshotRuntime = Pick<ChatStorageManagerContract, 'api' | 'runWithBoundary' | 'state'>;
+type ConversationSnapshotReader = Pick<ChatStorageManagerContract, 'api' | 'runWithBoundary'>;
+type ConversationSnapshotRuntime = ConversationSnapshotReader & Pick<ChatStorageManagerContract, 'state'>;
 
-const readSnapshotWindow = async (manager: ConversationSnapshotRuntime, conversationId: string, cursor: MessageCursor | null, signal: AbortSignal | undefined): Promise<MessageWindowResponse> => {
+interface ConversationSnapshotVisitOptions {
+    pageLimit?: number;
+    signal?: AbortSignal;
+    verifyFreshness?: boolean;
+    visitPage: (messages: readonly ChatStorageMessageRecord[], metadata: ConversationSnapshotMetadata) => Promise<boolean>;
+}
+
+interface ConversationSnapshotMetadata {
+    totalCount: number;
+    revision: number;
+    visitedCount: number;
+}
+
+interface ConversationSnapshotVisitResult extends ConversationSnapshotMetadata {
+    status: 'complete' | 'stopped';
+}
+
+class ConversationSnapshotChangedError extends Error {
+    constructor() {
+        super('Conversation changed while its complete snapshot was loading');
+        this.name = 'ConversationSnapshotChangedError';
+    }
+}
+
+const readSnapshotWindow = async (manager: ConversationSnapshotReader, conversationId: string, cursor: MessageCursor | null, pageLimit: number, signal: AbortSignal | undefined): Promise<MessageWindowResponse> => {
     throwIfAborted(signal);
-    const request = cursor === null ? serializeConversationMessageWindowRequest({ direction: 'tail', limit: CONVERSATION_SNAPSHOT_PAGE_LIMIT }) : serializeConversationMessageWindowRequest({ direction: 'before', cursor, limit: CONVERSATION_SNAPSHOT_PAGE_LIMIT });
+    const request = cursor === null ? serializeConversationMessageWindowRequest({ direction: 'tail', limit: pageLimit }) : serializeConversationMessageWindowRequest({ direction: 'before', cursor, limit: pageLimit });
     const response = await manager.runWithBoundary('chat:readConversationSnapshot', async () => {
         return await manager.api.webui.chat.messages.window(conversationId, request, signal === undefined ? {} : { signal });
     });
@@ -27,11 +52,11 @@ const readSnapshotWindow = async (manager: ConversationSnapshotRuntime, conversa
     return readResult;
 };
 
-const requireStableSnapshotWindow = (initialWindow: MessageWindowResponse, nextWindow: MessageWindowResponse, currentOldestCursor: MessageCursor): void => {
+const requireStableSnapshotWindow = (initialWindow: MessageWindowResponse, nextWindow: MessageWindowResponse, currentOldestCursor: MessageCursor | null): void => {
     if (nextWindow.totalCount !== initialWindow.totalCount || nextWindow.lastModifiedAtMs !== initialWindow.lastModifiedAtMs) {
-        throw new Error('Conversation changed while its complete snapshot was loading');
+        throw new ConversationSnapshotChangedError();
     }
-    if (nextWindow.newestCursor === null || comparePersistedMessageCursors(nextWindow.newestCursor, currentOldestCursor) >= 0) {
+    if (currentOldestCursor !== null && (nextWindow.newestCursor === null || comparePersistedMessageCursors(nextWindow.newestCursor, currentOldestCursor) >= 0)) {
         throw new Error('Conversation snapshot pagination did not advance toward older messages');
     }
 };
@@ -42,39 +67,65 @@ const requireCompleteSnapshotTail = (initialWindow: MessageWindowResponse): void
     }
 };
 
-const readCompleteConversationSnapshot = async (manager: ConversationSnapshotRuntime, conversationId: string, signal?: AbortSignal): Promise<Conversation> => {
-    const conversation = manager.state.getConversations().get(conversationId);
-    if (!conversation) throw new Error(`Conversation not found: ${conversationId}`);
-    const initialWindow = await readSnapshotWindow(manager, conversationId, null, signal);
+const visitConversationSnapshot = async (manager: ConversationSnapshotReader, conversationId: string, options: ConversationSnapshotVisitOptions): Promise<ConversationSnapshotVisitResult> => {
+    const { signal, visitPage } = options;
+    const pageLimit = options.pageLimit ?? CONVERSATION_SNAPSHOT_PAGE_LIMIT;
+    if (!Number.isSafeInteger(pageLimit) || pageLimit < 1 || pageLimit > CONVERSATION_SNAPSHOT_PAGE_LIMIT) throw new Error('Conversation snapshot page limit must be between 1 and 1000');
+    const initialWindow = await readSnapshotWindow(manager, conversationId, null, pageLimit, signal);
     requireCompleteSnapshotTail(initialWindow);
-    const messagePagesNewestFirst: ChatStorageMessageRecord[][] = [[...initialWindow.messages]];
-    let loadedMessageCount = initialWindow.messages.length;
-    let oldestCursor = initialWindow.oldestCursor;
-    let hasOlder = initialWindow.hasOlder;
-    while (hasOlder) {
+    let currentWindow = initialWindow;
+    let visitedCount = 0;
+    let status: ConversationSnapshotVisitResult['status'] = 'complete';
+    while (true) {
+        visitedCount += currentWindow.messages.length;
+        if (visitedCount > initialWindow.totalCount) {
+            throw new Error('Conversation snapshot contains more messages than its authoritative count');
+        }
+        const shouldContinue = await visitPage(currentWindow.messages, { totalCount: initialWindow.totalCount, revision: initialWindow.lastModifiedAtMs, visitedCount });
+        throwIfAborted(signal);
+        if (!shouldContinue) {
+            status = 'stopped';
+            break;
+        }
+        if (!currentWindow.hasOlder) break;
+        const oldestCursor = currentWindow.oldestCursor;
         if (oldestCursor === null) {
             throw new Error('Conversation snapshot has older messages without an oldest cursor');
         }
-        const nextWindow = await readSnapshotWindow(manager, conversationId, oldestCursor, signal);
+        const nextWindow = await readSnapshotWindow(manager, conversationId, oldestCursor, pageLimit, signal);
         requireStableSnapshotWindow(initialWindow, nextWindow, oldestCursor);
-        messagePagesNewestFirst.push([...nextWindow.messages]);
-        loadedMessageCount += nextWindow.messages.length;
-        oldestCursor = nextWindow.oldestCursor;
-        hasOlder = nextWindow.hasOlder;
-        if (loadedMessageCount > initialWindow.totalCount) {
-            throw new Error('Conversation snapshot contains more messages than its authoritative count');
-        }
+        currentWindow = nextWindow;
     }
-    if (loadedMessageCount !== initialWindow.totalCount) {
+    if (status === 'complete' && visitedCount !== initialWindow.totalCount) {
         throw new Error('Conversation snapshot message count does not match its authoritative count');
     }
+    if (options.verifyFreshness === true) {
+        const finalWindow = await readSnapshotWindow(manager, conversationId, null, pageLimit, signal);
+        requireCompleteSnapshotTail(finalWindow);
+        requireStableSnapshotWindow(initialWindow, finalWindow, null);
+    }
+    return { status, totalCount: initialWindow.totalCount, revision: initialWindow.lastModifiedAtMs, visitedCount };
+};
+
+const readCompleteConversationSnapshot = async (manager: ConversationSnapshotRuntime, conversationId: string, signal?: AbortSignal): Promise<Conversation> => {
+    const conversation = manager.state.getConversations().get(conversationId);
+    if (!conversation) throw new Error(`Conversation not found: ${conversationId}`);
+    const messagePagesNewestFirst: ChatStorageMessageRecord[][] = [];
+    const result = await visitConversationSnapshot(manager, conversationId, {
+        ...(signal === undefined ? {} : { signal }),
+        visitPage: async (messages) => {
+            messagePagesNewestFirst.push([...messages]);
+            return true;
+        }
+    });
     const snapshot = cloneStructured(conversation);
     snapshot.messages = messagePagesNewestFirst.reverse().flat();
     snapshot.messagesHydrated = true;
-    snapshot.messageCount = initialWindow.totalCount;
-    snapshot.updatedAt = Math.max(snapshot.updatedAt, initialWindow.lastModifiedAtMs);
+    snapshot.messageCount = result.totalCount;
+    snapshot.updatedAt = Math.max(snapshot.updatedAt, result.revision);
     delete snapshot.history;
     return snapshot;
 };
 
-export { readCompleteConversationSnapshot };
+export { ConversationSnapshotChangedError, readCompleteConversationSnapshot, visitConversationSnapshot };
+export type { ConversationSnapshotMetadata, ConversationSnapshotReader, ConversationSnapshotVisitOptions, ConversationSnapshotVisitResult };

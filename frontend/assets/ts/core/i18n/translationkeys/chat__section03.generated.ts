@@ -34,6 +34,7 @@ import type { ChatDraftTranslationKey } from '@core/i18n/translationkeys/chat/dr
 import type { ChatEmptyTranslationKey } from '@core/i18n/translationkeys/chat/empty.generated.ts';
 import type { ChatErrorsTranslationKey } from '@core/i18n/translationkeys/chat/errors.generated.ts';
 import type { ChatExportTranslationKey } from '@core/i18n/translationkeys/chat/export.generated.ts';
+import type { ChatFindTranslationKey } from '@core/i18n/translationkeys/chat/find.generated.ts';
 import type { ChatHeaderTranslationKey } from '@core/i18n/translationkeys/chat/header.generated.ts';
 import type { ChatHoldShortcutsTranslationKey } from '@core/i18n/translationkeys/chat/holdShortcuts.generated.ts';
 import type { ChatIngestionTranslationKey } from '@core/i18n/translationkeys/chat/ingestion.generated.ts';
@@ -60,7 +61,6 @@ import type { ChatStatusTranslationKey } from '@core/i18n/translationkeys/chat/s
 import type { ChatStreamComparisonModelsUnavailableTranslationKey } from '@core/i18n/translationkeys/chat/stream__comparisonModelsUnavailable.generated.ts';
 import type { ChatStreamComparisonModelUnavailableTranslationKey } from '@core/i18n/translationkeys/chat/stream__comparisonModelUnavailable.generated.ts';
 import type { ChatStreamErrorCodeTranslationKey } from '@core/i18n/translationkeys/chat/stream__error_code.generated.ts';
-import type { ChatStreamErrorsTranslationKey } from '@core/i18n/translationkeys/chat/stream__errors.generated.ts';
 
 export type ChatSection03TranslationKey =
     | ChatConfigurationTextZoomLargeTranslationKey
@@ -96,6 +96,7 @@ export type ChatSection03TranslationKey =
     | ChatEmptyTranslationKey
     | ChatErrorsTranslationKey
     | ChatExportTranslationKey
+    | ChatFindTranslationKey
     | ChatHeaderTranslationKey
     | ChatHoldShortcutsTranslationKey
     | ChatIngestionTranslationKey
@@ -121,5 +122,4 @@ export type ChatSection03TranslationKey =
     | ChatStatusTranslationKey
     | ChatStreamComparisonModelsUnavailableTranslationKey
     | ChatStreamComparisonModelUnavailableTranslationKey
-    | ChatStreamErrorCodeTranslationKey
-    | ChatStreamErrorsTranslationKey;
+    | ChatStreamErrorCodeTranslationKey;

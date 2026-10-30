@@ -116,6 +116,9 @@ interface ChatTemplateStringSet extends ChatParameterControlsStrings {
     inputActionCameraHint: string;
     inputActionCharacterMap: string;
     inputActionCharacterMapHint: string;
+    inputActionFind: string;
+    inputActionFindHint: string;
+    inputActionNewConversationHint: string;
     inputActionSketch: string;
     inputActionSketchHint: string;
     inputActionPrompts: string;
@@ -169,7 +172,6 @@ interface ChatTemplateStringSet extends ChatParameterControlsStrings {
     memoryUserMemoriesTitle: string;
     memoryDescription: string;
     memoryOpenProfile: string;
-    memoryRefresh: string;
     memoryEmpty: string;
     knowledgeDownloadModel: string;
     knowledgeDownloadModelAttr: string;

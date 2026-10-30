@@ -118,11 +118,20 @@
         }
     }
 
-    @container ui-viewport (width <= 480px) {
+    @container ui-viewport (width <= 1024px) {
         :where([data-section='automation'], [data-page-scope='automation']) .automation-range-title {
-            flex-basis: 100%;
-            order: 4;
-            margin-inline-start: 0;
+            display: none;
+        }
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar {
+            column-gap: var(--space-2);
+            padding: var(--space-3);
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-group--navigation {
+            gap: var(--space-2);
         }
     }
 }

@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isArray, isFiniteNumber, isFunction } from '@core/typeGuards.ts';
+import { dom } from '@core/dom/dom.ts';
+import { HEADER_STAT_CARD_SUPPRESSED_CLASS, resolveHeaderStatCard, setHeaderStatCardSuppressed } from '@core/routing/pages/basepagelayout/headerStats.ts';
+import { applyHeaderStatsLayout } from '@core/headerStatsLayout.ts';
 import { HistoryChartRuntime, renderHistoryChartStatus, resolveHistoryChartStatusElement } from '@features/charts/public.ts';
 import { getGpuDevices, HardwareWidgetManager } from '@features/hardware/public.ts';
 import type { GpuControlManager } from '@pages/hardware/controllers/gpucontrol/GpuControlManager.ts';
@@ -65,9 +68,22 @@ const updateHeaderStats = (context: HardwareRenderActionsContext, snapshot: Hard
     const totalRamElement = context.optionalUI('hardware-stat-total-ram');
     if (totalRamElement) context.updateText(totalRamElement, values.totalRam);
     const totalVramElement = context.optionalUI('hardware-stat-total-vram');
-    if (totalVramElement) context.updateText(totalVramElement, values.totalVram);
+    const vramCard = resolveHeaderStatCard(totalVramElement);
+    const suppressVram = !values.hasVram;
+    const vramVisibilityChanged = vramCard !== null && vramCard.classList.contains(HEADER_STAT_CARD_SUPPRESSED_CLASS) !== suppressVram;
+    if (totalVramElement) {
+        context.updateText(totalVramElement, values.totalVram);
+        setHeaderStatCardSuppressed({ pageDom: dom }, totalVramElement, suppressVram);
+    }
     const totalMemoryElement = context.optionalUI('hardware-stat-total-memory');
-    if (totalMemoryElement) context.updateText(totalMemoryElement, values.totalMemory);
+    if (totalMemoryElement) {
+        context.updateText(totalMemoryElement, values.totalMemory);
+        setHeaderStatCardSuppressed({ pageDom: dom }, totalMemoryElement, suppressVram);
+    }
+    if (vramVisibilityChanged) {
+        dom.flush();
+        applyHeaderStatsLayout(vramCard.parentElement);
+    }
     const platformElement = context.optionalUI('hardware-stat-platform');
     if (platformElement) context.updateText(platformElement, values.platform);
     const systemUptimeElement = context.optionalUI('systemUptime');

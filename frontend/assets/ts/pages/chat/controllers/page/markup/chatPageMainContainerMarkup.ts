@@ -5,6 +5,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { renderLabelAttributes } from '@core/security/public.ts';
 import { CONVERSATION_TITLE_MAX_LENGTH, type ChatPageMarkupContext } from '@features/chat/public.ts';
 import { renderChatHeaderOverflowComposerButtons, renderChatInputActionButtonsInline } from '@pages/chat/controllers/page/markup/ChatInputActionButtonsWidget.ts';
+import { renderConversationFindMarkup, renderConversationFindSpatialMarkup } from '@pages/chat/controllers/conversationfind/view.ts';
 
 const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string => {
     const { strings, sanitizer } = context;
@@ -22,11 +23,12 @@ const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string =>
         <div class="chat-conversation-header glass-surface--no-shadow">
         <div class="chat-header-left">
 	        ${sidebarToggleButton}
-	        <div class="conversation-title-wrapper ui-inline-text-edit">
-	        <button type="button" class="conversation-title ui-inline-text-edit__trigger" data-action="chat:start-conversation-title-edit" ${renderLabelAttributes(i18n.t('common.edit'))}><span dir="auto" class="conversation-title-text ui-inline-text-edit__text">${strings.newTitle}</span><span class="conversation-title-automation-indicator u-hidden" aria-hidden="true"></span><span class="conversation-title-messaging-indicator u-hidden" aria-hidden="true"></span><span class="conversation-title-archive-indicator u-hidden" aria-hidden="true"></span></button>
+	        <div class="conversation-title-wrapper ui-inline-text-edit" data-presence-morph>
+	        <button type="button" class="conversation-title ui-inline-text-edit__trigger" data-presence-visual-only data-action="chat:start-conversation-title-edit" ${renderLabelAttributes(i18n.t('common.edit'))}><span dir="auto" class="conversation-title-text ui-inline-text-edit__text">${strings.newTitle}</span><span class="conversation-title-automation-indicator u-hidden" aria-hidden="true"></span><span class="conversation-title-messaging-indicator u-hidden" aria-hidden="true"></span><span class="conversation-title-archive-indicator u-hidden" aria-hidden="true"></span></button>
 	        <input dir="auto" type="text" class="conversation-title-input ui-inline-text-edit__input u-hidden" aria-label="${editLabel}" value="${newTitleAttr}" maxlength="${CONVERSATION_TITLE_MAX_LENGTH}">
 	        <button type="button" class="conversation-title-save-btn ui-inline-text-edit__save ui-button ui-variant-accent u-hidden" data-action="chat:conversation-title-save" data-presence-visual-only ${renderLabelAttributes(strings.titleSave)}>${strings.saveCommon}</button>
 	        <button type="button" class="conversation-title-cancel-btn ui-inline-text-edit__cancel ui-button ui-variant-neutral u-hidden" data-action="chat:conversation-title-cancel" data-presence-visual-only ${renderLabelAttributes(strings.titleCancel)}>${strings.cancelCommon}</button>
+            ${renderConversationFindMarkup()}
 	        </div>
         </div>
         <div class="chat-header-actions">
@@ -50,8 +52,11 @@ const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string =>
         <div class="agent-todo-panel-container" id="agent-todo-panel-container" data-agent-todo-panel-visibility="hidden" inert></div>
         <div class="chat-messages-area-shell">
         <div class="chat-messages-area"><div class="chat-messages" id="chat-messages"></div></div>
+        <div class="conversation-find-pop-layer" aria-hidden="true"></div>
+        ${renderConversationFindSpatialMarkup()}
         <div class="chat-advanced-scroll chat-advanced-scroll--hidden" aria-hidden="true">
         <div class="chat-advanced-scroll-canvas" aria-hidden="true"></div>
+        <div class="conversation-find-marks" aria-hidden="true"></div>
         <div class="chat-advanced-scroll-fade chat-advanced-scroll-fade--top" aria-hidden="true"></div>
         <div class="chat-advanced-scroll-fade chat-advanced-scroll-fade--bottom" aria-hidden="true"></div>
         <div class="chat-advanced-scroll-viewport" aria-hidden="true"></div>

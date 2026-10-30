@@ -67,6 +67,7 @@ export type ChatChromeVisibilityRuntime = {
     observeScroll: () => void;
     sync: () => void;
     reset: () => void;
+    revealComposer: () => void;
     dispose: () => void;
 };
 
@@ -94,6 +95,7 @@ interface ChatUiSidebarPort {
 type ChatUiNavigationPort = Pick<ChatNavigationMemory, 'getConversationScrollSnapshot' | 'rememberConversationScrollSnapshot' | 'forgetConversationScrollSnapshot' | 'persistConversationScrollSnapshots'>;
 
 interface ChatUiSessionPort {
+    isConversationFindOpen?: () => boolean;
     getCurrentConversationId: () => string | null;
     getCurrentConversation: () => ConversationContract | null;
     getCurrentModel: () => string | null;

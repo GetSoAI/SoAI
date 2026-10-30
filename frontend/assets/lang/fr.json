@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "En attente de la génération de l’image",
+                "imageGenerating": "Génération de l’image",
+                "imageUnavailable": "Aperçu de l’image indisponible.",
+                "imageRetry": "Essayez de générer l’image à nouveau.",
                 "requestedAt": "Demandé à {time}"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "Masquer les conversations de messagerie",
                 "hideMessagingConversationsHint": "Lorsque cette option est activée, les conversations des comptes de messagerie sont masquées dans la liste de la barre latérale",
                 "inputActions": {
+                    "newConversationHint": "Afficher l’action de nouvelle conversation dans la zone de saisie du chat",
+                    "findHint": "Afficher l’action de recherche dans la conversation dans la zone de saisie du chat",
                     "prompts": "Prompts enregistrés",
                     "title": "Actions de saisie",
                     "tokenCounter": "Compteur de tokens",
@@ -758,7 +764,6 @@
                     "description": "La mémoire persistante aide SoAI à comprendre vos préférences, vos objectifs et le contexte récurrent sans nécessiter un prompt personnalisé à chaque fois",
                     "empty": "Aucune mémoire enregistrée pour le moment",
                     "openProfile": "Ouvrir le formulaire de profil",
-                    "refresh": "Actualiser la mémoire",
                     "title": "Paramètres de mémoire",
                     "userMemoriesTitle": "Mémoires utilisateur"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "Envoyer ce paramètre au modèle",
                 "maxCompletionTokens": "Tokens de complétion max.",
-                "maxCompletionTokensHint": "Limite de tokens, raisonnement compris, pour les modèles de raisonnement (o1, o3). Remplace la limite max. de tokens",
+                "maxCompletionTokensHint": "Limite de tokens, raisonnement compris, pour les modèles de raisonnement. Remplace la limite max. de tokens",
                 "agentMaxIterations": "Itérations max. de l’agent",
                 "agentMaxIterationsHint": "Nombre maximal d’itérations de la boucle de l’agent avant l’arrêt de la conversation. Utilisez une valeur très élevée pour des exécutions pratiquement illimitées",
                 "maxTokens": "Tokens max. :",
@@ -974,7 +979,6 @@
                     "omittedSettings": "{count} paramètre(s) enregistré(s) non pris en charge ou non valide(s) ont été omis",
                     "replaceAction": "Remplacer",
                     "renameAction": "Renommer",
-                    "retryAction": "Réessayer",
                     "resetAction": "Réinitialiser la bibliothèque",
                     "resetMessage": "Supprimer définitivement tous les préréglages de configuration de chat enregistrés ? Cette action permet de récupérer après la corruption d’enregistrements de préréglages et ne peut pas être annulée.",
                     "resetFailed": "La bibliothèque de préréglages n’a pas pu être réinitialisée. Vos préréglages enregistrés n’ont pas été marqués comme supprimés ; réessayez.",
@@ -986,15 +990,13 @@
                     "searchLabel": "Rechercher des préréglages",
                     "searchPlaceholder": "Rechercher des préréglages...",
                     "saved": "Bibliothèque de préréglages mise à jour.",
-                    "stale": "Affichage de la dernière liste de préréglages chargée avec succès depuis {value}. Actualisez avant de la modifier.",
                     "structurallyInvalid": "{count} enregistrement(s) de préréglage corrompu(s) n’ont pas pu être affichés.",
                     "status": {
                         "emptyDetail": "Créez un préréglage à partir des valeurs en attente dans cette fenêtre et choisissez précisément les sections qu’il doit inclure.",
                         "emptyTitle": "Créez votre première configuration réutilisable",
                         "errorTitle": "Bibliothèque de préréglages indisponible",
                         "noMatchesTitle": "Aucun préréglage correspondant",
-                        "recoveryTitle": "Certains préréglages nécessitent votre attention",
-                        "staleTitle": "La liste des préréglages n’est peut-être pas à jour"
+                        "recoveryTitle": "Certains préréglages nécessitent votre attention"
                     },
                     "errors": {
                         "ambiguous": "Le résultat de la requête est incertain. La liste des préréglages est en cours de réconciliation ; vérifiez-la avant de réessayer.",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "Supprimer cette compétence de votre bibliothèque et des futures sélections de vos discussions ? Les tâches acceptées conservent leur paquet. Les fichiers de l’espace de travail et l’historique restent disponibles.",
                     "conflict": "La sélection a été modifiée ailleurs. Vérifiez la sélection actuelle avant d’enregistrer votre brouillon",
                     "keepDraft": "Garder ma sélection",
-                    "stale": "Les compétences ne sont pas à jour. Reconnectez-vous ou réessayez avant d’enregistrer",
+                    "stale": "Les compétences ne sont pas à jour. Attendez le rétablissement de la connexion avant d’enregistrer.",
                     "search": "Rechercher des compétences...",
                     "emptyTitle": "Ajoutez votre première compétence",
                     "noMatchesTitle": "Aucune compétence correspondante",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "Limite d’importation de compétences dépassée pour {field} : {measured} > {limit}. Réduisez l’archive ou supprimez des compétences inutilisées, puis réessayez.",
                         "manifestPosition": "YAML invalide à la ligne {line}, colonne {column}. Corrigez SKILL.md et réessayez."
                     },
-                    "importUncertain": "Le résultat de l’importation est incertain. Gardez ce fichier sélectionné et utilisez Actualiser pour vérifier le reçu avant de réessayer.",
+                    "importUncertain": "Le résultat de l’importation est incertain. Gardez le fichier sélectionné et choisissez Réessayer l’importation pour vérifier le reçu.",
                     "invalidSelection": "Certaines compétences sélectionnées sont indisponibles ou dépassent la limite de la bibliothèque. Actualisez, puis ajustez la sélection avant d’enregistrer",
                     "status": {
                         "importTitle": "Résultat de l’importation incertain",
                         "conflictTitle": "Sélection modifiée ailleurs",
-                        "staleTitle": "La liste des compétences n’est peut-être pas à jour",
                         "unavailableTitle": "Sélection des compétences indisponible",
                         "invalidTitle": "La sélection doit être vérifiée"
-                    }
+                    },
+                    "useLatest": "Utiliser la version actuelle",
+                    "retryImport": "Réessayer l’importation",
+                    "aboutTitle": "Fonctionnement des compétences"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "Ajouter une mémoire",
                     "search": "Rechercher des mémoires",
                     "noMatches": "Aucune mémoire correspondante",
-                    "stale": "Les données enregistrées sont périmées. Dernière actualisation : {time}. Actualisez pour vérifier les données actuelles.",
                     "deleteFact": "Supprimer ce fait ou cette relation ?",
                     "deleteEntry": "Supprimer « {title} », avec {facts} faits et {relations} relations ?",
                     "savedHidden": "Enregistré. Effacez la recherche pour voir cette mémoire.",
@@ -1468,7 +1471,6 @@
                     "from": "De",
                     "to": "Vers",
                     "type": "Type de relation",
-                    "staleTitle": "La liste des mémoires n’est peut-être pas à jour",
                     "errorTitle": "Bibliothèque de mémoire indisponible"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "Gardez une extrémité reliée à cette mémoire.",
                     "invalidText": "Saisissez un titre et un texte non vides.",
                     "missing": "Cet enregistrement est indisponible ou ne fait plus partie de cette mémoire. Actualisez et vérifiez-le.",
-                    "unconfirmed": "Le résultat n’a pas pu être confirmé. Gardez votre brouillon et actualisez pour vérifier les données actuelles avant de réessayer.",
+                    "unconfirmed": "Le résultat n’a pas pu être confirmé. Conservez votre brouillon et vérifiez les données actuelles avant de réessayer.",
                     "loadFailed": "Impossible de charger les mémoires. Actualisez pour réessayer."
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "retry": "Réessayer"
                 },
                 "viewer": {
-                    "none": "Aucun",
                     "observations": "Observations",
                     "relations": "Relations"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "Échec du chargement de l’historique des prompts."
             },
             "sketch": {
+                "capacityReached": "La limite du dessin est atteinte. Annulez et remplacez une modification, joignez l’image ou abandonnez le croquis et recommencez.",
                 "open": "Ouvrir le croquis",
                 "mobileOption": "Croquis",
                 "preference": "Croquis",
@@ -1711,7 +1713,9 @@
                 "attach": "Joindre",
                 "discardConfirm": "Abandonner ce croquis ?",
                 "discard": "Abandonner",
-                "exportFailed": "Impossible d’exporter le croquis. Veuillez réessayer."
+                "exportFailed": "Impossible d’exporter le croquis. Veuillez réessayer.",
+                "draftChangedConfirm": "Le brouillon du chat a changé pendant que vous dessiniez. Joindre ce dessin au brouillon actuel ? Annuler conserve votre dessin.",
+                "draftChangedAgain": "Le brouillon du chat a encore changé. Votre dessin est conservé. Essayez de le joindre à nouveau."
             },
             "characterMap": {
                 "allEmoji": "Tous les émojis",
@@ -2514,6 +2518,28 @@
                     "metric": "Métrique"
                 },
                 "wind": "Vent"
+            },
+            "find": {
+                "open": "Rechercher dans la conversation",
+                "placeholder": "Rechercher dans la conversation…",
+                "close": "Fermer",
+                "previous": "Occurrence précédente",
+                "next": "Occurrence suivante",
+                "count": "{current} sur {total}",
+                "none": "Aucune occurrence",
+                "updating": "Mise à jour des résultats…",
+                "stale": "Déconnecté · dernière vérification il y a {seconds} s",
+                "incomplete": "Recherche incomplète. Réessayez.",
+                "error": "Échec de la recherche. Réessayez.",
+                "tooLong": "Utilisez au maximum 256 caractères.",
+                "limited": "Plus de 5 000 messages correspondants · la navigation couvre les résultats conservés",
+                "editing": "Terminez ou annulez la modification pour afficher cette occurrence.",
+                "missing": "Cette occurrence a été modifiée ou supprimée. Réessayez.",
+                "timeout": "Délai dépassé pour afficher cette occurrence. Réessayez.",
+                "retry": "Réessayer",
+                "before": "{count} occurrences avant",
+                "after": "{count} occurrences après",
+                "disconnected": "Déconnecté. Reconnectez-vous pour rechercher."
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "Effacer"
+                "clear": "Effacer",
+                "downloadAll": "Télécharger tous les journaux"
             },
             "ariaLabels": {
                 "clearLogs": "Effacer les journaux",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "Reconnexion au flux de journaux...",
-            "windowTitle": "Journaux SoAI"
+            "windowTitle": "Journaux SoAI",
+            "errors": {
+                "download": "Impossible de télécharger les journaux. Vérifiez la connexion et réessayez.",
+                "missing": "Le dossier des journaux est absent. Vérifiez les paramètres de journalisation.",
+                "changed": "Les journaux ont changé pendant la capture. Relancez le téléchargement.",
+                "unsafe": "Des chemins non sûrs ou des éléments non pris en charge ont été détectés. Supprimez les liens et réessayez.",
+                "paths": "Vérifiez les dossiers configurés pour les journaux et les fichiers temporaires.",
+                "permission": "Accès refusé. Vérifiez les autorisations du dossier et le partage des fichiers, puis réessayez.",
+                "limits": "Les limites de l’archive ou les règles de nommage ont été dépassées. Réduisez l’arborescence des journaux ou corrigez les noms.",
+                "timeout": "Le délai d’exportation a expiré. Réessayez lorsque le serveur est moins occupé.",
+                "write": "Impossible d’écrire l’archive. Vérifiez le stockage temporaire et réessayez.",
+                "response": "Le serveur n’a pas renvoyé de pièce jointe ZIP valide. Relancez le téléchargement."
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "Lancer une recherche",
                 "filesNotFound": "Aucun fichier ni dossier trouvé pour « {query} »",
                 "notFound": "Aucun résultat trouvé pour \"{query}\"",
-                "title": "Aucun résultat trouvé"
+                "title": "Aucun résultat trouvé",
+                "minimumCharacters": "Saisissez au moins {count} caractères pour lancer une recherche."
             },
             "pages": {
                 "about": {

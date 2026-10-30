@@ -6,6 +6,7 @@ from __future__ import annotations
 import threading
 from typing import TYPE_CHECKING, Protocol
 
+from core.archives.zip_creation_models import ZipArchiveResult
 from core.concurrency.bounded_blocking import BoundedBlockingPool
 from core.files.commit_receipt import FileCommitReceipt
 from core.files.directory_listing_models import (
@@ -19,7 +20,6 @@ from core.files.directory_listing_models import (
 from core.files.explorer_models import (
     BatchMetadataResult,
     BatchOperationResult,
-    FileExplorerDownloadArchive,
     FileMetadata,
     ListDirectoryResult,
     SearchResult,
@@ -237,7 +237,7 @@ class FileExplorerDownloadProtocol(Protocol):
         root_scope: FileSystemRootScopeProtocol,
         virtual_paths: tuple[str, ...],
         cancellation_event: threading.Event,
-    ) -> FileExplorerDownloadArchive: ...
+    ) -> ZipArchiveResult: ...
 
 
 class FileExplorerTaskLauncherProtocol(Protocol):

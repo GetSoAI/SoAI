@@ -5,6 +5,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.logging.configuration_constants import (
+    DEFAULT_AUDIT_LOG_FILENAME,
+    DEFAULT_MAIN_LOG_FILENAME,
+)
+
 if TYPE_CHECKING:
     from core.config.value_types import ConfigDict
 
@@ -17,7 +22,7 @@ def build_log_manager_defaults() -> ConfigDict:
             "ENABLED": True,
             "LOGS_PATH": "logs",
             "LOG_LEVEL": "INFO",
-            "MAIN_LOG": "soai.log",
+            "MAIN_LOG": DEFAULT_MAIN_LOG_FILENAME,
             "CONSOLE_COLOR": True,
             "CONSOLE_LOGGING": True,
             "STREAMING_LOG_BUFFER_SIZE": 10_000,
@@ -27,7 +32,7 @@ def build_log_manager_defaults() -> ConfigDict:
                 "MAIN_LOG_COMPRESS_LOGS": False,
             },
             "AUDIT": {
-                "PATH": "soai.audit.jsonl",
+                "PATH": DEFAULT_AUDIT_LOG_FILENAME,
             },
         },
     }

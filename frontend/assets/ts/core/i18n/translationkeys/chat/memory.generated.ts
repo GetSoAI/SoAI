@@ -21,8 +21,6 @@ export type ChatMemoryTranslationKey =
     | 'chat.memory.library.savedHidden'
     | 'chat.memory.library.savedRefreshNeeded'
     | 'chat.memory.library.search'
-    | 'chat.memory.library.stale'
-    | 'chat.memory.library.staleTitle'
     | 'chat.memory.library.to'
     | 'chat.memory.library.type'
     | 'chat.memory.profile.description'
@@ -49,6 +47,5 @@ export type ChatMemoryTranslationKey =
     | 'chat.memory.profile.save'
     | 'chat.memory.profile.skip'
     | 'chat.memory.profile.title'
-    | 'chat.memory.viewer.none'
     | 'chat.memory.viewer.observations'
     | 'chat.memory.viewer.relations';

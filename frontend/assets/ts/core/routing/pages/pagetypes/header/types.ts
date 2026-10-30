@@ -31,6 +31,7 @@ export interface HeaderStatActionDefinition {
 export interface HeaderStatDefinition {
     id: string;
     label: string;
+    suppressed?: boolean;
     actions?: readonly HeaderStatActionDefinition[];
     inlineEdit?: HeaderStatInlineEditDefinition;
 }

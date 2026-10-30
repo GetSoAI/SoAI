@@ -133,8 +133,8 @@ const renderLocalSection = (context: WizardViewContext, view: AiSetupModelsView)
     const cards = view.localCards.map((card) => renderLocalCard(context, view, card)).join('');
     const picked = `<div class="wizard-ai-contents" data-ai-region="picked">${renderAiPickedModels(context, view)}</div>`;
     const limited = view.limitedMessage === null ? '' : renderLimitedState(context, view.limitedMessage);
-    const body = `${limited}<div class="wizard-ai-stack" role="group" aria-labelledby="wizard-ai-local-models-title">${view.limitedMessage === null ? cards : ''}${picked}</div>`;
-    return `<section class="wizard-ai-section" aria-labelledby="wizard-ai-local-models-title">${renderAiSetupPanelHeading(context, 'wizard-ai-local-models-title', i18n.t('wizard.aiSetup.models.local.heading'), i18n.t('wizard.aiSetup.models.local.description'))}${body}${renderSearchDisclosure(context, view)}</section>`;
+    const body = `${limited}<div class="wizard-ai-stack" role="group" aria-labelledby="wizard-ai-local-models-title">${view.limitedMessage === null ? cards : ''}</div>`;
+    return `<section class="wizard-ai-section" aria-labelledby="wizard-ai-local-models-title">${renderAiSetupPanelHeading(context, 'wizard-ai-local-models-title', i18n.t('wizard.aiSetup.models.local.heading'), i18n.t('wizard.aiSetup.models.local.description'))}${body}${renderSearchDisclosure(context, view)}${picked}</section>`;
 };
 
 const renderCloudModel = (context: WizardViewContext, view: AiSetupModelsView, model: AiSetupCloudModelView): string => {

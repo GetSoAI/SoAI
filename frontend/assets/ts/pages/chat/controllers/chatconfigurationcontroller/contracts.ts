@@ -80,5 +80,12 @@ const createChatPresetRecordEditorDraft = (mode: Exclude<ChatPresetEditorMode, '
     return createChatPresetEditorDraft(mode, record, selectedSections);
 };
 
-export { createChatPresetEditorDraft, createChatPresetRecordEditorDraft };
+const reconcileChatPresetEditorDraft = (editor: ChatPresetEditorDraft | null, records: readonly WebuiChatPresetRecord[]): ChatPresetEditorDraft | null => {
+    if (!editor || editor.mode === 'create' || !editor.targetId) return editor;
+    const current = records.find((record) => record.id === editor.targetId);
+    if (!current) return { ...editor, targetUnavailable: true };
+    return { ...editor, targetUnavailable: false, reviewRequired: current.revision !== editor.expectedRevision };
+};
+
+export { createChatPresetEditorDraft, createChatPresetRecordEditorDraft, reconcileChatPresetEditorDraft };
 export type { ChatPresetLibraryHost, ChatPresetApplyResult, ChatPresetConfigurationPort, ChatPresetEditorDraft, ChatPresetEditorMode, ChatPresetLibraryViewState, ChatPresetSectionChoice, ChatPresetSnapshotResult };

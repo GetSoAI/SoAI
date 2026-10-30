@@ -149,7 +149,7 @@ const saveOpenAICapabilityOverrideState = async (dependencies: { api: OpenAICapa
         expected: buildOpenAICapabilityOverrideSet(submitted.original)
     });
     state.original = submitted.current;
-    return { ...model, openaiCapabilitiesOverrides: buildOpenAICapabilityOverridesPayload(submitted.current), openaiBaseProfile: null };
+    return { ...model, openaiCapabilitiesOverrides: buildOpenAICapabilityOverridesPayload(submitted.current) };
 };
 
 export { OPENAI_CAPABILITY_OVERRIDE_CATEGORIES, OPENAI_CAPABILITY_OVERRIDE_MODES, createOpenAICapabilityOverrideState, discardOpenAICapabilityOverrideChanges, hasOpenAICapabilityOverrideChanges, hasOpenAICapabilityOverrides, isOpenAICapabilityOverrideCategory, isOpenAICapabilityOverrideConflict, isOpenAICapabilityOverrideMode, isSafeOpenAICapabilityToken, normalizeOverrideToken, resetOpenAICapabilityOverrideState, resolveOpenAICapabilityOverrideMode, saveOpenAICapabilityOverrideState, setOpenAICapabilityOverrideMode };

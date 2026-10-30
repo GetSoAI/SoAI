@@ -2,12 +2,10 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
-    :where(.chat-container) :is(.assistant-news-widget, .assistant-plan-widget, .assistant-weather-widget) {
-        --assistant-activity-widget-block-size: 30rem;
+    :where(.chat-container) :is(.assistant-news-widget, .assistant-plan-widget, .assistant-weather-widget, .assistant-image-widget) {
         position: relative;
         gap: var(--space-3);
         width: min(100%, 40rem);
-        block-size: var(--assistant-activity-widget-block-size);
         padding: var(--space-3) var(--space-4) var(--space-3);
         border-radius: var(--border-radius);
         -webkit-backdrop-filter: var(--glass-blur-base);
@@ -18,6 +16,11 @@
         color: var(--text-primary);
         isolation: isolate;
         overflow: hidden;
+    }
+
+    :where(.chat-container) :is(.assistant-news-widget, .assistant-plan-widget, .assistant-weather-widget) {
+        --assistant-activity-widget-block-size: 30rem;
+        block-size: var(--assistant-activity-widget-block-size);
     }
 
     :where(.chat-container) :is(.assistant-news-widget, .assistant-plan-widget) {

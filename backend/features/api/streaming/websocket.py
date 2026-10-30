@@ -22,6 +22,7 @@ from features.api.middleware.security.networks import is_ip_network_tuple
 from features.api.routes.system.events.websocket_transport_lifecycle import (
     WebsocketTerminalErrorDelivery,
 )
+from features.api.routes.webui.chat_preset_diagnostics import ChatPresetIntegrityDiagnostics
 from features.api.runtime.app_state_access import require_app_state
 from features.api.runtime.context import ApiContext
 from features.api.streaming.websocket_authorization import WebsocketAuthorization
@@ -146,6 +147,7 @@ class WebsocketConnection:
         self.granted_actions = granted_actions
         self._event_permissions = event_permissions
         self._logger = logger
+        self.chat_preset_integrity_diagnostics = ChatPresetIntegrityDiagnostics()
         self.trace_id = trace_id
         self.jti = jti
         self.close_code = 1000

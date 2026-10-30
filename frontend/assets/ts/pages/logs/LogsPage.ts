@@ -1,6 +1,14 @@
 /* SoAI - Logs routed page [frontend/assets/ts/pages/logs/LogsPage.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { downloadAuthenticatedResponse } from '@core/api/authenticatedDownload.ts';
+import { readApiErrorField } from '@core/apiError.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { resolveOperationCauseMessage } from '@core/errors/operationCausePresentation.ts';
+import { isPageTerminating } from '@core/lifecycle/pageTermination.ts';
+import { beginLoadingButtonWithClear } from '@core/ui/loadingbuttons/service.ts';
+import { showOperationFailureNotification } from '@core/ui/notifications/operationFailure.ts';
 import type { BasePageDependencies } from '@core/routing/pages/pagetypes/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { createHeaderActionController, type HeaderActionController } from '@core/headerActionBus.ts';
@@ -37,6 +45,7 @@ class LogsPage extends StaticBasePage {
     private readonly handleLogStreamPayload = (payload: StreamPayload): void => {
         this.#viewSession.handlePayload(payload);
     };
+    #downloadOperation: { button: HTMLButtonElement; signal: AbortSignal; clearLoading: () => void } | null = null;
     #detachActionController: HeaderActionController | null = null;
     constructor(logStream: LogStreamService, basePageDependencies: BasePageDependencies) {
         super(PAGE_ID, { dependencies: basePageDependencies });
@@ -94,11 +103,12 @@ class LogsPage extends StaticBasePage {
     bindPageEvents(): void {
         const ui = this.#viewSession.ui;
         const signal = this.pageLifecycle.beginListeners();
-        const dispatchLogsAction = (resolved: { action: LogsActionId; actionElement: HTMLElement & { dataset: DOMStringMap & { action: string } } }): void => {
-            dispatchLogsPageDelegatedAction(
+        const dispatchLogsAction = (resolved: { action: LogsActionId; actionElement: HTMLElement & { dataset: DOMStringMap & { action: string } } }): void | Promise<void> => {
+            return dispatchLogsPageDelegatedAction(
                 {
                     adjustTextSize: (delta: number): void => this.adjustTextSize(delta),
-                    clearLogs: (): void => this.clearLogs(),
+                    logView: this.#viewSession,
+                    downloadAll: (): Promise<void> => this.#downloadAll(signal),
                     changeLogLineLimit: (limit: number): void => this.#changeLogLineLimit(limit),
                     changeLogSource: (source: string): void => this.#changeLogSource(source)
                 },
@@ -124,6 +134,39 @@ class LogsPage extends StaticBasePage {
         });
         bindLogSelectionCopy({ root: ui.output, signal, showNotification: (message, type) => this.feedback.show(message, type) });
         ui.root.addEventListener('scroll', this.#viewSession.handleScroll, { signal, passive: true });
+    }
+    async #downloadAll(signal: AbortSignal): Promise<void> {
+        if (signal.aborted || isPageTerminating() || (this.#downloadOperation && !this.#downloadOperation.signal.aborted)) return;
+        const button = this.#viewSession.ui.downloadButton;
+        const operation = { button, signal, clearLoading: beginLoadingButtonWithClear(button) };
+        this.#downloadOperation = operation;
+        const release = (): void => {
+            operation.clearLoading();
+            if (this.#downloadOperation === operation) this.#downloadOperation = null;
+        };
+        signal.addEventListener('abort', release, { once: true });
+        try {
+            const response = await this.dependencies.api.system.exportLogs({ signal });
+            if (this.#downloadOperation !== operation || signal.aborted || !button.isConnected || isPageTerminating()) return;
+            await downloadAuthenticatedResponse(response);
+        } catch (error) {
+            const runtimeError = ensureError(error);
+            if (signal.aborted || isAbortError(runtimeError) || isPageTerminating() || this.#downloadOperation !== operation) return;
+            const code = readApiErrorField(runtimeError, 'code');
+            const cause = resolveOperationCauseMessage(isString(code) ? code : null, runtimeError);
+            const traceId = readApiErrorField(runtimeError, 'traceId');
+            const fallback = i18n.t('logs.errors.download');
+            const errorMessage = cause ?? (isString(traceId) && traceId ? `${fallback} ${i18n.t('app.errors.reference', { reference: traceId })}` : fallback);
+            showOperationFailureNotification({
+                error: runtimeError,
+                operation: i18n.t('logs.actions.downloadAll'),
+                errorMessage,
+                showNotification: (message, level): void => this.feedback.show(message, level)
+            });
+        } finally {
+            signal.removeEventListener('abort', release);
+            release();
+        }
     }
     async startLogsStream(): Promise<void> {
         this.logStreamUnsubscribe = subscribeLogsStream({
@@ -155,6 +198,8 @@ class LogsPage extends StaticBasePage {
     }
     override async onDestroy(): Promise<void> {
         this.pageLifecycle.abortListeners();
+        this.#downloadOperation?.clearLoading();
+        this.#downloadOperation = null;
         if (this.logStreamUnsubscribe) {
             this.logStreamUnsubscribe();
             this.logStreamUnsubscribe = null;

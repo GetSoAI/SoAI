@@ -54,7 +54,7 @@ class ChatMessageEditController {
                 if (container) setMessageTextEditingBusy(container, busy);
             }
         });
-        this.#domChangeHandler = (): void => this.#save.notifyChanged();
+        this.#domChangeHandler = (): void => this.notifyChanged();
         this.#dependencies.view.domChangeTarget.addEventListener('change', this.#domChangeHandler);
     }
 
@@ -154,12 +154,12 @@ class ChatMessageEditController {
         }
     }
 
-    notifyChanged(): void {
+    readonly notifyChanged = (): void => {
         if (!this.#activeMessageId) {
             return;
         }
         this.#save.notifyChanged();
-    }
+    };
 
     hasChanges(): boolean {
         return this.#hasChanges();

@@ -1,7 +1,7 @@
 /* SoAI - Logs page DOM contracts [frontend/assets/ts/pages/logs/dom.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { narrowSelect } from '@core/dom/narrowElement.ts';
+import { narrowButton, narrowSelect } from '@core/dom/narrowElement.ts';
 import type { LogsUiRefs } from '@pages/logs/types.ts';
 
 interface LogsDomHost {
@@ -30,6 +30,7 @@ export const requireLogsUi = (host: LogsDomHost): LogsUiRefs => {
         emptyState: requireEmptyState(host),
         emptyMessage: requireEmptyMessage(host),
         sourceSelect: requireLogSourceSelect(host),
-        lineLimitSelect: requireLineLimitSelect(host)
+        lineLimitSelect: requireLineLimitSelect(host),
+        downloadButton: narrowButton(host.requireHTMLElement('#logs-download-all'), 'logs-download-all')
     };
 };

@@ -39,6 +39,7 @@ from app.types_services_runtime import (
     PluginServices,
     StorageServices,
 )
+from core.concurrency.bounded_blocking import BoundedBlockingPool
 from core.config.protocols import ConfigManagerProtocol, ConfigProtocol
 from core.licensing.protocols import LicensingStatusProtocol
 from core.licensing.types import Edition
@@ -82,6 +83,7 @@ async def build_manager_services(
     licensing_status: LicensingStatusProtocol,
     edition: Edition,
     process_exit_deadline: ProcessExitDeadline,
+    logs_export_pool: BoundedBlockingPool,
 ) -> tuple[
     InfrastructureServices,
     PluginServices,
@@ -282,6 +284,7 @@ async def build_manager_services(
         lifecycle_logger=lifecycle_logger,
         orchestrator_components=orchestrator_components,
         process_exit_deadline=process_exit_deadline,
+        logs_export_pool=logs_export_pool,
         startup_timings=startup_timings,
         licensing_status=licensing_status,
         edition=edition,

@@ -1,35 +1,37 @@
 /* SoAI - Chat preset library lifecycle and collection ownership [frontend/assets/ts/pages/chat/controllers/chatconfigurationcontroller/ChatPresetLibraryController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
+import { getStreamResources, getStreamSubscriptions } from '@core/realtime/streammanager/public.ts';
+import { CHAT_PRESETS } from '@core/realtime/streammanager/resources/ids.ts';
+import { hasSameResourceAuthority } from '@core/realtime/streammanager/resources/resourceSnapshotProjection.ts';
+import type { ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
+import { createDedupingOperationFailureReporter } from '@core/ui/notifications/operationFailure.ts';
 import { publishChatPresetLibraryInvalidation, subscribeChatPresetLibraryInvalidation } from '@core/chat/chatPresetLibraryInvalidation.ts';
-import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import { isChatPresetNameValid, serializeChatPresetRenameRequest } from '@core/api/contracts/webuiChatPresetContracts.ts';
 import { FieldStateTracker } from '@core/forms/fieldStateTracker.ts';
-import type { ChatPresetSections, WebuiChatPresetListResponse, WebuiChatPresetRecord } from '@core/api/contracts/webuiChatPresetContractTypes.ts';
+import type { ChatPresetSections, WebuiChatPresetRecord } from '@core/api/contracts/webuiChatPresetContractTypes.ts';
 import { type ChatPresetSectionId } from '@features/chat/public.ts';
 import { cloneChatPresetRecord, cloneChatPresetSections, executeChatPresetMutation, executeChatPresetReset, reconcileCommittedChatPresetRecord, reportChatPresetActionFailure, translateChatPresetMutationFailure, type ChatPresetMutationRequest, type ChatPresetMutationResult } from '@pages/chat/controllers/chatconfigurationcontroller/chatPresetLibraryMutationDomain.ts';
 import { initializeChatPresetLibraryPresentation, applyChatPresetLibraryOperationState, disconnectChatPresetLibraryPresentation, readPresetId, renderChatPresetLibrary, syncChatPresetEditorNamePresentation } from '@pages/chat/controllers/chatconfigurationcontroller/chatPresetLibraryPresentationDomain.ts';
-import { createChatPresetEditorDraft, createChatPresetRecordEditorDraft, type ChatPresetLibraryHost, type ChatPresetEditorDraft, type ChatPresetLibraryViewState } from '@pages/chat/controllers/chatconfigurationcontroller/contracts.ts';
+import { createChatPresetEditorDraft, createChatPresetRecordEditorDraft, reconcileChatPresetEditorDraft, type ChatPresetLibraryHost, type ChatPresetEditorDraft, type ChatPresetLibraryViewState } from '@pages/chat/controllers/chatconfigurationcontroller/contracts.ts';
 import { executeChatPresetApply } from '@pages/chat/controllers/chatconfigurationcontroller/chatPresetApplyDomain.ts';
 import { dom } from '@core/dom/dom.ts';
 import { bindWindowReactivation } from '@core/dom/windowReactivation.ts';
-
-type ListResult = Readonly<{ status: 'ready'; response: WebuiChatPresetListResponse }> | Readonly<{ status: 'failed'; error: Error }>;
+import { createLayoutFrameManager } from '@core/primitives/layoutFrameManager.ts';
 
 class ChatPresetLibraryController {
     readonly #host: ChatPresetLibraryHost;
-    readonly #sequence = new SequenceToken();
+    #unsubscribeLibrary: (() => void) | null = null;
+    #failureNotified = false;
     readonly #operationDisposer: () => void;
     readonly #nameTracker: FieldStateTracker;
+    readonly #renderFrame = createLayoutFrameManager();
     #session = 0;
-    #invalidationEpoch = 0;
     #unsubscribe: (() => void) | null = null;
-    #readSignal: AbortSignal | null = null;
     #reactivationDisposer: (() => void) | null = null;
     #state: ChatPresetLibraryViewState = { phase: 'idle', records: [], searchQuery: '', stale: false, lastSuccessAtMs: null, structurallyInvalidCount: 0, editor: null, sectionChoices: [], operationPending: false };
 
@@ -46,22 +48,38 @@ class ChatPresetLibraryController {
     open(readSignal: AbortSignal): void {
         this.close();
         this.#session += 1;
-        this.#readSignal = readSignal;
+        const session = this.#session;
+        readSignal.addEventListener(
+            'abort',
+            () => {
+                if (session === this.#session) this.close();
+            },
+            { once: true }
+        );
         this.#state = { ...this.#state, phase: 'idle', stale: false, editor: null, sectionChoices: this.#host.configuration.sectionChoices(), operationPending: this.#host.isOperationPending() };
         this.#unsubscribe = subscribeChatPresetLibraryInvalidation(() => this.#handleInvalidation(), true);
         this.#reactivationDisposer = bindWindowReactivation(() => this.refresh());
+        this.#unsubscribeLibrary = getStreamSubscriptions().subscribeResourceState(
+            CHAT_PRESETS,
+            (snapshot) => {
+                if (session === this.#session) this.#receiveLibrary(snapshot);
+            },
+            { ensureStart: false }
+        );
         this.refresh();
     }
 
     close(): void {
+        this.#renderFrame.cancel();
+        this.#failureNotified = false;
         this.#session += 1;
-        this.#sequence.invalidate();
+        this.#unsubscribeLibrary?.();
+        this.#unsubscribeLibrary = null;
         this.#unsubscribe?.();
         this.#reactivationDisposer?.();
         this.#reactivationDisposer = null;
         disconnectChatPresetLibraryPresentation(this.#host.root);
         this.#unsubscribe = null;
-        this.#readSignal = null;
         this.#state = { ...this.#state, editor: null, operationPending: this.#host.isOperationPending() };
     }
 
@@ -74,32 +92,24 @@ class ChatPresetLibraryController {
     }
 
     refresh(): void {
-        const session = this.#session;
-        const sequence = this.#sequence.next();
-        const epoch = this.#invalidationEpoch;
-        const readSignal = this.#readSignal;
-        this.#setState({ ...this.#state, phase: 'loading' });
-        void this.#host
-            .runTask<ListResult>('chat:presetLibrary:refresh', async () => {
-                try {
-                    return { status: 'ready', response: await this.#host.api.list(readSignal ? { signal: readSignal } : {}) };
-                } catch (error) {
-                    const failure = ensureError(error);
-                    if (!isAbortError(error)) errorHandler.warn('ChatPresetLibrary', 'Preset refresh failed', failure);
-                    return { status: 'failed', error: failure };
-                }
-            })
-            .then((result) => {
-                if (!result || session !== this.#session || !this.#sequence.isActive(sequence)) return;
-                if (result.status === 'failed') {
-                    this.#setState({ ...this.#state, phase: 'error', stale: this.#state.records.length > 0 });
-                    return;
-                }
-                const records = result.response.presets.map(cloneChatPresetRecord);
-                this.#setState({ ...this.#state, phase: 'ready', records, stale: false, lastSuccessAtMs: Date.now(), structurallyInvalidCount: result.response.structurallyInvalidCount, editor: this.#reconcileEditor(records) });
-                if (epoch !== this.#invalidationEpoch) this.refresh();
-            })
-            .catch((error) => errorHandler.error('ChatPresetLibrary', 'Preset refresh scheduling failed', ensureError(error)));
+        if (this.#unsubscribeLibrary) getStreamResources().invalidate(CHAT_PRESETS, 'preset-library-invalidated');
+    }
+
+    #receiveLibrary(snapshot: ResourceReconciliationSnapshot): void {
+        if (snapshot.status === 'ready') {
+            const library = getStreamResources().getResource(CHAT_PRESETS);
+            if (library === null || library !== snapshot.value) return;
+            const records = library.presets.map(cloneChatPresetRecord);
+            this.#failureNotified = false;
+            this.#setState({ ...this.#state, phase: 'ready', records, stale: false, lastSuccessAtMs: getStreamResources().getResource(CHAT_PRESETS, { state: true })?.updatedAt ?? null, structurallyInvalidCount: library.structurallyInvalidCount, editor: reconcileChatPresetEditorDraft(this.#state.editor, records) });
+            return;
+        }
+        const loading = snapshot.status === 'initializing' || snapshot.status === 'recovering';
+        this.#setState({ ...this.#state, phase: loading ? 'loading' : 'error', stale: this.#state.lastSuccessAtMs !== null });
+        if (snapshot.status === 'error' && snapshot.error && !this.#failureNotified) {
+            this.#failureNotified = true;
+            createDedupingOperationFailureReporter({ host: { showNotification: (message, type) => this.#host.show(message, type), handleError: (error) => errorHandler.warn('ChatPresetLibrary', 'Preset refresh failed', error) } }).report(snapshot.error, { errorMessage: i18n.t('chat.configuration.presetLibrary.loadFailed'), rawMessage: true, context: 'Preset library' });
+        }
     }
 
     updateSearch(value: string): void {
@@ -108,7 +118,7 @@ class ChatPresetLibraryController {
     enterTab(): void {
         if (!this.#unsubscribe) return;
         this.#state = { ...this.#state, sectionChoices: this.#host.configuration.sectionChoices() };
-        this.refresh();
+        this.#setState(this.#state);
     }
     resetLibrary(): void {
         const release = this.#host.acquireOperation();
@@ -117,15 +127,18 @@ class ChatPresetLibraryController {
         void requireDialogsService()
             .showConfirmation({ title: i18n.t('chat.configuration.presetLibrary.resetTitle'), message: i18n.t('chat.configuration.presetLibrary.resetMessage'), confirmText: i18n.t('chat.configuration.presetLibrary.resetAction'), cancelText: i18n.t('common.cancel') })
             .then(async (confirmed) => {
-                if (!confirmed) return;
+                if (!confirmed || session !== this.#session) return;
+                const authority = getStreamResources().getReconciliationSnapshot(CHAT_PRESETS);
                 const result = await this.#host.runTask('chat:presetLibrary:reset', () => executeChatPresetReset(this.#host.api));
                 if (!result) return;
                 if (result.status === 'failed') {
                     if (session === this.#session) this.#host.show(i18n.t('chat.configuration.presetLibrary.resetFailed'), 'error');
                     return;
                 }
+                const project = session === this.#session && hasSameResourceAuthority(authority, getStreamResources().getReconciliationSnapshot(CHAT_PRESETS));
+                if (session === this.#session) this.refresh();
                 publishChatPresetLibraryInvalidation(false);
-                if (session === this.#session) this.#setState({ ...this.#state, phase: 'ready', records: [], stale: false, lastSuccessAtMs: Date.now(), structurallyInvalidCount: 0, editor: null });
+                if (project) this.#setState({ ...this.#state, phase: 'ready', records: [], stale: true, structurallyInvalidCount: 0, editor: null });
                 if (session === this.#session) this.#host.show(i18n.t('chat.configuration.presetLibrary.resetSuccess', { count: result.deleted }), 'success');
             })
             .catch((error) => reportChatPresetActionFailure(error, 'Preset library reset failed', 'chat.configuration.presetLibrary.resetFailed', (message) => this.#host.show(message, 'error')))
@@ -211,10 +224,11 @@ class ChatPresetLibraryController {
         const release = this.#host.acquireOperation();
         if (!release) return;
         const captured = cloneChatPresetRecord(record);
+        const session = this.#session;
         void requireDialogsService()
             .showConfirmation({ title: i18n.t('chat.configuration.presetLibrary.deleteTitle'), message: i18n.t('chat.configuration.presetLibrary.deleteMessage', { name: captured.name }), confirmText: i18n.t('common.delete'), cancelText: i18n.t('common.cancel') })
             .then((confirmed) => {
-                if (!confirmed) {
+                if (!confirmed || session !== this.#session) {
                     release();
                     return;
                 }
@@ -243,11 +257,12 @@ class ChatPresetLibraryController {
     }
     #runMutation(operationId: string, request: ChatPresetMutationRequest, release: () => void): void {
         const session = this.#session;
+        const authority = getStreamResources().getReconciliationSnapshot(CHAT_PRESETS);
         this.#setState({ ...this.#state, operationPending: true });
         void this.#host
             .runTask<ChatPresetMutationResult>(operationId, () => executeChatPresetMutation(this.#host.api, request))
             .then((result) => {
-                if (result) this.#settleMutation(request, result, session === this.#session);
+                if (result) this.#settleMutation(request, result, session === this.#session, authority);
             })
             .catch((error) => reportChatPresetActionFailure(error, 'Preset mutation scheduling failed', 'chat.configuration.presetLibrary.errors.failed', (message) => this.#host.show(message, 'error')))
             .finally(() => {
@@ -256,13 +271,15 @@ class ChatPresetLibraryController {
             });
     }
 
-    #settleMutation(request: ChatPresetMutationRequest, result: ChatPresetMutationResult, sessionActive: boolean): void {
+    #settleMutation(request: ChatPresetMutationRequest, result: ChatPresetMutationResult, sessionActive: boolean, authority: ResourceReconciliationSnapshot): void {
         if (result.status === 'failed') errorHandler.error('ChatPresetLibrary', 'Preset mutation failed', result.error);
         if (result.status === 'committed') {
             publishChatPresetLibraryInvalidation(false);
             if (!sessionActive) return;
-            const records = result.record ? reconcileCommittedChatPresetRecord(this.#state.records, result.record) : this.#state.records.filter((record) => record.id !== ('presetId' in request ? request.presetId : ''));
-            this.#setState({ ...this.#state, records, editor: null, stale: false, lastSuccessAtMs: Date.now() });
+            const project = hasSameResourceAuthority(authority, getStreamResources().getReconciliationSnapshot(CHAT_PRESETS));
+            this.refresh();
+            const records = !project ? this.#state.records : result.record ? reconcileCommittedChatPresetRecord(this.#state.records, result.record) : this.#state.records.filter((record) => record.id !== ('presetId' in request ? request.presetId : ''));
+            this.#setState({ ...this.#state, records, editor: null, stale: true });
             this.#host.show(i18n.t('chat.configuration.presetLibrary.saved'), 'success');
             return;
         }
@@ -281,17 +298,8 @@ class ChatPresetLibraryController {
     }
 
     #handleInvalidation(): void {
-        this.#invalidationEpoch += 1;
         this.#setState({ ...this.#state, stale: this.#state.records.length > 0 });
         this.refresh();
-    }
-
-    #reconcileEditor(records: readonly WebuiChatPresetRecord[]): ChatPresetEditorDraft | null {
-        const editor = this.#state.editor;
-        if (!editor || editor.mode === 'create' || !editor.targetId) return editor;
-        const current = records.find((record) => record.id === editor.targetId);
-        if (!current) return { ...editor, targetUnavailable: true };
-        return { ...editor, targetUnavailable: false, reviewRequired: current.revision !== editor.expectedRevision };
     }
 
     #findRecord(presetId: string | null): WebuiChatPresetRecord | null {
@@ -300,10 +308,12 @@ class ChatPresetLibraryController {
 
     #setState(state: ChatPresetLibraryViewState): void {
         this.#state = state;
-        if (this.#unsubscribe) {
-            renderChatPresetLibrary(this.#host.root, state);
-            this.#syncNameFieldState();
-        }
+        this.#renderFrame.queue(() => {
+            if (this.#unsubscribe) {
+                renderChatPresetLibrary(this.#host.root, this.#state);
+                this.#syncNameFieldState();
+            }
+        });
     }
 
     #syncNameFieldState(): void {

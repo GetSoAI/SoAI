@@ -13,7 +13,7 @@ const ATTACHMENT_THUMBNAIL_IMAGE_SELECTOR = 'img[data-chat-attachment-thumbnail=
 const INLINE_MULTIMEDIA_CARD_CLASS = 'chat-inline-media-card';
 const CHAT_CODE_BLOCK_SELECTOR = 'pre:not([data-code-highlighted="true"])';
 const CHAT_BRANDING_LOGO_SELECTOR = `.${CHAT_BRANDING_LOGO_CLASS}[data-logo-type]`;
-const CHAT_CONTENT_IMAGE_SELECTOR = 'img:not([data-chat-attachment-thumbnail], [data-logo-type], .chat-avatar-image, .chat-inline-media-card__image, .assistant-news-widget__image)';
+const CHAT_CONTENT_IMAGE_SELECTOR = 'img:not([data-chat-attachment-thumbnail], [data-logo-type], .chat-avatar-image, .chat-inline-media-card__image, .assistant-news-widget__image, .assistant-image-widget__backdrop)';
 const ASSISTANT_ARTICLE_IMAGE_SELECTOR = `.assistant-news-widget__media .${ASSISTANT_ARTICLE_IMAGE_CLASS}`;
 const CHAT_IMAGE_LIFECYCLE_SELECTOR = `${CHAT_CONTENT_IMAGE_SELECTOR}, ${ASSISTANT_ARTICLE_IMAGE_SELECTOR}, ${ATTACHMENT_THUMBNAIL_IMAGE_SELECTOR}`;
 const ENABLED_INLINE_MULTIMEDIA_SELECTOR = `.${INLINE_MULTIMEDIA_CARD_CLASS}__media, .${INLINE_MULTIMEDIA_CARD_CLASS}[data-inline-media-card="1"], img`;

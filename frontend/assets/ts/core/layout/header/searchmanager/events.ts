@@ -13,7 +13,7 @@ import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { queryReferencesConversationOnly } from '@core/search/directReference.ts';
 import { SEARCH_PANEL_SERVICE_ID } from '@core/search/protocols.ts';
-import { normalizeSearchDisplayQuery } from '@core/search/searchQuery.ts';
+import { SEARCH_MINIMUM_QUERY_LENGTH, normalizeSearchDisplayQuery } from '@core/search/searchQuery.ts';
 import { isRouterInterface, isSearchPanelInterface } from '@core/layout/header/searchmanager/guards.ts';
 import { buildSearchSearchingMarkup } from '@core/layout/header/searchmanager/actions.ts';
 import { requireSearchDom } from '@core/layout/header/searchmanager/dom.ts';
@@ -53,7 +53,7 @@ const initializeSearchManager = async (manager: SearchInitializationRuntime): Pr
         manager.expand();
         const { input } = manager.requireDom();
         const query = normalizeSearchDisplayQuery(input.value);
-        if (query && query.length >= 2) {
+        if (query && query.length >= SEARCH_MINIMUM_QUERY_LENGTH) {
             manager.resetResults();
             const token = manager.searchToken;
             terminateHandledPromise(manager.performSearch(query, token));
@@ -93,7 +93,7 @@ const ensureSearchPanel = async (manager: Pick<SearchExecutionRuntime, 'header' 
 
 const performSearch = async (manager: SearchExecutionRuntime, query: string, token: number = manager.searchToken): Promise<void> => {
     const normalizedQuery = normalizeSearchDisplayQuery(query);
-    if (!normalizedQuery || normalizedQuery.length < 2) {
+    if (!normalizedQuery || normalizedQuery.length < SEARCH_MINIMUM_QUERY_LENGTH) {
         return;
     }
     if (!manager.isSessionActive(token)) {
@@ -181,7 +181,7 @@ const scheduleSearch = (manager: SearchScheduleRuntime, query: string, token: nu
 const handleInput = (manager: SearchInputRuntime): void => {
     cancelFileExplorerContentPreviewRequest();
     const query = normalizeSearchDisplayQuery(manager.requireDom().input.value);
-    if (!query || query.length < 2) {
+    if (!query || query.length < SEARCH_MINIMUM_QUERY_LENGTH) {
         manager.hideDropdown();
         return;
     }

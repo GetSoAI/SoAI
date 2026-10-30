@@ -5,7 +5,7 @@ import { dom } from '@core/dom/dom.ts';
 import { hasDataActionElement } from '@core/dom/dataAction.ts';
 import { CHAT_ACTIONS, type ActiveComparisonRun, type ConversationProjectionAnalysis } from '@features/chat/public.ts';
 import { parseNonNegativeIntegerAttribute } from '@pages/chat/widgets/comparisonturn/comparisonTurnDomParsingController.ts';
-import { CHAT_COMPARISON_MESSAGE_SELECTOR, CHEVRON_NEXT_SELECTOR, CHEVRON_PREV_SELECTOR } from '@pages/chat/widgets/comparisonturn/comparisonTurnDomSelectorsController.ts';
+import { CHAT_COMPARISON_MESSAGE_SELECTOR, CHAT_COMPARISON_TURN_SELECTOR, CHEVRON_NEXT_SELECTOR, CHEVRON_PREV_SELECTOR } from '@pages/chat/widgets/comparisonturn/comparisonTurnDomSelectorsController.ts';
 import { ComparisonTurnCarouselController } from '@pages/chat/widgets/comparisonturn/comparisonTurnCarouselController.ts';
 import { ComparisonTurnSelectionController, type ComparisonNavDirection } from '@pages/chat/widgets/comparisonturn/comparisonTurnSelectionController.ts';
 
@@ -76,6 +76,21 @@ export class ChatComparisonTurnNavigationController {
             return;
         }
         this.#pendingFocus = pending;
+    }
+
+    showVariant(analysis: ConversationProjectionAnalysis, assistantTurnTimestamp: number, variantIndex: number): boolean {
+        this.#pendingFocus = null;
+        const state = analysis.comparisonStatesByTurn.get(assistantTurnTimestamp);
+        const variants = analysis.assistantMessagesByTurnAndVariant.get(assistantTurnTimestamp);
+        if (!Number.isSafeInteger(variantIndex) || variantIndex < 0 || !state || state.invalidReason !== null || variantIndex >= state.comparisonVariantTotal || !variants?.has(variantIndex)) return false;
+        this.#selection.setManualSelection({ assistantTurnTimestamp, variantCount: state.comparisonVariantTotal, nextActiveVariantIndex: variantIndex });
+        return true;
+    }
+
+    async waitForVariantSettled(container: Element, assistantTurnTimestamp: number, variantIndex: number, signal: AbortSignal, timeoutMs: number): Promise<boolean> {
+        const root = dom.resolve(`${CHAT_COMPARISON_TURN_SELECTOR}[data-assistant-turn-ts="${CSS.escape(String(assistantTurnTimestamp))}"]`, container);
+        if (!(root instanceof HTMLElement)) return !signal.aborted && variantIndex === 0;
+        return await this.#carousel.waitForVariantSettled(root, variantIndex, signal, timeoutMs);
     }
 
     resolveAssistantTurnTimestampFromActionElement(actionElement: HTMLElement): number | null {

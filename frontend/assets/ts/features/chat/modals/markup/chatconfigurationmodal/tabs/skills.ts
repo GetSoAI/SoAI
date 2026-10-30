@@ -17,7 +17,12 @@ const buildSkillsTabMarkup = (context: ChatPageMarkupContext): string => {
     <div data-skills-empty class="u-hidden"></div>
     <div data-skills-details class="chat-skills-details glass-surface-medium u-hidden"></div>
     <div data-skills-status class="ui-collection-notice glass-surface-medium u-hidden" role="status" aria-live="polite"></div>
-    <div class="chat-configuration-hint" data-modal-localize="text">${i18n.html(sanitizer, 'chat.configuration.skills.description')} ${i18n.html(sanitizer, 'chat.configuration.skills.immediate')}</div>
+    <div class="chat-configuration-library-utility glass-surface-medium">
+      <div>
+        <strong data-modal-localize="text">${i18n.html(sanitizer, 'chat.configuration.skills.aboutTitle')}</strong>
+        <p data-modal-localize="text">${i18n.html(sanitizer, 'chat.configuration.skills.description')} ${i18n.html(sanitizer, 'chat.configuration.skills.immediate')}</p>
+      </div>
+    </div>
   </div>
 </div>`;
 };

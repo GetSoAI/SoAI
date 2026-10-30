@@ -194,12 +194,14 @@ const applyStyleValue = (runtime: DOMUpdateServiceRuntime, element: Element, pro
 const applyClassList = (runtime: DOMUpdateServiceRuntime, element: Element, classes: string[], method: 'add' | 'remove'): void => {
     if (!runtime.dependencies.isElementNode(element) || !classes.length) return;
 
+    const changedClasses = classes.filter((className) => className === '' || /\s/u.test(className) || element.classList.contains(className) !== (method === 'add'));
+    if (changedClasses.length === 0) return;
     if (method === 'add') {
-        element.classList.add(...classes);
+        element.classList.add(...changedClasses);
         return;
     }
 
-    element.classList.remove(...classes);
+    element.classList.remove(...changedClasses);
 };
 
 const applyDataset = (runtime: DOMUpdateServiceRuntime, element: Element, datasetValue: DomPropertyValue): void => {

@@ -7,14 +7,15 @@ import { isEpochMsNumber } from '@core/time/epochMs.ts';
 import type { ChatActivityDurationDisplayMode } from '@features/chat/public.ts';
 
 type RegisteredActivity = {
-    type: 'inline' | 'assistantHeader';
+    type: 'inline' | 'assistantHeader' | 'imageWidget';
     startedAtMs: number;
     nextDueEpochMs: number;
 };
 
 const RUNNING_ACTIVITY_SELECTOR = '.inline-activity.inline-activity-status-running[data-started-at-ms]:not(.message-role-activity)';
 const RUNNING_ASSISTANT_HEADER_SELECTOR = '.message-role-activity.inline-activity-status-running[data-assistant-started-at-ms]';
-const INLINE_ACTIVITY_SELECTOR = '.inline-activity';
+const RUNNING_IMAGE_WIDGET_SELECTOR = '.assistant-image-widget[data-image-widget-status="running"][data-started-at-ms]';
+const DURATION_ACTIVITY_SELECTOR = '.inline-activity, .assistant-image-widget';
 
 const resolveStartedAtMs = (activity: HTMLElement): number | null => {
     const attributeName = activity.matches(RUNNING_ASSISTANT_HEADER_SELECTOR) ? 'data-assistant-started-at-ms' : 'data-started-at-ms';
@@ -29,7 +30,7 @@ const resolveStartedAtMs = (activity: HTMLElement): number | null => {
 const isActivityDurationEligible = (displayMode: ChatActivityDurationDisplayMode): boolean => displayMode === 'all';
 
 const isRunningActivity = (element: Element, displayMode: ChatActivityDurationDisplayMode = 'all'): element is HTMLElement => {
-    return element instanceof HTMLElement && (element.matches(RUNNING_ACTIVITY_SELECTOR) || element.matches(RUNNING_ASSISTANT_HEADER_SELECTOR)) && isActivityDurationEligible(displayMode);
+    return element instanceof HTMLElement && (element.matches(RUNNING_ACTIVITY_SELECTOR) || element.matches(RUNNING_ASSISTANT_HEADER_SELECTOR) || element.matches(RUNNING_IMAGE_WIDGET_SELECTOR)) && isActivityDurationEligible(displayMode);
 };
 
 const collectRunningActivities = (root: Element, displayMode: ChatActivityDurationDisplayMode = 'all'): HTMLElement[] => {
@@ -37,7 +38,7 @@ const collectRunningActivities = (root: Element, displayMode: ChatActivityDurati
     if (isRunningActivity(root, displayMode)) {
         activities.push(root);
     }
-    for (const element of dom.resolveAll(`${RUNNING_ACTIVITY_SELECTOR}, ${RUNNING_ASSISTANT_HEADER_SELECTOR}`, root)) {
+    for (const element of dom.resolveAll(`${RUNNING_ACTIVITY_SELECTOR}, ${RUNNING_ASSISTANT_HEADER_SELECTOR}, ${RUNNING_IMAGE_WIDGET_SELECTOR}`, root)) {
         if (element instanceof HTMLElement && isActivityDurationEligible(displayMode)) {
             activities.push(element);
         }
@@ -45,12 +46,12 @@ const collectRunningActivities = (root: Element, displayMode: ChatActivityDurati
     return activities;
 };
 
-const collectInlineActivities = (root: Element): HTMLElement[] => {
+const collectDurationActivities = (root: Element): HTMLElement[] => {
     const activities: HTMLElement[] = [];
-    if (root instanceof HTMLElement && root.matches(INLINE_ACTIVITY_SELECTOR)) {
+    if (root instanceof HTMLElement && root.matches(DURATION_ACTIVITY_SELECTOR)) {
         activities.push(root);
     }
-    for (const element of dom.resolveAll(INLINE_ACTIVITY_SELECTOR, root)) {
+    for (const element of dom.resolveAll(DURATION_ACTIVITY_SELECTOR, root)) {
         if (element instanceof HTMLElement) {
             activities.push(element);
         }
@@ -64,5 +65,5 @@ const intersectsViewport = (activity: HTMLElement, viewport: HTMLElement): boole
     return activityRect.bottom > viewportRect.top && activityRect.top < viewportRect.bottom && activityRect.right > viewportRect.left && activityRect.left < viewportRect.right;
 };
 
-export { RUNNING_ASSISTANT_HEADER_SELECTOR, collectInlineActivities, collectRunningActivities, intersectsViewport, isRunningActivity, resolveStartedAtMs };
+export { RUNNING_ASSISTANT_HEADER_SELECTOR, RUNNING_IMAGE_WIDGET_SELECTOR, collectDurationActivities, collectRunningActivities, intersectsViewport, isRunningActivity, resolveStartedAtMs };
 export type { RegisteredActivity };

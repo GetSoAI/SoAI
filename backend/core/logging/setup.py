@@ -12,6 +12,7 @@ from core.config.protocols import ConfigProtocol
 from core.errors.trace_logging import ensure_trace_logging
 from core.logging.bootstrap import transition_bootstrap_loggers_to_runtime_logging
 from core.logging.configuration_constants import (
+    DEFAULT_AUDIT_LOG_FILENAME,
     DEFAULT_JSON_LOG_FILENAME,
     DEFAULT_LOG_DATE_FORMAT,
     DEFAULT_LOG_ENCODING,
@@ -172,7 +173,7 @@ def setup_logging(
                 manager.get_full_log_path(
                     config,
                     "OBSERVABILITY.LOGGING.AUDIT.PATH",
-                    "soai.audit.jsonl",
+                    DEFAULT_AUDIT_LOG_FILENAME,
                 ),
                 encoding,
             )

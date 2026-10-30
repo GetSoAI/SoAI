@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "Oczekiwanie na wygenerowanie obrazu",
+                "imageGenerating": "Generowanie obrazu",
+                "imageUnavailable": "Podgląd obrazu jest niedostępny.",
+                "imageRetry": "Spróbuj ponownie wygenerować obraz.",
                 "requestedAt": "Zażądano {time}"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "Ukryj rozmowy z komunikatorów",
                 "hideMessagingConversationsHint": "Po włączeniu rozmowy z kont komunikatorów są ukrywane na liście paska bocznego",
                 "inputActions": {
+                    "newConversationHint": "Pokaż przycisk nowej rozmowy w polu tworzenia wiadomości",
+                    "findHint": "Pokaż przycisk wyszukiwania w rozmowie w polu tworzenia wiadomości",
                     "prompts": "Zapisane prompty",
                     "title": "Akcje wprowadzania",
                     "tokenCounter": "Licznik tokenów",
@@ -758,7 +764,6 @@
                     "description": "Pamięć trwała pomaga SoAI rozumieć Twoje preferencje, cele i powtarzający się kontekst bez konieczności każdorazowego używania własnego promptu",
                     "empty": "Nie zapisano jeszcze żadnych informacji w pamięci",
                     "openProfile": "Otwórz formularz profilu",
-                    "refresh": "Odśwież pamięć",
                     "title": "Ustawienia pamięci",
                     "userMemoriesTitle": "Pamięć użytkownika"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "Wyślij ten parametr do modelu",
                 "maxCompletionTokens": "Maks. liczba tokenów ukończenia",
-                "maxCompletionTokensHint": "Limit tokenów obejmujący rozumowanie dla modeli rozumujących (o1, o3). Zastępuje maksymalną liczbę tokenów",
+                "maxCompletionTokensHint": "Limit tokenów obejmujący rozumowanie dla modeli rozumujących. Zastępuje maksymalną liczbę tokenów",
                 "agentMaxIterations": "Maks. liczba iteracji agenta",
                 "agentMaxIterationsHint": "Maksymalna liczba iteracji pętli agenta przed zatrzymaniem rozmowy. Użyj bardzo dużej wartości, aby w praktyce nie ograniczać liczby iteracji",
                 "maxTokens": "Maks. tokenów:",
@@ -974,7 +979,6 @@
                     "omittedSettings": "Pominięto {count} nieobsługiwanych lub nieprawidłowych zapisanych ustawień",
                     "replaceAction": "Zastąp",
                     "renameAction": "Zmień nazwę",
-                    "retryAction": "Spróbuj ponownie",
                     "resetAction": "Zresetuj bibliotekę",
                     "resetMessage": "Trwale usunąć wszystkie zapisane presety konfiguracji czatu? Jest to działanie naprawcze dla uszkodzonych rekordów presetów i nie można go cofnąć.",
                     "resetFailed": "Nie udało się zresetować biblioteki presetów. Zapisane presety nie zostały oznaczone jako usunięte; spróbuj ponownie.",
@@ -986,15 +990,13 @@
                     "searchLabel": "Szukaj presetów",
                     "searchPlaceholder": "Szukaj presetów...",
                     "saved": "Zaktualizowano bibliotekę presetów.",
-                    "stale": "Wyświetlana jest ostatnia poprawnie załadowana lista presetów z {value}. Odśwież ją przed edycją.",
                     "structurallyInvalid": "Nie udało się wyświetlić {count} uszkodzonych rekordów presetów.",
                     "status": {
                         "emptyDetail": "Utwórz preset z wartości roboczych w tym oknie dialogowym i wybierz dokładnie, które sekcje ma zawierać.",
                         "emptyTitle": "Utwórz pierwszą konfigurację wielokrotnego użytku",
                         "errorTitle": "Biblioteka presetów jest niedostępna",
                         "noMatchesTitle": "Brak pasujących presetów",
-                        "recoveryTitle": "Niektóre presety wymagają uwagi",
-                        "staleTitle": "Lista presetów może być nieaktualna"
+                        "recoveryTitle": "Niektóre presety wymagają uwagi"
                     },
                     "errors": {
                         "ambiguous": "Wynik żądania jest niepewny. Trwa uzgadnianie listy presetów; przejrzyj ją przed ponowną próbą.",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "Usunąć tę umiejętność z biblioteki i przyszłych wyborów w Twoich czatach? Przyjęte zadania zachowają pakiet. Pliki obszaru roboczego i historia rozmów pozostaną.",
                     "conflict": "Wybór zmieniono w innym miejscu. Sprawdź aktualny wybór przed zapisaniem wersji roboczej",
                     "keepDraft": "Zachowaj mój wybór",
-                    "stale": "Umiejętności są nieaktualne. Połącz się ponownie lub ponów próbę przed zapisaniem",
+                    "stale": "Umiejętności są nieaktualne. Przed zapisaniem poczekaj na przywrócenie połączenia.",
                     "search": "Szukaj umiejętności...",
                     "emptyTitle": "Dodaj pierwszą umiejętność",
                     "noMatchesTitle": "Brak pasujących umiejętności",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "Przekroczono limit importu umiejętności dla {field}: {measured} > {limit}. Zmniejsz archiwum lub usuń nieużywane umiejętności i spróbuj ponownie.",
                         "manifestPosition": "Nieprawidłowy YAML w wierszu {line}, kolumnie {column}. Popraw SKILL.md i spróbuj ponownie."
                     },
-                    "importUncertain": "Wynik importu jest niepewny. Pozostaw ten plik zaznaczony i użyj Odśwież, aby sprawdzić potwierdzenie przed ponowną próbą.",
+                    "importUncertain": "Wynik importu jest niepewny. Pozostaw plik zaznaczony i wybierz Ponów import, aby sprawdzić potwierdzenie.",
                     "invalidSelection": "Niektóre wybrane umiejętności są niedostępne lub przekraczają limit biblioteki. Odśwież, a następnie dostosuj wybór przed zapisaniem",
                     "status": {
                         "importTitle": "Wynik importu jest niepewny",
                         "conflictTitle": "Wybór zmieniono w innym miejscu",
-                        "staleTitle": "Lista umiejętności może być nieaktualna",
                         "unavailableTitle": "Wybór umiejętności jest niedostępny",
                         "invalidTitle": "Wybór wymaga sprawdzenia"
-                    }
+                    },
+                    "useLatest": "Użyj najnowszej wersji",
+                    "retryImport": "Ponów import",
+                    "aboutTitle": "Jak działają umiejętności"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "Dodaj wspomnienie",
                     "search": "Szukaj wspomnień",
                     "noMatches": "Brak pasujących wspomnień",
-                    "stale": "Zapisane dane są nieaktualne. Ostatnie odświeżenie: {time}. Odśwież, aby sprawdzić bieżące dane.",
                     "deleteFact": "Usunąć ten fakt lub relację?",
                     "deleteEntry": "Usunąć „{title}”, w tym {facts} faktów i {relations} relacji?",
                     "savedHidden": "Zapisano. Wyczyść wyszukiwanie, aby zobaczyć to wspomnienie.",
@@ -1468,7 +1471,6 @@
                     "from": "Od",
                     "to": "Do",
                     "type": "Typ relacji",
-                    "staleTitle": "Lista wspomnień może być nieaktualna",
                     "errorTitle": "Biblioteka pamięci jest niedostępna"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "Zachowaj jeden koniec połączony z tym wspomnieniem.",
                     "invalidText": "Wpisz niepusty tytuł i tekst.",
                     "missing": "Ten rekord jest niedostępny lub nie należy już do tego wspomnienia. Odśwież i sprawdź go.",
-                    "unconfirmed": "Nie udało się potwierdzić wyniku. Zachowaj szkic i odśwież dane, aby je sprawdzić przed ponowną próbą.",
+                    "unconfirmed": "Nie udało się potwierdzić wyniku. Zachowaj szkic i sprawdź bieżące dane przed ponowną próbą.",
                     "loadFailed": "Nie udało się wczytać wspomnień. Odśwież, aby spróbować ponownie."
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "retry": "Ponów"
                 },
                 "viewer": {
-                    "none": "Brak",
                     "observations": "Obserwacje",
                     "relations": "Relacje"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "Nie udało się załadować historii promptów."
             },
             "sketch": {
+                "capacityReached": "Osiągnięto limit rysunku. Cofnij i zastąp edycję, załącz obraz albo odrzuć szkic i zacznij od nowa.",
                 "open": "Otwórz szkic",
                 "mobileOption": "Szkic",
                 "preference": "Szkic",
@@ -1711,7 +1713,9 @@
                 "attach": "Dołącz",
                 "discardConfirm": "Odrzucić ten szkic?",
                 "discard": "Odrzuć",
-                "exportFailed": "Nie udało się wyeksportować szkicu. Spróbuj ponownie."
+                "exportFailed": "Nie udało się wyeksportować szkicu. Spróbuj ponownie.",
+                "draftChangedConfirm": "Wersja robocza czatu zmieniła się podczas rysowania. Dołączyć ten rysunek do bieżącej wersji roboczej? Anulowanie zachowa rysunek.",
+                "draftChangedAgain": "Wersja robocza czatu ponownie się zmieniła. Rysunek został zachowany. Spróbuj dołączyć go ponownie."
             },
             "characterMap": {
                 "allEmoji": "Wszystkie emoji",
@@ -2514,6 +2518,28 @@
                     "metric": "Metryczne"
                 },
                 "wind": "Wiatr"
+            },
+            "find": {
+                "open": "Znajdź w rozmowie",
+                "placeholder": "Znajdź w rozmowie…",
+                "close": "Zamknij",
+                "previous": "Poprzednie dopasowanie",
+                "next": "Następne dopasowanie",
+                "count": "{current} z {total}",
+                "none": "Brak dopasowań",
+                "updating": "Aktualizowanie wyników…",
+                "stale": "Rozłączono · ostatnio sprawdzono {seconds} s temu",
+                "incomplete": "Wyszukiwanie niepełne. Spróbuj ponownie.",
+                "error": "Wyszukiwanie nie powiodło się. Spróbuj ponownie.",
+                "tooLong": "Użyj maksymalnie 256 znaków.",
+                "limited": "Ponad 5 000 pasujących wiadomości · nawigacja obejmuje zachowane wyniki",
+                "editing": "Zakończ lub anuluj edycję, aby pokazać to dopasowanie.",
+                "missing": "To dopasowanie zostało zmienione lub usunięte. Spróbuj ponownie.",
+                "timeout": "Upłynął czas wyświetlania dopasowania. Spróbuj ponownie.",
+                "retry": "Ponów",
+                "before": "{count} dopasowań wcześniej",
+                "after": "{count} dopasowań później",
+                "disconnected": "Rozłączono. Połącz ponownie, aby wyszukać."
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "Wyczyść"
+                "clear": "Wyczyść",
+                "downloadAll": "Pobierz wszystkie dzienniki"
             },
             "ariaLabels": {
                 "clearLogs": "Wyczyść dzienniki",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "Ponowne łączenie ze strumieniem dziennika...",
-            "windowTitle": "Dzienniki SoAI"
+            "windowTitle": "Dzienniki SoAI",
+            "errors": {
+                "download": "Nie udało się pobrać dzienników. Sprawdź połączenie i spróbuj ponownie.",
+                "missing": "Brak katalogu dzienników. Sprawdź ustawienia rejestrowania.",
+                "changed": "Dzienniki zmieniły się podczas przechwytywania. Ponów pobieranie.",
+                "unsafe": "Wykryto niebezpieczne ścieżki lub nieobsługiwane wpisy. Usuń dowiązania i spróbuj ponownie.",
+                "paths": "Sprawdź skonfigurowane katalogi dzienników i plików tymczasowych.",
+                "permission": "Odmowa dostępu. Sprawdź uprawnienia katalogu i udostępnianie plików, a następnie ponów próbę.",
+                "limits": "Przekroczono limity archiwum lub wymagania nazw plików. Zmniejsz drzewo dzienników lub popraw nazwy.",
+                "timeout": "Upłynął limit czasu eksportu. Spróbuj ponownie przy mniejszym obciążeniu serwera.",
+                "write": "Nie udało się zapisać archiwum. Sprawdź magazyn tymczasowy i spróbuj ponownie.",
+                "response": "Serwer nie zwrócił prawidłowego załącznika ZIP. Ponów pobieranie."
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "Rozpocznij wyszukiwanie",
                 "filesNotFound": "Nie znaleziono plików ani folderów dla „{query}”",
                 "notFound": "Brak wyników dla „{query}”",
-                "title": "Nie znaleziono wyników"
+                "title": "Nie znaleziono wyników",
+                "minimumCharacters": "Wpisz co najmniej {count} znaki, aby wyszukać."
             },
             "pages": {
                 "about": {

@@ -17,7 +17,7 @@ import { LOG_TAG_DETACHED, RuntimeEnvLogger, getHostWindowId } from '@core/runti
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { warmDetachedBundle, warmLogBundle } from '@core/runtimeenv/warmup.ts';
 import { withTimeout } from '@core/primitives/withTimeout.ts';
-import { readDesktopDetachedContext, registerDesktopDetachedContextCapture } from '@core/runtimeenv/desktopDetachedContext.ts';
+import { readDetachedContextHandoff, registerDetachedContextCapture } from '@core/runtimeenv/detachedContextHandoff.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 class WindowService implements RuntimeWindowServiceState {
     openWindows: Map<string, WindowRecord>;
@@ -34,9 +34,9 @@ class WindowService implements RuntimeWindowServiceState {
     logSnapshotTask: Promise<void> | null;
     coordinator: DetachedWindowCoordinator;
     #beforeUnloadHandler: (() => void) | null;
-    #releaseDesktopCapture: (() => void) | null = null;
+    #releaseContextCapture: (() => void) | null = null;
     #detachedParametersSource: (() => JsonObject) | null = null;
-    #desktopContextOwner: { userId: number; confirmed: boolean } | null = null;
+    #contextOwner: { userId: number; confirmed: boolean } | null = null;
     constructor() {
         this.openWindows = new Map();
         this.pendingMetadata = new Map();
@@ -50,8 +50,8 @@ class WindowService implements RuntimeWindowServiceState {
         this.detachedWarmupTask = null;
         this.detachedSubscription = null;
         this.logSnapshotTask = null;
-        const handoff = this.isPrimaryWindow ? null : readDesktopDetachedContext(this.windowId, extractCurrentWindowMetadata(getLocation().search).pageId);
-        this.#desktopContextOwner = handoff === null ? null : { userId: handoff.ownerUserId, confirmed: false };
+        const handoff = this.isPrimaryWindow ? null : readDetachedContextHandoff(this.windowId, extractCurrentWindowMetadata(getLocation().search).pageId);
+        this.#contextOwner = handoff === null ? null : { userId: handoff.ownerUserId, confirmed: false };
         this.coordinator = new DetachedWindowCoordinator(this.windowId);
         this.#beforeUnloadHandler = null;
         this.#registerCoordinatorHandlers();
@@ -59,11 +59,11 @@ class WindowService implements RuntimeWindowServiceState {
         if (!this.isPrimaryWindow) {
             this.#setupDetachedListener();
             if (handoff !== null) handleDetachedContextEvent(this.hostWindowId, serializeDetachedContext(handoff.context), this.#eventDependencies());
-            this.#releaseDesktopCapture = registerDesktopDetachedContextCapture(this.windowId, () => {
+            this.#releaseContextCapture = registerDetachedContextCapture(this.windowId, () => {
                 const context = this.detachedContext;
-                if (!context || !this.#desktopContextOwner?.confirmed) return null;
+                if (!context || !this.#contextOwner?.confirmed) return null;
                 const parameters = this.#detachedParametersSource?.() ?? context.metadata.parameters;
-                return { ownerUserId: this.#desktopContextOwner.userId, context: { ...context, metadata: { ...context.metadata, parameters }, timestamp: Date.now(), state: {} } };
+                return { ownerUserId: this.#contextOwner.userId, context: { ...context, metadata: { ...context.metadata, parameters }, timestamp: Date.now(), state: {} } };
             });
         }
     }
@@ -72,11 +72,11 @@ class WindowService implements RuntimeWindowServiceState {
         this.#detachedParametersSource = source;
     }
     confirmDetachedContextOwner(userId: number | null): void {
-        if (!userId || (this.#desktopContextOwner !== null && this.#desktopContextOwner.userId !== userId)) throw new Error('Detached context belongs to another user');
-        this.#desktopContextOwner = { userId, confirmed: true };
+        if (!userId || (this.#contextOwner !== null && this.#contextOwner.userId !== userId)) throw new Error('Detached context belongs to another user');
+        this.#contextOwner = { userId, confirmed: true };
     }
     suspendDetachedContextOwner(): void {
-        if (this.#desktopContextOwner !== null) this.#desktopContextOwner.confirmed = false;
+        if (this.#contextOwner !== null) this.#contextOwner.confirmed = false;
     }
     #logDetachedWarning(message: string, details: TelemetryValue = {}): void {
         errorHandler.warn(LOG_TAG_DETACHED, message, details);
@@ -270,8 +270,8 @@ class WindowService implements RuntimeWindowServiceState {
     }
 
     destroy(): void {
-        this.#releaseDesktopCapture?.();
-        this.#releaseDesktopCapture = null;
+        this.#releaseContextCapture?.();
+        this.#releaseContextCapture = null;
         this.#detachedParametersSource = null;
         if (this.#beforeUnloadHandler) {
             ensureEventHubAvailable().removeEventListener('beforeunload', this.#beforeUnloadHandler);

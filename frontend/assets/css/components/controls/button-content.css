@@ -26,9 +26,7 @@
         justify-content: center;
         background-color: var(--ui-button-bg);
         border: var(--border-width-1) solid color-mix(in srgb, var(--ui-button-border) var(--control-button-border-strength), transparent);
-        box-shadow:
-            0 2px 4px var(--surface-drop-shadow-soft),
-            0 0 0 1px var(--surface-outline-highlight-soft);
+        box-shadow: var(--control-button-shadow);
         color: var(--ui-button-color);
         cursor: pointer;
         transition:
@@ -55,9 +53,7 @@
     .ui-button:focus-visible,
     .ui-icon-button:focus-visible {
         border-color: color-mix(in srgb, var(--ui-button-border-hover) var(--control-button-border-strength), transparent);
-        box-shadow:
-            0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring),
-            0 4px 12px var(--shadow-medium);
+        box-shadow: 0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring);
     }
 
     .ui-button:not(.ui-icon-button, .ui-button--sm, .ui-button-xs, .ui-button--titlebar, .ui-button-block) {

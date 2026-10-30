@@ -1,6 +1,9 @@
 /* SoAI - Model detail page control layer parameter view manager rendering [frontend/assets/ts/pages/modeldetail/controllers/parameterviewmanager/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { dom } from '@core/dom/dom.ts';
+import { reconcileElementChildrenFromTrustedHtml } from '@core/dom/childNodeReconciliation.ts';
+import { getSelectDefaultValue, setSelectValueAndSyncDefault } from '@core/dom/selectSelection.ts';
 import { securityApi, toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { renderLabelAttributes } from '@core/security/labelAttributes.ts';
@@ -95,7 +98,17 @@ const renderParameters = (host: ParameterViewHost, state: ParameterStateManager,
         message: i18n.t('modelDetail.parameters.noMatchDescription')
     });
     const parametersMarkup = toTrustedUiHtml(`<div class="parameters-content" id="parameters-scroll">${renderParametersView(state.parameters, templateOptions, emptyState.html)}</div>`);
-    host.pageDom.updateHtml(container, parametersMarkup);
+    reconcileElementChildrenFromTrustedHtml({ target: container, html: parametersMarkup });
+    for (const control of dom.resolveAll('input[data-param], textarea[data-param], select[data-param]', container)) {
+        if (control instanceof HTMLInputElement) {
+            if (control.type === 'checkbox') control.checked = control.defaultChecked;
+            else if (control.value !== control.defaultValue) control.value = control.defaultValue;
+        } else if (control instanceof HTMLTextAreaElement) {
+            if (control.value !== control.defaultValue) control.value = control.defaultValue;
+        } else if (control instanceof HTMLSelectElement) {
+            setSelectValueAndSyncDefault(control, getSelectDefaultValue(control));
+        }
+    }
 };
 
 export { createTemplateOptions, renderNoParameters, renderParameters, renderVirtualModel };

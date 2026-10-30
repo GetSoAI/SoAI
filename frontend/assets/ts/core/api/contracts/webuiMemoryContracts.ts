@@ -8,35 +8,35 @@ import { readRequiredBooleanValue, readRequiredEpochMsValue, readRequiredNonEmpt
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
 import { isJsonArray, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 
-interface ChatMemoryEntity {
+type ChatMemoryEntity = {
     name: string;
     entityType: string;
     createdAtMs: number;
     updatedAtMs: number;
-}
+};
 
-interface ChatMemoryObservation {
+type ChatMemoryObservation = {
     id: string;
     content: string;
     source: string | null;
     createdAtMs: number;
-}
+};
 
-interface ChatMemoryRelation {
+type ChatMemoryRelation = {
     id: string;
     relationType: string;
     toEntity: string | null;
     fromEntity: string | null;
     createdAtMs: number;
-}
+};
 
-interface ChatMemoryEntry {
+type ChatMemoryEntry = {
     entity: ChatMemoryEntity;
     observations: ChatMemoryObservation[];
     relations: ChatMemoryRelation[];
-}
+};
 
-interface ChatMemoryProfile {
+type ChatMemoryProfile = {
     preferredName: string | null;
     assistantName: string | null;
     roleBackground: string | null;
@@ -46,12 +46,12 @@ interface ChatMemoryProfile {
     communicationStyle: string | null;
     recurringToolsProjects: string | null;
     extraNotes: string | null;
-}
+};
 
-interface ChatMemorySnapshot {
+type ChatMemorySnapshot = {
     entries: ChatMemoryEntry[];
     profileForm: ChatMemoryProfile;
-}
+};
 
 type ChatMemoryProfileUpdateRequest = Partial<ChatMemoryProfile> & { expectedRevision?: string };
 
@@ -158,32 +158,32 @@ const serializeChatMemoryProfileUpdate = (request: ChatMemoryProfileUpdateReques
 export { decodeChatMemorySnapshot, serializeChatMemoryProfileUpdate };
 export type { ChatMemoryEntry, ChatMemoryProfile, ChatMemoryProfileUpdateRequest, ChatMemorySnapshot };
 
-interface ManagedMemoryEntry {
+type ManagedMemoryEntry = {
     entity: ChatMemoryEntity & { id: string };
     observations: Array<ChatMemoryObservation & { profileField: string | null }>;
     relations: Array<ChatMemoryRelation & { fromEntityId: string; toEntityId: string; fromEntity: string; toEntity: string }>;
     revision: string;
     isProfile: boolean;
-}
+};
 
-interface MemoryLibrary {
+type MemoryLibrary = {
     entries: ManagedMemoryEntry[];
     profileForm: ChatMemoryProfile;
     profileRevision: string;
-}
+};
 
-interface MemoryEntryUpdate {
+type MemoryEntryUpdate = {
     expectedRevision: string;
     name?: string;
     observation?: { id: string | null; content: string };
-}
+};
 
-interface MemoryRelationUpdate {
+type MemoryRelationUpdate = {
     expectedRevision: string;
     fromEntityId: string;
     toEntityId: string;
     relationType: string;
-}
+};
 
 const decodeManagedMemoryEntry = (value: ApiResponsePayload, label = 'Memory entry'): ManagedMemoryEntry => {
     const record = requireRecord(value, label);

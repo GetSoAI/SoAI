@@ -21,6 +21,7 @@ const resolveChatInputActionDescriptors = (context: ChatPageMarkupContext): read
         { actionId: CHAT_ACTIONS.TOGGLE_CALL, buttonClassName: 'call-btn', label: strings.voiceCallStart },
         { actionId: CHAT_ACTIONS.TOGGLE_RECORDING, buttonClassName: 'microphone-btn', label: strings.startRecording, stopLabel: strings.stopRecording },
         { actionId: CHAT_ACTIONS.OPEN_CAMERA, buttonClassName: 'camera-btn', label: strings.openCamera },
+        { actionId: CHAT_ACTIONS.FIND_OPEN, buttonClassName: 'conversation-find-open u-hidden', label: i18n.t('chat.find.open') },
         { actionId: CHAT_ACTIONS.OPEN_SKETCH, buttonClassName: CHAT_SKETCH_BUTTON_CLASS, label: strings.openSketch },
         { actionId: CHAT_ACTIONS.OPEN_ATTACH_MODAL, buttonClassName: 'attach-add-btn', label: strings.attachAdd }
     ];

@@ -16,7 +16,7 @@ import { ChatMessageDeleteUndoController } from '@features/chat/message/messageD
 import { ChatMessageModalCoordinator } from '@features/chat/message/modalCoordinator.ts';
 import type { ResolvedMessageReference } from '@features/chat/message/messageReferenceResolution.ts';
 import { ChatMessageState } from '@features/chat/message/state.ts';
-import type { ChatMessageManagerDependencies, ChatPostRenderCommit, ChatPostRenderRequestType } from '@features/chat/message/types.ts';
+import type { ChatMessageManagerDependencies, ChatPostRenderCommit, ChatPostRenderRequest, ChatPostRenderRequestType } from '@features/chat/message/types.ts';
 import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
 import { ChatMessageView } from '@features/chat/message/view.ts';
 import { ChatMessageWorkerRenderingRuntime } from '@features/chat/message/messageWorkerRenderingRuntime.ts';
@@ -26,9 +26,9 @@ import { resolveRunningActivityRefreshDelayMs } from '@features/chat/message/act
 import type { RunningActivitySummary } from '@features/chat/toolactivity/runningActivitySummary.ts';
 import type { MessageRenderOptions, RenderedMessageTextContent } from '@features/chat/message/messageview/types.ts';
 import type { InlineActivityDetailsCancelRequest, InlineActivityDetailsRenderRequest } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
-import { LiveMessageRenderPresentationResolver } from '@features/chat/message/messageRenderPresentation.ts';
-import { resolveNormalizedMessageRole } from '@features/chat/message/messageRole.ts';
+import { LiveMessageRenderPresentationResolver, resolveActiveStreamMessageRenderPresentation } from '@features/chat/message/messageRenderPresentation.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
+import type { MessageSearchTextProjection } from '@features/chat/message/searchTextProjection.ts';
 
 class ChatMessageManager {
     readonly #dependencies: ChatMessageManagerDependencies;
@@ -134,7 +134,7 @@ class ChatMessageManager {
                 resolveMessageReference: (conversation, messageId) => this.#state.resolveMessageReference(conversation, messageId),
                 resolveMessageContentSegments: (message) => this.#state.resolveMessageContentSegments(message),
                 renderMessageTextContent: (message) => this.#view.renderMessageTextContent(message, this.#renderPresentationResolver.resolveCurrent(message)),
-                resolveMessageContainer: (messageId) => this.#resolveMessageContainer(messageId),
+                resolveMessageContainer: (messageId) => resolveMessageContainer(this.#dependencies.presentation.dom.getDocument(), messageId),
                 isShowActivitiesEnabled: () => this.#dependencies.presentation.isShowActivitiesEnabled(),
                 toggleLoadingActivityCollapsedState: (message, defaultCollapsed) => this.#state.toggleLoadingActivityCollapsedState(message, defaultCollapsed),
                 invalidateMessageCache: (message) => this.#state.invalidateMessageCache(message),
@@ -221,15 +221,12 @@ class ChatMessageManager {
         return this.#view.renderMessageTextContent(message, this.#renderPresentationResolver.resolveCurrent(message), segments);
     }
 
+    renderAssistantActivityWidgets(segments: readonly MessageSegment[], visibility: 'active' | 'settled'): string {
+        return this.#view.renderAssistantActivityWidgets(segments, visibility);
+    }
+
     renderActiveStreamMessageTextContent(message: ChatMessage): RenderedMessageTextContent {
-        const normalizedRole = resolveNormalizedMessageRole(message, 'user');
-        return this.#view.renderActiveStreamMessageTextContent(message, {
-            normalizedRole,
-            isPendingDeletion: false,
-            isActiveStreamingAssistant: normalizedRole === 'assistant',
-            assistantTriggerUserTimestamp: null,
-            canResendUserMessage: false
-        });
+        return this.#view.renderActiveStreamMessageTextContent(message, resolveActiveStreamMessageRenderPresentation(message));
     }
 
     isMessageEditing(): boolean {
@@ -315,17 +312,16 @@ class ChatMessageManager {
         await this.#workerRenderingRuntime.preRenderConversationAssistantBodies(conversation, { signal: options.signal });
     }
 
+    postRenderRequests(requests: readonly ChatPostRenderRequest[]): void {
+        this.#workerRenderingRuntime.postRenderRequests(requests);
+    }
+
     hasPendingPostRenderWork(): boolean {
         return this.#workerRenderingRuntime.hasPendingPostRenderWork();
     }
 
-    #resolveMessageContainer(messageId: string): HTMLElement | null {
-        const normalizedMessageId = normalizeMessageDomId(messageId);
-        if (!normalizedMessageId) {
-            return null;
-        }
-        const document = this.#dependencies.presentation.dom.getDocument();
-        return resolveMessageContainer(document, normalizedMessageId);
+    createSearchTextProjection(documentRef: Document): MessageSearchTextProjection {
+        return this.#workerRenderingRuntime.createSearchTextProjection(documentRef);
     }
 }
 

@@ -76,6 +76,7 @@ interface ChatActionHandlerDependencies {
         dom: { getData(element: Element | null, key: string): string | null };
     };
     callbacks: {
+        find(action: ChatActionId): void;
         requireConversationIdFromElement(actionElement: HTMLElement, ancestorSelector: string | null): string;
         dispatchMessageAction(actionElement: HTMLElement, action: ChatActionId, event: Event): void;
     };

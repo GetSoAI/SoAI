@@ -3,7 +3,7 @@
 
 import { i18n } from '@core/i18n/index.ts';
 import type { InlineMediaOpenAction } from '@features/chat/message/enhancers/inlineMultimediaCardTypes.ts';
-import { renderChatMultimediaPreviewOpenActionAttributes, resolveChatMultimediaPreviewSourceReferenceForUrl } from '@features/chat/message/multimediaPreviewDataset.ts';
+import { renderChatMultimediaPreviewActionAttributes, resolveChatMultimediaPreviewSourceReferenceForUrl } from '@features/chat/message/multimediaPreviewDataset.ts';
 import type { ChatMessageRenderHost } from '@features/chat/message/messageview/types.ts';
 
 interface ImageFigureRenderInput {
@@ -43,7 +43,7 @@ const renderImageFigure = (host: ChatMessageRenderHost, input: ImageFigureRender
         sourceReference: resolveChatMultimediaPreviewSourceReferenceForUrl(sanitizedUrl),
         requireMetadata: false
     };
-    const actionAttributes = renderChatMultimediaPreviewOpenActionAttributes(openAction);
+    const actionAttributes = renderChatMultimediaPreviewActionAttributes(openAction);
     const image = `<img src="${src}" alt="${alt}" loading="${loading}" decoding="async"${actionAttributes.html}/>`;
     return `<figure class="${classes}">${image}</figure>`;
 };

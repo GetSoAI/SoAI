@@ -91,7 +91,7 @@ const createAdvancedScrollPreviewBottomOffsetController = (input: { context: Cha
             return;
         }
         lastBottomOffsetPx = nextValuePx;
-        input.context.dependencies.dom.setStyle(input.overlay, CSS_VAR_BOTTOM_OFFSET, `${nextValuePx}px`);
+        input.context.dependencies.dom.setStyle(input.shell ?? input.overlay, CSS_VAR_BOTTOM_OFFSET, `${nextValuePx}px`);
     };
 
     const measure = (): number => {

@@ -78,6 +78,8 @@ class SkillSettingsView {
         setAriaBusy(this.root, options.busy || options.loading === true);
         if (options.loading) {
             for (const row of this.#rows.values()) setControlDisabledState(row.toggle, true);
+            renderCollectionNotice(this.#status, this.#resolveStatus(draft, options));
+            this.#applyActionState(draft, options);
             return;
         }
         const filter = this.search.value;
@@ -111,10 +113,7 @@ class SkillSettingsView {
         if (library) checkerboardService.applyCheckerboard(this.#list, '.chat-skills-row:not(.u-hidden)');
         else this.dispose();
         renderCollectionNotice(this.#status, this.#resolveStatus(draft, options));
-        for (const button of dom.resolveAll('button[data-action]', this.root)) {
-            const action = button.getAttribute('data-action');
-            setControlDisabledState(narrowButton(button, 'Skill action'), options.busy || (action === 'skills-add' && options.retryImport) || (action === 'skills-keep' && (!draft.conflicted || !options.fresh)));
-        }
+        this.#applyActionState(draft, options);
         this.#list.classList.toggle('u-hidden', visibleCount === 0);
         const emptyLibrary = library?.skills.length === 0;
         renderCollectionEmptyState(
@@ -157,14 +156,22 @@ class SkillSettingsView {
         this.#clearDetails();
     }
 
+    #applyActionState(draft: SkillSelectionDraft, options: SkillRenderOptions): void {
+        for (const button of dom.resolveAll('button[data-action]', this.root)) {
+            const action = button.getAttribute('data-action');
+            setControlDisabledState(narrowButton(button, 'Skill action'), options.busy || (action === 'skills-add' && options.retryImport) || (action === 'skills-keep' && (!draft.conflicted || !options.fresh)) || (action === 'skills-use-latest' && !options.fresh));
+        }
+    }
+
     #resolveStatus(draft: SkillSelectionDraft, options: SkillRenderOptions): CollectionNotice | null {
         const documentValue = this.root.ownerDocument;
-        const reload = (): HTMLButtonElement => createCollectionNoticeAction(documentValue, 'skills-reload', i18n.t('common.refresh'));
-        if (options.retryImport && !options.busy) return { tone: 'warning', title: i18n.t('chat.configuration.skills.status.importTitle'), detail: i18n.t('chat.configuration.skills.importUncertain'), actions: [reload()] };
-        if (draft.conflicted) return { tone: 'warning', title: i18n.t('chat.configuration.skills.status.conflictTitle'), detail: i18n.t('chat.configuration.skills.conflict'), actions: [reload(), createCollectionNoticeAction(documentValue, 'skills-keep', i18n.t('chat.configuration.skills.keepDraft'))] };
-        if (!options.fresh) return { tone: 'warning', title: i18n.t('chat.configuration.skills.status.staleTitle'), detail: i18n.t('chat.configuration.skills.stale'), actions: [reload()] };
+        const useLatest = (): HTMLButtonElement => createCollectionNoticeAction(documentValue, 'skills-use-latest', i18n.t('chat.configuration.skills.useLatest'));
+        const retryImport = (): HTMLButtonElement => createCollectionNoticeAction(documentValue, 'skills-retry-import', i18n.t('chat.configuration.skills.retryImport'));
+        if (options.retryImport && !options.busy) return { tone: 'warning', title: i18n.t('chat.configuration.skills.status.importTitle'), detail: i18n.t('chat.configuration.skills.importUncertain'), actions: [retryImport()] };
+        if (draft.conflicted) return { tone: 'warning', title: i18n.t('chat.configuration.skills.status.conflictTitle'), detail: i18n.t('chat.configuration.skills.conflict'), actions: [useLatest(), createCollectionNoticeAction(documentValue, 'skills-keep', i18n.t('chat.configuration.skills.keepDraft'))] };
+        if (!options.fresh) return null;
         if (!options.editable) return { tone: 'info', title: i18n.t('chat.configuration.skills.status.unavailableTitle'), detail: i18n.t('chat.configuration.skills.unavailable'), actions: [] };
-        if (draft.dirty && !draft.valid) return { tone: 'warning', title: i18n.t('chat.configuration.skills.status.invalidTitle'), detail: i18n.t('chat.configuration.skills.invalidSelection'), actions: [reload()] };
+        if (draft.dirty && !draft.valid) return { tone: 'warning', title: i18n.t('chat.configuration.skills.status.invalidTitle'), detail: i18n.t('chat.configuration.skills.invalidSelection'), actions: [useLatest()] };
         return null;
     }
 

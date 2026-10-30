@@ -12,6 +12,7 @@ import { renderIconSlot } from '@core/ui/icons/view.ts';
 import { EMPTY_UI_HTML, staticUiHtml, uiAttr, uiAttributes, uiHtml, uiText, type UiAttributeValue } from '@core/security/uiHtml.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isTrustedHtml } from '@core/security/htmlSanitizer.ts';
+import { HEADER_STAT_CARD_SUPPRESSED_CLASS } from '@core/routing/pages/basepagelayout/headerStats.ts';
 
 interface HeaderTemplateHost {
     pageId: string;
@@ -164,7 +165,7 @@ const generateHeaderStatsMarkup = (context: HeaderTemplateHost, stats: ReadonlyA
             const actions = entry.actions ?? [];
             const hasAction = actions.length > 0;
             const actionButtons = hasAction ? uiHtml`<div class="ui-page-header-stats__card-action">${toTrustedUiHtml(actions.map((action) => generateHeaderStatActionMarkup(context, action).html).join(''))}</div>` : EMPTY_UI_HTML;
-            const cardClass = `ui-page-header-stats__card${hasAction ? ' ui-page-header-stats__card--interactive' : ''}`;
+            const cardClass = `ui-page-header-stats__card${hasAction ? ' ui-page-header-stats__card--interactive' : ''}${entry.suppressed ? ` ${HEADER_STAT_CARD_SUPPRESSED_CLASS}` : ''}`;
             const valueMarkup = generateHeaderStatValueMarkup(entry);
             return uiHtml`<div class="${uiAttr(cardClass)}">${actionButtons}${valueMarkup}<div class="stat-label">${uiText(entry.label)}</div></div>`.html;
         })

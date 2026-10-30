@@ -11,7 +11,7 @@ import { parseFileBrowserMetadataPayload } from '@core/fileexplorerbrowser/paylo
 import { resolveAbsolutePath, toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
 import type { FileBrowserRecord, FileBrowserSearchOptions } from '@core/fileexplorerbrowser/types.ts';
 import { isAbortError, throwIfAborted } from '@core/errors/abort.ts';
-import { normalizeSearchDisplayQuery } from '@core/search/searchQuery.ts';
+import { SEARCH_MINIMUM_QUERY_LENGTH, normalizeSearchDisplayQuery } from '@core/search/searchQuery.ts';
 import type { SearchItem, SearchOptions } from '@core/search/searchTypes.ts';
 
 interface FileSearchApiClient {
@@ -44,7 +44,7 @@ const mapFileSearchEntry = (entry: FileBrowserRecord, workspacePathResolved: str
 
 const searchFileExplorerResults = async (context: FileSearchContext, query: string, limit: number, options: SearchOptions = {}): Promise<SearchItem[]> => {
     const normalizedQuery = normalizeSearchDisplayQuery(query);
-    if (!normalizedQuery || normalizedQuery.length < 2) {
+    if (!normalizedQuery || normalizedQuery.length < SEARCH_MINIMUM_QUERY_LENGTH) {
         return [];
     }
     throwIfAborted(options.signal);

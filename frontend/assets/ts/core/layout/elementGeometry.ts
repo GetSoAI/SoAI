@@ -92,6 +92,12 @@ const measureLayoutBox = (measurable: GeometryMeasurable): GeometryBox => {
     return createGeometryBox(measurable.getBoundingClientRect(), interfaceScaleFactorFromRoot(root));
 };
 
+const measureLayoutRectangles = (measurable: GeometryMeasurable): GeometryBox[] => {
+    const root = resolveMeasurementDocument(measurable).documentElement;
+    const scale = interfaceScaleFactorFromRoot(root);
+    return Array.from(measurable.getClientRects(), (rectangle) => createGeometryBox(rectangle, scale));
+};
+
 const GRID_LINE_NAMES_PATTERN = /\[[^\]]*\]/g;
 const RESOLVED_GRID_TRACK_PATTERN = /^\d+(?:\.\d+)?px$/;
 
@@ -115,5 +121,5 @@ const measureLayoutTouchPoint = (touch: Touch, scope: Document | Element = getDo
     y: toLayoutPixels(touch.clientY, scope)
 });
 
-export { measureElementLayoutDimensions, measureGridColumnCount, measureLayoutBox, measureLayoutPoint, measureLayoutTouchPoint, measureLayoutViewport, measureScrollbarInlineSize, measureViewportBox, measureViewportPoint, measureViewportTouchPoint, toLayoutPixels };
+export { measureElementLayoutDimensions, measureGridColumnCount, measureLayoutBox, measureLayoutPoint, measureLayoutRectangles, measureLayoutTouchPoint, measureLayoutViewport, measureScrollbarInlineSize, measureViewportBox, measureViewportPoint, measureViewportTouchPoint, toLayoutPixels };
 export type { GeometryBox, GeometryDimensions, GeometryMeasurable, GeometryPoint, PointerGeometryEvent };

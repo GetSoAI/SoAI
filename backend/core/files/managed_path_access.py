@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import os
 import stat
+import sys
 from collections.abc import Generator
 from contextlib import contextmanager
 
+from core.files.managed_file_opening import open_managed_file_descriptor
 from core.files.managed_storage_errors import FileStorageSecurityError
 from core.files.managed_storage_traversal import (
     close_file_descriptor_stack,
@@ -32,7 +34,23 @@ def supports_managed_directory_descriptors() -> bool:
     return supports_storage_directory_descriptors() and os.listdir in os.supports_fd
 
 
-def stat_managed_path(storage_root: str, entry_path: str) -> os.stat_result:
+def stat_managed_path(
+    storage_root: str,
+    entry_path: str,
+    *,
+    file_descriptor_snapshot: bool = False,
+    concurrent_leaf_read: bool = False,
+) -> os.stat_result:
+    if concurrent_leaf_read and not file_descriptor_snapshot:
+        raise FileStorageSecurityError("Concurrent file metadata requires a descriptor snapshot.")
+    if file_descriptor_snapshot:
+        opened = open_managed_file_descriptor(
+            storage_root, entry_path, concurrent_leaf_read=concurrent_leaf_read
+        )
+        try:
+            return os.fstat(opened.descriptor)
+        finally:
+            close_file_descriptor_stack([opened.descriptor], primary_exception=sys.exception())
     if os.name == "nt":
         with open_windows_managed_path_handles(
             storage_root,

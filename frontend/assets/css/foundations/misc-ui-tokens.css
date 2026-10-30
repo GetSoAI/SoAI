@@ -4,6 +4,7 @@
 @layer foundations {
     :root {
         --hidden-display: none;
+        --chat-generated-image-backdrop-opacity: 0.35;
         --feedback-critical-heading: #d74242;
         --feedback-error-highlight: #ef4444;
         --feedback-success-highlight: #16a34a;

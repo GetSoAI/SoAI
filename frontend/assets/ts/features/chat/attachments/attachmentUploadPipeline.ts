@@ -3,6 +3,8 @@
 
 import { fetchSystemLimits, getCameraVisionImageOptimizationEnabled, getCameraVisionUploadEnabled } from '@core/api/systemLimitsService.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import type { AttachmentAcquisitionScope } from '@core/attachments/protocols.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { ModuleLogger } from '@core/moduleContext.ts';
@@ -17,6 +19,7 @@ type ErrorHandler = (error: Error, title: string, options?: { notify?: boolean }
 type AttachmentUploadSource = 'picker' | 'camera' | 'folder';
 
 type HandleChatAttachmentUploadArguments = {
+    scope: AttachmentAcquisitionScope;
     files: File[];
     source: AttachmentUploadSource;
     visionSupported: boolean;
@@ -64,6 +67,7 @@ const handleCameraUploads = async (inputArguments: HandleChatAttachmentUploadArg
 
     const optimizedFiles: File[] = [];
     for (const file of inputArguments.files) {
+        if (!inputArguments.scope.isCurrent()) return;
         if (file.size > sizeLimit.maxBytes) {
             inputArguments.errorHandler(new Error(createChatUploadFileTooLargeMessage(file.name, sizeLimit)), errorTitle, { notify: true });
             continue;
@@ -72,7 +76,9 @@ const handleCameraUploads = async (inputArguments: HandleChatAttachmentUploadArg
         let normalizedFile: File | null;
         try {
             normalizedFile = await normalizeImageMimeTypeFromHeader(file);
+            if (!inputArguments.scope.isCurrent()) return;
         } catch (error) {
+            if (!inputArguments.scope.isCurrent() || isAbortError(error)) return;
             const runtimeError = ensureError(error);
             inputArguments.logger('warn', 'Camera image MIME normalization failed', {
                 fileName: file.name,
@@ -95,12 +101,14 @@ const handleCameraUploads = async (inputArguments: HandleChatAttachmentUploadArg
 
         try {
             const optimized = await optimizeCameraImageFileForVision(normalizedFile, { maxPixels: 4_000_000, jpegQuality: 0.85, maxOutputBytes: sizeLimit.maxBytes });
+            if (!inputArguments.scope.isCurrent()) return;
             if (optimized.size > sizeLimit.maxBytes) {
                 inputArguments.errorHandler(new Error(createChatUploadFileTooLargeMessage(file.name, sizeLimit)), errorTitle, { notify: true });
                 continue;
             }
             optimizedFiles.push(optimized);
         } catch (error) {
+            if (!inputArguments.scope.isCurrent() || isAbortError(error)) return;
             const runtimeError = ensureError(error);
             const message = resolveCameraOptimizationErrorMessage(runtimeError, file.name) ?? i18n.t('chat.upload.cameraOptimizationFailed', { name: file.name });
             inputArguments.logger('warn', 'Camera image optimization failed', {
@@ -134,6 +142,7 @@ const handlePickerUploads = async (inputArguments: HandleChatAttachmentUploadArg
     const visionImageCandidates: File[] = [];
     const forceDocumentCandidates: File[] = [];
     for (const file of inputArguments.files) {
+        if (!inputArguments.scope.isCurrent()) return;
         if (isSupportedChatImageFile(file)) {
             visionImageCandidates.push(file);
             continue;
@@ -143,6 +152,7 @@ const handlePickerUploads = async (inputArguments: HandleChatAttachmentUploadArg
 
     const optimizedVisionFiles: File[] = [];
     for (const file of visionImageCandidates) {
+        if (!inputArguments.scope.isCurrent()) return;
         if (file.size > sizeLimit.maxBytes) {
             inputArguments.errorHandler(new Error(createChatUploadFileTooLargeMessage(file.name, sizeLimit)), errorTitle, { notify: true });
             continue;
@@ -150,7 +160,9 @@ const handlePickerUploads = async (inputArguments: HandleChatAttachmentUploadArg
         let normalizedFile: File | null;
         try {
             normalizedFile = await normalizeImageMimeTypeFromHeader(file);
+            if (!inputArguments.scope.isCurrent()) return;
         } catch (error) {
+            if (!inputArguments.scope.isCurrent() || isAbortError(error)) return;
             const runtimeError = ensureError(error);
             inputArguments.logger('warn', 'Picker image MIME normalization failed; using document attachment flow', {
                 fileName: file.name,
@@ -171,12 +183,14 @@ const handlePickerUploads = async (inputArguments: HandleChatAttachmentUploadArg
         }
         try {
             const optimized = await optimizeCameraImageFileForVision(normalizedFile, { maxPixels: 4_000_000, jpegQuality: 0.85, maxOutputBytes: sizeLimit.maxBytes });
+            if (!inputArguments.scope.isCurrent()) return;
             if (optimized.size > sizeLimit.maxBytes) {
                 inputArguments.errorHandler(new Error(createChatUploadFileTooLargeMessage(file.name, sizeLimit)), errorTitle, { notify: true });
                 continue;
             }
             optimizedVisionFiles.push(optimized);
         } catch (error) {
+            if (!inputArguments.scope.isCurrent() || isAbortError(error)) return;
             const runtimeError = ensureError(error);
             const message = resolveCameraOptimizationErrorMessage(runtimeError, file.name) ?? i18n.t('chat.upload.cameraOptimizationFailed', { name: file.name });
             inputArguments.logger('warn', 'Vision image optimization failed', {
@@ -193,6 +207,7 @@ const handlePickerUploads = async (inputArguments: HandleChatAttachmentUploadArg
     if (optimizedVisionFiles.length > 0) {
         await inputArguments.handleFiles(optimizedVisionFiles, { draftSource: 'upload' });
     }
+    if (!inputArguments.scope.isCurrent()) return;
     if (forceDocumentCandidates.length > 0) {
         await inputArguments.handleFiles(forceDocumentCandidates, { forceDocument: true, draftSource: 'upload' });
     }
@@ -205,7 +220,9 @@ const handleChatAttachmentUploadPipeline = async (inputArguments: HandleChatAtta
 
     try {
         await fetchSystemLimits();
+        if (!inputArguments.scope.isCurrent()) return;
     } catch (error) {
+        if (!inputArguments.scope.isCurrent() || isAbortError(error)) return;
         const runtimeError = ensureError(error);
         errorHandler.error('ChatAttachmentUploadPipeline', 'Failed to fetch system limits for attachment upload', runtimeError);
         notifyLimitsUnavailable(inputArguments);

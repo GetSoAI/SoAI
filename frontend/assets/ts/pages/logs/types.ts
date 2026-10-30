@@ -17,6 +17,7 @@ export interface LogsUiRefs {
     emptyMessage: HTMLElement;
     sourceSelect: HTMLSelectElement;
     lineLimitSelect: HTMLSelectElement;
+    downloadButton: HTMLButtonElement;
 }
 
 export type { StreamPayload };

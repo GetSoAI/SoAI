@@ -34,6 +34,7 @@ import type { ChatLifecycleResources } from '@pages/chat/state/ChatLifecycleReso
 import type { ChatRuntimeServices } from '@pages/chat/state/ChatRuntimeServiceManager.ts';
 import type { ChatSettingsState } from '@pages/chat/state/ChatSettingsStateManager.ts';
 import type { ChatConversationRenderOutcome } from '@pages/chat/controllers/chatpage/conversations/contracts.ts';
+import type { ConversationFindSession } from '@pages/chat/controllers/conversationfind/ConversationFindSession.ts';
 
 interface ChatLifecycleOperations {
     initializeTokenCounter(): void;
@@ -55,6 +56,7 @@ interface ChatLifecycleControllerInitialization {
 }
 
 interface ChatLifecycleDependencies {
+    find: ConversationFindSession;
     composer: ChatComposerController;
     composerSurface: ChatComposerSurfaceRuntime;
     configurationSession: ChatConfigurationController;
@@ -63,7 +65,6 @@ interface ChatLifecycleDependencies {
     conversationState: ChatConversationState;
     conversationToolbarSession: ChatConversationToolbarManager;
     conversationView: ChatConversationViewController;
-    getDomContext(): Element | null;
     lifecycleResources: ChatLifecycleResources;
     modelSession: ChatModelSessionManager;
     operations: ChatLifecycleOperations;
@@ -139,6 +140,7 @@ class ChatPageLifecycleController {
     }
 
     async hide(): Promise<void> {
+        this.#page.find.hide();
         this.#page.operations.suspendStreamPresentation();
         this.#page.lifecycleResources.suspendStreamPresentation();
         this.#page.lifecycleResources.chatActivityExit?.();
@@ -156,6 +158,7 @@ class ChatPageLifecycleController {
     }
 
     cancel(): void {
+        this.#page.find.hide();
         this.#page.operations.suspendStreamPresentation();
         this.#page.lifecycleResources.cancelPageUi(this.#page.taskScope);
     }
@@ -230,6 +233,7 @@ class ChatPageLifecycleController {
     }
 
     async destroy(): Promise<void> {
+        this.#page.find.dispose();
         this.#page.operations.suspendStreamPresentation();
         this.#controls.abortListeners('chat-page-destroy');
         this.#page.lifecycleResources.beginDestroy(this.#page.taskScope);
@@ -248,8 +252,9 @@ class ChatPageLifecycleController {
     }
 
     bindPageEvents(): void {
-        const rootElement = requireChatRoot({ getDomContext: () => this.#page.getDomContext() });
+        const rootElement = requireChatRoot({ getDomContext: () => this.#page.pageDom.getContext() });
         const signal = this.#controls.resetListenersAbortSignal();
+        this.#page.find.initialize(this.#page.pageDom.requireHTMLElement('.chat-main-container'), signal);
         this.#rootEventsHost = this.#page.operations.createRootEventsHost(signal);
         const rootEventsHost = this.#rootEventsHost;
         bindChatActionClicks(rootEventsHost, rootElement, signal);
@@ -258,7 +263,7 @@ class ChatPageLifecycleController {
             {
                 conversationState: this.#page.conversationState,
                 conversationToolbarSession: this.#page.conversationToolbarSession,
-                getDomContext: () => this.#page.getDomContext(),
+                getDomContext: () => this.#page.pageDom.getContext(),
                 requireActionHost: () => this.#page.controllerInitialization.requireActionHost()
             },
             signal

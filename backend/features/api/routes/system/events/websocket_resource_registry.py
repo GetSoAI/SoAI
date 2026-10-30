@@ -4,6 +4,10 @@
 from __future__ import annotations
 
 from core.events.types_base import Event
+from core.events.types_chat_libraries import (
+    ChatPresetLibraryChangedEvent,
+    MemoryLibraryChangedEvent,
+)
 from core.events.types_models_model_events import ModelLastUsedChangedEvent
 from core.events.types_plugins import PluginLastUsedChangedEvent
 from core.events.types_system import (
@@ -46,6 +50,8 @@ def is_websocket_chat_presentation_event_type(event_type: type[Event]) -> bool:
 
 def is_websocket_resource_interest_event_type(event_type: type[Event]) -> bool:
     for resource in (
+        "memory.library",
+        "chat.presets",
         RESOURCE_SYSTEM_METRICS,
         RESOURCE_HARDWARE_SNAPSHOT,
         RESOURCE_HARDWARE_PROCESSES,
@@ -64,6 +70,10 @@ def is_websocket_resource_interest_event_type(event_type: type[Event]) -> bool:
 def resolve_websocket_resource_event_types(
     resource: str,
 ) -> set[type[Event]] | None:
+    if resource == "memory.library":
+        return {MemoryLibraryChangedEvent}
+    if resource == "chat.presets":
+        return {ChatPresetLibraryChangedEvent}
     if resource == RESOURCE_SYSTEM_METRICS:
         return {MetricsUpdatedEvent}
     if resource == RESOURCE_HARDWARE_SNAPSHOT:

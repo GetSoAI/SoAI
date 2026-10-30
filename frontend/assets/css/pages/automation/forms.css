@@ -118,8 +118,8 @@
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-now-indicator {
         position: absolute;
-        top: var(--space-3);
-        bottom: var(--space-3);
+        top: var(--border-width-1);
+        bottom: 0;
         inset-inline-start: 0;
         inset-inline-end: 0;
         pointer-events: none;

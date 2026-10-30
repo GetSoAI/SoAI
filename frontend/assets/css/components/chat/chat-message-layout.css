@@ -2,6 +2,12 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    @property --chat-messages-padding-top {
+        syntax: '<length>';
+        inherits: true;
+        initial-value: 0;
+    }
+
     @property --chat-plan-overlay-height {
         syntax: '<length>';
         inherits: true;

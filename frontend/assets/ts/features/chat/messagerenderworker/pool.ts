@@ -6,7 +6,7 @@ import { generateSecureId } from '@core/primitives/idGenerator.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { createAbortError } from '@core/errors/abort.ts';
-import type { RenderAssistantBodyFromMessageInput, RenderContext, RenderInlineDetailsFromMessageInput, RenderMessageCommonFields, WorkerMessage, WorkerRequest, WorkerResources } from '@features/chat/messagerenderworker/protocol.ts';
+import type { RenderAssistantBodyFromMessageInput, RenderContext, RenderInlineDetailsFromMessageInput, RenderMessageCommonFields, RenderSearchTextInput, WorkerMessage, WorkerRequest, WorkerResources } from '@features/chat/messagerenderworker/protocol.ts';
 import { ChatRenderWorkerRequestQueue } from '@features/chat/messagerenderworker/workerRequestQueue.ts';
 import { computeWorkerCount, isWorkerReadyMessage, isWorkerResponse, requireModernWorkerSupport } from '@features/chat/messagerenderworker/workerPoolEnvironment.ts';
 import { minutesToMs, secondsToMs } from '@core/time/durations.ts';
@@ -123,15 +123,20 @@ class ChatMessageRenderWorkerPool {
         return this.#submitRenderRequest(payload, inputArguments.context, signal);
     }
 
+    renderSearchText(inputArguments: RenderSearchTextInput): Promise<string> {
+        const { signal, ...fields } = inputArguments;
+        return this.#submitHtmlRequest({ type: 'renderSearchText', requestId: generateSecureId(), ...fields }, signal);
+    }
+
     #submitRenderRequest(payload: WorkerRequest, context: RenderContext, signal: AbortSignal | null): Promise<{ html: string; context: RenderContext }> {
+        return this.#submitHtmlRequest(payload, signal).then((html) => ({ html, context }));
+    }
+
+    #submitHtmlRequest(payload: WorkerRequest, signal: AbortSignal | null): Promise<string> {
         if (signal?.aborted) {
             return Promise.reject(createAbortError('Chat render worker request aborted'));
         }
-        return this.#resourcesReady.then(() =>
-            this.#requestQueue.enqueue({ payload, signal }).then((html) => {
-                return { html, context };
-            })
-        );
+        return this.#resourcesReady.then(() => this.#requestQueue.enqueue({ payload, signal }));
     }
 
     #createWorker(workerIndex: number): WorkerSession<WorkerRequest, WorkerMessage> {

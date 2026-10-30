@@ -8,7 +8,7 @@ import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import { renderIconSlot } from '@core/ui/icons/view.ts';
 import { EMPTY_UI_HTML, staticUiHtml, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
-import { LOGS_ACTION_CLEAR, LOGS_ACTION_LINE_LIMIT_CHANGE, LOGS_ACTION_SOURCE_CHANGE, LOGS_ACTION_TEXT_DECREASE, LOGS_ACTION_TEXT_INCREASE } from '@pages/logs/actions.ts';
+import { LOGS_ACTION_DOWNLOAD_ALL, LOGS_ACTION_CLEAR, LOGS_ACTION_LINE_LIMIT_CHANGE, LOGS_ACTION_SOURCE_CHANGE, LOGS_ACTION_TEXT_DECREASE, LOGS_ACTION_TEXT_INCREASE } from '@pages/logs/actions.ts';
 
 type GenerateStandardHeaderFunctionValue = (options: GenerateStandardHeaderOptions) => TrustedHtml;
 type GetIconSyncFunctionValue = (iconName: IconName, options?: IconOptions) => TrustedHtml;
@@ -108,6 +108,19 @@ const renderTextDecreaseButton = (getIconSync: GetIconSyncFunctionValue): Truste
     </button>
 `;
 
+const renderDownloadButton = (getIconSync: GetIconSyncFunctionValue): TrustedHtml => uiHtml`
+    <button
+        type="button"
+        class="ui-button ui-icon-button ui-variant-success"
+        id="logs-download-all"
+        data-action="${uiAttr(LOGS_ACTION_DOWNLOAD_ALL)}"
+        aria-label="${uiAttr(i18n.t('logs.actions.downloadAll'))}"
+        data-tooltip="${uiAttr(i18n.t('logs.actions.downloadAll'))}"
+    >
+        ${renderIconSlot(getIconSync('download', { size: 16, strokeWidth: 1.5 }))}
+    </button>
+`;
+
 const renderClearButton = (getIconSync: GetIconSyncFunctionValue): TrustedHtml => uiHtml`
     <button
         type="button"
@@ -155,6 +168,7 @@ const renderLogsHeaderActions = (dependencies: LogsHeaderActionsDependencies): H
             html: renderTextDecreaseButton(dependencies.getIconSync)
         }
     ];
+    actions.push({ type: 'custom', html: renderDownloadButton(dependencies.getIconSync) });
     actions.push({
         type: 'custom',
         html: renderClearButton(dependencies.getIconSync)

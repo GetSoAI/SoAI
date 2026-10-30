@@ -14,7 +14,7 @@ interface ChatAttachmentProcessorContract {
     abortAttachment(attachmentId: string): void;
     waitForAttachments(files: readonly ChatAttachment[]): Promise<void>;
     waitForAttachment(attachment: ChatAttachment): Promise<void>;
-    processAttachment(attachment: ChatAttachment): Promise<PhysicalAttachmentPayload | null>;
+    processAttachment(attachment: ChatAttachment, conversationId: string): Promise<PhysicalAttachmentPayload | null>;
 }
 
 interface ChatAttachmentProcessingErrorHandler {
@@ -87,24 +87,24 @@ class ChatAttachmentProcessingQueue {
         await Promise.allSettled(waits);
     }
 
-    processAttachment(attachment: ChatAttachment): Promise<void> {
+    processAttachment(attachment: ChatAttachment, conversationId: string): Promise<void> {
         this.#activeAttachmentIds.add(attachment.id);
         this.#removedAttachmentIds.delete(attachment.id);
         if (attachment.isImage) {
-            return this.#processImageAttachment(attachment);
+            return this.#processImageAttachment(attachment, conversationId);
         }
-        return this.#processDocumentAttachment(attachment);
+        return this.#processDocumentAttachment(attachment, conversationId);
     }
 
-    async #processDocumentAttachment(attachment: ChatAttachment): Promise<void> {
+    async #processDocumentAttachment(attachment: ChatAttachment, conversationId: string): Promise<void> {
         try {
-            await this.#processPhysicalAttachment(attachment);
+            await this.#processPhysicalAttachment(attachment, conversationId);
         } finally {
             this.#removedAttachmentIds.delete(attachment.id);
         }
     }
 
-    async #processImageAttachment(attachment: ChatAttachment): Promise<void> {
+    async #processImageAttachment(attachment: ChatAttachment, conversationId: string): Promise<void> {
         const errorTitle = i18n.t('chat.upload.errorTitle');
         const file = attachment.file;
         if (!file) {
@@ -135,16 +135,16 @@ class ChatAttachmentProcessingQueue {
             });
         this.#imageReads.set(attachment.id, previewOperation);
         try {
-            await Promise.allSettled([previewOperation, this.#processPhysicalAttachment(attachment)]);
+            await Promise.allSettled([previewOperation, this.#processPhysicalAttachment(attachment, conversationId)]);
         } finally {
             this.#removedAttachmentIds.delete(attachment.id);
         }
     }
 
-    async #processPhysicalAttachment(attachment: ChatAttachment): Promise<void> {
+    async #processPhysicalAttachment(attachment: ChatAttachment, conversationId: string): Promise<void> {
         const errorTitle = i18n.t('chat.upload.errorTitle');
         try {
-            await this.#attachmentProcessor.processAttachment(attachment);
+            await this.#attachmentProcessor.processAttachment(attachment, conversationId);
         } catch (error) {
             if (this.#removedAttachmentIds.has(attachment.id) && isAbortError(ensureError(error))) {
                 return;

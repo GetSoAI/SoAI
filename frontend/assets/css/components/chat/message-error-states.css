@@ -90,14 +90,6 @@
         overflow-wrap: anywhere;
     }
 
-    :where(.chat-container) .assistant-activity-widget-image img {
-        display: block;
-        width: 100%;
-        height: 100%;
-        min-height: 0;
-        object-fit: cover;
-    }
-
     .chat-container .file-preview-item .remove-file-btn svg {
         width: 12px;
         height: 12px;
@@ -152,21 +144,6 @@
         flex: 0 0 0.875rem;
         opacity: var(--assistant-activity-widget-brand-logo-opacity);
         object-fit: contain;
-    }
-
-    :where(.chat-container) .assistant-activity-widget-image {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-1);
-        flex: 0 0 12rem;
-        max-width: min(100%, 12rem);
-        aspect-ratio: 1;
-        margin: 0;
-        border-radius: var(--border-radius);
-        overflow: hidden;
-        background: color-mix(in srgb, var(--glass-surface-medium) 82%, transparent);
-        border: var(--border-width-1) solid var(--glass-border-medium);
-        cursor: pointer;
     }
 
     :where(.chat-container) .message-images .message-image img {

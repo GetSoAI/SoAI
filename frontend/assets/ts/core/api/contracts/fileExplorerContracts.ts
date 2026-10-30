@@ -1,7 +1,6 @@
 /* SoAI - Shared frontend API contract boundary file explorer contracts [frontend/assets/ts/core/api/contracts/fileExplorerContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { BufferedApiResponse } from '@core/api/bufferedResponse.ts';
 import { decodeFileExplorerEntry } from '@core/api/contracts/fileExplorerEntryContract.ts';
 import { decodeFileExplorerListingAcceptedResponse, decodeFileExplorerListingLocateResponse, decodeFileExplorerListingPageResponse, decodeFileExplorerListingReleasedResponse } from '@core/api/contracts/fileExplorerListingContracts.ts';
 import type { FileExplorerBatchItemResponse, FileExplorerBatchMetadataItemResponse, FileExplorerBatchMetadataResponse, FileExplorerBatchResponse, FileExplorerBatchUploadItemResponse, FileExplorerBatchUploadResponse, FileExplorerEntryResponse, FileExplorerListResponse, FileExplorerMetadataResponse, FileExplorerMoveMutationResponse, FileExplorerPathMutationResponse, FileExplorerReadResponse, FileExplorerSearchEntryResponse, FileExplorerSearchResponse, FileExplorerTaskAcceptedResponse, FileExplorerUploadResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
@@ -179,14 +178,9 @@ const decodeFileExplorerTaskAcceptedResponse = (value: ApiResponsePayload): File
     return { status: requireStatus(record, 'accepted', label), taskId: readRequiredTrimmedString(record, 'task_id', `${label}.task_id`) };
 };
 
-const decodeBufferedFileResponse = (value: ApiResponsePayload): BufferedApiResponse => {
-    if (!(value instanceof BufferedApiResponse)) throw new TypeError('File explorer download response must be buffered.');
-    return value;
-};
-
 const serializeFileExplorerPathsRequest = (paths: string[]): JsonObject => ({ paths });
 const serializeFileExplorerPathRequest = (path: string): JsonObject => ({ path });
 const serializeFileExplorerMoveRequest = (source: string, destination: string): JsonObject => ({ source, destination });
 const serializeFileExplorerBatchMoveRequest = (sources: string[], destinationDir: string): JsonObject => ({ sources, 'destination_dir': destinationDir });
 
-export { decodeBufferedFileResponse, decodeFileExplorerBatchMetadataResponse, decodeFileExplorerBatchResponse, decodeFileExplorerBatchUploadResponse, decodeFileExplorerBrowseResponse, decodeFileExplorerListResponse, decodeFileExplorerListingAcceptedResponse, decodeFileExplorerListingLocateResponse, decodeFileExplorerListingPageResponse, decodeFileExplorerListingReleasedResponse, decodeFileExplorerMetadataResponse, decodeFileExplorerMoveMutationResponse, decodeFileExplorerPathMutationResponse, decodeFileExplorerReadResponse, decodeFileExplorerSearchResponse, decodeFileExplorerTaskAcceptedResponse, decodeFileExplorerUploadResponse, serializeFileExplorerBatchMoveRequest, serializeFileExplorerMoveRequest, serializeFileExplorerPathRequest, serializeFileExplorerPathsRequest };
+export { decodeFileExplorerBatchMetadataResponse, decodeFileExplorerBatchResponse, decodeFileExplorerBatchUploadResponse, decodeFileExplorerBrowseResponse, decodeFileExplorerListResponse, decodeFileExplorerListingAcceptedResponse, decodeFileExplorerListingLocateResponse, decodeFileExplorerListingPageResponse, decodeFileExplorerListingReleasedResponse, decodeFileExplorerMetadataResponse, decodeFileExplorerMoveMutationResponse, decodeFileExplorerPathMutationResponse, decodeFileExplorerReadResponse, decodeFileExplorerSearchResponse, decodeFileExplorerTaskAcceptedResponse, decodeFileExplorerUploadResponse, serializeFileExplorerBatchMoveRequest, serializeFileExplorerMoveRequest, serializeFileExplorerPathRequest, serializeFileExplorerPathsRequest };

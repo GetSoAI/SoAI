@@ -7,7 +7,6 @@ import { resolveLogSource } from '@core/realtime/streammanager/logSnapshotNormal
 import { LiveResourceInterestState } from '@core/realtime/streammanager/resources/liveResourceInterests.ts';
 import { streamLogs, type StreamLogHandlers, type StreamLogsOptions } from '@core/realtime/streammanager/transport/logStream.ts';
 import { initializeStreamWebSocket } from '@core/realtime/streammanager/transport/webSocketLifecycle.ts';
-import { createDeferred, type Deferred } from '@core/runtime/deferred.ts';
 import type { AuthManagerContract, StreamSafeCallback, StreamSafeCallbackArgument, StreamWebSocketClient } from '@core/realtime/streammanager/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isObject } from '@core/typeGuards.ts';
@@ -29,19 +28,10 @@ interface LogStreamOptions {
     historyLimit?: number;
 }
 
-interface PendingChatPresentationAcknowledgement {
-    token: string;
-    conversationId: string;
-    minimumGeneration: number;
-    completion: Deferred<void>;
-}
-
 class StreamTransport {
     #auth: AuthManagerContract | null;
     #onInterestRejected: (resources: readonly string[]) => void;
     #interests = new LiveResourceInterestState();
-    #pendingChatPresentationAcknowledgement: PendingChatPresentationAcknowledgement | null = null;
-    #chatPresentationAcknowledgedGeneration = -1;
     #connected = false;
     #eventListeners = new Set<StreamEventListener>();
     #connectedListeners = new Set<StreamConnectedListener>();
@@ -108,20 +98,14 @@ class StreamTransport {
     async #handleIncomingEvent(eventType: string, data: JsonValue, context: WebSocketDispatchContext): Promise<void> {
         if (eventType === WEBSOCKET_LIFECYCLE_EVENT_TYPES.DISCONNECTED) {
             this.#connected = false;
-            this.#chatPresentationAcknowledgedGeneration = -1;
-            this.#cancelChatPresentationAcknowledgement('chat-presentation-interest-connection-closed');
+            this.#interests.disconnect('chat-presentation-interest-connection-closed');
         }
         if (eventType === WEBSOCKET_EVENT_TYPES.RESOURCE_INTERESTS_APPLIED || eventType === WEBSOCKET_EVENT_TYPES.INVALID_RESOURCE_INTEREST) {
             const outcome = this.#interests.parseServerEvent(eventType, data);
             if (outcome.type === 'acknowledged' && this.#connected) {
-                this.#chatPresentationAcknowledgedGeneration = outcome.generation;
-                const pending = this.#pendingChatPresentationAcknowledgement;
-                if (pending && outcome.generation >= pending.minimumGeneration && this.#interests.chatPresentationGeneration(pending.token, pending.conversationId) !== null) {
-                    this.#pendingChatPresentationAcknowledgement = null;
-                    pending.completion.resolve();
-                }
+                this.#interests.acknowledge(outcome.generation);
             } else if (outcome.type === 'rejected') {
-                this.#rejectChatPresentationAcknowledgement(outcome.generation);
+                this.#interests.reject(outcome.generation);
                 this.#onInterestRejected(outcome.resources);
             }
             return;
@@ -131,8 +115,7 @@ class StreamTransport {
 
     async #emitConnected(): Promise<void> {
         this.#connected = true;
-        this.#chatPresentationAcknowledgedGeneration = -1;
-        this.#cancelChatPresentationAcknowledgement('chat-presentation-interest-connection-replaced');
+        this.#interests.disconnect('chat-presentation-interest-connection-replaced');
         for (const listener of [...this.#connectedListeners]) {
             try {
                 await listener();
@@ -163,7 +146,7 @@ class StreamTransport {
         this.#requireActive();
         const result = this.#interests.acquireChatPresentation(conversationId);
         if (result.changed) {
-            this.#cancelSupersededChatPresentationAcknowledgement();
+            this.#interests.cancelSuperseded();
             this.#syncOwned('Chat presentation interest sync');
         }
         return result.token;
@@ -172,37 +155,25 @@ class StreamTransport {
     updateChatPresentationInterest(token: string | null, conversationId: string): void {
         this.#requireActive();
         if (this.#interests.updateChatPresentation(token, conversationId)) {
-            this.#cancelSupersededChatPresentationAcknowledgement();
+            this.#interests.cancelSuperseded();
             this.#syncOwned('Chat presentation interest update sync');
         }
     }
 
     async waitForChatPresentationInterest(token: string, conversationId: string): Promise<void> {
         this.#requireActive();
-        const generation = this.#interests.chatPresentationGeneration(token, conversationId);
-        if (generation === null) {
-            throw new LifecycleCancellationError('Chat presentation interest was superseded', 'chat-presentation-interest-superseded');
-        }
-        if (this.#connected && this.#chatPresentationAcknowledgedGeneration >= generation) return;
-        const existing = this.#pendingChatPresentationAcknowledgement;
-        if (existing?.token === token && existing.conversationId === conversationId) {
-            await existing.completion.promise;
-            return;
-        }
-        const pending: PendingChatPresentationAcknowledgement = {
-            token,
-            conversationId,
-            minimumGeneration: generation,
-            completion: createDeferred<void>()
-        };
-        this.#pendingChatPresentationAcknowledgement = pending;
-        await pending.completion.promise;
+        await this.#interests.waitForChatPresentation(token, conversationId);
+    }
+
+    async waitForResourceInterest(name: string, signal: AbortSignal): Promise<void> {
+        this.#requireActive();
+        await this.#interests.waitForResource(name, signal);
     }
 
     releaseInterest(token: string | null): void {
         this.#requireActive();
         if (this.#interests.release(token)) {
-            this.#cancelSupersededChatPresentationAcknowledgement();
+            this.#interests.cancelSuperseded();
             this.#syncOwned('Live resource interest release sync');
         }
     }
@@ -252,8 +223,7 @@ class StreamTransport {
         this.#connectedUnsubscribe = null;
         this.#webSocket = null;
         this.#connected = false;
-        this.#chatPresentationAcknowledgedGeneration = -1;
-        this.#cancelChatPresentationAcknowledgement('chat-presentation-interest-transport-reset');
+        this.#interests.disconnect('chat-presentation-interest-transport-reset');
     }
 
     dispose(): void {
@@ -266,32 +236,12 @@ class StreamTransport {
         this.#webSocket = null;
         this.#eventListeners.clear();
         this.#connectedListeners.clear();
-        this.#cancelChatPresentationAcknowledgement('chat-presentation-interest-disposed');
+        this.#interests.disconnect('chat-presentation-interest-disposed');
         this.#interests.clear();
     }
 
     #requireActive(): void {
         if (this.#disposed) throw new LifecycleCancellationError('Stream transport is disposed', 'stream-transport-disposed');
-    }
-
-    #rejectChatPresentationAcknowledgement(generation: number): void {
-        const pending = this.#pendingChatPresentationAcknowledgement;
-        if (!pending || !this.#connected || generation < pending.minimumGeneration) return;
-        this.#pendingChatPresentationAcknowledgement = null;
-        pending.completion.reject(new Error('Chat presentation resource interest was rejected'));
-    }
-
-    #cancelSupersededChatPresentationAcknowledgement(): void {
-        const pending = this.#pendingChatPresentationAcknowledgement;
-        if (!pending || this.#interests.chatPresentationGeneration(pending.token, pending.conversationId) !== null) return;
-        this.#cancelChatPresentationAcknowledgement('chat-presentation-interest-superseded');
-    }
-
-    #cancelChatPresentationAcknowledgement(reason: string): void {
-        const pending = this.#pendingChatPresentationAcknowledgement;
-        if (!pending) return;
-        this.#pendingChatPresentationAcknowledgement = null;
-        pending.completion.reject(new LifecycleCancellationError('Chat presentation interest acknowledgement was cancelled', reason));
     }
 }
 

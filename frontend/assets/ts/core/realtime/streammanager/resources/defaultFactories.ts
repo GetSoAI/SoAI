@@ -1,6 +1,8 @@
 /* SoAI - Shared realtime default factories [frontend/assets/ts/core/realtime/streammanager/resources/defaultFactories.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { decodeMemoryLibrary, type MemoryLibrary } from '@core/api/contracts/webuiMemoryContracts.ts';
+import { decodeChatPresetListResponse, type WebuiChatPresetListResponse } from '@core/api/contracts/webuiChatPresetContracts.ts';
 import { MODELS_BASE_PATH } from '@core/api/endpoints/models.ts';
 import { decodeActivePowerOperationResponse } from '@core/api/contracts/powerContracts.ts';
 import { decodeSystemMetricsResponse, type SystemMetricsResponse } from '@core/api/contracts/systemMetricsContracts.ts';
@@ -9,7 +11,7 @@ import { decodeChatStreamActivityResource, type ChatStreamActivityResource } fro
 import { getLanguageService } from '@core/languageservice/service.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { isCircuitBreakerStateActive, normalizeCircuitBreakerState } from '@core/plugins/circuitBreaker.ts';
-import { CAPS, HARDWARE, HARDWARE_GPU_CAPABILITIES, HARDWARE_GPU_SLOTS, HARDWARE_GPU_SOAIBENCH_RUNS, HARDWARE_PROCESSES, LOGS_CORE, METRICS, MODELS, MODELS_LAST_USED, PLUGINS, PLUGINS_LAST_USED, POWER_OPERATIONS, PROMPTS, ROUTING, STATUS, VIRTUAL, WEBUI_CHAT_ACTIVITY, WEBUI_CHAT_ATTENTION, WEBUI_NOTIFICATIONS } from '@core/realtime/streammanager/resources/ids.ts';
+import { MEMORY_LIBRARY, CHAT_PRESETS, CAPS, HARDWARE, HARDWARE_GPU_CAPABILITIES, HARDWARE_GPU_SLOTS, HARDWARE_GPU_SOAIBENCH_RUNS, HARDWARE_PROCESSES, LOGS_CORE, METRICS, MODELS, MODELS_LAST_USED, PLUGINS, PLUGINS_LAST_USED, POWER_OPERATIONS, PROMPTS, ROUTING, STATUS, VIRTUAL, WEBUI_CHAT_ACTIVITY, WEBUI_CHAT_ATTENTION, WEBUI_NOTIFICATIONS } from '@core/realtime/streammanager/resources/ids.ts';
 import { createLatestUsageResource } from '@core/realtime/streammanager/resources/latestUsageResource.ts';
 import { normalizeGpuCapabilitiesResource } from '@core/realtime/streammanager/resources/gpuCapabilitiesResource.ts';
 import { normCaps, webSocketResource } from '@core/realtime/streammanager/resources/normalizers.ts';
@@ -25,6 +27,8 @@ import type { JsonValue } from '@core/types/jsonValues.ts';
 type DefaultResourceFactories = Partial<{ [ResourceId in StreamResourceId]: ResourceFactory<StreamResourceValue<ResourceId>> }>;
 
 const DEFAULT_RESOURCE_FACTORIES: Readonly<Record<string, ResourceFactory>> & Readonly<DefaultResourceFactories> = Object.freeze({
+    [MEMORY_LIBRARY]: webSocketResource<MemoryLibrary>(decodeMemoryLibrary),
+    [CHAT_PRESETS]: webSocketResource<WebuiChatPresetListResponse>(decodeChatPresetListResponse),
     [MODELS]: (manager) => ({
         fetch: manager.createApiFetcher(MODELS_BASE_PATH),
         transform: decodeModelsResource

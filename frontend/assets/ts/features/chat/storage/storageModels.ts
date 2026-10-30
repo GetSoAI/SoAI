@@ -25,6 +25,7 @@ type MessageWindowBackgroundDirection = 'before' | 'after';
 type LoadConversationMessagesOptions = {
     signal?: AbortSignal;
     isCurrentOperation?: () => boolean;
+    onApplied?: (history: ConversationHistoryState, previousWindow: Pick<Conversation, 'messages' | 'history' | 'messagesHydrated'>) => void;
     expectedMessageCount?: number;
     allowAuthoritativeCountDecrease?: boolean;
     force?: boolean;

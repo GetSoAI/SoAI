@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import errno
 import os
 import stat
@@ -14,6 +13,7 @@ from starlette.responses import FileResponse
 from starlette.types import Receive, Scope, Send
 
 from core.concurrency.cancellation_cleanup import uncancel_and_wait
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
 from core.files.file_identity import FileIdentity
@@ -50,20 +50,25 @@ class TemporaryFileResponse(FileResponse):
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         original_path = _require_temporary_response_path(self.path)
         anchor_descriptor = -1
-        temporary_path_owned = False
         temporary_path_removed = False
+        opened_results: list[tuple[int, os.stat_result, bool]] = []
         try:
-            anchor_descriptor, opened_status, temporary_path_removed = await asyncio.to_thread(
+            anchor_descriptor, opened_status, temporary_path_removed = await run_joined_thread_call(
                 _open_stable_temporary_file,
                 os.fspath(original_path),
                 self._expected_identity,
+                task_name="temporary-file-response-open",
+                retain_resources_until_complete=True,
+                cancelled_result_cleanup=opened_results.append,
             )
-            temporary_path_owned = True
             if os.name != "nt":
                 await uncancel_and_wait(
-                    asyncio.to_thread(
+                    run_joined_thread_call(
                         _unlink_open_posix_temporary_file,
                         os.fspath(original_path),
+                        self._expected_identity,
+                        task_name="temporary-file-response-unlink",
+                        retain_resources_until_complete=True,
                     ),
                 )
                 temporary_path_removed = True
@@ -78,11 +83,13 @@ class TemporaryFileResponse(FileResponse):
             await descriptor_response(scope, receive, send)
         finally:
             primary_exception = sys.exception()
+            if opened_results:
+                anchor_descriptor, _opened_status, temporary_path_removed = opened_results[0]
             close_exception = _close_descriptors(
                 (anchor_descriptor,),
                 primary_exception=primary_exception,
             )
-            if temporary_path_owned and not temporary_path_removed:
+            if not temporary_path_removed:
                 await self._remove_temporary_file(
                     original_path,
                     primary_exception or close_exception,
@@ -100,7 +107,13 @@ class TemporaryFileResponse(FileResponse):
         primary_exception: BaseException | None,
     ) -> None:
         try:
-            await uncancel_and_wait(asyncio.to_thread(os.remove, path))
+            await run_joined_thread_call(
+                _remove_matching_temporary_file,
+                path,
+                self._expected_identity,
+                task_name="temporary-file-response-remove",
+                retain_resources_until_complete=True,
+            )
         except FileNotFoundError:
             return
         except OSError as cleanup_exception:
@@ -201,9 +214,19 @@ def _open_stable_temporary_file(
                 ) from close_exception
 
 
-def _unlink_open_posix_temporary_file(path: str) -> None:
+def _remove_matching_temporary_file(path: str, expected_identity: FileIdentity) -> None:
     try:
+        current = FileIdentity.from_stat(os.lstat(path))
+        if current != expected_identity:
+            return
         os.remove(path)
+    except FileNotFoundError:
+        return
+
+
+def _unlink_open_posix_temporary_file(path: str, expected_identity: FileIdentity) -> None:
+    try:
+        _remove_matching_temporary_file(path, expected_identity)
     except OSError as exception:
         raise StateError(
             "Temporary response file could not be unlinked before delivery.",

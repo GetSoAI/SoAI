@@ -38,6 +38,7 @@ _GENERIC_READ = 0x80000000
 _DELETE = 0x00010000
 _OPEN_EXISTING = 3
 _SHARE_READ = 1
+_SHARE_WRITE = 2
 _SHARE_DELETE = 4
 _WINDOWS_INVALID_HANDLE_VALUE = -1
 
@@ -102,11 +103,16 @@ def open_windows_managed_path_handles(
     require_directory: bool | None,
     read_leaf: bool = False,
     allow_leaf_delete: bool = False,
+    concurrent_leaf_read: bool = False,
 ) -> WindowsManagedPathHandles:
     if not is_windows():
         raise FileStorageSecurityError("Windows managed path handles require Windows.")
     if allow_leaf_delete and not read_leaf:
         raise FileStorageSecurityError("Windows leaf deletion requires a readable file handle.")
+    if concurrent_leaf_read and (not read_leaf or allow_leaf_delete):
+        raise FileStorageSecurityError(
+            "Concurrent leaf reads require non-deleting readable handles."
+        )
     root_path = os.path.abspath(storage_root)
     if is_same_path(root_path, entry_path):
         parts: list[str] = []
@@ -127,6 +133,7 @@ def open_windows_managed_path_handles(
                 path,
                 read_content=leaf and read_leaf,
                 allow_delete=leaf and allow_leaf_delete,
+                concurrent_read=leaf and concurrent_leaf_read,
             )
             handles.append(handle)
             information = _read_handle_information(handle, path)
@@ -171,7 +178,9 @@ def open_windows_managed_path_handles(
             )
 
 
-def _open_path_handle(path: str, *, read_content: bool, allow_delete: bool) -> int:
+def _open_path_handle(
+    path: str, *, read_content: bool, allow_delete: bool, concurrent_read: bool = False
+) -> int:
     _require_64_bit_windows()
     kernel32 = load_kernel32()
     create_file = kernel32.CreateFileW
@@ -190,6 +199,8 @@ def _open_path_handle(path: str, *, read_content: bool, allow_delete: bool) -> i
     if allow_delete:
         desired_access |= _DELETE
         share_mode |= _SHARE_DELETE
+    if concurrent_read:
+        share_mode |= _SHARE_WRITE | _SHARE_DELETE
     handle = create_file(
         normalize_filesystem_path(path),
         desired_access,
@@ -202,7 +213,7 @@ def _open_path_handle(path: str, *, read_content: bool, allow_delete: bool) -> i
     if handle is None or handle == wintypes.HANDLE(_WINDOWS_INVALID_HANDLE_VALUE).value:
         error_number = last_windows_error()
         error_type = FileNotFoundError if error_number in {2, 3} else OSError
-        cause = error_type(error_number, os.strerror(error_number), path)
+        cause = error_type(error_number, os.strerror(error_number), path, error_number)
         raise FileStorageSecurityError(
             f"Managed Windows path could not be opened: '{path}'."
         ) from cause
@@ -220,7 +231,7 @@ def _read_handle_information(handle: int, path: str) -> _HandleFileInformation:
     information = (wintypes.DWORD * 13)()
     if not get_information(wintypes.HANDLE(handle), ctypes.byref(information)):
         error_number = last_windows_error()
-        cause = OSError(error_number, os.strerror(error_number), path)
+        cause = OSError(error_number, os.strerror(error_number), path, error_number)
         raise FileStorageSecurityError(
             f"Managed Windows path handle could not be inspected: '{path}'.",
         ) from cause

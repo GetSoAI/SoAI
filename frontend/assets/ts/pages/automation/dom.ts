@@ -69,6 +69,11 @@ const queryAutomationCalendarPeriods = (calendarRoot: HTMLElement): HTMLElement[
     return resolveHTMLElementList('[data-automation-period-offset]', calendarRoot, 'Automation calendar period');
 };
 
+const optionalAutomationPeriodHeading = (period: HTMLElement): HTMLElement | null => {
+    const selector = '.automation-day-heading, .automation-month-heading';
+    return optionalHTMLElement(resolve(selector, period), selector);
+};
+
 const optionalAutomationMonthDay = (calendarRoot: HTMLElement): HTMLElement | null => {
     const selector = '.automation-month-day';
     return optionalHTMLElement(resolve(selector, calendarRoot), selector);
@@ -186,3 +191,4 @@ export { optionalAutomationCalendarScroll, optionalAutomationCalendarTrack, quer
 export { optionalAutomationMonthDay, optionalAutomationMonthDayHeader, optionalAutomationMonthZones, optionalAutomationZoneChip };
 export { queryAutomationNowLines, queryAutomationNowTags };
 export { optionalAutomationCalendarLoading, optionalAutomationCalendarStage, requireAutomationCalendarStage, requireAutomationToggleLabel };
+export { optionalAutomationPeriodHeading };

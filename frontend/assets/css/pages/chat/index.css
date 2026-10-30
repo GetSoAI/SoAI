@@ -5,6 +5,7 @@
 @import url('./surfaces.css') layer(pages);
 @import url('./advanced-scroll.css') layer(pages);
 @import url('./conversation-transition.css') layer(pages);
+@import url('./conversation-find.css') layer(pages);
 
 @layer pages {
     .chat-container:where([data-section='chat'], [data-page-scope='chat']) {

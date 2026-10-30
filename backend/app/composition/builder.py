@@ -15,6 +15,7 @@ from app.types_application import ApplicationAssembly
 from app.types_services import ApplicationServices
 from app.types_services_licensing import LicensingServices
 from app.types_services_runtime import LifecycleServices
+from core.concurrency.bounded_blocking import create_bounded_thread_pool
 from core.errors.exceptions import StateError
 from core.logging.trace import get_logger
 from core.timing.monotonic import monotonic_ms
@@ -54,6 +55,7 @@ class ApplicationAssemblyBuilder:
             bootstrap_started_ms,
         )
         api_runtime_singletons = None
+        logs_export_pool = None
         licensing_services: LicensingServices | None = None
         application_assembly: ApplicationAssembly | None = None
         services_started_ms = monotonic_ms()
@@ -82,8 +84,15 @@ class ApplicationAssemblyBuilder:
                 runtime_state=bootstrap_state.runtime_foundation.runtime_state,
                 restart_requester=restart_requester,
             )
+            logs_export_pool = create_bounded_thread_pool(
+                label="logs-export",
+                thread_name_prefix="soai-logs-export",
+                max_workers=1,
+                max_in_flight=1,
+            )
             service_composition = await build_application_services(
                 bootstrap_state=bootstrap_state,
+                logs_export_pool=logs_export_pool,
                 updater_module_dependencies=self.module_dependencies.updater,
                 lifecycle_logger=self.lifecycle_logger,
                 startup_timings=self.startup_timings,
@@ -133,6 +142,7 @@ class ApplicationAssemblyBuilder:
                 await cleanup_failed_service_composition(
                     bootstrap_state=bootstrap_state,
                     logger=self.application_logger,
+                    logs_export_pool=logs_export_pool,
                     login_password_pool=(
                         None
                         if api_runtime_singletons is None

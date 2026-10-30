@@ -6,11 +6,22 @@ type ConversationActivationSnapshot = {
     readonly signal: AbortSignal;
 };
 
+interface MessageWindowIntent {
+    readonly signal: AbortSignal;
+    isCurrent(): boolean;
+}
+
+interface MessageWindowRevealIntent extends MessageWindowIntent {
+    release(): boolean;
+}
+
 class ChatConcurrencyController {
     #conversationActivationAbort: AbortController;
     #conversationActivationSequence: number;
     #workerRenderEpoch: number;
     #renderSequenceByScope: Map<string, number>;
+    #messageWindowController = new AbortController();
+    #messageWindowRevealHeld = false;
 
     constructor() {
         this.#conversationActivationAbort = new AbortController();
@@ -20,6 +31,7 @@ class ChatConcurrencyController {
     }
 
     beginConversationActivation(): ConversationActivationSnapshot {
+        this.invalidateMessageWindowIntent();
         this.#conversationActivationAbort.abort();
         this.#conversationActivationAbort = new AbortController();
         this.#conversationActivationSequence += 1;
@@ -48,9 +60,44 @@ class ChatConcurrencyController {
     }
 
     clearConversationActivation(): void {
+        this.invalidateMessageWindowIntent();
         this.#conversationActivationAbort.abort();
         this.#conversationActivationAbort = new AbortController();
         this.#conversationActivationSequence += 1;
+    }
+
+    captureMessageWindowPaging(): MessageWindowIntent | null {
+        if (this.#messageWindowRevealHeld) return null;
+        const controller = this.#messageWindowController;
+        return { signal: controller.signal, isCurrent: () => this.#messageWindowController === controller && !controller.signal.aborted && !this.#messageWindowRevealHeld };
+    }
+
+    claimMessageWindowReveal(): MessageWindowRevealIntent {
+        this.invalidateMessageWindowIntent();
+        this.#messageWindowRevealHeld = true;
+        const controller = this.#messageWindowController;
+        const isCurrent = (): boolean => this.#messageWindowController === controller && !controller.signal.aborted && this.#messageWindowRevealHeld;
+        return {
+            signal: controller.signal,
+            isCurrent,
+            release: () => {
+                if (!isCurrent()) return false;
+                this.invalidateMessageWindowIntent();
+                return true;
+            }
+        };
+    }
+
+    cancelMessageWindowReveal(): boolean {
+        if (!this.#messageWindowRevealHeld) return false;
+        this.invalidateMessageWindowIntent();
+        return true;
+    }
+
+    invalidateMessageWindowIntent(): void {
+        this.#messageWindowController.abort();
+        this.#messageWindowController = new AbortController();
+        this.#messageWindowRevealHeld = false;
     }
 
     bumpWorkerRenderEpoch(): number {
@@ -75,4 +122,4 @@ class ChatConcurrencyController {
 }
 
 export { ChatConcurrencyController };
-export type { ConversationActivationSnapshot };
+export type { ConversationActivationSnapshot, MessageWindowIntent, MessageWindowRevealIntent };

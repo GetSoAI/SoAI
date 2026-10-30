@@ -11,7 +11,7 @@ const HEADER_STAT_CARD_SUPPRESSED_CLASS = 'ui-page-header-stats__card--suppresse
 
 type HeaderStatTextHost = PageDomOwnerHost;
 
-type HeaderStatClassHost = PageDomOwnerHost;
+type HeaderStatClassHost = { pageDom: Pick<PageDomOwnerHost['pageDom'], 'toggleClass'> };
 
 const resolveHeaderStatCard = (element: Element | null): HTMLElement | null => {
     if (!(element instanceof Element)) {

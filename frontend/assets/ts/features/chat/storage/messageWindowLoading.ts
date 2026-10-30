@@ -102,13 +102,16 @@ const loadWindowResponse = async (manager: ChatMessageWindowRuntime, conversatio
             return null;
         }
         const replaceLocalAssistantTail = direction === 'tail' && options.allowAuthoritativeCountDecrease === true;
+        const previousWindow = options.onApplied ? { ...conversation } : null;
         applyWindowToConversation(manager, conversation, readResult, direction, options.mergeStreamingAssistants !== false, replaceLocalAssistantTail);
         manager.validateStoredMessageTimestamps();
+        if (conversation.history !== undefined && previousWindow !== null) options.onApplied?.(conversation.history, previousWindow);
         return null;
     });
 };
 
 async function loadConversationMessages(manager: ChatMessageWindowRuntime, conversationId: string, options: LoadConversationMessagesOptions = {}): Promise<void> {
+    if (options.signal?.aborted) return;
     if (options.isCurrentOperation !== undefined && !options.isCurrentOperation()) {
         return;
     }

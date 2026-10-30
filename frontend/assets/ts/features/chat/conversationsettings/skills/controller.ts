@@ -4,6 +4,8 @@
 import { downloadAuthenticatedResponse } from '@core/api/authenticatedDownload.ts';
 import { getAuthManager } from '@core/auth/public.ts';
 import { isAbortError } from '@core/errors/abort.ts';
+import { createDedupingOperationFailureReporter } from '@core/ui/notifications/operationFailure.ts';
+import { errorHandler } from '@core/errorHandler.ts';
 import { notifyHandledOperationError } from '@core/operationErrorNotifier.ts';
 import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { bindDataActionListener, type DataActionEventType } from '@core/dom/dataActionBinding.ts';
@@ -36,6 +38,7 @@ class SkillsConversationSettingsController {
     #resources: SkillSettingsResources | null = null;
     #library: SkillLibrary | null = null;
     #conversationId: string | null = null;
+    #failureNotified = false;
     #fresh = false;
     #loading = false;
     #renderPending = false;
@@ -125,6 +128,12 @@ class SkillsConversationSettingsController {
                 this.#loading = library.status === 'initializing' || library.status === 'recovering' || selection?.status === 'initializing' || selection?.status === 'recovering';
                 this.#fresh = library.status === 'ready' && (selection === null || selection.status === 'ready');
                 this.#draft.setFresh(this.#fresh);
+                if (this.#fresh) this.#failureNotified = false;
+                const failure = library.status === 'error' ? library.error : selection?.status === 'error' ? selection.error : null;
+                if (failure && !this.#failureNotified) {
+                    this.#failureNotified = true;
+                    createDedupingOperationFailureReporter({ host: { showNotification: (message, type) => this.#host.workflow.showNotification(message, type), handleError: (error) => errorHandler.warn('SkillSettings', 'Skill snapshot recovery failed', error) } }).report(failure, { errorMessage: i18n.t('chat.configuration.skills.stale'), rawMessage: true, context: 'Skill library' });
+                }
                 this.#sync();
             }
         });
@@ -141,6 +150,7 @@ class SkillsConversationSettingsController {
         this.#conversationId = null;
         this.#library = null;
         this.#fresh = false;
+        this.#failureNotified = false;
         this.#loading = false;
         this.#draft.reset();
         this.#view?.clearDetails();
@@ -233,12 +243,13 @@ class SkillsConversationSettingsController {
             this.#sync();
             return;
         }
-        if (action === 'skills-reload') {
+        if (action === 'skills-retry-import') {
             if (this.#imports.pending) await this.#importPending();
-            if (!this.#session.isActive(session)) return;
-            await resources?.refresh();
-            if (!this.#session.isActive(session)) return;
-            if (this.#draft.baseline) this.#draft.reviewLatest(false);
+            return;
+        }
+        if (action === 'skills-use-latest') {
+            if (!this.#fresh || !this.#draft.baseline) return;
+            this.#draft.reviewLatest(false);
             this.#sync();
             return;
         }

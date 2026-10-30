@@ -23,6 +23,11 @@ interface ConversationSidebarStatusSyncOptions {
     scheduleConversationListRender: boolean;
 }
 
+interface ChatConversationRenderOptions {
+    canCommit?: () => boolean;
+    viewportStabilityScope?: 'transaction' | 'caller';
+}
+
 interface ChatConversationViewContract {
     initializeActions(actions: ChatConversationActionsContract): void;
     initializeSearch(): void;
@@ -31,7 +36,7 @@ interface ChatConversationViewContract {
     renderList(): Promise<void>;
     revealInList(conversationId: string): Promise<boolean>;
     syncSidebarListVisibility(visible: boolean): Promise<SidebarListReadiness>;
-    renderCurrent(): Promise<void>;
+    renderCurrent(options?: ChatConversationRenderOptions): Promise<void>;
     onRendered(handler: (outcome: ChatConversationRenderOutcome) => void): () => void;
     prepareMessages(conversationId: string): Promise<void>;
     current(): Conversation | null;
@@ -55,7 +60,7 @@ interface ChatConversationViewContract {
     initializeEmptyStateNavigation(container: Element): void;
 }
 
-export type { ChatConversationRenderOutcome, ChatConversationViewContract, ConversationAttentionStatus, ConversationSidebarStatus, ConversationSidebarStatusSyncOptions, SidebarListReadiness };
+export type { ChatConversationRenderOptions, ChatConversationRenderOutcome, ChatConversationViewContract, ConversationAttentionStatus, ConversationSidebarStatus, ConversationSidebarStatusSyncOptions, SidebarListReadiness };
 export interface ChatConversationViewHost {
     conversationView: ChatConversationViewContract;
 }

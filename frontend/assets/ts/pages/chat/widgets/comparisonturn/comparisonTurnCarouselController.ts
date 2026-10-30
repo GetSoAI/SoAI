@@ -60,6 +60,12 @@ class ComparisonTurnCarouselController {
         this.#isStreamingTurnByRoot.clear();
     }
 
+    async waitForVariantSettled(root: HTMLElement, variantIndex: number, signal: AbortSignal, timeoutMs: number): Promise<boolean> {
+        const slide = dom.resolve(`.chat-comparison-turn-slide[data-comparison-slide-index="${CSS.escape(String(variantIndex))}"][aria-hidden="false"]:not([inert])`, root);
+        if (!(slide instanceof HTMLElement) || !slide.isConnected) return false;
+        return await this.#transitionController.waitForSettled(root, variantIndex, signal, timeoutMs);
+    }
+
     syncCarousels(container: Element, inputArguments: { isCurrentStreaming: boolean; activeComparisonRun: ActiveComparisonRun | null }, selection: ComparisonTurnSelectionController): void {
         const roots = dom.resolveAll(CHAT_COMPARISON_TURN_SELECTOR, container).filter((node): node is HTMLElement => node instanceof HTMLElement);
         const knownRoots = new Set<HTMLElement>(roots);

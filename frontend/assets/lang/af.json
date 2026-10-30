@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "Wag vir beeldgenerering",
+                "imageGenerating": "Genereer beeld",
+                "imageUnavailable": "Beeldvoorskou is nie beskikbaar nie.",
+                "imageRetry": "Probeer om die beeld weer te genereer.",
                 "requestedAt": "Aangevra {time}"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "Versteek boodskapgesprekke",
                 "hideMessagingConversationsHint": "Wanneer dit geaktiveer is, word boodskaprekeninggesprekke in die sybalklys versteek",
                 "inputActions": {
+                    "newConversationHint": "Wys die aksie vir ’n nuwe gesprek in die kletsinvoerveld",
+                    "findHint": "Wys die aksie om in die gesprek te soek in die kletsinvoerveld",
                     "prompts": "Gestoorde prompts",
                     "title": "Invoeraksies",
                     "tokenCounter": "Tokenteller",
@@ -758,7 +764,6 @@
                     "description": "Aanhoudende geheue help SoAI om jou voorkeure, doelwitte en herhalende konteks te verstaan sonder dat 'n pasgemaakte prompt elke keer nodig is",
                     "empty": "Nog geen geheue gestoor nie",
                     "openProfile": "Maak profielvorm oop",
-                    "refresh": "Verfris geheue",
                     "title": "Geheue-instellings",
                     "userMemoriesTitle": "Gebruikergeheues"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "Stuur hierdie parameter na die model",
                 "maxCompletionTokens": "Maks. voltooiingstokens",
-                "maxCompletionTokensHint": "Tokenlimiet, insluitend redenering vir redeneringsmodelle (o1, o3). Oorskryf maks. tokens",
+                "maxCompletionTokensHint": "Tokenlimiet, insluitend redenering vir redeneringsmodelle. Oorskryf maks. tokens",
                 "agentMaxIterations": "Maks. agentiterasies",
                 "agentMaxIterationsHint": "Maksimum aantal iterasies van die agentlus voordat die gesprek stop. Gebruik 'n baie groot waarde vir uitvoerings wat prakties onbeperk is",
                 "maxTokens": "Maks. tokens:",
@@ -974,7 +979,6 @@
                     "omittedSettings": "{count} nie-ondersteunde of ongeldige gestoorde instelling(s) is weggelaat",
                     "replaceAction": "Vervang",
                     "renameAction": "Hernoem",
-                    "retryAction": "Probeer weer",
                     "resetAction": "Stel biblioteek terug",
                     "resetMessage": "Vee elke gestoorde kletskonfigurasievoorinstelling permanent uit? Dit is die herstelaksie vir beskadigde voorinstellingsrekords en kan nie ongedaan gemaak word nie.",
                     "resetFailed": "Die voorinstellingsbiblioteek kon nie teruggestel word nie. Jou gestoorde voorinstellings is nie as uitgevee aangedui nie; probeer weer.",
@@ -986,15 +990,13 @@
                     "searchLabel": "Soek voorinstellings",
                     "searchPlaceholder": "Soek voorinstellings...",
                     "saved": "Voorinstellingsbiblioteek opgedateer.",
-                    "stale": "Wys die laaste suksesvolle voorinstellingslys vanaf {value}. Verfris voordat jy wysig.",
                     "structurallyInvalid": "{count} beskadigde voorinstellingsrekord(s) kon nie gewys word nie.",
                     "status": {
                         "emptyDetail": "Skep 'n voorinstelling uit die voorbereide waardes in hierdie dialoog en kies presies watter afdelings dit moet insluit.",
                         "emptyTitle": "Bou jou eerste herbruikbare opstelling",
                         "errorTitle": "Voorinstellingsbiblioteek is nie beskikbaar nie",
                         "noMatchesTitle": "Geen ooreenstemmende voorinstellings nie",
-                        "recoveryTitle": "Sommige voorinstellings vereis aandag",
-                        "staleTitle": "Voorinstellingslys is moontlik verouderd"
+                        "recoveryTitle": "Sommige voorinstellings vereis aandag"
                     },
                     "errors": {
                         "ambiguous": "Die uitkoms van die versoek is onseker. Die voorinstellingslys word versoen; hersien dit voordat jy weer probeer.",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "Verwyder hierdie vaardigheid uit jou biblioteek en toekomstige keuses in jou kletse? Aanvaarde werk behou die pakket. Werkruimtelêers en gesprekgeskiedenis bly behoue.",
                     "conflict": "Die keuse is elders verander. Hersien die huidige keuse voordat jy jou konsep stoor",
                     "keepDraft": "Behou my keuse",
-                    "stale": "Vaardighede is nie op datum nie. Herverbind of probeer weer voordat jy stoor",
+                    "stale": "Vaardighede is verouderd. Wag totdat die verbinding herstel voordat jy stoor.",
                     "search": "Soek vaardighede...",
                     "emptyTitle": "Voeg jou eerste vaardigheid by",
                     "noMatchesTitle": "Geen passende vaardighede",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "Vaardigheidsinvoerlimiet oorskry vir {field}: {measured} > {limit}. Verklein die argief of verwyder ongebruikte vaardighede en probeer weer.",
                         "manifestPosition": "Ongeldige YAML by reël {line}, kolom {column}. Maak SKILL.md reg en probeer weer."
                     },
-                    "importUncertain": "Die invoeruitkoms is onseker. Hou hierdie lêer gekies en gebruik Verfris om die ontvangsbewys na te gaan voordat jy weer probeer.",
+                    "importUncertain": "Die invoeruitkoms is onseker. Hou die lêer gekies en kies Probeer invoer weer om die ontvangsbewys na te gaan.",
                     "invalidSelection": "Sommige gekose vaardighede is nie beskikbaar nie of oorskry die biblioteeklimiet. Verfris en pas dan die keuse aan voordat jy stoor",
                     "status": {
                         "importTitle": "Invoeruitkoms is onseker",
                         "conflictTitle": "Keuse is elders verander",
-                        "staleTitle": "Vaardigheidslys is moontlik verouderd",
                         "unavailableTitle": "Vaardigheidskeuse is nie beskikbaar nie",
                         "invalidTitle": "Keuse moet hersien word"
-                    }
+                    },
+                    "useLatest": "Gebruik die nuutste",
+                    "retryImport": "Probeer invoer weer",
+                    "aboutTitle": "Hoe vaardighede werk"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "Voeg geheue by",
                     "search": "Deursoek geheues",
                     "noMatches": "Geen ooreenstemmende geheues nie",
-                    "stale": "Die gestoorde data is verouderd. Laaste verversing: {time}. Ververs om huidige data na te gaan.",
                     "deleteFact": "Vee hierdie feit of verhouding uit?",
                     "deleteEntry": "Vee “{title}” uit, insluitend {facts} feite en {relations} verhoudings?",
                     "savedHidden": "Gestoor. Maak die soektog skoon om hierdie geheue te sien.",
@@ -1468,7 +1471,6 @@
                     "from": "Van",
                     "to": "Na",
                     "type": "Verhoudingstipe",
-                    "staleTitle": "Geheuelys is moontlik verouderd",
                     "errorTitle": "Geheuebiblioteek is nie beskikbaar nie"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "Hou een eindpunt aan hierdie geheue gekoppel.",
                     "invalidText": "Voer ’n nie-leë titel en teks in.",
                     "missing": "Hierdie rekord is nie beskikbaar nie of behoort nie meer aan hierdie geheue nie. Ververs en gaan dit na.",
-                    "unconfirmed": "Die resultaat kon nie bevestig word nie. Behou jou konsep en ververs om die huidige data na te gaan voordat jy weer probeer.",
+                    "unconfirmed": "Die resultaat kon nie bevestig word nie. Behou jou konsep en hersien die huidige data voordat jy weer probeer.",
                     "loadFailed": "Geheues kon nie gelaai word nie. Ververs om weer te probeer."
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "retry": "Probeer weer"
                 },
                 "viewer": {
-                    "none": "Geen",
                     "observations": "Waarnemings",
                     "relations": "Verhoudings"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "Kon nie promptgeskiedenis laai nie."
             },
             "sketch": {
+                "capacityReached": "Die tekenlimiet is bereik. Ontdoen en vervang ’n wysiging, heg die beeld aan, of gooi die skets weg en begin weer.",
                 "open": "Maak skets oop",
                 "mobileOption": "Skets",
                 "preference": "Skets",
@@ -1711,7 +1713,9 @@
                 "attach": "Heg aan",
                 "discardConfirm": "Gooi hierdie skets weg?",
                 "discard": "Gooi weg",
-                "exportFailed": "Die skets kon nie uitgevoer word nie. Probeer asseblief weer."
+                "exportFailed": "Die skets kon nie uitgevoer word nie. Probeer asseblief weer.",
+                "draftChangedConfirm": "Die kletskonsep het verander terwyl jy geteken het. Heg hierdie tekening aan die huidige konsep? Kanselleer om jou tekening te behou.",
+                "draftChangedAgain": "Die kletskonsep het weer verander. Jou tekening is behou. Probeer dit weer aanheg."
             },
             "characterMap": {
                 "allEmoji": "Alle emoji",
@@ -2514,6 +2518,28 @@
                     "metric": "Metriek"
                 },
                 "wind": "Wind"
+            },
+            "find": {
+                "open": "Soek in gesprek",
+                "placeholder": "Soek in gesprek…",
+                "close": "Sluit",
+                "previous": "Vorige passing",
+                "next": "Volgende passing",
+                "count": "{current} van {total}",
+                "none": "Geen passings",
+                "updating": "Werk resultate by…",
+                "stale": "Verbinding verbreek · laas {seconds}s gelede nagegaan",
+                "incomplete": "Soektog onvolledig. Probeer weer.",
+                "error": "Soektog het misluk. Probeer weer.",
+                "tooLong": "Gebruik hoogstens 256 karakters.",
+                "limited": "5 000+ boodskappe met passings · navigasie dek behoue resultate",
+                "editing": "Voltooi of kanselleer redigering om hierdie passing te wys.",
+                "missing": "Hierdie passing het verander of is verwyder. Probeer weer.",
+                "timeout": "Die wys van hierdie passing het uitgetel. Probeer weer.",
+                "retry": "Probeer weer",
+                "before": "{count} passings voor",
+                "after": "{count} passings ná",
+                "disconnected": "Verbinding verbreek. Koppel weer om te soek."
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "Vee uit"
+                "clear": "Vee uit",
+                "downloadAll": "Laai alle logboeke af"
             },
             "ariaLabels": {
                 "clearLogs": "Vee loglêers uit",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "Herkoppel aan logstroom...",
-            "windowTitle": "SoAI-loglêers"
+            "windowTitle": "SoAI-loglêers",
+            "errors": {
+                "download": "Kon nie logboeke aflaai nie. Kontroleer die verbinding en probeer weer.",
+                "missing": "Die logboekgids ontbreek. Kontroleer die loginstellings.",
+                "changed": "Logboeke het tydens vaslegging verander. Probeer die aflaai weer.",
+                "unsafe": "Onveilige paaie of onondersteunde inskrywings is gevind. Verwyder skakels en probeer weer.",
+                "paths": "Kontroleer die ingestelde logboek- en tydelike gidse.",
+                "permission": "Toegang is geweier. Kontroleer gidstoestemmings en lêerdeling en probeer weer.",
+                "limits": "Argiefgrense of lêernaamvereistes is oorskry. Verminder die logboekboom of korrigeer name.",
+                "timeout": "Logboekuitvoer het uitgetel. Probeer weer wanneer die bediener minder besig is.",
+                "write": "Kon nie die argief skryf nie. Kontroleer tydelike berging en probeer weer.",
+                "response": "Die bediener het nie ’n geldige ZIP-aanhegsel teruggestuur nie. Probeer die aflaai weer."
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "Begin 'n soektog",
                 "filesNotFound": "Geen lêers of gidse vir \"{query}\" gevind nie",
                 "notFound": "Geen resultate vir \"{query}\" gevind nie",
-                "title": "Geen resultate gevind nie"
+                "title": "Geen resultate gevind nie",
+                "minimumCharacters": "Voer ten minste {count} karakters in om te soek."
             },
             "pages": {
                 "about": {

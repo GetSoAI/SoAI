@@ -1,6 +1,9 @@
 /* SoAI - Chat configuration appearance tab input action controls [frontend/assets/ts/features/chat/modals/markup/chatconfigurationmodal/tabs/appearanceInputActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { getDefaultChatParameters } from '@core/chat/parameters/chatParameterDefaults.ts';
+import { CHAT_PARAMETER_WIRE_KEYS } from '@core/chat/parameters/chatParameterKeySets.ts';
+import type { ChatParameters } from '@core/chat/parameters/types.ts';
 import type { SanitizerApi } from '@core/pagecontext/public.ts';
 import { renderStandardDropdownSelectControl } from '@core/ui/dropdown/selectControl.ts';
 import { renderChatMobileAuxiliaryActionSelectOptions } from '@features/chat/inputactions/mobileAuxiliaryActionCatalog.ts';
@@ -13,41 +16,42 @@ type InputActionToggleDescriptor = Readonly<{
     token: string;
     label: string;
     hint: string | null;
-    checked: boolean;
-    dataParameter: string;
+    parameter: Extract<keyof ChatParameters, string>;
 }>;
 
 const resolveInputActionToggleDescriptors = (strings: ChatPageMarkupContext['strings']): readonly InputActionToggleDescriptor[] => [
-    { token: 'input-action-voice-toggle', label: strings.inputActionVoice, hint: strings.inputActionVoiceHint, checked: true, dataParameter: 'input_action_voice_enabled' },
-    { token: 'input-action-call-toggle', label: strings.inputActionCall, hint: strings.inputActionCallHint, checked: true, dataParameter: 'input_action_call_enabled' },
-    { token: 'input-action-file-toggle', label: strings.inputActionUploadFile, hint: strings.inputActionUploadFileHint, checked: true, dataParameter: 'input_action_file_upload_enabled' },
-    { token: 'input-action-camera-toggle', label: strings.inputActionCamera, hint: strings.inputActionCameraHint, checked: false, dataParameter: 'input_action_camera_enabled' },
-    { token: 'input-action-sketch-toggle', label: strings.inputActionSketch, hint: strings.inputActionSketchHint, checked: false, dataParameter: 'input_action_sketch_enabled' },
-    { token: 'input-action-prompts-toggle', label: strings.inputActionPrompts, hint: strings.inputActionPromptsHint, checked: false, dataParameter: 'input_action_prompts_enabled' },
-    { token: 'input-action-new-conversation-toggle', label: strings.newConversation, hint: null, checked: true, dataParameter: 'input_action_new_conversation_enabled' },
-    { token: 'input-action-character-map-toggle', label: strings.inputActionCharacterMap, hint: strings.inputActionCharacterMapHint, checked: false, dataParameter: 'input_action_character_map_enabled' },
-    { token: 'input-action-token-counter-toggle', label: strings.inputActionTokenCounter, hint: strings.inputActionTokenCounterHint, checked: false, dataParameter: 'input_action_token_counter_enabled' }
+    { token: 'input-action-voice-toggle', label: strings.inputActionVoice, hint: strings.inputActionVoiceHint, parameter: 'inputActionVoiceEnabled' },
+    { token: 'input-action-call-toggle', label: strings.inputActionCall, hint: strings.inputActionCallHint, parameter: 'inputActionCallEnabled' },
+    { token: 'input-action-file-toggle', label: strings.inputActionUploadFile, hint: strings.inputActionUploadFileHint, parameter: 'inputActionFileUploadEnabled' },
+    { token: 'input-action-camera-toggle', label: strings.inputActionCamera, hint: strings.inputActionCameraHint, parameter: 'inputActionCameraEnabled' },
+    { token: 'input-action-find-toggle', label: strings.inputActionFind, hint: strings.inputActionFindHint, parameter: 'inputActionFindEnabled' },
+    { token: 'input-action-sketch-toggle', label: strings.inputActionSketch, hint: strings.inputActionSketchHint, parameter: 'inputActionSketchEnabled' },
+    { token: 'input-action-prompts-toggle', label: strings.inputActionPrompts, hint: strings.inputActionPromptsHint, parameter: 'inputActionPromptsEnabled' },
+    { token: 'input-action-new-conversation-toggle', label: strings.newConversation, hint: strings.inputActionNewConversationHint, parameter: 'inputActionNewConversationEnabled' },
+    { token: 'input-action-character-map-toggle', label: strings.inputActionCharacterMap, hint: strings.inputActionCharacterMapHint, parameter: 'inputActionCharacterMapEnabled' },
+    { token: 'input-action-token-counter-toggle', label: strings.inputActionTokenCounter, hint: strings.inputActionTokenCounterHint, parameter: 'inputActionTokenCounterEnabled' }
 ];
 
-const buildInputActionToggleMarkup = (modalId: string, uiIdAttr: (token: string) => string, labels: ToggleLabels, descriptor: InputActionToggleDescriptor): string => {
+const buildInputActionToggleMarkup = (modalId: string, uiIdAttr: (token: string) => string, labels: ToggleLabels, descriptor: InputActionToggleDescriptor, defaults: ChatParameters): string => {
     const hint = descriptor.hint === null ? '' : `\n    <span class="chat-configuration-hint" data-modal-localize="text">${descriptor.hint}</span>`;
     return `
   <div class="form-group setting-change-surface">
     <label for="${uiIdAttr(descriptor.token)}" data-modal-localize="text">${descriptor.label}</label>
-    ${buildToggleSwitchMarkup({ modalId, token: descriptor.token, inputClassName: descriptor.token, checked: descriptor.checked, labels, dataParameter: descriptor.dataParameter })}${hint}
+    ${buildToggleSwitchMarkup({ modalId, token: descriptor.token, inputClassName: descriptor.token, checked: defaults[descriptor.parameter] === true, labels, dataParameter: CHAT_PARAMETER_WIRE_KEYS[descriptor.parameter] ?? descriptor.parameter })}${hint}
   </div>
 `;
 };
 
 const buildAppearanceInputActionsMarkup = (inputArguments: { modalId: string; strings: ChatPageMarkupContext['strings']; sanitizer: SanitizerApi; uiIdAttr: (token: string) => string; enabledDisabledLabels: ToggleLabels }): string => {
     const { modalId, strings, sanitizer, uiIdAttr, enabledDisabledLabels } = inputArguments;
+    const defaults = getDefaultChatParameters();
     const toggles = resolveInputActionToggleDescriptors(strings)
-        .map((descriptor) => buildInputActionToggleMarkup(modalId, uiIdAttr, enabledDisabledLabels, descriptor))
+        .map((descriptor) => buildInputActionToggleMarkup(modalId, uiIdAttr, enabledDisabledLabels, descriptor, defaults))
         .join('');
     return `${toggles}
   <div class="form-group setting-change-surface">
     <label for="${uiIdAttr('input-action-mobile-auxiliary-action-select')}" data-modal-localize="text">${strings.inputActionMobileAuxiliaryAction}</label>
-    ${renderStandardDropdownSelectControl(`<select id="${uiIdAttr('input-action-mobile-auxiliary-action-select')}" class="form-input" data-param="input_action_mobile_auxiliary_action" data-modal-localize="options">
+    ${renderStandardDropdownSelectControl(`<select id="${uiIdAttr('input-action-mobile-auxiliary-action-select')}" class="form-input" data-param="${CHAT_PARAMETER_WIRE_KEYS['inputActionMobileAuxiliaryAction']}" data-modal-localize="options">
       ${renderChatMobileAuxiliaryActionSelectOptions(sanitizer)}
     </select>`)}
     <span class="chat-configuration-hint" data-modal-localize="text">${strings.inputActionMobileAuxiliaryActionHint}</span>

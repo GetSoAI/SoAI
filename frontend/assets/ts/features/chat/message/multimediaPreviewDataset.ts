@@ -194,14 +194,14 @@ const applyChatMultimediaPreviewOpenActionDataset = (element: HTMLElement, actio
     }
 };
 
-const renderChatMultimediaPreviewOpenActionAttributes = (action: InlineMediaOpenAction): TrustedHtml => {
+const renderChatMultimediaPreviewActionAttributes = (action: InlineMediaOpenAction, actionType: 'open' | 'download' = 'open'): TrustedHtml => {
     const type = action.type;
     if (!isInlineMediaOpenActionType(type)) {
         throw new Error(`Chat multimedia preview open action has an unsupported type: "${type}".`);
     }
 
     const sharedAttributes = uiAttributes({
-        [CHAT_MULTIMEDIA_PREVIEW_DATASET.action.attributeName]: CHAT_ACTIONS.OPEN_MULTIMEDIA_PREVIEW,
+        [CHAT_MULTIMEDIA_PREVIEW_DATASET.action.attributeName]: actionType === 'download' ? CHAT_ACTIONS.DOWNLOAD_MULTIMEDIA : CHAT_ACTIONS.OPEN_MULTIMEDIA_PREVIEW,
         [CHAT_MULTIMEDIA_PREVIEW_DATASET.type.attributeName]: type,
         [CHAT_MULTIMEDIA_PREVIEW_DATASET.title.attributeName]: action.title,
         [CHAT_MULTIMEDIA_PREVIEW_DATASET.openSourceUrl.attributeName]: action.openSourceUrl,
@@ -223,5 +223,5 @@ const renderChatMultimediaPreviewOpenActionAttributes = (action: InlineMediaOpen
     return joinUiHtml([sharedAttributes, sourceAttributes, imageAttributes]);
 };
 
-export { CHAT_MULTIMEDIA_PREVIEW_DATASET, applyChatMultimediaPreviewOpenActionDataset, createChatMultimediaPreviewMetadata, readChatMultimediaPreviewDataset, renderChatMultimediaPreviewOpenActionAttributes, requireChatMultimediaPreviewUrl, resolveChatMultimediaPreviewSourceReferenceForUrl };
+export { CHAT_MULTIMEDIA_PREVIEW_DATASET, applyChatMultimediaPreviewOpenActionDataset, createChatMultimediaPreviewMetadata, readChatMultimediaPreviewDataset, renderChatMultimediaPreviewActionAttributes, requireChatMultimediaPreviewUrl, resolveChatMultimediaPreviewSourceReferenceForUrl };
 export type { ChatInlineMediaMetadata, ChatMultimediaPreviewDataset, ChatMultimediaPreviewType };

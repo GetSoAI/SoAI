@@ -31,6 +31,15 @@ const PLAN_VISIBILITY_ATTRIBUTE = 'data-agent-todo-panel-visibility';
 const PREVIEWS_CONTAINER_SELECTOR = '.chat-previews-container';
 const OVERLAY_SCROLLBAR_GUTTER_FALLBACK_PX = 8;
 
+const readMessagesAreaVisibleInsets = (messagesArea: HTMLElement): { top: number; bottom: number } => {
+    const windowRef = messagesArea.ownerDocument.defaultView;
+    if (!windowRef) throw new Error('Chat visible insets require an owning window');
+    const style = windowRef.getComputedStyle(messagesArea);
+    const headerOffset = parsePositiveCssPixelValue(style.getPropertyValue('--chat-conversation-header-offset'), 0);
+    const planHeight = parsePositiveCssPixelValue(style.getPropertyValue(CSS_VAR_PLAN_OVERLAY_HEIGHT), 0);
+    return { top: headerOffset + planHeight, bottom: parsePositiveCssPixelValue(style.getPropertyValue(CSS_VAR_FLOATING_INPUT_INSET), 0) };
+};
+
 export const setupMessagesAreaInsets = (context: ChatUIManagerContext): (() => void) | null => {
     const messagesAreaCandidate = context.dependencies.optionalUI(CHAT_SELECTORS.MESSAGES_AREA);
     if (!(messagesAreaCandidate instanceof HTMLElement)) {
@@ -100,31 +109,24 @@ export const setupMessagesAreaInsets = (context: ChatUIManagerContext): (() => v
         const measuredScrollbarGutterPx = Math.max(0, Math.round(messagesArea.offsetWidth - messagesArea.clientWidth));
         const nativeScrollbarGutterPx = measuredScrollbarGutterPx > 0 ? measuredScrollbarGutterPx : OVERLAY_SCROLLBAR_GUTTER_FALLBACK_PX;
         context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_NATIVE_SCROLLBAR_GUTTER, `${nativeScrollbarGutterPx}px`);
+        let panelHeightPx = 0;
+        let planHeaderHeightPx = 0;
+        let planDividerHeight = '0px';
         if (planOverlay && planOverlay.isConnected) {
             const planRect = measureLayoutBox(planOverlay);
-            const panelHeightPx = Math.max(0, planRect.height);
-            context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_OVERLAY_HEIGHT, `${Math.round(panelHeightPx)}px`);
+            panelHeightPx = Math.max(0, planRect.height);
             const planHeaderCandidate = dom.resolve(PLAN_HEADER_SELECTOR, planOverlay);
-            const planHeaderHeightPx = planHeaderCandidate instanceof HTMLElement ? measureLayoutBox(planHeaderCandidate).height : 0;
-            if (planHeaderHeightPx > 0) {
-                context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_HEADER_HEIGHT, `${Math.round(planHeaderHeightPx)}px`);
-            }
+            planHeaderHeightPx = planHeaderCandidate instanceof HTMLElement ? measureLayoutBox(planHeaderCandidate).height : 0;
             const planPanel = dom.resolve(PLAN_PANEL_SELECTOR, planOverlay);
             const isCollapsed = planPanel instanceof HTMLElement && planPanel.classList.contains(PLAN_COLLAPSED_CLASS);
             const hasBody = dom.resolve(PLAN_BODY_SELECTOR, planOverlay) instanceof HTMLElement;
             if (panelHeightPx > 0 && hasBody && !isCollapsed && planHeaderHeightPx > 0) {
-                context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_DIVIDER_HEIGHT, 'var(--border-width-1)');
-            } else {
-                context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_DIVIDER_HEIGHT, '0px');
+                planDividerHeight = 'var(--border-width-1)';
             }
-        } else {
-            context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_OVERLAY_HEIGHT, '0px');
-            context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_DIVIDER_HEIGHT, '0px');
         }
         const areaRect = measureLayoutBox(messagesArea);
         const sidebarToggle = conversationHeader === null ? null : dom.resolve(CHAT_SELECTORS.SIDEBAR_TOGGLE, conversationHeader);
         const avatarTopInset = sidebarToggle instanceof HTMLElement && sidebarToggle.isConnected ? Math.max(0, measureLayoutBox(sidebarToggle).top - areaRect.top) : null;
-        context.dependencies.dom.setStyle(messagesArea, CSS_VAR_AVATAR_TOP_INSET, avatarTopInset === null ? null : `${avatarTopInset}px`);
         const overlayTops: number[] = [];
         const inputRect = measureLayoutBox(inputWrapper);
         overlayTops.push(inputRect.top);
@@ -136,8 +138,12 @@ export const setupMessagesAreaInsets = (context: ChatUIManagerContext): (() => v
         }
         const overlapPx = areaRect.bottom - Math.min(...overlayTops);
         const clampedOverlapPx = clampNumber(overlapPx, 0, areaRect.height);
-        context.dependencies.dom.setStyle(messagesArea, CSS_VAR_FLOATING_INPUT_INSET, `${Math.round(clampedOverlapPx)}px`);
         const padded = Math.max(baselinePaddingBottomPx, clampedOverlapPx + messageGapPx);
+        context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_OVERLAY_HEIGHT, `${Math.round(panelHeightPx)}px`);
+        if (planHeaderHeightPx > 0) context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_HEADER_HEIGHT, `${Math.round(planHeaderHeightPx)}px`);
+        context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_DIVIDER_HEIGHT, planDividerHeight);
+        context.dependencies.dom.setStyle(messagesArea, CSS_VAR_AVATAR_TOP_INSET, avatarTopInset === null ? null : `${avatarTopInset}px`);
+        context.dependencies.dom.setStyle(messagesArea, CSS_VAR_FLOATING_INPUT_INSET, `${Math.round(clampedOverlapPx)}px`);
         context.dependencies.dom.setStyle(messagesArea, CSS_VAR_MESSAGES_PADDING_BOTTOM, `${Math.round(padded)}px`);
         const maximumScrollTop = Math.max(0, messagesArea.scrollHeight - messagesArea.clientHeight);
         const paddingTopAfterInsets = parsePositiveCssPixelValue(win.getComputedStyle(messagesArea).paddingTop, 0);
@@ -194,3 +200,5 @@ export const setupMessagesAreaInsets = (context: ChatUIManagerContext): (() => v
         clearInsetStyles();
     };
 };
+
+export { readMessagesAreaVisibleInsets };

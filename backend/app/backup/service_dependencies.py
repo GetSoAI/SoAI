@@ -15,6 +15,7 @@ if TYPE_CHECKING:
         ConfigProviderProtocol,
         FilesProviderProtocol,
     )
+    from core.concurrency.bounded_blocking import BoundedBlockingPool
     from core.config.protocols import ConfigManagerProtocol
     from core.database.protocols import DatabaseCoreProtocol
     from core.events.protocols import EventBusProtocol
@@ -47,6 +48,7 @@ class ApplicationBackupServiceDependencies:
     orchestrator_control: OrchestratorControlProtocol
     config_manager: ConfigManagerProtocol
     storage_manager: StorageManagerProtocol
+    logs_export_pool: BoundedBlockingPool
     request_restart: Callable[[str], bool]
     startup_ready_event: asyncio.Event | None = None
 
@@ -61,6 +63,7 @@ class ApplicationBackupServiceDependencies:
             event_bus=self.event_bus,
             edition=self.edition,
             files=self.files,
+            logs_export_pool=self.logs_export_pool,
             orchestrator_control=self.orchestrator_control,
             request_restart=self.request_restart,
             storage_manager=self.storage_manager,

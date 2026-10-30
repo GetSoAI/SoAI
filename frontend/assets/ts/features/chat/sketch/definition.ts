@@ -76,6 +76,7 @@ const renderWorkbench = (modalId: string): TrustedHtml => {
     const defaultSize = requireChatSketchTool(CHAT_SKETCH_DEFAULT_TOOL).defaultSize;
     return uiHtml`
         <div class="chat-sketch-workbench">
+            <div id="${uiAttr(modalUiId(modalId, 'status'))}" class="chat-configuration-hint" role="status" hidden></div>
             <div class="chat-sketch-toolbar">
                 <div class="chat-sketch-toolbar__group" role="group" aria-label="${uiAttr(i18n.t('chat.sketch.toolsLabel'))}" data-modal-localize="aria-label">${renderToolButtons(modalId)}</div>
                 <div class="chat-sketch-toolbar__group chat-sketch-palette" role="group" aria-label="${uiAttr(i18n.t('chat.sketch.colorsLabel'))}" data-modal-localize="aria-label">

@@ -130,7 +130,43 @@
         }
 
         :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day {
-            padding: var(--space-2);
+            padding: var(--space-1);
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-month-weekday {
+            padding-inline: 0;
+            text-align: center;
+        }
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--space-1);
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day-count {
+            margin-inline-start: 0;
+        }
+    }
+
+    @container ui-viewport (width <= 480px) and (height <= 600px) {
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day {
+            padding: var(--space-05);
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day-header {
+            gap: 0;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day-number {
+            line-height: var(--line-height-badge);
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day-count-badge {
+            --status-badge-min-height: 0;
+            --status-badge-padding: 0 var(--space-05);
         }
     }
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 
 __all__ = (
     "EasyListRule",
@@ -140,6 +141,7 @@ def _split_pattern_and_options(line: str) -> tuple[str, str]:
     return (pattern.strip(), options.strip())
 
 
+@lru_cache(maxsize=256)
 def _parse_options(options_text: str) -> _OptionState | None:
     included_domains: set[str] = set()
     excluded_domains: set[str] = set()
@@ -219,7 +221,7 @@ def _compile_pattern(pattern: str) -> tuple[str, str | None]:
 
 
 def _resolve_host_suffix(pattern: str) -> str | None:
-    host_match = re.match(r"^\|\|([0-9A-Za-z.-]+)", pattern)
+    host_match = re.match(r"^\|\|([0-9A-Za-z.*-]+)", pattern)
     if host_match is None:
         return None
     host_suffix = host_match.group(1).lower()
@@ -231,14 +233,13 @@ def _resolve_host_suffix(pattern: str) -> str | None:
 def _translate_pattern(pattern: str) -> str:
     if pattern.startswith("||"):
         return _translate_host_anchored_pattern(pattern)
-    translated = _translate_general_body(pattern)
     if pattern.startswith("|") and pattern.endswith("|") and len(pattern) > 1:
         return f"^{_translate_general_body(pattern[1:-1])}$"
     if pattern.startswith("|"):
         return f"^{_translate_general_body(pattern[1:])}"
     if pattern.endswith("|"):
         return f"{_translate_general_body(pattern[:-1])}$"
-    return translated
+    return _translate_general_body(pattern)
 
 
 def _translate_host_anchored_pattern(pattern: str) -> str:
@@ -258,16 +259,4 @@ def _translate_host_anchored_pattern(pattern: str) -> str:
 
 
 def _translate_general_body(body: str) -> str:
-    chunks: list[str] = []
-    for character in body:
-        if character == "*":
-            chunks.append(".*")
-            continue
-        if character == "^":
-            chunks.append(SEPARATOR_PATTERN)
-            continue
-        if character == "|":
-            chunks.append(r"\|")
-            continue
-        chunks.append(re.escape(character))
-    return "".join(chunks)
+    return re.escape(body).replace(r"\*", ".*").replace(r"\^", SEPARATOR_PATTERN)

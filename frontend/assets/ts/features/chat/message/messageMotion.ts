@@ -45,11 +45,8 @@ const applySelfCleaningAnimationClass = (element: HTMLElement, className: string
 };
 
 const applyChatMessageEnterAnimation = (element: HTMLElement, options: ChatMessageInsertAnimationOptions = {}): void => {
-    if (options.suppressInsertAnimations === true) {
-        requestPresenceEnter(element, false);
-        return;
-    }
-    applySelfCleaningAnimationClass(element, chatMessageEnterAnimationClass);
+    requestPresenceEnter(element, false);
+    if (options.suppressInsertAnimations !== true) applySelfCleaningAnimationClass(element, chatMessageEnterAnimationClass);
 };
 
 const prefersReducedMotion = (element: Element): boolean => {

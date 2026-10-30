@@ -3,18 +3,14 @@
 
 import { dom } from '@core/dom/dom.ts';
 import { normalizeSearchDisplayQuery } from '@core/search/searchQuery.ts';
-import type { NormalizedSearchBarOptions } from '@features/controls/searchbar/types.ts';
-
 interface SearchBarEventsHost {
-    options: NormalizedSearchBarOptions;
     getContainer: () => HTMLElement | null;
     getInput: () => HTMLInputElement | null;
-    clearTimer: (timerId: number | null) => void;
-    setTimer: (callback: () => void, delayMs: number) => number | null;
+    scheduleSearch: (query: string, event: Event) => void;
+    cancelPendingSearch: () => void;
+    clearQuery: () => void;
     on: (target: EventTarget, event: string, handler: (eventObject: Event) => void) => (() => void) | null;
     clear: (triggerClear?: boolean) => void;
-    setSearchTimeout: (timerId: number | null) => void;
-    getSearchTimeout: () => number | null;
 }
 
 const setupSearchBarEventListeners = (host: SearchBarEventsHost): void => {
@@ -23,27 +19,32 @@ const setupSearchBarEventListeners = (host: SearchBarEventsHost): void => {
         return;
     }
 
-    host.on(input, 'input', (eventObject: Event) => {
-        host.clearTimer(host.getSearchTimeout());
-
+    let composing = false;
+    const scheduleInput = (eventObject: Event): void => {
+        host.cancelPendingSearch();
+        if (composing || (eventObject instanceof InputEvent && eventObject.isComposing)) return;
         const query = normalizeSearchDisplayQuery(input.value);
         if (query.length === 0) {
-            host.options.onClear?.();
+            host.clearQuery();
             return;
         }
-
-        host.setSearchTimeout(
-            host.setTimer(() => {
-                host.options.onSearch?.(query, eventObject);
-            }, host.options.debounceTime)
-        );
+        host.scheduleSearch(query, eventObject);
+    };
+    host.on(input, 'input', scheduleInput);
+    host.on(input, 'compositionstart', () => {
+        composing = true;
+        host.cancelPendingSearch();
+    });
+    host.on(input, 'compositionend', (eventObject: Event) => {
+        composing = false;
+        scheduleInput(eventObject);
     });
 
     host.on(input, 'keydown', (eventObject: Event) => {
         if (!(eventObject instanceof KeyboardEvent)) {
             return;
         }
-        if (eventObject.key === 'Escape') {
+        if (eventObject.key === 'Escape' && !composing && !eventObject.isComposing) {
             host.clear();
             input.blur();
         }

@@ -26,6 +26,7 @@ import { ChatVoiceSession } from '@pages/chat/controllers/chatpage/voice/ChatVoi
 import type { UiBehaviorHost } from '@pages/chat/controllers/chatUiBehaviors.ts';
 import { dispatchMessageAction, requireConversationIdFromElement } from '@pages/chat/controllers/page/state.ts';
 import { ChatComparisonTurnNavigationController } from '@pages/chat/widgets/comparisonturn/ChatComparisonTurnNavigationController.ts';
+import { ConversationFindSession } from '@pages/chat/controllers/conversationfind/ConversationFindSession.ts';
 
 interface ChatSessions {
     elements: ChatPageElementsManager;
@@ -88,6 +89,7 @@ const composeChatSessions = (domain: ChatSessionDomainOwners, page: ChatSessionP
         aiSetupStorage: platform.storage
     });
     const avatar = new ChatAvatarController({ conversationView, settings: domain.settings, taskScope: domain.taskScope, pageDom: page.pageDom, feedback: page.feedback });
+    const find = new ConversationFindSession({ domain, page, platform, conversationView, comparison: comparisonNavigation });
     const preferences = new ChatPreferencesManager({
         conversationRuntime: domain.conversationRuntime,
         composerSurface: domain.composerSurface,
@@ -161,6 +163,7 @@ const composeChatSessions = (domain: ChatSessionDomainOwners, page: ChatSessionP
                     characterMapSession: characterMap,
                     avatar,
                     callbacks: {
+                        find: (action) => find.action(action),
                         requireConversationIdFromElement: requireConversationId,
                         dispatchMessageAction: dispatchAction
                     }
@@ -168,7 +171,7 @@ const composeChatSessions = (domain: ChatSessionDomainOwners, page: ChatSessionP
             },
             logger
         );
-    const composeLifecycle = (controllerRuntime: ChatControllerRuntime, uiBehaviors: UiBehaviorHost, controls: LifecycleControls, logger: ModuleLogger): ChatPageLifecycleController => composeChatLifecycle({ domain, page, platform, sessions: { composer, configuration, conversationView, modelSession, preferences, presentation, promptPicker, characterMap, toolbar, voiceSession }, controllerRuntime, uiBehaviors, controls, initializeTokenCounter }, logger);
+    const composeLifecycle = (controllerRuntime: ChatControllerRuntime, uiBehaviors: UiBehaviorHost, controls: LifecycleControls, logger: ModuleLogger): ChatPageLifecycleController => composeChatLifecycle({ domain, page, platform, sessions: { composer, configuration, conversationView, modelSession, preferences, presentation, promptPicker, characterMap, toolbar, voiceSession, find }, controllerRuntime, uiBehaviors, controls, initializeTokenCounter }, logger);
     return { elements, preferences, conversationView, presentation, avatar, modelSession, composer, configuration, toolbar, promptPicker, characterMap, voiceSession, composeControllerRuntime, composeLifecycle };
 };
 

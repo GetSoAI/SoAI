@@ -57,7 +57,7 @@ def _discover_inherited_backend_pids(
 ) -> dict[str, list[BackendProcessIdentity]]:
     owned_processes: dict[str, list[BackendProcessIdentity]] = {}
     try:
-        processes = psutil.process_iter(["pid", "cmdline", "exe"])
+        processes = psutil.process_iter()
         for process in processes:
             owned_process = _resolve_owned_backend_process(
                 process,

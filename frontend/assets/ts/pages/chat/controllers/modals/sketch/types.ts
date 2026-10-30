@@ -1,12 +1,14 @@
 /* SoAI - Chat sketch modal contracts [frontend/assets/ts/pages/chat/controllers/modals/sketch/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { DrawingCapacityResult } from '@core/drawing/drawingRecords.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { PageFeedback } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 import type { ChatSketchDrawOperation, ChatSketchToolType } from '@features/chat/public.ts';
 
 interface ChatSketchModalRefs {
     modal: HTMLElement;
+    status: HTMLElement;
     canvas: HTMLCanvasElement;
     tools: readonly HTMLButtonElement[];
     swatches: readonly HTMLButtonElement[];
@@ -25,7 +27,7 @@ interface ChatSketchModalRefs {
 interface ChatSketchModalHost {
     feedback: Pick<PageFeedback, 'handle' | 'show'>;
     presenter: ModalPresenterApi;
-    submit(file: File): void;
+    submit(file: File): void | Promise<void>;
 }
 
 type ChatSketchStyle = Readonly<{
@@ -39,6 +41,8 @@ interface ChatSketchPointerInputHost {
     signal: AbortSignal;
     isEnabled(): boolean;
     resolveStyle(): ChatSketchStyle;
+    capacity(points: number, type: 'stroke' | 'shape'): DrawingCapacityResult;
+    onCapacityRejected(): void;
     onPreview(operation: ChatSketchDrawOperation | null): void;
     onCommit(operation: ChatSketchDrawOperation): void;
     onCancel(): void;

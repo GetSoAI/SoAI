@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "이미지 생성 대기 중",
+                "imageGenerating": "이미지 생성 중",
+                "imageUnavailable": "이미지 미리보기를 사용할 수 없습니다.",
+                "imageRetry": "이미지를 다시 생성해 보세요.",
                 "requestedAt": "{time}에 요청됨"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "메시징 대화 숨기기",
                 "hideMessagingConversationsHint": "활성화하면 메시징 계정 대화가 사이드바 목록에서 숨겨집니다",
                 "inputActions": {
+                    "newConversationHint": "채팅 입력 영역에 새 대화 버튼 표시",
+                    "findHint": "채팅 입력 영역에 대화 검색 버튼 표시",
                     "prompts": "저장된 프롬프트",
                     "title": "입력 작업",
                     "tokenCounter": "토큰 카운터",
@@ -758,7 +764,6 @@
                     "description": "지속형 메모리는 매번 사용자 지정 프롬프트를 작성하지 않아도 SoAI가 사용자의 선호도, 목표 및 반복되는 맥락을 이해하는 데 도움이 됩니다",
                     "empty": "아직 저장된 메모리가 없습니다",
                     "openProfile": "프로필 양식 열기",
-                    "refresh": "메모리 새로고침",
                     "title": "메모리 설정",
                     "userMemoriesTitle": "사용자 메모리"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "이 매개변수를 모델에 전송",
                 "maxCompletionTokens": "최대 완료 토큰",
-                "maxCompletionTokensHint": "추론 모델(o1, o3)의 추론을 포함한 토큰 한도입니다. 최대 토큰 설정을 재정의합니다",
+                "maxCompletionTokensHint": "추론 모델의 추론을 포함한 토큰 한도입니다. 최대 토큰 설정을 재정의합니다",
                 "agentMaxIterations": "최대 에이전트 반복 횟수",
                 "agentMaxIterationsHint": "대화가 중지되기 전까지의 최대 에이전트 루프 반복 횟수입니다. 사실상 제한 없이 실행하려면 매우 큰 값을 사용하세요",
                 "maxTokens": "최대 토큰:",
@@ -974,7 +979,6 @@
                     "omittedSettings": "지원되지 않거나 올바르지 않은 저장 설정 {count}개가 제외되었습니다",
                     "replaceAction": "교체",
                     "renameAction": "이름 변경",
-                    "retryAction": "다시 시도",
                     "resetAction": "라이브러리 재설정",
                     "resetMessage": "저장된 모든 채팅 구성 프리셋을 영구적으로 삭제하시겠습니까? 손상된 프리셋 레코드를 복구하기 위한 작업이며 실행 취소할 수 없습니다.",
                     "resetFailed": "프리셋 라이브러리를 재설정할 수 없습니다. 저장된 프리셋은 삭제된 것으로 처리되지 않았습니다. 다시 시도하세요.",
@@ -986,15 +990,13 @@
                     "searchLabel": "프리셋 검색",
                     "searchPlaceholder": "프리셋 검색...",
                     "saved": "프리셋 라이브러리가 업데이트되었습니다.",
-                    "stale": "{value}의 마지막 정상 프리셋 목록을 표시하고 있습니다. 편집하기 전에 새로고침하세요.",
                     "structurallyInvalid": "손상된 프리셋 레코드 {count}개를 표시할 수 없습니다.",
                     "status": {
                         "emptyDetail": "이 모달에서 대기 중인 값으로 프리셋을 만들고 포함할 섹션을 정확히 선택하세요.",
                         "emptyTitle": "첫 번째 재사용 가능 설정 만들기",
                         "errorTitle": "프리셋 라이브러리를 사용할 수 없음",
                         "noMatchesTitle": "일치하는 프리셋이 없습니다",
-                        "recoveryTitle": "일부 프리셋을 확인해야 합니다",
-                        "staleTitle": "프리셋 목록이 최신 상태가 아닐 수 있습니다"
+                        "recoveryTitle": "일부 프리셋을 확인해야 합니다"
                     },
                     "errors": {
                         "ambiguous": "요청 결과가 확실하지 않습니다. 프리셋 목록을 조정 중이므로 다시 시도하기 전에 확인하세요.",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "라이브러리와 채팅의 향후 선택에서 이 스킬을 삭제할까요? 접수된 작업은 패키지를 유지합니다. 작업 공간 파일과 대화 기록은 남습니다.",
                     "conflict": "다른 곳에서 선택이 변경되었습니다. 초안을 저장하기 전에 현재 선택을 검토하세요",
                     "keepDraft": "내 선택 유지",
-                    "stale": "스킬이 최신 상태가 아닙니다. 저장하기 전에 다시 연결하거나 재시도하세요",
+                    "stale": "스킬이 최신 상태가 아닙니다. 연결이 복구된 후 저장하세요.",
                     "search": "스킬 검색...",
                     "emptyTitle": "첫 스킬 추가",
                     "noMatchesTitle": "일치하는 스킬 없음",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "{field}의 스킬 가져오기 한도를 초과했습니다: {measured} > {limit}. 압축 파일을 줄이거나 사용하지 않는 스킬을 삭제하고 다시 시도하세요.",
                         "manifestPosition": "{line}행 {column}열의 YAML이 올바르지 않습니다. SKILL.md를 수정한 후 다시 시도하세요."
                     },
-                    "importUncertain": "가져오기 결과가 확실하지 않습니다. 이 파일을 선택한 상태로 유지하고 다시 시도하기 전에 새로 고침으로 처리 기록을 확인하세요.",
+                    "importUncertain": "가져오기 결과가 확실하지 않습니다. 파일 선택을 유지하고 가져오기 다시 시도를 선택하여 수신 기록을 확인하세요.",
                     "invalidSelection": "선택한 일부 스킬을 사용할 수 없거나 라이브러리 한도를 초과합니다. 새로 고친 다음 저장하기 전에 선택을 조정하세요",
                     "status": {
                         "importTitle": "가져오기 결과가 확실하지 않음",
                         "conflictTitle": "다른 곳에서 선택이 변경됨",
-                        "staleTitle": "스킬 목록이 최신 상태가 아닐 수 있습니다",
                         "unavailableTitle": "스킬 선택을 사용할 수 없음",
                         "invalidTitle": "선택 검토 필요"
-                    }
+                    },
+                    "useLatest": "최신 상태 사용",
+                    "retryImport": "가져오기 다시 시도",
+                    "aboutTitle": "스킬 작동 방식"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "메모리 추가",
                     "search": "메모리 검색",
                     "noMatches": "일치하는 메모리가 없습니다",
-                    "stale": "저장된 데이터가 오래되었습니다. 마지막 새로 고침: {time}. 새로 고침하여 현재 데이터를 검토하세요.",
                     "deleteFact": "이 사실 또는 관계를 삭제할까요?",
                     "deleteEntry": "“{title}” 및 사실 {facts}개, 관계 {relations}개를 삭제할까요?",
                     "savedHidden": "저장했습니다. 이 메모리를 보려면 검색을 지우세요.",
@@ -1468,7 +1471,6 @@
                     "from": "시작점",
                     "to": "끝점",
                     "type": "관계 유형",
-                    "staleTitle": "메모리 목록이 최신 상태가 아닐 수 있습니다",
                     "errorTitle": "메모리 라이브러리를 사용할 수 없음"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "한쪽 끝점을 이 메모리에 연결된 상태로 유지하세요.",
                     "invalidText": "비어 있지 않은 제목과 본문을 입력하세요.",
                     "missing": "이 기록을 사용할 수 없거나 더 이상 이 메모리에 속하지 않습니다. 새로 고침하여 검토하세요.",
-                    "unconfirmed": "결과를 확인할 수 없습니다. 초안을 보관하고 다시 시도하기 전에 새로 고침하여 현재 데이터를 검토하세요.",
+                    "unconfirmed": "결과를 확인할 수 없습니다. 초안을 유지하고 현재 데이터를 검토한 후 다시 시도하세요.",
                     "loadFailed": "메모리를 불러올 수 없습니다. 새로 고침하여 다시 시도하세요."
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "retry": "다시 시도"
                 },
                 "viewer": {
-                    "none": "없음",
                     "observations": "관찰 내용",
                     "relations": "관계"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "프롬프트 기록을 불러오지 못했습니다."
             },
             "sketch": {
+                "capacityReached": "그리기 한도에 도달했습니다. 편집을 실행 취소하고 바꾸거나, 이미지를 첨부하거나, 스케치를 버리고 다시 시작하세요.",
                 "open": "스케치 열기",
                 "mobileOption": "스케치",
                 "preference": "스케치",
@@ -1711,7 +1713,9 @@
                 "attach": "첨부",
                 "discardConfirm": "이 스케치를 삭제할까요?",
                 "discard": "삭제",
-                "exportFailed": "스케치를 내보낼 수 없습니다. 다시 시도해 주세요."
+                "exportFailed": "스케치를 내보낼 수 없습니다. 다시 시도해 주세요.",
+                "draftChangedConfirm": "그리는 동안 채팅 초안이 변경되었습니다. 이 그림을 현재 초안에 첨부할까요? 취소해도 그림은 유지됩니다.",
+                "draftChangedAgain": "채팅 초안이 다시 변경되었습니다. 그림은 유지됩니다. 다시 첨부해 주세요."
             },
             "characterMap": {
                 "allEmoji": "모든 이모지",
@@ -2514,6 +2518,28 @@
                     "metric": "미터법"
                 },
                 "wind": "바람"
+            },
+            "find": {
+                "open": "대화에서 찾기",
+                "placeholder": "대화에서 찾기…",
+                "close": "닫기",
+                "previous": "이전 일치 항목",
+                "next": "다음 일치 항목",
+                "count": "{current} / {total}",
+                "none": "일치 항목 없음",
+                "updating": "결과 업데이트 중…",
+                "stale": "연결 끊김 · {seconds}초 전에 마지막 확인",
+                "incomplete": "검색이 완료되지 않았습니다. 다시 시도하세요.",
+                "error": "검색하지 못했습니다. 다시 시도하세요.",
+                "tooLong": "256자 이하로 입력하세요.",
+                "limited": "일치하는 메시지 5,000개 이상 · 보관된 결과 내에서 이동합니다",
+                "editing": "이 항목을 표시하려면 편집을 마치거나 취소하세요.",
+                "missing": "이 항목이 변경되거나 삭제되었습니다. 다시 시도하세요.",
+                "timeout": "이 항목을 표시하는 시간이 초과되었습니다. 다시 시도하세요.",
+                "retry": "다시 시도",
+                "before": "이전 일치 항목 {count}개",
+                "after": "이후 일치 항목 {count}개",
+                "disconnected": "연결이 끊겼습니다. 검색하려면 다시 연결하세요."
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "지우기"
+                "clear": "지우기",
+                "downloadAll": "모든 로그 다운로드"
             },
             "ariaLabels": {
                 "clearLogs": "로그 지우기",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "로그 스트림에 다시 연결 중...",
-            "windowTitle": "SoAI 로그"
+            "windowTitle": "SoAI 로그",
+            "errors": {
+                "download": "로그를 다운로드하지 못했습니다. 연결을 확인하고 다시 시도하세요.",
+                "missing": "로그 디렉터리가 없습니다. 로깅 설정을 확인하세요.",
+                "changed": "캡처 중 로그가 변경되었습니다. 다운로드를 다시 시도하세요.",
+                "unsafe": "안전하지 않은 경로나 지원하지 않는 항목이 발견되었습니다. 링크를 제거하고 다시 시도하세요.",
+                "paths": "설정된 로그 및 임시 디렉터리를 확인하세요.",
+                "permission": "접근이 거부되었습니다. 디렉터리 권한과 파일 공유를 확인한 후 다시 시도하세요.",
+                "limits": "아카이브 제한 또는 파일 이름 요구 사항을 초과했습니다. 로그 트리를 줄이거나 이름을 수정하세요.",
+                "timeout": "로그 내보내기 시간이 초과되었습니다. 서버가 덜 바쁠 때 다시 시도하세요.",
+                "write": "아카이브를 쓰지 못했습니다. 임시 저장소를 확인하고 다시 시도하세요.",
+                "response": "서버가 올바른 ZIP 첨부 파일을 반환하지 않았습니다. 다운로드를 다시 시도하세요."
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "검색 시작",
                 "filesNotFound": "\"{query}\"에 해당하는 파일이나 폴더를 찾을 수 없습니다",
                 "notFound": "\"{query}\"에 대한 검색 결과가 없습니다",
-                "title": "검색 결과 없음"
+                "title": "검색 결과 없음",
+                "minimumCharacters": "검색하려면 {count}자 이상 입력하세요."
             },
             "pages": {
                 "about": {

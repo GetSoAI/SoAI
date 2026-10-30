@@ -47,10 +47,11 @@ const setupModelDetailHeaderButtons = (host: ModelDetailHeaderButtonsHost): void
     host.pageDom.updateHtml(ui.saveParametersHeaderButton, saveParametersMarkup);
     host.pageDom.updateHtml(ui.resetAllParametersHeaderButton, resetParametersMarkup);
     host.pageDom.updateHtml(ui.resetOverviewHeaderButton, resetParametersMarkup);
-    host.pageDom.updateAttribute(ui.resetOverviewHeaderButton, PRESENCE_ATTRIBUTE, '');
+    host.pageDom.updateAttribute(ui.resetOverviewHeaderButton, 'data-presence-suspended', '');
+    host.pageDom.updateAttribute(ui.resetAllParametersHeaderButton, 'data-presence-suspended', '');
     const testModelMarkup = uiHtml`${host.requireIconMarkup('TEST')}<span>${i18n.t('modelDetail.buttons.test')}</span>`;
     host.pageDom.updateHtml(ui.testModelHeaderButton, testModelMarkup);
-    resolveModelDetailParameterActions(ui).forEach((element) => host.pageDom.updateAttribute(element, PRESENCE_ATTRIBUTE, ''));
+    host.pageDom.updateAttribute(ui.searchContainer, PRESENCE_ATTRIBUTE, '');
 };
 
 const applyModelDetailTabChange = (session: ModelDetailSession, host: ModelDetailTabDependencies, newTab: string): void => {

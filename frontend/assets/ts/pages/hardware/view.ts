@@ -66,8 +66,8 @@ const renderHardwarePageView = ({ getIconSync, generateStandardHeader }: Hardwar
             { id: 'hardware-stat-processes', label: i18n.t('hardware.summary.stats.processes') },
             { id: 'hardware-stat-cpu', label: i18n.t('hardware.summary.stats.cpuUsage') },
             { id: 'hardware-stat-total-ram', label: i18n.t('hardware.summary.stats.totalRam') },
-            { id: 'hardware-stat-total-vram', label: i18n.t('hardware.summary.stats.totalVram') },
-            { id: 'hardware-stat-total-memory', label: i18n.t('hardware.summary.stats.totalRamVram') },
+            { id: 'hardware-stat-total-vram', label: i18n.t('hardware.summary.stats.totalVram'), suppressed: true },
+            { id: 'hardware-stat-total-memory', label: i18n.t('hardware.summary.stats.totalRamVram'), suppressed: true },
             { id: 'hardware-stat-platform', label: i18n.t('hardware.summary.stats.platform') },
             { id: 'systemUptime', label: i18n.t('hardware.summary.stats.systemUptime') },
             { id: 'totalUptime', label: i18n.t('hardware.summary.stats.totalUptime') }

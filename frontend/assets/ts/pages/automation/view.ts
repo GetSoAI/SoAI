@@ -58,7 +58,7 @@ const renderAutomationPageView = (dependencies: RenderAutomationPageDependencies
                     <button type="button" class="ui-button ui-icon-button ui-variant-neutral" data-action="${uiAttr(AUTOMATION_ACTION_NAV_PREVIOUS)}" aria-label="${uiAttr(prevLabel)}" data-tooltip="${uiAttr(prevLabel)}">${iconPrev}</button>
                     <button id="automation-today-button" type="button" class="ui-button ui-variant-neutral" data-action="${uiAttr(AUTOMATION_ACTION_NAV_TODAY)}" aria-label="${uiAttr(todayLabel)}" data-tooltip="${uiAttr(todayLabel)}">${uiText(todayLabel)}</button>
                     <button type="button" class="ui-button ui-icon-button ui-variant-neutral" data-action="${uiAttr(AUTOMATION_ACTION_NAV_NEXT)}" aria-label="${uiAttr(nextLabel)}" data-tooltip="${uiAttr(nextLabel)}">${iconNext}</button>
-                    <div id="automation-range-title" class="automation-range-title"></div>
+                    <div id="automation-range-title" class="automation-range-title u-hidden"></div>
                 </div>
                 <div class="automation-toolbar-group automation-toolbar-group--actions">
                     <button id="automation-registry-overlay-toggle" type="button" class="ui-icon-button automation-registry-overlay-toggle" data-action="${uiAttr(AUTOMATION_ACTION_TOGGLE_REGISTRY_OVERLAY)}" aria-label="${uiAttr(registryOverlayToggleLabel)}" data-tooltip="${uiAttr(registryOverlayToggleLabel)}">${iconRegistryOverlay}</button>

@@ -8,6 +8,7 @@ import threading
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, override
 
+from core.concurrency.deadlines import MonotonicDeadline
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError, ValidationError
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "CancellationToken",
+    "check_cancellation_deadline",
     "TaskCancelledError",
     "create_cancellation_watch_task",
     "make_task_cancel_callback",
@@ -228,3 +230,15 @@ def create_cancellation_watch_task(
         _watch_cancel(),
         name=name or f"cancellation-watch-{cancellation_token.cancellation_id}",
     )
+
+
+def check_cancellation_deadline(
+    cancellation_event: threading.Event,
+    deadline: MonotonicDeadline | None = None,
+    *,
+    operation: str,
+) -> None:
+    if cancellation_event.is_set():
+        raise TaskCancelledError(operation, "Operation was cancelled.")
+    if deadline is not None and deadline.expired():
+        raise TimeoutError("Operation deadline expired.")

@@ -160,6 +160,7 @@ const createActionToggleSwitch = (options: ActionToggleSwitchOptions): HTMLEleme
     const wrapper = dom.create(options.wrapperTag ?? 'div', wrapperOptions);
     wrapper.setAttribute('data-action', options.action.trim());
     wrapper.setAttribute('role', 'switch');
+    if (options.ariaLabel) wrapper.setAttribute('aria-label', options.ariaLabel);
     wrapper.setAttribute('tabindex', '0');
     wrapper.setAttribute('aria-checked', options.checked ? 'true' : 'false');
     wrapper.setAttribute('aria-disabled', disabled ? 'true' : 'false');

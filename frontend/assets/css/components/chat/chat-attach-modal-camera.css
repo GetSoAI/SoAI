@@ -79,6 +79,7 @@
         object-position: center;
     }
 
+    .chat-attach-modal-camera[data-camera-state='preparing'] .chat-attach-modal-camera-video,
     .chat-attach-modal-camera[data-camera-state='streaming'] .chat-attach-modal-camera-video,
     .chat-attach-modal-camera[data-camera-state='captured'] .chat-attach-modal-camera-canvas {
         display: block;

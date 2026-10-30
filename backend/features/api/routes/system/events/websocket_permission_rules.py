@@ -4,6 +4,10 @@
 from __future__ import annotations
 
 from core.events.types_base import Event
+from core.events.types_chat_libraries import (
+    ChatPresetLibraryChangedEvent,
+    MemoryLibraryChangedEvent,
+)
 from core.events.types_conversation_durable import (
     ConversationAttentionChangedEvent,
     ConversationInputTerminalEvent,
@@ -167,6 +171,8 @@ def build_websocket_event_permission_rules() -> tuple[tuple[type[Event], AccessA
         (KnowledgePromptStateChangedEvent, AccessAction.AUTH_COOKIE),
         (ConversationCreatedEvent, AccessAction.AUTH_COOKIE),
         (ConversationUpdatedEvent, AccessAction.AUTH_COOKIE),
+        (MemoryLibraryChangedEvent, AccessAction.AUTH_COOKIE),
+        (ChatPresetLibraryChangedEvent, AccessAction.AUTH_COOKIE),
         (SkillLibraryChangedEvent, AccessAction.AUTH_COOKIE),
         (ConversationSkillsChangedEvent, AccessAction.AUTH_COOKIE),
         (ConversationDeletedEvent, AccessAction.AUTH_COOKIE),

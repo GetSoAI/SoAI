@@ -54,6 +54,7 @@ const isWorkerResponse = <T>(value: T): value is T & WorkerResponse => {
     if (value.type === 'ok') {
         return true;
     }
+    if (value.type === 'searchText') return 'html' in value && isString(value.html);
     if (value.type === 'error') {
         if (!('message' in value)) {
             return false;

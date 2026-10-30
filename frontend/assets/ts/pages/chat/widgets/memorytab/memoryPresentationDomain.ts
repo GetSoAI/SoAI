@@ -9,7 +9,6 @@ import { CHECKERBOARD_CLASS_NAMES } from '@core/dom/checkerboardAssignment.ts';
 import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
 import { syncElementShell } from '@core/dom/patching.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { formatDateTime } from '@core/primitives/dateTime.ts';
 import { createSearchTextIndex, matchesSearchFilterQuery } from '@core/search/searchQuery.ts';
 import { uiAttr, uiHtml, uiText } from '@core/security/uiHtml.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
@@ -18,7 +17,7 @@ import { createSearchFieldActions } from '@core/ui/searchField.ts';
 import { setControlDisabledState } from '@core/ui/controls/disabledState.ts';
 import { setAriaBusy } from '@core/ui/controls/ariaBusy.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
-import { createCollectionNoticeAction, renderCollectionEmptyState, renderCollectionNotice, type CollectionNotice } from '@core/ui/collectionFeedback.ts';
+import { renderCollectionEmptyState, renderCollectionNotice, type CollectionNotice } from '@core/ui/collectionFeedback.ts';
 import { CHAT_ACTIONS, CHAT_CONFIGURATION_MODAL_ID } from '@features/chat/public.ts';
 import type { MemoryLibraryState } from '@pages/chat/widgets/memorytab/contracts.ts';
 
@@ -61,13 +60,8 @@ const initializeMemoryPresentation = (root: HTMLElement): void => {
     if (input.parentElement.childElementCount === 1) input.parentElement.append(...createSearchFieldActions(root.ownerDocument));
 };
 
-const memoryStaleMessage = (state: MemoryLibraryState): string | null => (state.stale ? i18n.t('chat.memory.library.stale', { time: state.refreshedAt === null ? i18n.t('chat.memory.viewer.none') : formatDateTime(state.refreshedAt) }) : null);
-
-const resolveMemoryStatus = (state: MemoryLibraryState, status: HTMLElement): CollectionNotice | null => {
-    const refresh = (): HTMLButtonElement => createCollectionNoticeAction(status.ownerDocument, CHAT_ACTIONS.REFRESH_MEMORY, i18n.t('chat.configuration.memory.refresh'));
-    if (state.phase === 'failed' && !state.snapshot) return { tone: 'error', title: i18n.t('chat.memory.library.errorTitle'), detail: i18n.t('chat.memory.errors.loadFailed'), actions: [refresh()] };
-    const staleMessage = memoryStaleMessage(state);
-    if (staleMessage !== null) return { tone: 'warning', title: i18n.t('chat.memory.library.staleTitle'), detail: staleMessage, actions: [refresh()] };
+const resolveMemoryStatus = (state: MemoryLibraryState): CollectionNotice | null => {
+    if (state.phase === 'failed' && !state.snapshot) return { tone: 'error', title: i18n.t('chat.memory.library.errorTitle'), detail: i18n.t('chat.memory.errors.loadFailed'), actions: [] };
     return null;
 };
 
@@ -118,7 +112,7 @@ const renderMemoryLibrary = (root: HTMLElement, state: MemoryLibraryState): void
               }
             : null
     );
-    renderCollectionNotice(status, resolveMemoryStatus(state, status));
+    renderCollectionNotice(status, resolveMemoryStatus(state));
     for (const control of dom.resolveAll('[data-action^="chat:"][data-memory-id], [data-action="chat:add-memory"]', root)) {
         if (control instanceof HTMLButtonElement) setControlDisabledState(control, state.pending || state.opening || state.editorOpen);
     }
@@ -129,4 +123,4 @@ const disconnectMemoryPresentation = (root: HTMLElement): void => {
     checkerboardService.disconnect(checkerboardService.getContainerId(list));
 };
 
-export { compareMemoryEntryOrder, disconnectMemoryPresentation, initializeMemoryPresentation, memoryAction, memoryMatchesQuery, memoryStaleMessage, renderMemoryLibrary, requireMemoryElement };
+export { compareMemoryEntryOrder, disconnectMemoryPresentation, initializeMemoryPresentation, memoryAction, memoryMatchesQuery, renderMemoryLibrary, requireMemoryElement };

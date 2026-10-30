@@ -56,6 +56,7 @@ const getDefaultChatParameters = (): ChatParameters => {
         inputActionNewConversationEnabled: true,
         inputActionCharacterMapEnabled: false,
         inputActionSketchEnabled: false,
+        inputActionFindEnabled: false,
         inputActionMobileAuxiliaryAction: 'attach',
         conversationPdfExportEnabled: true,
         ctrlEnterSendEnabled: false,

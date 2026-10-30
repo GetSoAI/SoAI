@@ -2066,14 +2066,16 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
             {
                 LauncherDiagnostics.ClearStartupFailure();
                 splash.SetStatus(afterUpdate ? FinishingUpdateStatus : "Preparing the app window...");
-                await EnsureWebViewAsync();
+                Task webViewStartup = EnsureWebViewAsync();
+                Task<EndpointInfo> backendStartup = EnsureBackendAsync(shutdownToken.Token, webViewStartup);
+                await Task.WhenAll(webViewStartup, backendStartup);
                 if (afterUpdate)
                 {
                     await webView.CoreWebView2.Profile.ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.DiskCache);
                 }
 
                 splash.SetStatus(afterUpdate ? FinishingUpdateStatus : "Starting SoAI...");
-                EndpointInfo endpoint = await EnsureBackendAsync(shutdownToken.Token);
+                EndpointInfo endpoint = await backendStartup;
                 activeEndpoint = endpoint;
 
                 splash.SetStatus(afterUpdate ? FinishingUpdateStatus : "Preparing the app window...");
@@ -2138,20 +2140,21 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
             return message + Environment.NewLine + Environment.NewLine + "Full details were written to:" + Environment.NewLine + diagnosticPath;
         }
 
-        private async Task<EndpointInfo> EnsureBackendAsync(CancellationToken token)
+        private async Task<EndpointInfo> EnsureBackendAsync(CancellationToken token, Task webViewStartup)
         {
-            EndpointInfo existingEndpoint = await DiscoveryProbe.WaitForEndpointAsync(TimeSpan.FromMilliseconds(250), TimeSpan.FromSeconds(1), token);
-            if (existingEndpoint != null && await HealthProbe.WaitForReadyAsync(existingEndpoint, TimeSpan.FromMilliseconds(250), TimeSpan.FromSeconds(1), token))
-            {
-                activeEndpoint = existingEndpoint;
-                RevealStartupWindow();
-                splash.SetStatus(afterUpdate ? FinishingUpdateStatus : "SoAI is already running...");
-            }
-
+            EndpointInfo existingEndpoint = await DiscoveryProbe.TryResolveAsync(token);
+            bool existingReady = existingEndpoint != null && await HealthProbe.IsReadyAsync(existingEndpoint, token);
             BackendServiceSession session = await BackendServiceSession.OpenAsync(paths, token);
             try
             {
                 backendSession = session;
+                await webViewStartup;
+                if (existingReady)
+                {
+                    activeEndpoint = existingEndpoint;
+                    RevealStartupWindow();
+                    splash.SetStatus(afterUpdate ? FinishingUpdateStatus : "SoAI is already running...");
+                }
                 RevealStartupWindow();
                 NativeImageAllowance readiness = await Task.Run(delegate { return paths.ManagedRuntimeReadinessAllowance(BackendStartupTimeout); });
                 return await session.WaitForReadyAsync(splash, readiness, token);
@@ -2169,27 +2172,35 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
 
         private async Task EnsureWebViewAsync()
         {
-            string browserExecutableFolder = paths.ResolveWebView2RuntimeDirectory();
-            EnsureWebViewRuntimeAvailable(browserExecutableFolder);
-            string userDataFolder = Path.Combine(LauncherPaths.UserStateDirectory, "launcher-webview2", LauncherPaths.StableRootIdentity(paths.RootDirectory));
-            Directory.CreateDirectory(userDataFolder);
-            string resolvedBrowserExecutableFolder = string.IsNullOrWhiteSpace(browserExecutableFolder) ? null : browserExecutableFolder;
-            CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions(
-                "--force-prefers-no-reduced-motion " +
-                "--disable-renderer-backgrounding " +
-                "--disable-backgrounding-occluded-windows " +
-                "--disable-background-timer-throttling");
             try
             {
-                webViewEnvironment = await CoreWebView2Environment.CreateAsync(resolvedBrowserExecutableFolder, userDataFolder, options);
-                await webView.EnsureCoreWebView2Async(webViewEnvironment);
+                string browserExecutableFolder = paths.ResolveWebView2RuntimeDirectory();
+                EnsureWebViewRuntimeAvailable(browserExecutableFolder);
+                string userDataFolder = Path.Combine(LauncherPaths.UserStateDirectory, "launcher-webview2", LauncherPaths.StableRootIdentity(paths.RootDirectory));
+                Directory.CreateDirectory(userDataFolder);
+                string resolvedBrowserExecutableFolder = string.IsNullOrWhiteSpace(browserExecutableFolder) ? null : browserExecutableFolder;
+                CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions(
+                    "--force-prefers-no-reduced-motion " +
+                    "--disable-renderer-backgrounding " +
+                    "--disable-backgrounding-occluded-windows " +
+                    "--disable-background-timer-throttling");
+                try
+                {
+                    webViewEnvironment = await CoreWebView2Environment.CreateAsync(resolvedBrowserExecutableFolder, userDataFolder, options);
+                    await webView.EnsureCoreWebView2Async(webViewEnvironment);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("The Microsoft Edge WebView2 Runtime is missing or damaged. Please reinstall SoAI.", ex);
+                }
+                await ConfigureWebViewAsync(webView, this, true);
+                await splash.AttachWebViewAsync(webViewEnvironment);
             }
-            catch (Exception ex)
+            catch
             {
-                throw new InvalidOperationException("The Microsoft Edge WebView2 Runtime is missing or damaged. Please reinstall SoAI.", ex);
+                shutdownToken.Cancel();
+                throw;
             }
-            await ConfigureWebViewAsync(webView, this, true);
-            await splash.AttachWebViewAsync(webViewEnvironment);
         }
 
         private async Task ConfigureWebViewAsync(WebView2 targetWebView, Form hostForm, bool mainWindow)
@@ -5659,7 +5670,7 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
             {
                 try
                 {
-                    pipe.Connect(2000);
+                    await pipe.ConnectAsync(2000, token);
                 }
                 catch (TimeoutException)
                 {

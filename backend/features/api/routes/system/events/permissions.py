@@ -8,6 +8,10 @@ from typing import TYPE_CHECKING
 
 from core.errors.exceptions import StateError
 from core.events.types_base import Event
+from core.events.types_chat_libraries import (
+    ChatPresetLibraryChangedEvent,
+    MemoryLibraryChangedEvent,
+)
 from core.events.types_conversation_durable import (
     ConversationAttentionChangedEvent,
     ConversationInputTerminalEvent,
@@ -74,6 +78,8 @@ if TYPE_CHECKING:
 __all__ = ("event_visible_to_user", "resolve_current_user_id")
 
 SNAPSHOT_PERMISSION_RULES: tuple[tuple[str, AccessAction], ...] = (
+    ("memory.library", AccessAction.AUTH_COOKIE),
+    ("chat.presets", AccessAction.AUTH_COOKIE),
     ("skills.library", AccessAction.AUTH_COOKIE),
     ("skills.selection", AccessAction.AUTH_COOKIE),
     ("models.collection", AccessAction.MODEL_READ),
@@ -149,7 +155,13 @@ def event_visible_to_user(
     mcp_server: MCPServerProtocol | None,
 ) -> bool:
     user_id = resolve_current_user_id(current_user)
-    if isinstance(event, SkillLibraryChangedEvent | ConversationSkillsChangedEvent):
+    if isinstance(
+        event,
+        MemoryLibraryChangedEvent
+        | ChatPresetLibraryChangedEvent
+        | SkillLibraryChangedEvent
+        | ConversationSkillsChangedEvent,
+    ):
         return event.user_id == user_id
     if isinstance(event, PromptListUpdatedEvent):
         return event.user_id == user_id

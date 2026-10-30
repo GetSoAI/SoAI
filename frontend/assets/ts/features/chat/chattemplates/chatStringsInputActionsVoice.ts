@@ -24,6 +24,9 @@ type InputActionsVoice = Pick<
     | 'inputActionCameraHint'
     | 'inputActionCharacterMap'
     | 'inputActionCharacterMapHint'
+    | 'inputActionFind'
+    | 'inputActionFindHint'
+    | 'inputActionNewConversationHint'
     | 'inputActionSketch'
     | 'inputActionSketchHint'
     | 'inputActionPrompts'
@@ -75,6 +78,9 @@ const resolveInputActionsVoiceTemplateStrings = (sanitizer: SanitizerApi): Input
         inputActionCameraHint: i18n.html(sanitizer, 'chat.configuration.inputActions.cameraHint'),
         inputActionCharacterMap: i18n.html(sanitizer, 'chat.characterMap.preference'),
         inputActionCharacterMapHint: i18n.html(sanitizer, 'chat.characterMap.preferenceHint'),
+        inputActionFind: i18n.html(sanitizer, 'chat.find.open'),
+        inputActionFindHint: i18n.html(sanitizer, 'chat.configuration.inputActions.findHint'),
+        inputActionNewConversationHint: i18n.html(sanitizer, 'chat.configuration.inputActions.newConversationHint'),
         inputActionSketch: i18n.html(sanitizer, 'chat.sketch.preference'),
         inputActionSketchHint: i18n.html(sanitizer, 'chat.sketch.preferenceHint'),
         inputActionPrompts: i18n.html(sanitizer, 'chat.configuration.inputActions.prompts'),

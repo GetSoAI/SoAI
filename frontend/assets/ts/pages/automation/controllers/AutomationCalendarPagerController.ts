@@ -29,6 +29,7 @@ class AutomationCalendarPagerController {
     readonly #momentum: AutomationCalendarMomentumController;
     readonly #wheelPaging: AutomationCalendarWheelPagingController;
     readonly #verticalSync: AutomationCalendarVerticalSyncController;
+    #resizeObserver: ResizeObserver | null = null;
     #committing = false;
     #connected = false;
     #dragScrollElement: HTMLElement | null = null;
@@ -88,6 +89,9 @@ class AutomationCalendarPagerController {
             return;
         }
         this.#gesture.connect(signal);
+        this.#syncViewportHeight();
+        this.#resizeObserver = new ResizeObserver(() => this.#syncViewportHeight());
+        this.#resizeObserver.observe(viewport);
         viewport.addEventListener('wheel', this.#onViewportWheel, { signal, passive: false });
         viewport.addEventListener('scroll', this.#onViewportScrollCapture, { signal, capture: true });
         this.#connected = true;
@@ -97,6 +101,8 @@ class AutomationCalendarPagerController {
     disconnect(): void {
         this.#connected = false;
         this.#committing = false;
+        this.#resizeObserver?.disconnect();
+        this.#resizeObserver = null;
         this.#momentum.cancel();
         this.#verticalSync.reset();
         this.#animator.disconnect();
@@ -256,6 +262,15 @@ class AutomationCalendarPagerController {
     #resolveViewportHeight(): number {
         const viewport = this.#resolveViewport();
         return viewport ? viewport.clientHeight : 0;
+    }
+
+    #syncViewportHeight(): void {
+        const viewport = this.#resolveViewport();
+        if (!viewport || viewport.clientHeight <= 0) return;
+        const height = `${viewport.clientHeight}px`;
+        if (viewport.style.getPropertyValue('--automation-calendar-viewport-height') === height) return;
+        this.#animator.resetInstant();
+        viewport.style.setProperty('--automation-calendar-viewport-height', height);
     }
 
     #resolveTrack(): HTMLElement | null {

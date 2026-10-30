@@ -35,13 +35,11 @@ type ChatShellActionId =
     | typeof CHAT_ACTIONS.TOGGLE_CONFIGURATION
     | typeof CHAT_ACTIONS.OPEN_FILES_FOLDER_SETTINGS
     | typeof CHAT_ACTIONS.OPEN_MEMORY_PROFILE
-    | typeof CHAT_ACTIONS.REFRESH_MEMORY
     | typeof CHAT_ACTIONS.EXPORT_CONVERSATION
     | typeof CHAT_ACTIONS.GOTO_PROMPTS
     | typeof CHAT_ACTIONS.GOTO_SETTINGS_MCP
     | typeof CHAT_ACTIONS.GOTO_MODEL_SETTINGS
     | typeof CHAT_ACTIONS.GOTO_MODELS_DOWNLOAD
-    | typeof CHAT_ACTIONS.REFRESH_PRESETS
     | typeof CHAT_ACTIONS.RESET_PRESETS
     | typeof CHAT_ACTIONS.NEW_PRESET
     | typeof CHAT_ACTIONS.APPLY_PRESET
@@ -121,8 +119,6 @@ const createChatShellActionHandlers = (host: ChatShellActionsHost): Record<ChatS
         [CHAT_ACTIONS.DELETE_MEMORY_OBSERVATION]: (element) => host.configuration.memoryAction(element),
         [CHAT_ACTIONS.EDIT_MEMORY_RELATION]: (element) => host.configuration.memoryAction(element),
         [CHAT_ACTIONS.DELETE_MEMORY_RELATION]: (element) => host.configuration.memoryAction(element),
-        [CHAT_ACTIONS.REFRESH_MEMORY]: () => host.execution.run('chat:refreshMemory', () => host.configuration.refreshMemory()),
-        [CHAT_ACTIONS.REFRESH_PRESETS]: () => host.configuration.refreshPresets(),
         [CHAT_ACTIONS.RESET_PRESETS]: () => host.configuration.resetPresets(),
         [CHAT_ACTIONS.NEW_PRESET]: () => host.configuration.newPreset(),
         [CHAT_ACTIONS.APPLY_PRESET]: (actionElement) => host.configuration.applyPreset(actionElement),

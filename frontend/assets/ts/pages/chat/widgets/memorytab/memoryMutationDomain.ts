@@ -29,9 +29,9 @@ const memoryFailureMessage = (failure: Error): string => {
     return i18n.t('chat.memory.errors.unconfirmed');
 };
 
-const presentMemoryCommit = (host: MemoryMutationHost, entry?: ManagedMemoryEntry): void => {
+const presentMemoryCommit = (host: MemoryMutationHost, present: (entry?: ManagedMemoryEntry) => void, entry?: ManagedMemoryEntry): void => {
     try {
-        host.committed(entry);
+        present(entry);
     } catch (error) {
         errorHandler.error('MemoryLibrary', 'Confirmed memory commit presentation failed', ensureError(error));
         host.show(i18n.t('chat.memory.library.savedRefreshNeeded'), 'warning');
@@ -62,6 +62,7 @@ const openMemoryTextEditor = (host: MemoryMutationHost, entry: ManagedMemoryEntr
             host.show(reviewRequired ? i18n.t('chat.memory.errors.revisionChanged') : i18n.t('chat.memory.errors.unconfirmed'), 'warning');
             return null;
         }
+        const present = host.captureCommitPresentation();
         let committed: ManagedMemoryEntry | null = null;
         try {
             committed = savedEntry ? await host.api.update(savedEntry.entity.id, { expectedRevision: savedEntry.revision, name: draft.title.trim(), observation: { id: editedObservationId, content: draft.content } }) : await host.api.create(draftId, draft.title.trim(), draft.content);
@@ -103,7 +104,7 @@ const openMemoryTextEditor = (host: MemoryMutationHost, entry: ManagedMemoryEntr
         savedEntry = committed;
         unconfirmed = false;
         const result = savedResult(committed, editedObservationId, draft.content);
-        presentMemoryCommit(host, committed);
+        presentMemoryCommit(host, present, committed);
         return result;
     };
     editor.open(
@@ -149,11 +150,12 @@ const deleteMemoryRecord = async (host: MemoryMutationHost, entry: ManagedMemory
         cancelText: i18n.t('common.cancel')
     });
     if (!confirmed || !host.isCurrent()) return false;
+    const present = host.captureCommitPresentation();
     try {
         if (child?.type === 'observation') await host.api.deleteObservation(entry.entity.id, child.id, entry.revision);
         else if (child?.type === 'relation') await host.api.deleteRelation(entry.entity.id, child.id, entry.revision);
         else await host.api.delete(entry.entity.id, entry.revision);
-        presentMemoryCommit(host);
+        presentMemoryCommit(host, present);
         return true;
     } catch (error) {
         host.report(ensureError(error));

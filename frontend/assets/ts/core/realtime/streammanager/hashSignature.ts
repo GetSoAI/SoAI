@@ -1,31 +1,16 @@
 /* SoAI - Shared realtime hash signature [frontend/assets/ts/core/realtime/streammanager/hashSignature.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { hasOwn, isObject } from '@core/typeGuards.ts';
+import { computeHash } from '@core/primitives/hash.ts';
+import { hasOwn, isArray, isObject } from '@core/typeGuards.ts';
 
 const SIGNATURE_MAX_DEPTH = 100;
 const SIGNATURE_CIRCULAR_MARKER = 9;
 const SIGNATURE_OMITTED_MARKER = 10;
 const SIGNATURE_MAX_STRING_CHARS = 2048;
-const SIGNATURE_MAX_ARRAY_ITEMS = 128;
 const SIGNATURE_MAX_OBJECT_KEYS = 128;
 const SIGNATURE_OBJECT_KEY_PREFIX_ITEMS = Math.floor(SIGNATURE_MAX_OBJECT_KEYS / 2);
 const SIGNATURE_OBJECT_KEY_SUFFIX_ITEMS = SIGNATURE_MAX_OBJECT_KEYS - SIGNATURE_OBJECT_KEY_PREFIX_ITEMS;
-
-const resolveBoundedSampleRanges = (total: number, limit: number): Array<{ start: number; end: number }> => {
-    if (limit <= 0 || total <= 0) {
-        return [];
-    }
-    if (total <= limit) {
-        return [{ start: 0, end: total }];
-    }
-    const prefixLength = Math.floor(limit / 2);
-    const suffixLength = limit - prefixLength;
-    return [
-        { start: 0, end: prefixLength },
-        { start: total - suffixLength, end: total }
-    ];
-};
 
 const hashBoundedString = (hashValue: (value: number) => void, hashString: (str: string) => void, value: string): void => {
     hashValue(value.length);
@@ -85,9 +70,7 @@ const computeHashSignature = <TValue>(value: TValue): number => {
     };
 
     const hashString = (str: string): void => {
-        for (let characterIndex = 0; characterIndex < str.length; characterIndex++) {
-            hashValue(str.charCodeAt(characterIndex));
-        }
+        hash = computeHash(str, hash);
     };
 
     const traverse = <TCurrentValue>(value: TCurrentValue, depth: number): void => {
@@ -120,7 +103,7 @@ const computeHashSignature = <TValue>(value: TValue): number => {
             return;
         }
 
-        if (!isObject(value)) {
+        if (!isObject(value) && !isArray(value)) {
             hashValue(6);
             hashString(String(value));
             return;
@@ -137,18 +120,11 @@ const computeHashSignature = <TValue>(value: TValue): number => {
         }
         visited.add(objectReference);
 
-        if (Array.isArray(value)) {
+        if (isArray(value)) {
             hashValue(7);
             hashValue(value.length);
-            const ranges = resolveBoundedSampleRanges(value.length, SIGNATURE_MAX_ARRAY_ITEMS);
-            for (const range of ranges) {
-                for (let index = range.start; index < range.end; index += 1) {
-                    traverse(value[index], depth + 1);
-                }
-            }
-            if (value.length > SIGNATURE_MAX_ARRAY_ITEMS) {
-                hashValue(SIGNATURE_OMITTED_MARKER);
-                hashValue(value.length - SIGNATURE_MAX_ARRAY_ITEMS);
+            for (let index = 0; index < value.length; index += 1) {
+                traverse(value[index], depth + 1);
             }
             return;
         }

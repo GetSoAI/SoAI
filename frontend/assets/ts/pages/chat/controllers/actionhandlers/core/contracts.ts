@@ -31,6 +31,7 @@ interface ChatConversationActionsControllerContract {
 }
 
 interface ChatSharedActionPort {
+    signal(): AbortSignal | null;
     pageResources: PageResources;
     feedback: PageFeedback;
     api: ChatPageApi;
@@ -101,6 +102,8 @@ interface ChatAttachDraftCounts {
 type ChatAttachDraftRemovalSource = keyof ChatAttachDraftCounts;
 
 interface ChatAttachmentActionPort {
+    openDialog(options?: import('@features/attachmodal/public.ts').AttachModalOpenOptions): void;
+    captureIntake(): import('@features/chat/public.ts').ChatAttachmentIntake;
     fileUploadEnabled(): boolean;
     cameraEnabled(): boolean;
     sketchEnabled(): boolean;
@@ -110,10 +113,10 @@ interface ChatAttachmentActionPort {
     subscribeDrafts(handler: () => void): () => void;
     requireFileInput(): HTMLInputElement;
     requireFolderInput(): HTMLInputElement;
-    uploadFiles(files: File[]): Promise<void>;
-    uploadFolder(files: File[]): Promise<void>;
-    captureCamera(file: File): Promise<void>;
-    uploadSketch(file: File): Promise<void>;
+    uploadFiles(files: File[], intake?: import('@features/chat/public.ts').ChatAttachmentIntake): Promise<void>;
+    uploadFolder(files: File[], intake?: import('@features/chat/public.ts').ChatAttachmentIntake): Promise<void>;
+    captureCamera(file: File, intake: import('@features/chat/public.ts').ChatAttachmentIntake): Promise<void>;
+    uploadSketch(file: File, intake: import('@features/chat/public.ts').ChatAttachmentIntake): Promise<void>;
     addSoaiPaths(records: readonly SoaiPathDraftRecord[], source: 'browse' | 'soaiLink'): number;
     removeFile(fileId: string): Promise<void>;
     removeKnowledge(knowledgeAttachmentId: string): Promise<void>;
@@ -129,10 +132,8 @@ interface ChatConfigurationActionPort {
     toggle(): void;
     openTab(tabId: string): void;
     openMemoryProfile(): void;
-    refreshMemory(): Promise<void>;
     memoryAction(element: HTMLElement): void;
     handleModelAction(actionElement: HTMLElement): void;
-    refreshPresets(): void;
     resetPresets(): void;
     newPreset(): void;
     applyPreset(actionElement: HTMLElement): void;
@@ -148,6 +149,7 @@ interface ChatConfigurationActionPort {
 }
 
 interface ChatPresentationActionPort {
+    find(action: ChatActionId): void;
     toggleFavoritesAtTop(): void;
     toggleSidebar(): void;
     actionData(actionElement: HTMLElement, key: string): string | null;

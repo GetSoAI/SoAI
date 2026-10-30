@@ -1,6 +1,8 @@
 /* SoAI - Shared realtime handle resource WebSocket event [frontend/assets/ts/core/realtime/streammanager/transport/handleResourceWebSocketEvent.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { CHAT_LIBRARY_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/chatLibraryContracts.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { isLifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
 import { HARDWARE, HARDWARE_GPU_CAPABILITIES, HARDWARE_GPU_SLOTS, HARDWARE_GPU_SOAIBENCH_RUNS, HARDWARE_PROCESSES, METRICS, MODELS_LAST_USED, PLUGINS_LAST_USED, POWER_OPERATIONS, PROMPTS, ROUTING, VIRTUAL, WEBUI_CHAT_ACTIVITY } from '@core/realtime/streammanager/resources/ids.ts';
@@ -8,7 +10,8 @@ import type { ResourceEntry, ResourceUpdateOutcome } from '@core/realtime/stream
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import { hasOwn, isArray, isObject } from '@core/typeGuards.ts';
 import { WEBSOCKET_EVENT_TYPES } from '@core/websocketEvents.ts';
-import { hasResourceDemand } from '@core/realtime/streammanager/resources/resourceActivationPolicy.ts';
+import { isSubscriptionOwnedResource } from '@core/realtime/streammanager/resources/resourceReconciliationPolicy.ts';
+import { invalidateResourceDemand, hasResourceDemand } from '@core/realtime/streammanager/resources/resourceActivationPolicy.ts';
 
 interface HandleResourceWebSocketEventOptions {
     module: string;
@@ -54,6 +57,14 @@ const recoverUnappliedResources = (options: RecoverResourceWebSocketEventOptions
         const resource = options.getResource(resourceName);
         if (!resource || resource.reconciler.snapshot.maintenance || resource.reconciler.snapshot.authoritativeReason === 'optional-resource-unavailable') continue;
         if (!hasResourceDemand(resource)) continue;
+        if (isSubscriptionOwnedResource(resourceName)) {
+            invalidateResourceDemand(resource, 'library-changed', () => {
+                options.startResource(resourceName, { forceRefresh: false }).catch((error) => {
+                    if (!isLifecycleCancellationError(error)) errorHandler.warn(options.module, 'Chat library reconciliation failed', error);
+                });
+            });
+            continue;
+        }
         resource.reconciler.invalidate('websocket-recovery');
         options.notifyResource?.(resourceName, 'websocket-recovery', options.raw);
         const hasRecoveryTransport = resource.config.websocketOnly || resource.config.fetch !== null;
@@ -80,6 +91,16 @@ const handleResourceWebSocketEvent = (options: HandleResourceWebSocketEventOptio
     const { module, eventType, payload, resourcesForEventType, getResource, updateResource, notifyResource, startResource } = options;
 
     const updatedResources = new Set<string>();
+    if (eventType === WEBSOCKET_EVENT_TYPES.MEMORY_LIBRARY_CHANGED || eventType === WEBSOCKET_EVENT_TYPES.CHAT_PRESET_LIBRARY_CHANGED) {
+        const contract = eventType === WEBSOCKET_EVENT_TYPES.MEMORY_LIBRARY_CHANGED ? CHAT_LIBRARY_EVENT_CONTRACTS.memoryChanged : CHAT_LIBRARY_EVENT_CONTRACTS.presetsChanged;
+        try {
+            contract.decode(payload);
+        } catch (error) {
+            errorHandler.warn(module, 'Rejected malformed chat library invalidation', ensureError(error));
+        }
+        recoverUnappliedResources({ module, raw: payload, resourcesForEventType, handledResources: updatedResources, getResource, notifyResource, startResource });
+        return;
+    }
 
     if (isArray(payload['prompts'])) {
         applyPushedResource({ name: PROMPTS, payload: payload['prompts'], raw: payload, updatedResources, updateResource });

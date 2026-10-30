@@ -11,6 +11,7 @@ import type { RunningActivitySummary } from '@features/chat/toolactivity/running
 
 export interface StreamMessageManager {
     resolveMessageContentSegments(message: ChatMessage | null | undefined): MessageSegment[];
+    renderAssistantActivityWidgets(segments: readonly MessageSegment[], visibility: 'active' | 'settled'): string;
     renderSegments(segments: MessageSegment[], options?: MessageRenderOptions): string;
     renderActiveStreamMessageTextContent(message: ChatMessage): RenderedMessageTextContent;
     renderMarkdownContent(content: string, options?: { sortableTables?: boolean }): string;

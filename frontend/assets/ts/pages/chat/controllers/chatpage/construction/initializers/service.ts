@@ -6,9 +6,11 @@ import { i18n } from '@core/i18n/index.ts';
 import { WEBSOCKET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/registry.ts';
 import { subscribeManagedWebSocketContract } from '@core/realtime/websocketBatchSubscription.ts';
 import { isPlainObject } from '@core/typeGuards.ts';
-import { ChatAttachmentManager, ChatAttachmentProcessor, ChatAudioManager, ChatConversationSettingsManager, ChatTtsManager, ChatUIManager, cloneSoaiPathDraftRecordContentPart, normalizeConversationId, type ConversationInputPreview, type ConversationSettingsHost, type SoaiPathDraftRecord } from '@features/chat/public.ts';
+import { ChatAttachmentManager, ChatAttachmentProcessor, ChatAudioManager, ChatConversationSettingsManager, ChatTtsManager, ChatUIManager, cloneSoaiPathDraftRecordContentPart, type ConversationInputPreview, type ConversationSettingsHost, type SoaiPathDraftRecord } from '@features/chat/public.ts';
+import { captureChatAttachmentIntake } from '@pages/chat/controllers/chatpage/construction/initializers/attachmentIntakeController.ts';
 import type { ChatControllerInitializationContext, Logger } from '@pages/chat/controllers/chatpage/construction/initializers/contracts.ts';
 import { requestConversationMessageWindow } from '@pages/chat/controllers/chatpage/construction/initializers/messageWindowPagingController.ts';
+import type { MessageWindowIntent } from '@pages/chat/controllers/page/concurrency/ChatConcurrencyController.ts';
 import { isThinkingFeatureEnabled } from '@pages/chat/controllers/page/state.ts';
 import { applyWidescreenMode } from '@pages/chat/controllers/chatUiBehaviors.ts';
 import { resolveVoiceSttSettings } from '@pages/chat/controllers/voice/service.ts';
@@ -21,7 +23,7 @@ const initializeUIManager = (page: ChatControllerInitializationContext): void =>
     if (!modelAvailability) {
         throw new Error('ChatPage requires model availability state');
     }
-    const pendingMessageWindowRequests = new Set<string>();
+    const pendingMessageWindowRequests = new Map<string, MessageWindowIntent>();
     page.runtime.composerSurface.initializeUi(
         new ChatUIManager({
             sanitizer: page.platform.pageContext.sanitizer,
@@ -55,6 +57,7 @@ const initializeUIManager = (page: ChatControllerInitializationContext): void =>
                 }
             },
             session: {
+                isConversationFindOpen: () => page.state.viewState.conversationFindOpen,
                 getCurrentConversationId: () => page.state.conversationState.currentConversationId,
                 getCurrentConversation: () => page.sessions.conversationView.current(),
                 getCurrentModel: () => page.state.conversationState.currentModel,
@@ -206,22 +209,6 @@ const initializeConversationSettingsManager = (page: ChatControllerInitializatio
     );
 };
 
-const resolveConversationIdForAttachmentUpload = async (page: ChatControllerInitializationContext): Promise<string> => {
-    let conversation = page.sessions.conversationView.current();
-    if (!conversation) {
-        conversation = await page.sessions.conversationView.requireActions().createConversation({ transferMode: 'adopt-current' });
-    }
-    if (!conversation) {
-        throw new Error('Attachment upload requires an active conversation');
-    }
-    await page.runtime.conversationRuntime.requireConversation().ensureConversationPersisted(conversation);
-    const conversationId = normalizeConversationId(conversation.id);
-    if (!conversationId) {
-        throw new Error('Attachment upload requires a valid conversation id');
-    }
-    return conversationId;
-};
-
 const loadSoaiPathImagePreview = async (page: ChatControllerInitializationContext, record: SoaiPathDraftRecord, signal: AbortSignal): Promise<string | null> => {
     const conversationId = page.state.conversationState.currentConversationId;
     if (!conversationId || !isPlainObject(record) || !isPlainObject(record.contentPart)) {
@@ -254,12 +241,12 @@ const initializeAttachmentManager = (page: ChatControllerInitializationContext, 
     const uiManager = page.runtime.composerSurface.requireUi();
     const attachmentProcessor = new ChatAttachmentProcessor({
         api: page.platform.api,
-        resolveConversationId: () => resolveConversationIdForAttachmentUpload(page),
         runWithBoundary: <T>(scope: string, handler: () => Promise<T>) => page.page.pageLifecycle.run(scope, handler),
         uiManager
     });
     page.runtime.composerSurface.initializeAttachments(
         new ChatAttachmentManager({
+            captureIntake: () => captureChatAttachmentIntake(page),
             attachmentProcessor,
             uiManager,
             logger,

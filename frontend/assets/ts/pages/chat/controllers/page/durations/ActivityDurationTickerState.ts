@@ -1,13 +1,15 @@
 /* SoAI - Adaptive activity duration ticker scheduling state [frontend/assets/ts/pages/chat/controllers/page/durations/ActivityDurationTickerState.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { secondsToMs } from '@core/time/durations.ts';
+
 type DriftSample = {
     measuredAtMs: number;
     driftMs: number;
 };
 
-const SUB_MINUTE_INTERVAL_LADDER_MS: readonly number[] = [250, 500, 1_000];
-const FASTEST_SUB_MINUTE_INTERVAL_MS = 250;
+const FASTEST_SUB_MINUTE_INTERVAL_MS = secondsToMs(0.5);
+const SUB_MINUTE_INTERVAL_LADDER_MS: readonly number[] = [FASTEST_SUB_MINUTE_INTERVAL_MS, secondsToMs(1)];
 const DRIFT_SAMPLE_WINDOW_INTERVAL_COUNT = 8;
 const ESCALATION_AVERAGE_DRIFT_RATIO = 0.4;
 const ESCALATION_MISSED_CALLBACK_DRIFT_RATIO = 0.2;

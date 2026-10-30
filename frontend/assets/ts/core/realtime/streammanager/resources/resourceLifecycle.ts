@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { createAbortError, isAbortError, runWithAbortSignalScope, throwIfAborted } from '@core/errors/abort.ts';
-import { ensureError } from '@core/errors/coerce.ts';
+import { ensureError, extractErrorCode } from '@core/errors/coerce.ts';
 import { LifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
+import { isSubscriptionOwnedResource } from '@core/realtime/streammanager/resources/resourceReconciliationPolicy.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { withAbortableTimeout } from '@core/primitives/withAbortableTimeout.ts';
+import { SnapshotProtocolError } from '@core/websocketclient/snapshotManager.ts';
 import type { ResourceConfig, ResourceContext, ResourceEntry } from '@core/realtime/streammanager/types.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 
@@ -26,6 +28,7 @@ interface ResourceStartDependencies {
     isMaintenanceActive(): boolean;
     isGenerationActive(generation: number): boolean;
     getWebSocket(): WebSocketClientContract | null;
+    waitForResourceInterest?(name: string, signal: AbortSignal): Promise<void>;
 }
 
 type ResourceTransformOutcome = { updateOutcome: 'applied'; value: JsonValue } | { updateOutcome: 'rejected'; error: Error };
@@ -75,17 +78,34 @@ const executeWebSocketAttempt = async (resource: ResourceEntry, config: Resource
     const resourceName = resource.name;
     await websocket.waitForConnection(undefined, { signal });
     if (!ownsConfiguration()) throw createAbortError();
-    const snapshot = await websocket.requestSnapshot(resourceName, null, { signal });
+    if (isSubscriptionOwnedResource(resourceName)) {
+        if (!dependencies.waitForResourceInterest) throw new Error('Library resource interest synchronization is unavailable');
+        await dependencies.waitForResourceInterest(resourceName, signal);
+        if (!ownsConfiguration()) throw createAbortError();
+    }
+    let snapshot;
+    try {
+        snapshot = await websocket.requestSnapshot(resourceName, null, { signal });
+    } catch (error) {
+        if (ownsConfiguration() && isSubscriptionOwnedResource(resourceName) && ['forbidden_error', 'memory_user_missing', 'authentication_error'].includes(extractErrorCode(error) ?? '')) resource.reconciler.markUnavailable('library-access-denied');
+        throw error;
+    }
     if (!ownsConfiguration()) throw createAbortError();
     if (!snapshot) throw new Error(`WebSocket snapshot unavailable: ${resourceName}`);
-    if (snapshot.resource !== resourceName) throw new Error(`WebSocket snapshot resource mismatch for ${resourceName}`);
+    if (snapshot.resource !== resourceName) throw new SnapshotProtocolError(`WebSocket snapshot resource mismatch for ${resourceName}`);
     if (!ownsConfiguration()) throw createAbortError();
     const raw: JsonObject = {
         data: snapshot.data,
         resource: snapshot.resource,
         'timestamp_ms': snapshot.timestampMs
     };
-    return requireTransformedResourceValue(resource, config, snapshot.data, 'websocket-initial', raw, ownsConfiguration);
+    try {
+        return requireTransformedResourceValue(resource, config, snapshot.data, 'websocket-initial', raw, ownsConfiguration);
+    } catch (error) {
+        const runtimeError = ensureError(error);
+        if (!isSubscriptionOwnedResource(resourceName) || isAbortError(runtimeError)) throw runtimeError;
+        throw new SnapshotProtocolError(runtimeError.message);
+    }
 };
 
 const startResource = (resourceName: string, options: ResourceStartOptions, dependencies: ResourceStartDependencies): Promise<JsonValue | null> => {

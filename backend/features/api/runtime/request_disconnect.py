@@ -33,6 +33,8 @@ async def _watch_request_disconnect(
 async def run_with_request_disconnect_watch[ResultT](
     request: Request,
     operation: Callable[[threading.Event], Awaitable[ResultT]],
+    *,
+    cancel_operation_on_disconnect: bool = False,
 ) -> ResultT:
     cancellation_event = threading.Event()
 
@@ -60,6 +62,8 @@ async def run_with_request_disconnect_watch[ResultT](
                 break
         if watch_task in completed:
             await watch_task
+            if cancel_operation_on_disconnect:
+                operation_task.cancel()
         return await operation_task
     finally:
         cancellation_event.set()

@@ -4,7 +4,7 @@
 import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
 import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
-import { ADVANCED_SCROLL_HIDDEN_CLASS } from '@features/chat/chatuimanager/advancedScrollPreviewConstants.ts';
+import { ADVANCED_SCROLL_HIDDEN_CLASS, CSS_VAR_BOTTOM_OFFSET } from '@features/chat/chatuimanager/advancedScrollPreviewConstants.ts';
 import { createAdvancedScrollPreviewBottomOffsetController } from '@features/chat/chatuimanager/advancedScrollPreviewBottomOffset.ts';
 import { createAdvancedScrollPreviewDragRuntime } from '@features/chat/chatuimanager/advancedScrollPreviewDragRuntime.ts';
 import { createAdvancedScrollPreviewDomMinimapRuntime, type AdvancedScrollPreviewDomMinimapMeasurement } from '@features/chat/chatuimanager/advancedScrollPreviewDomMinimap.ts';
@@ -314,6 +314,7 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
         coordinator.cancelFrame(PREVIEW_FRAME_KEY);
         coordinator.release();
         context.dependencies.toggleClassName(overlay, ADVANCED_SCROLL_HIDDEN_CLASS, true);
+        context.dependencies.dom.setStyle(shell ?? overlay, CSS_VAR_BOTTOM_OFFSET, null);
         resetAdvancedScrollPreviewStyles(context, { overlay, viewport, fadeTop, fadeBottom });
     };
 };

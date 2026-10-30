@@ -40,6 +40,25 @@ class SketchPointerInputController {
         return this.#gesture !== null;
     }
 
+    dispose(): void {
+        const gesture = this.#gesture;
+        if (gesture === null) return;
+        this.#gesture = null;
+        this.#release(gesture);
+        this.#host.onCancel();
+    }
+
+    #release(gesture: ActiveGesture): void {
+        if (this.#host.canvas.hasPointerCapture(gesture.pointerId)) this.#host.canvas.releasePointerCapture(gesture.pointerId);
+    }
+
+    #reject(gesture: ActiveGesture): void {
+        this.#gesture = null;
+        this.#release(gesture);
+        this.#host.onCancel();
+        this.#host.onCapacityRejected();
+    }
+
     #handlePointer(event: PointerEvent): void {
         if (event.type === 'pointerdown') {
             this.#begin(event);
@@ -52,6 +71,7 @@ class SketchPointerInputController {
             return;
         }
         this.#gesture = null;
+        this.#release(gesture);
         const operation = event.type === 'pointerup' ? this.#buildOperation(gesture) : null;
         if (operation === null) {
             this.#host.onCancel();
@@ -63,9 +83,14 @@ class SketchPointerInputController {
     #begin(event: PointerEvent): void {
         if (this.#gesture !== null || !event.isPrimary || event.button !== 0 || !this.#host.isEnabled()) return;
         event.preventDefault();
+        const style = this.#host.resolveStyle();
+        const capacity = this.#host.capacity(isChatSketchShapeType(style.tool) ? 2 : 1, isChatSketchShapeType(style.tool) ? 'shape' : 'stroke');
+        if (capacity.type === 'capacity-rejected') {
+            this.#host.onCapacityRejected();
+            return;
+        }
         this.#host.canvas.setPointerCapture(event.pointerId);
         const box = measureViewportBox(this.#host.canvas);
-        const style = this.#host.resolveStyle();
         const displayScale = box.width > 0 ? this.#host.canvas.width / box.width : 1;
         const gesture: ActiveGesture = { pointerId: event.pointerId, style: { ...style, width: style.width * displayScale }, points: [this.#mapPoint(event, box)] };
         this.#gesture = gesture;
@@ -75,15 +100,19 @@ class SketchPointerInputController {
     #extend(gesture: ActiveGesture, event: PointerEvent): void {
         const samples = typeof event.getCoalescedEvents === 'function' ? event.getCoalescedEvents() : [];
         const box = measureViewportBox(this.#host.canvas);
-        const points = (samples.length > 0 ? samples : [event]).map((sample) => this.#mapPoint(sample, box));
-        if (isChatSketchShapeType(gesture.style.tool)) {
-            const end = points[points.length - 1];
-            if (end !== undefined) gesture.points.splice(1, gesture.points.length - 1, end);
-        } else {
-            for (const point of points) {
-                const previous = gesture.points[gesture.points.length - 1];
-                if (previous === undefined || previous.x !== point.x || previous.y !== point.y) gesture.points.push(point);
+        for (const sample of samples.length > 0 ? samples : [event]) {
+            const point = this.#mapPoint(sample, box);
+            if (isChatSketchShapeType(gesture.style.tool)) {
+                gesture.points[1] = point;
+                continue;
             }
+            const previous = gesture.points[gesture.points.length - 1];
+            if (previous !== undefined && previous.x === point.x && previous.y === point.y) continue;
+            if (this.#host.capacity(gesture.points.length + 1, 'stroke').type === 'capacity-rejected') {
+                this.#reject(gesture);
+                return;
+            }
+            gesture.points.push(point);
         }
         this.#preview(gesture);
     }

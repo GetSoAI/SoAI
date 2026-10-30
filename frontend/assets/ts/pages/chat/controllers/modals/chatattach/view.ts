@@ -1,25 +1,17 @@
 /* SoAI - Chat attach modal linked knowledge view [frontend/assets/ts/pages/chat/controllers/modals/chatattach/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { AttachKnowledgeElements } from '@features/attachmodal/public.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { ElementOptions } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { renderInlineLoadingStatus } from '@core/ui/loadingStatus.ts';
 import { countProcessingRagDocuments, isRagDocumentProcessingStatus, renderRagDocumentsList, type RagConfig, type RagDocument, type RagDocumentsPage } from '@features/chat/public.ts';
 import type { ChatAttachKnowledgeCapabilities } from '@pages/chat/controllers/modals/chatattach/chatAttachKnowledgeCapabilitiesController.ts';
-import type { ChatAttachKnowledgeElements } from '@pages/chat/controllers/modals/chatattach/types.ts';
 
 const setButtonEnabled = (button: HTMLButtonElement, enabled: boolean): void => {
     button.disabled = !enabled;
     button.setAttribute('aria-disabled', enabled ? 'false' : 'true');
-};
-
-const openFilePicker = (input: HTMLInputElement): void => {
-    if (typeof input.showPicker === 'function') {
-        input.showPicker();
-        return;
-    }
-    input.click();
 };
 
 const createDomHost = (documentRef: Document): { dom: { getDocument: () => Document; setStyle: (element: HTMLElement, prop: string, value: string | null) => void }; createElement: (tag: string, options?: ElementOptions, content?: string | Node) => HTMLElement; appendToElement: (parent: Element, child: Node | Node[]) => void; updateHTML: (element: Element, html: string) => void; updateText: (element: Element, text: string) => void; updateProperty: (element: Element, prop: string, value: DomPropertyValue) => void; updateAttribute: (element: Element, attr: string, value: string | null) => void; toggleClassName: (element: Element, className: string, add: boolean) => void } => ({
@@ -119,7 +111,7 @@ const resolveRagStatus = (document: RagDocument): { label: string; className: st
     }
 };
 
-const syncKnowledgeActions = (elements: ChatAttachKnowledgeElements, config: RagConfig | null, page: RagDocumentsPage | null, capabilities: ChatAttachKnowledgeCapabilities): void => {
+const syncKnowledgeActions = (elements: AttachKnowledgeElements, config: RagConfig | null, page: RagDocumentsPage | null, capabilities: ChatAttachKnowledgeCapabilities): void => {
     setButtonEnabled(elements.dropzoneButton, capabilities.documentsEnabled || capabilities.foldersEnabled);
     setButtonEnabled(elements.documentsButton, capabilities.documentsEnabled);
     setButtonEnabled(elements.folderButton, capabilities.foldersEnabled);
@@ -138,7 +130,7 @@ const knowledgeDocumentsSignature = (finalizedDocuments: RagDocument[], page: Ra
     return `${rows}#${page.count}@${page.offset}@${page.limit}`;
 };
 
-const renderKnowledgeDocuments = (elements: ChatAttachKnowledgeElements, page: RagDocumentsPage, rebuildList: boolean, finalizedDocuments: RagDocument[]): void => {
+const renderKnowledgeDocuments = (elements: AttachKnowledgeElements, page: RagDocumentsPage, rebuildList: boolean, finalizedDocuments: RagDocument[]): void => {
     const processing = countProcessingRagDocuments(page.statusCounts);
     renderInlineLoadingStatus(elements.summary, {
         text: i18n.t('chat.configuration.knowledge.summary', {
@@ -170,9 +162,9 @@ const renderKnowledgeDocuments = (elements: ChatAttachKnowledgeElements, page: R
     }
 };
 
-const renderKnowledgeNoConversation = (elements: ChatAttachKnowledgeElements): void => {
+const renderKnowledgeNoConversation = (elements: AttachKnowledgeElements): void => {
     renderInlineLoadingStatus(elements.summary, { text: '', loading: false });
     elements.list.replaceChildren();
 };
 
-export { knowledgeDocumentsSignature, openFilePicker, renderKnowledgeDocuments, renderKnowledgeNoConversation, selectFinalizedRagDocuments, setButtonEnabled, syncKnowledgeActions };
+export { knowledgeDocumentsSignature, renderKnowledgeDocuments, renderKnowledgeNoConversation, selectFinalizedRagDocuments, setButtonEnabled, syncKnowledgeActions };

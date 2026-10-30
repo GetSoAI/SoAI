@@ -13,6 +13,25 @@ import { resolveObservedSpeechReason } from '@core/speechsetup/service.ts';
 
 const resolveOperationCauseMessage = <T>(code: string | null, failure?: T): string | null => {
     switch (code) {
+        case 'logs_export_response':
+            return i18n.t('logs.errors.response');
+        case 'logs_export_missing':
+            return i18n.t('logs.errors.missing');
+        case 'logs_export_changed':
+            return i18n.t('logs.errors.changed');
+        case 'logs_export_unsafe':
+            return i18n.t('logs.errors.unsafe');
+        case 'logs_export_paths':
+            return i18n.t('logs.errors.paths');
+        case 'logs_export_permission':
+            return i18n.t('logs.errors.permission');
+        case 'logs_export_limits':
+            return i18n.t('logs.errors.limits');
+        case 'logs_export_timeout':
+            return i18n.t('logs.errors.timeout');
+        case 'logs_export_write':
+            return i18n.t('logs.errors.write');
+
         case 'runtime_verification_failed':
             return readApiErrorDetail(failure, 'reason') === 'runtime_probe_illegal_instruction' ? i18n.t('plugins.errors.runtimeIllegalInstruction') : i18n.t('plugins.errors.runtimeVerificationFailed');
         case 'invalid_request_error':

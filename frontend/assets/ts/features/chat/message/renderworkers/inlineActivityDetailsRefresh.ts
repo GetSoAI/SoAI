@@ -137,10 +137,12 @@ const refreshExpandedInlineActivityDetails = (container: Element | null, depende
             clearUnrefreshableOpenState(activity);
             continue;
         }
-        ensureInlineActivityDetailsPendingState(activity);
-        activity.removeAttribute('data-collapsing');
         const wasOpen = activity.getAttribute('data-collapsed') !== 'true';
-        const hasOpenPopulatedDetails = activity.getAttribute('data-collapsed') !== 'true' && detailsRoot instanceof HTMLElement && detailsRootHasPopulatedContent(detailsRoot);
+        const hasOpenPopulatedDetails = wasOpen && detailsRoot instanceof HTMLElement && detailsRootHasPopulatedContent(detailsRoot);
+        if (!hasOpenPopulatedDetails) {
+            ensureInlineActivityDetailsPendingState(activity);
+        }
+        activity.removeAttribute('data-collapsing');
         if (!hasOpenPopulatedDetails && !wasOpen) {
             activity.setAttribute('data-collapsed', 'true');
         }

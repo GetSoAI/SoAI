@@ -17,6 +17,7 @@ class AutomationCalendarVerticalSyncController {
     #scrollTop = 0;
     #centerMode: CenterMode = 'period';
     #suppressInnerScrollCapture = false;
+    #centerPeriod: HTMLElement | null = null;
 
     constructor(dependencies: AutomationCalendarVerticalSyncControllerDependencies) {
         this.#dependencies = dependencies;
@@ -26,6 +27,7 @@ class AutomationCalendarVerticalSyncController {
         this.#scrollTop = 0;
         this.#centerMode = 'none';
         this.#suppressInnerScrollCapture = false;
+        this.#centerPeriod = null;
     }
 
     requestCenterPeriodAfterNextRender(): void {
@@ -45,6 +47,10 @@ class AutomationCalendarVerticalSyncController {
     syncFromDom(): void {
         const periods = queryAutomationCalendarPeriods(this.#dependencies.calendarRoot);
         const center = periods.find((period) => period.dataset['automationCenterPeriod'] === 'true') ?? null;
+        if (center && center === this.#centerPeriod && this.#centerMode === 'none') {
+            this.#scrollTop = center.scrollTop;
+        }
+        this.#centerPeriod = center;
         let targetScrollTop = this.#scrollTop;
         if (this.#centerMode === 'now' && center) {
             targetScrollTop = this.#resolveNowScrollTop(center);

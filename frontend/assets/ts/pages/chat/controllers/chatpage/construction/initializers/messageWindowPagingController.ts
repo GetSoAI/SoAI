@@ -2,10 +2,23 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { measureScrollEdges } from '@core/dom/scrollGeometry.ts';
-import { CHAT_SELECTORS, type Conversation } from '@features/chat/public.ts';
-import type { ChatControllerInitializationContext } from '@pages/chat/controllers/chatpage/construction/initializers/contracts.ts';
+import { CHAT_SELECTORS, type Conversation, type LoadConversationMessagesOptions } from '@features/chat/public.ts';
+import type { ChatConcurrencyController, MessageWindowIntent } from '@pages/chat/controllers/page/concurrency/ChatConcurrencyController.ts';
 
 type MessageWindowRequestDirection = 'before' | 'after';
+
+interface MessageWindowPagingHost {
+    sessions: {
+        conversationView: { current(): Conversation | null; renderCurrent(): Promise<void> };
+        taskScope: { concurrency: ChatConcurrencyController; run(operationId: string, operation: () => Promise<void>): void };
+    };
+    state: { conversationState: { conversations: Map<string, Conversation>; currentConversationId: string | null } };
+    page: { pageDom: { optional(selector: string): Element | null } };
+    runtime: {
+        conversationRuntime: { requireStorage(): { loadConversationMessages(conversationId: string, options: LoadConversationMessagesOptions): Promise<void> } };
+        composerSurface: { requireUi(): { requestOlderMessagesIfAtTop(): void } };
+    };
+}
 
 const MESSAGE_WINDOW_EDGE_THRESHOLD_PX = 96;
 
@@ -18,7 +31,8 @@ const resolveRestingBackgroundStatus = (conversation: Conversation): 'idle' | 'c
     return conversation.history?.hasOlder === true || conversation.history?.hasNewer === true ? 'idle' : 'complete';
 };
 
-const syncMessageWindowLoadingState = async (page: ChatControllerInitializationContext, conversationId: string, direction: MessageWindowRequestDirection, loading: boolean): Promise<void> => {
+const syncMessageWindowLoadingState = async (page: MessageWindowPagingHost, conversationId: string, direction: MessageWindowRequestDirection, loading: boolean, isCurrent: () => boolean): Promise<void> => {
+    if (!isCurrent()) return;
     const conversation = page.state.conversationState.conversations.get(conversationId);
     if (conversation?.history === undefined) {
         return;
@@ -38,7 +52,9 @@ const syncMessageWindowLoadingState = async (page: ChatControllerInitializationC
     }
 };
 
-const requestConversationMessageWindow = (page: ChatControllerInitializationContext, pendingRequests: Set<string>, direction: MessageWindowRequestDirection): void => {
+const requestConversationMessageWindow = (page: MessageWindowPagingHost, pendingRequests: Map<string, MessageWindowIntent>, direction: MessageWindowRequestDirection): void => {
+    const intent = page.sessions.taskScope.concurrency.captureMessageWindowPaging();
+    if (intent === null) return;
     const conversation = page.sessions.conversationView.current();
     if (conversation === null || conversation.history === undefined) {
         return;
@@ -55,38 +71,50 @@ const requestConversationMessageWindow = (page: ChatControllerInitializationCont
     if (typedMessagesArea === null || !isAtLoadEdge(typedMessagesArea, direction)) {
         return;
     }
-    if (pendingRequests.has(requestKey)) {
+    if (pendingRequests.get(requestKey)?.isCurrent()) {
         return;
     }
-    pendingRequests.add(requestKey);
+    pendingRequests.set(requestKey, intent);
+    const isCurrent = (): boolean => intent.isCurrent() && page.state.conversationState.currentConversationId === conversationId;
     page.sessions.taskScope.run(`chat:loadMessageWindow:${requestKey}`, async () => {
         let loadingStateCleared = false;
         let shouldRecheckLoadEdge = false;
+        let loadingHistory: Conversation['history'];
         try {
-            if (page.state.conversationState.currentConversationId !== conversationId) {
+            if (!isCurrent()) {
                 return;
             }
-            await syncMessageWindowLoadingState(page, conversationId, direction, true);
-            if (page.state.conversationState.currentConversationId !== conversationId) {
+            loadingHistory = conversation.history;
+            await syncMessageWindowLoadingState(page, conversationId, direction, true, isCurrent);
+            if (!isCurrent()) {
                 return;
             }
             await page.runtime.conversationRuntime.requireStorage().loadConversationMessages(conversationId, {
                 direction,
                 cursor,
-                force: true
+                force: true,
+                signal: intent.signal,
+                isCurrentOperation: isCurrent
             });
-            if (page.state.conversationState.currentConversationId !== conversationId) {
+            if (!isCurrent()) {
                 return;
             }
-            await syncMessageWindowLoadingState(page, conversationId, direction, false);
+            await syncMessageWindowLoadingState(page, conversationId, direction, false, isCurrent);
+            if (!isCurrent()) return;
             loadingStateCleared = true;
             shouldRecheckLoadEdge = true;
         } finally {
-            pendingRequests.delete(requestKey);
-            if (!loadingStateCleared) {
-                await syncMessageWindowLoadingState(page, conversationId, direction, false);
+            const ownsPendingRequest = pendingRequests.get(requestKey) === intent;
+            if (ownsPendingRequest) pendingRequests.delete(requestKey);
+            if (!loadingStateCleared && ownsPendingRequest) {
+                if (isCurrent()) {
+                    await syncMessageWindowLoadingState(page, conversationId, direction, false, isCurrent);
+                } else if (conversation.history === loadingHistory && loadingHistory?.backgroundStatus === 'loading' && loadingHistory.backgroundDirection === direction) {
+                    loadingHistory.backgroundStatus = resolveRestingBackgroundStatus(conversation);
+                    loadingHistory.backgroundDirection = null;
+                }
             }
-            if (shouldRecheckLoadEdge && direction === 'before') {
+            if (shouldRecheckLoadEdge && direction === 'before' && isCurrent()) {
                 page.runtime.composerSurface.requireUi().requestOlderMessagesIfAtTop();
             }
         }
@@ -94,4 +122,4 @@ const requestConversationMessageWindow = (page: ChatControllerInitializationCont
 };
 
 export { requestConversationMessageWindow };
-export type { MessageWindowRequestDirection };
+export type { MessageWindowPagingHost, MessageWindowRequestDirection };

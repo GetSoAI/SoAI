@@ -6,10 +6,10 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass
 
+from core.archives.zip_creation_models import ZipArchiveResult
 from core.concurrency.path_tree_lock import AsyncPathTreeLock
 from core.config.protocols import ConfigProtocol
 from core.di.validation import require_dependencies
-from core.files.explorer_models import FileExplorerDownloadArchive
 from core.files.protocols import FilesPathResolverProtocol
 from core.files.protocols_explorer import FileSystemRootScopeProtocol
 from core.hardware.protocols_storage import StorageManagerProtocol
@@ -71,7 +71,7 @@ class FileExplorerDownloadService:
         root_scope: FileSystemRootScopeProtocol,
         virtual_paths: tuple[str, ...],
         cancellation_event: threading.Event,
-    ) -> FileExplorerDownloadArchive:
+    ) -> ZipArchiveResult:
         real_paths = tuple(
             resolve_download_archive_real_path(root_scope, virtual_path)
             for virtual_path in virtual_paths

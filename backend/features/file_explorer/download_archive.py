@@ -7,20 +7,19 @@ import asyncio
 import os
 from threading import Event
 
+from core.archives.zip_creation_models import ZipArchiveResult
+from core.archives.zip_writing import remove_completed_zip_archive, write_zip_archive
 from core.concurrency.cancellation_cleanup import (
     uncancel_and_wait,
     wait_for_task_completion,
 )
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.concurrency.path_tree_lock import AsyncPathTreeLock
 from core.errors.exceptions import PayloadTooLargeError, ValidationError
-from core.files.explorer_models import FileExplorerDownloadArchive
-from core.files.file_identity import FileIdentity
-from core.files.operations import async_remove_if_exists
 from core.hardware.protocols_storage import StorageManagerProtocol
 from core.hardware.reservation_claims import claim_reserved_write
 from features.file_explorer.download_archive_plan import build_download_archive_plan
-from features.file_explorer.download_archive_writer import write_download_archive
 
 __all__ = ("create_download_archive",)
 
@@ -35,7 +34,7 @@ async def create_download_archive(
     storage_manager: StorageManagerProtocol,
     mutation_locks: AsyncPathTreeLock,
     cancellation_event: Event,
-) -> FileExplorerDownloadArchive:
+) -> ZipArchiveResult:
     _validate_non_overlapping_selection(selected_paths, maximum_members=maximum_members)
     async with mutation_locks.lock_many(selected_paths):
         worker = create_ephemeral_task(
@@ -56,7 +55,7 @@ async def create_download_archive(
             return await asyncio.shield(worker)
         except asyncio.CancelledError as cancellation_exception:
             cancellation_event.set()
-            await wait_for_task_completion(worker)
+            await wait_for_task_completion(worker, retain_resources_until_complete=True)
             if worker.cancelled():
                 cancellation_exception.add_note(
                     "Download archive worker was cancelled before cleanup completed.",
@@ -69,22 +68,19 @@ async def create_download_archive(
                     )
                 else:
                     try:
-                        await uncancel_and_wait(_remove_completed_archive(worker.result()))
+                        await uncancel_and_wait(
+                            run_joined_thread_call(
+                                remove_completed_zip_archive,
+                                worker.result(),
+                                task_name="file-explorer-archive-cleanup",
+                                retain_resources_until_complete=True,
+                            )
+                        )
                     except OSError as cleanup_exception:
                         cancellation_exception.add_note(
                             f"Cancelled download archive cleanup failed: {cleanup_exception}",
                         )
             raise
-
-
-async def _remove_completed_archive(result: FileExplorerDownloadArchive) -> None:
-    try:
-        current_status = await asyncio.to_thread(os.lstat, result.archive_path)
-    except FileNotFoundError:
-        return
-    if FileIdentity.from_stat(current_status) != result.identity:
-        return
-    await async_remove_if_exists(result.archive_path)
 
 
 def _create_download_archive_sync(
@@ -96,7 +92,7 @@ def _create_download_archive_sync(
     maximum_archive_bytes: int,
     storage_manager: StorageManagerProtocol,
     cancellation_event: Event,
-) -> FileExplorerDownloadArchive:
+) -> ZipArchiveResult:
     plan = build_download_archive_plan(
         root_path=root_path,
         selected_paths=selected_paths,
@@ -114,7 +110,7 @@ def _create_download_archive_sync(
         },
     ) as reservation:
         with claim_reserved_write(reservation, size_bytes=plan.required_bytes):
-            result = write_download_archive(
+            result = write_zip_archive(
                 plan=plan,
                 root_path=root_path,
                 temp_directory=temp_directory,

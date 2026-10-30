@@ -1,6 +1,7 @@
 /* SoAI - Chat attach modal linked knowledge controller [frontend/assets/ts/pages/chat/controllers/modals/chatattach/chatAttachKnowledgeController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { AttachKnowledgeElements } from '@features/attachmodal/public.ts';
 import { createAbortSignalScope, isAbortError } from '@core/errors/abort.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -17,7 +18,7 @@ import { ChatAttachKnowledgeMutationController } from '@pages/chat/controllers/m
 import { ChatAttachKnowledgeOperations, type KnowledgeSource } from '@pages/chat/controllers/modals/chatattach/service.ts';
 import { ChatAttachKnowledgeProgressController } from '@pages/chat/controllers/modals/chatattach/ChatAttachKnowledgeProgressController.ts';
 import { loadChatAttachKnowledgeRefreshState } from '@pages/chat/controllers/modals/chatattach/chatAttachKnowledgeRefreshController.ts';
-import type { ChatAttachKnowledgeElements } from '@pages/chat/controllers/modals/chatattach/types.ts';
+
 import { knowledgeDocumentsSignature, renderKnowledgeDocuments, renderKnowledgeNoConversation, selectFinalizedRagDocuments, syncKnowledgeActions } from '@pages/chat/controllers/modals/chatattach/view.ts';
 import { mountSpeechSetup } from '@core/speechsetup/view.ts';
 import { createSpeechMediaSelectionView } from '@core/speechsetup/selectionView.ts';
@@ -28,7 +29,7 @@ class ChatAttachKnowledgeController {
     #speechSetupController: AbortController | null = null;
     readonly #speechSelection: (mimeTypes: readonly string[], persisted?: boolean) => void;
     readonly #host: ChatAttachKnowledgeHost;
-    readonly #elements: ChatAttachKnowledgeElements;
+    readonly #elements: AttachKnowledgeElements;
     readonly #signal: AbortSignal;
     readonly #progress = new ChatAttachKnowledgeProgressController();
     readonly #refreshLifecycle: ChatAttachKnowledgeRefreshLifecycleController;
@@ -40,7 +41,7 @@ class ChatAttachKnowledgeController {
     #lastListSignature: string | null = null;
     #unsubscribeIngestion: (() => void) | null = null;
 
-    constructor(host: ChatAttachKnowledgeHost, elements: ChatAttachKnowledgeElements, signal: AbortSignal) {
+    constructor(host: ChatAttachKnowledgeHost, elements: AttachKnowledgeElements, signal: AbortSignal) {
         this.#host = host;
         this.#elements = elements;
         this.#signal = signal;

@@ -92,7 +92,10 @@ const createChatAgentService = (page: ChatAgentServiceDependencies): ChatPageAge
             replaceConversationRoute: (conversationId) => page.sessions.conversationView.replaceRoute(conversationId),
             switchConversationById: (conversationId) => page.sessions.conversationView.requireActions().switchConversationById(conversationId),
             refreshConversationsUI: () => page.sessions.conversationView.refresh(),
-            loadConversationMessages: (conversationId, options) => page.runtime.conversationRuntime.requireStorage().loadConversationMessages(conversationId, options),
+            loadConversationMessages: (conversationId, options) => {
+                if (page.state.conversationState.currentConversationId === conversationId) page.sessions.taskScope.concurrency.invalidateMessageWindowIntent();
+                return page.runtime.conversationRuntime.requireStorage().loadConversationMessages(conversationId, options);
+            },
             getCurrentModel: () => page.state.conversationState.currentModel,
             setCurrentModel: (modelId): void => {
                 setCurrentModelForChatPage(transitionHost, modelId);

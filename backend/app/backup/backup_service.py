@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+from threading import Event
 from typing import TYPE_CHECKING, override
 
 from app.backup.internal_protocols import (
@@ -16,6 +17,7 @@ from app.backup.lifecycle import (
     execute_shutdown,
     execute_startup,
 )
+from app.backup.logs_export import create_logs_export_archive
 from app.backup.operations import (
     execute_create_backup,
     execute_delete_backup,
@@ -29,11 +31,14 @@ from app.backup.task_launching import (
     launch_restore_backup_task,
     launch_verify_backup_task,
 )
+from core.archives.zip_creation_models import ZipArchiveResult
 from core.backup.types import BackupCreateResult
+from core.concurrency.bounded_blocking import shutdown_bounded_pool_executor
+from core.concurrency.cancellation_cleanup import run_idempotent_current_task_operation
 from core.config.protocols import ConfigManagerProtocol
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import StateError
+from core.errors.exceptions import ServiceUnavailableError, StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.lifecycle.protocols import Shutdownable
 from core.logging.rate_limited_logger import RateLimitedLogger
@@ -56,6 +61,9 @@ OPERATION_APPLICATION_BACKUP_PERIODIC_LOOP = "application_backup.periodic_loop"
 class ApplicationBackupService(Shutdownable):
 
     def __init__(self, deps: ApplicationBackupServiceDependencies) -> None:
+        self._logs_export_pool = deps.logs_export_pool
+        self._logs_export_stopping = False
+        self._logs_export_tasks: dict[asyncio.Task[ZipArchiveResult], Event] = {}
         self.edition: Edition = deps.edition
         self.config: ConfigProviderProtocol = deps.config
         self.files: FilesProviderProtocol = deps.files
@@ -198,6 +206,19 @@ class ApplicationBackupService(Shutdownable):
 
     @override
     async def shutdown(self) -> None:
+        self._logs_export_stopping = True
+        active = tuple(self._logs_export_tasks.items())
+        for task, cancellation_event in active:
+            cancellation_event.set()
+            task.cancel()
+        if active:
+            await run_idempotent_current_task_operation(
+                lambda: asyncio.wait(tuple(task for task, _event in active))
+            )
+        for task, _event in active:
+            if not task.cancelled():
+                task.exception()
+        shutdown_bounded_pool_executor(self._logs_export_pool)
         logger = get_logger(LOGGER_NAME)
         await execute_shutdown(
             backup_shutdown_event=self.backup_shutdown_event,
@@ -281,4 +302,16 @@ class ApplicationBackupService(Shutdownable):
             config=self.config,
             storage_manager=self.runtime_dependencies.storage_manager,
             backup_id=backup_id,
+        )
+
+    async def create_logs_export_archive(self, cancellation_event: Event) -> ZipArchiveResult:
+        if self._logs_export_stopping:
+            raise ServiceUnavailableError("Logs export service is shutting down.")
+        return await create_logs_export_archive(
+            config=self.config,
+            files=self.files,
+            storage_manager=self.runtime_dependencies.storage_manager,
+            pool=self._logs_export_pool,
+            cancellation_event=cancellation_event,
+            preparations=self._logs_export_tasks,
         )

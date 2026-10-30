@@ -18,6 +18,7 @@ class SketchCanvasWidget {
     #preview: ChatSketchDrawOperation | null = null;
     #frame: number | null = null;
     #disposed = false;
+    #projected = false;
 
     constructor(canvas: HTMLCanvasElement) {
         this.#canvas = canvas;
@@ -26,6 +27,10 @@ class SketchCanvasWidget {
         this.#committedContext = requireCanvasContext(this.#committed);
         this.#setSheetSize(CHAT_SKETCH_CANVAS_WIDTH, CHAT_SKETCH_CANVAS_HEIGHT);
         this.#paintLayers([]);
+    }
+
+    isProjected(): boolean {
+        return this.#projected && !this.#disposed;
     }
 
     get exportCanvas(): HTMLCanvasElement {
@@ -42,9 +47,11 @@ class SketchCanvasWidget {
     }
 
     commit(operation: ChatSketchDrawOperation): void {
+        this.#projected = false;
         paintChatSketchOperation(this.#committedContext, operation);
         this.#preview = null;
         this.#presentNow();
+        this.#projected = true;
     }
 
     rebuild(operations: readonly ChatSketchDrawOperation[]): void {
@@ -72,10 +79,12 @@ class SketchCanvasWidget {
     }
 
     #paintLayers(operations: readonly ChatSketchDrawOperation[]): void {
+        this.#projected = false;
         paintChatSketchBackground(this.#committedContext);
         for (const operation of operations) paintChatSketchOperation(this.#committedContext, operation);
         this.#preview = null;
         this.#presentNow();
+        this.#projected = true;
     }
 
     #presentNow(): void {

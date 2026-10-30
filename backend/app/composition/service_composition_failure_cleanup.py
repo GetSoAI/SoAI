@@ -25,6 +25,7 @@ async def cleanup_failed_service_composition(
     login_password_pool: BoundedBlockingPool | None,
     skill_import_pool: BoundedBlockingPool | None,
     file_content_pool: BoundedBlockingPool | None,
+    logs_export_pool: BoundedBlockingPool | None = None,
 ) -> None:
     entries = bootstrap_resource_cleanup_entries(
         phase="service_composition_failure_cleanup",
@@ -44,6 +45,8 @@ async def cleanup_failed_service_composition(
             )
     finally:
         bootstrap_state.infrastructure_services.prompt_token_counter.shutdown()
+        if logs_export_pool is not None:
+            shutdown_bounded_pool_executor(logs_export_pool)
         if login_password_pool is not None:
             shutdown_bounded_pool_executor(login_password_pool)
         if file_content_pool is not None:

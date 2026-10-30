@@ -1,6 +1,7 @@
 /* SoAI - Unified comparison-turn carousel movement and viewport transition ownership [frontend/assets/ts/pages/chat/widgets/comparisonturn/comparisonTurnCarouselTransitionController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createDeferred } from '@core/runtime/deferred.ts';
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { resolveTrackTransformTransitionTotalMs } from '@pages/chat/widgets/comparisonturn/comparisonTurnTrackTransitionTimingController.ts';
 
@@ -18,6 +19,7 @@ type CarouselTransitionState = {
     onTransitionCancel: ((event: TransitionEvent) => void) | null;
     settleTimerId: number | null;
     transitionToken: number;
+    settledWaiters: Set<(settled: boolean) => void>;
 };
 
 type CarouselTransitionSyncArguments = {
@@ -56,6 +58,25 @@ class ComparisonTurnCarouselTransitionController {
     isLocked(root: HTMLElement): boolean {
         const state = this.#stateByRoot.get(root) ?? null;
         return state !== null && state.transitioningToIndex !== null;
+    }
+
+    async waitForSettled(root: HTMLElement, activeIndex: number, signal: AbortSignal, timeoutMs: number): Promise<boolean> {
+        const state = this.#stateByRoot.get(root);
+        if (!state || !root.isConnected || signal.aborted || timeoutMs <= 0 || state.activeIndex !== activeIndex) return false;
+        if (state.transitioningToIndex === null) return true;
+        const completion = createDeferred<boolean>();
+        let timerId: number | null = null;
+        const finish = (settled: boolean): void => {
+            state.settledWaiters.delete(finish);
+            signal.removeEventListener('abort', abort);
+            if (timerId !== null) this.#timers.clearTimer(timerId);
+            completion.resolve(settled && root.isConnected && !signal.aborted && state.activeIndex === activeIndex);
+        };
+        const abort = (): void => finish(false);
+        state.settledWaiters.add(finish);
+        signal.addEventListener('abort', abort, { once: true });
+        timerId = this.#timers.setTimer(() => finish(false), timeoutMs);
+        return await completion.promise;
     }
 
     sync(inputArguments: CarouselTransitionSyncArguments): void {
@@ -110,7 +131,8 @@ class ComparisonTurnCarouselTransitionController {
             onTransitionEnd: null,
             onTransitionCancel: null,
             settleTimerId: null,
-            transitionToken: 0
+            transitionToken: 0,
+            settledWaiters: new Set()
         };
     }
 
@@ -127,7 +149,7 @@ class ComparisonTurnCarouselTransitionController {
         const settle = (): void => {
             const latest = this.#stateByRoot.get(root) ?? null;
             if (!latest || latest.transitionToken !== token || latest.transitioningToIndex !== latest.activeIndex) return;
-            this.#clearTransitionTracking(latest);
+            this.#clearTransitionTracking(latest, true);
             latest.track.style.removeProperty('transform');
             latest.settleViewportHeight();
         };
@@ -142,7 +164,7 @@ class ComparisonTurnCarouselTransitionController {
         state.settleTimerId = this.#timers.setTimer(settle, totalMs + 60);
     }
 
-    #clearTransitionTracking(state: CarouselTransitionState): void {
+    #clearTransitionTracking(state: CarouselTransitionState, settled = false): void {
         if (state.onTransitionEnd) state.track.removeEventListener('transitionend', state.onTransitionEnd);
         if (state.onTransitionCancel) state.track.removeEventListener('transitioncancel', state.onTransitionCancel);
         if (state.settleTimerId !== null) this.#timers.clearTimer(state.settleTimerId);
@@ -151,6 +173,9 @@ class ComparisonTurnCarouselTransitionController {
         state.settleTimerId = null;
         state.transitioningToIndex = null;
         state.transitionToken = 0;
+        const waiters = Array.from(state.settledWaiters);
+        state.settledWaiters.clear();
+        for (const waiter of waiters) waiter(settled);
     }
 }
 

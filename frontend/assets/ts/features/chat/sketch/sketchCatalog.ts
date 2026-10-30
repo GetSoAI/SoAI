@@ -1,10 +1,15 @@
 /* SoAI - Frontend chat sketch tool and color catalog [frontend/assets/ts/features/chat/sketch/sketchCatalog.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { DrawingDrawOperation, DrawingLimits, DrawingPoint, DrawingShapeOperation, DrawingStrokeOperation } from '@core/drawing/drawingRecords.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 
 type ChatSketchFreehandToolType = 'pen' | 'brush' | 'highlighter' | 'eraser';
 type ChatSketchShapeType = 'line' | 'rectangle' | 'ellipse';
+type ChatSketchDrawOperation = DrawingDrawOperation<ChatSketchFreehandToolType, ChatSketchShapeType>;
+type ChatSketchStrokeOperation = DrawingStrokeOperation<ChatSketchFreehandToolType>;
+type ChatSketchShapeOperation = DrawingShapeOperation<ChatSketchShapeType>;
+type ChatSketchPoint = DrawingPoint;
 type ChatSketchToolType = ChatSketchFreehandToolType | ChatSketchShapeType;
 type ChatSketchColorId = 'black' | 'grey' | 'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'blue' | 'purple' | 'brown';
 
@@ -22,6 +27,8 @@ type ChatSketchColor = Readonly<{
     id: ChatSketchColorId;
     value: string;
 }>;
+
+const CHAT_SKETCH_LIMITS: DrawingLimits = Object.freeze({ retainedOperations: 2048, retainedPoints: 262144, gesturePoints: 32768 });
 
 const CHAT_SKETCH_CANVAS_WIDTH = 1600;
 const CHAT_SKETCH_CANVAS_HEIGHT = 1200;
@@ -73,5 +80,5 @@ const normalizeChatSketchColor = (value: string | undefined): string | null => {
     return /^#[0-9a-f]{6}$/.test(normalized) ? normalized : null;
 };
 
-export { CHAT_SKETCH_BACKGROUND_COLOR, CHAT_SKETCH_CANVAS_HEIGHT, CHAT_SKETCH_CANVAS_MAX_EXTENT, CHAT_SKETCH_CANVAS_MIN_EXTENT, CHAT_SKETCH_CANVAS_WIDTH, CHAT_SKETCH_COLORS, CHAT_SKETCH_DEFAULT_COLOR, CHAT_SKETCH_DEFAULT_TOOL, CHAT_SKETCH_FILE_NAME, CHAT_SKETCH_FILE_TYPE, CHAT_SKETCH_SIZE_MAX, CHAT_SKETCH_SIZE_MIN, CHAT_SKETCH_TOOLS, findChatSketchTool, isChatSketchShapeType, normalizeChatSketchColor, requireChatSketchTool };
-export type { ChatSketchColor, ChatSketchColorId, ChatSketchFreehandToolType, ChatSketchShapeType, ChatSketchTool, ChatSketchToolType };
+export { CHAT_SKETCH_LIMITS, CHAT_SKETCH_BACKGROUND_COLOR, CHAT_SKETCH_CANVAS_HEIGHT, CHAT_SKETCH_CANVAS_MAX_EXTENT, CHAT_SKETCH_CANVAS_MIN_EXTENT, CHAT_SKETCH_CANVAS_WIDTH, CHAT_SKETCH_COLORS, CHAT_SKETCH_DEFAULT_COLOR, CHAT_SKETCH_DEFAULT_TOOL, CHAT_SKETCH_FILE_NAME, CHAT_SKETCH_FILE_TYPE, CHAT_SKETCH_SIZE_MAX, CHAT_SKETCH_SIZE_MIN, CHAT_SKETCH_TOOLS, findChatSketchTool, isChatSketchShapeType, normalizeChatSketchColor, requireChatSketchTool };
+export type { ChatSketchDrawOperation, ChatSketchPoint, ChatSketchShapeOperation, ChatSketchStrokeOperation, ChatSketchColor, ChatSketchColorId, ChatSketchFreehandToolType, ChatSketchShapeType, ChatSketchTool, ChatSketchToolType };

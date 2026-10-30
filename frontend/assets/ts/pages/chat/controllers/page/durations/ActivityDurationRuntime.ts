@@ -1,9 +1,9 @@
 /* SoAI - Page-owned adaptive visible activity duration runtime [frontend/assets/ts/pages/chat/controllers/page/durations/ActivityDurationRuntime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { syncRunningAssistantHeaderDuration, syncRunningInlineActivityDuration, type ChatActivityDurationDisplayMode } from '@features/chat/public.ts';
+import { syncImageWidgetDuration, syncRunningAssistantHeaderDuration, syncRunningInlineActivityDuration, type ChatActivityDurationDisplayMode } from '@features/chat/public.ts';
 import { ActivityDurationTickerState } from '@pages/chat/controllers/page/durations/ActivityDurationTickerState.ts';
-import { RUNNING_ASSISTANT_HEADER_SELECTOR, collectRunningActivities, intersectsViewport, isRunningActivity, resolveStartedAtMs, type RegisteredActivity } from '@pages/chat/controllers/page/durations/activityDurationRegistrationDomain.ts';
+import { RUNNING_ASSISTANT_HEADER_SELECTOR, RUNNING_IMAGE_WIDGET_SELECTOR, collectRunningActivities, intersectsViewport, isRunningActivity, resolveStartedAtMs, type RegisteredActivity } from '@pages/chat/controllers/page/durations/activityDurationRegistrationDomain.ts';
 import { reconcileActivityDurationPresentation } from '@pages/chat/controllers/page/durations/activityDurationPresentationDomain.ts';
 import { ACTIVITY_DURATION_DISCOVERY_ATTRIBUTES, resolveActivityDurationMutationImpact } from '@pages/chat/controllers/page/durations/activityDurationMutationDomain.ts';
 
@@ -91,7 +91,7 @@ class ActivityDurationRuntime {
                 continue;
             }
             this.#registered.set(activity, {
-                type: activity.matches(RUNNING_ASSISTANT_HEADER_SELECTOR) ? 'assistantHeader' : 'inline',
+                type: activity.matches(RUNNING_ASSISTANT_HEADER_SELECTOR) ? 'assistantHeader' : activity.matches(RUNNING_IMAGE_WIDGET_SELECTOR) ? 'imageWidget' : 'inline',
                 startedAtMs,
                 nextDueEpochMs: nowEpochMs
             });
@@ -214,6 +214,8 @@ class ActivityDurationRuntime {
         }
         if (registration.type === 'assistantHeader') {
             syncRunningAssistantHeaderDuration(activity, nowEpochMs);
+        } else if (registration.type === 'imageWidget') {
+            syncImageWidgetDuration(activity, nowEpochMs, displayMode);
         } else {
             syncRunningInlineActivityDuration(activity, nowEpochMs);
         }
@@ -283,7 +285,7 @@ class ActivityDurationRuntime {
     }
 
     #registrationIsCurrent(activity: HTMLElement, registration: RegisteredActivity, displayMode: ChatActivityDurationDisplayMode): boolean {
-        const currentType = activity.matches(RUNNING_ASSISTANT_HEADER_SELECTOR) ? 'assistantHeader' : 'inline';
+        const currentType = activity.matches(RUNNING_ASSISTANT_HEADER_SELECTOR) ? 'assistantHeader' : activity.matches(RUNNING_IMAGE_WIDGET_SELECTOR) ? 'imageWidget' : 'inline';
         return this.#owns(activity, displayMode) && registration.type === currentType && resolveStartedAtMs(activity) === registration.startedAtMs;
     }
 

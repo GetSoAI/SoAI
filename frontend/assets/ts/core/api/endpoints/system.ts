@@ -1,6 +1,9 @@
 /* SoAI - Shared API system [frontend/assets/ts/core/api/endpoints/system.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { decodeLogsExportResponse } from '@core/api/contracts/systemLogsDownloadContracts.ts';
+import type { BufferedApiResponse } from '@core/api/bufferedResponse.ts';
+import { FILE_TRANSFER_REQUEST_TIMEOUT_MS } from '@core/api/fileTransferTimeout.ts';
 import { normalizeNonEmptyString } from '@core/api/apiNormalizers.ts';
 import { decodeConnectPairing, type ConnectPairingResponse } from '@core/api/contracts/systemConnectPairingContracts.ts';
 import { decodeAcceptedPowerActionResponse, decodeActivePowerOperationResponse, decodePowerOperationResponse, type AcceptedPowerActionResponse, type PowerOperationResponse } from '@core/api/contracts/powerContracts.ts';
@@ -34,6 +37,7 @@ interface SystemEndpoints {
     checkCircuitBreaker: (pluginName: string) => Promise<CircuitBreakerSnapshot>;
     logs: (source: string, options?: RequestOptions) => Promise<SystemLogSnapshot>;
     logSources: (options?: RequestOptions) => Promise<SystemLogSourcesResponse>;
+    exportLogs: (options?: RequestOptions) => Promise<BufferedApiResponse>;
     testSuite: () => Promise<Response>;
     power: { restartApplication: (payload?: { delay?: number }) => Promise<AcceptedPowerActionResponse>; shutdownApplication: (payload?: { delay?: number }) => Promise<AcceptedPowerActionResponse>; shutdown: (payload?: { delay?: number; force?: boolean }) => Promise<AcceptedPowerActionResponse>; reboot: (payload?: { delay?: number; force?: boolean }) => Promise<AcceptedPowerActionResponse>; suspend: (payload?: { delay?: number; force?: boolean }) => Promise<AcceptedPowerActionResponse>; hibernate: (payload?: { delay?: number; force?: boolean }) => Promise<AcceptedPowerActionResponse>; active: () => Promise<PowerOperationResponse | null>; get: (operationId: string) => Promise<PowerOperationResponse>; cancel: (operationId: string) => Promise<PowerOperationResponse> };
 }
@@ -73,6 +77,7 @@ const createSystemEndpoints = (api: ApiClientContext): SystemEndpoints => {
         checkCircuitBreaker: async (pluginName: string): Promise<CircuitBreakerSnapshot> => decodeCircuitBreakerSnapshot(await api.get(`/api/v1/system/plugins/${api.encodePathSegment(pluginName)}/check-circuit-breaker`)),
         logs: async (source: string, options: RequestOptions = {}): Promise<SystemLogSnapshot> => decodeSystemLogSnapshot(await api.get(`/api/v1/system/logs/${api.encodePathSegment(source)}`, options)),
         logSources: async (options: RequestOptions = {}): Promise<SystemLogSourcesResponse> => decodeSystemLogSources(await api.get('/api/v1/system/logs/sources', options)),
+        exportLogs: async (options: RequestOptions = {}): Promise<BufferedApiResponse> => decodeLogsExportResponse(await api.get('/api/v1/system/logs/export/archive', { ...options, rawResponse: true, bufferRawResponse: true, cache: 'no-store', timeoutMs: FILE_TRANSFER_REQUEST_TIMEOUT_MS })),
         testSuite: async (): Promise<Response> => decodeRawResponse(await api.get('/api/v1/system/test-suite', { rawResponse: true }), 'System test suite response'),
         power: {
             restartApplication: async (payload: { delay?: number } = {}): Promise<AcceptedPowerActionResponse> => decodeAcceptedPowerActionResponse(await api.post('/api/v1/system/power/restart-application', payload, powerMutationOptions())),

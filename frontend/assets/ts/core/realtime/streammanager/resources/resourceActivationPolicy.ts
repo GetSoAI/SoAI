@@ -1,6 +1,7 @@
 /* SoAI - Stream resource activation policy [frontend/assets/ts/core/realtime/streammanager/resources/resourceActivationPolicy.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isSubscriptionOwnedResource, isResourceRecoveryBlocked } from '@core/realtime/streammanager/resources/resourceReconciliationPolicy.ts';
 import type { ResourceEntry } from '@core/realtime/streammanager/types.ts';
 interface AutoResourceStart {
     name: string;
@@ -13,7 +14,22 @@ const hasResourceSubscribers = (resource: ResourceEntry): boolean => resource.li
 
 const hasResourceLiveDemand = (resource: ResourceEntry): boolean => resource.config.autoStart || hasResourceSubscribers(resource);
 
-const hasResourceDemand = (resource: ResourceEntry): boolean => hasResourceLiveDemand(resource) || resource.pendingStart !== null;
+const hasResourceDemand = (resource: ResourceEntry): boolean => hasResourceLiveDemand(resource) || (!isSubscriptionOwnedResource(resource.name) && resource.pendingStart !== null);
+
+const releaseResourceDemand = (resource: ResourceEntry): void => {
+    const active = hasResourceLiveDemand(resource);
+    resource.reconciler.setLiveDemand(active);
+    if (!active && isSubscriptionOwnedResource(resource.name)) resource.reconciler.reset({ preserveValue: true });
+};
+
+const invalidateResourceDemand = (resource: ResourceEntry, reason: string, start: () => void): void => {
+    if (!hasResourceLiveDemand(resource) || resource.reconciler.snapshot.maintenance) return;
+    const snapshot = resource.reconciler.snapshot;
+    if (isResourceRecoveryBlocked(snapshot)) return;
+    if (snapshot.status === 'error' && resource.reconciler.reconciling) return;
+    resource.reconciler.invalidate(reason);
+    if (hasResourceLiveDemand(resource) && !resource.reconciler.reconciling) start();
+};
 
 const listAutoResourceStarts = (resources: ReadonlyMap<string, ResourceEntry>): AutoResourceStart[] =>
     Array.from(resources.values()).map((resource) => ({
@@ -37,5 +53,5 @@ const listReconnectResources = (resources: ReadonlyMap<string, ResourceEntry>): 
     return names;
 };
 
-export { hasResourceDemand, hasResourceLiveDemand, hasResourceSubscribers, listAutoResourceStarts, listReconnectResources, startListenedResources };
+export { invalidateResourceDemand, releaseResourceDemand, hasResourceDemand, hasResourceLiveDemand, hasResourceSubscribers, listAutoResourceStarts, listReconnectResources, startListenedResources };
 export type { AutoResourceStart };

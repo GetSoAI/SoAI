@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "Wachten op het genereren van de afbeelding",
+                "imageGenerating": "Afbeelding genereren",
+                "imageUnavailable": "Afbeeldingsvoorbeeld niet beschikbaar.",
+                "imageRetry": "Probeer de afbeelding opnieuw te genereren.",
                 "requestedAt": "Aangevraagd {time}"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "Berichtengesprekken verbergen",
                 "hideMessagingConversationsHint": "Als dit is ingeschakeld, worden gesprekken van berichtenaccounts verborgen in de zijbalklijst",
                 "inputActions": {
+                    "newConversationHint": "De actie voor een nieuw gesprek in het chatinvoerveld tonen",
+                    "findHint": "De actie om in het gesprek te zoeken in het chatinvoerveld tonen",
                     "prompts": "Opgeslagen prompts",
                     "title": "Invoeracties",
                     "tokenCounter": "Tokenteller",
@@ -758,7 +764,6 @@
                     "description": "Permanent geheugen helpt SoAI je voorkeuren, doelen en terugkerende context te begrijpen zonder dat telkens een aangepaste prompt nodig is",
                     "empty": "Nog geen geheugen opgeslagen",
                     "openProfile": "Profielformulier openen",
-                    "refresh": "Geheugen vernieuwen",
                     "title": "Geheugeninstellingen",
                     "userMemoriesTitle": "Gebruikersgeheugens"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "Deze parameter naar het model verzenden",
                 "maxCompletionTokens": "Max. completion-tokens",
-                "maxCompletionTokensHint": "Tokenlimiet inclusief redenering voor redeneermodellen (o1, o3). Overschrijft max. tokens",
+                "maxCompletionTokensHint": "Tokenlimiet inclusief redenering voor redeneermodellen. Overschrijft max. tokens",
                 "agentMaxIterations": "Max. agentiteraties",
                 "agentMaxIterationsHint": "Maximumaantal iteraties van de agentlus voordat het gesprek stopt. Gebruik een zeer hoge waarde voor praktisch onbeperkte uitvoeringen",
                 "maxTokens": "Max. tokens:",
@@ -974,7 +979,6 @@
                     "omittedSettings": "{count} niet-ondersteunde of ongeldige opgeslagen instelling(en) weggelaten",
                     "replaceAction": "Vervangen",
                     "renameAction": "Hernoemen",
-                    "retryAction": "Opnieuw proberen",
                     "resetAction": "Bibliotheek opnieuw instellen",
                     "resetMessage": "Alle opgeslagen presets voor chatconfiguratie permanent verwijderen? Dit is de herstelactie voor beschadigde presetrecords en kan niet ongedaan worden gemaakt.",
                     "resetFailed": "De presetbibliotheek kon niet opnieuw worden ingesteld. Je opgeslagen presets zijn niet als verwijderd weergegeven; probeer het opnieuw.",
@@ -986,15 +990,13 @@
                     "searchLabel": "Presets zoeken",
                     "searchPlaceholder": "Presets zoeken...",
                     "saved": "Presetbibliotheek bijgewerkt.",
-                    "stale": "De laatst succesvol geladen presetlijst van {value} wordt weergegeven. Vernieuw voordat je wijzigingen aanbrengt.",
                     "structurallyInvalid": "{count} beschadigde presetrecord(s) konden niet worden weergegeven.",
                     "status": {
                         "emptyDetail": "Maak een preset van de klaargezette waarden in dit venster en kies precies welke secties deze moet bevatten.",
                         "emptyTitle": "Maak je eerste herbruikbare configuratie",
                         "errorTitle": "Presetbibliotheek niet beschikbaar",
                         "noMatchesTitle": "Geen overeenkomende presets",
-                        "recoveryTitle": "Sommige presets vereisen aandacht",
-                        "staleTitle": "Presetlijst is mogelijk verouderd"
+                        "recoveryTitle": "Sommige presets vereisen aandacht"
                     },
                     "errors": {
                         "ambiguous": "De uitkomst van de aanvraag is onzeker. De presetlijst wordt gesynchroniseerd; controleer deze voordat je het opnieuw probeert.",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "Deze vaardigheid uit je bibliotheek en toekomstige selecties in je chats verwijderen? Geaccepteerd werk behoudt het pakket. Werkruimtebestanden en gespreksgeschiedenis blijven behouden.",
                     "conflict": "De selectie is elders gewijzigd. Controleer de huidige selectie voordat je je concept opslaat",
                     "keepDraft": "Mijn selectie behouden",
-                    "stale": "Vaardigheden zijn niet actueel. Maak opnieuw verbinding of probeer opnieuw voordat je opslaat",
+                    "stale": "Vaardigheden zijn verouderd. Wacht tot de verbinding is hersteld voordat je opslaat.",
                     "search": "Vaardigheden zoeken...",
                     "emptyTitle": "Voeg je eerste vaardigheid toe",
                     "noMatchesTitle": "Geen overeenkomende vaardigheden",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "Importlimiet voor vaardigheden overschreden voor {field}: {measured} > {limit}. Verklein het archief of verwijder ongebruikte vaardigheden en probeer het opnieuw.",
                         "manifestPosition": "Ongeldige YAML op regel {line}, kolom {column}. Corrigeer SKILL.md en probeer het opnieuw."
                     },
-                    "importUncertain": "Het importresultaat is onzeker. Houd dit bestand geselecteerd en gebruik Vernieuwen om het ontvangstbewijs te controleren voordat je het opnieuw probeert.",
+                    "importUncertain": "Het importresultaat is onzeker. Laat het bestand geselecteerd en kies Import opnieuw proberen om het ontvangstbewijs te controleren.",
                     "invalidSelection": "Sommige geselecteerde vaardigheden zijn niet beschikbaar of overschrijden de bibliotheeklimiet. Vernieuw en pas de selectie aan voordat je opslaat",
                     "status": {
                         "importTitle": "Importresultaat onzeker",
                         "conflictTitle": "Selectie elders gewijzigd",
-                        "staleTitle": "Vaardighedenlijst is mogelijk verouderd",
                         "unavailableTitle": "Selectie van vaardigheden niet beschikbaar",
                         "invalidTitle": "Selectie moet worden gecontroleerd"
-                    }
+                    },
+                    "useLatest": "Nieuwste versie gebruiken",
+                    "retryImport": "Import opnieuw proberen",
+                    "aboutTitle": "Hoe vaardigheden werken"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "Geheugen toevoegen",
                     "search": "Geheugens doorzoeken",
                     "noMatches": "Geen overeenkomende geheugens",
-                    "stale": "De opgeslagen gegevens zijn verouderd. Laatst vernieuwd: {time}. Vernieuw om actuele gegevens te bekijken.",
                     "deleteFact": "Dit feit of deze relatie verwijderen?",
                     "deleteEntry": "‘{title}’ verwijderen, inclusief {facts} feiten en {relations} relaties?",
                     "savedHidden": "Opgeslagen. Wis de zoekopdracht om dit geheugen te zien.",
@@ -1468,7 +1471,6 @@
                     "from": "Van",
                     "to": "Naar",
                     "type": "Relatietype",
-                    "staleTitle": "Geheugenlijst is mogelijk verouderd",
                     "errorTitle": "Geheugenbibliotheek niet beschikbaar"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "Houd één eindpunt verbonden met dit geheugen.",
                     "invalidText": "Voer een niet-lege titel en tekst in.",
                     "missing": "Dit record is niet beschikbaar of hoort niet meer bij dit geheugen. Vernieuw en bekijk het.",
-                    "unconfirmed": "Het resultaat kon niet worden bevestigd. Bewaar je concept en vernieuw om de huidige gegevens te bekijken voordat je het opnieuw probeert.",
+                    "unconfirmed": "Het resultaat kon niet worden bevestigd. Bewaar je concept en controleer de huidige gegevens voordat je het opnieuw probeert.",
                     "loadFailed": "Geheugens konden niet worden geladen. Vernieuw om het opnieuw te proberen."
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "retry": "Opnieuw proberen"
                 },
                 "viewer": {
-                    "none": "Geen",
                     "observations": "Observaties",
                     "relations": "Relaties"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "Promptgeschiedenis laden mislukt."
             },
             "sketch": {
+                "capacityReached": "De tekenlimiet is bereikt. Maak een bewerking ongedaan en vervang deze, voeg de afbeelding toe of gooi de schets weg en begin opnieuw.",
                 "open": "Schets openen",
                 "mobileOption": "Schets",
                 "preference": "Schets",
@@ -1711,7 +1713,9 @@
                 "attach": "Toevoegen",
                 "discardConfirm": "Deze schets verwijderen?",
                 "discard": "Verwijderen",
-                "exportFailed": "De schets kon niet worden geëxporteerd. Probeer het opnieuw."
+                "exportFailed": "De schets kon niet worden geëxporteerd. Probeer het opnieuw.",
+                "draftChangedConfirm": "Het chatconcept is gewijzigd terwijl je tekende. Deze tekening aan het huidige concept toevoegen? Met Annuleren blijft je tekening behouden.",
+                "draftChangedAgain": "Het chatconcept is opnieuw gewijzigd. Je tekening blijft behouden. Probeer deze opnieuw toe te voegen."
             },
             "characterMap": {
                 "allEmoji": "Alle emoji",
@@ -2514,6 +2518,28 @@
                     "metric": "Metriek"
                 },
                 "wind": "Wind"
+            },
+            "find": {
+                "open": "Zoeken in gesprek",
+                "placeholder": "Zoeken in gesprek…",
+                "close": "Sluiten",
+                "previous": "Vorige overeenkomst",
+                "next": "Volgende overeenkomst",
+                "count": "{current} van {total}",
+                "none": "Geen overeenkomsten",
+                "updating": "Resultaten bijwerken…",
+                "stale": "Verbinding verbroken · {seconds} s geleden gecontroleerd",
+                "incomplete": "Zoekopdracht onvolledig. Probeer opnieuw.",
+                "error": "Zoeken mislukt. Probeer opnieuw.",
+                "tooLong": "Gebruik maximaal 256 tekens.",
+                "limited": "5.000+ berichten met overeenkomsten · navigatie omvat bewaarde resultaten",
+                "editing": "Voltooi of annuleer de bewerking om deze overeenkomst te tonen.",
+                "missing": "Deze overeenkomst is gewijzigd of verwijderd. Probeer opnieuw.",
+                "timeout": "Time-out bij het tonen van deze overeenkomst. Probeer opnieuw.",
+                "retry": "Opnieuw proberen",
+                "before": "{count} overeenkomsten hiervoor",
+                "after": "{count} overeenkomsten hierna",
+                "disconnected": "Verbinding verbroken. Maak opnieuw verbinding om te zoeken."
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "Wissen"
+                "clear": "Wissen",
+                "downloadAll": "Alle logboeken downloaden"
             },
             "ariaLabels": {
                 "clearLogs": "Logs wissen",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "Opnieuw verbinding maken met logstream...",
-            "windowTitle": "SoAI-logs"
+            "windowTitle": "SoAI-logs",
+            "errors": {
+                "download": "Logboeken konden niet worden gedownload. Controleer de verbinding en probeer opnieuw.",
+                "missing": "De logboekmap ontbreekt. Controleer de loginstellingen.",
+                "changed": "Logboeken zijn tijdens de opname gewijzigd. Probeer de download opnieuw.",
+                "unsafe": "Onveilige paden of niet-ondersteunde items gevonden. Verwijder koppelingen en probeer opnieuw.",
+                "paths": "Controleer de ingestelde logboekmappen en tijdelijke mappen.",
+                "permission": "Toegang geweigerd. Controleer maprechten en bestandsdeling en probeer opnieuw.",
+                "limits": "Archieflimieten of eisen voor bestandsnamen overschreden. Verklein de logboekboom of corrigeer namen.",
+                "timeout": "De logboekexport duurde te lang. Probeer opnieuw wanneer de server minder druk is.",
+                "write": "Het archief kon niet worden geschreven. Controleer de tijdelijke opslag en probeer opnieuw.",
+                "response": "De server heeft geen geldige ZIP-bijlage teruggestuurd. Probeer de download opnieuw."
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "Start een zoekopdracht",
                 "filesNotFound": "Geen bestanden of mappen gevonden voor \"{query}\"",
                 "notFound": "Geen resultaten gevonden voor \"{query}\"",
-                "title": "Geen resultaten gevonden"
+                "title": "Geen resultaten gevonden",
+                "minimumCharacters": "Voer minimaal {count} tekens in om te zoeken."
             },
             "pages": {
                 "about": {

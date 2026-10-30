@@ -4,7 +4,7 @@
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { resolveMaxCssAnimationTotalMs } from '@core/animations/parseMaxCssDurationMs.ts';
 import { analyzeConversationProjection, CHAT_SELECTORS, resolveRenderableConversationEntries, type ActiveComparisonRun } from '@features/chat/public.ts';
-import type { ChatConversationRenderOutcome } from '@pages/chat/controllers/chatpage/conversations/contracts.ts';
+import type { ChatConversationRenderOptions, ChatConversationRenderOutcome } from '@pages/chat/controllers/chatpage/conversations/contracts.ts';
 import type { ChatCurrentConversationRenderDependencies } from '@pages/chat/controllers/page/renderer/contracts.ts';
 import { renderCurrentConversationMessageState } from '@pages/chat/controllers/page/renderer/currentConversationMessageController.ts';
 import { clearStaleCurrentConversationStatusNodes, finalizeCurrentConversationUi, renderCurrentConversationStatusState, resolveCurrentConversationKey } from '@pages/chat/controllers/page/renderer/currentConversationStateController.ts';
@@ -47,9 +47,8 @@ const applyConversationEnterAnimation = (container: Element): void => {
     }
 };
 
-const renderCurrentConversationView = async (host: ChatCurrentConversationRenderDependencies): Promise<ChatConversationRenderOutcome> => {
+const renderCurrentConversationView = async (host: ChatCurrentConversationRenderDependencies, options: ChatConversationRenderOptions = {}): Promise<ChatConversationRenderOutcome> => {
     const renderToken = host.taskScope.concurrency.beginRenderSequence('conversation-current');
-    const isCurrent = (): boolean => host.taskScope.concurrency.isRenderSequenceCurrent('conversation-current', renderToken);
     const container = host.pageDom.optional(CHAT_SELECTORS.MESSAGES_CONTAINER);
     if (!container) {
         return 'not-rendered';
@@ -57,6 +56,15 @@ const renderCurrentConversationView = async (host: ChatCurrentConversationRender
     let contentUpdated = false;
     const conversation = host.conversationView.current();
     const conversationKey = resolveCurrentConversationKey(host, conversation);
+    const messages = conversation?.messages;
+    const messageCount = messages?.length;
+    const history = conversation?.history;
+    const activation = host.taskScope.concurrency.captureConversationActivationSnapshot();
+    const listenerSignal = host.pageLifecycle.listenersController?.signal;
+    const isCurrent = (): boolean => {
+        const current = host.conversationView.current();
+        return (options.canCommit?.() ?? true) && !listenerSignal?.aborted && host.taskScope.concurrency.isConversationActivationSnapshotLive(activation) && host.taskScope.concurrency.isRenderSequenceCurrent('conversation-current', renderToken) && resolveCurrentConversationKey(host, current) === conversationKey && current?.messages === messages && current?.messages.length === messageCount && current?.history === history;
+    };
     const previousCache = host.viewState.conversationRenderCache;
     const isCurrentStreaming = Boolean(conversationKey) ? host.conversationView.isStreaming(conversationKey) : false;
     const activeComparisonRun: ActiveComparisonRun | null = conversationKey ? host.conversationView.activeComparisonRun(conversationKey) : null;
@@ -94,7 +102,7 @@ const renderCurrentConversationView = async (host: ChatCurrentConversationRender
             });
         }
     } else if (isCurrent()) {
-        const messageRenderState = renderCurrentConversationMessageState({
+        const messageRenderState = await renderCurrentConversationMessageState({
             host,
             container,
             previousCache,
@@ -102,8 +110,12 @@ const renderCurrentConversationView = async (host: ChatCurrentConversationRender
             renderEntries,
             isCurrentStreaming,
             showEarlierMessagesLoading,
-            showNewerMessagesLoading
+            showNewerMessagesLoading,
+            isCurrent,
+            viewportStabilityScope: options.viewportStabilityScope ?? 'transaction',
+            history
         });
+        if (messageRenderState === 'superseded' || !isCurrent()) return 'superseded';
         if (messageRenderState === 'unchanged') {
             if (!isCurrent()) {
                 return 'superseded';

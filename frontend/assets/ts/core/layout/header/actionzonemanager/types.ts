@@ -43,6 +43,7 @@ interface ActionEntry {
     badge: HTMLSpanElement;
     requestedIcon: string | null;
     renderedIcon: string | null;
+    declarativeClassNames: ReadonlySet<string>;
     iconApplyInFlight: boolean;
     cleanup: (() => void) | null;
     handler: ((event: Event) => void) | null;

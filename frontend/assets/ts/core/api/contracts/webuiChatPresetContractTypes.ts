@@ -5,7 +5,7 @@ import type { JsonObject } from '@core/types/jsonValues.ts';
 
 type ChatPresetSectionId = 'general' | 'appearance' | 'completion' | 'voice' | 'files' | 'knowledge' | 'skills' | 'tools';
 
-interface ChatPresetSections {
+type ChatPresetSections = {
     general?: JsonObject;
     appearance?: JsonObject;
     completion?: JsonObject;
@@ -14,9 +14,9 @@ interface ChatPresetSections {
     knowledge?: JsonObject;
     skills?: JsonObject;
     tools?: JsonObject;
-}
+};
 
-interface WebuiChatPresetRecord {
+type WebuiChatPresetRecord = {
     id: string;
     name: string;
     sections: ChatPresetSections;
@@ -25,29 +25,29 @@ interface WebuiChatPresetRecord {
     modifiedAtMs: number;
     omittedSettingsCount: number;
     applicable: boolean;
-}
+};
 
-interface WebuiChatPresetListResponse {
+type WebuiChatPresetListResponse = {
     presets: WebuiChatPresetRecord[];
     structurallyInvalidCount: number;
-}
+};
 
-interface WebuiChatPresetCreateRequest {
+type WebuiChatPresetCreateRequest = {
     name: string;
     sections: ChatPresetSections;
-}
+};
 
-interface WebuiChatPresetRenameRequest {
+type WebuiChatPresetRenameRequest = {
     expectedRevision: number;
     name: string;
-}
+};
 
 interface WebuiChatPresetReplaceRequest extends WebuiChatPresetCreateRequest {
     expectedRevision: number;
 }
 
-interface WebuiChatPresetResetResponse {
+type WebuiChatPresetResetResponse = {
     deleted: number;
-}
+};
 
 export type { ChatPresetSectionId, ChatPresetSections, WebuiChatPresetCreateRequest, WebuiChatPresetListResponse, WebuiChatPresetRecord, WebuiChatPresetRenameRequest, WebuiChatPresetReplaceRequest, WebuiChatPresetResetResponse };

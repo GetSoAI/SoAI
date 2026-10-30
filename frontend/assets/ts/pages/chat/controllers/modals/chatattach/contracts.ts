@@ -12,7 +12,7 @@ interface ChatAttachModalHost {
     rag: ChatRagActionPort;
 }
 
-type ChatAttachWorkspacePathHost = Pick<ChatAttachModalHost, 'conversation' | 'execution' | 'shared'>;
+type ChatAttachWorkspacePathHost = Pick<ChatAttachModalHost, 'attachments' | 'conversation' | 'execution' | 'shared'>;
 type ChatAttachDraftListHost = Pick<ChatAttachModalHost, 'attachments' | 'conversation' | 'execution'>;
 type ChatAttachKnowledgeRefreshHost = Pick<ChatAttachModalHost, 'shared'>;
 type ChatAttachSoaiLinkHost = Pick<ChatAttachModalHost, 'attachments' | 'conversation' | 'execution' | 'shared'>;

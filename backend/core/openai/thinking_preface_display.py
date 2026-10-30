@@ -33,10 +33,7 @@ def normalize_thinking_preface_sentence(value: str) -> str:
 
 
 def normalize_thinking_preface_display_text(value: str) -> str:
-    normalized = normalize_thinking_preface_sentence(value)
-    if not normalized or normalized.endswith("."):
-        return normalized
-    return f"{normalized}."
+    return normalize_thinking_preface_sentence(value)
 
 
 def _starts_with_markdown_block_prefix(line: str) -> bool:

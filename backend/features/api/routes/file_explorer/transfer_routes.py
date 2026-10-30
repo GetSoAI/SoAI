@@ -41,7 +41,7 @@ from features.api.runtime.temporary_file_response import TemporaryFileResponse
 from features.file_explorer.path_resolution import resolve_download_real_path
 
 if TYPE_CHECKING:
-    from core.files.explorer_models import FileExplorerDownloadArchive
+    from core.archives.zip_creation_models import ZipArchiveResult
     from features.api.routes.file_explorer.route_scope_context import (
         FileExplorerDownloadScopeContext,
     )
@@ -59,7 +59,7 @@ async def _create_archive_response(
 ) -> TemporaryFileResponse:
     async def create_archive(
         cancellation_event: threading.Event,
-    ) -> FileExplorerDownloadArchive:
+    ) -> ZipArchiveResult:
         return await scoped.file_explorer_download.create_archive(
             scoped.root_scope,
             virtual_paths,

@@ -14,6 +14,7 @@ import { renderMessageFeedback } from '@features/chat/message/messageview/render
 import { renderMarkdownContent } from '@features/chat/message/messageview/renderMarkdown.ts';
 import { resolveShouldCacheSettledAssistantBody } from '@features/chat/message/messageview/assistantBodyCachePolicy.ts';
 import { renderSegments, renderTimelineMarkup } from '@features/chat/message/messageview/effects.ts';
+import type { ActivityWidgetVisibility } from '@features/chat/toolactivity/generatedImagePresentation.ts';
 import { renderAssistantActivityWidgets } from '@features/chat/message/messageview/assistantActivityWidgets.ts';
 import { createRenderFailurePresenter } from '@features/chat/message/messageview/renderFailurePresentation.ts';
 import { createMainThreadChatMessageRenderHost } from '@features/chat/message/messageview/renderHost.ts';
@@ -117,7 +118,7 @@ class ChatMessageView {
                 renderSegmentsWithOptions: (renderSegments, options) => this.#renderSegmentsWithOptions(renderSegments, options),
                 renderTimelineSegmentsMarkup: (renderSegments) => this.#renderTimelineSegmentsMarkup(renderSegments),
                 renderAssistantBodyItem: (markup, key, signature) => injectAssistantBodyRootAttributes(this.#renderHost, markup, key, signature),
-                renderAssistantActivityWidgets: (renderSegments) => this.renderAssistantActivityWidgets(renderSegments),
+                renderAssistantActivityWidgets: (renderSegments, visibility) => this.renderAssistantActivityWidgets(renderSegments, visibility),
                 resolveRenderableSegments: (renderSegments) => this.#resolveRenderableSegments(renderSegments),
                 renderLoadingActivityGroup: (segment, inputArguments) => renderInlineLoadingActivityGroup(this.#renderHost, { segment, ...inputArguments }),
                 renderMessageFeedbackMarkup: (message) => renderMessageFeedback(this.#renderHost, message),
@@ -268,8 +269,8 @@ class ChatMessageView {
         return this.#renderSegmentsWithOptions(segments, options);
     }
 
-    renderAssistantActivityWidgets(segments: readonly MessageSegment[]): string {
-        return renderAssistantActivityWidgets(this.#renderHost, segments);
+    renderAssistantActivityWidgets(segments: readonly MessageSegment[], visibility: ActivityWidgetVisibility = 'settled'): string {
+        return renderAssistantActivityWidgets(this.#renderHost, segments, visibility);
     }
 
     renderMarkdownContent(content: string, options: { sortableTables?: boolean } = {}): string {

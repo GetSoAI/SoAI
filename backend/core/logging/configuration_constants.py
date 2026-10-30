@@ -6,6 +6,8 @@ from __future__ import annotations
 from typing import Final
 
 __all__ = (
+    "DEFAULT_AUDIT_LOG_FILENAME",
+    "DEFAULT_MAIN_LOG_FILENAME",
     "DEFAULT_JSON_LOG_FILENAME",
     "DEFAULT_LOGS_COMPRESSION_SUFFIX",
     "DEFAULT_LOG_DATE_FORMAT",
@@ -20,6 +22,8 @@ __all__ = (
 DEFAULT_LOG_FORMAT: Final[str] = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 DEFAULT_LOG_DATE_FORMAT: Final[str] = "%Y-%m-%d %H:%M:%S UTC"
 DEFAULT_LOG_ENCODING: Final[str] = "utf-8"
+DEFAULT_AUDIT_LOG_FILENAME: Final[str] = "soai.audit.jsonl"
+DEFAULT_MAIN_LOG_FILENAME: Final[str] = "soai.log"
 DEFAULT_JSON_LOG_FILENAME: Final[str] = "soai.log.json"
 DEFAULT_LOGS_COMPRESSION_SUFFIX: Final[str] = ".gz"
 DEFAULT_LOG_HANDLER_TYPES: Final[tuple[str, ...]] = ("file", "console", "stream")

@@ -95,7 +95,7 @@ async def run_application(
         try:
             if is_windows():
                 lifecycle_request_task = start_lifecycle_request_watch(
-                    base_dir=dependencies.base_dir,
+                    pid_file_path=application_context.paths.pid_file_path,
                     stop_event=stop_event,
                     logger=dependencies.lifecycle_logger,
                     config=application_context.services.configuration.config,

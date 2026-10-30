@@ -1,13 +1,14 @@
 /* SoAI - Chat page attach modal drag-open binding controller [frontend/assets/ts/pages/chat/controllers/chatpage/lifecycle/attachModalDragOpenBindingController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { ATTACH_MODAL_ID } from '@features/attachmodal/public.ts';
+
 import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
 import { bindFileDragModalAutoOpen } from '@core/ui/fileDragModalAutoOpen.ts';
-import { AGENT_PLAN_MODAL_ID, ARCHIVED_CONVERSATIONS_MODAL_ID, CHAT_ATTACH_MODAL_ID, CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, CHAT_MEMORY_PROFILE_MODAL_ID, CHAT_TOOL_CALL_OUTPUT_MODAL_ID, CHAT_VOICE_CALL_MODAL_ID, MESSAGE_INFO_MODAL_ID } from '@features/chat/public.ts';
+import { AGENT_PLAN_MODAL_ID, ARCHIVED_CONVERSATIONS_MODAL_ID, CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, CHAT_MEMORY_PROFILE_MODAL_ID, CHAT_TOOL_CALL_OUTPUT_MODAL_ID, CHAT_VOICE_CALL_MODAL_ID, MESSAGE_INFO_MODAL_ID } from '@features/chat/public.ts';
 import type { ChatActionHandlersHost } from '@pages/chat/controllers/actionhandlers/core/contracts.ts';
 import type { ChatConversationState } from '@pages/chat/state/ChatConversationStateManager.ts';
 import type { ChatConversationToolbarManager } from '@pages/chat/controllers/chatpage/conversations/ChatConversationToolbarManager.ts';
-import { openChatAttachModal } from '@pages/chat/controllers/modals/chatattach/chatAttachModal.ts';
 
 interface ChatAttachModalDragOpenBindingHost {
     conversationState: ChatConversationState;
@@ -37,13 +38,13 @@ const bindChatAttachModalDragOpen = (host: ChatAttachModalDragOpenBindingHost, s
             const presenter = requireModalPresenter();
             return !BLOCKED_MODAL_IDS.some((modalId) => presenter.isOpen(modalId));
         },
-        isModalOpen: () => requireModalPresenter().isOpen(CHAT_ATTACH_MODAL_ID),
-        openModal: () => openChatAttachModal(attachModalHost, { initialTab: 'upload' }),
+        isModalOpen: () => requireModalPresenter().isOpen(ATTACH_MODAL_ID),
+        openModal: () => attachModalHost.attachments.openDialog({ initialTab: 'upload' }),
         closeModal: () =>
             attachModalHost.execution.run('chat:attachModalOpen', () => {
                 const presenter = requireModalPresenter();
-                if (presenter.isOpen(CHAT_ATTACH_MODAL_ID)) {
-                    presenter.close(CHAT_ATTACH_MODAL_ID, { reason: 'drag-open-ended', restoreFocus: false });
+                if (presenter.isOpen(ATTACH_MODAL_ID)) {
+                    presenter.close(ATTACH_MODAL_ID, { reason: 'drag-open-ended', restoreFocus: false });
                 }
             })
     });

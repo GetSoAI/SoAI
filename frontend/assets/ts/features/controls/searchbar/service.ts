@@ -5,6 +5,7 @@ import { getDocument } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
+import { setSearchFieldLoading } from '@core/ui/searchField.ts';
 import { dom } from '@core/dom/dom.ts';
 import { normalizeSearchDisplayQuery } from '@core/search/searchQuery.ts';
 import { createSearchBarError, normalizeOptionValues, normalizeSearchBarOptions, normalizeSearchBarValue } from '@features/controls/searchbar/guards.ts';
@@ -16,6 +17,8 @@ import type { NormalizedSearchBarOptions, SearchBarOptions, SearchBarParentTarge
 class SearchBar {
     #elements: { container: HTMLElement; input: HTMLInputElement } | null = null;
     readonly #resources = new ResourceTracker();
+    #pendingSearch: { query: string; event?: Event } | null = null;
+    #eventsBound = false;
 
     options: NormalizedSearchBarOptions;
     searchTimeout: number | null = null;
@@ -69,24 +72,22 @@ class SearchBar {
     }
 
     setupEventListeners(): void {
+        if (this.#eventsBound || !this.initialized) return;
+        this.#eventsBound = true;
         setupSearchBarEventListeners({
-            options: this.options,
             getContainer: (): HTMLElement | null => this.getContainer(),
             getInput: (): HTMLInputElement | null => this.getInput(),
-            clearTimer: (timerId: number | null): void => {
-                if (timerId !== null) this.#resources.clearTimer(timerId);
+            scheduleSearch: (query: string, event: Event): void => this.#scheduleSearch(query, event),
+            cancelPendingSearch: (): void => this.cancelPendingSearch(),
+            clearQuery: (): void => {
+                this.options.onClear?.();
             },
-            setTimer: (callback: () => void, delayMs: number): number | null => this.#resources.setTimeout(callback, delayMs),
             on: (target: EventTarget, event: string, handler: (eventObject: Event) => void): (() => void) | null => {
                 return this.#resources.addEventListener(target, event, handler);
             },
             clear: (triggerClear?: boolean): void => {
                 this.clear(triggerClear);
-            },
-            setSearchTimeout: (timerId: number | null): void => {
-                this.searchTimeout = timerId;
-            },
-            getSearchTimeout: (): number | null => this.searchTimeout
+            }
         });
     }
 
@@ -102,17 +103,39 @@ class SearchBar {
         }
 
         const nextValue = normalizeSearchBarValue(value);
+        this.cancelPendingSearch();
         dom.setProperty(input, 'value', nextValue);
 
         if (triggerSearch) {
-            if (this.searchTimeout !== null) this.#resources.clearTimer(this.searchTimeout);
-            this.searchTimeout = this.#resources.setTimeout(() => {
-                this.options.onSearch?.(normalizeSearchDisplayQuery(nextValue));
-            }, this.options.debounceTime);
+            this.#scheduleSearch(normalizeSearchDisplayQuery(nextValue));
         }
     }
 
+    flushPendingSearch(): boolean {
+        const pending = this.#pendingSearch;
+        this.cancelPendingSearch();
+        if (pending === null) return false;
+        if (pending.event === undefined) this.options.onSearch?.(pending.query);
+        else this.options.onSearch?.(pending.query, pending.event);
+        return true;
+    }
+
+    cancelPendingSearch(): void {
+        if (this.searchTimeout !== null) this.#resources.clearTimer(this.searchTimeout);
+        this.searchTimeout = null;
+        this.#pendingSearch = null;
+    }
+
+    #scheduleSearch(query: string, event?: Event): void {
+        this.cancelPendingSearch();
+        this.#pendingSearch = event === undefined ? { query } : { query, event };
+        this.searchTimeout = this.#resources.setTimeout(() => {
+            this.flushPendingSearch();
+        }, this.options.debounceTime);
+    }
+
     clear(triggerClear: boolean = true): void {
+        this.cancelPendingSearch();
         const input = this.#elements?.input ?? null;
         if (!input) {
             return;
@@ -122,6 +145,11 @@ class SearchBar {
         if (triggerClear) {
             this.options.onClear?.();
         }
+    }
+
+    setLoading(loading: boolean): void {
+        const container = this.#elements?.container;
+        if (container) setSearchFieldLoading(container, loading);
     }
 
     focus(): void {
@@ -155,10 +183,7 @@ class SearchBar {
 
     destroy(): boolean {
         const wasInitialized = this.initialized;
-        if (this.searchTimeout !== null) {
-            this.#resources.clearTimer(this.searchTimeout);
-            this.searchTimeout = null;
-        }
+        this.cancelPendingSearch();
 
         const container = this.#elements?.container ?? null;
         if (container) {
@@ -166,6 +191,7 @@ class SearchBar {
         }
 
         this.#elements = null;
+        this.#eventsBound = false;
 
         this.#resources.cleanup();
         return wasInitialized;

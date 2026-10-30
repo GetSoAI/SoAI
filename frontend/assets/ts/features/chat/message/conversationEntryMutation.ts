@@ -19,6 +19,7 @@ type ConversationEntryPostRenderRequest = {
 
 type InsertConversationEntryMutation = {
     intent: 'insert';
+    replacement?: HTMLElement | undefined;
     documentRef: Document;
     nextMarkup: TrustedHtml;
     messageDomId: string;
@@ -53,6 +54,7 @@ type ComparisonConversationEntryMutation = {
 
 type ReplaceConversationEntryMutation = {
     intent: 'replace';
+    replacement?: HTMLElement | undefined;
     existingRoot: HTMLElement;
     nextMarkup: TrustedHtml;
     messageDomId: string;
@@ -93,12 +95,14 @@ const applyAssistantEntryMutation = (inputArguments: RefreshConversationEntryMut
 
 const applyConversationEntryMutation = (inputArguments: ConversationEntryMutation): ConversationEntryMutationResult => {
     if (inputArguments.intent === 'insert') {
-        const createdRoot = parseRenderedMarkupRoot({
-            documentRef: inputArguments.documentRef,
-            nextMarkup: inputArguments.nextMarkup,
-            context: inputArguments.documentRef,
-            failureMessage: 'Chat conversation entry insertion failed to parse rendered markup.'
-        });
+        const createdRoot =
+            inputArguments.replacement ??
+            parseRenderedMarkupRoot({
+                documentRef: inputArguments.documentRef,
+                nextMarkup: inputArguments.nextMarkup,
+                context: inputArguments.documentRef,
+                failureMessage: 'Chat conversation entry insertion failed to parse rendered markup.'
+            });
         if (!createdRoot.classList.contains('chat-message') && !createdRoot.classList.contains('chat-comparison-turn')) {
             throw new Error('Chat conversation entry insertion requires a canonical entry root.');
         }
@@ -128,7 +132,8 @@ const applyConversationEntryMutation = (inputArguments: ConversationEntryMutatio
     const patched = applyChatMessageRootPatchTransaction({
         existingRoot: inputArguments.existingRoot,
         nextMarkup: inputArguments.nextMarkup,
-        messageDomId: inputArguments.messageDomId
+        messageDomId: inputArguments.messageDomId,
+        replacement: inputArguments.replacement
     });
     return {
         root: patched.root,

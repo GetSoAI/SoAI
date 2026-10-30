@@ -13,7 +13,7 @@ import type { ConfigurationControllerHost, ConfigurationControllerStateAccess } 
 
 type ChatParameterKey = Extract<keyof ChatParameters, string>;
 
-const INPUT_ACTION_PARAMETER_KEYS = Object.freeze(['inputActionVoiceEnabled', 'inputActionCallEnabled', 'inputActionFileUploadEnabled', 'inputActionCameraEnabled', 'inputActionPromptsEnabled', 'inputActionTokenCounterEnabled', 'inputActionNewConversationEnabled', 'inputActionCharacterMapEnabled', 'inputActionSketchEnabled', 'inputActionMobileAuxiliaryAction'] satisfies ReadonlyArray<ChatParameterKey>);
+const INPUT_ACTION_PARAMETER_KEYS = Object.freeze(['inputActionVoiceEnabled', 'inputActionCallEnabled', 'inputActionFileUploadEnabled', 'inputActionCameraEnabled', 'inputActionPromptsEnabled', 'inputActionTokenCounterEnabled', 'inputActionNewConversationEnabled', 'inputActionCharacterMapEnabled', 'inputActionSketchEnabled', 'inputActionFindEnabled', 'inputActionMobileAuxiliaryAction'] satisfies ReadonlyArray<ChatParameterKey>);
 
 const SEND_HOTKEY_PARAMETER_KEYS = Object.freeze(['ctrlEnterSendEnabled'] satisfies ReadonlyArray<ChatParameterKey>);
 

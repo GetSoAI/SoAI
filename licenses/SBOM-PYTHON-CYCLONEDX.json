@@ -2336,7 +2336,7 @@
         "pkg:pypi/zipp@4.1.0",
         "pkg:pypi/zstandard@0.25.0"
       ],
-      "ref": "pkg:generic/soai@1.4.0"
+      "ref": "pkg:generic/soai@1.4.1"
     },
     {
       "dependsOn": [],
@@ -2925,7 +2925,7 @@
   ],
   "metadata": {
     "component": {
-      "bom-ref": "pkg:generic/soai@1.4.0",
+      "bom-ref": "pkg:generic/soai@1.4.1",
       "description": "Smart Orchestrator for Artificial Intelligence",
       "licenses": [
         {
@@ -2935,9 +2935,9 @@
         }
       ],
       "name": "SoAI",
-      "purl": "pkg:generic/soai@1.4.0",
+      "purl": "pkg:generic/soai@1.4.1",
       "type": "application",
-      "version": "1.4.0"
+      "version": "1.4.1"
     },
     "properties": [
       {
@@ -2960,7 +2960,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:d72c8f85-455c-581f-96c4-bf85740c328a",
+  "serialNumber": "urn:uuid:19621a7a-b69d-5fcb-a318-e08c3acbc268",
   "specVersion": "1.6",
   "version": 1
 }

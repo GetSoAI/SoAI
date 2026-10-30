@@ -47,6 +47,16 @@ const translateChatMessage = (key: ChatMessageTranslationKey, parameters?: Recor
             return i18n.t('chat.processing.label', parameters);
         case 'chat.thinking.label':
             return i18n.t('chat.thinking.label', parameters);
+        case 'chat.activityWidgets.imageWaiting':
+            return i18n.t('chat.activityWidgets.imageWaiting', parameters);
+        case 'chat.activityWidgets.imageGenerating':
+            return i18n.t('chat.activityWidgets.imageGenerating', parameters);
+        case 'chat.activityWidgets.imageUnavailable':
+            return i18n.t('chat.activityWidgets.imageUnavailable', parameters);
+        case 'chat.activityWidgets.imageRetry':
+            return i18n.t('chat.activityWidgets.imageRetry', parameters);
+        case 'fileExplorer.modal.download':
+            return i18n.t('fileExplorer.modal.download', parameters);
         case 'chat.activityWidgets.requestedAt':
             return i18n.t('chat.activityWidgets.requestedAt', parameters);
         case 'chat.news.articleCount':
@@ -204,6 +214,11 @@ const buildChatMessageWorkerTranslations = (): Record<ChatMessageWorkerTranslati
         'chat.notifications.requestCancelled': i18n.t('chat.notifications.requestCancelled'),
         'chat.processing.label': i18n.t('chat.processing.label'),
         'chat.thinking.label': i18n.t('chat.thinking.label'),
+        'chat.activityWidgets.imageWaiting': i18n.t('chat.activityWidgets.imageWaiting'),
+        'chat.activityWidgets.imageGenerating': i18n.t('chat.activityWidgets.imageGenerating'),
+        'chat.activityWidgets.imageUnavailable': i18n.t('chat.activityWidgets.imageUnavailable'),
+        'chat.activityWidgets.imageRetry': i18n.t('chat.activityWidgets.imageRetry'),
+        'fileExplorer.modal.download': i18n.t('fileExplorer.modal.download'),
         'chat.activityWidgets.requestedAt': i18n.t('chat.activityWidgets.requestedAt', { time: '{time}' }),
         'chat.news.articleCount': i18n.t('chat.news.articleCount', { count: '{count}' }),
         'chat.news.articles': i18n.t('chat.news.articles'),

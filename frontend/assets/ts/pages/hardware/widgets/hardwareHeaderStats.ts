@@ -16,6 +16,7 @@ interface HardwareHeaderStatsInput {
 }
 
 interface HardwareHeaderStatsOutput {
+    hasVram: boolean;
     processes: string;
     cpu: string;
     totalRam: string;
@@ -65,6 +66,7 @@ export const buildHardwareHeaderStats = (input: HardwareHeaderStatsInput): Hardw
     const totalMemoryLabel = Number.isFinite(totalMemory) && totalMemory > 0 ? formatGigabytes(totalMemory) : '—';
 
     return {
+        hasVram: Number.isFinite(totalVram) && totalVram > 0,
         processes: String(input.processCount),
         cpu: avgCpu !== null ? `${Math.round(avgCpu)}%` : i18n.t('common.notAvailableShort'),
         totalRam: totalRamLabel,

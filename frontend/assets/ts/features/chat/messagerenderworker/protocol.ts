@@ -60,21 +60,35 @@ type RenderInlineDetailsFromMessageRequest = RenderMessageCommonFields & {
 type RenderAssistantBodyFromMessageInput = Omit<RenderAssistantBodyFromMessageRequest, 'type' | 'requestId'> & { readonly signal?: AbortSignal | null };
 type RenderInlineDetailsFromMessageInput = Omit<RenderInlineDetailsFromMessageRequest, 'type' | 'requestId'> & { readonly signal?: AbortSignal | null };
 
+type RenderSearchTextRequest = {
+    readonly type: 'renderSearchText';
+    readonly requestId: string;
+    readonly role: 'user' | 'assistant';
+    readonly content: string;
+    readonly isRichTextEnabled: boolean;
+    readonly codeRecognitionEnabled: boolean;
+    readonly isInlineMultimediaPreviewsEnabled: boolean;
+};
+
+type RenderSearchTextInput = Omit<RenderSearchTextRequest, 'type' | 'requestId'> & { readonly signal: AbortSignal | null };
+
 type InitializeResourcesRequest = {
     readonly type: 'initResources';
     readonly requestId: string;
     readonly resources: WorkerResources;
 };
 
-type WorkerRequest = InitializeResourcesRequest | RenderAssistantBodyFromMessageRequest | RenderInlineDetailsFromMessageRequest;
+type WorkerRequest = InitializeResourcesRequest | RenderAssistantBodyFromMessageRequest | RenderInlineDetailsFromMessageRequest | RenderSearchTextRequest;
 
 type WorkerOkResponse = { readonly type: 'ok'; readonly requestId: string };
 type WorkerRenderResponse = { readonly type: 'rendered'; readonly requestId: string; readonly html: string; readonly context: RenderContext };
+type WorkerSearchTextResponse = { readonly type: 'searchText'; readonly requestId: string; readonly html: string };
 type WorkerErrorResponse = { readonly type: 'error'; readonly requestId: string; readonly message: string; readonly details: JsonValue | null };
 type WorkerReadyMessage = { readonly type: 'ready' };
 
-type WorkerResponse = WorkerOkResponse | WorkerRenderResponse | WorkerErrorResponse;
+type WorkerResponse = WorkerOkResponse | WorkerRenderResponse | WorkerSearchTextResponse | WorkerErrorResponse;
 type WorkerMessage = WorkerReadyMessage | WorkerResponse;
 
 export { buildIconKey };
 export type { IconKey, WorkerResources, RenderContext, RenderMessageCommonFields, WorkerRequest, WorkerMessage, WorkerReadyMessage, WorkerResponse, InitializeResourcesRequest, RenderAssistantBodyFromMessageInput, RenderAssistantBodyFromMessageRequest, RenderInlineDetailsFromMessageInput, RenderInlineDetailsFromMessageRequest };
+export type { RenderSearchTextRequest, RenderSearchTextInput };

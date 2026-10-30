@@ -8,6 +8,10 @@ from typing import TYPE_CHECKING
 
 from fastapi import WebSocket
 
+from features.api.routes.system.events.snapshots.handlers_chat_libraries import (
+    snapshot_chat_presets,
+    snapshot_memory_library,
+)
 from features.api.routes.system.events.snapshots.handlers_chat_tool_calls import (
     snapshot_webui_chat_tool_call_live_events_page,
     snapshot_webui_chat_tool_calls_by_call_id,
@@ -111,6 +115,8 @@ if TYPE_CHECKING:
 __all__ = ("resolve_snapshot_handler",)
 
 SNAPSHOT_HANDLER_RULES: tuple[tuple[str, SnapshotHandler], ...] = (
+    ("memory.library", snapshot_memory_library),
+    ("chat.presets", snapshot_chat_presets),
     ("prompts.collection", snapshot_prompts_collection),
     ("skills.library", snapshot_skill_library),
     ("skills.selection", snapshot_conversation_skills),

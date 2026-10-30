@@ -1,6 +1,7 @@
 /* SoAI - Chat attachment creation from uploaded files [frontend/assets/ts/features/chat/attachments/attachmentCreation.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { AttachmentAcquisitionScope } from '@core/attachments/protocols.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { generateSecureId } from '@core/primitives/idGenerator.ts';
 import { isImageMimeType } from '@core/media/mimeTypes.ts';
@@ -30,11 +31,12 @@ class ChatAttachmentCreation {
         this.#errorHandler = dependencies.errorHandler;
     }
 
-    async createAttachments(files: readonly File[], options: ChatAttachmentCreationOptions = {}): Promise<ChatAttachment[]> {
+    async createAttachments(files: readonly File[], options: ChatAttachmentCreationOptions, scope: AttachmentAcquisitionScope): Promise<ChatAttachment[]> {
         const attachments: ChatAttachment[] = [];
         const sizeLimit = getChatUploadFileSizeLimit();
         const errorTitle = i18n.t('chat.upload.errorTitle');
         for (const file of files) {
+            if (!scope.isCurrent()) return [];
             const fileName = normalizeChatUploadFileName(file);
             if (!fileName) {
                 this.#errorHandler(new Error(i18n.t('chat.upload.invalidFileName')), errorTitle, { notify: true });
@@ -44,7 +46,8 @@ class ChatAttachmentCreation {
                 this.#errorHandler(new Error(createChatUploadFileTooLargeMessage(fileName, sizeLimit)), errorTitle, { notify: true });
                 continue;
             }
-            const attachment = await this.#createAttachment(file, fileName, options, errorTitle);
+            const attachment = await this.#createAttachment(file, fileName, options, errorTitle, scope);
+            if (!scope.isCurrent()) return [];
             if (attachment !== null) {
                 attachments.push(attachment);
             }
@@ -52,9 +55,9 @@ class ChatAttachmentCreation {
         return attachments;
     }
 
-    async #createAttachment(file: File, fileName: string, options: ChatAttachmentCreationOptions, errorTitle: string): Promise<ChatAttachment | null> {
+    async #createAttachment(file: File, fileName: string, options: ChatAttachmentCreationOptions, errorTitle: string, scope: AttachmentAcquisitionScope): Promise<ChatAttachment | null> {
         const isImage = options.forceDocument === true ? false : isSupportedChatImageFile(file);
-        const effectiveFile = isImage ? await this.#resolveImageFile(file, fileName, errorTitle) : file;
+        const effectiveFile = isImage ? await this.#resolveImageFile(file, fileName, errorTitle, scope) : file;
         if (effectiveFile === null) {
             return null;
         }
@@ -70,13 +73,14 @@ class ChatAttachmentCreation {
         };
     }
 
-    async #resolveImageFile(file: File, fileName: string, errorTitle: string): Promise<File | null> {
+    async #resolveImageFile(file: File, fileName: string, errorTitle: string, scope: AttachmentAcquisitionScope): Promise<File | null> {
         const typeValue = file.type;
         const normalizedType = isString(typeValue) ? typeValue.trim().toLowerCase() : '';
         if (isImageMimeType(normalizedType)) {
             return file;
         }
         const normalizedFile = await normalizeImageMimeTypeFromHeader(file);
+        if (!scope.isCurrent()) return null;
         if (normalizedFile === null) {
             const typeLabel = resolveChatUploadUnsupportedTypeLabel(file);
             const message = typeLabel ? i18n.t('chat.upload.unsupportedType', { type: typeLabel }) : i18n.t('chat.upload.unsupportedFile', { name: fileName });

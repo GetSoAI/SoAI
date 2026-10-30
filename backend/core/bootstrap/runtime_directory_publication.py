@@ -38,6 +38,8 @@ def recover_runtime_directory_publication(
     install_exists = os.path.lexists(install_directory)
     if install_exists:
         _require_directory(install_directory, "Managed runtime installation")
+        if not backups and not failed_directories:
+            return
         try:
             validate_directory(install_directory)
         except (OSError, StateError, ValueError) as validation_exception:

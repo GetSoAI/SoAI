@@ -19,6 +19,7 @@ interface ChatInputActionVisibilityState {
     newConversationEnabled: boolean;
     characterMapEnabled: boolean;
     sketchEnabled: boolean;
+    findEnabled: boolean;
 }
 
 const setInputActionHidden = (host: ChatInputActionVisibilityHost, element: Element, hidden: boolean): void => {
@@ -45,6 +46,8 @@ export const applyChatInputActionVisibility = (host: ChatInputActionVisibilityHo
     host.pageDom.query(CHAT_SELECTORS.CHARACTER_MAP_BTN).forEach((element) => setInputActionHidden(host, element, !state.characterMapEnabled));
 
     host.pageDom.query(CHAT_SELECTORS.SKETCH_BTN).forEach((element) => setInputActionHidden(host, element, !state.sketchEnabled));
+
+    host.pageDom.query('.conversation-find-open').forEach((element) => setInputActionHidden(host, element, !state.findEnabled));
 
     host.pageDom.query(CHAT_SELECTORS.TOKEN_COUNTER_BTN).forEach((element) => {
         const isAuxiliary = element.classList.contains('chat-token-counter-auxiliary');

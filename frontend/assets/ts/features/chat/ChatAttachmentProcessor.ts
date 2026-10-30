@@ -12,7 +12,6 @@ import type { ChatPageApi } from '@features/chat/pagecontracts/types.ts';
 
 interface ChatParent {
     api: ChatPageApi;
-    resolveConversationId: () => Promise<string>;
     runWithBoundary: <T>(scope: string, handler: () => Promise<T>) => Promise<T>;
     uiManager?: {
         updateAttachmentsPreview(): void;
@@ -49,9 +48,6 @@ class ChatAttachmentProcessor {
         if (!parent) {
             throw new Error('ChatAttachmentProcessor requires a chat page host');
         }
-        if (!isFunction(parent.resolveConversationId)) {
-            throw new Error('ChatAttachmentProcessor requires resolveConversationId');
-        }
         if (!isFunction(parent.runWithBoundary)) {
             throw new Error('ChatAttachmentProcessor requires runWithBoundary');
         }
@@ -60,7 +56,7 @@ class ChatAttachmentProcessor {
         this.#abortControllers = new Map();
     }
 
-    async processAttachment(attachment: ChatAttachment): Promise<PhysicalAttachmentPayload | null> {
+    async processAttachment(attachment: ChatAttachment, conversationId: string): Promise<PhysicalAttachmentPayload | null> {
         const file = attachment.file;
         if (!attachment || !file) {
             return null;
@@ -78,7 +74,7 @@ class ChatAttachmentProcessor {
 
         const finalizeTask = async (): Promise<PhysicalAttachmentPayload | null> => {
             try {
-                return await this.#stageAttachment(attachment, file, abortController.signal);
+                return await this.#stageAttachment(attachment, file, conversationId, abortController.signal);
             } catch (error) {
                 attachment.parseStatus = 'error';
                 attachment.parseError = coerceErrorMessage(error, i18n.t('documents.errors.parseFailed'));
@@ -103,8 +99,7 @@ class ChatAttachmentProcessor {
         }
     }
 
-    async #stageAttachment(attachment: ChatAttachment, file: File, signal: AbortSignal): Promise<PhysicalAttachmentPayload> {
-        const conversationId = await this.#parent.resolveConversationId();
+    async #stageAttachment(attachment: ChatAttachment, file: File, conversationId: string, signal: AbortSignal): Promise<PhysicalAttachmentPayload> {
         const clientAttachmentId = resolveClientAttachmentId(attachment);
         const clientRequestId = resolveClientRequestId(attachment);
         const response = await this.#parent.runWithBoundary('chat:attachmentStageUpload', () =>

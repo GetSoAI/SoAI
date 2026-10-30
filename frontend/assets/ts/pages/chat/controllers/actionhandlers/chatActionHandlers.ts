@@ -1,9 +1,9 @@
 /* SoAI - Chat page action handlers [frontend/assets/ts/pages/chat/controllers/actionhandlers/chatActionHandlers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { CHAT_ACTIONS, type ChatActionId } from '@features/chat/public.ts';
+import { CHAT_ACTIONS, readChatMultimediaPreviewDataset, requireChatMultimediaPreviewUrl, type ChatActionId } from '@features/chat/public.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { downloadUrl } from '@core/primitives/download.ts';
+import { downloadUrl, triggerDownloadLink } from '@core/primitives/download.ts';
 import { createChatAskUserActionHandlers } from '@pages/chat/controllers/actionhandlers/chatAskUserActionHandlers.ts';
 import { createChatSecretPromptActionHandlers } from '@pages/chat/controllers/actionhandlers/chatSecretPromptActionHandlersController.ts';
 import { createChatMessageActionHandlers } from '@pages/chat/controllers/actionhandlers/chatMessageActionHandlers.ts';
@@ -16,6 +16,11 @@ import { createChatConversationListActionHandlers } from '@pages/chat/controller
 import { createChatShellActionHandlers } from '@pages/chat/controllers/actionhandlers/core/shellActionHandlers.ts';
 
 const createChatActionHandlers = (host: ChatActionHandlersHost): Record<ChatActionId, ChatActionHandler> => ({
+    [CHAT_ACTIONS.FIND_OPEN]: () => host.presentation.find(CHAT_ACTIONS.FIND_OPEN),
+    [CHAT_ACTIONS.FIND_CLOSE]: () => host.presentation.find(CHAT_ACTIONS.FIND_CLOSE),
+    [CHAT_ACTIONS.FIND_PREVIOUS]: () => host.presentation.find(CHAT_ACTIONS.FIND_PREVIOUS),
+    [CHAT_ACTIONS.FIND_NEXT]: () => host.presentation.find(CHAT_ACTIONS.FIND_NEXT),
+    [CHAT_ACTIONS.FIND_RETRY]: () => host.presentation.find(CHAT_ACTIONS.FIND_RETRY),
     ...createChatShellActionHandlers(host),
     ...createChatComposerActionHandlers(host),
     ...createChatConversationListActionHandlers(host),
@@ -30,7 +35,10 @@ const createChatActionHandlers = (host: ChatActionHandlersHost): Record<ChatActi
             throw new TypeError('Chat multimedia download action must be an anchor');
         }
         event.preventDefault();
-        downloadUrl(actionElement.href);
+        if (actionElement.hasAttribute('data-media-type')) {
+            const media = readChatMultimediaPreviewDataset(actionElement);
+            triggerDownloadLink({ href: media.downloadUrl ?? requireChatMultimediaPreviewUrl(media, 'download'), ...(media.downloadName === null ? {} : { filename: media.downloadName }), forceDownload: true });
+        } else downloadUrl(actionElement.href);
         host.shared.feedback.show(i18n.t('common.notifications.downloadStarted'), 'download');
     },
     [CHAT_ACTIONS.OPEN_MULTIMEDIA_SOURCE]: (actionElement: HTMLElement, event: Event): void => host.presentation.dispatchMessageAction(actionElement, CHAT_ACTIONS.OPEN_MULTIMEDIA_SOURCE, event),

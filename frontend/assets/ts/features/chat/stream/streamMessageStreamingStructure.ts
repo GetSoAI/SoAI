@@ -78,8 +78,8 @@ const resolveDirectMessageResponseNode = (target: Element): HTMLElement | null =
 };
 
 const moveChildren = (source: Element, destination: Element): void => {
-    while (source.firstChild !== null) {
-        destination.appendChild(source.firstChild);
+    for (const child of Array.from(source.childNodes)) {
+        destination.appendChild(child);
     }
 };
 

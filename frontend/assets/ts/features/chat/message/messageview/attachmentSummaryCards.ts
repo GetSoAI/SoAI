@@ -11,7 +11,7 @@ import { resolveFileEntryIconName } from '@core/fileexplorerbrowser/entryIconRes
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { CHAT_ACTIONS } from '@features/chat/chatActionIds.ts';
 import { CHAT_ATTACHMENT_INLINE_LIMIT } from '@features/chat/chatConstants.ts';
-import { renderChatMultimediaPreviewOpenActionAttributes, resolveChatMultimediaPreviewSourceReferenceForUrl } from '@features/chat/message/multimediaPreviewDataset.ts';
+import { renderChatMultimediaPreviewActionAttributes, resolveChatMultimediaPreviewSourceReferenceForUrl } from '@features/chat/message/multimediaPreviewDataset.ts';
 import type { ChatAttachmentCardRenderHost, ImageSegment, MessageRenderOptions, MessageSegment, SoaiFileSegment, SoaiFileUnavailableSegment, SoaiKnowledgeSegment, SoaiKnowledgeUnavailableSegment, SoaiPathSegment } from '@features/chat/message/messageview/types.ts';
 
 type AttachmentSummarySegment = ImageSegment | SoaiFileSegment | SoaiKnowledgeSegment | SoaiPathSegment | SoaiFileUnavailableSegment | SoaiKnowledgeUnavailableSegment;
@@ -58,7 +58,7 @@ type ImageSummaryCardArguments = {
 
 const renderImageSummaryCard = (host: ChatAttachmentCardRenderHost, inputArguments: ImageSummaryCardArguments): string => {
     const thumbnailSrc = host.sanitizeImage(inputArguments.thumbnailUrl);
-    const actionAttributes = renderChatMultimediaPreviewOpenActionAttributes({
+    const actionAttributes = renderChatMultimediaPreviewActionAttributes({
         type: 'image',
         previewUrl: inputArguments.previewUrl,
         openSourceUrl: inputArguments.openSourceUrl,

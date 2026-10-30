@@ -108,7 +108,8 @@ class ChatConfigurationController {
 
     async refreshMemoryTab(): Promise<boolean> {
         if (!requireModalPresenter().isOpen(CHAT_CONFIGURATION_MODAL_ID)) return false;
-        return await this.#requireMemoryLibrary().refresh();
+        this.#requireMemoryLibrary().activate();
+        return true;
     }
 
     #requireMemoryLibrary(): MemoryLibraryController {
@@ -123,20 +124,10 @@ class ChatConfigurationController {
         return this.#memoryLibrary;
     }
 
-    async refreshMemoryTabFromAction(): Promise<void> {
-        if (await this.refreshMemoryTab()) {
-            this.#page.feedback.show(i18n.t('common.notifications.refreshCompleted'), 'refresh');
-        }
-    }
-
     handleModelAction(actionElement: HTMLElement): void {
         this.#page.taskScope.run('chat:configurationModelControl', async () => {
             await this.#page.configurationRuntime.requireConfiguration().modelControl.handleAction(actionElement);
         });
-    }
-
-    refreshPresets(): void {
-        this.#requirePresetLibrary().refresh();
     }
 
     resetPresets(): void {

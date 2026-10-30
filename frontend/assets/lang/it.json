@@ -408,6 +408,10 @@
         },
         "chat": {
             "activityWidgets": {
+                "imageWaiting": "In attesa della generazione dell’immagine",
+                "imageGenerating": "Generazione dell’immagine",
+                "imageUnavailable": "Anteprima dell’immagine non disponibile.",
+                "imageRetry": "Prova a generare di nuovo l’immagine.",
                 "requestedAt": "Richiesta {time}"
             },
             "agent": {
@@ -704,6 +708,8 @@
                 "hideMessagingConversations": "Nascondi conversazioni di messaggistica",
                 "hideMessagingConversationsHint": "Se attivo, le conversazioni degli account di messaggistica sono nascoste dall'elenco della barra laterale",
                 "inputActions": {
+                    "newConversationHint": "Mostra l’azione per una nuova conversazione nell’area di scrittura della chat",
+                    "findHint": "Mostra l’azione di ricerca nella conversazione nell’area di scrittura della chat",
                     "prompts": "Prompt salvati",
                     "title": "Azioni di input",
                     "tokenCounter": "Contatore token",
@@ -758,7 +764,6 @@
                     "description": "La memoria persistente aiuta SoAI a capire preferenze, obiettivi e contesto ricorrente senza richiedere ogni volta un prompt personalizzato",
                     "empty": "Nessuna memoria salvata",
                     "openProfile": "Apri profilo",
-                    "refresh": "Aggiorna memoria",
                     "title": "Impostazioni memoria",
                     "userMemoriesTitle": "Memorie utente"
                 },
@@ -786,7 +791,7 @@
                 },
                 "sendParameterToggle": "Invia questo parametro al modello",
                 "maxCompletionTokens": "Token massimi di completamento",
-                "maxCompletionTokensHint": "Limite di token, incluso il ragionamento per i modelli di reasoning (o1, o3). Sovrascrive i token massimi",
+                "maxCompletionTokensHint": "Limite di token, incluso il ragionamento per i modelli di reasoning. Sovrascrive i token massimi",
                 "agentMaxIterations": "Iterazioni massime agente",
                 "agentMaxIterationsHint": "Numero massimo di iterazioni del ciclo agente prima dell'arresto della conversazione. Usa un valore molto grande per esecuzioni praticamente senza limite",
                 "maxTokens": "Token massimi:",
@@ -974,7 +979,6 @@
                     "omittedSettings": "{count} impostazione/i salvata/e non supportata/e o non valida/e è/sono stata/e omessa/e",
                     "replaceAction": "Sostituisci",
                     "renameAction": "Rinomina",
-                    "retryAction": "Riprova",
                     "resetAction": "Reimposta libreria",
                     "resetMessage": "Eliminare definitivamente tutti i preset di configurazione della chat? Questa azione ripristina i record danneggiati e non può essere annullata.",
                     "resetFailed": "Impossibile reimpostare la libreria dei preset. I preset salvati non vengono mostrati come eliminati; riprova.",
@@ -986,15 +990,13 @@
                     "searchLabel": "Cerca preset",
                     "searchPlaceholder": "Cerca preset...",
                     "saved": "Libreria dei preset aggiornata.",
-                    "stale": "Visualizzazione dell'ultimo elenco caricato correttamente, risalente a {value}. Aggiorna prima di modificarlo.",
                     "structurallyInvalid": "Impossibile mostrare {count} preset danneggiato/i.",
                     "status": {
                         "emptyDetail": "Crea un preset dai valori preparati in questa finestra e scegli esattamente quali sezioni includere.",
                         "emptyTitle": "Crea la prima configurazione riutilizzabile",
                         "errorTitle": "Libreria dei preset non disponibile",
                         "noMatchesTitle": "Nessun preset corrispondente",
-                        "recoveryTitle": "Alcuni preset richiedono attenzione",
-                        "staleTitle": "L'elenco dei preset potrebbe non essere aggiornato"
+                        "recoveryTitle": "Alcuni preset richiedono attenzione"
                     },
                     "errors": {
                         "ambiguous": "L'esito della richiesta è incerto. L'elenco dei preset è in fase di riconciliazione; esaminalo prima di riprovare.",
@@ -1106,7 +1108,7 @@
                     "removeConfirm": "Rimuovere questa competenza dalla libreria e dalle selezioni future delle tue chat? Le attività già accettate conservano il pacchetto. I file dell’area di lavoro e la cronologia rimangono.",
                     "conflict": "La selezione è stata modificata altrove. Controlla la selezione attuale prima di salvare la bozza",
                     "keepDraft": "Mantieni la mia selezione",
-                    "stale": "Le competenze non sono aggiornate. Riconnettiti o riprova prima di salvare",
+                    "stale": "Le skill non sono aggiornate. Attendi il ripristino della connessione prima di salvare.",
                     "search": "Cerca competenze...",
                     "emptyTitle": "Aggiungi la tua prima competenza",
                     "noMatchesTitle": "Nessuna competenza corrispondente",
@@ -1133,15 +1135,17 @@
                         "resourceLimit": "Limite di importazione delle skill superato per {field}: {measured} > {limit}. Riduci l’archivio o rimuovi le skill inutilizzate e riprova.",
                         "manifestPosition": "YAML non valido alla riga {line}, colonna {column}. Correggi SKILL.md e riprova."
                     },
-                    "importUncertain": "L’esito dell’importazione è incerto. Mantieni selezionato questo file e usa Aggiorna per controllare la ricevuta prima di riprovare.",
+                    "importUncertain": "Esito dell’importazione incerto. Mantieni il file selezionato e scegli Riprova importazione per verificarne la ricevuta.",
                     "invalidSelection": "Alcune competenze selezionate non sono disponibili o superano il limite della libreria. Aggiorna, poi modifica la selezione prima di salvare",
                     "status": {
                         "importTitle": "Esito dell’importazione incerto",
                         "conflictTitle": "Selezione modificata altrove",
-                        "staleTitle": "L’elenco delle competenze potrebbe non essere aggiornato",
                         "unavailableTitle": "Selezione delle competenze non disponibile",
                         "invalidTitle": "La selezione va controllata"
-                    }
+                    },
+                    "useLatest": "Usa la versione attuale",
+                    "retryImport": "Riprova importazione",
+                    "aboutTitle": "Come funzionano le competenze"
                 }
             },
             "confirmations": {
@@ -1460,7 +1464,6 @@
                     "add": "Aggiungi memoria",
                     "search": "Cerca nelle memorie",
                     "noMatches": "Nessuna memoria corrispondente",
-                    "stale": "I dati salvati non sono aggiornati. Ultimo aggiornamento: {time}. Aggiorna per verificare i dati attuali.",
                     "deleteFact": "Eliminare questo fatto o relazione?",
                     "deleteEntry": "Eliminare “{title}”, inclusi {facts} fatti e {relations} relazioni?",
                     "savedHidden": "Salvato. Cancella la ricerca per vedere questa memoria.",
@@ -1468,7 +1471,6 @@
                     "from": "Da",
                     "to": "A",
                     "type": "Tipo di relazione",
-                    "staleTitle": "L’elenco delle memorie potrebbe non essere aggiornato",
                     "errorTitle": "Libreria della memoria non disponibile"
                 },
                 "errors": {
@@ -1480,7 +1482,7 @@
                     "relationNotIncident": "Mantieni un estremo collegato a questa memoria.",
                     "invalidText": "Inserisci un titolo e un testo non vuoti.",
                     "missing": "Questo record non è disponibile o non appartiene più a questa memoria. Aggiorna e verificalo.",
-                    "unconfirmed": "Impossibile confermare il risultato. Conserva la bozza e aggiorna per verificare i dati attuali prima di riprovare.",
+                    "unconfirmed": "Impossibile confermare il risultato. Conserva la bozza e verifica i dati attuali prima di riprovare.",
                     "loadFailed": "Impossibile caricare le memorie. Aggiorna per riprovare."
                 },
                 "profile": {
@@ -1530,7 +1532,6 @@
                     "retry": "Riprova"
                 },
                 "viewer": {
-                    "none": "Nessuno",
                     "observations": "Osservazioni",
                     "relations": "Relazioni"
                 }
@@ -1672,6 +1673,7 @@
                 "loadFailed": "Impossibile caricare la cronologia dei prompt."
             },
             "sketch": {
+                "capacityReached": "Limite del disegno raggiunto. Annulla e sostituisci una modifica, allega l’immagine oppure scarta il disegno e ricomincia.",
                 "open": "Apri schizzo",
                 "mobileOption": "Schizzo",
                 "preference": "Schizzo",
@@ -1711,7 +1713,9 @@
                 "attach": "Allega",
                 "discardConfirm": "Eliminare questo schizzo?",
                 "discard": "Elimina",
-                "exportFailed": "Impossibile esportare lo schizzo. Riprova."
+                "exportFailed": "Impossibile esportare lo schizzo. Riprova.",
+                "draftChangedConfirm": "La bozza della chat è cambiata mentre disegnavi. Allegare questo disegno alla bozza attuale? Annulla conserva il disegno.",
+                "draftChangedAgain": "La bozza della chat è cambiata di nuovo. Il disegno è conservato. Prova ad allegarlo di nuovo."
             },
             "characterMap": {
                 "allEmoji": "Tutte le emoji",
@@ -2514,6 +2518,28 @@
                     "metric": "Metriche"
                 },
                 "wind": "Vento"
+            },
+            "find": {
+                "open": "Cerca nella conversazione",
+                "placeholder": "Cerca nella conversazione…",
+                "close": "Chiudi",
+                "previous": "Corrispondenza precedente",
+                "next": "Corrispondenza successiva",
+                "count": "{current} di {total}",
+                "none": "Nessuna corrispondenza",
+                "updating": "Aggiornamento dei risultati…",
+                "stale": "Disconnesso · ultimo controllo {seconds} s fa",
+                "incomplete": "Ricerca incompleta. Riprova.",
+                "error": "Ricerca non riuscita. Riprova.",
+                "tooLong": "Usa al massimo 256 caratteri.",
+                "limited": "Oltre 5.000 messaggi con corrispondenze · la navigazione copre i risultati conservati",
+                "editing": "Completa o annulla la modifica per mostrare questa corrispondenza.",
+                "missing": "Questa corrispondenza è cambiata o è stata rimossa. Riprova.",
+                "timeout": "Tempo scaduto per mostrare questa corrispondenza. Riprova.",
+                "retry": "Riprova",
+                "before": "{count} corrispondenze precedenti",
+                "after": "{count} corrispondenze successive",
+                "disconnected": "Disconnesso. Riconnettiti per cercare."
             }
         },
         "collections": {
@@ -4188,7 +4214,8 @@
         },
         "logs": {
             "actions": {
-                "clear": "Cancella"
+                "clear": "Cancella",
+                "downloadAll": "Scarica tutti i log"
             },
             "ariaLabels": {
                 "clearLogs": "Cancella log",
@@ -4216,7 +4243,19 @@
                 }
             },
             "reconnecting": "Riconnessione allo stream dei log...",
-            "windowTitle": "Log SoAI"
+            "windowTitle": "Log SoAI",
+            "errors": {
+                "download": "Impossibile scaricare i log. Controlla la connessione e riprova.",
+                "missing": "La cartella dei log non esiste. Controlla le impostazioni di registrazione.",
+                "changed": "I log sono cambiati durante l’acquisizione. Riprova il download.",
+                "unsafe": "Trovati percorsi non sicuri o elementi non supportati. Rimuovi i collegamenti e riprova.",
+                "paths": "Controlla le cartelle configurate per i log e i file temporanei.",
+                "permission": "Accesso negato. Controlla i permessi della cartella e la condivisione dei file, poi riprova.",
+                "limits": "Superati i limiti dell’archivio o i requisiti dei nomi. Riduci l’albero dei log o correggi i nomi.",
+                "timeout": "Tempo scaduto per l’esportazione. Riprova quando il server è meno occupato.",
+                "write": "Impossibile scrivere l’archivio. Controlla lo spazio temporaneo e riprova.",
+                "response": "Il server non ha restituito un allegato ZIP valido. Riprova il download."
+            }
         },
         "metrics": {
             "advanced": {
@@ -6052,7 +6091,8 @@
                 "emptyTitle": "Avvia una ricerca",
                 "filesNotFound": "Nessun file o cartella trovato per \"{query}\"",
                 "notFound": "Nessun risultato trovato per \"{query}\"",
-                "title": "Nessun risultato trovato"
+                "title": "Nessun risultato trovato",
+                "minimumCharacters": "Inserisci almeno {count} caratteri per cercare."
             },
             "pages": {
                 "about": {

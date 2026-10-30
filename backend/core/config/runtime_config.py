@@ -21,7 +21,7 @@ from core.config.layout import (
 )
 from core.config.path_resolution import ConfigPathResolutionError
 from core.config.protocols import ConfigProtocol
-from core.config.value_validation import is_config_dict
+from core.config.value_validation import is_config_dict, is_config_value
 from core.errors.exceptions import ConfigurationError
 from core.logging.trace import get_logger
 from core.meta.paths import get_repo_root
@@ -104,7 +104,7 @@ class Config(ConfigProtocol):
                 return default
             value: ConfigValue | None = self._config
             for part in key.split("."):
-                if not is_config_dict(value):
+                if not isinstance(value, dict):
                     return default
                 if part not in value:
                     return default
@@ -231,6 +231,8 @@ class Config(ConfigProtocol):
             raise ConfigError(str(exception)) from exception
 
     def replace(self, new_dict: ConfigDict) -> None:
+        if not is_config_dict(new_dict):
+            raise ConfigError("Provided config_dict contains unsupported values.")
         if new_dict is self._config:
             self._apply_config(self._config)
             return
@@ -246,6 +248,8 @@ class Config(ConfigProtocol):
             raise ConfigError(str(exception)) from exception
 
     def set_value(self, key: str, value: ConfigValue) -> None:
+        if not is_config_value(value):
+            raise ConfigError("Provided config value contains unsupported values.")
         try:
             set_nested_config_value(self._config, key, value)
         except ValueError as exception:

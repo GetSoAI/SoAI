@@ -22,8 +22,10 @@ import type { ChatControllerRuntime } from '@pages/chat/controllers/chatpage/run
 import type { ChatSessionDomainOwners, ChatSessionPageOwners, ChatSessionPlatformOwners } from '@pages/chat/controllers/chatpage/runtime/ChatSessionComposition.ts';
 import type { ChatVoiceSession } from '@pages/chat/controllers/chatpage/voice/ChatVoiceSession.ts';
 import type { UiBehaviorHost } from '@pages/chat/controllers/chatUiBehaviors.ts';
+import type { ConversationFindSession } from '@pages/chat/controllers/conversationfind/ConversationFindSession.ts';
 
 interface ChatLifecycleSessions {
+    find: ConversationFindSession;
     composer: ChatComposerController;
     configuration: ChatConfigurationController;
     conversationView: ChatConversationViewController;
@@ -59,6 +61,7 @@ const composeChatLifecycle = (composition: ChatLifecycleComposition, logger: Mod
     return new ChatPageLifecycleController(
         {
             composer: sessions.composer,
+            find: sessions.find,
             composerSurface: domain.composerSurface,
             configurationSession: sessions.configuration,
             controllerInitialization: {
@@ -71,7 +74,6 @@ const composeChatLifecycle = (composition: ChatLifecycleComposition, logger: Mod
             conversationState: domain.conversationState,
             conversationToolbarSession: sessions.toolbar,
             conversationView: sessions.conversationView,
-            getDomContext: () => page.pageHost.getContext(),
             lifecycleResources: domain.lifecycleResources,
             modelSession: sessions.modelSession,
             operations: {
@@ -107,6 +109,7 @@ const composeChatLifecycle = (composition: ChatLifecycleComposition, logger: Mod
                 createRootEventsHost: (signal) =>
                     setupDeterministicLifecycleForChatPage(
                         {
+                            getDomContext: () => page.pageHost.getContext(),
                             composerSurface: domain.composerSurface,
                             conversationRuntime: domain.conversationRuntime,
                             turnRuntime: domain.turnRuntime,
@@ -128,7 +131,6 @@ const composeChatLifecycle = (composition: ChatLifecycleComposition, logger: Mod
                             configurationSession: sessions.configuration,
                             voiceSession: sessions.voiceSession,
                             conversationToolbarSession: sessions.toolbar,
-                            getDomContext: () => page.pageHost.getContext(),
                             dom: platform.dom,
                             controllerInitialization: { dispatch: (action, actionElement, event) => controllerRuntime.initialization.dispatch(action, actionElement, event) }
                         },

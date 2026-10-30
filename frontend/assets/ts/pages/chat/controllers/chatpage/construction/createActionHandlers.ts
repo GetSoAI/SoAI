@@ -1,6 +1,7 @@
 /* SoAI - Chat page create action handlers [frontend/assets/ts/pages/chat/controllers/chatpage/construction/createActionHandlers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createChatAttachModalController } from '@pages/chat/controllers/modals/chatattach/chatAttachModal.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -107,7 +108,12 @@ const resolveChatAttachDraftCounts = (page: ChatActionHandlerDependencies): Chat
 
 const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): ChatActionHandlersHost => {
     return {
-        shared: { pageResources: page.page.pageResources, feedback: page.page.feedback, api: page.platform.api },
+        shared: {
+            signal: () => page.page.pageLifecycle.signal(),
+            pageResources: page.page.pageResources,
+            feedback: page.page.feedback,
+            api: page.platform.api
+        },
         navigation: {
             navigate: (targetPage) => runNavigationOperation(`chat:navigate:${targetPage}`, () => page.platform.router.navigate(targetPage)),
             navigateWithQuery: (targetPage, query) => runNavigationOperation(`chat:navigateWithQuery:${targetPage}`, () => page.platform.router.navigateWithQuery(targetPage, query))
@@ -168,6 +174,8 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
             noteUserStop: (conversationId, requestId) => page.runtime.composerSurface.optionalUi()?.noteUserStop(conversationId, requestId)
         },
         attachments: {
+            openDialog: (options) => page.runtime.composerSurface.requireAttachModal().open(options),
+            captureIntake: () => page.runtime.composerSurface.requireAttachments().captureIntake(),
             fileUploadEnabled: () => page.state.settings.parameters.inputActionFileUploadEnabled === true,
             cameraEnabled: () => page.state.settings.parameters.inputActionCameraEnabled === true,
             sketchEnabled: () => page.state.settings.parameters.inputActionSketchEnabled === true,
@@ -177,21 +185,21 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
             subscribeDrafts: (handler) => page.runtime.composerSurface.requireAttachments().subscribeDraftChanges(handler),
             requireFileInput: () => requireUploadInput(page, '.file-upload-input', 'Chat file upload input'),
             requireFolderInput: () => requireUploadInput(page, '.folder-upload-input', 'Chat folder upload input'),
-            uploadFiles: (files) => {
+            uploadFiles: (files, intake) => {
                 requireInputActionEnabled('fileUpload', page.state.settings.parameters.inputActionFileUploadEnabled === true);
-                return page.sessions.messageSending.handleSelectedUploadFiles(files);
+                return page.sessions.messageSending.handleSelectedUploadFiles(files, intake);
             },
-            uploadFolder: (files) => {
+            uploadFolder: (files, intake) => {
                 requireInputActionEnabled('fileUpload', page.state.settings.parameters.inputActionFileUploadEnabled === true);
-                return page.sessions.messageSending.handleSelectedFolderUploadFiles(files);
+                return page.sessions.messageSending.handleSelectedFolderUploadFiles(files, intake);
             },
-            captureCamera: (file) => {
+            captureCamera: (file, intake) => {
                 requireInputActionEnabled('camera', page.state.settings.parameters.inputActionCameraEnabled === true);
-                return page.sessions.messageSending.handleCameraCaptureFile(file);
+                return page.sessions.messageSending.handleCameraCaptureFile(file, intake);
             },
-            uploadSketch: (file) => {
+            uploadSketch: (file, intake) => {
                 requireInputActionEnabled('sketch', page.state.settings.parameters.inputActionSketchEnabled === true);
-                return page.sessions.messageSending.handleSelectedUploadFiles([file]);
+                return page.sessions.messageSending.handleSelectedUploadFiles([file], intake);
             },
             addSoaiPaths: (records, source) => page.runtime.composerSurface.requireAttachments().addResolvedSoaiPathRecords(records, source),
             removeFile: (fileId) => page.sessions.messageSending.removeAttachedFile(fileId),
@@ -236,9 +244,7 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
             openTab: (tabId) => page.sessions.configurationSession.openTab(tabId),
             openMemoryProfile: () => page.sessions.configurationSession.openMemoryProfile(),
             memoryAction: (element) => page.sessions.configurationSession.memoryAction(element),
-            refreshMemory: () => page.sessions.configurationSession.refreshMemoryTabFromAction(),
             handleModelAction: (actionElement) => page.sessions.configurationSession.handleModelAction(actionElement),
-            refreshPresets: () => page.sessions.configurationSession.refreshPresets(),
             resetPresets: () => page.sessions.configurationSession.resetPresets(),
             newPreset: () => page.sessions.configurationSession.newPreset(),
             applyPreset: (actionElement) => page.sessions.configurationSession.applyPreset(actionElement),
@@ -253,6 +259,7 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
             openToolOutput: (inputArguments) => page.sessions.configurationSession.openToolCallOutput(inputArguments)
         },
         presentation: {
+            find: (action) => page.callbacks.find(action),
             toggleFavoritesAtTop: () => toggleFavoritesAtTop(page.sessions.uiBehaviors),
             toggleSidebar: () => page.runtime.composerSurface.requireUi().toggleSidebar(),
             actionData: (actionElement, key) => {
@@ -314,6 +321,7 @@ interface ChatPageActionRuntime {
 
 const createChatPageActionRuntime = (page: ChatActionHandlerDependencies): ChatPageActionRuntime => {
     const host = composeChatActionHandlerRuntime(page);
+    page.runtime.composerSurface.initializeAttachModal(createChatAttachModalController(host));
     return { host, handlers: createChatActionHandlers(host) };
 };
 

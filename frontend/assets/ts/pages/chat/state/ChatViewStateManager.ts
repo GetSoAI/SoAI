@@ -1,6 +1,7 @@
 /* SoAI - Chat presentation and render state ownership [frontend/assets/ts/pages/chat/state/ChatViewStateManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { Conversation } from '@features/chat/public.ts';
 import { SearchBar } from '@features/controls/public.ts';
 import { IconMarkupCache } from '@core/ui/icons/iconMarkupCache.ts';
 import { normalizeSearchMatchQuery } from '@core/search/searchQuery.ts';
@@ -9,6 +10,7 @@ import type { ChatSearchUiHost } from '@pages/chat/widgets/chatSearchUi.ts';
 interface ConversationRenderCache {
     conversationKey: string;
     viewState: 'messages' | 'empty' | 'loading' | 'error';
+    renderedHistory?: Conversation['history'];
     domIdsInOrder: string[];
     renderSignatureByDomId: Map<string, string>;
 }
@@ -22,6 +24,7 @@ class ChatViewState {
     readonly conversationListMetricsCache = new Map<string, { updatedAt: number; isChatStreaming: boolean; logicalCount: number }>();
     conversationRenderCache: ConversationRenderCache | null = null;
     searchBar: SearchBar | null = null;
+    conversationFindOpen = false;
     activeColorPickerConversationId: string | null = null;
     activeColorPickerElement: HTMLElement | null = null;
     searchUiHost: ChatSearchUiHost | null = null;

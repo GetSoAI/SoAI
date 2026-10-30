@@ -31,6 +31,9 @@ from database.repositories.memory.write_queries import (
 )
 from database.repositories.memory.write_queries_graph_delete import sync_delete_graph
 from database.repositories.memory.write_queries_graph_store import sync_store_graph
+from database.repositories.users.domain_event_outbox_dispatch_signal import (
+    notify_domain_event_outbox_dispatch_requested,
+)
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -44,6 +47,7 @@ class DatabaseMemory:
 
     def __init__(self, deps: DatabaseRepositoryDependencies) -> None:
         self.core = deps.core
+        self._event_bus = deps.event_bus
 
     async def store_graph(
         self,
@@ -52,13 +56,15 @@ class DatabaseMemory:
         observations: list[JSONDict],
         relations: list[JSONDict],
     ) -> JSONDict:
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_store_graph,
             user_id,
             entities,
             observations,
             relations,
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result
 
     async def search_entities(
         self,
@@ -100,6 +106,7 @@ class DatabaseMemory:
             normalized_entity_type,
             delete_entity_if_empty,
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
 
     async def delete_graph(
         self,
@@ -108,13 +115,15 @@ class DatabaseMemory:
         observation_ids: list[str],
         relation_ids: list[str],
     ) -> JSONDict:
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_delete_graph,
             user_id,
             entity_names,
             observation_ids,
             relation_ids,
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result
 
     async def read_library(self, user_id: int) -> JSONDict:
         return await self.core.reader.execute_read(read_management_library, user_id)
@@ -123,9 +132,11 @@ class DatabaseMemory:
         return await self.core.reader.execute_read(read_managed_entry, user_id, entry_id)
 
     async def create_entry(self, user_id: int, entry_id: str, name: str, content: str) -> JSONDict:
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_create_entry, user_id, entry_id, name, content
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result
 
     async def update_entry(
         self,
@@ -135,21 +146,27 @@ class DatabaseMemory:
         name: str | None,
         observation: JSONDict | None,
     ) -> JSONDict:
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_update_entry, user_id, entry_id, expected_revision, name, observation
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result
 
     async def delete_entry(self, user_id: int, entry_id: str, expected_revision: str) -> JSONDict:
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_delete_entry, user_id, entry_id, expected_revision
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result
 
     async def delete_observation(
         self, user_id: int, entry_id: str, observation_id: str, expected_revision: str
     ) -> JSONDict:
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_delete_observation, user_id, entry_id, observation_id, expected_revision
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result
 
     async def update_relation(
         self,
@@ -161,7 +178,7 @@ class DatabaseMemory:
         to_entity_id: str,
         relation_type: str,
     ) -> JSONDict:
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_update_relation,
             user_id,
             entry_id,
@@ -171,17 +188,23 @@ class DatabaseMemory:
             to_entity_id,
             relation_type,
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result
 
     async def delete_relation(
         self, user_id: int, entry_id: str, relation_id: str, expected_revision: str
     ) -> JSONDict:
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_delete_relation, user_id, entry_id, relation_id, expected_revision
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result
 
     async def save_profile(
         self, user_id: int, payload: JSONDict, expected_revision: str | None = None
     ) -> JSONDict:
-        return await self.core.writer.queue_write_operation(
+        result = await self.core.writer.queue_write_operation(
             sync_save_profile, user_id, payload, expected_revision
         )
+        notify_domain_event_outbox_dispatch_requested(self._event_bus)
+        return result

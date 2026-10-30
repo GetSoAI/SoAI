@@ -33,7 +33,11 @@ from core.tasks.software_update_result import (
     prepare_software_update_activation_task,
     reconcile_software_update_result,
 )
-from core.timing.constants import BACKGROUND_TIMEOUT_SEC, RESPONSIVE_TIMEOUT_SEC, STANDARD_DELAY_SEC
+from core.timing.constants import (
+    BACKGROUND_TIMEOUT_SEC,
+    RESPONSIVE_TIMEOUT_SEC,
+    YIELD_CONTROL_SEC,
+)
 from core.timing.monotonic import monotonic_ms
 
 __all__ = ("StartupFinalizationStep",)
@@ -128,7 +132,7 @@ class StartupFinalizationStep:
                 or application_context.runtime.system_stop_event.is_set()
             ):
                 return
-            await asyncio.sleep(STANDARD_DELAY_SEC)
+            await asyncio.sleep(YIELD_CONTROL_SEC)
             if (
                 application_context.runtime.shutdown_event.is_set()
                 or application_context.runtime.system_stop_event.is_set()

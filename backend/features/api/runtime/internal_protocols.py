@@ -16,7 +16,10 @@ from core.runtime.request_context import RequestContext
 from core.types.json import JSONDict, JSONValue
 
 if TYPE_CHECKING:
+    import threading
     from asyncio import Task
+
+    from core.archives.zip_creation_models import ZipArchiveResult
 
     type AttachmentParseCoroutineFactory = Callable[[], Coroutine[None, None, None]]
 
@@ -74,6 +77,10 @@ class HasAppProtocol(Protocol):
 
 
 class BackupServiceProtocol(Protocol):
+    async def create_logs_export_archive(
+        self, cancellation_event: threading.Event
+    ) -> ZipArchiveResult: ...
+
     def is_operational(self) -> bool: ...
 
     async def list_backups(self) -> list[JSONDict]: ...

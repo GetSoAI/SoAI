@@ -1,14 +1,16 @@
 /* SoAI - Chat attach modal linked knowledge progress [frontend/assets/ts/pages/chat/controllers/modals/chatattach/ChatAttachKnowledgeProgressController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { ATTACH_MODAL_ID } from '@features/attachmodal/public.ts';
+
 import { i18n } from '@core/i18n/index.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { createTaskOperationPanel, type TaskOperationPanel } from '@core/tasks/operationpanel/service.ts';
 import { requireTaskOperationsApi } from '@core/tasks/serviceAccess.ts';
-import { CHAT_ATTACH_MODAL_ID, type RagIngestionStatus } from '@features/chat/public.ts';
+import { type RagIngestionStatus } from '@features/chat/public.ts';
 
-const PROGRESS_CONTAINER_ID = modalUiId(CHAT_ATTACH_MODAL_ID, 'knowledge-progress');
+const PROGRESS_CONTAINER_ID = modalUiId(ATTACH_MODAL_ID, 'knowledge-progress');
 
 class ChatAttachKnowledgeProgressController {
     #panel: TaskOperationPanel | null = null;

@@ -15,10 +15,11 @@ const INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE = 'data-details-open-pendin
 const INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE = 'data-details-loading';
 const INLINE_ACTIVITY_DETAILS_LOADING_SPINNER_CLASS = 'inline-activity-details-loading-spinner';
 const INLINE_ACTIVITY_CLOSE_BUTTON_SELECTOR = ':scope > .inline-activity-header > .inline-activity-close-button';
+const INLINE_ACTIVITY_DETAILS_LOADING_DELAY_MS = 250;
 
 interface PendingInlineActivityDetailsState {
     activity: HTMLElement | null;
-    loadingFrame: number | null;
+    loadingTimer: number | null;
     closeButtonAriaLabel: string | null;
     closeButtonTooltip: string | null;
     closeButtonAttributesCaptured: boolean;
@@ -37,7 +38,7 @@ const closeButtonHasLoadingSpinner = (button: HTMLButtonElement): boolean => {
 
 const createPendingState = (): PendingInlineActivityDetailsState => ({
     activity: null,
-    loadingFrame: null,
+    loadingTimer: null,
     closeButtonAriaLabel: null,
     closeButtonTooltip: null,
     closeButtonAttributesCaptured: false
@@ -59,12 +60,12 @@ const resolvePendingState = (activity: HTMLElement): PendingInlineActivityDetail
     return created;
 };
 
-const clearLoadingFrame = (activity: HTMLElement, state: PendingInlineActivityDetailsState): void => {
-    if (state.loadingFrame === null) {
+const clearLoadingTimer = (activity: HTMLElement, state: PendingInlineActivityDetailsState): void => {
+    if (state.loadingTimer === null) {
         return;
     }
-    activity.ownerDocument.defaultView?.cancelAnimationFrame(state.loadingFrame);
-    state.loadingFrame = null;
+    activity.ownerDocument.defaultView?.clearTimeout(state.loadingTimer);
+    state.loadingTimer = null;
 };
 
 const captureCloseButtonState = (button: HTMLButtonElement, state: PendingInlineActivityDetailsState): void => {
@@ -125,7 +126,7 @@ const showInlineActivityDetailsLoading = (activity: HTMLElement): void => {
 const beginInlineActivityDetailsPendingState = (activity: HTMLElement): void => {
     const key = resolvePendingStateKey(activity);
     const state = resolvePendingState(activity);
-    clearLoadingFrame(activity, state);
+    clearLoadingTimer(activity, state);
     state.activity = activity;
     patchInlineActivityLayoutWithMotion(activity, () => {
         const changed = syncAttributeValue(activity, INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE, 'true');
@@ -134,15 +135,15 @@ const beginInlineActivityDetailsPendingState = (activity: HTMLElement): void => 
         return changed;
     });
     const view = activity.ownerDocument.defaultView;
-    if (view === null || typeof view.requestAnimationFrame !== 'function') {
+    if (view === null) {
         showInlineActivityDetailsLoading(activity);
         return;
     }
-    state.loadingFrame = view.requestAnimationFrame(() => {
+    state.loadingTimer = view.setTimeout(() => {
         if (state.activity !== activity || (key !== null && pendingStateByActivityKey.get(key) !== state)) {
             return;
         }
-        state.loadingFrame = null;
+        state.loadingTimer = null;
         if (!activity.isConnected) {
             if (key !== null && pendingStateByActivityKey.get(key) === state && state.activity === activity) {
                 pendingStateByActivityKey.delete(key);
@@ -150,7 +151,7 @@ const beginInlineActivityDetailsPendingState = (activity: HTMLElement): void => 
             return;
         }
         showInlineActivityDetailsLoading(activity);
-    });
+    }, INLINE_ACTIVITY_DETAILS_LOADING_DELAY_MS);
 };
 
 const ensureInlineActivityDetailsPendingState = (activity: HTMLElement): void => {
@@ -158,12 +159,12 @@ const ensureInlineActivityDetailsPendingState = (activity: HTMLElement): void =>
     const state = key === null ? null : (pendingStateByActivityKey.get(key) ?? null);
     const isPending = activity.getAttribute(INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE) === 'true';
     const isLoading = activity.getAttribute(INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE) === 'true';
-    if (state !== null && state.activity === activity && (state.loadingFrame !== null || (isPending && isLoading))) {
+    if (state !== null && state.activity === activity && (state.loadingTimer !== null || (isPending && isLoading))) {
         return;
     }
     if (isPending && isLoading) {
         const adoptedState = resolvePendingState(activity);
-        clearLoadingFrame(activity, adoptedState);
+        clearLoadingTimer(activity, adoptedState);
         adoptedState.activity = activity;
         showInlineActivityDetailsLoading(activity);
         return;
@@ -182,7 +183,7 @@ const clearInlineActivityDetailsPendingState = (activity: HTMLElement): void => 
         return changed;
     });
     if (registeredState === null || state.activity === activity) {
-        clearLoadingFrame(activity, state);
+        clearLoadingTimer(activity, state);
         restoreCloseButton(activity, state);
         state.activity = null;
     }

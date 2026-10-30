@@ -12,6 +12,7 @@ from core.timing.epoch import epoch_ms
 from core.types.json import JSONDict
 from core.validation.record_fields import require_json_object, require_non_empty_str
 from database.core.query_execution import sync_fetch_one_as_dict
+from database.repositories.event_outbox.library_changes import sync_enqueue_library_changed
 from database.repositories.memory.graph_records import (
     sync_insert_memory_entity,
     sync_insert_memory_observation,
@@ -107,6 +108,7 @@ def sync_create_entry(
     now = epoch_ms()
     sync_insert_memory_entity(conn, entry_id, user_id, title, "note", now)
     sync_insert_memory_observation(conn, uuid.uuid4().hex, entry_id, content, "manual", now)
+    sync_enqueue_library_changed(conn, user_id, "MemoryLibraryChangedEvent")
     return sync_read_managed_entry(conn, user_id, entry_id)
 
 
@@ -161,6 +163,7 @@ def sync_update_entry(
                 (content, observation_id, entry_id),
             )
     conn.execute("UPDATE mcp_memory_entities SET updated_at_ms = ? WHERE id = ?", (now, entry_id))
+    sync_enqueue_library_changed(conn, user_id, "MemoryLibraryChangedEvent")
     return sync_read_managed_entry(conn, user_id, entry_id)
 
 

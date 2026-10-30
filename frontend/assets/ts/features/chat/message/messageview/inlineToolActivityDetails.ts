@@ -13,6 +13,7 @@ import { CHAT_ACTIONS } from '@features/chat/chatActionIds.ts';
 import { INLINE_ACTIVITY_DETAILS_SIGNATURE_ATTRIBUTE } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
 import { CONTEXT_COMPACTION_TOOL_LEAF, isManualContextCompactionCallId, isRemovedContextCompactionResult } from '@features/chat/message/contextcompaction/detection.ts';
 import { renderContextCompactionToolResult } from '@features/chat/message/contextcompaction/resultRendering.ts';
+import { renderToolOutputAction } from '@features/chat/message/messageview/toolOutputAction.ts';
 import { renderInlineToolCodeDiffs } from '@features/chat/message/messageview/inlineToolCodeDiffRendering.ts';
 import { resolveInlineToolActivityPresentation, resolveInlineToolStatusSummaryText, type InlineToolActivityPresentation } from '@features/chat/message/messageview/inlineToolActivityPresentation.ts';
 import { filterArgumentsForCodeDiff } from '@features/chat/message/messageview/inlineToolActivityPayloadParsing.ts';
@@ -22,7 +23,7 @@ import { resolveSubagentToolResultModel } from '@features/chat/message/messagevi
 import type { ChatMessageRenderHost, InlineToolActivitySegment, MessageSegment } from '@features/chat/message/messageview/types.ts';
 import { resolveInlineActivityDetailsSignature } from '@features/chat/message/messageSegmentSignatures.ts';
 import { resolvePayloadRecord } from '@features/chat/toolactivity/payloadReaders.ts';
-import { resolveToolOutputTruncation, truncatePlanWriteResultPayload } from '@features/chat/toolactivity/toolOutputPresentation.ts';
+import { truncatePlanWriteResultPayload } from '@features/chat/toolactivity/toolOutputPresentation.ts';
 import { resolveAssistantVariantIdentity, type AssistantVariantIdentity } from '@core/chat/assistantIdentity.ts';
 
 type TimelineMarkupRenderer = (segments: MessageSegment[]) => string;
@@ -200,20 +201,8 @@ const renderInlineToolDetails = (host: ChatMessageRenderHost, segment: InlineToo
 
     const boundaryActionHtml = toolLeafName === CONTEXT_COMPACTION_TOOL_LEAF ? renderRemoveCompactionBoundaryAction(host, segment, assistantIdentity) : '';
     const stopShellActionHtml = toolLeafName === 'shell' ? renderStopShellAction(host, segment, assistantIdentity) : '';
-    let truncationHtml = '';
-    const truncation = segment.result !== undefined ? resolveToolOutputTruncation(segment.result) : null;
-    if (truncation !== null) {
-        if (assistantIdentity === null) {
-            throw new Error('Tool output action requires assistantTurnTimestamp and modelVariantIndex.');
-        }
-        const viewLabel = i18n.t('chat.toolActivity.viewFullOutput');
-        const actionAttr = host.escapeAttribute(CHAT_ACTIONS.OPEN_TOOL_CALL_OUTPUT);
-        const callIdAttr = host.escapeAttribute(callId);
-        const assistantTurnAttr = host.escapeAttribute(String(assistantIdentity.assistantTurnTimestamp));
-        const modelVariantAttr = host.escapeAttribute(String(assistantIdentity.modelVariantIndex));
-        const button = `<button type="button" class="ui-button ui-button--sm ui-variant-neutral" data-action="${actionAttr}" data-call-id="${callIdAttr}" data-assistant-turn-ts="${assistantTurnAttr}" data-model-variant-index="${modelVariantAttr}" aria-label="${host.escapeAttribute(viewLabel)}" data-tooltip="${host.escapeAttribute(viewLabel)}">` + `${host.escapeHtml(viewLabel)}` + `</button>`;
-        truncationHtml = `<div class="inline-tool-output-truncated">${button}</div>`;
-    }
+    const outputAction = renderToolOutputAction(host, segment);
+    const truncationHtml = outputAction ? `<div class="inline-tool-output-truncated">${outputAction}</div>` : '';
 
     let errorHtml = '';
     if (segment.status === 'error' && segment.error) {

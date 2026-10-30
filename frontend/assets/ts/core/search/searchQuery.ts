@@ -4,6 +4,8 @@
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { toTrimmedLower, toTrimmedString } from '@core/normalize.ts';
 
+const SEARCH_MINIMUM_QUERY_LENGTH = 2;
+
 const SEARCH_SEPARATOR_PATTERN = /[\s_]+/g;
 const SEARCH_CONFIG_PATH_SEPARATOR_PATTERN = /\./g;
 
@@ -45,5 +47,5 @@ const matchSearchConfigPath = (configPath: JsonValue, query: JsonValue): SearchC
 
 const createSearchCacheKey = (searchTerm: string, limit: number): string => `${normalizeSearchMatchQuery(searchTerm)}::${String(limit)}`;
 
-export { createSearchCacheKey, createSearchTextIndex, matchesSearchFilterQuery, matchSearchConfigPath, normalizeSearchConfigPathQuery, normalizeSearchDisplayQuery, normalizeSearchMatchQuery };
+export { SEARCH_MINIMUM_QUERY_LENGTH, createSearchCacheKey, createSearchTextIndex, matchesSearchFilterQuery, matchSearchConfigPath, normalizeSearchConfigPathQuery, normalizeSearchDisplayQuery, normalizeSearchMatchQuery };
 export type { SearchConfigPathMatch };

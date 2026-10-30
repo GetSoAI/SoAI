@@ -75,35 +75,25 @@ const resolveActionEntry = (state: ActionZoneManagerState, actionId: string): Ac
 
 const isSpaceSuppressed = (entry: ActionEntry): boolean => entry.element.classList.contains(SPACE_SUPPRESSED_CLASS);
 
-const resolveVisibleOptionalEntries = (entries: ActionEntry[]): ActionEntry[] => entries.filter((entry) => !isSpaceSuppressed(entry) && entry.element.getClientRects().length > 0);
-
-const calculateVisibleContribution = (actionZone: HTMLElement, optionalEntries: ActionEntry[]): number => {
-    const visibleActionCount = getVisibleChildren(actionZone).length;
-    const visibleOptionalEntries = resolveVisibleOptionalEntries(optionalEntries);
-    if (!visibleOptionalEntries.length) {
-        return 0;
-    }
-    const actionGap = readColumnGap(actionZone);
-    const nextVisibleActionCount = visibleActionCount - visibleOptionalEntries.length;
-    const removedGapCount = Math.max(0, visibleActionCount - 1) - Math.max(0, nextVisibleActionCount - 1);
-    return visibleOptionalEntries.reduce((total, entry) => total + readElementWidth(entry.element), 0) + actionGap * removedGapCount;
-};
-
 const calculateAllowedOptionalCount = (headerElement: HTMLElement, actionZone: HTMLElement, optionalEntries: ActionEntry[]): number => {
     const actionHost = resolveHTMLElement(actionZone.parentElement);
     if (!actionHost) {
         return 0;
     }
-    const visibleContribution = calculateVisibleContribution(actionZone, optionalEntries);
+    const visibleChildren = getVisibleChildren(actionZone);
+    const measurements = optionalEntries.map((entry) => ({ width: readElementWidth(entry.element), visible: !isSpaceSuppressed(entry) && visibleChildren.includes(entry.element) }));
+    const visibleOptionalCount = measurements.filter((measurement) => measurement.visible).length;
+    const nextVisibleActionCount = visibleChildren.length - visibleOptionalCount;
+    const removedGapCount = Math.max(0, visibleChildren.length - 1) - Math.max(0, nextVisibleActionCount - 1);
+    const actionGap = readColumnGap(actionZone);
+    const visibleContribution = measurements.reduce((total, measurement) => total + (measurement.visible ? measurement.width : 0), 0) + actionGap * removedGapCount;
     const actionHostRequiredWidth = Math.max(0, readRequiredWidth(actionHost) - visibleContribution);
     const headerRequiredWidth = readRequiredWidthWithReplacement(headerElement, actionHost, actionHostRequiredWidth);
     let remainingWidth = readContentWidth(headerElement) - headerRequiredWidth;
-    let visibleActionCount = getVisibleChildren(actionZone).length - resolveVisibleOptionalEntries(optionalEntries).length;
+    let visibleActionCount = nextVisibleActionCount;
     let allowedCount = 0;
-    const actionGap = readColumnGap(actionZone);
-    for (const entry of optionalEntries) {
-        const width = readElementWidth(entry.element);
-        const requiredWidth = width + (visibleActionCount > 0 ? actionGap : 0);
+    for (const measurement of measurements) {
+        const requiredWidth = measurement.width + (visibleActionCount > 0 ? actionGap : 0);
         if (remainingWidth < requiredWidth) {
             return allowedCount;
         }
@@ -127,6 +117,7 @@ const updateActionSpace = (state: ActionZoneManagerState, host: ActionZoneManage
     const scrollEntry = resolveActionEntry(state, HEADER_ACTION_IDS.scrollToTop);
     const restartEntry = resolveActionEntry(state, HEADER_ACTION_IDS.restartReminder);
     const optionalEntries = [scrollEntry, restartEntry].filter((entry): entry is ActionEntry => entry !== null);
+    if (optionalEntries.length === 0) return;
     const allowedCount = calculateAllowedOptionalCount(headerElement, actionZone, optionalEntries);
     optionalEntries.forEach((entry, index) => {
         entry.element.classList.toggle(SPACE_SUPPRESSED_CLASS, index >= allowedCount);
