@@ -3,7 +3,6 @@
 
 import { decodeGpuOperationResponse } from '@core/api/contracts/hardwareContracts.ts';
 import { serializeGpuSoAIBenchHistoryRequest } from '@core/api/contracts/hardwareRequestContracts.ts';
-import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -39,7 +38,7 @@ class SoAIBenchHistoryPagePanel {
     readonly #loadingDevices = new Set<string>();
     readonly #revisionByDevice = new Map<string, string>();
     readonly #requestTokenByDevice = new Map<string, number>();
-    readonly #scheduleRender = createMicrotaskScheduler(() => this.#render(), { label: 'SoAIBenchHistoryPagePanel' });
+    readonly #scheduleRender = createMicrotaskScheduler(() => this.#render(), { label: 'SoAIBenchHistoryPagePanel', isDisposed: () => !this.#initialized });
     #devices = new Map<string, SoAIBenchHistoryOpenRequest>();
     #gpuOptions: readonly SoAIBenchHistoryOpenRequest[] = [];
     #streamRuns: ReturnType<typeof getSoAIBenchRuns> = [];
@@ -152,9 +151,10 @@ class SoAIBenchHistoryPagePanel {
     }
 
     #setRunBusy(runId: string, busy: boolean): void {
+        if (!this.#initialized) return;
         if (busy) this.#busyRunIds.add(runId);
         else this.#busyRunIds.delete(runId);
-        const root = dom.resolve('#hardware-soaibench-history-panel');
+        const root = this.#host.optionalHTMLElement('#hardware-soaibench-history-panel');
         if (root instanceof HTMLElement) setRunActionsDisabled(root, runId, busy);
     }
 
@@ -267,7 +267,7 @@ class SoAIBenchHistoryPagePanel {
     #render(): void {
         const animateReorder = this.#reorderPending;
         this.#reorderPending = false;
-        if (!(dom.resolve('#hardware-soaibench-history-panel') instanceof HTMLElement)) return;
+        if (!this.#host.optionalHTMLElement('#hardware-soaibench-history-panel')) return;
         const entries = [...this.#entriesByDevice.values()].flatMap((deviceEntries) => deviceEntries).map((entry) => ({ request: this.#devices.get(entry.request.deviceId) ?? entry.request, run: entry.run }));
         const { column, direction } = this.#sortState;
         const sortedEntries = entries.sort((left, right) => {

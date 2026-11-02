@@ -1,6 +1,7 @@
 /* SoAI - File explorer page control layer selection actions controller [frontend/assets/ts/pages/fileexplorer/controllers/FileExplorerSelectionActionsController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { createActionIdSet } from '@core/dom/actions/actionIdGuard.ts';
 import { bindPageActionDispatcher } from '@core/dom/dataActionBinding.ts';
@@ -27,6 +28,7 @@ import { filenameFromPath, normalizeFileExplorerRenameLeaf, validateFileExplorer
 import { renderMetadataMarkup } from '@pages/fileexplorer/rendering/FileExplorerMetadataMarkupWidget.ts';
 
 interface SelectionActionsHost {
+    readonly owner: PresentationOwner;
     showNotification: (message: string, type: NotificationType) => void;
     requireHTMLElement: (selector: string, context?: HTMLElement) => HTMLElement;
     modalPresenter: ModalPresenterApi;
@@ -87,7 +89,7 @@ class FileExplorerSelectionActionsController {
             const metadata = await this.#data.loadMetadata(path);
             if (this.#disposed) return;
             replaceChildrenFromHtml({ element: body, html: securityApi.sanitizeHtml(renderMetadataMarkup(metadata)), context: body });
-            this.#host.modalPresenter.open(METADATA_MODAL_ID);
+            this.#host.modalPresenter.open(METADATA_MODAL_ID, { owner: this.#host.owner });
             return;
         }
 
@@ -109,7 +111,7 @@ class FileExplorerSelectionActionsController {
             html: securityApi.sanitizeHtml(`<div class="file-explorer-metadata-batch-intro">${securityApi.escapeHtml(i18n.t('fileExplorer.actionBar.metadata.batch', { count: metadatas.length }))}</div>${sections}`),
             context: body
         });
-        this.#host.modalPresenter.open(METADATA_MODAL_ID);
+        this.#host.modalPresenter.open(METADATA_MODAL_ID, { owner: this.#host.owner });
     }
 
     async downloadSelection(): Promise<void> {
@@ -181,6 +183,7 @@ class FileExplorerSelectionActionsController {
         }
         const currentLeaf = filenameFromPath(sourcePath);
         const renamedLeaf = await requireDialogsService().showPrompt({
+            owner: this.#host.owner,
             title: i18n.t('fileExplorer.modals.rename.title'),
             message: i18n.t('fileExplorer.modals.rename.nameLabel'),
             defaultValue: currentLeaf,

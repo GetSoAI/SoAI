@@ -1,6 +1,7 @@
 /* SoAI - Updates page controllers contracts [frontend/assets/ts/pages/updates/controllers/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { StreamActionHandle } from '@core/routing/pages/pagetypes/public.ts';
@@ -28,6 +29,7 @@ interface UpdatesControllerSharedSurface extends UpdatesControllerNoticeSurface 
 }
 
 interface UpdatesControllerSystemSurface extends UpdatesControllerSharedSurface {
+    readonly owner: PresentationOwner;
     notify: (message: string, type?: UpdatesNotificationType) => void;
     setButtonLoading: (button: HTMLElement, isLoading: boolean, options?: SetButtonLoadingOptions) => void;
     sanitizeUrl: (value: string, options: { allowRelative: boolean; allowDataImage: boolean; allowBlob: boolean }) => string | null;

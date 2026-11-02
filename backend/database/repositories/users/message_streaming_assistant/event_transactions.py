@@ -116,9 +116,10 @@ def sync_append_streaming_assistant_events_batch(
         )
         validated_payload_json = build_validated_assistant_event_payload_json(
             event_type=normalized_event_type,
-            payload_json=chronology_result.payload_json,
+            payload=chronology_result.payload,
         )
         running_visible_length = chronology_result.running_visible_length
+        del chronology_result
         rows_to_insert.append(
             (
                 conv_id,

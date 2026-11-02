@@ -15,7 +15,6 @@ import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 import type { TabsOptions } from '@core/ui/controls/tabs/types.ts';
 import type { AttachViewportResizeOptions, CreateStandardSearchOptions, GridPosition, StandardSearchResult, UnsavedChangesGuardOptions } from '@core/routing/pages/pagetypes/public.ts';
 import type { BasePageLayoutHost } from '@core/routing/pages/basepagelayout/contracts.ts';
-import type { NavigationContext } from '@core/routing/router/types.ts';
 
 const NOOP = (): void => {};
 
@@ -35,21 +34,21 @@ const initializeTabs = (page: BasePageLayoutHost, state: BasePageLayoutState, co
 
 const getTabsComponent = (state: BasePageLayoutState): TabsComponent | null => state.tabs;
 
-const getFromPageId = (context: NavigationContext): string | null => context.from?.route.component ?? null;
-
 const registerUnsavedChangesProtection = (page: BasePageLayoutHost, _state: BasePageLayoutState, { hasUnsavedChanges, confirmMessage, guardId }: UnsavedChangesGuardOptions): (() => void) => {
     if (!isFunction(hasUnsavedChanges) || !isString(confirmMessage)) {
         throw new TypeError('Guard config invalid');
     }
     return registerUnsavedChangesGuard({
+        owner: page.mountScope,
         id: guardId || `${page.pageId}-dirty-guard`,
         hasUnsavedChanges,
         getMessage: () => confirmMessage,
-        shouldPromptOnNavigation: (context: NavigationContext) => getFromPageId(context) === page.pageId && hasUnsavedChanges(),
-        confirmNavigation: async (context: NavigationContext) =>
-            getFromPageId(context) !== page.pageId || !hasUnsavedChanges()
+        shouldPromptOnNavigation: () => hasUnsavedChanges(),
+        confirmNavigation: async () =>
+            !hasUnsavedChanges()
                 ? true
                 : await showUnsavedChangesConfirmation({
+                      owner: page.mountScope,
                       message: confirmMessage
                   }),
         addEventListener: (target: EventTarget, eventName: string, listener: EventListener, options?: AddEventListenerOptions) => page.on(target, eventName, listener, options)

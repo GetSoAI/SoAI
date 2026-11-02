@@ -25,6 +25,7 @@ export type ChatAttachModalTranslationKey =
     | 'chat.attachModal.cameraBusy'
     | 'chat.attachModal.cameraCaptureUnavailable'
     | 'chat.attachModal.cameraDisabled'
+    | 'chat.attachModal.cameraDiscardConfirm'
     | 'chat.attachModal.cameraNoCamera'
     | 'chat.attachModal.cameraPermissionDenied'
     | 'chat.attachModal.cameraPreparing'

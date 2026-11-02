@@ -203,7 +203,7 @@
         --ease-in-out: var(--ease-spring);
     }
 
-    .main-content > [data-section]:not(.is-collection-card-reveal-ready) .ui-collection-grid .entering {
+    [data-page-outlet-root='true'] > [data-section]:not(.is-collection-card-reveal-ready) .ui-collection-grid .entering {
         transition: none;
     }
 

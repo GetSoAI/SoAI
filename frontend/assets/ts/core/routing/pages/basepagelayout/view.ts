@@ -174,7 +174,7 @@ const generateHeaderStatsMarkup = (context: HeaderTemplateHost, stats: ReadonlyA
 };
 
 const buildStandardHeaderMarkup = (context: HeaderTemplateHost, options: GenerateStandardHeaderOptions = {}): TrustedHtml => {
-    const { containerClass: rawContainerClass = `${context.pageId}-container page-scrollable`, floating = true, detachedHeaderMode = 'hide', title = '', description = '', icon = null, actions = [], stats = [], toolbars = null, tabs = null, contentAreaClass = 'page-content-area', contentLayout = null, role = 'main', ariaLabel = null } = options;
+    const { containerClass: rawContainerClass = `${context.pageId}-container page-scrollable`, floating = true, detachedHeaderMode = 'hide', title = '', description = '', icon = null, actions = [], stats = [], toolbars = null, tabs = null, contentAreaClass = 'page-content-area', contentLayout = null, role = 'region', ariaLabel = null } = options;
     const routeRegistry = getRouteRegistry();
     const routeEntry = routeRegistry[context.pageId] ?? null;
     const resolvedIconMarkup = icon ? context.getIconSync(icon, { size: 22, strokeWidth: 1.5 }) : routeEntry?.sidebar?.icon ? context.getIconSync(routeEntry.sidebar.icon, { size: 22, strokeWidth: 1.5 }) : null;
@@ -195,9 +195,9 @@ const buildStandardHeaderMarkup = (context: HeaderTemplateHost, options: Generat
     const panelClass = `page-header-panel ${floating ? 'is-floating' : 'is-static'}`;
     const iconContainer = resolvedIconMarkup ? uiHtml`<div class="page-header-icon">${resolvedIconMarkup}</div>` : EMPTY_UI_HTML;
     const titleMarkup = buildPageHeaderTitleMarkup(titleText);
-    const ariaMarkup = uiAttributes({ 'aria-label': ariaLabel });
+    const ariaMarkup = uiAttributes({ 'aria-label': ariaLabel ?? (role === 'region' ? title || contentLabel : null) });
     const shouldRenderHeader = !(context.isDetached() && detachedHeaderMode === 'hide');
-    const headerMarkup = shouldRenderHeader ? uiHtml`<div class="${uiAttr(panelClass)}"><div class="page-header" role="banner"><div class="page-header-title-section">${iconContainer}<div class="page-header-copy">${titleMarkup}<p class="page-header-description">${uiText(description)}</p></div></div>${renderedActions}</div>${toolbarsMarkup}${renderedStats}${tabsMarkup}</div>` : EMPTY_UI_HTML;
+    const headerMarkup = shouldRenderHeader ? uiHtml`<div class="${uiAttr(panelClass)}"><div class="page-header"><div class="page-header-title-section">${iconContainer}<div class="page-header-copy">${titleMarkup}<p class="page-header-description">${uiText(description)}</p></div></div>${renderedActions}</div>${toolbarsMarkup}${renderedStats}${tabsMarkup}</div>` : EMPTY_UI_HTML;
     const contentMarkup = uiHtml`<div class="${uiAttr(contentClass)}" role="region" aria-label="${uiAttr(contentLabel)}"><!-- Page content goes here --></div>`;
     return uiHtml`<div class="${uiAttr(containerClass)}" data-section="${uiAttr(context.pageId)}" data-page-transition-surface="true" role="${uiAttr(role)}"${ariaMarkup}>${headerMarkup}${contentMarkup}</div>`;
 };

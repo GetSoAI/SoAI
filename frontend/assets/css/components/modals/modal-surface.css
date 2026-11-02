@@ -12,7 +12,7 @@
 
         position: relative;
         z-index: calc(var(--z-modal) + 1);
-        background-color: color-mix(in srgb, var(--glass-surface-strong) 88%, var(--bg-primary));
+        background-color: var(--modal-surface-background);
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
         border: var(--border-width-1) solid var(--glass-border-strong);
@@ -53,12 +53,19 @@
         border: none;
     }
 
-    .ui-modal[data-modal-open='true']:not([data-modal-presentation='viewport']) > .modal-content {
-        animation: modal-appear var(--effect-modal-enter-duration) var(--ease-smooth);
+    .ui-modal:not([data-modal-presentation='viewport']) > .modal-content {
+        --presence-enter-duration: var(--effect-modal-enter-duration);
+        --presence-exit-duration: var(--effect-modal-exit-duration);
+        --presence-enter-ease: var(--ease-emphasized);
+        --presence-exit-ease: var(--ease-smooth);
+        --presence-scale-from: var(--motion-modal-scale-from);
+        --presence-translate-from: var(--motion-modal-inline-from) var(--motion-modal-block-from);
+        --presence-opacity-from: 1;
+        --presence-blur-from: 0;
     }
 
-    .ui-modal.u-hidden:not([data-modal-presentation='viewport']) .modal-content {
-        animation: modal-disappear var(--effect-modal-exit-duration) var(--ease-in);
+    .modal-content > * {
+        --presence-opacity-from: 0;
     }
 
     @container ui-viewport (width <= 768px) {

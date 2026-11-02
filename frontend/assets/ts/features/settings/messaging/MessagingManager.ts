@@ -179,9 +179,12 @@ class MessagingManager {
         }
         const workspaceBrowserAccess = await this.#host.resolveWorkspaceBrowserAccess();
         const result = await openMessagingAccountModal({
+            owner: this.#host.owner,
             mode: 'create',
             account: null,
             models: this.#models,
+            subscribeModelCatalog: this.#host.subscribeModelCatalog,
+            loadModelCatalog: (options) => this.#host.loadModelCatalog(options),
             mcpCatalog,
             workspaceBrowserAccess,
             persist: async (payload): Promise<MessagingAccount> => {
@@ -200,9 +203,12 @@ class MessagingManager {
         const latest = await this.#host.api.get(account.accountId);
         const workspaceBrowserAccess = await this.#host.resolveWorkspaceBrowserAccess();
         const result = await openMessagingAccountModal({
+            owner: this.#host.owner,
             mode: 'edit',
             account: latest,
             models: this.#models,
+            subscribeModelCatalog: this.#host.subscribeModelCatalog,
+            loadModelCatalog: (options) => this.#host.loadModelCatalog(options),
             mcpCatalog,
             workspaceBrowserAccess,
             persist: async (payload): Promise<MessagingAccount> => {

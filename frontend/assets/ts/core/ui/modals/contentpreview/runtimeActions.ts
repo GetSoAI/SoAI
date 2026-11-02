@@ -77,7 +77,7 @@ const createContentPreviewRuntimeActions = (dependencies: ContentPreviewRuntimeA
             return;
         }
         const url = request.openSourceUrl;
-        const confirmed = await maybeConfirmExternalOpen({ scope: request.scope, behavior: request.externalOpenBehavior, url });
+        const confirmed = await maybeConfirmExternalOpen({ owner: request.owner, scope: request.scope, behavior: request.externalOpenBehavior, url });
         if (!confirmed) {
             return;
         }

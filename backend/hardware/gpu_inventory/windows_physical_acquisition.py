@@ -11,6 +11,7 @@ from core.errors.exceptions import SoAIError, SoAITimeoutError, StateError, Vali
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.hardware.gpu_inventory_errors import gpu_inventory_query_failure
 from core.hardware.gpu_physical_identity import GPUInventoryReadState
+from core.hardware.windows_pnp_inventory import read_windows_display_devices
 from core.logging.trace import get_logger
 from core.serialization.json_parsing import parse_json_value
 from core.validation.strings import coerce_optional_trimmed_str
@@ -28,11 +29,17 @@ __all__ = (
     "WMI_QUERY_FAILURES",
     "WindowsPhysicalAcquisition",
     "read_windows_physical_acquisition",
+    "read_windows_pnp_acquisition",
 )
 
 LOGGER_NAME = "SoAI.hardware.gpu_inventory.windows_physical_acquisition"
 OPERATION = "hardware.gpu_inventory.windows_physical_acquisition"
 WMI_QUERY_FAILURES: tuple[type[Exception], ...] = (*RECOVERABLE_EXCEPTIONS, OSError)
+PNP_QUERY_FAILURES: tuple[type[Exception], ...] = (
+    *WMI_QUERY_FAILURES,
+    ValidationError,
+    UnicodeError,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,6 +49,37 @@ class WindowsPhysicalAcquisition:
     reason_code: str | None
     raw_output: str | None
     diagnostics: tuple[SoAIError, ...]
+    source: str = "cim"
+
+
+def read_windows_pnp_acquisition() -> WindowsPhysicalAcquisition:
+    try:
+        values: list[JSONValue] = list(read_windows_display_devices())
+        records, diagnostics = _read_windows_records(values)
+    except PNP_QUERY_FAILURES as exception:
+        state = GPUInventoryReadState.QUERY_FAILED
+        failure_reason: GPUInventoryQueryFailureReason = "query_unavailable"
+        if isinstance(exception, PermissionError):
+            state = GPUInventoryReadState.PERMISSION_DENIED
+            failure_reason = "permission_denied"
+        elif isinstance(exception, FileNotFoundError):
+            state = GPUInventoryReadState.RUNTIME_UNAVAILABLE
+            failure_reason = "runtime_unavailable"
+        elif isinstance(exception, ValidationError | UnicodeError):
+            state = GPUInventoryReadState.INVALID_RESPONSE
+            failure_reason = "invalid_response"
+        error = gpu_inventory_query_failure(failure_reason, cause=exception)
+        return WindowsPhysicalAcquisition(
+            (), state, "pnp_query_unavailable", None, (error,), "setupapi"
+        )
+    return WindowsPhysicalAcquisition(
+        tuple(records),
+        GPUInventoryReadState.INVALID_RESPONSE if diagnostics else GPUInventoryReadState.OBSERVED,
+        "pnp_response_invalid" if diagnostics else None,
+        None,
+        diagnostics,
+        "setupapi",
+    )
 
 
 def read_windows_physical_acquisition(
@@ -140,7 +178,7 @@ def read_windows_physical_acquisition(
             result.stdout,
             (exception,),
         )
-    records, diagnostics = _read_wmi_records(parsed)
+    records, diagnostics = _read_windows_records(parsed)
     for diagnostic in diagnostics:
         log_exception(
             get_logger(LOGGER_NAME),
@@ -157,7 +195,7 @@ def read_windows_physical_acquisition(
     )
 
 
-def _read_wmi_records(parsed: JSONValue) -> tuple[list[JSONDict], tuple[SoAIError, ...]]:
+def _read_windows_records(parsed: JSONValue) -> tuple[list[JSONDict], tuple[SoAIError, ...]]:
     records: list[JSONDict] = []
     diagnostics: list[SoAIError] = []
     identifiers: set[str] = set()

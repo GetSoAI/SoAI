@@ -1,11 +1,11 @@
 /* SoAI - Shared routing wizard middleware [frontend/assets/ts/core/routing/router/middlewares/wizardMiddleware.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { navigationResult, type NavigationResultType } from '@core/navigationMiddleware.ts';
+import { navigationResult } from '@core/navigationMiddleware.ts';
+import type { NavigationResultType, NavigationContext, RouteDefinition } from '@core/routing/router/types.ts';
 import { AUTH_ROUTE_LOGIN, AUTH_ROUTE_WIZARD } from '@core/routing/router/authRouteTarget.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import type { AuthService, StorageService } from '@core/routing/router/routerDependencies.ts';
-import type { NavigationContext, RouteDefinition } from '@core/routing/router/types.ts';
 
 type RouterMiddleware = (context: NavigationContext, next: () => Promise<NavigationResultType>) => Promise<NavigationResultType>;
 

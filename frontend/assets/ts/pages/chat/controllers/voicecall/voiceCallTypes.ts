@@ -1,6 +1,7 @@
 /* SoAI - Chat page voice call types [frontend/assets/ts/pages/chat/controllers/voicecall/voiceCallTypes.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { CapturedAudioUtterance } from '@core/media/audioCaptureSupport.ts';
 import type { ApiClient } from '@core/api/service.ts';
 import type { OpenAiAudioSpeechSessionCallbacks, OpenAiAudioSpeechSessionClient, OpenAiAudioSpeechSessionPayload } from '@core/api/endpoints/openaiWsAudioSpeechSession.ts';
@@ -59,6 +60,7 @@ interface VoiceCallSpeechSegment {
 }
 
 interface VoiceCallControllerHost extends PageFeedbackOwnerHost {
+    readonly owner: PresentationOwner;
     apiClient: ApiClient;
     runtimeAssets: VoiceCallRuntimeAssets;
     chatStreamService: ChatStreamService;

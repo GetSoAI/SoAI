@@ -141,11 +141,13 @@ class BaseComponent<TOptions = ComponentOptions> extends LifecycleModel {
     }
 
     getUI(selector: string, context: Element | null = null): Element | null {
-        return dom.resolve(selector, context || this.#element);
+        const root = context ?? this.#element;
+        return root ? dom.resolve(selector, root) : null;
     }
 
     queryUI(selector: string, context: Element | null = null): Element[] {
-        return dom.resolveAll(selector, context || this.#element);
+        const root = context ?? this.#element;
+        return root ? dom.resolveAll(selector, root) : [];
     }
 
     $(selector: string): Element | null {

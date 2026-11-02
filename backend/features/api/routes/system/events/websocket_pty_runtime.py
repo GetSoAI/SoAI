@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import SoAIError, ValidationError
 from core.state.access import AccessAction
+from core.types.json import JSONDict
 from features.api.middleware.acl_enforcement import request_has_action
 from features.api.routes.system.events.websocket_errors import (
     enqueue_pty_websocket_error,
@@ -39,6 +40,7 @@ async def ensure_terminal_access_or_close(
     api_context: ApiContext,
     enqueue_warning_tracker: EnqueueWarningTracker,
     trace_id: str | None,
+    details: JSONDict | None = None,
 ) -> bool:
     if await request_has_action(connection.request, AccessAction.TERMINAL_USE):
         return True
@@ -53,6 +55,7 @@ async def ensure_terminal_access_or_close(
         trace_id,
         "Insufficient permissions for terminal access.",
         code="forbidden_error",
+        details=details,
     )
     return False
 

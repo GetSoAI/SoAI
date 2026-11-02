@@ -52,6 +52,7 @@ class CollectionViewportCoordinator {
     #resizeObserver: ResizeObserver | null = null;
     #scrollFrame: number | null = null;
     #underfillFrame: number | null = null;
+    #readyFrame: number | null = null;
     #lastScrollPosition = 0;
     #forwardArmed = true;
     #backwardArmed = true;
@@ -75,14 +76,11 @@ class CollectionViewportCoordinator {
         this.#detach();
         this.#container = container;
         this.#removeVisibilityListener = this.#resources.addEventListener(container.ownerDocument, 'visibilitychange', () => {
-            if (container.isConnected) this.#callbacks.onContainerReady();
-            this.scheduleUnderfillCheck();
+            this.#scheduleContainerReady(container);
         });
         container.classList.add(EXPLICIT_ANCHOR_CLASS);
         this.#resizeObserver = new ResizeObserver(() => {
-            this.#refreshScrollRoot();
-            if (container.isConnected) this.#callbacks.onContainerReady();
-            this.scheduleUnderfillCheck();
+            this.#scheduleContainerReady(container);
         });
         this.#resizeObserver.observe(container);
         this.#resources.track(this.#resizeObserver, (observer) => observer.disconnect());
@@ -138,6 +136,17 @@ class CollectionViewportCoordinator {
             if (this.#container === null || this.#scrollRoot === null) return;
             const measurement = measureCollectionBoundaries(this.#container, this.#scrollRoot);
             if (measurement.measurable && measurement.atStart && measurement.atEnd) this.#callbacks.onUnderfill();
+        });
+    }
+
+    #scheduleContainerReady(container: HTMLElement): void {
+        if (this.#disposed || this.#container !== container || this.#readyFrame !== null) return;
+        this.#readyFrame = this.#resources.requestAnimationFrame(() => {
+            this.#readyFrame = null;
+            if (this.#disposed || this.#container !== container) return;
+            this.#refreshScrollRoot();
+            if (container.isConnected) this.#callbacks.onContainerReady();
+            if (this.#container === container) this.scheduleUnderfillCheck();
         });
     }
 
@@ -201,6 +210,10 @@ class CollectionViewportCoordinator {
         if (this.#underfillFrame !== null) {
             this.#resources.cancelAnimationFrame(this.#underfillFrame);
             this.#underfillFrame = null;
+        }
+        if (this.#readyFrame !== null) {
+            this.#resources.cancelAnimationFrame(this.#readyFrame);
+            this.#readyFrame = null;
         }
         if (this.#resizeObserver !== null) {
             this.#resizeObserver.disconnect();

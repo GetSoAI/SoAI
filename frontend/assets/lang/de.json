@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "Fügen Sie Dateien und Ordner von Ihrem Gerät als direkte Nachrichtenanhänge hinzu. Sie werden mit dem aktuellen Prompt gesendet, anders als Wissens-Uploads, die für den Abruf indexiert werden.",
                 "uploadTitle": "Dateien und Ordner direkt hochladen",
-                "title": "Anhänge hinzufügen"
+                "title": "Anhänge hinzufügen",
+                "cameraDiscardConfirm": "Dieses aufgenommene Foto verwerfen?"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "Unbekannter Fehler",
                 "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
                 "storageHeadroomInsufficient": "Unter Berücksichtigung des Sicherheitsabstands und bestehender Reservierungen ist nicht genügend Speicherplatz verfügbar. Geben Sie Speicherplatz frei oder warten Sie auf den Abschluss anderer Speichervorgänge und versuchen Sie es erneut.",
-                "storageHeadroomValues": "Benötigt einschließlich Sicherheitsmarge: {required}. Für diesen Vorgang verfügbar: {available}."
+                "storageHeadroomValues": "Benötigt einschließlich Sicherheitsmarge: {required}. Für diesen Vorgang verfügbar: {available}.",
+                "permissionsUnavailable": "Zugriffsberechtigungen sind nicht verfügbar. Prüfen Sie die Verbindung und versuchen Sie es erneut."
             },
             "export": "Exportieren",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "Nicht gespeicherte Änderungen",
             "view": "Anzeigen",
             "yes": "Ja",
-            "retry": "Erneut versuchen"
+            "retry": "Erneut versuchen",
+            "discard": "Verwerfen"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "Die Datei wurde möglicherweise gespeichert, ihr endgültiger Zustand konnte jedoch nicht überprüft werden. Prüfen Sie das Ziel unter Dateien, bevor Sie sie erneut hochladen.",
                 "cleanupIncomplete": "Die automatische Bereinigung konnte nicht abgeschlossen werden. Prüfen Sie das Ziel unter „Dateien“, bevor Sie es erneut versuchen.",
                 "contentChanged": "Die Datei wurde während des Vorgangs geändert. Wählen Sie sie erneut aus und versuchen Sie es noch einmal.",
-                "destinationExists": "Eine Datei oder ein Ordner mit diesem Namen ist bereits vorhanden. Wählen Sie einen anderen Namen oder Speicherort."
+                "destinationExists": "Eine Datei oder ein Ordner mit diesem Namen ist bereits vorhanden. Wählen Sie einen anderen Namen oder Speicherort.",
+                "listingChanged": "Der Ordner änderte sich fortlaufend. Zum Wiederholen aktualisieren.",
+                "listingTimeout": "Zeitüberschreitung beim Aktualisieren des Ordners. Zum Wiederholen aktualisieren.",
+                "listingIncoherent": "Die Ordnerseiten waren widersprüchlich. Zum Wiederholen aktualisieren.",
+                "listingUnavailable": "Der Ordnerdienst ist nicht verfügbar. Verbindung prüfen und aktualisieren.",
+                "listingBusy": "Ordneranfragen werden begrenzt. Warten und dann aktualisieren."
             },
             "labels": {
                 "latestTask": "Neueste Aufgabe",
@@ -3175,7 +3183,10 @@
                 "empty": "Keine Einträge gefunden.",
                 "error": "Vorgang fehlgeschlagen. Details finden Sie in den Benachrichtigungen.",
                 "loading": "Verzeichniseinträge werden geladen...",
-                "searching": "Dateien und Ordner werden durchsucht..."
+                "searching": "Dateien und Ordner werden durchsucht...",
+                "refreshing": "Wird aktualisiert…",
+                "stale": "Veraltet. Zum Wiederholen aktualisieren.",
+                "unavailable": "Ordner nicht verfügbar. Fehler prüfen und aktualisieren."
             },
             "table": {
                 "modified": "Geändert",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "Modelle, Werkzeuge und Dateien verwenden",
                     "sectionTitle": "Chat und Agentenwerkzeuge",
-                    "conversations": "Chat hält Nachrichten, Modellwahl, Generierungsparameter und Werkzeugzugriff zusammen. Sie können zwischen Nachrichten das Modell wechseln, Antworten vergleichen, die Konfiguration als Preset speichern und Unterhaltungen in Ordnern organisieren. Hängen Sie eine Datei an, wenn das Modell für die aktuelle Nachricht den vollständigen Inhalt braucht. Eine Wissensquelle eignet sich, wenn SoAI indexiertes Material durchsuchen und passende Passagen liefern soll. Dateien, Ordner und SoAI-Links lassen sich im Eingabefeld hinzufügen",
+                    "conversations": "Chat hält Nachrichten, Modellwahl, Generierungsparameter, Werkzeugzugriff sowie die Skills- und Erinnerungsbibliotheken zusammen. Sie können zwischen Nachrichten das Modell wechseln, Antworten vergleichen, die Konfiguration als Preset speichern und Unterhaltungen in Ordnern organisieren. Hängen Sie eine Datei an, wenn das Modell für die aktuelle Nachricht den vollständigen Inhalt braucht. Eine Wissensquelle eignet sich, wenn SoAI indexiertes Material durchsuchen und passende Passagen liefern soll. Dateien, Ordner und SoAI-Links lassen sich im Eingabefeld hinzufügen",
                     "tools": "Der Chat-Modus dient der Unterhaltung. Im Plan-Modus untersucht das Modell eine Aufgabe und bereitet Schritte vor. Er blockiert Werkzeuge, die als destruktiv gekennzeichnet sind oder keine gültigen Metadaten dafür besitzen; andere ausgewählte Werkzeuge können dennoch externe Systeme beeinflussen. Im Execute-Modus handelt es mit den freigegebenen Werkzeugen. Werkzeugaufrufe und Ergebnisse bleiben im Verlauf sichtbar; geschützte Aktionen können Ihre Bestätigung verlangen. Werkzeuge können das Web durchsuchen, einen Browser steuern, mit Dateien und Terminals arbeiten, Wissen abfragen, Medien verarbeiten sowie Mail und Kalender anbinden. Administratoren bestimmen verfügbare Integrationen und Zugangsdaten. Agenten können Fragen stellen, einen Plan führen und Aufgaben im Hintergrund aufteilen. Automationen führen eine oder mehrere Nachrichten nach Zeitplan aus und speichern jeden Lauf als Unterhaltung",
                     "mcp": "SoAI kann seine Werkzeuge authentifizierten MCP-Clients bereitstellen und sich mit entfernten MCP-Servern verbinden. Nach der Einrichtung durch einen Administrator erscheinen deren Werkzeuge neben den integrierten",
                     "voice": "Sprache-zu-Text-Modelle transkribieren Aufnahmen oder Mikrofoneingaben. Text-zu-Sprache-Modelle lesen Antworten vor; der Sprachanruf-Modus ermöglicht eine gesprochene Unterhaltung"
@@ -3944,7 +3955,7 @@
                     "heading": "Systemzustand prüfen und Host verwalten",
                     "sectionTitle": "Überwachung und Administration",
                     "status": "Das Dashboard zeigt Systemzustand und laufende Arbeiten. Hardware enthält CPU-, Speicher-, Datenträger-, Netzwerk- und GPU-Werte; Metrics zeigt Anfrageverlauf und Token-Nutzung; Logs liefert Diagnosedetails. Unterstützte GPUs bieten Regler für Leistung, Taktraten und Lüfter. Diese Änderungen wirken auf den Host. Verwenden Sie ein getestetes Profil und beobachten Sie Temperatur und Stabilität",
-                    "operations": "Terminal stellt interaktive Shell-Sitzungen bereit. Power kann SoAI neu starten oder stoppen und das Host-Betriebssystem steuern. Der Zugriff auf beide Seiten hängt von den Kontoberechtigungen ab",
+                    "operations": "Terminal stellt interaktive Shell-Sitzungen bereit. Power kann SoAI neu starten oder stoppen und das Host-Betriebssystem steuern. Der Zugriff auf Terminal und die Power-Steuerung hängt von den Kontoberechtigungen ab",
                     "maintenance": "Backups befinden sich in Settings, Anwendungsupdates auf der Seite Updates. Prüfen Sie ein Backup, bevor Sie sich darauf verlassen, exportieren Sie benötigte Kopien vom Host und kontrollieren Sie vor Wiederherstellung oder Zurücksetzen den Umfang. SoAI überwacht Backends und sendet keine Anfragen mehr an ein wiederholt fehlschlagendes Plugin. Plugins zeigt Wiederherstellungs- und Quarantänestatus. Downloads, Uploads, Backups und andere große Schreibvorgänge prüfen vor Beginn den reservierten Speicherplatz"
                 },
                 "access": {
@@ -5229,6 +5240,9 @@
             "loading": "SoAI wird vorbereitet...",
             "loadingDelayError": "Diese Seite benötigt länger als erwartet. Prüfen Sie Ihre Verbindung oder laden Sie die Seite erneut.",
             "loadingLabel": "Wird geladen...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "Die vorherige Seite wird noch geschlossen. Warte und versuche es erneut. Lade dieses Fenster neu, wenn der Vorgang hängen bleibt."
+            },
             "retry": "Erneut versuchen"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "Darstellung auf die Standardwerte zurückgesetzt.",
                 "chatPresetsResetFailed": "Die Chat-Presets konnten nicht zurückgesetzt werden. Versuchen Sie es erneut.",
                 "chatPresetsResetSuccess": "Chat-Presets zurückgesetzt.",
+                "configurationResetFailed": "Das Zurücksetzen der Konfiguration konnte nicht geplant werden. Prüfen Sie die Konfigurationsdateien und versuchen Sie es erneut.",
                 "conversationsDeleteFailed": "Unterhaltungen konnten nicht gelöscht werden. Versuchen Sie es erneut.",
                 "conversationsDeleteNone": "Keine Unterhaltungen zum Löschen.",
                 "conversationsDeleteSuccess": "{count} Unterhaltungen gelöscht.",
-                "configurationResetFailed": "Das Zurücksetzen der Konfiguration konnte nicht geplant werden. Prüfen Sie die Konfigurationsdateien und versuchen Sie es erneut.",
                 "factoryResetSuccess": "Zurücksetzen auf Werkseinstellungen eingeleitet. SoAI wird in Kürze neu gestartet.",
                 "fixInvalidFields": "Korrigieren Sie ungültige Felder vor dem Speichern.",
                 "hardwareHistoryResetFailed": "Der Hardwareverlauf konnte nicht zurückgesetzt werden. Versuchen Sie es erneut.",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "Zurücksetzen der Metriken erfolgreich gestartet",
                 "pageLayoutsResetFailed": "Die Seitenlayouts konnten nicht zurückgesetzt werden. Versuchen Sie es erneut.",
                 "pageLayoutsResetSuccess": "Dashboard-, Metrik- und Hardwarelayouts auf die Standardwerte zurückgesetzt.",
+                "partialSave": "Einige Einstellungen wurden angewendet. {reason} Prüfe die markierten ungespeicherten Felder und versuche es erneut.",
                 "passwordManagerResetFailed": "Der Passwortmanager konnte nicht zurückgesetzt werden. Versuchen Sie es erneut.",
                 "passwordManagerResetSuccess": "Passwortmanager zurückgesetzt. {deletedCredentials} gespeicherte Anmeldedatensätze entfernt und {clearedSecretHandles} aktive sichere Handles ungültig gemacht.",
                 "preferencesResetFailed": "Die Einstellungen konnten nicht zurückgesetzt werden. Versuchen Sie es erneut.",
-                "preferencesResetSuccess": "Einstellungen auf die Standardwerte zurückgesetzt. Wird neu geladen...",
+                "preferencesResetSuccess": "Einstellungen auf die Standardwerte zurückgesetzt.",
                 "recentSearchesResetFailed": "Die letzten Suchanfragen konnten nicht zurückgesetzt werden. Versuchen Sie es erneut.",
                 "recentSearchesResetSuccess": "Letzte Suchanfragen zurückgesetzt.",
                 "restartButton": "SoAI neu starten",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "Benutzer erfolgreich erstellt",
                 "userDeleteSuccess": "Benutzer erfolgreich gelöscht",
                 "userPasswordUpdateSuccess": "Passwort erfolgreich aktualisiert",
-                "userWorkspacePathUpdateSuccessRevoked": "Standardordner aktualisiert. Frühere Überschreibungen von Unterhaltungsordnern außerhalb des neuen Ordners wurden aufgehoben.",
                 "userRoleUpdateSuccess": "Benutzerrolle erfolgreich aktualisiert",
+                "userWorkspacePathUpdateSuccessRevoked": "Standardordner aktualisiert. Frühere Überschreibungen von Unterhaltungsordnern außerhalb des neuen Ordners wurden aufgehoben.",
                 "wallpaperDeleteSuccess": "Hintergrundbild erfolgreich gelöscht",
                 "wallpaperDownloadSuccess": "Hintergrundbild erfolgreich heruntergeladen",
                 "wallpaperReloadFailed": "Die Vorschau des Hintergrundbilds konnte nicht geladen werden.",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "Die Freigabe des Terminals ist unbestätigt. Stelle die Verbindung wieder her und versuche es erneut. Prüfe nach einem Dienstneustart die alte Shell auf dem Host.",
+                "recoveryUnavailable": "Die Terminalwiederherstellung ist nicht verfügbar. Lade SoAI neu und prüfe die alte Shell auf dem Host, bevor du es erneut versuchst."
+            },
             "ariaLabels": {
                 "clearTerminal": "Terminal leeren",
                 "decreaseTextSize": "Text verkleinern",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "Sprache nicht transkribiert. Bitte einen Administrator, die Spracherkennung einzurichten, und lade die Datei dann erneut hoch.",
             "openModels": "Modelle öffnen",
             "openSettings": "Spracherkennungseinstellungen"
+        },
+        "pagePanes": {
+            "storageUnavailable": "Der Browserspeicher ist nicht verfügbar. Offene Bereiche bleiben nutzbar, ihre Anordnung kann jedoch nicht gespeichert werden.",
+            "invalidLayout": "Die gespeicherte Bereichsanordnung ist ungültig. Die angeforderte Seite wird normal geöffnet.",
+            "incompatibleLayout": "Die gespeicherte Bereichsanordnung erfordert eine neuere Anwendung. Sie wurde beibehalten.",
+            "foreignLayout": "Die gespeicherte Bereichsanordnung gehört zu einem anderen Konto, Fenster oder einer anderen Edition. Sie wurde beibehalten.",
+            "layoutTooLarge": "Diese Bereichsanordnung ist zu groß zum Speichern. Offene Seiten bleiben nutzbar.",
+            "restoreFailed": "Der Hauptbereich konnte nicht wiederhergestellt werden. Die gespeicherte Anordnung wurde beibehalten. Laden Sie die Seite neu, um es erneut zu versuchen.",
+            "title": "Bereiche",
+            "active": "Aktiv",
+            "closePane": "Bereich {page} schließen",
+            "split": "In einem weiteren Bereich öffnen",
+            "choosePage": "Zu öffnende Seite",
+            "parked": "Geparkt",
+            "closing": "Wird geschlossen…",
+            "splitUnavailable": "Dieses Fenster bietet Platz für einen Bereich. Die Seite wird im aktuellen Bereich geöffnet.",
+            "placementUnavailable": "Für diese Aktion ist kein Bereich verfügbar. Schließen Sie ausstehende Arbeiten ab oder schließen Sie einen Bereich und versuchen Sie es erneut.",
+            "restoreConflict": "Die wiederhergestellte Route steht im Konflikt mit einem offenen Bereich. Öffnen Sie die Seite ausdrücklich, um fortzufahren.",
+            "layoutNotSaved": "Layout nicht gespeichert. Die geöffneten Bereiche bleiben nutzbar.",
+            "saveCurrentLayout": "Aktuelles Layout speichern",
+            "replaceSavedLayoutConfirmation": "Das beibehaltene Layout durch die aktuell geöffneten Bereiche ersetzen? Nur das gespeicherte Layout wird ersetzt, nicht die Seiteninhalte.",
+            "storageQuotaExceeded": "Der Browserspeicher ist voll. Geben Sie Browserspeicher frei und speichern Sie das aktuelle Layout erneut. Die geöffneten Bereiche bleiben nutzbar.",
+            "storageBlocked": "Der Browser hat die Speicherung des Layouts blockiert. Erlauben Sie die Speicherung für diese Website und speichern Sie das aktuelle Layout erneut. Die geöffneten Bereiche bleiben nutzbar."
         }
     }
 }

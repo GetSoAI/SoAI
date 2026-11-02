@@ -40,6 +40,11 @@ class ModelDetailViewController {
         this.populateDetailCards();
     }
 
+    mergeParametersPayload(payload: ParametersData): void {
+        this.#dependencies.session.parameters = payload;
+        this.#dependencies.parameterView.mergeParametersPayload(payload);
+    }
+
     setInfo(id: string, value: JsonValue | null | undefined, format: (input: JsonValue | null | undefined) => string | null = (input) => (isNullOrUndefined(input) || input === '' ? null : String(input))): void {
         setModelDetailInfo({ pageDom: this.#dependencies.pageDom }, id, value, format);
     }

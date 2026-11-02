@@ -8,10 +8,11 @@ import type { WebSocketEventContract, WebSocketEventContractIdentity } from '@co
 import { subscribeManagedWebSocketEvent } from '@core/realtime/websocketSubscription.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isThenable } from '@core/typeGuards.ts';
+import type { WebSocketDispatchContext } from '@core/websocketclient/types.ts';
 
 interface ManagedWebSocketEventBinding {
     eventType: string;
-    handler: (payload: JsonValue) => void | Promise<void>;
+    handler: (payload: JsonValue, context: WebSocketDispatchContext) => void | Promise<void>;
     label?: string | undefined;
 }
 
@@ -21,14 +22,14 @@ interface WebSocketContractBinding extends ManagedWebSocketEventBinding {
 
 interface WebSocketContractBindingOptions<Payload> {
     contract: WebSocketEventContract<Payload>;
-    handler: (payload: Payload) => void | Promise<void>;
+    handler: (payload: Payload, context: WebSocketDispatchContext) => void | Promise<void>;
     invalidPayloadMessage?: string | undefined;
     label?: string | undefined;
     onInvalidPayload?: ((error: Error) => void) | undefined;
 }
 
 interface WebSocketEventBatchSubscribe {
-    (eventType: string, handler: (payload: JsonValue) => void): () => void;
+    (eventType: string, handler: (payload: JsonValue, context: WebSocketDispatchContext) => void): () => void;
 }
 
 interface ManagedWebSocketEventBatchOptions {
@@ -71,9 +72,9 @@ const subscribeWebSocketEventBatch = (options: WebSocketEventBatchOptions): (() 
 
     try {
         for (const event of options.events) {
-            const unsubscribe = options.subscribe(event.eventType, (payload: JsonValue): void => {
+            const unsubscribe = options.subscribe(event.eventType, (payload: JsonValue, context: WebSocketDispatchContext): void => {
                 try {
-                    const result = event.handler(payload);
+                    const result = event.handler(payload, context);
                     if (isThenable(result)) {
                         void Promise.resolve(result).catch((error) => {
                             errorHandler.warn(event.label ?? options.label, 'WebSocket event handler failed', ensureError(error));
@@ -121,9 +122,9 @@ const createWebSocketContractBinding = <Payload>(options: WebSocketContractBindi
         contract: options.contract,
         eventType: options.contract.eventType,
         ...(options.label ? { label: options.label } : {}),
-        handler: (payload: JsonValue): void | Promise<void> => {
+        handler: (payload: JsonValue, context: WebSocketDispatchContext): void | Promise<void> => {
             try {
-                return options.handler(options.contract.decode(payload));
+                return options.handler(options.contract.decode(payload), context);
             } catch (error) {
                 const runtimeError = ensureError(error);
                 if (options.onInvalidPayload) {

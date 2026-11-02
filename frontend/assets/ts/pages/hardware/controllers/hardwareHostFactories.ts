@@ -1,6 +1,7 @@
 /* SoAI - Hardware page host factories [frontend/assets/ts/pages/hardware/controllers/hardwareHostFactories.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ElementOptions } from '@core/dom/dom.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import { isHTMLElement } from '@core/typeGuards.ts';
@@ -31,6 +32,7 @@ interface HardwareCardRendererHostsFactoryDependencies {
 }
 
 interface SystemInfoModalHostFactoryDependencies {
+    readonly owner: PresentationOwner;
     modals: ModalPresenterApi;
     domHasClass: (element: Element, className: string) => boolean;
     requireHTMLElement: (selector: string | Element, context?: Element) => HTMLElement;
@@ -47,8 +49,10 @@ interface SystemInfoModalHostFactoryDependencies {
 }
 
 interface SoAiBenchHistoryModalHostFactoryDependencies {
+    readonly owner: PresentationOwner;
     modals: ModalPresenterApi;
     downloadHistoryCsv: SoAIBenchHistoryModalHost['downloadHistoryCsv'];
+    optionalHTMLElement: SoAIBenchHistoryModalHost['optionalHTMLElement'];
     requireHTMLElement: (selector: string | Element, context?: Element) => HTMLElement;
     setHTML: SoAIBenchHistoryModalHost['setHTML'];
     runWithBoundary: <T>(name: string, functionValue: () => Promise<T>) => Promise<T>;
@@ -116,6 +120,7 @@ function createHardwareCardRendererHosts(dependencies: HardwareCardRendererHosts
 
 function createSystemInfoModalHost(dependencies: SystemInfoModalHostFactoryDependencies): SystemInfoModalHost {
     return {
+        owner: dependencies.owner,
         modals: dependencies.modals,
         domHasClass: (element: Element, className: string): boolean => dependencies.domHasClass(element, className),
         requireHTMLElement: (selector: string | Element, context?: Element): HTMLElement => dependencies.requireHTMLElement(selector, context),
@@ -134,8 +139,10 @@ function createSystemInfoModalHost(dependencies: SystemInfoModalHostFactoryDepen
 
 function createSoAIBenchHistoryModalHost(dependencies: SoAiBenchHistoryModalHostFactoryDependencies): SoAIBenchHistoryModalHost {
     return {
+        owner: dependencies.owner,
         modals: dependencies.modals,
         downloadHistoryCsv: (deviceId) => dependencies.downloadHistoryCsv(deviceId),
+        optionalHTMLElement: (selector, context) => dependencies.optionalHTMLElement(selector, context),
         requireHTMLElement: (selector: string | Element, context?: Element): HTMLElement => dependencies.requireHTMLElement(selector, context),
         setHTML: (target, html): void => dependencies.setHTML(target, html),
         runWithBoundary: <T>(name: string, functionValue: () => Promise<T>): Promise<T> => dependencies.runWithBoundary(name, functionValue),

@@ -1,6 +1,7 @@
 /* SoAI - Automation page action dispatcher host [frontend/assets/ts/pages/automation/controllers/actiondispatch/AutomationPageActionDispatcherHost.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { NotificationType } from '@core/ui/notifications/types.ts';
 import type { AutomationCalendarSettingsController } from '@pages/automation/controllers/AutomationCalendarSettingsController.ts';
 import type { AutomationEditorController } from '@pages/automation/controllers/AutomationEditorController.ts';
@@ -46,6 +47,7 @@ interface AutomationWindowRunActions {
 }
 
 interface AutomationPageActionDispatcherHost {
+    readonly owner: PresentationOwner;
     state: AutomationActionStatePort;
     controllers: AutomationActionControllerPort;
     windowRuns: AutomationWindowRunActions;

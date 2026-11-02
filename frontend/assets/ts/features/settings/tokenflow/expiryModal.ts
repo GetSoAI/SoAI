@@ -1,6 +1,7 @@
 /* SoAI - Settings feature expiry modal [frontend/assets/ts/features/settings/tokenflow/expiryModal.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { toTrustedUiHtml } from '@core/security/public.ts';
 import { bindEventGroup } from '@core/dom/eventBindingGroup.ts';
 import { requireButtonElement } from '@core/dom/typedElements.ts';
@@ -56,9 +57,10 @@ const createSettingsTokenExpiryModalDefinition = (modalId: string, configFactory
         createElement: createSettingsTokenExpiryModalElement
     });
 
-const showSettingsTokenExpiryModal = async (config: SettingsTokenExpiryModalConfig): Promise<SettingsTokenExpiryChoice | null> => {
+const showSettingsTokenExpiryModal = async (config: SettingsTokenExpiryModalConfig, owner: PresentationOwner): Promise<SettingsTokenExpiryChoice | null> => {
     return await runSettingsTokenModalSession<SettingsTokenExpiryChoice | null>({
         modalId: config.modalId,
+        owner,
         initialResult: null,
         initialize: ({ modal, signal, setResult, close }): { dispose: () => void } => {
             const resolver = createModalElementResolver(modal, config.contextLabel);

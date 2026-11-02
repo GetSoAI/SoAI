@@ -11,7 +11,7 @@ interface PluginStatusIndicatorHost {
 }
 
 interface PluginsModalLedUpdateHost {
-    modals: ModalPresenterApi;
+    modals: Pick<ModalPresenterApi, 'requireElement'>;
     optionalHTMLElement(selector: string, context?: Element): HTMLElement | null;
     updateText(target: Element | string, text: string): void;
     getPluginStatus(plugin: PluginRecord): string;

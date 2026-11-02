@@ -4,7 +4,7 @@
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { formatUppercaseUnderscoreLabel } from '@core/primitives/text.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
 import { isString } from '@core/typeGuards.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 
@@ -24,7 +24,7 @@ const resolvePluginsMetricBadgeType = (element: Element | null, optionalUi: (sel
     return text ? text.toUpperCase() : null;
 };
 
-const navigateFromPluginsMetricBadge = (badgeType: string | null, plugin: PluginRecord, router: Router | null): void => {
+const navigateFromPluginsMetricBadge = (badgeType: string | null, plugin: PluginRecord, router: PageRouting | null): void => {
     if (badgeType !== MODELS_METRIC_BADGE_TYPE || !router) return;
     const pluginName = toTrimmedString(plugin.name);
     if (!pluginName) return;

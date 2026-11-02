@@ -65,7 +65,7 @@ interface ModelDetailRuntimeComposition {
 
 const composeModelDetailRuntime = (owners: ModelDetailRuntimeOwners): ModelDetailRuntimeComposition => {
     const streamManager = owners.streaming.runtime();
-    const parameterState = new ParameterStateManager();
+    const parameterState = new ParameterStateManager(() => owners.services.mountScope.admission.canMutate());
     const parameterView = new ParameterViewManager({ host: createParameterViewDependencies(owners), parameterState });
     const testModalManager = new TestModalManager({ host: createTestModalDependencies(owners, streamManager) });
     return { streamManager, parameterState, parameterView, testModalManager, copyText: (value) => copyModelDetailText(owners, value) };
@@ -90,6 +90,7 @@ const createTestModalDependencies = (owners: ModelDetailRuntimeOwners, streamMan
         if (element) operation(element);
     };
     return {
+        owner: owners.services.mountScope,
         model: {
             getDocument: () => owners.dom.getDocument(),
             getModel: () => owners.session.model,

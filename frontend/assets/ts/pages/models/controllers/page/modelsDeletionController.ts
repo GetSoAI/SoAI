@@ -1,6 +1,7 @@
 /* SoAI - Models page deletion controller [frontend/assets/ts/pages/models/controllers/page/modelsDeletionController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { modelsPageConfig } from '@core/routing/pages/collections/collectionPageConfig.ts';
 import type { ResourceIncomingValue } from '@core/data/ClientDataHub.ts';
 import type { DeleteModelDependencies } from '@pages/models/controllers/modelsOperationsController.ts';
@@ -18,6 +19,7 @@ interface ModelsDeleteVirtualModels {
 }
 
 interface ModelsDeleteDependencies {
+    readonly owner: PresentationOwner;
     collections: PageCollections;
     pageDom: PageDom;
     modelActions: Pick<ModelsPageModelActions, 'delete'>;
@@ -27,6 +29,7 @@ interface ModelsDeleteDependencies {
 
 const createModelsDeleteDependencies = (dependencies: ModelsDeleteDependencies, modelProperties: ModelsDeleteModelProperties, virtualModelsManager: ModelsDeleteVirtualModels): DeleteModelDependencies => {
     return {
+        owner: dependencies.owner,
         getModelPlugin: (model) => modelProperties.getModelPlugin(model),
         isExternalProviderModel: (model) => modelProperties.isExternalProviderModel(model),
         getCollectionItem: (identifier) => (dependencies.collections.runtime ? dependencies.collections.runtime.find(identifier) : null),

@@ -15,6 +15,13 @@ __all__ = ("TerminalServiceProtocol",)
 
 @runtime_checkable
 class TerminalServiceProtocol(Protocol):
+    @property
+    def runtime_id(self) -> str: ...
+
+    async def release_pty_acquisition(
+        self, runtime_id: str, acquisition_id: str, user_id: int, *, allow_new_acquisition: bool
+    ) -> str | None: ...
+
     async def create_pty_session(self, request: CreatePTYSessionRequest) -> JSONDict: ...
 
     async def write_pty_input(self, session_id: str, data: bytes) -> None: ...

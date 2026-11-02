@@ -1,6 +1,7 @@
 /* SoAI - Archived conversations modal types [frontend/assets/ts/pages/chat/controllers/modals/archivedconversations/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { SanitizerApi } from '@core/pagecontext/public.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
@@ -9,7 +10,7 @@ import type { ArchivedConversationSummary, ArchivedConversationsCursor, ChatPage
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 
 interface ArchivedConversationsModalHost extends PageFeedbackOwnerHost {
-    pageContext: { sanitizer: SanitizerApi };
+    pageContext: { readonly presentationOwner: PresentationOwner; sanitizer: SanitizerApi };
     api: ChatPageApi;
     getCachedIcon(name: IconName, options?: IconOptions): TrustedHtml;
     openConversationEnsuringLoaded(conversationId: string): void;

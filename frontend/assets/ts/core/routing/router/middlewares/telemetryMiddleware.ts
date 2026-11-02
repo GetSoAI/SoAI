@@ -3,9 +3,9 @@
 
 import { createAbortError, isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import type { NavigationResultType } from '@core/navigationMiddleware.ts';
+import type { NavigationResultType, NavigationContext } from '@core/routing/router/types.ts';
 import { normalizeMiddlewareOutcome, readErrorMessage } from '@core/routing/router/navigationMiddlewareNormalization.ts';
-import type { NavigationContext } from '@core/routing/router/types.ts';
+
 import type { JsonValue } from '@core/types/jsonValues.ts';
 
 type RouterMiddleware = (context: NavigationContext, next: () => Promise<NavigationResultType>) => Promise<NavigationResultType>;

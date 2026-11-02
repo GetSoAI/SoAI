@@ -1,6 +1,7 @@
 /* SoAI - Shared UI dialogs contracts [frontend/assets/ts/core/ui/modals/dialogs/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ConfirmationActionButton, NoticeSection } from '@core/ui/modals/dialogs/confirmationFlow.ts';
 
 interface ClipboardServiceInterface {
@@ -15,6 +16,7 @@ interface CopyTextOptions {
 }
 
 interface ConfirmationOptions {
+    readonly owner: PresentationOwner;
     signal?: AbortSignal | undefined;
     title?: string;
     message?: string;
@@ -32,6 +34,7 @@ interface ConfirmationOptions {
 }
 
 interface NoticeOptions {
+    readonly owner: PresentationOwner;
     sections?: readonly NoticeSection[];
     signal?: AbortSignal | undefined;
     advisory?: { text: string; variant: 'info' | 'warning' };
@@ -57,6 +60,7 @@ interface LocalFolderOpenOptions extends ConfirmationOptions {
 }
 
 interface CopyTextModalOptions {
+    readonly owner: PresentationOwner;
     title: string;
     message: string;
     text: string;
@@ -75,6 +79,7 @@ type PromptInputType = 'password' | 'text';
 type PromptAutocomplete = 'current-password' | 'new-password' | 'off' | 'on' | 'username';
 
 interface PromptModalOptions {
+    readonly owner: PresentationOwner;
     title: string;
     message: string;
     defaultValue?: string;
@@ -107,6 +112,7 @@ interface PasswordChangeValidationMessages {
 }
 
 interface PasswordChangeModalOptions {
+    readonly owner: PresentationOwner;
     title: string;
     message: string;
     fieldLabels: PasswordChangeFieldLabels;
@@ -127,6 +133,7 @@ interface UsernameRenameValues {
 }
 
 interface UsernameRenameModalOptions {
+    readonly owner: PresentationOwner;
     title: string;
     message: string;
     usernameLabel: string;

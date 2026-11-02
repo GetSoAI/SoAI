@@ -1,6 +1,19 @@
 /* SoAI - Shared header actions contracts [frontend/assets/ts/core/headeractions/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { GlobalPresentationOwner, PageMountPresentation, PresentationOwner } from '@core/routing/router/types.ts';
+
+interface HeaderActionRegistration<Owner extends PresentationOwner = PresentationOwner> {
+    readonly owner: Owner;
+    readonly token: symbol;
+}
+
+interface HeaderActionHandoff {
+    readonly owner: PresentationOwner;
+    readonly presentation: PageMountPresentation;
+    readonly renderable: Renderable | null;
+}
+
 interface ActionDefinition {
     id: string;
     order: number;
@@ -19,6 +32,7 @@ interface ActionDefinition {
 }
 
 interface ContextPayload {
+    registration: HeaderActionRegistration;
     visible: boolean;
     priority: number;
     order: number | null;
@@ -55,7 +69,7 @@ interface Renderable {
 interface RegistryEntry {
     id: string;
     definition: ActionDefinition;
-    contexts: Map<string, ContextPayload>;
+    contexts: Map<PresentationOwner, Map<string, ContextPayload>>;
     renderable: Renderable | null;
 }
 
@@ -98,4 +112,4 @@ interface PayloadInput {
     onClick?: ((event: Event) => void) | undefined;
 }
 
-export type { ActionDefinition, ContextPayload, Renderable, RegistryEntry, ActionSnapshot, SubscriberCallback, DefinitionInput, PayloadInput };
+export type { ActionDefinition, ContextPayload, Renderable, RegistryEntry, ActionSnapshot, SubscriberCallback, DefinitionInput, PayloadInput, HeaderActionRegistration, HeaderActionHandoff, GlobalPresentationOwner, PresentationOwner };

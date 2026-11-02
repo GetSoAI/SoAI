@@ -3,6 +3,7 @@
 
 import { dom } from '@core/dom/dom.ts';
 import { createElementResolver } from '@core/dom/elementResolver.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { requireInputElement, type ElementResolver } from '@core/dom/typedElements.ts';
 import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
 import { createToggleSwitch, updateToggleLabel } from '@core/toggleSwitch.ts';
@@ -94,8 +95,8 @@ const readExpandedToolGroupIds = (root: Element | null): Set<string> => {
     return expanded;
 };
 
-const openDefaultToolsModal = (): void => {
-    requireModalPresenter().open(CHAT_MCP_DEFAULT_TOOLS_MODAL_ID);
+const openDefaultToolsModal = (owner: PresentationOwner): void => {
+    requireModalPresenter().open(CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, { owner });
 };
 
 const resolveMcpToggleAction = (className: string): string => {

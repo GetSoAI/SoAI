@@ -6,7 +6,8 @@ import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { applyPageOutletErrorState } from '@core/pageoutlet/actions.ts';
 import { createOverlayElements, setPageOutletState } from '@core/pageoutlet/dom.ts';
 import type { PageOutletOverlayElements, PageOutletRetryHandler, PageOutletStateOptions } from '@core/pageoutlet/types.ts';
-import { isFunction, isHTMLElement } from '@core/typeGuards.ts';
+import { isFunction, isHTMLElement, isString } from '@core/typeGuards.ts';
+import { i18n } from '@core/i18n/index.ts';
 import { SpinnerTrailRenderer } from '@core/pageoutlet/spinner/SpinnerTrailRenderer.ts';
 
 class PageOutletOverlayController {
@@ -15,14 +16,15 @@ class PageOutletOverlayController {
     #overlayElements: PageOutletOverlayElements | null = null;
     #retryHandler: PageOutletRetryHandler | null = null;
     #state: string = 'idle';
-    #clearSkeleton: () => void;
+    #settledState: { state: string; options: PageOutletStateOptions } = { state: 'idle', options: {} };
     #spinnerWorkerUrl: string | undefined;
     #spinnerRenderer: SpinnerTrailRenderer | null = null;
+    readonly #onStateChanged: (() => void) | undefined;
 
-    constructor(options: { resources: ResourceTracker; clearSkeleton: () => void; spinnerWorkerUrl?: string | undefined }) {
+    constructor(options: { resources: ResourceTracker; spinnerWorkerUrl?: string | undefined; onStateChanged?: (() => void) | undefined }) {
         this.#resources = options.resources;
-        this.#clearSkeleton = options.clearSkeleton;
         this.#spinnerWorkerUrl = options.spinnerWorkerUrl;
+        this.#onStateChanged = options.onStateChanged;
     }
 
     setRetryHandler(handler: PageOutletRetryHandler | null): void {
@@ -38,13 +40,25 @@ class PageOutletOverlayController {
         return this.#state;
     }
 
+    setSkeleton(route: string): void {
+        if (!isString(route) || !route.trim()) throw new Error('PageOutlet skeleton requires a route identifier');
+        this.#requireContainer().dataset['routeSkeleton'] = route.trim();
+        this.setState('loading', { label: i18n.t('pageOutlet.loading') });
+    }
+
     applyErrorState(error: Error): void {
         applyPageOutletErrorState(error, (state, options) => this.setState(state, options));
+    }
+
+    restoreSettledState(): void {
+        const { state, options } = this.#settledState;
+        this.setState(state, options);
     }
 
     setState(state: string, { label = null, detail = null, delayed = false }: PageOutletStateOptions = {}): void {
         const container = this.#requireContainer();
         this.#state = state;
+        if (state !== 'loading') this.#settledState = { state, options: { label, detail, delayed } };
         const overlayElements = this.#overlayElements;
         const resolvedOverlay = setPageOutletState({
             state,
@@ -54,13 +68,13 @@ class PageOutletOverlayController {
             container,
             overlayElements,
             ensureOverlay: () => this.#ensureOverlay(),
-            clearSkeleton: () => this.#clearSkeleton(),
             hasRetryHandler: isFunction(this.#retryHandler)
         });
         if (resolvedOverlay) {
             this.#overlayElements = resolvedOverlay;
         }
         this.#spinnerRenderer?.setLoading(state === 'loading');
+        this.#onStateChanged?.();
     }
 
     #ensureOverlay(): PageOutletOverlayElements {

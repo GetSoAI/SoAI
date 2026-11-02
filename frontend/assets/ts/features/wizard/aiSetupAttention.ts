@@ -5,7 +5,7 @@ import type { AiSetupAttentionLifecycleContract } from '@core/aisetup/protocols.
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { onNavigationComplete } from '@core/navigationEvents.ts';
+import { onFocusedNavigation } from '@core/navigationEvents.ts';
 import { buildAiSetupResumeRoute } from '@core/routing/router/aiSetupRoutes.ts';
 import { AUTH_ROUTE_WIZARD } from '@core/routing/router/authRouteTarget.ts';
 import { listAiSetupItemsNeedingAttention } from '@core/storage/aisetup/aiSetupAttention.ts';
@@ -62,7 +62,7 @@ class AiSetupAttentionService implements AiSetupAttentionLifecycleContract {
         }
         if (generation !== this.#generation) return;
         this.#unsubscribe = this.#dependencies.taskOperations.subscribeOperations({}, () => this.#evaluate());
-        this.#unsubscribeNavigation = onNavigationComplete(() => this.#evaluate());
+        this.#unsubscribeNavigation = onFocusedNavigation(() => this.#evaluate());
         this.#evaluate();
     }
 

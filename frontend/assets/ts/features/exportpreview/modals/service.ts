@@ -104,7 +104,7 @@ class ExportPreviewModal {
             contentElement.textContent = '';
             setLoadingVisible(this.host, modalRoot, true);
             setDownloadDisabled(this.host, modalRoot, true);
-            this.host.modals.open(this.modalId);
+            this.host.modals.open(this.modalId, { owner: this.host.owner });
 
             try {
                 const payload = await this.#loadPayload(request, abortController.signal);

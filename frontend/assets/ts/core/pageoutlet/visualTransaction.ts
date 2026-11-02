@@ -12,6 +12,7 @@ import { observePageSectionInteractivity } from '@core/pageoutlet/sectionInterac
 interface PageOutletVisualTransactionOptions {
     resources: ResourceTracker;
     setReady(): void;
+    restoreState(): void;
     showLoading(label: string | null, detail: string | null, delayed: boolean): void;
 }
 
@@ -24,11 +25,13 @@ class PageOutletVisualTransaction {
     #exitAnimation: Animation | null = null;
     #delayedLoading: DelayedPageOutletLoading;
     #setReady: () => void;
+    readonly #restoreState: () => void;
     #resources: ResourceTracker;
     #stopSectionInteractivity: (() => void) | null = null;
 
     constructor(options: PageOutletVisualTransactionOptions) {
         this.#setReady = options.setReady;
+        this.#restoreState = options.restoreState;
         this.#resources = options.resources;
         this.#delayedLoading = new DelayedPageOutletLoading({
             resources: options.resources,
@@ -170,6 +173,7 @@ class PageOutletVisualTransaction {
         this.#activeToken = null;
         this.#restoreExitingSection();
         this.#delayedLoading.cancel();
+        this.#restoreState();
     }
 
     cancel(token: symbol | null = null): void {

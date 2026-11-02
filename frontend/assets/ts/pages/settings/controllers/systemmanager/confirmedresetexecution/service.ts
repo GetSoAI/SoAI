@@ -15,7 +15,7 @@ const showResetOperationFailure = (host: ResetActionExecutionContext['host'], er
     });
 };
 
-const executeConfirmedReset = async (context: ResetActionExecutionContext, boundaryName: string, confirmOptions: ConfirmationOptions, action: () => Promise<void>, successMessage: string, failureMessage: ((error: Error) => string) | null, afterSuccess: (() => Promise<void> | void) | null = null): Promise<void> => {
+const executeConfirmedReset = async (context: ResetActionExecutionContext, boundaryName: string, confirmOptions: Omit<ConfirmationOptions, 'owner'>, action: () => Promise<void>, successMessage: string, failureMessage: ((error: Error) => string) | null, afterSuccess: (() => Promise<void> | void) | null = null): Promise<void> => {
     const { host, button } = context;
     await executeConfirmedButtonAction({
         host: host.execution,

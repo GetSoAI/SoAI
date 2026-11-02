@@ -92,7 +92,7 @@ class LogsPage extends StaticBasePage {
         this.applyTextZoom();
         this.#viewSession.renderBuffer();
         if (!this.services.isDetached()) {
-            this.#detachActionController ??= createHeaderActionController({ actionId: 'detach', contextId: 'logs' });
+            this.#detachActionController ??= createHeaderActionController({ owner: this.pageContext.presentationOwner, actionId: 'detach', contextId: 'logs' });
             this.#detachActionController.show({ onClick: () => openLogsDetachedWindow() });
         }
         if (signalAborted(context.signal ?? null)) {

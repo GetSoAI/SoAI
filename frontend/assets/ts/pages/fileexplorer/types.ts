@@ -1,13 +1,14 @@
 /* SoAI - File explorer page public contracts [frontend/assets/ts/pages/fileexplorer/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { BufferedApiResponse } from '@core/api/bufferedResponse.ts';
 import type { FileExplorerBatchResponse, FileExplorerBatchUploadResponse, FileExplorerListResponse, FileExplorerMetadataResponse, FileExplorerMoveMutationResponse, FileExplorerPathMutationResponse, FileExplorerReadResponse, FileExplorerSearchResponse, FileExplorerTaskAcceptedResponse, FileExplorerUploadResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
-import type { DirectoryListingApi } from '@core/fileexplorerbrowser/directoryListingController.ts';
+import type { DirectoryListingApi } from '@core/fileexplorerbrowser/directoryListingContracts.ts';
 
 interface FileExplorerListOptions {
     path?: string;
@@ -54,7 +55,9 @@ interface FileExplorerApi extends DirectoryListingApi {
 }
 
 interface FileExplorerControllerHost {
+    readonly owner: PresentationOwner;
     api: FileExplorerApi;
+    isDirectoryAvailable: () => boolean;
     awaitTask: (taskId: string, signal: AbortSignal) => Promise<void>;
     showNotification: (message: string, type: NotificationType) => void;
     handleError: (error: Error, context: string, options?: { notify?: boolean }) => void;
@@ -89,6 +92,7 @@ interface FileExplorerUiRefs {
     currentPathInput: HTMLInputElement;
     currentPathSaveButton: HTMLButtonElement;
     resultCount: HTMLElement;
+    listingStatus: HTMLElement;
     selectionCount: HTMLElement;
     selectionStatusBadge: HTMLElement;
     navigateHomeButton: HTMLButtonElement;

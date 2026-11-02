@@ -10,8 +10,8 @@ const buildPluginsLayout = ({ getIconSync, buildLayout, viewMode, sortBy, sortOr
         header: buildPluginsHeader(getIconSync, viewMode, sortBy, sortOrder),
         sections: buildPluginsSections(sortBy, sortOrder),
         filters: {
-            '#provider-filter': 'filterProvider',
-            '#status-filter': 'filterStatus'
+            '#plugins-provider-filter': 'filterProvider',
+            '#plugins-status-filter': 'filterStatus'
         },
         actions: [{ selector: '#plugins-sort', event: 'change', handler: onSortChange }],
         delegated: []

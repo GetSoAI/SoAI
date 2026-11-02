@@ -4,7 +4,7 @@
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { MODAL_HEADER_CLOSE_SELECTOR } from '@core/modals/headerButtons.ts';
 import type { ModalBinder, ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { TEXT_MODAL_CONFIGS, TEXT_MODAL_KEYS } from '@core/licenseservice/constants.ts';
 import { createTextModalElement, resolveTextModalButtons } from '@core/licenseservice/dom.ts';
@@ -38,7 +38,7 @@ const createLicenseModalDefinition = (key: TextModalKey): ModalDefinition => {
         id: config.id,
         layout: 'md',
         initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-        createElement: (_options: ModalOpenOptions): HTMLElement => createTextModalElement(config),
+        createElement: (_options: ModalCreationOptions): HTMLElement => createTextModalElement(config),
         bind: createLicenseModalBinder(key)
     };
 };

@@ -7,11 +7,12 @@ import { runCleanup } from '@core/lifecycle/cleanup.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isThenable } from '@core/typeGuards.ts';
 import { connectWebSocket, subscribeWebSocketEvent } from '@core/websocketclient/service.ts';
+import type { WebSocketDispatchContext } from '@core/websocketclient/types.ts';
 
 interface WebSocketEventSubscriptionOptions {
     label: string;
     eventType: string;
-    handler: (payload: JsonValue) => void | Promise<void>;
+    handler: (payload: JsonValue, context: WebSocketDispatchContext) => void | Promise<void>;
     signal?: AbortSignal | null | undefined;
 }
 
@@ -23,9 +24,9 @@ const subscribeManagedWebSocketEvent = (options: WebSocketEventSubscriptionOptio
         return (): void => {};
     }
     connectWebSocket();
-    let unsubscribe: (() => void) | null = subscribeWebSocketEvent(options.eventType, (payload): void => {
+    let unsubscribe: (() => void) | null = subscribeWebSocketEvent(options.eventType, (payload, context): void => {
         try {
-            const result = options.handler(payload);
+            const result = options.handler(payload, context);
             if (isThenable(result)) {
                 void Promise.resolve(result).catch((error) => {
                     errorHandler.warn(options.label, 'WebSocket event handler failed', ensureError(error));

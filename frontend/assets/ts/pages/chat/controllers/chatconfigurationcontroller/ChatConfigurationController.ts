@@ -61,6 +61,7 @@ class ChatConfigurationController implements EditableConfigurationSessionState {
             onStateChange: this.recalculateConfigurationDirtyState
         });
         this.#save = createSaveController({
+            owner: options.host.owner,
             headerContextId: options.headerActionContextId,
             headerPriority: SAVE_HEADER_PRIORITY_MODAL,
             requestContextLabel: 'Chat configuration save',

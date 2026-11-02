@@ -55,6 +55,7 @@ const executeModelsItemDeletion = async (host: ModelsItemDeletionHost, config: M
     };
     await executeStreamItemDeletion(
         {
+            owner: host.owner,
             deletingItems: host.deletingItems,
             streams: host.streams,
             optionalUI: (selector, context) => host.pageDom.optional(selector, context),

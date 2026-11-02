@@ -33,9 +33,11 @@ class SettingsDirtyStateManager implements SettingsDirtyStateSurface {
         this.#tracker = this.#createTracker();
     }
 
-    syncConfigField(path: string, valid: boolean): void {
+    syncConfigField(path: string, valid: boolean, composing = false): void {
         const fieldKey = createSettingsConfigFieldKey(path);
-        this.#tracker.setInvalid(fieldKey, valid ? null : 'invalid');
+        this.#tracker.markEdited(fieldKey);
+        this.#tracker.setComposing(fieldKey, composing);
+        this.#tracker.setInvalid(fieldKey, valid || composing ? null : 'invalid');
         this.#tracker.update(fieldKey);
     }
 
@@ -74,6 +76,14 @@ class SettingsDirtyStateManager implements SettingsDirtyStateSurface {
     clearAll(): void {
         this.#tracker.clearAll();
         this.#clearSurfaceIndex();
+    }
+
+    get protectionRevision(): number {
+        return this.#tracker.protectionRevision;
+    }
+
+    hasPendingChanges(): boolean {
+        return Array.from(this.#tracker.trackedKeys).some((key) => parseSettingsFieldKey(key)?.fieldType !== 'manual' && this.#tracker.hasPendingEdit(key));
     }
 
     hasInvalidFields(): boolean {

@@ -26,7 +26,7 @@ class LoginPage extends StaticBasePage {
 
     constructor(basePageDependencies: BasePageDependencies) {
         super(PAGE_ID, { dependencies: basePageDependencies });
-        this.#session = new LoginSession({ auth: this.dependencies.auth, streaming: this.streaming, pageElements: this.pageElements, pageDom: this.pageDom, pageResources: this.pageResources, stateManager: this.dependencies.stateManager, storage: this.dependencies.storage });
+        this.#session = new LoginSession({ router: this.dependencies.router, auth: this.dependencies.auth, streaming: this.streaming, pageElements: this.pageElements, pageDom: this.pageDom, pageResources: this.pageResources, stateManager: this.dependencies.stateManager, storage: this.dependencies.storage });
     }
 
     override getRequiredResources(): string[] {

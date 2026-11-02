@@ -19,8 +19,8 @@ import { CONFIRMATION_MODAL_ID, DIALOGS_SERVICE_ID, PASSWORD_CHANGE_MODAL_ID, PR
 interface DialogsServiceApi {
     showConfirmation: (options: ConfirmationOptions) => Promise<boolean>;
     showNotice: (options: NoticeOptions) => Promise<boolean>;
-    showExternalLinkModal: (options?: ExternalLinkOptions | undefined) => Promise<boolean>;
-    showChatExternalLinkModal: (options?: ExternalLinkOptions | undefined) => Promise<boolean>;
+    showExternalLinkModal: (options: ExternalLinkOptions) => Promise<boolean>;
+    showChatExternalLinkModal: (options: ExternalLinkOptions) => Promise<boolean>;
     showLocalFolderOpenModal: (options: LocalFolderOpenOptions) => Promise<boolean>;
     showCopyTextModal: (options: CopyTextModalOptions) => Promise<boolean>;
     showPrompt: (options: PromptModalOptions) => Promise<string | null>;
@@ -61,7 +61,7 @@ const createDialogsService = (): DialogsServiceApi => {
             variant: 'danger'
         };
 
-        const config: ConfirmationOptions = { ...defaults, ...(options ?? {}) };
+        const config: ConfirmationOptions = { ...defaults, ...options };
 
         const variant = toTrimmedLower(config.variant || 'danger');
         const icon = config.icon !== false ? config.icon || resolveVariantIcon(variant) : null;
@@ -80,6 +80,7 @@ const createDialogsService = (): DialogsServiceApi => {
         });
 
         return await confirmationFlow.show({
+            owner: config.owner,
             signal: config.signal,
             title: config.title || defaults.title,
             typeTokens: ['confirmation', variant],
@@ -97,6 +98,7 @@ const createDialogsService = (): DialogsServiceApi => {
 
     const showNotice = async (options: NoticeOptions): Promise<boolean> => {
         return await confirmationFlow.show({
+            owner: options.owner,
             signal: options.signal,
             closeCompletes: true,
             advisory: options.advisory,
@@ -123,6 +125,7 @@ const createDialogsService = (): DialogsServiceApi => {
         const resolvedConfirmText = options.confirmText ?? i18n.t('common.ok');
 
         return await promptFlow.show({
+            owner: options.owner,
             title: options.title,
             message: options.message,
             placeholder,

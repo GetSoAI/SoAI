@@ -13,16 +13,16 @@ const resolveGpuControlAvailability = (capabilities: GpuCapabilitiesByIndex | nu
     toggleDisabled: pending || locked || !isControlSupported(capabilities, index, type, isAuto ? 'manual' : 'auto')
 });
 
-const syncGpuControlInputAvailability = (document: Document, capabilities: GpuCapabilitiesByIndex | null, index: string | number, pending: boolean, locked: boolean, previewSlot: string | null): void => {
+const syncGpuControlInputAvailability = (root: Element, capabilities: GpuCapabilitiesByIndex | null, index: string | number, pending: boolean, locked: boolean, previewSlot: string | null): void => {
     for (const type of GPU_CONTROL_TYPES) {
-        const { slider, toggle, valueTrigger, valueInput } = getSliderElements(document, index, type);
+        const { slider, toggle, valueTrigger, valueInput } = getSliderElements(root, index, type);
         const availability = resolveGpuControlAvailability(capabilities, index, type, toggle?.checked ?? false, pending, locked);
         for (const control of [slider, valueTrigger, valueInput]) {
             if (control) setControlDisabledState(control, availability.manualDisabled);
         }
         if (toggle) setControlDisabledState(toggle, availability.toggleDisabled);
     }
-    const boot = dom.resolve(`#gpu-boot-toggle-${index}`, document);
+    const boot = dom.resolve(`#gpu-boot-toggle-${index}`, root);
     if (boot instanceof HTMLInputElement) setControlDisabledState(boot, pending || locked || previewSlot === null);
 };
 

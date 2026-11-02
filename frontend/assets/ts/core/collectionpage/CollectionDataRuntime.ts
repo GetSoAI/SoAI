@@ -1,6 +1,7 @@
 /* SoAI - Collection mutation, transfer, deletion, and session state ownership [frontend/assets/ts/core/collectionpage/CollectionDataRuntime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { cancelDownloadAction, executeItemDeletionAction, removeItemByIdAction, setItemsFromListAction, upsertItemAction } from '@core/collectionpage/actions.ts';
 import { readSessionDeletedIds, writeSessionDeletedIds } from '@core/collectionpage/sessionDeleted.ts';
 import type { Collection, CollectionDeletionContext, CollectionItem, CollectionItemInput, CollectionItemInputList, CollectionMutationContext, CollectionOperation, DeletionConfig, ProgressReporter, Storage, StreamTracker } from '@core/collectionpage/types.ts';
@@ -19,6 +20,7 @@ interface CollectionDataBehavior {
 }
 
 interface CollectionDataDependencies {
+    readonly owner: PresentationOwner;
     pageId: string;
     storage: Storage;
     collections: PageCollectionsContract;
@@ -130,6 +132,7 @@ class CollectionDataRuntime {
     #deletionContext(): CollectionDeletionContext {
         return {
             ...this.#mutationContext(),
+            owner: this.#dependencies.owner,
             getStreams: () => this.streams,
             getProgressReporter: () => this.#progressReporter,
             isDeleting: (identifier) => this.#deletingItems.has(identifier),

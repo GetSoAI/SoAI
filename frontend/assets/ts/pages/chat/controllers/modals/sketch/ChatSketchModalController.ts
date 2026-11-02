@@ -10,7 +10,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { encodeCanvasImage } from '@core/media/canvasImageEncoding.ts';
 import { attachBeforeCloseConfirmationGuard, attachPendingOperationCloseGuard } from '@core/modals/closeGuard.ts';
 import { showUnsavedChangesConfirmation } from '@core/modals/unsavedChangesConfirmation.ts';
-import { isAvailableFocusTarget } from '@core/modals/modalhost/focusIsolation.ts';
+import { isAvailableFocusTarget } from '@core/dom/focusTarget.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { createBusyDisabledToken, setBusyDisabledState, type BusyDisabledToken } from '@core/ui/controls/busyDisabledState.ts';
@@ -71,13 +71,13 @@ class ChatSketchModalController {
             onResize: (target) => this.#canvas.resize(target.sheetWidth, target.sheetHeight, this.#document.visibleOperations())
         });
         this.#detachGuards = [
-            attachPendingOperationCloseGuard({ modal, isPending: () => this.#isSubmitting() }),
+            attachPendingOperationCloseGuard({ modal, presenter: host.presenter, isPending: () => this.#isSubmitting() }),
             attachBeforeCloseConfirmationGuard({
                 modal,
                 presenter: host.presenter,
                 modalId: CHAT_SKETCH_MODAL_ID,
                 shouldConfirmClose: () => this.#document.hasContent() && !this.#isSubmitting(),
-                confirmClose: () => showUnsavedChangesConfirmation({ message: i18n.t('chat.sketch.discardConfirm'), confirmText: i18n.t('chat.sketch.discard') })
+                confirmClose: () => showUnsavedChangesConfirmation({ owner: host.owner, message: i18n.t('chat.sketch.discardConfirm'), confirmText: i18n.t('chat.sketch.discard') })
             })
         ];
         this.#bind();

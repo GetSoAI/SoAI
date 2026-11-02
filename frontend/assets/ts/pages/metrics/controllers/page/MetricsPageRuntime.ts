@@ -36,6 +36,7 @@ class MetricsPageRuntime implements MetricsRuntimeContext {
         const pageServices = createMetricsPageServices({ owners: { pageContext: owners.pageContext, pageElements: owners.pageElements }, requestPresentation: () => this.presentation.requestRefresh() });
         const exportPreviewModal = new ExportPreviewModal({
             host: {
+                owner: owners.services.mountScope,
                 modals: owners.services.modals,
                 requireHTMLElement: (selector, context) => owners.pageDom.requireHTMLElement(selector, context),
                 runWithBoundary: (boundaryKey, task) => owners.pageLifecycle.run(boundaryKey, task),
@@ -61,6 +62,7 @@ class MetricsPageRuntime implements MetricsRuntimeContext {
         this.history = new MetricsHistoryController(this);
         this.deferredController = new MetricsDeferredController(this);
         this.layoutController = new MetricsLayoutController({
+            owner: owners.services.mountScope,
             state: this.state,
             owners: { auth: owners.auth, services: owners.services },
             logger: (level, message, error) => metricsLogger(level, message, error),

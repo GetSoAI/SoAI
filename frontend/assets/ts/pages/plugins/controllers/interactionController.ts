@@ -8,7 +8,7 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { isActionToggleInteractionDisabled } from '@core/toggleSwitch.ts';
 import type { CardPageController } from '@core/routing/pages/collections/cardgridpage/public.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
 import { isPluginRecord } from '@core/types/pluginRecordGuards.ts';
 import { METRIC_BADGE_HANDLERS, PLUGINS_ACTION_METRIC_BADGE, PLUGINS_ACTION_TOGGLE_ENABLED, PLUGIN_ACTION_HANDLERS, type PluginActionHost } from '@features/plugins/public.ts';
 import type { PluginsActionId, PluginsCardActionId } from '@pages/plugins/actions.ts';
@@ -27,7 +27,7 @@ const isDisabledPluginToggleAction = (action: string, actionElement: Element): b
 interface PluginsInteractionControllerDependencies extends PageDomOwnerHost, PageFeedbackOwnerHost {
     getCardController(): CardPageController | null;
     pluginActionHost: PluginActionHost;
-    getRouter(): Router | null;
+    getRouter(): PageRouting | null;
     getDownloadModalManager(): {
         openDownloadPluginModal(): void;
         handleChooseFileClick(): void;
@@ -36,8 +36,8 @@ interface PluginsInteractionControllerDependencies extends PageDomOwnerHost, Pag
         handleFileTabClick(): void;
         handleManualPluginTabClick(): void;
         handleManualPluginPathCopy(): void;
-        handleManualPluginOpenFileExplorer(): void;
-        handleManualPluginPowerClick(): void;
+        handleManualPluginOpenFileExplorer(): Promise<void>;
+        handleManualPluginPowerClick(): Promise<void>;
         handlePluginUrlInput(event: Event): void;
         handlePluginFileChange(event: Event): void;
     };

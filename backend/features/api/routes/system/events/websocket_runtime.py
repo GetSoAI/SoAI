@@ -152,11 +152,13 @@ async def run_websocket_events(
             session_valid = False
         if not session_valid or connection_shutdown_event.is_set():
             return
+        terminal = api_context.dependencies.terminal
         sender_task = create_managed_task(
             run_websocket_sender(
                 websocket=runtime_context.websocket,
                 connection=runtime_context.connection,
                 shutdown_event=connection_shutdown_event,
+                terminal_runtime_id=terminal.runtime_id if terminal is not None else None,
             ),
             name="ws-events-sender",
             logger=logger,

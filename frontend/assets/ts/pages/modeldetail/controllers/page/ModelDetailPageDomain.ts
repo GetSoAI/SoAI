@@ -13,7 +13,7 @@ import type { PageUi } from '@core/routing/pages/basepagecore/PageUi.ts';
 import type { PageCollapsibleCards } from '@core/routing/pages/basepagelayout/PageCollapsibleCards.ts';
 import type { PageLayout } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { PageStreaming } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
 import type { StatusManager } from '@core/state/public.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -49,7 +49,7 @@ interface ModelDetailPageDomainOwners {
     pageElements: PageUi;
     pageLifecycle: PageLifecycle;
     pageResources: PageResources;
-    router: Router;
+    router: PageRouting;
     services: PageServices;
     statusManager: StatusManager;
     storage: StorageService;
@@ -117,6 +117,7 @@ class ModelDetailPageDomain {
         });
         this.saveStatus = this.#domains.saveStatus;
         const events = {
+            owner: owners.pageContext.presentationOwner,
             session: this.session,
             pageDom: owners.pageDom,
             pageResources: owners.pageResources,
@@ -175,12 +176,7 @@ class ModelDetailPageDomain {
         this.#owners.modalPresenter.requireElement(MODEL_DETAIL_TEST_MODAL_ID);
         const store = requireCatalogStore();
         await store.ensureCapabilityManifestReady();
-        this.#owners.pageResources.track(
-            this.#owners.layout.registerUnsavedChanges({
-                hasUnsavedChanges: () => this.#domains.save.isSaving() || this.#domains.save.hasChanges(),
-                confirmMessage: i18n.t('common.unsavedChanges')
-            })
-        );
+
         await setupModelDetailPage(this.session, {
             layout: this.#owners.layout,
             pageResources: this.#owners.pageResources,
@@ -204,6 +200,12 @@ class ModelDetailPageDomain {
     }
 
     bindPageEvents(): void {
+        this.#owners.pageResources.track(
+            this.#owners.layout.registerUnsavedChanges({
+                hasUnsavedChanges: () => this.#domains.save.isSaving() || this.#domains.save.hasChanges(),
+                confirmMessage: i18n.t('common.unsavedChanges')
+            })
+        );
         this.#eventController.bind();
     }
 

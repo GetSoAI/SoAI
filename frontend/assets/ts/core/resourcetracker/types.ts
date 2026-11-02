@@ -25,6 +25,7 @@ interface EventListenerMetadata {
 interface DisposableMetadata {
     disposable: DisposableResource;
     cleanup?: ((disposable: DisposableResource) => void | Promise<void>) | undefined;
+    completion?: Promise<Error | null>;
 }
 
 interface ResourceSnapshot {

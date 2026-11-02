@@ -1,6 +1,7 @@
 /* SoAI - Chat memory library lifecycle and reconciliation [frontend/assets/ts/pages/chat/widgets/memorytab/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { getAuthManager } from '@core/auth/public.ts';
 import { getStreamResources, getStreamSubscriptions } from '@core/realtime/streammanager/public.ts';
 import { MEMORY_LIBRARY } from '@core/realtime/streammanager/resources/ids.ts';
@@ -31,6 +32,7 @@ import { editMemoryRelationship } from '@pages/chat/widgets/memorytab/memoryRela
 import { openMemoryRecordManagement, renderMemoryRecordManagement } from '@pages/chat/widgets/memorytab/memoryRecordManagementDomain.ts';
 
 interface MemoryLibraryHost {
+    readonly owner: PresentationOwner;
     root: HTMLElement;
     api: MemoryApi;
     openProfile(): void;
@@ -220,6 +222,7 @@ class MemoryLibraryController {
     #mutationHost(): MemoryMutationHost {
         const session = this.#session.value;
         return createMemoryMutationHost({
+            owner: this.#host.owner,
             api: this.#host.api,
             isCurrent: () => this.#isCurrent(session),
             state: () => this.#state,
@@ -263,7 +266,7 @@ class MemoryLibraryController {
             if (host.isCurrent() && !requireContentPreviewModalService().isOpen()) {
                 if (recordMode) {
                     this.#recordEntry = current;
-                    this.#recordContent = openMemoryRecordManagement(current);
+                    this.#recordContent = openMemoryRecordManagement(current, this.#host.owner);
                     this.#recordEvents?.abort();
                     this.#recordEvents = new AbortController();
                     bindPageActionDispatcher({ root: this.#recordContent, signal: this.#recordEvents.signal, label: 'Memory record', isAction: isChatActionId, events: { click: { onAction: ({ actionElement }) => this.handleAction(actionElement) } } });

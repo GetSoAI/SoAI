@@ -1,8 +1,12 @@
 /* SoAI - Shared main timeline observation and animation-frame coordination [frontend/assets/ts/features/chat/mainTimelineCoordinator.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createAbortError } from '@core/errors/abort.ts';
+import { isAvailableFocusTarget } from '@core/dom/focusTarget.ts';
+import { isPresentationOwnerCurrent, isPresentationOwnerFocused } from '@core/presentationOwner.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { animateElementScroll } from '@core/animations/scrollMotion.ts';
-import { beginMainTimelineProgrammaticScroll, isMainTimelineKeyboardScrollEvent } from '@features/chat/mainTimelineScroll.ts';
+import { beginMainTimelineProgrammaticScroll, isMainTimelineKeyboardScrollForArea } from '@features/chat/mainTimelineScroll.ts';
 
 type TimelineFrameWrite = () => void;
 type TimelineFrameMeasure = () => TimelineFrameWrite | null;
@@ -26,6 +30,7 @@ type MainTimelineCoordinator = {
 
 type MainTimelineCoordinatorState = {
     coordinator: MainTimelineCoordinator;
+    owner: PresentationOwner;
     messagesRoot: HTMLElement;
     retain: () => void;
 };
@@ -33,7 +38,7 @@ type MainTimelineCoordinatorState = {
 const NATIVE_GESTURE_SETTLE_DELAY_MS = 100;
 const coordinatorByArea = new WeakMap<HTMLElement, MainTimelineCoordinatorState>();
 
-const createMainTimelineCoordinatorState = (messagesArea: HTMLElement, messagesRoot: HTMLElement, windowRef: Window & typeof globalThis): MainTimelineCoordinatorState => {
+const createMainTimelineCoordinatorState = (messagesArea: HTMLElement, messagesRoot: HTMLElement, windowRef: Window & typeof globalThis, owner: PresentationOwner): MainTimelineCoordinatorState => {
     const resizeListeners = new Set<TimelineResizeListener>();
     const mutationListeners = new Set<TimelineMutationListener>();
     const nativeGestureSettledListeners = new Set<() => void>();
@@ -178,8 +183,7 @@ const createMainTimelineCoordinatorState = (messagesArea: HTMLElement, messagesR
         scheduleNativeGestureSettled();
     };
     const handleKeyboardScroll = (event: Event): void => {
-        const target = event.target;
-        if (isMainTimelineKeyboardScrollEvent(event) && !event.defaultPrevented && (target === messagesArea.ownerDocument.body || (target instanceof Node && messagesArea.contains(target)))) handleWheel();
+        if (isPresentationOwnerFocused(owner) && isAvailableFocusTarget(messagesArea) && isMainTimelineKeyboardScrollForArea(event, messagesArea)) handleWheel();
     };
     messagesArea.ownerDocument.addEventListener('keydown', handleKeyboardScroll, { passive: true });
     messagesArea.addEventListener('wheel', handleWheel, { passive: true });
@@ -255,10 +259,11 @@ const createMainTimelineCoordinatorState = (messagesArea: HTMLElement, messagesR
         isNativeGestureActive: () => nativeGesturePhase !== 'idle',
         release
     };
-    return { coordinator, messagesRoot, retain };
+    return { coordinator, owner, messagesRoot, retain };
 };
 
-const acquireMainTimelineCoordinator = (messagesArea: HTMLElement, messagesRoot: HTMLElement): MainTimelineCoordinator => {
+const acquireMainTimelineCoordinator = (messagesArea: HTMLElement, messagesRoot: HTMLElement, owner: PresentationOwner): MainTimelineCoordinator => {
+    if (!isPresentationOwnerCurrent(owner)) throw createAbortError('Main timeline owner is no longer current');
     const windowRef = messagesArea.ownerDocument.defaultView;
     if (!windowRef || typeof windowRef.ResizeObserver !== 'function' || typeof windowRef.MutationObserver !== 'function') {
         throw new Error('ResizeObserver and MutationObserver are required for main timeline coordination');
@@ -268,13 +273,14 @@ const acquireMainTimelineCoordinator = (messagesArea: HTMLElement, messagesRoot:
     }
     const existing = coordinatorByArea.get(messagesArea) ?? null;
     if (existing) {
+        if (existing.owner !== owner) throw new Error('Main timeline coordinator cannot change its captured presentation owner while retained');
         if (existing.messagesRoot !== messagesRoot) {
             throw new Error('Main timeline coordinator root cannot change while retained');
         }
         existing.retain();
         return existing.coordinator;
     }
-    const created = createMainTimelineCoordinatorState(messagesArea, messagesRoot, windowRef);
+    const created = createMainTimelineCoordinatorState(messagesArea, messagesRoot, windowRef, owner);
     coordinatorByArea.set(messagesArea, created);
     created.retain();
     return created.coordinator;

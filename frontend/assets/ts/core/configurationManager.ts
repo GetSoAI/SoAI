@@ -2,133 +2,104 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { cloneJsonObject, cloneJsonValue } from '@core/primitives/clone.ts';
-import { isFunction, isString } from '@core/typeGuards.ts';
-import { mergeJsonObjectPatch } from '@core/types/jsonObjectPatch.ts';
+import { deepEqual } from '@core/primitives/equality.ts';
+import { hasOwn, isFunction, isString } from '@core/typeGuards.ts';
+import { mergeJsonObjectPatch, rebaseJsonObjectChanges } from '@core/types/jsonObjectPatch.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { errorHandler } from '@core/errorHandler.ts';
+import { createAbortError } from '@core/errors/abort.ts';
 
 type Validator = (value: JsonValue, path: string) => boolean | string;
 type ChangeHandler = (data: { path: string; value: JsonValue; hasChanges: boolean }) => void;
 
-const setValueByPath = (object: JsonObject, path: string, value: JsonValue): void => {
-    const keys = path.split('.');
-    if (keys.length === 0) {
-        throw new Error('Path must not be empty');
-    }
-    let target: JsonObject = object;
-    for (let index = 0; index < keys.length - 1; index += 1) {
-        const key = keys[index];
-        if (!key) {
-            throw new Error(`Path contains an empty key segment: "${path}"`);
+const parseConfigurationPath = (path: string): { parents: string[]; last: string } => {
+    const segments = path.split('.');
+    if (segments.some((segment) => !segment || segment === '__proto__')) throw new Error(`Configuration path contains an invalid key: "${path}"`);
+    const last = segments.pop();
+    if (!last) throw new Error('Path must not be empty');
+    return { parents: segments, last };
+};
+
+const setValueByPath = (object: JsonObject, keys: { parents: string[]; last: string }, value: JsonValue): void => {
+    let target = object;
+    for (const key of keys.parents) {
+        const existing = hasOwn(target, key) ? target[key] : undefined;
+        if (isJsonObject(existing)) target = existing;
+        else {
+            const created: JsonObject = {};
+            target[key] = created;
+            target = created;
         }
-        const existing = target[key];
-        if (isJsonObject(existing)) {
-            target = existing;
-            continue;
-        }
-        const created: JsonObject = {};
-        target[key] = created;
-        target = created;
     }
-    const lastKey = keys[keys.length - 1];
-    if (!lastKey) {
-        throw new Error(`Path must end with a non-empty key: "${path}"`);
-    }
-    target[lastKey] = value;
+    target[keys.last] = value;
 };
 
 const getValueByPath = (object: JsonObject, path: string): JsonValue => {
-    const keys = path.split('.');
-    if (keys.length === 0) {
-        throw new Error('Path must not be empty');
-    }
+    const keys = parseConfigurationPath(path);
     let current: JsonValue = object;
-    for (const key of keys) {
-        if (!key) {
-            throw new Error(`Path contains an empty key segment: "${path}"`);
-        }
-        if (!isJsonObject(current)) {
-            throw new Error(`Cannot access property '${key}' of ${String(current)} at path '${path}'`);
-        }
-        if (!(key in current)) {
-            throw new Error(`Missing property '${key}' at path '${path}'`);
-        }
+    for (const key of [...keys.parents, keys.last]) {
+        if (!isJsonObject(current)) throw new Error(`Cannot access property '${key}' of ${String(current)} at path '${path}'`);
+        if (!hasOwn(current, key)) throw new Error(`Missing property '${key}' at path '${path}'`);
         const next: JsonValue | undefined = current[key];
-        if (next === undefined) {
-            throw new Error(`Missing property '${key}' at path '${path}'`);
-        }
+        if (next === undefined) throw new Error(`Missing property '${key}' at path '${path}'`);
         current = next;
     }
     return current;
 };
 
-const areValuesEqual = (firstValue: JsonValue | undefined, secondValue: JsonValue | undefined): boolean => {
-    if (firstValue === secondValue) {
-        return true;
-    }
-    if (firstValue === null || secondValue === null || firstValue === undefined || secondValue === undefined) {
-        return firstValue === secondValue;
-    }
-    if (Array.isArray(firstValue)) {
-        if (!Array.isArray(secondValue)) return false;
-        if (firstValue.length !== secondValue.length) return false;
-        for (let index = 0; index < firstValue.length; index += 1) {
-            if (!areValuesEqual(firstValue[index], secondValue[index])) return false;
-        }
-        return true;
-    }
-    if (Array.isArray(secondValue)) {
-        return false;
-    }
-    if (typeof firstValue !== typeof secondValue) {
-        return false;
-    }
-    if (!isJsonObject(firstValue) || !isJsonObject(secondValue)) {
-        return false;
-    }
-    const keysA = Object.keys(firstValue);
-    const keysB = Object.keys(secondValue);
-    if (keysA.length !== keysB.length) return false;
-    for (const key of keysA) {
-        if (!(key in secondValue)) return false;
-        if (!areValuesEqual(firstValue[key], secondValue[key])) return false;
-    }
-    return true;
-};
+const areValuesEqual = (firstValue: JsonValue | undefined, secondValue: JsonValue | undefined): boolean => deepEqual(firstValue, secondValue, { nullishEqual: false });
 
 class ConfigurationManager {
     #originalData: JsonObject | null = null;
     #currentData: JsonObject | null = null;
     #hasChanges = false;
+    #protectionRevision = 0;
     #validators = new Map<string, Validator>();
     #changeHandlers = new Set<ChangeHandler>();
+    readonly #canMutate: () => boolean;
 
-    constructor() {}
+    constructor(canMutate: () => boolean = () => true) {
+        this.#canMutate = canMutate;
+    }
 
     initialize(data: JsonObject): this {
         if (!isJsonObject(data)) {
             throw new Error('Configuration data must be an object');
         }
-        this.#originalData = cloneJsonObject(data);
-        this.#currentData = cloneJsonObject(data);
+        const original = cloneJsonObject(data);
+        const current = cloneJsonObject(data);
+        this.#originalData = original;
+        this.#currentData = current;
         this.#hasChanges = false;
+        this.#protectionRevision += 1;
         return this;
     }
 
     updateValue(path: string, value: JsonValue): boolean {
+        if (!this.#canMutate()) throw createAbortError('Configuration draft mutation is not admitted');
         if (!path) {
             throw new Error('Path is required');
         }
+        const keys = parseConfigurationPath(path);
         const current = this.#requireCurrentData();
-        setValueByPath(current, path, value);
-        this.#hasChanges = !areValuesEqual(this.#currentData, this.#originalData);
+        const revision = this.#protectionRevision;
+        const proposed = cloneJsonValue(value);
+        const updated = cloneJsonObject(current);
+        setValueByPath(updated, keys, proposed);
         const validator = this.#validators.get(path);
         if (validator) {
-            const result = validator(value, path);
+            const result = validator(cloneJsonValue(proposed), path);
             if (result !== true) {
                 throw new Error(isString(result) ? result : 'Validation failed');
             }
         }
-        this.#notifyChange(path, value);
+        if (!this.#canMutate()) throw createAbortError('Configuration draft mutation is not admitted');
+        if (this.#currentData !== current || this.#protectionRevision !== revision) throw new Error('Configuration changed during draft validation');
+        this.#currentData = updated;
+        this.#hasChanges = !areValuesEqual(updated, this.#originalData);
+        this.#protectionRevision += 1;
+        this.#notifyChange(path, proposed);
         return this.#hasChanges;
     }
 
@@ -137,7 +108,7 @@ class ConfigurationManager {
             throw new Error('Path is required');
         }
         const current = this.#requireCurrentData();
-        return getValueByPath(current, path);
+        return cloneJsonValue(getValueByPath(current, path));
     }
 
     getOriginalValue(path: string): JsonValue {
@@ -162,9 +133,11 @@ class ConfigurationManager {
     }
 
     resetChanges(): this {
+        if (!this.#canMutate()) throw createAbortError('Configuration draft mutation is not admitted');
         const original = this.#requireOriginalData();
         this.#currentData = cloneJsonObject(original);
         this.#hasChanges = false;
+        this.#protectionRevision += 1;
         return this;
     }
 
@@ -172,15 +145,42 @@ class ConfigurationManager {
         const current = this.#requireCurrentData();
         this.#originalData = cloneJsonObject(snapshot ?? current);
         this.#hasChanges = !areValuesEqual(current, this.#originalData);
+        this.#protectionRevision += 1;
         return this;
     }
 
     applyCommittedPatch(patch: JsonObject): this {
         const original = this.#requireOriginalData();
         const current = this.#requireCurrentData();
-        this.#originalData = mergeJsonObjectPatch(original, patch);
-        this.#currentData = mergeJsonObjectPatch(current, patch);
+        const committed = cloneJsonObject(patch);
+        const nextOriginal = mergeJsonObjectPatch(original, committed);
+        const nextCurrent = mergeJsonObjectPatch(current, committed);
+        this.#originalData = nextOriginal;
+        this.#currentData = nextCurrent;
         this.#hasChanges = !areValuesEqual(this.#currentData, this.#originalData);
+        this.#protectionRevision += 1;
+        return this;
+    }
+
+    commitBaselinePatch(patch: JsonObject, submitted?: JsonObject): this {
+        const committed = cloneJsonObject(patch);
+        const original = mergeJsonObjectPatch(this.#requireOriginalData(), committed);
+        const current = this.#requireCurrentData();
+        const updated = submitted ? rebaseJsonObjectChanges(submitted, current, mergeJsonObjectPatch(current, committed)) : current;
+        this.#originalData = original;
+        this.#currentData = updated;
+        this.#hasChanges = !areValuesEqual(this.#requireCurrentData(), this.#originalData);
+        this.#protectionRevision += 1;
+        return this;
+    }
+
+    mergeRemotePatch(patch: JsonObject): this {
+        const original = this.#requireOriginalData();
+        const latest = mergeJsonObjectPatch(original, cloneJsonObject(patch));
+        this.#currentData = rebaseJsonObjectChanges(original, this.#requireCurrentData(), latest);
+        this.#originalData = latest;
+        this.#hasChanges = !areValuesEqual(this.#currentData, this.#originalData);
+        this.#protectionRevision += 1;
         return this;
     }
 
@@ -192,6 +192,7 @@ class ConfigurationManager {
             throw new Error('Validator must be a function');
         }
         this.#validators.set(path, validator);
+        this.#protectionRevision += 1;
         return this;
     }
 
@@ -219,9 +220,20 @@ class ConfigurationManager {
     }
 
     #notifyChange(path: string, value: JsonValue): void {
-        for (const handler of this.#changeHandlers) {
-            handler({ path, value, hasChanges: this.#hasChanges });
+        const revision = this.#protectionRevision;
+        for (const handler of [...this.#changeHandlers]) {
+            if (revision !== this.#protectionRevision) break;
+            if (!this.#changeHandlers.has(handler)) continue;
+            try {
+                handler({ path, value: cloneJsonValue(value), hasChanges: this.#hasChanges });
+            } catch (error) {
+                errorHandler.error('ConfigurationManager', 'Configuration draft observer failed', ensureError(error));
+            }
         }
+    }
+
+    get protectionRevision(): number {
+        return this.#protectionRevision;
     }
 
     get hasChanges(): boolean {

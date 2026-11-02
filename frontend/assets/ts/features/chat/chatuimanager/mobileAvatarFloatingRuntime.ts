@@ -1,6 +1,7 @@
 /* SoAI - Mobile chat avatar floating-state frame runtime [frontend/assets/ts/features/chat/chatuimanager/mobileAvatarFloatingRuntime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { measureLayoutBox, measureLayoutViewport } from '@core/layout/elementGeometry.ts';
 import { dom } from '@core/dom/dom.ts';
 import { CHAT_MOBILE_SIDEBAR_BREAKPOINT_PX } from '@features/chat/chatConstants.ts';
@@ -59,8 +60,8 @@ const mutationChangesAvatarStructure = (mutation: MutationRecord): boolean => {
     return [...Array.from(mutation.addedNodes), ...Array.from(mutation.removedNodes)].some(nodeContainsAvatarStructure);
 };
 
-const createMobileAvatarFloatingRuntime = (messagesArea: HTMLElement, messagesRoot: HTMLElement): MobileAvatarFloatingRuntime => {
-    const coordinator = acquireMainTimelineCoordinator(messagesArea, messagesRoot);
+const createMobileAvatarFloatingRuntime = (messagesArea: HTMLElement, messagesRoot: HTMLElement, owner: PresentationOwner): MobileAvatarFloatingRuntime => {
+    const coordinator = acquireMainTimelineCoordinator(messagesArea, messagesRoot, owner);
     let cachedPairs: readonly AvatarMessagePair[] | null = null;
     let isDisposed = false;
 

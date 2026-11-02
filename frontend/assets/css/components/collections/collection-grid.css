@@ -47,8 +47,8 @@
     .ui-collection-list__table tbody.is-hydrating .entering {
         visibility: visible;
     }
-    .main-content > [data-section].is-collection-card-reveal-ready .ui-collection-grid .entering,
-    .main-content > [data-section].is-collection-card-reveal-ready .ui-collection-list__table .entering {
+    [data-page-outlet-root='true'] > [data-section].is-collection-card-reveal-ready .ui-collection-grid .entering,
+    [data-page-outlet-root='true'] > [data-section].is-collection-card-reveal-ready .ui-collection-list__table .entering {
         animation: card-enter var(--duration-300) var(--ease-material) both;
         animation-delay: var(--collection-enter-delay);
     }

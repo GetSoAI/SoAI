@@ -89,7 +89,7 @@ class PageRuntime {
     }
     start(parameters: JsonObject, phases: PageRuntimePhases): Promise<void> {
         this.#validatePhases(phases);
-        this.cancel();
+        const predecessor = this.currentTask;
         const controller = createAbortController();
         const signal = readAbortSignal(controller);
         const ready = createDeferred<void>();
@@ -124,11 +124,13 @@ class PageRuntime {
         attachUnhandledRejectionLogger('ready', this.#readyPromise);
         attachUnhandledRejectionLogger('prepared', this.#preparedPromise);
         attachUnhandledRejectionLogger('reveal', reveal.promise);
+        if (predecessor) this.#cancelTask(predecessor);
+        if (this.currentTask !== task || signalAborted(signal)) return ready.promise;
         const pipeline = new PageRuntimePipeline({
             pageId: this.pageId,
             phases,
             metricsReporter: this.metricsReporter,
-            getCurrentTask: () => this.currentTask,
+            getCurrentTask: () => (this.currentTask === task ? task : null),
             failTask: (activeTask, error) => this.#failTask(activeTask, error),
             succeedTask: (activeTask) => this.#succeedTask(activeTask),
             suspendTaskTimeout: (activeTask) => this.#clearTaskTimeout(activeTask),
@@ -146,10 +148,21 @@ class PageRuntime {
                 }
             }
         };
-        const pipelineTask = executePipeline().finally(() => this.#pipelineTasks.delete(pipelineTask));
+        const pipelineCompletion = createDeferred<void>();
+        const pipelineTask = pipelineCompletion.promise;
         this.#pipelineTasks.add(pipelineTask);
         terminateHandledPromise(pipelineTask);
-        return this.#readyPromise;
+        void executePipeline().then(
+            () => {
+                this.#pipelineTasks.delete(pipelineTask);
+                pipelineCompletion.resolve(undefined);
+            },
+            (error) => {
+                this.#pipelineTasks.delete(pipelineTask);
+                pipelineCompletion.reject(ensureError(error));
+            }
+        );
+        return ready.promise;
     }
     #validatePhases(phases: PageRuntimePhases): void {
         if (!isObject(phases)) {
@@ -169,6 +182,10 @@ class PageRuntime {
             return;
         }
         this.currentTask = null;
+        this.#readyPromise = this.#viewReadyPromise = this.#preparedPromise = Promise.resolve();
+        this.#cancelTask(task, reason);
+    }
+    #cancelTask(task: PipelineTask, reason?: string): void {
         this.#clearTaskTimeout(task);
         const { controller } = task;
         try {
@@ -186,7 +203,6 @@ class PageRuntime {
         } else {
             this.#succeedTask(task);
         }
-        this.#readyPromise = this.#viewReadyPromise = this.#preparedPromise = Promise.resolve();
     }
     whenReady({ waitForData = false, waitForReveal = true }: { waitForData?: boolean; waitForReveal?: boolean } = {}): Promise<void> {
         if (waitForReveal === false) {

@@ -1,6 +1,7 @@
 /* SoAI - Chat SoAI path content preview [frontend/assets/ts/features/chat/message/soaiPathContentPreview.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { downloadAuthenticatedResponse } from '@core/api/authenticatedDownload.ts';
 import { createAbortError, isAbortError } from '@core/errors/abort.ts';
@@ -18,6 +19,7 @@ import { copyChatMessageTextWithFeedback, type ChatMessageCopyFeedbackDependenci
 import { buildSourceReference, parseFolderEntriesText, parseOpenVirtualPath, parseSoaiPathToken, requireSoaiPathContentPart, resolveContentLength, resolveContentType, resolvePreviewType } from '@features/chat/message/soaiPathContentPreviewPayload.ts';
 
 type ChatSoaiPathContentPreviewDependencies = CopyActionDependencies & {
+    readonly owner: PresentationOwner;
     soaiPathsApi: Pick<ChatSoaiPathsApi, 'preview' | 'read' | 'download' | 'open' | 'token'>;
 };
 
@@ -37,6 +39,7 @@ const isUnavailableDownloadResponse = (response: Response): boolean => {
 };
 
 class ChatSoaiPathContentPreview {
+    readonly #owner: PresentationOwner;
     readonly #soaiPathsApi: Pick<ChatSoaiPathsApi, 'preview' | 'read' | 'download' | 'open' | 'token'>;
     readonly #runWithBoundary: CopyActionDependencies['runWithBoundary'];
     readonly #copyFeedback: ChatMessageCopyFeedbackDependencies;
@@ -45,6 +48,7 @@ class ChatSoaiPathContentPreview {
     #generation = 0;
 
     constructor(dependencies: ChatSoaiPathContentPreviewDependencies) {
+        this.#owner = dependencies.owner;
         this.#soaiPathsApi = dependencies.soaiPathsApi;
         this.#runWithBoundary = dependencies.runWithBoundary;
         this.#copyFeedback = {
@@ -114,14 +118,59 @@ class ChatSoaiPathContentPreview {
         const onRequestDownload = contentPart.entryType === 'folder' ? null : () => this.#download(inputArguments, contentPart, generation, signal);
         if (previewType === 'text' || contentPart.entryType === 'folder') {
             const content = contentPart.entryType === 'folder' ? await this.#readFolderPreview(inputArguments.conversationId, contentPart, signal) : await this.#readTextPreview(inputArguments.conversationId, contentPart, signal);
-            return createTextContentPreviewRequest({ scope: 'chat', headerDescription, sourceReference, openSourceUrl, externalOpenBehavior: 'neverConfirm', type: 'text', baseline: { title: inputArguments.title, content, promptColor: null }, editable: false, languageMode: 'default', disableCopyWhenEmpty: true, disableDownloadWhenEmpty: true, colorToolkit: null, onRequestSave: null, onRequestDownload, onRequestCopy: async (text) => await copyChatMessageTextWithFeedback(this.#copyFeedback, text), onRequestAttach, enhance: null, onStatePotentiallyChanged: null });
+            return createTextContentPreviewRequest({
+                owner: this.#owner,
+                scope: 'chat',
+                headerDescription,
+                sourceReference,
+                openSourceUrl,
+                externalOpenBehavior: 'neverConfirm',
+                type: 'text',
+                baseline: { title: inputArguments.title, content, promptColor: null },
+                editable: false,
+                languageMode: 'default',
+                disableCopyWhenEmpty: true,
+                disableDownloadWhenEmpty: true,
+                colorToolkit: null,
+                onRequestSave: null,
+                onRequestDownload,
+                onRequestCopy: async (text) => await copyChatMessageTextWithFeedback(this.#copyFeedback, text),
+                onRequestAttach,
+                enhance: null,
+                onStatePotentiallyChanged: null
+            });
         }
         if (previewType === 'image' || previewType === 'audio' || previewType === 'video') {
             const sourceUrl = await this.#createObjectUrl(inputArguments, contentPart, generation, signal);
-            return createMediaContentPreviewRequest({ scope: 'chat', headerDescription, sourceReference, openSourceUrl, externalOpenBehavior: 'neverConfirm', type: previewType, title: inputArguments.title, sourceUrl, imageMetadata: { contentType: resolveContentType(contentPart), contentLength: resolveContentLength(contentPart) }, onRequestDownload, onRequestAttach, onSourceUrlRelease: () => this.#releaseObjectUrl(sourceUrl) });
+            return createMediaContentPreviewRequest({
+                owner: this.#owner,
+                scope: 'chat',
+                headerDescription,
+                sourceReference,
+                openSourceUrl,
+                externalOpenBehavior: 'neverConfirm',
+                type: previewType,
+                title: inputArguments.title,
+                sourceUrl,
+                imageMetadata: { contentType: resolveContentType(contentPart), contentLength: resolveContentLength(contentPart) },
+                onRequestDownload,
+                onRequestAttach,
+                onSourceUrlRelease: () => this.#releaseObjectUrl(sourceUrl)
+            });
         }
         const type = previewType === 'document' ? 'document' : 'file';
-        return createDocumentContentPreviewRequest({ scope: 'chat', headerDescription, sourceReference, openSourceUrl, externalOpenBehavior: 'neverConfirm', type, title: inputArguments.title, onRequestDownload, onRequestAttach });
+        return createDocumentContentPreviewRequest({
+            owner: this.#owner,
+            scope: 'chat',
+            headerDescription,
+            sourceReference,
+            openSourceUrl,
+            externalOpenBehavior: 'neverConfirm',
+            type,
+            title: inputArguments.title,
+            onRequestDownload,
+            onRequestAttach
+        });
     }
 
     async #readTextPreview(conversationId: string, contentPart: SoaiPathStoragePart, signal: AbortSignal): Promise<string> {

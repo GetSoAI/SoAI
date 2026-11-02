@@ -1,6 +1,7 @@
 /* SoAI - Shared license service contracts [frontend/assets/ts/core/licenseservice/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 
@@ -23,6 +24,7 @@ interface LicenseData {
 }
 
 interface CreateButtonOptions {
+    readonly owner: PresentationOwner;
     text?: string;
     className?: string;
     id?: string | null;
@@ -44,8 +46,8 @@ interface ModalButtonRefs {
 interface LicenseServiceInterface {
     initialize(): Promise<void>;
     fetchLicenseData(): Promise<LicenseData>;
-    showLicense(): Promise<void>;
-    showCredits(): Promise<void>;
+    showLicense(owner: PresentationOwner): Promise<void>;
+    showCredits(owner: PresentationOwner): Promise<void>;
     handleCopy(key: TextModalKey): Promise<void>;
 }
 

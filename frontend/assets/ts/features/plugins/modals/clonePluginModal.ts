@@ -4,7 +4,7 @@
 import { i18n } from '@core/i18n/index.ts';
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
@@ -57,7 +57,7 @@ const clonePluginModalDefinition: ModalDefinition = Object.freeze({
     id: CLONE_PLUGIN_MODAL_ID,
     layout: 'md',
     initialFocusSelector: modalUiSelector(CLONE_PLUGIN_MODAL_ID, 'start'),
-    createElement: (_options: ModalOpenOptions): HTMLElement => createClonePluginModalElement()
+    createElement: (_options: ModalCreationOptions): HTMLElement => createClonePluginModalElement()
 });
 
 export { CLONE_PLUGIN_MODAL_ID, clonePluginModalDefinition };

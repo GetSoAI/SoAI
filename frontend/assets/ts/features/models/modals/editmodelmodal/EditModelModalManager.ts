@@ -124,6 +124,7 @@ class EditModelModalManager {
         this.#renderModalState(modalRoot);
 
         const saveSession = createModelModalSaveSession({
+            owner: this.#host.owner,
             host: this.#host.view,
             modal: modalRoot,
             modalId: this.modalId,
@@ -156,7 +157,7 @@ class EditModelModalManager {
             onEnabledChange: (actionElement: HTMLElement): void => this.#handleEnabledChange(actionElement, modalRoot),
             onCapabilityChange: (actionElement: HTMLElement): void => this.#handleCapabilityChange(actionElement, modalRoot)
         });
-        this.#host.view.modals.open(this.modalId);
+        this.#host.view.modals.open(this.modalId, { owner: this.#host.owner });
     }
 
     #renderModalState(modalRoot: HTMLElement): void {

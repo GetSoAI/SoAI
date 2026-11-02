@@ -3,11 +3,9 @@
 
 import { defineWebSocketEventContract } from '@core/realtime/eventcontracts/contracts.ts';
 import { readRequiredTrimmedStringArrayValue } from '@core/types/payloadArrayReaders.ts';
-import { readRequiredFiniteNumberValue } from '@core/types/payloadNumberReaders.ts';
-import { requireRecord } from '@core/types/payloadRecordReaders.ts';
 import { readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
-import { WEBSOCKET_PROTOCOL_VERSION } from '@core/websocketclient/constants.ts';
+import { readWebSocketBroadcastEnvelope } from '@core/realtime/eventcontracts/broadcastEnvelope.ts';
 import { WEBSOCKET_EVENT_TYPES } from '@core/websocketEvents.ts';
 
 interface ModelDatabaseChangeEvent {
@@ -17,23 +15,31 @@ interface ModelDatabaseChangeEvent {
     removedUniversalIds: string[];
 }
 
+interface ModelParametersChangedEvent {
+    eventId: string;
+    timestamp: number;
+    universalId: string;
+}
+
 const decodeModelDatabaseChange = (payload: JsonValue): ModelDatabaseChangeEvent => {
-    const record = requireRecord(payload, 'Model database change event');
-    const eventType = readRequiredTrimmedStringValue(record['type'], 'Model database change event.type');
-    if (eventType !== WEBSOCKET_EVENT_TYPES.MODEL_DATABASE_CHANGE) throw new TypeError('Model database change event.type is invalid');
-    const protocolVersion = readRequiredFiniteNumberValue(record['protocol_version'], 'Model database change event.protocol_version');
-    if (protocolVersion !== WEBSOCKET_PROTOCOL_VERSION) throw new TypeError('Model database change event.protocol_version is unsupported');
-    const timestamp = readRequiredFiniteNumberValue(record['timestamp'], 'Model database change event.timestamp');
-    if (timestamp <= 0) throw new TypeError('Model database change event.timestamp must be positive');
+    const { record, timestamp, eventId } = readWebSocketBroadcastEnvelope(payload, WEBSOCKET_EVENT_TYPES.MODEL_DATABASE_CHANGE, 'Model event');
     return {
-        eventId: readRequiredTrimmedStringValue(record['event_id'], 'Model database change event.event_id'),
+        eventId,
         timestamp,
         addedUniversalIds: readRequiredTrimmedStringArrayValue(record['added_uids'], 'Model database change event.added_uids'),
         removedUniversalIds: readRequiredTrimmedStringArrayValue(record['removed_uids'], 'Model database change event.removed_uids')
     };
 };
 
-const MODEL_EVENT_CONTRACTS = Object.freeze({ databaseChanged: defineWebSocketEventContract(WEBSOCKET_EVENT_TYPES.MODEL_DATABASE_CHANGE, decodeModelDatabaseChange) });
+const decodeModelParametersChanged = (payload: JsonValue): ModelParametersChangedEvent => {
+    const { record, timestamp, eventId } = readWebSocketBroadcastEnvelope(payload, WEBSOCKET_EVENT_TYPES.MODEL_PARAMETERS_CHANGED, 'Model event');
+    return { timestamp, eventId, universalId: readRequiredTrimmedStringValue(record['universal_id'], 'Model parameters changed event.universal_id') };
+};
+
+const MODEL_EVENT_CONTRACTS = Object.freeze({
+    databaseChanged: defineWebSocketEventContract(WEBSOCKET_EVENT_TYPES.MODEL_DATABASE_CHANGE, decodeModelDatabaseChange),
+    parametersChanged: defineWebSocketEventContract(WEBSOCKET_EVENT_TYPES.MODEL_PARAMETERS_CHANGED, decodeModelParametersChanged)
+});
 
 export { MODEL_EVENT_CONTRACTS };
-export type { ModelDatabaseChangeEvent };
+export type { ModelDatabaseChangeEvent, ModelParametersChangedEvent };

@@ -124,11 +124,10 @@ interface PageOutletDomStateOptions extends PageOutletStateOptions {
     container: HTMLElement;
     overlayElements: PageOutletOverlayElements | null;
     ensureOverlay: () => PageOutletOverlayElements;
-    clearSkeleton: () => void;
     hasRetryHandler: boolean;
 }
 
-const setPageOutletState = ({ state, label = null, detail = null, delayed = false, container, overlayElements, ensureOverlay, clearSkeleton, hasRetryHandler }: PageOutletDomStateOptions): PageOutletOverlayElements | null => {
+const setPageOutletState = ({ state, label = null, detail = null, delayed = false, container, overlayElements, ensureOverlay, hasRetryHandler }: PageOutletDomStateOptions): PageOutletOverlayElements | null => {
     if (state && state !== 'ready') {
         container.dataset['pageOutletState'] = state;
     } else {
@@ -149,7 +148,7 @@ const setPageOutletState = ({ state, label = null, detail = null, delayed = fals
         return resolvedOverlay;
     }
 
-    clearSkeleton();
+    delete container.dataset['routeSkeleton'];
     hideOverlay(overlayElements);
     return overlayElements;
 };

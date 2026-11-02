@@ -10,6 +10,10 @@ import type { PasswordVaultResetResponse } from '@core/api/contracts/webuiUserCo
 import type { WebuiChatPresetResetResponse } from '@core/api/contracts/webuiChatPresetContracts.ts';
 import type { DomEventHost, DomMutationHost, DomQueryHost, ExecutionHost, NotificationHost } from '@core/ui/controllerHosts.ts';
 
+type SettingsPreferenceResetType = 'preferences' | 'appearance';
+
+export type { SettingsPreferenceResetType };
+
 interface SystemManagerDependencies {
     host: SystemManagerHost;
 }
@@ -65,7 +69,7 @@ interface SystemManagerWorkflowHost {
     applyWallpaperOverlay: (value: string) => void;
     refreshWallpaperPreview: () => void;
     scheduleWallpaperRefresh: () => void;
-    refreshSettingsAfterPreferencesReset: () => Promise<void> | void;
+    preparePreferencesResetRefresh: (type: SettingsPreferenceResetType) => () => Promise<void>;
     navigate: (route: string, options?: Record<string, JsonValue>) => void;
     filterSettings: () => void;
     showRestartOverlay: (value: string) => void;

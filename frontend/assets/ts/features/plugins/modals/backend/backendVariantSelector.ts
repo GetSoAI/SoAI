@@ -1,6 +1,7 @@
 /* SoAI - Frontend backend variant selector [frontend/assets/ts/features/plugins/modals/backend/backendVariantSelector.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import type { BackendVariantsResponse } from '@core/api/contracts/pluginManagementContracts.ts';
@@ -17,7 +18,7 @@ import type { BackendManagerSecurity } from '@features/plugins/modals/backend/ba
 interface BackendVariantSelectorViewPort {
     requireHTMLElement(selector: string | Element, context?: Element): HTMLElement;
     optionalHTMLElement(selector: string | Element, context?: Element): HTMLElement | null;
-    updateHTML(target: Element | string, html: TrustedHtml | string, options?: { escape?: boolean; context?: Element | Document | null }): void;
+    updateHTML(target: Element | string, html: TrustedHtml | string, options?: Parameters<PageDom['updateHtml']>[2]): void;
     updateProperty(target: Element | string, property: string, value: DomPropertyValue): void;
     on(target: EventTarget | Element, event: string, handler: EventListener, options?: AddEventListenerOptions): () => void;
 }

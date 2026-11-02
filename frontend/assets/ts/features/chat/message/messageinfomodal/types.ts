@@ -1,10 +1,12 @@
 /* SoAI - Chat feature message info modal contracts [frontend/assets/ts/features/chat/message/messageinfomodal/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ChatMessage, ToolActivityItem } from '@features/chat/ChatTypes.ts';
 import type { CopyActionDependencies } from '@features/chat/message/messageCopyNotifications.ts';
 
 interface MessageInfoEscapeDependencies {
+    readonly owner: PresentationOwner;
     escapeHtml(value: string): string;
 }
 

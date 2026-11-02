@@ -1,7 +1,7 @@
 /* SoAI - Shared auth internal contracts [frontend/assets/ts/core/auth/internalContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { ApiInterface, AuthCallback, LoginCallback, SessionInvalidationResult, StateManager, StorageInterface, WebuiUser, WizardStatus } from '@core/auth/types.ts';
+import type { ApiInterface, AuthCallback, AuthEpochIntentCallback, LoginCallback, SessionInvalidationResult, StateManager, StorageInterface, WebuiUser, WizardStatus } from '@core/auth/types.ts';
 import type { CrossTabRevision } from '@core/crosstab/revision.ts';
 
 interface AuthManagerStateHandle {
@@ -9,6 +9,7 @@ interface AuthManagerStateHandle {
     isAuthenticated: boolean;
     loginCallbacks: LoginCallback[];
     logoutCallbacks: AuthCallback[];
+    epochIntentCallbacks: AuthEpochIntentCallback[];
     stateKey: string;
     stateManager: StateManager | null;
     stateSubscription: (() => void) | null;

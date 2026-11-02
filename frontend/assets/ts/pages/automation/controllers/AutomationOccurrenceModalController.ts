@@ -1,6 +1,7 @@
 /* SoAI - Automation page occurrence modal controller [frontend/assets/ts/pages/automation/controllers/AutomationOccurrenceModalController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { narrowButton } from '@core/dom/narrowElement.ts';
 import { setControlDisabledState, setControlDisabledStateForEach } from '@core/ui/controls/disabledState.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -24,6 +25,7 @@ import { formatAutomationRunWhen } from '@pages/automation/formatting/service.ts
 import type { AutomationCalendarSettings } from '@pages/automation/types.ts';
 
 interface AutomationOccurrenceModalControllerDependencies {
+    readonly owner: PresentationOwner;
     requireHTMLElement: (selector: string, context?: Element | Document | null) => HTMLElement;
     modalPresenter: ModalPresenterApi;
     syntaxHighlighter: SyntaxHighlighter;
@@ -106,7 +108,7 @@ class AutomationOccurrenceModalController {
         this.#render(zone, calendarSettings);
         if (!this.#connected) this.#markUnavailable();
         this.#timeline.show(zone.convId);
-        this.#dependencies.modalPresenter.open(this.#modalId);
+        this.#dependencies.modalPresenter.open(this.#modalId, { owner: this.#dependencies.owner });
     }
 
     syncZones(zones: readonly AutomationOccurrenceResponse[], calendarSettings: AutomationCalendarSettings, snapshotCurrent: boolean): void {

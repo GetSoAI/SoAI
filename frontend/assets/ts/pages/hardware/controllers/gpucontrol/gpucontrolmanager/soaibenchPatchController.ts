@@ -96,7 +96,7 @@ const syncSoAIBenchActions = (context: GpuControlManagerViewContext, panel: HTML
 };
 
 const syncGpuControlSoAIBenchUi = (context: GpuControlManagerViewContext, { only = null }: { only?: string[] | null } = {}): void => {
-    const container = dom.resolve('#gpu-controls-container', context.dependencies.dom.getDocument());
+    const container = dom.resolve('#gpu-controls-container', context.dependencies.pageDom.resolveContext());
     if (!(container instanceof HTMLElement)) {
         return;
     }

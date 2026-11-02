@@ -127,7 +127,7 @@ const resolvePlanMarkdown = (inputArguments: AgentPlanModalArguments): string =>
 const openAgentPlanModal = (inputArguments: AgentPlanModalArguments): void => {
     const modalId = AGENT_PLAN_MODAL_ID;
     const presenter = requireModalPresenter();
-    presenter.open(modalId);
+    presenter.open(modalId, { owner: inputArguments.host.owner });
     const modal = presenter.requireElement(modalId);
     const handlePlanModalClose = (): void => inputArguments.onModalClose();
     modal.addEventListener('core.modal.close', handlePlanModalClose, { once: true });

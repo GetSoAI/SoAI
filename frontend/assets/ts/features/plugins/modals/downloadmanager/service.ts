@@ -77,7 +77,7 @@ class PluginDownloadModalManager {
         applyDownloadModalMode(this.#host, this.#modalId, this.#classNames, mode, modalRoot);
         this.#setBusy(false);
         this.#syncConfirmButtonState();
-        this.#host.view.modals.open(this.#modalId);
+        this.#host.view.modals.open(this.#modalId, { owner: this.#host.owner });
     }
 
     openDownloadPluginModal(): void {
@@ -231,20 +231,20 @@ class PluginDownloadModalManager {
         );
     }
 
-    handleManualPluginOpenFileExplorer(): void {
+    async handleManualPluginOpenFileExplorer(): Promise<void> {
         if (!this.#host.session.isAdmin()) {
             return;
         }
         this.#host.view.modals.close(this.#modalId);
-        this.#host.session.setLocationHash('#fileExplorer');
+        await this.#host.session.router.navigate('fileExplorer');
     }
 
-    handleManualPluginPowerClick(): void {
+    async handleManualPluginPowerClick(): Promise<void> {
         if (!this.#host.session.isAdmin()) {
             return;
         }
         this.#host.view.modals.close(this.#modalId);
-        this.#host.session.setLocationHash('#power');
+        await this.#host.session.router.navigate('power');
     }
 
     async #refreshManualPluginMessage(forceRefresh: boolean): Promise<void> {

@@ -1,6 +1,7 @@
 /* SoAI - Chat message action dependency contract [frontend/assets/ts/features/chat/message/actionDeps.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { AssistantMessageRenderPort } from '@features/chat/message/assistantMessageDomPatch.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
@@ -55,6 +56,7 @@ interface ChatMessageActionInteractionPort extends CopyActionDependencies {
 }
 
 interface ChatMessageActionsDependencies {
+    readonly owner: PresentationOwner;
     runtime: ChatMessageRuntimeOperations;
     session: ChatMessageActionSessionPort;
     presentation: ChatMessageActionPresentationPort;

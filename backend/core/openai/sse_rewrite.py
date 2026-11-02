@@ -53,22 +53,19 @@ def rewrite_openai_sse_json_payload_frame(
         return frame
 
     frame_lines = decoded_frame.normalized_text[:-2].split("\n")
-    data_line_indexes = [
-        index
-        for index, line in enumerate(frame_lines)
-        if extract_sse_data_payload_text(line) is not None
-    ]
-    if not data_line_indexes:
+    first_data_line_index: int | None = None
+    rewritten_lines: list[str] = []
+    for line in frame_lines:
+        if extract_sse_data_payload_text(line) is not None:
+            if first_data_line_index is not None:
+                continue
+            first_data_line_index = len(rewritten_lines)
+        rewritten_lines.append(line)
+    if first_data_line_index is None:
         raise ModelOutputContractError(
             "OpenAI SSE frame contains no data field.",
             details={"failure_type": "missing_data_field"},
         )
-    first_data_line_index = data_line_indexes[0]
-    rewritten_lines = [
-        line
-        for index, line in enumerate(frame_lines)
-        if index == first_data_line_index or index not in data_line_indexes
-    ]
     rewritten_lines[first_data_line_index] = (
         f"{SSE_DATA_PREFIX}{serialize_json_compact_stable_strict(payload)}"
     )

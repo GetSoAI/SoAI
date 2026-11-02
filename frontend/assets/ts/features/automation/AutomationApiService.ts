@@ -4,6 +4,7 @@
 import { raceWithAbortSignal, throwIfAborted } from '@core/errors/abort.ts';
 import { AsyncOnceGuard } from '@core/concurrency/AsyncOnce.ts';
 import type { ApiClient } from '@core/api/service.ts';
+import type { ModelCatalogSubscriber } from '@core/models/modelCatalogObservation.ts';
 import { resolveWorkspaceBrowserAccess } from '@core/fileexplorerbrowser/workspaceBrowserAccess.ts';
 import { parseAutomationModelOptions } from '@features/automation/modelOptions.ts';
 import type { AutomationDataService, AutomationDefinitionResponse, AutomationDefinitionsPageResponse, AutomationMcpCatalogResponse, AutomationModelOption, AutomationOccurrenceKeyRequest, AutomationOccurrencesDeleteResponse, AutomationOccurrencesPageResponse, AutomationRunResponse, AutomationSchedulePreviewRequest, AutomationSchedulePreviewResponse, AutomationWorkspaceAccess, CreateAutomationRequest, UpdateAutomationRequest } from '@features/automation/contracts.ts';
@@ -21,13 +22,15 @@ type AutomationApiClient = {
 };
 
 class AutomationApiService implements AutomationDataService {
+    readonly subscribeModelCatalog: ModelCatalogSubscriber;
     readonly #api: AutomationApiClient;
     #mcpCatalogOnce = new AsyncOnceGuard<AutomationMcpCatalogResponse>();
 
     #catalogScope: AbortSignal | null = null;
 
-    constructor(api: AutomationApiClient) {
+    constructor(api: AutomationApiClient, subscribeModelCatalog: ModelCatalogSubscriber) {
         this.#api = api;
+        this.subscribeModelCatalog = subscribeModelCatalog;
     }
 
     async listAutomations(limit: number, offset: number, signal?: AbortSignal): Promise<AutomationDefinitionsPageResponse> {
@@ -38,8 +41,8 @@ class AutomationApiService implements AutomationDataService {
         return await this.#api.automations.occurrences(fromUtcMs, toUtcMs, offset, signal);
     }
 
-    async listAvailableModels(signal?: AbortSignal): Promise<readonly AutomationModelOption[]> {
-        return parseAutomationModelOptions(await this.#api.models.list({ signal }));
+    async listAvailableModels(signal?: AbortSignal, timeoutMs?: number): Promise<readonly AutomationModelOption[]> {
+        return parseAutomationModelOptions(await this.#api.models.list({ signal, ...(timeoutMs === undefined ? {} : { timeoutMs }) }));
     }
 
     async getMcpCatalog(options: { signal?: AbortSignal | undefined; refresh?: boolean } = {}): Promise<AutomationMcpCatalogResponse> {

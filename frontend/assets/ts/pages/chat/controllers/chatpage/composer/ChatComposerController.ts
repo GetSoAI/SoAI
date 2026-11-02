@@ -1,6 +1,9 @@
 /* SoAI - Chat composer interaction and prompt resolution ownership [frontend/assets/ts/pages/chat/controllers/chatpage/composer/ChatComposerController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isAvailableFocusTarget } from '@core/dom/focusTarget.ts';
+import { createAbortError } from '@core/errors/abort.ts';
+import { isPresentationOwnerFocused, isPresentationOwnerMutationAllowed } from '@core/presentationOwner.ts';
 import type { SecretPromptInteractionResolutionRequest } from '@core/api/contracts/webuiChatOperationContracts.ts';
 import { handleToggleToolsForPage } from '@pages/chat/controllers/chatpage/construction/callbackHandlers.ts';
 import { resolveAskUserPromptForConstruction } from '@pages/chat/controllers/chatpage/construction/askUserPromptResolution.ts';
@@ -194,6 +197,8 @@ class ChatComposerController implements ChatComposerContract {
     }
 
     insertTextAtCaret(text: string, mode: 'inline' | 'block'): void {
+        const owner = this.#dependencies.page.services.mountScope;
+        if (!isPresentationOwnerMutationAllowed(owner)) throw createAbortError('Chat input mutation is no longer admitted');
         const input = this.#dependencies.input.getChatInput();
         if (!(input instanceof HTMLTextAreaElement)) throw new TypeError('Chat input must be a textarea element');
         const value = input.value;
@@ -207,7 +212,7 @@ class ChatComposerController implements ChatComposerContract {
         const nextValue = `${before}${prefix}${text}${suffix}${after}`;
         const nextCaret = before.length + prefix.length + text.length;
         this.#dependencies.input.setUIValue(input, nextValue, { attribute: 'value' });
-        input.focus();
+        if (isPresentationOwnerFocused(owner) && isAvailableFocusTarget(input)) input.focus({ preventScroll: true });
         input.setSelectionRange(nextCaret, nextCaret);
         refreshChatInputUiState(this.#dependencies.input, input);
         this.noteDraftChanged(nextValue);

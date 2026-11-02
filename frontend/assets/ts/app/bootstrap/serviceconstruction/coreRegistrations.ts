@@ -16,6 +16,8 @@ import { LOG_VALIDATION_SERVICE_ID } from '@core/logvalidation/public.ts';
 import { OperationErrorNotifier } from '@core/operationErrorNotifier.ts';
 import { PageHost } from '@core/pagehost/service.ts';
 import { PageOutlet } from '@core/pageoutlet/public.ts';
+import type { PagePaneService } from '@core/pagepanes/service.ts';
+import type { PagePaneControls } from '@core/pagepanes/controls.ts';
 import type { RealtimeService } from '@core/realtime/public.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { BasePage } from '@core/routing/pages/basepage/public.ts';
@@ -52,6 +54,8 @@ interface CoreRegistrationsDependencies {
     realtime: RealtimeService;
     streamManager: StreamManager;
     router: Router;
+    pagePanes: PagePaneService;
+    pagePaneControls: PagePaneControls;
     operationErrorNotifier: OperationErrorNotifier;
     modalPresenter: ReturnType<typeof createModalPresenterService>;
     clientDataHub: ClientDataHub;
@@ -151,6 +155,8 @@ const registerCoreBootstrapServices = (dependencies: CoreRegistrationsDependenci
         moduleId: 'core.router',
         initialized: true
     });
+    registerService('core.pagePanes', dependencies.pagePanes, { initialized: true });
+    registerService('core.pagePaneControls', dependencies.pagePaneControls, { initialized: true });
     registerService('core.pageRegistry', dependencies.foundation.pageRegistry, {
         moduleId: 'core.pageRegistry'
     });

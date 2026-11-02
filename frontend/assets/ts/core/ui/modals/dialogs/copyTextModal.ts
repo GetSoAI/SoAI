@@ -64,6 +64,7 @@ const createCopyTextModal = (dependencies: { confirmationFlow: ConfirmationFlowA
         });
 
         return await dependencies.confirmationFlow.show({
+            owner: options.owner,
             title: config.title,
             typeTokens: ['confirmation', 'copy-text', variant],
             icon,

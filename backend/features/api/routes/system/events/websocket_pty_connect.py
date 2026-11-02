@@ -6,10 +6,12 @@ from __future__ import annotations
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import SoAIError, ValidationError
 from core.logging.trace import get_logger
+from core.mutations.identifiers import require_mutation_request_id
 from core.runtime.soai_identifiers import create_prefixed_hex_id
 from core.serialization.base64_values import encode_base64_ascii
 from core.terminal.pty_validation import resolve_default_pty_dimensions
 from core.terminal.requests import CreatePTYSessionRequest
+from core.types.json import JSONDict
 from features.api.routes.system.events.websocket_errors import (
     enqueue_pty_websocket_error,
     enqueue_pty_websocket_server_error,
@@ -50,12 +52,19 @@ async def handle_pty_connect(
     request_adapter: WebSocketRequestAdapter,
     enqueue_warning_tracker: EnqueueWarningTracker,
     trace_id: str | None,
+    recovery_identity: JSONDict | None = None,
 ) -> None:
+    if recovery_identity is not None:
+        recovery_identity = {
+            "runtime_id": recovery_identity.get("runtime_id"),
+            "acquisition_id": recovery_identity.get("acquisition_id"),
+        }
     if not await ensure_terminal_access_or_close(
         connection=connection,
         api_context=api_context,
         enqueue_warning_tracker=enqueue_warning_tracker,
         trace_id=trace_id,
+        details=recovery_identity,
     ):
         return
     config = api_context.dependencies.config
@@ -65,6 +74,7 @@ async def handle_pty_connect(
             connection.queue,
             trace_id,
             "Terminal feature is disabled.",
+            details=recovery_identity,
             code="feature_disabled",
         )
         return
@@ -74,6 +84,7 @@ async def handle_pty_connect(
             connection.queue,
             trace_id,
             "PTY session already active.",
+            details=recovery_identity,
             code="conflict_error",
         )
         return
@@ -84,9 +95,35 @@ async def handle_pty_connect(
             connection.queue,
             trace_id,
             "Terminal service unavailable.",
+            details=recovery_identity,
             code="service_unavailable",
         )
         return
+    acquisition_id: str | None = None
+    if recovery_identity is not None:
+        runtime_id = recovery_identity.get("runtime_id")
+        acquisition_value = recovery_identity.get("acquisition_id")
+        if not isinstance(acquisition_value, str) or runtime_id != terminal.runtime_id:
+            await enqueue_pty_websocket_error(
+                enqueue_warning_tracker,
+                connection.queue,
+                trace_id,
+                "Terminal recovery identity is invalid. Reload and verify the old terminal before recovery.",
+                code="invalid_request_error",
+                details=recovery_identity,
+            )
+            return
+        try:
+            acquisition_id = require_mutation_request_id(acquisition_value)
+        except ValidationError as exception:
+            await enqueue_pty_websocket_soai_error(
+                enqueue_warning_tracker,
+                connection.queue,
+                trace_id,
+                exception,
+                details=recovery_identity,
+            )
+            return
     session_id = create_prefixed_hex_id("pty", length=12)
     resolved_cols, resolved_rows = resolve_default_pty_dimensions(cols, rows)
     log_audit_event(
@@ -124,6 +161,7 @@ async def handle_pty_connect(
         result = await terminal.create_pty_session(
             CreatePTYSessionRequest(
                 session_id=session_id,
+                acquisition_id=acquisition_id,
                 cols=resolved_cols,
                 rows=resolved_rows,
                 user_id=request_adapter.state.context.user_id,
@@ -133,6 +171,8 @@ async def handle_pty_connect(
                 busy_callback=busy_callback,
             ),
         )
+        if acquisition_id is not None:
+            result.update({"runtime_id": terminal.runtime_id, "acquisition_id": acquisition_id})
         connection.pty_session_id = session_id
         enqueue_event_or_warn(
             enqueue_warning_tracker,
@@ -153,6 +193,7 @@ async def handle_pty_connect(
             connection.queue,
             trace_id,
             exception,
+            details=recovery_identity,
         )
     except (SoAIError, TimeoutError) as exception:
         connection.pty_session_id = None
@@ -166,4 +207,5 @@ async def handle_pty_connect(
             enqueue_warning_tracker,
             connection.queue,
             trace_id,
+            details=recovery_identity,
         )

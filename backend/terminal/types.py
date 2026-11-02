@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -15,11 +16,14 @@ __all__ = ("PTYSession",)
 
 class PTYSession:
     __slots__ = (
+        "acquisition_id",
         "busy_callback",
         "busy_poll_task",
         "closed",
         "cols",
         "cleanup_lock",
+        "resources_closed",
+        "processes_closed_event",
         "exit_callback",
         "is_busy",
         "master_fd",
@@ -49,6 +53,7 @@ class PTYSession:
         closed: bool = False,
         is_busy: bool = False,
     ) -> None:
+        self.acquisition_id: str | None = None
         self.session_id = session_id
         self.pid = pid
         self.master_fd = master_fd
@@ -57,6 +62,8 @@ class PTYSession:
         self.cols = cols
         self.rows = rows
         self.cleanup_lock = asyncio.Lock()
+        self.resources_closed = False
+        self.processes_closed_event = threading.Event()
         self.output_callback = output_callback
         self.exit_callback = exit_callback
         self.busy_callback = busy_callback

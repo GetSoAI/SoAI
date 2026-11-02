@@ -1,10 +1,12 @@
 /* SoAI - Chat preset library state and configuration contracts [frontend/assets/ts/pages/chat/controllers/chatconfigurationcontroller/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ChatPresetSections, WebuiChatPresetRecord } from '@core/api/contracts/webuiChatPresetContractTypes.ts';
 import type { ChatPageApi, ChatPresetSectionId } from '@features/chat/public.ts';
 
 interface ChatPresetLibraryHost {
+    readonly owner: PresentationOwner;
     root: HTMLElement;
     api: ChatPageApi['webui']['chat']['presets'];
     configuration: ChatPresetConfigurationPort;

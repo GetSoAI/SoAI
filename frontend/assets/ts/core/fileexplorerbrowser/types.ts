@@ -113,6 +113,8 @@ interface DirectoryBrowserState extends FileBrowserState {
 }
 
 interface DirectoryListingBrowserState extends FileBrowserState {
+    updatedAtMs: number | null;
+    freshness: 'current' | 'refreshing' | 'stale' | 'unavailable';
     sessionRevision: number;
     total: number;
     hasMore: boolean;

@@ -44,7 +44,7 @@ const updateTabAvailabilityState = (tab: HTMLElement, isAvailable: boolean): voi
 };
 
 const renderRightButtons = (options: RightButtonsRenderOptions): HTMLElement | null => {
-    const resolvedContainer = options.buttonsContainer ?? toHtmlElement(options.resolveElement(`#${options.className}-buttons`));
+    const resolvedContainer = options.buttonsContainer ?? toHtmlElement(options.resolveElement(`.${options.className}-buttons`));
     if (!resolvedContainer) {
         return null;
     }

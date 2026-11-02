@@ -20,7 +20,7 @@ import type { FirstRunModalService } from '@core/firstrun/protocols.ts';
 import type { BasePageDependencies } from '@core/routing/pages/pagetypes/public.ts';
 
 interface FeatureRegistrationsDependencies {
-    basePageDependencies: BasePageDependencies;
+    basePageDependencies: Omit<BasePageDependencies, 'router' | 'mountScope'>;
     interactiveFeatures: ReturnType<typeof createBootstrapInteractiveFeatures>;
     displayServices: ReturnType<typeof createBootstrapDisplayServices>;
     firstRunModals: FirstRunModalService;
@@ -76,6 +76,7 @@ const registerFeatureBootstrapServices = (dependencies: FeatureRegistrationsDepe
         searchComponent: dependencies.interactiveFeatures.searchPanel,
         catalogStore: dependencies.catalogStore,
         storage: dependencies.storage,
+        modelCatalogSubscriber: dependencies.interactiveFeatures.modelCatalogSubscriber,
         automationDataService: dependencies.interactiveFeatures.automationDataService,
         automationRunActivity: dependencies.interactiveFeatures.automationRunActivity
     });

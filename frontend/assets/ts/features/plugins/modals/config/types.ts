@@ -1,6 +1,7 @@
 /* SoAI - Plugin configuration modal contracts [frontend/assets/ts/features/plugins/modals/config/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { HardwareSnapshotOptions } from '@core/api/types/hardware.ts';
 import type { HardwareSnapshotResponse } from '@core/api/contracts/hardwareContracts.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
@@ -39,6 +40,7 @@ interface HardwareApi {
 }
 
 interface ConfigManagerHost {
+    readonly owner: PresentationOwner;
     modals: ModalPresenterApi;
     requireHTMLElement(selector: string | Element, context?: Element): HTMLElement;
     optionalHTMLElement(selector: string | Element, context?: Element): HTMLElement | null;

@@ -4,7 +4,7 @@
 import { i18n } from '@core/i18n/index.ts';
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderModalTabIntro, renderModalTabPanel, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
@@ -220,7 +220,7 @@ const downloadPluginModalDefinition: ModalDefinition = Object.freeze({
     id: DOWNLOAD_PLUGIN_MODAL_ID,
     layout: 'xl',
     initialFocusSelector: DOWNLOAD_PLUGIN_INITIAL_FOCUS_SELECTOR,
-    createElement: (_options: ModalOpenOptions): HTMLElement => createDownloadPluginModalElement()
+    createElement: (_options: ModalCreationOptions): HTMLElement => createDownloadPluginModalElement()
 });
 
 export { DOWNLOAD_PLUGIN_MODAL_ID, downloadPluginModalDefinition };

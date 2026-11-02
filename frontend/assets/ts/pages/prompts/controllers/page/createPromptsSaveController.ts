@@ -9,6 +9,7 @@ import { savePromptFromModal } from '@pages/prompts/controllers/page/service.ts'
 
 const createPromptsSaveController = (runtime: PromptsRuntimeContext): SaveController =>
     createSaveController({
+        owner: runtime.owners.services.mountScope,
         headerContextId: 'prompts',
         headerPriority: SAVE_HEADER_PRIORITY_PAGE,
         requestContextLabel: 'Prompts save',

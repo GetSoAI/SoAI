@@ -10,6 +10,7 @@
         --ui-button-underlay-base: var(--glass-user-disabled-underlay-surface-base);
         --glass-surface-opacity: 90%;
         --glass-surface-strong-base: color-mix(in srgb, var(--glass-disabled-surface-strong-color) 75%, var(--glass-underlay-page));
+        --modal-surface-background: var(--glass-surface-strong-base);
         --glass-surface-darker-base: color-mix(in srgb, var(--glass-disabled-surface-darker-color) 75%, var(--glass-underlay-page));
         --glass-surface-medium-color-base: color-mix(in srgb, var(--glass-disabled-surface-medium-color) 70%, var(--glass-underlay-page));
         --glass-surface-light-base: color-mix(in srgb, var(--glass-disabled-surface-light-color) 65%, var(--glass-underlay-page));

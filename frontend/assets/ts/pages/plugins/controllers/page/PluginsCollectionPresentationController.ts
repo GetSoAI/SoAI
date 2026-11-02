@@ -12,7 +12,7 @@ import type { PageServices } from '@core/routing/pages/basepagecore/PageServices
 import type { PageUi } from '@core/routing/pages/basepagecore/PageUi.ts';
 import type { PageLayoutContract } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { CollectionConfigurationOptions } from '@core/routing/pages/pagetypes/public.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
 import { isJsonObject } from '@core/types/jsonValues.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import { createCollectionDisplayModeOverrides, initializeCollectionDisplayModeControllerWithList, renderCollectionDisplayModeElement } from '@core/uiprimitives/viewmode/public.ts';
@@ -31,7 +31,7 @@ interface PluginsCollectionPresentationDependencies {
     pageDom: PageDom;
     services: PageServices;
     pageElements: PageUi;
-    router: Router;
+    router: PageRouting;
     layout: PageLayoutContract;
     filters: PluginsFilterBindings;
     dataController: PluginsDataController;

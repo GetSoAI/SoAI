@@ -32,6 +32,7 @@ class ChatConversationActionsController implements ChatConversationActionsContra
             concurrencyScope: options.concurrencyScope
         };
         this.#renameSave = createSaveController({
+            owner: options.host.owner,
             headerContextId: 'chat-conversation-rename',
             headerPriority: SAVE_HEADER_PRIORITY_PAGE,
             requestContextLabel: 'Chat conversation rename',

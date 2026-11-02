@@ -1,6 +1,7 @@
 /* SoAI - Chat conversation toolbar and archived conversation ownership [frontend/assets/ts/pages/chat/controllers/chatpage/conversations/ChatConversationToolbarManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { requireNonNull } from '@core/assertions.ts';
 import type { SanitizerApi } from '@core/pagecontext/public.ts';
 import type { ChatPageApi } from '@features/chat/public.ts';
@@ -11,7 +12,7 @@ import type { ChatUiTaskScopeHost } from '@pages/chat/controllers/chatpage/runti
 import type { SelectionState } from '@core/selection/state.ts';
 
 interface ChatConversationToolbarDependencies extends ToolbarWiringHost, ChatUiTaskScopeHost {
-    pageContext: { sanitizer: SanitizerApi };
+    pageContext: { readonly presentationOwner: PresentationOwner; sanitizer: SanitizerApi };
     api: ChatPageApi;
     conversationSelection: SelectionState;
 }

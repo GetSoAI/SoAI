@@ -9,7 +9,7 @@ import { terminateHandledPromise } from '@core/primitives/terminateHandledPromis
 import type { Router } from '@core/routing/router/Router.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
 import type { SidebarBusyIndicatorRegistry } from '@core/layout/sidebar/busyIndicatorRegistry.ts';
-import type { AuthManagerContract, ComponentRegistryContract, UserInfo } from '@core/layout/sidebar/contracts.ts';
+import type { AuthManagerContract, ComponentRegistryContract, SidebarNavigationIntent, UserInfo } from '@core/layout/sidebar/contracts.ts';
 import { cacheSidebarDomRefs, clearSidebarMenu, getSidebarDomRef, getSidebarMenuElement } from '@core/layout/sidebar/domRefs.ts';
 import type { SidebarDisposerCandidate } from '@core/layout/sidebar/disposers.ts';
 import type { SidebarLifecycleDependencies, SidebarRefreshDependencies } from '@core/layout/sidebar/lifecycle.ts';
@@ -188,7 +188,7 @@ const createSidebarDependencyBundle = (context: SidebarDependencyContext): Sideb
             setHoverPeek: (peeking: boolean) => {
                 if (setSidebarHoverPeekState(context.stateOwner.state, peeking)) updateStateUi();
             },
-            navigateTo: (pageId: string) => navigateSidebarTo(context.services.getRouter(), pageId, getSidebarMenuElement(context.stateOwner.domRefs), context.stateOwner.state.mobile, () => context.services.closeMobile()),
+            navigateTo: (pageId: string, intent?: SidebarNavigationIntent) => navigateSidebarTo(context.services.getRouter(), pageId, getSidebarMenuElement(context.stateOwner.domRefs), context.stateOwner.state.mobile, () => context.services.closeMobile(), intent),
             refreshSidebar: (options?: { syncRoute?: boolean }) => context.services.refreshSidebar(options),
             updatePluginIndicator: () => context.indicators.pluginIndicator.updateIndicator(),
             updateAutomationRunningIndicator: () => context.indicators.automationRunningIndicator.updateIndicator(),

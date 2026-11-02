@@ -10,8 +10,10 @@ import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { isHTMLElement } from '@core/typeGuards.ts';
 import { createTimeoutError, isTimeoutError } from '@core/pageoutlet/state.ts';
 import type { PageOutletErrorState, PageOutletStateOptions } from '@core/pageoutlet/types.ts';
-import { ensureError } from '@core/errors/coerce.ts';
+import { ensureError, extractErrorCode } from '@core/errors/coerce.ts';
 import { createAbortError, isAbortError, raceWithAbortSignal } from '@core/errors/abort.ts';
+import { PAGE_OUTLET_RENDER_STAGES } from '@core/pageoutlet/constants.ts';
+import { PageOutletCleanupError } from '@core/pageoutlet/renderFailure.ts';
 
 const closeHeaderDropdowns = (): void => {
     if (windowIdentity.isDetachedContext()) {
@@ -30,25 +32,25 @@ const closeHeaderDropdowns = (): void => {
     }
 };
 
-const clearSelection = (): void => {
+const clearSelection = (previousContainer: HTMLElement | null): void => {
     const windowRef = getWindow();
     const selection = windowRef.getSelection();
-    if (selection) {
+    if (selection && previousContainer && selection.anchorNode && previousContainer.contains(selection.anchorNode)) {
         selection.removeAllRanges();
     }
 };
 
-const blurActiveElement = (): void => {
+const blurActiveElement = (previousContainer: HTMLElement | null): void => {
     const doc = dom.getDocument();
     const active = doc.activeElement;
-    if (isHTMLElement(active) && active !== doc.body) {
+    if (isHTMLElement(active) && previousContainer?.contains(active)) {
         active.blur();
     }
 };
 
-const runPreNavigationCleanup = (): void => {
-    clearSelection();
-    blurActiveElement();
+const runCommittedNavigationCleanup = (previousContainer: HTMLElement | null): void => {
+    clearSelection(previousContainer);
+    blurActiveElement(previousContainer);
     closeHeaderDropdowns();
 };
 
@@ -124,7 +126,7 @@ const awaitStageWithTimeout = async (taskFactory: () => Promise<void>, timeoutMs
             }
             settled = true;
             cleanup();
-            reject(new AggregateError([createTimeoutError(component, stage, timeoutMs), runtimeError], `Page ${component} cancellation failed after ${stage} timeout`));
+            reject(new PageOutletCleanupError(createTimeoutError(component, stage, timeoutMs), runtimeError, `Page ${component} cancellation failed after ${stage} timeout`));
         };
         const claimTimeout = (): void => {
             if (settled) return;
@@ -175,6 +177,9 @@ const awaitStageWithTimeout = async (taskFactory: () => Promise<void>, timeoutMs
 };
 
 const resolveErrorState = (error: Error): PageOutletErrorState => {
+    if (extractErrorCode(error) === 'page_resource_release_unconfirmed') {
+        return { label: i18n.t('pageOutlet.errorTitle'), detail: i18n.t('pageOutlet.errors.resourceReleaseUnconfirmed') };
+    }
     if (!isTimeoutError(error)) {
         return {
             label: i18n.t('pageOutlet.errorTitle'),
@@ -184,7 +189,7 @@ const resolveErrorState = (error: Error): PageOutletErrorState => {
 
     return {
         label: i18n.t('pageOutlet.errorTitle'),
-        detail: i18n.t('pageOutlet.loadingDelayError')
+        detail: error.stage === PAGE_OUTLET_RENDER_STAGES.RELEASED ? i18n.t('pageOutlet.errors.resourceReleaseUnconfirmed') : i18n.t('pageOutlet.loadingDelayError')
     };
 };
 
@@ -193,4 +198,4 @@ const applyPageOutletErrorState = (error: Error, setState: (state: string, optio
     setState('error', { label, detail });
 };
 
-export { applyPageOutletErrorState, awaitCommitWindow, awaitStageWithTimeout, runPageOutletRenderHook, runPreNavigationCleanup, resolveErrorState };
+export { applyPageOutletErrorState, awaitCommitWindow, awaitStageWithTimeout, runPageOutletRenderHook, runCommittedNavigationCleanup, resolveErrorState };

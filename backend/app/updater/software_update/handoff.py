@@ -12,6 +12,7 @@ import psutil
 from app.updater.software_update.install_transaction_recovery import (
     recover_interrupted_update_transactions,
 )
+from app.updater.software_update.preparation_progress import read_preparation_progress
 from core.concurrency.deadlines import deadline_after
 from core.errors.exceptions import SoAIError, StateError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
@@ -41,6 +42,7 @@ from core.timing.sleep import sleep_seconds
 if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
     from core.system.process_launcher import ManagedProcess
+    from core.types.json import JSONValue
 
 __all__ = (
     "abort_unaccepted_updater",
@@ -142,6 +144,8 @@ async def wait_for_prepared_updater(
         pid=process_handle.pid, base_dir=base_path, edition=edition
     )
     deadline = deadline_after(SETUP_TIMEOUT_SEC)
+    last_phase: JSONValue = None
+    last_downloaded_bytes = 0
     while not deadline.expired():
         result = await asyncio.to_thread(read_software_update_result, base_path)
         if result is not None and result.task_id == task_id:
@@ -161,6 +165,18 @@ async def wait_for_prepared_updater(
             if not runtime_record_matches_process_tree(record, expected):
                 raise ValidationError("Updater readiness does not belong to the launched process.")
             return True
+        progress = await asyncio.to_thread(read_preparation_progress, base_path, task_id)
+        if progress is not None:
+            phase = progress["phase"]
+            downloaded_bytes = progress["downloaded_bytes"]
+            preparation_advanced = phase != last_phase or (
+                isinstance(downloaded_bytes, int) and downloaded_bytes > last_downloaded_bytes
+            )
+            last_phase = phase
+            if isinstance(downloaded_bytes, int):
+                last_downloaded_bytes = max(last_downloaded_bytes, downloaded_bytes)
+            if preparation_advanced:
+                deadline = deadline_after(SETUP_TIMEOUT_SEC)
         await asyncio.sleep(MODERATE_DELAY_SEC)
     raise StateError("Updater preparation timed out; the application remains running.")
 

@@ -50,6 +50,7 @@ const showApiKeyQuotaModal = async (host: ApiKeysManagerHost, key: ApiKey, summa
     const userAssignment = await fetchUserAssignment(host, key);
 
     return await runModalSession<ApiKeyQuotaSummary | null>({
+        owner: host.owner,
         presenter,
         modalId: MODAL_ID,
         onAlreadyOpen: 'replace',
@@ -213,6 +214,7 @@ const showApiKeyQuotaModal = async (host: ApiKeysManagerHost, key: ApiKey, summa
             };
 
             const save = createSaveController({
+                owner: host.owner,
                 headerContextId: `${MODAL_ID}:${summary.keyId}`,
                 headerPriority: SAVE_HEADER_PRIORITY_MODAL,
                 requestContextLabel: 'ApiKeyQuotaModal save',

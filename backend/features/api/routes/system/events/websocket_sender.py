@@ -44,29 +44,42 @@ async def run_websocket_sender(
     websocket: WebSocket,
     connection: WebsocketConnection,
     shutdown_event: asyncio.Event,
+    terminal_runtime_id: str | None = None,
 ) -> None:
+    initialization_pending = True
     terminal_error = connection.terminal_error
     while not shutdown_event.is_set():
         retrieved_from_queue = False
         try:
-            wait_result = await race_queue_operation_against_signals(
-                connection.queue.get(),
-                (shutdown_event, terminal_error.requested),
-                timeout_seconds=INTERACTIVE_TIMEOUT_SEC,
-            )
-            retrieved_from_queue = wait_result.outcome is QueueRaceOutcome.OPERATION_COMPLETED
-            if shutdown_event.is_set():
-                break
             terminal_payload = terminal_error.payload if terminal_error.requested.is_set() else None
-            event_data: JSONDict = (
-                terminal_payload
-                if terminal_payload is not None
-                else (
-                    wait_result.value
-                    if wait_result.value is not None
-                    else build_websocket_event_payload(WebSocketEventTypes.PING)
+            event_data: JSONDict
+            if initialization_pending and terminal_payload is None:
+                initialization_pending = False
+                event_data = build_websocket_event_payload(
+                    WebSocketEventTypes.TERMINAL_RUNTIME,
+                    {"runtime_id": terminal_runtime_id},
                 )
-            )
+            else:
+                wait_result = await race_queue_operation_against_signals(
+                    connection.queue.get(),
+                    (shutdown_event, terminal_error.requested),
+                    timeout_seconds=INTERACTIVE_TIMEOUT_SEC,
+                )
+                retrieved_from_queue = wait_result.outcome is QueueRaceOutcome.OPERATION_COMPLETED
+                if shutdown_event.is_set():
+                    break
+                terminal_payload = (
+                    terminal_error.payload if terminal_error.requested.is_set() else None
+                )
+                event_data = (
+                    terminal_payload
+                    if terminal_payload is not None
+                    else (
+                        wait_result.value
+                        if wait_result.value is not None
+                        else build_websocket_event_payload(WebSocketEventTypes.PING)
+                    )
+                )
             if not await validate_websocket_session(connection, force=False):
                 shutdown_event.set()
                 break

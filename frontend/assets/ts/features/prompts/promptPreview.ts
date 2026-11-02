@@ -1,6 +1,7 @@
 /* SoAI - Prompt content preview launcher [frontend/assets/ts/features/prompts/promptPreview.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { PromptRequest, PromptResponse } from '@core/api/contracts/promptContracts.ts';
 import { dom } from '@core/dom/dom.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
@@ -30,6 +31,7 @@ interface PromptPreviewSession {
 }
 
 interface PromptPreviewHost {
+    readonly owner: PresentationOwner;
     promptsApi: PromptPreviewApi;
     findPromptById?: (id: string | number) => PromptRecord | JsonValue | null | undefined;
     upsertPromptRecord?: (record: PromptResponse) => PromptRecord | null | undefined;
@@ -64,10 +66,10 @@ const buildPromptFilename = (name: string): string => {
 
 const createPromptPreviewColorToolkit = (host: PromptPreviewHost): ColorToolkit =>
     new ColorToolkit({
-        queryUI: (selector, container) => dom.resolveAll(selector, container ?? host.getDocument()),
+        queryUI: (selector, container) => dom.resolveAll(selector, container ?? host.requireModalElement(CONTENT_PREVIEW_MODAL_ID)),
         toggleClassName: (element, className, force) => element.classList.toggle(className, force),
         optionalUI: (selector, container) => {
-            const candidate = dom.resolve(selector, container ?? host.getDocument());
+            const candidate = dom.resolve(selector, container ?? host.requireModalElement(CONTENT_PREVIEW_MODAL_ID));
             return candidate instanceof Element ? candidate : null;
         },
         dom: { getDocument: () => host.getDocument() }
@@ -98,6 +100,7 @@ const presentPromptContentPreview = (host: PromptPreviewHost, session: PromptPre
     throwIfAborted(options.signal);
     service.open(
         createTextContentPreviewRequest({
+            owner: host.owner,
             scope: 'prompts',
             type: 'text',
             headerDescription: resolvePromptHeaderDescription(session.prompt),

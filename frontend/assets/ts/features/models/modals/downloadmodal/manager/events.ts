@@ -208,6 +208,7 @@ const handleRepositoryLinkClick = async (runtime: DownloadModalManagerRuntime, _
         !url ||
         url === '#' ||
         !(await requireDialogsService().showExternalLinkModal({
+            owner: runtime.host.owner,
             title: i18n.t('models.confirmations.externalLink'),
             message: i18n.t('models.confirmations.externalLinkMessage'),
             url,

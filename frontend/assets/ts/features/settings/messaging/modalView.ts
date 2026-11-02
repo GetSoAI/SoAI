@@ -141,7 +141,8 @@ const renderExecutionGroup = (modalId: string): string => {
             renderSettingItem({
                 label: renderRequiredFieldLabelHtml(i18n.t('settings.messaging.editor.model')),
                 fieldKey: 'model',
-                control: renderSelect(modalUiId(modalId, 'model'), '')
+                control: renderSelect(modalUiId(modalId, 'model'), ''),
+                footer: `<span id="${uiAttr(modalUiId(modalId, 'model-catalog-status')).html}" class="setting-help" role="status" aria-live="polite" hidden></span>`
             }),
             renderSettingItem({
                 label: i18n.t('settings.messaging.editor.agentMode'),

@@ -9,7 +9,7 @@ import type { AuthRecoverySupervisor } from '@core/auth/recoverySupervisor.ts';
 import type { AuthManagerServiceResolver, AuthManagerStateHandle } from '@core/auth/internalContracts.ts';
 import type { InitializeOptions, SessionInvalidationResult, WebuiUser, WizardStatus } from '@core/auth/types.ts';
 import { connectSharedState } from '@core/auth/sharedState.ts';
-import { addCallback, applyUserSession, beginAuthenticatedEpoch, beginTerminalAuthIntent, buildSessionPayload, canApplyAuthenticatedEpoch, clearSession, notifyLogin, notifyLogout, serializeUser } from '@core/auth/state.ts';
+import { addCallback, applyUserSession, beginTerminalAuthIntent, buildSessionPayload, canApplyAuthenticatedEpoch, clearSession, notifyLogin, notifyLogout, serializeUser } from '@core/auth/state.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { isDetailedWizardStatus } from '@core/api/contracts/wizardLicensingContracts.ts';
 import { APIError } from '@core/apiError.ts';
@@ -47,7 +47,8 @@ const recoverRotatedSessionAuthManager = async (request: RotatedSessionRecoveryR
     }
 };
 
-const initializeAuthManager = async (state: AuthManagerStateHandle, resolveApi: AuthManagerServiceResolver['resolveApi'], resolveStorage: AuthManagerServiceResolver['resolveStorage'], runAuthTransition: <T>(operation: () => Promise<T>) => Promise<T>, options: InitializeOptions = {}): Promise<boolean | undefined> => {
+const initializeAuthManager = async (state: AuthManagerStateHandle, resolveApi: AuthManagerServiceResolver['resolveApi'], resolveStorage: AuthManagerServiceResolver['resolveStorage'], runAuthTransition: <T>(operation: () => Promise<T>) => Promise<T>, epoch: number, options: InitializeOptions = {}): Promise<boolean | undefined> => {
+    if (!canApplyAuthenticatedEpoch(state, epoch)) return false;
     await connectSharedState(
         state,
         {
@@ -75,6 +76,7 @@ const initializeAuthManager = async (state: AuthManagerStateHandle, resolveApi: 
         serializeUser,
         runAuthTransition
     );
+    if (!canApplyAuthenticatedEpoch(state, epoch)) return false;
     if (options?.wizardState) {
         state.wizardStatusSnapshot = options.wizardState;
     }
@@ -84,11 +86,13 @@ const initializeAuthManager = async (state: AuthManagerStateHandle, resolveApi: 
     }
     try {
         const api = await resolveApi();
+        if (!canApplyAuthenticatedEpoch(state, epoch)) return false;
         const user = await api.webui.auth.getMe({ authTransitionOwned: true });
-        const epoch = beginAuthenticatedEpoch(state);
-        const wasSessionStored = await applyUserSession(state, user, resolveStorage, undefined, epoch);
+        if (!canApplyAuthenticatedEpoch(state, epoch)) return false;
+        const wasSessionStored = await applyUserSession(state, user, resolveStorage, undefined, epoch, 'session-read');
         return wasSessionStored;
     } catch (error) {
+        if (!canApplyAuthenticatedEpoch(state, epoch)) return false;
         const err = ensureError(error);
         if (isSessionInvalidApiError(err)) {
             await clearSession(state, resolveStorage);

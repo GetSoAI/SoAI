@@ -7,15 +7,18 @@ import type { LicensingSettingsStatus } from '@core/api/contracts/licensingSetti
 import { errorHandler } from '@core/errorHandler.ts';
 import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { createGlobalPresentationOwner } from '@core/presentationOwner.ts';
 import { createHeaderActionController, type HeaderActionController } from '@core/headerActionBus.ts';
 import { HEADER_ACTION_IDS } from '@core/headeractions/constants.ts';
 import { licensingStateNeedsAttention, licensingStateRequiresRepair } from '@core/licensing/licensingState.ts';
 import { WEBSOCKET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/registry.ts';
 import { subscribeManagedWebSocketContract } from '@core/realtime/websocketBatchSubscription.ts';
 import { requireRouter } from '@core/routing/router/routerRuntime.ts';
+import type { GlobalPresentationOwner } from '@core/routing/router/types.ts';
 
 class LicensingShortcutController {
-    #actionController: HeaderActionController | null = null;
+    readonly #presentationOwner = createGlobalPresentationOwner('LicensingShortcutController');
+    #actionController: HeaderActionController<GlobalPresentationOwner> | null = null;
     #authManager: AuthManager | null = null;
     #unsubscribeLogin: (() => void) | null = null;
     #unsubscribeLogout: (() => void) | null = null;
@@ -71,6 +74,7 @@ class LicensingShortcutController {
         this.#authManager = getAuthManager();
         this.#abortController = new AbortController();
         this.#actionController = createHeaderActionController({
+            owner: this.#presentationOwner,
             actionId: HEADER_ACTION_IDS.licensing,
             contextId: 'header-licensing-shortcut'
         });

@@ -13,7 +13,7 @@ import { PageCollapsibleCards } from '@core/routing/pages/basepagelayout/PageCol
 import { PageLayout } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { LanguageService } from '@core/routing/pages/pagetypes/public.ts';
 import { PageStreaming } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageMountScope, PageRouting } from '@core/routing/router/types.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
 import type { PageHost } from '@core/routing/pages/basepagecore/PageHost.ts';
 
@@ -26,7 +26,8 @@ interface PageFoundationDependencies {
     pageDom: PageDom;
     pageHost: PageHost;
     resources: PageResources;
-    router: Router;
+    router: PageRouting;
+    mountScope: PageMountScope;
     storage: StorageService;
 }
 
@@ -46,6 +47,7 @@ const composePageFoundation = (dependencies: PageFoundationDependencies): PageFo
         loadingState: dependencies.loading,
         storage: dependencies.storage,
         router: dependencies.router,
+        mountScope: dependencies.mountScope,
         auth: dependencies.auth,
         languageService: dependencies.languageService,
         pageDom: dependencies.pageDom,
@@ -54,6 +56,7 @@ const composePageFoundation = (dependencies: PageFoundationDependencies): PageFo
     const layout = new PageLayout(
         {
             pageId: dependencies.pageId,
+            mountScope: dependencies.mountScope,
             pageContext: dependencies.pageContext,
             pageDom: dependencies.pageDom,
             pageHost: dependencies.pageHost,
@@ -62,7 +65,7 @@ const composePageFoundation = (dependencies: PageFoundationDependencies): PageFo
         },
         {}
     );
-    const pageElements = new PageUi({ loadingState: dependencies.loading, layout, pageDom: dependencies.pageDom });
+    const pageElements = new PageUi({ pageId: dependencies.pageId, loadingState: dependencies.loading, layout, pageDom: dependencies.pageDom });
     layout.configure({ updateCheckerboard: () => pageElements.updateCheckerboard() });
     const collapsibleCards = new PageCollapsibleCards({
         pageDom: dependencies.pageDom,

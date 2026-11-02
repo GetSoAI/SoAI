@@ -13,6 +13,7 @@ const createPageSectionElement = (
     sectionId: string,
     options: CreateSectionOptions,
     dependencies: {
+        pageId: string;
         createElement: (tagName: string, attributes?: ElementOptions) => HTMLElement;
         applyGridPosition: (element: HTMLElement, position: GridPosition) => void;
         updateHTML: (element: Element, html: TrustedHtml | string, options?: { escape?: boolean }) => void;
@@ -32,9 +33,9 @@ const createPageSectionElement = (
     if (position) {
         dependencies.applyGridPosition(section, position);
     }
-    const subtitleId = `${sectionId}-subtitle`;
-    const contentId = `${sectionId}-content`;
-    const statusLineId = `${sectionId}-status`;
+    const subtitleId = `${dependencies.pageId}-${sectionId}-subtitle`;
+    const contentId = `${dependencies.pageId}-${sectionId}-content`;
+    const statusLineId = `${dependencies.pageId}-${sectionId}-status`;
     const subtitleSlot = showSubtitle ? uiHtml`<div class="section-subtitle" id="${uiAttr(subtitleId)}">${uiText(subtitle)}</div>` : EMPTY_UI_HTML;
     const statusLineSlot = sectionId === 'status' ? uiHtml`<div class="section-status-line" id="${uiAttr(statusLineId)}"></div>` : EMPTY_UI_HTML;
     const markup = uiHtml`<div class="section-header" data-section-handle="${uiAttr(sectionId)}"><div class="section-header-main"><div class="section-title">${uiText(title)}</div>${subtitleSlot}</div><div class="section-controls">${controls}</div></div><div class="section-content" id="${uiAttr(contentId)}"><div class="section-loading">${uiText(loadingMessage)}</div></div>${statusLineSlot}`;

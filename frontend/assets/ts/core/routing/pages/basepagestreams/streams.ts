@@ -7,12 +7,13 @@ import type { BasePageStreamsState, SubscriptionManager } from '@core/routing/pa
 import { StreamHandleTracker } from '@core/routing/pages/pageStreams.ts';
 import { subscriptionManager } from '@core/subscriptionmanager/service.ts';
 
-const getOrCreatePageStreamTracker = (state: BasePageStreamsState, pageKey: string): StreamHandleTracker => {
+const getOrCreatePageStreamTracker = (state: BasePageStreamsState, pageKey: string, requireActive: () => void): StreamHandleTracker => {
+    requireActive();
     if (!state.streamTrackers) {
         state.streamTrackers = new Map();
     }
     if (!state.streamTrackers.has(pageKey)) {
-        state.streamTrackers.set(pageKey, new StreamHandleTracker(pageKey));
+        state.streamTrackers.set(pageKey, new StreamHandleTracker(pageKey, requireActive));
     }
     const tracker = state.streamTrackers.get(pageKey);
     if (!tracker) {
@@ -28,9 +29,10 @@ const resolvePageStreamRuntime = (state: BasePageStreamsState): StreamRuntimeOwn
     return state.coreStreamRuntime;
 };
 
-const getOrCreatePageSubscriptionManager = (state: BasePageStreamsState, pageId: string): SubscriptionManager => {
+const getOrCreatePageSubscriptionManager = (state: BasePageStreamsState, pageId: string, requireActive: () => void): SubscriptionManager => {
+    requireActive();
     if (!state.subscriptionManager) {
-        state.subscriptionManager = request(subscriptionManager, 'SM').create(pageId);
+        state.subscriptionManager = request(subscriptionManager, 'SM').create(pageId, { requireActive });
     }
     return state.subscriptionManager;
 };

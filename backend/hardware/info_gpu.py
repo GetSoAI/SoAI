@@ -133,14 +133,17 @@ def get_gpu_observation(
         vendor_hints = vendor_hints_or_all(detected_vendors)
         if runtime_platform.is_windows:
             retained_capacity = cache_service.get_retained_observation()
+            monitoring_runtime = cache_service.adl_monitoring_runtime
             inventory = collect_windows_gpu_inventory(
                 executor,
                 detailed=detailed,
                 vendor_hints=vendor_hints,
                 nvidia_nvml_gate=nvidia_nvml_gate,
                 nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
-                adl_runtime=adl_runtime,
+                adl_runtime=monitoring_runtime if monitoring_runtime is not None else adl_runtime,
             )
+            if cache_service.windows_gpu_enricher is not None:
+                cache_service.windows_gpu_enricher(inventory.gpus)
             reconcile_windows_capacity_observations(
                 inventory.gpus, retained_capacity.payload if retained_capacity is not None else None
             )

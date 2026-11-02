@@ -10,6 +10,7 @@ import { ensureTelemetry } from '@core/pagecontext/telemetry/service.ts';
 import { securityApi } from '@core/security/public.ts';
 import { telemetry } from '@core/telemetry/service.ts';
 import { showNotification, type NotificationType } from '@core/ui/notifications/notifications.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 
 const ensurePageId = (value: string): string => {
     const trimmed = value.trim();
@@ -25,9 +26,11 @@ class PageContext {
     #sanitizer: SanitizerApi;
     #notifications: NotificationApi;
     #telemetry: TelemetryService;
+    readonly #presentationOwner: PresentationOwner | null;
 
     constructor({
         pageId,
+        presentationOwner,
         clipboard = getClipboardService(),
         sanitizer = securityApi,
         notifier = (message: string, type: NotificationType, duration: number): void => {
@@ -36,6 +39,7 @@ class PageContext {
         telemetry: telemetryOverride = telemetry
     }: PageContextOptions) {
         this.#pageId = ensurePageId(pageId);
+        this.#presentationOwner = presentationOwner ?? null;
         this.#clipboard = createClipboardApi(clipboard);
         this.#sanitizer = createSanitizerApi(sanitizer);
         this.#notifications = createNotificationApi(notifier, this.#pageId);
@@ -44,6 +48,11 @@ class PageContext {
 
     get id(): string {
         return this.#pageId;
+    }
+
+    get presentationOwner(): PresentationOwner {
+        if (!this.#presentationOwner) throw new Error('This context does not own presentation');
+        return this.#presentationOwner;
     }
 
     get clipboard(): ClipboardApi {

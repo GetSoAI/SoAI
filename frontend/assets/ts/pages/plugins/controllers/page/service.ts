@@ -3,7 +3,7 @@
 
 import { shouldPreventDefaultExceptFileActionElement } from '@core/dom/dataAction.ts';
 import { PLUGINS } from '@core/realtime/streammanager/resources/ids.ts';
-import { buildRouteWithoutQueryParameters } from '@core/routing/router/events.ts';
+import { consumeRouteQuery } from '@core/routeregistry/reconstruction.ts';
 import type { CardPageController } from '@core/routing/pages/collections/cardgridpage/public.ts';
 import type { ResourceIncomingValue } from '@core/data/ClientDataHub.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
@@ -90,6 +90,7 @@ const createPluginsPageRuntime = (dependencies: CreatePluginsPageRuntimeDependen
 
     operationsController = new PluginsOperationsController({
         page: {
+            owner: infrastructure.services.mountScope,
             pageDom: infrastructure.pageDom,
             feedback: infrastructure.feedback
         },
@@ -182,6 +183,7 @@ const createPluginsPageRuntime = (dependencies: CreatePluginsPageRuntimeDependen
             reapplyCollection: (options): void => collection.collections.reapply(options)
         },
         services: {
+            mountScope: infrastructure.services.mountScope,
             refreshBackendUpdatePermissions: () => session.refreshBackendUpdatePermissions(),
             getCatalogStore: () => ({
                 ensureLoaded: (options: { force: boolean }): Promise<ReadonlyArray<PluginRecord>> => session.catalogStore.ensureLoaded(options)
@@ -207,7 +209,7 @@ const createPluginsPageRuntime = (dependencies: CreatePluginsPageRuntimeDependen
                 primaryRuntime.modalManagers.manageBackendModalManager.openInstallBackendModal(plugin);
             },
             clearInitialQuery: (keys): void => {
-                infrastructure.router.replaceCurrentRoute(buildRouteWithoutQueryParameters('plugins', infrastructure.router.getRouteParameters(), keys));
+                consumeRouteQuery(infrastructure.router, keys);
             }
         }
     });

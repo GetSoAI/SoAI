@@ -5,7 +5,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import { MODAL_HEADER_CLOSE_SELECTOR } from '@core/modals/headerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderModalLoadingState, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
@@ -128,19 +128,19 @@ const HARDWARE_MODAL_DEFINITIONS: readonly ModalDefinition[] = Object.freeze([
         id: HARDWARE_SYSTEM_INFO_MODAL_ID,
         layout: 'lg',
         initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-        createElement: (_options: ModalOpenOptions): HTMLElement => createSystemInfoModalElement()
+        createElement: (_options: ModalCreationOptions): HTMLElement => createSystemInfoModalElement()
     },
     {
         id: HARDWARE_SOAIBENCH_HISTORY_MODAL_ID,
         layout: 'xl',
         initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-        createElement: (_options: ModalOpenOptions): HTMLElement => createSoAIBenchHistoryModalElement()
+        createElement: (_options: ModalCreationOptions): HTMLElement => createSoAIBenchHistoryModalElement()
     },
     {
         id: HARDWARE_SOAIBENCH_RUN_MODAL_ID,
         layout: 'lg',
         initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-        createElement: (_options: ModalOpenOptions): HTMLElement => createSoAIBenchRunModalElement()
+        createElement: (_options: ModalCreationOptions): HTMLElement => createSoAIBenchRunModalElement()
     }
 ]);
 

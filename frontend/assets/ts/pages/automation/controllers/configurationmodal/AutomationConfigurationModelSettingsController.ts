@@ -1,6 +1,7 @@
 /* SoAI - Automation page configuration model settings controller [frontend/assets/ts/pages/automation/controllers/configurationmodal/AutomationConfigurationModelSettingsController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { readTrimmedSelectValue } from '@core/dom/formValues.ts';
 import { replaceSelectOptions, type SelectEntryDefinition, type SelectOptionDefinition, type SelectOptionGroupDefinition } from '@core/dom/selectOptions.ts';
 import { setSelectValueAndSyncDefault } from '@core/dom/selectSelection.ts';
@@ -19,6 +20,7 @@ import { AUTOMATION_ACTION_MCP_SERVER_TOGGLE, AUTOMATION_ACTION_MCP_TOOL_GROUP_T
 import { AUTOMATION_CONFIGURATION_PARAMETERS_UPDATED_EVENT, AutomationConfigurationParametersController } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationParametersController.ts';
 
 interface ModelSettingsUi {
+    readonly owner: PresentationOwner;
     modalRoot: HTMLElement;
     modelSelect: HTMLSelectElement;
     workspacePathInput: HTMLInputElement;
@@ -36,6 +38,7 @@ class AutomationConfigurationModelSettingsController {
     readonly #parameters: AutomationConfigurationParametersController;
     readonly #workspace: WorkspacePathDraft;
     #availableModels: readonly AutomationModelOption[] = [];
+    #catalogAvailable = true;
     #storedSettings: AutomationDefinitionResponse['modelSettings'] | null = null;
     #readOnly = false;
 
@@ -61,14 +64,16 @@ class AutomationConfigurationModelSettingsController {
             }
         });
         this.#parameters = new AutomationConfigurationParametersController({
+            owner: ui.owner,
             modalPresenter: ui.modalPresenter,
             resolveModelDetailId: () => this.#resolveModelOption(readTrimmedSelectValue(this.#ui.modelSelect))?.detailUniversalId ?? null
         });
         this.#workspace = new WorkspacePathDraft();
     }
 
-    setAvailableModels(models: readonly AutomationModelOption[]): void {
-        this.#availableModels = models;
+    setAvailableModels(models: readonly AutomationModelOption[] | null): void {
+        this.#catalogAvailable = models !== null;
+        if (models !== null) this.#availableModels = models;
         this.#renderModelOptions(readTrimmedSelectValue(this.#ui.modelSelect));
     }
 
@@ -99,6 +104,7 @@ class AutomationConfigurationModelSettingsController {
     async openWorkspaceModal(api: ReadOnlyFileBrowserApi, canApply: () => boolean, signal?: AbortSignal): Promise<boolean> {
         if (
             await this.#workspace.open({
+                owner: this.#ui.owner,
                 access: {
                     currentWorkspacePath: this.#workspace.getCurrentWorkspacePath(),
                     browserApi: api
@@ -138,7 +144,7 @@ class AutomationConfigurationModelSettingsController {
     }
 
     #isModelSelectable(option: AutomationModelOption): boolean {
-        return option.ineligibleReason === null;
+        return this.#catalogAvailable && option.ineligibleReason === null;
     }
 
     getModelIssue(): string | null {
@@ -147,6 +153,7 @@ class AutomationConfigurationModelSettingsController {
             return i18n.t('automation.modal.validation.modelRequired');
         }
         const option = this.#resolveModelOption(model);
+        if (!this.#catalogAvailable) return i18n.t('automation.modal.validation.modelUnavailable', { model: option?.label ?? model });
         if (!option) {
             return i18n.t('automation.modal.validation.modelMissing', { model });
         }
@@ -233,6 +240,7 @@ class AutomationConfigurationModelSettingsController {
     }
 
     #formatStatus(model: AutomationModelOption): string {
+        if (!this.#catalogAvailable) return i18n.t('automation.modal.modelStatus.unavailable');
         if (model.ineligibleReason === 'disabled') {
             return i18n.t('common.disabled');
         }

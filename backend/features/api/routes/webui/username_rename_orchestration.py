@@ -12,6 +12,7 @@ from core.auth.jwt_claims import AccessTokenRecord
 from core.auth.webui_sessions import WebuiSessionJtiCollisionError
 from core.errors.exceptions import ApiError, ConflictError, StateError
 from core.state.errors import DatabaseTimeoutError
+from core.timing.epoch import epoch_ms
 from core.users.identity_mutation_contract import (
     IDENTITY_MUTATION_DEADLINE_MS,
     IDENTITY_MUTATION_SERVER_HORIZON_MS,
@@ -58,7 +59,7 @@ async def rename_username(
 ) -> IdentityMutationOutcome:
     started_monotonic = time.monotonic()
     deadline_monotonic = started_monotonic + IDENTITY_MUTATION_DEADLINE_MS / 1000
-    request_wall_ms = int(time.time() * 1000)
+    request_wall_ms = epoch_ms()
     recovery_horizon_at_ms = request_wall_ms + IDENTITY_MUTATION_SERVER_HORIZON_MS
     binding = IdentityMutationBinding(
         actor_user_id=actor_user_id,

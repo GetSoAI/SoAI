@@ -1,12 +1,14 @@
 /* SoAI - Automation page editor controller [frontend/assets/ts/pages/automation/controllers/AutomationEditorController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { APIError } from '@core/apiError.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { raceWithAbortSignal } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
@@ -17,12 +19,16 @@ import { toStartLocal } from '@core/time/localCalendar.ts';
 import { AutomationConfigurationModalController } from '@pages/automation/controllers/AutomationConfigurationModalController.ts';
 import { resolveAutomationCreateStartLocal } from '@pages/automation/controllers/AutomationCreateStartDomain.ts';
 import { AutomationEditorSaveController } from '@pages/automation/controllers/AutomationEditorSaveController.ts';
+import { ModelCatalogReadController } from '@core/models/ModelCatalogReadController.ts';
+import { AutomationPageErrorNotifier } from '@pages/automation/controllers/AutomationPageErrorNotifier.ts';
+import { isPresentationOwnerCurrent, isPresentationOwnerMutationAllowed } from '@core/presentationOwner.ts';
 import { AUTOMATION_TIMEZONE_AUTO } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationFormUi.ts';
 import { resolveAutomationCreateDefaults } from '@pages/automation/state/AutomationCreateDefaultsManager.ts';
-import type { AutomationDataService, AutomationDefinitionResponse, AutomationMcpCatalogResponse } from '@features/automation/public.ts';
+import type { AutomationDataService, AutomationDefinitionResponse, AutomationMcpCatalogResponse, AutomationModelOption } from '@features/automation/public.ts';
 import type { AutomationCalendarSettings } from '@pages/automation/types.ts';
 
 interface AutomationEditorControllerDependencies {
+    readonly owner: PresentationOwner;
     requireHTMLElement: (selector: string, context?: Element | Document | null) => HTMLElement;
     modalPresenter: ModalPresenterApi;
     dataService: AutomationDataService;
@@ -42,6 +48,7 @@ class AutomationEditorController {
     readonly #dependencies: AutomationEditorControllerDependencies;
     readonly #modal: AutomationConfigurationModalController;
     readonly #saveSession: AutomationEditorSaveController;
+    readonly #modelCatalog: ModelCatalogReadController<readonly AutomationModelOption[]>;
     readonly #loadToken = new SequenceToken();
     #request: AutomationEditorOpenRequest | null = null;
     #currentWorkspacePath: string | null = null;
@@ -51,6 +58,7 @@ class AutomationEditorController {
     constructor(dependencies: AutomationEditorControllerDependencies) {
         this.#dependencies = dependencies;
         this.#modal = new AutomationConfigurationModalController({
+            owner: dependencies.owner,
             requireHTMLElement: dependencies.requireHTMLElement,
             modalPresenter: dependencies.modalPresenter,
             getIconSync: dependencies.getIconSync,
@@ -58,6 +66,7 @@ class AutomationEditorController {
             getCalendarSettings: dependencies.getCalendarSettings
         });
         this.#saveSession = new AutomationEditorSaveController({
+            owner: dependencies.owner,
             modalPresenter: dependencies.modalPresenter,
             modal: this.#modal,
             dataService: dependencies.dataService,
@@ -66,32 +75,46 @@ class AutomationEditorController {
             isPageDisposed: () => this.#destroyed,
             showNotification: dependencies.showNotification
         });
+        const modelFailures = new AutomationPageErrorNotifier({ showNotification: dependencies.showNotification });
+        this.#modelCatalog = new ModelCatalogReadController({
+            owner: dependencies.owner,
+            subscribeCatalog: dependencies.dataService.subscribeModelCatalog,
+            readCatalog: (signal, timeoutMs) => dependencies.dataService.listAvailableModels(signal, timeoutMs),
+            applyCatalog: (models) => {
+                this.#modal.setAvailableModels(models);
+                this.#saveSession.notifyChanged();
+            },
+            reportFailure: (error) => modelFailures.notifyRefreshFailureOnce(error)
+        });
     }
 
     onConfigurationModalOpen(modal: Element): void {
+        if (this.#destroyed) return;
         this.#saveSession.begin(modal);
     }
 
     onConfigurationModalClose(): void {
         this.#loadToken.invalidate();
-        this.#loadAbort?.abort();
+        const controller = this.#loadAbort;
         this.#loadAbort = null;
         this.#request = null;
-        this.#saveSession.dispose();
-        this.#modal.endSession();
+        const failures: Error[] = [];
+        runCleanupStepCollectingFailure(() => this.#modelCatalog.stop(), failures);
+        runCleanupStepCollectingFailure(() => controller?.abort(), failures);
+        if (this.#request === null) {
+            runCleanupStepCollectingFailure(() => this.#saveSession.dispose(), failures);
+            runCleanupStepCollectingFailure(() => this.#modal.endSession(), failures);
+        }
+        throwCollectedCleanupFailures(failures);
     }
 
     destroy(): void {
         this.#destroyed = true;
-        this.#loadToken.invalidate();
-        this.#loadAbort?.abort();
-        this.#loadAbort = null;
-        this.#request = null;
-        if (this.#modal.isOpen()) {
-            this.#modal.dismiss();
-        }
-        this.#saveSession.dispose();
-        this.#modal.destroy();
+        const failures: Error[] = [];
+        runCleanupStepCollectingFailure(() => this.onConfigurationModalClose(), failures);
+        if (this.#modal.isOpen()) runCleanupStepCollectingFailure(() => this.#modal.dismiss(), failures);
+        runCleanupStepCollectingFailure(() => this.#modal.destroy(), failures);
+        throwCollectedCleanupFailures(failures);
     }
 
     async openCreateForSelectedDate(): Promise<void> {
@@ -169,24 +192,28 @@ class AutomationEditorController {
     }
 
     async #open(request: AutomationEditorOpenRequest): Promise<void> {
-        if (this.#destroyed) {
+        if (this.#destroyed || !isPresentationOwnerMutationAllowed(this.#dependencies.owner)) {
             return;
         }
         if (this.#modal.isOpen()) this.#modal.dismiss();
         this.#request = request;
         this.#modal.beginOpen(request.mode);
+        if (this.#request !== request || !isPresentationOwnerCurrent(this.#dependencies.owner)) return;
+        this.#modelCatalog.start();
         await this.#loadPrerequisites(request);
     }
 
     async #loadPrerequisites(request: AutomationEditorOpenRequest): Promise<void> {
         const token = this.#loadToken.next();
-        this.#loadAbort?.abort();
+        const predecessor = this.#loadAbort;
         const controller = new AbortController();
         this.#loadAbort = controller;
+        predecessor?.abort();
+        if (this.#destroyed || !this.#loadToken.isActive(token) || this.#request !== request || !isPresentationOwnerCurrent(this.#dependencies.owner)) return;
         const signal = controller.signal;
         this.#modal.setPrerequisitesState({ type: 'loading' });
         const dataService = this.#dependencies.dataService;
-        const results = await raceWithAbortSignal(Promise.allSettled([dataService.getWorkspaceAccess(signal), dataService.listAvailableModels(signal), dataService.getMcpCatalog({ signal }), request.mode === 'create' ? Promise.resolve(null) : dataService.getAutomation(request.automationId, signal)]), signal).catch((error) => {
+        const results = await raceWithAbortSignal(Promise.allSettled([dataService.getWorkspaceAccess(signal), this.#modelCatalog.ensureReady(), dataService.getMcpCatalog({ signal }), request.mode === 'create' ? Promise.resolve(null) : dataService.getAutomation(request.automationId, signal)]), signal).catch((error) => {
             const runtimeError = ensureError(error);
             if (!signal.aborted) throw runtimeError;
             errorHandler.debug('AutomationEditorController', 'Editor prerequisite load cancelled', runtimeError);
@@ -194,7 +221,7 @@ class AutomationEditorController {
         });
         if (results === null) return;
         const [workspaceResult, modelsResult, catalogResult, definitionResult] = results;
-        if (this.#destroyed || !this.#loadToken.isActive(token) || this.#request !== request) {
+        if (this.#destroyed || !this.#loadToken.isActive(token) || this.#request !== request || !isPresentationOwnerCurrent(this.#dependencies.owner)) {
             return;
         }
         const workspace = settledValue(workspaceResult);
@@ -212,9 +239,14 @@ class AutomationEditorController {
             this.#modal.setPrerequisitesState({ type: 'failed', message: i18n.t('automation.modal.prerequisites.failed'), retryable: true });
             return;
         }
+        const modelsReady = await this.#modelCatalog.ensureReady();
+        if (this.#destroyed || !this.#loadToken.isActive(token) || this.#request !== request || !isPresentationOwnerCurrent(this.#dependencies.owner)) return;
+        if (!modelsReady || !this.#modelCatalog.isReady()) {
+            this.#modal.setPrerequisitesState({ type: 'failed', message: i18n.t('automation.modal.prerequisites.failed'), retryable: true });
+            return;
+        }
         try {
             this.#currentWorkspacePath = workspace.currentWorkspacePath;
-            this.#modal.setAvailableModels(models);
             if (catalog) this.#modal.setMcpCatalog(catalog);
             this.#applyRequest(request, catalog, definition);
             this.#modal.setToolsUnavailable(catalog === null);

@@ -1,6 +1,7 @@
 /* SoAI - Models page control layer public contracts [frontend/assets/ts/pages/models/controllers/page/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { StreamActionHandle, StreamHandleTrackerContract } from '@core/routing/pages/pagetypes/public.ts';
 import type { DownloadModalController, EditModelModalManager, ProvidersManager, RenameModelModalManager, VirtualModelsManager } from '@features/models/public.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
@@ -27,6 +28,7 @@ interface ModelsModalManagerBundle {
 }
 
 interface ModelsItemDeletionHost extends PageDomOwnerHost, PageFeedbackOwnerHost {
+    readonly owner: PresentationOwner;
     deletingItems: Set<string>;
     streams: StreamHandleTrackerContract;
     renderItems: () => void;

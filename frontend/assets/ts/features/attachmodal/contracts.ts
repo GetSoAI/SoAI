@@ -1,6 +1,7 @@
 /* SoAI - Reusable attachment dialog consumer ports [frontend/assets/ts/features/attachmodal/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { AttachmentAcquisitionScope } from '@core/attachments/protocols.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { AttachModalAction } from '@features/attachmodal/actions.ts';
@@ -27,6 +28,7 @@ interface AttachModalSessionContext {
     addCleanup(cleanup: () => void): void;
 }
 interface AttachModalConsumer {
+    readonly owner: PresentationOwner;
     readonly policy: AttachModalPolicy;
     readonly presenter: ModalPresenterApi;
     signal(): AbortSignal | null;

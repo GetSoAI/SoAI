@@ -1,6 +1,7 @@
 /* SoAI - Chat feature stream service boundary contracts [frontend/assets/ts/features/chat/chatstreamservice/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ChatPresentationState } from '@core/chat/protocols.ts';
 import type { ChatStreamSession, StreamMutationType } from '@features/chat/chatstreamservice/types.ts';
 
 interface StreamMutation {
@@ -19,11 +20,6 @@ interface ChatPresentationInterests {
     updateChatPresentationInterest(token: string | null, conversationId: string): void;
     waitForChatPresentationInterest(token: string, conversationId: string): Promise<void>;
     releaseInterest(token: string | null): void;
-}
-
-interface ChatPresentationState {
-    conversationId: string | null;
-    visible: boolean;
 }
 
 export type { ChatPresentationInterests, ChatPresentationState, StreamMutation, StreamRuntime };

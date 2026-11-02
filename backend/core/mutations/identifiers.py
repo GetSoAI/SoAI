@@ -5,10 +5,10 @@ from __future__ import annotations
 
 import re
 import secrets
-import time
 
 from core.errors.exceptions import ValidationError
 from core.tasks.cancellation_ids import require_cancellation_id
+from core.timing.epoch import epoch_ms
 from core.validation.strict_numbers import require_positive_int_strict
 
 _LOWERCASE_UUID_V7_PATTERN = (
@@ -29,7 +29,7 @@ def extract_mutation_request_timestamp_ms(value: str) -> int:
 
 
 def create_mutation_request_id() -> str:
-    timestamp_ms = int(time.time() * 1000)
+    timestamp_ms = epoch_ms()
     if timestamp_ms < 0 or timestamp_ms >= 1 << 48:
         raise ValidationError("Current time cannot be represented by a UUIDv7.")
     random_bytes = bytearray(secrets.token_bytes(10))

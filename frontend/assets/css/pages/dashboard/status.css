@@ -58,6 +58,7 @@
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip:has(.status-value--uptime) {
+        --dashboard-status-value-size: var(--font-size-xl);
         --ui-mini-stat-strip-columns: 1;
         --ui-mini-stat-strip-padding: var(--space-2);
     }
@@ -80,12 +81,14 @@
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip .status-value {
         font-size: var(--dashboard-status-value-size);
         margin-bottom: 0;
+        width: 100%;
+        min-width: 0;
         max-width: 100%;
         line-height: 1.1;
         text-align: center;
-        white-space: normal;
-        overflow-wrap: anywhere;
-        text-overflow: clip;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip .status-value--compact {
@@ -98,10 +101,6 @@
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip .status-value--tight {
         --dashboard-status-value-size: var(--font-size-base);
-    }
-
-    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip:has(.status-value--uptime) .status-value {
-        --dashboard-status-value-size: var(--font-size-xl);
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip .status-value--uptime {

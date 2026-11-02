@@ -7,7 +7,7 @@ import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
 import { signalAborted } from '@core/lifecycle/abortSignals.ts';
 import { revealMountedPageSection } from '@core/pageTransitions.ts';
 import { replaceContentPreservingPageOutletSlots } from '@core/pageoutlet/slots.ts';
-import { err } from '@core/routing/pages/basepagecore/actions.ts';
+import { err, requestFunctionValue } from '@core/routing/pages/basepagecore/actions.ts';
 import { isHTMLElement, isObject } from '@core/typeGuards.ts';
 import { isTrustedHtml, type TrustedHtml } from '@core/security/public.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -16,6 +16,7 @@ import type { PageHost } from '@core/routing/pages/basepagecore/PageHost.ts';
 import type { PageLayout } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { PageRuntime } from '@core/runtime/PageRuntime.ts';
 import type { PageRuntimePhases } from '@core/runtime/pageRuntimeContracts.ts';
+import type { PageLifecycleDependencies, PageRefreshCommand } from '@core/routing/pages/basepage/pageLifecycleContracts.ts';
 
 interface BasePageInitializeHost {
     pageId: string;
@@ -108,4 +109,19 @@ const runBasePageStandardSetup = (layout: PageLayout): void => {
     layout.initializePageActions();
 };
 
-export { initializeBasePageLifecycle, runBasePageStandardSetup };
+const refreshBasePageLifecycle = async (dependencies: PageLifecycleDependencies, command: PageRefreshCommand, parameters: JsonObject | null, context: { signal?: AbortSignal }): Promise<void> => {
+    command.beforeCleanup();
+    await dependencies.layout.cleanup();
+    await dependencies.resources.cleanupTracked();
+    const requiredResources = command.getRequiredResources();
+    if (requiredResources.length) {
+        const streamResources = dependencies.streaming.runtime().resources;
+        await dependencies.streaming.ensureReady(streamResources);
+        const ensureResourceStarted = requestFunctionValue(streamResources, 'ensureResourceStarted', 'SM');
+        await Promise.all(requiredResources.map((name) => Promise.resolve(ensureResourceStarted(name))));
+    }
+    command.refreshDomainState();
+    await command.onInitialize(parameters, context);
+};
+
+export { initializeBasePageLifecycle, refreshBasePageLifecycle, runBasePageStandardSetup };

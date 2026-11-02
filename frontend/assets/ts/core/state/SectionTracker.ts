@@ -6,6 +6,7 @@ import { getComputedStyleStrict } from '@core/environment/public.ts';
 import type { DomService, ErrorHandler } from '@core/state/types.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { getFocusedPageContent } from '@core/pagepanes/dom.ts';
 
 interface SectionData {
     section: string | null;
@@ -29,6 +30,7 @@ class SectionTracker {
     private callbacks: Set<SectionCallback>;
     private isInitialized: boolean;
     #generation: number;
+    #contentRoot: Element | null = null;
 
     constructor({ dom, errorHandler }: SectionTrackerOptions) {
         this.dom = dom;
@@ -43,7 +45,7 @@ class SectionTracker {
     }
 
     private queryUI(selector: string, context: Element | Document | null = null): Element[] {
-        return this.dom.resolveAll(selector, context);
+        return this.dom.resolveAll(selector, context ?? this.#contentRoot);
     }
 
     getUI(selector: string, context: Element | Document | null = null): Element | null {
@@ -55,6 +57,8 @@ class SectionTracker {
             this.cleanup();
         }
         this.#generation += 1;
+        this.#contentRoot = getFocusedPageContent(this.dom.resolve('#main-content') ?? this.dom.getDocumentElement());
+        if (!this.#contentRoot) return;
         this.scrollContainer = this.findScrollContainer();
         if (!this.scrollContainer) {
             return;
@@ -70,7 +74,7 @@ class SectionTracker {
     }
 
     private findScrollContainer(): Element | null {
-        const containers = this.dom.resolveAll('.page-scrollable');
+        const containers = this.dom.resolveAll('.page-scrollable', this.#contentRoot);
         for (const container of containers) {
             if (!(container instanceof HTMLElement)) {
                 continue;
@@ -158,6 +162,7 @@ class SectionTracker {
         this.sections = new WeakMap();
         this.currentSection = null;
         this.isInitialized = false;
+        this.#contentRoot = null;
         this.#generation += 1;
     }
 

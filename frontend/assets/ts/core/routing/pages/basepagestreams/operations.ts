@@ -19,11 +19,12 @@ const ensurePageStreamReady = async (resources: StreamResourceLoader, allowDisco
     await Promise.resolve(result);
 };
 
-const subscribeToPageOperations = async (resources: StreamResourceLoader, tasks: StreamTaskRuntime, handler: (event: OperationEvent) => void, options: { allowDiscovery?: boolean; track?: boolean } = {}, dependencies: { trackDisposable: (dispose: () => void) => void }): Promise<() => void> => {
+const subscribeToPageOperations = async (resources: StreamResourceLoader, tasks: StreamTaskRuntime, handler: (event: OperationEvent) => void, options: { allowDiscovery?: boolean; track?: boolean } = {}, dependencies: { trackDisposable: (dispose: () => void) => void; requireActive: () => void }): Promise<() => void> => {
     if (typeof handler !== 'function') {
         throw new TypeError('Handler required');
     }
     await ensurePageStreamReady(resources, options.allowDiscovery !== false);
+    dependencies.requireActive();
     if (!isOperationsSubscriptionManager(tasks)) {
         throw err('SM.subscribeOperations is required');
     }

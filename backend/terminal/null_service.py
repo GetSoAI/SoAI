@@ -38,6 +38,16 @@ class NullTerminalService:
     def _raise_unavailable(self) -> NoReturn:
         raise ValidationError("Terminal service is not available.")
 
+    @property
+    def runtime_id(self) -> str:
+        return ""
+
+    async def release_pty_acquisition(
+        self, runtime_id: str, acquisition_id: str, user_id: int, *, allow_new_acquisition: bool
+    ) -> str | None:
+        _ = (runtime_id, acquisition_id, user_id, allow_new_acquisition)
+        self._raise_unavailable()
+
     async def create_pty_session(
         self,
         request: CreatePTYSessionRequest,

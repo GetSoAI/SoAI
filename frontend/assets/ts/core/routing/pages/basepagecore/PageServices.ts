@@ -3,7 +3,7 @@
 
 import { ConfigurationManager } from '@core/configurationManager.ts';
 import { dom } from '@core/dom/dom.ts';
-import { getComputedStyleStrict, getLocation } from '@core/environment/public.ts';
+import { getComputedStyleStrict } from '@core/environment/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { ClipboardApi, PageContext } from '@core/pagecontext/public.ts';
 import { requireModalPresenter, type ModalPresenterApi } from '@core/modals/modalPresenter.ts';
@@ -13,7 +13,6 @@ import { applyPageIconMap } from '@core/routing/pages/basepagecore/iconMap.ts';
 import { hidePageLoadingHandle, showPageLoadingHandle, withPageLoadingHandle, type PageLoadingHandle } from '@core/routing/pages/basepagecore/notifications.ts';
 import { getPageCurrentRoute, loadPageStorageValue, navigatePageRoute, removePageStorageValue, resolvePageAuthenticated, savePageStorageValue } from '@core/routing/pages/basepagecore/storageRouting.ts';
 import type { IconDefinition, LanguageService } from '@core/routing/pages/pagetypes/public.ts';
-import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { DETACHED_CONTEXT_TIMEOUT_MS } from '@core/runtimeenv/constants.ts';
 import { getWindowService } from '@core/runtimeenv/public.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -26,7 +25,7 @@ import { getIcon, getIconFromString, getIconFromStringSync, getIconSync, type Ic
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import type { AuthManager } from '@core/auth/public.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageMountScope, PageRouting } from '@core/routing/router/types.ts';
 import type { loadingState } from '@core/loadingState.ts';
 import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageResources } from '@core/routing/pages/basepagecore/PageResources.ts';
@@ -36,7 +35,8 @@ interface PageServicesDependencies {
     pageContext: PageContext;
     loadingState: typeof loadingState;
     storage: StorageService;
-    router: Router;
+    router: PageRouting;
+    mountScope: PageMountScope;
     auth: AuthManager;
     languageService: LanguageService;
     pageDom: PageDom;
@@ -51,6 +51,10 @@ class PageServices {
 
     constructor(dependencies: PageServicesDependencies) {
         this.#dependencies = dependencies;
+    }
+
+    get mountScope(): PageMountScope {
+        return this.#dependencies.mountScope;
     }
 
     clipboard(): ClipboardApi {
@@ -134,12 +138,11 @@ class PageServices {
     }
 
     isDetached(): boolean {
-        return windowIdentity.isDetachedContext();
+        return this.#dependencies.mountScope.type === 'standalone';
     }
 
     async awaitDetachedContext(): Promise<void> {
-        const pathname = getLocation().pathname || '';
-        if (!(pathname.endsWith('/detached.html') || pathname === '/detached.html') || !this.isDetached()) return;
+        if (!this.isDetached()) return;
         if (!this.#detachedContextReady) {
             this.#detachedContextReady = Promise.resolve(request(getWindowService(), 'runtimeWindowService').awaitDetachedContext({ timeout: DETACHED_CONTEXT_TIMEOUT_MS }));
         }
@@ -165,7 +168,7 @@ class PageServices {
     }
 
     createConfigurationManager(): ConfigurationManager {
-        return request(new (request(ConfigurationManager, 'CM'))(), 'CM instance');
+        return request(new (request(ConfigurationManager, 'CM'))(() => this.mountScope.admission.canMutate()), 'CM instance');
     }
 
     get modals(): ModalPresenterApi {

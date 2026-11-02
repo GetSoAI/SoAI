@@ -15,7 +15,7 @@ const ensureUnitId = (value: string): string => {
     return trimmed;
 };
 
-const createSaveScope = (): SaveScope => {
+const createSaveScope = ({ isCurrent = () => true, canRequestSave = () => true }: { isCurrent?: () => boolean; canRequestSave?: () => boolean } = {}): SaveScope => {
     const units = new Map<string, SaveUnit>();
     const subscribers = new Set<() => void>();
     const predicateFailures = new Map<string, true>();
@@ -31,11 +31,28 @@ const createSaveScope = (): SaveScope => {
     });
     let disposed = false;
     let saving = false;
+    let protectionRevision = 0;
+    let callbackDepth = 0;
+    const notifyChanged = (): void => {
+        if (disposed) return;
+        protectionRevision += 1;
+        scheduleEmit();
+    };
+    const invokeCallback = <Result>(callback: () => Result): Result => {
+        callbackDepth += 1;
+        try {
+            return callback();
+        } finally {
+            callbackDepth -= 1;
+        }
+    };
+    const ownsLifetime = (): boolean => !disposed && isCurrent();
+    const ownsUnit = (unit: SaveUnit): boolean => ownsLifetime() && units.get(unit.id) === unit;
 
     const safeHasChanges = (unit: SaveUnit): boolean => {
         try {
             predicateFailures.delete(unit.id);
-            return unit.hasChanges();
+            return invokeCallback(() => unit.hasChanges());
         } catch (error) {
             predicateFailures.set(unit.id, true);
             const runtimeError = ensureError(error);
@@ -52,7 +69,7 @@ const createSaveScope = (): SaveScope => {
             return true;
         }
         try {
-            return unit.isValid();
+            return invokeCallback(() => unit.isValid?.() ?? true);
         } catch (error) {
             const runtimeError = ensureError(error);
             errorHandler.error('SaveScope', `Save unit ${unit.id} isValid() failed`, runtimeError);
@@ -81,7 +98,7 @@ const createSaveScope = (): SaveScope => {
 
     const prepareUnit = (unit: SaveUnit): PreparedSaveUnit => {
         if (unit.prepare) {
-            return unit.prepare();
+            return invokeCallback(() => unit.prepare?.() ?? { save: () => unit.save() });
         }
         return {
             isValid: () => safeIsValid(unit),
@@ -122,8 +139,11 @@ const createSaveScope = (): SaveScope => {
             if (prepare !== undefined && !isFunction(prepare)) {
                 throw new Error(`Save unit ${id} optional prepare must be a function`);
             }
+            const getProtectionRevision = unit.getProtectionRevision;
+            if (getProtectionRevision !== undefined && !isFunction(getProtectionRevision)) throw new Error(`Save unit ${id} optional getProtectionRevision must be a function`);
             const normalized: SaveUnit = {
                 id,
+                ...(getProtectionRevision ? { getProtectionRevision: () => getProtectionRevision() } : {}),
                 hasChanges: () => unit.hasChanges(),
                 save: () => unit.save(),
                 ...(isValid
@@ -134,7 +154,7 @@ const createSaveScope = (): SaveScope => {
                 ...(prepare ? { prepare: () => unit.prepare?.() ?? { save: () => unit.save() } } : {})
             };
             units.set(id, normalized);
-            scheduleEmit();
+            notifyChanged();
             return (): void => {
                 if (disposed) {
                     return;
@@ -144,7 +164,7 @@ const createSaveScope = (): SaveScope => {
                 }
                 if (units.delete(id)) {
                     predicateFailures.delete(id);
-                    scheduleEmit();
+                    notifyChanged();
                 }
             };
         },
@@ -155,7 +175,7 @@ const createSaveScope = (): SaveScope => {
             return getDirtyUnits().length > 0;
         },
         canSave(): boolean {
-            if (disposed || saving) {
+            if (disposed || saving || !canRequestSave()) {
                 return false;
             }
             const dirty = getDirtyUnits();
@@ -171,23 +191,39 @@ const createSaveScope = (): SaveScope => {
             if (saving) {
                 return 'busy';
             }
-            const dirty = getDirtyUnits();
-            if (!dirty.length) {
-                return 'noChanges';
-            }
-            if (!areDirtyUnitsValid(dirty)) {
-                return 'invalid';
-            }
-            const preparedUnits = dirty.map((unit) => prepareUnit(unit));
+            if (!canRequestSave()) return 'blocked';
             saving = true;
-            scheduleEmit();
+            notifyChanged();
             try {
+                if (!ownsLifetime()) return 'stopped';
+                const dirty: SaveUnit[] = [];
+                for (const unit of [...units.values()]) {
+                    if (!ownsUnit(unit)) return 'stopped';
+                    const changed = safeHasChanges(unit);
+                    if (!ownsUnit(unit)) return 'stopped';
+                    if (changed) dirty.push(unit);
+                }
+                if (!dirty.length) return 'noChanges';
+                for (const unit of dirty) {
+                    if (!ownsUnit(unit)) return 'stopped';
+                    const valid = safeIsValid(unit);
+                    if (!ownsUnit(unit)) return 'stopped';
+                    if (!valid) return 'invalid';
+                }
+                const preparedUnits: { unit: SaveUnit; prepared: PreparedSaveUnit }[] = [];
+                for (const unit of dirty) {
+                    if (!ownsUnit(unit)) return 'stopped';
+                    const prepared = prepareUnit(unit);
+                    if (!ownsUnit(unit)) return 'stopped';
+                    preparedUnits.push({ unit, prepared });
+                }
                 let degraded = false;
-                for (const preparedUnit of preparedUnits) {
-                    if (preparedUnit.isValid && !preparedUnit.isValid()) {
-                        return 'stopped';
-                    }
-                    const unitOutcome = resolveUnitResult(await preparedUnit.save());
+                for (const { unit, prepared } of preparedUnits) {
+                    if (!ownsUnit(unit)) return 'stopped';
+                    const valid = invokeCallback(() => prepared.isValid?.() ?? true);
+                    if (!valid || !ownsUnit(unit)) return 'stopped';
+                    const unitOutcome = resolveUnitResult(await invokeCallback(() => prepared.save()));
+                    if (!ownsUnit(unit)) return 'stopped';
                     if (unitOutcome === 'stopped') {
                         return 'stopped';
                     }
@@ -196,18 +232,20 @@ const createSaveScope = (): SaveScope => {
                 return degraded ? 'degraded' : 'saved';
             } finally {
                 saving = false;
-                scheduleEmit();
+                notifyChanged();
             }
         },
         isSaving(): boolean {
             return saving;
         },
-        notifyChanged(): void {
-            if (disposed) {
-                return;
-            }
-            scheduleEmit();
+        isInvokingCallback: () => callbackDepth > 0,
+        getProtectionRevision: () => {
+            const revision = protectionRevision;
+            const values = [...units.values()].map((unit) => invokeCallback(() => unit.getProtectionRevision?.() ?? 0));
+            if (revision !== protectionRevision) throw new Error('Save protection changed during its query');
+            return JSON.stringify([revision, ...values]);
         },
+        notifyChanged,
         subscribe(listener: () => void): () => void {
             if (disposed) {
                 throw new Error('SaveScope has been disposed');
@@ -222,6 +260,7 @@ const createSaveScope = (): SaveScope => {
                 return;
             }
             disposed = true;
+            protectionRevision += 1;
             units.clear();
             subscribers.clear();
             predicateFailures.clear();

@@ -1,6 +1,7 @@
 /* SoAI - Chat multimedia content preview request mapper [frontend/assets/ts/features/chat/message/multimediaPreviewRequestMapper.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { copySoaiPathLinkToClipboard, copySoaiPathTokenToClipboard } from '@core/fileexplorerbrowser/soaiPathClipboard.ts';
 import { triggerDownloadLink } from '@core/primitives/download.ts';
 import type { SoaiPathOperationRequest, SoaiPathTokenResponse } from '@core/api/contracts/webuiChatOperationContracts.ts';
@@ -13,6 +14,7 @@ import { createChatMultimediaPreviewMetadata, requireChatMultimediaPreviewUrl, t
 import { normalizeConversationVirtualPathValue } from '@features/chat/validation/soaiPathValues.ts';
 
 type ChatMultimediaPreviewRequestHost = Readonly<{
+    readonly owner: PresentationOwner;
     hasClipboardSupport: () => boolean;
     copyToClipboard: (text: string, options?: { notify?: (message: string, type: NotificationType) => void }) => Promise<void>;
     showNotification: (message: string, type: NotificationType) => void;
@@ -98,6 +100,7 @@ const createMediaPreviewRequestMapping = (dataset: ChatMultimediaPreviewDataset,
     const downloadUrl = dataset.downloadUrl ?? sourceUrl;
     const downloadName = dataset.downloadName ?? CHAT_MULTIMEDIA_DEFAULT_DOWNLOAD_NAMES[requestType];
     const request = createMediaContentPreviewRequest({
+        owner: host.owner,
         scope: 'chat',
         type: requestType,
         headerDescription: resolveChatPreviewHeaderDescription(requestType, dataset.contentType),
@@ -119,6 +122,7 @@ const createEmbedPreviewRequestMapping = (dataset: ChatMultimediaPreviewDataset,
     const sourceUrl = requireChatMultimediaPreviewUrl(dataset, 'embeds');
     return Object.freeze({
         request: createMediaContentPreviewRequest({
+            owner: host.owner,
             scope: 'chat',
             type: 'embed',
             headerDescription: resolveChatPreviewHeaderDescription('embed', dataset.contentType),
@@ -137,6 +141,7 @@ const createEmbedPreviewRequestMapping = (dataset: ChatMultimediaPreviewDataset,
 const createTextPreviewRequestMapping = (dataset: ChatMultimediaPreviewDataset, host: ChatMultimediaPreviewRequestHost): ChatMultimediaPreviewRequestMapping => {
     return Object.freeze({
         request: createTextContentPreviewRequest({
+            owner: host.owner,
             scope: 'chat',
             type: 'text',
             headerDescription: resolveChatPreviewHeaderDescription('text', dataset.contentType),

@@ -15,6 +15,7 @@ import { dispatchPromptsClickAction } from '@pages/prompts/controllers/page/clic
 import { PromptsPageRuntime } from '@pages/prompts/controllers/page/PromptsPageRuntime.ts';
 import { createPromptsPromptPreviewHost } from '@pages/prompts/controllers/page/adapters.ts';
 import { createPromptsSaveController } from '@pages/prompts/controllers/page/createPromptsSaveController.ts';
+import { setupUnsavedChangesGuard } from '@pages/prompts/controllers/page/effects.ts';
 import { setupPromptsPageNonClickEvents } from '@pages/prompts/controllers/page/events.ts';
 import { beforePageInitialize, loadData, onCollectionShellReady, onDestroy } from '@pages/prompts/controllers/page/service.ts';
 import { initializePromptsViewMode } from '@pages/prompts/controllers/page/viewModeController.ts';
@@ -101,6 +102,7 @@ class PromptsPage extends StaticBasePage {
     }
 
     bindPageEvents(): void {
+        setupUnsavedChangesGuard(this.#runtime);
         const signal = this.pageLifecycle.beginListeners();
         if (!(this.getDomContext() instanceof HTMLElement)) throw new Error('PromptsPage root container is not initialized');
         const ui = this.#runtime.operations.requireUi();

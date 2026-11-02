@@ -13,7 +13,7 @@ import type { ChatSketchModalHost } from '@pages/chat/controllers/modals/sketch/
 interface ChatSketchModalOpenHost {
     attachments: Pick<ChatAttachmentActionPort, 'sketchEnabled' | 'uploadSketch' | 'captureIntake'>;
     execution: Pick<ChatExecutionActionPort, 'run'>;
-    shared: Pick<ChatSketchModalHost, 'feedback'> & { signal(): AbortSignal | null };
+    shared: Pick<ChatSketchModalHost, 'owner' | 'feedback'> & { signal(): AbortSignal | null };
 }
 
 const openChatSketchModal = (host: ChatSketchModalOpenHost): void => {
@@ -26,6 +26,7 @@ const openChatSketchModal = (host: ChatSketchModalOpenHost): void => {
     host.execution.run('chat:sketchModal', async () => {
         const file = await runModalSession<File | null>({
             presenter,
+            owner: host.shared.owner,
             modalId: CHAT_SKETCH_MODAL_ID,
             signal: host.shared.signal() ?? undefined,
             onAlreadyOpen: 'replace',
@@ -33,6 +34,7 @@ const openChatSketchModal = (host: ChatSketchModalOpenHost): void => {
             initialize: ({ modal, signal, setResult, close }) => {
                 const controller = new ChatSketchModalController(
                     {
+                        owner: host.shared.owner,
                         feedback: host.shared.feedback,
                         presenter,
                         submit: async (sketch) => {
@@ -40,6 +42,7 @@ const openChatSketchModal = (host: ChatSketchModalOpenHost): void => {
                             if (!intake.scope.isCurrent()) {
                                 const candidate = host.attachments.captureIntake();
                                 const confirmed = await requireDialogsService().showConfirmation({
+                                    owner: host.shared.owner,
                                     signal,
                                     title: i18n.t('chat.sketch.title'),
                                     message: i18n.t('chat.sketch.draftChangedConfirm'),

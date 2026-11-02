@@ -1,6 +1,7 @@
 /* SoAI - Hardware page processes contracts [frontend/assets/ts/pages/hardware/widgets/processes/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
@@ -42,6 +43,7 @@ type ProcessKillResolution = {
 };
 
 type ProcessTableManagerDependencies = {
+    readonly owner: PresentationOwner;
     optionalHTMLElement: (selector: string, parent?: Element | null) => HTMLElement | null;
     updateText: (element: Element, text: string) => void;
     getIconSync: (iconName: IconName, options?: IconOptions) => TrustedHtml;

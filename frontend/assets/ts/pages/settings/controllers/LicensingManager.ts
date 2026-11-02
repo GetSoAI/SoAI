@@ -113,7 +113,7 @@ class LicensingManager {
         if (!(target instanceof Element)) return;
         const button = target.closest<HTMLButtonElement>('button[data-action]');
         if (!button || this.#status === null) return;
-        if (button.dataset.action === 'licensing-review-license') this.#start(showLicenseModal(), 'license review');
+        if (button.dataset.action === 'licensing-review-license') this.#start(showLicenseModal(this.#host.owner), 'license review');
         if (button.dataset.action === 'licensing-accept-license')
             this.#start(
                 this.#runAction(button, (status, signal) => this.#host.licensing.acceptLicense(status.draftRevision, status.licenseFingerprint, { signal })),
@@ -216,7 +216,14 @@ class LicensingManager {
     }
 
     async #revertOsEvaluation(button: HTMLButtonElement): Promise<void> {
-        const confirmed = await requireDialogsService().showConfirmation({ title: i18n.t('settings.licensing.revertOsEvaluation'), message: i18n.t('settings.licensing.revertOsEvaluationConfirm'), confirmText: i18n.t('settings.licensing.revertOsEvaluation'), cancelText: i18n.t('common.cancel'), variant: 'warning' });
+        const confirmed = await requireDialogsService().showConfirmation({
+            owner: this.#host.owner,
+            title: i18n.t('settings.licensing.revertOsEvaluation'),
+            message: i18n.t('settings.licensing.revertOsEvaluationConfirm'),
+            confirmText: i18n.t('settings.licensing.revertOsEvaluation'),
+            cancelText: i18n.t('common.cancel'),
+            variant: 'warning'
+        });
         if (!confirmed) return;
         await this.#runAction(button, (status, signal) => this.#host.licensing.revertOsEvaluation(status.draftRevision, { signal }));
     }
@@ -246,6 +253,7 @@ class LicensingManager {
     async #acceptDocuments(flow: LicensingLegalFlow, signal: AbortSignal): Promise<LicensingLegalAcceptanceInput[]> {
         const documents = await this.#host.licensing.governingDocuments(flow, { signal });
         const confirmed = await requireDialogsService().showConfirmation({
+            owner: this.#host.owner,
             title: i18n.t('settings.licensing.legalAcceptanceTitle'),
             message: documents.documents.map((document) => `${document.documentName} ${document.version}\n${document.fingerprint}\n\n${document.licenseText}`).join('\n\n──────────\n\n'),
             description: i18n.t('settings.licensing.legalAcceptanceDescription'),
@@ -303,6 +311,7 @@ class LicensingManager {
         const status = this.#status;
         if (status === null) return;
         const confirmed = await requireDialogsService().showConfirmation({
+            owner: this.#host.owner,
             title: i18n.t('settings.licensing.personalAttestationConfirmTitle'),
             message: status.personalAttestationText,
             description: i18n.t('settings.licensing.personalAttestationConfirmDescription'),

@@ -2,26 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { toTrimmedString } from '@core/normalize.ts';
-import type { NavigationOptions, NavigationRequest, NavigationTarget, QueryParameters, QueryParameterValue, RouteDefinition, RouteParameters } from '@core/routing/router/types.ts';
-import { hasFunctionProperty, hasOwn, isArray, isBoolean, isNullOrUndefined, isObject, isString } from '@core/typeGuards.ts';
+import { isRouteDefinition } from '@core/routing/router/routerTypeGuards.ts';
+import type { NavigationOptions, NavigationRequest, NavigationTarget, QueryParameters, QueryParameterValue, RouteParameters } from '@core/routing/router/types.ts';
+import { hasOwn, isArray, isBoolean, isNullOrUndefined, isObject, isString } from '@core/typeGuards.ts';
 import { isJsonValue, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
-
-interface RouteLayoutCandidate {
-    hideSidebar?: boolean | undefined;
-    scrollToTopAction?: boolean | undefined;
-}
-
-interface RouteDefinitionCandidate {
-    path?: string | undefined;
-    component?: string | undefined;
-    getTitle?: (() => string) | undefined;
-    layout?: RouteLayoutCandidate | null | undefined;
-}
-
-const isRouteDefinition = (value: RouteDefinitionCandidate): value is RouteDefinition => {
-    const layout = 'layout' in value ? value.layout : null;
-    return 'path' in value && isString(value.path) && Boolean(value.path) && 'component' in value && isString(value.component) && Boolean(value.component) && hasFunctionProperty(value, 'getTitle') && isObject(layout) && 'hideSidebar' in layout && isBoolean(layout.hideSidebar) && 'scrollToTopAction' in layout && isBoolean(layout.scrollToTopAction);
-};
 
 const normalizeRouteParameters = (value: RouteParameters | JsonObject): RouteParameters => {
     const parameters: RouteParameters = {};
@@ -93,6 +77,17 @@ const normalizeOptionsMap = (options: NavigationOptions): { options: Omit<Naviga
 
     const normalized: Omit<NavigationOptions, 'query'> = {};
     const query: QueryParameters = {};
+    const intent = options.intent;
+    if (intent !== undefined) {
+        if (intent !== 'navigate' && intent !== 'select' && intent !== 'split' && intent !== 'restore' && intent !== 'close') throw new TypeError('navigation intent must be navigate, select, split, restore or close');
+        normalized.intent = intent;
+    }
+    const presentation = options.presentation;
+    if (presentation !== undefined) {
+        if (presentation !== 'user' && presentation !== 'background') throw new TypeError('navigation presentation must be user or background');
+        normalized.presentation = presentation;
+    }
+    if (intent === 'restore') normalized.presentation = 'background';
     const pushStateValue = options['pushState'];
     if (!isNullOrUndefined(pushStateValue)) {
         if (!isBoolean(pushStateValue)) throw new TypeError('pushState must be boolean');
@@ -210,6 +205,8 @@ const normalizeNavigationRequest = (target: string | NavigationTarget, options: 
     if (!trimmedPath) throw new Error('Router requires a target path');
     if (normalizedOptions.parameters) Object.assign(mergedParameters, normalizedOptions.parameters);
     return {
+        ...(normalizedOptions.intent ? { intent: normalizedOptions.intent } : {}),
+        ...(normalizedOptions.presentation ? { presentation: normalizedOptions.presentation } : {}),
         path: serializeRouteParameters(buildNavigationPath(trimmedPath, normalized.query), mergedParameters),
         pushState: normalizedOptions.pushState !== false,
         replaceState: normalizedOptions.replace === true,

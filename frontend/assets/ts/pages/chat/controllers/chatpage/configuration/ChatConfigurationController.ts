@@ -53,6 +53,7 @@ class ChatConfigurationController {
         this.#resetSessionState();
         bindChatConfigurationModalEvents(
             {
+                owner: this.#page.services.mountScope,
                 configuration: this.#page.configurationRuntime.requireConfiguration(),
                 hasPresetDraft: () => this.#presetLibrary?.hasOpenEditor() === true,
                 handleModelAction: (actionElement) => this.handleModelAction(actionElement),
@@ -76,7 +77,7 @@ class ChatConfigurationController {
     }
 
     openMemoryProfile(): void {
-        void this.#page.runtimeServices.firstRunModals.open('chatMemoryProfile', 'manual').catch((error): void => {
+        void this.#page.runtimeServices.firstRunModals.open('chatMemoryProfile', 'manual', this.#page.services.mountScope).catch((error): void => {
             errorHandler.error('ChatPage', 'Failed to open chat memory profile modal', ensureError(error));
             this.#page.feedback.show(i18n.t('chat.configuration.notifications.loadFailed'), 'error');
         });
@@ -93,6 +94,7 @@ class ChatConfigurationController {
     async openToolCallOutput(inputArguments: { conversationId: string; callId: string; assistantTurnTimestamp: number; modelVariantIndex: number }): Promise<void> {
         await openChatToolCallOutputModal(
             {
+                owner: this.#page.services.mountScope,
                 runWithBoundary: (name, task) => this.#page.pageLifecycle.run(name, task),
                 hasClipboardSupport: () => this.#page.services.hasClipboardSupport(),
                 copyToClipboard: (text, options) => this.#page.services.copyToClipboard(text, options),
@@ -115,6 +117,7 @@ class ChatConfigurationController {
     #requireMemoryLibrary(): MemoryLibraryController {
         if (!this.#memoryLibrary)
             this.#memoryLibrary = new MemoryLibraryController({
+                owner: this.#page.services.mountScope,
                 root: requireModalPresenter().requireElement(CHAT_CONFIGURATION_MODAL_ID),
                 api: this.#page.api.webui.memory,
                 openProfile: () => this.openMemoryProfile(),
@@ -218,7 +221,7 @@ class ChatConfigurationController {
             runUiTask: (operationId, task) => this.#page.taskScope.run(operationId, task),
             applyParameterValueFromElement: (element) => this.#page.composer.applyParameterValueFromElement(element),
             optionalHTMLElement: (selector, context) => {
-                const element = dom.resolve(selector, context);
+                const element = dom.resolve(selector, context ?? this.#page.pageDom.resolveContext());
                 return element instanceof HTMLElement ? element : null;
             },
             invalidateChatMarkup: (scope) => this.#page.conversationView.invalidate(scope),
@@ -263,6 +266,7 @@ class ChatConfigurationController {
             const configuration = this.#page.configurationRuntime.requireConfiguration();
             const settings = this.#page.configurationRuntime.requireConversationSettings();
             this.#presetLibrary = new ChatPresetLibraryController({
+                owner: this.#page.services.mountScope,
                 root: requireModalPresenter().requireElement(CHAT_CONFIGURATION_MODAL_ID),
                 api: this.#page.api.webui.chat.presets,
                 configuration: new ChatPresetSectionAdapterRegistry(configuration, settings),

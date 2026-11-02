@@ -23,9 +23,12 @@ __all__ = (
 )
 
 
-def _extend_owner_task_ids(owner_task_ids: list[str], candidates: list[str]) -> None:
+def _extend_owner_task_ids(
+    owner_task_ids: list[str], candidates: list[str], *, seen_owner_task_ids: set[str]
+) -> None:
     for candidate in candidates:
-        if candidate not in owner_task_ids:
+        if candidate not in seen_owner_task_ids:
+            seen_owner_task_ids.add(candidate)
             owner_task_ids.append(candidate)
 
 
@@ -74,7 +77,9 @@ def sync_delete_automation_occurrences(
     tombstone_inserted_count = 0
     deleted_run_count = 0
     cancelled_run_ids: list[str] = []
+    seen_cancelled_run_ids: set[str] = set()
     abandoned_owner_task_ids: list[str] = []
+    seen_abandoned_owner_task_ids: set[str] = set()
     updated_automation_ids: set[str] = set()
     for automation_id, scheduled_at_ms in normalized:
         automation_exists = sync_fetch_one_scalar(
@@ -144,6 +149,7 @@ def sync_delete_automation_occurrences(
                         scheduled_at_ms=scheduled_at_ms,
                         status_message="deleted",
                     ),
+                    seen_owner_task_ids=seen_abandoned_owner_task_ids,
                 )
                 sync_enqueue_automation_domain_event(
                     conn,
@@ -164,9 +170,11 @@ def sync_delete_automation_occurrences(
                     scheduled_at_ms=scheduled_at_ms,
                     status_message="deleted",
                 ),
+                seen_owner_task_ids=seen_abandoned_owner_task_ids,
             )
             continue
-        if run_status == "running" and run_id not in cancelled_run_ids:
+        if run_status == "running" and run_id not in seen_cancelled_run_ids:
+            seen_cancelled_run_ids.add(run_id)
             cancelled_run_ids.append(run_id)
 
     for automation_id in sorted(updated_automation_ids):

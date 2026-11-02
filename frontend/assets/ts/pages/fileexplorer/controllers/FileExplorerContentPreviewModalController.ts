@@ -1,6 +1,7 @@
 /* SoAI - File explorer page control layer content preview modal controller [frontend/assets/ts/pages/fileexplorer/controllers/FileExplorerContentPreviewModalController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { FileExplorerContentPreviewImageCacheController } from '@pages/fileexplorer/controllers/FileExplorerContentPreviewImageCacheController.ts';
 import { isFileBrowserAudioPreviewMimeType, isFileBrowserImagePreviewMimeType, isFileBrowserTextPreviewMimeType, isFileBrowserVideoPreviewMimeType } from '@core/fileexplorerbrowser/mediaClassification.ts';
 import type { BufferedApiResponse } from '@core/api/bufferedResponse.ts';
@@ -26,6 +27,7 @@ import { FileExplorerContentPreviewObjectUrlController } from '@pages/fileexplor
 import { FileExplorerContentPreviewRequestController } from '@pages/fileexplorer/controllers/FileExplorerContentPreviewRequestController.ts';
 
 interface FileExplorerContentPreviewModalHost {
+    readonly owner: PresentationOwner;
     requireHTMLElement(selector: string, context?: HTMLElement): HTMLElement;
     modalPresenter: ModalPresenterApi;
     showNotification(message: string, type: NotificationType): void;
@@ -65,6 +67,7 @@ class FileExplorerContentPreviewModalController {
             }
         });
         this.#save = createSaveController({
+            owner: host.owner,
             headerContextId: CONTENT_PREVIEW_MODAL_ID,
             headerPriority: SAVE_HEADER_PRIORITY_MODAL,
             requestContextLabel: 'File Explorer save',
@@ -146,6 +149,7 @@ class FileExplorerContentPreviewModalController {
 
         requireContentPreviewModalService().open(
             createDocumentContentPreviewRequest({
+                owner: this.#host.owner,
                 scope: 'fileExplorer',
                 type: 'document',
                 headerDescription,
@@ -172,6 +176,7 @@ class FileExplorerContentPreviewModalController {
         }
         try {
             const request = createMediaContentPreviewRequest({
+                owner: this.#host.owner,
                 scope: 'fileExplorer',
                 type,
                 headerDescription,
@@ -231,6 +236,7 @@ class FileExplorerContentPreviewModalController {
         });
         requireContentPreviewModalService().open(
             createTextContentPreviewRequest({
+                owner: this.#host.owner,
                 scope: 'fileExplorer',
                 type: 'text',
                 headerDescription,

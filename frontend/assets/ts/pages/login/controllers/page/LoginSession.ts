@@ -1,6 +1,7 @@
 /* SoAI - Login loading, cooldown, DOM, authentication, and task ownership [frontend/assets/ts/pages/login/controllers/page/LoginSession.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PageRouting } from '@core/routing/router/types.ts';
 import type { AuthService } from '@pages/login/types.ts';
 import type { PageStreaming } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
 import type { PageUi } from '@core/routing/pages/basepagecore/PageUi.ts';
@@ -10,6 +11,7 @@ import type { StateManager } from '@core/state/StateManager.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
 
 interface LoginSessionDependencies {
+    router: Pick<PageRouting, 'navigate'>;
     auth: AuthService | null;
     streaming: PageStreaming;
     pageElements: PageUi;
@@ -20,6 +22,7 @@ interface LoginSessionDependencies {
 }
 
 class LoginSession {
+    readonly router: Pick<PageRouting, 'navigate'>;
     readonly auth: AuthService | null;
     readonly streaming: PageStreaming;
     readonly pageElements: PageUi;
@@ -30,6 +33,7 @@ class LoginSession {
     isLoading = false;
 
     constructor(dependencies: LoginSessionDependencies) {
+        this.router = dependencies.router;
         this.auth = dependencies.auth;
         this.streaming = dependencies.streaming;
         this.pageElements = dependencies.pageElements;

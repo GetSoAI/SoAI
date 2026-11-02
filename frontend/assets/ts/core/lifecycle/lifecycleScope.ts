@@ -19,12 +19,12 @@ class LifecycleScope {
     }
 
     begin(reason: string = 'reset'): LifecycleRun {
-        if (this.#controller) {
-            this.#controller.abort(reason);
-        }
+        const predecessor = this.#controller;
         this.#controller = new (getAbortControllerCtor())();
         this.#generation += 1;
-        return this.current();
+        const incoming = this.current();
+        predecessor?.abort(reason);
+        return incoming;
     }
 
     current(): LifecycleRun {
@@ -40,9 +40,14 @@ class LifecycleScope {
     }
 
     abort(reason: string = 'cleanup'): void {
-        if (this.#controller) {
-            this.#controller.abort(reason);
-        }
+        const predecessor = this.#controller;
+        this.#controller = null;
+        this.#generation += 1;
+        predecessor?.abort(reason);
+    }
+
+    complete(run: LifecycleRun): void {
+        if (run.controller !== this.#controller || run.generation !== this.#generation) return;
         this.#controller = null;
         this.#generation += 1;
     }

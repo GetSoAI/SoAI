@@ -21,6 +21,7 @@ interface RouteSidebar {
 }
 
 interface RouteLayout {
+    readonly exclusive: boolean;
     readonly hideSidebar: boolean;
     readonly scrollToTopAction: boolean;
     readonly headerActionHandoff: readonly string[];
@@ -30,6 +31,12 @@ interface RouteSearch {
     readonly include: boolean;
     readonly getTitle: (() => string) | null;
     readonly getDescription: () => string;
+}
+
+interface RouteReconstruction {
+    readonly discardQuery: readonly string[];
+    readonly whenQuery?: string;
+    readonly parking?: 'clean';
 }
 
 interface RouteDataDefinition {
@@ -50,6 +57,7 @@ interface RouteSidebarDefinition {
 }
 
 interface RouteLayoutDefinition {
+    exclusive?: boolean;
     hideSidebar?: boolean;
     scrollToTopAction?: boolean;
     headerActionHandoff?: readonly string[];
@@ -73,6 +81,7 @@ interface RawRouteDefinition {
     sidebar?: RouteSidebarDefinition | null;
     layout?: RouteLayoutDefinition;
     search?: RouteSearchDefinition | null;
+    reconstruction?: RouteReconstruction | null;
 }
 
 interface RouteEntry {
@@ -87,6 +96,7 @@ interface RouteEntry {
     readonly sidebar: RouteSidebar | null;
     readonly layout: RouteLayout;
     readonly search: RouteSearch | null;
+    readonly reconstruction?: RouteReconstruction | null;
 }
 
 interface SidebarBlueprintEntry {
@@ -111,9 +121,10 @@ interface RouteDefinition {
     data: RouteData;
     layout: RouteLayout;
     search: RouteSearch | null;
+    reconstruction?: RouteReconstruction | null;
 }
 
 type RouteRegistry = { readonly [key: string]: RouteEntry };
 type SidebarComponentTargets = { readonly [key: string]: string | null };
 
-export type { RawRouteDefinition, RouteData, RouteDataDefinition, RouteDefinition, RouteEntry, RouteLayout, RouteLayoutDefinition, RouteRegistry, RouteSearch, RouteSearchDefinition, RouteSidebar, RouteSidebarDefinition, SidebarBlueprintEntry, SidebarComponentTargets };
+export type { RawRouteDefinition, RouteData, RouteDataDefinition, RouteDefinition, RouteEntry, RouteLayout, RouteLayoutDefinition, RouteRegistry, RouteSearch, RouteSearchDefinition, RouteSidebar, RouteSidebarDefinition, SidebarBlueprintEntry, SidebarComponentTargets, RouteReconstruction };

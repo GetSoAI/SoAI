@@ -5,6 +5,8 @@ import { terminateHandledPromise } from '@core/primitives/terminateHandledPromis
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { createHeaderActionController, type HeaderActionController } from '@core/headerActionBus.ts';
+import { isPresentationOwnerActive } from '@core/presentationOwner.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { getHeaderActions } from '@core/headeractions/public.ts';
 import { createMicrotaskScheduler } from '@core/primitives/microtaskScheduler.ts';
 import { connectSaveAutoNotify } from '@core/save/autoNotifyBinding.ts';
@@ -94,11 +96,12 @@ const requestSaveSafely = async (scope: SaveScope, context: string): Promise<Sav
     return await state.promise;
 };
 
-const resetSaveHeaderActionState = (): void => {
-    getHeaderActions().resetActionState('save');
+const resetSaveHeaderActionState = (owner: PresentationOwner): void => {
+    getHeaderActions().resetActionState('save', owner);
 };
 
 const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
+    const owner = options.owner;
     const headerContextId = ensureId(options.headerContextId, 'Header save context');
     const scope = options.scope;
     const requestSave = options.requestSave;
@@ -120,7 +123,7 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
     const additionalDirtyEventNames = normalizeAdditionalDirtyEventNames(options.additionalDirtyEventNames);
     const busyRoots = options.busyRoots ?? [];
     const headerPriority = resolveHeaderPriority(options.headerPriority);
-    const headerActionController: HeaderActionController | null = options.enableHeaderAction === false ? null : createHeaderActionController({ actionId: 'save', contextId: headerContextId });
+    const headerActionController: HeaderActionController | null = options.enableHeaderAction === false ? null : createHeaderActionController({ owner, actionId: 'save', contextId: headerContextId });
     const abort = new AbortController();
     const { signal } = abort;
     let disposed = false;
@@ -146,7 +149,7 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
         if (!(event.currentTarget instanceof HTMLButtonElement)) {
             throw new TypeError('Save button click target must be an HTMLButtonElement');
         }
-        if (disposed || !requireSaveButtons(resolveSaveButtons).includes(event.currentTarget) || event.currentTarget.disabled) {
+        if (disposed || !isPresentationOwnerActive(owner) || !requireSaveButtons(resolveSaveButtons).includes(event.currentTarget) || event.currentTarget.disabled) {
             return;
         }
         event.preventDefault();
@@ -159,7 +162,11 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
             return;
         }
         const hasChanges = scope.hasChanges();
-        const canSave = (options.canRequestSave?.() ?? true) && scope.canSave();
+        if (disposed) return;
+        const canRequestSave = options.canRequestSave?.() ?? true;
+        if (disposed) return;
+        const canSave = canRequestSave && scope.canSave();
+        if (disposed) return;
         const saving = scope.isSaving();
         const inFlight = saveRequestState.get(scope)?.inFlight === true || isRequestInFlight?.() === true;
         const busy = saving || inFlight;
@@ -176,6 +183,7 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
             clearBusySaveButtons();
         }
         const buttons = new Set(requireSaveButtons(resolveSaveButtons));
+        if (disposed) return;
         for (const button of boundSaveButtons) {
             if (buttons.has(button)) continue;
             button.removeEventListener('click', requestButtonSave);
@@ -220,6 +228,7 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
 
     const connectAutoNotify = (): void => {
         connectSaveAutoNotify({
+            owner,
             scope,
             headerContextId,
             signal,
@@ -231,7 +240,6 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
         });
     };
 
-    sync();
     const scheduleSync = createMicrotaskScheduler(() => sync());
     const unsubscribe = scope.subscribe(() => scheduleSync());
     connectAutoNotify();

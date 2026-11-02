@@ -61,6 +61,7 @@ class WizardProductAccessController {
         const operationInProgress = operation !== null && isLicensingOperationInProgress(operation.state);
         if (operationInProgress && status?.selectedProductAccessFlow !== selected) {
             const confirmed = await requireDialogsService().showConfirmation({
+                owner: this.#dependencies.host.owner,
                 title: i18n.t('wizard.productAccess.operation.switchWarning'),
                 message: i18n.t('wizard.productAccess.operation.switchWarning'),
                 confirmText: i18n.t('common.confirm'),

@@ -6,12 +6,13 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { isString } from '@core/typeGuards.ts';
 import { LOGO_LARGE_CLASS, LOGO_SMALL_CLASS } from '@core/layout/sidebar/dom.ts';
 import type { SidebarHoverPeekHost } from '@core/layout/sidebar/hoverPeek.ts';
+import type { SidebarNavigationIntent } from '@core/layout/sidebar/contracts.ts';
 
 interface SidebarInteractionsHost extends SidebarHoverPeekHost {
     compactSidebar: () => void;
     getMenuElement: () => HTMLElement | null;
     isExpanded: () => boolean;
-    navigateTo: (pageId: string) => void;
+    navigateTo: (pageId: string, intent?: SidebarNavigationIntent) => void;
 }
 
 const resolveEventElement = (event: Event): Element | null => {
@@ -25,36 +26,48 @@ const resolveEventElement = (event: Event): Element | null => {
     return null;
 };
 
+const resolveSidebarNavigationIntent = (event: Event, pageId: string): SidebarNavigationIntent | null => {
+    if (event.defaultPrevented) return null;
+    const pointer = event instanceof MouseEvent ? event : null;
+    const primary = event.type === 'click' && (!pointer || pointer.button === 0);
+    const middle = event.type === 'auxclick' && pointer?.button === 1 && !pointer.ctrlKey && !pointer.metaKey && !pointer.shiftKey && !pointer.altKey;
+    if (!primary && !middle) return null;
+    const split = middle || (pointer !== null && (pointer.ctrlKey || pointer.metaKey) && !pointer.shiftKey && !pointer.altKey);
+    return split && pageId !== 'power' ? 'split' : 'select';
+};
+
 const bindSidebarNavigation = (host: SidebarInteractionsHost): void => {
     const menu = host.getMenuElement();
     if (!menu) return;
-    host.addSessionDisposer(
-        host.on(menu, 'click', (event: Event) => {
-            const target = resolveEventElement(event);
-            if (!target) {
-                return;
-            }
-            const candidate = target.closest('.sidebar-link');
-            if (!candidate) {
-                return;
-            }
-            if (!(candidate instanceof HTMLElement)) {
-                errorHandler.warn('Sidebar', 'Sidebar link must be an HTMLElement');
-                return;
-            }
-            if (dom.hasClass(candidate, 'main-state-indicator')) {
-                return;
-            }
-            event.preventDefault();
-            const pageId = candidate.dataset['page'];
-            if (!isString(pageId) || !pageId) {
-                errorHandler.warn('Sidebar', 'Sidebar link missing data-page');
-                return;
-            }
-            host.compactSidebar();
-            host.navigateTo(pageId);
-        })
-    );
+    const navigate = (event: Event): void => {
+        const target = resolveEventElement(event);
+        if (!target) {
+            return;
+        }
+        const candidate = target.closest('.sidebar-link');
+        if (!candidate) {
+            return;
+        }
+        if (!(candidate instanceof HTMLElement)) {
+            errorHandler.warn('Sidebar', 'Sidebar link must be an HTMLElement');
+            return;
+        }
+        if (dom.hasClass(candidate, 'main-state-indicator')) {
+            return;
+        }
+        const pageId = candidate.dataset['page'];
+        if (!isString(pageId) || !pageId) {
+            errorHandler.warn('Sidebar', 'Sidebar link missing data-page');
+            return;
+        }
+        const intent = resolveSidebarNavigationIntent(event, pageId);
+        if (intent === null) return;
+        event.preventDefault();
+        host.compactSidebar();
+        host.navigateTo(pageId, intent);
+    };
+    host.addSessionDisposer(host.on(menu, 'click', navigate));
+    host.addSessionDisposer(host.on(menu, 'auxclick', navigate));
 };
 
 const bindSidebarToggleHandlers = (host: SidebarInteractionsHost): void => {
@@ -102,5 +115,5 @@ const bindSidebarLogoNavigation = (host: SidebarInteractionsHost): void => {
     dom.setStyle(wrapper, 'cursor', 'pointer');
 };
 
-export { bindSidebarLogoNavigation, bindSidebarNavigation, bindSidebarToggleHandlers };
+export { bindSidebarLogoNavigation, bindSidebarNavigation, bindSidebarToggleHandlers, resolveSidebarNavigationIntent };
 export type { SidebarInteractionsHost };

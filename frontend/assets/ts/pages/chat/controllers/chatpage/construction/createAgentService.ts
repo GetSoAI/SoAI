@@ -74,6 +74,7 @@ const createChatAgentService = (page: ChatAgentServiceDependencies): ChatPageAge
         voiceSession: page.sessions.voiceSession
     };
     return createChatPageAgentService({
+        owner: page.page.services.mountScope,
         conversation: {
             getApi: () => page.platform.api,
             getConversations: () => page.state.conversationState.conversations,

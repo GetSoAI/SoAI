@@ -1,6 +1,10 @@
 /* SoAI - Settings page service [frontend/assets/ts/pages/settings/controllers/page/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
+import { getEventHub } from '@core/environment/public.ts';
+import { EVENT_CHANGE } from '@core/languageservice/constants.ts';
+import { isPresentationOwnerCurrent } from '@core/presentationOwner.ts';
 import { buildSignalRequestOptions } from '@core/api/requestOptions.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
 import { toJsonCompatibleObject } from '@core/primitives/clone.ts';
@@ -132,6 +136,8 @@ const syncSettingsSectionActivity = (state: SettingsPageState, activeTab: string
 };
 
 const disposeManagers = (state: SettingsPageState): void => {
+    state.uiPreferencesCleanup?.();
+    state.uiPreferencesCleanup = null;
     state.productManagers.forEach((manager) => manager.dispose());
     state.backupManager?.dispose();
     state.messagingManager?.dispose();
@@ -174,6 +180,44 @@ const resolveAdvancedRenderer = (state: SettingsPageState) => {
         excludeSections: new Set<string>()
     });
     return state.advancedRenderer;
+};
+
+const observeUiPreferences = (page: SettingsRuntimeContext, state: SettingsPageState, notifySaveChanged: () => void): void => {
+    state.uiPreferencesCleanup?.();
+    const manager = state.uiPrefsManager;
+    if (!manager) throw new Error('Settings UI preferences manager is not initialized');
+    const epoch = page.owners.auth.authEpoch;
+    const owner = page.owners.pageContext.presentationOwner;
+    let active = true;
+    const disposers: Array<() => void> = [];
+    const dispose = (): void => {
+        if (!active) return;
+        active = false;
+        if (state.uiPreferencesCleanup === dispose) state.uiPreferencesCleanup = null;
+        page.owners.pageResources.untrack(dispose);
+        const failures: Error[] = [];
+        for (const release of disposers.splice(0)) runCleanupStepCollectingFailure(release, failures);
+        throwCollectedCleanupFailures(failures);
+    };
+    const reconcile = (): void => {
+        if (!active || page.controls.isDestroyed() || page.owners.auth.authEpoch !== epoch || !isPresentationOwnerCurrent(owner) || state.uiPrefsManager !== manager) return;
+        const snapshot = createUiPrefsSnapshot(page);
+        if (manager.areValuesEqual(manager.originalData, snapshot)) return;
+        manager.mergeRemotePatch(snapshot);
+        state.preferencesManager?.syncUiPreferences();
+        state.themeManager?.syncUiPreferences();
+        state.dirtyStateManager?.refreshRenderedFields();
+        notifySaveChanged();
+    };
+    try {
+        disposers.push(page.owners.storage.subscribeUiPreferenceChanges(reconcile));
+        disposers.push(page.owners.pageResources.on(getEventHub(), EVENT_CHANGE, reconcile));
+        state.uiPreferencesCleanup = dispose;
+        page.owners.pageResources.track(dispose, dispose);
+    } catch (error) {
+        dispose();
+        throw error;
+    }
 };
 
 const loadData = async (page: SettingsRuntimeContext, state: SettingsPageState, callbacks: SettingsDataCallbacks, options: { signal?: AbortSignal | null; refreshAccess?: boolean } = {}): Promise<void> => {
@@ -234,6 +278,7 @@ const loadData = async (page: SettingsRuntimeContext, state: SettingsPageState, 
         state.uiPrefsManager.onChange(() => callbacks.notifySaveChanged());
 
         initializeManagers(page, state, callbacks);
+        observeUiPreferences(page, state, callbacks.notifySaveChanged);
         throwIfAborted(signal);
         state.configManager = page.owners.services.createConfigurationManager();
         if (state.configManager) {
@@ -255,4 +300,4 @@ const loadData = async (page: SettingsRuntimeContext, state: SettingsPageState, 
     }
 };
 
-export { disposeManagers, getElement, loadData, requestInstanceIdentity, resetElementCache, resolveAdvancedRenderer, setupManagersEventListeners, syncSettingsSectionActivity };
+export { disposeManagers, getElement, loadData, observeUiPreferences, requestInstanceIdentity, resetElementCache, resolveAdvancedRenderer, setupManagersEventListeners, syncSettingsSectionActivity };

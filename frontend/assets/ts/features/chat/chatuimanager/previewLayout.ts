@@ -84,7 +84,7 @@ export function setupPreviewsContainerLayout(context: ChatUIManagerContext, refr
     if (!win || typeof win.ResizeObserver !== 'function' || typeof win.MutationObserver !== 'function') {
         return;
     }
-    const coordinator = acquireMainTimelineCoordinator(messagesAreaElement, messagesRootElement);
+    const coordinator = acquireMainTimelineCoordinator(messagesAreaElement, messagesRootElement, context.dependencies.owner);
 
     let popupResizeDisposer: (() => void) | null = null;
     let observedPopup: HTMLElement | null = null;

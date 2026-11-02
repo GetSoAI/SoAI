@@ -158,6 +158,7 @@ class UpdatesPageWorkflowController {
                 return result;
             },
             systemSurface: {
+                owner: this.#dependencies.pageContext.presentationOwner,
                 notify: (message, type) => this.#dependencies.feedback.show(message, type ?? 'info'),
                 setButtonLoading: (button, loading, options) => this.#setButtonLoading(button, loading, options),
                 handleError: (error, context, options) => this.#dependencies.feedback.handle(error, context, options),

@@ -12,6 +12,7 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { getLanguageService } from '@core/languageservice/service.ts';
+import { setPageContentAvailable } from '@core/layout/pageContentInteractivity.ts';
 import { parseDetachedQuery } from '@core/runtime/detachedQuery.ts';
 import { createDeferred } from '@core/runtime/deferred.ts';
 import { resolveKernelService } from '@core/runtime/runtimeContext.ts';
@@ -23,6 +24,7 @@ import { getElementByIdStrict, getEventHub, getGlobalScope, getLocation, require
 import { dom } from '@core/dom/dom.ts';
 import { getScrollModule } from '@core/scroll.ts';
 import { initializeServerTimeClock } from '@core/time/serverTimeClock.ts';
+import { getFocusedPageContent } from '@core/pagepanes/dom.ts';
 
 const resolveGlobalScope = (): typeof globalThis => {
     const scope = getGlobalScope();
@@ -161,7 +163,8 @@ const ensureCommonIconsPreloaded = async (): Promise<void> => {
 };
 
 const initializeScrollModule = (): void => {
-    getScrollModule().initialize();
+    const main = getElementByIdStrict('main-content');
+    getScrollModule(() => getFocusedPageContent(main)).initialize();
 };
 
 const renderDetachedError = (message: string): void => {
@@ -182,6 +185,7 @@ const renderDetachedError = (message: string): void => {
     wrapper.appendChild(heading);
     wrapper.appendChild(body);
     container.replaceChildren(wrapper);
+    setPageContentAvailable(container, true);
     clearActiveWallpaperReadiness();
     void finalizePreloader().catch((error) => {
         errorHandler.warn('Entrypoint', 'Preloader finalization failed while rendering detached error', ensureError(error));

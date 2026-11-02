@@ -95,6 +95,7 @@ class RenameModelModalManager {
         this.#fieldState = createRenameModelFieldStateTracker(modalRoot, aliasInput, () => this.state.originalAlias);
 
         const saveSession = createModelModalSaveSession({
+            owner: this.#host.owner,
             host: this.#host,
             modal: modalRoot,
             modalId: this.modalId,
@@ -119,7 +120,7 @@ class RenameModelModalManager {
         saveButton.addEventListener('click', this.#onSaveClick, { signal });
         updateModalState();
 
-        this.#host.modals.open(this.modalId);
+        this.#host.modals.open(this.modalId, { owner: this.#host.owner });
     }
 
     async requestSave(): Promise<void> {

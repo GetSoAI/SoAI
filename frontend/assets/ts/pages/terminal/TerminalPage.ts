@@ -68,7 +68,7 @@ class TerminalPage extends StaticBasePage {
 
     #syncDetachAction(): void {
         if (this.services.isDetached()) return;
-        this.#detachActionController ??= createHeaderActionController({ actionId: 'detach', contextId: 'terminal' });
+        this.#detachActionController ??= createHeaderActionController({ owner: this.pageContext.presentationOwner, actionId: 'detach', contextId: 'terminal' });
         this.#detachActionController.show({ onClick: () => this.#openDetachedWindow() });
     }
 
@@ -84,6 +84,7 @@ class TerminalPage extends StaticBasePage {
         }
         const savedFontSize = this.#getStoredFontSize();
         this.#ptyView = new PTYTerminalView({
+            owner: this.dependencies.mountScope,
             container: ui.shell,
             fontSize: savedFontSize,
             onSessionCreated: (sessionId) => {
@@ -97,6 +98,7 @@ class TerminalPage extends StaticBasePage {
                 log('error', `PTY error: ${error}`);
             },
             onBusyStateChanged: (busy) => {
+                if (!this.dependencies.mountScope.admission.isCurrent()) return;
                 if (busy) {
                     this.#registerNavigationGuard();
                 } else {
@@ -107,12 +109,13 @@ class TerminalPage extends StaticBasePage {
         await this.#ptyView.mount(signal);
     }
 
-    #handleTerminalInitializeError(error: Error): void {
+    async #handleTerminalInitializeError(error: Error): Promise<void> {
         const code = isPTYTerminalConnectError(error) ? error.code : null;
         const message = code === 'feature_disabled' ? i18n.t('terminal.unavailable.featureDisabled') : code === 'forbidden_error' ? i18n.t('terminal.unavailable.forbidden') : i18n.t('terminal.unavailable.generic');
         log('warn', 'Terminal initialization failed', { code, error });
-        this.#ptyView?.dispose();
-        this.#ptyView = null;
+        const view = this.#ptyView;
+        await view?.dispose();
+        if (this.#ptyView === view) this.#ptyView = null;
 
         const ui = this.#ui;
         if (!ui) {
@@ -166,11 +169,14 @@ class TerminalPage extends StaticBasePage {
     #registerNavigationGuard(): void {
         if (this.#navigationGuardCleanup) return;
         this.#navigationGuardCleanup = registerUnsavedChangesGuard({
+            owner: this.dependencies.mountScope,
             id: 'terminal-command-guard',
             hasUnsavedChanges: (): boolean => this.#ptyView?.busy === true,
             getMessage: (): string => i18n.t('terminal.confirmations.commandRunning'),
-            confirmNavigation: async (): Promise<boolean> =>
+            confirmNavigation: async (context): Promise<boolean> =>
                 await requireDialogsService().showConfirmation({
+                    owner: this.pageContext.presentationOwner,
+                    signal: context.signal,
                     message: i18n.t('terminal.confirmations.commandRunning'),
                     variant: 'warning'
                 })
@@ -195,7 +201,7 @@ class TerminalPage extends StaticBasePage {
             if (context.signal?.aborted || isAbortError(runtimeError)) {
                 return;
             }
-            this.#handleTerminalInitializeError(runtimeError);
+            await this.#handleTerminalInitializeError(runtimeError);
         }
         this.#ptyView?.focus();
     }
@@ -243,7 +249,7 @@ class TerminalPage extends StaticBasePage {
     }
 
     #adjustFontSize(delta: number): void {
-        if (!this.#ptyView) return;
+        if (!this.#ptyView || !this.dependencies.mountScope.admission.canMutate()) return;
         const newSize = this.#ptyView.fontSize + delta;
         this.#ptyView.fontSize = newSize;
         this.#saveFontSize(this.#ptyView.fontSize);
@@ -255,8 +261,9 @@ class TerminalPage extends StaticBasePage {
         this.#unregisterNavigationGuard();
         this.#detachActionController?.dispose();
         this.#detachActionController = null;
-        this.#ptyView?.dispose();
-        this.#ptyView = null;
+        const view = this.#ptyView;
+        await view?.dispose();
+        if (this.#ptyView === view) this.#ptyView = null;
         this.#ui = null;
     }
 

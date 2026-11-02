@@ -3,8 +3,8 @@
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import type { AuthManager } from '@core/auth/public.ts';
-import type { Router } from '@core/routing/router/Router.ts';
-import type { RouteParameters } from '@core/routing/router/types.ts';
+import type { PageRouting, RouteParameters } from '@core/routing/router/types.ts';
+
 import { request, requestFunctionValue } from '@core/routing/pages/basepagecore/actions.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
@@ -31,12 +31,12 @@ const removePageStorageValue = (storage: Pick<StorageService, 'remove'> | null |
     requestFunctionValue(request(storage, 'Storage'), 'remove', 'Storage')(key);
 };
 
-const navigatePageRoute = (router: Pick<Router, 'navigate'> | null | undefined, pageId: string, parameters: Record<string, string | null | undefined>): void => {
+const navigatePageRoute = (router: Pick<PageRouting, 'navigate'> | null | undefined, pageId: string, parameters: Record<string, string | null | undefined>): void => {
     const normalizedParameters = normalizeRouteParameters(parameters);
     terminateHandledPromise(requestFunctionValue(request(router, 'Router'), 'navigate', 'Router')(pageId, normalizedParameters ? { parameters: normalizedParameters } : {}));
 };
 
-const getPageCurrentRoute = (router: Pick<Router, 'getCurrentRoute'> | null | undefined): string | null => {
+const getPageCurrentRoute = (router: Pick<PageRouting, 'getCurrentRoute'> | null | undefined): string | null => {
     return requestFunctionValue(request(router, 'Router'), 'getCurrentRoute', 'Router')() ?? null;
 };
 

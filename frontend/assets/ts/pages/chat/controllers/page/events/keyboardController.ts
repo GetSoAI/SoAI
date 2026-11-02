@@ -1,6 +1,7 @@
 /* SoAI - Chat page keyboard controller [frontend/assets/ts/pages/chat/controllers/page/events/keyboardController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isKeyboardCompositionEvent } from '@core/dom/keyboardComposition.ts';
 import { readTrimmedInputValue } from '@core/dom/formValues.ts';
 import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
 import { isElementNode } from '@core/typeGuards.ts';
@@ -78,7 +79,7 @@ const handleChatInputHistoryHotkey = (host: ChatRootEventsHost, event: KeyboardE
 };
 
 const handleRootKeydown = (host: ChatRootEventsHost, event: Event): void => {
-    if (!(event instanceof KeyboardEvent)) {
+    if (!(event instanceof KeyboardEvent) || isKeyboardCompositionEvent(event)) {
         return;
     }
     if (event.key === 'Escape' && host.conversations.isConversationSelectionActive()) {

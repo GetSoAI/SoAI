@@ -71,7 +71,7 @@ class SoAIBenchHistoryModal {
             this.#sortState = HISTORY_SORT_DEFAULT_STATE;
             resetHistoryState(this.host, modalRoot);
             setFooterActionsDisabled(this.host, modalRoot, true);
-            this.host.modals.open(this.modalId);
+            this.host.modals.open(this.modalId, { owner: this.host.owner });
 
             try {
                 const result = decodeGpuOperationResponse(await requestWebSocketSnapshotRecord('hardware.gpu.soaibench.history', serializeGpuSoAIBenchHistoryRequest(request.deviceId, HISTORY_LIMIT)));

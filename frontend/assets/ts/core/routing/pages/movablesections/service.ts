@@ -3,7 +3,7 @@
 
 import { dom } from '@core/dom/dom.ts';
 import type { GridPosition } from '@core/routing/pages/pagetypes/public.ts';
-import type { MovableDragState, MovableGridMetrics, MovableSectionBlueprint, MovableSectionId, MovableSectionLayoutConfig, MovableSectionLayoutDependencies, MovableSectionLayoutHost, MovableSectionLayoutStorage } from '@core/routing/pages/movablesections/types.ts';
+import type { MovableLayoutChange, MovableDragState, MovableGridMetrics, MovableSectionBlueprint, MovableSectionId, MovableSectionLayoutConfig, MovableSectionLayoutDependencies, MovableSectionLayoutHost, MovableSectionLayoutStorage } from '@core/routing/pages/movablesections/types.ts';
 import { cancelMovableSectionDrag, registerMovableSectionDrag } from '@core/routing/pages/movablesections/drag.ts';
 import { applyMovableGridLayout, applyMovableGridMetrics, movableGridMetricsEqual, toggleMovableGridMode } from '@core/routing/pages/movablesections/grid.ts';
 import { compactLayout, filterLayoutBySectionIds, getDisplayLayout, normalizeLayout, toStoredSectionsMap } from '@core/routing/pages/movablesections/normalization.ts';
@@ -25,7 +25,7 @@ class MovableSectionLayout<TSectionId extends MovableSectionId> implements Movab
     dragState: MovableDragState<TSectionId> | null;
     sectionDisposers: Array<() => void>;
     savedPositions: Map<TSectionId, GridPosition>;
-    changeListener: (() => void) | null;
+    changeListener: ((change: MovableLayoutChange) => void) | null;
     collapsed: boolean;
     locked: boolean;
     responsiveDisposers: Array<() => void>;
@@ -134,7 +134,7 @@ class MovableSectionLayout<TSectionId extends MovableSectionId> implements Movab
         }
         if (columnsChanged || collapsedChanged) {
             this.applyLayout(this.getDisplayLayout(), presentation.metrics);
-            this.notifyLayoutChanged();
+            this.notifyLayoutChanged('presentation');
             return;
         }
         this.commitMetrics(presentation.metrics);
@@ -202,12 +202,12 @@ class MovableSectionLayout<TSectionId extends MovableSectionId> implements Movab
         return this.currentColumns === this.config.settings.columns && !this.collapsed;
     }
 
-    setChangeListener(listener: (() => void) | null): void {
+    setChangeListener(listener: ((change: MovableLayoutChange) => void) | null): void {
         this.changeListener = listener;
     }
 
-    notifyLayoutChanged(): void {
-        this.changeListener?.();
+    notifyLayoutChanged(change: MovableLayoutChange = 'draft'): void {
+        this.changeListener?.(change);
     }
 
     getActiveColumns(): number {

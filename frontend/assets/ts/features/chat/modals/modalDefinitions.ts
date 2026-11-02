@@ -5,7 +5,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import { MODAL_HEADER_CLOSE_SELECTOR } from '@core/modals/headerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { PageContext } from '@core/pagecontext/public.ts';
 import { createModalElement, createModalElementFromMarkup } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
@@ -56,7 +56,7 @@ const messageInfoModalDefinition: ModalDefinition = {
     id: MESSAGE_INFO_MODAL_ID,
     layout: 'md',
     initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const modalId = MESSAGE_INFO_MODAL_ID;
         const titleId = modalUiId(modalId, 'title');
         const contentId = modalUiId(modalId, 'content');
@@ -89,7 +89,7 @@ const toolCallOutputModalDefinition: ModalDefinition = {
     id: CHAT_TOOL_CALL_OUTPUT_MODAL_ID,
     layout: 'lg',
     initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const modalId = CHAT_TOOL_CALL_OUTPUT_MODAL_ID;
         const titleId = modalUiId(modalId, 'title');
         const contentId = modalUiId(modalId, 'content');
@@ -122,7 +122,7 @@ const attachmentOverflowModalDefinition: ModalDefinition = {
     id: CHAT_ATTACHMENT_OVERFLOW_MODAL_ID,
     layout: 'lg',
     initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const modalId = CHAT_ATTACHMENT_OVERFLOW_MODAL_ID;
         const titleId = modalUiId(modalId, 'title');
         const contentId = modalUiId(modalId, 'content');
@@ -159,7 +159,7 @@ const chatConfigurationModalDefinition: ModalDefinition = Object.freeze({
     id: CHAT_CONFIGURATION_MODAL_ID,
     layout: 'xl',
     initialFocusSelector: modalUiSelector(CHAT_CONFIGURATION_MODAL_ID, 'user-name-input'),
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const markup = buildChatConfigurationModalMarkup(createChatModalMarkupContext());
         return createModalElementFromMarkup(CHAT_CONFIGURATION_MODAL_ID, markup);
     }
@@ -169,7 +169,7 @@ const chatMcpDefaultToolsModalDefinition: ModalDefinition = Object.freeze({
     id: CHAT_MCP_DEFAULT_TOOLS_MODAL_ID,
     layout: 'lg',
     initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const markup = buildChatMcpDefaultToolsModalMarkup(createChatModalMarkupContext());
         return createModalElementFromMarkup(CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, markup);
     }
@@ -179,7 +179,7 @@ const agentPlanModalDefinition: ModalDefinition = {
     id: AGENT_PLAN_MODAL_ID,
     layout: 'lg',
     initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const modalId = AGENT_PLAN_MODAL_ID;
         const titleId = modalUiId(modalId, 'title');
         const contentId = modalUiId(modalId, 'content');
@@ -217,7 +217,7 @@ const archivedConversationsModalDefinition: ModalDefinition = {
     id: ARCHIVED_CONVERSATIONS_MODAL_ID,
     layout: 'lg',
     initialFocusSelector: '.archived-conversations-search-input',
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const modalId = ARCHIVED_CONVERSATIONS_MODAL_ID;
         const scaffold = renderArchivedConversationsModalScaffold();
         return createModalElement({

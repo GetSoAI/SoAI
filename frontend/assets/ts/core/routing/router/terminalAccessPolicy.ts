@@ -5,6 +5,8 @@ import { requireStateManager } from '@core/state/runtime.ts';
 import type { ApiService, AuthService } from '@core/routing/router/routerDependencies.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isFunction, isObject, isString } from '@core/typeGuards.ts';
+import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
+import { createAbortError } from '@core/errors/abort.ts';
 
 interface TerminalAccessPolicyCache {
     decision: boolean | null;
@@ -19,13 +21,14 @@ const cache: TerminalAccessPolicyCache = {
     sessionKey: null,
     policyRevision: null
 };
+const policySequence = new SequenceToken();
 
 const TERMINAL_POLICY_CHANNEL_ID = 'soai.webui.terminal.policy';
 const TERMINAL_POLICY_INVALIDATION_TYPE = 'terminal.policy.invalidate';
 
 let terminalPolicySubscriptionBound = false;
 
-const resolveSessionKey = (auth: AuthService): string => (auth.isAuthenticated === true ? 'authenticated' : 'anonymous');
+const resolveSessionKey = (auth: AuthService): string => `${auth.authEpoch}:${auth.isAuthenticated === true ? 'authenticated' : 'anonymous'}`;
 
 const computeTerminalAccessDecision = async (auth: AuthService, api: ApiService): Promise<{ decision: boolean; policyRevision: string }> => {
     if (auth.isAuthenticated !== true) {
@@ -56,6 +59,7 @@ const computeTerminalAccessDecision = async (auth: AuthService, api: ApiService)
 };
 
 const invalidateTerminalAccessPolicy = (): void => {
+    policySequence.invalidate();
     cache.decision = null;
     cache.inFlight = null;
     cache.sessionKey = null;
@@ -97,20 +101,21 @@ const canAccessTerminal = async (auth: AuthService, api: ApiService): Promise<bo
     if (cache.inFlight) {
         return cache.inFlight;
     }
-    cache.inFlight = computeTerminalAccessDecision(auth, api)
+    const sequence = policySequence.value;
+    const operation = computeTerminalAccessDecision(auth, api)
         .then((snapshot) => {
-            if (cache.sessionKey === sessionKey) {
-                cache.decision = snapshot.decision;
-                cache.policyRevision = snapshot.policyRevision;
-            }
+            if (!policySequence.isActive(sequence) || cache.sessionKey !== sessionKey || resolveSessionKey(auth) !== sessionKey) throw createAbortError('Terminal policy invalidated');
+            cache.decision = snapshot.decision;
+            cache.policyRevision = snapshot.policyRevision;
             return snapshot.decision;
         })
         .finally(() => {
-            if (cache.sessionKey === sessionKey) {
+            if (cache.inFlight === operation) {
                 cache.inFlight = null;
             }
         });
-    return cache.inFlight;
+    cache.inFlight = operation;
+    return operation;
 };
 
 export { bindTerminalAccessPolicyInvalidation, canAccessTerminal, invalidateTerminalAccessPolicy, publishTerminalAccessPolicyInvalidation };

@@ -48,7 +48,7 @@
         --header-surface-inset-transition: var(--effect-page-exit-duration) var(--ease-in);
     }
 
-    .app-container:where(:has(> .main-content > [data-section].page-content-ready:not([data-page-exiting]).page-scrollable, > .main-content > [data-section].page-content-ready:not([data-page-exiting]) .page-scrollable)) > .header::before {
+    .app-container:where(:has(> .main-content > [data-pane-focused='true'] > .page-pane-outlet > .page-content-ready:not([data-page-exiting]).page-scrollable, > .main-content > [data-pane-focused='true'] > .page-pane-outlet > .page-content-ready:not([data-page-exiting]) .page-scrollable)) > .header::before {
         inset-inline-end: var(--ui-scrollbar-inline-size);
 
         --header-surface-inset-transition: var(--effect-page-enter-duration) var(--ease-smooth);

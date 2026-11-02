@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { FileExplorerListResponse, FileExplorerSearchResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
+import { DirectoryListingFailure } from '@core/fileexplorerbrowser/directoryListingFailure.ts';
+import { wallClockMs } from '@core/time/clock.ts';
 import { formatDateTime } from '@core/primitives/dateTime.ts';
 import { joinVirtualPath, toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
-import type { FileBrowserEntry, FileBrowserLoadResponse } from '@core/fileexplorerbrowser/types.ts';
+import type { DirectoryListingBrowserState, FileBrowserEntry, FileBrowserLoadResponse } from '@core/fileexplorerbrowser/types.ts';
 type FileExplorerBrowserResponse = FileExplorerListResponse | FileExplorerSearchResponse;
 
 const parseTruncated = (payload: FileExplorerBrowserResponse, entryCount: number): boolean => {
@@ -49,4 +51,18 @@ const parseFileBrowserLoadResponse = (payload: FileExplorerBrowserResponse, quer
     };
 };
 
-export { parseFileBrowserEntriesPayload, parseFileBrowserLoadResponse, parseWorkspacePathResolved };
+const parseDirectorySearchSnapshot = (payload: FileExplorerSearchResponse, currentPath: string, query: string): Omit<DirectoryListingBrowserState, 'sessionRevision' | 'isLoadingMore'> => {
+    if (toVirtualPath(payload.searchRoot) !== currentPath || payload.query.trim() !== query) throw new DirectoryListingFailure('incoherent', 'Search response changed its directory or query');
+    return {
+        ...parseFileBrowserLoadResponse(payload, query),
+        updatedAtMs: wallClockMs(),
+        isLoading: false,
+        total: payload.total,
+        hasMore: false,
+        nextOffset: null,
+        freshness: 'current',
+        errorMessage: null
+    };
+};
+
+export { parseDirectorySearchSnapshot, parseFileBrowserEntriesPayload, parseFileBrowserLoadResponse, parseWorkspacePathResolved };

@@ -1,6 +1,7 @@
 /* SoAI - Chat message modal coordinator [frontend/assets/ts/features/chat/message/modalCoordinator.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import type { ChatKnowledgeAttachmentsApi, ChatSoaiPathsApi } from '@features/chat/pagecontracts/types.ts';
@@ -10,6 +11,7 @@ import { ChatMessageInfoModal } from '@features/chat/message/messageinfomodal/se
 import type { CopyActionDependencies } from '@features/chat/message/messageCopyNotifications.ts';
 
 type ChatMessageModalCoordinatorDependencies = CopyActionDependencies & {
+    readonly owner: PresentationOwner;
     knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'items' | 'previewItem' | 'useItems' | 'delete'>;
     soaiPathsApi: Pick<ChatSoaiPathsApi, 'preview' | 'read' | 'download' | 'open' | 'token'>;
     escapeHtml: (value: string) => string;
@@ -23,6 +25,7 @@ class ChatMessageModalCoordinator {
 
     constructor(dependencies: ChatMessageModalCoordinatorDependencies) {
         this.#messageInfoModal = new ChatMessageInfoModal({
+            owner: dependencies.owner,
             escapeHtml: (value: string): string => dependencies.escapeHtml(value),
             runWithBoundary: (name, functionValue) => dependencies.runWithBoundary(name, functionValue),
             hasClipboardSupport: () => dependencies.hasClipboardSupport(),
@@ -30,6 +33,7 @@ class ChatMessageModalCoordinator {
             showNotification: (message, type) => dependencies.showNotification(message, type)
         });
         this.#attachmentOverflowModal = new ChatAttachmentOverflowModal({
+            owner: dependencies.owner,
             knowledgeAttachmentsApi: dependencies.knowledgeAttachmentsApi,
             soaiPathsApi: dependencies.soaiPathsApi,
             runWithBoundary: (name, functionValue) => dependencies.runWithBoundary(name, functionValue),

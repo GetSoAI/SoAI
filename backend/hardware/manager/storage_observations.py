@@ -99,23 +99,26 @@ def reconcile_disk_rows(
         identity = disk_identity(row)
         if identity is None:
             continue
-        conflicts = [
-            old
-            for old in previous
-            if disk_identity(old) != identity
-            and old.get("filesystem") == row.get("filesystem")
-            and old.get("mount") == row.get("mount")
-            and disk_has_strong_identity(old)
-        ]
-        if conflicts and not disk_has_strong_identity(row):
-            ambiguous.update(key for old in conflicts if (key := disk_identity(old)) is not None)
-            diagnostic_rows = [
-                *diagnostic_rows,
-                {"scope": "item", "reason": "identity_unavailable"},
+        if not disk_has_strong_identity(row):
+            conflicts = [
+                old
+                for old in previous
+                if disk_identity(old) != identity
+                and old.get("filesystem") == row.get("filesystem")
+                and old.get("mount") == row.get("mount")
+                and disk_has_strong_identity(old)
             ]
-            candidate["diagnostics"] = diagnostic_rows
-            candidate["status"] = "partial"
-            continue
+            if conflicts:
+                ambiguous.update(
+                    key for old in conflicts if (key := disk_identity(old)) is not None
+                )
+                diagnostic_rows = [
+                    *diagnostic_rows,
+                    {"scope": "item", "reason": "identity_unavailable"},
+                ]
+                candidate["diagnostics"] = diagnostic_rows
+                candidate["status"] = "partial"
+                continue
         status = row.get("observation_status")
         if isinstance(status, dict) and status["status"] not in ("available", "partial"):
             old = next((old for old in previous if disk_identity(old) == identity), None)

@@ -123,7 +123,7 @@ const createDownloadModalController = (dependencies: { host: DownloadModalHost }
                         terminateHandledPromise(handleManualPathCopy(runtime(), event));
                         return;
                     case modalUiId(modalId, 'manual-open-file-explorer'):
-                        handleManualOpenFileExplorer(runtime(), event);
+                        terminateHandledPromise(handleManualOpenFileExplorer(runtime(), event));
                         return;
                     case modalUiId(modalId, 'repository-link'):
                         terminateHandledPromise(handleRepositoryLinkClick(runtime(), event));

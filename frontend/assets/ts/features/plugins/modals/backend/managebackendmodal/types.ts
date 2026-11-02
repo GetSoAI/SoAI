@@ -1,6 +1,8 @@
 /* SoAI - Plugins feature manage backend modal contracts [frontend/assets/ts/features/plugins/modals/backend/managebackendmodal/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { BackendVariantsResponse, PluginBackendUpdateStatus } from '@core/api/contracts/pluginManagementContracts.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -30,7 +32,7 @@ interface ManageBackendViewPort {
     optionalHTMLElement(selector: string | Element, context?: Element): HTMLElement | null;
     on(target: EventTarget | Element, event: string, handler: EventListener, options?: AddEventListenerOptions): () => void;
     updateText(target: Element | string, text: string): void;
-    updateHTML(target: Element | string, html: TrustedHtml | string, options?: { escape?: boolean; context?: Element | Document | null }): void;
+    updateHTML(target: Element | string, html: TrustedHtml | string, options?: Parameters<PageDom['updateHtml']>[2]): void;
     updateProperty(target: Element | string, property: string, value: DomPropertyValue): void;
     updateAttribute(target: Element | string, attribute: string, value: string | null): void;
     addClassName(target: Element | string, classes: string | string[]): void;
@@ -68,6 +70,7 @@ interface ManageBackendOperationsPort extends BackendOperationHost {
 }
 
 interface ManageBackendManagerHost {
+    readonly owner: PresentationOwner;
     catalog: {
         isFresh(): boolean;
         getPlugin(name: string): PluginRecord | null;

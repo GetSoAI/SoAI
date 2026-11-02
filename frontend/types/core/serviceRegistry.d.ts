@@ -58,6 +58,8 @@ interface SoAIServiceRegistry {
     'core.realtime': import('../../assets/ts/core/realtime/public.ts').RealtimeService;
     'core.resourceTracker': typeof import('../../assets/ts/core/resourcetracker/service.ts').ResourceTracker;
     'core.router': import('../../assets/ts/core/routing/router/Router.ts').Router;
+    'core.pagePanes': import('../../assets/ts/core/pagepanes/service.ts').PagePaneService;
+    'core.pagePaneControls': import('../../assets/ts/core/pagepanes/controls.ts').PagePaneControls;
     'core.runtimeEnv': typeof import('../../assets/ts/core/runtimeenv/public.ts').runtimeEnv;
     'core.searchFieldActions': BootstrapSearchFieldActionService;
     'core.secretInputToggle': BootstrapSecretInputToggleService;
@@ -80,7 +82,7 @@ interface SoAIServiceRegistry {
     'core.uiPrimitives': typeof import('../../assets/ts/core/uiprimitives/public.ts').primitives;
     'features.automation.runActivity': import('../../assets/ts/features/automation/runactivity/service.ts').AutomationRunActivityService;
     'features.catalog.store': ReturnType<typeof import('../../assets/ts/features/catalog/state.ts').createCatalogStore>;
-    'features.chat.chatPagePresence': import('../../assets/ts/features/chat/background/ChatPagePresenceService.ts').ChatPagePresenceService;
+    'features.chat.chatPagePresence': import('../../assets/ts/core/chat/protocols.ts').ChatPagePresenceServiceContract;
     'features.chat.conversationAttention': import('../../assets/ts/features/chat/background/ChatConversationAttentionService.ts').ChatConversationAttentionService;
     'features.chat.chatStreamService': import('../../assets/ts/features/chat/chatstreamservice/service.ts').ChatStreamService;
     'features.chat.ragIngestion': import('../../assets/ts/core/chat/protocols.ts').ChatRagIngestionServiceContract;

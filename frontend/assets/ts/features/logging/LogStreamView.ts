@@ -7,6 +7,7 @@ import type { LogEntry } from '@core/logvalidation/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isArray, isObject, isString } from '@core/typeGuards.ts';
 import { normalizeLogMessage } from '@features/logging/logMessage.ts';
+import { LogStreamMotion } from '@features/logging/logStreamMotion.ts';
 
 interface TrackedEntry {
     entry: LogEntry;
@@ -35,7 +36,10 @@ class LogStreamView {
     historyPending: boolean = false;
     #renderQueue: AnimationFrameRenderQueue<boolean>;
     #destroyed: boolean = false;
-    #lastRenderSignature: string | null = null;
+    readonly #motion = new LogStreamMotion();
+    #revision = 0;
+    #renderedRevision = -1;
+    #renderedOutput: Element | null = null;
     #renderedFirstSequence: number | null = null;
     #renderedLastSequence: number | null = null;
 
@@ -51,20 +55,6 @@ class LogStreamView {
             isDisposed: () => this.#destroyed
         });
         this.#destroyed = false;
-    }
-
-    #resolveEntriesSignature(): string {
-        const entriesSignature = this.entries
-            .map((trackedEntry) => {
-                const entry = trackedEntry.entry;
-                return [this.#signaturePart(String(trackedEntry.sequence)), this.#signaturePart(entry.timestamp), this.#signaturePart(entry.level), this.#signaturePart(entry.component), this.#signaturePart(normalizeLogMessage(entry))].join('');
-            })
-            .join('');
-        return `${this.#signaturePart(String(this.config.getLineLimit()))}${this.#signaturePart(String(this.entries.length))}${entriesSignature}`;
-    }
-
-    #signaturePart(value: string): string {
-        return `${String(value.length)}:${value}`;
     }
 
     handleStreamEvent(event: JsonValue | null | undefined): void {
@@ -95,6 +85,7 @@ class LogStreamView {
             const mode = isString(modeValue) ? modeValue : null;
             const buffered = mode === 'replay' || mode === 'history';
             if (buffered) {
+                this.#motion.suppress();
                 this.historyPending = true;
                 if (this.appendEntry(event['entry'])) {
                     this.queueRender();
@@ -106,6 +97,7 @@ class LogStreamView {
                 this.queueRender();
             }
             if (this.appendEntry(event['entry'])) {
+                this.#motion.recordEntry();
                 this.queueRender();
             }
         }
@@ -132,11 +124,14 @@ class LogStreamView {
         }
         const trackedEntry: TrackedEntry = { entry: validatedEntry, sequence: this.sequence++ };
         this.entries.push(trackedEntry);
+        this.#revision += 1;
         this.trimEntries();
         return true;
     }
 
     replaceHistory(entries: ReadonlyArray<JsonValue | LogEntry | null | undefined>): void {
+        this.#motion.suppress();
+        this.#revision += 1;
         this.entries = [];
         this.sequence = 0;
         entries.forEach((entry) => {
@@ -183,6 +178,7 @@ class LogStreamView {
         }
         const overflow = this.entries.length - limit;
         this.entries.splice(0, overflow);
+        this.#revision += 1;
     }
 
     queueRender(): void {
@@ -201,14 +197,20 @@ class LogStreamView {
         if (!output) {
             return;
         }
-        const renderSignature = this.#resolveEntriesSignature();
-        if (this.#lastRenderSignature === renderSignature) {
+        if (this.#renderedOutput !== output) {
+            this.#renderedOutput = output;
+            this.#renderedRevision = -1;
+            this.#renderedFirstSequence = null;
+            this.#renderedLastSequence = null;
+        }
+        if (this.#renderedRevision === this.#revision) {
             return;
         }
         if (!this.entries.length) {
+            this.#motion.reset();
             const emptyFragment = dom.createFragment();
             this.config.replaceContent(output, emptyFragment);
-            this.#lastRenderSignature = renderSignature;
+            this.#renderedRevision = this.#revision;
             this.#renderedFirstSequence = null;
             this.#renderedLastSequence = null;
             const placeholder = this.config.getPlaceholderText('connecting');
@@ -217,6 +219,8 @@ class LogStreamView {
             }
             return;
         }
+        const following = this.config.autoScroll();
+        const playMotion = this.#motion.prepare(output, following);
         this.config.hidePlaceholder();
         const firstEntry = this.entries[0];
         const lastEntry = this.entries[this.entries.length - 1];
@@ -234,10 +238,11 @@ class LogStreamView {
         }
         this.#renderedFirstSequence = firstSequence;
         this.#renderedLastSequence = lastSequence;
-        this.#lastRenderSignature = renderSignature;
-        if (this.config.autoScroll()) {
+        this.#renderedRevision = this.#revision;
+        if (following) {
             this.config.scrollToEnd();
         }
+        playMotion?.();
     }
 
     #reconcileIncrementally(output: Element, firstSequence: number, lastSequence: number, previousFirstSequence: number, previousLastSequence: number): void {
@@ -276,7 +281,10 @@ class LogStreamView {
     reset(): void {
         this.entries = [];
         this.sequence = 0;
-        this.#lastRenderSignature = null;
+        this.#motion.reset();
+        this.#revision += 1;
+        this.#renderedRevision = -1;
+        this.#renderedOutput = null;
         this.#renderedFirstSequence = null;
         this.#renderedLastSequence = null;
     }

@@ -50,6 +50,7 @@ class ChatAttachKnowledgeOperations {
 
     async importFromFileExplorer(): Promise<boolean> {
         const path = await requireDialogsService().showPrompt({
+            owner: this.#host.shared.owner,
             title: i18n.t('chat.configuration.knowledge.importFromFileExplorerPromptTitle'),
             message: i18n.t('chat.configuration.knowledge.importFromFileExplorerPromptMessage'),
             defaultValue: '',

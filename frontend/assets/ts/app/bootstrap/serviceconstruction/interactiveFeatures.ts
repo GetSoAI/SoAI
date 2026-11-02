@@ -1,6 +1,10 @@
 /* SoAI - Frontend application interactive features [frontend/assets/ts/app/bootstrap/serviceconstruction/interactiveFeatures.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ChatPagePresenceServiceContract } from '@core/chat/protocols.ts';
+import { createGlobalPresentationOwner } from '@core/presentationOwner.ts';
+import type { ClientDataHub } from '@core/data/ClientDataHub.ts';
+import { subscribeModelCatalog, type ModelCatalogSubscriber } from '@core/models/modelCatalogObservation.ts';
 import { LayoutShell, type ComponentInstance } from '@app/bootstrap/LayoutShell.ts';
 import { createAutomationRunConversationRedirectMiddleware } from '@app/bootstrap/navigation/automationRunRedirect.ts';
 import { createSearchStaticContributors } from '@app/bootstrap/serviceconstruction/searchStaticContributors.ts';
@@ -47,6 +51,7 @@ import { wirePowerMode } from '@app/bootstrap/navigation/powerMode.ts';
 import { sendWebSocketMessage } from '@core/websocketclient/service.ts';
 
 interface BootstrapInteractiveFeatureDependencies {
+    clientDataHub: ClientDataHub;
     apiClient: ReturnType<typeof getApiClient>;
     storage: ReturnType<typeof createStorageService>;
     router: Router;
@@ -64,10 +69,11 @@ interface BootstrapInteractiveFeatureDependencies {
 
 interface BootstrapInteractiveFeatures {
     chatStreamService: ChatStreamService;
-    chatPagePresence: ChatPagePresenceService;
+    chatPagePresence: ChatPagePresenceServiceContract;
     chatConversationAttention: ChatConversationAttentionService;
     chatRagIngestionService: ChatRagIngestionService;
     chatToolIconService: ChatToolIconService;
+    modelCatalogSubscriber: ModelCatalogSubscriber;
     automationDataService: AutomationDataService;
     automationRunActivity: AutomationRunActivityService;
     logStream: LogStream;
@@ -81,6 +87,7 @@ interface BootstrapInteractiveFeatures {
 }
 
 const createBootstrapInteractiveFeatures = (dependencies: BootstrapInteractiveFeatureDependencies): BootstrapInteractiveFeatures => {
+    const presentationOwner = createGlobalPresentationOwner('shell-search');
     const stream = getStreamRuntime();
     const chatStreamService = new ChatStreamService({
         apiClient: dependencies.apiClient,
@@ -90,7 +97,8 @@ const createBootstrapInteractiveFeatures = (dependencies: BootstrapInteractiveFe
     const chatConversationAttention = new ChatConversationAttentionService({ stream, sendMessage: sendWebSocketMessage });
     const chatRagIngestionService = new ChatRagIngestionService({ api: dependencies.apiClient });
     const chatToolIconService = new ChatToolIconService(dependencies.apiClient);
-    const automationDataService = new AutomationApiService(dependencies.apiClient);
+    const modelCatalogSubscriber: ModelCatalogSubscriber = (listener) => subscribeModelCatalog(dependencies.clientDataHub, listener);
+    const automationDataService = new AutomationApiService(dependencies.apiClient, modelCatalogSubscriber);
     const automationRunActivity = new AutomationRunActivityService(dependencies.apiClient);
     dependencies.router.useNavigationMiddleware(createAutomationRunConversationRedirectMiddleware(automationDataService), { priority: 95 });
     const logStream = new LogStream({ api: dependencies.apiClient });
@@ -120,6 +128,7 @@ const createBootstrapInteractiveFeatures = (dependencies: BootstrapInteractiveFe
         openPromptPreview: async (promptId: string): Promise<boolean> =>
             await openPromptContentPreview(
                 {
+                    owner: presentationOwner,
                     promptsApi: dependencies.apiClient.webui.prompts,
                     requireModalElement: (id) => dependencies.modalPresenter.requireElement(id),
                     getDocument: () => requireDocument(),
@@ -166,6 +175,7 @@ const createBootstrapInteractiveFeatures = (dependencies: BootstrapInteractiveFe
         chatConversationAttention,
         chatRagIngestionService,
         chatToolIconService,
+        modelCatalogSubscriber,
         automationDataService,
         automationRunActivity,
         logStream,

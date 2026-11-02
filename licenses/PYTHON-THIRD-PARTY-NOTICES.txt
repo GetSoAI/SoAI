@@ -1,6 +1,6 @@
 SoAI Backend Python Third-Party Notices (requirements.txt)
 
-Generated: 2026-10-28
+Generated: 2026-11-01
 
 This file lists Python packages pinned in requirements.txt and their license metadata as observed in the
 SoAI development environment. These packages are downloaded/installed at first start and are not shipped
@@ -100,7 +100,7 @@ primp==1.3.1 -> MIT
 propcache==0.5.2 -> Apache-2.0
 protobuf==7.35.1 -> 3-Clause BSD License
 psutil==7.2.2 -> BSD-3-Clause
-pyasn1==0.6.4 -> BSD-2-Clause
+pyasn1==0.6.5 -> BSD-2-Clause
 pyasn1-modules==0.4.2 -> BSD
 pybase64==1.5.0 -> BSD-2-Clause
 pyclipper==1.4.0 -> MIT

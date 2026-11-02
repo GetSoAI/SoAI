@@ -3,7 +3,7 @@
 
 import { requireModalPresenter, type ModalDefinition } from '@core/modals/modalPresenter.ts';
 import { runModalSession } from '@core/modals/modalSession.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { createExternalAccountModalElement } from '@features/settings/externalaccounts/externalAccountModalView.ts';
 import { initializeExternalAccountModalSession } from '@features/settings/externalaccounts/externalAccountModalSession.ts';
@@ -15,12 +15,13 @@ const externalAccountModalDefinition: ModalDefinition = {
     id: SETTINGS_EXTERNAL_ACCOUNT_MODAL_ID,
     layout: 'xl',
     initialFocusSelector: modalUiSelector(SETTINGS_EXTERNAL_ACCOUNT_MODAL_ID, 'choose-mail'),
-    createElement: (_options: ModalOpenOptions): HTMLElement => createExternalAccountModalElement(SETTINGS_EXTERNAL_ACCOUNT_MODAL_ID)
+    createElement: (_options: ModalCreationOptions): HTMLElement => createExternalAccountModalElement(SETTINGS_EXTERNAL_ACCOUNT_MODAL_ID)
 };
 
 const openExternalAccountModal = async (options: ExternalAccountModalOpenOptions): Promise<void> => {
     const presenter = requireModalPresenter();
     await runModalSession<void>({
+        owner: options.host.owner,
         presenter,
         modalId: SETTINGS_EXTERNAL_ACCOUNT_MODAL_ID,
         onAlreadyOpen: 'replace',

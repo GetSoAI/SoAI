@@ -46,8 +46,8 @@ const readGpuEditorValue = (capabilities: GpuCapabilitiesByIndex | null, index: 
     return value;
 };
 
-const hasInvalidGpuValueEdits = (document: Document, capabilities: GpuCapabilitiesByIndex | null, index?: string | number): boolean => {
-    for (const input of dom.resolveAll('.gpu-slider-value-editor.is-editing .gpu-slider-value-input', document)) {
+const hasInvalidGpuValueEdits = (root: Element, capabilities: GpuCapabilitiesByIndex | null, index?: string | number): boolean => {
+    for (const input of dom.resolveAll('.gpu-slider-value-editor.is-editing .gpu-slider-value-input', root)) {
         if (!(input instanceof HTMLInputElement)) throw new Error('GPU value editor must be an input');
         const identity = readEditorIdentity(input);
         if (index !== undefined && identity.index !== String(index)) continue;

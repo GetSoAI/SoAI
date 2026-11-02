@@ -1,6 +1,7 @@
 /* SoAI - Model test modal manager contracts [frontend/assets/ts/features/modeldetail/modals/TestModalManagerTypes.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { NotificationType } from '@core/ui/notifications/types.ts';
 
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
@@ -93,6 +94,7 @@ interface TestModalWorkflowPort {
 }
 
 interface TestModalManagerHost {
+    readonly owner: PresentationOwner;
     model: TestModalModelPort;
     view: TestModalViewPort;
     workflow: TestModalWorkflowPort;

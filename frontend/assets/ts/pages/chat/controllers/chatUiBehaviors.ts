@@ -26,6 +26,7 @@ interface UiBehaviorPresentationPort extends PageDomOwnerHost {
     updatePageActionsMenuState(): void;
     getViewportWidth(): number;
     isMobileSidebarViewport(): boolean;
+    hasOpenModals(): boolean;
 }
 
 interface UiBehaviorPersistencePort extends ChatAutoSavePersistencePort {
@@ -73,9 +74,9 @@ const createChatUiBehaviorsHost = (source: UiBehaviorSource): UiBehaviorHost => 
         sidebarPeek: new ChatSidebarPeekController({
             pageDom: source.presentation.pageDom,
             timers: source.persistence.timers,
-            getDocument: () => source.persistence.dom.getDocument(),
             isSidebarOpen: () => source.conversations.getSidebarOpen(),
             isMobileSidebarViewport: () => source.presentation.isMobileSidebarViewport(),
+            hasOpenModals: () => source.presentation.hasOpenModals(),
             syncSidebarListVisibility: (visible) => source.conversations.syncSidebarListVisibility(visible)
         })
     };

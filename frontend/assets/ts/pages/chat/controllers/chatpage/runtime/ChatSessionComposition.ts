@@ -12,7 +12,7 @@ import type { PageServices } from '@core/routing/pages/basepagecore/PageServices
 import type { PageUi } from '@core/routing/pages/basepagecore/PageUi.ts';
 import type { PageLayout } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { PageStreaming } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
 import type { ToolImageHydrationCoordinator } from '@features/chat/public.ts';
 import type { ChatPageStorageSource } from '@pages/chat/controllers/chatpage/construction/baseHost.ts';
 import type { CharacterMapViewStateStorage } from '@pages/chat/controllers/modals/charactermap/state.ts';
@@ -55,7 +55,7 @@ interface ChatSessionPlatformOwners {
     pageContext: PageContext;
     stateManager: ChatControllerRuntimeDependencies['agentComposition']['platform']['stateManager'] & ChatModelSessionDependencies['platform']['stateManager'];
     api: ApiClient;
-    router: Router;
+    router: PageRouting;
     dom: ChatControllerRuntimeDependencies['managerComposition']['platform']['dom'];
     storage: ChatPageStorageSource & CharacterMapViewStateStorage;
 }

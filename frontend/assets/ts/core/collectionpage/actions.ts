@@ -143,6 +143,7 @@ export const executeItemDeletionAction = async (context: CollectionDeletionConte
     }
 
     const confirmed = await requireDialogsService().showConfirmation({
+        owner: context.owner,
         title: confirmTitle,
         message: confirmMessage,
         confirmText: confirmButton,

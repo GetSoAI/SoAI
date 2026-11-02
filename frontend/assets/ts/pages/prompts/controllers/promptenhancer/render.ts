@@ -4,6 +4,8 @@
 import { i18n } from '@core/i18n/index.ts';
 import { getCurrentLocale } from '@core/languageservice/service.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
+import { replaceSelectOptions, type SelectOptionDefinition } from '@core/dom/selectOptions.ts';
+import { setSelectValueAndSyncDefault } from '@core/dom/selectSelection.ts';
 import { setStatusSurface } from '@core/ui/statusSurface.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { resolvePromptEnhancerDisabledReason } from '@pages/prompts/controllers/promptenhancer/catalog.ts';
@@ -73,14 +75,9 @@ const renderModelSelect = (host: PromptEnhancerHost, modalRoot: HTMLElement, sta
         throw new TypeError('Prompt enhancer model select must be an HTMLSelectElement');
     }
     const select = selectCandidate;
-    select.textContent = '';
-
     const addOption = (value: string, label: string, disabled: boolean = false): void => {
-        const option = document.createElement('option');
-        option.value = value;
-        option.textContent = label;
-        option.disabled = disabled;
-        select.append(option);
+        replaceSelectOptions(select, [{ value, label, disabled }]);
+        setSelectValueAndSyncDefault(select, value);
     };
 
     if (catalog.status === 'idle') {
@@ -99,18 +96,16 @@ const renderModelSelect = (host: PromptEnhancerHost, modalRoot: HTMLElement, sta
         return;
     }
     const sorted = Array.from(catalog.availableModelIds).sort((firstValue, secondValue) => firstValue.localeCompare(secondValue, getCurrentLocale()));
-    if (sorted.length === 0) {
+    if (sorted.length === 0 && !state.modelId) {
         addOption('', i18n.t('prompts.enhancer.modelHelp.noneAvailableOption'), true);
         select.disabled = true;
         return;
     }
-    const isStreaming = state.status === 'streaming';
-    for (const modelId of sorted) {
-        addOption(modelId, modelId);
-    }
-    select.disabled = isStreaming;
-    const value = state.modelId && catalog.availableModelIds.has(state.modelId) ? state.modelId : (sorted[0] ?? '');
-    select.value = value;
+    const entries: SelectOptionDefinition[] = sorted.map((modelId) => ({ value: modelId, label: modelId }));
+    if (!state.modelId || !catalog.availableModelIds.has(state.modelId)) entries.unshift({ value: state.modelId ?? '', label: state.modelId ? i18n.t('prompts.enhancer.disabled.unavailable', { model: state.modelId }) : i18n.t('prompts.enhancer.disabled.noModel'), disabled: true });
+    replaceSelectOptions(select, entries);
+    select.disabled = state.status === 'streaming' || sorted.length === 0;
+    setSelectValueAndSyncDefault(select, state.modelId ?? '');
 };
 
 const renderPromptEnhancerOutput = (host: PromptEnhancerHost, modalRoot: HTMLElement, state: PromptEnhancerRunState, _syntaxHighlighter: { detectLanguage(content: string): string; highlight(content: string, language: string): DocumentFragment | Node | string }): void => {

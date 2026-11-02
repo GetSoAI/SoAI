@@ -65,6 +65,7 @@ class ChatMessageActions {
             showNotification: (message, type) => this.#dependencies.interaction.showNotification(message, type)
         });
         this.#editController = new ChatMessageEditController({
+            owner: dependencies.owner,
             view: {
                 domChangeTarget: this.#dependencies.presentation.domChangeTarget,
                 getIcon: (name, options) => this.#dependencies.presentation.getIcon(name, options),

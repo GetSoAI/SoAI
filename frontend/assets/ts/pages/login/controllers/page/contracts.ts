@@ -1,6 +1,7 @@
 /* SoAI - Login page control layer boundary contracts [frontend/assets/ts/pages/login/controllers/page/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PageRouting } from '@core/routing/router/types.ts';
 import type { SetButtonLoadingOptions } from '@core/state/UIStateManager.ts';
 import type { AuthService } from '@pages/login/types.ts';
 import type { PageStreamingOwnerHost } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
@@ -17,6 +18,7 @@ interface LoginPageStateManagerContract {
 }
 
 interface LoginPageHost extends PageStreamingOwnerHost, PageUiOwnerHost, PageDomOwnerHost, PageResourcesOwnerHost {
+    router: Pick<PageRouting, 'navigate'>;
     auth: AuthService | null;
     storage: LoginPageStorageContract;
     stateManager: LoginPageStateManagerContract | null;

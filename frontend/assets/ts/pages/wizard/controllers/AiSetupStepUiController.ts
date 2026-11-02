@@ -35,8 +35,8 @@ interface AiSetupStepUiControllerHost {
     cancelRow(key: string): Promise<void>;
 }
 
-const optionalElement = (selector: string, root: ParentNode): HTMLElement | null => {
-    const element = dom.resolve(selector, root instanceof Element || root instanceof Document ? root : null);
+const optionalElement = (selector: string, root: Element): HTMLElement | null => {
+    const element = dom.resolve(selector, root);
     return element instanceof HTMLElement ? element : null;
 };
 

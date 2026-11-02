@@ -7,7 +7,7 @@ import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageFeedback } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 import type { PageResources } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { PageServices } from '@core/routing/pages/basepagecore/PageServices.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageRouting, PresentationOwner } from '@core/routing/router/types.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
@@ -17,6 +17,7 @@ import type { AutomationRunActivityServiceContract, AutomationDataService } from
 import type { AutomationInitialSelection, AutomationUiRefs } from '@pages/automation/types.ts';
 
 interface ControllerRuntimeDependencies {
+    readonly owner: PresentationOwner;
     ui: AutomationUiRefs;
     storage: StorageService;
     dataService: AutomationDataService;
@@ -36,12 +37,12 @@ interface ControllerRuntimeDependencies {
     runWithBoundary: <T>(operation: string, task: () => Promise<T> | T) => Promise<T>;
 }
 
-interface ControllerDependencies extends Pick<ControllerRuntimeDependencies, 'dataService' | 'initialSelection' | 'modalPresenter' | 'runActivity' | 'storage' | 'ui'> {
+interface ControllerDependencies extends Pick<ControllerRuntimeDependencies, 'owner' | 'dataService' | 'initialSelection' | 'modalPresenter' | 'runActivity' | 'storage' | 'ui'> {
     feedback: PageFeedback;
     pageDom: PageDom;
     pageLifecycle: PageLifecycle;
     pageResources: PageResources;
-    router: Router;
+    router: PageRouting;
     services: PageServices;
 }
 

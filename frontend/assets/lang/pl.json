@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "Dodaj pliki i foldery z urządzenia jako bezpośrednie załączniki do wiadomości. Są wysyłane wraz z bieżącym promptem, w przeciwieństwie do plików przesłanych do Wiedzy, które są indeksowane na potrzeby wyszukiwania.",
                 "uploadTitle": "Prześlij pliki i foldery bezpośrednio",
-                "title": "Dodaj załączniki"
+                "title": "Dodaj załączniki",
+                "cameraDiscardConfirm": "Odrzucić zrobione zdjęcie?"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "Nieznany błąd",
                 "unknownError": "Wystąpił nieznany błąd.",
                 "storageHeadroomInsufficient": "Po uwzględnieniu zapasu bezpieczeństwa i istniejących rezerwacji brakuje miejsca na dane. Zwolnij miejsce lub poczekaj na zakończenie innych operacji zapisu, a następnie spróbuj ponownie.",
-                "storageHeadroomValues": "Wymagane z marginesem bezpieczeństwa: {required}. Dostępne dla tej operacji: {available}."
+                "storageHeadroomValues": "Wymagane z marginesem bezpieczeństwa: {required}. Dostępne dla tej operacji: {available}.",
+                "permissionsUnavailable": "Uprawnienia dostępu są niedostępne. Sprawdź połączenie i spróbuj ponownie."
             },
             "export": "Eksportuj",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "Niezapisane zmiany",
             "view": "Wyświetl",
             "yes": "Tak",
-            "retry": "Ponów"
+            "retry": "Ponów",
+            "discard": "Odrzuć"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "Plik mógł zostać zapisany, ale nie udało się zweryfikować jego końcowego stanu. Sprawdź miejsce docelowe w Plikach przed ponownym przesłaniem.",
                 "cleanupIncomplete": "Nie udało się ukończyć automatycznego czyszczenia. Przed ponowną próbą sprawdź miejsce docelowe w Plikach.",
                 "contentChanged": "Plik zmienił się podczas operacji. Wybierz go ponownie i spróbuj jeszcze raz.",
-                "destinationExists": "Plik lub folder o tej nazwie już istnieje. Wybierz inną nazwę lub lokalizację."
+                "destinationExists": "Plik lub folder o tej nazwie już istnieje. Wybierz inną nazwę lub lokalizację.",
+                "listingChanged": "Folder ciągle się zmieniał. Odśwież, aby spróbować ponownie.",
+                "listingTimeout": "Upłynął limit czasu odświeżania folderu. Odśwież, aby spróbować ponownie.",
+                "listingIncoherent": "Strony folderu były niespójne. Odśwież, aby spróbować ponownie.",
+                "listingUnavailable": "Usługa folderów jest niedostępna. Sprawdź połączenie i odśwież.",
+                "listingBusy": "Żądania folderów są ograniczane. Poczekaj, a następnie odśwież."
             },
             "labels": {
                 "latestTask": "Najnowsze zadanie",
@@ -3175,7 +3183,10 @@
                 "empty": "Nie znaleziono elementów.",
                 "error": "Operacja nie powiodła się. Szczegóły znajdziesz w powiadomieniach.",
                 "loading": "Ładowanie elementów katalogu...",
-                "searching": "Wyszukiwanie plików i folderów..."
+                "searching": "Wyszukiwanie plików i folderów...",
+                "refreshing": "Odświeżanie…",
+                "stale": "Dane są nieaktualne. Odśwież, aby spróbować ponownie.",
+                "unavailable": "Folder jest niedostępny. Sprawdź błąd i odśwież."
             },
             "table": {
                 "modified": "Zmodyfikowano",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "Korzystaj z modeli, narzędzi i plików",
                     "sectionTitle": "Chat i narzędzia agentów",
-                    "conversations": "Chat łączy wiadomości, wybór modelu, parametry generowania i dostęp do narzędzi. Między turami możesz zmieniać model, porównywać odpowiedzi, zapisywać konfigurację jako preset i układać rozmowy w folderach. Dołącz plik, gdy model potrzebuje całej zawartości dla bieżącej wiadomości. Dołącz źródło wiedzy, gdy SoAI ma przeszukać zindeksowany materiał i zwrócić trafne fragmenty. Pole wiadomości przyjmuje pliki, foldery i linki SoAI",
+                    "conversations": "Chat łączy wiadomości, wybór modelu, parametry generowania, dostęp do narzędzi oraz biblioteki Umiejętności i Pamięci. Między turami możesz zmieniać model, porównywać odpowiedzi, zapisywać konfigurację jako preset i układać rozmowy w folderach. Dołącz plik, gdy model potrzebuje całej zawartości dla bieżącej wiadomości. Dołącz źródło wiedzy, gdy SoAI ma przeszukać zindeksowany materiał i zwrócić trafne fragmenty. Pole wiadomości przyjmuje pliki, foldery i linki SoAI",
                     "tools": "Tryb Chat służy do rozmowy. Plan pozwala modelowi zbadać zadanie i przygotować kroki. Blokuje narzędzia oznaczone jako destrukcyjne lub bez prawidłowych metadanych destrukcyjności, ale inne wybrane narzędzia nadal mogą wpływać na systemy zewnętrzne. Execute pozwala działać przez włączone narzędzia. Wywołania i wyniki pozostają widoczne w rozmowie; chronione działania mogą wymagać zgody. Narzędzia przeszukują sieć, sterują przeglądarką, pracują z plikami i terminalem, odpytują wiedzę, przetwarzają multimedia oraz łączą się z pocztą i kalendarzem. Administratorzy wybierają dostępne integracje i dane logowania. Agenci mogą zadawać pytania, prowadzić plan i dzielić pracę na zadania w tle. Automation uruchamia jedną lub więcej tur według harmonogramu i zachowuje każdy przebieg jako rozmowę",
                     "mcp": "SoAI udostępnia narzędzia uwierzytelnionym klientom MCP i łączy się ze zdalnymi serwerami MCP. Po konfiguracji przez administratora zdalne narzędzia pojawiają się obok wbudowanych",
                     "voice": "Modele mowy na tekst transkrybują nagrania i mikrofon. Modele tekstu na mowę odczytują odpowiedzi; tryb połączenia głosowego pozwala rozmawiać głosem"
@@ -3944,7 +3955,7 @@
                     "heading": "Sprawdzaj system i zarządzaj hostem",
                     "sectionTitle": "Monitorowanie i administracja",
                     "status": "Dashboard pokazuje stan systemu i aktywne zadania. Hardware prezentuje CPU, pamięć, dysk, sieć i GPU; Metrics historię żądań i użycie tokenów; Logs szczegóły diagnostyczne. Obsługiwane GPU mają sterowanie mocą, zegarami i wentylatorami. Zmiany wpływają na hosta, dlatego użyj sprawdzonego profilu i obserwuj temperaturę oraz stabilność",
-                    "operations": "Terminal zapewnia interaktywne sesje powłoki. Power może ponownie uruchomić lub zatrzymać SoAI i sterować systemem hosta. Dostęp do obu stron zależy od uprawnień konta",
+                    "operations": "Terminal zapewnia interaktywne sesje powłoki. Power może ponownie uruchomić lub zatrzymać SoAI i sterować systemem hosta. Dostęp do Terminala i sterowania Power zależy od uprawnień konta",
                     "maintenance": "Kopie zapasowe są w Settings, a aktualizacje aplikacji na stronie Updates. Zweryfikuj kopię przed użyciem, wyeksportuj potrzebne kopie poza hosta i sprawdź zakres przed przywróceniem lub resetem. SoAI monitoruje backendy i przestaje wysyłać żądania do pluginu, który stale zawodzi. Plugins pokazuje odzyskiwanie i kwarantannę. Pobieranie, przesyłanie, kopie zapasowe i inne duże zapisy sprawdzają zarezerwowane miejsce przed startem"
                 },
                 "access": {
@@ -5229,6 +5240,9 @@
             "loading": "Przygotowywanie SoAI...",
             "loadingDelayError": "Ładowanie tej strony trwa dłużej niż oczekiwano. Sprawdź połączenie lub spróbuj ponownie załadować stronę.",
             "loadingLabel": "Ładowanie...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "Poprzednia strona jest nadal zamykana. Poczekaj i spróbuj ponownie. Jeśli nadal się nie zamknie, odśwież to okno."
+            },
             "retry": "Ponów"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "Wygląd zresetowano do wartości domyślnych.",
                 "chatPresetsResetFailed": "Nie udało się zresetować presetów czatu. Spróbuj ponownie.",
                 "chatPresetsResetSuccess": "Presety czatu zresetowano.",
+                "configurationResetFailed": "Nie udało się zaplanować resetowania konfiguracji. Sprawdź pliki konfiguracyjne i spróbuj ponownie.",
                 "conversationsDeleteFailed": "Nie udało się usunąć rozmów. Spróbuj ponownie.",
                 "conversationsDeleteNone": "Brak rozmów do usunięcia.",
                 "conversationsDeleteSuccess": "Liczba usuniętych rozmów: {count}.",
-                "configurationResetFailed": "Nie udało się zaplanować resetowania konfiguracji. Sprawdź pliki konfiguracyjne i spróbuj ponownie.",
                 "factoryResetSuccess": "Rozpoczęto reset do ustawień fabrycznych. SoAI wkrótce uruchomi się ponownie.",
                 "fixInvalidFields": "Popraw nieprawidłowe pola przed zapisaniem.",
                 "hardwareHistoryResetFailed": "Nie udało się zresetować historii sprzętu. Spróbuj ponownie.",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "Pomyślnie rozpoczęto resetowanie metryk",
                 "pageLayoutsResetFailed": "Nie udało się zresetować układów stron. Spróbuj ponownie.",
                 "pageLayoutsResetSuccess": "Układy pulpitu, metryk i sprzętu zresetowano do wartości domyślnych.",
+                "partialSave": "Część ustawień została zastosowana. {reason} Sprawdź oznaczone niezapisane pola i spróbuj ponownie.",
                 "passwordManagerResetFailed": "Nie udało się zresetować menedżera haseł. Spróbuj ponownie.",
                 "passwordManagerResetSuccess": "Menedżer haseł zresetowano. Liczba usuniętych zapisanych danych uwierzytelniających: {deletedCredentials}; liczba unieważnionych aktywnych bezpiecznych uchwytów: {clearedSecretHandles}.",
                 "preferencesResetFailed": "Nie udało się zresetować preferencji. Spróbuj ponownie.",
-                "preferencesResetSuccess": "Preferencje zresetowano do wartości domyślnych. Przeładowywanie...",
+                "preferencesResetSuccess": "Preferencje zresetowano do wartości domyślnych.",
                 "recentSearchesResetFailed": "Nie udało się zresetować ostatnich wyszukiwań. Spróbuj ponownie.",
                 "recentSearchesResetSuccess": "Ostatnie wyszukiwania zresetowano.",
                 "restartButton": "Uruchom ponownie SoAI",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "Użytkownik został utworzony pomyślnie",
                 "userDeleteSuccess": "Użytkownik został usunięty pomyślnie",
                 "userPasswordUpdateSuccess": "Hasło zostało zaktualizowane pomyślnie",
-                "userWorkspacePathUpdateSuccessRevoked": "Zaktualizowano folder domyślny. Poprzednie nadpisania folderów rozmów znajdujące się poza nowym folderem zostały unieważnione.",
                 "userRoleUpdateSuccess": "Rola użytkownika została zaktualizowana pomyślnie",
+                "userWorkspacePathUpdateSuccessRevoked": "Zaktualizowano folder domyślny. Poprzednie nadpisania folderów rozmów znajdujące się poza nowym folderem zostały unieważnione.",
                 "wallpaperDeleteSuccess": "Tapetę usunięto pomyślnie",
                 "wallpaperDownloadSuccess": "Tapetę pobrano pomyślnie",
                 "wallpaperReloadFailed": "Nie udało się wczytać podglądu tapety.",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "Zwolnienie terminala nie zostało potwierdzone. Przywróć połączenie i spróbuj ponownie; jeśli usługa została uruchomiona ponownie, sprawdź poprzednią powłokę na hoście.",
+                "recoveryUnavailable": "Odzyskiwanie terminala jest niedostępne. Odśwież SoAI i sprawdź poprzednią powłokę na hoście przed ponowną próbą."
+            },
             "ariaLabels": {
                 "clearTerminal": "Wyczyść terminal",
                 "decreaseTextSize": "Zmniejsz rozmiar tekstu",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "Mowa bez transkrypcji. Poproś administratora o skonfigurowanie transkrypcji, a następnie prześlij plik ponownie.",
             "openModels": "Otwórz Modele",
             "openSettings": "Ustawienia zamiany mowy na tekst"
+        },
+        "pagePanes": {
+            "storageUnavailable": "Pamięć przeglądarki jest niedostępna. Otwarte panele nadal działają, ale nie można zapisać ich układu.",
+            "invalidLayout": "Zapisany układ paneli jest nieprawidłowy. Żądana strona otworzy się normalnie.",
+            "incompatibleLayout": "Zapisany układ paneli wymaga nowszej aplikacji. Układ został zachowany.",
+            "foreignLayout": "Zapisany układ paneli należy do innego konta, okna lub innej edycji. Układ został zachowany.",
+            "layoutTooLarge": "Ten układ paneli jest zbyt duży, aby go zapisać. Otwarte strony nadal działają.",
+            "restoreFailed": "Nie udało się przywrócić panelu głównego. Zapisany układ został zachowany. Odśwież stronę, aby spróbować ponownie.",
+            "title": "Panele",
+            "active": "Aktywny",
+            "closePane": "Zamknij panel {page}",
+            "split": "Otwórz w innym panelu",
+            "choosePage": "Strona do otwarcia",
+            "parked": "Zaparkowany",
+            "closing": "Zamykanie…",
+            "splitUnavailable": "W tym oknie mieści się jeden panel. Strona otworzy się w bieżącym panelu.",
+            "placementUnavailable": "Brak panelu dostępnego dla tej operacji. Zakończ oczekujące zadania lub zamknij panel i spróbuj ponownie.",
+            "restoreConflict": "Przywrócona trasa koliduje z otwartym panelem. Otwórz stronę bezpośrednio, aby kontynuować.",
+            "layoutNotSaved": "Układ nie został zapisany. Otwarte panele nadal działają.",
+            "saveCurrentLayout": "Zapisz bieżący układ",
+            "replaceSavedLayoutConfirmation": "Zastąpić zachowany układ aktualnie otwartymi panelami? Zastąpiony zostanie tylko zapisany układ, bez zmiany zawartości stron.",
+            "storageQuotaExceeded": "Pamięć przeglądarki jest pełna. Zwolnij w niej miejsce, a następnie ponownie zapisz bieżący układ. Otwarte panele nadal działają.",
+            "storageBlocked": "Przeglądarka zablokowała zapis układu. Zezwól tej witrynie na korzystanie z pamięci, a następnie ponownie zapisz bieżący układ. Otwarte panele nadal działają."
         }
     }
 }

@@ -1,6 +1,7 @@
 /* SoAI - Automation configuration request parameters controller [frontend/assets/ts/pages/automation/controllers/configurationmodal/AutomationConfigurationParametersController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { openChatParameterEditorModal } from '@core/chat/parameters/parameterEditorModalSession.ts';
 import { createChatParameterEditorProjection } from '@core/chat/parameters/parameterEditorState.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -11,6 +12,7 @@ import { applyAutomationParametersStateToModelSettings, createDefaultAutomationP
 const AUTOMATION_CONFIGURATION_PARAMETERS_UPDATED_EVENT = 'automation:configuration:parameters-updated';
 
 type ParametersControllerDependencies = {
+    readonly owner: PresentationOwner;
     modalPresenter: ModalPresenterApi;
     resolveModelDetailId: () => string | null;
 };
@@ -43,6 +45,7 @@ class AutomationConfigurationParametersController {
 
     async openModal(readOnly: boolean, canApply: () => boolean, signal?: AbortSignal): Promise<boolean> {
         const result = await openChatParameterEditorModal({
+            owner: this.#dependencies.owner,
             presenter: this.#dependencies.modalPresenter,
             modalId: AUTOMATION_PARAMETERS_MODAL_ID,
             initialState: this.#state,

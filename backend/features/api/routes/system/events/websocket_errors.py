@@ -110,6 +110,7 @@ async def enqueue_pty_websocket_error(
     message: str,
     *,
     code: str,
+    details: JSONDict | None = None,
 ) -> None:
     await enqueue_websocket_error(
         enqueue_warning_tracker,
@@ -118,6 +119,7 @@ async def enqueue_pty_websocket_error(
         WebSocketEventTypes.PTY_ERROR,
         message,
         code=code,
+        details=details,
     )
 
 
@@ -126,6 +128,8 @@ async def enqueue_pty_websocket_soai_error(
     queue: asyncio.Queue[JSONDict],
     trace_id: str | None,
     exception: SoAIError,
+    *,
+    details: JSONDict | None = None,
 ) -> None:
     public_payload = project_public_error(exception, trace_id=trace_id)
     await enqueue_pty_websocket_error(
@@ -134,6 +138,7 @@ async def enqueue_pty_websocket_soai_error(
         trace_id,
         public_payload.message,
         code=str(public_payload.code),
+        details=details,
     )
 
 
@@ -141,6 +146,8 @@ async def enqueue_pty_websocket_server_error(
     enqueue_warning_tracker: EnqueueWarningTracker,
     queue: asyncio.Queue[JSONDict],
     trace_id: str | None,
+    *,
+    details: JSONDict | None = None,
 ) -> None:
     await enqueue_pty_websocket_error(
         enqueue_warning_tracker,
@@ -148,6 +155,7 @@ async def enqueue_pty_websocket_server_error(
         trace_id,
         "Internal server error.",
         code="server_error",
+        details=details,
     )
 
 

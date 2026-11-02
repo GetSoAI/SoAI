@@ -1,7 +1,6 @@
 /* SoAI - Models page events [frontend/assets/ts/pages/models/controllers/page/events.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { getHistory } from '@core/environment/public.ts';
 import { resolveModelRequestCount } from '@core/models/usageMetrics.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
@@ -153,6 +152,7 @@ const createModelsControllerBundle = (runtime: ModelsControllerRuntimeDependenci
         },
         del: createModelsDeleteDependencies(
             {
+                owner: infrastructure.services.mountScope,
                 collections: collection.collections,
                 pageDom: infrastructure.pageDom,
                 modelActions: runtime.modelActions,
@@ -160,6 +160,7 @@ const createModelsControllerBundle = (runtime: ModelsControllerRuntimeDependenci
                 executeItemDeletion: (config) =>
                     executeModelsItemDeletion(
                         createModelsItemDeletionHost({
+                            owner: infrastructure.services.mountScope,
                             deletingItems: session.deletingItems,
                             streams: infrastructure.streaming.pageTracker,
                             pageDom: infrastructure.pageDom,
@@ -193,7 +194,6 @@ const createModelsControllerBundle = (runtime: ModelsControllerRuntimeDependenci
             session.initialActionContext = context;
         },
         router: infrastructure.router,
-        replaceHashRoute: (route) => getHistory().replaceState({ route }, infrastructure.dom.getDocument().title, `#${route}`),
         log: runtime.log,
         openDownloadModelModal: () => dependencies.downloadModalManager.open(),
         openProvidersModal: () => dependencies.providersManager.openProvidersModal(),

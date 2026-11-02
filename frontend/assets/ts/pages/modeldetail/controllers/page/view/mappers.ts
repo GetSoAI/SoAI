@@ -42,6 +42,7 @@ const composeModelDetailView = (host: ModelDetailViewDependencies): ModelDetailV
     });
 
     return {
+        owner: host.services.mountScope,
         state: {
             pageDom: host.pageDom,
             get model() {

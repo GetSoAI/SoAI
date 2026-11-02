@@ -1,6 +1,7 @@
 /* SoAI - Automation page configuration form controller [frontend/assets/ts/pages/automation/controllers/configurationmodal/AutomationConfigurationFormController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { readTrimmedInputValue, readTrimmedSelectValue } from '@core/dom/formValues.ts';
 import { deepEqual } from '@core/primitives/equality.ts';
 import { setSelectValueAndSyncDefault } from '@core/dom/selectSelection.ts';
@@ -22,6 +23,7 @@ import type { AutomationDefinitionResponse, AutomationMcpCatalogResponse, Automa
 import type { AutomationCalendarSettings } from '@pages/automation/types.ts';
 
 interface FormControllerDependencies {
+    readonly owner: PresentationOwner;
     requireHTMLElement: (selector: string, context?: Element | Document | null) => HTMLElement;
     modal: HTMLElement;
     modalPresenter: ModalPresenterApi;
@@ -52,6 +54,7 @@ class AutomationConfigurationFormController {
         this.#ui = new AutomationConfigurationFormUi(dependencies);
         this.#turns = new AutomationConfigurationTurnsController({ addTurnButton: this.#ui.addTurnButton, modalId: dependencies.modal.id, turnsList: this.#ui.turnsList, turnsCharCounter: this.#ui.turnsCharCounter });
         this.#modelSettings = new AutomationConfigurationModelSettingsController({
+            owner: dependencies.owner,
             modalRoot: this.#ui.modalRoot,
             modelSelect: this.#ui.modelSelect,
             workspacePathInput: this.#ui.workspacePathInput,
@@ -90,7 +93,7 @@ class AutomationConfigurationFormController {
         return this.#turns.listTextareas();
     }
 
-    setAvailableModels(models: readonly AutomationModelOption[]): void {
+    setAvailableModels(models: readonly AutomationModelOption[] | null): void {
         this.#modelSettings.setAvailableModels(models);
     }
 

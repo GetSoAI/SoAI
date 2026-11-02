@@ -1,6 +1,8 @@
 /* SoAI - Shared modals contracts [frontend/assets/ts/core/modals/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
+
 export type ModalUserCloseReason = 'escape' | 'overlay' | 'trigger';
 
 export interface ModalBeforeCloseDetail {
@@ -8,10 +10,24 @@ export interface ModalBeforeCloseDetail {
     reason: ModalUserCloseReason;
 }
 
-export interface ModalOpenOptions {
+export interface ModalCreationOptions {
     force?: boolean | undefined;
     layoutOverride?: ModalLayoutPreset | undefined;
 }
+
+export interface ModalOpenOptions extends ModalCreationOptions {
+    readonly owner: PresentationOwner;
+}
+
+export interface ModalOwnership {
+    readonly modalId: string;
+    readonly owner: PresentationOwner;
+    readonly generation: symbol;
+    readonly signal: AbortSignal;
+    readonly completion: Promise<ModalReleaseOutcome>;
+}
+
+export type ModalReleaseOutcome = { type: 'released' } | { type: 'failed'; error: Error };
 
 export interface ModalCloseOptions {
     replacementFocusTarget?: HTMLElement | undefined;
@@ -67,9 +83,9 @@ export interface SavedModalState {
 }
 
 export interface ModalHandle {
-    open: <TOptions extends ModalOpenOptions>(options?: TOptions | undefined) => boolean;
+    open: <TOptions extends ModalOpenOptions>(options: TOptions) => boolean;
     close: (options?: ModalCloseOptions | undefined) => boolean;
-    toggle: (force?: boolean | null | undefined) => boolean;
+    toggle: (options: ModalOpenOptions, force?: boolean | null | undefined) => boolean;
     isOpen: () => boolean;
 }
 

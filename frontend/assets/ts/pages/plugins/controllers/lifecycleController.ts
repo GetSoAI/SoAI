@@ -1,8 +1,10 @@
 /* SoAI - Plugins page lifecycle controller [frontend/assets/ts/pages/plugins/controllers/lifecycleController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PageMountScope } from '@core/routing/router/types.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { signalAborted } from '@core/lifecycle/abortSignals.ts';
+import { INITIAL_MODAL_QUERY_KEYS, PLUGINS_INITIAL_MODAL_QUERY_KEYS } from '@core/routeregistry/reconstruction.ts';
 import { getPageControlSelectOptionValues, syncPageControlSelectValue } from '@core/pagecontrols/selectController.ts';
 import { isObject } from '@core/typeGuards.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
@@ -44,6 +46,7 @@ interface PluginsLifecycleRealtimePort {
 }
 
 interface PluginsLifecycleServicePort {
+    readonly mountScope: PageMountScope;
     refreshBackendUpdatePermissions(): Promise<void>;
     getCatalogStore(): {
         ensureLoaded(options: { force: boolean }): Promise<ReadonlyArray<PluginRecord>>;
@@ -157,22 +160,22 @@ class PluginsLifecycleController {
             const plugin = this.#initialSpeechPlugin;
             this.#initialModal = null;
             this.#initialSpeechPlugin = '';
-            this.#dependencies.services.clearInitialQuery(['modal', 'plugin']);
+            this.#dependencies.services.clearInitialQuery(PLUGINS_INITIAL_MODAL_QUERY_KEYS);
             if (plugin) await this.#dependencies.services.openSpeechSetupAction(plugin, enable);
             return;
         }
         if (this.#initialModal === 'add-plugin') {
             this.#initialModal = null;
             this.#dependencies.services.openDownloadPluginModal();
-            this.#dependencies.services.clearInitialQuery(['modal']);
+            this.#dependencies.services.clearInitialQuery(INITIAL_MODAL_QUERY_KEYS);
             return;
         }
-        await this.#dependencies.services.getFirstRunModals().handlePageShow('plugins');
+        await this.#dependencies.services.getFirstRunModals().handlePageShow('plugins', { owner: this.#dependencies.services.mountScope });
     }
 
     async onCollectionShellReady(): Promise<void> {
-        const providerFilter = this.#dependencies.pageDom.optional('provider-filter');
-        const statusFilter = this.#dependencies.pageDom.optional('status-filter');
+        const providerFilter = this.#dependencies.pageDom.optional('plugins-provider-filter');
+        const statusFilter = this.#dependencies.pageDom.optional('plugins-status-filter');
         if (providerFilter instanceof HTMLSelectElement) {
             const selection = syncPageControlSelectValue(providerFilter, this.#dependencies.filters.getFilterProvider(), getPageControlSelectOptionValues(providerFilter), 'all');
             this.#dependencies.filters.setFilterProvider(selection.visibleValue);

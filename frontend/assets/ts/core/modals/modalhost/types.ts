@@ -69,11 +69,12 @@ interface FullscreenState {
 }
 
 interface ModalPageLockSnapshot {
-    contentAriaHidden: string | null;
-    contentInert: boolean;
-    bodyModalLocked: string | null;
-    bodyOverflow: string;
-    pageOverflow: string | null;
+    readonly body: HTMLElement;
+    readonly bodyModalLocked: string | null;
+    readonly releaseContent: () => void;
+    readonly scrollRoots: Map<HTMLElement, { readonly overflow: string; readonly priority: string }>;
+    readonly observer: MutationObserver;
+    released: boolean;
 }
 
 interface SizeConstraintResult {

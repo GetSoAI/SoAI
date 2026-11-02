@@ -36,7 +36,7 @@ class SettingsPage extends StaticBasePage {
     readonly #operations: SettingsPageOperationsController;
     #hasPreparedAccessSnapshot = false;
 
-    constructor({ restartOverlay, product, dashboardTitle }: SettingsPageDependencies, basePageDependencies: BasePageDependencies) {
+    constructor({ restartOverlay, product, dashboardTitle, subscribeModelCatalog }: SettingsPageDependencies, basePageDependencies: BasePageDependencies) {
         super(PAGE_ID, { dependencies: basePageDependencies });
         this.layout.configure({ onTabChange: (newTab) => this.#onTabChange(newTab) });
         if (!restartOverlay || !isFunction(restartOverlay.show)) {
@@ -51,6 +51,7 @@ class SettingsPage extends StaticBasePage {
                 normalTabs: composeNormalTabDefinitions(product?.tabs)
             },
             owners: {
+                subscribeModelCatalog,
                 layout: this.layout,
                 streaming: this.streaming,
                 services: this.services,
@@ -107,10 +108,10 @@ class SettingsPage extends StaticBasePage {
             return;
         }
         setupSearch(this.#runtime, this.#state);
-        setupNavigationGuard(this.#runtime, this.#state, () => this.#save.hasChanges());
     }
 
     bindPageEvents(): void {
+        setupNavigationGuard(this.#runtime, this.#state, () => this.#save.hasChanges());
         const signal = this.pageLifecycle.beginListeners();
         const ui = this.#ensureUi();
         const refreshOcr = (): void => {
@@ -198,7 +199,6 @@ class SettingsPage extends StaticBasePage {
         await super.onRefresh(parameters);
         this.#state.navigationGuardCleanup?.();
         this.#state.navigationGuardCleanup = null;
-        setupNavigationGuard(this.#runtime, this.#state, () => this.#save.hasChanges());
     }
 
     override async onDestroy(): Promise<void> {

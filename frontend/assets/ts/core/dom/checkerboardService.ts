@@ -36,6 +36,7 @@ class CheckerboardService {
     #lastSignatures: Map<string, string>;
     #lastItems: Map<string, Element[]>;
     #lastAssignments: Map<string, CheckerboardClassName[]>;
+    readonly #containerIds = new WeakMap<Element, string>();
 
     constructor(dependencies: CheckerboardServiceDependencies) {
         this.#dependencies = dependencies;
@@ -275,9 +276,14 @@ class CheckerboardService {
     }
 
     getContainerId(container: Element): string {
-        let id = this.#dependencies.dom.getData(container, 'checkerboardId');
-        if (id) return id;
+        const id = this.#containerIds.get(container) ?? this.#dependencies.dom.getData(container, 'checkerboardId');
+        const existing = id ? this.observers.get(id) : null;
+        if (id && (!existing || existing.container === container)) {
+            this.#containerIds.set(container, id);
+            return id;
+        }
         const generated = this.#dependencies.generateSecureId('checkerboard');
+        this.#containerIds.set(container, generated);
         this.#dependencies.dom.setData(container, 'checkerboardId', generated);
         return generated;
     }

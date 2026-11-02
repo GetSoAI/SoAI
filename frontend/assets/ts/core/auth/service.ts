@@ -5,10 +5,10 @@ import { checkWizardStatus, getWizardStatusSnapshot, initializeAuthManager, inva
 import { loginAuthManager } from '@core/auth/loginEffects.ts';
 import { reconcileWizardCompletion } from '@core/auth/wizardCompletion.ts';
 import { getLanguageService } from '@core/languageservice/service.ts';
-import { applyUserSession, beginAuthenticatedEpoch, beginTerminalAuthIntent, createAuthManagerState, resetAuthManagerState } from '@core/auth/state.ts';
+import { addCallback, applyUserSession, beginAuthenticatedEpoch, beginTerminalAuthIntent, createAuthManagerState, resetAuthManagerState } from '@core/auth/state.ts';
 import { isApiInterface, isStorageInterface } from '@core/auth/adapters.ts';
 import { AUTH_TAG, STATE_KEY } from '@core/auth/constants.ts';
-import type { ApiInterface, AuthCallback, InitializeOptions, LoginCallback, LoginResult, SessionInvalidationResult, SessionReconciliationResult, StorageInterface, WebuiUser, WizardCompletionResult, WizardStatus } from '@core/auth/types.ts';
+import type { ApiInterface, AuthCallback, AuthEpochIntentCallback, InitializeOptions, LoginCallback, LoginResult, SessionInvalidationResult, SessionReconciliationResult, StorageInterface, WebuiUser, WizardCompletionResult, WizardStatus } from '@core/auth/types.ts';
 import type { AuthManagerStateHandle } from '@core/auth/internalContracts.ts';
 import { getApiClient } from '@core/api/service.ts';
 import { requireStorageService } from '@core/storage/runtime.ts';
@@ -107,17 +107,18 @@ class AuthManager {
     }
 
     async initialize(_options: InitializeOptions = {}): Promise<boolean | undefined> {
+        const epoch = beginAuthenticatedEpoch(this.#state);
         const [resolveApi, resolveStorage] = this.#createAuthResolvers();
         return await this.#transitions.runCookieMutation(async () => {
-            const initialized = await initializeAuthManager(this.#state, resolveApi, resolveStorage, (operation) => this.#transitions.runCookieMutation(operation), _options);
+            const initialized = await initializeAuthManager(this.#state, resolveApi, resolveStorage, (operation) => this.#transitions.runCookieMutation(operation), epoch, _options);
             const actor = this.#state.user;
-            if (initialized === true && actor !== null) {
+            if (initialized === true && actor !== null && this.#state.authEpoch === epoch) {
                 try {
                     const result = await this.#recovery.resume(actor, await resolveApi(), await resolveStorage(), this.#recoveryAbortController.signal);
-                    if (result !== null) await this.#reconcileAuthenticatedUser(result.user, this.#state.authEpoch, resolveStorage);
+                    if (result !== null) await this.#reconcileAuthenticatedUser(result.user, epoch, resolveStorage);
                 } catch (error) {
                     const runtimeError = ensureError(error);
-                    if (runtimeError instanceof APIError && runtimeError.status === 401) {
+                    if (runtimeError instanceof APIError && runtimeError.status === 401 && this.#state.authEpoch === epoch) {
                         beginTerminalAuthIntent(this.#state);
                         await invalidateSessionAuthManager(this.#state, resolveStorage);
                         return false;
@@ -125,7 +126,7 @@ class AuthManager {
                     errorHandler.warn(AUTH_TAG, 'Persisted identity mutation recovery remains unresolved', runtimeError);
                 }
             }
-            return initialized;
+            return this.#state.authEpoch === epoch ? initialized : false;
         });
     }
 
@@ -237,6 +238,8 @@ class AuthManager {
     getWizardStatusSnapshot(): WizardStatus | null {
         return getWizardStatusSnapshot(this.#state);
     }
+
+    readonly onEpochIntent = (callback: AuthEpochIntentCallback): (() => void) => addCallback(this.#state.epochIntentCallbacks, (intent) => callback(intent));
 
     onLogin(callback: LoginCallback): () => void {
         return onAuthLogin(this.#state, callback);

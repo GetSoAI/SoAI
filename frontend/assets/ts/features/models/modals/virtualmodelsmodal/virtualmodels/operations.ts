@@ -114,7 +114,7 @@ const showEditVirtualModelForm = async (dependencies: ShowEditVirtualModelFormDe
         dependencies.host.view.dom.setData(saveButton, 'vmName', vmName);
         dependencies.state.originalEditStrategy = strategy;
         dependencies.state.originalEditModels = modelIds;
-        dependencies.host.view.modals.open(VM_EDIT_MODAL_ID);
+        dependencies.host.view.modals.open(VM_EDIT_MODAL_ID, { owner: dependencies.host.owner });
         dependencies.state.editModalOpen = true;
         dependencies.notifyChanged();
     } catch (error) {
@@ -160,6 +160,7 @@ const deleteVirtualModel = async (dependencies: DeleteVirtualModelDependencies, 
         throw new Error('Virtual model delete requires a virtual model name');
     }
     const confirmed = await requireDialogsService().showConfirmation({
+        owner: dependencies.host.owner,
         title: i18n.t('models.modal.virtualModels.confirmDelete'),
         message: i18n.t('models.modal.virtualModels.confirmDeleteMessage', { name }),
         confirmText: i18n.t('common.delete'),

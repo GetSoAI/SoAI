@@ -4,7 +4,7 @@
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { scaleAnimationDurationMs } from '@core/animations/speed.ts';
 import { dom } from '@core/dom/dom.ts';
-import { onNavigationComplete, type NavigationEventHandler } from '@core/navigationEvents.ts';
+import { onFocusedNavigation, type NavigationEventHandler } from '@core/navigationEvents.ts';
 import { requireRouter } from '@core/routing/router/routerRuntime.ts';
 import { isBoolean, isObject, isString } from '@core/typeGuards.ts';
 import { getWebSocketClient } from '@core/websocketclient/service.ts';
@@ -64,7 +64,7 @@ const initializeBackgroundTasks = async (service: BackgroundTasksRuntime, { forc
     }
     service.initialized = true;
     if (!service.navigationUnsubscribe) {
-        service.navigationUnsubscribe = onNavigationComplete(createNavigationHandler(service));
+        service.navigationUnsubscribe = onFocusedNavigation(createNavigationHandler(service));
     }
 };
 const activateWallpaper = (service: BackgroundTasksRuntime, url: string): void => {

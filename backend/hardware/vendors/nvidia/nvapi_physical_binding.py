@@ -10,7 +10,11 @@ from typing import TYPE_CHECKING
 
 from core.errors.exceptions import StateError, ValidationError
 from core.hardware.gpu_identity_normalization import observed_pci_bdf_components
-from core.hardware.gpu_physical_identity import GPUPhysicalBindingState, GPUPhysicalDevice
+from core.hardware.gpu_physical_identity import (
+    GPUPhysicalBindingState,
+    GPUPhysicalDevice,
+    gpu_physical_device_observations,
+)
 from core.hardware.gpu_physical_observations import read_gpu_physical_identity
 from core.validation.strict_integer import is_strict_int
 from hardware.gpu_inventory.physical_binding import (
@@ -37,6 +41,7 @@ __all__ = (
     "NvApiBoundDevice",
     "acquire_nvapi_physical_binding",
     "acquire_nvapi_physical_roster",
+    "bind_nvapi_physical_devices",
 )
 
 
@@ -175,10 +180,32 @@ def acquire_nvapi_physical_roster(
     read_bus: NvApiBusFunctionProtocol,
 ) -> tuple[NvApiBoundDevice, ...]:
     physical = acquire_nvidia_command_roster(executor, executable=executable)
+    devices = tuple(
+        GPUPhysicalDevice(
+            create_device_id("gpu", row.command_locator),
+            "nvidia",
+            row.identity,
+            None,
+            None,
+            row.pci_bdf_observations,
+        )
+        for row in physical.devices
+    )
+    return bind_nvapi_physical_devices(devices, enumerate_gpus=enumerate_gpus, read_bus=read_bus)
+
+
+def bind_nvapi_physical_devices(
+    devices: tuple[GPUPhysicalDevice, ...],
+    *,
+    enumerate_gpus: NvApiEnumPhysicalGpusFunctionProtocol,
+    read_bus: NvApiBusFunctionProtocol,
+) -> tuple[NvApiBoundDevice, ...]:
     candidates: list[JSONDict] = []
     buses: list[int] = []
-    for row in physical.devices:
-        candidate = _physical_entry(row)
+    for row in devices:
+        if row.vendor.casefold() != "nvidia":
+            raise ValidationError("NvAPI full fleet requires NVIDIA physical devices.")
+        candidate = gpu_physical_device_observations(row)
         pci = row.identity.pci_bdf_full
         components = observed_pci_bdf_components(pci) if pci is not None else None
         if components is None or components[0] is None or components[3] is None:
@@ -197,19 +224,11 @@ def acquire_nvapi_physical_roster(
     if len(set(buses)) != len(buses):
         raise StateError("NvAPI full fleet bus projection is ambiguous across physical devices.")
     bound: list[NvApiBoundDevice] = []
-    for row, bus in zip(physical.devices, buses, strict=True):
+    for row, bus in zip(devices, buses, strict=True):
         handles = tuple(handle for handle, actual in native.items() if actual == bus)
         if len(handles) != 1:
             raise StateError("NvAPI full fleet has no unique actual native handle.")
-        device = GPUPhysicalDevice(
-            create_device_id("gpu", row.command_locator),
-            "nvidia",
-            row.identity,
-            None,
-            None,
-            row.pci_bdf_observations,
-        )
-        bound.append(NvApiBoundDevice(device, ctypes.c_void_p(handles[0]), bus, None, None))
+        bound.append(NvApiBoundDevice(row, ctypes.c_void_p(handles[0]), bus, None, None))
     if _read_native_buses(enumerate_gpus, read_bus) != native:
         raise StateError("NvAPI full fleet changed during acquisition.")
     return tuple(bound)

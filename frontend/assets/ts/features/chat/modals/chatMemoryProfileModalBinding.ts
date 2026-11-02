@@ -2,13 +2,14 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
-import { serializeChatMemoryProfileUpdate, type ChatMemorySnapshot, type ChatMemoryProfile, type ChatMemoryProfileUpdateRequest } from '@core/api/contracts/webuiMemoryContracts.ts';
+import type { ChatMemorySnapshot, ChatMemoryProfile, ChatMemoryProfileUpdateRequest } from '@core/api/contracts/webuiMemoryContracts.ts';
 import type { WebuiUserEndpoints } from '@core/api/endpoints/webuiUserEndpoints.ts';
 import { getAuthManager } from '@core/auth/public.ts';
 import { LatestRequestController } from '@core/concurrency/latestRequest.ts';
 import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { dom } from '@core/dom/dom.ts';
 import { dispatchCustomEvent } from '@core/environment/public.ts';
+import { createAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { APIError } from '@core/apiError.ts';
@@ -31,7 +32,7 @@ import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import { translateChatMemoryProfileFieldLabel } from '@features/chat/modals/markup/chatMemoryProfileModalMarkup.ts';
 import { wallClockMs } from '@core/time/clock.ts';
 import { CHAT_MEMORY_PROFILE_MODAL_ID } from '@features/chat/modals/constants.ts';
-import { CHAT_MEMORY_PROFILE_FIELD_NAMES, isChatMemoryProfileFieldName, readChatMemoryProfileFieldValue, writeChatMemoryProfileFieldValue, type ChatMemoryProfileFieldName } from '@features/chat/modals/chatMemoryProfileFields.ts';
+import { CHAT_MEMORY_PROFILE_FIELD_NAMES, chatMemoryProfileMatchesUpdate, isChatMemoryProfileFieldName, readChatMemoryProfileFieldValue, writeChatMemoryProfileFieldValue, type ChatMemoryProfileFieldName } from '@features/chat/modals/chatMemoryProfileFields.ts';
 
 const CHAT_MEMORY_UPDATED_EVENT = 'soai:chat-memory-updated';
 interface ChatMemoryProfileModalDependencies {
@@ -44,6 +45,11 @@ const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemory
     const requests = new LatestRequestController();
     const sessions = new SequenceToken();
     const presenter = requireModalPresenter();
+    const requireSessionOwnership = () => {
+        const ownership = presenter.getOwnership(CHAT_MEMORY_PROFILE_MODAL_ID);
+        if (!ownership) throw createAbortError('Memory profile presentation is no longer owned');
+        return ownership;
+    };
     const requireElement = (token: string): HTMLElement => {
         const element = dom.resolve(`#${modalUiId(CHAT_MEMORY_PROFILE_MODAL_ID, token)}`, modal);
         if (!(element instanceof HTMLElement)) throw new Error(`Missing profile modal element: ${token}`);
@@ -126,6 +132,7 @@ const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemory
     };
     const reviewCurrent = async (): Promise<void> => {
         if (saving || reviewPending) return;
+        const ownership = requireSessionOwnership();
         reviewPending = true;
         const session = sessions.value;
         const draft = draftKey();
@@ -135,17 +142,10 @@ const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemory
             const current = await api.list();
             if (!isCurrent(session) || saving || draftKey() !== draft) return;
             const message = CHAT_MEMORY_PROFILE_FIELD_NAMES.map((name) => `${translateChatMemoryProfileFieldLabel(name)}: ${readChatMemoryProfileFieldValue(current.profileForm, name)}`).join('\n');
-            const accepted = await requireDialogsService().showConfirmation({ title: i18n.t('chat.memory.errors.revisionChanged'), message, confirmText: i18n.t('common.confirm'), cancelText: i18n.t('common.cancel') });
+            const accepted = await requireDialogsService().showConfirmation({ owner: ownership.owner, title: i18n.t('chat.memory.errors.revisionChanged'), message, confirmText: i18n.t('common.confirm'), cancelText: i18n.t('common.cancel') });
             if (!accepted || !isCurrent(session) || saving || draftKey() !== draft) return;
             if (unconfirmedSave) {
-                const submitted = unconfirmedSubmission ? serializeChatMemoryProfileUpdate(unconfirmedSubmission.payload) : null;
-                const matchesSubmitted =
-                    submitted !== null &&
-                    CHAT_MEMORY_PROFILE_FIELD_NAMES.every((name) => {
-                        if (!(name in submitted)) return true;
-                        const value = submitted[name];
-                        return readChatMemoryProfileFieldValue(current.profileForm, name) === (typeof value === 'string' ? value.trim() : '');
-                    });
+                const matchesSubmitted = unconfirmedSubmission !== null && chatMemoryProfileMatchesUpdate(current.profileForm, unconfirmedSubmission.payload);
                 if (matchesSubmitted) {
                     dispatchCustomEvent(CHAT_MEMORY_UPDATED_EVENT, {});
                     applyProfile(current.profileForm, unconfirmedSubmission?.draft ?? null);
@@ -178,8 +178,8 @@ const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemory
         const draft = draftKey();
         return () => isCurrent(session) && draftKey() === draft && !saving;
     };
-    resources.track(attachPendingOperationCloseGuard({ modal, isPending: () => saving }));
-    resources.track(attachBeforeCloseConfirmationGuard({ modal, presenter, modalId: CHAT_MEMORY_PROFILE_MODAL_ID, shouldConfirmClose: () => dirty, confirmClose: showUnsavedChangesConfirmation, captureCloseValidity }));
+    resources.track(attachPendingOperationCloseGuard({ modal, presenter, isPending: () => saving }));
+    resources.track(attachBeforeCloseConfirmationGuard({ modal, presenter, modalId: CHAT_MEMORY_PROFILE_MODAL_ID, shouldConfirmClose: () => dirty, confirmClose: () => showUnsavedChangesConfirmation({ owner: requireSessionOwnership().owner }), captureCloseValidity }));
     const invalidateAccount = (): void => {
         sessions.invalidate();
         requests.invalidate();
@@ -208,7 +208,10 @@ const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemory
         for (const field of fields.values()) field.value = '';
         tracker.clearAll();
         controller?.dispose();
+        const ownership = requireSessionOwnership();
         controller = createSaveController({
+            owner: ownership.owner,
+            isCurrent: () => presenter.getOwnership(CHAT_MEMORY_PROFILE_MODAL_ID) === ownership,
             headerContextId: `${CHAT_MEMORY_PROFILE_MODAL_ID}:chatMemoryProfile`,
             headerPriority: SAVE_HEADER_PRIORITY_MODAL,
             requestContextLabel: 'Chat memory profile save',

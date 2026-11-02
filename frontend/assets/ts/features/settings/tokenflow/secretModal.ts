@@ -1,6 +1,7 @@
 /* SoAI - Settings feature secret modal [frontend/assets/ts/features/settings/tokenflow/secretModal.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { toTrustedUiHtml } from '@core/security/public.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { requireButtonElement, requireInputElement } from '@core/dom/typedElements.ts';
@@ -49,9 +50,10 @@ const createSettingsTokenSecretModalDefinition = (modalId: string, configFactory
         createElement: createSettingsTokenSecretModalElement
     });
 
-const showSettingsTokenSecretModal = async (config: SettingsTokenSecretModalConfig, secret: string): Promise<void> => {
+const showSettingsTokenSecretModal = async (config: SettingsTokenSecretModalConfig, secret: string, owner: PresentationOwner): Promise<void> => {
     await runSettingsTokenModalSession<void>({
         modalId: config.modalId,
+        owner,
         initialResult: undefined,
         initialize: ({ modal, signal }): { dispose: () => void } => {
             const resolver = createModalElementResolver(modal, config.contextLabel);

@@ -1,9 +1,10 @@
 /* SoAI - Shared layout search manager contracts [frontend/assets/ts/core/layout/header/searchmanager/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { GlobalPresentationOwner, NavigationOptions } from '@core/routing/router/types.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { HeaderEscapableValue, HeaderServiceResolver, IconOptions } from '@core/layout/HeaderInterface.ts';
-import type { NavigationOptions } from '@core/routing/router/types.ts';
+
 import type { SearchItem } from '@core/search/searchTypes.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { TelemetryValue } from '@core/telemetry/contracts.ts';
@@ -83,6 +84,7 @@ export interface SearchManagerState {
 }
 
 export interface HeaderSearchManagerContract extends SearchManagerState {
+    readonly presentationOwner: GlobalPresentationOwner;
     header: SearchManagerHost;
     statusManager: StatusManagerInterface;
     container: HTMLElement | null;

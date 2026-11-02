@@ -46,10 +46,14 @@ class GPUInfoCacheService:
         "_singleflight",
         "_probe_timeout_seconds",
         "cache_ttl",
+        "windows_gpu_enricher",
+        "adl_monitoring_runtime",
     )
 
     def __init__(self, dependencies: GPUInfoCacheServiceDependencies) -> None:
         self.cache_ttl: float = dependencies.cache_ttl_seconds
+        self.windows_gpu_enricher = dependencies.windows_gpu_enricher
+        self.adl_monitoring_runtime = dependencies.adl_monitoring_runtime
         self._state = GPUInfoCacheState()
         self._admission = threading.BoundedSemaphore(1)
         self._executor_factory = dependencies.probe_executor_factory

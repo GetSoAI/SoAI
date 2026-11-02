@@ -158,7 +158,18 @@ const playReorderMotion = (container: HTMLElement, snapshot: ReorderMotionSnapsh
     const endOffset = band.bottom - Math.min(...entering.end.map(({ box }) => box.top));
     for (const { target } of entering.start) animations.push(target.animate({ translate: [`0px ${startOffset}px`, '0px 0px'] }, timing));
     for (const { target } of entering.end) animations.push(target.animate({ translate: [`0px ${endOffset}px`, '0px 0px'] }, timing));
-    if (animations.length > 0) runningReorderAnimations.set(container, animations);
+    if (animations.length > 0) {
+        runningReorderAnimations.set(container, animations);
+        const remaining = new Set(animations);
+        for (const animation of animations) {
+            const settled = (): void => {
+                remaining.delete(animation);
+                if (remaining.size === 0 && runningReorderAnimations.get(container) === animations) runningReorderAnimations.delete(container);
+            };
+            animation.addEventListener('finish', settled, { once: true });
+            animation.addEventListener('cancel', settled, { once: true });
+        }
+    }
 };
 
 const playReorderExit = (container: HTMLElement, elements: readonly HTMLElement[]): Promise<void> | null => {
@@ -210,5 +221,5 @@ const captureReorderMotion = (container: HTMLElement, resolveKey: ((element: HTM
     };
 };
 
-export { cancelReorderExit, captureReorderMotion, playReorderExit, resolveLeadingCellTextKey };
+export { cancelReorderExit, cancelReorderMotion, captureReorderMotion, playReorderExit, resolveLeadingCellTextKey };
 export type { ReorderMotion };

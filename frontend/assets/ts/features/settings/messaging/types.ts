@@ -1,6 +1,7 @@
 /* SoAI - Messaging settings feature types [frontend/assets/ts/features/settings/messaging/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { MessagingAccount, MessagingAccountCreate, MessagingAccountUpdate, MessagingPlatform } from '@core/api/contracts/messagingAccountContracts.ts';
 import type { WebuiMessagingAccountEndpoints } from '@core/api/endpoints/webuiMessagingAccounts.ts';
 import type { ReasoningEffortLevel } from '@core/chat/parameters/reasoningEffort.ts';
@@ -11,7 +12,8 @@ import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/Pag
 import type { WorkspaceBrowserAccess } from '@core/fileexplorerbrowser/workspaceBrowserAccess.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { ModelCatalogResponse } from '@core/api/contracts/modelCatalogContracts.ts';
-import type { SignalOptions } from '@core/api/requestOptions.ts';
+import type { RequestOptions } from '@core/api/types/request.ts';
+import type { ModelCatalogSubscriber } from '@core/models/modelCatalogObservation.ts';
 
 type MessagingModelCatalogStatus = 'idle' | 'ready' | 'error';
 
@@ -42,20 +44,25 @@ interface MessagingProviderDescriptor {
 type MessagingAccountModalResult = MessagingAccount;
 
 interface MessagingAccountModalOptions {
+    readonly owner: PresentationOwner;
     mode: 'create' | 'edit';
     account: MessagingAccount | null;
     models: readonly MessagingModelOption[];
+    readonly subscribeModelCatalog: ModelCatalogSubscriber;
+    loadModelCatalog(options?: RequestOptions): Promise<ModelCatalogResponse>;
     mcpCatalog: McpFormCatalog;
     workspaceBrowserAccess: WorkspaceBrowserAccess;
     persist(payload: MessagingAccountCreate | MessagingAccountUpdate): Promise<MessagingAccount>;
 }
 
 interface MessagingManagerHost extends PageDomOwnerHost, PageFeedbackOwnerHost {
+    readonly owner: PresentationOwner;
     api: WebuiMessagingAccountEndpoints;
-    loadModelCatalog(options?: SignalOptions): Promise<ModelCatalogResponse>;
+    readonly subscribeModelCatalog: ModelCatalogSubscriber;
+    loadModelCatalog(options?: RequestOptions): Promise<ModelCatalogResponse>;
     resolveWorkspaceBrowserAccess(): Promise<WorkspaceBrowserAccess>;
     runWithBoundary<T>(name: string, task: () => Promise<T> | T): Promise<T>;
-    confirmAndExecute<Result>(boundaryName: string, confirmOptions: ConfirmationOptions | null, action: () => Promise<Result>, successMessage: string | null, onSuccess: (() => Promise<void> | void) | null, onError: ((error: Error) => void) | null): Promise<void>;
+    confirmAndExecute<Result>(boundaryName: string, confirmOptions: Omit<ConfirmationOptions, 'owner'> | null, action: () => Promise<Result>, successMessage: string | null, onSuccess: (() => Promise<void> | void) | null, onError: ((error: Error) => void) | null): Promise<void>;
     hasSearchQuery(): boolean;
     filterSettings(): void;
 }

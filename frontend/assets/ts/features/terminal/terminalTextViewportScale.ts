@@ -1,7 +1,7 @@
 /* SoAI - Terminal feature text viewport scale [frontend/assets/ts/features/terminal/terminalTextViewportScale.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
+import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
 
 interface TerminalTextScaleBreakpoint {
@@ -24,7 +24,8 @@ class TerminalTextViewportScale {
     }
 
     get scale(): number {
-        const width = measureLayoutViewport(this.#scope).width;
+        const width = measureLayoutBox(this.#scope).width;
+        if (width <= 0) return TERMINAL_TEXT_SCALE_FULL;
         for (const breakpoint of TERMINAL_TEXT_SCALE_BREAKPOINTS) {
             if (width <= breakpoint.maxWidth) {
                 return breakpoint.scale;

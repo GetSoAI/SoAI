@@ -9,9 +9,9 @@ import { getOffsetControlContext, gpuSettingStatesEqual } from '@pages/hardware/
 import { isGpuValueEditing, readGpuEditorValue } from '@pages/hardware/controllers/gpucontrol/gpuControlValueEditorController.ts';
 import type { GpuSettingsState } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 
-export const syncGpuSliderChangeSurfaces = (document: Document, index: string | number, liveSettings: GpuSettingsState | null, normalizedSettings: GpuSettingsState | null, capabilities: GpuCapabilitiesByIndex | null): void => {
+export const syncGpuSliderChangeSurfaces = (root: Element, index: string | number, liveSettings: GpuSettingsState | null, normalizedSettings: GpuSettingsState | null, capabilities: GpuCapabilitiesByIndex | null): void => {
     GPU_SLIDER_CONFIG.forEach(({ type }) => {
-        const { container, valueInput } = getSliderElements(document, index, type);
+        const { container, valueInput } = getSliderElements(root, index, type);
         if (!container) {
             return;
         }

@@ -10,9 +10,9 @@ import { setSelectValueAndSyncDefault } from '@core/dom/selectSelection.ts';
 
 interface PageUiValueHost {
     getElement(selector: string | Element, context?: Element): Element | null;
-    updateAttribute(target: string | Element, attribute: string, value: string | null, context?: Element | Document | null): void;
-    updateText(target: string | Element, text: string, context?: Element | Document | null): void;
-    setDataAttribute(target: string | Element, name: string, value: string | null, context?: Element | Document | null): void;
+    updateAttribute(target: string | Element, attribute: string, value: string | null, context?: Element | null): void;
+    updateText(target: string | Element, text: string, context?: Element | null): void;
+    setDataAttribute(target: string | Element, name: string, value: string | null, context?: Element | null): void;
     toggleVisibility(selector: string | Element[], visible: boolean): void;
 }
 

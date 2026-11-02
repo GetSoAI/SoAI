@@ -47,9 +47,7 @@
         -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
         backdrop-filter: var(--modal-overlay-backdrop-filter);
         opacity: 1;
-        transition:
-            opacity var(--transition-fast),
-            backdrop-filter var(--transition-fast);
+        transition: opacity var(--transition-fast);
         pointer-events: auto;
         touch-action: none;
         overscroll-behavior: contain;

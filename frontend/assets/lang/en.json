@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "Add files and folders from your device as direct message attachments. They are sent with the current prompt, unlike Knowledge uploads, which are indexed for retrieval.",
                 "uploadTitle": "Upload files and folders directly",
-                "title": "Add attachments"
+                "title": "Add attachments",
+                "cameraDiscardConfirm": "Discard this captured photo?"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "Unknown error",
                 "unknownError": "An unknown error occurred.",
                 "storageHeadroomInsufficient": "There is not enough storage headroom, including safety space and existing reservations. Free space or wait for other storage operations to finish, then retry.",
-                "storageHeadroomValues": "Required including the safety margin: {required}. Available for this operation: {available}."
+                "storageHeadroomValues": "Required including the safety margin: {required}. Available for this operation: {available}.",
+                "permissionsUnavailable": "Access permissions are unavailable. Check the connection and retry."
             },
             "export": "Export",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "Unsaved changes",
             "view": "View",
             "yes": "Yes",
-            "retry": "Retry"
+            "retry": "Retry",
+            "discard": "Discard"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "The file may have been saved, but its final state could not be verified. Check the destination in Files before uploading again.",
                 "cleanupIncomplete": "Automatic cleanup could not be completed. Review the destination in Files before trying again.",
                 "contentChanged": "The file changed during the operation. Select it again and retry.",
-                "destinationExists": "A file or directory with this name already exists. Choose another name or destination."
+                "destinationExists": "A file or directory with this name already exists. Choose another name or destination.",
+                "listingChanged": "The directory kept changing. Refresh to retry.",
+                "listingTimeout": "Refreshing the directory timed out. Refresh to retry.",
+                "listingIncoherent": "Directory pages were inconsistent. Refresh to retry.",
+                "listingUnavailable": "The directory service is unavailable. Check the connection and refresh.",
+                "listingBusy": "Directory requests are being limited. Wait, then refresh."
             },
             "labels": {
                 "latestTask": "Latest task",
@@ -3175,7 +3183,10 @@
                 "empty": "No entries found.",
                 "error": "Operation failed. Review notifications for details.",
                 "loading": "Loading directory entries...",
-                "searching": "Searching files and folders..."
+                "searching": "Searching files and folders...",
+                "refreshing": "Refreshing…",
+                "stale": "Out of date. Refresh to retry.",
+                "unavailable": "Directory unavailable. Review the error and refresh."
             },
             "table": {
                 "modified": "Modified",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "Work with models, tools, and files",
                     "sectionTitle": "Chat and agent tools",
-                    "conversations": "The Chat page keeps messages, model choice, generation parameters, and tool access together. You can change models between turns, compare responses, save the setup as a preset, or organize conversations into folders. Attach a file when the model needs the full item for the current message. Attach a knowledge source when you want SoAI to search indexed material and return the relevant passages. Add files, folders, and SoAI links from the composer",
+                    "conversations": "The Chat page keeps messages, model choice, generation parameters, tool access, and the Skills and Memory libraries together. You can change models between turns, compare responses, save the setup as a preset, or organize conversations into folders. Attach a file when the model needs the full item for the current message. Attach a knowledge source when you want SoAI to search indexed material and return the relevant passages. Add files, folders, and SoAI links from the composer",
                     "tools": "Chat mode is for conversation. Plan mode lets the model inspect a task and prepare steps. It blocks tools marked as destructive or missing valid destructive metadata, but other selected tools can still affect external systems. Execute mode lets it act with the tools you enabled. Tool calls and their results stay visible in the transcript, and protected actions can require your approval. Available tools can search the web, control a browser, work with files and terminals, query knowledge, process media, and connect to mail or calendars. Administrators decide which integrations and credentials are available. Agents can also ask questions, keep a plan, and split work into background subtasks. The Automation page runs one or more turns on a schedule and keeps each run as a conversation",
                     "mcp": "SoAI can expose its tools to authenticated MCP clients and connect to remote MCP servers. Remote tools appear beside the built-in tools after an administrator configures the server",
                     "voice": "Speech-to-text models can transcribe recordings or microphone input. Text-to-speech models can read answers aloud, while voice call mode supports a spoken conversation"
@@ -3944,7 +3955,7 @@
                     "heading": "Check system health and maintain the host",
                     "sectionTitle": "Monitoring and administration",
                     "status": "The Dashboard shows current system status and active work. Use Hardware for CPU, memory, disk, network, and GPU readings; Metrics for request history and token use; and Logs when you need diagnostic detail. Supported GPUs expose tuning controls for power, clocks, and fans. These changes affect the host, so use a tested profile and watch temperatures and stability",
-                    "operations": "Terminal provides interactive shell sessions. Power can restart or stop SoAI and can control the host operating system. Access to both pages depends on account permissions",
+                    "operations": "Terminal provides interactive shell sessions. Power can restart or stop SoAI and can control the host operating system. Access to Terminal and Power controls depends on account permissions",
                     "maintenance": "Backups live in Settings, while application updates use the Updates page. Verify a backup before relying on it, export copies you need off the host, and review the scope before a restore or reset. SoAI monitors backend health and stops sending requests to a plugin that keeps failing. The Plugins page shows recovery and quarantine states. Downloads, uploads, backups, and other large writes check reserved disk space before they begin"
                 },
                 "access": {
@@ -5229,6 +5240,9 @@
             "loading": "Preparing SoAI...",
             "loadingDelayError": "This page is taking longer than expected. Check your connection or retry this page.",
             "loadingLabel": "Loading...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "The previous page is still closing. Wait and retry. If it remains stuck, reload this window."
+            },
             "retry": "Retry"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "Appearance reset to defaults.",
                 "chatPresetsResetFailed": "Failed to reset chat presets. Try again.",
                 "chatPresetsResetSuccess": "Chat presets reset.",
+                "configurationResetFailed": "Configuration reset could not be scheduled. Review the configuration files and try again.",
                 "conversationsDeleteFailed": "Failed to delete conversations. Try again.",
                 "conversationsDeleteNone": "No conversations to delete.",
                 "conversationsDeleteSuccess": "{count} conversations deleted.",
-                "configurationResetFailed": "Configuration reset could not be scheduled. Review the configuration files and try again.",
                 "factoryResetSuccess": "Factory reset initiated. SoAI will restart shortly.",
                 "fixInvalidFields": "Fix invalid fields before saving.",
                 "hardwareHistoryResetFailed": "Failed to reset hardware history. Try again.",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "Metrics reset started successfully",
                 "pageLayoutsResetFailed": "Failed to reset page layouts. Try again.",
                 "pageLayoutsResetSuccess": "Dashboard, metrics, and hardware layouts reset to defaults.",
+                "partialSave": "Some settings were applied. {reason} Review the marked unsaved fields and try again.",
                 "passwordManagerResetFailed": "Failed to reset the password manager. Try again.",
                 "passwordManagerResetSuccess": "Password manager reset. Removed {deletedCredentials} saved credential(s) and invalidated {clearedSecretHandles} active secure handle(s).",
                 "preferencesResetFailed": "Failed to reset preferences. Try again.",
-                "preferencesResetSuccess": "Preferences reset to defaults. Reloading...",
+                "preferencesResetSuccess": "Preferences reset to defaults.",
                 "recentSearchesResetFailed": "Failed to reset recent searches. Try again.",
                 "recentSearchesResetSuccess": "Recent searches reset.",
                 "restartButton": "Restart SoAI",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "User created successfully",
                 "userDeleteSuccess": "User deleted successfully",
                 "userPasswordUpdateSuccess": "Password updated successfully",
-                "userWorkspacePathUpdateSuccessRevoked": "Default folder updated. Previous conversation overrides outside the new folder have been revoked.",
                 "userRoleUpdateSuccess": "User role updated successfully",
+                "userWorkspacePathUpdateSuccessRevoked": "Default folder updated. Previous conversation overrides outside the new folder have been revoked.",
                 "wallpaperDeleteSuccess": "Wallpaper deleted successfully",
                 "wallpaperDownloadSuccess": "Wallpaper downloaded successfully",
                 "wallpaperReloadFailed": "Failed to load wallpaper preview.",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "Terminal release is unconfirmed. Restore the connection and retry; if the service restarted, verify the old shell on its host.",
+                "recoveryUnavailable": "Terminal recovery is unavailable. Reload SoAI and verify the old shell on its host before retrying."
+            },
             "ariaLabels": {
                 "clearTerminal": "Clear terminal",
                 "decreaseTextSize": "Decrease text size",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "Speech not transcribed. Ask an administrator to set up speech-to-text, then upload the file again.",
             "openModels": "Open Models",
             "openSettings": "Speech-to-text settings"
+        },
+        "pagePanes": {
+            "storageUnavailable": "Browser storage is unavailable. Your open panes remain usable, but their layout cannot be saved.",
+            "invalidLayout": "The saved pane layout is invalid. The requested page will open normally.",
+            "incompatibleLayout": "The saved pane layout requires a newer application. It has been preserved.",
+            "foreignLayout": "The saved pane layout belongs to another account, window or edition. It has been preserved.",
+            "layoutTooLarge": "This pane layout is too large to save. Your open pages remain usable.",
+            "restoreFailed": "The primary pane could not be restored. The saved layout has been preserved; reload to retry.",
+            "title": "Panes",
+            "active": "Active",
+            "closePane": "Close {page} pane",
+            "split": "Open in another pane",
+            "choosePage": "Page to open",
+            "parked": "Parked",
+            "closing": "Closing…",
+            "splitUnavailable": "This window has room for one pane. The page will open in the current pane.",
+            "placementUnavailable": "No pane is available for this action. Finish pending work or close a pane, then retry.",
+            "restoreConflict": "The restored route conflicts with an open pane. Open the page explicitly to continue.",
+            "layoutNotSaved": "Layout not saved. Your open panes remain usable.",
+            "saveCurrentLayout": "Save current layout",
+            "replaceSavedLayoutConfirmation": "Replace the preserved layout with your current open panes? This replaces only the saved layout, not your page contents.",
+            "storageQuotaExceeded": "Browser storage is full. Free browser storage, then save the current layout again. Your open panes remain usable.",
+            "storageBlocked": "The browser blocked layout storage. Allow storage for this site, then save the current layout again. Your open panes remain usable."
         }
     }
 }

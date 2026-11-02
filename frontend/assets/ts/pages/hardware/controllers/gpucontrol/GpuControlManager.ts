@@ -67,10 +67,10 @@ class GpuControlManager {
         return this.#uiStateStore.states;
     }
     hasUnsavedGpuChanges(): boolean {
-        return hasUnsavedGpuChanges(this.#uiStateStore.states) || hasInvalidGpuValueEdits(this.#dependencies.dom.getDocument(), this.gpuCapabilities);
+        return hasUnsavedGpuChanges(this.#uiStateStore.states) || hasInvalidGpuValueEdits(this.#dependencies.pageDom.resolveContext(), this.gpuCapabilities);
     }
     async applyAllPendingGpuChanges(): Promise<SaveUnitResult> {
-        if (hasInvalidGpuValueEdits(this.#dependencies.dom.getDocument(), this.gpuCapabilities)) return { type: 'stop' };
+        if (hasInvalidGpuValueEdits(this.#dependencies.pageDom.resolveContext(), this.gpuCapabilities)) return { type: 'stop' };
         const lockedIndex = findFirstPendingGpuIndex(this.#uiStateStore.states, (index) => this.isCertifiedRunLocked(index));
         if (lockedIndex !== null) {
             this.#dependencies.showNotification(i18n.t('hardware.gpu.notifications.soaibenchSettingsLocked', { index: resolveGpuDisplayIndex(this.gpuCapabilities, lockedIndex) }), 'warning');
@@ -95,7 +95,7 @@ class GpuControlManager {
     }
     setGpuTelemetryByDeviceId(source: Record<string, GpuControlTelemetry>): void {
         this.gpuTelemetryByDeviceId = normalizeGpuControlTelemetryMap(source);
-        updateGpuControlTelemetryLabels(this.#dependencies.dom.getDocument(), this.gpuTelemetryByDeviceId, this.#dependencies.getIconSync);
+        updateGpuControlTelemetryLabels(this.#dependencies.pageDom.resolveContext(), this.gpuTelemetryByDeviceId, this.#dependencies.getIconSync);
     }
     setCapabilities(capabilities: GpuCapabilitiesResource): void {
         const nextCapabilities = capabilities.success ? buildGpuCapabilitiesLookup(capabilities) : null;
@@ -107,7 +107,7 @@ class GpuControlManager {
     }
     setResourceFreshness(state: HardwareGpuResourceState): void {
         this.#resourceState = state;
-        renderGpuResourceStatus(this.#dependencies.dom.getDocument(), state, this.#domRequired, this.#dependencies.getIconSync);
+        renderGpuResourceStatus(this.#dependencies.pageDom.resolveContext(), state, this.#domRequired, this.#dependencies.getIconSync);
     }
     async retryResources(): Promise<void> {
         const streams = await this.#dependencies.resolveStreamManager();
@@ -124,15 +124,15 @@ class GpuControlManager {
     setDomRequired(required: boolean): void {
         this.#domRequired = required;
         if (!required) this.#resourceState?.invalidate();
-        if (this.#resourceState) renderGpuResourceStatus(this.#dependencies.dom.getDocument(), this.#resourceState, required, this.#dependencies.getIconSync);
+        if (this.#resourceState) renderGpuResourceStatus(this.#dependencies.pageDom.resolveContext(), this.#resourceState, required, this.#dependencies.getIconSync);
         if (!required && this.hasActiveGpuSaveMode()) {
             this.cancelAllGpuSaveModes();
         }
-        syncGpuControlsPanelVisibility(this.#dependencies.dom.getDocument(), required && hasAnyActionableGpuControls(this.gpuCapabilities));
+        syncGpuControlsPanelVisibility(this.#dependencies.pageDom.resolveContext(), required && hasAnyActionableGpuControls(this.gpuCapabilities));
         if (required && this.gpuCapabilities !== null) {
             this.renderGpuControls();
         } else if (!required) {
-            clearGpuControlsPanel(this.#dependencies.dom.getDocument());
+            clearGpuControlsPanel(this.#dependencies.pageDom.resolveContext());
         }
     }
     getSlotEntryByIndex(index: string | number): GpuSlotEntry | null {
@@ -154,9 +154,9 @@ class GpuControlManager {
             return;
         }
         const controlsVisible = hasAnyActionableGpuControls(this.gpuCapabilities);
-        syncGpuControlsPanelVisibility(this.#dependencies.dom.getDocument(), controlsVisible);
+        syncGpuControlsPanelVisibility(this.#dependencies.pageDom.resolveContext(), controlsVisible);
         if (!controlsVisible) {
-            clearGpuControlsPanel(this.#dependencies.dom.getDocument());
+            clearGpuControlsPanel(this.#dependencies.pageDom.resolveContext());
             return;
         }
         renderGpuControls(this.#buildViewContext(), { only });
@@ -180,12 +180,12 @@ class GpuControlManager {
         return buildGpuControlManagerViewContext({ dependencies: this.#dependencies, renderGpuControls: (options: { only: string[] }) => this.renderGpuControls(options), security: this.#security, capabilitiesByIndex: this.gpuCapabilities, telemetryByDeviceId: this.gpuTelemetryByDeviceId, soaibenchRuns: this.#soaibench.runs, ensureUiState: (index: string | number) => this.ensureGpuUiState(index), refreshApplyState: (index: string | number) => this.refreshApplyState(index), setSliderToAuto: (index: string | number, type: string, explicitDefault?: string | number | null, options?: { preserveManual?: boolean }) => this.setSliderToAuto(index, type, explicitDefault, options), setSliderToManual: (index: string | number, type: string, manualValue?: string | number | null, options?: { alignToSupportedValue?: boolean }) => this.setSliderToManual(index, type, manualValue, options), getSliderElements: (index: string | number, type: string) => this.getSliderElements(index, type) });
     }
     getSliderElements(index: string | number, type: string): ReturnType<typeof getSliderElements> {
-        return getSliderElements(this.#dependencies.dom.getDocument(), index, type);
+        return getSliderElements(this.#dependencies.pageDom.resolveContext(), index, type);
     }
     getSliderSnapshot(index: string | number): GpuSnapshot {
-        return getSliderSnapshot(this.#dependencies.dom.getDocument(), this.gpuCapabilities, index);
+        return getSliderSnapshot(this.#dependencies.pageDom.resolveContext(), this.gpuCapabilities, index);
     }
-    #getDomContext(): { document: Document; capabilitiesByIndex: GpuCapabilitiesByIndex | null; ensureUiState: (index: string | number) => GpuUiState; refreshApplyState: (index: string | number) => void } {
+    #getDomContext(): { root: Element; capabilitiesByIndex: GpuCapabilitiesByIndex | null; ensureUiState: (index: string | number) => GpuUiState; refreshApplyState: (index: string | number) => void } {
         return buildGpuControlDomContext({ dependencies: this.#dependencies, capabilitiesByIndex: this.gpuCapabilities, ensureUiState: (index: string | number) => this.ensureGpuUiState(index), refreshApplyState: (index: string | number) => this.refreshApplyState(index) });
     }
     setSliderToAuto(index: string | number, type: string, explicitDefault: string | number | null = null, { preserveManual = false }: { preserveManual?: boolean } = {}): void {
@@ -212,7 +212,7 @@ class GpuControlManager {
     refreshApplyState(index: string | number): void {
         refreshGpuApplyState(
             {
-                document: this.#dependencies.dom.getDocument(),
+                root: this.#dependencies.pageDom.resolveContext(),
                 gpuCapabilities: this.gpuCapabilities,
                 ensureGpuUiState: (index: string | number) => this.ensureGpuUiState(index),
                 getSliderSnapshot: (index: string | number) => this.getSliderSnapshot(index),
@@ -224,7 +224,7 @@ class GpuControlManager {
         );
     }
     async handleGpuApplyClick(index: string | number): Promise<void> {
-        if (hasInvalidGpuValueEdits(this.#dependencies.dom.getDocument(), this.gpuCapabilities, index)) return;
+        if (hasInvalidGpuValueEdits(this.#dependencies.pageDom.resolveContext(), this.gpuCapabilities, index)) return;
         const context = this.#buildActionContext();
         await handleGpuApplyClick(context, index, {
             getSnapshot: () => this.getSliderSnapshot(index),

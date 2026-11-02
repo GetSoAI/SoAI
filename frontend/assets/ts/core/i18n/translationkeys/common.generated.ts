@@ -14,6 +14,7 @@ import type { CommonConnectionTranslationKey } from '@core/i18n/translationkeys/
 import type { CommonCopyTranslationKey } from '@core/i18n/translationkeys/common/copy.generated.ts';
 import type { CommonDeleteTranslationKey } from '@core/i18n/translationkeys/common/delete.generated.ts';
 import type { CommonDisabledTranslationKey } from '@core/i18n/translationkeys/common/disabled.generated.ts';
+import type { CommonDiscardTranslationKey } from '@core/i18n/translationkeys/common/discard.generated.ts';
 import type { CommonDownloadTranslationKey } from '@core/i18n/translationkeys/common/download.generated.ts';
 import type { CommonEditTranslationKey } from '@core/i18n/translationkeys/common/edit.generated.ts';
 import type { CommonEnabledTranslationKey } from '@core/i18n/translationkeys/common/enabled.generated.ts';
@@ -70,6 +71,7 @@ export type CommonTranslationKey =
     | CommonCopyTranslationKey
     | CommonDeleteTranslationKey
     | CommonDisabledTranslationKey
+    | CommonDiscardTranslationKey
     | CommonDownloadTranslationKey
     | CommonEditTranslationKey
     | CommonEnabledTranslationKey

@@ -1,6 +1,7 @@
 /* SoAI - Chat preset staging application operation [frontend/assets/ts/pages/chat/controllers/chatconfigurationcontroller/chatPresetApplyDomain.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import { CHAT_PRESET_SECTION_DEFINITIONS, translateChatPresetSection, type ChatPresetSectionId } from '@features/chat/public.ts';
@@ -15,10 +16,10 @@ const sectionNames = (sectionIds: readonly ChatPresetSectionId[]): string =>
         .map((definition) => translateChatPresetSection(definition.id))
         .join(', ');
 
-const executeChatPresetApply = async (options: { record: WebuiChatPresetRecord; configuration: ChatPresetConfigurationPort; isSessionActive: () => boolean; show: (message: string, type: 'error' | 'info' | 'success' | 'warning') => void }): Promise<void> => {
+const executeChatPresetApply = async (options: { readonly owner: PresentationOwner; record: WebuiChatPresetRecord; configuration: ChatPresetConfigurationPort; isSessionActive: () => boolean; show: (message: string, type: 'error' | 'info' | 'success' | 'warning') => void }): Promise<void> => {
     try {
         const dirty = options.configuration.dirtySections(options.record);
-        const accepted = dirty.length === 0 || (await requireDialogsService().showConfirmation({ title: i18n.t('chat.configuration.presetLibrary.applyConfirmTitle'), message: i18n.t('chat.configuration.presetLibrary.applyConfirmMessage', { sections: sectionNames(dirty) }), confirmText: i18n.t('chat.configuration.presetLibrary.applyAction'), cancelText: i18n.t('common.cancel') }));
+        const accepted = dirty.length === 0 || (await requireDialogsService().showConfirmation({ owner: options.owner, title: i18n.t('chat.configuration.presetLibrary.applyConfirmTitle'), message: i18n.t('chat.configuration.presetLibrary.applyConfirmMessage', { sections: sectionNames(dirty) }), confirmText: i18n.t('chat.configuration.presetLibrary.applyAction'), cancelText: i18n.t('common.cancel') }));
         if (!accepted || !options.isSessionActive()) return;
         const result = await options.configuration.apply(options.record, options.isSessionActive);
         if (!result || !options.isSessionActive()) return;

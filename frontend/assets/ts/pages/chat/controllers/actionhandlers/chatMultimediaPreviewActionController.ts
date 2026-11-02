@@ -1,6 +1,7 @@
 /* SoAI - Chat page multimedia preview action controller [frontend/assets/ts/pages/chat/controllers/actionhandlers/chatMultimediaPreviewActionController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { optionalClosestElement } from '@core/dom/attributes.ts';
 import { dom } from '@core/dom/dom.ts';
 import type { SoaiPathOperationRequest, SoaiPathTokenResponse } from '@core/api/contracts/webuiChatOperationContracts.ts';
@@ -9,6 +10,7 @@ import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import { mapChatMultimediaPreviewDatasetToContentPreviewRequest, readChatMultimediaPreviewDataset } from '@features/chat/public.ts';
 
 interface ChatMultimediaPreviewActionHost {
+    readonly owner: PresentationOwner;
     hasClipboardSupport(): boolean;
     copyToClipboard(text: string, options?: { notify?: (message: string, type: NotificationType) => void }): Promise<void>;
     showNotification(message: string, type: NotificationType): void;

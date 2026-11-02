@@ -1,6 +1,7 @@
 /* SoAI - Shared routing stream item deletion [frontend/assets/ts/core/routing/pages/collections/streamItemDeletion.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { StreamActionHandle, StreamCompletionStatus, StreamFinishedValue, StreamHandleTrackerContract } from '@core/routing/pages/pagetypes/public.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import { isArray, isObject, isString } from '@core/typeGuards.ts';
@@ -9,6 +10,7 @@ import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 
 interface StreamItemDeletionHost {
+    readonly owner: PresentationOwner;
     deletingItems: Set<string>;
     streams: StreamHandleTrackerContract;
 
@@ -55,6 +57,7 @@ export const executeStreamItemDeletion = async (host: StreamItemDeletionHost, co
     }
 
     const confirmed = await requireDialogsService().showConfirmation({
+        owner: host.owner,
         title: confirmTitle,
         message: confirmMessage,
         confirmText: confirmButton,

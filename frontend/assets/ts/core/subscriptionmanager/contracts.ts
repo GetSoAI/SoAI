@@ -53,6 +53,7 @@ interface HealthStatus {
 
 interface SubscriptionManagerDependencies {
     streamManager?: StreamManagerInterface;
+    requireActive?: () => void;
 }
 
 export type { HealthStatus, PendingSubscriptionStart, ResourceSubscriptionHandler, ResourceSubscriptionSnapshot, StreamManagerInterface, SubscriptionContext, SubscriptionHandler, SubscriptionManagerDependencies, SubscriptionSnapshot, SubscriptionHealth, UnsubscribeEntry, UnsubscribeFunction };

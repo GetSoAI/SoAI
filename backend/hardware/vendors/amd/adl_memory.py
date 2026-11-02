@@ -11,6 +11,10 @@ from core.hardware.gpu_physical_identity import GPUInventoryReadState, GPUPhysic
 from core.system.protocols import CommandExecutorProtocol
 from core.types.json import JSONDict
 from core.validation.strict_integer import is_strict_int
+from hardware.gpu_inventory.windows_physical_acquisition import (
+    WindowsPhysicalAcquisition,
+    read_windows_pnp_acquisition,
+)
 from hardware.vendors.amd.adl_abi import AdlAdapterObservation
 from hardware.vendors.amd.adl_physical_inventory import acquire_adl_physical_devices
 from hardware.vendors.amd.adl_pmlog import read_adl_pmlog
@@ -110,7 +114,10 @@ def read_adl_memory_bytes(
 
 
 def acquire_adl_memory(
-    runtime: AdlRuntime | None, executor: CommandExecutorProtocol
+    runtime: AdlRuntime | None,
+    executor: CommandExecutorProtocol,
+    *,
+    physical_acquisition: WindowsPhysicalAcquisition | None = None,
 ) -> AdlMemoryAcquisition:
     if runtime is None:
         return AdlMemoryAcquisition(
@@ -118,7 +125,9 @@ def acquire_adl_memory(
         )
     try:
         with runtime.session() as session:
-            physical = acquire_adl_physical_devices(session, executor)
+            physical = acquire_adl_physical_devices(
+                session, executor, physical_acquisition=physical_acquisition
+            )
             observations: list[AdlMemoryObservation] = []
             for row in physical:
                 capacities: list[int] = []
@@ -162,7 +171,13 @@ def acquire_adl_memory(
                         telemetry_failure,
                     )
                 )
-            if physical != acquire_adl_physical_devices(session, executor):
+            if physical != acquire_adl_physical_devices(
+                session,
+                executor,
+                physical_acquisition=(
+                    read_windows_pnp_acquisition() if physical_acquisition is not None else None
+                ),
+            ):
                 raise StateError("ADL physical fleet changed during memory observation.")
         return AdlMemoryAcquisition(GPUInventoryReadState.OBSERVED, None, tuple(observations))
     except ValidationError as exception:

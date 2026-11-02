@@ -1,6 +1,7 @@
 /* SoAI - Settings page users manager contracts [frontend/assets/ts/pages/settings/controllers/usersmanager/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { DomEventHost, DomMutationHost, DomQueryHost, ExecutionHost, NotificationHost } from '@core/ui/controllerHosts.ts';
 import type { OsOperationResponse } from '@core/api/contracts/osOperationContracts.ts';
 import type { OsSystemUserInfo, OsUserMappingResponse, OsUserSyncStatus } from '@core/api/contracts/osSystemContracts.ts';
@@ -70,6 +71,7 @@ interface UsersManagerViewHost extends UsersManagerDomHost {
 }
 
 interface UsersManagerHost extends SettingsUsersControllerHost {
+    readonly owner: PresentationOwner;
     api: UsersManagerApiHost;
     view: UsersManagerViewHost;
     execution: UsersManagerExecutionHost;

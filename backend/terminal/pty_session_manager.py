@@ -15,6 +15,7 @@ from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.runtime.soai_identifiers import build_soai_id, safe_or_hashed_segment
 from core.tasks.asyncio_task_spawner import spawn_tracked_task
+from core.terminal.acquisition_errors import PTYAcquisitionError
 from core.terminal.command_truncation import truncate_shell_command
 from core.terminal.pty_validation import normalize_required_session_id
 from core.terminal.requests import CreatePTYSessionRequest
@@ -53,6 +54,7 @@ class PTYSessionManager:
         self._cancellation_binder = deps.cancellation_binder
         self._finalizer_tracker = deps.finalizer_tracker
         self._registry = PTYSessionStore()
+        self._shutting_down = False
         self._spawner = PTYSpawner(
             PTYSpawnerDependencies(base_dir=deps.base_dir, logger=deps.logger),
         )
@@ -62,6 +64,32 @@ class PTYSessionManager:
         self,
         request: CreatePTYSessionRequest,
     ) -> JSONDict:
+        if self._shutting_down:
+            raise StateError("Terminal is shutting down.")
+        if request.acquisition_id is None:
+            return await self._create_session(request)
+        acquisition = self._registry.reserve_acquisition(request.acquisition_id, request.user_id)
+        async with acquisition.lock:
+            if acquisition.released or acquisition.session_id is not None:
+                raise PTYAcquisitionError("PTY acquisition has already been used or released.")
+            acquisition.session_id = request.session_id
+            return await self._create_session(request)
+
+    async def release_acquisition(
+        self, acquisition_id: str, user_id: int, *, allow_new_acquisition: bool
+    ) -> str | None:
+        acquisition = self._registry.reserve_acquisition(
+            acquisition_id, user_id, allow_new=allow_new_acquisition
+        )
+        async with acquisition.lock:
+            if acquisition.released:
+                return acquisition.session_id
+            if acquisition.session_id is not None:
+                await self.close_session(acquisition.session_id)
+            acquisition.released = True
+            return acquisition.session_id
+
+    async def _create_session(self, request: CreatePTYSessionRequest) -> JSONDict:
         session_id = normalize_required_session_id(
             request.session_id,
             error_message="Invalid session_id.",
@@ -75,6 +103,7 @@ class PTYSessionManager:
                 shell=request.shell,
             )
             session.user_id = request.user_id
+            session.acquisition_id = request.acquisition_id
             session.output_callback = request.output_callback
             session.exit_callback = request.exit_callback
             session.busy_callback = request.busy_callback
@@ -164,13 +193,7 @@ class PTYSessionManager:
         }
 
     async def _rollback_failed_session_creation(self, session: PTYSession) -> None:
-        session.closed = True
-        await cancel_and_await_task(session.read_task)
-        session.read_task = None
-        await cancel_and_await_task(session.busy_poll_task)
-        session.busy_poll_task = None
-        await self._io_handler.close_resources(session)
-        await self._registry.unregister(session.session_id)
+        await self.close_session(session.session_id)
 
     async def write_input(self, session_id: str, data: bytes) -> None:
         session = require_live_session(self._registry, session_id)
@@ -206,6 +229,7 @@ class PTYSessionManager:
         return closed_count
 
     async def shutdown(self) -> None:
+        self._shutting_down = True
         self._logger.debug("PTY session manager shutting down.")
         session_ids = self._registry.get_all_ids()
         failed_session_ids: list[str] = []

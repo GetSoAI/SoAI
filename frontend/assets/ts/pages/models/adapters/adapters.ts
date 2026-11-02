@@ -25,7 +25,7 @@ const buildModelsHeader = (page: ModelsLayoutViewHost) => {
                 type: 'filter',
                 filter: {
                     type: 'select',
-                    id: 'provider-filter',
+                    id: 'models-provider-filter',
                     options: [{ value: 'all', label: i18n.t('models.filters.allPlugins') }]
                 }
             },
@@ -145,9 +145,9 @@ const buildModelsSections = (page: Pick<ModelsLayoutViewHost, 'sortBy' | 'sortOr
     return sections;
 };
 
-const buildModelsFilters = (): { '#provider-filter': string } => {
+const buildModelsFilters = (): { '#models-provider-filter': string } => {
     return {
-        '#provider-filter': 'filterProvider'
+        '#models-provider-filter': 'filterProvider'
     };
 };
 

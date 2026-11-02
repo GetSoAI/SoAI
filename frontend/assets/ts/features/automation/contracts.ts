@@ -4,6 +4,7 @@
 import type { AutomationDefinitionResponse, AutomationDefinitionsPageResponse, AutomationMcpCatalogResponse, AutomationOccurrenceKeyRequest, AutomationOccurrencesDeleteResponse, AutomationOccurrencesPageResponse, AutomationRunResponse, AutomationSchedulePreviewRequest, AutomationSchedulePreviewResponse, CreateAutomationRequest, UpdateAutomationRequest } from '@core/api/contracts/automationContractTypes.ts';
 import type { ReadOnlyFileBrowserApi } from '@core/fileexplorerbrowser/types.ts';
 import type { ChatExecutionIneligibilityReason } from '@core/models/chatExecutionEligibility.ts';
+import type { ModelCatalogSubscriber } from '@core/models/modelCatalogObservation.ts';
 
 interface AutomationModelOption {
     id: string;
@@ -21,9 +22,10 @@ interface AutomationWorkspaceAccess {
 }
 
 interface AutomationDataService {
+    readonly subscribeModelCatalog: ModelCatalogSubscriber;
     listAutomations(limit: number, offset: number, signal?: AbortSignal): Promise<AutomationDefinitionsPageResponse>;
     getZonesWindow(fromUtcMs: number, toUtcMs: number, offset: number, signal?: AbortSignal): Promise<AutomationOccurrencesPageResponse>;
-    listAvailableModels(signal?: AbortSignal): Promise<readonly AutomationModelOption[]>;
+    listAvailableModels(signal?: AbortSignal, timeoutMs?: number): Promise<readonly AutomationModelOption[]>;
     getMcpCatalog(options?: { signal?: AbortSignal | undefined; refresh?: boolean }): Promise<AutomationMcpCatalogResponse>;
     getWorkspaceAccess(signal?: AbortSignal): Promise<AutomationWorkspaceAccess>;
     getAutomation(automationId: string, signal?: AbortSignal): Promise<AutomationDefinitionResponse>;

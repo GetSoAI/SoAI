@@ -32,6 +32,7 @@ const stopModelDetailPlugin = async (host: ModelDetailOperationsHost): Promise<v
             return;
         }
         const confirmed = await requireDialogsService().showConfirmation({
+            owner: host.owner,
             title: i18n.t('modelDetail.confirmations.stopPlugin'),
             message: i18n.t('modelDetail.confirmations.stopPluginMessage', { plugin: pluginName })
         });
@@ -86,6 +87,7 @@ const deleteModelDetailModel = async (host: ModelDetailOperationsHost): Promise<
         }
         const displayName = host.getModelDisplayName() || i18n.t('modelDetail.notifications.thisModel');
         const confirmed = await requireDialogsService().showConfirmation({
+            owner: host.owner,
             title: i18n.t('modelDetail.confirmations.deleteModel'),
             message: i18n.t('modelDetail.confirmations.deleteModelMessage', { model: displayName }),
             confirmText: i18n.t('modelDetail.confirmations.deleteModelConfirm'),

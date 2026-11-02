@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "기기의 파일과 폴더를 메시지에 직접 첨부하세요. 검색을 위해 인덱싱되는 지식 업로드와 달리, 현재 프롬프트와 함께 전송됩니다.",
                 "uploadTitle": "파일 및 폴더 직접 업로드",
-                "title": "첨부 파일 추가"
+                "title": "첨부 파일 추가",
+                "cameraDiscardConfirm": "촬영한 이 사진을 버리시겠습니까?"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "알 수 없는 오류",
                 "unknownError": "알 수 없는 오류가 발생했습니다.",
                 "storageHeadroomInsufficient": "안전 여유 공간과 기존 예약을 고려하면 저장 공간이 부족합니다. 공간을 확보하거나 다른 저장 작업이 끝날 때까지 기다린 후 다시 시도하세요.",
-                "storageHeadroomValues": "안전 여유분을 포함한 필요 용량: {required}. 이 작업에 사용 가능한 용량: {available}."
+                "storageHeadroomValues": "안전 여유분을 포함한 필요 용량: {required}. 이 작업에 사용 가능한 용량: {available}.",
+                "permissionsUnavailable": "접근 권한을 확인할 수 없습니다. 연결을 확인하고 다시 시도하세요."
             },
             "export": "내보내기",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "저장되지 않은 변경 사항",
             "view": "보기",
             "yes": "예",
-            "retry": "다시 시도"
+            "retry": "다시 시도",
+            "discard": "버리기"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "파일이 저장되었을 수 있지만 최종 상태를 확인하지 못했습니다. 다시 업로드하기 전에 파일에서 대상 위치를 확인하세요.",
                 "cleanupIncomplete": "자동 정리를 완료하지 못했습니다. 다시 시도하기 전에 파일에서 저장 위치를 확인하세요.",
                 "contentChanged": "작업 중 파일이 변경되었습니다. 파일을 다시 선택하고 재시도하세요.",
-                "destinationExists": "같은 이름의 파일 또는 폴더가 이미 있습니다. 다른 이름이나 저장 위치를 선택하세요."
+                "destinationExists": "같은 이름의 파일 또는 폴더가 이미 있습니다. 다른 이름이나 저장 위치를 선택하세요.",
+                "listingChanged": "폴더가 계속 변경되었습니다. 새로 고쳐 다시 시도하세요.",
+                "listingTimeout": "폴더 새로 고침 시간이 초과되었습니다. 새로 고쳐 다시 시도하세요.",
+                "listingIncoherent": "폴더 페이지의 내용이 일치하지 않았습니다. 새로 고쳐 다시 시도하세요.",
+                "listingUnavailable": "폴더 서비스를 사용할 수 없습니다. 연결을 확인하고 새로 고치세요.",
+                "listingBusy": "폴더 요청이 제한되고 있습니다. 잠시 기다린 후 새로 고치세요."
             },
             "labels": {
                 "latestTask": "최근 작업",
@@ -3175,7 +3183,10 @@
                 "empty": "항목을 찾을 수 없습니다.",
                 "error": "작업에 실패했습니다. 자세한 내용은 알림을 확인하세요.",
                 "loading": "디렉터리 항목을 불러오는 중...",
-                "searching": "파일 및 폴더를 검색하는 중..."
+                "searching": "파일 및 폴더를 검색하는 중...",
+                "refreshing": "새로 고치는 중…",
+                "stale": "오래된 데이터입니다. 새로 고쳐 다시 시도하세요.",
+                "unavailable": "폴더를 사용할 수 없습니다. 오류를 확인하고 새로 고치세요."
             },
             "table": {
                 "modified": "수정일",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "모델, 도구, 파일 사용하기",
                     "sectionTitle": "Chat과 에이전트 도구",
-                    "conversations": "Chat은 메시지, 모델 선택, 생성 매개변수, 도구 접근을 함께 관리합니다. 턴 사이에 모델을 바꾸고 응답을 비교하며 설정을 preset으로 저장하거나 대화를 폴더로 정리할 수 있습니다. 현재 메시지에 전체 내용이 필요하면 파일을 첨부하고, 색인 자료를 계속 검색해야 하면 지식 소스를 첨부하세요. 입력창에서 파일, 폴더, SoAI 링크를 추가할 수 있습니다",
+                    "conversations": "Chat은 메시지, 모델 선택, 생성 매개변수, 도구 접근, 스킬 및 메모리 라이브러리를 함께 관리합니다. 턴 사이에 모델을 바꾸고 응답을 비교하며 설정을 preset으로 저장하거나 대화를 폴더로 정리할 수 있습니다. 현재 메시지에 전체 내용이 필요하면 파일을 첨부하고, 색인 자료를 계속 검색해야 하면 지식 소스를 첨부하세요. 입력창에서 파일, 폴더, SoAI 링크를 추가할 수 있습니다",
                     "tools": "Chat은 대화용입니다. Plan은 모델이 작업을 살펴보고 단계를 준비하게 합니다. 파괴적이라고 표시되었거나 유효한 파괴성 메타데이터가 없는 도구는 차단하지만, 선택한 다른 도구도 외부 시스템에 영향을 줄 수 있습니다. Execute는 활성화된 도구로 작업합니다. 도구 호출과 결과는 대화에 남고 보호된 작업은 승인을 요구할 수 있습니다. 도구는 웹 검색, 브라우저 제어, 파일과 터미널, 지식, 미디어, 메일, 캘린더를 다룹니다. 관리자가 사용 가능한 연동과 자격 증명을 정합니다. 에이전트는 질문하고 계획을 유지하며 작업을 백그라운드 하위 작업으로 나눌 수 있습니다. Automation은 일정에 따라 턴을 실행하고 각 실행을 대화로 보관합니다",
                     "mcp": "SoAI는 인증된 MCP 클라이언트에 도구를 제공하고 원격 MCP 서버에 연결할 수 있습니다. 관리자가 설정하면 원격 도구가 내장 도구 옆에 표시됩니다",
                     "voice": "음성 인식 모델은 녹음이나 마이크 입력을 글로 바꾸고 음성 합성 모델은 답변을 읽습니다. 음성 통화 모드는 말로 대화할 수 있습니다"
@@ -3944,7 +3955,7 @@
                     "heading": "시스템 확인 및 호스트 관리",
                     "sectionTitle": "모니터링과 관리",
                     "status": "Dashboard는 시스템 상태와 진행 중인 작업을 보여줍니다. Hardware는 CPU, 메모리, 디스크, 네트워크, GPU를, Metrics는 요청 기록과 token 사용량을, Logs는 진단 정보를 표시합니다. 지원 GPU는 전력, 클록, 팬을 조절할 수 있습니다. 호스트에 영향을 주므로 검증된 프로필을 사용하고 온도와 안정성을 확인하세요",
-                    "operations": "Terminal은 대화형 shell 세션을 제공합니다. Power는 SoAI를 다시 시작하거나 멈추고 호스트 운영체제를 제어할 수 있습니다. 두 페이지 접근은 계정 권한에 따릅니다",
+                    "operations": "Terminal은 대화형 shell 세션을 제공합니다. Power는 SoAI를 다시 시작하거나 멈추고 호스트 운영체제를 제어할 수 있습니다. Terminal과 Power 제어 기능에 대한 접근은 계정 권한에 따릅니다",
                     "maintenance": "백업은 Settings, 앱 업데이트는 Updates에 있습니다. 사용 전에 백업을 검증하고 필요한 사본은 호스트 밖으로 내보내며 복원이나 초기화 전 범위를 확인하세요. SoAI는 backend 상태를 감시하고 계속 실패하는 플러그인에 요청을 보내지 않습니다. Plugins에서 복구와 격리 상태를 볼 수 있습니다. 대용량 쓰기는 시작 전 예약 디스크 공간을 확인합니다"
                 },
                 "access": {
@@ -5229,6 +5240,9 @@
             "loading": "SoAI 준비 중...",
             "loadingDelayError": "이 페이지를 불러오는 데 예상보다 오래 걸리고 있습니다. 연결을 확인하거나 이 페이지에서 다시 시도하세요.",
             "loadingLabel": "불러오는 중...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "이전 페이지를 닫는 중입니다. 잠시 기다린 후 다시 시도하세요. 계속 멈춰 있으면 이 창을 새로고침하세요."
+            },
             "retry": "다시 시도"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "화면 표시 설정이 기본값으로 초기화되었습니다.",
                 "chatPresetsResetFailed": "채팅 프리셋을 초기화하지 못했습니다. 다시 시도하세요.",
                 "chatPresetsResetSuccess": "채팅 프리셋이 초기화되었습니다.",
+                "configurationResetFailed": "구성 초기화를 예약할 수 없습니다. 구성 파일을 확인한 후 다시 시도하세요.",
                 "conversationsDeleteFailed": "대화를 삭제하지 못했습니다. 다시 시도하세요.",
                 "conversationsDeleteNone": "삭제할 대화가 없습니다.",
                 "conversationsDeleteSuccess": "대화 {count}개가 삭제되었습니다.",
-                "configurationResetFailed": "구성 초기화를 예약할 수 없습니다. 구성 파일을 확인한 후 다시 시도하세요.",
                 "factoryResetSuccess": "공장 초기화가 시작되었습니다. 곧 SoAI가 다시 시작됩니다.",
                 "fixInvalidFields": "저장하기 전에 유효하지 않은 필드를 수정하세요.",
                 "hardwareHistoryResetFailed": "하드웨어 기록을 초기화하지 못했습니다. 다시 시도하세요.",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "메트릭 초기화가 성공적으로 시작되었습니다",
                 "pageLayoutsResetFailed": "페이지 레이아웃을 초기화하지 못했습니다. 다시 시도하세요.",
                 "pageLayoutsResetSuccess": "대시보드, 메트릭 및 하드웨어 레이아웃이 기본값으로 초기화되었습니다.",
+                "partialSave": "일부 설정이 적용되었습니다. {reason} 표시된 미저장 항목을 확인한 후 다시 시도하세요.",
                 "passwordManagerResetFailed": "비밀번호 관리자를 초기화하지 못했습니다. 다시 시도하세요.",
                 "passwordManagerResetSuccess": "비밀번호 관리자가 초기화되었습니다. 저장된 자격 증명 {deletedCredentials}개를 제거하고 활성 보안 핸들 {clearedSecretHandles}개를 무효화했습니다.",
                 "preferencesResetFailed": "환경설정을 초기화하지 못했습니다. 다시 시도하세요.",
-                "preferencesResetSuccess": "환경설정이 기본값으로 초기화되었습니다. 다시 불러오는 중...",
+                "preferencesResetSuccess": "환경설정이 기본값으로 초기화되었습니다.",
                 "recentSearchesResetFailed": "최근 검색 기록을 초기화하지 못했습니다. 다시 시도하세요.",
                 "recentSearchesResetSuccess": "최근 검색 기록이 초기화되었습니다.",
                 "restartButton": "SoAI 다시 시작",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "사용자를 성공적으로 생성했습니다",
                 "userDeleteSuccess": "사용자를 성공적으로 삭제했습니다",
                 "userPasswordUpdateSuccess": "비밀번호를 성공적으로 변경했습니다",
-                "userWorkspacePathUpdateSuccessRevoked": "기본 폴더가 업데이트되었습니다. 새 폴더 외부의 기존 대화 폴더 재정의가 취소되었습니다.",
                 "userRoleUpdateSuccess": "사용자 역할을 성공적으로 업데이트했습니다",
+                "userWorkspacePathUpdateSuccessRevoked": "기본 폴더가 업데이트되었습니다. 새 폴더 외부의 기존 대화 폴더 재정의가 취소되었습니다.",
                 "wallpaperDeleteSuccess": "배경화면을 성공적으로 삭제했습니다",
                 "wallpaperDownloadSuccess": "배경화면을 성공적으로 다운로드했습니다",
                 "wallpaperReloadFailed": "배경화면 미리보기를 불러오지 못했습니다.",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "터미널 해제가 확인되지 않았습니다. 연결을 복구하고 다시 시도하세요. 서비스가 다시 시작되었다면 호스트에서 이전 셸을 확인하세요.",
+                "recoveryUnavailable": "터미널 복구를 사용할 수 없습니다. SoAI를 새로고침하고 다시 시도하기 전에 호스트에서 이전 셸을 확인하세요."
+            },
             "ariaLabels": {
                 "clearTerminal": "터미널 지우기",
                 "decreaseTextSize": "텍스트 크기 줄이기",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "음성이 텍스트로 변환되지 않았습니다. 관리자에게 음성 인식 설정을 요청한 후 파일을 다시 업로드하세요.",
             "openModels": "모델 열기",
             "openSettings": "음성 인식 설정"
+        },
+        "pagePanes": {
+            "storageUnavailable": "브라우저 저장소를 사용할 수 없습니다. 열린 창은 계속 사용할 수 있지만 배치는 저장할 수 없습니다.",
+            "invalidLayout": "저장된 창 배치가 올바르지 않습니다. 요청한 페이지를 정상적으로 엽니다.",
+            "incompatibleLayout": "저장된 창 배치에는 더 최신 앱이 필요합니다. 배치는 보존되었습니다.",
+            "foreignLayout": "저장된 창 배치는 다른 계정, 창 또는 에디션의 것입니다. 배치는 보존되었습니다.",
+            "layoutTooLarge": "이 창 배치는 너무 커서 저장할 수 없습니다. 열린 페이지는 계속 사용할 수 있습니다.",
+            "restoreFailed": "주 창을 복원하지 못했습니다. 저장된 배치는 보존되었습니다. 다시 시도하려면 새로고침하세요.",
+            "title": "창",
+            "active": "활성",
+            "closePane": "{page} 창 닫기",
+            "split": "다른 창 영역에서 열기",
+            "choosePage": "열 페이지",
+            "parked": "대기 중",
+            "closing": "닫는 중…",
+            "splitUnavailable": "이 창에는 한 개의 영역을 표시할 수 있습니다. 현재 영역에서 페이지를 엽니다.",
+            "placementUnavailable": "이 작업에 사용할 수 있는 창 영역이 없습니다. 대기 중인 작업을 마치거나 영역을 닫은 뒤 다시 시도하세요.",
+            "restoreConflict": "복원한 경로가 열린 창 영역과 충돌합니다. 계속하려면 해당 페이지를 직접 여세요.",
+            "layoutNotSaved": "레이아웃이 저장되지 않았습니다. 열려 있는 패널은 계속 사용할 수 있습니다.",
+            "saveCurrentLayout": "현재 레이아웃 저장",
+            "replaceSavedLayoutConfirmation": "보존된 레이아웃을 현재 열려 있는 패널로 바꾸시겠습니까? 저장된 레이아웃만 바뀌며 페이지 내용은 바뀌지 않습니다.",
+            "storageQuotaExceeded": "브라우저 저장 공간이 가득 찼습니다. 공간을 확보한 후 현재 레이아웃을 다시 저장하세요. 열려 있는 패널은 계속 사용할 수 있습니다.",
+            "storageBlocked": "브라우저가 레이아웃 저장을 차단했습니다. 이 사이트의 저장소 사용을 허용한 후 현재 레이아웃을 다시 저장하세요. 열려 있는 패널은 계속 사용할 수 있습니다."
         }
     }
 }

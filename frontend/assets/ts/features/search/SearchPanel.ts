@@ -10,7 +10,7 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { LifecycleModel } from '@core/LifecycleModel.ts';
 import type { GetStreamManagerOptions, PeekStreamManagerOptions } from '@core/lifecyclemodel/types.ts';
-import { onNavigationComplete, type NavigationEventDetail } from '@core/navigationEvents.ts';
+import { onFocusedNavigation, type NavigationEventDetail } from '@core/navigationEvents.ts';
 import { isSearchIndexContributorList, isSearchStaticIndexContributorList } from '@core/search/guards.ts';
 import { SEARCH_PANEL_SERVICE_ID, type SearchIndexContributor, type SearchStaticIndexContributor } from '@core/search/protocols.ts';
 import type { SearchItem, SearchOptions, TypeMetadata } from '@core/search/searchTypes.ts';
@@ -237,7 +237,7 @@ class SearchComponent extends LifecycleModel {
                 const path = detail.route ?? this.#dependencies.router.getCurrentRoute() ?? '';
                 this.#dispatchSearchMetaEvent('route', { component, path });
             };
-            const unsubscribe = onNavigationComplete(handler);
+            const unsubscribe = onFocusedNavigation(handler);
             if (unsubscribe) {
                 this.lifecycleResources.track(unsubscribe);
             }

@@ -1,6 +1,7 @@
 /* SoAI - Chat linked knowledge first item content preview [frontend/assets/ts/features/chat/message/knowledgeAttachmentFirstPreview.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
@@ -13,6 +14,7 @@ import type { ChatKnowledgeAttachmentsApi } from '@features/chat/pagecontracts/t
 import { parseKnowledgeItemsPage } from '@features/chat/message/attachmentoverflowmodal/knowledgeItems.ts';
 
 type KnowledgeAttachmentFirstPreviewArguments = {
+    readonly owner: PresentationOwner;
     knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'items' | 'previewItem' | 'useItems'>;
     targetConversationId: string;
     sourceConversationId: string;
@@ -90,6 +92,7 @@ const openKnowledgeAttachmentFirstPreview = async (inputArguments: KnowledgeAtta
     }
     requireContentPreviewModalService().open(
         createTextContentPreviewRequest({
+            owner: inputArguments.owner,
             scope: 'chat',
             type: 'text',
             headerDescription: i18n.t('chat.attachments.badge.knowledge'),

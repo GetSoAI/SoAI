@@ -1,6 +1,7 @@
 /* SoAI - Automation page calendar settings modal controller [frontend/assets/ts/pages/automation/controllers/AutomationCalendarSettingsModalController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { isAutomationCalendarFirstDay, isAutomationCalendarRangeTitleFormat, isAutomationCalendarTimeFormat, isAutomationCalendarWeekNumbering } from '@core/automation/guards.ts';
 import { readTrimmedSelectValue } from '@core/dom/formValues.ts';
 import { narrowInput, narrowSelect } from '@core/dom/narrowElement.ts';
@@ -23,6 +24,7 @@ interface ModalUi {
 }
 
 interface ModalControllerDependencies {
+    readonly owner: PresentationOwner;
     requireHTMLElement: (selector: string, context?: Element | Document | null) => HTMLElement;
     modalPresenter: ModalPresenterApi;
 }
@@ -64,7 +66,7 @@ class AutomationCalendarSettingsModalController {
         this.#ui.rangeTitleWeekdayToggle.checked = settings.showRangeTitleWeekday;
         this.#ui.weekNumberingSelect.disabled = !settings.showWeekNumbers;
         this.#hideError();
-        this.#dependencies.modalPresenter.open(this.#modalId);
+        this.#dependencies.modalPresenter.open(this.#modalId, { owner: this.#dependencies.owner });
     }
 
     isOpen(): boolean {

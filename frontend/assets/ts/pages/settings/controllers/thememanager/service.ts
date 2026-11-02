@@ -60,7 +60,6 @@ class ThemeWallpaperController {
         const urlInput = narrowInput(this.#host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_URL), 'Wallpaper url input');
         const downloadButton = narrowButton(this.#host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_DOWNLOAD), 'Wallpaper download button');
         const overlaySlider = narrowInput(this.#host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_OVERLAY_SLIDER), 'Wallpaper overlay slider');
-        const overlayValue = this.#host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_OVERLAY_VALUE);
 
         if (fileInput.type !== 'file') {
             throw new TypeError('Wallpaper file input must be type="file"');
@@ -133,21 +132,25 @@ class ThemeWallpaperController {
             })
         );
 
-        const initialOverlay = requireUiPrefsWallpaperOverlay(this.#host.getUiPrefValue('wallpaperOverlay'));
-        overlaySlider.value = String(initialOverlay);
-        this.#host.pageDom.updateText(overlayValue, formatWallpaperOverlayValue(initialOverlay));
-        this.#host.applyWallpaperOverlay(String(initialOverlay));
+        this.syncOverlay();
 
         this.#addCleanup(
             this.#host.pageResources.on(overlaySlider, 'input', () => {
                 const safe = readFiniteInputValueOrNull(overlaySlider) ?? 0;
                 const value = normalizeProgressPercent(safe) ?? 0;
                 this.#host.setUiPrefValue('wallpaperOverlay', value);
-                this.#host.pageDom.updateText(overlayValue, formatWallpaperOverlayValue(value));
-                this.#host.applyWallpaperOverlay(String(value));
+                this.syncOverlay();
             })
         );
         updateWallpaperUI(this.#host);
+    }
+
+    syncOverlay(): void {
+        const value = requireUiPrefsWallpaperOverlay(this.#host.getUiPrefValue('wallpaperOverlay'));
+        const slider = narrowInput(this.#host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_OVERLAY_SLIDER), 'Wallpaper overlay slider');
+        if (slider.value !== String(value)) slider.value = String(value);
+        this.#host.pageDom.updateText(this.#host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_OVERLAY_VALUE), formatWallpaperOverlayValue(value));
+        this.#host.applyWallpaperOverlay(String(value));
     }
 
     async reload(): Promise<void> {

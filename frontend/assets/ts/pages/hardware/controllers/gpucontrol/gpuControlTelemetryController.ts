@@ -3,7 +3,7 @@
 
 import { createHtmlFragment } from '@core/dom/html.ts';
 import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
-import { EMPTY_UI_HTML, joinUiHtml, uiAttr, uiHtml, uiText } from '@core/security/uiHtml.ts';
+import { joinUiHtml, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import { renderIconSlot } from '@core/ui/icons/view.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
@@ -35,14 +35,14 @@ const resolveGpuControlTelemetryTemperatureSeverity = (telemetry: GpuControlTele
     return resolveTemperatureSeverity(telemetry?.temperatureCelsius);
 };
 
-type GpuTelemetryMetric = { label: string; value: string; icon: IconName | null; temperature: boolean };
+type GpuTelemetryMetric = { label: string; value: string; icon: IconName; temperature: boolean };
 
 const buildGpuTelemetryMetrics = (telemetry: GpuControlTelemetry | null): GpuTelemetryMetric[] => {
     if (!hasTelemetry(telemetry)) return [];
     const metrics: GpuTelemetryMetric[] = [];
-    if (isFiniteNumber(telemetry.temperatureCelsius)) metrics.push({ label: i18n.t('hardware.gpu.telemetry.temperatures'), value: formatTemperature(telemetry.temperatureCelsius, 0), icon: null, temperature: true });
+    if (isFiniteNumber(telemetry.temperatureCelsius)) metrics.push({ label: i18n.t('hardware.gpu.telemetry.temperatures'), value: formatTemperature(telemetry.temperatureCelsius, 0), icon: 'thermometer', temperature: true });
     if (isFiniteNumber(telemetry.coreUtilizationPercent)) metrics.push({ label: i18n.t('hardware.gpu.telemetry.coreUtilization'), value: formatPercent(telemetry.coreUtilizationPercent, 0), icon: 'device-gpu', temperature: false });
-    if (isFiniteNumber(telemetry.memoryUtilizationPercent)) metrics.push({ label: i18n.t('hardware.gpu.telemetry.memoryUtilization'), value: formatPercent(telemetry.memoryUtilizationPercent, 0), icon: null, temperature: false });
+    if (isFiniteNumber(telemetry.memoryUtilizationPercent)) metrics.push({ label: i18n.t('hardware.gpu.telemetry.memoryUtilization'), value: formatPercent(telemetry.memoryUtilizationPercent, 0), icon: 'device-memory', temperature: false });
     if (isFiniteNumber(telemetry.powerDrawWatts) && isFiniteNumber(telemetry.powerLimitWatts) && telemetry.powerLimitWatts > 0) metrics.push({ label: i18n.t('hardware.gpu.telemetry.powerDraw'), value: formatPercent((telemetry.powerDrawWatts / telemetry.powerLimitWatts) * 100, 0), icon: 'zap', temperature: false });
     return metrics;
 };
@@ -55,7 +55,7 @@ const formatGpuControlTelemetryLabel = (telemetry: GpuControlTelemetry | null, d
 const renderGpuControlTelemetryMetrics = (telemetry: GpuControlTelemetry | null, getIconSync: GpuControlManagerDependencies['getIconSync']): TrustedHtml =>
     joinUiHtml(
         buildGpuTelemetryMetrics(telemetry).map((metric) => {
-            const label = metric.icon ? renderIconSlot(getIconSync(metric.icon, { size: 12, strokeWidth: 1.7 })) : metric.temperature ? EMPTY_UI_HTML : uiText(metric.label);
+            const label = renderIconSlot(getIconSync(metric.icon, { size: 12, strokeWidth: 1.7 }));
             return uiHtml`<span class="gpu-telemetry-metric" data-tooltip="${uiAttr(`${metric.label} ${metric.value}`)}">${label}<bdi>${metric.value}</bdi></span>`;
         })
     );
@@ -77,8 +77,8 @@ const normalizeGpuControlTelemetryMap = (source: Readonly<Record<string, GpuCont
     return result;
 };
 
-const updateGpuControlTelemetryLabels = (documentRef: Document, telemetryByDeviceId: ReadonlyMap<string, GpuControlTelemetry>, getIconSync: GpuControlManagerDependencies['getIconSync']): void => {
-    const container = dom.resolve('#gpu-controls-container', documentRef);
+const updateGpuControlTelemetryLabels = (root: Element, telemetryByDeviceId: ReadonlyMap<string, GpuControlTelemetry>, getIconSync: GpuControlManagerDependencies['getIconSync']): void => {
+    const container = dom.resolve('#gpu-controls-container', root);
     if (!(container instanceof HTMLElement)) {
         return;
     }
@@ -91,7 +91,7 @@ const updateGpuControlTelemetryLabels = (documentRef: Document, telemetryByDevic
         const telemetry = telemetryByDeviceId.get(deviceId) ?? null;
         const description = formatGpuControlTelemetryLabel(telemetry, true);
         if (node.getAttribute('aria-label') !== description) {
-            const fragment = createHtmlFragment({ documentRef, html: renderGpuControlTelemetryMetrics(telemetry, getIconSync).html, context: node });
+            const fragment = createHtmlFragment({ documentRef: root.ownerDocument, html: renderGpuControlTelemetryMetrics(telemetry, getIconSync).html, context: node });
             reconcileChildNodes(node, Array.from(fragment.childNodes));
             node.setAttribute('aria-label', description);
         }

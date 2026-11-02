@@ -1,20 +1,22 @@
 /* SoAI - Shared routing page outlet [frontend/assets/ts/core/routing/router/pageOutlet.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { emitNavigationEvent, NAVIGATION_EVENTS, type NavigationEventDetail } from '@core/navigationEvents.ts';
+import type { PageMountScope, NavigationDetail, RouteDefinition, RouteParameters, SidebarComponentTargets } from '@core/routing/router/types.ts';
+import { emitNavigationEvent, NAVIGATION_EVENTS, type NavigationEventDetail, type NavigationPresentation } from '@core/navigationEvents.ts';
 import { toLowerCase, toTrimmedString } from '@core/normalize.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { ensureError, extractErrorMessage } from '@core/errors/coerce.ts';
 import type { ElementOptions, ReplaceContentOptions } from '@core/dom/types.ts';
-import type { NavigationDetail, RouteDefinition, RouteParameters, SidebarComponentTargets } from '@core/routing/router/types.ts';
+
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import { hasOwn, isFunction, isHTMLElement, isObject, isString } from '@core/typeGuards.ts';
 
 interface RouterLifecycleDependencies {
+    navigationPresentation?: () => NavigationPresentation;
     dom: { getBody: () => HTMLElement };
     stateManager: { setTabState: (key: string, value: JsonValue | null | undefined) => void };
     cleanupManager: { cleanupAll: () => Promise<void> };
-    closeOpenModals: () => number;
+    closeOpenModals: (owner: PageMountScope | null) => number;
     queryUI: (selector: string) => Element[];
     emitRouterEvent: (stage: string, data?: Record<string, string | null>, severity?: string) => void;
 }
@@ -63,9 +65,9 @@ const renderNavigationError = (dom: DomRenderer, contentContainer: HTMLElement, 
     throw new Error(`${title}: ${text ?? ''}`);
 };
 
-const performNavigationCleanup = async (dependencies: RouterLifecycleDependencies, currentRoute: string | null): Promise<void> => {
+const performNavigationCleanup = async (dependencies: RouterLifecycleDependencies, currentRoute: string | null, owner: PageMountScope | null): Promise<void> => {
     dependencies.emitRouterEvent('cleanup:start', { route: currentRoute });
-    dependencies.closeOpenModals();
+    dependencies.closeOpenModals(owner);
     dependencies.emitRouterEvent('cleanup:complete', { route: currentRoute });
 };
 
@@ -101,18 +103,34 @@ const buildPersistedNavigationDetail = (detail: NavigationDetail): JsonObject =>
     error: detail.error
 });
 
-const dispatchNavigationEvent = (dependencies: RouterLifecycleDependencies, route: RouteDefinition, parameters: RouteParameters, phase: string, error: Error | null): NavigationDetail => {
+const dispatchNavigationEvent = (dependencies: RouterLifecycleDependencies, route: RouteDefinition, parameters: RouteParameters, phase: string, error: Error | null, persist = true): NavigationDetail => {
     const detail = buildNavigationDetail(route, parameters, phase, error);
 
     const eventName = phase === 'start' ? NAVIGATION_EVENTS.START : phase === 'error' ? NAVIGATION_EVENTS.ERROR : NAVIGATION_EVENTS.COMPLETE;
-    const eventDetail: NavigationEventDetail = { ...detail };
+    const presentation: NavigationPresentation = { paneId: null, mountGeneration: null, focused: true, ...dependencies.navigationPresentation?.() };
+    const ownsPresentation = (): boolean => {
+        const current = dependencies.navigationPresentation?.();
+        return presentation.focused && (!current || (current.focused && current.paneId === presentation.paneId && current.mountGeneration === presentation.mountGeneration));
+    };
+    const eventDetail: NavigationEventDetail = { ...detail, ...presentation, isCurrentPresentation: ownsPresentation };
     emitNavigationEvent(eventName, eventDetail);
 
-    if (eventName === NAVIGATION_EVENTS.COMPLETE) {
+    if (eventName === NAVIGATION_EVENTS.COMPLETE && persist && ownsPresentation()) {
         dependencies.stateManager.setTabState('navigation', buildPersistedNavigationDetail(detail));
-        dependencies.stateManager.setTabState('activePage', detail.component);
+        if (ownsPresentation()) dependencies.stateManager.setTabState('activePage', detail.component);
     }
     return detail;
+};
+
+const projectFocusedPane = (dependencies: RouterLifecycleDependencies, route: RouteDefinition, parameters: RouteParameters, presentation: NavigationPresentation, isCurrent: () => boolean): void => {
+    const detail = buildNavigationDetail(route, parameters, 'selection', null);
+    if (!isCurrent()) return;
+    dependencies.stateManager.setTabState('navigation', buildPersistedNavigationDetail({ ...detail, phase: 'complete' }));
+    if (!isCurrent()) return;
+    dependencies.stateManager.setTabState('activePage', detail.component);
+    if (!isCurrent()) return;
+    updateBodyPageClass(dependencies, route);
+    if (isCurrent()) emitNavigationEvent(NAVIGATION_EVENTS.FOCUS, { ...detail, ...presentation, isCurrentPresentation: isCurrent });
 };
 
 const pushRouteState = (historyApi: History, targetPath: string, title: string, replaceState: boolean): void => {
@@ -159,6 +177,6 @@ const updateSidebarActiveState = (componentName: string, sidebarTargets: Sidebar
     sidebarService.setActiveByPage(isString(mapped) && mapped ? mapped : componentName);
 };
 
-export { createReloadHandler, performNavigationCleanup, pushRouteState, renderNavigationError, dispatchNavigationEvent, updateBodyPageClass, updateSidebarActiveState };
+export { createReloadHandler, performNavigationCleanup, pushRouteState, renderNavigationError, dispatchNavigationEvent, projectFocusedPane, updateBodyPageClass, updateSidebarActiveState };
 
 export type { RouterLifecycleDependencies };

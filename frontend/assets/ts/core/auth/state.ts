@@ -1,11 +1,12 @@
 /* SoAI - Shared auth state [frontend/assets/ts/core/auth/state.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { beginAuthenticatedEpoch, beginTerminalAuthIntent, canApplyAuthenticatedEpoch } from '@core/auth/epochIntent.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { createModuleLogger } from '@core/moduleContext.ts';
 import { isFunction, isObject } from '@core/typeGuards.ts';
 import { AUTH_TAG } from '@core/auth/constants.ts';
-import type { AuthCallback, LoginCallback, WebuiUser, WizardStatus } from '@core/auth/types.ts';
+import type { AuthCallback, AuthEpochIntentCallback, LoginCallback, WebuiUser, WizardStatus } from '@core/auth/types.ts';
 import type { AuthManagerServiceResolver, AuthManagerStateHandle } from '@core/auth/internalContracts.ts';
 import { buildSessionPayload, extractUserFields, serializeUser } from '@core/auth/stateMappers.ts';
 import { publishSharedState, resetAuthSharedState, safeSetStorageAuthenticated, type SharedStateHooks } from '@core/auth/sharedState.ts';
@@ -19,6 +20,7 @@ const createAuthManagerState = (stateKey: string): AuthManagerStateHandle => ({
     isAuthenticated: false,
     loginCallbacks: [],
     logoutCallbacks: [],
+    epochIntentCallbacks: [],
     stateKey,
     stateManager: null,
     stateSubscription: null,
@@ -35,6 +37,7 @@ const createAuthManagerState = (stateKey: string): AuthManagerStateHandle => ({
 });
 
 const resetAuthManagerState = (state: AuthManagerStateHandle): void => {
+    beginTerminalAuthIntent(state);
     state.user = null;
     state.isAuthenticated = false;
     state.loginCallbacks.length = 0;
@@ -43,24 +46,8 @@ const resetAuthManagerState = (state: AuthManagerStateHandle): void => {
     state.isLoggingOut = false;
     state.sessionInvalidationPromise = null;
     state.wizardStatusSnapshot = null;
-    state.authEpoch += 1;
-    state.terminalEpoch = state.authEpoch;
+    state.epochIntentCallbacks.length = 0;
 };
-
-const beginAuthenticatedEpoch = (state: AuthManagerStateHandle): number => {
-    state.authEpoch += 1;
-    state.terminalEpoch = null;
-    return state.authEpoch;
-};
-
-const beginTerminalAuthIntent = (state: AuthManagerStateHandle): number => {
-    state.authEpoch += 1;
-    state.terminalEpoch = state.authEpoch;
-    state.isLoggingOut = true;
-    return state.authEpoch;
-};
-
-const canApplyAuthenticatedEpoch = (state: AuthManagerStateHandle, epoch: number): boolean => state.authEpoch === epoch && state.terminalEpoch === null;
 
 const sharedStateHooks = (): SharedStateHooks => {
     return {
@@ -74,7 +61,7 @@ const sharedStateHooks = (): SharedStateHooks => {
 const setStorageAuthenticated = async (resolveStorage: AuthManagerServiceResolver['resolveStorage'], value: boolean): Promise<void> => {
     await safeSetStorageAuthenticated(resolveStorage, value);
 };
-const applyUserSession = async (state: AuthManagerStateHandle, user: WebuiUser | null, resolveStorage: AuthManagerServiceResolver['resolveStorage'], serialize: UserSerializer = serializeUser, expectedEpoch: number | null = null): Promise<boolean> => {
+const applyUserSession = async (state: AuthManagerStateHandle, user: WebuiUser | null, resolveStorage: AuthManagerServiceResolver['resolveStorage'], serialize: UserSerializer = serializeUser, expectedEpoch: number | null = null, source: 'cookie-transition' | 'session-read' = 'cookie-transition'): Promise<boolean> => {
     if (expectedEpoch !== null && !canApplyAuthenticatedEpoch(state, expectedEpoch)) {
         return false;
     }
@@ -101,10 +88,12 @@ const applyUserSession = async (state: AuthManagerStateHandle, user: WebuiUser |
     }
     state.user = user;
     state.isAuthenticated = true;
-    try {
-        await publishSharedState(state, sharedStateHooks(), serialize, expectedEpoch);
-    } catch (error) {
-        errorHandler.warn(AUTH_TAG, 'Publishing authenticated session state failed', ensureError(error));
+    if (source === 'cookie-transition') {
+        try {
+            await publishSharedState(state, sharedStateHooks(), serialize, expectedEpoch);
+        } catch (error) {
+            errorHandler.warn(AUTH_TAG, 'Publishing authenticated session state failed', ensureError(error));
+        }
     }
     if (expectedEpoch !== null && !canApplyAuthenticatedEpoch(state, expectedEpoch)) {
         return false;
@@ -114,6 +103,7 @@ const applyUserSession = async (state: AuthManagerStateHandle, user: WebuiUser |
 };
 const clearSession = async (state: AuthManagerStateHandle, resolveStorage: AuthManagerServiceResolver['resolveStorage'], serialize: UserSerializer = serializeUser): Promise<boolean> => {
     const wasAuthenticated = state.isAuthenticated;
+    if (wasAuthenticated && state.terminalEpoch === null) beginTerminalAuthIntent(state);
     state.user = null;
     state.isAuthenticated = false;
     try {
@@ -130,7 +120,7 @@ const clearSession = async (state: AuthManagerStateHandle, resolveStorage: AuthM
     }
     return false;
 };
-const addCallback = <T extends AuthCallback | LoginCallback>(callbacks: T[], callback: T): (() => void) => {
+const addCallback = <T extends AuthCallback | LoginCallback | AuthEpochIntentCallback>(callbacks: T[], callback: T): (() => void) => {
     if (!isFunction(callback)) {
         return () => {};
     }

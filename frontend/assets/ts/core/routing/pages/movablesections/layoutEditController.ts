@@ -1,12 +1,14 @@
 /* SoAI - Shared routing layout edit controller [frontend/assets/ts/core/routing/pages/movablesections/layoutEditController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { createHeaderEditController, type HeaderEditController } from '@core/headeredit/controller.ts';
 import type { MovableSectionId } from '@core/routing/pages/movablesections/types.ts';
 import type { MovableSectionLayout } from '@core/routing/pages/movablesections/service.ts';
 import { createSaveController, SAVE_HEADER_PRIORITY_PAGE, type SaveController } from '@core/save/public.ts';
 
 interface MovableLayoutEditControllerDependencies<TSectionId extends MovableSectionId> {
+    readonly owner: PresentationOwner;
     layout: MovableSectionLayout<TSectionId>;
     contextId: string;
     saveUnitId: string;
@@ -15,6 +17,7 @@ interface MovableLayoutEditControllerDependencies<TSectionId extends MovableSect
 }
 
 class MovableLayoutEditController<TSectionId extends MovableSectionId> {
+    readonly #owner: PresentationOwner;
     readonly #layout: MovableSectionLayout<TSectionId>;
     readonly #contextId: string;
     readonly #saveUnitId: string;
@@ -26,6 +29,7 @@ class MovableLayoutEditController<TSectionId extends MovableSectionId> {
     #initialized = false;
 
     constructor(dependencies: MovableLayoutEditControllerDependencies<TSectionId>) {
+        this.#owner = dependencies.owner;
         this.#layout = dependencies.layout;
         this.#contextId = dependencies.contextId;
         this.#saveUnitId = dependencies.saveUnitId;
@@ -39,7 +43,10 @@ class MovableLayoutEditController<TSectionId extends MovableSectionId> {
             return;
         }
         this.#initialized = true;
-        this.#layout.setChangeListener((): void => this.sync());
+        this.#layout.setChangeListener((change): void => {
+            if (change === 'draft') this.#save?.notifyChanged();
+            this.sync();
+        });
         this.#ensureSave().attach({
             resolveSaveButtons: (): readonly HTMLButtonElement[] => []
         });
@@ -63,7 +70,6 @@ class MovableLayoutEditController<TSectionId extends MovableSectionId> {
             this.#editing = false;
         }
         this.#syncLayoutLock();
-        this.#save?.notifyChanged();
         this.#edit?.sync();
     }
 
@@ -99,6 +105,7 @@ class MovableLayoutEditController<TSectionId extends MovableSectionId> {
             return this.#save;
         }
         this.#save = createSaveController({
+            owner: this.#owner,
             headerContextId: this.#contextId,
             headerPriority: SAVE_HEADER_PRIORITY_PAGE,
             requestContextLabel: this.#requestContextLabel,
@@ -111,6 +118,7 @@ class MovableLayoutEditController<TSectionId extends MovableSectionId> {
             ]
         });
         this.#edit = createHeaderEditController({
+            owner: this.#owner,
             contextId: this.#contextId,
             isAllowed: (): boolean => this.#isEditAllowed(),
             isCompactLayout: (): boolean => !this.#layout.isEditableLayoutMode(),

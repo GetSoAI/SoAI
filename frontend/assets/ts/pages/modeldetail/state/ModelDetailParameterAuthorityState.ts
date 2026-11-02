@@ -9,6 +9,7 @@ import type { ParameterCategory, ParameterDefinition } from '@pages/modeldetail/
 
 type ParameterAuthorityStatus = 'current' | 'refreshing' | 'stale' | 'unavailable';
 type ParameterUnavailableReason = 'plugin_operation_in_progress' | 'plugin_unregistered' | 'refresh_failed';
+type ParameterSnapshotOutcome = 'reconciled' | 'stale' | 'unavailable' | 'cancelled';
 
 interface ParameterSchemaShape {
     definitions: Record<string, ParameterDefinition | null>;
@@ -36,7 +37,9 @@ class ModelDetailParameterAuthority {
     displayedAtMs: number | null = null;
     pending: PendingParameterSnapshot | null = null;
     exhaustionNotified = false;
-    recovery: Promise<void> | null = null;
+    recovery: Promise<ParameterSnapshotOutcome> | null = null;
+    invalidationGeneration = 0;
+    reconciliationExhausted = false;
     #appliedSchema: ParameterSchemaShape | null = null;
 
     get schemaBlocked(): boolean {
@@ -47,8 +50,14 @@ class ModelDetailParameterAuthority {
         return this.validated && this.status !== 'unavailable' && !this.schemaBlocked;
     }
 
-    reset(): void {
+    invalidate(): void {
         this.reads.invalidate();
+        this.invalidationGeneration += 1;
+    }
+
+    reset(): void {
+        this.invalidate();
+        this.reconciliationExhausted = false;
         this.status = 'current';
         this.reason = null;
         this.validated = false;
@@ -67,11 +76,15 @@ class ModelDetailParameterAuthority {
         this.pending = null;
     }
 
+    matchesAppliedSchema(payload: ParametersData): boolean {
+        return this.#appliedSchema !== null && deepEqual(this.#appliedSchema, readParameterSchema(payload));
+    }
+
     holdPending(token: number, payload: ParametersData, receivedAtMs: number): void {
-        const schemaChanged = this.#appliedSchema !== null && !deepEqual(this.#appliedSchema, readParameterSchema(payload));
+        const schemaChanged = this.#appliedSchema !== null && !this.matchesAppliedSchema(payload);
         this.pending = { token, payload, receivedAtMs, schemaChanged };
     }
 }
 
 export { ModelDetailParameterAuthority };
-export type { ParameterAuthorityStatus, ParameterUnavailableReason, PendingParameterSnapshot };
+export type { ParameterAuthorityStatus, ParameterUnavailableReason, ParameterSnapshotOutcome, PendingParameterSnapshot };

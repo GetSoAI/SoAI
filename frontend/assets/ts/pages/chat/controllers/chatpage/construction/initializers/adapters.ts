@@ -46,7 +46,7 @@ const initializeParameterManager = (page: ChatControllerInitializationContext): 
     page.runtime.configurationRuntime.initializeParameters(
         new ChatParameterManager({
             surface: {
-                showConfirmation: (options) => dialogs.showConfirmation(options),
+                showConfirmation: (options) => dialogs.showConfirmation({ ...options, owner: page.page.services.mountScope }),
                 showNotification: (message, type, duration) => page.page.feedback.show(message, type, duration),
                 optionalUI: (selector, context) => page.page.pageDom.optional(selector, context ?? configurationModalRoot),
                 queryUI: (selector) => page.page.pageDom.query(selector, configurationModalRoot),

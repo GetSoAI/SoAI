@@ -1,7 +1,11 @@
 /* SoAI - Chat feature page presence service [frontend/assets/ts/features/chat/background/ChatPagePresenceService.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { CHAT_PAGE_PRESENCE_SERVICE_ID } from '@core/chat/protocols.ts';
+import { CHAT_PAGE_PRESENCE_SERVICE_ID, type ChatPagePresenceOwner, type ChatPagePresenceServiceContract, type ChatPresentationState } from '@core/chat/protocols.ts';
+import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
+import { CleanupStack } from '@core/lifecycle/cleanupStack.ts';
+import { runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
+import { LifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
 import { requireDocument } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -13,15 +17,22 @@ import { isWebSocketReconnectInterruption } from '@core/websocketclient/connecti
 import { getWebSocketClient } from '@core/websocketclient/service.ts';
 import { WEBSOCKET_MESSAGE_TYPES } from '@core/websocketEvents.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
-import type { ChatPresentationState } from '@features/chat/chatstreamservice/contracts.ts';
 
 const createPresenceId = (): string => generateSecureId({ prefix: 'chat-presence', format: 'hex', separator: '-' });
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 10_000;
 
-class ChatPagePresenceService {
+interface ChatPresenceMount {
+    readonly owner: ChatPagePresenceOwner;
+    readonly cleanup: CleanupStack;
+    active: boolean;
+}
+
+class ChatPagePresenceService implements ChatPagePresenceServiceContract {
     readonly #deviceId = createPresenceId();
     readonly #tabId = windowIdentity.current();
-    #mountedCount = 0;
+    readonly #mounts = new Set<ChatPresenceMount>();
+    readonly #presenceUpdate = new SequenceToken();
+    #presencePublicationPending = false;
     #pageVisible = false;
     #conversationId: string | null = null;
     #activeConversationId: string | null = null;
@@ -31,34 +42,33 @@ class ChatPagePresenceService {
     #presentationStateChangeHandler: ((state: ChatPresentationState) => void) | null = null;
     #document: Document | null = null;
     #window: Window | null = null;
-    #cleanupBindings: (() => void) | null = null;
-    #cleanupWebSocketConnected: (() => void) | null = null;
+    #bindings: CleanupStack | null = null;
     #heartbeatTimerId: number | null = null;
 
-    enter(): () => void {
-        this.#mountedCount += 1;
-        this.#ensureBindings();
-        this.#sendPresence(true);
-        let disposed = false;
-        return () => {
-            if (disposed) {
-                return;
-            }
-            disposed = true;
-            if (this.#mountedCount > 0) {
-                this.#mountedCount -= 1;
-            }
-            this.#sendPresence();
-            if (this.#mountedCount === 0) {
-                this.#cleanupBindings?.();
-                this.#cleanupWebSocketConnected?.();
-                this.#cleanupBindings = null;
-                this.#cleanupWebSocketConnected = null;
-                this.#stopHeartbeat();
-                this.#document = null;
-                this.#window = null;
-            }
+    enter(owner: ChatPagePresenceOwner): () => void {
+        if (!owner.admission.isCurrent()) throw new LifecycleCancellationError('Chat presence owner is no longer current', 'chat-presence-owner-stale');
+        for (const mount of this.#mounts) if (!mount.active) throwCollectedCleanupFailures(mount.cleanup.dispose());
+        const mount: ChatPresenceMount = { owner, cleanup: new CleanupStack({ logError: (message, error) => errorHandler.debug('ChatPagePresenceService', message, error) }), active: true };
+        this.#mounts.add(mount);
+        const release = (): void => {
+            mount.active = false;
+            const failures = [...mount.cleanup.dispose()];
+            if (failures.length === 0) this.#mounts.delete(mount);
+            runCleanupStepCollectingFailure(() => this.#sendPresence(), failures);
+            if (![...this.#mounts].some((entry) => entry.active)) runCleanupStepCollectingFailure(() => this.#releaseBindings(), failures);
+            throwCollectedCleanupFailures(failures);
         };
+        try {
+            this.#ensureBindings();
+            mount.cleanup.add(owner.presentation.subscribe(() => this.#sendPresence()));
+            this.#sendPresence(true);
+        } catch (error) {
+            const failures = [ensureError(error)];
+            runCleanupStepCollectingFailure(release, failures);
+            throwCollectedCleanupFailures([...new Set(failures)]);
+            throw ensureError(error);
+        }
+        return release;
     }
 
     setConversationId(conversationId: string | null): void {
@@ -96,43 +106,57 @@ class ChatPagePresenceService {
     }
 
     #ensureBindings(): void {
-        if (this.#cleanupBindings) {
-            return;
+        if (this.#bindings) {
+            if (this.#bindings.status === 'active') return;
+            throwCollectedCleanupFailures(this.#bindings.dispose());
+            throw new LifecycleCancellationError('Chat presence bindings are being released', 'chat-presence-release-pending');
         }
         const documentRef = requireDocument();
         const windowRef = documentRef.defaultView;
-        if (!windowRef) {
-            throw new Error('ChatPagePresenceService requires a Window');
-        }
-        const syncPresence = (): void => this.#sendPresence();
-        documentRef.addEventListener('visibilitychange', syncPresence);
-        windowRef.addEventListener('focus', syncPresence);
-        windowRef.addEventListener('blur', syncPresence);
+        if (!windowRef) throw new Error('ChatPagePresenceService requires a Window');
+        const bindings = new CleanupStack({ logError: (message, error) => errorHandler.debug('ChatPagePresenceService', message, error) });
+        this.#bindings = bindings;
         this.#document = documentRef;
         this.#window = windowRef;
-        this.#cleanupWebSocketConnected = subscribeManagedWebSocketContract({
-            label: 'ChatPagePresenceService',
-            contract: WEBSOCKET_EVENT_CONTRACTS.lifecycle.connected,
-            handler: () => this.#sendPresence(true)
-        });
-        this.#cleanupBindings = () => {
-            documentRef.removeEventListener('visibilitychange', syncPresence);
-            windowRef.removeEventListener('focus', syncPresence);
-            windowRef.removeEventListener('blur', syncPresence);
-        };
+        const syncPresence = (): void => this.#sendPresence();
+        try {
+            documentRef.addEventListener('visibilitychange', syncPresence);
+            bindings.add(() => documentRef.removeEventListener('visibilitychange', syncPresence));
+            windowRef.addEventListener('focus', syncPresence);
+            bindings.add(() => windowRef.removeEventListener('focus', syncPresence));
+            windowRef.addEventListener('blur', syncPresence);
+            bindings.add(() => windowRef.removeEventListener('blur', syncPresence));
+            bindings.add(subscribeManagedWebSocketContract({ label: 'ChatPagePresenceService', contract: WEBSOCKET_EVENT_CONTRACTS.lifecycle.connected, handler: () => this.#sendPresence(true) }));
+            bindings.add(() => this.#stopHeartbeat());
+        } catch (error) {
+            const failures = [ensureError(error)];
+            runCleanupStepCollectingFailure(() => this.#releaseBindings(), failures);
+            throwCollectedCleanupFailures([...new Set(failures)]);
+        }
+    }
+
+    #releaseBindings(): void {
+        const bindings = this.#bindings;
+        if (!bindings) return;
+        throwCollectedCleanupFailures(bindings.dispose());
+        if (this.#bindings === bindings) {
+            this.#bindings = null;
+            this.#document = null;
+            this.#window = null;
+        }
     }
 
     #resolveActiveConversationId(): string | null {
         const presentationConversationId = this.#resolvePresentationConversationId();
         const documentRef = this.#document;
         const windowRef = this.#window;
-        const active = presentationConversationId !== null && documentRef !== null && windowRef !== null && documentRef.hasFocus();
+        const active = presentationConversationId !== null && documentRef !== null && windowRef !== null && documentRef.hasFocus() && [...this.#mounts].some((mount) => mount.active && mount.owner.admission.isCurrent() && mount.owner.presentation.isFocused());
         return active ? presentationConversationId : null;
     }
 
     #resolvePresentationConversationId(): string | null {
         const documentRef = this.#document;
-        const visible = this.#mountedCount > 0 && this.#pageVisible && documentRef !== null && documentRef.visibilityState === 'visible' && this.#conversationId !== null;
+        const visible = [...this.#mounts].some((mount) => mount.active && mount.owner.admission.isCurrent() && mount.owner.presentation.isVisible()) && this.#pageVisible && documentRef !== null && documentRef.visibilityState === 'visible' && this.#conversationId !== null;
         return visible ? this.#conversationId : null;
     }
 
@@ -144,6 +168,8 @@ class ChatPagePresenceService {
     }
 
     #sendPresence(force = false): void {
+        const update = this.#presenceUpdate.next();
+        if (force) this.#presencePublicationPending = true;
         const presentationConversationId = this.#resolvePresentationConversationId();
         const presentationVisible = presentationConversationId !== null;
         const presentationStateChanged = this.#reportedPresentationConversationId !== this.#conversationId || this.#reportedPresentationVisible !== presentationVisible;
@@ -152,20 +178,24 @@ class ChatPagePresenceService {
             this.#reportedPresentationVisible = presentationVisible;
             this.#presentationStateChangeHandler?.({ conversationId: this.#conversationId, visible: presentationVisible });
         }
+        if (!this.#presenceUpdate.isActive(update)) return;
         const activeConversationId = this.#resolveActiveConversationId();
         const changed = this.#activeConversationId !== activeConversationId;
         if (changed) {
+            this.#presencePublicationPending = true;
             this.#activeConversationId = activeConversationId;
             this.#activeConversationChangeHandler?.(activeConversationId);
         }
+        if (!this.#presenceUpdate.isActive(update)) return;
         this.#syncHeartbeat(activeConversationId);
-        if (!changed && !force) {
+        if (!this.#presencePublicationPending) {
             return;
         }
         const websocketClient = getWebSocketClient();
         if (!websocketClient.isConnected()) {
             return;
         }
+        this.#presencePublicationPending = false;
         void websocketClient
             .sendMessage(
                 {

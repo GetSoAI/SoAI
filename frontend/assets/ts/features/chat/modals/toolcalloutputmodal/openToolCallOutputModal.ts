@@ -1,6 +1,7 @@
 /* SoAI - Chat feature open tool call output modal [frontend/assets/ts/features/chat/modals/toolcalloutputmodal/openToolCallOutputModal.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -21,7 +22,7 @@ interface OpenToolCallOutputModalArguments {
     modelVariantIndex: JsonValue | null | undefined;
 }
 
-const openChatToolCallOutputModal = async (host: CopyActionDependencies, inputArguments: OpenToolCallOutputModalArguments): Promise<void> => {
+const openChatToolCallOutputModal = async (host: CopyActionDependencies & { readonly owner: PresentationOwner }, inputArguments: OpenToolCallOutputModalArguments): Promise<void> => {
     const normalizedConversationId = requireConversationId(inputArguments.conversationId, 'Conversation');
     const normalizedCallId = requireToolCallId(inputArguments.callId, 'Tool call');
     const assistantIdentity = requireAssistantVariantIdentity({
@@ -43,6 +44,7 @@ const openChatToolCallOutputModal = async (host: CopyActionDependencies, inputAr
     };
 
     const modal = new ChatToolCallOutputModal({
+        owner: host.owner,
         escapeHtml: (value) => escapeHtml(value),
         escapeAttribute: (value) => escapeAttribute(value),
         runWithBoundary: (name, functionValue) => host.runWithBoundary(name, functionValue),

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable, Generator, Mapping
 from contextlib import AbstractContextManager, ExitStack, contextmanager
 from urllib import request
@@ -39,6 +40,8 @@ from core.network.outbound_http_profiles import build_outbound_request_headers
 from core.network.resumable_downloads import DownloadStreamState
 from core.network.resumable_http_stream_sync import ResumableHTTPStreamSync
 from core.network.transfer_retry import build_http_transfer_retry_policy
+from core.streaming.byte_chunks import iter_batched_byte_chunks
+from core.timing.constants import BACKGROUND_TIMEOUT_SEC
 
 __all__ = ("download_update_file",)
 
@@ -104,7 +107,7 @@ def download_update_file(
             with ResumableHTTPStreamSync(
                 open_response,
                 state=state,
-                chunk_size=STAGED_TRANSFER_CHUNK_SIZE,
+                chunk_size=None,
             ) as stream:
                 content_length = state.total_length
                 if content_length is not None and content_length > max_download_bytes:
@@ -113,10 +116,13 @@ def download_update_file(
                     )
                 last_percent = -1
                 last_published_percent = -2
+                last_published_size = -1
+                last_published_at = time.monotonic()
                 transfer_total = max_download_bytes
 
                 def report_download_progress(downloaded_size: int) -> None:
                     nonlocal last_percent, last_published_percent
+                    nonlocal last_published_size, last_published_at
                     last_percent = report_progress(
                         logger,
                         "update.download",
@@ -126,9 +132,16 @@ def download_update_file(
                     )
                     if on_progress is not None and transfer_total > 0:
                         percent = min(100, int(downloaded_size * 100 / transfer_total))
-                        if percent >= last_published_percent + 2 or percent == 100:
+                        now = time.monotonic()
+                        if downloaded_size > last_published_size and (
+                            percent >= last_published_percent + 2
+                            or percent == 100
+                            or now - last_published_at >= BACKGROUND_TIMEOUT_SEC
+                        ):
                             on_progress(min(downloaded_size, transfer_total), transfer_total)
                             last_published_percent = percent
+                            last_published_size = downloaded_size
+                            last_published_at = now
 
                 report_download_progress(0)
 
@@ -186,7 +199,11 @@ def download_update_file(
                             claim.commit()
 
                     staged_result = stage_chunks_to_temp_file(
-                        stream,
+                        iter_batched_byte_chunks(
+                            stream,
+                            chunk_size=STAGED_TRANSFER_CHUNK_SIZE,
+                            on_progress=report_download_progress,
+                        ),
                         temp_dir=temp_path,
                         suffix=suffix,
                         max_bytes=max_download_bytes,

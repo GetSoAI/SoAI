@@ -25,7 +25,9 @@ interface AttachCameraElements {
 interface AttachCameraRuntime {
     setAvailable(enabled: boolean): void;
     activate(): Promise<void>;
+    suspend(): void;
     deactivate(): void;
+    getCapturedFile(): File | null;
     capture(): Promise<void>;
     retake(): Promise<void>;
     useCapturedFile(): Promise<File | null>;
@@ -195,12 +197,23 @@ const createCameraCaptureRuntime = (elements: AttachCameraElements, signal: Abor
         },
         async activate(): Promise<void> {
             active = true;
+            if (capturedFile !== null) {
+                syncControls();
+                return;
+            }
             await start(selectedDeviceId);
         },
-        deactivate(): void {
+        suspend(): void {
             active = false;
             nextOperationSequence();
             stopActiveStream();
+            syncControls();
+        },
+        getCapturedFile(): File | null {
+            return capturedFile;
+        },
+        deactivate(): void {
+            runtime.suspend();
             clearCapture();
             syncControls();
         },
@@ -258,11 +271,7 @@ const createCameraCaptureRuntime = (elements: AttachCameraElements, signal: Abor
             await start(nextDeviceId);
         },
         dispose(): void {
-            active = false;
-            nextOperationSequence();
-            stopActiveStream();
-            clearCapture();
-            syncControls();
+            runtime.deactivate();
         }
     };
 

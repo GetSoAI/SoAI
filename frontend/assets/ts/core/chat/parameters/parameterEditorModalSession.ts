@@ -1,6 +1,7 @@
 /* SoAI - Shared chat parameter editor modal session [frontend/assets/ts/core/chat/parameters/parameterEditorModalSession.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { applyParameterSendEnabledStates } from '@core/chat/parameters/parameterSendToggleEffects.ts';
 import { CHAT_PARAMETER_WIRE_KEYS } from '@core/chat/parameters/chatParameterKeySets.ts';
 import { restoreDisabledParameterSendValues } from '@core/chat/parameters/parameterSendToggleState.ts';
@@ -31,6 +32,7 @@ import { isJsonValue, type JsonValue } from '@core/types/jsonValues.ts';
 type ParameterControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 type OpenChatParameterEditorModalOptions = {
+    readonly owner: PresentationOwner;
     presenter: ModalPresenterApi;
     modalId: string;
     initialState: ChatParameterEditorState;
@@ -186,6 +188,7 @@ const openChatParameterEditorModal = async (options: OpenChatParameterEditorModa
     const draft = cloneChatParameterEditorState(options.initialState);
     const baseline = cloneChatParameterEditorState(options.initialState);
     return await runModalSession<ChatParameterEditorState | null>({
+        owner: options.owner,
         presenter: options.presenter,
         modalId: options.modalId,
         signal: options.signal,
@@ -204,6 +207,7 @@ const openChatParameterEditorModal = async (options: OpenChatParameterEditorModa
             let completed = false;
             let savedState: ChatParameterEditorState | null = null;
             const save = createSaveController({
+                owner: options.owner,
                 headerContextId: `${options.modalId}:parameters`,
                 headerPriority: SAVE_HEADER_PRIORITY_MODAL,
                 requestContextLabel: 'Chat parameter editor save',
@@ -260,7 +264,7 @@ const openChatParameterEditorModal = async (options: OpenChatParameterEditorModa
                 presenter: options.presenter,
                 modalId: options.modalId,
                 shouldConfirmClose: () => !completed && !save.isSaving() && changeSurfaces.hasChanges(),
-                confirmClose: showUnsavedChangesConfirmation
+                confirmClose: () => showUnsavedChangesConfirmation({ owner: options.owner })
             });
             return {
                 dispose: (): void => {

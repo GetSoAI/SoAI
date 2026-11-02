@@ -19,6 +19,7 @@ import { PROVIDER_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/provider
 import { TASK_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/taskContracts.ts';
 import { TERMINAL_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/terminalContracts.ts';
 import { TOOL_LIVE_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/toolLiveContracts.ts';
+import { FILE_SYSTEM_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/fileSystemContracts.ts';
 
 const WEBSOCKET_EVENT_CONTRACTS = Object.freeze({
     chatLibraries: CHAT_LIBRARY_EVENT_CONTRACTS,
@@ -35,6 +36,7 @@ const WEBSOCKET_EVENT_CONTRACTS = Object.freeze({
     terminal: TERMINAL_EVENT_CONTRACTS,
     mcp: MCP_EVENT_CONTRACTS,
     model: MODEL_EVENT_CONTRACTS,
+    fileSystem: FILE_SYSTEM_EVENT_CONTRACTS,
     notification: NOTIFICATION_EVENT_CONTRACTS,
     provider: PROVIDER_EVENT_CONTRACTS,
     task: TASK_EVENT_CONTRACTS,
@@ -108,6 +110,8 @@ const listWebSocketEventContracts = () =>
         WEBSOCKET_EVENT_CONTRACTS.mcp.serverDisconnected,
         WEBSOCKET_EVENT_CONTRACTS.mcp.toolInvoked,
         WEBSOCKET_EVENT_CONTRACTS.model.databaseChanged,
+        WEBSOCKET_EVENT_CONTRACTS.model.parametersChanged,
+        WEBSOCKET_EVENT_CONTRACTS.fileSystem.changed,
         WEBSOCKET_EVENT_CONTRACTS.notification.created,
         WEBSOCKET_EVENT_CONTRACTS.notification.markedRead,
         WEBSOCKET_EVENT_CONTRACTS.notification.deleted,

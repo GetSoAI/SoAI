@@ -81,9 +81,20 @@ const buildFormSignature = (fields: readonly FormSignatureField[]): string => {
     return JSON.stringify(fields);
 };
 
+const readFormControlValue = (field: NamedFormField): string | boolean => {
+    if (field instanceof HTMLInputElement && (field.type === 'checkbox' || field.type === 'radio')) {
+        return field.checked;
+    }
+    return field.value;
+};
+
+const buildFormControlSignature = (fields: readonly NamedFormField[]): string => {
+    return buildFormSignature(fields.map((field) => ({ name: field.id || field.name, value: JSON.stringify(readFormControlValue(field)) })));
+};
+
 const buildNamedFormFieldSignature = (host: NamedFormFieldHost, names: readonly string[]): string => {
     return buildFormSignature(names.map((name) => ({ name, value: readNamedFormFieldTrimmedValue(host, name) })));
 };
 
-export { buildFormSignature, buildNamedFormFieldSignature, isNamedFormField, readNamedFormFieldTrimmedValue, requireNamedFormField, resolveNamedFormFields, setNamedFormFieldValue, setNamedFormFieldValues };
+export { buildFormControlSignature, buildFormSignature, buildNamedFormFieldSignature, isNamedFormField, readFormControlValue, readNamedFormFieldTrimmedValue, requireNamedFormField, resolveNamedFormFields, setNamedFormFieldValue, setNamedFormFieldValues };
 export type { FormSignatureField, NamedFormField, NamedFormFieldHost };

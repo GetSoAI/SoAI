@@ -35,6 +35,7 @@ const confirmConversationDelete = async (runtime: ChatConversationActionsControl
         return true;
     }
     return await requireDialogsService().showConfirmation({
+        owner: runtime.host.owner,
         title: i18n.t('chat.conversation.deleteTitle'),
         message: i18n.t('chat.conversation.deleteConfirm'),
         description: conversationIds.map((conversationId) => resolveConversationDisplayTitleFromConversation(runtime.state.getConversation(conversationId), i18n.t('chat.conversation.untitled'))).join('\n'),

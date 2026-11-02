@@ -127,7 +127,7 @@ class TestModalManager {
 
         this.updatePluginStatusDisplay();
         updateResultMessage(context, i18n.t('modelDetail.modal.test.ready'));
-        this.host.model.modalPresenter.open(this.modalId);
+        this.host.model.modalPresenter.open(this.modalId, { owner: this.host.owner });
     }
 
     async startTest(mode: TestRunMode): Promise<void> {

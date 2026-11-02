@@ -1,6 +1,7 @@
 /* SoAI - Chat feature main timeline scroll [frontend/assets/ts/features/chat/mainTimelineScroll.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isKeyboardCompositionEvent } from '@core/dom/keyboardComposition.ts';
 import { isNamedFormField } from '@core/dom/formFields.ts';
 import { CHAT_SCROLL_BOTTOM_THRESHOLD } from '@features/chat/chatConstants.ts';
 
@@ -8,7 +9,9 @@ const USER_SCROLL_KEYS: ReadonlySet<string> = new Set(['ArrowDown', 'ArrowUp', '
 
 const isEditableKeyTarget = (target: EventTarget | null): boolean => target instanceof Element && (isNamedFormField(target) || target.closest('[contenteditable]') !== null);
 
-const isMainTimelineKeyboardScrollEvent = (event: Event): event is KeyboardEvent => event instanceof KeyboardEvent && USER_SCROLL_KEYS.has(event.key) && !isEditableKeyTarget(event.target);
+const isMainTimelineKeyboardScrollEvent = (event: Event): event is KeyboardEvent => event instanceof KeyboardEvent && !event.defaultPrevented && !isKeyboardCompositionEvent(event) && USER_SCROLL_KEYS.has(event.key) && !isEditableKeyTarget(event.target);
+
+const isMainTimelineKeyboardScrollForArea = (event: Event, messagesArea: HTMLElement): event is KeyboardEvent => isMainTimelineKeyboardScrollEvent(event) && (event.target === messagesArea.ownerDocument.body || (event.target instanceof Node && messagesArea.contains(event.target)));
 
 const MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE = 'data-auto-scroll-lock';
 const programmaticScrollOffsets = new WeakMap<HTMLElement, number>();
@@ -69,5 +72,5 @@ const consumeMainTimelineProgrammaticScrollOffset = (element: HTMLElement): numb
     return offset;
 };
 
-export { beginMainTimelineProgrammaticScroll, isMainTimelineProgrammaticScrollActive, MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, consumeMainTimelineProgrammaticScrollOffset, isEditableKeyTarget, isMainTimelineKeyboardScrollEvent, isMainTimelineAtBottom, isMainTimelineAutoScrollLocked, isMainTimelineScrollRestoring, isMainTimelineMeasurementAtBottom, measureMainTimelineScroll, writeMainTimelineScrollOffset, writeMainTimelineScrollTop };
+export { isMainTimelineKeyboardScrollForArea, beginMainTimelineProgrammaticScroll, isMainTimelineProgrammaticScrollActive, MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, consumeMainTimelineProgrammaticScrollOffset, isEditableKeyTarget, isMainTimelineKeyboardScrollEvent, isMainTimelineAtBottom, isMainTimelineAutoScrollLocked, isMainTimelineScrollRestoring, isMainTimelineMeasurementAtBottom, measureMainTimelineScroll, writeMainTimelineScrollOffset, writeMainTimelineScrollTop };
 export type { MainTimelineScrollMeasurement };

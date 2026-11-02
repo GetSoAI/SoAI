@@ -7,6 +7,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Literal
 
 from hardware.vendors.nvidia import scan
+from hardware.vendors.nvidia.nvapi_telemetry import enrich_nvapi_utilization
 from hardware.vendors.nvidia.smi_scan import query_nvidia_gpus_via_smi
 
 __all__ = ("resolve_query_nvidia_gpus",)
@@ -27,18 +28,21 @@ def _query_nvidia_gpus(
     on_inventory_observed: Callable[[Literal["complete", "partial", "failed"]], None] | None = None,
 ) -> tuple[list[JSONDict], JSONDict]:
     if nvml_gate.nvml_available:
-        return scan.query_nvidia_gpus(
+        gpus, drivers = scan.query_nvidia_gpus(
             detailed,
             nvml_gate=nvml_gate,
             capabilities_cache_service=capabilities_cache_service,
             on_inventory_observed=on_inventory_observed,
         )
-    return query_nvidia_gpus_via_smi(
-        detailed,
-        nvml_gate=nvml_gate,
-        capabilities_cache_service=capabilities_cache_service,
-        on_inventory_observed=on_inventory_observed,
-    )
+    else:
+        gpus, drivers = query_nvidia_gpus_via_smi(
+            detailed,
+            nvml_gate=nvml_gate,
+            capabilities_cache_service=capabilities_cache_service,
+            on_inventory_observed=on_inventory_observed,
+        )
+    enrich_nvapi_utilization(gpus, nvml_gate)
+    return gpus, drivers
 
 
 def resolve_query_nvidia_gpus() -> Callable[..., tuple[list[JSONDict], JSONDict]]:

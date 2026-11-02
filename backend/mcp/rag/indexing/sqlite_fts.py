@@ -124,11 +124,10 @@ class SQLiteFTS5BM25Index:
                 stopwords_mode=self.stopwords_mode,
             )
             for chunk_id, content in documents:
-                connection.execute(
+                rowid = connection.execute(
                     "INSERT INTO chunks_fts(chunk_id, content) VALUES (?, ?)",
                     (chunk_id, self._apply_stopwords_to_content(content)),
-                )
-                rowid = int(connection.execute("SELECT last_insert_rowid()").fetchone()[0])
+                ).lastrowid
                 connection.execute(
                     "INSERT INTO chunk_map(chunk_id, rowid) VALUES (?, ?)",
                     (chunk_id, rowid),

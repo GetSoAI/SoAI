@@ -4,11 +4,12 @@
 import { dom } from '@core/dom/dom.ts';
 import { formatCompactMillisecondsAsSecondsUnit } from '@core/primitives/duration.ts';
 import { isFiniteNumber, isObject, isString } from '@core/typeGuards.ts';
-import { PAGE_OUTLET_TIMEOUT_ERROR_NAME } from '@core/pageoutlet/constants.ts';
+import { PAGE_OUTLET_TIMEOUT_ERROR_NAME, PAGE_OUTLET_RENDER_STAGES } from '@core/pageoutlet/constants.ts';
 import type { TimeoutError } from '@core/pageoutlet/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 
 class PageOutletTimeoutError extends Error {
+    readonly code: string;
     stage: string;
     component: string;
     timeoutMs: number;
@@ -16,6 +17,7 @@ class PageOutletTimeoutError extends Error {
     constructor(description: string, component: string, stage: string, timeoutMs: number) {
         super(description);
         this.name = PAGE_OUTLET_TIMEOUT_ERROR_NAME;
+        this.code = stage === PAGE_OUTLET_RENDER_STAGES.RELEASED ? 'page_resource_release_unconfirmed' : 'page_loading_timeout';
         this.component = component;
         this.stage = stage;
         this.timeoutMs = timeoutMs;

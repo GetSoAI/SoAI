@@ -5,6 +5,8 @@ import { terminateHandledPromise } from '@core/primitives/terminateHandledPromis
 import { normalizeStringArray } from '@core/storage/normalization.ts';
 import { toJsonCompatibleValue } from '@core/primitives/clone.ts';
 import { createStorageRuntime } from '@core/storage/service/runtime.ts';
+import { resetUiPreferences, type ResetOptions } from '@core/storage/service/preferences/preferenceReset.ts';
+import type { PreferenceDelegates } from '@core/storage/service/preferences/types.ts';
 import { createStoragePreferenceMethods } from '@core/storage/service/preferences/service.ts';
 import { createLocalizationPreferenceMethods } from '@core/storage/service/localizationpreferences/actions.ts';
 import { createPresentationPreferenceMethods } from '@core/storage/service/presentationpreferences/service.ts';
@@ -17,13 +19,10 @@ import { serializeHardwareCache, serializePageControlStates } from '@core/storag
 import { parseSettingsBackup, serializeSettingsBackup, type ExportedSettings } from '@core/storage/persistence/settingsBackupSerialization.ts';
 import { applyUiPatch } from '@core/storage/persistence/mergeremotepreferences/mappers.ts';
 import type { StorageApiClientContract, StorageRuntimeDependencies } from '@core/storage/service/types.ts';
-import type { SessionData, UiPreferences } from '@core/storage/types.ts';
+import type { SessionData } from '@core/storage/types.ts';
 import { isNumber, isString } from '@core/typeGuards.ts';
 import { isJsonValue, type JsonValue } from '@core/types/jsonValues.ts';
-
-interface ResetOptions {
-    preserveWizardState?: boolean | undefined;
-}
+import { preferenceRequestIdentityIsCurrent, readPreferenceRequestIdentity } from '@core/storage/chatpreferences/preferenceRequestIdentity.ts';
 
 type StorageInputValue = JsonValue | null | undefined;
 const createStorageService = (dependencies: StorageRuntimeDependencies) => {
@@ -37,7 +36,7 @@ const createStorageService = (dependencies: StorageRuntimeDependencies) => {
     const presentationPreferences = createPresentationPreferenceMethods(runtime);
     const localizationPreferences = createLocalizationPreferenceMethods(runtime);
     localizationPreferences.syncLocalizationPreferences({ dispatch: false });
-    const preferences = createStoragePreferenceMethods(runtime, dependencies.apiClient, {
+    const preferenceDelegates: PreferenceDelegates = {
         setLanguage: storageState.setLanguage,
         setClockFormat: storageState.setClockFormat,
         setRegionalLocale: localizationPreferences.setRegionalLocale,
@@ -73,7 +72,8 @@ const createStorageService = (dependencies: StorageRuntimeDependencies) => {
         setAnimationSpeed: presentationPreferences.setAnimationSpeed,
         setInterfaceScale: presentationPreferences.setInterfaceScale,
         setPromptEnhancerModel: storageState.setPromptEnhancerModel
-    });
+    };
+    const preferences = createStoragePreferenceMethods(runtime, dependencies.apiClient, preferenceDelegates);
     const normalizeStorageInput = (value: StorageInputValue): JsonValue | null => {
         if (value === undefined) {
             return null;
@@ -161,67 +161,7 @@ const createStorageService = (dependencies: StorageRuntimeDependencies) => {
     const remove = (key: string): void => {
         set(key, undefined);
     };
-    const resetUiPreferences = (options: ResetOptions = {}): UiPreferences => {
-        const preserveWizardState = options.preserveWizardState !== false;
-        const defaults = runtime.createDefaults();
-        const preservedWizard = preserveWizardState ? runtime.state.cache.wizard : defaults.wizard;
-        const preservedMisc = runtime.state.cache.misc;
-        preferences.setTheme(defaults.ui.theme);
-        storageState.setLanguage(defaults.ui.language);
-        storageState.setClockFormat(defaults.ui.clockFormat);
-        localizationPreferences.setRegionalLocale(defaults.ui.regionalLocale);
-        localizationPreferences.setDateFormat(defaults.ui.dateFormat);
-        localizationPreferences.setMeasurementUnits(defaults.ui.measurementUnits);
-        presentationPreferences.setNotificationDuration(defaults.ui.notificationDuration);
-        presentationPreferences.setCodeRecognitionEnabled(defaults.ui.codeRecognitionEnabled);
-        presentationPreferences.setClockPreferences(defaults.ui.headerClockEnabled, defaults.ui.clockSecondsEnabled);
-        preferences.setPromptEnhancerModel(defaults.ui.promptEnhancerModel);
-        presentationPreferences.setReduceMotions(defaults.ui.reduceMotions);
-        presentationPreferences.setAccentColor(defaults.ui.accentColor);
-        presentationPreferences.setSurfaceColor(defaults.ui.surfaceColor);
-        presentationPreferences.setSoundEffects(defaults.ui.soundEffects);
-        presentationPreferences.setLiveStatusOverlayEnabled(defaults.ui.liveStatusOverlayEnabled);
-        presentationPreferences.setGlassEnabled(defaults.ui.glassEnabled);
-        presentationPreferences.setWallpaperOverlay(defaults.ui.wallpaperOverlay);
-        presentationPreferences.setSolidBackground(defaults.ui.solidBackground);
-        presentationPreferences.setDefaultWallpaper(defaults.ui.defaultWallpaper);
-        presentationPreferences.setChartColorMode(defaults.ui.chartColorMode);
-        presentationPreferences.setChartStaticColor(defaults.ui.chartStaticColor);
-        storageState.setHiddenSidebarPages(defaults.ui.hiddenSidebarPages);
-        storageState.setHiddenDashboardElements(defaults.ui.hiddenDashboardElements);
-        storageState.setDashboardLocked(defaults.ui.dashboardLocked);
-        storageState.setDashboardImageCard(defaults.ui.dashboardImageCard);
-        storageState.setDashboardImageCardFit(defaults.ui.dashboardImageCardFit);
-        storageState.setDashboardMemo(defaults.ui.dashboardMemo);
-        storageState.setDefaultPage(defaults.ui.defaultPage);
-        presentationPreferences.setHeaderAutoHide(defaults.ui.headerAutoHide);
-        presentationPreferences.setShowScrollToTopButton(defaults.ui.showScrollToTopButton);
-        storageState.setShowMainStatusIndicator(defaults.ui.showMainStatusIndicator);
-        presentationPreferences.setPageAnimation(defaults.ui.pageAnimation);
-        presentationPreferences.setModalAnimation(defaults.ui.modalAnimation);
-        presentationPreferences.setNotificationAnimation(defaults.ui.notificationAnimation);
-        presentationPreferences.setAnimationSpeed(defaults.ui.animationSpeed);
-        presentationPreferences.setInterfaceScale(defaults.ui.interfaceScale);
-        presentationPreferences.clearAllModalStates();
-        runtime.state.cache.ui.mainStatePreferenceVersion = defaults.ui.mainStatePreferenceVersion;
-        runtime.state.cache.chat.preferences = runtime.clone(defaults.chat.preferences);
-        runtime.state.cache.chat.defaultEmbeddingModel = defaults.chat.defaultEmbeddingModel ?? null;
-        runtime.state.cache.chat.textZoom = defaults.chat.textZoom;
-        runtime.state.cache.logs = runtime.clone(defaults.logs);
-        runtime.state.cache.terminal = runtime.clone(defaults.terminal);
-        runtime.state.cache.search = runtime.clone(defaults.search);
-        runtime.state.cache.hardware = runtime.clone(defaults.hardware);
-        runtime.state.cache.filters = runtime.clone(defaults.filters);
-        runtime.state.cache.wizard = { completed: preservedWizard.completed, aiSetup: null };
-        runtime.state.cache.settings = runtime.clone(defaults.settings);
-        runtime.state.cache.misc = runtime.clone(preservedMisc);
-        const resetGroups: readonly string[] = ['chat', 'logs', 'terminal', 'search', 'hardware', 'filters', 'wizard', 'settings', 'misc'];
-        for (const group of resetGroups) {
-            terminateHandledPromise(runtime.queuePersist(group));
-        }
-        runtime.scheduleBroadcast();
-        return preferences.getPreferences();
-    };
+
     const exportSettings = (): ExportedSettings => {
         return serializeSettingsBackup({
             ui: preferences.getPreferences(),
@@ -260,6 +200,12 @@ const createStorageService = (dependencies: StorageRuntimeDependencies) => {
     };
     const service = {
         ready: runtime.ready,
+        subscribeUiPreferenceChanges: runtime.subscribeUiPreferenceChanges,
+        optionalRecords: { readOptionalRecord: runtime.readOptionalRecord, writeOptionalRecord: runtime.writeOptionalRecord, removeOptionalRecord: runtime.removeOptionalRecord },
+        getAuthenticatedIdentity: () => {
+            const identity = readPreferenceRequestIdentity(runtime.state);
+            return identity && preferenceRequestIdentityIsCurrent(runtime.state, identity) ? identity : null;
+        },
         get session(): SessionData {
             return runtime.state.session;
         },
@@ -274,7 +220,7 @@ const createStorageService = (dependencies: StorageRuntimeDependencies) => {
         getPreferences: preferences.getPreferences,
         setPreferences: preferences.setPreferences,
         setPreference: preferences.setPreference,
-        resetUiPreferences,
+        resetUiPreferences: (options: ResetOptions = {}) => resetUiPreferences(runtime, { ...preferenceDelegates, setTheme: preferences.setTheme, setPromptEnhancerModel: preferences.setPromptEnhancerModel, clearAllModalStates: presentationPreferences.clearAllModalStates }, options),
         getTheme: preferences.getTheme,
         setTheme: preferences.setTheme,
         toggleTheme: preferences.toggleTheme,

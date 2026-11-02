@@ -75,7 +75,7 @@ export const setupMessagesAreaInsets = (context: ChatUIManagerContext): (() => v
     if (typeof win.ResizeObserver !== 'function' || typeof win.MutationObserver !== 'function') {
         return null;
     }
-    const coordinator = acquireMainTimelineCoordinator(messagesArea, messagesRoot);
+    const coordinator = acquireMainTimelineCoordinator(messagesArea, messagesRoot, context.dependencies.owner);
 
     const baselinePaddingBottomPx = parsePositiveCssPixelValue(win.getComputedStyle(messagesArea).paddingBottom, 0);
     const messageGapPx = (() => {

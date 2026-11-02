@@ -4,6 +4,7 @@
 import type { NotificationType } from '@core/ui/notifications/types.ts';
 import type { SanitizeUrlOptions } from '@core/security/urlSanitizer.ts';
 import type { TelemetryEvent, TelemetryEventInput, TelemetryMetric, TelemetryStatus } from '@core/telemetry/contracts.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 
 type NotificationHandler = (message: string, type: NotificationType, duration: number) => void;
 type ClipboardNotificationHandler = (message: string, type: NotificationType) => void;
@@ -74,6 +75,7 @@ interface NotificationApi {
 
 interface PageContextOptions {
     pageId: string;
+    presentationOwner?: PresentationOwner;
     clipboard?: ClipboardService;
     sanitizer?: SecurityService;
     notifier?: NotificationHandler;

@@ -1,6 +1,7 @@
 /* SoAI - Models feature edit model modal contracts [frontend/assets/ts/features/models/modals/editmodelmodal/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -46,6 +47,7 @@ interface EditModelOperationsPort {
 }
 
 interface EditModelModalHost {
+    readonly owner: PresentationOwner;
     view: EditModelViewPort;
     operations: EditModelOperationsPort;
 }

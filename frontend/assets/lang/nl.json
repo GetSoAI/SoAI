@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "Voeg bestanden en mappen vanaf je apparaat toe als directe berichtbijlagen. Ze worden met de huidige prompt meegestuurd, in tegenstelling tot Kennis-uploads, die voor retrieval worden geïndexeerd.",
                 "uploadTitle": "Bestanden en mappen direct uploaden",
-                "title": "Bijlagen toevoegen"
+                "title": "Bijlagen toevoegen",
+                "cameraDiscardConfirm": "Deze gemaakte foto verwerpen?"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "Onbekende fout",
                 "unknownError": "Er is een onbekende fout opgetreden.",
                 "storageHeadroomInsufficient": "Er is onvoldoende opslagruimte, rekening houdend met de veiligheidsmarge en bestaande reserveringen. Maak ruimte vrij of wacht tot andere opslagbewerkingen zijn voltooid en probeer het opnieuw.",
-                "storageHeadroomValues": "Benodigd inclusief veiligheidsmarge: {required}. Beschikbaar voor deze bewerking: {available}."
+                "storageHeadroomValues": "Benodigd inclusief veiligheidsmarge: {required}. Beschikbaar voor deze bewerking: {available}.",
+                "permissionsUnavailable": "Toegangsrechten zijn niet beschikbaar. Controleer de verbinding en probeer het opnieuw."
             },
             "export": "Exporteren",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "Niet-opgeslagen wijzigingen",
             "view": "Bekijken",
             "yes": "Ja",
-            "retry": "Opnieuw proberen"
+            "retry": "Opnieuw proberen",
+            "discard": "Verwerpen"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "Het bestand is mogelijk opgeslagen, maar de uiteindelijke status kon niet worden gecontroleerd. Controleer de bestemming in Bestanden voordat u het opnieuw uploadt.",
                 "cleanupIncomplete": "Automatisch opruimen kon niet worden voltooid. Controleer de bestemming in Bestanden voordat u het opnieuw probeert.",
                 "contentChanged": "Het bestand is tijdens de bewerking gewijzigd. Selecteer het opnieuw en probeer het nogmaals.",
-                "destinationExists": "Er bestaat al een bestand of map met deze naam. Kies een andere naam of bestemming."
+                "destinationExists": "Er bestaat al een bestand of map met deze naam. Kies een andere naam of bestemming.",
+                "listingChanged": "De map bleef veranderen. Vernieuw om opnieuw te proberen.",
+                "listingTimeout": "Het vernieuwen van de map duurde te lang. Vernieuw om opnieuw te proberen.",
+                "listingIncoherent": "De mappagina’s waren niet consistent. Vernieuw om opnieuw te proberen.",
+                "listingUnavailable": "De mapservice is niet beschikbaar. Controleer de verbinding en vernieuw.",
+                "listingBusy": "Mapverzoeken worden beperkt. Wacht even en vernieuw daarna."
             },
             "labels": {
                 "latestTask": "Laatste taak",
@@ -3175,7 +3183,10 @@
                 "empty": "Geen items gevonden.",
                 "error": "Bewerking mislukt. Bekijk de meldingen voor details.",
                 "loading": "Mapitems laden...",
-                "searching": "Bestanden en mappen zoeken..."
+                "searching": "Bestanden en mappen zoeken...",
+                "refreshing": "Vernieuwen…",
+                "stale": "Verouderd. Vernieuw om opnieuw te proberen.",
+                "unavailable": "Map niet beschikbaar. Controleer de fout en vernieuw."
             },
             "table": {
                 "modified": "Gewijzigd",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "Werken met modellen, tools en bestanden",
                     "sectionTitle": "Chat- en agenttools",
-                    "conversations": "Op de pagina Chat staan berichten, modelkeuze, generatieparameters en tooltoegang bij elkaar. Je kunt tussen beurten van model wisselen, antwoorden vergelijken, de configuratie als preset opslaan of gesprekken in mappen organiseren. Voeg een bestand toe wanneer het model het volledige item nodig heeft voor het huidige bericht. Voeg een kennisbron toe wanneer je wilt dat SoAI geïndexeerd materiaal doorzoekt en de relevante passages retourneert. Voeg vanuit de chatinvoer bestanden, mappen en SoAI-links toe",
+                    "conversations": "Op de pagina Chat staan berichten, modelkeuze, generatieparameters, tooltoegang en de bibliotheken voor Vaardigheden en Geheugen bij elkaar. Je kunt tussen beurten van model wisselen, antwoorden vergelijken, de configuratie als preset opslaan of gesprekken in mappen organiseren. Voeg een bestand toe wanneer het model het volledige item nodig heeft voor het huidige bericht. Voeg een kennisbron toe wanneer je wilt dat SoAI geïndexeerd materiaal doorzoekt en de relevante passages retourneert. Voeg vanuit de chatinvoer bestanden, mappen en SoAI-links toe",
                     "tools": "De chatmodus is bedoeld voor gesprekken. In de Plan-modus kan het model een taak onderzoeken en stappen voorbereiden. Tools die als destructief zijn gemarkeerd of geldige destructieve metadata missen, worden geblokkeerd, maar andere geselecteerde tools kunnen nog steeds externe systemen beïnvloeden. In de uitvoermodus kan het handelen met de tools die je hebt ingeschakeld. Toolaanroepen en de resultaten ervan blijven zichtbaar in het transcript, en voor beveiligde acties kan je goedkeuring vereist zijn. Beschikbare tools kunnen het web doorzoeken, een browser bedienen, met bestanden en terminals werken, kennis raadplegen, media verwerken en verbinding maken met e-mail of agenda's. Beheerders bepalen welke integraties en referenties beschikbaar zijn. Agents kunnen ook vragen stellen, een plan bijhouden en werk opsplitsen in achtergrondsubtaken. De pagina Automatiseringen voert een of meer beurten volgens een schema uit en bewaart elke uitvoering als een gesprek",
                     "mcp": "SoAI kan zijn tools beschikbaar stellen aan geauthenticeerde MCP-clients en verbinding maken met externe MCP-servers. Externe tools verschijnen naast de ingebouwde tools nadat een beheerder de server heeft geconfigureerd",
                     "voice": "Spraak-naar-tekstmodellen kunnen opnamen of microfooningang transcriberen. Tekst-naar-spraakmodellen kunnen antwoorden hardop voorlezen, terwijl de spraakoproepmodus een gesproken gesprek ondersteunt"
@@ -3944,7 +3955,7 @@
                     "heading": "Systeemstatus controleren en de host onderhouden",
                     "sectionTitle": "Bewaking en beheer",
                     "status": "Het Dashboard toont de huidige systeemstatus en actief werk. Gebruik Hardware voor metingen van CPU, geheugen, schijf, netwerk en GPU; Metrieken voor verzoekgeschiedenis en tokengebruik; en Logs wanneer je diagnostische details nodig hebt. Ondersteunde GPU's bieden afstellingsopties voor vermogen, klokken en ventilatoren. Deze wijzigingen zijn van invloed op de host, dus gebruik een getest profiel en houd temperaturen en stabiliteit in de gaten",
-                    "operations": "Terminal biedt interactieve shellsessies. Power kan SoAI herstarten of stoppen en kan het besturingssysteem van de host bedienen. Toegang tot beide pagina's is afhankelijk van accountmachtigingen",
+                    "operations": "Terminal biedt interactieve shellsessies. Power kan SoAI herstarten of stoppen en kan het besturingssysteem van de host bedienen. Toegang tot Terminal en de Power-bediening is afhankelijk van accountmachtigingen",
                     "maintenance": "Back-ups staan in Instellingen, terwijl applicatie-updates via de pagina Updates verlopen. Controleer een back-up voordat je erop vertrouwt, exporteer kopieën die je buiten de host nodig hebt en controleer het bereik voordat je herstelt of opnieuw instelt. SoAI bewaakt de backendstatus en stopt met het verzenden van verzoeken naar een plugin die blijft falen. De pagina Plugins toont herstel- en quarantainestatussen. Downloads, uploads, back-ups en andere grote schrijfbewerkingen controleren de gereserveerde schijfruimte voordat ze beginnen"
                 },
                 "access": {
@@ -5229,6 +5240,9 @@
             "loading": "SoAI voorbereiden...",
             "loadingDelayError": "Het laden van deze pagina duurt langer dan verwacht. Controleer je verbinding of probeer deze pagina opnieuw.",
             "loadingLabel": "Laden...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "De vorige pagina wordt nog gesloten. Wacht en probeer het opnieuw. Laad dit venster opnieuw als het proces vast blijft zitten."
+            },
             "retry": "Opnieuw proberen"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "Weergave teruggezet naar de standaardwaarden.",
                 "chatPresetsResetFailed": "Het opnieuw instellen van chatpresets is mislukt. Probeer het opnieuw.",
                 "chatPresetsResetSuccess": "Chatpresets opnieuw ingesteld.",
+                "configurationResetFailed": "Het opnieuw instellen van de configuratie kon niet worden gepland. Controleer de configuratiebestanden en probeer het opnieuw.",
                 "conversationsDeleteFailed": "Gesprekken verwijderen mislukt. Probeer het opnieuw.",
                 "conversationsDeleteNone": "Geen gesprekken om te verwijderen.",
                 "conversationsDeleteSuccess": "{count} gesprekken verwijderd.",
-                "configurationResetFailed": "Het opnieuw instellen van de configuratie kon niet worden gepland. Controleer de configuratiebestanden en probeer het opnieuw.",
                 "factoryResetSuccess": "Fabrieksinstellingen worden hersteld. SoAI wordt binnenkort opnieuw gestart.",
                 "fixInvalidFields": "Corrigeer ongeldige velden voordat je opslaat.",
                 "hardwareHistoryResetFailed": "Het opnieuw instellen van de hardwaregeschiedenis is mislukt. Probeer het opnieuw.",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "Opnieuw instellen van statistieken gestart",
                 "pageLayoutsResetFailed": "Het opnieuw instellen van paginalay-outs is mislukt. Probeer het opnieuw.",
                 "pageLayoutsResetSuccess": "Lay-outs van dashboard, statistieken en hardware teruggezet naar de standaardwaarden.",
+                "partialSave": "Sommige instellingen zijn toegepast. {reason} Controleer de gemarkeerde niet-opgeslagen velden en probeer het opnieuw.",
                 "passwordManagerResetFailed": "Het opnieuw instellen van de wachtwoordmanager is mislukt. Probeer het opnieuw.",
                 "passwordManagerResetSuccess": "Wachtwoordmanager opnieuw ingesteld. {deletedCredentials} opgeslagen inloggegeven(s) verwijderd en {clearedSecretHandles} actieve beveiligde handle(s) ongeldig gemaakt.",
                 "preferencesResetFailed": "Het opnieuw instellen van voorkeuren is mislukt. Probeer het opnieuw.",
-                "preferencesResetSuccess": "Voorkeuren teruggezet naar de standaardwaarden. Opnieuw laden...",
+                "preferencesResetSuccess": "Voorkeuren teruggezet naar de standaardwaarden.",
                 "recentSearchesResetFailed": "Het opnieuw instellen van recente zoekopdrachten is mislukt. Probeer het opnieuw.",
                 "recentSearchesResetSuccess": "Recente zoekopdrachten opnieuw ingesteld.",
                 "restartButton": "SoAI opnieuw starten",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "Gebruiker aangemaakt",
                 "userDeleteSuccess": "Gebruiker verwijderd",
                 "userPasswordUpdateSuccess": "Wachtwoord bijgewerkt",
-                "userWorkspacePathUpdateSuccessRevoked": "Standaardmap bijgewerkt. Eerdere mapoverschrijvingen van gesprekken buiten de nieuwe map zijn ingetrokken.",
                 "userRoleUpdateSuccess": "Gebruikersrol bijgewerkt",
+                "userWorkspacePathUpdateSuccessRevoked": "Standaardmap bijgewerkt. Eerdere mapoverschrijvingen van gesprekken buiten de nieuwe map zijn ingetrokken.",
                 "wallpaperDeleteSuccess": "Achtergrondafbeelding verwijderd",
                 "wallpaperDownloadSuccess": "Achtergrondafbeelding gedownload",
                 "wallpaperReloadFailed": "Voorbeeld van achtergrondafbeelding laden mislukt.",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "Het vrijgeven van de terminal is niet bevestigd. Herstel de verbinding en probeer opnieuw; controleer na een herstart van de dienst de oude shell op de host.",
+                "recoveryUnavailable": "Terminalherstel is niet beschikbaar. Herlaad SoAI en controleer de oude shell op de host voordat je het opnieuw probeert."
+            },
             "ariaLabels": {
                 "clearTerminal": "Terminal wissen",
                 "decreaseTextSize": "Tekstgrootte verkleinen",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "Spraak niet getranscribeerd. Vraag een beheerder om spraakherkenning in te stellen en upload het bestand daarna opnieuw.",
             "openModels": "Modellen openen",
             "openSettings": "Instellingen voor spraakherkenning"
+        },
+        "pagePanes": {
+            "storageUnavailable": "Browseropslag is niet beschikbaar. Open panelen blijven bruikbaar, maar hun indeling kan niet worden opgeslagen.",
+            "invalidLayout": "De opgeslagen paneelindeling is ongeldig. De gevraagde pagina wordt normaal geopend.",
+            "incompatibleLayout": "De opgeslagen paneelindeling vereist een nieuwere toepassing. De indeling is behouden.",
+            "foreignLayout": "De opgeslagen paneelindeling hoort bij een ander account, venster of een andere editie. De indeling is behouden.",
+            "layoutTooLarge": "Deze paneelindeling is te groot om op te slaan. Open pagina’s blijven bruikbaar.",
+            "restoreFailed": "Het hoofdpaneel kon niet worden hersteld. De opgeslagen indeling is behouden; laad opnieuw om het nogmaals te proberen.",
+            "title": "Panelen",
+            "active": "Actief",
+            "closePane": "Paneel {page} sluiten",
+            "split": "In een ander paneel openen",
+            "choosePage": "Te openen pagina",
+            "parked": "Geparkeerd",
+            "closing": "Sluiten…",
+            "splitUnavailable": "Dit venster biedt ruimte voor één paneel. De pagina wordt in het huidige paneel geopend.",
+            "placementUnavailable": "Er is geen paneel beschikbaar voor deze actie. Rond lopend werk af of sluit een paneel en probeer het opnieuw.",
+            "restoreConflict": "De herstelde route conflicteert met een open paneel. Open de pagina rechtstreeks om door te gaan.",
+            "layoutNotSaved": "Indeling niet opgeslagen. De geopende panelen blijven bruikbaar.",
+            "saveCurrentLayout": "Huidige indeling opslaan",
+            "replaceSavedLayoutConfirmation": "De bewaarde indeling vervangen door de momenteel geopende panelen? Alleen de opgeslagen indeling wordt vervangen, niet de pagina-inhoud.",
+            "storageQuotaExceeded": "De browseropslag is vol. Maak ruimte vrij en sla de huidige indeling opnieuw op. De geopende panelen blijven bruikbaar.",
+            "storageBlocked": "De browser heeft het opslaan van de indeling geblokkeerd. Sta opslag voor deze website toe en sla de huidige indeling opnieuw op. De geopende panelen blijven bruikbaar."
         }
     }
 }

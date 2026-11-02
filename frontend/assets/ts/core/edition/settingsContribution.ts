@@ -1,6 +1,7 @@
 /* SoAI - Trusted product settings contribution contracts [frontend/assets/ts/core/edition/settingsContribution.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { OsEndpoints } from '@core/api/endpoints/osEndpointContracts.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { WebuiUser } from '@core/api/contracts/webuiUserContracts.ts';
@@ -16,6 +17,7 @@ interface SettingsProductManager {
 }
 
 interface SettingsProductManagerHost extends DomQueryHost, DomEventHost, DomMutationHost, ExecutionHost, NotificationHost {
+    readonly owner: PresentationOwner;
     withButtonDisabled: <T>(button: Element, functionValue: () => Promise<T>, options?: { keepDisabled?: boolean }) => Promise<T>;
     confirmAndExecute: NonNullable<ExecutionHost['confirmAndExecute']>;
     filterSettings: () => void;

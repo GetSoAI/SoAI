@@ -1,6 +1,7 @@
 /* SoAI - Notifications feature notification center actions [frontend/assets/ts/features/notifications/NotificationCenterActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createGlobalPresentationOwner } from '@core/presentationOwner.ts';
 import { handleApiResult } from '@core/api/apiResultHandler.ts';
 import { notificationOpenPath, notificationPath, notificationsMarkReadPath, notificationsPath } from '@core/api/endpoints/uiPaths.ts';
 import type { ApiClient } from '@core/api/service.ts';
@@ -17,6 +18,7 @@ const serializeNotificationReadRequest = (notificationIds: string[]): JsonObject
 });
 
 class NotificationCenterActions {
+    readonly #presentationOwner = createGlobalPresentationOwner('notification-actions');
     readonly #apiClient: ApiClient;
 
     constructor(apiClient: ApiClient) {
@@ -38,6 +40,7 @@ class NotificationCenterActions {
 
     async clearAll(notificationCount: number): Promise<boolean> {
         const confirmed = await requireDialogsService().showConfirmation({
+            owner: this.#presentationOwner,
             title: i18n.t('header.notificationCenter.actions.clearAll'),
             message: i18n.t('header.notificationCenter.confirmations.clearAllMessage', { count: notificationCount }),
             confirmText: i18n.t('header.notificationCenter.actions.clearAll'),

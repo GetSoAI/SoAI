@@ -1,6 +1,7 @@
 /* SoAI - Plugins feature concurrent manager contracts [frontend/assets/ts/features/plugins/modals/concurrentmanager/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -51,6 +52,7 @@ interface ConcurrentSettingsOperationsPort {
 }
 
 interface ConcurrentManagerHost {
+    readonly owner: PresentationOwner;
     view: ConcurrentModalViewPort;
     state: ConcurrentSettingsStatePort;
     operations: ConcurrentSettingsOperationsPort;

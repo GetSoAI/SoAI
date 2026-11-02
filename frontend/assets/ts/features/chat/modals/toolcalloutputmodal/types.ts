@@ -1,6 +1,7 @@
 /* SoAI - Chat feature tool call output modal contracts [frontend/assets/ts/features/chat/modals/toolcalloutputmodal/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { ToolCallLiveEventsPage } from '@core/api/contracts/chatRealtimeSnapshotContracts.ts';
 import type { CopyActionDependencies } from '@features/chat/message/messageCopyNotifications.ts';
@@ -17,6 +18,7 @@ type ToolCallOutputModalEscapeDependencies = {
 };
 
 type ToolCallOutputModalCopyDependencies = CopyActionDependencies & {
+    readonly owner: PresentationOwner;
     loadMoreLiveEvents: (beforeLiveSequence: number) => Promise<ToolCallLiveEventsPage>;
 };
 

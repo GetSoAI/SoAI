@@ -27,10 +27,11 @@
         min-height: 3.25rem;
         gap: var(--space-2);
         border-radius: var(--border-radius);
-        border: var(--border-width-1) solid var(--status-color);
+        color: var(--status-color);
+        border: var(--border-width-1) solid currentColor;
         background: color-mix(in srgb, var(--status-color) 6%, var(--glass-underlay-surface));
         transition:
-            border-color var(--transition-fast),
+            color var(--transition-fast),
             background-color var(--transition-fast);
     }
 
@@ -44,7 +45,7 @@
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state .status-main-text {
         font-size: var(--font-size-lg);
         font-weight: 700;
-        color: var(--status-color);
+        color: inherit;
         min-width: 0;
         line-height: var(--line-height-compact);
         overflow: hidden;

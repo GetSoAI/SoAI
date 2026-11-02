@@ -1,6 +1,7 @@
 /* SoAI - Hardware page GPU control types [frontend/assets/ts/pages/hardware/controllers/gpucontrol/gpuControlTypes.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { GpuSlotDevice } from '@core/types/streamTypes.ts';
 import type { GpuOperationResponse } from '@core/api/contracts/hardwareContracts.ts';
@@ -117,7 +118,7 @@ export interface SecurityService {
 }
 
 export interface GpuControlManagerDependencies {
-    dom: { getDocument: () => Document };
+    pageDom: Pick<PageDom, 'resolveContext'>;
     api: ApiService;
     chartOhlc: ChartOhlcNumeric;
     runPageTask: (taskId: string, taskFunctionValue: () => Promise<void>, options: TaskOptions) => Promise<void>;

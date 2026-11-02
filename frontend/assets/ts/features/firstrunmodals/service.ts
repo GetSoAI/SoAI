@@ -5,6 +5,8 @@ import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { ModalOpenOptions } from '@core/modals/types.ts';
 import type { FirstRunModalId, FirstRunModalRegistration, FirstRunModalService, FirstRunModalStateMap, FirstRunPageId, FirstRunStateStorage } from '@core/firstrun/protocols.ts';
 import { isFirstRunModalPending, readFirstRunModalStateMap } from '@core/firstrun/state.ts';
+import { requirePresentationOwnerActive, isPresentationOwnerFocused } from '@core/presentationOwner.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
 
 const FIRST_RUN_MODALS_SERVICE_ID = 'features.firstRunModals';
@@ -44,7 +46,9 @@ const createFirstRunModalsService = (dependencies: CreateFirstRunModalsServiceDe
     };
 
     return {
-        handlePageShow: async (pageId: FirstRunPageId, options: { signal?: AbortSignal } = {}): Promise<void> => {
+        handlePageShow: async (pageId: FirstRunPageId, options: { owner: PresentationOwner; signal?: AbortSignal }): Promise<void> => {
+            requirePresentationOwnerActive(options.owner);
+            if (!isPresentationOwnerFocused(options.owner)) return;
             throwIfAborted(options.signal);
             await ensureStorageReady();
             throwIfAborted(options.signal);
@@ -68,12 +72,15 @@ const createFirstRunModalsService = (dependencies: CreateFirstRunModalsServiceDe
                 }
             }
             const openOptions: FirstRunModalOpenOptions = {
+                owner: options.owner,
                 firstRunId: nextRegistration.id,
                 firstRunReason: 'auto'
             };
+            requirePresentationOwnerActive(options.owner);
+            if (!isPresentationOwnerFocused(options.owner)) return;
             dependencies.modalPresenter.open(nextRegistration.modalId, openOptions);
         },
-        open: async (id: FirstRunModalId, reason: 'auto' | 'manual'): Promise<void> => {
+        open: async (id: FirstRunModalId, reason: 'auto' | 'manual', owner: PresentationOwner): Promise<void> => {
             await ensureStorageReady();
             const registration = findRegistration(dependencies.registrations, id);
             if (reason === 'manual' && !registration.allowManualOpen) {
@@ -93,9 +100,11 @@ const createFirstRunModalsService = (dependencies: CreateFirstRunModalsServiceDe
                 }
             }
             const openOptions: FirstRunModalOpenOptions = {
+                owner,
                 firstRunId: registration.id,
                 firstRunReason: reason
             };
+            requirePresentationOwnerActive(owner);
             dependencies.modalPresenter.open(registration.modalId, openOptions);
         },
         isPending: (id: FirstRunModalId): boolean => {

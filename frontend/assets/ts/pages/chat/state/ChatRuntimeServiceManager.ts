@@ -3,14 +3,14 @@
 
 import { requireSyntaxHighlighter } from '@core/syntaxhighlighter/public.ts';
 import type { VoiceCallRuntimeAssets } from '@core/media/voiceCallRuntimeAssets.ts';
-import type { ChatToolIconServiceContract } from '@core/chat/protocols.ts';
+import type { ChatToolIconServiceContract, ChatPagePresenceServiceContract } from '@core/chat/protocols.ts';
 import type { FirstRunModalService } from '@core/firstrun/protocols.ts';
-import type { ChatConversationAttentionService, ChatPagePresenceService, ChatStreamService } from '@features/chat/public.ts';
+import type { ChatConversationAttentionService, ChatStreamService } from '@features/chat/public.ts';
 import type { TimerHost } from '@pages/chat/controllers/chatUiBehaviors.ts';
 
 interface ChatPageDependencies {
     chatStreamService: ChatStreamService;
-    chatPagePresence: ChatPagePresenceService;
+    chatPagePresence: ChatPagePresenceServiceContract;
     chatConversationAttention: ChatConversationAttentionService;
     chatToolIconService: ChatToolIconServiceContract;
     firstRunModals: FirstRunModalService;
@@ -19,7 +19,7 @@ interface ChatPageDependencies {
 
 class ChatRuntimeServices {
     readonly chatStream: ChatStreamService;
-    readonly presence: ChatPagePresenceService;
+    readonly presence: ChatPagePresenceServiceContract;
     readonly attention: ChatConversationAttentionService;
     readonly toolIcons: ChatToolIconServiceContract;
     readonly firstRunModals: FirstRunModalService;

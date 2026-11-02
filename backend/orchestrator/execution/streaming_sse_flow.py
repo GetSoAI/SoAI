@@ -8,15 +8,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.concurrency.async_iterators import close_async_iterator_if_supported
-from core.errors.exceptions import ModelOutputContractError, StateError
+from core.errors.exceptions import StateError
 from core.logging.protocols import TraceLogger
-from core.openai.openai_error_objects import parse_openai_sse_error_frame
+from core.openai.openai_error_objects import parse_validated_openai_sse_error_frame
 from core.openai.openai_sse_error_escalation import raise_openai_streaming_error
 from core.openai.response_model_identity import normalize_response_frame_model_identity
 from core.openai.responses_stream_transcript import ResponsesStreamTranscript
 from core.openai.sse_frame_accumulator import OpenAISSEFrameAccumulator
 from core.openai.sse_progress import OpenAISSEProgressDetector
-from core.openai.sse_validation import validate_openai_sse_frame
 from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
 from core.openai.streaming_usage import StreamingUsageCollector
 from core.openai.transcription_stream_transcript import OpenAITranscriptionStreamTranscript
@@ -128,18 +127,13 @@ async def process_streaming_sse_flow(
     try:
         async for chunk_bytes in stream_iterator:
             for frame_text in frame_accumulator.feed(chunk_bytes):
-                if not validate_openai_sse_frame(
+                parsed_error = parse_validated_openai_sse_error_frame(
                     frame_text,
+                    operation=operation or "streaming_sse_flow.process_streaming_sse_flow",
                     allow_responses_events=task.task_type == TASK_TYPE_OPENAI_RESPONSE,
                     allow_image_events=image_transcript is not None,
                     allow_transcription_events=transcription_transcript is not None,
-                ):
-                    raise ModelOutputContractError(
-                        "Provider returned a malformed OpenAI SSE frame.",
-                        operation=operation,
-                        details={"failure_type": "malformed_frame"},
-                    )
-                parsed_error = parse_openai_sse_error_frame(frame_text)
+                )
                 if parsed_error is not None:
                     raise_openai_streaming_error(
                         parsed_error,

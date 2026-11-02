@@ -1,6 +1,7 @@
 /* SoAI - Automation page crud actions [frontend/assets/ts/pages/automation/controllers/automationCrudActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { applyTextContent } from '@core/dom/textContent.ts';
 
 import { errorHandler } from '@core/errorHandler.ts';
@@ -32,6 +33,7 @@ interface AutomationCrudControllerPort {
 }
 
 interface AutomationCrudActionHost {
+    readonly owner: PresentationOwner;
     state: AutomationCrudStatePort;
     controllers: AutomationCrudControllerPort;
 }
@@ -112,7 +114,7 @@ const handleToggleAutomationEnabled = (host: AutomationCrudActionHost, element: 
 const handleDeleteAutomation = (host: AutomationCrudActionHost, automationId: string): void => {
     host.controllers.run('automation:deleteAutomation', async () => {
         const automation = resolveAutomationById(host.state.getState().automations, automationId);
-        const confirmed = await confirmDeleteAutomation({ id: automation.id, title: automation.title });
+        const confirmed = await confirmDeleteAutomation({ id: automation.id, title: automation.title }, host.owner);
         if (!confirmed) {
             return;
         }

@@ -1,6 +1,7 @@
 /* SoAI - Settings feature MCP manager types [frontend/assets/ts/features/settings/mcp/mcpManagerTypes.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { JsonValue, JsonObject } from '@core/types/jsonValues.ts';
 import type { ConfirmationOptions } from '@core/ui/modals/dialogs/types.ts';
@@ -51,7 +52,7 @@ interface McpManagerDomHost extends PageDomOwnerHost, PageResourcesOwnerHost {
 interface McpManagerExecutionHost extends PageFeedbackOwnerHost {
     runWithBoundary: <T>(name: string, task: () => Promise<T> | T) => Promise<T>;
     withButtonDisabled: <T>(btn: Element | null, functionValue: () => Promise<T>, options?: { keepDisabled?: boolean }) => Promise<T>;
-    confirmAndExecute: <Result>(boundaryName: string, confirmOptions: ConfirmationOptions | null, action: () => Promise<Result>, successMessage: string | null, onSuccess: (() => Promise<void> | void) | null, onError: ((error: Error) => void) | null) => Promise<void>;
+    confirmAndExecute: <Result>(boundaryName: string, confirmOptions: Omit<ConfirmationOptions, 'owner'> | null, action: () => Promise<Result>, successMessage: string | null, onSuccess: (() => Promise<void> | void) | null, onError: ((error: Error) => void) | null) => Promise<void>;
     notifySaveChanged: () => void;
     requestSave: () => void;
     syncManualDirtyField: (key: string, modified: boolean, valid: boolean) => void;
@@ -96,6 +97,7 @@ interface McpManagerEditStateHost {
 }
 
 interface McpManagerHost {
+    readonly owner: PresentationOwner;
     services: McpManagerServicesHost;
     view: McpManagerDomHost;
     execution: McpManagerExecutionHost;

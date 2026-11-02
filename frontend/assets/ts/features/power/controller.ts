@@ -1,6 +1,7 @@
 /* SoAI - Immersive power mode controller [frontend/assets/ts/features/power/controller.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createGlobalPresentationOwner } from '@core/presentationOwner.ts';
 import { getMaintenanceCoordinator } from '@core/maintenanceCoordinator.ts';
 import { scrollElementIntoView } from '@core/scroll.ts';
 import { dom } from '@core/dom/dom.ts';
@@ -30,6 +31,7 @@ interface PowerModeDependencies extends Omit<PowerOperationLifecycleDependencies
 }
 
 class PowerModeController {
+    readonly #presentationOwner = createGlobalPresentationOwner('power-mode');
     readonly #dependencies: PowerModeDependencies;
     readonly #actions: PowerActionService;
     readonly #lifecycle: PowerOperationLifecycle;
@@ -67,7 +69,7 @@ class PowerModeController {
                 const confirmation = new AbortController();
                 this.#confirmation = confirmation;
                 try {
-                    return await runWithAbortSignalScope([session.signal, confirmation.signal], (signal) => confirmPowerAction(action, submit, signal));
+                    return await runWithAbortSignalScope([session.signal, confirmation.signal], (signal) => confirmPowerAction(action, submit, signal, this.#presentationOwner));
                 } finally {
                     if (this.#confirmation === confirmation) this.#confirmation = null;
                 }
@@ -149,7 +151,7 @@ class PowerModeController {
         for (const target of dom.resolveAll('[data-power-initial-focus]', modal)) target.removeAttribute('data-power-initial-focus');
         const initial = action && isPowerActionId(action) ? resolver.requireHTMLElement(`[data-action="${action}"]`) : back;
         initial.setAttribute('data-power-initial-focus', '');
-        presenter.open(POWER_MODE_MODAL_ID);
+        presenter.open(POWER_MODE_MODAL_ID, { owner: this.#presentationOwner });
         dom.addClass(navigationButton, 'u-invisible');
         dom.flush();
         this.#motion.enter(modal);

@@ -24,6 +24,7 @@ class ChatAttachBrowseWorkspaceOperations {
         this.#host = host;
         this.#signal = signal;
         this.#preview = new ChatSoaiPathContentPreview({
+            owner: host.shared.owner,
             soaiPathsApi: host.shared.api.webui.chat.soaiPaths,
             runWithBoundary: (name, operation) => host.execution.boundary(name, operation),
             hasClipboardSupport: () => host.presentation.hasClipboardSupport(),

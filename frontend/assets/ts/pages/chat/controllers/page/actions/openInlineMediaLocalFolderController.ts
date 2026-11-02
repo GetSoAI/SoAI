@@ -1,11 +1,13 @@
 /* SoAI - Chat inline media local folder open controller [frontend/assets/ts/pages/chat/controllers/page/actions/openInlineMediaLocalFolderController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 
 interface OpenInlineMediaLocalFolderHost {
+    readonly owner: PresentationOwner;
     navigateWithQuery(page: string, query: Record<string, string>): void | Promise<void>;
 }
 
@@ -16,7 +18,7 @@ const openInlineMediaLocalFolder = async (host: OpenInlineMediaLocalFolderHost, 
         throw new Error('Inline local folder action requires data-inline-media-folder-path');
     }
     const displayPath = toTrimmedString(actionElement.dataset['inlineMediaFolderLabel'] ?? folderPath) || folderPath;
-    const confirmed = await requireDialogsService().showLocalFolderOpenModal({ path: displayPath });
+    const confirmed = await requireDialogsService().showLocalFolderOpenModal({ owner: host.owner, path: displayPath });
     if (!confirmed) {
         return;
     }

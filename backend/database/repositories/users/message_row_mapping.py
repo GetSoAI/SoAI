@@ -223,8 +223,11 @@ def attach_assistant_event_timeline(
             assistant_revision,
         )
         validated_event_type = validate_assistant_event_type(event_type)
+        decoded_payload = safe_json_deserialize(payload_raw, None)
+        if not isinstance(payload_raw, str):
+            decoded_payload = normalize_for_json(decoded_payload)
         payload = require_json_object(
-            normalize_for_json(safe_json_deserialize(payload_raw, None)),
+            decoded_payload,
             label="Assistant event payload_json",
             build_error=ValidationError,
             invalid_message="Assistant event payload_json must decode to a JSON object.",

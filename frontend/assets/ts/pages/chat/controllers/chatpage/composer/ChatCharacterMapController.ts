@@ -4,7 +4,8 @@
 import type { ApiClient } from '@core/api/service.ts';
 import { resolveAssetPath } from '@core/assetPaths.ts';
 import { AsyncOnceGuard } from '@core/concurrency/AsyncOnce.ts';
-import { throwIfAborted } from '@core/errors/abort.ts';
+import { runWithAbortSignalScope, throwIfAborted } from '@core/errors/abort.ts';
+import { LifecycleScope } from '@core/lifecycle/lifecycleScope.ts';
 import { runModalSession } from '@core/modals/modalSession.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { PageFeedback } from '@core/routing/pages/basepagecore/PageFeedback.ts';
@@ -19,7 +20,7 @@ interface ChatCharacterMapControllerHost {
     api: Pick<ApiClient, 'fetchAsset'>;
     composer: Pick<ChatComposerController, 'insertTextAtCaret'>;
     feedback: Pick<PageFeedback, 'handle' | 'show'>;
-    services: Pick<PageServices, 'hasClipboardSupport' | 'copyToClipboard'>;
+    services: Pick<PageServices, 'mountScope' | 'hasClipboardSupport' | 'copyToClipboard'>;
     storage: CharacterMapViewStateStorage;
     requirePresenter(): ModalPresenterApi;
     getLifecycleSignal(): AbortSignal | null;
@@ -29,8 +30,7 @@ interface ChatCharacterMapControllerHost {
 class ChatCharacterMapController {
     readonly #host: ChatCharacterMapControllerHost;
     readonly #catalogGuard = new AsyncOnceGuard<CharacterMapCatalog>();
-    #controller: ChatCharacterMapModalController | null = null;
-    #generation = 0;
+    readonly #lifetime = new LifecycleScope();
     #disposed = false;
 
     constructor(host: ChatCharacterMapControllerHost) {
@@ -40,10 +40,13 @@ class ChatCharacterMapController {
     open(): void {
         if (this.#disposed) throw new Error('Character-map controller is disposed');
         const presenter = this.#host.requirePresenter();
-        const generation = ++this.#generation;
-        this.#host.runTask(`chat:openCharacterMap:${generation}`, async () => {
-            try {
-                await runModalSession({
+        const owner = this.#host.services.mountScope;
+        const run = this.#lifetime.begin('replace-character-map');
+        this.#host.runTask(`chat:openCharacterMap:${run.generation}`, async () => {
+            await runWithAbortSignalScope([run.signal, this.#host.getLifecycleSignal()], (signal) =>
+                runModalSession({
+                    signal,
+                    owner,
                     presenter,
                     modalId: CHAT_CHARACTER_MAP_MODAL_ID,
                     onAlreadyOpen: 'replace',
@@ -64,28 +67,22 @@ class ChatCharacterMapController {
                             modal,
                             signal
                         );
-                        this.#controller = controller;
                         return { dispose: () => controller.dispose() };
                     }
-                });
-            } finally {
-                if (generation === this.#generation) this.#controller = null;
-            }
+                })
+            );
         });
     }
 
     dispose(): void {
         if (this.#disposed) return;
         this.#disposed = true;
-        this.#generation += 1;
+        this.#lifetime.abort('character-map-dispose');
         const presenter = this.#host.requirePresenter();
-        const isOpen = presenter.isOpen(CHAT_CHARACTER_MAP_MODAL_ID);
+        const isOpen = presenter.getOwnership(CHAT_CHARACTER_MAP_MODAL_ID)?.owner === this.#host.services.mountScope && presenter.isOpen(CHAT_CHARACTER_MAP_MODAL_ID);
         if (isOpen) {
             presenter.close(CHAT_CHARACTER_MAP_MODAL_ID, { force: true, restoreFocus: false, reason: 'page-dispose' });
-        } else {
-            this.#controller?.dispose();
         }
-        this.#controller = null;
         this.#catalogGuard.dispose();
     }
 

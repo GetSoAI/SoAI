@@ -3,4 +3,4 @@
 
 import type { McpManagerHost } from '@features/settings/mcp/mcpManagerTypes.ts';
 
-export type McpServersHost = Pick<McpManagerHost, 'services' | 'view' | 'execution' | 'data' | 'editing'>;
+export type McpServersHost = Pick<McpManagerHost, 'owner' | 'services' | 'view' | 'execution' | 'data' | 'editing'>;

@@ -1,6 +1,7 @@
 /* SoAI - Chat attachment overflow linked knowledge preview [frontend/assets/ts/features/chat/message/attachmentoverflowmodal/knowledgePreview.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import type { KnowledgeAttachmentPreviewResponse, KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -17,6 +18,7 @@ import type { ChatKnowledgeAttachmentsApi } from '@features/chat/pagecontracts/t
 import type { AttachmentOverflowRecord } from '@features/chat/message/attachmentoverflowmodal/records.ts';
 
 type KnowledgePreviewDependencies = CopyActionDependencies & {
+    readonly owner: PresentationOwner;
     knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'previewItem' | 'useItems'>;
     isSessionActive: (sessionToken: number) => boolean;
     getAttachmentDraftRevision: () => number;
@@ -41,6 +43,7 @@ type KnowledgePreviewOpenFromElementArguments = {
 };
 
 class AttachmentOverflowKnowledgePreview {
+    readonly #owner: PresentationOwner;
     readonly #knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'previewItem' | 'useItems'>;
     readonly #runWithBoundary: CopyActionDependencies['runWithBoundary'];
     readonly #isSessionActive: (sessionToken: number) => boolean;
@@ -53,6 +56,7 @@ class AttachmentOverflowKnowledgePreview {
     #generation = 0;
 
     constructor(dependencies: KnowledgePreviewDependencies) {
+        this.#owner = dependencies.owner;
         this.#knowledgeAttachmentsApi = dependencies.knowledgeAttachmentsApi;
         this.#runWithBoundary = dependencies.runWithBoundary;
         this.#isSessionActive = dependencies.isSessionActive;
@@ -119,6 +123,7 @@ class AttachmentOverflowKnowledgePreview {
 
     #buildRequest(inputArguments: KnowledgePreviewOpenArguments, itemId: number, payload: KnowledgeAttachmentPreviewResponse, generation: number, signal: AbortSignal): ContentPreviewOpenRequest {
         return createTextContentPreviewRequest({
+            owner: this.#owner,
             scope: 'chat',
             type: 'text',
             headerDescription: [i18n.t('chat.attachments.badge.knowledge'), ...(payload.document.missingCapabilities?.includes('speech_to_text') ? [i18n.t('speechSetup.notTranscribed')] : [])].join(' - '),

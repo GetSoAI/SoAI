@@ -1,14 +1,12 @@
 /* SoAI - Shared UI modal runtime [frontend/assets/ts/core/ui/modals/contentpreview/modalRuntime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { setModalHeaderDescription } from '@core/modals/headerDescription.ts';
 import { requireModalPresenter, type ModalPresenterApi } from '@core/modals/modalPresenter.ts';
-import { modalUiId } from '@core/modals/uiIds.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { createSaveController, SAVE_HEADER_PRIORITY_MODAL, type SaveController, type SaveUnitResult } from '@core/save/public.ts';
 import { applyButtonLabels, applyEditingUiState, applyTextEmptyDisableState } from '@core/ui/modals/contentpreview/modalButtons.ts';
 import { CONTENT_PREVIEW_MODAL_ID } from '@core/ui/modals/contentpreview/constants.ts';
-import { requireContentPreviewHeaderColorContainer, requireContentPreviewSaveButton } from '@core/ui/modals/contentpreview/dom.ts';
+import { applyContentPreviewHeaderDescription, requireContentPreviewHeaderColorContainer, requireContentPreviewSaveButton } from '@core/ui/modals/contentpreview/dom.ts';
 import { createContentPreviewMediaController } from '@core/ui/modals/contentpreview/mediaController.ts';
 import { requestContentPreviewTextSave } from '@core/ui/modals/contentpreview/saveFlow.ts';
 import { normalizeContentPreviewOpenRequest } from '@core/ui/modals/contentpreview/requestValidation.ts';
@@ -44,10 +42,6 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
     let saveController: SaveController | null = null;
 
     const requireModalRoot = (): HTMLElement => modalPresenter.requireElement(CONTENT_PREVIEW_MODAL_ID);
-
-    const applyHeaderDescription = (modalRoot: HTMLElement, text: string | null): void => {
-        setModalHeaderDescription(modalRoot, modalUiId(CONTENT_PREVIEW_MODAL_ID, 'description'), text);
-    };
 
     const getCurrentRequest = (): ContentPreviewOpenRequest | null => sessionState.request;
 
@@ -130,10 +124,12 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
         if (!textController.hasDraftChanges()) {
             return true;
         }
+        const request = getCurrentRequest();
+        if (!request) return false;
         const isStillValid = captureCloseValidity();
         discardConfirmationPending = true;
         try {
-            return (await showUnsavedChangesConfirmation()) && isStillValid();
+            return (await showUnsavedChangesConfirmation({ owner: request.owner })) && isStillValid();
         } finally {
             discardConfirmationPending = false;
         }
@@ -225,11 +221,27 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
             mediaController.dispose();
             textController.reset(modalRoot);
             clearContentPreviewHeaderColorToolkit(modalRoot, request);
-            applyHeaderDescription(modalRoot, null);
+            applyContentPreviewHeaderDescription(modalRoot, null);
             saveController?.notifyChanged();
         });
 
+        resources.track(
+            attachBeforeCloseConfirmationGuard({
+                modal: modalRoot,
+                presenter: modalPresenter,
+                modalId: CONTENT_PREVIEW_MODAL_ID,
+                shouldConfirmClose: (): boolean => sessionState.mode === 'busySave' || textController.hasDraftChanges() || saveController?.isSaving() === true,
+                confirmClose: confirmDraftDiscard,
+                captureCloseValidity
+            })
+        );
+    };
+
+    const bindRequestSave = (modalRoot: HTMLElement, request: ContentPreviewOpenRequest): void => {
+        saveController?.dispose();
         saveController = createSaveController({
+            owner: request.owner,
+            isCurrent: () => sessionState.request === request,
             headerContextId: CONTENT_PREVIEW_MODAL_ID,
             headerPriority: SAVE_HEADER_PRIORITY_MODAL,
             requestContextLabel: 'Content preview save',
@@ -249,16 +261,6 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
             resolveSaveButtons: (): readonly HTMLButtonElement[] => [requireContentPreviewSaveButton(modalRoot)],
             autoNotifyRoot: modalRoot
         });
-        resources.track(
-            attachBeforeCloseConfirmationGuard({
-                modal: modalRoot,
-                presenter: modalPresenter,
-                modalId: CONTENT_PREVIEW_MODAL_ID,
-                shouldConfirmClose: (): boolean => sessionState.mode === 'busySave' || textController.hasDraftChanges() || saveController?.isSaving() === true,
-                confirmClose: confirmDraftDiscard,
-                captureCloseValidity
-            })
-        );
     };
 
     const open = (request: ContentPreviewOpenRequest): void => {
@@ -266,16 +268,18 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
         const modalRoot = requireModalRoot();
         wireOnce(modalRoot);
         const previousRequest = getCurrentRequest();
+        if (modalPresenter.isOpen(CONTENT_PREVIEW_MODAL_ID) && previousRequest && previousRequest.owner !== normalizedRequest.owner) throw new Error('Content preview is owned by another presentation');
         actions.resetImageNavigation();
         sessionState = openContentPreviewSessionState(normalizedRequest);
+        bindRequestSave(modalRoot, normalizedRequest);
         if (normalizedRequest.type === 'text') {
             renderContentPreviewTextMode(sessionRenderingDependencies, modalRoot, normalizedRequest, previousRequest);
         } else {
             renderContentPreviewMediaMode(sessionRenderingDependencies, modalRoot, normalizedRequest, previousRequest);
         }
-        applyHeaderDescription(modalRoot, normalizedRequest.headerDescription);
+        applyContentPreviewHeaderDescription(modalRoot, normalizedRequest.headerDescription);
 
-        modalPresenter.open(CONTENT_PREVIEW_MODAL_ID);
+        modalPresenter.open(CONTENT_PREVIEW_MODAL_ID, { owner: normalizedRequest.owner });
         saveController?.notifyChanged();
     };
 
@@ -294,7 +298,7 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
             sessionState = openContentPreviewSessionState(normalizedRequest);
             applyButtonLabels(modalRoot, normalizedRequest.labels);
             applyEditingUiState(modalRoot, normalizedRequest, false);
-            applyHeaderDescription(modalRoot, normalizedRequest.headerDescription);
+            applyContentPreviewHeaderDescription(modalRoot, normalizedRequest.headerDescription);
             saveController?.notifyChanged();
             return true;
         },

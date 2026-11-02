@@ -67,6 +67,7 @@ const createPasswordChangeFlow = (dependencies: { modalId: string }): PasswordCh
     const show = async (request: PasswordChangeModalOptions): Promise<boolean> => {
         const presenter = requireModalPresenter();
         return await runModalSession<boolean>({
+            owner: request.owner,
             presenter,
             modalId: dependencies.modalId,
             onAlreadyOpen: 'replace',
@@ -87,7 +88,7 @@ const createPasswordChangeFlow = (dependencies: { modalId: string }): PasswordCh
                 setError(elements, null);
                 let submitPending = false;
                 let operationId: string | null = null;
-                const detachCloseGuard = attachPendingOperationCloseGuard({ modal, isPending: () => submitPending });
+                const detachCloseGuard = attachPendingOperationCloseGuard({ modal, presenter, isPending: () => submitPending });
                 const applyPending = (pending: boolean): void => {
                     submitPending = pending;
                     setPending(elements, pending);

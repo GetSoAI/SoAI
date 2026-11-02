@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
-import { modalUiSelector } from '@core/modals/uiIds.ts';
+import { setModalHeaderDescription } from '@core/modals/headerDescription.ts';
+import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
 import { CONTENT_PREVIEW_MODAL_ID, CONTENT_PREVIEW_UI_TOKENS } from '@core/ui/modals/contentpreview/constants.ts';
 
 const requireElement = (selector: string, context: HTMLElement, description: string): HTMLElement => {
@@ -86,4 +87,8 @@ export const requireContentPreviewSaveButton = (modalRoot: HTMLElement): HTMLBut
 
 export const requireContentPreviewEnhanceButton = (modalRoot: HTMLElement): HTMLButtonElement => {
     return requireButton(modalUiSelector(CONTENT_PREVIEW_MODAL_ID, CONTENT_PREVIEW_UI_TOKENS.ENHANCE), modalRoot, 'enhance button');
+};
+
+export const applyContentPreviewHeaderDescription = (modalRoot: HTMLElement, text: string | null): void => {
+    setModalHeaderDescription(modalRoot, modalUiId(CONTENT_PREVIEW_MODAL_ID, 'description'), text);
 };

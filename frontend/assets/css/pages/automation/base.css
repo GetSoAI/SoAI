@@ -29,7 +29,7 @@
         --automation-status-outline-soft: 16%;
     }
 
-    body.page-automation .main-content > .automation-container:where([data-section='automation'], [data-page-scope='automation']) {
+    body.page-automation [data-page-outlet-root='true'] > .automation-container:where([data-section='automation'], [data-page-scope='automation']) {
         display: flex;
         flex-direction: column;
         padding: 0;

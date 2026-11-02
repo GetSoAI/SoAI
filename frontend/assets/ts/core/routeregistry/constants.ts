@@ -6,12 +6,14 @@ import { HEADER_ACTION_IDS } from '@core/headeractions/constants.ts';
 import { CAPS, HARDWARE, LOGS_CORE, METRICS, MODELS, PLUGINS, PROMPTS, STATUS } from '@core/realtime/streammanager/resources/ids.ts';
 import type { RawRouteDefinition } from '@core/routeregistry/contracts.ts';
 import { resolveRouteSearchMetadata } from '@core/routeregistry/searchMetadata.ts';
+import { INITIAL_MODAL_QUERY_KEYS, AUTOMATION_RECONSTRUCTION_QUERY_KEYS, PLUGINS_INITIAL_MODAL_QUERY_KEYS, MODELS_INITIAL_ACTION_QUERY_KEYS, READ_ROUTE_RECONSTRUCTION, CLEAN_READ_ROUTE_RECONSTRUCTION } from '@core/routeregistry/reconstruction.ts';
 
 const MOVABLE_LAYOUT_HEADER_ACTION_HANDOFF: readonly string[] = [HEADER_ACTION_IDS.edit];
 
 const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     {
         id: 'dashboard',
+        reconstruction: READ_ROUTE_RECONSTRUCTION,
         path: 'dashboard',
         component: 'dashboard',
         getTitle: () => i18n.t('pages.dashboard.title'),
@@ -24,6 +26,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'chat',
+        reconstruction: { discardQuery: INITIAL_MODAL_QUERY_KEYS },
         path: 'chat',
         component: 'chat',
         getTitle: () => i18n.t('pages.chat.title'),
@@ -34,6 +37,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'chatConversation',
+        reconstruction: { discardQuery: INITIAL_MODAL_QUERY_KEYS },
         path: 'chat/conversation/:conversationId',
         component: 'chat',
         getTitle: () => i18n.t('pages.chat.title'),
@@ -43,6 +47,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'automation',
+        reconstruction: { discardQuery: AUTOMATION_RECONSTRUCTION_QUERY_KEYS },
         path: 'automation',
         component: 'automation',
         getTitle: () => i18n.t('pages.automation.title'),
@@ -52,6 +57,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'prompts',
+        reconstruction: READ_ROUTE_RECONSTRUCTION,
         path: 'prompts',
         component: 'prompts',
         getTitle: () => i18n.t('pages.prompts.title'),
@@ -61,6 +67,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'plugins',
+        reconstruction: { discardQuery: PLUGINS_INITIAL_MODAL_QUERY_KEYS, whenQuery: 'modal' },
         path: 'plugins',
         component: 'plugins',
         getTitle: () => i18n.t('pages.plugins.title'),
@@ -72,6 +79,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'models',
+        reconstruction: { discardQuery: MODELS_INITIAL_ACTION_QUERY_KEYS, whenQuery: 'action' },
         path: 'models',
         component: 'models',
         getTitle: () => i18n.t('pages.models.title'),
@@ -83,6 +91,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'hardware',
+        reconstruction: READ_ROUTE_RECONSTRUCTION,
         path: 'hardware',
         component: 'hardware',
         getTitle: () => i18n.t('pages.hardware.title'),
@@ -95,6 +104,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'metrics',
+        reconstruction: READ_ROUTE_RECONSTRUCTION,
         path: 'metrics',
         component: 'metrics',
         getTitle: () => i18n.t('pages.metrics.title'),
@@ -118,6 +128,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'terminal',
+        reconstruction: READ_ROUTE_RECONSTRUCTION,
         path: 'terminal',
         component: 'terminal',
         getTitle: () => i18n.t('pages.terminal.title'),
@@ -128,6 +139,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'fileExplorer',
+        reconstruction: READ_ROUTE_RECONSTRUCTION,
         path: 'fileExplorer',
         component: 'fileExplorer',
         getTitle: () => i18n.t('pages.fileExplorer.title'),
@@ -139,6 +151,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'help',
+        reconstruction: CLEAN_READ_ROUTE_RECONSTRUCTION,
         path: 'help',
         component: 'help',
         getTitle: () => i18n.t('pages.help.title'),
@@ -149,6 +162,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'logs',
+        reconstruction: READ_ROUTE_RECONSTRUCTION,
         path: 'logs',
         component: 'logs',
         getTitle: () => i18n.t('pages.logs.title'),
@@ -166,6 +180,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'settings',
+        reconstruction: { discardQuery: INITIAL_MODAL_QUERY_KEYS },
         path: 'settings',
         component: 'settings',
         getTitle: () => i18n.t('pages.settings.title'),
@@ -183,6 +198,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'updates',
+        reconstruction: READ_ROUTE_RECONSTRUCTION,
         path: 'updates',
         component: 'updates',
         getTitle: () => i18n.t('pages.updates.title'),
@@ -198,6 +214,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
         component: 'about',
         getTitle: () => i18n.t('pages.about.title'),
         auth: true,
+        layout: { exclusive: true },
         actions: ['SYSTEM_STATUS_READ', 'HARDWARE_READ'],
         data: { streams: [] },
         search: resolveRouteSearchMetadata('about'),
@@ -205,6 +222,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
     },
     {
         id: 'search',
+        reconstruction: READ_ROUTE_RECONSTRUCTION,
         path: 'search',
         component: 'search',
         getTitle: () => i18n.t('pages.search.title'),
@@ -229,7 +247,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
         auth: false,
         data: { streams: [] },
         sidebar: { include: false, parent: null },
-        layout: { hideSidebar: true }
+        layout: { hideSidebar: true, exclusive: true }
     },
     {
         id: 'wizard',
@@ -239,10 +257,11 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
         auth: false,
         data: { streams: [] },
         sidebar: { include: false, parent: null },
-        layout: { hideSidebar: true }
+        layout: { hideSidebar: true, exclusive: true }
     },
     {
         id: 'modelDetail',
+        reconstruction: READ_ROUTE_RECONSTRUCTION,
         path: 'model/:id',
         component: 'modelDetail',
         getTitle: () => i18n.t('pages.modelDetail.title'),

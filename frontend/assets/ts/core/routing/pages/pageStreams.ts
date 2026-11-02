@@ -26,10 +26,12 @@ const hasStreamHandleMethod = <K extends StreamHandleMethodName>(candidate: Stre
 export class StreamHandleTracker {
     readonly prefix: string;
     readonly active: Map<string, StreamHandle>;
+    readonly #requireActive: () => void;
 
-    constructor(point: string) {
+    constructor(point: string, requireActive: () => void = () => {}) {
         this.prefix = point;
         this.active = new Map();
+        this.#requireActive = requireActive;
     }
 
     get size(): number {
@@ -41,6 +43,12 @@ export class StreamHandleTracker {
     }
 
     track(key: string, streamHandle: StreamHandle): StreamHandle {
+        try {
+            this.#requireActive();
+        } catch (error) {
+            this.#stop(streamHandle, { cancel: false });
+            throw error;
+        }
         this.active.set(key, streamHandle);
         return streamHandle;
     }

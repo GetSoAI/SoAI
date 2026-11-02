@@ -7,5 +7,5 @@ export type { PresenceListReconcileArguments } from '@core/animations/presence/p
 export { createPresenceRuntime } from '@core/animations/presence/presenceRuntime.ts';
 export type { PresenceRuntimeService } from '@core/animations/presence/presenceRuntime.ts';
 export { PRESENCE_EXITING_SELECTOR, exitWithPresence, isPresenceExiting, prepareEnterWithPresence, requestPresenceEnter } from '@core/animations/presence/presenceTransitions.ts';
-export { animatePresenceExit, animatePresenceMorph, deferUntilPresenceExitsSettle, finishPresenceAnimations, hasPresenceAnimationInSubtree, isPresenceAnimating, isPresenceMorphing, measurePresenceSize, stopPresenceAnimation } from '@core/animations/presence/presenceMotion.ts';
+export { animatePresenceExit, animatePresenceMorph, deferUntilPresenceExitsSettle, finishPresenceAnimations, hasPresenceAnimationInSubtree, isPresenceAnimating, isPresenceMorphing, measurePresenceSize, preparePresenceEnter, stopPresenceAnimation } from '@core/animations/presence/presenceMotion.ts';
 export type { PresenceSize } from '@core/animations/presence/presenceMotion.ts';

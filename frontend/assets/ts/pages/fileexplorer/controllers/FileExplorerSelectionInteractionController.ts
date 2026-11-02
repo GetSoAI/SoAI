@@ -1,6 +1,7 @@
 /* SoAI - File explorer page control layer selection interaction controller [frontend/assets/ts/pages/fileexplorer/controllers/FileExplorerSelectionInteractionController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
@@ -14,6 +15,7 @@ import type { FileExplorerTaskProgressController } from '@pages/fileexplorer/con
 import type { FileExplorerSelectionModel } from '@pages/fileexplorer/state/FileExplorerSelectionState.ts';
 
 interface FileExplorerSelectionInteractionHost {
+    readonly owner: PresentationOwner;
     showNotification: (message: string, type: NotificationType) => void;
     requireHTMLElement: (selector: string, context?: HTMLElement) => HTMLElement;
     modalPresenter: ModalPresenterApi;

@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
+import { isPresentationOwnerActive } from '@core/presentationOwner.ts';
 import type { SaveScope } from '@core/save/contracts.ts';
 
 type SaveAutoNotifyBindingOptions = {
+    readonly owner: PresentationOwner;
     scope: SaveScope;
     headerContextId: string;
     signal: AbortSignal;
@@ -43,7 +46,7 @@ const isTextInputTarget = (target: EventTarget | null): boolean => {
 
 const createKeyboardSaveHandler = (options: SaveAutoNotifyBindingOptions): ((event: Event) => void) => {
     return (event: Event): void => {
-        if (!(event instanceof KeyboardEvent) || event.defaultPrevented) {
+        if (!isPresentationOwnerActive(options.owner) || !(event instanceof KeyboardEvent) || event.defaultPrevented) {
             return;
         }
         if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey) || event.isComposing) {

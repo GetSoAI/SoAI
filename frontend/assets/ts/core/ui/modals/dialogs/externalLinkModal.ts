@@ -13,12 +13,12 @@ import { parseNotificationType } from '@core/ui/notifications/notificationTypePa
 import { showNotification } from '@core/ui/notifications/notifications.ts';
 
 interface ExternalLinkModalApi {
-    showExternalLinkModal: (options?: ExternalLinkOptions | undefined) => Promise<boolean>;
-    showChatExternalLinkModal: (options?: ExternalLinkOptions | undefined) => Promise<boolean>;
+    showExternalLinkModal: (options: ExternalLinkOptions) => Promise<boolean>;
+    showChatExternalLinkModal: (options: ExternalLinkOptions) => Promise<boolean>;
 }
 
-const showExternalLinkModalInternal = async (dependencies: { confirmationFlow: ConfirmationFlowApi }, options: ExternalLinkOptions | undefined, defaults: Readonly<{ title: string; message: string; confirmText: string; cancelText: string; copyText: string; variant: string; icon: string; url: string }>, config: { typeTokens: readonly string[]; copyButtonVariant: string; logContext: string }): Promise<boolean> => {
-    const resolved: ExternalLinkOptions = { ...defaults, ...(options ?? {}) };
+const showExternalLinkModalInternal = async (dependencies: { confirmationFlow: ConfirmationFlowApi }, options: ExternalLinkOptions, defaults: Readonly<{ title: string; message: string; confirmText: string; cancelText: string; copyText: string; variant: string; icon: string; url: string }>, config: { typeTokens: readonly string[]; copyButtonVariant: string; logContext: string }): Promise<boolean> => {
+    const resolved: ExternalLinkOptions = { ...defaults, ...options };
     const sanitizedUrl = securityApi.sanitizeUrl(resolved.url ?? '', {
         allowRelative: false,
         allowDataImage: false,
@@ -69,6 +69,7 @@ const showExternalLinkModalInternal = async (dependencies: { confirmationFlow: C
     });
 
     return await dependencies.confirmationFlow.show({
+        owner: options.owner,
         title: resolved.title || defaults.title,
         typeTokens: [...config.typeTokens, variant],
         icon,
@@ -82,7 +83,7 @@ const showExternalLinkModalInternal = async (dependencies: { confirmationFlow: C
 };
 
 const createExternalLinkModal = (dependencies: { confirmationFlow: ConfirmationFlowApi }): ExternalLinkModalApi => {
-    const showExternalLinkModal = async (options: ExternalLinkOptions = {}): Promise<boolean> => {
+    const showExternalLinkModal = async (options: ExternalLinkOptions): Promise<boolean> => {
         const defaults = Object.freeze({
             title: i18n.t('common.confirm'),
             message: '',
@@ -100,7 +101,7 @@ const createExternalLinkModal = (dependencies: { confirmationFlow: ConfirmationF
         });
     };
 
-    const showChatExternalLinkModal = async (options: ExternalLinkOptions = {}): Promise<boolean> => {
+    const showChatExternalLinkModal = async (options: ExternalLinkOptions): Promise<boolean> => {
         const defaults = Object.freeze({
             title: i18n.t('chat.confirmations.externalLink'),
             message: i18n.t('chat.confirmations.externalLinkMessage'),

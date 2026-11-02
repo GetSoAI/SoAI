@@ -46,7 +46,8 @@ const createRouteRegistryState = (): RouteRegistryState => {
                 actions: entry.actions,
                 data: entry.data,
                 layout: entry.layout,
-                search: entry.search
+                search: entry.search,
+                reconstruction: entry.reconstruction ?? null
             })
         )
     );

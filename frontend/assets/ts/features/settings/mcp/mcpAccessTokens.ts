@@ -17,7 +17,7 @@ import { renderMcpCollapsibleSection } from '@features/settings/mcp/renderCollap
 import { showMcpAccessTokenCreateExpiryModal, showMcpAccessTokenCreateLabelModal, showMcpAccessTokenSecretModal } from '@features/settings/tokenflow/definitions.ts';
 import { resolveSettingsTokenBadgeClass, resolveSettingsTokenItemStateClass, resolveSettingsTokenStatus, resolveSettingsTokenStatusLabel } from '@features/settings/tokenflow/tokenListView.ts';
 
-type McpAccessTokensManagerHost = Pick<McpManagerHost, 'services' | 'execution'>;
+type McpAccessTokensManagerHost = Pick<McpManagerHost, 'owner' | 'services' | 'execution'>;
 
 const MCP_ACCESS_TOKEN_EXPIRY_MS = daysToMs(90);
 
@@ -66,19 +66,19 @@ class McpAccessTokensManager {
         try {
             const host = this.#host;
             let normalizedLabel = '';
-            const initialLabel = await showMcpAccessTokenCreateLabelModal(normalizedLabel);
+            const initialLabel = await showMcpAccessTokenCreateLabelModal(normalizedLabel, host.owner);
             if (initialLabel === null) {
                 return;
             }
             normalizedLabel = initialLabel;
-            let expiryChoice = await showMcpAccessTokenCreateExpiryModal();
+            let expiryChoice = await showMcpAccessTokenCreateExpiryModal(host.owner);
             while (expiryChoice === 'back') {
-                const nextLabel = await showMcpAccessTokenCreateLabelModal(normalizedLabel);
+                const nextLabel = await showMcpAccessTokenCreateLabelModal(normalizedLabel, host.owner);
                 if (nextLabel === null) {
                     return;
                 }
                 normalizedLabel = nextLabel;
-                expiryChoice = await showMcpAccessTokenCreateExpiryModal();
+                expiryChoice = await showMcpAccessTokenCreateExpiryModal(host.owner);
             }
             if (expiryChoice === null) {
                 return;
@@ -89,7 +89,7 @@ class McpAccessTokensManager {
                     label: normalizedLabel,
                     expiresAtMs: expiresAtMs
                 });
-                await showMcpAccessTokenSecretModal(createdRaw.token);
+                await showMcpAccessTokenSecretModal(createdRaw.token, host.owner);
                 host.execution.feedback.show(i18n.t('settings.mcp.tokens.notifications.created'), 'success');
                 await this.#reload();
             });

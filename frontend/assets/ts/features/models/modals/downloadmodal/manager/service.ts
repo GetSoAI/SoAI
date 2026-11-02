@@ -211,12 +211,12 @@ const handleManualPathCopy = async (runtime: DownloadModalManagerRuntime, _event
     });
 };
 
-const handleManualOpenFileExplorer = (runtime: DownloadModalManagerRuntime, _event?: Event): void => {
+const handleManualOpenFileExplorer = async (runtime: DownloadModalManagerRuntime, _event?: Event): Promise<void> => {
     if (!runtime.host.session.isAdmin()) {
         return;
     }
     runtime.host.session.modals.close(runtime.modalId);
-    runtime.host.session.setLocationHash('#fileExplorer');
+    await runtime.host.session.router.navigate('fileExplorer');
 };
 
 export { ensureManualDiscoveryDetails, handleManualDiscovery, handleManualOpenFileExplorer, handleManualPathCopy, updateManualCopyControl, updateManualDiscoveryMessage, updateManualPathField };

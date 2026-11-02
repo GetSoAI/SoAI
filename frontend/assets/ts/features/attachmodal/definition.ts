@@ -10,7 +10,7 @@ import { buildWorkspaceFolderFieldMarkup } from '@core/fileexplorerbrowser/works
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import { MODAL_HEADER_CLOSE_SELECTOR } from '@core/modals/headerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderModalTabIntro, renderModalTabPanel, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
@@ -213,7 +213,7 @@ const createAttachModalDefinition = (tabs: readonly AttachModalTab[] = ATTACH_MO
         id: modalId,
         layout: 'xl',
         initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-        createElement: (_options: ModalOpenOptions): HTMLElement => {
+        createElement: (_options: ModalCreationOptions): HTMLElement => {
             const titleId = modalUiId(modalId, 'title');
             const closeLabel = i18n.t('common.close');
             const header = renderStandardModalHeader({

@@ -59,7 +59,7 @@ const createHardwareGpuController = (dependencies: HardwareGpuControllerDependen
         }
     });
     const gpuControlDependencies: GpuControlManagerDependencies = {
-        dom: owners.dom,
+        pageDom: owners.pageDom,
         api: gpuApi,
         chartOhlc: dependencies.chartRuntime.getOhlc(),
         runPageTask: async (taskId, taskFunctionValue, options) => {
@@ -78,6 +78,7 @@ const createHardwareGpuController = (dependencies: HardwareGpuControllerDependen
 const composeHardwareProcessController = (dependencies: HardwareProcessControllerDependencies): ProcessTableManager => {
     const { owners } = dependencies;
     const processController = createHardwareProcessController({
+        owner: owners.services.mountScope,
         optionalHTMLElement: (selector: string, parent?: Element | null) => (parent ? owners.pageDom.optionalHTMLElement(selector, parent) : owners.pageDom.optionalHTMLElement(selector)),
         updateText: (element: Element, text: string) => owners.pageDom.updateText(element, text),
         getIconSync: (iconName: IconName, options?: IconOptions) => owners.services.getIconSync(iconName, options),
@@ -117,6 +118,7 @@ const initializeHardwareUi = (
     const storageCardRenderer = new StorageCardRenderer({ host: cardRendererHosts.storage });
     const systemInfoModal = new SystemInfoModal({
         host: createSystemInfoModalHost({
+            owner: owners.services.mountScope,
             modals: owners.services.modals,
             domHasClass: (element: Element, className: string): boolean => owners.dom.hasClass(element, className),
             requireHTMLElement: (selector: string | Element, context?: Element): HTMLElement => owners.pageDom.requireHTMLElement(selector, context),
@@ -134,6 +136,7 @@ const initializeHardwareUi = (
     });
     const exportPreviewModal = new ExportPreviewModal({
         host: {
+            owner: owners.services.mountScope,
             modals: owners.services.modals,
             requireHTMLElement: (selector: string | Element, context?: Element): HTMLElement => owners.pageDom.requireHTMLElement(selector, context),
             runWithBoundary: <T>(boundaryKey: string, functionValue: () => Promise<T>): Promise<T> => owners.pageLifecycle.run(boundaryKey, functionValue),
@@ -151,6 +154,7 @@ const initializeHardwareUi = (
                 return;
             }
             const openRun = await requireDialogsService().showExternalLinkModal({
+                owner: owners.services.mountScope,
                 url: receipt.publicUrl,
                 title: i18n.t('common.success'),
                 message,
@@ -160,12 +164,17 @@ const initializeHardwareUi = (
             if (openRun) getWindowOpen()(receipt.publicUrl, '_blank', 'noopener,noreferrer');
         },
         publish: (runId) => owners.api.hardware.gpuSoAIBench.publish(runId),
-        confirm: (options) => requireDialogsService().showConfirmation(options),
+        confirm: (options) =>
+            requireDialogsService().showConfirmation({
+                ...options,
+                owner: owners.services.mountScope
+            }),
         showNotification: (message, type) => owners.feedback.show(message, type)
     });
     const historyDependencies = {
         confirmDeleteLocalRun: () =>
             requireDialogsService().showConfirmation({
+                owner: owners.services.mountScope,
                 title: i18n.t('hardware.soaibenchPublication.deleteLocalConfirm.title'),
                 message: i18n.t('hardware.soaibenchPublication.deleteLocalConfirm.message'),
                 confirmText: i18n.t('common.delete'),
@@ -178,8 +187,10 @@ const initializeHardwareUi = (
         },
         publishRun: (run, setDisabled) => publicationFlow.publish({ runId: run.runId, publicationEligible: run.publicationEligible, overallScore: run.telemetry.overallScore, measuredPasses: 5 }, setDisabled),
         host: createSoAIBenchHistoryModalHost({
+            owner: owners.services.mountScope,
             modals: owners.services.modals,
             downloadHistoryCsv: (deviceId: string): Promise<Response> => owners.api.hardware.gpuSoAIBench.exportHistory(deviceId),
+            optionalHTMLElement: (selector, context) => owners.pageDom.optionalHTMLElement(selector, context),
             requireHTMLElement: (selector: string | Element, context?: Element): HTMLElement => owners.pageDom.requireHTMLElement(selector, context),
             setHTML: (target, html): void => owners.dom.setHTML(target, html, { escape: false }),
             runWithBoundary: <T>(boundaryKey: string, functionValue: () => Promise<T>): Promise<T> => owners.pageLifecycle.run(boundaryKey, functionValue),
@@ -197,6 +208,7 @@ const initializeHardwareUi = (
     const soaibenchRunModal = new SoAIBenchRunModal({
         publishRun: (run, setDisabled) => publicationFlow.publish({ runId: run.runId, publicationEligible: run.publicationEligible, overallScore: run.metrics.overallScore, measuredPasses: run.metrics.measuredPassesCompleted }, setDisabled),
         host: {
+            owner: owners.services.mountScope,
             modals: owners.services.modals,
             requireHTMLElement: (selector: string | Element, context?: Element): HTMLElement => owners.pageDom.requireHTMLElement(selector, context),
             setHTML: (target, html): void => owners.dom.setHTML(target, html, { escape: false }),

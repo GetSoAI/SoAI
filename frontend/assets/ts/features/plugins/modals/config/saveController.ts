@@ -1,9 +1,11 @@
 /* SoAI - Plugins feature save controller [frontend/assets/ts/features/plugins/modals/config/saveController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { createSaveController, SAVE_HEADER_PRIORITY_MODAL, type SaveController } from '@core/save/public.ts';
 
 interface PluginConfigSaveControllerOptions {
+    readonly owner: PresentationOwner;
     hasChanges: () => boolean;
     isValid: () => boolean;
     save: () => Promise<void>;
@@ -11,6 +13,7 @@ interface PluginConfigSaveControllerOptions {
 
 const createPluginConfigModalSaveController = (options: PluginConfigSaveControllerOptions): SaveController => {
     return createSaveController({
+        owner: options.owner,
         headerContextId: 'plugin-config',
         headerPriority: SAVE_HEADER_PRIORITY_MODAL,
         requestContextLabel: 'Plugin config save',

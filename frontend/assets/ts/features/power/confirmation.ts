@@ -1,6 +1,7 @@
 /* SoAI - Power action option confirmation [frontend/assets/ts/features/power/confirmation.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { GlobalPresentationOwner } from '@core/routing/router/types.ts';
 import { dom } from '@core/dom/dom.ts';
 import { createElementResolver } from '@core/dom/elementResolver.ts';
 import { requireInputElement } from '@core/dom/typedElements.ts';
@@ -39,12 +40,13 @@ const renderPowerOptionFields = (action: ActionDefinition): PowerOptionFields =>
     };
 };
 
-const confirmPowerAction = async (action: ActionDefinition, submit: (parameters: ActionParameters) => Promise<void>, signal: AbortSignal): Promise<boolean> => {
+const confirmPowerAction = async (action: ActionDefinition, submit: (parameters: ActionParameters) => Promise<void>, signal: AbortSignal, owner: GlobalPresentationOwner): Promise<boolean> => {
     const restartState = getRestartState();
     const restartRequired = resolveRestartTargetAction(restartState) === action.key;
     const fields = restartRequired ? null : renderPowerOptionFields(action);
     const immediate: ActionParameters = { delay: 0, ...(action.options.some((option) => option.parameter === 'force') ? { force: false } : {}) };
     return await requireDialogsService().showConfirmation({
+        owner,
         signal,
         title: action.confirm.title,
         message: action.confirm.message,

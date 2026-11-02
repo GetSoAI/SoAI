@@ -1,6 +1,7 @@
 /* SoAI - Notifications feature notification center DOM bindings [frontend/assets/ts/features/notifications/notificationCenterDomBindings.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createGlobalPresentationOwner } from '@core/presentationOwner.ts';
 import type { NotificationRecord, NotificationsListResponse } from '@core/notifications/types.ts';
 import type { EventHandler } from '@core/resourcetracker/types.ts';
 import { handleNotificationCenterListClick } from '@features/notifications/notificationCenterListClickHandling.ts';
@@ -35,6 +36,7 @@ interface BindNotificationCenterLocalizationUpdatesOptions {
 }
 
 const bindNotificationCenterDomBindings = (options: BindNotificationCenterDomBindingsOptions): void => {
+    const presentationOwner = createGlobalPresentationOwner('notification-links');
     options.lifecycle.addEventListener(options.elements.button, 'click', (event) => {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -64,6 +66,7 @@ const bindNotificationCenterDomBindings = (options: BindNotificationCenterDomBin
     options.lifecycle.addEventListener(options.elements.list, 'scroll', () => options.requestLoadMoreIfNeeded());
     options.lifecycle.addEventListener(options.elements.list, 'click', (event) => {
         handleNotificationCenterListClick({
+            owner: presentationOwner,
             listElement: options.elements.list,
             event,
             snapshot: options.resolveSnapshot(),

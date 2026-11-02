@@ -36,6 +36,7 @@ from core.state.state_names import (
     PLUGIN_STATE_LOAD_ERROR,
     PLUGIN_STATE_UPDATE_ERROR,
 )
+from core.timing.epoch import epoch_seconds_float
 from core.validation.numbers import coerce_float_from_json
 from plugins.guardian.eligibility import GUARDIAN_LOGGER_NAME
 from plugins.guardian_flapping import FLAPPING_HISTORY_CAPACITY, record_state_transition
@@ -193,7 +194,7 @@ class PluginGuardian(PluginGuardianProtocol):
         record_state_transition(
             self.state_history[event.plugin_name],
             event.new_state,
-            observed_at=time.monotonic() - max(0.0, time.time() - event.timestamp),
+            observed_at=time.monotonic() - max(0.0, epoch_seconds_float() - event.timestamp),
         )
         await self._processed_state_change_events.mark_processed(event.event_id)
 

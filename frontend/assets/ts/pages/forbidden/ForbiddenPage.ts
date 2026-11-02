@@ -3,7 +3,6 @@
 
 import type { BasePageDependencies } from '@core/routing/pages/pagetypes/public.ts';
 import { bindPageActionDispatcher } from '@core/dom/dataActionBinding.ts';
-import { getWindow } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { DEFAULT_AUTHENTICATED_ROUTE } from '@core/routing/router/authRouteTarget.ts';
@@ -70,7 +69,7 @@ class ForbiddenPage extends StaticBasePage {
                     preventDefault: 'always',
                     onAction: ({ action }): void => {
                         if (action === FORBIDDEN_ACTION_GO_BACK) {
-                            getWindow().history.back();
+                            this.dependencies.router.back();
                             return;
                         }
                         if (action === FORBIDDEN_ACTION_GO_DEFAULT_ROUTE) {

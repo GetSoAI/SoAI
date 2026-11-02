@@ -9,7 +9,7 @@ import type { McpServer } from '@core/mcp/contracts.ts';
 import { attachBeforeCloseConfirmationGuard } from '@core/modals/closeGuard.ts';
 import { createModalElementResolver } from '@core/modals/modalElementResolver.ts';
 import { requireModalPresenter, type ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { showUnsavedChangesConfirmation } from '@core/modals/unsavedChangesConfirmation.ts';
 import { createSaveController, SAVE_HEADER_PRIORITY_MODAL } from '@core/save/public.ts';
@@ -47,7 +47,7 @@ const mcpServerModalDefinition: ModalDefinition = {
     id: MODAL_ID,
     layout: 'xl',
     initialFocusSelector: modalUiSelector(MODAL_ID, 'name-input'),
-    createElement: (_options: ModalOpenOptions): HTMLElement => createMcpServerModalElement(MODAL_ID)
+    createElement: (_options: ModalCreationOptions): HTMLElement => createMcpServerModalElement(MODAL_ID)
 };
 
 const openMcpServerModal = async (host: McpServersHost, options: McpServerModalOpenOptions): Promise<void> => {
@@ -115,7 +115,7 @@ const openMcpServerModal = async (host: McpServersHost, options: McpServerModalO
         changeSurfaces.captureBaseline();
     };
 
-    const confirmUnsavedChanges = async (): Promise<boolean> => await showUnsavedChangesConfirmation();
+    const confirmUnsavedChanges = async (): Promise<boolean> => await showUnsavedChangesConfirmation({ owner: host.owner });
     const hasChanges = (): boolean => hasMcpServerFormPendingChanges(formHost, MODAL_ID);
     const isValid = (): boolean => isMcpServerFormPendingChangesValid(formHost, MODAL_ID, server?.authType ?? null);
 
@@ -124,6 +124,7 @@ const openMcpServerModal = async (host: McpServersHost, options: McpServerModalO
     syncPendingState();
 
     const save = createSaveController({
+        owner: host.owner,
         headerContextId: MODAL_ID,
         headerPriority: SAVE_HEADER_PRIORITY_MODAL,
         requestContextLabel: 'MCP server modal save',
@@ -231,7 +232,7 @@ const openMcpServerModal = async (host: McpServersHost, options: McpServerModalO
         { signal: abortController.signal }
     );
 
-    presenter.open(MODAL_ID, { force: true });
+    presenter.open(MODAL_ID, { owner: host.owner, force: true });
 };
 
 export { MCP_SERVER_MODAL_DRAFT_ID, mcpServerModalDefinition, openMcpServerModal };

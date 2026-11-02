@@ -14,7 +14,7 @@ import type { GpuSnapshot, GpuUiState } from '@pages/hardware/controllers/gpucon
 import { hasGpuStorableSettings } from '@pages/hardware/controllers/gpucontrol/gpuControlValidation.ts';
 
 interface GpuApplyStateRefreshContext {
-    document: Document;
+    root: Element;
     gpuCapabilities: GpuCapabilitiesByIndex | null;
     ensureGpuUiState: (index: string | number) => GpuUiState;
     getSliderSnapshot: (index: string | number) => GpuSnapshot;
@@ -39,10 +39,10 @@ const refreshGpuApplyState = (context: GpuApplyStateRefreshContext, index: strin
     const computedCapability = computeApplyCapability(context.gpuCapabilities, key, state, snapshot);
     state.applyCapability = computedCapability;
     state.canSaveCurrentSettings = hasGpuStorableSettings(buildSettingsPayloadFromNormalized(context.gpuCapabilities, key, computedCapability.normalized));
-    GpuControlActionButtonsController({ index: key, snapshot, liveSettings: state.liveSettings, capabilities: context.gpuCapabilities?.[key] ?? null, capabilitiesByIndex: context.gpuCapabilities, pending: state.pending, locked, saveMode: state.saveMode, canStoreAppliedSettings: state.canStoreAppliedSettings, canSaveCurrentSettings: state.canSaveCurrentSettings, applyCapability: state.applyCapability, activeSlot: state.activeSlot, previewSlot: state.previewSlot, bootSlot: state.bootSlot });
+    GpuControlActionButtonsController({ root: context.root, index: key, snapshot, liveSettings: state.liveSettings, capabilities: context.gpuCapabilities?.[key] ?? null, capabilitiesByIndex: context.gpuCapabilities, pending: state.pending, locked, saveMode: state.saveMode, canStoreAppliedSettings: state.canStoreAppliedSettings, canSaveCurrentSettings: state.canSaveCurrentSettings, applyCapability: state.applyCapability, activeSlot: state.activeSlot, previewSlot: state.previewSlot, bootSlot: state.bootSlot });
     if (state.pending) return;
     const comparisonSettings = state.canStoreAppliedSettings ? computedCapability.normalized : state.liveSettings;
-    syncGpuSliderChangeSurfaces(context.document, key, comparisonSettings, computedCapability.normalized, context.gpuCapabilities);
+    syncGpuSliderChangeSurfaces(context.root, key, comparisonSettings, computedCapability.normalized, context.gpuCapabilities);
     if (computedCapability.mode === 'direct' && state.previewSlot) {
         clearGpuSlotPreview(state);
         state.applyCapability = computedCapability;
@@ -58,7 +58,7 @@ const refreshGpuApplyState = (context: GpuApplyStateRefreshContext, index: strin
         context.renderGpuControls({ only: [key] });
         return;
     }
-    if (requiresGpuPrimaryActionRender(key, resolveGpuPrimaryAction(state), locked)) {
+    if (requiresGpuPrimaryActionRender(context.root, key, resolveGpuPrimaryAction(state), locked)) {
         context.renderGpuControls({ only: [key] });
         return;
     }

@@ -1,6 +1,7 @@
 /* SoAI - File explorer page control layer interaction controller [frontend/assets/ts/pages/fileexplorer/controllers/FileExplorerPageInteractionController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
@@ -20,6 +21,7 @@ import type { FileExplorerViewModeController } from '@pages/fileexplorer/control
 import type { FileExplorerSelectionModel } from '@pages/fileexplorer/state/FileExplorerSelectionState.ts';
 
 interface FileExplorerPageInteractionHost {
+    readonly owner: PresentationOwner;
     showNotification: (message: string, type: NotificationType) => void;
     requireHTMLElement: (selector: string, context?: HTMLElement) => HTMLElement;
     modalPresenter: ModalPresenterApi;
@@ -67,6 +69,7 @@ class FileExplorerPageInteractionController {
             commands: dependencies.commands
         });
         this.#newEntry = new FileExplorerNewEntryController({
+            owner: this.#host.owner,
             contentPreviewModal: dependencies.contentPreviewModal,
             operations: dependencies.operations,
             getCurrentPath: () => dependencies.data.getCurrentPath(),
@@ -101,8 +104,8 @@ class FileExplorerPageInteractionController {
             return;
         }
         if (action === FILE_EXPLORER_ACTION_REFRESH) {
-            await this.#data.refreshList();
-            if (this.#disposed) return;
+            const refreshed = await this.#data.refreshList();
+            if (this.#disposed || !refreshed) return;
             this.#host.showNotification(i18n.t('common.notifications.refreshCompleted'), 'refresh');
             return;
         }

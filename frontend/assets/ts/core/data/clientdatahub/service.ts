@@ -1,6 +1,9 @@
 /* SoAI - Normalized collection channel ownership [frontend/assets/ts/core/data/clientdatahub/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { LifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
+import { CleanupStack } from '@core/lifecycle/cleanupStack.ts';
+import { throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
 import { CollectionResourceStore } from '@core/data/clientdatahub/collectionResourceStore.ts';
 import { normalizeResourceItemList } from '@core/data/clientdatahub/guards.ts';
 import type { CollectionResourceSnapshot, LocalCollectionOperation, OptimisticCollectionOperation, OptimisticTerminalStatus } from '@core/data/clientdatahub/collectionResourceContracts.ts';
@@ -10,13 +13,19 @@ import { ensureError } from '@core/errors/coerce.ts';
 import type { ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
 import { isArray } from '@core/typeGuards.ts';
 
+interface CollectionListenerRegistration {
+    readonly listener: ResourceListener;
+}
+
 class CollectionResourceChannel {
     readonly #definition: CollectionChannelDefinition;
     readonly #dependencies: Pick<ClientDataHubDependencies, 'subscribeResourceState' | 'refreshResource'>;
     readonly #store: CollectionResourceStore;
-    readonly #listeners = new Set<ResourceListener>();
-    readonly #listenerDiagnosticTimes = new Map<ResourceListener, number>();
-    #unsubscribeResource: (() => void) | null = null;
+    readonly #listeners = new Set<CollectionListenerRegistration>();
+    readonly #listenerDiagnosticTimes = new Map<CollectionListenerRegistration, number>();
+    #connection: CleanupStack | null = null;
+    #acquiring: CleanupStack | null = null;
+    #disposed = false;
     #recoveryTask: Promise<void> | null = null;
     #protocolFaultReported = false;
 
@@ -35,16 +44,33 @@ class CollectionResourceChannel {
     }
 
     addListener(listener: ResourceListener, emitInitial: boolean): () => void {
-        this.#listeners.add(listener);
-        if (emitInitial) this.#deliver(listener, this.#store.snapshot);
-        this.#connect();
+        this.#requireActive();
+        this.#requireConnectionAdmission();
+        const registration = { listener };
+        this.#listeners.add(registration);
+        try {
+            if (emitInitial) this.#deliver(registration, this.#store.snapshot);
+            this.#requireActive();
+            this.#connect();
+        } catch (error) {
+            this.#listeners.delete(registration);
+            this.#listenerDiagnosticTimes.delete(registration);
+            throw error;
+        }
         let active = true;
+        let failure: Error | null = null;
         return (): void => {
+            if (failure !== null) throw failure;
             if (!active) return;
             active = false;
-            this.#listeners.delete(listener);
-            this.#listenerDiagnosticTimes.delete(listener);
-            if (this.#listeners.size === 0) this.#disconnect();
+            this.#listeners.delete(registration);
+            this.#listenerDiagnosticTimes.delete(registration);
+            try {
+                if (this.#listeners.size === 0) this.#disconnect();
+            } catch (error) {
+                failure = ensureError(error);
+                throw failure;
+            }
         };
     }
 
@@ -63,20 +89,50 @@ class CollectionResourceChannel {
     }
 
     dispose(): void {
+        this.#disposed = true;
         this.#listeners.clear();
         this.#listenerDiagnosticTimes.clear();
         this.#disconnect();
     }
 
+    #requireActive(): void {
+        if (this.#disposed) throw new LifecycleCancellationError('Collection channel is disposed', 'collection-channel-disposed');
+    }
+
+    #requireConnectionAdmission(): void {
+        const connection = this.#connection;
+        if (connection === null || connection.status === 'active') return;
+        throwCollectedCleanupFailures(connection.dispose());
+        throw new LifecycleCancellationError('Collection source release is unconfirmed', 'collection-source-release-pending');
+    }
+
     #connect(): void {
-        if (this.#unsubscribeResource) return;
-        this.#unsubscribeResource = this.#dependencies.subscribeResourceState(this.#definition.resource, (snapshot): void => this.#applyResourceSnapshot(snapshot));
+        this.#requireConnectionAdmission();
+        if (this.#connection) return;
+        const connection = new CleanupStack({ logError: (message, error) => errorHandler.debug('ClientDataHub', message, error) });
+        this.#connection = connection;
+        this.#acquiring = connection;
+        try {
+            const unsubscribe = this.#dependencies.subscribeResourceState(this.#definition.resource, (snapshot): void => {
+                if (!this.#disposed && this.#connection === connection && connection.status === 'active') this.#applyResourceSnapshot(snapshot);
+            });
+            if (this.#acquiring === connection) this.#acquiring = null;
+            connection.add(unsubscribe);
+        } catch (error) {
+            if (this.#acquiring === connection) this.#acquiring = null;
+            const cleanupFailures = connection.dispose();
+            if (cleanupFailures.length === 0 && this.#connection === connection) this.#connection = null;
+            throwCollectedCleanupFailures([...new Set([ensureError(error), ...cleanupFailures])]);
+        }
     }
 
     #disconnect(): void {
-        const unsubscribe = this.#unsubscribeResource;
-        this.#unsubscribeResource = null;
-        unsubscribe?.();
+        const connection = this.#connection;
+        if (!connection) return;
+        const failures = connection.dispose();
+        throwCollectedCleanupFailures(failures);
+        if (this.#acquiring === connection) throw new LifecycleCancellationError('Collection source acquisition has not returned its release handle', 'collection-source-acquisition-pending');
+        if (this.#connection === connection) this.#connection = null;
     }
 
     #applyResourceSnapshot(snapshot: ResourceReconciliationSnapshot): void {
@@ -135,18 +191,19 @@ class CollectionResourceChannel {
     }
 
     #publish(snapshot: CollectionResourceSnapshot): CollectionResourceSnapshot {
-        for (const listener of [...this.#listeners]) this.#deliver(listener, snapshot);
+        for (const registration of [...this.#listeners]) this.#deliver(registration, snapshot);
         return snapshot;
     }
 
-    #deliver(listener: ResourceListener, snapshot: CollectionResourceSnapshot): void {
+    #deliver(registration: CollectionListenerRegistration, snapshot: CollectionResourceSnapshot): void {
+        if (this.#disposed || !this.#listeners.has(registration)) return;
         try {
-            listener(snapshot);
+            registration.listener(snapshot);
         } catch (error) {
             const now = performance.now();
-            const lastReportedAt = this.#listenerDiagnosticTimes.get(listener) ?? Number.NEGATIVE_INFINITY;
+            const lastReportedAt = this.#listenerDiagnosticTimes.get(registration) ?? Number.NEGATIVE_INFINITY;
             if (now - lastReportedAt < 30_000) return;
-            this.#listenerDiagnosticTimes.set(listener, now);
+            this.#listenerDiagnosticTimes.set(registration, now);
             errorHandler.warn('ClientDataHub', `Collection listener failed for ${this.#definition.resource}`, ensureError(error));
         }
     }

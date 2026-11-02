@@ -162,6 +162,7 @@ class UpdatesSystemController {
             this.#syncInstallButtonState();
             const confirmationMessage = this.#currentUpdate.deliveryType === 'installer' ? i18n.t('updates.confirmations.installSystemWithInstaller', { version: latestVersion }) : i18n.t('updates.confirmations.installSystem', { version: latestVersion });
             const confirmed = await requireDialogsService().showConfirmation({
+                owner: this.#host.owner,
                 title: i18n.t('updates.actions.installUpdate'),
                 message: confirmationMessage,
                 confirmText: i18n.t('updates.actions.installUpdate'),

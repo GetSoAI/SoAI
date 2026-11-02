@@ -7,7 +7,7 @@ import { CHAT_MEMORY_PROFILE_VISIBLE_FIELD_NAMES, isChatMemoryProfileFieldName }
 import { readFirstRunModalStateStatus, setFirstRunModalDismissed } from '@core/firstrun/state.ts';
 import { MODAL_HEADER_CLOSE_SELECTOR } from '@core/modals/headerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { wallClockMs } from '@core/time/clock.ts';
 import { CHAT_MEMORY_PROFILE_MODAL_ID } from '@features/chat/modals/constants.ts';
 import { bindChatMemoryProfileModal, CHAT_MEMORY_UPDATED_EVENT, type ChatMemoryProfileModalDependencies } from '@features/chat/modals/chatMemoryProfileModalBinding.ts';
@@ -18,7 +18,7 @@ const createChatMemoryProfileModalDefinition = (dependencies: ChatMemoryProfileM
         id: CHAT_MEMORY_PROFILE_MODAL_ID,
         layout: 'lg',
         initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-        createElement: (_options: ModalOpenOptions): HTMLElement => createChatMemoryProfileModalElement(),
+        createElement: (_options: ModalCreationOptions): HTMLElement => createChatMemoryProfileModalElement(),
         bind: (modal) => bindChatMemoryProfileModal(modal, dependencies),
         onOpen: (modal, options): void => {
             const manual = 'firstRunReason' in options && options.firstRunReason === 'manual';

@@ -1,6 +1,9 @@
 /* SoAI - Chat composer auto-hide chrome surface [frontend/assets/ts/features/chat/chatuimanager/chatComposerChromeSurface.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isKeyboardCompositionEvent } from '@core/dom/keyboardComposition.ts';
+import { isAvailableFocusTarget } from '@core/dom/focusTarget.ts';
+import { isPresentationOwnerFocused } from '@core/presentationOwner.ts';
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { isEditableKeyTarget, isMainTimelineAtBottom } from '@features/chat/mainTimelineScroll.ts';
 import { createChatChromeSurfaceController, type ChatChromeSurfaceController } from '@features/chat/chatuimanager/chatChromeSurfaceController.ts';
@@ -23,7 +26,7 @@ const isPrintableKey = (event: KeyboardEvent): boolean => event.key.length === 1
 
 const isPasteShortcut = (event: KeyboardEvent): boolean => (event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'v';
 
-const isTypingRevealKey = (event: KeyboardEvent): boolean => !event.defaultPrevented && !event.isComposing && (isPrintableKey(event) || isPasteShortcut(event));
+const isTypingRevealKey = (event: KeyboardEvent): boolean => !event.defaultPrevented && !isKeyboardCompositionEvent(event) && (isPrintableKey(event) || isPasteShortcut(event));
 
 export const setupChatComposerChromeSurface = (context: ChatUIManagerContext, isGlobalPinned: () => boolean): ChatChromeSurfaceController => {
     const dependencies = context.dependencies;
@@ -80,9 +83,9 @@ export const setupChatComposerChromeSurface = (context: ChatUIManagerContext, is
     };
 
     const handleDocumentKeyDown = (event: Event): void => {
-        if (!(event instanceof KeyboardEvent) || !isTypingRevealKey(event) || controller.isShown() || conversationSelectionActive) return;
+        if (!isPresentationOwnerFocused(context.dependencies.owner) || !(event instanceof KeyboardEvent) || !isTypingRevealKey(event) || controller.isShown() || conversationSelectionActive) return;
         const input = getElement(context, 'input');
-        if (!(input instanceof HTMLTextAreaElement) || !isTypingRevealTarget(event.target, input) || input.closest('[inert]') !== null || dependencies.messageManager.isMessageEditing()) return;
+        if (!(input instanceof HTMLTextAreaElement) || !isTypingRevealTarget(event.target, input) || !isAvailableFocusTarget(input) || dependencies.messageManager.isMessageEditing()) return;
         controller.reset();
         input.focus({ preventScroll: true });
     };

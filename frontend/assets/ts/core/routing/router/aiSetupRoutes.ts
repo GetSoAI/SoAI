@@ -3,7 +3,7 @@
 
 import { getRouteRegistry } from '@core/routeregistry/service.ts';
 import { AUTH_ROUTE_WIZARD } from '@core/routing/router/authRouteTarget.ts';
-import { buildQueryRoute } from '@core/routing/router/events.ts';
+import { buildQueryRoute } from '@core/routing/router/queryParameters.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 
 const AI_SETUP_RESUME_PARAMETER = 'resume';

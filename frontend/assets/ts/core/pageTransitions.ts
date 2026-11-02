@@ -72,7 +72,7 @@ const revealMountedPageSection = (container: Element): void => {
     section.removeAttribute(PAGE_TRANSITION_MODE_ATTRIBUTE);
 };
 
-const readAnimations = (element: Element, subtree: boolean): Animation[] => {
+const readElementAnimations = (element: Element, subtree: boolean): Animation[] => {
     const getAnimationsCandidate = element.getAnimations;
     if (!isFunction(getAnimationsCandidate)) {
         throw new Error(`Page transition target ${element.nodeName} does not expose getAnimations()`);
@@ -86,13 +86,13 @@ const readAnimations = (element: Element, subtree: boolean): Animation[] => {
 };
 
 const resolveAnimationCandidates = async (element: Element, subtree: boolean, signal: AbortSignal): Promise<Animation[]> => {
-    let candidates = readAnimations(element, subtree);
+    let candidates = readElementAnimations(element, subtree);
     if (candidates.length > 0) {
         return candidates;
     }
     await awaitPresentationFrame(signal, 'Animation discovery aborted.');
     throwIfAborted(signal);
-    candidates = readAnimations(element, subtree);
+    candidates = readElementAnimations(element, subtree);
     return candidates;
 };
 
@@ -145,5 +145,5 @@ const waitForElementAnimations = async (element: Element, { ensureStarted = true
     }
 };
 
-export { PAGE_CONTENT_READY, PAGE_EXITING_ATTRIBUTE, PAGE_TRANSITIONING_IN, PAGE_TRANSITION_MODE_ATTRIBUTE, isReduceMotionsEnabled, resolveActiveSection, requirePageTransitionSurface, revealMountedPageSection, waitForElementAnimations };
+export { PAGE_CONTENT_READY, PAGE_EXITING_ATTRIBUTE, PAGE_TRANSITIONING_IN, PAGE_TRANSITION_MODE_ATTRIBUTE, isReduceMotionsEnabled, resolveActiveSection, requirePageTransitionSurface, revealMountedPageSection, readElementAnimations, waitForElementAnimations };
 export type { PageTransitionSurfaceResolution };

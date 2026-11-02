@@ -7,7 +7,7 @@ import type { FirstRunStateStorage } from '@core/firstrun/protocols.ts';
 import { renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import { MODAL_HEADER_CLOSE_SELECTOR } from '@core/modals/headerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 import { renderStructuredTextSection, type StructuredTextSection } from '@core/richtextrenderer/structuredSections.ts';
@@ -62,7 +62,7 @@ const createPluginsIntroModalDefinition = (storage: FirstRunStateStorage): Modal
         id: PLUGINS_INTRO_MODAL_ID,
         layout: 'md',
         initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-        createElement: (_options: ModalOpenOptions): HTMLElement => createPluginsIntroModalElement(),
+        createElement: (_options: ModalCreationOptions): HTMLElement => createPluginsIntroModalElement(),
         onClose: (_modal, _options): void => {
             if (readFirstRunModalStateStatus(storage, 'pluginsIntro') !== 'pending') {
                 return;

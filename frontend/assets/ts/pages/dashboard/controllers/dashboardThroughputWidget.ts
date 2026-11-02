@@ -43,7 +43,7 @@ class DashboardThroughputController {
         if (this.#isDestroyed()) {
             return;
         }
-        const content = this.#host.requireUI('throughput-content');
+        const content = this.#host.requireUI('dashboard-throughput-content');
         this.#host.replaceElementContent(content, this.#buildMarkup(), { escape: false });
         this.#host.flushDOMUpdates();
         this.#paint();
@@ -124,7 +124,7 @@ class DashboardThroughputController {
     }
 
     #paint(): void {
-        const content = this.#host.optionalUI('throughput-content');
+        const content = this.#host.optionalUI('dashboard-throughput-content');
         if (!content) {
             return;
         }

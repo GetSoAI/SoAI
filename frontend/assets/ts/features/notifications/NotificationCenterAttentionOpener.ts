@@ -1,6 +1,7 @@
 /* SoAI - Notifications feature notification center attention opener [frontend/assets/ts/features/notifications/NotificationCenterAttentionOpener.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createGlobalPresentationOwner } from '@core/presentationOwner.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import type { NotificationRecord } from '@core/notifications/types.ts';
@@ -15,6 +16,7 @@ interface NotificationCenterAttentionOpenerDependencies {
 }
 
 class NotificationCenterAttentionOpener {
+    readonly #owner = createGlobalPresentationOwner('notification-center-attention');
     readonly #dependencies: NotificationCenterAttentionOpenerDependencies;
 
     constructor(dependencies: NotificationCenterAttentionOpenerDependencies) {
@@ -39,7 +41,7 @@ class NotificationCenterAttentionOpener {
                         onHide: this.#dependencies.hide
                     });
                 } else {
-                    handleNotificationLink(record.link, this.#dependencies.hide);
+                    handleNotificationLink(record.link, this.#dependencies.hide, this.#owner);
                 }
             }
             await this.#dependencies.dataController.refreshHead(false);

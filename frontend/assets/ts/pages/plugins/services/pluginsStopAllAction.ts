@@ -1,6 +1,7 @@
 /* SoAI - Plugins page stop all action [frontend/assets/ts/pages/plugins/services/pluginsStopAllAction.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { stopAllPluginsActionPath } from '@core/api/endpoints/uiPaths.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import type { ApiRequestBody } from '@core/api/types/request.ts';
@@ -12,6 +13,7 @@ import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 
 interface PluginsStopAllHost extends PageFeedbackOwnerHost {
+    readonly owner: PresentationOwner;
     getCollectionPlugins(): PluginRecord[];
     isPluginStoppable(plugin: PluginRecord): boolean;
     updateStopAllButtonVisibility(): void;
@@ -28,6 +30,7 @@ const handleStopAllPluginsAction = async (host: PluginsStopAllHost): Promise<voi
     }
 
     const confirmed = await requireDialogsService().showConfirmation({
+        owner: host.owner,
         title: i18n.t('plugins.confirmations.stopAll'),
         message: i18n.plural('plugins.confirmations.stopAllMessage', stoppable.length, { count: stoppable.length }),
         confirmText: i18n.t('plugins.confirmations.stopAllButton'),

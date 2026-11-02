@@ -114,8 +114,8 @@ const composeChatSessions = (domain: ChatSessionDomainOwners, page: ChatSessionP
         openToolsSettings: () => configuration.openTab('mcp')
     });
     const configuration = new ChatConfigurationController({ composerSurface: domain.composerSurface, configurationRuntime: domain.configurationRuntime, conversationView, composer, taskScope: domain.taskScope, modelSession, presentation, layout: page.layout, services: page.services, pageDom: page.pageDom, pageResources: page.pageResources, feedback: page.feedback, api: platform.api, pageLifecycle: page.pageLifecycle, runtimeServices: domain.runtimeServices, settings: domain.settings });
-    const toolbar = new ChatConversationToolbarManager({ conversationRuntime: domain.conversationRuntime, conversationView, conversationState: domain.conversationState, presentation, pageDom: page.pageDom, feedback: page.feedback, taskScope: domain.taskScope, pageContext: platform.pageContext, api: platform.api, conversationSelection });
-    const promptPicker = new ChatPromptPickerController({ feedback: page.feedback, composer, presentation, api: platform.api, getDocument: () => platform.dom.getDocument(), requireStreamManager: () => page.streaming.runtime(), navigate: (page) => platform.router.navigate(page), taskScope: domain.taskScope });
+    const toolbar = new ChatConversationToolbarManager({ owner: page.services.mountScope, conversationRuntime: domain.conversationRuntime, conversationView, conversationState: domain.conversationState, presentation, pageDom: page.pageDom, feedback: page.feedback, taskScope: domain.taskScope, pageContext: platform.pageContext, api: platform.api, conversationSelection });
+    const promptPicker = new ChatPromptPickerController({ owner: page.services.mountScope, feedback: page.feedback, composer, presentation, api: platform.api, getDocument: () => platform.dom.getDocument(), requireStreamManager: () => page.streaming.runtime(), navigate: (page) => platform.router.navigate(page), taskScope: domain.taskScope });
     const characterMap = new ChatCharacterMapController({
         api: platform.api,
         composer,

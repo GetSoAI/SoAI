@@ -1,15 +1,14 @@
 /* SoAI - Frontend modal focus and stacked dialog isolation [frontend/assets/ts/core/modals/modalhost/focusIsolation.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { getMutationObserverCtor } from '@core/environment/public.ts';
+import { getMutationObserverCtor, getRequestAnimationFrame } from '@core/environment/public.ts';
+import { isModalLayoutCurrent } from '@core/modals/modalhost/layoutGeneration.ts';
+import { isPresentationOwnerActive } from '@core/presentationOwner.ts';
+import { isAvailableFocusTarget } from '@core/dom/focusTarget.ts';
 import { dom } from '@core/dom/dom.ts';
 import type { ModalHostState } from '@core/modals/modalhost/contracts.ts';
 
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-const isAvailableFocusTarget = (element: HTMLElement): boolean => {
-    return !element.matches(':disabled') && element.closest('[hidden], .u-hidden, [aria-hidden="true"], [inert]') === null;
-};
 
 const listFocusableElements = (modal: HTMLElement): HTMLElement[] => {
     return dom.resolveAll(FOCUSABLE_SELECTOR, modal).filter((element): element is HTMLElement => element instanceof HTMLElement && isAvailableFocusTarget(element));
@@ -17,6 +16,29 @@ const listFocusableElements = (modal: HTMLElement): HTMLElement[] => {
 
 const focusElement = (element: HTMLElement): void => {
     element.focus({ preventScroll: true });
+};
+
+const rememberFocus = (state: ModalHostState, id: string): void => {
+    const active = dom.getActiveElement();
+    if (active instanceof HTMLElement) state.focusMemory.set(id, active);
+    else state.focusMemory.delete(id);
+};
+
+const restoreModalFocus = (state: ModalHostState, id: string): void => {
+    const target = state.focusMemory.get(id);
+    state.focusMemory.delete(id);
+    if (target instanceof HTMLElement && target.isConnected && isAvailableFocusTarget(target)) focusElement(target);
+};
+
+const focusModalElement = (state: ModalHostState, modalId: string, layoutGeneration: number, target: string | Element, modal: Element): void => {
+    const ownership = state.ownership.get(modalId);
+    const element = typeof target === 'string' ? dom.resolve(target, modal) : target;
+    if (!ownership || !(element instanceof HTMLElement)) return;
+    getRequestAnimationFrame()(() => {
+        if (!isModalLayoutCurrent(state, modalId, layoutGeneration) || state.ownership.get(modalId) !== ownership || ownership.signal.aborted || modal.contains(dom.getActiveElement())) return;
+        if (!isPresentationOwnerActive(ownership.owner) || state.activeStack[state.activeStack.length - 1] !== modalId) return;
+        focusElement(element);
+    });
 };
 
 const focusModalFallback = (modal: HTMLElement): void => {
@@ -101,4 +123,4 @@ const synchronizeModalStackAccessibility = (state: ModalHostState): void => {
     });
 };
 
-export { isAvailableFocusTarget, handleModalTabNavigation, synchronizeModalStackAccessibility };
+export { focusModalElement, rememberFocus, restoreModalFocus, handleModalTabNavigation, synchronizeModalStackAccessibility };

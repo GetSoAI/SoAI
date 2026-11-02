@@ -1,6 +1,7 @@
 /* SoAI - Incremental find text work and shared timeline frame ownership [frontend/assets/ts/pages/chat/controllers/conversationfind/ConversationFindTimelineController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { LatestRequestController } from '@core/concurrency/latestRequest.ts';
 import { runWithAbortSignalScope } from '@core/errors/abort.ts';
 import { requireRootHTMLElement } from '@core/dom/typedElementResolver.ts';
@@ -12,6 +13,7 @@ import { ConversationFindHighlightsController } from '@pages/chat/controllers/co
 import type { ConversationFindSearchController } from '@pages/chat/controllers/conversationfind/ConversationFindSearchController.ts';
 
 interface ConversationFindTimelineControllerDependencies {
+    owner: PresentationOwner;
     root: HTMLElement;
     search: ConversationFindSearchController;
     resources: ResourceTracker;
@@ -42,7 +44,7 @@ class ConversationFindTimelineController {
         this.messages = requireRootHTMLElement(root, '.chat-messages', 'Conversation find messages');
         const layer = requireRootHTMLElement(root, '.conversation-find-pop-layer', 'Conversation find overlay');
         const minimap = requireRootHTMLElement(root, '.conversation-find-marks', 'Conversation find minimap');
-        this.#coordinator = acquireMainTimelineCoordinator(area, this.messages);
+        this.#coordinator = acquireMainTimelineCoordinator(area, this.messages, dependencies.owner);
         this.mounted = new MountedConversationFindIndex({ root: this.messages, createProjection: dependencies.createProjection, isPendingDeletion: dependencies.isPendingDeletion });
         this.highlights = new ConversationFindHighlightsController({ area, layer, minimap, mounted: this.mounted, coordinator: this.#coordinator });
         this.#exits.push(

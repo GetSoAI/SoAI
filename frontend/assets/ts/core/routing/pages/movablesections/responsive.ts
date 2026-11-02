@@ -1,6 +1,7 @@
 /* SoAI - Shared routing movable grid responsive resolution [frontend/assets/ts/core/routing/pages/movablesections/responsive.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { getComputedStyleStrict } from '@core/environment/public.ts';
 import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { measureMovableGridSpace, resolveMovableGridCellWidth } from '@core/routing/pages/movablesections/grid.ts';
@@ -83,12 +84,22 @@ const resolveMetricsForColumns = (space: MovableGridSpace, settings: MovableGrid
     };
 };
 
+const MOVABLE_GRID_VIEWPORT_CONTAINER = 'ui-viewport';
+
+const measureMovableGridViewportWidth = (grid: HTMLElement): number => {
+    for (let ancestor = grid.parentElement; ancestor !== null && ancestor !== grid.ownerDocument.body; ancestor = ancestor.parentElement) {
+        const style = getComputedStyleStrict(ancestor);
+        if (style.containerName.split(' ').includes(MOVABLE_GRID_VIEWPORT_CONTAINER)) return ancestor.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+    }
+    return measureLayoutViewport(grid).width;
+};
+
 const resolveMovableGridPresentation = (grid: HTMLElement, settings: MovableGridSettings): MovableGridPresentation | null => {
     const space = measureMovableGridSpace(grid);
     if (space.width <= 0) {
         return null;
     }
-    const columns = settings.responsive.type === 'content-scale' ? resolveContentScaleColumns(space, settings) : computeMovableBreakpointColumns(measureLayoutViewport(grid).width, settings);
+    const columns = settings.responsive.type === 'content-scale' ? resolveContentScaleColumns(space, settings) : computeMovableBreakpointColumns(measureMovableGridViewportWidth(grid), settings);
     const metrics = resolveMetricsForColumns(space, settings, columns);
     if (!metrics) {
         return null;

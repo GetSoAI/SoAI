@@ -1,6 +1,7 @@
 /* SoAI - Metrics page layout controller [frontend/assets/ts/pages/metrics/controllers/page/metricsLayoutController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { MovablePanelLayoutController, type MovablePanelLayoutHost } from '@core/routing/pages/movablesections/panelLayoutController.ts';
 import { createMetricsMovableLayoutConfig, createMetricsPanelBlueprints } from '@pages/metrics/rendering/layout/service.ts';
@@ -9,6 +10,7 @@ import type { MetricsPageSession } from '@pages/metrics/controllers/page/Metrics
 import type { MetricsRuntimeOwners } from '@pages/metrics/controllers/page/contracts.ts';
 
 interface MetricsLayoutPageHost extends MovablePanelLayoutHost {
+    readonly owner: PresentationOwner;
     state: Pick<MetricsPageSession, 'storage'>;
     owners: Pick<MetricsRuntimeOwners, 'auth' | 'services'>;
 }
@@ -20,6 +22,7 @@ class MetricsLayoutController {
     constructor(host: MetricsLayoutPageHost) {
         this.#host = host;
         this.#panels = new MovablePanelLayoutController({
+            owner: host.owner,
             host: this.#host,
             storage: {
                 getLayout: (): JsonValue => this.#host.state.storage.get('metrics_layout', null) ?? null,

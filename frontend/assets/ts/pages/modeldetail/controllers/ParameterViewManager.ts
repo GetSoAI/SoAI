@@ -3,20 +3,17 @@
 
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { CSS_CLASSES } from '@core/cssConstants.ts';
-import { errorHandler } from '@core/errorHandler.ts';
-import { ensureError } from '@core/errors/coerce.ts';
 import { FieldStateTracker } from '@core/forms/fieldStateTracker.ts';
-import { i18n } from '@core/i18n/index.ts';
 import { normalizeSearchMatchQuery } from '@core/search/searchQuery.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
-import type { ParameterGroup, ParameterTemplateOptions, ParameterValue, ParameterView } from '@pages/modeldetail/contracts/parameterTypes.ts';
+import type { ParameterGroup, ParametersPayload, ParameterTemplateOptions, ParameterValue, ParameterView } from '@pages/modeldetail/contracts/parameterTypes.ts';
 import { PARAMETER_GROUPS, PARAMETER_REVERT_SELECTOR, PARAMETERS_INTERFACE_ID } from '@pages/modeldetail/controllers/parameterviewmanager/constants.ts';
 import { applyFilters, disposeEventHandlers, refreshElementCache, requireElement, resolveElement, updateParameterUi, validateArrayControls } from '@pages/modeldetail/controllers/parameterviewmanager/dom.ts';
-import { createParameterFieldStateTracker, refreshModificationState, resetParameterValue, syncParameterCustomizedState, updateParameterValue } from '@pages/modeldetail/controllers/parameterviewmanager/effects.ts';
+import { createParameterFieldStateTracker, refreshModificationState, resetParameterValue, syncParameterCustomizedState, updateJsonParameter, updateParameterValue } from '@pages/modeldetail/controllers/parameterviewmanager/effects.ts';
 import { bindParameterControls } from '@pages/modeldetail/controllers/parameterviewmanager/events.ts';
 import { ParameterCategoryRailController } from '@pages/modeldetail/controllers/parameterviewmanager/parameterCategoryRailController.ts';
 import { persistModelDetailParameterGroup, readModelDetailParameterGroup } from '@pages/modeldetail/controllers/parameterviewmanager/parameterViewControlsManager.ts';
-import { getArrayValueWithAppend, getArrayValueWithRemoval, parseJsonParameterValue, setArrayItemValue } from '@pages/modeldetail/controllers/parameterviewmanager/state.ts';
+import { getArrayValueWithAppend, getArrayValueWithRemoval, setArrayItemValue } from '@pages/modeldetail/controllers/parameterviewmanager/state.ts';
 import type { BoundParameterEvents, ParameterElementCache, ParameterViewFilters, ParameterViewHost, ParameterViewManagerOptions } from '@pages/modeldetail/controllers/parameterviewmanager/types.ts';
 import { createTemplateOptions, renderNoParameters, renderParameters, renderVirtualModel } from '@pages/modeldetail/controllers/parameterviewmanager/view.ts';
 import { renderParameterControl } from '@pages/modeldetail/widgets/parametertemplates/view.ts';
@@ -60,6 +57,14 @@ class ParameterViewManager {
         this.fieldStateTracker.clearAll();
         this.clearElementCache();
         this.updateSummary();
+    }
+    get protectionRevision(): number {
+        return this.fieldStateTracker.protectionRevision + this.state.protectionRevision;
+    }
+    mergeParametersPayload(payload: ParametersPayload): void {
+        const changedKeys = this.state.mergePayload(payload, (key) => this.hasPendingEdit(key));
+        for (const key of changedKeys) this.updateParameterUI(key, this.state.getParameter(key)?.currentValue ?? null);
+        this.refreshModificationState();
     }
     clearElementCache(): void {
         this.elementCache.clear();
@@ -112,7 +117,13 @@ class ParameterViewManager {
             onUpdateArrayItemValue: (parameterKey: string, index: number, value: ParameterValue) => this.updateArrayItemValue(parameterKey, index, value),
             onUpdateParameter: (parameterKey: string, value: ParameterValue) => this.updateParameter(parameterKey, value),
             onUpdateJsonParameter: (parameterKey: string, json: string, textareaId: string) => this.updateJsonParameter(parameterKey, json, textareaId),
-            onSetParameterValidity: (parameterKey: string, valid: boolean) => this.setParameterValidity(parameterKey, valid)
+            onSetParameterValidity: (parameterKey: string, valid: boolean) => this.setParameterValidity(parameterKey, valid),
+            onRawEdit: (key) => this.fieldStateTracker.markEdited(key),
+            onCompositionChange: (key, composing) => {
+                this.fieldStateTracker.setComposing(key, composing);
+                this.handleModificationStateChange();
+            },
+            isComposing: (key) => this.fieldStateTracker.isComposing(key)
         });
     }
     disposeEventHandlers(): void {
@@ -155,7 +166,7 @@ class ParameterViewManager {
         this.syncRevertButton(parameterKey);
     }
     private hasPendingEdit(parameterKey: string): boolean {
-        return this.fieldStateTracker.isModified(parameterKey) || this.fieldStateTracker.isInvalid(parameterKey);
+        return this.fieldStateTracker.hasPendingEdit(parameterKey);
     }
     private syncRevertButton(parameterKey: string): void {
         const item = this.resolveElement(parameterKey);
@@ -223,28 +234,7 @@ class ParameterViewManager {
         this.handleModificationStateChange();
     }
     updateJsonParameter(parameterKey: string, json: string, textareaId: string): void {
-        const validation = this.host.pageDom.optional(`${textareaId}-validation`);
-        if (!validation) {
-            return;
-        }
-        let parsed: ParameterValue;
-        try {
-            parsed = parseJsonParameterValue(json);
-        } catch (error) {
-            const runtimeError = ensureError(error);
-            if (!(runtimeError instanceof SyntaxError || runtimeError instanceof TypeError)) throw runtimeError;
-            if (!this.fieldStateTracker.isInvalid(parameterKey)) errorHandler.debug('ParameterViewManager', 'JSON parameter draft became invalid', { parameterKey });
-            this.host.pageDom.updateText(validation, i18n.t('modelDetail.parameters.invalidJson'));
-            this.host.pageDom.toggleClass(validation, 'error', true);
-            this.host.pageDom.updateAttribute(textareaId, 'aria-invalid', 'true');
-            this.setParameterValidity(parameterKey, false);
-            return;
-        }
-        this.updateParameter(parameterKey, parsed);
-        this.setParameterValidity(parameterKey, true);
-        this.host.pageDom.updateAttribute(textareaId, 'aria-invalid', 'false');
-        this.host.pageDom.updateText(validation, '');
-        this.host.pageDom.toggleClass(validation, 'error', false);
+        updateJsonParameter({ host: this.host, fieldStateTracker: this.fieldStateTracker, updateParameter: (key, value) => this.updateParameter(key, value), setParameterValidity: (key, valid) => this.setParameterValidity(key, valid) }, parameterKey, json, textareaId);
     }
     addArrayItem(parameterKey: string): void {
         if (!validateArrayControls(this.host, parameterKey)) return;

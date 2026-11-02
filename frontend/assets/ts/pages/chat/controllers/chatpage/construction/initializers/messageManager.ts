@@ -18,6 +18,7 @@ const initializeMessageManager = (page: ChatControllerInitializationContext): vo
         throw new Error('ChatPage requires model availability state');
     }
     const messageManagerDependencies: ChatMessageManagerDependencies = {
+        owner: page.page.services.mountScope,
         boundary: {
             apiClient: {
                 request: (method, endpoint, body, options) => page.platform.api.request(method, endpoint, body, options)

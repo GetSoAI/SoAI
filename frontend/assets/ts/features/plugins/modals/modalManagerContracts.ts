@@ -1,6 +1,7 @@
 /* SoAI - Plugin modal manager contracts [frontend/assets/ts/features/plugins/modals/modalManagerContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PageRouting, PresentationOwner } from '@core/routing/router/types.ts';
 import type { EscapeSanitizerApi } from '@core/security/protocols.ts';
 import type { StatusManager } from '@core/state/statusmanager/service.ts';
 import type { HardwareApi } from '@features/plugins/modals/config/types.ts';
@@ -45,6 +46,7 @@ interface PluginsModalManagersApi {
 }
 
 interface PluginsModalFoundationPort {
+    readonly owner: PresentationOwner;
     callbacks: PluginsManagerHostCallbacks;
     security: EscapeSanitizerApi;
     statusManager: StatusManager | null;
@@ -74,7 +76,7 @@ interface PluginsModalOperationPort {
     createOperationProgressReporter: DownloadManagerHost['execution']['createOperationProgressReporter'];
     hasClipboardSupport: DownloadManagerHost['session']['hasClipboardSupport'];
     isAdmin: DownloadManagerHost['session']['isAdmin'];
-    setLocationHash(hash: string): void;
+    router: Pick<PageRouting, 'navigate'>;
 }
 
 interface PluginsModalPresentationPort {

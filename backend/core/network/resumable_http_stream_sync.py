@@ -30,9 +30,10 @@ class ResumableHTTPStreamSync:
         opener: Callable[[Mapping[str, str], float], AbstractContextManager[httpx2.Response]],
         *,
         state: DownloadStreamState,
-        chunk_size: int = 65536,
+        chunk_size: int | None = 65536,
     ) -> None:
-        require_positive_int_strict(chunk_size, error_message="Chunk size must be positive.")
+        if chunk_size is not None:
+            require_positive_int_strict(chunk_size, error_message="Chunk size must be positive.")
         self.cursor = state
         self._opener = opener
         self._chunk_size = chunk_size

@@ -5,6 +5,7 @@ import { buildAutomationWindowSignature, resolveBufferedAutomationWindow } from 
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { ChangeNotificationSource } from '@core/primitives/changeNotificationSource.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
+import { runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
 import type { AutomationActionId } from '@features/automation/public.ts';
 import { AutomationPageActivationController } from '@pages/automation/controllers/AutomationPageActivationController.ts';
 import { AutomationCalendarTransitionController } from '@pages/automation/controllers/AutomationCalendarTransitionController.ts';
@@ -89,6 +90,7 @@ class AutomationPageController {
         });
         this.#interactionController = new AutomationPageInteractionController({
             initialization: {
+                owner: dependencies.owner,
                 requireHTMLElement: runtime.requireHTMLElement,
                 modalPresenter: dependencies.modalPresenter,
                 dataService: dependencies.dataService,
@@ -115,6 +117,7 @@ class AutomationPageController {
             shiftVisiblePeriod: (offset) => this.#shiftVisiblePeriod(offset)
         });
         this.#windowRunsPane = new AutomationWindowRunsPaneController({
+            owner: dependencies.owner,
             dataService: dependencies.dataService,
             getState: this.#getState,
             setState: this.#setState,
@@ -166,6 +169,7 @@ class AutomationPageController {
             preferencesStatus: this.#preferencesStatus
         });
         this.#actionHost = {
+            owner: dependencies.owner,
             state: {
                 ui: dependencies.ui,
                 dataService: dependencies.dataService,
@@ -236,18 +240,20 @@ class AutomationPageController {
 
     destroy(): void {
         this.#destroyed = true;
-        this.#renderScheduler.dispose();
-        this.#unsubscribeRenderRequests();
-        this.#renderRequests.clear();
         this.#monthMaxChipsPerDay = AUTOMATION_DEFAULT_MONTH_MAX_ZONES_PER_DAY;
-        this.#calendarTransition.dispose();
-        this.#realtimeController.dispose();
-        this.#dataController.dispose();
-        this.#windowRunsPane.dispose();
-        this.#viewController.destroy();
-        this.#interactionController.destroy();
+        const failures: Error[] = [];
+        runCleanupStepCollectingFailure(() => this.#renderScheduler.dispose(), failures);
+        runCleanupStepCollectingFailure(this.#unsubscribeRenderRequests, failures);
+        runCleanupStepCollectingFailure(() => this.#renderRequests.clear(), failures);
+        runCleanupStepCollectingFailure(() => this.#calendarTransition.dispose(), failures);
+        runCleanupStepCollectingFailure(() => this.#realtimeController.dispose(), failures);
+        runCleanupStepCollectingFailure(() => this.#dataController.dispose(), failures);
+        runCleanupStepCollectingFailure(() => this.#windowRunsPane.dispose(), failures);
+        runCleanupStepCollectingFailure(() => this.#viewController.destroy(), failures);
+        runCleanupStepCollectingFailure(() => this.#interactionController.destroy(), failures);
+        runCleanupStepCollectingFailure(() => this.#activationController.clearPreferencesCorruptError(), failures);
+        throwCollectedCleanupFailures(failures);
         this.#connectionSignal = null;
-        this.#activationController.clearPreferencesCorruptError();
     }
 
     handleAction(actionId: AutomationActionId, element: HTMLElement): void {

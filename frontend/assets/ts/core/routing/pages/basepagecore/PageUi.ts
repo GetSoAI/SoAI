@@ -20,6 +20,7 @@ import { isArray, isElementNode, isNode, isObject, isString } from '@core/typeGu
 import { setAriaBusy } from '@core/ui/controls/ariaBusy.ts';
 
 interface PageUiDependencies {
+    pageId: string;
     loadingState: typeof loadingState;
     layout: PageLayout;
     pageDom: PageDom;
@@ -140,7 +141,7 @@ class PageUi {
     }
 
     createSection(id: string, { title = i18n.t('common.section.defaultTitle'), subtitle = '', controls = EMPTY_UI_HTML, className = 'section', position = null, showSubtitle = true, loadingText }: CreateSectionOptions = {}): HTMLElement {
-        return createPageSectionElement(id, { title, subtitle, controls, className, position, showSubtitle, loadingText }, { createElement: (tag, attributes) => this.createElement(tag, attributes), applyGridPosition: (element, gridPosition) => this.#dependencies.layout.applyGridPosition(element, gridPosition), updateHTML: (element, html, options) => this.#dependencies.pageDom.updateHtml(element, html, options) });
+        return createPageSectionElement(id, { title, subtitle, controls, className, position, showSubtitle, loadingText }, { pageId: this.#dependencies.pageId, createElement: (tag, attributes) => this.createElement(tag, attributes), applyGridPosition: (element, gridPosition) => this.#dependencies.layout.applyGridPosition(element, gridPosition), updateHTML: (element, html, options) => this.#dependencies.pageDom.updateHtml(element, html, options) });
     }
 
     enableCheckerboard(containerOrSelector: Element | string, id?: string, absoluteIndexOffset: number = 0): void {

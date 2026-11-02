@@ -1,6 +1,7 @@
 /* SoAI - Chat prompt picker and composer insertion ownership [frontend/assets/ts/pages/chat/controllers/chatpage/composer/ChatPromptPickerController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { PromptsPickerModalController, type PromptsPickerStreamManager } from '@features/prompts/public.ts';
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import type { ChatPageApi } from '@features/chat/public.ts';
@@ -10,6 +11,7 @@ import type { ChatPagePresentationHost } from '@pages/chat/controllers/chatpage/
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 
 interface ChatPromptPickerPage extends ChatComposerHost, ChatUiTaskScopeHost, ChatPagePresentationHost, PageFeedbackOwnerHost {
+    owner: PresentationOwner;
     api: ChatPageApi;
     getDocument(): Document;
     requireStreamManager(): PromptsPickerStreamManager;
@@ -28,6 +30,7 @@ class ChatPromptPickerController {
         this.#page.taskScope.run('chat:openPromptsPicker', async () => {
             this.#controller?.dispose();
             this.#controller = new PromptsPickerModalController({
+                owner: this.#page.owner,
                 feedback: this.#page.feedback,
                 promptsApi: this.#page.api.webui.prompts,
                 getDocument: () => this.#page.getDocument(),

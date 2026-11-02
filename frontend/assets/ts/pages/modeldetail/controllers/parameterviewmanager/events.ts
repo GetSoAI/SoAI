@@ -16,19 +16,24 @@ interface ParameterControlBindings {
     onUpdateParameter: (parameterKey: string, value: ParameterValue) => void;
     onUpdateJsonParameter: (parameterKey: string, json: string, textareaId: string) => void;
     onSetParameterValidity: (parameterKey: string, valid: boolean) => void;
+    onRawEdit: (parameterKey: string) => void;
+    onCompositionChange: (parameterKey: string, composing: boolean) => void;
+    isComposing: (parameterKey: string) => boolean;
 }
 
 const setParameterInputValidity = (element: HTMLInputElement, valid: boolean): void => {
     setControlValidity(element, valid, '.model-parameter-item');
 };
 
-const bindParameterControls = ({ host, container, boundEvents, eventDisposers, onUpdateArrayItemValue, onUpdateParameter, onUpdateJsonParameter, onSetParameterValidity }: ParameterControlBindings): void => {
-    const updateControl = (_event: Event, element: HTMLElement): void => {
+const bindParameterControls = ({ host, container, boundEvents, eventDisposers, onUpdateArrayItemValue, onUpdateParameter, onUpdateJsonParameter, onSetParameterValidity, onRawEdit, onCompositionChange, isComposing }: ParameterControlBindings): void => {
+    const updateControl = (event: Event, element: HTMLElement): void => {
         if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement)) {
             throw new TypeError('Parameter control must be an input, textarea, or select');
         }
         const key = getDomData(host, element, 'param');
         if (!key) return;
+        onRawEdit(key);
+        if (isComposing(key) || (event instanceof InputEvent && event.isComposing)) return;
         if (element.classList.contains('json-input')) {
             if (!(element instanceof HTMLTextAreaElement)) throw new TypeError('JSON parameter control must be a textarea');
             onUpdateJsonParameter(key, element.value, element.id);
@@ -65,6 +70,15 @@ const bindParameterControls = ({ host, container, boundEvents, eventDisposers, o
     const selector = 'input[data-param], textarea[data-param], select[data-param], .array-item-input, .json-input';
     registerHandlers(host, container, selector, 'input', boundEvents, eventDisposers, updateControl);
     registerHandlers(host, container, selector, 'change', boundEvents, eventDisposers, updateControl);
+    registerHandlers(host, container, selector, 'compositionstart', boundEvents, eventDisposers, (_event, element) => {
+        const key = getDomData(host, element, 'param');
+        if (key) onCompositionChange(key, true);
+    });
+    registerHandlers(host, container, selector, 'compositionend', boundEvents, eventDisposers, (event, element) => {
+        const key = getDomData(host, element, 'param');
+        if (key) onCompositionChange(key, false);
+        updateControl(event, element);
+    });
 };
 
 export { bindParameterControls };

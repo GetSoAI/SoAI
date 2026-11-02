@@ -149,3 +149,5 @@ const reconcileRepeatedElementChildrenFromTrustedHtml = (inputArguments: { targe
 };
 
 export { reconcileChildNodes, reconcileElementChildrenFromHtml, reconcileElementChildrenFromTrustedHtml, reconcileRepeatedElementChildrenFromTrustedHtml };
+
+export type { ChildReconciliationOptions };

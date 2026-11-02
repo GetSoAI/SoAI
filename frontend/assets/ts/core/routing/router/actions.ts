@@ -6,11 +6,11 @@ import { coerceErrorMessage } from '@core/errors/coerce.ts';
 import { compileDynamicMatcher, parseQueryParameters } from '@core/routing/router/navigation.ts';
 import { normalizeNavigationMeta } from '@core/routing/router/navigationRequest.ts';
 import { isNavigationRequest, isRouteDefinition, isRouteParameters } from '@core/routing/router/routerTypeGuards.ts';
-import type { PageOutletService } from '@core/routing/router/routerDependencies.ts';
-import type { NavigationContext, NavigationRequest, NavigationRouterHost, RouteDefinition, RouteEntry, RouteParameters } from '@core/routing/router/types.ts';
+import type { PageOutletService, PageHostInstance } from '@core/pageoutlet/types.ts';
+import type { NavigationContext, NavigationRequest, NavigationRouterHost, RouteDefinition, RouteEntry, RouteParameters, PageMountScope } from '@core/routing/router/types.ts';
 import { hasFunctionProperty, hasOwn, isObject, isString } from '@core/typeGuards.ts';
+
 import type { PageInstance } from '@core/pagehost/types.ts';
-import type { PageHostInstance } from '@core/pageoutlet/types.ts';
 
 interface PageHostWithGetCurrent {
     getCurrent: PageHostInstance['getCurrent'];
@@ -23,6 +23,9 @@ interface NavigationRouteReferenceCandidate {
 }
 
 interface NavigationContextCandidate {
+    admitPlacement?: NavigationContext['admitPlacement'];
+    approveDestruction?: NavigationContext['approveDestruction'];
+    destructionOwner?: PageMountScope | null;
     request?: NavigationRequest | null | undefined;
     route?: RouteDefinition | null | undefined;
     parameters?: RouteParameters | null | undefined;
@@ -155,13 +158,16 @@ const resolveRouteDetails = (options: { ensureInitialized: () => void; path: str
 
 const isNavigationRouterHost = (value: NavigationRouterHost | null | undefined): value is NavigationRouterHost => isObject(value) && hasFunctionProperty(value, 'parseRoute') && hasFunctionProperty(value, 'getDefaultRoute');
 
-const createNavigationContext = (options: { router: NavigationRouterHost | null; currentRoute: string | null; parseRoute: (path: string) => { route: RouteEntry; parameters: RouteParameters } | null; request: NavigationRequest; route: RouteDefinition; parameters: RouteParameters; signal: AbortSignal }): NavigationContext => {
+const createNavigationContext = (options: { admitPlacement: NavigationContext['admitPlacement']; approveDestruction?: NavigationContext['approveDestruction']; destructionOwner?: PageMountScope | null; router: NavigationRouterHost | null; currentRoute: string | null; parseRoute: (path: string) => { route: RouteEntry; parameters: RouteParameters } | null; request: NavigationRequest; route: RouteDefinition; parameters: RouteParameters; signal: AbortSignal }): NavigationContext => {
     if (!isNavigationRequest(options.request)) {
         throw new TypeError('request must be a navigation request');
     }
     const parsed = options.currentRoute ? options.parseRoute(options.currentRoute) : null;
     const from = parsed && options.currentRoute ? { path: options.currentRoute, route: parsed.route, parameters: parsed.parameters } : null;
     return {
+        admitPlacement: options.admitPlacement,
+        approveDestruction: options.approveDestruction,
+        destructionOwner: options.destructionOwner ?? null,
         router: options.router,
         request: options.request,
         route: options.route,
@@ -172,6 +178,13 @@ const createNavigationContext = (options: { router: NavigationRouterHost | null;
         signal: options.signal
     };
 };
+
+const createDestructionNavigationContext = (context: NavigationContext, currentRoute: string | null, owner: PageMountScope | null, parseRoute: (path: string) => { route: RouteEntry; parameters: RouteParameters } | null): NavigationContext =>
+    Object.freeze({
+        ...createNavigationContext({ admitPlacement: context.admitPlacement, approveDestruction: context.approveDestruction, destructionOwner: owner, router: context.router, currentRoute, parseRoute, request: context.request, route: context.route, parameters: context.parameters, signal: context.signal }),
+        meta: context.meta,
+        startedAt: context.startedAt
+    });
 
 const requireNavigationContext = (value: NavigationContextCandidate | null | undefined): NavigationContext => {
     if (!isObject(value)) {
@@ -202,6 +215,8 @@ const requireNavigationContext = (value: NavigationContextCandidate | null | und
     if (!(signal instanceof AbortSignal)) {
         throw new Error('Navigation context missing cancellation signal');
     }
+    const admitPlacement = value.admitPlacement;
+    if (typeof admitPlacement !== 'function') throw new Error('Navigation context missing placement admission');
 
     const fromValue = 'from' in value ? value.from : null;
     let from: NavigationContext['from'] = null;
@@ -216,7 +231,10 @@ const requireNavigationContext = (value: NavigationContextCandidate | null | und
 
     const routerValue = hasOwn(value, 'router') ? value.router : null;
     return {
+        admitPlacement,
+        approveDestruction: value.approveDestruction,
         router: isNavigationRouterHost(routerValue) ? routerValue : null,
+        destructionOwner: value.destructionOwner ?? null,
         request: requestValue,
         route: routeValue,
         parameters: parametersValue,
@@ -227,4 +245,4 @@ const requireNavigationContext = (value: NavigationContextCandidate | null | und
     };
 };
 
-export { createNavigationContext, ensurePageHost, getRouteFromHash, parseRoutePath, registerRouteDefinitions, requireNavigationContext, resolveRouteDetails, shouldSkipNavigation };
+export { createNavigationContext, createDestructionNavigationContext, ensurePageHost, getRouteFromHash, parseRoutePath, registerRouteDefinitions, requireNavigationContext, resolveRouteDetails, shouldSkipNavigation };

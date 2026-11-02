@@ -7,9 +7,9 @@ import type { AuthManager } from '@core/auth/public.ts';
 import type { dom } from '@core/dom/dom.ts';
 import type { loadingState } from '@core/loadingState.ts';
 import type { LanguageService } from '@core/routing/pages/pagetypes/base/uiContracts.ts';
-import type { Router } from '@core/routing/router/Router.ts';
 import type { StateManager } from '@core/state/StateManager.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
+import type { PageMountScope, PageRouting } from '@core/routing/router/types.ts';
 
 export interface BasePageDependencies {
     api: ApiClient;
@@ -17,7 +17,8 @@ export interface BasePageDependencies {
     dom: typeof dom;
     languageService: LanguageService;
     loadingState: typeof loadingState;
-    router: Router;
+    router: PageRouting;
+    mountScope: PageMountScope;
     stateManager: StateManager;
     storage: StorageService;
 }

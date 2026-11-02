@@ -35,6 +35,7 @@ from core.hardware.protocols_speed_test import (
     NetworkSpeedTestServiceProtocol,
 )
 from core.logging.trace import get_logger
+from core.runtime.platform import get_runtime_platform
 from core.system.command_executor import CommandExecutor
 from core.tasks.protocols import (
     TaskCancellationBinderProtocol,
@@ -50,6 +51,10 @@ from hardware.gpu_capabilities_service import (
     GpuCapabilitiesServiceDependencies,
 )
 from hardware.gpu_info_cache_service import GPUInfoCacheService
+from hardware.gpu_inventory.windows_gpu_performance import (
+    WindowsGpuPerformance,
+    WindowsGpuPerformanceDependencies,
+)
 from hardware.gpu_observation import GPUInfoCacheServiceDependencies
 from hardware.gpu_tuning.null_service import NullHardwareGpuTuningService
 from hardware.gpu_tuning.service import HardwareGpuTuningService
@@ -106,11 +111,18 @@ def build_hardware_services(
             command_executor=command_executor,
         ),
     )
+    adl_monitoring_runtime = AdlRuntime(AdlRuntimeDependencies())
     gpu_info_cache_service = GPUInfoCacheService(
         GPUInfoCacheServiceDependencies(
+            adl_monitoring_runtime=adl_monitoring_runtime,
+            windows_gpu_enricher=(
+                WindowsGpuPerformance(WindowsGpuPerformanceDependencies()).enrich
+                if get_runtime_platform().is_windows
+                else None
+            ),
             probe_executor_factory=lambda: ThreadPoolExecutor(
                 max_workers=1, thread_name_prefix="soai-gpu-inventory"
-            )
+            ),
         )
     )
     adl_runtime = AdlRuntime(AdlRuntimeDependencies())
@@ -209,7 +221,7 @@ def build_hardware_services(
         nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
         gpu_capabilities_service=gpu_capabilities_service,
         nvidia_settings_controller=nvidia_settings_controller,
-        adl_runtime=adl_runtime,
+        adl_runtime=adl_monitoring_runtime,
         hardware_manager_settings=hardware_manager_settings,
         command_executor=command_executor,
         hardware_logger=hardware_logger,

@@ -236,7 +236,8 @@ class ConversationFindSearchController {
             overrides.set(entry.semanticId, { entry, baselineSourceRevision: baseline?.sourceRevision ?? previous?.baselineSourceRevision ?? null, mounted: true });
         }
         this.#overrides = Array.from(overrides.values());
-        if (this.#snapshot === null) return;
+        const canPresentMountedMatches = this.#snapshot !== null || this.#status === 'scanning' || this.#status === 'updating';
+        if (!canPresentMountedMatches) return;
         this.#reconcile();
         this.#dependencies.onChanged();
     }

@@ -65,6 +65,14 @@ class PageResources {
     async cleanup(): Promise<void> {
         await this.cleanupTracked();
     }
+
+    seal(): void {
+        this.tracker.seal();
+    }
+
+    async dispose(): Promise<void> {
+        await this.tracker.dispose();
+    }
 }
 
 export { PageResources };

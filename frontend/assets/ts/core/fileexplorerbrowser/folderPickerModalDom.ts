@@ -6,7 +6,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
 import { EMPTY_UI_HTML, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 
@@ -39,7 +39,7 @@ const folderPickerModalDefinition: ModalDefinition = {
     id: FOLDER_PICKER_MODAL_ID,
     layout: 'xl',
     initialFocusSelector: modalUiSelector(FOLDER_PICKER_MODAL_ID, 'search'),
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const modalId = FOLDER_PICKER_MODAL_ID;
         const header = renderStandardModalHeader({ modalId, title: '', description: i18n.t('common.modalDescriptions.folderPicker'), titleId: modalUiId(modalId, 'title'), closeLabel: i18n.t('common.close') });
         const body = renderModalBody(uiHtml`<div id="${uiAttr(modalUiId(modalId, 'body-slot'))}"></div>`);

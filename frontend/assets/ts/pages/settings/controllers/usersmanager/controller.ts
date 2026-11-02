@@ -113,7 +113,7 @@ const performChangeUserWorkspacePathAction = async (context: UsersManagerInterac
     if (!user) {
         return;
     }
-    const nextWorkspacePath = await openUserWorkspacePathPicker(host.api, user);
+    const nextWorkspacePath = await openUserWorkspacePathPicker(host.api, user, host.owner);
     if (nextWorkspacePath === undefined) {
         return;
     }
@@ -159,6 +159,7 @@ const performChangeUserPasswordAction = async (context: UsersManagerInteractionC
             updateFailed: i18n.t('settings.users.passwordModal.updateFailed')
         };
         const completed = await requireDialogsService().showPasswordChange({
+            owner: host.owner,
             title: i18n.t('settings.users.passwordModal.title'),
             message: i18n.t('settings.users.passwordModal.message', { username: user.username }),
             fieldLabels,
@@ -230,6 +231,7 @@ const performRenameUserAction = async (context: UsersManagerInteractionContext &
     if (!user || (!isCurrentUser(user) && !host.state.canAdministerUsers())) return;
     await host.execution.withButtonDisabled(button, async () => {
         const completed = await requireDialogsService().showUsernameRename({
+            owner: host.owner,
             title: i18n.t('settings.users.rename.title'),
             message: i18n.t('settings.users.rename.notice'),
             usernameLabel: i18n.t('settings.users.rename.usernameLabel'),

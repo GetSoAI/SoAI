@@ -143,7 +143,7 @@ const prepareChatPageInitialContent = async (host: ChatLiveUpdatesHost, paramete
     host.conversationToolbarSession.initialize();
     configureDetachedEnvironment(host.detachedWindowHost, bootstrapParameters);
     if (!host.services.isDetached()) {
-        const detachController = createHeaderActionController({ actionId: 'detach', contextId: 'chat' });
+        const detachController = createHeaderActionController({ owner: host.services.mountScope, actionId: 'detach', contextId: 'chat' });
         detachController.show({ onClick: () => openDetachedChatWindow(host.detachedWindowHost) });
         host.lifecycleResources.detachAction = detachController;
     }

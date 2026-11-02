@@ -19,3 +19,4 @@ class CreatePTYSessionRequest:
     output_callback: Callable[[bytes], None] | None = None
     exit_callback: Callable[[str, int], None] | None = None
     busy_callback: Callable[[str, bool], None] | None = None
+    acquisition_id: str | None = None

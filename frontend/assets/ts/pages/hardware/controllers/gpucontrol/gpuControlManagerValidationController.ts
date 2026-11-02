@@ -5,8 +5,8 @@ import { isFunction } from '@core/typeGuards.ts';
 import type { GpuControlManagerDependencies, SecurityService } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 
 const validateGpuControlManagerDependencies = (dependencies: GpuControlManagerDependencies, security: SecurityService | undefined): SecurityService => {
-    if (!dependencies?.dom || !isFunction(dependencies.dom.getDocument)) {
-        throw new Error('GpuControlManager requires a dom service with getDocument()');
+    if (!dependencies?.pageDom || !isFunction(dependencies.pageDom.resolveContext)) {
+        throw new Error('GpuControlManager requires a page DOM owner with resolveContext()');
     }
     if (!isFunction(dependencies.getIconSync)) {
         throw new Error('GpuControlManager requires getIconSync()');

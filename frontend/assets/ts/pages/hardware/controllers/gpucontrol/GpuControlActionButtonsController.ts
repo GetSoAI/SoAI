@@ -15,6 +15,7 @@ import type { GpuCapabilitiesByIndex, GpuCapabilities } from '@core/realtime/str
 import type { GpuSettingsState, GpuSnapshot } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 
 interface SyncGpuControlActionButtonsInput {
+    root: Element;
     index: string;
     snapshot: GpuSnapshot;
     capabilities: GpuCapabilities | null;
@@ -31,8 +32,8 @@ interface SyncGpuControlActionButtonsInput {
     bootSlot: string | null;
 }
 
-const resolveIndexedButton = (className: string, index: string): HTMLButtonElement | null => {
-    for (const element of dom.resolveAll(`.${className}`)) {
+const resolveIndexedButton = (root: Element, className: string, index: string): HTMLButtonElement | null => {
+    for (const element of dom.resolveAll(`.${className}`, root)) {
         if (element instanceof HTMLButtonElement && element.dataset['gpuIndex'] === index && !isPresenceExiting(element)) {
             return element;
         }
@@ -40,12 +41,12 @@ const resolveIndexedButton = (className: string, index: string): HTMLButtonEleme
     return null;
 };
 
-const resolveIndexedButtons = (className: string, index: string): HTMLButtonElement[] => {
-    return dom.resolveAll(`.${className}`).filter((element): element is HTMLButtonElement => element instanceof HTMLButtonElement && element.dataset['gpuIndex'] === index);
+const resolveIndexedButtons = (root: Element, className: string, index: string): HTMLButtonElement[] => {
+    return dom.resolveAll(`.${className}`, root).filter((element): element is HTMLButtonElement => element instanceof HTMLButtonElement && element.dataset['gpuIndex'] === index);
 };
 
-const hasMountedGpuControlPanel = (index: string): boolean => {
-    for (const element of dom.resolveAll('.gpu-control-panel')) {
+const hasMountedGpuControlPanel = (root: Element, index: string): boolean => {
+    for (const element of dom.resolveAll('.gpu-control-panel', root)) {
         if (element instanceof HTMLElement && element.dataset['gpuIndex'] === index) {
             return true;
         }
@@ -53,44 +54,44 @@ const hasMountedGpuControlPanel = (index: string): boolean => {
     return false;
 };
 
-const requiresGpuPrimaryActionRender = (index: string, primaryAction: GpuPrimaryAction, locked: boolean): boolean => {
-    if (locked || !hasMountedGpuControlPanel(index)) {
+const requiresGpuPrimaryActionRender = (root: Element, index: string, primaryAction: GpuPrimaryAction, locked: boolean): boolean => {
+    if (locked || !hasMountedGpuControlPanel(root, index)) {
         return false;
     }
-    const saveButton = resolveIndexedButton('gpu-save-btn', index);
-    const applyButton = resolveIndexedButton('gpu-apply-btn', index);
+    const saveButton = resolveIndexedButton(root, 'gpu-save-btn', index);
+    const applyButton = resolveIndexedButton(root, 'gpu-apply-btn', index);
     return primaryAction === 'save' ? !saveButton : !applyButton;
 };
 
 export const GpuControlActionButtonsController = (input: SyncGpuControlActionButtonsInput): void => {
-    syncGpuControlInputAvailability(document, input.capabilitiesByIndex, input.index, input.pending, input.locked, input.previewSlot);
+    syncGpuControlInputAvailability(input.root, input.capabilitiesByIndex, input.index, input.pending, input.locked, input.previewSlot);
     const canApply = hasPendingGpuApplyAction(input);
-    const invalidValue = hasInvalidGpuValueEdits(document, input.capabilitiesByIndex, input.index);
-    const resetButton = resolveIndexedButton('gpu-reset-round-btn', input.index);
+    const invalidValue = hasInvalidGpuValueEdits(input.root, input.capabilitiesByIndex, input.index);
+    const resetButton = resolveIndexedButton(input.root, 'gpu-reset-round-btn', input.index);
     if (resetButton) {
         resetButton.hidden = !hasGpuResettableSettings(input.capabilities, input.liveSettings, normalizeSnapshot(input.snapshot));
         setControlDisabledState(resetButton, input.pending || input.locked);
     }
-    const historyButton = resolveIndexedButton('gpu-history-round-btn', input.index);
+    const historyButton = resolveIndexedButton(input.root, 'gpu-history-round-btn', input.index);
     if (historyButton) {
         setControlDisabledState(historyButton, input.pending);
     }
-    const testButton = resolveIndexedButton('gpu-test-btn', input.index);
+    const testButton = resolveIndexedButton(input.root, 'gpu-test-btn', input.index);
     if (testButton) {
         setControlDisabledState(testButton, input.pending || input.saveMode || canApply || invalidValue);
     }
-    const saveButton = resolveIndexedButton('gpu-save-btn', input.index);
+    const saveButton = resolveIndexedButton(input.root, 'gpu-save-btn', input.index);
     if (saveButton) {
         setControlDisabledState(saveButton, input.pending || input.locked || invalidValue || getBusyDisabledToken(saveButton) !== null);
     }
-    const applyButton = resolveIndexedButton('gpu-apply-btn', input.index);
+    const applyButton = resolveIndexedButton(input.root, 'gpu-apply-btn', input.index);
     if (applyButton) {
         setLoadingButtonState(dom, applyButton, input.pending);
         if (!input.pending) {
             setControlDisabledState(applyButton, !canApply || invalidValue);
         }
     }
-    for (const slotButton of resolveIndexedButtons('gpu-slot-button', input.index)) {
+    for (const slotButton of resolveIndexedButtons(input.root, 'gpu-slot-button', input.index)) {
         const slotId = slotButton.dataset['slotId'] ?? null;
         setControlDisabledState(slotButton, input.pending || input.locked || invalidValue || (!input.saveMode && slotButton.classList.contains('gpu-slot-button--empty')));
         slotButton.classList.toggle('is-flashing', input.saveMode);

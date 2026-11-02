@@ -1,12 +1,14 @@
 /* SoAI - Chat feature auto scroll lock runtime [frontend/assets/ts/features/chat/chatuimanager/autoScrollLockRuntime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isAvailableFocusTarget } from '@core/dom/focusTarget.ts';
+import { isPresentationOwnerFocused } from '@core/presentationOwner.ts';
 import { isBoundedVerticalResizeGesture } from '@core/dom/boundedVerticalResize.ts';
 import { measureViewportTouchPoint } from '@core/layout/elementGeometry.ts';
 import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 import { acquireMainTimelineCoordinator } from '@features/chat/mainTimelineCoordinator.ts';
-import { MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, isMainTimelineKeyboardScrollEvent } from '@features/chat/mainTimelineScroll.ts';
+import { MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, isMainTimelineKeyboardScrollEvent, isMainTimelineKeyboardScrollForArea } from '@features/chat/mainTimelineScroll.ts';
 import { hasPresenceAnimationInSubtree } from '@core/animations/presence/public.ts';
 
 const USER_SCROLL_LOCK_RELEASE_KEYS: ReadonlySet<string> = new Set<string>(['ArrowUp', 'Home', 'PageUp']);
@@ -33,9 +35,7 @@ const isMainTimelineUserScrollIntent = (event: Event, messagesArea: HTMLElement)
 };
 
 const handleScrollIntentKey = (context: ChatUIManagerContext, messagesArea: HTMLElement, event: Event): void => {
-    if (!isMainTimelineKeyboardScrollEvent(event)) {
-        return;
-    }
+    if (!isPresentationOwnerFocused(context.dependencies.owner) || !isAvailableFocusTarget(messagesArea) || !isMainTimelineKeyboardScrollForArea(event, messagesArea)) return;
     markUserScrollIntent(context);
     if (USER_SCROLL_LOCK_RELEASE_KEYS.has(event.key) || (event.key === ' ' && event.shiftKey)) {
         releaseAutoScrollLockFromUserIntent(context, messagesArea);
@@ -128,7 +128,7 @@ const setupAutoScrollLockRuntime = (context: ChatUIManagerContext, messagesArea:
     if (!(messagesContainer instanceof HTMLElement)) {
         throw new Error('Chat messages container is required for auto-scroll lock');
     }
-    const coordinator = acquireMainTimelineCoordinator(messagesArea, messagesRoot);
+    const coordinator = acquireMainTimelineCoordinator(messagesArea, messagesRoot, context.dependencies.owner);
     const activeTransitionPropertiesByElement = new Map<Element, Set<string>>();
     const pruneInactiveTransitions = (): void => {
         for (const [element, properties] of activeTransitionPropertiesByElement.entries()) {

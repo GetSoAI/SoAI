@@ -3,11 +3,12 @@
 
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
+import { PANE_RELAYOUT_EVENT } from '@core/layout/paneRelayout.ts';
 import { applyHeaderStatsLayout } from '@core/headerStatsLayout.ts';
 import { getCancelAnimationFrame, getComputedStyleStrict, getRequestAnimationFrame, getWindow } from '@core/environment/public.ts';
 import { getPageHeaderAnimator } from '@core/animations/service.ts';
 import { dom } from '@core/dom/dom.ts';
-import { isDocumentNode, isElementNode } from '@core/typeGuards.ts';
+import { isElementNode } from '@core/typeGuards.ts';
 import { applyAdaptiveNumbers } from '@core/ui/adaptiveNumber.ts';
 import type { BasePageLayoutState } from '@core/routing/pages/basepagelayout/state.ts';
 import { requireCheckerboardService } from '@core/routing/pages/pageDom.ts';
@@ -64,6 +65,11 @@ const setupResponsiveLayout = (page: BasePageLayoutHost, state: BasePageLayoutSt
     const win = getWindow();
     ['resize', 'orientationchange'].forEach((eventName) => page.on(win, eventName, schedule));
     page.on(win, INTERFACE_SCALE_CHANGED_EVENT, schedule);
+    page.on(win, PANE_RELAYOUT_EVENT, () => {
+        if (state.pendingLayoutFrame !== null) getCancelAnimationFrame()(state.pendingLayoutFrame);
+        state.pendingLayoutFrame = null;
+        updateResponsiveLayout(page, state, callbacks);
+    });
     if (win.visualViewport) {
         page.on(win.visualViewport, 'resize', schedule);
     }
@@ -78,7 +84,7 @@ const setupResponsiveLayout = (page: BasePageLayoutHost, state: BasePageLayoutSt
     schedule();
 };
 
-const setupHeaderStatsLayout = (page: BasePageLayoutHost, state: BasePageLayoutState): void => {
+const setupHeaderStatsLayout = (page: Pick<BasePageLayoutHost, 'queryUI' | 'trackDisposable' | 'on'>, state: BasePageLayoutState): void => {
     if (state.headerStatsLayouts) {
         return;
     }
@@ -108,15 +114,20 @@ const setupHeaderStatsLayout = (page: BasePageLayoutHost, state: BasePageLayoutS
     state.headerStatsLayouts = layouts;
     const width = getWindow();
     page.on(width, 'resize', schedule);
+    page.on(width, PANE_RELAYOUT_EVENT, apply);
     apply();
     schedule();
     layouts.forEach(({ container }) => {
-        requireCheckerboardService().applyCheckerboard(container, '.ui-page-header-stats__card');
+        const checkerboard = requireCheckerboardService();
+        const identity = checkerboard.getContainerId(container);
+        page.trackDisposable(() => checkerboard.disconnect(identity));
+        checkerboard.applyCheckerboard(container, '.ui-page-header-stats__card');
     });
 };
 
-const applyHeaderStatsLayoutNow = (_page: BasePageLayoutHost, _state: BasePageLayoutState, scope?: ParentNode | null): void => {
-    const root = isElementNode(scope) || isDocumentNode(scope) ? scope : dom.getDocument();
+const applyHeaderStatsLayoutNow = (page: BasePageLayoutHost, _state: BasePageLayoutState, scope?: Element | null): void => {
+    const root = scope ?? page.getUI('[data-section]');
+    if (!root) return;
     const containers = (dom.resolveAll('.ui-page-header-stats', root) || []).filter((element): element is HTMLElement => element instanceof HTMLElement);
     if (!containers.length) {
         return;
@@ -127,7 +138,7 @@ const applyHeaderStatsLayoutNow = (_page: BasePageLayoutHost, _state: BasePageLa
     });
 };
 
-const cleanupLayoutState = (page: BasePageLayoutHost, state: BasePageLayoutState): void => {
+const cleanupLayoutState = (state: BasePageLayoutState, scope: Element | null): void => {
     const cancelFrame = getCancelAnimationFrame();
     if (state.pendingLayoutFrame !== null) {
         cancelFrame(state.pendingLayoutFrame);
@@ -147,7 +158,7 @@ const cleanupLayoutState = (page: BasePageLayoutHost, state: BasePageLayoutState
     state.prefixedSelectObserver = null;
     state.headerStatsLayouts = null;
     state.responsiveSetup = false;
-    const section = page.getUI('.page-scrollable');
+    const section = scope ? dom.resolve('.page-scrollable', scope) : null;
     if (section instanceof HTMLElement) {
         getPageHeaderAnimator().detach(section);
     }

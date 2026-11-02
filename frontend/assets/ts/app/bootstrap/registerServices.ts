@@ -4,6 +4,7 @@
 import { createBootstrapDisplayServices } from '@app/bootstrap/serviceconstruction/display.ts';
 import visualizationWorkerUrl from '@app/entrypoints/visualization/visualizationWorker.ts?worker&url';
 import { registerCoreBootstrapServices } from '@app/bootstrap/serviceconstruction/coreRegistrations.ts';
+import { createBootstrapPagePaneControls } from '@app/bootstrap/serviceconstruction/pagePaneControls.ts';
 import { registerFeatureBootstrapServices } from '@app/bootstrap/serviceconstruction/featureRegistrations.ts';
 import { createBootstrapFoundationServices } from '@app/bootstrap/serviceconstruction/foundation.ts';
 import { createBootstrapInteractiveFeatures } from '@app/bootstrap/serviceconstruction/interactiveFeatures.ts';
@@ -12,7 +13,7 @@ import { createModalStorageService, createRouterStateService, createStorageApiSe
 import { getAppModalDefinitions } from '@app/bootstrap/modalDefinitions.ts';
 import { CHAT_MEMORY_PROFILE_FIRST_RUN_REGISTRATION } from '@features/chat/public.ts';
 import { AuthManager } from '@core/auth/public.ts';
-import { hasPluginBackendUpdate } from '@core/plugins/backendUpdates.ts';
+import { configureAuthenticatedSessionPresentation } from '@app/bootstrap/stages/sessionServices.ts';
 import { createDashboardIntroDriverPresenceState, createDashboardIntroFirstRunRegistration } from '@features/firstrunmodals/public.ts';
 import { createFirstRunModalsService } from '@features/firstrunmodals/service.ts';
 import { createConnectionState } from '@core/connectionstate/service.ts';
@@ -26,6 +27,8 @@ import type { APIErrorMetadataValue } from '@core/apiError.ts';
 import { createModalPresenterService } from '@core/modals/modalPresenter.ts';
 import { OperationErrorNotifier, notifyHandledOperationError } from '@core/operationErrorNotifier.ts';
 import { PageOutlet } from '@core/pageoutlet/public.ts';
+import { PagePaneService } from '@core/pagepanes/service.ts';
+import { reportPagePanePersistenceStatus } from '@core/pagepanes/notifications.ts';
 import { createRealtimeService } from '@core/realtime/public.ts';
 import { StreamManager } from '@core/realtime/streammanager/StreamManager.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
@@ -116,13 +119,14 @@ export function registerAllServices(languageService: LanguageService): void {
         notifyHandledOperationError: (error: APIErrorMetadataValue) => notifyHandledOperationError(error)
     });
 
+    const authManager = new AuthManager();
     const storage = createStorageService({
+        readAuthEpoch: () => authManager.authEpoch,
         apiClient: createStorageApiService(foundation.apiClient),
         stateManager: createStorageStateService(foundation.stateManager)
     });
     const connectionState = createConnectionState({ storage });
 
-    const authManager = new AuthManager();
     registerService('core.auth', authManager, {
         moduleId: 'core.auth'
     });
@@ -150,11 +154,14 @@ export function registerAllServices(languageService: LanguageService): void {
     const catalogStore = createCatalogStore(clientDataHub, streamManager.tasks);
     const speechSetup = createSpeechSetupService(clientDataHub, catalogStore);
     registerService('core.speechSetup', speechSetup, { initialized: true });
-    foundation.cleanupManager.addCleanupHandler(
-        catalogStore.subscribe((plugins) => {
-            displayServices.sidebarComponent.setPluginBackendUpdateAvailable(catalogStore.isFresh() && plugins.some(hasPluginBackendUpdate));
-        })
-    );
+    configureAuthenticatedSessionPresentation({
+        resources: streamManager.resources,
+        catalog: catalogStore,
+        updateBackendBadge: (available) => displayServices.sidebarComponent.setPluginBackendUpdateAvailable(available),
+        notifyOffline: (message) => {
+            showNotification(message, 'error', 6000);
+        }
+    });
     const dashboardIntroDriverPresence = createDashboardIntroDriverPresenceState();
     const dashboardIntroProduct = requireFrontendEditionComposition().createDashboardIntro(foundation.apiClient.os, soaiOsCapabilities);
     const dashboardIntroFirstRunRegistration = createDashboardIntroFirstRunRegistration({
@@ -163,7 +170,9 @@ export function registerAllServices(languageService: LanguageService): void {
     });
     const modalDefinitions = getAppModalDefinitions({ storage, apiClient: foundation.apiClient, dashboardIntroDriverPresence, dashboardIntroProduct, streamManager: streamManager.resources });
     const modalPresenter = createModalPresenterService({ storage: createModalStorageService(storage), definitions: modalDefinitions });
+    const pagePanes = new PagePaneService();
     const router = new Router({
+        pagePanes,
         dom,
         storage,
         auth: authManager,
@@ -181,7 +190,17 @@ export function registerAllServices(languageService: LanguageService): void {
         pageRegistry: foundation.pageRegistry,
         getSidebarService: () => displayServices.sidebarComponent
     });
+    pagePanes.persistence.configure({
+        storage: storage.optionalRecords,
+        readIdentity: () => {
+            const identity = storage.getAuthenticatedIdentity();
+            return authManager.isAuthenticated && identity ? { accountId: identity.userId, windowId: identity.windowId, authEpoch: identity.authEpoch, edition: requireFrontendEditionComposition().edition } : null;
+        },
+        parseRoute: (path) => router.parseRoute(path),
+        reportStatus: reportPagePanePersistenceStatus
+    });
     const operationErrorNotifier = new OperationErrorNotifier(streamManager.tasks);
+    const pagePaneControls = createBootstrapPagePaneControls({ workspace: pagePanes, router, auth: authManager, presenter: modalPresenter });
     const firstRunModals = createFirstRunModalsService({
         modalPresenter,
         storage,
@@ -197,11 +216,15 @@ export function registerAllServices(languageService: LanguageService): void {
         streamManager,
         router,
         operationErrorNotifier,
+        pagePanes,
+        pagePaneControls,
         modalPresenter,
         clientDataHub,
         catalogStore
     });
+    pagePaneControls.initialize();
     const interactiveFeatures = createBootstrapInteractiveFeatures({
+        clientDataHub,
         apiClient: foundation.apiClient,
         storage,
         router,
@@ -223,7 +246,6 @@ export function registerAllServices(languageService: LanguageService): void {
             dom,
             languageService,
             loadingState,
-            router,
             stateManager: foundation.stateManager,
             storage
         },

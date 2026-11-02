@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { hasWebuiAction } from '@core/access/webuiPermissions.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { getLogValidation } from '@core/logvalidation/public.ts';
@@ -48,7 +49,7 @@ const createDashboardHost = (dependencies: DashboardRuntimeDependencies['host'])
     };
 };
 
-const createDashboardRuntime = (dependencies: DashboardRuntimeDependencies): DashboardRuntime => {
+const createDashboardRuntime = (dependencies: DashboardRuntimeDependencies, owner: PresentationOwner): DashboardRuntime => {
     const host = createDashboardHost(dependencies.host);
     const liveDataContext: DashboardLiveDataContext = {
         state: createInitialDashboardState(),
@@ -86,8 +87,10 @@ const createDashboardRuntime = (dependencies: DashboardRuntimeDependencies): Das
     let apiKeyUsageSnapshotRequest: Promise<void> | null = null;
     const sectionHasData = (key: DashboardLiveDataKey): boolean => liveDataContext.dataReceived.has(key);
     const statusManager = (): StatusManagerContract | null => resolveDashboardStatusManager({ status: dependencies.getCurrentStatus() });
+    const statusValueSizeWatcher = new ElementResizeRedrawWatcher();
     const renderStatusSection = createDashboardStatusSectionRenderer({
         host,
+        sizeWatcher: statusValueSizeWatcher,
         getMetrics: (): JsonValue => liveDataContext.state.metrics,
         getPlugins: (): readonly JsonValue[] => liveDataContext.state.plugins,
         getModels: (): readonly JsonValue[] => liveDataContext.state.models,
@@ -150,6 +153,7 @@ const createDashboardRuntime = (dependencies: DashboardRuntimeDependencies): Das
         isDestroyed: (): boolean => dependencies.isDestroyed()
     });
     const memo = new DashboardMemoController({
+        owner,
         host,
         storage: dependencies.memoStorage,
         isDestroyed: (): boolean => dependencies.isDestroyed()
@@ -177,6 +181,7 @@ const createDashboardRuntime = (dependencies: DashboardRuntimeDependencies): Das
         config: createDashboardMovableLayoutConfig(dependencies.edition)
     });
     const layoutEdit = new MovableLayoutEditController({
+        owner,
         layout,
         contextId: 'dashboard.layout',
         saveUnitId: 'dashboard.layout',
@@ -246,6 +251,7 @@ const createDashboardRuntime = (dependencies: DashboardRuntimeDependencies): Das
         renderStatusSection,
         renderRequestsSection,
         requestDistributionChartSizeWatcher,
+        statusValueSizeWatcher,
         hardwareSections,
         imageCard,
         clock,

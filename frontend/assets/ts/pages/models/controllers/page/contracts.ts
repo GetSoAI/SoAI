@@ -20,7 +20,7 @@ import type { PageUiOwnerHost } from '@core/routing/pages/basepagecore/PageUi.ts
 import type { PageLayoutOwnerHost } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { PageStreamingOwnerHost } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
 import type { StreamActionHandle } from '@core/routing/pages/pagetypes/public.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { StatusManager } from '@core/state/statusmanager/service.ts';
 import type { SetButtonLoadingOptions } from '@core/state/UIStateManager.ts';
@@ -62,7 +62,7 @@ interface ModelsInfrastructure extends PageLayoutOwnerHost, PageStreamingOwnerHo
         setButtonLoading(target: string | Element | null | undefined, loading: boolean, options?: SetButtonLoadingOptions): HTMLElement | null;
     };
     api: ApiClient;
-    router: Router;
+    router: PageRouting;
     storage: PageControlsStorageInput;
 }
 

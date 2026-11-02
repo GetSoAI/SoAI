@@ -4,13 +4,13 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from dataclasses import dataclass
 from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING
 
 import httpx2
 
+from core.timing.epoch import epoch_seconds_float
 from core.timing.retry_backoff import compute_exponential_backoff_seconds
 from core.validation.booleans import parse_bool_flag_with_default
 from core.validation.integers import is_strict_int
@@ -146,7 +146,9 @@ def compute_retry_delay_ms(
         raise MCPToolError(-32603, "Internal error: attempt_index must be >= 1")
     retry_after_ms = _parse_retry_after_ms(
         retry_after,
-        now_epoch_seconds=(time.time() if now_epoch_seconds is None else now_epoch_seconds),
+        now_epoch_seconds=(
+            epoch_seconds_float() if now_epoch_seconds is None else now_epoch_seconds
+        ),
     )
     if retry_after_ms is not None:
         return min(retry_after_ms, policy.backoff_max_ms)

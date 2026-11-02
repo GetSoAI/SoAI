@@ -3,14 +3,13 @@
 
 import { getMutationObserverCtor } from '@core/environment/public.ts';
 import { PAGE_CONTENT_READY } from '@core/pageTransitions.ts';
+import { setPageContentReady } from '@core/layout/pageContentInteractivity.ts';
 
 const isPageSection = (node: Node): node is Element => node instanceof Element && node.hasAttribute('data-section');
 
 const syncSectionInteractivity = (section: Element): void => {
     const interactive = section.classList.contains(PAGE_CONTENT_READY);
-    if (section.hasAttribute('inert') === interactive) {
-        section.toggleAttribute('inert', !interactive);
-    }
+    setPageContentReady(section, interactive);
 };
 
 const trackSection = (observer: MutationObserver, node: Node): void => {

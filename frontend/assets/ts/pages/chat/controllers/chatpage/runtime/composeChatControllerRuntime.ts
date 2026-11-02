@@ -10,7 +10,7 @@ import type { PageFeedback } from '@core/routing/pages/basepagecore/PageFeedback
 import type { PageResources } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { PageUi } from '@core/routing/pages/basepagecore/PageUi.ts';
 import type { PageStreaming } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
 import { isConversationAuthorityLocked } from '@core/chat/conversationAuthorityLock.ts';
 import { ChatModelControlController } from '@pages/chat/controllers/chatmodelcontrol/ChatModelControlController.ts';
 import { CHAT_MODEL_CONTROL_ROOT_SELECTOR } from '@pages/chat/controllers/chatmodelcontrol/chatModelControlDomController.ts';
@@ -84,7 +84,7 @@ interface ChatControllerRuntimePlatform {
     api: ApiClient;
     dom: ChatManagerComposition['platform']['dom'];
     pageContext: PageContext;
-    router: Router;
+    router: PageRouting;
     streaming: PageStreaming;
 }
 
@@ -127,6 +127,7 @@ const composeChatControllerRuntime = (composition: ChatControllerRuntimeDependen
         initializeConversationActions: () => {
             sessions.conversationView.initializeActions(
                 createChatConversationActionsController({
+                    owner: platform.pageContext.presentationOwner,
                     runtime: { conversationRuntime: domain.conversationRuntime, turnRuntime: domain.turnRuntime, composerSurface: domain.composerSurface, configurationRuntime: domain.configurationRuntime },
                     state: { conversationState: state.conversationState, settings: state.settings, viewState: state.viewState, runtimeServices: state.runtimeServices, modelSession: sessions.modelSession },
                     ui: { elements: sessions.elements, conversationView: sessions.conversationView, uiBehaviors: page.uiBehaviors, composer: sessions.composer, voiceSession: sessions.voiceSession },
@@ -150,6 +151,7 @@ const composeChatControllerRuntime = (composition: ChatControllerRuntimeDependen
             if (!sessions.voiceSession.hasCall())
                 await sessions.voiceSession.initializeCall(
                     createChatVoiceCallController({
+                        owner: platform.pageContext.presentationOwner,
                         conversationRuntime: domain.conversationRuntime,
                         turnRuntime: domain.turnRuntime,
                         elements: sessions.elements,

@@ -4,15 +4,18 @@
 import type { FileExplorerBatchUploadResponse, FileExplorerUploadResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
 import { downloadAuthenticatedResponse } from '@core/api/authenticatedDownload.ts';
 import { resolveOperationCauseMessage } from '@core/errors/operationCausePresentation.ts';
+import { isFileExplorerOperationActive, requireFileExplorerOperation } from '@pages/fileexplorer/guards/fileExplorerOperationAdmissionDomain.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { joinVirtualPath, parentVirtualPath, toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { isAbortError } from '@core/errors/abort.ts';
+import { registerDirtyStateGuard } from '@core/navigationGuards.ts';
+import { navigationResult } from '@core/navigationMiddleware.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { FILE_EXPLORER_HTTP_STATUS_MESSAGES } from '@core/api/statusMessageCatalog.ts';
 import { createDedupingOperationFailureReporter, type DedupingOperationFailureReporter } from '@core/ui/notifications/operationFailure.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
-import { notifyFileExplorerHttpError } from '@pages/fileexplorer/controllers/fileExplorerHttpErrorController.ts';
+import { notifyFileExplorerBrowserError } from '@pages/fileexplorer/controllers/fileExplorerHttpErrorController.ts';
 import { filenameFromPath, normalizeFileExplorerRenameLeaf, toFiles, validateFileExplorerRenameLeaf } from '@pages/fileexplorer/controllers/fileExplorerOperations.ts';
 import type { FileExplorerRecentUploadController } from '@pages/fileexplorer/controllers/FileExplorerRecentUploadController.ts';
 import type { FileExplorerSelectionModel } from '@pages/fileexplorer/state/FileExplorerSelectionState.ts';
@@ -53,8 +56,10 @@ class FileExplorerOperationsController {
     }
 
     async uploadFiles(files: FileList): Promise<void> {
+        let releaseProtection: (() => void) | null = null;
         try {
             this.#requireActive();
+            releaseProtection = registerDirtyStateGuard(() => navigationResult.block('file-upload-active'), { owner: this.#host.owner, hasUnsavedChanges: () => true, isDestructionBlocked: () => true, getProtectionRevision: () => 0 });
             const fileList = toFiles(files);
             const destinationPath = this.#selection.getCurrentPath();
             const uploadSession = this.#recentUploads.beginUploadSession();
@@ -74,7 +79,7 @@ class FileExplorerOperationsController {
             } else {
                 response = await this.#host.api.uploadBatch(fileList, relativePaths, destinationPath);
             }
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             const uploadMarked = this.#recentUploads.markUploadResponse(uploadSession, response);
@@ -98,10 +103,12 @@ class FileExplorerOperationsController {
             }
             await this.#refreshRetainingMarks(uploadSession, uploadMarked);
         } catch (error) {
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             this.#handleError(ensureError(error), 'File Explorer upload failed');
+        } finally {
+            releaseProtection?.();
         }
     }
 
@@ -111,14 +118,14 @@ class FileExplorerOperationsController {
             const normalized = toVirtualPath(path);
             const uploadSession = this.#recentUploads.beginUploadSession();
             await this.#host.api.mkdir(normalized);
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             const directoryMarked = this.#recentUploads.markCreatedPath(uploadSession, normalized);
             this.#host.showNotification(i18n.t('fileExplorer.notifications.mkdirSuccess', { path: normalized }), 'success');
             await this.#refreshRetainingMarks(uploadSession, directoryMarked);
         } catch (error) {
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             this.#handleError(ensureError(error), 'File Explorer mkdir failed');
@@ -131,14 +138,14 @@ class FileExplorerOperationsController {
             const destination = toVirtualPath(path);
             const uploadSession = this.#recentUploads.beginUploadSession();
             await this.#host.api.write(destination, content);
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             const fileMarked = this.#recentUploads.markCreatedPath(uploadSession, destination);
             await this.#refreshRetainingMarks(uploadSession, fileMarked);
         } catch (error) {
             const runtimeError = ensureError(error);
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             this.#handleError(runtimeError, 'File Explorer create file failed');
@@ -151,13 +158,13 @@ class FileExplorerOperationsController {
             this.#requireActive();
             const normalized = toVirtualPath(path);
             await this.#host.api.write(normalized, content);
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             await this.#refresh();
         } catch (error) {
             const runtimeError = ensureError(error);
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             this.#handleError(runtimeError, 'File Explorer write failed');
@@ -192,7 +199,7 @@ class FileExplorerOperationsController {
         try {
             this.#requireActive();
             await this.#host.api.move(source, destination);
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             this.#selectionModel.replaceRenamedPath(capturedSelection, source, destination);
@@ -200,7 +207,7 @@ class FileExplorerOperationsController {
             await this.#refresh();
         } catch (error) {
             const runtimeError = ensureError(error);
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             this.#handleError(runtimeError, renamed ? 'File Explorer rename failed' : 'File Explorer move failed');
@@ -211,6 +218,7 @@ class FileExplorerOperationsController {
     async deletePath(path: string, onCommitted: () => void): Promise<FileExplorerDeletionOutcome> {
         const normalizedPath = toVirtualPath(path);
         const confirmed = await requireDialogsService().showConfirmation({
+            owner: this.#host.owner,
             title: i18n.t('fileExplorer.confirmations.deleteTitle'),
             message: i18n.t('fileExplorer.confirmations.deleteMessage', { path: normalizedPath }),
             confirmText: i18n.t('fileExplorer.confirmations.confirmDelete'),
@@ -224,11 +232,11 @@ class FileExplorerOperationsController {
             this.#requireActive();
             await this.#host.api.delete(normalizedPath);
         } catch (error) {
-            if (this.#disposed || isAbortError(error)) return 'cancelled';
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed) || isAbortError(error)) return 'cancelled';
             this.#operationFailures.report(ensureError(error), { context: 'File Explorer delete failed', notificationMessage: i18n.t('fileExplorer.status.error'), statusMessages: FILE_EXPLORER_HTTP_STATUS_MESSAGES });
             return 'failed';
         }
-        if (this.#disposed) return 'committed';
+        if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return 'committed';
         onCommitted();
         this.#host.showNotification(i18n.t('fileExplorer.notifications.deleteSuccess', { path: normalizedPath }), 'success');
         await this.#refresh();
@@ -240,17 +248,17 @@ class FileExplorerOperationsController {
             this.#requireActive();
             const normalizedPath = toVirtualPath(path);
             const responseValue = await this.#host.api.download(normalizedPath, options);
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             const filename = filenameFromPath(path);
             await downloadAuthenticatedResponse(responseValue, { filename });
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             this.#host.showNotification(i18n.t('fileExplorer.notifications.downloadSuccess', { path: normalizedPath }), 'download');
         } catch (error) {
-            if (this.#disposed) {
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) {
                 return;
             }
             this.#handleError(ensureError(error), 'File Explorer download failed');
@@ -265,12 +273,12 @@ class FileExplorerOperationsController {
             }
             const normalizedPaths = paths.map((path) => toVirtualPath(path));
             const responseValue = await this.#host.api.downloadSelection(normalizedPaths, options);
-            if (this.#disposed) return;
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return;
             await downloadAuthenticatedResponse(responseValue, { filename: 'file-explorer-selection.zip' });
-            if (this.#disposed) return;
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return;
             this.#host.showNotification(i18n.t('fileExplorer.notifications.downloadSelectionSuccess', { count: normalizedPaths.length }), 'download');
         } catch (error) {
-            if (this.#disposed) return;
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return;
             this.#handleError(ensureError(error), 'File Explorer selection download failed');
         }
     }
@@ -286,27 +294,26 @@ class FileExplorerOperationsController {
     }
 
     async #refresh(uploadSession?: FileExplorerUploadMarkerSession): Promise<void> {
-        if (this.#disposed) return;
+        if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return;
         try {
             await this.#selection.refresh(uploadSession);
         } catch (error) {
-            if (this.#disposed || isAbortError(error)) return;
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed) || isAbortError(error)) return;
             errorHandler.warn('FileExplorer', 'File mutation committed before the view refresh failed', ensureError(error));
             this.#host.showNotification(i18n.t('fileExplorer.errors.changeRefreshFailed'), 'warning');
         }
     }
 
     #handleError(error: Error, context: string): void {
-        if (notifyFileExplorerHttpError(this.#host, error)) {
+        if (isAbortError(error)) return;
+        if (notifyFileExplorerBrowserError(this.#host, error)) {
             return;
         }
         this.#host.handleError(error, context, { notify: true });
     }
 
     #requireActive(): void {
-        if (this.#disposed) {
-            throw new Error('File Explorer operations controller is disposed');
-        }
+        requireFileExplorerOperation(this.#host, this.#disposed);
     }
 }
 

@@ -56,7 +56,7 @@ const openDownloadModelModal = (runtime: DownloadModalManagerRuntime, _event?: E
     runtime.host.execution.variantProbe.updateButtonState();
     updateSelectedModelDisplay(runtime);
     updateDownloadButtonState(runtime);
-    runtime.host.session.modals.open(runtime.modalId);
+    runtime.host.session.modals.open(runtime.modalId, { owner: runtime.host.owner });
 };
 const closeDownloadModelModal = (runtime: DownloadModalManagerRuntime, _event?: Event): void => {
     const modalId = runtime.modalId;

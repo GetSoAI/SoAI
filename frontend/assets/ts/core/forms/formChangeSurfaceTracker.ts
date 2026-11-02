@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { isNamedFormField, readFormControlValue, type NamedFormField } from '@core/dom/formFields.ts';
 import { FIELD_CHANGE_SURFACE_CLASS } from '@core/forms/fieldSurface.ts';
 import { FieldStateTracker } from '@core/forms/fieldStateTracker.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
-
-type TrackableFormControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 type FormChangeSurfaceTracker = {
     captureBaseline: () => void;
@@ -17,9 +16,7 @@ type FormChangeSurfaceTracker = {
 
 const CONTROL_SELECTOR = `.${FIELD_CHANGE_SURFACE_CLASS} input, .${FIELD_CHANGE_SURFACE_CLASS} select, .${FIELD_CHANGE_SURFACE_CLASS} textarea`;
 
-const isTrackableFormControl = (element: Element): element is TrackableFormControl => element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement;
-
-const resolveControlKey = (control: TrackableFormControl): string => {
+const resolveControlKey = (control: NamedFormField): string => {
     const id = control.id.trim();
     if (id) {
         return id;
@@ -31,20 +28,10 @@ const resolveControlKey = (control: TrackableFormControl): string => {
     throw new Error('Tracked form control must define an id or name');
 };
 
-const readControlValue = (control: TrackableFormControl): JsonValue => {
-    if (control instanceof HTMLInputElement && control.type === 'checkbox') {
-        return control.checked;
-    }
-    if (control instanceof HTMLInputElement && control.type === 'radio') {
-        return control.checked;
-    }
-    return control.value;
-};
-
-const collectControls = (root: Element): Map<string, TrackableFormControl> => {
-    const controls = new Map<string, TrackableFormControl>();
+const collectControls = (root: Element): Map<string, NamedFormField> => {
+    const controls = new Map<string, NamedFormField>();
     for (const element of dom.resolveAll(CONTROL_SELECTOR, root)) {
-        if (!isTrackableFormControl(element)) {
+        if (!isNamedFormField(element)) {
             continue;
         }
         controls.set(resolveControlKey(element), element);
@@ -59,7 +46,7 @@ const createFormChangeSurfaceTracker = (root: Element): FormChangeSurfaceTracker
         getElement: (key: string): Element | null => controls.get(key) ?? null,
         getCurrentValue: (key: string): JsonValue | null => {
             const control = controls.get(key);
-            return control ? readControlValue(control) : null;
+            return control ? readFormControlValue(control) : null;
         },
         getOriginalValue: (key: string): JsonValue | null => baselineValues.get(key) ?? null
     });
@@ -72,7 +59,7 @@ const createFormChangeSurfaceTracker = (root: Element): FormChangeSurfaceTracker
         refreshControls();
         baselineValues.clear();
         for (const [key, control] of controls) {
-            baselineValues.set(key, readControlValue(control));
+            baselineValues.set(key, readFormControlValue(control));
         }
         tracker.clearAll();
         for (const key of controls.keys()) {
@@ -85,7 +72,7 @@ const createFormChangeSurfaceTracker = (root: Element): FormChangeSurfaceTracker
         for (const key of controls.keys()) {
             if (!baselineValues.has(key)) {
                 const control = controls.get(key);
-                baselineValues.set(key, control ? readControlValue(control) : null);
+                baselineValues.set(key, control ? readFormControlValue(control) : null);
             }
             tracker.update(key);
         }

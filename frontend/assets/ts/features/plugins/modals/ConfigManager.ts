@@ -120,7 +120,7 @@ class ConfigManager {
 
         this.#host.updateHTML(form, renderConfigLoadingMarkup());
         setAriaBusy(modalRoot, true);
-        this.#host.modals.open(this.modalId);
+        this.#host.modals.open(this.modalId, { owner: this.#host.owner });
         const saveButtonCandidate = this.#host.requireHTMLElement(modalUiSelector(this.modalId, 'save'), modalRoot);
         if (!(saveButtonCandidate instanceof HTMLButtonElement)) {
             throw new TypeError('Plugin config save button must be an HTMLButtonElement');
@@ -128,6 +128,7 @@ class ConfigManager {
         this.#saveButton = saveButtonCandidate;
         this.#save?.dispose();
         this.#save = createPluginConfigModalSaveController({
+            owner: this.#host.owner,
             hasChanges: (): boolean => Boolean(this.#changeTracker?.hasPendingChanges() || this.#configurationManager?.hasChanges),
             isValid: (): boolean => this.#changeTracker?.isValid() ?? true,
             save: async (): Promise<void> => this.savePluginConfig()

@@ -156,7 +156,7 @@ export function setupScrollListener(context: ChatUIManagerContext): void {
     };
 
     const debouncedHandler = context.dependencies.runtime.createDebouncedHandler(syncWrapperState, 100);
-    const avatarFloatingRuntime = createMobileAvatarFloatingRuntime(messagesArea, messagesRoot);
+    const avatarFloatingRuntime = createMobileAvatarFloatingRuntime(messagesArea, messagesRoot, context.dependencies.owner);
     const handleScroll = (): void => {
         context.state.chatChromeVisibilityRuntime?.observeScroll();
         if (isConversationScrollRestoreActive(context)) return;

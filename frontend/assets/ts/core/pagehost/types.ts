@@ -1,9 +1,12 @@
 /* SoAI - Shared pagehost contracts [frontend/assets/ts/core/pagehost/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { EventBus } from '@core/EventBus.ts';
 import type { ErrorHandler } from '@core/errorHandler.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
+import type { PageMountScope, PageMountScopeFactory } from '@core/routing/router/types.ts';
+import type { PageResources } from '@core/routing/pages/basepagecore/PageResources.ts';
 
 interface PageHostDomApi {
     resolve(selector: string): Element | null;
@@ -14,7 +17,19 @@ interface PageMeta {
     name?: string;
 }
 
+interface PageHostOwnership {
+    readonly components: readonly string[];
+    readonly currentComponent: string | null;
+    readonly release: 'settled' | 'pending' | 'failed';
+}
+
+interface PageHostCancellation {
+    seal(): void;
+    cancel(): void;
+}
+
 interface PageInstance {
+    readonly pageResources?: PageResources;
     container?: HTMLElement | null;
     abortController?: AbortController | null;
     initialize?(parameters: JsonObject): Promise<void> | void;
@@ -32,7 +47,7 @@ interface PageInstance {
 }
 
 interface PageRegistry {
-    create(name: string): PageInstance | null;
+    create(name: string, mountScope: PageMountScope): PageInstance | null;
     getMeta(name: string): PageMeta | null;
 }
 
@@ -41,11 +56,15 @@ interface CurrentPageState {
     instance: PageInstance;
     meta: PageMeta;
     token: symbol;
+    mountScope: PageMountScope;
+    presentation: EventBus;
+    isActivated: boolean;
     container: HTMLElement;
     preparedPromise: Promise<void>;
     viewReadyPromise: Promise<void>;
     dataReadyPromise: Promise<void>;
     isPreparationComplete: boolean;
+    releaseMutationAdmission: (() => void) | null;
 }
 
 type PreparedPageState = CurrentPageState;
@@ -73,4 +92,16 @@ interface DestroyOptions {
     reason?: string;
 }
 
-export type { CleanupMethodName, CleanupRunner, CurrentPageState, DestroyOptions, PageHostDomApi, PageHostOptions, PageInstance, PageMeta, PageRegistry, PreparedPageState, WhenReadyOptions };
+interface PageHostCommitOptions {
+    signal?: AbortSignal | undefined;
+    finalAdmission?: (() => void) | undefined;
+    mountPublication?: { commit(): void; rollback(): void } | undefined;
+    afterCommit?: ((previousContainer: HTMLElement | null) => void | Promise<void>) | undefined;
+}
+
+interface PageHostPrepareOptions {
+    createMountScope: PageMountScopeFactory;
+    signal?: AbortSignal | undefined;
+}
+
+export type { CleanupMethodName, CleanupRunner, CurrentPageState, DestroyOptions, PageHostCancellation, PageHostCommitOptions, PageHostDomApi, PageHostOptions, PageHostOwnership, PageHostPrepareOptions, PageInstance, PageMeta, PageRegistry, PreparedPageState, WhenReadyOptions };

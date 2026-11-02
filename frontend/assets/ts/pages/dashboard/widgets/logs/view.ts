@@ -37,7 +37,8 @@ interface DashboardLogsStreamViewDependencies {
 
 class DashboardLogsView {
     readonly #host: DashboardLogsViewHost;
-    #contentNode: HTMLElement | null = null;
+    #scrollNode: HTMLElement | null = null;
+    #outputNode: HTMLElement | null = null;
     #copyAbortController: AbortController | null = null;
 
     constructor(host: DashboardLogsViewHost) {
@@ -45,12 +46,16 @@ class DashboardLogsView {
     }
 
     mount(content: HTMLElement): void {
-        this.#contentNode = content;
         this.#host.updateProperty(content, 'className', 'section-content logs-viewer');
         const doc = requireDocument();
         const logsContent = doc.createElement('div');
         logsContent.className = 'logs-content';
         logsContent.id = 'log-content-area';
+        const output = doc.createElement('div');
+        output.className = 'logs-output-content';
+        logsContent.append(output);
+        this.#scrollNode = logsContent;
+        this.#outputNode = output;
         content.replaceChildren(logsContent);
         this.#copyAbortController?.abort();
         this.#copyAbortController = new AbortController();
@@ -61,7 +66,8 @@ class DashboardLogsView {
     clearContentNode(): void {
         this.#copyAbortController?.abort();
         this.#copyAbortController = null;
-        this.#contentNode = null;
+        this.#scrollNode = null;
+        this.#outputNode = null;
     }
 
     getPlaceholderText(status: string): string | null {
@@ -125,14 +131,7 @@ class DashboardLogsView {
     }
 
     getOutputNode(): HTMLElement | null {
-        const byId = this.#host.optionalHTMLElement('#log-content-area');
-        if (byId instanceof HTMLElement) {
-            return byId;
-        }
-        if (!this.#contentNode) {
-            return null;
-        }
-        return this.#host.optionalHTMLElement('.logs-content', this.#contentNode);
+        return this.#outputNode;
     }
 
     applyFontScale(fontScale: number): void {
@@ -143,9 +142,9 @@ class DashboardLogsView {
     }
 
     scrollToEnd(behavior: ScrollBehavior = 'instant'): void {
-        const output = this.getOutputNode();
-        if (output) {
-            scrollElementTo(output, { top: output.scrollHeight, behavior });
+        const scrollNode = this.#scrollNode;
+        if (scrollNode) {
+            scrollElementTo(scrollNode, { top: scrollNode.scrollHeight, behavior });
         }
     }
 

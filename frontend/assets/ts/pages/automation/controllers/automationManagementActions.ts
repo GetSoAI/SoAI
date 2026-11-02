@@ -1,6 +1,7 @@
 /* SoAI - Automation page management actions [frontend/assets/ts/pages/automation/controllers/automationManagementActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import type { AutomationDefinitionResponse } from '@features/automation/public.ts';
@@ -30,8 +31,9 @@ const requireCheckboxInput = (element: HTMLElement): HTMLInputElement => {
     return element;
 };
 
-const confirmDeleteAutomation = async (automation: { id: string; title: string }): Promise<boolean> => {
+const confirmDeleteAutomation = async (automation: { id: string; title: string }, owner: PresentationOwner): Promise<boolean> => {
     return await requireDialogsService().showConfirmation({
+        owner,
         title: i18n.t('automation.confirmations.deleteTitle'),
         message: i18n.t('automation.confirmations.deleteMessage', { title: automation.title }),
         confirmText: i18n.t('common.delete'),

@@ -1,6 +1,7 @@
 /* SoAI - Chat attachment overflow linked knowledge first preview [frontend/assets/ts/features/chat/message/attachmentoverflowmodal/knowledgeFirstPreview.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -11,6 +12,7 @@ import type { CopyActionDependencies } from '@features/chat/message/messageCopyN
 import type { ChatKnowledgeAttachmentsApi } from '@features/chat/pagecontracts/types.ts';
 
 type KnowledgeFirstPreviewDependencies = CopyActionDependencies & {
+    readonly owner: PresentationOwner;
     knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'items' | 'previewItem' | 'useItems'>;
     isSessionActive: (sessionToken: number) => boolean;
     onKnowledgeAttachmentChanged: (summary: KnowledgeAttachmentSummary) => void;
@@ -31,6 +33,7 @@ type KnowledgeFirstPreviewRunArguments = {
 };
 
 class AttachmentOverflowKnowledgeFirstPreview {
+    readonly #owner: PresentationOwner;
     readonly #knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'items' | 'previewItem' | 'useItems'>;
     readonly #runWithBoundary: CopyActionDependencies['runWithBoundary'];
     readonly #isSessionActive: (sessionToken: number) => boolean;
@@ -41,6 +44,7 @@ class AttachmentOverflowKnowledgeFirstPreview {
     #controller: AbortController | null = null;
 
     constructor(dependencies: KnowledgeFirstPreviewDependencies) {
+        this.#owner = dependencies.owner;
         this.#knowledgeAttachmentsApi = dependencies.knowledgeAttachmentsApi;
         this.#runWithBoundary = dependencies.runWithBoundary;
         this.#isSessionActive = dependencies.isSessionActive;
@@ -86,6 +90,7 @@ class AttachmentOverflowKnowledgeFirstPreview {
     async #runOpen(inputArguments: KnowledgeFirstPreviewRunArguments): Promise<void> {
         try {
             await openKnowledgeAttachmentFirstPreview({
+                owner: this.#owner,
                 knowledgeAttachmentsApi: this.#knowledgeAttachmentsApi,
                 targetConversationId: inputArguments.conversationId,
                 sourceConversationId: inputArguments.conversationId,

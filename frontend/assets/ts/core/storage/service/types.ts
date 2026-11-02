@@ -8,13 +8,31 @@ import type { CrossTabPublishOutcome } from '@core/crosstab/channel.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { StorageLocalKeys } from '@core/storage/keys.ts';
 import type { SessionData, StorageCache, StorageType, SyncGroup } from '@core/storage/types.ts';
+type PreferenceRequestIdentity = Readonly<{ userId: string; windowId: string; authEpoch: number }>;
+
+export type { PreferenceRequestIdentity };
+
+interface PreferencePersistenceRequest {
+    readonly checksum: string;
+    readonly identity: PreferenceRequestIdentity;
+}
 
 interface ThemeApplyOptions {
     persist?: boolean | undefined;
     update?: boolean | undefined;
 }
 
-interface StorageAdapters {
+type OptionalStorageRead = { readonly type: 'missing' } | { readonly type: 'value'; readonly value: JsonValue } | { readonly type: 'invalid'; readonly reason: 'size'; readonly rawText: string } | { readonly type: 'invalid'; readonly reason: 'content' } | { readonly type: 'unavailable'; readonly error: Error | null };
+
+type OptionalStorageMutation = { readonly type: 'written' | 'removed' | 'superseded' } | { readonly type: 'invalid'; readonly reason: 'size' | 'content' } | { readonly type: 'unavailable'; readonly error: Error | null };
+
+interface OptionalStorageRecords {
+    readOptionalRecord(storageType: StorageType, key: string, maximumLength: number): OptionalStorageRead;
+    writeOptionalRecord(storageType: StorageType, key: string, value: JsonValue, maximumLength: number, canMutate: () => boolean): OptionalStorageMutation;
+    removeOptionalRecord(storageType: StorageType, key: string, canMutate: () => boolean): OptionalStorageMutation;
+}
+
+interface StorageAdapters extends OptionalStorageRecords {
     clone: <T>(value: T) => T;
     initializeStorageAvailability: () => void;
     readStorage: (storageType: StorageType, key: string) => JsonValue | null | undefined;
@@ -24,7 +42,15 @@ interface StorageAdapters {
     serialize: (value: JsonValue | null | undefined) => string;
 }
 
+interface StorageUiPreferenceChange {
+    readonly authEpoch: number;
+    readonly userId: string | null;
+    readonly source: 'local' | 'remote';
+    readonly revision: Readonly<CrossTabRevision>;
+}
+
 interface StorageRuntimeEvents {
+    subscribeUiPreferenceChanges: (listener: (event: StorageUiPreferenceChange) => void) => () => void;
     syncLocal: (group: string) => void;
     queuePersist: (group: string) => Promise<JsonValue | null>;
     flushPending: () => Promise<void>;
@@ -66,7 +92,7 @@ interface StorageApiClientContract {
 }
 
 interface TabStateManagerContract {
-    subscribeTabState: (callback: (event: { key?: string; remote?: boolean; value?: JsonValue | null }) => void) => () => void;
+    subscribeTabState: (callback: (event: { key?: string; remote?: boolean; value?: JsonValue | null | undefined }) => void) => () => void;
     getTabState: (key: string, defaultValue?: JsonValue | null) => JsonValue | null;
     setTabState: (key: string, value: JsonValue | null) => void;
     getCrossTabChannel: (channelId: string) => {
@@ -77,6 +103,7 @@ interface TabStateManagerContract {
 }
 
 interface StorageRuntimeState {
+    readonly readAuthEpoch: () => number;
     defaults: StorageCache;
     cache: StorageCache;
     pendingGroups: Set<string>;
@@ -88,8 +115,8 @@ interface StorageRuntimeState {
     stateKey: string;
     sharedRevision: CrossTabRevision | null;
     persistedChecksums: Record<string, string>;
-    inflightChecksums: Record<string, string>;
-    queuedChecksums: Record<string, string>;
+    inflightChecksums: Record<string, PreferencePersistenceRequest>;
+    queuedChecksums: Record<string, PreferencePersistenceRequest>;
     resources: ResourceTracker;
     localKeys: StorageLocalKeys;
     localStorageAvailable: boolean;
@@ -103,11 +130,13 @@ interface StorageRuntimeState {
 }
 
 interface StorageRuntimeDependencies {
+    readAuthEpoch: () => number;
     apiClient: StorageApiClientContract;
     stateManager: TabStateManagerContract;
 }
 
-interface StorageRuntime {
+interface StorageRuntime extends OptionalStorageRecords {
+    subscribeUiPreferenceChanges: StorageRuntimeEvents['subscribeUiPreferenceChanges'];
     state: StorageRuntimeState;
     ready: Promise<void>;
     clone: <T>(value: T) => T;
@@ -140,4 +169,4 @@ interface StorageKeyBinding {
     syncGroup?: SyncGroup | undefined;
 }
 
-export type { StorageApiClientContract, StorageRuntimeDependencies, StorageRuntime, StorageRuntimeState, StorageKeyBinding, TabStateManagerContract, ThemeApplyOptions, StorageAdapters, StorageRuntimeEvents, StorageRuntimeEventDependencies, StorageUiEffects };
+export type { StorageUiPreferenceChange, StorageApiClientContract, StorageRuntimeDependencies, StorageRuntime, StorageRuntimeState, StorageKeyBinding, TabStateManagerContract, ThemeApplyOptions, StorageAdapters, StorageRuntimeEvents, StorageRuntimeEventDependencies, StorageUiEffects, OptionalStorageRecords, OptionalStorageRead, OptionalStorageMutation };

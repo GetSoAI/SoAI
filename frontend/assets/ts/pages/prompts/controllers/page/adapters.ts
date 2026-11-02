@@ -38,6 +38,7 @@ const createPromptsColorToolkitHost = (owners: PromptsRuntimeOwners): ColorToolk
 });
 
 const createPromptsPromptPreviewHost = (host: PromptsPageAdaptersHost, promptEnhancer: PromptEnhancerController, save: SaveController): PromptPreviewHost => ({
+    owner: host.owners.services.mountScope,
     promptsApi: requirePromptsApi(host),
     findPromptById: (id) => host.operations.findPromptById(id),
     upsertPromptRecord: (record) => {
@@ -55,6 +56,7 @@ const createPromptsPromptPreviewHost = (host: PromptsPageAdaptersHost, promptEnh
 });
 
 const createPromptsPromptEnhancerHost = (host: PromptsPageAdaptersHost): PromptEnhancerHost => ({
+    owner: host.owners.services.mountScope,
     pageDom: host.owners.pageDom,
     pageResources: host.owners.pageResources,
     feedback: host.owners.feedback,
@@ -70,7 +72,8 @@ const createPromptsPromptEnhancerHost = (host: PromptsPageAdaptersHost): PromptE
     createPrompt: async (payload) => createPromptRecord(host, { name: payload.name, content: payload.content, color: payload.color ?? null }, 'PromptEnhancer.createPrompt'),
     updatePrompt: async (id, payload) => updatePromptRecord(host, id, { name: payload.name, content: payload.content, color: payload.color ?? null }, 'PromptEnhancer.updatePrompt'),
     runTask: (name, task, options) => host.owners.streaming.runTask(name, task, options),
-    fetchModelCatalog: async () => ((await hasWebuiAction('OPENAI_API')) ? host.owners.api.openai.models() : null),
+    fetchModelCatalog: async (signal) => ((await hasWebuiAction('OPENAI_API')) ? host.owners.api.openai.models({ signal }) : null),
+    subscribeUiPreferenceChanges: (listener) => host.owners.storage.subscribeUiPreferenceChanges(listener),
     getPromptEnhancerModel: () => host.owners.storage.getPromptEnhancerModel(),
     setPromptEnhancerModel: (value) => host.owners.storage.setPromptEnhancerModel(value),
     downloadTextFile: (content, filename, mimeType) => host.operations.downloadTextFile(content, filename, mimeType),

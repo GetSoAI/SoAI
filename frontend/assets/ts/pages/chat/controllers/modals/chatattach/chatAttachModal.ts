@@ -97,6 +97,7 @@ const createChatAttachContent = (host: ChatAttachModalHost, context: AttachModal
 
 const createChatAttachModalController = (host: ChatAttachModalHost): AttachModalController =>
     new AttachModalController({
+        owner: host.shared.owner,
         policy: { enabledTabs: ATTACH_MODAL_TABS, acceptedMedia: ['image', 'audio', 'video', 'document'], allowFolders: true },
         presenter: requireModalPresenter(),
         signal: () => host.shared.signal(),

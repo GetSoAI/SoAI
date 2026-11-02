@@ -8,6 +8,7 @@ import time
 from fastapi import Request
 
 from core.auth.jwt_claims import AccessTokenRecord
+from core.timing.epoch import epoch_ms
 from core.users.identity_mutation_contract import (
     IDENTITY_MUTATION_DEADLINE_MS,
     IDENTITY_MUTATION_SERVER_HORIZON_MS,
@@ -56,7 +57,7 @@ async def change_webui_user_password(
     target_user_id: int | None,
 ) -> IdentityMutationOutcome:
     deadline_monotonic = time.monotonic() + IDENTITY_MUTATION_DEADLINE_MS / 1000
-    recovery_horizon_at_ms = int(time.time() * 1000) + IDENTITY_MUTATION_SERVER_HORIZON_MS
+    recovery_horizon_at_ms = epoch_ms() + IDENTITY_MUTATION_SERVER_HORIZON_MS
     actor_user_id = require_strict_user_id(current_user.get("id"))
     resolved_target_user_id = actor_user_id if target_user_id is None else target_user_id
     binding = IdentityMutationBinding(

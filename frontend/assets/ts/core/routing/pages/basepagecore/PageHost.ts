@@ -27,10 +27,7 @@ class PageHost {
 
     resolveContainer(): HTMLElement {
         if (this.#container) return this.#container;
-        const host = dom.resolve('#main-content') || dom.resolve('body');
-        if (!isHTMLElement(host)) throw new Error('Page container unavailable');
-        this.#container = host;
-        return host;
+        throw new Error('Page container unavailable before mount binding');
     }
 
     getContext(): Element | null {

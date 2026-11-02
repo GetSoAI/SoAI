@@ -1,6 +1,7 @@
 /* SoAI - Hardware page adapters implementation [frontend/assets/ts/pages/hardware/adapters/adapters.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { HardwarePageSnapshot } from '@pages/hardware/types.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -13,6 +14,7 @@ import { ProcessTableManager } from '@pages/hardware/widgets/processes/service.t
 import type { ProcessTableManagerDependencies } from '@pages/hardware/widgets/processes/types.ts';
 
 interface CreateHardwareProcessControllerDependencies {
+    readonly owner: PresentationOwner;
     optionalHTMLElement(selector: string, parent?: Element | null): HTMLElement | null;
     updateText(element: Element, text: string): void;
     getIconSync(iconName: IconName, options?: IconOptions): TrustedHtml;
@@ -25,6 +27,7 @@ interface CreateHardwareProcessControllerDependencies {
 
 const createHardwareProcessController = (dependencies: CreateHardwareProcessControllerDependencies): ProcessTableManager => {
     const processTableDependencies = createHardwareProcessTableDependencies({
+        owner: dependencies.owner,
         optionalHTMLElement: (selector: string, parent?: Element | null) => dependencies.optionalHTMLElement(selector, parent),
         updateText: (element: Element, text: string) => dependencies.updateText(element, text),
         getIconSync: (iconName, options) => dependencies.getIconSync(iconName, options),

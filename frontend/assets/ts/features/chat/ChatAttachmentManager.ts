@@ -20,6 +20,7 @@ import { SoaiPathImagePreviewLifecycle } from '@features/chat/attachments/soaiPa
 class ChatAttachmentManager {
     readonly #captureIntake: () => ChatAttachmentIntake;
     #disposed = false;
+    #pendingIntakes = 0;
     #uiManager: ChatAttachmentManagerOptions['uiManager'];
     #logger: ChatAttachmentManagerOptions['logger'];
     #errorHandler: ChatAttachmentManagerOptions['errorHandler'];
@@ -104,7 +105,7 @@ class ChatAttachmentManager {
     }
 
     hasPendingAttachmentProcessing(): boolean {
-        return this.#files.some((file) => file.parseStatus === 'processing');
+        return this.#pendingIntakes > 0 || this.#files.some((file) => file.parseStatus === 'processing');
     }
 
     async waitForAttachments(attachments?: readonly ChatAttachment[]): Promise<void> {
@@ -269,15 +270,22 @@ class ChatAttachmentManager {
     async handleUpload(files: File[], inputArguments: { source: AttachmentUploadSource; visionSupported: boolean; intake?: ChatAttachmentIntake }): Promise<void> {
         const intake = inputArguments.intake ?? this.captureIntake();
         if (!intake.scope.isCurrent()) return;
-        await handleChatAttachmentUploadPipeline({
-            scope: intake.scope,
-            files,
-            source: inputArguments.source,
-            visionSupported: inputArguments.visionSupported,
-            handleFiles: (nextFiles, options) => this.#handleFiles(nextFiles, options ?? {}, intake),
-            logger: this.#logger,
-            errorHandler: this.#errorHandler
-        });
+        this.#pendingIntakes += 1;
+        try {
+            this.#syncUiAfterAttachmentsChanged();
+            await handleChatAttachmentUploadPipeline({
+                scope: intake.scope,
+                files,
+                source: inputArguments.source,
+                visionSupported: inputArguments.visionSupported,
+                handleFiles: (nextFiles, options) => this.#handleFiles(nextFiles, options ?? {}, intake),
+                logger: this.#logger,
+                errorHandler: this.#errorHandler
+            });
+        } finally {
+            this.#pendingIntakes -= 1;
+            if (!this.#disposed) this.#syncUiAfterAttachmentsChanged();
+        }
     }
 
     async removeAttachedFile(fileId: string, materializeRecord: (record: SoaiPathDraftRecord) => void): Promise<void> {

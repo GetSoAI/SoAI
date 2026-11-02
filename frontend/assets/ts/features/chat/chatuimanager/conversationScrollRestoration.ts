@@ -169,7 +169,7 @@ const beginConversationScrollRestore = (context: ChatUIManagerContext, messagesA
     context.state.autoScrollEnabled = false;
     context.state.autoScrollUserIntentActive = false;
     syncAutoScrollLockAttribute(context, messagesArea);
-    const coordinator = acquireMainTimelineCoordinator(messagesArea, messagesRoot);
+    const coordinator = acquireMainTimelineCoordinator(messagesArea, messagesRoot, context.dependencies.owner);
     active.disposers.push(() => coordinator.cancelFrame('conversation-scroll-restore'), coordinator.release);
     let targetScrollTop = initialTargetScrollTop;
     let originScrollTop = messagesArea.scrollTop;

@@ -178,6 +178,7 @@ const composeHardwarePageRuntime = (owners: HardwareCompositionOwners, dependenc
 };
 
 const createHardwareLayoutDependencies = (owners: HardwareCompositionOwners, state: HardwarePageState, logger: ModuleLoggerFunctionValue): HardwareLayoutPageHost => ({
+    owner: owners.services.mountScope,
     state,
     storage: owners.storage,
     logger,

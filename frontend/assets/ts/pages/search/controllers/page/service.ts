@@ -11,7 +11,7 @@ import type { PageFeedback } from '@core/routing/pages/basepagecore/PageFeedback
 import type { PageServices } from '@core/routing/pages/basepagecore/PageServices.ts';
 import type { PageUi } from '@core/routing/pages/basepagecore/PageUi.ts';
 import type { PageLayout } from '@core/routing/pages/basepagelayout/PageLayout.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
 import { normalizeSearchFilter, resolveSearchTabLabel, SEARCH_VISIBLE_TAB_IDS } from '@core/search/searchCategory.ts';
 import { normalizeSearchDisplayQuery } from '@core/search/searchQuery.ts';
 import type { StateManager } from '@core/state/StateManager.ts';
@@ -41,7 +41,7 @@ interface SearchPageRuntimeOwners {
     pageElements: PageUi;
     layout: PageLayout;
     storage: StorageService;
-    router: Router;
+    router: PageRouting;
 }
 
 class SearchPageRuntime {
@@ -89,12 +89,12 @@ class SearchPageRuntime {
                 navigate: (path) => owners.router.navigate(path),
                 navigateWithQuery: (path, query) => {
                     if (!isFunction(owners.router.navigateWithQuery)) {
-                        this.#reportError(new Error('Router navigateWithQuery is unavailable'), { context: 'navigation', userMessage: i18n.t('search.errors.genericError') });
+                        this.#reportError(new Error('PageRouting navigateWithQuery is unavailable'), { context: 'navigation', userMessage: i18n.t('search.errors.genericError') });
                         return;
                     }
                     owners.router.navigateWithQuery(path, query);
                 },
-                openFilePreview: async (path) => await openFileExplorerContentPreview(owners.api, path),
+                openFilePreview: async (path) => await openFileExplorerContentPreview(owners.api, path, owners.services.mountScope),
                 openPromptPreview: async (promptId) => await searchComponent.openPromptPreview(promptId)
             },
             errors: { reportError: (error, options) => this.#reportError(error, options) }

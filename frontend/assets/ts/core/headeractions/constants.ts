@@ -9,7 +9,8 @@ const HEADER_ACTION_IDS = Object.freeze({
     edit: 'edit',
     licensing: 'licensing',
     restartReminder: 'restart-reminder',
-    detach: 'detach'
+    detach: 'detach',
+    panes: 'page-panes'
 });
 
 export { DEFAULT_ORDER, DEFAULT_PRIORITY, HEADER_ACTION_IDS };

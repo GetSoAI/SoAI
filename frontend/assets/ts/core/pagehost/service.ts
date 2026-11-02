@@ -1,14 +1,19 @@
 /* SoAI - Shared pagehost service [frontend/assets/ts/core/pagehost/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { EventBus } from '@core/EventBus.ts';
 import { errorHandler, type ErrorHandler } from '@core/errorHandler.ts';
-import { CLEANUP_METHODS } from '@core/pagehost/constants.ts';
-import { commitPreparedPageContainer, createPreparedPageContainer, prepareContainer, prepareInstance, resolveContainer, resolveDom, runCleanupMethods } from '@core/pagehost/actions.ts';
+import { PageDisposal } from '@core/pagehost/disposal.ts';
+import { commitPreparedPageContainer, initializePreparedPage, createPreparedPageContainer, PageContainerRollbackError, prepareContainer, prepareInstance, resolveContainer, resolveDom, runCleanupMethods } from '@core/pagehost/actions.ts';
 import { isPageRegistry } from '@core/pagehost/guards.ts';
-import type { CleanupRunner, CurrentPageState, DestroyOptions, PageHostDomApi, PageHostOptions, PageInstance, PageMeta, PageRegistry, PreparedPageState, WhenReadyOptions } from '@core/pagehost/types.ts';
+import type { CleanupRunner, CurrentPageState, DestroyOptions, PageHostCancellation, PageHostCommitOptions, PageHostDomApi, PageHostOptions, PageHostPrepareOptions, PageInstance, PageMeta, PageRegistry, PreparedPageState, WhenReadyOptions, PageHostOwnership } from '@core/pagehost/types.ts';
+import { runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
 import { isFunction, isHTMLElement } from '@core/typeGuards.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
+import { createDeferred } from '@core/runtime/deferred.ts';
+import { throwIfAborted } from '@core/errors/abort.ts';
+import type { PageMountScope } from '@core/routing/router/types.ts';
 
 class PageHost {
     #registry: PageRegistry | null = null;
@@ -19,7 +24,8 @@ class PageHost {
     #cancelledCurrent: PageInstance | null = null;
     #errorHandler: ErrorHandler;
     #domResolver: () => PageHostDomApi | null;
-    #cleanupRunner: CleanupRunner;
+    readonly #disposal: PageDisposal;
+    #commitCompletion: Promise<void> | null = null;
 
     constructor({ registry = null, container = null, domResolver = resolveDom, errorHandler: hostErrorHandler = errorHandler, cleanupRunner }: PageHostOptions = {}) {
         this.#errorHandler = hostErrorHandler;
@@ -27,7 +33,7 @@ class PageHost {
         const defaultCleanupRunner: CleanupRunner = async (instance: PageInstance, methods): Promise<void> => {
             await runCleanupMethods(instance, methods, this.#errorHandler);
         };
-        this.#cleanupRunner = isFunction(cleanupRunner) ? cleanupRunner : defaultCleanupRunner;
+        this.#disposal = new PageDisposal(isFunction(cleanupRunner) ? cleanupRunner : defaultCleanupRunner);
         if (registry !== null) {
             if (!isPageRegistry(registry)) {
                 throw new Error('PageHost requires a valid page registry');
@@ -75,6 +81,14 @@ class PageHost {
         return { name: this.#current.name, instance: this.#current.instance };
     }
 
+    getOwnership(): PageHostOwnership {
+        return this.#disposal.getOwnership(this.#current, this.#prepared, this.#commitCompletion !== null);
+    }
+
+    getCurrentMountScope(): PageMountScope | null {
+        return this.#current?.mountScope ?? null;
+    }
+
     whenReady(options: WhenReadyOptions = {}): Promise<void> {
         const page = this.#prepared ?? this.#current;
         if (!page) return Promise.resolve();
@@ -94,7 +108,11 @@ class PageHost {
         }
     }
 
-    async prepare(name: string, parameters: JsonObject = {}): Promise<PageInstance | null> {
+    async prepare(name: string, parameters: JsonObject = {}, { signal, createMountScope }: PageHostPrepareOptions): Promise<PageInstance | null> {
+        throwIfAborted(signal);
+        if (this.#commitCompletion) await this.#commitCompletion;
+        throwIfAborted(signal);
+        if (this.#disposal.commitFailure) throw this.#disposal.commitFailure;
         if (!name) {
             throw new Error('PageHost.prepare requires a page name');
         }
@@ -102,41 +120,75 @@ class PageHost {
         if (!isHTMLElement(container)) {
             throw new Error('PageHost requires a container before mounting pages');
         }
-        const registry = this.#requireRegistry();
+        const registry = this.#registry;
+        if (!registry) throw new Error('PageHost requires a page registry');
         const meta = registry.getMeta(name);
         if (!meta) {
             throw new Error(`Page "${name}" is not registered`);
         }
-        this.cancelPrepared('superseded');
         const token = Symbol(name);
+        const predecessor = this.#prepared;
+        this.#activeToken = token;
+        this.#prepared = null;
+        if (predecessor) this.#discardPreparedPage(predecessor, 'superseded');
+        await this.#disposal.waitForRelease();
+        throwIfAborted(signal);
+        if (this.#activeToken !== token) return null;
         const preparedContainer = createPreparedPageContainer(container);
         prepareContainer(preparedContainer, name, this.#domResolver);
-        const instance = registry.create(name);
-        if (!instance) {
-            throw new Error(`Failed to create page instance "${name}"`);
+        const presentation = new EventBus();
+        let mountScope: PageMountScope;
+        let instance: PageInstance;
+        try {
+            mountScope = createMountScope({
+                generation: token,
+                isCurrent: () => {
+                    const ownsPreparation = this.#activeToken === token && this.#current?.token !== token;
+                    const ownsCommittedMount = this.#current?.token === token && this.#cancelledCurrent !== this.#current.instance;
+                    return ownsPreparation || ownsCommittedMount;
+                },
+                isCommitted: () => this.#current?.token === token,
+                isActive: () => this.#current?.token === token && this.#current.isActivated && this.#cancelledCurrent !== this.#current.instance,
+                subscribe: (listener) => presentation.on('changed', () => listener())
+            });
+            if (this.#activeToken !== token) {
+                presentation.emit('changed');
+                return null;
+            }
+            const created = registry.create(name, mountScope);
+            if (!created) throw new Error(`Failed to create page instance "${name}"`);
+            instance = created;
+        } catch (error) {
+            if (this.#activeToken === token) this.#activeToken = null;
+            presentation.emit('changed');
+            throw error;
         }
         const prepared: PreparedPageState = {
             name,
             instance,
             meta,
             token,
+            mountScope,
+            presentation,
+            isActivated: false,
             container: preparedContainer,
             preparedPromise: Promise.resolve(),
             viewReadyPromise: Promise.resolve(),
             dataReadyPromise: Promise.resolve(),
-            isPreparationComplete: false
+            isPreparationComplete: false,
+            releaseMutationAdmission: null
         };
-        try {
-            prepareInstance(instance, preparedContainer);
-        } catch (error) {
-            this.#discardPreparedPage(prepared, 'prepare-container-failed');
-            throw ensureError(error);
+        if (this.#activeToken !== token) {
+            this.#discardPreparedPage(prepared, 'superseded');
+            return null;
         }
-        this.#activeToken = token;
         this.#prepared = prepared;
         try {
+            prepareInstance(instance, preparedContainer);
+            if (this.#activeToken !== token) return null;
             instance.pageLifecycle?.deferActivation();
-            await this.#initializePreparedPage(prepared, parameters);
+            if (this.#activeToken !== token) return null;
+            await initializePreparedPage(prepared, parameters, () => this.#activeToken === token);
             if (this.#activeToken !== token) {
                 return null;
             }
@@ -151,142 +203,126 @@ class PageHost {
         }
     }
 
-    async commitPrepared(): Promise<PageInstance | null> {
+    async commitPrepared({ signal, finalAdmission, mountPublication, afterCommit }: PageHostCommitOptions = {}): Promise<PageInstance | null> {
+        if (this.#commitCompletion) await this.#commitCompletion;
+        if (this.#disposal.commitFailure) throw this.#disposal.commitFailure;
         const prepared = this.#prepared;
         const container = this.container;
         if (!prepared || !prepared.isPreparationComplete || this.#activeToken !== prepared.token) return null;
         if (!isHTMLElement(container)) throw new Error('PageHost requires a container before committing a prepared page');
+        const completion = createDeferred<void>();
+        this.#commitCompletion = completion.promise;
         const previous = this.#current;
-        const previousContainer = commitPreparedPageContainer(container, prepared.container);
-        if (previous) prepareInstance(previous.instance, previousContainer);
-        prepareInstance(prepared.instance, container);
-        this.#current = { ...prepared, container };
-        this.#cancelledCurrent = null;
-        this.#prepared = null;
-        if (previous) {
-            await this.#teardownPage(previous, { swallowErrors: true, reason: 'navigation-commit' });
+        const releaseCommitOwnership = this.#disposal.captureCommit(previous, prepared);
+        try {
+            throwIfAborted(signal);
+            finalAdmission?.();
+            throwIfAborted(signal);
+            if (previous) previous.releaseMutationAdmission = previous.mountScope.admission.blockMutations();
+            const previousCancellation = this.#cancelledCurrent;
+            const previousContainer = commitPreparedPageContainer(container, prepared.container, {
+                previous: previous?.instance ?? null,
+                incoming: prepared.instance,
+                commit: () => {
+                    this.#current = { ...prepared, container };
+                    this.#cancelledCurrent = null;
+                    this.#prepared = null;
+                    mountPublication?.commit();
+                },
+                rollback: () => {
+                    this.#current = previous;
+                    this.#cancelledCurrent = previousCancellation;
+                    this.#prepared = prepared;
+                    mountPublication?.rollback();
+                }
+            });
+            await this.#disposal.settleCommit(previous, previousContainer, afterCommit);
+            if (this.#current?.instance === prepared.instance && this.#cancelledCurrent !== prepared.instance && prepared.mountScope.admission.isCurrent()) {
+                this.#current.isActivated = true;
+                prepared.instance.pageLifecycle?.activate();
+                prepared.presentation.emit('changed');
+            }
+            return prepared.instance;
+        } catch (error) {
+            if (error instanceof PageContainerRollbackError)
+                this.#disposal.retainFailedCommit(
+                    error,
+                    [previous, prepared].filter((page): page is CurrentPageState => page !== null)
+                );
+            else if (previous && this.#current?.instance !== prepared.instance) {
+                previous.releaseMutationAdmission?.();
+                previous.releaseMutationAdmission = null;
+            }
+            throw error;
+        } finally {
+            releaseCommitOwnership();
+            this.#commitCompletion = null;
+            completion.resolve(undefined);
         }
-        if (this.#current?.instance === prepared.instance && this.#cancelledCurrent !== prepared.instance) {
-            prepared.instance.pageLifecycle?.activate();
-        }
-        return prepared.instance;
     }
 
-    async destroyCurrent({ expectedInstance, force = false, reason = 'teardown' }: DestroyOptions = {}): Promise<void> {
+    async destroyCurrent({ expectedInstance, reason = 'teardown' }: DestroyOptions = {}): Promise<void> {
+        if (this.#commitCompletion) await this.#commitCompletion;
+        if (this.#disposal.commitFailure) throw this.#disposal.commitFailure;
         const current = this.#current;
         if (expectedInstance) {
             if (current?.instance !== expectedInstance) return;
             this.#current = null;
             this.#cancelledCurrent = null;
-            await this.#teardownPage(current, { swallowErrors: force, reason });
+            await this.#disposal.dispose(current, reason);
             return;
         }
-        this.cancelPrepared(reason);
+        const prepared = this.#prepared;
         this.#activeToken = null;
+        this.#prepared = null;
         this.#current = null;
         this.#cancelledCurrent = null;
-        if (current) await this.#teardownPage(current, { swallowErrors: force, reason });
+        const releases = [prepared, current].filter((page): page is CurrentPageState => page !== null).map((page) => this.#disposal.dispose(page, reason));
+        await Promise.allSettled(releases);
+        await this.#disposal.waitForRelease();
     }
 
     cancelCurrent(expectedInstance: PageInstance, reason: string = 'cancelled'): boolean {
         const current = this.#current;
         if (!current || current.instance !== expectedInstance) return false;
         this.#cancelledCurrent = current.instance;
-        this.#cancelInstance(current.instance, reason);
+        try {
+            this.#disposal.cancelInstance(current.instance, reason);
+        } finally {
+            current.presentation.emit('changed');
+        }
         return true;
     }
 
     cancelPrepared(reason: string = 'cancelled'): void {
+        if (this.#disposal.commitFailure || this.#commitCompletion) return;
         const active = this.#prepared;
         this.#activeToken = null;
         this.#prepared = null;
         if (active) this.#discardPreparedPage(active, reason);
     }
 
-    #cancelInstance(instance: PageInstance, reason: string): void {
-        const abortController = instance['abortController'];
-        if (abortController instanceof AbortController) {
-            try {
-                abortController.abort(reason);
-            } catch (error) {
-                const runtimeError = ensureError(error);
-                this.#errorHandler.debug('PageHost', 'Abort controller cancel failed', runtimeError);
+    captureCancellation(reason: string, scope: 'all' | 'prepared' = 'all'): PageHostCancellation {
+        const current = scope === 'all' ? this.#current : null;
+        const prepared = this.#prepared;
+        const token = this.#activeToken;
+        const pages = [current, prepared].filter((page): page is CurrentPageState => page !== null);
+        return {
+            seal: () => this.#disposal.sealResources(pages),
+            cancel: () => {
+                const failures: Error[] = [];
+                if (current) runCleanupStepCollectingFailure(() => this.cancelCurrent(current.instance, reason), failures);
+                if (this.#prepared === prepared && this.#activeToken === token) runCleanupStepCollectingFailure(() => this.cancelPrepared(reason), failures);
+                throwCollectedCleanupFailures(failures);
             }
-        }
-        if (isFunction(instance.cancel)) {
-            try {
-                instance.cancel(reason);
-            } catch (error) {
-                const runtimeError = ensureError(error);
-                this.#errorHandler.debug('PageHost', 'Page cancel failed', runtimeError);
-            }
-        }
+        };
     }
 
-    #initializePreparedPage = async (prepared: PreparedPageState, parameters: JsonObject): Promise<void> => {
-        const { instance, token } = prepared;
-        if (!isFunction(instance.initialize)) {
-            throw new Error('Page instance missing initialize method');
-        }
-        await Promise.resolve(instance.initialize(parameters));
-        if (this.#activeToken !== token) {
-            return;
-        }
-        let preparedTask: Promise<void> = Promise.resolve();
-        let viewReadyTask: Promise<void> = Promise.resolve();
-        let dataReadyTask: Promise<void> = Promise.resolve();
-        if (instance.pageLifecycle) {
-            preparedTask = Promise.resolve(instance.pageLifecycle.whenReady({ waitForReveal: false }));
-            viewReadyTask = Promise.resolve(instance.pageLifecycle.whenReady({ waitForData: false }));
-            dataReadyTask = Promise.resolve(instance.pageLifecycle.whenReady({ waitForData: true }));
-        }
-        prepared.preparedPromise = preparedTask;
-        prepared.viewReadyPromise = viewReadyTask;
-        prepared.dataReadyPromise = dataReadyTask;
-        prepared.isPreparationComplete = true;
-    };
-
     #discardPreparedPage(prepared: PreparedPageState, reason: string): void {
-        void this.#teardownPage(prepared, { swallowErrors: true, reason }).catch((error) => {
+        void this.#disposal.dispose(prepared, reason).catch((error) => {
             this.#errorHandler.warn('PageHost', `Discard failed for prepared page ${prepared.name}`, ensureError(error));
         });
     }
-
-    #teardownPage = async (page: CurrentPageState, { swallowErrors, reason }: { swallowErrors: boolean; reason: string }): Promise<void> => {
-        const { instance, name } = page;
-        const teardownErrors: Error[] = [];
-        this.#cancelInstance(instance, reason);
-        if (isFunction(instance.hide)) {
-            try {
-                await instance.hide();
-            } catch (error) {
-                const runtimeError = ensureError(error);
-                teardownErrors.push(runtimeError);
-                if (swallowErrors) {
-                    this.#errorHandler.warn('PageHost', `Hide failed for page ${name}`, runtimeError);
-                }
-            }
-        }
-        try {
-            await this.#cleanupRunner(instance, CLEANUP_METHODS);
-        } catch (error) {
-            const runtimeError = ensureError(error);
-            teardownErrors.push(runtimeError);
-            if (swallowErrors) {
-                this.#errorHandler.debug('PageHost', `Cleanup failed for page ${name}`, runtimeError);
-            }
-        }
-        if (teardownErrors.length > 0 && !swallowErrors) {
-            throw new AggregateError(teardownErrors, `Failed to teardown page ${name}`);
-        }
-    };
-
-    #requireRegistry = (): PageRegistry => {
-        if (!this.#registry) {
-            throw new Error('PageHost requires a page registry');
-        }
-        return this.#registry;
-    };
 }
 
 export { PageHost };

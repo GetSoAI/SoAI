@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "अपने डिवाइस से फ़ाइलें और फ़ोल्डर सीधे संदेश के अटैचमेंट के रूप में जोड़ें। ज्ञान अपलोड के विपरीत, जिन्हें पुनर्प्राप्ति के लिए इंडेक्स किया जाता है, इन्हें मौजूदा प्रॉम्प्ट के साथ भेजा जाता है।",
                 "uploadTitle": "फ़ाइलें और फ़ोल्डर सीधे अपलोड करें",
-                "title": "अटैचमेंट जोड़ें"
+                "title": "अटैचमेंट जोड़ें",
+                "cameraDiscardConfirm": "यह खींची गई फ़ोटो छोड़ दें?"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "अज्ञात त्रुटि",
                 "unknownError": "एक अज्ञात त्रुटि हुई।",
                 "storageHeadroomInsufficient": "सुरक्षा के लिए छोड़ी गई जगह और मौजूदा आरक्षणों को शामिल करने पर पर्याप्त स्टोरेज उपलब्ध नहीं है। जगह खाली करें या अन्य स्टोरेज कार्य पूरे होने की प्रतीक्षा करें, फिर दोबारा प्रयास करें।",
-                "storageHeadroomValues": "सुरक्षा मार्जिन सहित आवश्यक: {required}। इस कार्रवाई के लिए उपलब्ध: {available}।"
+                "storageHeadroomValues": "सुरक्षा मार्जिन सहित आवश्यक: {required}। इस कार्रवाई के लिए उपलब्ध: {available}।",
+                "permissionsUnavailable": "पहुँच की अनुमतियाँ उपलब्ध नहीं हैं। कनेक्शन जाँचें और फिर कोशिश करें।"
             },
             "export": "एक्सपोर्ट",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "न सहेजे गए बदलाव",
             "view": "देखें",
             "yes": "हाँ",
-            "retry": "फिर से प्रयास करें"
+            "retry": "फिर से प्रयास करें",
+            "discard": "छोड़ें"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "फ़ाइल शायद सहेजी गई है, लेकिन उसकी अंतिम स्थिति की पुष्टि नहीं हो सकी। दोबारा अपलोड करने से पहले फ़ाइलें में गंतव्य जाँचें।",
                 "cleanupIncomplete": "स्वचालित सफ़ाई पूरी नहीं हो सकी। फिर से प्रयास करने से पहले फ़ाइलें में गंतव्य जाँचें।",
                 "contentChanged": "कार्रवाई के दौरान फ़ाइल बदल गई। उसे फिर से चुनें और दोबारा प्रयास करें।",
-                "destinationExists": "इस नाम की फ़ाइल या फ़ोल्डर पहले से मौजूद है। कोई दूसरा नाम या गंतव्य चुनें।"
+                "destinationExists": "इस नाम की फ़ाइल या फ़ोल्डर पहले से मौजूद है। कोई दूसरा नाम या गंतव्य चुनें।",
+                "listingChanged": "फ़ोल्डर लगातार बदलता रहा। फिर से कोशिश करने के लिए रीफ़्रेश करें।",
+                "listingTimeout": "फ़ोल्डर को रीफ़्रेश करने का समय समाप्त हो गया। फिर से कोशिश करने के लिए रीफ़्रेश करें।",
+                "listingIncoherent": "फ़ोल्डर के पृष्ठों में असंगति थी। फिर से कोशिश करने के लिए रीफ़्रेश करें।",
+                "listingUnavailable": "फ़ोल्डर सेवा उपलब्ध नहीं है। कनेक्शन जाँचें और रीफ़्रेश करें।",
+                "listingBusy": "फ़ोल्डर के अनुरोध सीमित किए जा रहे हैं। कुछ देर बाद रीफ़्रेश करें।"
             },
             "labels": {
                 "latestTask": "नवीनतम कार्य",
@@ -3175,7 +3183,10 @@
                 "empty": "कोई प्रविष्टि नहीं मिली।",
                 "error": "कार्रवाई विफल रही। विवरण के लिए सूचनाएँ देखें।",
                 "loading": "डायरेक्टरी प्रविष्टियाँ लोड हो रही हैं...",
-                "searching": "फ़ाइलें और फ़ोल्डर खोजे जा रहे हैं..."
+                "searching": "फ़ाइलें और फ़ोल्डर खोजे जा रहे हैं...",
+                "refreshing": "रीफ़्रेश हो रहा है…",
+                "stale": "डेटा पुराना है। फिर से कोशिश करने के लिए रीफ़्रेश करें।",
+                "unavailable": "फ़ोल्डर उपलब्ध नहीं है। त्रुटि देखें और रीफ़्रेश करें।"
             },
             "table": {
                 "modified": "संशोधित",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "मॉडल, tool और file उपयोग करें",
                     "sectionTitle": "Chat और agent tool",
-                    "conversations": "Chat संदेश, model choice, generation parameter और tool access साथ रखता है। turn के बीच मॉडल बदलें, उत्तर compare करें, setup को preset बनाएँ या conversation को folder में रखें। मौजूदा संदेश के लिए पूरा item चाहिए तो file attach करें; indexed material बार-बार खोजना हो तो knowledge source जोड़ें। composer में file, folder और SoAI link जोड़े जा सकते हैं।",
+                    "conversations": "Chat संदेश, model choice, generation parameter, tool access और कौशल व मेमोरी लाइब्रेरी साथ रखता है। turn के बीच मॉडल बदलें, उत्तर compare करें, setup को preset बनाएँ या conversation को folder में रखें। मौजूदा संदेश के लिए पूरा item चाहिए तो file attach करें; indexed material बार-बार खोजना हो तो knowledge source जोड़ें। composer में file, folder और SoAI link जोड़े जा सकते हैं।",
                     "tools": "Chat बातचीत के लिए है। Plan model को task देखने और steps तैयार करने देता है। यह destructive चिह्नित tool या valid destructive metadata के बिना tool रोकता है, लेकिन दूसरे चुने हुए tool बाहरी system को फिर भी प्रभावित कर सकते हैं। Execute enabled tool से काम करता है। tool call और result transcript में रहते हैं; protected action approval माँग सकता है। tool web search, browser, file, terminal, knowledge, media, mail और calendar संभालते हैं। administrator उपलब्ध integration और credential तय करता है। agent सवाल पूछ सकता है, plan रख सकता है और काम background subtask में बाँट सकता है। Automation schedule पर turn चलाता है और हर run को conversation रखता है।",
                     "mcp": "SoAI authenticated MCP client को tool दे सकता है और remote MCP server से जुड़ सकता है। administrator के configure करने पर remote tool built-in tool के पास दिखते हैं।",
                     "voice": "Speech-to-text मॉडल recording या microphone को text बनाते हैं। text-to-speech मॉडल उत्तर पढ़ते हैं; voice call mode बोलकर conversation करने देता है।"
@@ -5229,6 +5240,9 @@
             "loading": "SoAI तैयार हो रहा है...",
             "loadingDelayError": "यह पेज अपेक्षा से अधिक समय ले रहा है। अपना कनेक्शन जाँचें या इस पेज पर फिर प्रयास करें।",
             "loadingLabel": "लोड हो रहा है...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "पिछला पेज अभी बंद हो रहा है। प्रतीक्षा करें और फिर से कोशिश करें। अगर यह अटका रहे, तो इस विंडो को फिर से लोड करें।"
+            },
             "retry": "फिर प्रयास करें"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "Appearance डिफ़ॉल्ट पर रीसेट की गई।",
                 "chatPresetsResetFailed": "Chat presets रीसेट करने में विफल। फिर से प्रयास करें।",
                 "chatPresetsResetSuccess": "Chat presets रीसेट किए गए।",
+                "configurationResetFailed": "Configuration reset शेड्यूल नहीं किया जा सका। configuration files की समीक्षा करें और फिर से प्रयास करें।",
                 "conversationsDeleteFailed": "बातचीत हटाने में विफल। फिर से प्रयास करें।",
                 "conversationsDeleteNone": "हटाने के लिए कोई बातचीत नहीं है।",
                 "conversationsDeleteSuccess": "{count} बातचीत हटाई गईं।",
-                "configurationResetFailed": "Configuration reset शेड्यूल नहीं किया जा सका। configuration files की समीक्षा करें और फिर से प्रयास करें।",
                 "factoryResetSuccess": "Factory reset शुरू किया गया। SoAI शीघ्र पुनः शुरू होगा।",
                 "fixInvalidFields": "सहेजने से पहले अमान्य फ़ील्ड ठीक करें।",
                 "hardwareHistoryResetFailed": "Hardware history रीसेट करने में विफल। फिर से प्रयास करें।",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "Metrics reset सफलतापूर्वक शुरू हुआ",
                 "pageLayoutsResetFailed": "Page layouts रीसेट करने में विफल। फिर से प्रयास करें।",
                 "pageLayoutsResetSuccess": "Dashboard, metrics और hardware layouts डिफ़ॉल्ट पर रीसेट किए गए।",
+                "partialSave": "कुछ सेटिंग लागू हो गई हैं। {reason} चिह्नित असहेजे फ़ील्ड की जाँच करें और फिर से कोशिश करें।",
                 "passwordManagerResetFailed": "Password manager रीसेट करने में विफल। फिर से प्रयास करें।",
                 "passwordManagerResetSuccess": "Password manager रीसेट किया गया। {deletedCredentials} सहेजे गए credential(s) हटाए गए और {clearedSecretHandles} सक्रिय secure handle(s) अमान्य किए गए।",
                 "preferencesResetFailed": "Preferences रीसेट करने में विफल। फिर से प्रयास करें।",
-                "preferencesResetSuccess": "Preferences डिफ़ॉल्ट पर रीसेट की गईं। फिर से लोड हो रहा है...",
+                "preferencesResetSuccess": "प्राथमिकताएँ डिफ़ॉल्ट मानों पर रीसेट कर दी गई हैं।",
                 "recentSearchesResetFailed": "Recent searches रीसेट करने में विफल। फिर से प्रयास करें।",
                 "recentSearchesResetSuccess": "Recent searches रीसेट की गईं।",
                 "restartButton": "SoAI पुनः शुरू करें",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "उपयोगकर्ता सफलतापूर्वक बनाया गया",
                 "userDeleteSuccess": "उपयोगकर्ता सफलतापूर्वक हटाया गया",
                 "userPasswordUpdateSuccess": "पासवर्ड सफलतापूर्वक अपडेट किया गया",
-                "userWorkspacePathUpdateSuccessRevoked": "डिफ़ॉल्ट फ़ोल्डर अपडेट किया गया। नए फ़ोल्डर के बाहर के पुराने conversation overrides रद्द कर दिए गए हैं।",
                 "userRoleUpdateSuccess": "उपयोगकर्ता भूमिका सफलतापूर्वक अपडेट की गई",
+                "userWorkspacePathUpdateSuccessRevoked": "डिफ़ॉल्ट फ़ोल्डर अपडेट किया गया। नए फ़ोल्डर के बाहर के पुराने conversation overrides रद्द कर दिए गए हैं।",
                 "wallpaperDeleteSuccess": "वॉलपेपर सफलतापूर्वक हटाया गया",
                 "wallpaperDownloadSuccess": "वॉलपेपर सफलतापूर्वक डाउनलोड किया गया",
                 "wallpaperReloadFailed": "वॉलपेपर preview लोड करने में विफल।",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "टर्मिनल मुक्त होने की पुष्टि नहीं हुई है। कनेक्शन बहाल करके फिर प्रयास करें; यदि सेवा फिर शुरू हुई है, तो होस्ट पर पुराने शेल की जाँच करें।",
+                "recoveryUnavailable": "टर्मिनल पुनर्प्राप्ति उपलब्ध नहीं है। SoAI फिर लोड करें और दोबारा प्रयास करने से पहले होस्ट पर पुराने शेल की जाँच करें।"
+            },
             "ariaLabels": {
                 "clearTerminal": "Terminal साफ़ करें",
                 "decreaseTextSize": "टेक्स्ट आकार घटाएँ",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "बोली का लिप्यंतरण नहीं हुआ। वाक् से पाठ की व्यवस्था के लिए व्यवस्थापक से कहें, फिर फ़ाइल दोबारा अपलोड करें।",
             "openModels": "मॉडल खोलें",
             "openSettings": "वाक् से पाठ सेटिंग्स"
+        },
+        "pagePanes": {
+            "storageUnavailable": "ब्राउज़र का संग्रहण उपलब्ध नहीं है। खुले पैनल इस्तेमाल किए जा सकते हैं, लेकिन उनका लेआउट सहेजा नहीं जा सकता।",
+            "invalidLayout": "सहेजा गया पैनल लेआउट अमान्य है। अनुरोधित पृष्ठ सामान्य रूप से खुलेगा।",
+            "incompatibleLayout": "सहेजे गए पैनल लेआउट के लिए नया ऐप चाहिए। लेआउट सुरक्षित रखा गया है।",
+            "foreignLayout": "सहेजा गया पैनल लेआउट किसी दूसरे खाते, विंडो या संस्करण का है। लेआउट सुरक्षित रखा गया है।",
+            "layoutTooLarge": "यह पैनल लेआउट सहेजने के लिए बहुत बड़ा है। खुले पृष्ठ इस्तेमाल किए जा सकते हैं।",
+            "restoreFailed": "मुख्य पैनल बहाल नहीं हो सका। सहेजा गया लेआउट सुरक्षित रखा गया है; फिर कोशिश करने के लिए पृष्ठ दोबारा लोड करें।",
+            "title": "पैनल",
+            "active": "सक्रिय",
+            "closePane": "{page} पैनल बंद करें",
+            "split": "दूसरे पैनल में खोलें",
+            "choosePage": "खोलने के लिए पृष्ठ",
+            "parked": "पार्क किया गया",
+            "closing": "बंद हो रहा है…",
+            "splitUnavailable": "इस विंडो में एक पैनल की जगह है। पृष्ठ मौजूदा पैनल में खुलेगा।",
+            "placementUnavailable": "इस कार्रवाई के लिए कोई पैनल उपलब्ध नहीं है। लंबित काम पूरा करें या कोई पैनल बंद करें, फिर कोशिश करें।",
+            "restoreConflict": "बहाल किया गया रूट किसी खुले पैनल से टकराता है। जारी रखने के लिए पृष्ठ को सीधे खोलें।",
+            "layoutNotSaved": "लेआउट सहेजा नहीं गया। खुले पैनल इस्तेमाल किए जा सकते हैं।",
+            "saveCurrentLayout": "मौजूदा लेआउट सहेजें",
+            "replaceSavedLayoutConfirmation": "सुरक्षित रखे गए लेआउट को अभी खुले पैनलों से बदलें? केवल सहेजा गया लेआउट बदलेगा, पृष्ठों की सामग्री नहीं।",
+            "storageQuotaExceeded": "ब्राउज़र का स्टोरेज भर गया है। उसमें जगह खाली करें, फिर मौजूदा लेआउट दोबारा सहेजें। खुले पैनल इस्तेमाल किए जा सकते हैं।",
+            "storageBlocked": "ब्राउज़र ने लेआउट सहेजना रोक दिया है। इस साइट के लिए स्टोरेज की अनुमति दें, फिर मौजूदा लेआउट दोबारा सहेजें। खुले पैनल इस्तेमाल किए जा सकते हैं।"
         }
     }
 }

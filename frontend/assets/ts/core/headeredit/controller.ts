@@ -3,9 +3,11 @@
 
 import { createHeaderActionController, type HeaderActionController } from '@core/headerActionBus.ts';
 import { getHeaderActions } from '@core/headeractions/public.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { isFunction, isString } from '@core/typeGuards.ts';
 
 interface HeaderEditControllerOptions {
+    readonly owner: PresentationOwner;
     contextId: string;
     isAllowed: () => boolean;
     isCompactLayout: () => boolean;
@@ -35,6 +37,7 @@ const createHeaderEditController = (options: HeaderEditControllerOptions): Heade
     ensureHeaderEditOptions(options);
     const headerAction: HeaderActionController = createHeaderActionController({
         actionId: 'edit',
+        owner: options.owner,
         contextId: options.contextId
     });
     let disposed = false;
@@ -56,7 +59,7 @@ const createHeaderEditController = (options: HeaderEditControllerOptions): Heade
         if ((!allowed || compact) && options.isEditing()) {
             options.setEditing(false);
         }
-        getHeaderActions().setLayoutEditActive(options.contextId, options.isEditing());
+        getHeaderActions().setLayoutEditActive(options.contextId, headerAction.registration, options.isEditing());
         if (!allowed || compact || options.hasChanges()) {
             headerAction.hide();
             return;
@@ -77,7 +80,7 @@ const createHeaderEditController = (options: HeaderEditControllerOptions): Heade
                 return;
             }
             disposed = true;
-            getHeaderActions().setLayoutEditActive(options.contextId, false);
+            getHeaderActions().setLayoutEditActive(options.contextId, headerAction.registration, false);
             headerAction.dispose();
         }
     };

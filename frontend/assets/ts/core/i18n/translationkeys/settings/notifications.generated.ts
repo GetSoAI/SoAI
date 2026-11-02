@@ -20,6 +20,7 @@ export type SettingsNotificationsTranslationKey =
     | 'settings.notifications.metricsResetSuccess'
     | 'settings.notifications.pageLayoutsResetFailed'
     | 'settings.notifications.pageLayoutsResetSuccess'
+    | 'settings.notifications.partialSave'
     | 'settings.notifications.passwordManagerResetFailed'
     | 'settings.notifications.passwordManagerResetSuccess'
     | 'settings.notifications.preferencesResetFailed'

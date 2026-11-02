@@ -10,9 +10,9 @@ import { isIntentionalInitializationCancellation, reportInitializationFailure, r
 import { getElementByIdStrict } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import { onNavigationComplete } from '@core/navigationEvents.ts';
-import { resetSaveHeaderActionState } from '@core/save/public.ts';
+import { onFocusedNavigation } from '@core/navigationEvents.ts';
 import { isObject, isString } from '@core/typeGuards.ts';
+import { createAbortError } from '@core/errors/abort.ts';
 
 interface RunAppLifecycleBootstrapOptions {
     dependencies: AppLifecycleDependencies;
@@ -36,6 +36,10 @@ interface RunAppLifecycleBootstrapOptions {
 
 const runAppLifecycleBootstrap = async (options: RunAppLifecycleBootstrapOptions): Promise<boolean> => {
     const { dependencies } = options;
+    let admittedEpoch: number | null = null;
+    const requireCurrentSession = (): void => {
+        if (admittedEpoch !== null && dependencies.auth.authEpoch !== admittedEpoch) throw createAbortError('Authentication changed during bootstrap');
+    };
     dependencies.router.setBrowserNavigationSuspended(true);
     try {
         await runInitializationStage('criticalServices', async () => {
@@ -58,20 +62,23 @@ const runAppLifecycleBootstrap = async (options: RunAppLifecycleBootstrapOptions
         const { isAuthenticated, needsWizard, warmupRoute } = await runInitializationStage('authentication', async () => {
             const needsWizard = (await dependencies.auth.checkWizardStatus()) === true;
             const wizardStatus = dependencies.auth.getWizardStatusSnapshot();
-            await dependencies.auth.initialize({ wizardState: wizardStatus ?? null, skipSessionProbe: needsWizard });
             options.registerAuthHandlers();
+            await dependencies.auth.initialize({ wizardState: wizardStatus ?? null, skipSessionProbe: needsWizard });
+            admittedEpoch = dependencies.auth.authEpoch;
             const authenticated = dependencies.auth.isAuthenticated;
             if (authenticated) {
                 await options.refreshSoaiOsAccess();
             } else {
                 dependencies.soaiOsCapabilities.clearAccess();
             }
+            requireCurrentSession();
             options.toggleMainUI(authenticated);
             return { isAuthenticated: authenticated, needsWizard, warmupRoute: options.resolveInitialRoute(authenticated, needsWizard) };
         });
         if (isAuthenticated) {
             await runInitializationStage('session', () => options.setupAuthenticatedSession({ force: options.isRefreshScenario, initialRoute: warmupRoute }));
         }
+        requireCurrentSession();
         const renderedRoute = await runInitializationStage('routeRendering', async () => {
             const finalRoute = options.resolveInitialRoute(isAuthenticated, needsWizard);
             if (!finalRoute) {
@@ -79,7 +86,7 @@ const runAppLifecycleBootstrap = async (options: RunAppLifecycleBootstrapOptions
             }
             dependencies.router.getPageOutlet().setSkeleton(finalRoute);
             dependencies.router.setBrowserNavigationSuspended(false);
-            const initialNavigation = navigateLifecycleRoute(dependencies.router, finalRoute);
+            const initialNavigation = isAuthenticated ? dependencies.router.pagePanes.navigation.restoration.restorePrimary(dependencies.router.getRouteFromHash(), finalRoute) : navigateLifecycleRoute(dependencies.router, finalRoute);
             const initialCompletion = dependencies.router.getLatestNavigationCompletion();
             try {
                 await initialNavigation;
@@ -87,16 +94,20 @@ const runAppLifecycleBootstrap = async (options: RunAppLifecycleBootstrapOptions
                 const latestCompletion = dependencies.router.getLatestNavigationCompletion();
                 if (!latestCompletion || initialCompletion === latestCompletion) throw error;
             }
+            requireCurrentSession();
             return ensureBootstrapRouteRendered(dependencies.router);
         });
+        requireCurrentSession();
         await runInitializationStage('background', async () => {
             await options.applyBackground(renderedRoute);
+            requireCurrentSession();
             const currentRoute = await ensureBootstrapRouteRendered(dependencies.router);
+            requireCurrentSession();
             if (!options.navigationBootstrapUnsubscribe) {
                 options.setNavigationBootstrapUnsubscribe(
-                    onNavigationComplete(async (detail) => {
+                    onFocusedNavigation(async (detail) => {
+                        if (dependencies.auth.authEpoch !== admittedEpoch) return;
                         try {
-                            resetSaveHeaderActionState();
                             const navigationRoute = isObject(detail) ? detail['route'] : null;
                             await options.applyBackground(isString(navigationRoute) ? navigationRoute : dependencies.router.getCurrentRoute());
                         } catch (error) {
@@ -123,6 +134,10 @@ const runAppLifecycleBootstrap = async (options: RunAppLifecycleBootstrapOptions
         }
         return isAuthenticated;
     } catch (error) {
+        if (isIntentionalInitializationCancellation(error) && admittedEpoch !== null && dependencies.auth.authEpoch !== admittedEpoch) {
+            dependencies.router.setBrowserNavigationSuspended(false);
+            return false;
+        }
         dependencies.router.setBrowserNavigationSuspended(true);
         const runtimeError = ensureError(error);
         try {

@@ -100,7 +100,7 @@ class DashboardClockController {
     }
 
     #renderMarkup(): void {
-        const content = narrowHTMLElement(this.#host.requireUI('clock-content'), 'dashboard clock content');
+        const content = narrowHTMLElement(this.#host.requireUI('dashboard-clock-content'), 'dashboard clock content');
         this.#digitalDisplay.clearPendingAnimations();
         this.#host.replaceElementContent(content, this.#buildMarkup(), { escape: false });
         this.#host.flushDOMUpdates();
@@ -109,7 +109,7 @@ class DashboardClockController {
     }
 
     #renderClockFace(): void {
-        const content = narrowHTMLElement(this.#host.requireUI('clock-content'), 'dashboard clock content');
+        const content = narrowHTMLElement(this.#host.requireUI('dashboard-clock-content'), 'dashboard clock content');
         const wrapper = this.#host.optionalHTMLElement('.dashboard-clock', content);
         const shell = this.#host.optionalHTMLElement('.dashboard-clock-shell', content);
         if (!wrapper || !shell) {
@@ -206,7 +206,7 @@ class DashboardClockController {
     }
 
     #applyClockClassName(): void {
-        const content = this.#host.optionalUI('clock-content');
+        const content = this.#host.optionalUI('dashboard-clock-content');
         const wrapper = content ? this.#host.optionalHTMLElement('.dashboard-clock', content) : null;
         if (wrapper) {
             wrapper.className = this.#clockClassName();
@@ -217,7 +217,7 @@ class DashboardClockController {
         if (this.#isDestroyed()) {
             return;
         }
-        const content = this.#host.optionalUI('clock-content');
+        const content = this.#host.optionalUI('dashboard-clock-content');
         if (!content) {
             return;
         }

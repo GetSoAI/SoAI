@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { cleanupLifecycleTracker, clearLifecycleSubscriptionState, runLifecycleStep } from '@app/bootstrap/stages/applifecycle/actions.ts';
-import type { LifecycleAuthHandlerHost, LifecycleAuthSubscriptions, LifecycleLoginHost, LifecycleLogoutHost } from '@app/bootstrap/stages/applifecycle/contracts.ts';
+import type { LifecycleLoginHost, LifecycleLogoutHost } from '@app/bootstrap/stages/applifecycle/contracts.ts';
 import { ensureRouteRendered, resolveLoggedOutRoute, resolveNavigationRoute, resolveRouteKey } from '@app/bootstrap/stages/applifecycle/routing.ts';
 import { resetAuthenticatedSessionServices } from '@app/bootstrap/stages/sessionServices.ts';
 import type { AppLifecycleDependencies, LifecycleBackgroundOptions, LifecycleRoute } from '@app/bootstrap/stages/applifecycle/types.ts';
@@ -10,57 +10,10 @@ import { getBranding } from '@core/branding/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { runCleanup } from '@core/lifecycle/cleanup.ts';
-import { onNavigationComplete } from '@core/navigationEvents.ts';
+import { onFocusedNavigation } from '@core/navigationEvents.ts';
 import type { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { isAuthRouteComponent } from '@core/routing/router/authRouteTarget.ts';
 import { destroyWebSocketClient } from '@core/websocketclient/service.ts';
-
-interface AuthLifecycleEvents {
-    onLogin: (callback: () => void | Promise<void>) => (() => void) | void;
-    onLogout: (callback: () => void | Promise<void>) => (() => void) | void;
-}
-
-interface RegisterLifecycleAuthHandlersOptions {
-    auth: AuthLifecycleEvents;
-    host: LifecycleAuthHandlerHost;
-}
-
-class LifecycleAuthSession {
-    #unsubscribeLogin: (() => void) | null = null;
-    #unsubscribeLogout: (() => void) | null = null;
-    #resumeDeferredLogin: ((sessionNeedsHandoff: boolean) => void) | null = null;
-    #registered = false;
-
-    register({ auth, host }: RegisterLifecycleAuthHandlersOptions): void {
-        if (this.#registered) {
-            return;
-        }
-        const subscriptions = registerLifecycleAuthHandlers({ auth, host });
-        this.#unsubscribeLogin = subscriptions.unsubscribeLogin;
-        this.#unsubscribeLogout = subscriptions.unsubscribeLogout;
-        this.#resumeDeferredLogin = subscriptions.resumeDeferredLogin;
-        this.#registered = true;
-    }
-
-    resumeDeferredLogin(sessionNeedsHandoff: boolean): void {
-        this.#resumeDeferredLogin?.(sessionNeedsHandoff);
-    }
-
-    release(): void {
-        const unsubscribeLogin = this.#unsubscribeLogin;
-        const unsubscribeLogout = this.#unsubscribeLogout;
-        this.#unsubscribeLogin = null;
-        this.#unsubscribeLogout = null;
-        this.#resumeDeferredLogin = null;
-        runCleanup(unsubscribeLogin, (runtimeError) => {
-            errorHandler.warn('AppLifecycle', 'Login subscription cleanup failed', runtimeError);
-        });
-        runCleanup(unsubscribeLogout, (runtimeError) => {
-            errorHandler.warn('AppLifecycle', 'Logout subscription cleanup failed', runtimeError);
-        });
-        this.#registered = false;
-    }
-}
 
 interface AppLifecycleLoginOptions {
     dependencies: AppLifecycleDependencies;
@@ -82,6 +35,7 @@ interface AppLifecycleLoginOptions {
 }
 
 interface AppLifecycleLogoutOptions {
+    routeDisposition: 'navigate' | 'defer';
     dependencies: AppLifecycleDependencies;
     uiTracker: ResourceTracker | null;
     setUiTracker: (value: ResourceTracker | null) => void;
@@ -98,42 +52,8 @@ interface AppLifecycleLogoutOptions {
     toggleMainUI: (show: boolean) => void;
 }
 
-export const registerLifecycleAuthHandlers = ({ auth, host }: RegisterLifecycleAuthHandlersOptions): LifecycleAuthSubscriptions => {
-    let transitionTail: Promise<void> = Promise.resolve();
-    const enqueueTransition = (transition: () => Promise<void>, label: string): void => {
-        const task = transitionTail.then(transition, transition);
-        transitionTail = task;
-        void task.catch((error) => {
-            errorHandler.error('AppLifecycle', `${label} handler failed`, ensureError(error));
-        });
-    };
-    let loginDeferredByBootstrap = false;
-    const unsubscribeLogin = auth.onLogin(() => {
-        if (host.isBootstrapInProgress()) {
-            loginDeferredByBootstrap = true;
-            return;
-        }
-        enqueueTransition(host.handleLogin, 'Login');
-    });
-
-    const unsubscribeLogout = auth.onLogout(() => {
-        enqueueTransition(host.handleLogout, 'Logout');
-    });
-
-    return {
-        unsubscribeLogin: typeof unsubscribeLogin === 'function' ? unsubscribeLogin : () => {},
-        unsubscribeLogout: typeof unsubscribeLogout === 'function' ? unsubscribeLogout : () => {},
-        resumeDeferredLogin: (sessionNeedsHandoff: boolean): void => {
-            const loginWasDeferred = loginDeferredByBootstrap;
-            loginDeferredByBootstrap = false;
-            if (loginWasDeferred && sessionNeedsHandoff) {
-                enqueueTransition(host.handleLogin, 'Login');
-            }
-        }
-    };
-};
-
-export const handleLifecycleLogin = async ({ setStateUninitialized, resetBranding, cleanupUiTracker, clearNavigationBootstrapSubscription, getCurrentRoute, shouldStayOnAuthRoute, resolveAuthenticatedRoute, navigateToAuthenticatedRoute, monitorConnectionStatus, toggleMainUI, refreshSoaiOsAccess, clearConnectionSubscription, destroyRealtimeTransport, setupAuthenticatedSession, resolveRouteKey, ensureRouteRendered, applyBackground }: LifecycleLoginHost): Promise<void> => {
+export const handleLifecycleLogin = async ({ isCurrent, setStateUninitialized, resetBranding, cleanupUiTracker, clearNavigationBootstrapSubscription, getCurrentRoute, shouldStayOnAuthRoute, resolveAuthenticatedRoute, navigateToAuthenticatedRoute, monitorConnectionStatus, toggleMainUI, refreshSoaiOsAccess, clearConnectionSubscription, destroyRealtimeTransport, setupAuthenticatedSession, resolveRouteKey, ensureRouteRendered, applyBackground }: LifecycleLoginHost): Promise<void> => {
+    if (!isCurrent()) return;
     const animateShellEntrance = isAuthRouteComponent(resolveRouteKey(getCurrentRoute()) ?? '');
     let handoffCompleted = false;
     let handoffInProgress = false;
@@ -149,17 +69,29 @@ export const handleLifecycleLogin = async ({ setStateUninitialized, resetBrandin
 
     const sessionSetupTask = (async (): Promise<void> => {
         await refreshSoaiOsAccess();
+        if (!isCurrent()) return;
         await runLifecycleStep('login', 'Connection subscription cleanup', clearConnectionSubscription);
+        if (!isCurrent()) return;
         await runLifecycleStep('login', 'Realtime transport reset', destroyRealtimeTransport);
+        if (!isCurrent()) return;
         await setupAuthenticatedSession({ force: true, initialRoute: null });
+        if (!isCurrent()) return;
         monitorConnectionStatus();
     })();
 
     const completeUiHandoff = async (route: LifecycleRoute): Promise<void> => {
+        if (!isCurrent()) {
+            disposeNavigationSubscription();
+            return;
+        }
         if (handoffCompleted || handoffInProgress) {
             return;
         }
         await sessionSetupTask;
+        if (!isCurrent()) {
+            disposeNavigationSubscription();
+            return;
+        }
         if (handoffCompleted || handoffInProgress) {
             return;
         }
@@ -169,9 +101,13 @@ export const handleLifecycleLogin = async ({ setStateUninitialized, resetBrandin
             if (!key) {
                 key = resolveAuthenticatedRoute();
             }
-            if (isAuthRouteComponent(key) && !shouldStayOnAuthRoute(key)) {
-                key = resolveAuthenticatedRoute();
+            if (isAuthRouteComponent(key)) {
+                if (!shouldStayOnAuthRoute(key)) key = resolveAuthenticatedRoute();
                 await navigateToAuthenticatedRoute(key);
+                if (!isCurrent()) {
+                    disposeNavigationSubscription();
+                    return;
+                }
             }
             handoffCompleted = true;
             disposeNavigationSubscription();
@@ -179,8 +115,11 @@ export const handleLifecycleLogin = async ({ setStateUninitialized, resetBrandin
             resetBranding();
             cleanupUiTracker();
             clearNavigationBootstrapSubscription();
+            if (!isCurrent()) return;
             toggleMainUI(true, animateShellEntrance && !isAuthRouteComponent(key));
+            if (!isCurrent()) return;
             await ensureRouteRendered(key);
+            if (!isCurrent()) return;
             await applyBackground(key, { forceDetection: true });
         } finally {
             if (!handoffCompleted) {
@@ -189,7 +128,7 @@ export const handleLifecycleLogin = async ({ setStateUninitialized, resetBrandin
         }
     };
 
-    unsubscribe = onNavigationComplete((detail) => {
+    unsubscribe = onFocusedNavigation((detail) => {
         void completeUiHandoff(resolveNavigationRoute(detail)).catch((error) => {
             const runtimeError = ensureError(error);
             errorHandler.error('AppLifecycle', 'Login navigation handler failed', runtimeError);
@@ -227,7 +166,9 @@ export const handleLifecycleLogout = async ({ clearAllTimers, clearNavigationBoo
 };
 
 export const runAppLifecycleLogin = async (options: AppLifecycleLoginOptions): Promise<void> => {
+    const epoch = options.dependencies.auth.authEpoch;
     await handleLifecycleLogin({
+        isCurrent: () => options.dependencies.auth.authEpoch === epoch && options.dependencies.auth.isAuthenticated,
         setStateUninitialized: options.setStateUninitialized,
         resetBranding: () => {
             getBranding().initialized = false;
@@ -296,8 +237,8 @@ export const runAppLifecycleLogout = async (options: AppLifecycleLogoutOptions):
         resetLifecycleState: options.resetLifecycleState,
         destroyRegisteredComponents: options.destroyRegisteredComponents,
         toggleMainUI: options.toggleMainUI,
-        navigateToLoggedOutRoute: () => options.dependencies.router.navigate(resolveLoggedOutRoute(options.dependencies.auth.getWizardStatusSnapshot()), { force: true })
+        navigateToLoggedOutRoute: async () => {
+            if (options.routeDisposition === 'navigate') await options.dependencies.router.navigate(resolveLoggedOutRoute(options.dependencies.auth.getWizardStatusSnapshot()), { force: true });
+        }
     });
 };
-
-export { LifecycleAuthSession };

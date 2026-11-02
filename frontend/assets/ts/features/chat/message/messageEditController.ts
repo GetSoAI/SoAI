@@ -32,6 +32,7 @@ class ChatMessageEditController {
     constructor(dependencies: ChatMessageEditControllerDependencies) {
         this.#dependencies = dependencies;
         this.#save = createSaveController({
+            owner: dependencies.owner,
             headerContextId: 'chat.messageEdit',
             headerPriority: SAVE_HEADER_PRIORITY_PAGE,
             requestContextLabel: 'Chat message edit',
@@ -320,11 +321,7 @@ class ChatMessageEditController {
     }
 
     #resolveActiveContainer(): HTMLElement | null {
-        const messageId = this.#activeMessageId;
-        if (!messageId) {
-            return null;
-        }
-        return this.#dependencies.view.resolveMessageContainer(messageId);
+        return this.#activeMessageId ? this.#dependencies.view.resolveMessageContainer(this.#activeMessageId) : null;
     }
 }
 

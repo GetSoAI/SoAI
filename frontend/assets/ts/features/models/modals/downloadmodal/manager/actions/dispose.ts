@@ -27,7 +27,6 @@ const disposeDownloadModal = (runtime: DownloadModalManagerRuntime, { clearActiv
             runtime.host.view.addClassName(group, CSS_CLASSES.HIDDEN);
         }
     }
-    const hasActiveDownloads = hasActiveModelDownloads(runtime);
     for (const id of ['model-id', 'model-quant']) {
         const element = runtime.host.view.optionalHTMLElement(modalUiSelector(modalId, id), modalRoot);
         if (!element) {
@@ -35,7 +34,7 @@ const disposeDownloadModal = (runtime: DownloadModalManagerRuntime, { clearActiv
         }
         runtime.host.view.setUIValue(element, '', { attribute: 'value' });
     }
-    if (!hasActiveDownloads || clearActiveDownloads) {
+    if (clearActiveDownloads || !hasActiveModelDownloads(runtime)) {
         for (const id of ['download-plugin-select']) {
             const element = runtime.host.view.optionalHTMLElement(modalUiSelector(modalId, id), modalRoot);
             if (!element) {

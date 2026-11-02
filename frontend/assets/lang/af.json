@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "Voeg lêers en gidse vanaf jou toestel as direkte boodskapaanhegsels by. Hulle word saam met die huidige prompt gestuur, anders as Kennis-oplaaie, wat vir herwinning geïndekseer word.",
                 "uploadTitle": "Laai lêers en gidse direk op",
-                "title": "Voeg aanhegsels by"
+                "title": "Voeg aanhegsels by",
+                "cameraDiscardConfirm": "Verwerp hierdie vasgelegde foto?"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "Onbekende fout",
                 "unknownError": "'n Onbekende fout het voorgekom.",
                 "storageHeadroomInsufficient": "Daar is nie genoeg beskikbare stoorspasie nie, met inagneming van veiligheidsruimte en bestaande besprekings. Maak ruimte vry of wag totdat ander stoorbewerkings voltooi is, en probeer weer.",
-                "storageHeadroomValues": "Benodig met die veiligheidsmarge: {required}. Beskikbaar vir hierdie bewerking: {available}."
+                "storageHeadroomValues": "Benodig met die veiligheidsmarge: {required}. Beskikbaar vir hierdie bewerking: {available}.",
+                "permissionsUnavailable": "Toegangstoestemmings is nie beskikbaar nie. Gaan die verbinding na en probeer weer."
             },
             "export": "Voer uit",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "Ongestoorde veranderings",
             "view": "Bekyk",
             "yes": "Ja",
-            "retry": "Probeer weer"
+            "retry": "Probeer weer",
+            "discard": "Verwerp"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "Die lêer is moontlik gestoor, maar die finale toestand kon nie bevestig word nie. Gaan die bestemming in Lêers na voordat jy dit weer oplaai.",
                 "cleanupIncomplete": "Outomatiese opruiming kon nie voltooi word nie. Gaan die bestemming in Lêers na voordat jy weer probeer.",
                 "contentChanged": "Die lêer het tydens die bewerking verander. Kies dit weer en probeer weer.",
-                "destinationExists": "’n Lêer of gids met hierdie naam bestaan reeds. Kies ’n ander naam of bestemming."
+                "destinationExists": "’n Lêer of gids met hierdie naam bestaan reeds. Kies ’n ander naam of bestemming.",
+                "listingChanged": "Die gids het aanhou verander. Verfris om weer te probeer.",
+                "listingTimeout": "Die gidsverfrissing het uitgetel. Verfris om weer te probeer.",
+                "listingIncoherent": "Die gidsbladsye was teenstrydig. Verfris om weer te probeer.",
+                "listingUnavailable": "Die gidsdiens is onbeskikbaar. Gaan die verbinding na en verfris.",
+                "listingBusy": "Gidsversoeke word beperk. Wag en verfris dan."
             },
             "labels": {
                 "latestTask": "Jongste taak",
@@ -3175,7 +3183,10 @@
                 "empty": "Geen inskrywings gevind nie.",
                 "error": "Bewerking het misluk. Hersien kennisgewings vir besonderhede.",
                 "loading": "Laai gidsinskrywings...",
-                "searching": "Soek lêers en gidse..."
+                "searching": "Soek lêers en gidse...",
+                "refreshing": "Word verfris…",
+                "stale": "Verouderd. Verfris om weer te probeer.",
+                "unavailable": "Gids onbeskikbaar. Gaan die fout na en verfris."
             },
             "table": {
                 "modified": "Gewysig",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "Werk met modelle, hulpmiddels en lêers",
                     "sectionTitle": "Klets- en agenthulpmiddels",
-                    "conversations": "Die Klets-bladsy hou boodskappe, modelkeuse, genereringsparameters en hulpmiddeltoegang bymekaar. Jy kan modelle tussen beurte verander, antwoorde vergelyk, die opstelling as 'n voorinstelling stoor of gesprekke in gidse organiseer. Heg 'n lêer aan wanneer die model die volledige item vir die huidige boodskap benodig. Heg 'n kennisbron aan wanneer jy wil hê SoAI moet geïndekseerde materiaal deursoek en die relevante gedeeltes teruggee. Voeg lêers, gidse en SoAI-skakels vanuit die opsteller by",
+                    "conversations": "Die Klets-bladsy hou boodskappe, modelkeuse, genereringsparameters, hulpmiddeltoegang en die biblioteke vir Vaardighede en Geheue bymekaar. Jy kan modelle tussen beurte verander, antwoorde vergelyk, die opstelling as 'n voorinstelling stoor of gesprekke in gidse organiseer. Heg 'n lêer aan wanneer die model die volledige item vir die huidige boodskap benodig. Heg 'n kennisbron aan wanneer jy wil hê SoAI moet geïndekseerde materiaal deursoek en die relevante gedeeltes teruggee. Voeg lêers, gidse en SoAI-skakels vanuit die opsteller by",
                     "tools": "Kletsmodus is vir gesprekvoering. Planmodus laat die model 'n taak ondersoek en stappe voorberei. Dit blokkeer hulpmiddels wat as vernietigend gemerk is of nie geldige metadata daarvoor het nie, maar ander gekose hulpmiddels kan steeds eksterne stelsels beïnvloed. Uitvoermodus laat dit optree met die hulpmiddels wat jy geaktiveer het. Hulpmiddelaanroepe en hul resultate bly sigbaar in die transkripsie, en beskermde aksies kan jou goedkeuring vereis. Beskikbare hulpmiddels kan die web deursoek, 'n blaaier beheer, met lêers en terminale werk, kennis navraag doen, media verwerk en met pos of kalenders koppel. Administrateurs besluit watter integrasies en aanmeldbesonderhede beskikbaar is. Agente kan ook vrae vra, 'n plan byhou en werk in agtergrondsubtake verdeel. Die Outomatisering-bladsy voer een of meer beurte volgens 'n skedule uit en behou elke uitvoering as 'n gesprek",
                     "mcp": "SoAI kan sy hulpmiddels aan geverifieerde MCP-kliënte beskikbaar stel en met afgeleë MCP-bedieners koppel. Afgeleë hulpmiddels verskyn langs die ingeboude hulpmiddels nadat 'n administrateur die bediener gekonfigureer het",
                     "voice": "Spraak-na-teks-modelle kan opnames of mikrofooninvoer transkribeer. Teks-na-spraak-modelle kan antwoorde hardop lees, terwyl stemoproepmodus 'n gesproke gesprek ondersteun"
@@ -3944,7 +3955,7 @@
                     "heading": "Gaan stelselgesondheid na en onderhou die gasheer",
                     "sectionTitle": "Monitering en administrasie",
                     "status": "Die Dashboard wys huidige stelselstatus en aktiewe werk. Gebruik Hardeware vir CPU-, geheue-, skyf-, netwerk- en GPU-lesings; Metrieke vir versoekgeskiedenis en tokengebruik; en Loglêers wanneer jy diagnostiese besonderhede benodig. Ondersteunde GPU's bied instelbeheerders vir krag, klokke en waaiers. Hierdie veranderinge beïnvloed die gasheer, gebruik dus 'n getoetste profiel en hou temperature en stabiliteit dop",
-                    "operations": "Terminaal bied interaktiewe shell-sessies. Krag kan SoAI herbegin of stop en kan die gasheerbedryfstelsel beheer. Toegang tot albei bladsye hang van rekeningtoestemmings af",
+                    "operations": "Terminaal bied interaktiewe shell-sessies. Krag kan SoAI herbegin of stop en kan die gasheerbedryfstelsel beheer. Toegang tot Terminaal en die kragkontroles hang van rekeningtoestemmings af",
                     "maintenance": "Rugsteune is in Instellings, terwyl toepassingopdaterings die Opdaterings-bladsy gebruik. Verifieer 'n rugsteun voordat jy daarop staatmaak, voer kopieë wat jy benodig van die gasheer af uit en hersien die omvang voor 'n herstel of terugstelling. SoAI monitor backend-gesondheid en hou op om versoeke na 'n plugin te stuur wat aanhou misluk. Die Plugins-bladsy wys herstel- en kwarantynstatusse. Aflaaie, oplaaie, rugsteune en ander groot skryfbewerkings kontroleer gereserveerde skyfspasie voordat hulle begin"
                 },
                 "access": {
@@ -5229,6 +5240,9 @@
             "loading": "Berei SoAI voor...",
             "loadingDelayError": "Hierdie bladsy neem langer as verwag. Kontroleer jou verbinding of probeer hierdie bladsy weer.",
             "loadingLabel": "Laai tans...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "Die vorige bladsy is nog besig om te sluit. Wag en probeer weer. Herlaai hierdie venster as dit vassteek."
+            },
             "retry": "Probeer weer"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "Voorkoms na verstekwaardes teruggestel.",
                 "chatPresetsResetFailed": "Kon nie die kletsvoorinstellings terugstel nie. Probeer weer.",
                 "chatPresetsResetSuccess": "Kletsvoorinstellings teruggestel.",
+                "configurationResetFailed": "Die konfigurasieterugstelling kon nie geskeduleer word nie. Hersien die konfigurasielêers en probeer weer.",
                 "conversationsDeleteFailed": "Kon nie gesprekke uitvee nie. Probeer weer.",
                 "conversationsDeleteNone": "Geen gesprekke om uit te vee nie.",
                 "conversationsDeleteSuccess": "{count} gesprekke uitgevee.",
-                "configurationResetFailed": "Die konfigurasieterugstelling kon nie geskeduleer word nie. Hersien die konfigurasielêers en probeer weer.",
                 "factoryResetSuccess": "Fabrieksherstel begin. SoAI sal binnekort herbegin.",
                 "fixInvalidFields": "Maak ongeldige velde reg voordat jy stoor.",
                 "hardwareHistoryResetFailed": "Kon nie die hardewaregeskiedenis terugstel nie. Probeer weer.",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "Metriekterugstelling suksesvol begin",
                 "pageLayoutsResetFailed": "Kon nie die bladsyuitlegte terugstel nie. Probeer weer.",
                 "pageLayoutsResetSuccess": "Kontroleskerm-, metrieke- en hardeware-uitlegte na verstekwaardes teruggestel.",
+                "partialSave": "Sommige instellings is toegepas. {reason} Gaan die gemerkte ongestoorde velde na en probeer weer.",
                 "passwordManagerResetFailed": "Kon nie die wagwoordbestuurder terugstel nie. Probeer weer.",
                 "passwordManagerResetSuccess": "Wagwoordbestuurder teruggestel. {deletedCredentials} gestoorde geloofsbrief(e) verwyder en {clearedSecretHandles} aktiewe veilige handle(s) ongeldig gemaak.",
                 "preferencesResetFailed": "Kon nie voorkeure terugstel nie. Probeer weer.",
-                "preferencesResetSuccess": "Voorkeure na verstekwaardes teruggestel. Herlaai tans...",
+                "preferencesResetSuccess": "Voorkeure na verstekwaardes teruggestel.",
                 "recentSearchesResetFailed": "Kon nie onlangse soektogte terugstel nie. Probeer weer.",
                 "recentSearchesResetSuccess": "Onlangse soektogte teruggestel.",
                 "restartButton": "Herbegin SoAI",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "Gebruiker suksesvol geskep",
                 "userDeleteSuccess": "Gebruiker suksesvol uitgevee",
                 "userPasswordUpdateSuccess": "Wagwoord suksesvol opgedateer",
-                "userWorkspacePathUpdateSuccessRevoked": "Verstekgids opgedateer. Vorige gesprekoorskrywings buite die nuwe gids is herroep.",
                 "userRoleUpdateSuccess": "Gebruikersrol suksesvol opgedateer",
+                "userWorkspacePathUpdateSuccessRevoked": "Verstekgids opgedateer. Vorige gesprekoorskrywings buite die nuwe gids is herroep.",
                 "wallpaperDeleteSuccess": "Agtergrond suksesvol uitgevee",
                 "wallpaperDownloadSuccess": "Agtergrond suksesvol afgelaai",
                 "wallpaperReloadFailed": "Kon nie die agtergrondvoorskou laai nie.",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "Die vrystelling van die terminaal is onbevestig. Herstel die verbinding en probeer weer; bevestig die ou dop op die gasheer as die diens herbegin het.",
+                "recoveryUnavailable": "Terminaalherstel is nie beskikbaar nie. Herlaai SoAI en bevestig die ou dop op die gasheer voordat jy weer probeer."
+            },
             "ariaLabels": {
                 "clearTerminal": "Wis terminal",
                 "decreaseTextSize": "Verklein teksgrootte",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "Spraak nie getranskribeer nie. Vra ’n administrateur om spraakherkenning op te stel en laai dan die lêer weer op.",
             "openModels": "Maak Modelle oop",
             "openSettings": "Spraakherkenning-instellings"
+        },
+        "pagePanes": {
+            "storageUnavailable": "Blaaierberging is nie beskikbaar nie. Jou oop panele bly bruikbaar, maar hul uitleg kan nie gestoor word nie.",
+            "invalidLayout": "Die gestoorde paneeluitleg is ongeldig. Die aangevraagde bladsy sal normaal oopmaak.",
+            "incompatibleLayout": "Die gestoorde paneeluitleg vereis ’n nuwer toepassing. Dit is behou.",
+            "foreignLayout": "Die gestoorde paneeluitleg behoort aan ’n ander rekening, venster of uitgawe. Dit is behou.",
+            "layoutTooLarge": "Hierdie paneeluitleg is te groot om te stoor. Jou oop bladsye bly bruikbaar.",
+            "restoreFailed": "Die primêre paneel kon nie herstel word nie. Die gestoorde uitleg is behou; herlaai om weer te probeer.",
+            "title": "Panele",
+            "active": "Aktief",
+            "closePane": "Sluit die {page}-paneel",
+            "split": "Maak in ’n ander paneel oop",
+            "choosePage": "Bladsy om oop te maak",
+            "parked": "Geparkeer",
+            "closing": "Besig om te sluit…",
+            "splitUnavailable": "Hierdie venster het plek vir een paneel. Die bladsy sal in die huidige paneel oopmaak.",
+            "placementUnavailable": "Geen paneel is vir hierdie aksie beskikbaar nie. Voltooi hangende werk of sluit ’n paneel en probeer weer.",
+            "restoreConflict": "Die herstelde roete bots met ’n oop paneel. Maak die bladsy uitdruklik oop om voort te gaan.",
+            "layoutNotSaved": "Uitleg nie gestoor nie. Jou oop panele bly bruikbaar.",
+            "saveCurrentLayout": "Stoor huidige uitleg",
+            "replaceSavedLayoutConfirmation": "Vervang die bewaarde uitleg met jou huidige oop panele? Dit vervang net die gestoorde uitleg, nie jou bladsyinhoud nie.",
+            "storageQuotaExceeded": "Blaaierberging is vol. Maak blaaierberging vry en stoor dan die huidige uitleg weer. Jou oop panele bly bruikbaar.",
+            "storageBlocked": "Die blaaier het uitlegberging geblokkeer. Laat berging vir hierdie webwerf toe en stoor dan die huidige uitleg weer. Jou oop panele bly bruikbaar."
         }
     }
 }

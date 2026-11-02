@@ -1,6 +1,7 @@
 /* SoAI - Bounded collection renderer contracts [frontend/assets/ts/core/data/boundedcollectionrenderer/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ChildReconciliationOptions } from '@core/dom/childNodeReconciliation.ts';
 import type { CollectionRange, CollectionRangePolicy } from '@core/data/boundedcollectionrenderer/range.ts';
 
 type CollectionEdge = 'backward' | 'forward';
@@ -25,6 +26,7 @@ interface BoundedCollectionRendererOptions<TItem> {
     alignRows?: boolean | undefined;
     preserveGridScrollExtent?: boolean | undefined;
     patchMountedItems?: boolean | undefined;
+    mountedItemState?: ChildReconciliationOptions | undefined;
     onCommit?: ((context: BoundedCollectionCommitContext) => void) | undefined;
     onError?: ((error: Error) => void) | undefined;
 }

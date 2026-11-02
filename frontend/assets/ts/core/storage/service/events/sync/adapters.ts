@@ -65,6 +65,10 @@ const createStorageSyncAdapterHandlers = (context: StorageSyncAdapterContext): S
         return state.windowIdentity || (await state.windowIdentityReady);
     };
 
+    const publishSnapshot = (snapshot: StorageSyncSnapshot): void => {
+        getCrossTabChannel().publish({ type: STORAGE_CROSS_TAB_MESSAGE_TYPE, origin: snapshot.origin, revision: serializeCrossTabRevision(snapshot.revision), payload: serializeStorageSyncSnapshot(snapshot) });
+    };
+
     const broadcast = async (): Promise<void> => {
         if (state.isApplyingSyncSnapshot) {
             return;
@@ -88,17 +92,17 @@ const createStorageSyncAdapterHandlers = (context: StorageSyncAdapterContext): S
         const serializedSnapshot = serializeStorageSyncSnapshot(snapshot);
         state.sharedRevision = revision;
         dependencies.stateManager.setTabState(state.stateKey, serializedSnapshot);
-        getCrossTabChannel().publish({
-            type: STORAGE_CROSS_TAB_MESSAGE_TYPE,
-            origin: originId,
-            revision: serializeCrossTabRevision(revision),
-            payload: serializedSnapshot
-        });
+        publishSnapshot(snapshot);
     };
 
     const applySnapshot = (snapshot: StorageSyncSnapshot, snapshotBridge: StorageSyncApplySnapshotBridge): void => {
         const revision = snapshot.revision;
-        if (compareCrossTabRevision(revision, state.sharedRevision) <= 0) {
+        const comparison = compareCrossTabRevision(revision, state.sharedRevision);
+        if (comparison <= 0) {
+            if (comparison < 0 && snapshot.origin !== state.windowIdentity) {
+                const committed = normalizeStorageSyncSnapshot(dependencies.stateManager.getTabState(state.stateKey));
+                if (committed && compareCrossTabRevision(committed.revision, state.sharedRevision) === 0) publishSnapshot(committed);
+            }
             return;
         }
 

@@ -1,6 +1,7 @@
 /* SoAI - Shared chat protocols [frontend/assets/ts/core/chat/protocols.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PageMountScope } from '@core/routing/router/types.ts';
 import type { JsonRecord, JsonValue } from '@core/types/jsonValues.ts';
 import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 
@@ -24,6 +25,25 @@ type ConversationInputLifecycleState = ConversationInputActiveState | Conversati
 const CONVERSATION_INPUT_ACTIVE_STATES: readonly ConversationInputActiveState[] = ['pending', 'materializing', 'running', 'input_required'];
 const CONVERSATION_INPUT_TERMINAL_STATES: readonly ConversationInputTerminalState[] = ['completed', 'failed', 'cancelled', 'effect_unknown'];
 const CONVERSATION_INPUT_LIFECYCLE_STATES: readonly ConversationInputLifecycleState[] = [...CONVERSATION_INPUT_ACTIVE_STATES, ...CONVERSATION_INPUT_TERMINAL_STATES];
+
+interface ChatPagePresenceOwner {
+    readonly presentation: PageMountScope['presentation'];
+    readonly admission: Pick<PageMountScope['admission'], 'isCurrent'>;
+}
+
+interface ChatPresentationState {
+    conversationId: string | null;
+    visible: boolean;
+}
+
+interface ChatPagePresenceServiceContract {
+    enter(owner: ChatPagePresenceOwner): () => void;
+    setConversationId(conversationId: string | null): void;
+    setPageVisible(isVisible: boolean): void;
+    isActivelyViewingConversation(conversationId: string | null): boolean;
+    setActiveConversationChangeHandler(handler: (conversationId: string | null) => void): () => void;
+    setPresentationStateChangeHandler(handler: (state: ChatPresentationState) => void): () => void;
+}
 
 type ChatStreamServiceLifecycleContract = {
     initialize: () => void;
@@ -86,4 +106,4 @@ type ChatUiStorage = {
 };
 
 export { AUTO_EMBEDDING_MODEL_SELECTOR, CHAT_CONVERSATION_ATTENTION_SERVICE_ID, CHAT_PAGE_PRESENCE_SERVICE_ID, CHAT_RAG_INGESTION_SERVICE_ID, CHAT_STREAM_SERVICE_ID, CHAT_STREAM_STEER_INTERRUPTED_CODE, CHAT_STREAM_USER_STOPPED_CODE, CHAT_TOOL_ICON_SERVICE_ID, CONVERSATION_INPUT_ACTIVE_STATES, CONVERSATION_INPUT_LIFECYCLE_STATES, CONVERSATION_INPUT_TERMINAL_STATES, MAX_CHAT_COMPOSER_TEXT_LENGTH };
-export type { ChatConversationTerminalIndicator, ChatRagIngestionServiceContract, ChatRagIngestionStartArguments, ChatRagIngestionStatus, ChatStreamServiceLifecycleContract, ChatStreamStatus, ChatToolIconServiceContract, ChatUiStorage, ConversationExecutionRunResult, ConversationInputActiveState, ConversationInputLifecycleState, ConversationInputTerminalState };
+export type { ChatPagePresenceOwner, ChatPagePresenceServiceContract, ChatPresentationState, ChatConversationTerminalIndicator, ChatRagIngestionServiceContract, ChatRagIngestionStartArguments, ChatRagIngestionStatus, ChatStreamServiceLifecycleContract, ChatStreamStatus, ChatToolIconServiceContract, ChatUiStorage, ConversationExecutionRunResult, ConversationInputActiveState, ConversationInputLifecycleState, ConversationInputTerminalState };

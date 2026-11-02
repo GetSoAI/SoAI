@@ -72,6 +72,7 @@ const createVirtualModelsManager = (runtime: ModelsModalRuntimeDependencies, roo
     const { infrastructure, collection } = runtime;
     const strategyStorage = requireStrategyStorage(infrastructure.storage);
     const virtualModelsHost: VirtualModelsHost = {
+        owner: infrastructure.services.mountScope,
         view: {
             modals: infrastructure.services.modals,
             requireHTMLElement: (selector, context) => resolveVirtualRequiredHTMLElement(infrastructure.pageDom, roots, selector, context),

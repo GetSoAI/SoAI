@@ -16,7 +16,7 @@ SoAI is a feature-rich agent platform that unifies local inference engines and r
 </p>
 <p align="center">
 <a href="https://github.com/GetSoAI/SoAI"><img src="https://img.shields.io/github/v/release/GetSoAI/SoAI?label=RELEASE&amp;color=153e75&amp;labelColor=153e75&amp;style=flat" alt="Latest published SoAI release" height="20"></a>
-<img src="media/readme/supported-platforms.svg" alt="Linux, Windows and macOS (experimental)" height="20">
+<img src="media/readme/supported-platforms.svg" alt="Linux, Windows and macOS" height="20">
 <img src="media/readme/supported-languages.svg" alt="22 UI languages" height="20">
 <a href="LICENSE.md"><img src="media/readme/source-available-license.svg" alt="Source-available license" height="20"></a>
 </p>
@@ -25,11 +25,11 @@ SoAI is a feature-rich agent platform that unifies local inference engines and r
 
 ## What SoAI solves
 
-Each inference backend (llama.cpp, Ollama, vLLM) and each remote provider has its own API, model names, and process lifecycle. You install and update each one by hand; every client is configured for one backend at a time; switching backends means downtime and reconfiguration; and a crashed backend takes your requests with it.
+Local backends (llama.cpp, Ollama, vLLM) and remote providers bring separate APIs and model names, while local engines also need installation, updates, and process management. Switching can require client reconfiguration and downtime; crashes can interrupt requests.
 
-SoAI puts one compatible API in front of all of them. Installing any inference backend is as simple as clicking a button. OpenAI-compatible clients such as Open WebUI, LibreChat, Codex, and Cursor point at SoAI once, as do Anthropic-compatible clients such as Claude Code. Both formats reach every configured model, and custom scripts can use either one. SoAI routes requests, starts and stops local backends on demand, queues work so backends do not overload, and retries or reroutes on failure, with load balancing and failover across backends and providers through virtual models.
+SoAI installs local backends in one click and exposes every configured model through OpenAI-compatible and Anthropic-compatible APIs. Configure OpenAI clients (Open WebUI, LibreChat, Codex, Cursor), Anthropic clients (Claude Code), or custom scripts once. SoAI routes requests, starts and stops local backends on demand, queues work to prevent overload, and retries or reroutes on failure. Virtual models provide load balancing and failover across backends and providers.
 
-SoAI is also complete on its own. Its WebUI is a multi-user and multi-device environment for chat, agents, and day-to-day work with your models, kept in sync in real time on every connected device, with hardware monitoring, benchmarking, and GPU control included.
+SoAI also works on its own: its WebUI supports multiple users and devices, with chat, agents, and everyday model work synchronized in real time, plus hardware monitoring, benchmarking, and GPU control. It combines a breadth of capabilities rarely found in a single AI platform, replacing an entire collection of separate tools.
 
 ![SoAI Chat page with a model conversation and workspace controls](media/readme/soai-chat.webp)
 
@@ -39,7 +39,7 @@ The UI ships in 22 languages:
 
 ## Install SoAI
 
-The Linux and macOS (experimental) archives support x64 and ARM64 hosts, and Windows provides an x64 installer and an x64 compressed archive with the compiled native launcher. Your models and inference plugins determine the hardware requirements, and each plugin and model sets its own platform, GPU, memory, storage, and driver requirements.
+The Linux and macOS archives support x64 and ARM64 hosts, and Windows provides an x64 installer and an x64 compressed archive with the compiled native launcher. Your models and inference plugins determine the hardware requirements, and each plugin and model sets its own platform, GPU, memory, storage, and driver requirements.
 
 ### Linux
 
@@ -98,10 +98,8 @@ Source trees use underscore filenames, including `install_soai_from_release.sh` 
 ### First run
 
 1. Start SoAI
-2. Open the URL printed by the launcher (usually http://127.0.0.1:5090)
-3. Complete the setup wizard
-4. Open the Plugins page and install a supported backend
-5. Add a model from a provider or download a new one, then select it in Chat or use its identifier through `/v1/*`
+2. Complete the setup wizard
+3. Install new inference engines from the Plugins page or add new models using the Models page
 
 <details>
 <summary><strong>Launch commands, service control, and account recovery</strong></summary>
@@ -120,104 +118,100 @@ The Linux installer adds `soai` to the system command path, so you can run it fr
 
 ## WebUI and agents
 
-The WebUI is where users chat with agents and manage their SoAI instance. The same interface handles models, backends, files, knowledge, terminal sessions, prompts, and automations, and the Settings page covers connected mail, calendar, and messaging accounts as well as users, permissions, backups, and system configuration. Live views show requests, queues, plugin state, and hardware or network activity. Each account only sees the pages and actions it can access. Preferences and supported page layouts are saved per user; chat, logs, terminal, and hardware can open in separate windows; and large conversations, file listings, and logs remain usable as they grow.
+Chat with agents and manage models, backends, files, knowledge, terminals, prompts, and automations from one WebUI. Automations run agent tasks in the background, once or on a recurring schedule. Settings cover mail, calendar, messaging, users, permissions, backups, and system configuration. Monitor requests, queues, plugins, hardware, and network activity live. Each account sees only authorized pages and actions, with saved preferences and layouts. Chat, logs, terminals, and hardware can open in separate windows. Split view displays up to three panes side by side when space permits.
 
 ### Conversations
 
-Chat mode handles normal replies, Plan mode prepares and tracks steps, and Execute mode lets the agent act through enabled tools. Plans, tool calls, arguments, results, code changes, media, and subagent activity appear in the transcript as the work happens. You can require approval for protected tools, answer questions from the agent, queue another message, steer active work, or stop the run. SoAI exports a conversation as JSON or as a styled PDF containing the transcript, model details, attachments, tool activity, compactions, and comparison variants.
+Use Chat for replies, Plan to prepare and track steps, and Execute to act through enabled tools. Follow plans, tool calls, arguments, results, code changes, media, and subagent activity live in the transcript. Require approval for protected tools, answer agent questions, queue messages, steer work, or stop a run. Export conversations as JSON or styled PDFs, including model details, attachments, tool activity, compactions, and comparison variants.
 
 <details>
 <summary><strong>Conversation settings, history, attachments, and voice</strong></summary>
 
-Each conversation keeps its model selection, system prompt, generation settings, tool access, workspace folder, knowledge, voice setup, and display choices with the transcript. You can change models between turns or compare replies from several models to the same prompt and move among their answers in place. Reusable presets carry parts of a setup into other conversations. Conversations can be searched, renamed, colored, favorited, archived, or cloned: a clone is independent, while editing an earlier user message or regenerating an answer removes the later turns and starts again from that point. Unsent drafts sync between devices, and your local text is preserved if another device changes the same draft. The complete history remains visible even after older messages leave the model's active context, and context compaction summarizes older messages on demand or automatically.
+Conversations retain their model, system prompt, generation settings, tools, workspace, knowledge, voice, and display preferences. Switch models between turns, compare answers to the same prompt, and reuse settings through presets. Search, rename, color, favorite, archive, or create independent clones of conversations. Editing an earlier message or regenerating a reply removes subsequent turns. Drafts sync across devices while preserving local text during conflicts. Full history stays visible beyond the model’s active context; manual or automatic compaction summarizes older messages.
 
-Direct attachments give the current message access to selected files or folders, while knowledge uploads index larger collections for retrieval throughout the conversation. Upload from your device, browse the SoAI workspace, paste SoAI local file links, or photograph a document with a camera. Parsers handle source code, office documents, PDFs, images, audio, video, archives, and messaging exports, and configured speech models add dictation, spoken replies, and hands-free voice calls.
+Attach files or folders to a message, or index larger collections as knowledge for retrieval throughout the conversation. Upload from your device, browse workspace files, paste local file links, or capture documents with a camera. Supported formats include code, office documents, PDFs, images, audio, video, archives, and messaging exports. Configured speech models enable dictation, spoken replies, and hands-free voice calls.
 
 </details>
 
 ## Inference and model management
 
-SoAI bundles eight plugins for inference and remote-provider access. In the table below, "All platforms" means Linux, Windows, and macOS.
+Eight bundled plugins cover inference and remote providers. All support Linux, Windows, and macOS except vLLM, whose limits are noted below.
 
 | Plugin | What it does |
 | --- | --- |
-| Ollama | Local models through a managed Ollama server, plus Ollama Cloud. SoAI downloads and controls the local Ollama binary. All platforms. |
-| llama.cpp | GGUF models through SoAI's own llama-server process. CPU, NVIDIA, AMD, Intel, Vulkan, and Apple Metal. All platforms. |
-| vLLM | High-throughput inference server for transformer and GGUF models. NVIDIA, AMD, and Intel GPUs on Linux. macOS on Apple silicon is CPU-only. No Windows support. |
-| cTranslate2 | Translation using Helsinki-NLP Marian models converted to CTranslate2 format. CPU only. All platforms. |
-| Embedding | Dedicated embedding runtime for GGUF models. Same hardware and platform support as llama.cpp. |
-| Whisper | Speech-to-text using OpenAI Whisper models. CPU, NVIDIA, AMD, Apple MPS, and Intel XPU. All platforms. |
-| MeloTTS | Multilingual text-to-speech with downloadable language packs. CPU, NVIDIA, and Apple MPS. All platforms. |
-| External | Any cloud or local OpenAI-compatible API: OpenRouter, OpenAI, Anthropic, Groq, Together AI, a local inference backend, or another SoAI instance. All platforms. |
+| Ollama | Managed local Ollama server and binary downloads, plus Ollama Cloud. |
+| llama.cpp | GGUF inference through a managed llama-server. CPU, NVIDIA, AMD, Intel, Vulkan, and Apple Metal. |
+| vLLM | High-throughput transformer and GGUF inference. NVIDIA, AMD, and Intel GPUs on Linux; Apple silicon CPU or vLLM-Metal GPU (macOS 15+). No Windows support. |
+| cTranslate2 | CPU-only translation with Helsinki-NLP Marian models converted to CTranslate2. |
+| Embedding | Dedicated GGUF embeddings; same hardware support as llama.cpp. |
+| Whisper | OpenAI Whisper speech-to-text. CPU, NVIDIA, Apple MPS, and Intel XPU. |
+| MeloTTS | Multilingual text-to-speech with downloadable language packs. CPU, NVIDIA, and Apple MPS. |
+| External | Cloud or local OpenAI-compatible APIs, including OpenRouter, OpenAI, Anthropic, Groq, Together AI, and other SoAI instances. |
 
 <details>
 <summary><strong>Model downloads, backend setup, and configuration</strong></summary>
 
-Download supported models from remote sources such as Hugging Face and Ollama or from local storage, selecting variants and quantizations where the provider exposes them, with download size and resource estimates shown before installation. You can also upload model files or place them in a configured model directory. Per-model configuration, parameters, and backend startup options are stored centrally, GPUs are assigned per plugin, and managed local backends are installed, updated, and removed from the WebUI. The External plugin connects to an existing remote or local API.
+Download supported models from Hugging Face, Ollama, or local storage, choosing available variants and quantizations with size and resource estimates shown before installation. You can also upload model files or use a configured model directory. Install, update, and remove managed local backends from the WebUI, with centrally stored per-model settings and startup options and GPU assignment per plugin.
 
-Each plugin defines its own supported formats, devices, model options, and startup controls, and the Plugins page shows what is available on your machine.
+Supported formats, devices, model options, and startup controls vary by plugin; the Plugins page shows what is available on your machine.
 
 </details>
 
 <details>
 <summary><strong>Virtual models and request routing</strong></summary>
 
-A virtual model assigns one model identifier to two or more configured models, each paired with the plugin that serves it. SoAI handles the number of runnable plugins based on your settings. The router scores eligible targets by backend availability, queue pressure, and whether the plugin has loaded the model, and if one target fails it selects another eligible target with no interruption for the client.
+A virtual model groups two or more configured models and their serving plugins under one identifier. Routing considers backend availability, queue pressure, and whether the model is already loaded, with transparent failover to another eligible target on failure.
 
-`/v1/models` lists configured models even when a local backend has stopped, and SoAI can start that backend for a request. If `MAX_CONCURRENT_PLUGINS` has no free slot, SoAI will unload an inactive backend first and start the requested one automatically.
+Configured models remain visible in `/v1/models` when their local backends are stopped. Backends start on demand; when `MAX_CONCURRENT_PLUGINS` is reached, an inactive backend is unloaded first to make room.
 
 </details>
 
 ### Plugins
 
-Plugins let SoAI support additional inference engines and capabilities while keeping the same API and WebUI. You can add trusted third-party plugins from a file or URL and manage them from the WebUI, which also shows when a plugin cannot run or needs attention. Plugins run software on the SoAI host, so only install them from sources you trust.
+Add inference engines and capabilities through third-party plugins while keeping the same API and WebUI. Install from a file or URL and manage plugins in the WebUI, which reports when they cannot run or need attention.
 
-If a local or remote service already offers an OpenAI-compatible API, the External plugin can connect it directly, so you do not need to create a custom plugin. Developers who want to build a new integration can follow the guides in the [documentation](https://soai.to/documentation/).
+Existing OpenAI-compatible services connect through the External plugin without custom development. To build a new integration, follow the guides in the [documentation](https://soai.to/documentation/).
 
 ## Tools, automations, and integrations
 
 ### Agent and MCP tools
 
-SoAI registers more than 100 tools for chat and background automations. They cover:
+More than 100 tools support chat and background automations:
 
-- Web search, browsing, screenshots, downloads, and browser use
-- File operations, archives, OCR, document parsing, and metadata
-- Shell commands and interactive terminal sessions
-- Image generation
-- Speech, audio, and video processing
+- Web search, browser use, screenshots, and downloads
+- Files, archives, OCR, document parsing, metadata, and knowledge-base ingestion and retrieval
+- Shell commands, interactive terminals, and hardware monitoring and control
+- Image generation, speech, audio, and video processing
 - Mail, calendar, messaging, and notifications
-- Knowledge-base ingestion and retrieval
-- Hardware monitoring and control
-- Memory and past conversations access
-- Subagents and automation
+- Memory, conversation history, subagents, and automations
 
-SoAI supports MCP in both directions. External MCP clients can use SoAI's authenticated `/mcp` server, and SoAI assistants can connect to other streamable HTTP MCP servers and use their tools.
+MCP works in both directions: external clients can access tools through the authenticated `/mcp` server, and assistants can use tools from external streamable HTTP MCP servers.
 
 ### Automations
 
 ![SoAI Automations calendar with scheduled work](media/readme/soai-automations.webp)
 
-Automations carry out agent work in the background at a chosen local time, either once or on an hourly, daily, weekly, monthly, or yearly schedule. A task can contain several ordered turns, so one run can research a subject, work with the results, and prepare an answer. Choose its model, workspace folder, model settings, and tools, set a time limit, and decide whether tool use must wait for approval.
+Automations run agent tasks in the background at a chosen local time, once or on hourly, daily, weekly, monthly, or yearly schedules. Each task supports multiple ordered turns, with configurable models, workspaces, generation settings, tools, time limits, and tool approval requirements.
 
-The WebUI calendar shows upcoming and past runs in day, week, or month views. You can enable or disable an automation, change its schedule, remove individual occurrences, and stop queued or active work. Live status shows each run's progress, with its plan, current work, and result excerpt in the run details. Every run is saved on the Chat page as a normal conversation whose transcript remains available after the automation is deleted, and optional notifications report completion or failure.
+Use the calendar to review past and upcoming runs, edit schedules, enable or disable tasks, remove individual occurrences, or stop queued or active work. Live run details show plans, progress, and result previews. SoAI saves each run as a Chat conversation that remains available after its automation is deleted, with optional completion or failure notifications.
 
 ### Files
 
 ![SoAI Files workspace with folders and file management controls](media/readme/soai-files.webp)
 
-The Files page gives each account a workspace on the SoAI server. An administrator can assign one folder to several accounts for shared work, and permissions control what each person can read or change. The page supports browsing, direct path entry, search, sorting, list and icon views, folder and file creation, in-browser editing, and previews of images, audio, and video. It can upload individual files or complete folders, including huge files and parallel uploads, and copy, move, download, or delete a selection while showing progress and partial failures. Folder and multi-file downloads are sent as ZIP archives.
+The Files page provides server workspaces for each account, with administrator-assigned shared folders and read/write permissions. Browse, search, create, and edit files, preview media, and upload files or entire folders (including huge ones) in parallel. Copy, move, download, or delete selections with progress and failure reporting; folder and multi-file downloads use ZIP archives.
 
-To use a stored file or folder in a conversation, select Attach on the Files page and paste its SoAI link, or browse your files directly from the Chat page. SoAI reads the item from the assigned workspace without creating multiple versions of the same file.
+Attach stored files or folders through a SoAI link from the Files page, or browse them directly in Chat. Conversations use the workspace originals without creating duplicate copies.
 
 ### Mail, calendar, and messaging
 
-Each user connects mail and calendar accounts on the Settings page with a password or OAuth, and SoAI can test a connection, sync it on demand, and show the last error if something fails. Mail can arrive through IMAP or POP3 and go out through SMTP, and an agent can find and read messages, save attachments to Files, prepare drafts, send messages or reply to them, and update folders or message state. CalDAV tools let the agent find events, create or change one-off and recurring events, respond to invitations, and use event reminders.
+Connect mail and calendar accounts in Settings using passwords or OAuth, with connection tests, on-demand sync, and error reporting. Agents can search, read, draft, send, reply to, and organize mail via IMAP/POP3 and SMTP, and save attachments to Files. CalDAV tools manage one-off and recurring events, invitations, and reminders.
 
-Messaging accounts connect Telegram, WhatsApp, or Discord to SoAI. A provider thread becomes a WebUI conversation, and the agent's reply returns through the same service. Each account keeps its own model and agent setup, workspace, tools, and sender policy, admitting either named sender IDs or anyone who can reach the bot, and incoming files and media are processed as attachments.
+Connect Telegram, WhatsApp, or Discord to SoAI. Threads become WebUI conversations, with replies returned through the same service. Each account has its own model, agent settings, workspace, tools, and sender policy, allowing specific sender IDs or anyone who can reach the bot. Incoming files and media become attachments.
 
 ### SoAI Connect
 
-[SoAI Connect](https://github.com/GetSoAI/SoAI_Connect) is an MIT-licensed Android client specifically made to work with your SoAI server. Download the latest APK from the Releases section of the [SoAI Connect project](https://github.com/GetSoAI/SoAI_Connect) or from soai.to. An iOS-compatible version will be released in the future.
+[SoAI Connect](https://github.com/GetSoAI/SoAI_Connect) is an MIT-licensed Android client for your SoAI server. Download the APK from the project’s Releases section or [soai.to](https://soai.to). An iOS-compatible version will be released in the future.
 
 ## Hardware and operations
 
@@ -225,14 +219,14 @@ Messaging accounts connect Telegram, WhatsApp, or Discord to SoAI. A provider th
 
 ### Monitoring and GPU control
 
-The Hardware page monitors the whole host machine in real time: CPU activity, memory and swap use, storage volumes, network traffic, running processes, and every detected GPU, with readings that can include core and VRAM use, temperature, power draw and limit, core and memory clocks, and active processes. History for CPU, GPU, disk, and network metrics supports selectable devices, measurements, time ranges, chart styles, aggregation intervals, and CSV export.
+The Hardware page monitors CPU, memory, swap, storage, network traffic, processes, and detected GPUs live. Available GPU readings include core/VRAM use, temperature, power draw and limits, core/memory clocks, and active processes. CPU, GPU, disk, and network history offers configurable charts, device and metric selection, time ranges, aggregation, and CSV export. Supported GPUs also offer overclocking, power-limit, and fan controls.
 
 <details>
 <summary><strong>GPU tuning controls and SoAI Bench</strong></summary>
 
-GPU controls are based on the capabilities SoAI detects for each device. Supported GPUs can expose power, core and memory clock, fan, and reset controls. What is available depends on the card, platform, drivers, permissions, and administrator policy. Three settings slots per GPU let you save and restore a known preset. After an unsafe shutdown, SoAI returns supported tuning controls to their defaults.
+Available power, core/memory clock, fan, and reset controls depend on the GPU, platform, drivers, permissions, and administrator policy. Save and restore three presets per GPU. After an unsafe shutdown, SoAI resets supported tuning controls to defaults.
 
-SoAI Bench tests the GPU itself for inference readiness. Standard and stress runs exercise compute, matrix operations, memory bandwidth, dispatch latency, and sustained mixed workloads while tracking utilization, power, temperature, stability, and score variance. SoAI reports progress as the test runs and keeps per-GPU history to review or export.
+SoAI Bench assesses GPU inference readiness through standard and stress runs covering compute, matrix operations, memory bandwidth, dispatch latency, and sustained mixed workloads. Runs track utilization, power, temperature, stability, and score variance, with live progress and per-GPU history for review or export. You can also share scores on the [soai.to leaderboard](https://soai.to/soaibench-leaderboard.html).
 
 </details>
 
@@ -263,7 +257,7 @@ SoAI implements OpenAI-compatible endpoints plus an Anthropic-compatible Message
 | Audio transcription, translation, and speech | `/v1/audio/*` |
 | Files | `/v1/files/*` |
 
-To connect a client, set the base URL, a model or virtual model identifier, and an API key if you created one. OpenAI-compatible clients use the OpenAI routes, whose streams use OpenAI SSE records and terminate with `data: [DONE]`. Claude Code and other Anthropic-compatible clients use the Messages routes with Anthropic request, response, error, and named-SSE event shapes, which accept the same SoAI API key through either `x-api-key` or a bearer token.
+Connect clients using the base URL, a model or virtual model identifier, and an API key if configured. Claude Code and other Anthropic-compatible clients accept the same SoAI API key through `x-api-key` or a bearer token.
 
 </details>
 
@@ -289,7 +283,7 @@ Add `-H "Authorization: Bearer YOUR_API_KEY"` if you configured API keys.
 <details>
 <summary><strong>REST, streaming, WebSocket, and MCP protocols</strong></summary>
 
-SoAI keeps these protocol surfaces separate. Client requests to `/v1/*` use REST, where OpenAI-compatible streams use OpenAI SSE and Anthropic Messages streams use Anthropic named SSE events. WebUI and administration requests to `/api/v1/*` also use REST. The WebSocket at `/api/v1/system/ws` carries live events, snapshots, and interactive sessions. MCP requests to `/mcp` use streamable HTTP and require a personal access token.
+SoAI keeps these protocol surfaces separate. Client requests to `/v1/*` use REST, where chat and legacy completion streams use OpenAI SSE and Anthropic Messages streams use Anthropic named SSE events. WebUI and administration requests to `/api/v1/*` also use REST. The WebSocket at `/api/v1/system/ws` carries live events, snapshots, and interactive sessions. MCP requests to `/mcp` use streamable HTTP and require a personal access token.
 
 </details>
 
@@ -359,9 +353,9 @@ SoAI works on CPU-only machines and on machines with one or more GPUs. A GPU is 
 
 The RAM, VRAM, and storage needed for inference depend on the models, quantization, context length, and plugins you use rather than on SoAI alone. Larger models and concurrent requests need more memory, and model files, plugin backends, databases, user files, and working space require storage beyond the application itself.
 
-SoAI can run from a hard disk drive, SD card, or USB drive, but these do not meet the SSD-based storage tiers, and their lower throughput, higher latency, and removable-media failure risks can noticeably affect model loading, database activity, indexing, updates, backups, and concurrent file operations. For heavy workloads you should use an enterprise SSD.
+SoAI can run from HDDs, SD cards, or USB drives, but these do not meet the SSD storage tiers. Lower throughput, higher latency, and removable-media risks can affect model loading, databases, indexing, updates, backups, and concurrent file operations. Use an enterprise SSD for heavy workloads.
 
-SoAI supports mixed-vendor systems containing NVIDIA, AMD, and Intel GPUs, inventorying and monitoring each detected device through its vendor tools and routing separate plugin instances or backends to GPUs from different vendors. A single CUDA, ROCm, or XPU backend instance binds only to GPUs from its matching vendor, so mixed-vendor inference uses separate backend instances or a runtime that explicitly supports the selected devices. Plugin cloning is especially useful to split parallel work across multiple GPUs.
+SoAI detects and monitors mixed NVIDIA, AMD, and Intel GPUs, routing separate plugin instances or backends to each vendor. CUDA, ROCm, and XPU instances each use their matching vendor’s GPUs; mixed-vendor inference requires separate instances or a runtime supporting the selected devices. Clone plugins to distribute parallel work across one or multiple GPUs.
 
 ## Updates and release verification
 

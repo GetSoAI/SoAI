@@ -4,7 +4,7 @@
 import { i18n } from '@core/i18n/index.ts';
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
@@ -44,7 +44,7 @@ const promptsPickerModalDefinition: ModalDefinition = {
     id: PROMPTS_PICKER_MODAL_ID,
     layout: 'lg',
     initialFocusSelector: modalUiSelector(PROMPTS_PICKER_MODAL_ID, 'search'),
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const modalId = PROMPTS_PICKER_MODAL_ID;
         const titleId = modalUiId(modalId, 'title');
         const manageButtonId = modalUiId(modalId, 'manage');

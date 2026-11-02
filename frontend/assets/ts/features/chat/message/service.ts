@@ -67,6 +67,7 @@ class ChatMessageManager {
             isMessagePendingDeletion: (conversation, messageDomId) => this.#deleteUndoController.isPendingForConversation(conversation, messageDomId)
         });
         this.#modalCoordinator = new ChatMessageModalCoordinator({
+            owner: chatPage.owner,
             knowledgeAttachmentsApi: this.#dependencies.boundary.knowledgeAttachmentsApi,
             soaiPathsApi: this.#dependencies.boundary.soaiPathsApi,
             escapeHtml: (value: string): string => this.#dependencies.presentation.sanitizer.html(value),

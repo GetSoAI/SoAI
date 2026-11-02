@@ -63,8 +63,10 @@ const createCoreSettingsManagers = (page: SettingsRuntimeContext, state: Setting
     const baseBindings = buildBaseHostBindings(page, callbacks);
     state.messagingManager = new MessagingManager({
         host: {
+            owner: page.owners.pageContext.presentationOwner,
             ...baseBindings,
             api: page.owners.api.webui.messaging.accounts,
+            subscribeModelCatalog: page.owners.subscribeModelCatalog,
             loadModelCatalog: (options) => page.owners.api.models.list(options),
             resolveWorkspaceBrowserAccess: async () =>
                 await resolveWorkspaceBrowserAccess({
@@ -77,6 +79,7 @@ const createCoreSettingsManagers = (page: SettingsRuntimeContext, state: Setting
     if (page.owners.auth.isAdmin()) {
         state.mcpManager = new McpManager({
             host: {
+                owner: page.owners.pageContext.presentationOwner,
                 services: {
                     api: page.owners.api,
                     isAdmin: (): boolean => page.owners.auth.isAdmin(),

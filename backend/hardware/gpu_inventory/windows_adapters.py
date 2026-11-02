@@ -201,11 +201,14 @@ def build_windows_gpu_entry(
             "percent_used": None,
             "memory_total_mb": None,
             "memory_total_status": "unavailable",
-            "memory_total_source": "win32_video_controller.AdapterRAM",
+            "memory_total_source": (
+                "win32_video_controller.AdapterRAM" if "AdapterRAM" in gpu_info else None
+            ),
             "memory_total_unit": "bytes",
             "memory_total_reported_value": total_memory_bytes,
             "display_driver_version": coerce_optional_trimmed_str(gpu_info.get("DriverVersion")),
-            "display_driver_source": "win32_video_controller",
+            "display_driver_source": coerce_optional_trimmed_str(gpu_info.get("DriverSource"))
+            or "win32_video_controller",
             "display_adapter_compatibility": coerce_optional_trimmed_str(
                 gpu_info.get("AdapterCompatibility")
             ),

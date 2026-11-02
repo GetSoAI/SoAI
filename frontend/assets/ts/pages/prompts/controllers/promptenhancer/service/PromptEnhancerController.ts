@@ -11,6 +11,7 @@ import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { awaitPresentationFrame } from '@core/runtime/animationFrames.ts';
 import { LifecycleScope } from '@core/lifecycle/lifecycleScope.ts';
+import { isPresentationOwnerCurrent, isPresentationOwnerMutationAllowed } from '@core/presentationOwner.ts';
 import { createSaveController, SAVE_HEADER_PRIORITY_MODAL, type SaveController } from '@core/save/public.ts';
 import { setAriaBusy } from '@core/ui/controls/ariaBusy.ts';
 import { isPromptRecord, PROMPTS_ENHANCER_MODAL_ID, type PromptRecord } from '@features/prompts/public.ts';
@@ -28,6 +29,7 @@ class PromptEnhancerController {
     private readonly promptCreatedListeners = new Set<(promptId: string) => void>();
     private readonly runner: PromptEnhancerRunner;
     private readonly save: SaveController;
+    #disposed = false;
     private catalog: PromptEnhancerModelCatalogState = createInitialPromptEnhancerModelCatalogState();
     private state: PromptEnhancerRunState = {
         source: null,
@@ -47,16 +49,17 @@ class PromptEnhancerController {
     constructor({ host, syntaxHighlighter, resources }: PromptEnhancerDependencies) {
         this.host = host;
         this.syntaxHighlighter = syntaxHighlighter;
-        resources.track(() => this.#openingScope.abort('prompt-enhancer-resource-cleanup'));
         this.runner = new PromptEnhancerRunner({
             host,
             resources,
             systemPrompt: PROMPT_ENHANCER_SYSTEM_PROMPT,
             state: { get: () => this.state, set: (state) => (this.state = state) },
             catalog: { get: () => this.catalog, set: (catalog) => (this.catalog = catalog) },
+            isCurrent: () => !this.#disposed && isPresentationOwnerCurrent(host.owner),
             render: () => this.#renderState()
         });
         this.save = createSaveController({
+            owner: host.owner,
             headerContextId: 'prompt-enhancer',
             headerPriority: SAVE_HEADER_PRIORITY_MODAL,
             requestContextLabel: 'Prompt enhancer save',
@@ -68,10 +71,16 @@ class PromptEnhancerController {
                 }
             ]
         });
+        resources.track(() => this.dispose());
     }
 
     setupEventListeners(): void {
+        if (this.#disposed) return;
         this.disposeListeners();
+        const unsubscribePreferences = this.host.subscribeUiPreferenceChanges(() => {
+            if (this.state.source && this.state.status !== 'streaming' && this.state.modelId !== this.host.getPromptEnhancerModel()) this.#renderState();
+        });
+        this.disposers.push(unsubscribePreferences);
         const bind = (modalRoot: HTMLElement, selector: string, handler: () => void | Promise<void>): void => {
             const element = this.host.pageDom.requireHTMLElement(selector, modalRoot);
             this.disposers.push(
@@ -115,6 +124,7 @@ class PromptEnhancerController {
                 if (this.state.status === 'streaming') {
                     return;
                 }
+                if (this.#disposed || !isPresentationOwnerMutationAllowed(this.host.owner)) return;
                 const value = readTrimmedSelectValue(target);
                 const selected = value ? value : null;
                 this.host.setPromptEnhancerModel(selected);
@@ -136,14 +146,16 @@ class PromptEnhancerController {
         this.#resetState();
     }
 
-    dispose(): void {
+    readonly dispose = (): void => {
+        if (this.#disposed) return;
+        this.#disposed = true;
         this.#openingScope.abort('prompt-enhancer-disposed');
-        this.runner.stopStreaming();
+        this.runner.dispose();
         this.disposeListeners();
         this.#resetState();
         this.save.dispose();
         this.promptCreatedListeners.clear();
-    }
+    };
 
     onPromptCreated(listener: (promptId: string) => void): () => void {
         this.promptCreatedListeners.add(listener);
@@ -179,12 +191,19 @@ class PromptEnhancerController {
     }
 
     #renderState(): void {
+        if (this.#disposed || !isPresentationOwnerCurrent(this.host.owner) || !this.#isEnhancerModalOpen()) return;
+        if (this.state.source && this.state.status !== 'streaming') {
+            const preferredModel = this.host.getPromptEnhancerModel();
+            if (this.state.modelId !== preferredModel) this.state.modelHelpMessage = null;
+            this.state.modelId = preferredModel;
+        }
         const modalRoot = this.host.modals.requireElement(PROMPTS_ENHANCER_MODAL_ID);
         renderPromptEnhancerState(this.host, modalRoot, this.state, this.catalog, this.syntaxHighlighter);
         this.save.notifyChanged();
     }
 
     async openFromPrompt(promptId: string | number): Promise<void> {
+        if (this.#disposed || !isPresentationOwnerMutationAllowed(this.host.owner)) return;
         const prompt = this.host.findPromptById(promptId);
         if (!isPromptRecord(prompt)) {
             this.host.feedback.show(i18n.t('prompts.enhancer.disabled.noPrompt'), 'warning');
@@ -219,7 +238,7 @@ class PromptEnhancerController {
             terminateHandledPromise(this.reloadModelCatalog());
         }
         this.host.closePromptView();
-        this.host.modals.open(PROMPTS_ENHANCER_MODAL_ID);
+        this.host.modals.open(PROMPTS_ENHANCER_MODAL_ID, { owner: this.host.owner });
         try {
             await awaitPresentationFrame(opening.signal, 'Prompt enhancer opening was cancelled');
             if (this.#openingScope.isCurrent(opening) && this.#isEnhancerModalOpen()) this.#renderState();

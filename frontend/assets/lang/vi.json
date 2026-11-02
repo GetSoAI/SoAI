@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "Thêm tệp và thư mục từ thiết bị dưới dạng tệp đính kèm trực tiếp vào tin nhắn. Chúng được gửi cùng prompt hiện tại, khác với nội dung tải lên Kiến thức vốn được lập chỉ mục để truy xuất.",
                 "uploadTitle": "Tải trực tiếp tệp và thư mục",
-                "title": "Thêm tệp đính kèm"
+                "title": "Thêm tệp đính kèm",
+                "cameraDiscardConfirm": "Hủy bỏ ảnh vừa chụp này?"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "Lỗi không xác định",
                 "unknownError": "Đã xảy ra lỗi không xác định.",
                 "storageHeadroomInsufficient": "Không đủ dung lượng lưu trữ khi tính cả khoảng trống an toàn và dung lượng đã đặt trước. Hãy giải phóng dung lượng hoặc đợi các thao tác lưu trữ khác hoàn tất rồi thử lại.",
-                "storageHeadroomValues": "Cần có, gồm biên an toàn: {required}. Khả dụng cho thao tác này: {available}."
+                "storageHeadroomValues": "Cần có, gồm biên an toàn: {required}. Khả dụng cho thao tác này: {available}.",
+                "permissionsUnavailable": "Quyền truy cập không khả dụng. Kiểm tra kết nối rồi thử lại."
             },
             "export": "Xuất",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "Thay đổi chưa lưu",
             "view": "Xem",
             "yes": "Có",
-            "retry": "Thử lại"
+            "retry": "Thử lại",
+            "discard": "Hủy bỏ"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "Tệp có thể đã được lưu nhưng không thể xác minh trạng thái cuối cùng. Kiểm tra vị trí đích trong Tệp trước khi tải lên lại.",
                 "cleanupIncomplete": "Không thể hoàn tất việc dọn dẹp tự động. Hãy kiểm tra vị trí đích trong Tệp trước khi thử lại.",
                 "contentChanged": "Tệp đã thay đổi trong quá trình thao tác. Chọn lại tệp và thử lại.",
-                "destinationExists": "Đã có tệp hoặc thư mục mang tên này. Hãy chọn tên hoặc vị trí đích khác."
+                "destinationExists": "Đã có tệp hoặc thư mục mang tên này. Hãy chọn tên hoặc vị trí đích khác.",
+                "listingChanged": "Thư mục liên tục thay đổi. Làm mới để thử lại.",
+                "listingTimeout": "Đã hết thời gian làm mới thư mục. Làm mới để thử lại.",
+                "listingIncoherent": "Các trang của thư mục không nhất quán. Làm mới để thử lại.",
+                "listingUnavailable": "Dịch vụ thư mục không khả dụng. Kiểm tra kết nối rồi làm mới.",
+                "listingBusy": "Các yêu cầu thư mục đang bị giới hạn. Hãy chờ rồi làm mới."
             },
             "labels": {
                 "latestTask": "Tác vụ mới nhất",
@@ -3175,7 +3183,10 @@
                 "empty": "Không tìm thấy mục nào.",
                 "error": "Thao tác thất bại. Xem thông báo để biết chi tiết.",
                 "loading": "Đang tải các mục trong thư mục...",
-                "searching": "Đang tìm kiếm tệp và thư mục..."
+                "searching": "Đang tìm kiếm tệp và thư mục...",
+                "refreshing": "Đang làm mới…",
+                "stale": "Dữ liệu đã cũ. Làm mới để thử lại.",
+                "unavailable": "Thư mục không khả dụng. Kiểm tra lỗi rồi làm mới."
             },
             "table": {
                 "modified": "Đã sửa đổi",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "Làm việc với mô hình, công cụ và tệp",
                     "sectionTitle": "Trò chuyện và công cụ agent",
-                    "conversations": "Trang Trò chuyện tập hợp tin nhắn, lựa chọn mô hình, tham số sinh và quyền truy cập công cụ. Bạn có thể đổi mô hình giữa các lượt, so sánh phản hồi, lưu thiết lập thành preset hoặc sắp xếp cuộc trò chuyện vào thư mục. Đính kèm tệp khi mô hình cần toàn bộ nội dung cho tin nhắn hiện tại. Đính kèm nguồn kiến thức khi bạn muốn SoAI tìm trong tài liệu đã lập chỉ mục và trả về các đoạn liên quan. Thêm tệp, thư mục và liên kết SoAI từ trình soạn thảo",
+                    "conversations": "Trang Trò chuyện tập hợp tin nhắn, lựa chọn mô hình, tham số sinh, quyền truy cập công cụ cùng thư viện Kỹ năng và Bộ nhớ. Bạn có thể đổi mô hình giữa các lượt, so sánh phản hồi, lưu thiết lập thành preset hoặc sắp xếp cuộc trò chuyện vào thư mục. Đính kèm tệp khi mô hình cần toàn bộ nội dung cho tin nhắn hiện tại. Đính kèm nguồn kiến thức khi bạn muốn SoAI tìm trong tài liệu đã lập chỉ mục và trả về các đoạn liên quan. Thêm tệp, thư mục và liên kết SoAI từ trình soạn thảo",
                     "tools": "Chế độ Trò chuyện dùng để hội thoại. Chế độ Kế hoạch cho phép mô hình xem xét tác vụ và chuẩn bị các bước. Chế độ này chặn công cụ được đánh dấu là phá hủy hoặc thiếu metadata phá hủy hợp lệ, nhưng các công cụ khác đã chọn vẫn có thể tác động đến hệ thống bên ngoài. Chế độ Thực thi cho phép mô hình hành động bằng các công cụ bạn đã bật. Lời gọi công cụ và kết quả của chúng vẫn hiển thị trong bản ghi, còn các thao tác được bảo vệ có thể yêu cầu bạn phê duyệt. Các công cụ khả dụng có thể tìm kiếm web, điều khiển trình duyệt, làm việc với tệp và terminal, truy vấn kiến thức, xử lý media và kết nối với email hoặc lịch. Quản trị viên quyết định các tích hợp và thông tin xác thực nào khả dụng. Agent cũng có thể đặt câu hỏi, duy trì kế hoạch và chia công việc thành các tác vụ con chạy nền. Trang Tự động hóa chạy một hoặc nhiều lượt theo lịch và lưu mỗi lượt chạy dưới dạng một cuộc trò chuyện",
                     "mcp": "SoAI có thể cung cấp công cụ cho các MCP client đã xác thực và kết nối tới MCP server từ xa. Công cụ từ xa xuất hiện cạnh các công cụ tích hợp sẵn sau khi quản trị viên cấu hình server",
                     "voice": "Mô hình chuyển giọng nói thành văn bản có thể chép lời bản ghi hoặc đầu vào micrô. Mô hình chuyển văn bản thành giọng nói có thể đọc phản hồi thành tiếng, còn chế độ cuộc gọi thoại hỗ trợ hội thoại bằng giọng nói"
@@ -3944,7 +3955,7 @@
                     "heading": "Kiểm tra tình trạng hệ thống và bảo trì máy chủ",
                     "sectionTitle": "Giám sát và quản trị",
                     "status": "Dashboard hiển thị trạng thái hệ thống hiện tại và công việc đang hoạt động. Dùng Phần cứng để xem CPU, bộ nhớ, đĩa, mạng và GPU; Chỉ số để xem lịch sử yêu cầu và mức dùng token; và Nhật ký khi cần chi tiết chẩn đoán. GPU được hỗ trợ có các điều khiển tinh chỉnh công suất, xung nhịp và quạt. Những thay đổi này ảnh hưởng tới máy chủ, vì vậy hãy dùng cấu hình đã được kiểm thử và theo dõi nhiệt độ cũng như độ ổn định",
-                    "operations": "Terminal cung cấp các phiên shell tương tác. Nguồn có thể khởi động lại hoặc dừng SoAI và có thể điều khiển hệ điều hành của máy chủ. Quyền truy cập vào cả hai trang phụ thuộc vào quyền của tài khoản",
+                    "operations": "Terminal cung cấp các phiên shell tương tác. Nguồn có thể khởi động lại hoặc dừng SoAI và có thể điều khiển hệ điều hành của máy chủ. Quyền truy cập vào Terminal và các điều khiển Nguồn phụ thuộc vào quyền của tài khoản",
                     "maintenance": "Bản sao lưu nằm trong Cài đặt, còn cập nhật ứng dụng dùng trang Cập nhật. Hãy xác minh bản sao lưu trước khi dựa vào nó, xuất các bản sao cần giữ ra khỏi máy chủ và xem lại phạm vi trước khi khôi phục hoặc đặt lại. SoAI theo dõi tình trạng backend và ngừng gửi yêu cầu tới plugin liên tục gặp lỗi. Trang Plugin hiển thị trạng thái phục hồi và cách ly. Tải xuống, tải lên, sao lưu và các thao tác ghi lớn khác sẽ kiểm tra dung lượng đĩa dự phòng trước khi bắt đầu"
                 },
                 "access": {
@@ -5229,6 +5240,9 @@
             "loading": "Đang chuẩn bị SoAI...",
             "loadingDelayError": "Trang này tải lâu hơn dự kiến. Hãy kiểm tra kết nối hoặc thử tải lại trang.",
             "loadingLabel": "Đang tải...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "Trang trước vẫn đang đóng. Hãy đợi rồi thử lại. Nếu vẫn bị treo, hãy tải lại cửa sổ này."
+            },
             "retry": "Thử lại"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "Đã đặt lại giao diện về mặc định.",
                 "chatPresetsResetFailed": "Không thể đặt lại cấu hình trò chuyện đặt sẵn. Hãy thử lại.",
                 "chatPresetsResetSuccess": "Đã đặt lại cấu hình trò chuyện đặt sẵn.",
+                "configurationResetFailed": "Không thể lên lịch đặt lại cấu hình. Hãy kiểm tra các tệp cấu hình rồi thử lại.",
                 "conversationsDeleteFailed": "Không thể xóa các cuộc trò chuyện. Hãy thử lại.",
                 "conversationsDeleteNone": "Không có cuộc trò chuyện nào để xóa.",
                 "conversationsDeleteSuccess": "Đã xóa {count} cuộc trò chuyện.",
-                "configurationResetFailed": "Không thể lên lịch đặt lại cấu hình. Hãy kiểm tra các tệp cấu hình rồi thử lại.",
                 "factoryResetSuccess": "Đã bắt đầu đặt lại về mặc định ban đầu. SoAI sẽ sớm khởi động lại.",
                 "fixInvalidFields": "Sửa các trường không hợp lệ trước khi lưu.",
                 "hardwareHistoryResetFailed": "Không thể đặt lại lịch sử phần cứng. Hãy thử lại.",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "Đã bắt đầu đặt lại chỉ số thành công",
                 "pageLayoutsResetFailed": "Không thể đặt lại bố cục trang. Hãy thử lại.",
                 "pageLayoutsResetSuccess": "Đã đặt lại bố cục Bảng điều khiển, Chỉ số và Phần cứng về mặc định.",
+                "partialSave": "Một số cài đặt đã được áp dụng. {reason} Kiểm tra các trường chưa lưu được đánh dấu rồi thử lại.",
                 "passwordManagerResetFailed": "Không thể đặt lại trình quản lý mật khẩu. Hãy thử lại.",
                 "passwordManagerResetSuccess": "Đã đặt lại trình quản lý mật khẩu. Đã xóa {deletedCredentials} thông tin xác thực đã lưu và vô hiệu hóa {clearedSecretHandles} handle bảo mật đang hoạt động.",
                 "preferencesResetFailed": "Không thể đặt lại tùy chọn. Hãy thử lại.",
-                "preferencesResetSuccess": "Đã đặt lại tùy chọn về mặc định. Đang tải lại...",
+                "preferencesResetSuccess": "Đã đặt lại tùy chọn về mặc định.",
                 "recentSearchesResetFailed": "Không thể đặt lại các tìm kiếm gần đây. Hãy thử lại.",
                 "recentSearchesResetSuccess": "Đã đặt lại các tìm kiếm gần đây.",
                 "restartButton": "Khởi động lại SoAI",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "Đã tạo người dùng thành công",
                 "userDeleteSuccess": "Đã xóa người dùng thành công",
                 "userPasswordUpdateSuccess": "Đã cập nhật mật khẩu thành công",
-                "userWorkspacePathUpdateSuccessRevoked": "Đã cập nhật thư mục mặc định. Các ghi đè thư mục của cuộc trò chuyện trước đó nằm ngoài thư mục mới đã bị thu hồi.",
                 "userRoleUpdateSuccess": "Đã cập nhật vai trò người dùng thành công",
+                "userWorkspacePathUpdateSuccessRevoked": "Đã cập nhật thư mục mặc định. Các ghi đè thư mục của cuộc trò chuyện trước đó nằm ngoài thư mục mới đã bị thu hồi.",
                 "wallpaperDeleteSuccess": "Đã xóa hình nền thành công",
                 "wallpaperDownloadSuccess": "Đã tải hình nền xuống thành công",
                 "wallpaperReloadFailed": "Không thể tải bản xem trước hình nền.",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "Chưa xác nhận việc giải phóng thiết bị đầu cuối. Khôi phục kết nối rồi thử lại; nếu dịch vụ đã khởi động lại, hãy kiểm tra shell cũ trên máy chủ.",
+                "recoveryUnavailable": "Không thể khôi phục thiết bị đầu cuối. Tải lại SoAI và kiểm tra shell cũ trên máy chủ trước khi thử lại."
+            },
             "ariaLabels": {
                 "clearTerminal": "Xóa nội dung terminal",
                 "decreaseTextSize": "Giảm cỡ chữ",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "Giọng nói chưa được chép lại. Nhờ quản trị viên thiết lập chuyển giọng nói thành văn bản, rồi tải tệp lên lại.",
             "openModels": "Mở Mô hình",
             "openSettings": "Cài đặt chuyển giọng nói thành văn bản"
+        },
+        "pagePanes": {
+            "storageUnavailable": "Bộ nhớ trình duyệt không khả dụng. Các ngăn đang mở vẫn dùng được nhưng không thể lưu bố cục.",
+            "invalidLayout": "Bố cục ngăn đã lưu không hợp lệ. Trang được yêu cầu sẽ mở bình thường.",
+            "incompatibleLayout": "Bố cục ngăn đã lưu cần ứng dụng mới hơn. Bố cục đã được giữ nguyên.",
+            "foreignLayout": "Bố cục ngăn đã lưu thuộc tài khoản, cửa sổ hoặc phiên bản khác. Bố cục đã được giữ nguyên.",
+            "layoutTooLarge": "Bố cục ngăn này quá lớn để lưu. Các trang đang mở vẫn dùng được.",
+            "restoreFailed": "Không thể khôi phục ngăn chính. Bố cục đã lưu được giữ nguyên; hãy tải lại để thử lại.",
+            "title": "Ngăn",
+            "active": "Đang hoạt động",
+            "closePane": "Đóng ngăn {page}",
+            "split": "Mở trong ngăn khác",
+            "choosePage": "Trang cần mở",
+            "parked": "Đã tạm giữ",
+            "closing": "Đang đóng…",
+            "splitUnavailable": "Cửa sổ này chỉ đủ chỗ cho một ngăn. Trang sẽ mở trong ngăn hiện tại.",
+            "placementUnavailable": "Không có ngăn nào khả dụng cho thao tác này. Hoàn tất công việc đang chờ hoặc đóng một ngăn, rồi thử lại.",
+            "restoreConflict": "Tuyến được khôi phục xung đột với một ngăn đang mở. Mở trực tiếp trang để tiếp tục.",
+            "layoutNotSaved": "Chưa lưu bố cục. Các ngăn đang mở vẫn sử dụng được.",
+            "saveCurrentLayout": "Lưu bố cục hiện tại",
+            "replaceSavedLayoutConfirmation": "Thay bố cục được giữ lại bằng các ngăn hiện đang mở? Chỉ bố cục đã lưu được thay thế, không thay đổi nội dung trang.",
+            "storageQuotaExceeded": "Bộ nhớ của trình duyệt đã đầy. Hãy giải phóng dung lượng rồi lưu lại bố cục hiện tại. Các ngăn đang mở vẫn sử dụng được.",
+            "storageBlocked": "Trình duyệt đã chặn việc lưu bố cục. Hãy cho phép trang web này lưu dữ liệu rồi lưu lại bố cục hiện tại. Các ngăn đang mở vẫn sử dụng được."
         }
     }
 }

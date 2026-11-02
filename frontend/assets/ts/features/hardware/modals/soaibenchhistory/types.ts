@@ -1,6 +1,7 @@
 /* SoAI - SoAI Bench history modal public contracts [frontend/assets/ts/features/hardware/modals/soaibenchhistory/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { SoAIBenchDeadline } from '@features/hardware/soaibenchLabels.ts';
 
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
@@ -73,9 +74,11 @@ interface SoAIBenchHistoryDisplayRow {
 }
 
 interface SoAIBenchHistoryModalHost {
+    readonly owner: PresentationOwner;
     modals: ModalPresenterApi;
     downloadHistoryCsv(deviceId: string): Promise<Response>;
     requireHTMLElement(selector: string | Element, context?: Element): HTMLElement;
+    optionalHTMLElement(selector: string, context?: Element): HTMLElement | null;
     setHTML(target: Element, html: TrustedHtml): void;
     runWithBoundary<T>(name: string, functionValue: () => Promise<T>): Promise<T>;
     hasClipboardSupport(): boolean;

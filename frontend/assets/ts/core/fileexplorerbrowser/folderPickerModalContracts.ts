@@ -1,12 +1,14 @@
 /* SoAI - Shared file explorer browser folder picker modal contracts [frontend/assets/ts/core/fileexplorerbrowser/folderPickerModalContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { FolderPickerLabels } from '@core/fileexplorerbrowser/folderPickerView.ts';
 import type { FileBrowserSource } from '@core/fileexplorerbrowser/types.ts';
 
 type FolderPickerResult = { resultType: 'selected'; virtualPath: string; absolutePath: string | null; workspacePathResolved: string | null } | { resultType: 'reset' };
 
 interface FolderPickerModalOptions {
+    readonly owner: PresentationOwner;
     source: FileBrowserSource;
     title: string;
     message: string;

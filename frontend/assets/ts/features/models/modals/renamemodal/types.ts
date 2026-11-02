@@ -1,6 +1,7 @@
 /* SoAI - Models feature rename modal contracts [frontend/assets/ts/features/models/modals/renamemodal/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { SuccessfulMutationResponse } from '@core/api/contracts/successfulMutationContract.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
@@ -22,6 +23,7 @@ interface RenameModelActions {
 }
 
 interface RenameModelModalHost extends RenameFormResetHost {
+    readonly owner: PresentationOwner;
     modals: ModalPresenterApi;
     requireHTMLElement(selector: string | Element, context?: Element): HTMLElement;
     showNotification(message: string, type: NotificationType, duration?: number): void;

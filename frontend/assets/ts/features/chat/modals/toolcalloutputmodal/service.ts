@@ -60,7 +60,7 @@ class ChatToolCallOutputModal {
         const modalRoot = presenter.requireElement(CHAT_TOOL_CALL_OUTPUT_MODAL_ID);
         this.#activateSession(modalRoot);
         try {
-            presenter.open(CHAT_TOOL_CALL_OUTPUT_MODAL_ID);
+            presenter.open(CHAT_TOOL_CALL_OUTPUT_MODAL_ID, { owner: this.#dependencies.owner });
         } catch (error) {
             this.#deactivateSession();
             throw error;

@@ -12,7 +12,7 @@ import { MODAL_HEADER_CLOSE_SELECTOR } from '@core/modals/headerButtons.ts';
 import { requireModalPresenter, type ModalBinder, type ModalDefinition } from '@core/modals/modalPresenter.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions, ModalOpenOptions } from '@core/modals/types.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
 import { showNotification } from '@core/ui/notifications/notifications.ts';
 import { copyTextWithBrowserClipboardFeedback } from '@core/ui/notifications/clipboardCopy.ts';
@@ -154,7 +154,7 @@ const createMetricsAdvancedModalDefinition = (): ModalDefinition => {
         id: modalId,
         layout: 'lg',
         initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-        createElement: (_options: ModalOpenOptions): HTMLElement => {
+        createElement: (_options: ModalCreationOptions): HTMLElement => {
             const closeLabel = i18n.t('common.close');
             const copyLabel = i18n.t('common.copy');
             const advancedMetricsTitle = i18n.t('metrics.advanced.modalTitle');
@@ -192,7 +192,7 @@ const createMetricsAdvancedModalDefinition = (): ModalDefinition => {
 
 const METRICS_MODAL_DEFINITIONS: readonly ModalDefinition[] = Object.freeze([createMetricsAdvancedModalDefinition()]);
 
-const openMetricsAdvancedModal = (options: ModalOpenOptions = {}): void => {
+const openMetricsAdvancedModal = (options: ModalOpenOptions): void => {
     requireModalPresenter().open(METRICS_ADVANCED_MODAL_ID, options);
 };
 

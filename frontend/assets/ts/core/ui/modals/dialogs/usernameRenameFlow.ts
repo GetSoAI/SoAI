@@ -49,6 +49,7 @@ const createUsernameRenameFlow = (dependencies: { modalId: string }): UsernameRe
     show: async (request): Promise<boolean> => {
         const presenter = requireModalPresenter();
         return await runModalSession<boolean>({
+            owner: request.owner,
             presenter,
             modalId: dependencies.modalId,
             onAlreadyOpen: 'replace',
@@ -66,7 +67,7 @@ const createUsernameRenameFlow = (dependencies: { modalId: string }): UsernameRe
                 elements.usernameInput.select();
                 let pending = false;
                 let operationId: string | null = null;
-                const detachCloseGuard = attachPendingOperationCloseGuard({ modal, isPending: () => pending });
+                const detachCloseGuard = attachPendingOperationCloseGuard({ modal, presenter, isPending: () => pending });
                 const submit = async (event: Event): Promise<void> => {
                     event.preventDefault();
                     event.stopPropagation();

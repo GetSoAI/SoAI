@@ -1,6 +1,7 @@
 /* SoAI - Model detail page control layer view public contracts [frontend/assets/ts/pages/modeldetail/controllers/page/view/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
@@ -54,6 +55,7 @@ interface ModelDetailViewActionPort {
 }
 
 interface ModelDetailViewHost {
+    readonly owner: PresentationOwner;
     state: ModelDetailViewStatePort;
     presentation: ModelDetailViewPresentationPort;
     actions: ModelDetailViewActionPort;

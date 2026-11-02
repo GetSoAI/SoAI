@@ -1,6 +1,7 @@
 /* SoAI - Plugins feature download manager contracts [frontend/assets/ts/features/plugins/modals/downloadmanager/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PageRouting, PresentationOwner } from '@core/routing/router/types.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import type { RequestOptions } from '@core/api/types/request.ts';
@@ -102,10 +103,11 @@ interface PluginDownloadSessionPort {
     showNotification(message: string, type?: NotificationType, duration?: number): void;
     sanitizeHtml(value: string): string;
     isAdmin(): boolean;
-    setLocationHash(hash: string): void;
+    router: Pick<PageRouting, 'navigate'>;
 }
 
 interface DownloadManagerHost {
+    readonly owner: PresentationOwner;
     view: PluginDownloadViewPort;
     execution: PluginDownloadExecutionPort;
     session: PluginDownloadSessionPort;

@@ -8,6 +8,7 @@ import { getModelDetailDisplayName, getModelDetailPluginStatus } from '@pages/mo
 
 const composeModelDetailOperations = (host: ModelDetailOperationsDependencies): ModelDetailOperationsHost => {
     return {
+        owner: host.owner,
         get activeDeletionStream(): StreamHandle | null {
             return host.session.deletionStream;
         },

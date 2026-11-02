@@ -4,7 +4,7 @@
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
@@ -20,7 +20,7 @@ const confirmationModalDefinition: ModalDefinition = {
     resizable: false,
     allowFullscreen: false,
     initialFocusSelector: modalUiSelector(CONFIRMATION_MODAL_ID, CONFIRMATION_UI_TOKENS.CANCEL),
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const modalId = CONFIRMATION_MODAL_ID;
         const header = renderStandardModalHeader({
             modalId,
@@ -47,7 +47,7 @@ const promptModalDefinition: ModalDefinition = {
     id: PROMPT_MODAL_ID,
     layout: 'md',
     initialFocusSelector: modalUiSelector(PROMPT_MODAL_ID, PROMPT_UI_TOKENS.INPUT),
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const modalId = PROMPT_MODAL_ID;
         const header = renderStandardModalHeader({
             modalId,
@@ -89,7 +89,7 @@ const passwordChangeModalDefinition: ModalDefinition = {
     id: PASSWORD_CHANGE_MODAL_ID,
     layout: 'md',
     initialFocusSelector: modalUiSelector(PASSWORD_CHANGE_MODAL_ID, PASSWORD_CHANGE_UI_TOKENS.CURRENT),
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const modalId = PASSWORD_CHANGE_MODAL_ID;
         const header = renderStandardModalHeader({
             modalId,

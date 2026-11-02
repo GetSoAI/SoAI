@@ -3,12 +3,12 @@
 
 import { throwIfAborted } from '@core/errors/abort.ts';
 import { shouldRedirectToWizard } from '@core/routing/router/middlewares/wizardMiddleware.ts';
-import { NAVIGATION_STATUS, navigationResult, type NavigationResultType } from '@core/navigationMiddleware.ts';
+import { NAVIGATION_STATUS, navigationResult } from '@core/navigationMiddleware.ts';
+import type { NavigationResultType, NavigationContext } from '@core/routing/router/types.ts';
 import { isAiSetupResumeRequest } from '@core/routing/router/aiSetupRoutes.ts';
 import { AUTH_ROUTE_LOGIN, AUTH_ROUTE_WIZARD, resolveAuthenticatedRouteTarget } from '@core/routing/router/authRouteTarget.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import type { AuthService, StorageService } from '@core/routing/router/routerDependencies.ts';
-import type { NavigationContext } from '@core/routing/router/types.ts';
 
 type RouterMiddleware = (context: NavigationContext, next: () => Promise<NavigationResultType>) => Promise<NavigationResultType>;
 

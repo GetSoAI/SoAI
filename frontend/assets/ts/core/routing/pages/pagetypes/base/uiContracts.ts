@@ -55,7 +55,7 @@ export interface CanvasPrepareResult {
 
 export interface LanguageService {
     initialize: () => Promise<void>;
-    setLanguage: (code: string) => Promise<void>;
+    setLanguage: (code: string, canApply?: () => boolean) => Promise<void>;
     getLanguage: () => string;
     isLanguageRequestSettled: (code: string) => boolean;
     getAvailableLanguages: () => ReadonlyArray<LanguageEntryWithCountryCode>;

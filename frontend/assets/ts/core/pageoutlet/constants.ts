@@ -7,7 +7,8 @@ const READY_TIMEOUT_MS = PAGE_READINESS_TIMEOUT_MS;
 
 const PAGE_OUTLET_RENDER_STAGES = Object.freeze({
     PREPARED: 'prepared',
-    ACTIVATED: 'activated'
+    ACTIVATED: 'activated',
+    RELEASED: 'released'
 });
 
 const PAGE_OUTLET_TIMEOUT_ERROR_NAME = 'PageOutletTimeoutError';

@@ -130,6 +130,11 @@ class MetricsPage extends StaticBasePage {
                 }
             }
         });
+        const synchronizePresentation = (): void => {
+            if (this.#runtime.presentation.setVisible(this.services.mountScope.presentation.isVisible())) refreshMetricsPresentation(this.#runtime);
+        };
+        this.pageResources.track(this.services.mountScope.presentation.subscribe(synchronizePresentation));
+        synchronizePresentation();
         setupMetricsPageUiEffects(this.#runtime, signal);
         this.pageResources.track(
             this.layout.registerUnsavedChanges({

@@ -13,7 +13,7 @@ import { isElementNode, isNullOrUndefined, isString } from '@core/typeGuards.ts'
 
 interface RouterComponentLoaderHost {
     dom: DomService;
-    resources: ResourceTrackerInstance;
+    resources: Pick<ResourceTrackerInstance, 'addEventListener'>;
     streamManager: StreamManagerService;
     errorHandler: ErrorHandlerService;
     emitEvent: (stage: string, data?: Record<string, JsonValue | null | undefined>, severity?: string) => void;

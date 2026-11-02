@@ -1,6 +1,7 @@
 /* SoAI - Confirmation modal flow management for core.dialogs [frontend/assets/ts/core/ui/modals/dialogs/confirmationFlow.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
@@ -34,6 +35,7 @@ type ConfirmationActionButton = {
 type ConfirmationActionButtons = Readonly<{ first: ConfirmationActionButton | null; second: ConfirmationActionButton | null }>;
 
 type ConfirmationDomConfig = {
+    readonly owner: PresentationOwner;
     closeCompletes?: boolean;
     sections?: readonly NoticeSection[] | undefined;
     advisory?: { text: string; variant: 'info' | 'warning' } | undefined;
@@ -72,6 +74,7 @@ const createConfirmationFlow = (dependencies: { modalId: string }): Confirmation
     const show = async (config: ConfirmationDomConfig): Promise<boolean> => {
         const presenter = requireModalPresenter();
         return await runModalSession<boolean>({
+            owner: config.owner,
             presenter,
             modalId: dependencies.modalId,
             onAlreadyOpen: 'replace',
@@ -177,7 +180,7 @@ const createConfirmationFlow = (dependencies: { modalId: string }): Confirmation
                 configureActionButton(action2Button, action2);
                 const deferredLoading = new DeferredButtonLoading();
                 let actionPending = false;
-                const detachCloseGuard = attachPendingOperationCloseGuard({ modal, isPending: () => actionPending });
+                const detachCloseGuard = attachPendingOperationCloseGuard({ modal, presenter, isPending: () => actionPending });
 
                 const cancel = (event: Event): void => {
                     event.preventDefault();

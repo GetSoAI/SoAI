@@ -1,6 +1,7 @@
 /* SoAI - Model detail page control layer parameter state manager [frontend/assets/ts/pages/modeldetail/controllers/ParameterStateManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createAbortError } from '@core/errors/abort.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { deepClone } from '@core/primitives/clone.ts';
 import { hasOwn, isArray, isNullOrUndefined, isObject, isString } from '@core/typeGuards.ts';
@@ -49,28 +50,63 @@ const isCustomizedValue = (parameter: Parameter | null | undefined, valueOverrid
 };
 
 class ParameterStateManager {
-    parametersData: ParametersPayload = {};
-    parameters: ParameterCollection = {};
-    originalParameters: ParameterCollection = {};
-    categories: Record<string, ParameterCategory> = {};
-    customizedParameters: Set<string> = new Set();
-    metadata: Map<string, ParameterMetadata> = new Map();
+    #protectionRevision = 0;
+    readonly #canMutate: () => boolean;
+    #parametersData: ParametersPayload = {};
+    #parameters: ParameterCollection = {};
+    #originalParameters: ParameterCollection = {};
+    #categories: Record<string, ParameterCategory> = {};
+    #customizedParameters: Set<string> = new Set();
+    #metadata: Map<string, ParameterMetadata> = new Map();
+
+    constructor(canMutate: () => boolean = () => true) {
+        this.#canMutate = canMutate;
+    }
+
+    get protectionRevision(): number {
+        return this.#protectionRevision;
+    }
+
+    get parametersData(): ParametersPayload {
+        return deepClone(this.#parametersData);
+    }
+
+    get parameters(): ParameterCollection {
+        return deepClone(this.#parameters);
+    }
+
+    get originalParameters(): ParameterCollection {
+        return deepClone(this.#originalParameters);
+    }
+
+    get categories(): Record<string, ParameterCategory> {
+        return deepClone(this.#categories);
+    }
+
+    get customizedParameters(): Set<string> {
+        return new Set(this.#customizedParameters);
+    }
+
+    get metadata(): Map<string, ParameterMetadata> {
+        return new Map([...this.#metadata].map(([key, value]) => [key, deepClone(value)]));
+    }
 
     reset(): void {
-        this.parametersData = {};
-        this.parameters = {};
-        this.originalParameters = {};
-        this.categories = {};
-        this.customizedParameters = new Set();
-        this.metadata = new Map();
+        this.#protectionRevision += 1;
+        this.#parametersData = {};
+        this.#parameters = {};
+        this.#originalParameters = {};
+        this.#categories = {};
+        this.#customizedParameters = new Set();
+        this.#metadata = new Map();
     }
 
     applyPayload(payload: ParametersPayload = {}): void {
-        this.reset();
-        this.parametersData = payload ?? {};
-        this.parameters = this.parametersData.parameters ?? {};
-        this.categories = this.parametersData.categories ?? {};
-        Object.entries(this.parameters).forEach(([key, parameter]) => {
+        const snapshot = deepClone(payload);
+        const parameters = snapshot.parameters ?? {};
+        const customized = new Set<string>();
+        const metadata = new Map<string, ParameterMetadata>();
+        Object.entries(parameters).forEach(([key, parameter]) => {
             if (!isObject(parameter)) return;
             const rawCurrentValue = hasOwn(parameter, 'currentValue') ? parameter.currentValue : undefined;
             const sanitized = sanitizeParameterValue(parameter, rawCurrentValue, { treatDefaultAsNull: false });
@@ -88,82 +124,124 @@ class ParameterStateManager {
             }
             const displayValue = parameter.currentValue ?? definition.default ?? null;
             const isCustom = parameter.isCustom ?? isCustomizedValue(parameter, displayValue);
-            if (isCustom) this.customizedParameters.add(key);
-            this.metadata.set(key, {
+            if (isCustom) customized.add(key);
+            metadata.set(key, {
                 category: definition.category || 'other',
                 group: definition.group || 'unknown',
                 keywords: buildKeywords(key, definition),
                 linkedParameterName
             });
         });
-        this.originalParameters = deepClone(this.parameters);
+        const original = deepClone(parameters);
+        this.#protectionRevision += 1;
+        this.#parametersData = snapshot;
+        this.#parameters = parameters;
+        this.#categories = snapshot.categories ?? {};
+        this.#customizedParameters = customized;
+        this.#metadata = metadata;
+        this.#originalParameters = original;
+    }
+
+    mergePayload(payload: ParametersPayload, isProtected: (key: string) => boolean): string[] {
+        const previous = this.#parameters;
+        const revision = this.#protectionRevision;
+        const protectedKeys = new Set(this.getParameterKeys().filter((key) => isProtected(key) || this.isParameterModified(key)));
+        let protectedCount = -1;
+        while (protectedCount !== protectedKeys.size) {
+            protectedCount = protectedKeys.size;
+            for (const [key, metadata] of this.#metadata) {
+                const linked = metadata.linkedParameterName;
+                if (linked && (protectedKeys.has(key) || protectedKeys.has(linked))) {
+                    protectedKeys.add(key);
+                    protectedKeys.add(linked);
+                }
+            }
+        }
+        if (revision !== this.#protectionRevision) throw createAbortError('Parameter protection changed during reconciliation');
+        this.applyPayload(payload);
+        for (const key of protectedKeys) {
+            const parameter = this.#parameters[key];
+            const retained = previous[key];
+            if (parameter && retained) {
+                parameter.currentValue = deepClone(retained.currentValue);
+                this.updateCustomization(key);
+            }
+        }
+        return this.getParameterKeys().filter((key) => !protectedKeys.has(key) && !areValuesEqual(previous[key]?.currentValue, this.#parameters[key]?.currentValue));
     }
 
     getParameterKeys(): string[] {
-        return Object.keys(this.parameters);
+        return Object.keys(this.#parameters);
     }
 
     getParameter(parameterKey: string): Parameter | undefined {
-        return this.parameters[parameterKey];
+        const parameter = this.#parameters[parameterKey];
+        return parameter ? deepClone(parameter) : undefined;
     }
 
     getOriginalParameter(parameterKey: string): Parameter | undefined {
-        return this.originalParameters[parameterKey];
+        const parameter = this.#originalParameters[parameterKey];
+        return parameter ? deepClone(parameter) : undefined;
     }
 
     getMetadata(parameterKey: string): ParameterMetadata | undefined {
-        return this.metadata.get(parameterKey);
+        const metadata = this.#metadata.get(parameterKey);
+        return metadata ? deepClone(metadata) : undefined;
     }
 
     setParameterValue(parameterKey: string, value: JsonValue): SetValueResult | null {
-        const parameter = this.getParameter(parameterKey);
+        if (!this.#canMutate()) throw createAbortError('Parameter draft mutation is not admitted');
+        const parameter = this.#parameters[parameterKey];
         if (!parameter) return null;
-        const sanitized = sanitizeParameterValue(parameter, value, {
-            preserveEmptyArrayItems: true,
-            treatDefaultAsNull: false
-        });
+        const sanitized = deepClone(
+            sanitizeParameterValue(parameter, value, {
+                preserveEmptyArrayItems: true,
+                treatDefaultAsNull: false
+            })
+        );
+        this.#protectionRevision += 1;
         parameter.currentValue = sanitized;
         const isCustomized = this.updateCustomization(parameterKey);
         const isModified = this.updateModification(parameterKey);
         const changedKeys: string[] = [parameterKey];
-        const linkedParameterName = this.metadata.get(parameterKey)?.linkedParameterName;
+        const linkedParameterName = this.#metadata.get(parameterKey)?.linkedParameterName;
         if (linkedParameterName) {
-            const linkedParameter = this.getParameter(linkedParameterName);
+            const linkedParameter = this.#parameters[linkedParameterName];
             if (linkedParameter) {
                 linkedParameter.currentValue = deepClone(sanitized);
                 this.updateCustomization(linkedParameterName);
                 changedKeys.push(linkedParameterName);
             }
         }
-        return { parameter, isCustomized, isModified, changedKeys };
+        return { parameter: deepClone(parameter), isCustomized, isModified, changedKeys };
     }
 
     getLinkedParameterKey(parameterKey: string): string | null {
-        return this.metadata.get(parameterKey)?.linkedParameterName ?? null;
+        return this.#metadata.get(parameterKey)?.linkedParameterName ?? null;
     }
 
     updateCustomization(parameterKey: string, valueOverride?: JsonValue): boolean {
-        const parameter = this.getParameter(parameterKey);
+        const parameter = this.#parameters[parameterKey];
         if (!parameter) {
-            this.customizedParameters.delete(parameterKey);
+            this.#customizedParameters.delete(parameterKey);
             return false;
         }
         const isCustomized = isCustomizedValue(parameter, valueOverride !== undefined ? valueOverride : (parameter.currentValue ?? null));
-        if (isCustomized) this.customizedParameters.add(parameterKey);
-        else this.customizedParameters.delete(parameterKey);
+        if (isCustomized) this.#customizedParameters.add(parameterKey);
+        else this.#customizedParameters.delete(parameterKey);
         return isCustomized;
     }
 
     isParameterCustomized(parameterKey: string): boolean {
-        return this.customizedParameters.has(parameterKey);
+        return this.#customizedParameters.has(parameterKey);
     }
 
     updateModification(parameterKey: string, overrideValue?: JsonValue): boolean {
-        const parameter = this.getParameter(parameterKey);
+        const parameter = this.#parameters[parameterKey];
         if (!parameter) {
             return false;
         }
-        const originalParameter = this.getOriginalParameter(parameterKey);
+        const originalParameter = this.#originalParameters[parameterKey];
         const currentValue = sanitizeParameterValue(parameter, overrideValue !== undefined ? overrideValue : (parameter.currentValue ?? null));
         const originalValue = originalParameter ? sanitizeParameterValue(originalParameter, originalParameter.currentValue ?? null) : undefined;
         return !areValuesEqual(currentValue, originalValue);
@@ -174,27 +252,29 @@ class ParameterStateManager {
     }
 
     resetParameter(parameterKey: string): JsonValue {
-        const originalParameter = this.getOriginalParameter(parameterKey);
+        if (!this.#canMutate()) throw createAbortError('Parameter draft mutation is not admitted');
+        const originalParameter = this.#originalParameters[parameterKey];
         if (!originalParameter) return null;
-        const parameter = this.getParameter(parameterKey);
+        const parameter = this.#parameters[parameterKey];
         const clonedValue = deepClone(originalParameter.currentValue);
+        this.#protectionRevision += 1;
         if (parameter) parameter.currentValue = clonedValue;
         this.updateCustomization(parameterKey, clonedValue);
-        const linkedParameterName = this.metadata.get(parameterKey)?.linkedParameterName;
+        const linkedParameterName = this.#metadata.get(parameterKey)?.linkedParameterName;
         if (linkedParameterName) {
-            const linkedOriginal = this.getOriginalParameter(linkedParameterName);
-            const linkedParameter = this.getParameter(linkedParameterName);
+            const linkedOriginal = this.#originalParameters[linkedParameterName];
+            const linkedParameter = this.#parameters[linkedParameterName];
             if (linkedParameter && linkedOriginal) {
                 const linkedValue = deepClone(linkedOriginal.currentValue);
                 linkedParameter.currentValue = linkedValue;
                 this.updateCustomization(linkedParameterName, linkedValue);
             }
         }
-        return clonedValue ?? null;
+        return deepClone(clonedValue) ?? null;
     }
 
     getCustomizedKeys(): string[] {
-        return Array.from(this.customizedParameters);
+        return Array.from(this.#customizedParameters);
     }
 
     get count(): number {
@@ -202,8 +282,10 @@ class ParameterStateManager {
     }
 
     commit(submittedValues: Record<string, JsonValue>): void {
-        for (const [key, value] of Object.entries(submittedValues)) {
-            const original = this.originalParameters[key];
+        const submitted = deepClone(submittedValues);
+        this.#protectionRevision += 1;
+        for (const [key, value] of Object.entries(submitted)) {
+            const original = this.#originalParameters[key];
             if (original) original.currentValue = deepClone(value);
         }
     }

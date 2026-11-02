@@ -1,6 +1,7 @@
 /* SoAI - Shared chat message mutation controller contracts [frontend/assets/ts/features/chat/message/messageMutationControllerContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ConversationExecutionRunResult } from '@core/chat/protocols.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
@@ -36,6 +37,7 @@ interface ChatMessageEditViewPort {
 }
 
 interface ChatMessageEditControllerDependencies extends ChatMessageMutationDependencies {
+    readonly owner: PresentationOwner;
     view: ChatMessageEditViewPort;
     resolveMessageReference: MessageReferenceResolver;
     resubmitUserMessage: (conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number; message: ChatStorageMessageRecord }) => Promise<void>;

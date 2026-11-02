@@ -1,6 +1,7 @@
 /* SoAI - File Explorer New menu execution [frontend/assets/ts/pages/fileexplorer/controllers/FileExplorerNewEntryController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { joinVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
@@ -10,6 +11,7 @@ import { filenameFromPath } from '@pages/fileexplorer/controllers/fileExplorerOp
 import type { FileExplorerOperationsController } from '@pages/fileexplorer/controllers/FileExplorerOperationsController.ts';
 
 interface FileExplorerNewEntryControllerDependencies {
+    readonly owner: PresentationOwner;
     contentPreviewModal: FileExplorerContentPreviewModalController;
     operations: FileExplorerOperationsController;
     getCurrentPath: () => string;
@@ -17,12 +19,14 @@ interface FileExplorerNewEntryControllerDependencies {
 }
 
 class FileExplorerNewEntryController {
+    readonly #owner: PresentationOwner;
     readonly #contentPreviewModal: FileExplorerContentPreviewModalController;
     readonly #operations: FileExplorerOperationsController;
     readonly #getCurrentPath: () => string;
     readonly #isDisposed: () => boolean;
 
     constructor(dependencies: FileExplorerNewEntryControllerDependencies) {
+        this.#owner = dependencies.owner;
         this.#contentPreviewModal = dependencies.contentPreviewModal;
         this.#operations = dependencies.operations;
         this.#getCurrentPath = dependencies.getCurrentPath;
@@ -55,6 +59,7 @@ class FileExplorerNewEntryController {
 
     async #createFolder(): Promise<void> {
         const name = await requireDialogsService().showPrompt({
+            owner: this.#owner,
             title: i18n.t('fileExplorer.modals.createFolder.title'),
             message: i18n.t('fileExplorer.modals.createFolder.nameLabel'),
             placeholder: '',

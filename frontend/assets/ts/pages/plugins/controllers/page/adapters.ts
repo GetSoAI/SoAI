@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
-import { getWindow } from '@core/environment/public.ts';
 import { resolveHttpsWebsiteUrl, securityApi } from '@core/security/public.ts';
 import type { EscapeSanitizerApi } from '@core/security/protocols.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
@@ -68,7 +67,7 @@ const createPluginsPageModalRuntime = (dependencies: CreatePluginsPageModalRunti
             return isFunction(dispose) ? dispose : (): void => {};
         },
         updateText: (target: Element | string, text: string): void => infrastructure.pageDom.updateText(target, text),
-        updateHTML: (target: Element | string, html: string, options?: { escape?: boolean; context?: Element | Document | null }): void => infrastructure.pageDom.updateHtml(target, html, options),
+        updateHTML: (target: Element | string, html: string, options?: { escape?: boolean; context?: Element | null }): void => infrastructure.pageDom.updateHtml(target, html, options),
         addClassName: (target: Element | string, classes: string | string[]): void => infrastructure.pageDom.addClass(target, classes),
         removeClassName: (target: Element | string, classes: string | string[]): void => infrastructure.pageDom.removeClass(target, classes),
         setUIValue: (target: Element | string, value: JsonValue | null | undefined, options?: { attribute?: string }): void => infrastructure.pageElements.setValue(target, value === null || value === undefined ? value : String(value), options),
@@ -101,6 +100,7 @@ const createPluginsPageModalRuntime = (dependencies: CreatePluginsPageModalRunti
     }
     const modalManagers = createPluginsModalManagers({
         foundation: {
+            owner: infrastructure.services.mountScope,
             callbacks: managerHostCallbacks,
             security: sanitizerAdapter,
             statusManager: infrastructure.stateManager.status,
@@ -140,9 +140,7 @@ const createPluginsPageModalRuntime = (dependencies: CreatePluginsPageModalRunti
             createOperationProgressReporter: (containerId: string, options: { onCancel(key: string): void; backgroundButtonId?: string }): ProgressReporter | null => infrastructure.streaming.progressReporter(containerId, options),
             hasClipboardSupport: (): boolean => infrastructure.services.hasClipboardSupport(),
             isAdmin: (): boolean => infrastructure.auth.isAdmin(),
-            setLocationHash: (hash: string): void => {
-                getWindow().location.hash = hash;
-            }
+            router: infrastructure.router
         },
         presentation: {
             getCapabilityDescriptors: (plugin: PluginRecord) => getCapabilityDescriptors(plugin),
@@ -155,7 +153,7 @@ const createPluginsPageModalRuntime = (dependencies: CreatePluginsPageModalRunti
             },
             isPluginPermanentlyDisabled: (plugin: PluginRecord): boolean => coreControllers.dataController.isPluginPermanentlyDisabled(plugin),
             notifyPluginIncompatible: (plugin: PluginRecord): void => coreControllers.compatibilityController.notifyPluginIncompatible(plugin),
-            handleBackendWebsiteLinkClick: (event: Event): Promise<void> => handlePluginsBackendWebsiteLinkClick(event, { feedback: infrastructure.feedback }),
+            handleBackendWebsiteLinkClick: (event: Event): Promise<void> => handlePluginsBackendWebsiteLinkClick(event, { owner: infrastructure.services.mountScope, feedback: infrastructure.feedback }),
             getBackendStatus: (plugin: PluginRecord): string => coreControllers.dataController.getBackendStatus(plugin),
             getBackendVersion: (plugin: PluginRecord): string => String(coreControllers.dataController.resolvePluginRecord(plugin)?.backendVersion ?? '').trim(),
             getPluginStatus: (plugin: PluginRecord): string => coreControllers.dataController.getPluginStatus(plugin),

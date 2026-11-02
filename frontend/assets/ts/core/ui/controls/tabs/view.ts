@@ -66,7 +66,7 @@ const renderContainerMarkup = (className: string, tabs: TabConfig[], activeTab: 
             <div class="${className}-nav-wrapper">
                 <nav class="${className}-nav" role="tablist">${renderTabsMarkup(tabs, className, activeTab).html}</nav>
             </div>
-            <div class="${className}-buttons" id="${className}-buttons">${renderRightButtonsMarkup(activeTab, rightButtons).html}</div>
+            <div class="${className}-buttons">${renderRightButtonsMarkup(activeTab, rightButtons).html}</div>
         </div>
         `);
 };

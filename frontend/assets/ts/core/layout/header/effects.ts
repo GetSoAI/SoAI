@@ -1,6 +1,7 @@
 /* SoAI - Shared layout header effects [frontend/assets/ts/core/layout/header/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { GlobalPresentationOwner } from '@core/routing/router/types.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
@@ -25,6 +26,7 @@ interface HeaderActionBridgeContext {
 }
 
 interface HeaderLogoutContext {
+    owner: GlobalPresentationOwner;
     resolveService: HeaderServiceResolver;
 }
 
@@ -56,6 +58,7 @@ const handleHeaderLogout = async (context: HeaderLogoutContext): Promise<void> =
         return;
     }
     const confirmed = await requireDialogsService().showConfirmation({
+        owner: context.owner,
         title: i18n.t('header.menu.logout'),
         message: i18n.t('header.confirmations.logoutMessage'),
         confirmText: i18n.t('header.menu.logout'),

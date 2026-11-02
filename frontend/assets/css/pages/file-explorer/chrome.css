@@ -132,16 +132,16 @@
         border: var(--border-width-1) solid transparent;
         border-radius: var(--border-radius);
         background: transparent;
-        color: var(--text-secondary);
-        font-size: var(--font-size-caption-plus);
-        font-weight: 600;
-        line-height: var(--line-height-compact);
         white-space: nowrap;
         cursor: pointer;
+        transition: var(--transition-interactive-full);
     }
 
-    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb__crumb--current {
-        color: var(--text-primary);
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) :is(.file-explorer-breadcrumb__crumb, .file-explorer-address-bar__input) {
+        color: var(--ui-button-color);
+        font-size: var(--control-dropdown-font-size);
+        font-weight: var(--font-weight-regular);
+        line-height: var(--line-height-compact);
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb--truncate-current .file-explorer-breadcrumb__segment:last-of-type .file-explorer-breadcrumb__crumb {
@@ -195,6 +195,13 @@
         flex-shrink: 0;
         padding: var(--space-2) var(--space-3);
         border-top: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-status-bar__freshness {
+        flex: 1 1 auto;
+        min-inline-size: 0;
+        overflow-wrap: anywhere;
+        color: var(--text-secondary);
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-status-bar__label {

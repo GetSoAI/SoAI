@@ -3,6 +3,7 @@
 
 import { isPresenceExiting } from '@core/animations/presence/public.ts';
 import { dom } from '@core/dom/dom.ts';
+import { findDescendantById } from '@core/dom/domResolver.ts';
 import { CHAT_ACTIONS } from '@features/chat/public.ts';
 import type { ChatPresetEditorDraft } from '@pages/chat/controllers/chatconfigurationcontroller/contracts.ts';
 
@@ -11,8 +12,8 @@ type ChatPresetEditorFocusTarget = Readonly<{ mode: ChatPresetEditorDraft['mode'
 
 const captureChatPresetLibraryFocus = (root: Element): ChatPresetLibraryFocusSnapshot | null => {
     const active = root.ownerDocument.activeElement;
-    if (active instanceof HTMLInputElement && active.id) return { type: 'input', id: active.id, start: active.selectionStart, end: active.selectionEnd };
     if (!(active instanceof HTMLElement) || !root.contains(active)) return null;
+    if (active instanceof HTMLInputElement && active.id) return { type: 'input', id: active.id, start: active.selectionStart, end: active.selectionEnd };
     const action = active.dataset['action'];
     if (!action) return null;
     const row = active.closest<HTMLElement>('.chat-preset-row');
@@ -23,8 +24,7 @@ const captureChatPresetLibraryFocus = (root: Element): ChatPresetLibraryFocusSna
 const restoreChatPresetLibraryFocus = (root: Element, snapshot: ChatPresetLibraryFocusSnapshot | null): void => {
     if (!snapshot) return;
     if (snapshot.type === 'input') {
-        const candidate = root.ownerDocument.getElementById(snapshot.id);
-        const element = candidate && root.contains(candidate) ? candidate : null;
+        const element = findDescendantById(root, snapshot.id);
         if (!(element instanceof HTMLInputElement)) return;
         element.focus({ preventScroll: true });
         if (snapshot.start !== null && snapshot.end !== null) element.setSelectionRange(snapshot.start, snapshot.end);

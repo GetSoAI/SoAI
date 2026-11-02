@@ -1310,7 +1310,7 @@
       "version": "0.4.2"
     },
     {
-      "bom-ref": "pkg:pypi/pyasn1@0.6.4",
+      "bom-ref": "pkg:pypi/pyasn1@0.6.5",
       "licenses": [
         {
           "license": {
@@ -1319,10 +1319,10 @@
         }
       ],
       "name": "pyasn1",
-      "purl": "pkg:pypi/pyasn1@0.6.4",
+      "purl": "pkg:pypi/pyasn1@0.6.5",
       "scope": "required",
       "type": "library",
-      "version": "0.6.4"
+      "version": "0.6.5"
     },
     {
       "bom-ref": "pkg:pypi/pybase64@1.5.0",
@@ -2277,7 +2277,7 @@
         "pkg:pypi/protobuf@7.35.1",
         "pkg:pypi/psutil@7.2.2",
         "pkg:pypi/pyasn1-modules@0.4.2",
-        "pkg:pypi/pyasn1@0.6.4",
+        "pkg:pypi/pyasn1@0.6.5",
         "pkg:pypi/pybase64@1.5.0",
         "pkg:pypi/pyclipper@1.4.0",
         "pkg:pypi/pycparser@3.0",
@@ -2336,7 +2336,7 @@
         "pkg:pypi/zipp@4.1.0",
         "pkg:pypi/zstandard@0.25.0"
       ],
-      "ref": "pkg:generic/soai@1.4.1"
+      "ref": "pkg:generic/soai@1.4.2"
     },
     {
       "dependsOn": [],
@@ -2692,7 +2692,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/pyasn1@0.6.4"
+      "ref": "pkg:pypi/pyasn1@0.6.5"
     },
     {
       "dependsOn": [],
@@ -2925,7 +2925,7 @@
   ],
   "metadata": {
     "component": {
-      "bom-ref": "pkg:generic/soai@1.4.1",
+      "bom-ref": "pkg:generic/soai@1.4.2",
       "description": "Smart Orchestrator for Artificial Intelligence",
       "licenses": [
         {
@@ -2935,9 +2935,9 @@
         }
       ],
       "name": "SoAI",
-      "purl": "pkg:generic/soai@1.4.1",
+      "purl": "pkg:generic/soai@1.4.2",
       "type": "application",
-      "version": "1.4.1"
+      "version": "1.4.2"
     },
     "properties": [
       {
@@ -2960,7 +2960,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:19621a7a-b69d-5fcb-a318-e08c3acbc268",
+  "serialNumber": "urn:uuid:73c16492-e175-59d5-84e1-2dbe87542f8a",
   "specVersion": "1.6",
   "version": 1
 }

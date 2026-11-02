@@ -1,6 +1,7 @@
 /* SoAI - Plugins page external link [frontend/assets/ts/pages/plugins/formatting/pluginsExternalLink.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { getWindowOpen } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -9,7 +10,7 @@ import { isElementNode } from '@core/typeGuards.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 
-type PluginsExternalLinkHost = PageFeedbackOwnerHost;
+type PluginsExternalLinkHost = PageFeedbackOwnerHost & { readonly owner: PresentationOwner };
 
 const handlePluginsBackendWebsiteLinkClick = async (event: Event, host: PluginsExternalLinkHost): Promise<void> => {
     const target = isElementNode(event?.target) ? event.target : null;
@@ -18,7 +19,7 @@ const handlePluginsBackendWebsiteLinkClick = async (event: Event, host: PluginsE
     if (!anchor) throw new Error('Backend website link element not found');
     const url = anchor.getAttribute('data-backend-url') || anchor.getAttribute('href');
     if (!url) throw new Error('Backend website link is missing a URL');
-    const confirmed = await requireDialogsService().showExternalLinkModal({ url });
+    const confirmed = await requireDialogsService().showExternalLinkModal({ owner: host.owner, url });
     if (!confirmed) return;
     const sanitizedUrl = securityApi.sanitizeUrl(url, {
         allowRelative: false,

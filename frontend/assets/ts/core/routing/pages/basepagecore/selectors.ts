@@ -5,7 +5,7 @@ import { dom } from '@core/dom/dom.ts';
 import { normalizeSelectorForResolve, normalizeSelectorList } from '@core/routing/pages/pageDom.ts';
 import { isArray, isElementNode, isString } from '@core/typeGuards.ts';
 
-const resolvePageUiElement = (selector: string | Element, context: Document | Element): Element | null => {
+const resolvePageUiElement = (selector: string | Element, context: Element): Element | null => {
     const normalized = normalizeSelectorForResolve(selector);
     if (isElementNode(normalized)) {
         return normalized;
@@ -16,7 +16,7 @@ const resolvePageUiElement = (selector: string | Element, context: Document | El
     return dom.resolve(normalized, context);
 };
 
-const resolvePageUiElements = (selector: string | Element | string[], context: Document | Element): Element[] => {
+const resolvePageUiElements = (selector: string | Element | string[], context: Element): Element[] => {
     const normalized = normalizeSelectorList(selector);
     const targets: Array<string | Element> = [];
     if (isArray(normalized)) {

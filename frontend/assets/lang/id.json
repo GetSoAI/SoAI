@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "Tambahkan file dan folder dari perangkat Anda sebagai lampiran pesan langsung. Lampiran ini dikirim bersama prompt saat ini, tidak seperti unggahan Pengetahuan yang diindeks untuk retrieval.",
                 "uploadTitle": "Unggah file dan folder secara langsung",
-                "title": "Tambahkan lampiran"
+                "title": "Tambahkan lampiran",
+                "cameraDiscardConfirm": "Buang foto yang diambil ini?"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "Kesalahan tidak diketahui",
                 "unknownError": "Terjadi kesalahan yang tidak diketahui.",
                 "storageHeadroomInsufficient": "Ruang penyimpanan tidak cukup setelah memperhitungkan ruang pengaman dan reservasi yang ada. Kosongkan ruang atau tunggu operasi penyimpanan lain selesai, lalu coba lagi.",
-                "storageHeadroomValues": "Diperlukan termasuk margin keamanan: {required}. Tersedia untuk operasi ini: {available}."
+                "storageHeadroomValues": "Diperlukan termasuk margin keamanan: {required}. Tersedia untuk operasi ini: {available}.",
+                "permissionsUnavailable": "Izin akses tidak tersedia. Periksa koneksi dan coba lagi."
             },
             "export": "Ekspor",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "Perubahan belum disimpan",
             "view": "Lihat",
             "yes": "Ya",
-            "retry": "Coba lagi"
+            "retry": "Coba lagi",
+            "discard": "Buang"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "File mungkin telah disimpan, tetapi status akhirnya tidak dapat diverifikasi. Periksa tujuan di File sebelum mengunggahnya lagi.",
                 "cleanupIncomplete": "Pembersihan otomatis tidak dapat diselesaikan. Periksa lokasi tujuan di Berkas sebelum mencoba lagi.",
                 "contentChanged": "File berubah selama operasi. Pilih kembali file tersebut dan coba lagi.",
-                "destinationExists": "File atau folder dengan nama ini sudah ada. Pilih nama atau tujuan lain."
+                "destinationExists": "File atau folder dengan nama ini sudah ada. Pilih nama atau tujuan lain.",
+                "listingChanged": "Folder terus berubah. Perbarui untuk mencoba lagi.",
+                "listingTimeout": "Pembaruan folder kehabisan waktu. Perbarui untuk mencoba lagi.",
+                "listingIncoherent": "Halaman folder tidak konsisten. Perbarui untuk mencoba lagi.",
+                "listingUnavailable": "Layanan folder tidak tersedia. Periksa koneksi lalu perbarui.",
+                "listingBusy": "Permintaan folder sedang dibatasi. Tunggu, lalu perbarui."
             },
             "labels": {
                 "latestTask": "Tugas terbaru",
@@ -3175,7 +3183,10 @@
                 "empty": "Tidak ada entri ditemukan.",
                 "error": "Operasi gagal. Tinjau notifikasi untuk detail.",
                 "loading": "Memuat entri direktori...",
-                "searching": "Mencari file dan folder..."
+                "searching": "Mencari file dan folder...",
+                "refreshing": "Memperbarui…",
+                "stale": "Data sudah usang. Perbarui untuk mencoba lagi.",
+                "unavailable": "Folder tidak tersedia. Periksa kesalahan dan perbarui."
             },
             "table": {
                 "modified": "Diubah",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "Bekerja dengan model, alat, dan file",
                     "sectionTitle": "Chat dan alat agen",
-                    "conversations": "Halaman Chat menyatukan pesan, pilihan model, parameter generasi, dan akses alat. Anda dapat mengganti model antar-giliran, membandingkan respons, menyimpan penyiapan sebagai preset, atau mengatur percakapan ke dalam folder. Lampirkan file saat model memerlukan seluruh item untuk pesan saat ini. Lampirkan sumber pengetahuan saat Anda ingin SoAI mencari materi yang telah diindeks dan mengembalikan bagian yang relevan. Tambahkan file, folder, dan tautan SoAI dari kolom penulisan",
+                    "conversations": "Halaman Chat menyatukan pesan, pilihan model, parameter generasi, akses alat, serta pustaka Keterampilan dan Memori. Anda dapat mengganti model antar-giliran, membandingkan respons, menyimpan penyiapan sebagai preset, atau mengatur percakapan ke dalam folder. Lampirkan file saat model memerlukan seluruh item untuk pesan saat ini. Lampirkan sumber pengetahuan saat Anda ingin SoAI mencari materi yang telah diindeks dan mengembalikan bagian yang relevan. Tambahkan file, folder, dan tautan SoAI dari kolom penulisan",
                     "tools": "Mode Chat digunakan untuk percakapan. Mode Rencana memungkinkan model memeriksa tugas dan menyiapkan langkah. Mode ini memblokir alat yang ditandai destruktif atau tidak memiliki metadata destruktif yang valid, tetapi alat lain yang dipilih tetap dapat memengaruhi sistem eksternal. Mode Eksekusi memungkinkan model bertindak dengan alat yang Anda aktifkan. Panggilan alat dan hasilnya tetap terlihat dalam transkrip, dan tindakan terlindungi dapat memerlukan persetujuan Anda. Alat yang tersedia dapat mencari di web, mengontrol browser, bekerja dengan file dan terminal, mencari pengetahuan, memproses media, serta terhubung ke email atau kalender. Administrator menentukan integrasi dan kredensial yang tersedia. Agen juga dapat mengajukan pertanyaan, menyimpan rencana, dan membagi pekerjaan menjadi subtugas latar belakang. Halaman Otomatisasi menjalankan satu atau beberapa giliran sesuai jadwal dan menyimpan setiap proses sebagai percakapan",
                     "mcp": "SoAI dapat menyediakan alatnya kepada klien MCP yang diautentikasi dan terhubung ke server MCP jarak jauh. Alat jarak jauh muncul di samping alat bawaan setelah administrator mengonfigurasi server",
                     "voice": "Model speech-to-text dapat mentranskripsikan rekaman atau input mikrofon. Model text-to-speech dapat membacakan jawaban, sedangkan mode panggilan suara mendukung percakapan lisan"
@@ -3944,7 +3955,7 @@
                     "heading": "Periksa kesehatan sistem dan pelihara host",
                     "sectionTitle": "Pemantauan dan administrasi",
                     "status": "Dasbor menampilkan status sistem saat ini dan pekerjaan yang aktif. Gunakan Perangkat keras untuk pembacaan CPU, memori, disk, jaringan, dan GPU; Metrik untuk riwayat permintaan dan penggunaan token; serta Log saat Anda memerlukan detail diagnostik. GPU yang didukung menyediakan kontrol tuning untuk daya, clock, dan kipas. Perubahan ini memengaruhi host, jadi gunakan profil yang telah diuji dan pantau suhu serta stabilitas",
-                    "operations": "Terminal menyediakan sesi shell interaktif. Daya dapat memulai ulang atau menghentikan SoAI serta mengontrol sistem operasi host. Akses ke kedua halaman bergantung pada izin akun",
+                    "operations": "Terminal menyediakan sesi shell interaktif. Daya dapat memulai ulang atau menghentikan SoAI serta mengontrol sistem operasi host. Akses ke Terminal dan kontrol Daya bergantung pada izin akun",
                     "maintenance": "Cadangan berada di Pengaturan, sedangkan pembaruan aplikasi menggunakan halaman Pembaruan. Verifikasi cadangan sebelum mengandalkannya, ekspor salinan yang Anda perlukan ke luar host, dan tinjau cakupan sebelum melakukan pemulihan atau reset. SoAI memantau kesehatan backend dan berhenti mengirim permintaan ke plugin yang terus gagal. Halaman Plugin menampilkan status pemulihan dan karantina. Pengunduhan, pengunggahan, pencadangan, dan penulisan besar lainnya memeriksa ruang disk yang dicadangkan sebelum dimulai"
                 },
                 "access": {
@@ -5229,6 +5240,9 @@
             "loading": "Menyiapkan SoAI...",
             "loadingDelayError": "Halaman ini membutuhkan waktu lebih lama dari yang diperkirakan. Periksa koneksi Anda atau coba lagi halaman ini.",
             "loadingLabel": "Memuat...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "Halaman sebelumnya masih ditutup. Tunggu lalu coba lagi. Jika tetap macet, muat ulang jendela ini."
+            },
             "retry": "Coba lagi"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "Tampilan direset ke default.",
                 "chatPresetsResetFailed": "Gagal mereset preset chat. Coba lagi.",
                 "chatPresetsResetSuccess": "Preset chat direset.",
+                "configurationResetFailed": "Reset konfigurasi tidak dapat dijadwalkan. Tinjau file konfigurasi lalu coba lagi.",
                 "conversationsDeleteFailed": "Gagal menghapus percakapan. Coba lagi.",
                 "conversationsDeleteNone": "Tidak ada percakapan untuk dihapus.",
                 "conversationsDeleteSuccess": "{count} percakapan dihapus.",
-                "configurationResetFailed": "Reset konfigurasi tidak dapat dijadwalkan. Tinjau file konfigurasi lalu coba lagi.",
                 "factoryResetSuccess": "Reset pabrik dimulai. SoAI akan segera dimulai ulang.",
                 "fixInvalidFields": "Perbaiki field yang tidak valid sebelum menyimpan.",
                 "hardwareHistoryResetFailed": "Gagal mereset riwayat perangkat keras. Coba lagi.",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "Reset metrik berhasil dimulai",
                 "pageLayoutsResetFailed": "Gagal mereset tata letak halaman. Coba lagi.",
                 "pageLayoutsResetSuccess": "Tata letak dasbor, metrik, dan perangkat keras direset ke default.",
+                "partialSave": "Sebagian pengaturan telah diterapkan. {reason} Periksa kolom bertanda yang belum disimpan lalu coba lagi.",
                 "passwordManagerResetFailed": "Gagal mereset pengelola kata sandi. Coba lagi.",
                 "passwordManagerResetSuccess": "Pengelola kata sandi direset. {deletedCredentials} kredensial tersimpan dihapus dan {clearedSecretHandles} handle aman aktif dinonaktifkan.",
                 "preferencesResetFailed": "Gagal mereset preferensi. Coba lagi.",
-                "preferencesResetSuccess": "Preferensi direset ke default. Memuat ulang...",
+                "preferencesResetSuccess": "Preferensi direset ke default.",
                 "recentSearchesResetFailed": "Gagal mereset pencarian terbaru. Coba lagi.",
                 "recentSearchesResetSuccess": "Pencarian terbaru direset.",
                 "restartButton": "Mulai ulang SoAI",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "Pengguna berhasil dibuat",
                 "userDeleteSuccess": "Pengguna berhasil dihapus",
                 "userPasswordUpdateSuccess": "Kata sandi berhasil diperbarui",
-                "userWorkspacePathUpdateSuccessRevoked": "Folder default diperbarui. Override percakapan sebelumnya di luar folder baru telah dicabut.",
                 "userRoleUpdateSuccess": "Peran pengguna berhasil diperbarui",
+                "userWorkspacePathUpdateSuccessRevoked": "Folder default diperbarui. Override percakapan sebelumnya di luar folder baru telah dicabut.",
                 "wallpaperDeleteSuccess": "Wallpaper berhasil dihapus",
                 "wallpaperDownloadSuccess": "Wallpaper berhasil diunduh",
                 "wallpaperReloadFailed": "Gagal memuat pratinjau wallpaper.",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "Pelepasan terminal belum dikonfirmasi. Pulihkan koneksi dan coba lagi; jika layanan dimulai ulang, periksa shell lama di hostnya.",
+                "recoveryUnavailable": "Pemulihan terminal tidak tersedia. Muat ulang SoAI dan periksa shell lama di hostnya sebelum mencoba lagi."
+            },
             "ariaLabels": {
                 "clearTerminal": "Bersihkan terminal",
                 "decreaseTextSize": "Perkecil ukuran teks",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "Ucapan belum ditranskripsikan. Minta administrator menyiapkan transkripsi ucapan, lalu unggah ulang file.",
             "openModels": "Buka Model",
             "openSettings": "Pengaturan speech-to-text"
+        },
+        "pagePanes": {
+            "storageUnavailable": "Penyimpanan browser tidak tersedia. Panel yang terbuka tetap dapat digunakan, tetapi tata letaknya tidak dapat disimpan.",
+            "invalidLayout": "Tata letak panel tersimpan tidak valid. Halaman yang diminta akan terbuka seperti biasa.",
+            "incompatibleLayout": "Tata letak panel tersimpan memerlukan aplikasi yang lebih baru. Tata letak telah dipertahankan.",
+            "foreignLayout": "Tata letak panel tersimpan milik akun, jendela, atau edisi lain. Tata letak telah dipertahankan.",
+            "layoutTooLarge": "Tata letak panel ini terlalu besar untuk disimpan. Halaman yang terbuka tetap dapat digunakan.",
+            "restoreFailed": "Panel utama tidak dapat dipulihkan. Tata letak tersimpan telah dipertahankan; muat ulang untuk mencoba lagi.",
+            "title": "Panel",
+            "active": "Aktif",
+            "closePane": "Tutup panel {page}",
+            "split": "Buka di panel lain",
+            "choosePage": "Halaman yang akan dibuka",
+            "parked": "Diparkir",
+            "closing": "Menutup…",
+            "splitUnavailable": "Jendela ini hanya cukup untuk satu panel. Halaman akan terbuka di panel saat ini.",
+            "placementUnavailable": "Tidak ada panel yang tersedia untuk tindakan ini. Selesaikan pekerjaan tertunda atau tutup panel, lalu coba lagi.",
+            "restoreConflict": "Rute yang dipulihkan bertentangan dengan panel yang terbuka. Buka halaman secara langsung untuk melanjutkan.",
+            "layoutNotSaved": "Tata letak belum disimpan. Panel yang terbuka tetap dapat digunakan.",
+            "saveCurrentLayout": "Simpan tata letak saat ini",
+            "replaceSavedLayoutConfirmation": "Ganti tata letak yang dipertahankan dengan panel yang sedang terbuka? Hanya tata letak tersimpan yang diganti, bukan isi halaman.",
+            "storageQuotaExceeded": "Penyimpanan browser penuh. Kosongkan sebagian ruang, lalu simpan kembali tata letak saat ini. Panel yang terbuka tetap dapat digunakan.",
+            "storageBlocked": "Browser memblokir penyimpanan tata letak. Izinkan penyimpanan untuk situs ini, lalu simpan kembali tata letak saat ini. Panel yang terbuka tetap dapat digunakan."
         }
     }
 }

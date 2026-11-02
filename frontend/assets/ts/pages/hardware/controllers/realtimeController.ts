@@ -77,7 +77,6 @@ class HardwareRealtimeController implements HardwareRealtimeHost {
         this.resources = dependencies.resources;
         this.gpuController = dependencies.gpuController;
         this.soaibenchRunModal = dependencies.soaibenchRunModal;
-        this.#syncResourceFreshness();
         this.processController = dependencies.processController;
         this.memorySwapController = dependencies.memorySwapController;
         this.history = new HardwareHistoryController({
@@ -155,6 +154,8 @@ class HardwareRealtimeController implements HardwareRealtimeHost {
             systemMetricsStream: METRICS
         };
         const promise = (async (): Promise<void> => {
+            throwIfAborted(options.signal);
+            this.#syncResourceFreshness();
             await this.ensureWebuiPermissionsLoaded();
             await this.renderController.ensureChartModules();
             throwIfAborted(options.signal);

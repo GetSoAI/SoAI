@@ -9,7 +9,7 @@ const MESSAGING_PROVIDER_DESCRIPTORS: readonly MessagingProviderDescriptor[] = [
         id: 'telegram',
         fields: Object.freeze([
             { key: 'botToken', uiToken: 'bot-token', inputType: 'password', minLength: 1, maxLength: 512, pattern: null, defaultValue: '' },
-            { key: 'webhookSecret', uiToken: 'webhook-secret', inputType: 'password', minLength: 16, maxLength: 256, pattern: /^[A-Za-z0-9_-]+$/, defaultValue: '' }
+            { key: 'webhookSecret', uiToken: 'webhook-secret', inputType: 'password', minLength: 16, maxLength: 256, pattern: /^[A-Za-z0-9_\u002d]+$/, defaultValue: '' }
         ])
     },
     {

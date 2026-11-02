@@ -1,6 +1,7 @@
 /* SoAI - Chat voice call modal UI controller [frontend/assets/ts/pages/chat/controllers/voicecall/VoiceCallModalUiController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { bindDataActionListener } from '@core/dom/dataActionBinding.ts';
 import { dom } from '@core/dom/dom.ts';
@@ -18,6 +19,7 @@ import type { VoiceCallTranscriptSnapshot, VoiceCallUiSnapshot, VoiceCallUiStatu
 type VoiceCallModalAction = typeof VOICE_CALL_END_ACTION | typeof VOICE_CALL_PAUSE_ACTION;
 
 interface VoiceCallModalUiControllerHost {
+    owner: PresentationOwner;
     onEndRequested(): void;
     onPauseRequested(): void;
     onModalClosed(): void;
@@ -77,7 +79,7 @@ class VoiceCallModalUiController {
     open(): void {
         const modal = this.#presenter.requireElement(CHAT_VOICE_CALL_MODAL_ID);
         this.#bind(modal);
-        this.#presenter.open(CHAT_VOICE_CALL_MODAL_ID);
+        this.#presenter.open(CHAT_VOICE_CALL_MODAL_ID, { owner: this.#host.owner });
     }
 
     close(): void {

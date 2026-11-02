@@ -3,6 +3,7 @@
 
 import { assertNonEmptyString } from '@core/assertions.ts';
 import type { PageInstance } from '@core/pagehost/types.ts';
+import type { PageMountScope } from '@core/routing/router/types.ts';
 import { StaticBasePage } from '@core/StaticBasePage.ts';
 import { telemetry } from '@core/telemetry/service.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
@@ -20,7 +21,7 @@ const isPageConstructor = (value: PageConstructor | JsonValue | null | undefined
 };
 
 interface PageOptions {
-    factory?: (() => PageInstance) | null;
+    factory?: ((mountScope: PageMountScope) => PageInstance) | null;
 }
 
 interface PageMeta {
@@ -117,13 +118,13 @@ class PageRegistry {
         return this.pages.get(identifier) || null;
     }
 
-    create(name: string): PageInstance | null {
+    create(name: string, mountScope: PageMountScope): PageInstance | null {
         const identifier = normalizeName(name);
         const meta = this.pages.get(identifier);
         if (!meta) {
             return null;
         }
-        return this.#instantiate(meta);
+        return this.#instantiate(meta, mountScope);
     }
 
     getAll(): Record<string, PageConstructor> {
@@ -138,15 +139,15 @@ class PageRegistry {
         return Array.from(this.pages.keys());
     }
 
-    #instantiate = (meta: PageMeta): PageInstance => {
-        const { PageClass, options } = meta;
+    #instantiate = (meta: PageMeta, mountScope: PageMountScope): PageInstance => {
+        const { options } = meta;
         emitPageRegistryEvent('instantiate:start', { page: meta.name });
         let instance: PageInstance | null = null;
         const factory = options.factory;
         if (typeof factory === 'function') {
-            instance = factory();
+            instance = factory(mountScope);
         } else {
-            instance = new PageClass();
+            throw new Error(`Page "${meta.name}" requires a mount-scoped factory`);
         }
         emitPageRegistryEvent('instantiate:created', { page: meta.name });
         emitPageRegistryEvent('instantiate:complete', { page: meta.name });

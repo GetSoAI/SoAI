@@ -1,8 +1,11 @@
 /* SoAI - Automation page interaction controller [frontend/assets/ts/pages/automation/controllers/AutomationPageInteractionController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import { CleanupStack } from '@core/lifecycle/cleanupStack.ts';
+import { runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
@@ -19,6 +22,7 @@ import type { AutomationDataService } from '@features/automation/public.ts';
 import type { AutomationPageState, AutomationUiRefs } from '@pages/automation/types.ts';
 
 interface AutomationPageInteractionInitializationDependencies {
+    readonly owner: PresentationOwner;
     requireHTMLElement: (selector: string, context?: Element | Document | null) => HTMLElement;
     modalPresenter: ModalPresenterApi;
     dataService: AutomationDataService;
@@ -75,12 +79,14 @@ class AutomationPageInteractionController {
         if (this.#interactiveReady) {
             return;
         }
+        if (this.#childCleanup) throwCollectedCleanupFailures(this.#childCleanup.dispose());
         const initialization = this.#dependencies.initialization;
         const childCleanup = new CleanupStack({
-            logError: (message, error) => errorHandler.error('AutomationPageInteractionController', message, error)
+            logError: (message, error) => errorHandler.debug('AutomationPageInteractionController', message, error)
         });
         try {
             const editor = new AutomationEditorController({
+                owner: initialization.owner,
                 requireHTMLElement: initialization.requireHTMLElement,
                 modalPresenter: initialization.modalPresenter,
                 dataService: initialization.dataService,
@@ -93,6 +99,7 @@ class AutomationPageInteractionController {
             });
             childCleanup.add(() => editor.destroy());
             const occurrenceModal = new AutomationOccurrenceModalController({
+                owner: initialization.owner,
                 requireHTMLElement: initialization.requireHTMLElement,
                 modalPresenter: initialization.modalPresenter,
                 syntaxHighlighter: requireSyntaxHighlighter(),
@@ -100,6 +107,7 @@ class AutomationPageInteractionController {
             });
             childCleanup.add(() => occurrenceModal.destroy());
             const calendarSettings = new AutomationCalendarSettingsController({
+                owner: initialization.owner,
                 requireHTMLElement: initialization.requireHTMLElement,
                 modalPresenter: initialization.modalPresenter,
                 getSettings: () => initialization.getState().calendarSettings,
@@ -119,8 +127,12 @@ class AutomationPageInteractionController {
             this.#childCleanup = childCleanup;
             this.#interactiveReady = true;
         } catch (error) {
-            childCleanup.dispose();
-            throw error;
+            const failures = childCleanup.dispose();
+            if (failures.length > 0) {
+                this.#childCleanup = childCleanup;
+                throw new AggregateError([ensureError(error), ...failures], 'Automation interaction initialization and cleanup failed');
+            }
+            throw ensureError(error);
         }
     }
 
@@ -173,7 +185,7 @@ class AutomationPageInteractionController {
             signal.addEventListener('abort', this.#onAbort, { once: true });
         } catch (error) {
             this.disconnect();
-            throw error;
+            throw ensureError(error);
         }
     }
 
@@ -186,8 +198,11 @@ class AutomationPageInteractionController {
     }
 
     destroy(): void {
-        this.disconnect();
-        this.#childCleanup?.dispose();
+        this.#interactiveReady = false;
+        const failures: Error[] = [];
+        runCleanupStepCollectingFailure(() => this.disconnect(), failures);
+        if (this.#childCleanup) failures.push(...this.#childCleanup.dispose());
+        throwCollectedCleanupFailures(failures);
         this.#childCleanup = null;
         this.#editor = null;
         this.#calendarSettings = null;

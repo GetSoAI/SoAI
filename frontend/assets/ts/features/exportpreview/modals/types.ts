@@ -1,6 +1,7 @@
 /* SoAI - Shared export preview modal types [frontend/assets/ts/features/exportpreview/modals/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { ExportPreviewSnapshotPayload } from '@core/api/contracts/exportPreviewContracts.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -24,6 +25,7 @@ interface ExportPreviewModalState {
 }
 
 interface ExportPreviewModalHost {
+    readonly owner: PresentationOwner;
     modals: ModalPresenterApi;
     requireHTMLElement(selector: string | Element, context?: Element): HTMLElement;
     runWithBoundary<T>(name: string, functionValue: () => Promise<T>): Promise<T>;

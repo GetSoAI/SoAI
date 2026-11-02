@@ -1,6 +1,7 @@
 /* SoAI - Shared firstrun protocols [frontend/assets/ts/core/firstrun/protocols.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 
 export type FirstRunModalId = 'chatMemoryProfile' | 'dashboardIntro' | 'pluginsIntro';
@@ -32,7 +33,7 @@ export interface FirstRunStateStorage {
 }
 
 export interface FirstRunModalService {
-    handlePageShow(pageId: FirstRunPageId, options?: { signal?: AbortSignal }): Promise<void>;
-    open(id: FirstRunModalId, reason: 'auto' | 'manual'): Promise<void>;
+    handlePageShow(pageId: FirstRunPageId, options: { owner: PresentationOwner; signal?: AbortSignal }): Promise<void>;
+    open(id: FirstRunModalId, reason: 'auto' | 'manual', owner: PresentationOwner): Promise<void>;
     isPending(id: FirstRunModalId): boolean;
 }

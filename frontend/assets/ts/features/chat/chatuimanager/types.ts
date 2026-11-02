@@ -1,6 +1,7 @@
 /* SoAI - Chat UI manager contracts [frontend/assets/ts/features/chat/chatuimanager/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { ConversationInputActiveState } from '@core/chat/protocols.ts';
 import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
@@ -145,6 +146,7 @@ interface ChatUiMessagePort {
 }
 
 export interface ChatUiManagerDependencies {
+    readonly owner: PresentationOwner;
     sanitizer: SanitizerApi;
     optionalUI: (selector: string, context?: Element) => Element | null;
     queryUI: (selector: string, context?: Element) => Element[];

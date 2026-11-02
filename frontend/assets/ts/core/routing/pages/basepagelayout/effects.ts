@@ -1,6 +1,7 @@
 /* SoAI - Shared routing base page layout effects [frontend/assets/ts/core/routing/pages/basepagelayout/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { dom } from '@core/dom/dom.ts';
 import { getWindowOpen } from '@core/environment/public.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -24,6 +25,7 @@ interface HeaderActionMenuHost {
     resolveHostContainer(): HTMLElement;
     showNotification: (message: string, type: 'info' | 'warning' | 'error' | 'success', duration?: number) => void;
     pageContext: {
+        presentationOwner: PresentationOwner;
         sanitizer: {
             url: (url: string, options: { allowRelative: boolean; allowDataImage: boolean; allowBlob: boolean }) => string | null;
         };
@@ -33,7 +35,9 @@ interface HeaderActionMenuHost {
 const isTruthyBoolean = (value: boolean | null | undefined): value is boolean => isBoolean(value);
 
 const syncPrefixedSelectLabel = (select: HTMLSelectElement): void => {
-    const label = dom.resolve('.dropdown-select__selection-label', select.parentElement);
+    const parent = select.parentElement;
+    if (!parent) return;
+    const label = dom.resolve('.dropdown-select__selection-label', parent);
     const selectedOption = select.selectedOptions.item(0);
     const selectionLabel = selectedOption?.dataset['selectionLabel']?.trim() ?? '';
     if (!(label instanceof HTMLElement) || !selectionLabel) return;
@@ -174,6 +178,7 @@ const attachExternalLinkConfirmation = (host: HeaderActionMenuHost, state: BaseP
 
         if (
             await showLinkModal({
+                owner: host.pageContext.presentationOwner,
                 title,
                 message,
                 confirmText,

@@ -1,6 +1,7 @@
 /* SoAI - Memory graph facts and relationships in their management modal [frontend/assets/ts/pages/chat/widgets/memorytab/memoryRecordManagementDomain.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ManagedMemoryEntry } from '@core/api/contracts/webuiMemoryContracts.ts';
 import { dom } from '@core/dom/dom.ts';
 import { insertWithPresence, removeWithPresence, isPresenceExiting } from '@core/animations/presence/public.ts';
@@ -66,13 +67,13 @@ const renderMemoryRecordManagement = (content: HTMLElement, entry: ManagedMemory
     content.dataset['memoryRevision'] = signature;
 };
 
-const openMemoryRecordManagement = (entry: ManagedMemoryEntry): HTMLElement => {
+const openMemoryRecordManagement = (entry: ManagedMemoryEntry, owner: PresentationOwner): HTMLElement => {
     const presenter = requireModalPresenter();
     const modal = presenter.requireElement(CHAT_MEMORY_RECORD_MODAL_ID);
     const content = dom.resolve('[data-memory-record-content]', modal);
     if (!(content instanceof HTMLElement)) throw new Error('Memory record modal is incomplete');
     renderMemoryRecordManagement(content, entry);
-    presenter.open(CHAT_MEMORY_RECORD_MODAL_ID);
+    presenter.open(CHAT_MEMORY_RECORD_MODAL_ID, { owner });
     return content;
 };
 

@@ -1,6 +1,7 @@
 /* SoAI - Memory mutation authority and failure presentation [frontend/assets/ts/pages/chat/widgets/memorytab/memoryMutationPresentationDomain.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { APIError } from '@core/apiError.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { SnapshotError } from '@core/websocketclient/snapshotManager.ts';
@@ -16,6 +17,7 @@ import { memoryFailureMessage } from '@pages/chat/widgets/memorytab/memoryMutati
 import { compareMemoryEntryOrder, memoryMatchesQuery } from '@pages/chat/widgets/memorytab/memoryPresentationDomain.ts';
 
 interface MemoryMutationPresentationHost {
+    readonly owner: PresentationOwner;
     api: MemoryApi;
     isCurrent(): boolean;
     state(): MemoryLibraryState;
@@ -34,6 +36,7 @@ const createMemoryMutationHost = (host: MemoryMutationPresentationHost): MemoryM
     };
     const failures = createDedupingOperationFailureReporter({ host: { showNotification: show, handleError: reportUnexpectedFailure } });
     return {
+        owner: host.owner,
         api: host.api,
         show,
         isCurrent: host.isCurrent,

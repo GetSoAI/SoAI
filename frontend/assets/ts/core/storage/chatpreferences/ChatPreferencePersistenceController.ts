@@ -14,9 +14,11 @@ import type { CrossTabPublishOutcome } from '@core/crosstab/channel.ts';
 import { ChatPreferenceInvalidationController } from '@core/storage/chatpreferences/ChatPreferenceInvalidationController.ts';
 import { combineChatPreferencePatch, decodeAuthoritativeConversationDefaults, partitionChatPreferencePatch } from '@core/storage/chatpreferences/chatPreferencePatch.ts';
 import { enqueuePreferenceOperation } from '@core/storage/chatpreferences/preferenceOperationQueue.ts';
-import { preferenceRequestIdentityMatches, readPreferenceRequestIdentity, requirePreferenceRequestIdentity, type PreferenceRequestIdentity } from '@core/storage/chatpreferences/preferenceRequestIdentity.ts';
+import { preferenceRequestIdentityIsCurrent, preferenceRequestIdentityMatches, readPreferenceRequestIdentity, requirePreferenceRequestIdentity, type PreferenceRequestIdentity } from '@core/storage/chatpreferences/preferenceRequestIdentity.ts';
 import { decodeConversationDefaultDelta } from '@core/chat/conversationDefaultPreferences.ts';
 import { ChatPreferenceJournalController } from '@core/storage/chatpreferences/ChatPreferenceJournalController.ts';
+import { createAbortError } from '@core/errors/abort.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 
 const CHAT_AUTHORITATIVE_PREFERENCES_EVENT = 'soai:chat-authoritative-preferences';
 
@@ -54,8 +56,11 @@ class ChatPreferencePersistenceController {
     }
 
     readonly refresh = (options: { authTransitionOwned?: boolean } = {}): Promise<JsonObject> => {
+        const identityTask = this.#resolveIdentity().catch((error) => ensureError(error));
         return this.#enqueue(async () => {
-            const identity = await this.#resolveIdentity();
+            const identity = await identityTask;
+            if (identity instanceof Error) throw identity;
+            if (!preferenceRequestIdentityIsCurrent(this.#dependencies.state, identity)) throw createAbortError('Preference refresh authentication changed.');
             this.#activateIdentity(identity);
             this.#restoreJournal(identity);
             const captured = this.#captureRequest();
@@ -157,6 +162,7 @@ class ChatPreferencePersistenceController {
         return enqueuePreferenceOperation(this.#dependencies.state, operation);
     }
     async #drainPending(identity: PreferenceRequestIdentity, attempt = 0): Promise<JsonObject> {
+        if (!this.#identityMatches(identity)) throw createAbortError('Preference operation authentication changed.');
         this.#captureLocal();
         if (!this.#confirmed) throw new Error('Chat preference confirmation is unavailable.');
         const liveDelta = createSparseDifference(this.#confirmed, this.#readLive());
@@ -249,10 +255,13 @@ class ChatPreferencePersistenceController {
     }
 
     async #resolveIdentity(): Promise<PreferenceRequestIdentity> {
+        const authEpoch = this.#dependencies.state.readAuthEpoch();
         const userId = this.#dependencies.state.session['userId'];
         const windowId = this.#dependencies.state.windowIdentity ?? (await this.#dependencies.state.windowIdentityReady);
         if (typeof userId !== 'string' || !userId.trim() || !windowId) throw new Error('Chat preference persistence requires authenticated user and window identities.');
-        return { userId: userId.trim(), windowId };
+        const identity = { userId: userId.trim(), windowId, authEpoch };
+        if (!preferenceRequestIdentityIsCurrent(this.#dependencies.state, identity)) throw createAbortError('Preference admission authentication changed.');
+        return identity;
     }
 
     #activateIdentity(identity: PreferenceRequestIdentity): void {

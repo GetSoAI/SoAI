@@ -5,7 +5,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import { MODAL_HEADER_BUTTON_ROLE_ATTRIBUTE } from '@core/modals/headerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
@@ -97,7 +97,7 @@ const contentPreviewModalDefinition: ModalDefinition = Object.freeze({
     id: CONTENT_PREVIEW_MODAL_ID,
     layout: 'xl',
     initialFocusSelector: modalUiSelector(CONTENT_PREVIEW_MODAL_ID, CONTENT_PREVIEW_UI_TOKENS.CLOSE),
-    createElement: (_options: ModalOpenOptions): HTMLElement => createContentPreviewModalElement()
+    createElement: (_options: ModalCreationOptions): HTMLElement => createContentPreviewModalElement()
 });
 
 const CONTENT_PREVIEW_MODAL_DEFINITIONS: readonly ModalDefinition[] = Object.freeze([contentPreviewModalDefinition]);

@@ -1,6 +1,7 @@
 /* SoAI - Chat page create conversation actions controller [frontend/assets/ts/pages/chat/controllers/chatpage/construction/createConversationActionsController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { ChatConversationActionsController } from '@pages/chat/controllers/chatconversationactionscontroller/ChatConversationActionsController.ts';
 import { setCurrentConversationIdForChatPage, setCurrentModelForChatPage } from '@pages/chat/controllers/chatpage/construction/stateTransitions.ts';
 import { captureConversationDeleteFallbackSnapshot, resolveConversationDeleteFallbackId, type ConversationDeleteFallbackSnapshot } from '@pages/chat/controllers/page/conversationListOrderingController.ts';
@@ -24,6 +25,7 @@ import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/Pag
 import type { ChatVoiceSessionHost } from '@pages/chat/controllers/chatpage/voice/ChatVoiceSession.ts';
 
 interface ChatConversationActionsDependencies {
+    readonly owner: PresentationOwner;
     runtime: {
         composerSurface: ChatComposerSurfaceRuntimeOwner['composerSurface'];
         configurationRuntime: ChatConfigurationRuntimeOwner['configurationRuntime'];
@@ -57,6 +59,7 @@ const createChatConversationActionsController = (page: ChatConversationActionsDe
     let notifySaveChanged = (): void => {};
     const controller = new ChatConversationActionsController({
         host: {
+            owner: page.owner,
             workflow: {
                 feedback: page.page.feedback,
                 runWithBoundary: (name, functionValue) => page.page.pageLifecycle.run(name, functionValue),

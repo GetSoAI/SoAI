@@ -1,6 +1,7 @@
 /* SoAI - Prompts page prompt enhancer contracts [frontend/assets/ts/pages/prompts/controllers/promptenhancer/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { OpenAiModelCatalogResponse } from '@core/openai/modelCatalog.ts';
 import type { PromptRequest } from '@core/api/contracts/promptContracts.ts';
 import type { ResourceTracker } from '@core/resourcetracker/service.ts';
@@ -41,13 +42,15 @@ interface PromptEnhancerRunState {
 }
 
 interface PromptEnhancerHost extends PageDomOwnerHost, PageResourcesOwnerHost, PageFeedbackOwnerHost {
+    readonly owner: PresentationOwner;
     modals: ModalPresenterApi;
     findPromptById(id: string | number): PromptRecord | null;
     upsertPromptRecord(record: PromptRecord): PromptRecord;
     createPrompt(payload: PromptRequest): Promise<PromptRecord>;
     updatePrompt(id: string | number, payload: PromptRequest): Promise<PromptRecord>;
     runTask<T>(name: string, task: () => Promise<T>, options?: Record<string, JsonValue>): Promise<T | null>;
-    fetchModelCatalog(): Promise<OpenAiModelCatalogResponse | null>;
+    fetchModelCatalog(signal: AbortSignal): Promise<OpenAiModelCatalogResponse | null>;
+    subscribeUiPreferenceChanges(listener: () => void): () => void;
     getPromptEnhancerModel(): string | null;
     setPromptEnhancerModel(value: string | null): void;
     downloadTextFile(content: string, filename: string, mimeType?: string): void;

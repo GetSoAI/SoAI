@@ -11,7 +11,10 @@ from core.logging.protocols import LoggerProtocol
 from core.openai.quota_enforcement_constants import (
     STREAMING_QUOTA_CUTOFF_REASON,
 )
-from core.openai.sse_validation import validate_openai_sse_frame
+from core.openai.sse_block_decoder import (
+    decode_openai_sse_block,
+    is_valid_openai_decoded_block,
+)
 from core.openai.stream_frame_processing import process_openai_stream_frame
 from core.openai.streaming_text_deltas import extract_openai_streaming_output_deltas
 from core.openai.streaming_tool_calls import rewrite_missing_tool_call_ids_in_sse_frame
@@ -56,10 +59,12 @@ def iter_stream_bytes_from_chunk_event(
         schedule_task_cancel(message)
         raise OpenAIStreamAbortRequested(message, "invalid_stream_error") from exception
     for validated_sse_event in frames:
-        if not validate_openai_sse_frame(
-            validated_sse_event,
+        decoded_frame = decode_openai_sse_block(validated_sse_event)
+        if not is_valid_openai_decoded_block(
+            decoded_frame,
             allow_image_events=allow_image_events,
         ):
+            del decoded_frame
             message = "Provider returned a malformed OpenAI SSE frame."
             logger.warning("[%s] %s", trace_id, message)
             state.is_stream_successful = False
@@ -67,12 +72,14 @@ def iter_stream_bytes_from_chunk_event(
             schedule_task_cancel(message)
             raise OpenAIStreamAbortRequested(message, "invalid_stream_error")
         try:
-            raise_provider_sse_error_if_present(validated_sse_event)
+            raise_provider_sse_error_if_present(decoded_frame)
         except OpenAIStreamAbortRequested as exception:
             state.is_stream_successful = False
             state.abort_stream = True
             schedule_task_cancel(exception.message)
             raise
+        finally:
+            del decoded_frame
         frame = process_openai_stream_frame(validated_sse_event)
         if not state.stream_id and frame.stream_id is not None:
             state.stream_id = frame.stream_id

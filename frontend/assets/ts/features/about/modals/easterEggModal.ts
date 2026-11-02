@@ -6,7 +6,7 @@ import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 import { uiAttr, uiHtml } from '@core/security/uiHtml.ts';
@@ -17,7 +17,7 @@ const easterEggModalDefinition: ModalDefinition = {
     id: EASTER_EGG_MODAL_ID,
     layout: 'xl',
     initialFocusSelector: '.easter-egg-scene',
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const modalId = EASTER_EGG_MODAL_ID;
         const closeLabel = i18n.t('about.easterEgg.close');
         const interactHint = i18n.t('about.easterEgg.interactHint');

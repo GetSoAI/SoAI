@@ -1,6 +1,8 @@
 /* SoAI - Shared license service implementation [frontend/assets/ts/core/licenseservice/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
+import { requirePresentationOwnerActive, isPresentationOwnerCurrent } from '@core/presentationOwner.ts';
 import { getClipboardService } from '@core/clipboard.ts';
 import { dom } from '@core/dom/dom.ts';
 import { getDocument } from '@core/environment/public.ts';
@@ -94,6 +96,7 @@ class LicenseService implements LicenseServiceInterface {
 
     private async showTextModal(
         key: TextModalKey,
+        owner: PresentationOwner,
         {
             loadingMessage,
             unavailableMessage,
@@ -105,13 +108,28 @@ class LicenseService implements LicenseServiceInterface {
         }
     ): Promise<void> {
         await this.initialize();
+        requirePresentationOwnerActive(owner);
         const config = TEXT_MODAL_CONFIGS[key];
         const presenter = requireModalPresenter();
-        presenter.requireElement(config.id);
-        const textElement = this.renderLoadingState(key, loadingMessage);
-        presenter.open(config.id);
+        const existing = presenter.getOwnership(config.id);
+        if (existing?.owner === owner && presenter.isOpen(config.id)) {
+            presenter.open(config.id, { owner });
+            return;
+        }
+        const ownership = presenter.acquireOwnership(config.id, owner);
+        let textElement: Element;
+        try {
+            presenter.requireElement(config.id);
+            textElement = this.renderLoadingState(key, loadingMessage);
+            presenter.open(config.id, { owner }, ownership);
+        } catch (error) {
+            presenter.releaseOwnership(ownership);
+            throw error;
+        }
+        const isCurrent = (): boolean => presenter.getOwnership(config.id) === ownership && isPresentationOwnerCurrent(owner);
         try {
             const text = await loadText();
+            if (!isCurrent()) return;
             dom.removeClass(textElement, 'is-loading');
             if (isString(text) && text.length > 0) {
                 dom.setText(textElement, text);
@@ -119,6 +137,7 @@ class LicenseService implements LicenseServiceInterface {
                 return;
             }
         } catch (error) {
+            if (!isCurrent()) return;
             const runtimeError = ensureError(error);
             errorHandler.warn('LicenseService', `Failed to load "${key}" content`, runtimeError);
             dom.removeClass(textElement, 'is-loading');
@@ -127,8 +146,8 @@ class LicenseService implements LicenseServiceInterface {
         this.setCopyButtonEnabled(key, false);
     }
 
-    async showLicense(): Promise<void> {
-        await this.showTextModal('license', {
+    async showLicense(owner: PresentationOwner): Promise<void> {
+        await this.showTextModal('license', owner, {
             loadingMessage: i18n.t('about.loadingLicense'),
             unavailableMessage: i18n.t('about.licenseUnavailable'),
             loadText: async () => {
@@ -138,15 +157,15 @@ class LicenseService implements LicenseServiceInterface {
         });
     }
 
-    async showCredits(): Promise<void> {
-        await this.showTextModal('credits', {
+    async showCredits(owner: PresentationOwner): Promise<void> {
+        await this.showTextModal('credits', owner, {
             loadingMessage: i18n.t('about.loadingCredits'),
             unavailableMessage: i18n.t('about.creditsUnavailable'),
             loadText: async () => await this.fetchCreditsText()
         });
     }
 
-    createLicenseButton(options: CreateButtonOptions = {}): HTMLButtonElement {
+    createLicenseButton(options: CreateButtonOptions): HTMLButtonElement {
         const { text = null, className = 'ui-button ui-button--sm', id = null } = options;
         if (!isString(text) || !text.trim()) {
             throw new Error('License button requires a translated text label');
@@ -164,7 +183,7 @@ class LicenseService implements LicenseServiceInterface {
         }
         this.resources.addEventListener(button, 'click', async (event: Event) => {
             event.preventDefault();
-            await this.showLicense();
+            await this.showLicense(options.owner);
         });
         return button;
     }
@@ -211,8 +230,8 @@ const getLicenseService = (): LicenseServiceInterface => {
     return candidate;
 };
 
-const showLicenseModal = (): Promise<void> => getLicenseService().showLicense();
+const showLicenseModal = (owner: PresentationOwner): Promise<void> => getLicenseService().showLicense(owner);
 
-const showCreditsModal = (): Promise<void> => getLicenseService().showCredits();
+const showCreditsModal = (owner: PresentationOwner): Promise<void> => getLicenseService().showCredits(owner);
 
 export { createLicenseService, getLicenseService, LicenseService, showCreditsModal, showLicenseModal };

@@ -46,6 +46,7 @@ const editMemoryRelationship = async (host: MemoryMutationHost, entry: ManagedMe
     let saved = false;
     let blockedMessage: string | null = null;
     const controller = createSaveController({
+        owner: host.owner,
         headerContextId: 'memory-relationship',
         requestContextLabel: 'Memory relationship save',
         units: [
@@ -95,6 +96,7 @@ const editMemoryRelationship = async (host: MemoryMutationHost, entry: ManagedMe
     });
     try {
         await requireDialogsService().showConfirmation({
+            owner: host.owner,
             title: i18n.t('chat.memory.viewer.relations'),
             fields,
             confirmText: i18n.t('common.save'),

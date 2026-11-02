@@ -9,12 +9,13 @@ import { type ResourceSubscriptionHandler, type SubscriptionHealth, type Subscri
 
 interface SubscribeActionContext {
     clearExisting: (key: string) => void;
+    isCurrent: (key: string, health: SubscriptionHealth) => boolean;
     incrementVersion: () => number;
     addHealth: (key: string, health: SubscriptionHealth) => void;
     resolveStreamManager: () => StreamManagerInterface;
     setStreamManager: (streamManager: StreamManagerInterface) => void;
     ensureTimers: () => void;
-    putSubscription: (key: string, unsubscribe: UnsubscribeEntry) => void;
+    putSubscription: (key: string, unsubscribe: UnsubscribeEntry, health: SubscriptionHealth) => boolean;
     beginResourceStart: (key: string, health: SubscriptionHealth) => Promise<void>;
     logDebug: (message: string, error?: Error) => void;
 }
@@ -49,9 +50,9 @@ const recordDelivery = (health: SubscriptionHealth, context: { initial: boolean 
     }
 };
 
-const createWrappedStateHandler = (health: SubscriptionHealth, capturedVersion: number, handler: ResourceSubscriptionHandler): ResourceSubscriptionHandler => {
+const createWrappedStateHandler = (health: SubscriptionHealth, capturedVersion: number, handler: ResourceSubscriptionHandler, isCurrent: () => boolean): ResourceSubscriptionHandler => {
     return (snapshot, context): void => {
-        if (health.version !== capturedVersion) {
+        if (health.version !== capturedVersion || !isCurrent()) {
             return;
         }
         recordDelivery(health, context, snapshot.status === 'ready');
@@ -59,9 +60,9 @@ const createWrappedStateHandler = (health: SubscriptionHealth, capturedVersion: 
     };
 };
 
-const createWrappedValueHandler = (health: SubscriptionHealth, capturedVersion: number, handler: SubscriptionHandler): SubscriptionHandler => {
+const createWrappedValueHandler = (health: SubscriptionHealth, capturedVersion: number, handler: SubscriptionHandler, isCurrent: () => boolean): SubscriptionHandler => {
     return (value, context): void => {
-        if (health.version !== capturedVersion) return;
+        if (health.version !== capturedVersion || !isCurrent()) return;
         recordDelivery(health, context, true);
         handler(value, context);
     };
@@ -92,7 +93,7 @@ const subscribeToResource = (context: SubscribeActionContext, key: string, subsc
 
     const unsubscribeResult = subscribe(manager, health, capturedVersion);
     const unsubscribe = normalizeUnsubscribe(manager.subscriptions, unsubscribeResult);
-    context.putSubscription(key, unsubscribe);
+    if (!context.putSubscription(key, unsubscribe, health)) return () => {};
 
     const startPromise = context.beginResourceStart(key, health);
     if (isFunction(startPromise.then)) {
@@ -104,7 +105,9 @@ const subscribeToResource = (context: SubscribeActionContext, key: string, subsc
         });
     }
 
-    return () => context.clearExisting(key);
+    return () => {
+        if (context.isCurrent(key, health)) context.clearExisting(key);
+    };
 };
 
 interface EnsureReadyOptions {

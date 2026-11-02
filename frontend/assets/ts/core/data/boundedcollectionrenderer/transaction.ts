@@ -6,7 +6,7 @@ import { cancelReorderExit, playReorderExit } from '@core/animations/reorderMoti
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { addRootScroll, resetRootScroll, resolveCollectionScrollRoot } from '@core/data/boundedcollectionrenderer/scrollRoot.ts';
 import type { CollectionBuild, CollectionCommitAnchor, CollectionViewportAnchor } from '@core/data/boundedcollectionrenderer/types.ts';
-import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
+import { reconcileChildNodes, type ChildReconciliationOptions } from '@core/dom/childNodeReconciliation.ts';
 import { dom } from '@core/dom/dom.ts';
 import { captureToggleSwitchContinuity, type ToggleSwitchContinuity } from '@core/dom/toggleSwitchReconciliation.ts';
 import { syncElementShell } from '@core/dom/patching.ts';
@@ -148,7 +148,7 @@ const startCollectionExit = <TItem>(build: CollectionBuild<TItem>, completion: {
     return true;
 };
 
-const commitPlannedNodes = <TItem>(build: CollectionBuild<TItem>): void => {
+const commitPlannedNodes = <TItem>(build: CollectionBuild<TItem>, mountedItemState?: ChildReconciliationOptions): void => {
     for (const plannedNode of build.plannedNodes) cancelReorderExit(plannedNode);
     const oldChildren = Array.from(build.container.childNodes);
     const survivingNodes = new Set(build.plannedNodes);
@@ -180,7 +180,7 @@ const commitPlannedNodes = <TItem>(build: CollectionBuild<TItem>): void => {
             if (currentNode !== plannedNode) build.container.insertBefore(plannedNode, currentNode);
         }
         for (const itemPatch of build.itemPatches) {
-            syncElementShell({ target: itemPatch.element, source: itemPatch.replacement });
+            syncElementShell({ target: itemPatch.element, source: itemPatch.replacement, ...mountedItemState });
             reconcileChildNodes(itemPatch.element, Array.from(itemPatch.replacement.childNodes));
         }
         if (build.range !== null && build.policy !== null) build.gridScrollExtent?.apply(build.container, build.range, build.ids.length, build.policy);

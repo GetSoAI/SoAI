@@ -14,6 +14,7 @@ const getWebSocketClient = (): WebSocketClient => {
     }
     return websocketClientInstance;
 };
+const isCurrentWebSocketClient = (client: Pick<WebSocketClient, 'connectionEpoch'>): boolean => websocketClientInstance === client;
 const destroyWebSocketClient = (): void => {
     if (websocketClientInstance) {
         websocketClientInstance.destroy();
@@ -34,4 +35,4 @@ const waitForWebSocketConnection = (timeoutMs: number = CONNECTION_WAIT_TIMEOUT_
 
 const sendWebSocketMessage = (payload: JsonObject, options: { waitForConnection?: boolean; timeoutMs?: number; signal?: AbortSignal } = {}): Promise<void> => getWebSocketClient().sendMessage(payload, options);
 
-export { WebSocketClient, connectWebSocket, getWebSocketClient, requestWebSocketSnapshot, sendWebSocketMessage, subscribeAllWebSocketEvents, subscribeWebSocketEvent, waitForWebSocketConnection, destroyWebSocketClient, CONNECTION_STATES, SnapshotError, SnapshotProtocolError };
+export { WebSocketClient, connectWebSocket, getWebSocketClient, isCurrentWebSocketClient, requestWebSocketSnapshot, sendWebSocketMessage, subscribeAllWebSocketEvents, subscribeWebSocketEvent, waitForWebSocketConnection, destroyWebSocketClient, CONNECTION_STATES, SnapshotError, SnapshotProtocolError };

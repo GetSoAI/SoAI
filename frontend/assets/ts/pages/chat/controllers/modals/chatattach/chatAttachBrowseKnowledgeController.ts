@@ -50,6 +50,7 @@ class ChatAttachBrowseKnowledgeOperations {
             }
             requireContentPreviewModalService().open(
                 createTextContentPreviewRequest({
+                    owner: this.#host.shared.owner,
                     scope: 'chat',
                     type: 'text',
                     headerDescription: i18n.t('chat.attachModal.browseChipKnowledge'),

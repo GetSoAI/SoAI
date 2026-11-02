@@ -3,6 +3,9 @@
 
 import { assertRootDataActionsAreKnown, handleDelegatedActionEvent, resolveDelegatedActionElementResult, type DelegatedActionMouseButtonMode, type DelegatedActionPreventDefaultMode, type ElementWithActionDataset } from '@core/dom/dataAction.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { isLifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
+import { claimErrorReporting } from '@core/errors/reportingOwnership.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 
 type DataActionEventType = 'change' | 'click' | 'input' | 'keydown';
@@ -78,8 +81,10 @@ interface TypedResolvedActionListenerOptions<TAction extends string> {
     disabledAttributes?: readonly string[] | undefined;
 }
 
-const handleDataActionError = (error: Error): void => {
-    errorHandler.error('DataActionBinding', 'Delegated action handler failed', error);
+const handleDataActionError = (error: Error): 'cancelled' | 'failed' => {
+    if (isAbortError(error) || isLifecycleCancellationError(error)) return 'cancelled';
+    if (claimErrorReporting(error)) errorHandler.error('DataActionBinding', 'Delegated action handler failed', error);
+    return 'failed';
 };
 
 const trackDataActionResult = (result: void | Promise<void> | null): void => {
@@ -119,8 +124,7 @@ const createDataActionHandler = <TAction extends string>(options: DataActionList
             trackDataActionResult(result);
         } catch (error) {
             const runtimeError = ensureError(error);
-            handleDataActionError(runtimeError);
-            throw runtimeError;
+            if (handleDataActionError(runtimeError) === 'failed') throw runtimeError;
         }
     };
 };
@@ -170,8 +174,7 @@ const bindResolvedDataActionListener = (options: BoundResolvedDataActionListener
                 trackDataActionResult(result);
             } catch (error) {
                 const runtimeError = ensureError(error);
-                handleDataActionError(runtimeError);
-                throw runtimeError;
+                if (handleDataActionError(runtimeError) === 'failed') throw runtimeError;
             }
         },
         { signal: options.signal }

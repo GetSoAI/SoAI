@@ -22,7 +22,7 @@ class ChatMessageInfoModal {
     show(message: ChatMessage): void {
         requireModalPresenter().requireElement(MESSAGE_INFO_MODAL_ID);
         this.#render(message);
-        requireModalPresenter().open(MESSAGE_INFO_MODAL_ID);
+        requireModalPresenter().open(MESSAGE_INFO_MODAL_ID, { owner: this.#dependencies.owner });
     }
 
     #resolveMessageInfoSectionContent(message: ChatMessage): MessageInfoSectionContent {

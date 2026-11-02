@@ -5,8 +5,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.errors.exceptions import ModelOutputContractError
 from core.openai.provider_error_reports import normalize_provider_error_token
-from core.openai.sse_frame_payloads import parse_openai_sse_frame_payloads
+from core.openai.sse_block_decoder import (
+    decode_openai_sse_block,
+    is_valid_openai_decoded_block,
+)
+from core.openai.sse_frame_payloads import (
+    parse_openai_sse_frame_payloads,
+    require_openai_sse_frame_payloads,
+)
 from core.types.json_value import coerce_json_dict
 
 if TYPE_CHECKING:
@@ -18,10 +26,12 @@ __all__ = (
     "extract_openai_error_fields_from_http_exception_detail",
     "extract_openai_error_fields_from_payload",
     "extract_openai_error_message_and_type_from_envelope",
+    "extract_openai_sse_error_from_payloads",
     "normalize_openai_error_code_subtype",
     "parse_openai_http_exception_detail_message_and_type",
     "parse_openai_sse_error_frame",
     "parse_openai_sse_error_frame_message_and_type",
+    "parse_validated_openai_sse_error_frame",
 )
 
 
@@ -91,7 +101,37 @@ def extract_openai_error_message_and_type_from_envelope(
 def parse_openai_sse_error_frame(
     frame: bytes | str,
 ) -> tuple[str, str | None, str | None, str | None] | None:
-    for payload in parse_openai_sse_frame_payloads(frame):
+    return extract_openai_sse_error_from_payloads(parse_openai_sse_frame_payloads(frame))
+
+
+def parse_validated_openai_sse_error_frame(
+    frame: str,
+    *,
+    operation: str,
+    allow_responses_events: bool = False,
+    allow_image_events: bool = False,
+    allow_transcription_events: bool = False,
+) -> tuple[str, str | None, str | None, str | None] | None:
+    decoded = decode_openai_sse_block(frame)
+    if not is_valid_openai_decoded_block(
+        decoded,
+        allow_responses_events=allow_responses_events,
+        allow_image_events=allow_image_events,
+        allow_transcription_events=allow_transcription_events,
+    ):
+        del decoded
+        raise ModelOutputContractError(
+            "Provider returned a malformed OpenAI SSE frame.",
+            operation=operation,
+            details={"failure_type": "malformed_frame"},
+        )
+    return extract_openai_sse_error_from_payloads(require_openai_sse_frame_payloads(decoded))
+
+
+def extract_openai_sse_error_from_payloads(
+    payloads: tuple[JSONDict, ...],
+) -> tuple[str, str | None, str | None, str | None] | None:
+    for payload in payloads:
         error_obj = payload.get("error")
         if "error" not in payload:
             response = payload.get("response")

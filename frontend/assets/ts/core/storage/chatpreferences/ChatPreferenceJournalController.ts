@@ -4,7 +4,7 @@
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { decodeChatPreferencePendingJournal, journalStorageKey, serializeChatPreferencePendingJournal, type ChatPreferencePendingJournal } from '@core/storage/chatpreferences/chatPreferencePendingJournal.ts';
-import type { PreferenceRequestIdentity } from '@core/storage/chatpreferences/preferenceRequestIdentity.ts';
+import { preferenceRequestIdentityMatchesSession, readPreferenceRequestIdentity, type PreferenceRequestIdentity } from '@core/storage/chatpreferences/preferenceRequestIdentity.ts';
 import type { StorageAdapters, StorageRuntimeState } from '@core/storage/service/types.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 
@@ -19,6 +19,7 @@ class ChatPreferenceJournalController {
     }
 
     read(identity: PreferenceRequestIdentity): ChatPreferencePendingJournal | null {
+        if (!preferenceRequestIdentityMatchesSession(this.#state, identity)) return null;
         const key = journalStorageKey(identity.userId);
         let value: JsonValue | null | undefined;
         try {
@@ -44,14 +45,12 @@ class ChatPreferenceJournalController {
             this.write(identity, chatDelta, conversationDefaultsDelta);
             return;
         }
-        const userId = this.#state.session['userId'];
-        const windowId = this.#state.windowIdentity;
-        if (typeof userId === 'string' && userId.trim() && windowId) {
-            this.write({ userId: userId.trim(), windowId }, chatDelta, conversationDefaultsDelta);
-        }
+        const current = readPreferenceRequestIdentity(this.#state);
+        if (current) this.write(current, chatDelta, conversationDefaultsDelta);
     }
 
     write(identity: PreferenceRequestIdentity, chatDelta: JsonObject, conversationDefaultsDelta: JsonObject): void {
+        if (!preferenceRequestIdentityMatchesSession(this.#state, identity)) return;
         const key = journalStorageKey(identity.userId);
         try {
             if (Object.keys(chatDelta).length === 0 && Object.keys(conversationDefaultsDelta).length === 0) {

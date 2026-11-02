@@ -84,7 +84,7 @@ class McpConversationSettingsController {
                         this.#expandedToolGroupIds.delete(result.serverId);
                     }
                 },
-                onDefaultToolsTriggerClick: () => openDefaultToolsModal(),
+                onDefaultToolsTriggerClick: () => openDefaultToolsModal(this.#dependencies.host.owner),
                 onDefaultToolsToggleChange: (toggleElement) =>
                     applyDefaultToolsToggleChange({
                         host,

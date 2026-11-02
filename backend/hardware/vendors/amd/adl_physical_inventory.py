@@ -19,7 +19,10 @@ from hardware.gpu_inventory.windows_adapters import (
     coerce_windows_gpu_name,
     detect_windows_adapter_vendor,
 )
-from hardware.gpu_inventory.windows_physical_acquisition import read_windows_physical_acquisition
+from hardware.gpu_inventory.windows_physical_acquisition import (
+    WindowsPhysicalAcquisition,
+    read_windows_physical_acquisition,
+)
 from hardware.vendors.amd.adl_abi import AdlAdapterObservation
 
 if TYPE_CHECKING:
@@ -36,13 +39,23 @@ class AdlPhysicalDevice:
 
 
 def acquire_adl_physical_devices(
-    session: AdlSession, executor: CommandExecutorProtocol
+    session: AdlSession,
+    executor: CommandExecutorProtocol,
+    *,
+    physical_acquisition: WindowsPhysicalAcquisition | None = None,
 ) -> tuple[AdlPhysicalDevice, ...]:
-    cim = read_windows_physical_acquisition(executor)
-    if cim.state != GPUInventoryReadState.OBSERVED or not cim.records:
+    acquisition = (
+        read_windows_physical_acquisition(executor)
+        if physical_acquisition is None
+        else physical_acquisition
+    )
+    if acquisition.state != GPUInventoryReadState.OBSERVED or not acquisition.records:
         raise StateError(
             "ADL requires a complete fresh Windows physical acquisition.",
-            details={"observation_state": cim.state.value, "reason_code": cim.reason_code},
+            details={
+                "observation_state": acquisition.state.value,
+                "reason_code": acquisition.reason_code,
+            },
         )
     groups: dict[str, list[AdlAdapterObservation]] = {}
     roster = tuple(dict.fromkeys(session.read_adapters()))
@@ -57,7 +70,7 @@ def acquire_adl_physical_devices(
         groups[pnp].append(adapter)
     entries: list[JSONDict] = []
     cim_instances: set[str] = set()
-    for index, row in enumerate(cim.records):
+    for index, row in enumerate(acquisition.records):
         name = coerce_windows_gpu_name(row.get("Name"))
         if detect_windows_adapter_vendor(row, name) == "amd":
             entry = build_windows_gpu_entry(

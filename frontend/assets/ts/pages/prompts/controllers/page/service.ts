@@ -9,7 +9,7 @@ import { isFunction, isString } from '@core/typeGuards.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import { requireContentPreviewModalService } from '@core/ui/modals/contentpreview/service.ts';
 import type { PromptsApiClient } from '@pages/prompts/contracts/promptsTypes.ts';
-import { isDraftPromptId, setupUnsavedChangesGuard, type PromptsPageActionsHost } from '@pages/prompts/controllers/page/effects.ts';
+import { isDraftPromptId, type PromptsPageActionsHost } from '@pages/prompts/controllers/page/effects.ts';
 import { requirePromptsUi } from '@pages/prompts/dom.ts';
 import type { PromptsRuntimeContext } from '@pages/prompts/controllers/page/contracts.ts';
 
@@ -76,7 +76,6 @@ const onCollectionShellReady = async (host: PromptsPageServiceHost & PromptsPage
     host.operations.renderItems();
     host.components.selectionController.refreshUI();
     host.components.promptEnhancer.setupEventListeners();
-    setupUnsavedChangesGuard(host);
     terminateHandledPromise(host.owners.pageLifecycle.run('prompts:promptEnhancer:reloadModels', () => host.components.promptEnhancer.reloadModelCatalog()));
 };
 

@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 
 from core.rate_limiting.definitions import RateLimitDecision, RateLimitRule
 from core.rate_limiting.moving_window import MovingWindowRateLimiter
+from core.timing.epoch import epoch_seconds_float
 from mcp.tools.generate_image_horde_constants import (
     ANONYMOUS_HORDE_API_KEY,
     ANONYMOUS_HORDE_BASE_URL,
@@ -58,4 +59,6 @@ def _resolve_decision_wait_seconds(decision: RateLimitDecision) -> float:
     stats = decision.stats
     if stats is None:
         return 1.0
-    return max(1.0, min(_MAX_WAIT_SECONDS, float(stats.reset_epoch_seconds) - time.time() + 1.0))
+    return max(
+        1.0, min(_MAX_WAIT_SECONDS, float(stats.reset_epoch_seconds) - epoch_seconds_float() + 1.0)
+    )

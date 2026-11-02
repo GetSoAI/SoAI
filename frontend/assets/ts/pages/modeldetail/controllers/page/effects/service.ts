@@ -11,7 +11,7 @@ import { isObject } from '@core/typeGuards.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
 import { MODEL_SNAPSHOT_CACHE, MODEL_STORAGE_PREFIX, PARAMETER_STORAGE_PREFIX, modelDetailLogger, readSnapshot, writeSnapshot } from '@pages/modeldetail/contracts/modelDetailPageSupport.ts';
-import type { ModelDetailEffectsDependencies, ModelDetailEffectsHost } from '@pages/modeldetail/controllers/page/effects/types.ts';
+import type { ModelDetailEffectsDependencies, ModelDetailEffectsHost, ModelDetailParameterAvailabilityPort } from '@pages/modeldetail/controllers/page/effects/types.ts';
 import { extractModelDetailPayload } from '@pages/modeldetail/controllers/page/mappers.ts';
 import { getModelDetailPluginName } from '@pages/modeldetail/controllers/page/state.ts';
 import { setModelDetailPageState, updateModelDetailBackendDocumentationLink } from '@pages/modeldetail/controllers/page/view/service.ts';
@@ -19,9 +19,9 @@ import { fetchModelSnapshotFromCollection } from '@pages/modeldetail/services/mo
 import { handleModelDetailMetricsUpdate, handleModelDetailPluginCollectionUpdate, handleModelDetailRealtimeModelUpdate } from '@pages/modeldetail/controllers/page/effects/events.ts';
 import { ensureModelDetailRealtimeCollectionsReady } from '@pages/modeldetail/controllers/page/events.ts';
 import { serializeModelDetailParameterPayload } from '@pages/modeldetail/mappers/ModelDetailParameterPayloadDomain.ts';
-import { markModelDetailParametersStale, readCachedModelDetailParameters, refreshModelDetailParameters, showCachedModelDetailParameters } from '@pages/modeldetail/controllers/page/effects/parameterSnapshotRuntime.ts';
+import { invalidateModelDetailParameters, markModelDetailParametersStale, readCachedModelDetailParameters, refreshModelDetailParameters, showCachedModelDetailParameters } from '@pages/modeldetail/controllers/page/effects/parameterSnapshotRuntime.ts';
 
-const composeModelDetailEffects = (host: ModelDetailEffectsDependencies): ModelDetailEffectsHost => {
+const composeModelDetailEffects = (host: ModelDetailEffectsDependencies, parameterAvailability: ModelDetailParameterAvailabilityPort): ModelDetailEffectsHost => {
     const updateBackendDocumentationLink = async (options: { ensurePlugins?: boolean; plugins?: (JsonValue | null)[] | null } = {}): Promise<void> => {
         const resolved = await updateModelDetailBackendDocumentationLink(host.view, options);
         host.session.backendDocumentationUrl = resolved.backendDocumentationUrl;
@@ -77,6 +77,11 @@ const composeModelDetailEffects = (host: ModelDetailEffectsDependencies): ModelD
             parameterView: host.parameterView,
             ensureRealtimeCollectionsReady: () =>
                 ensureModelDetailRealtimeCollectionsReady(host.session, {
+                    signal: effectsHost.state.signal,
+                    handleParametersChanged: (universalId) => {
+                        if (universalId === host.session.modelId || universalId === host.session.model?.universalId) terminateHandledPromise(invalidateModelDetailParameters(effectsHost));
+                    },
+                    handleInvalidParametersEvent: () => terminateHandledPromise(invalidateModelDetailParameters(effectsHost)),
                     pageResources: host.pageResources,
                     streaming: host.streaming,
                     handleModelUpdate: (value) => handleModelDetailRealtimeModelUpdate(effectsHost, value),
@@ -96,10 +101,11 @@ const composeModelDetailEffects = (host: ModelDetailEffectsDependencies): ModelD
             setLoadError: (error) => host.setLoadError(error),
             setPageState: (state) => setModelDetailPageState(host.view, state),
             applyParametersPayload: (payload) => host.applyParametersPayload(payload),
+            mergeParametersPayload: (payload) => host.mergeParametersPayload(payload),
             populateModelInfo: () => host.populateModelInfo(),
             renderParametersInterface: () => host.renderParametersInterface(),
-            renderParameterAvailability: () => host.parameterAvailability.renderParameterAvailability(),
-            notifySaveChanged: () => host.parameterAvailability.notifySaveChanged(),
+            renderParameterAvailability: () => parameterAvailability.renderParameterAvailability(),
+            notifySaveChanged: () => parameterAvailability.notifySaveChanged(),
             notifyParametersUnavailable: (message: string): void => {
                 host.feedback.show(message, 'warning');
             },

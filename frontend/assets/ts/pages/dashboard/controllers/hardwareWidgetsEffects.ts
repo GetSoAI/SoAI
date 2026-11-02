@@ -42,7 +42,7 @@ const renderHardwareWidgetsSection = async (
         return;
     }
 
-    const content = host.requireUI('hardwareWidgets-content');
+    const content = host.requireUI('dashboard-hardwareWidgets-content');
     const contentElement = narrowHTMLElement(content, 'dashboard hardware widgets content');
 
     if (!state.hasHardware()) {

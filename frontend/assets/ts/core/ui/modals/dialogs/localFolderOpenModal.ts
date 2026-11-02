@@ -39,6 +39,7 @@ const createLocalFolderOpenModal = (dependencies: { confirmationFlow: Confirmati
         });
 
         return await dependencies.confirmationFlow.show({
+            owner: options.owner,
             title: options.title || i18n.t('chat.confirmations.localFolder'),
             typeTokens: ['confirmation', 'local-folder', variant],
             icon: resolvedIcon,

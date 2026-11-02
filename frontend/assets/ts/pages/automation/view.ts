@@ -44,7 +44,7 @@ const renderAutomationPageView = (dependencies: RenderAutomationPageDependencies
     const preferencesCorruptReset = i18n.t('automation.preferencesCorrupt.reset');
     const loadingLabel = i18n.t('common.loading');
 
-    return uiHtml`<div id="automation-root" class="automation-container" data-section="automation" data-page-transition-surface="true" role="main">
+    return uiHtml`<div id="automation-root" class="automation-container" data-section="automation" data-page-transition-surface="true" role="region" aria-label="${uiAttr(i18n.t('pages.automation.title'))}">
         <div id="automation-preferences-corrupt-overlay" class="automation-blocking-overlay u-hidden" role="alertdialog" aria-modal="true" aria-labelledby="automation-preferences-corrupt-title">
             <div class="automation-blocking-card surface-card">
                 <h2 id="automation-preferences-corrupt-title" class="automation-blocking-title">${uiText(preferencesCorruptTitle)}</h2>

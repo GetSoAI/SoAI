@@ -83,6 +83,7 @@ interface DashboardWidgetRuntimeLifecycle {
     throughput: DashboardDestroyable;
     layoutEdit: DashboardDestroyable;
     layout: DashboardDestroyable;
+    statusValueSizeWatcher: ElementResizeRedrawWatcher;
     requestDistributionChartSizeWatcher: ElementResizeRedrawWatcher;
 }
 
@@ -95,6 +96,7 @@ const destroyDashboardWidgetRuntime = (runtime: DashboardWidgetRuntimeLifecycle)
     runtime.layoutEdit.destroy();
     runtime.layout.destroy();
     runtime.requestDistributionChartSizeWatcher.disconnect();
+    runtime.statusValueSizeWatcher.disconnect();
 };
 
 export { destroyDashboardWidgetRuntime, queueDashboardSectionRender, renderDashboardSection, resolveDashboardStatusManager, handleDashboardLiveDataUpdate, runDashboardSubscriptions };

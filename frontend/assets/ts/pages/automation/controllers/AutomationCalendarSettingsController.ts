@@ -1,6 +1,7 @@
 /* SoAI - Automation page calendar settings controller [frontend/assets/ts/pages/automation/controllers/AutomationCalendarSettingsController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -20,6 +21,7 @@ import { requireActionButton } from '@pages/automation/dom.ts';
 import type { AutomationCalendarSettings } from '@pages/automation/types.ts';
 
 interface CalendarSettingsControllerDependencies {
+    readonly owner: PresentationOwner;
     requireHTMLElement: (selector: string, context?: Element | Document | null) => HTMLElement;
     modalPresenter: ModalPresenterApi;
     getSettings: () => AutomationCalendarSettings;
@@ -41,6 +43,7 @@ class AutomationCalendarSettingsController {
     constructor(dependencies: CalendarSettingsControllerDependencies) {
         this.#dependencies = dependencies;
         this.#modal = new AutomationCalendarSettingsModalController({
+            owner: dependencies.owner,
             requireHTMLElement: dependencies.requireHTMLElement,
             modalPresenter: dependencies.modalPresenter
         });
@@ -78,6 +81,7 @@ class AutomationCalendarSettingsController {
         modal.addEventListener('input', syncFieldState, { signal, capture: true });
         modal.addEventListener('change', syncFieldState, { signal, capture: true });
         const save = createSaveController({
+            owner: this.#dependencies.owner,
             headerContextId: 'automation:calendar-settings-modal',
             headerPriority: SAVE_HEADER_PRIORITY_MODAL,
             requestContextLabel: 'Automation calendar settings save',
@@ -135,7 +139,7 @@ class AutomationCalendarSettingsController {
             this.#dependencies.showNotification(i18n.t('common.processing'), 'info');
             return false;
         }
-        return await showUnsavedChangesConfirmation();
+        return await showUnsavedChangesConfirmation({ owner: this.#dependencies.owner });
     }
 
     async #performSaveCalendarSettings(): Promise<SaveUnitResult> {

@@ -1,6 +1,8 @@
 /* SoAI - SaveScope contract types [frontend/assets/ts/core/save/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
+
 interface SaveUnitStopResult {
     type: 'stop';
 }
@@ -18,6 +20,7 @@ interface PreparedSaveUnit {
 
 interface SaveUnit {
     id: string;
+    getProtectionRevision?: () => number | string;
     hasChanges: () => boolean;
     save: () => SaveUnitResult | Promise<SaveUnitResult>;
     isValid?: () => boolean;
@@ -32,6 +35,8 @@ interface SaveScope {
     canSave: () => boolean;
     requestSave: () => Promise<SaveRequestOutcome>;
     isSaving: () => boolean;
+    isInvokingCallback: () => boolean;
+    getProtectionRevision: () => number | string;
     notifyChanged: () => void;
     subscribe: (listener: () => void) => () => void;
     dispose: () => void;
@@ -43,6 +48,7 @@ interface SaveBinding {
 }
 
 interface BindSaveScopeOptions {
+    readonly owner: PresentationOwner;
     scope: SaveScope;
     requestSave: (context: string) => Promise<void>;
     isRequestInFlight?: (() => boolean) | undefined;

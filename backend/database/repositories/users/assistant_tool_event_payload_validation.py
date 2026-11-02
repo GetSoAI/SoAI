@@ -48,12 +48,8 @@ def build_validated_timeline_event_payload(
 def build_validated_assistant_event_payload_json(
     *,
     event_type: str,
-    payload_json: str,
+    payload: JSONDict,
 ) -> str:
-    payload = safe_json_deserialize_required_object(
-        payload_json,
-        error_message="Assistant event payload_json must decode to an object.",
-    )
     validated_payload = build_validated_timeline_event_payload(
         event_type=event_type,
         payload=payload,

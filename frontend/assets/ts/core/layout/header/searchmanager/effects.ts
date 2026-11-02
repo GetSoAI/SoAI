@@ -26,7 +26,7 @@ import { serializeElementToHtml } from '@core/dom/html.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import type { SearchCategoryStateType } from '@core/search/searchCategoryStateMarkup.ts';
 
-type SearchEffectsRuntime = Pick<HeaderSearchManagerContract, 'abortSearchRequest' | 'advanceSearchToken' | 'button' | 'cancelBlurTimer' | 'cancelScheduledSearch' | 'collapse' | 'container' | 'displaySearchError' | 'dropdown' | 'expanded' | 'header' | 'input' | 'panel' | 'requireDom' | 'requireDropdownItems' | 'selectedIndex' | 'statusManager' | 'updateSelectedItems'>;
+type SearchEffectsRuntime = Pick<HeaderSearchManagerContract, 'presentationOwner' | 'abortSearchRequest' | 'advanceSearchToken' | 'button' | 'cancelBlurTimer' | 'cancelScheduledSearch' | 'collapse' | 'container' | 'displaySearchError' | 'dropdown' | 'expanded' | 'header' | 'input' | 'panel' | 'requireDom' | 'requireDropdownItems' | 'selectedIndex' | 'statusManager' | 'updateSelectedItems'>;
 type SearchMessageRuntime = Pick<SearchEffectsRuntime, 'requireDom' | 'header' | 'selectedIndex'>;
 
 const getSearchManagerRefs = (manager: SearchEffectsRuntime): SearchManagerRefs | null => {
@@ -104,7 +104,7 @@ const handleSearchItemNavigation = async (manager: SearchEffectsRuntime, node: H
         const shouldOpenPromptPreview = normalizedType === 'prompt' && Boolean(searchDataset.id);
         if (shouldOpenFilePreview && searchDataset.filePath) {
             const api = manager.header.resolveService('core.apiClient', isFileExplorerContentPreviewApi, 'API client');
-            const opened = await openFileExplorerContentPreview(api, searchDataset.filePath);
+            const opened = await openFileExplorerContentPreview(api, searchDataset.filePath, manager.presentationOwner);
             if (opened) {
                 return;
             }

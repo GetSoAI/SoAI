@@ -24,14 +24,13 @@ import type { PageContext } from '@core/pagecontext/public.ts';
 import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageResources } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { PageServices } from '@core/routing/pages/basepagecore/PageServices.ts';
+import type { PageMountScope } from '@core/routing/router/types.ts';
 import type { PageHost } from '@core/routing/pages/basepagecore/PageHost.ts';
 
-type PageLayoutHost = BasePageLayoutHost &
-    HeaderActionMenuHost & {
-        updateText(target: Element, text: string): void;
-    };
+type PageLayoutHost = BasePageLayoutHost & HeaderActionMenuHost;
 
 interface PageLayoutDependencies {
+    mountScope: PageMountScope;
     pageId: string;
     pageContext: PageContext;
     pageDom: PageDom;
@@ -41,7 +40,7 @@ interface PageLayoutDependencies {
 }
 
 interface PageLayoutControls {
-    resolveDomContextForHeaderActions?: ((context?: Element | Document | null) => Element | null) | undefined;
+    resolveDomContextForHeaderActions?: ((context?: Element | null) => Element | null) | undefined;
     getActionsMenuBreakpoint?: (() => number) | undefined;
     getActionsMenuSidebarState?: (() => boolean) | undefined;
     onActionsMenuCollapsedChange?: ((collapsed: boolean) => void) | undefined;
@@ -59,7 +58,7 @@ interface PageLayoutContract {
     attachHeaderAnimator(): void;
     attachHeaderCtaConfirmation(): void;
     initializePageActions(): void;
-    applyHeaderStats(scope?: ParentNode | null): void;
+    applyHeaderStats(scope?: Element | null): void;
     updateResponsive(): void;
     generateHeader(options?: GenerateStandardHeaderOptions): TrustedHtml;
     generateStats(statDefinitions?: HeaderStatDefinition[]): TrustedHtml;
@@ -90,6 +89,7 @@ class PageLayout implements PageLayoutContract {
 
     constructor(dependencies: PageLayoutDependencies, controls: PageLayoutControls) {
         const host: PageLayoutHost = {
+            mountScope: dependencies.mountScope,
             get container(): HTMLElement | null {
                 return dependencies.pageHost.container;
             },
@@ -101,7 +101,6 @@ class PageLayout implements PageLayoutContract {
             queryUI: (selector, context) => dependencies.pageDom.query(selector, context),
             on: (target, event, listener, options) => dependencies.resources.on(target, event, listener, options),
             trackDisposable: (resource, onDispose) => dependencies.resources.track(resource, onDispose),
-            updateText: (target, text) => dependencies.pageDom.updateText(target, text),
             updateStyles: (target, styles, context) => dependencies.pageDom.updateStyles(target, styles, context),
             updateStyle: (target, property, value, context) => dependencies.pageDom.updateStyle(target, property, value, context),
             updateHTML: (target, html, options) => dependencies.pageDom.updateHtml(target, html, options),
@@ -124,7 +123,7 @@ class PageLayout implements PageLayoutContract {
         Object.assign(this.#controls, controls);
     }
 
-    #resolveHeaderActionContext(context?: Element | Document | null): Element | null {
+    #resolveHeaderActionContext(context?: Element | null): Element | null {
         return resolveLayoutHeaderActionContext(context, {
             ...(this.#controls.resolveDomContextForHeaderActions ? { resolveDomContextForHeaderActions: this.#controls.resolveDomContextForHeaderActions } : {}),
             getDomContext: () => this.#pageDom.getContext(),
@@ -147,7 +146,7 @@ class PageLayout implements PageLayoutContract {
         };
     }
 
-    #onClassMutation(target: DOMTarget, classes: string | string[], context?: Element | Document | null): void {
+    #onClassMutation(target: DOMTarget, classes: string | string[], context?: Element | null): void {
         queueLayoutHeaderActionsLayoutUpdateForMutation(
             this.#state,
             target,
@@ -186,7 +185,7 @@ class PageLayout implements PageLayoutContract {
         setupHeaderStatsLayout(this.#host, this.#state);
     }
 
-    applyHeaderStats(scope?: ParentNode | null): void {
+    applyHeaderStats(scope?: Element | null): void {
         applyHeaderStatsLayoutNow(this.#host, this.#state, scope);
     }
 
@@ -263,11 +262,11 @@ class PageLayout implements PageLayoutContract {
     }
 
     async hide(): Promise<void> {
-        await onHide(this.#host, this.#pageHost.getSection());
+        await onHide(this.#host, this.#pageDom.getContext() ? this.#pageHost.getSection() : null);
     }
 
     async cleanup(): Promise<void> {
-        await cleanupLayoutState(this.#host, this.#state);
+        cleanupLayoutState(this.#state, this.#pageDom.getContext());
         cleanupBasePageLayoutTransientState(this.#state);
     }
 

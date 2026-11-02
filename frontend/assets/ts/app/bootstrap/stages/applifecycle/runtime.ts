@@ -11,8 +11,9 @@ import type { AppLifecycleDependencies, LifecycleRoute } from '@app/bootstrap/st
 import { initializeAuthenticatedSessionServices } from '@app/bootstrap/stages/sessionServices.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import { onNavigationComplete } from '@core/navigationEvents.ts';
+import { onFocusedNavigation, onNavigationComplete } from '@core/navigationEvents.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
+import { isAuthRouteComponent } from '@core/routing/router/authRouteTarget.ts';
 
 interface AuthenticatedSessionRuntime {
     dependencies: AppLifecycleDependencies;
@@ -79,15 +80,35 @@ const monitorLifecycleConnectionRuntime = (dependencies: AppLifecycleDependencie
     };
 };
 
-const bindLifecycleWarmupListener = (runtime: AuthenticatedSessionRuntime): void => {
+const bindLifecycleNavigationListener = (runtime: AuthenticatedSessionRuntime): void => {
     if (runtime.routerWarmupUnsubscribe) {
         return;
     }
-    runtime.setRouterWarmupUnsubscribe(
-        onNavigationComplete((detail) => {
-            warmupLifecycleCharts(runtime, resolveNavigationRoute(detail));
-        })
-    );
+    const { auth, router } = runtime.dependencies;
+    const epoch = auth.authEpoch;
+    let outcomePending = true;
+    const presentOutcome = (): void => {
+        if (!outcomePending || !auth.isAuthenticated || auth.authEpoch !== epoch) return;
+        const route = router.getCurrentRoute();
+        const component = route ? router.parseRoute(route)?.route.component : null;
+        const owner = router.getPageOutlet().peekPageHost()?.getCurrentMountScope();
+        if (!component || isAuthRouteComponent(component) || owner?.authEpoch !== epoch || !owner.admission.isActive()) return;
+        outcomePending = false;
+        void presentSoftwareUpdateOutcome(runtime.dependencies).catch((error) => errorHandler.warn('AppLifecycle', 'Software update outcome presentation failed', ensureError(error)));
+    };
+    const releaseWarmup = onFocusedNavigation((detail) => warmupLifecycleCharts(runtime, resolveNavigationRoute(detail)));
+    const releaseOutcome = onNavigationComplete(() => {
+        if (!outcomePending) return;
+        const completion = router.getLatestNavigationCompletion();
+        if (!completion) return;
+        void completion.then(presentOutcome).catch((error) => errorHandler.warn('AppLifecycle', 'Update outcome navigation settlement failed', ensureError(error)));
+    });
+    runtime.setRouterWarmupUnsubscribe(() => {
+        outcomePending = false;
+        releaseOutcome();
+        releaseWarmup();
+    });
+    presentOutcome();
 };
 
 const warmupLifecycleCharts = (runtime: Pick<AuthenticatedSessionRuntime, 'dependencies' | 'chartWarmupRoutes' | 'getCurrentWarmupPromise' | 'setCurrentWarmupPromise'>, route: LifecycleRoute): Promise<void> | undefined =>
@@ -100,13 +121,17 @@ const warmupLifecycleCharts = (runtime: Pick<AuthenticatedSessionRuntime, 'depen
     });
 
 const setupAuthenticatedLifecycleSession = async (runtime: AuthenticatedSessionRuntime): Promise<void> => {
+    const epoch = runtime.dependencies.auth.authEpoch;
+    const isCurrent = (): boolean => runtime.dependencies.auth.authEpoch === epoch && runtime.dependencies.auth.isAuthenticated;
+    if (!isCurrent()) return;
     const activeRoute = runtime.initialRoute ?? runtime.dependencies.router.getCurrentRoute();
     await Promise.all([runtime.initializeDataHub(), initializeAuthenticatedSessionServices()]);
+    if (!isCurrent()) return;
     await runtime.initializeComponents({ force: runtime.force === true });
+    if (!isCurrent()) return;
     warmupLifecycleCharts(runtime, activeRoute);
-    bindLifecycleWarmupListener(runtime);
+    bindLifecycleNavigationListener(runtime);
     runtime.setupEventListeners();
-    void presentSoftwareUpdateOutcome(runtime.dependencies).catch((error) => errorHandler.warn('AppLifecycle', 'Software update outcome presentation failed', ensureError(error)));
 };
 
-export { bindLifecycleWarmupListener, initializeLifecycleDataHubRuntime, monitorLifecycleConnectionRuntime, setupAuthenticatedLifecycleSession, setupLifecycleUiEventRuntime, warmupLifecycleCharts };
+export { bindLifecycleNavigationListener, initializeLifecycleDataHubRuntime, monitorLifecycleConnectionRuntime, setupAuthenticatedLifecycleSession, setupLifecycleUiEventRuntime, warmupLifecycleCharts };

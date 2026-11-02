@@ -1,6 +1,7 @@
 /* SoAI - Chat feature message contracts [frontend/assets/ts/features/chat/message/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { AgentCanonicalPlan } from '@core/chat/agentTypes.ts';
 import type { JsonApiClient } from '@core/api/jsonRequestGate.ts';
 import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
@@ -75,6 +76,7 @@ interface ChatMessageInteractionPort {
 }
 
 interface ChatMessageManagerDependencies {
+    readonly owner: PresentationOwner;
     runtime: ChatMessageRuntimeOperations;
     boundary: ChatMessageBoundaryPort;
     presentation: ChatMessagePresentationPort;

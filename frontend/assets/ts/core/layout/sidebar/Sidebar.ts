@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { getAuthManager } from '@core/auth/public.ts';
+import { AnimationFrameRenderQueue } from '@core/animations/renderQueue.ts';
 import { requireChatConversationAttention } from '@core/chat/streamServiceAccess.ts';
 import { getComponentRegistry } from '@core/componentsupport/public.ts';
 import { dom } from '@core/dom/dom.ts';
@@ -19,7 +20,7 @@ import { bindSidebarRouteEvents } from '@core/layout/sidebar/events.ts';
 import { AsyncQueue, normalizeRoute } from '@core/layout/sidebar/foundation.ts';
 import { bootstrapSidebarLifecycle, refreshSidebarContent, teardownSidebarLifecycle, type SidebarLifecycleDependencies, type SidebarRefreshDependencies } from '@core/layout/sidebar/lifecycle.ts';
 import { SidebarModelDependentNavigationGate } from '@core/layout/sidebar/modelDependentNavigation.ts';
-import { setSidebarActiveByPage, syncSidebarWithCurrentRoute } from '@core/layout/sidebar/navigation.ts';
+import { setSidebarActiveByPage, syncSidebarVisiblePanes, syncSidebarWithCurrentRoute } from '@core/layout/sidebar/navigation.ts';
 import { isSidebarStoragePluginIndicatorContract, type SidebarStoragePluginIndicatorContract } from '@core/layout/sidebar/pluginIndicator.ts';
 import { resolveSidebarIconMarkup, resolveSidebarLabel, resolveSidebarStorage, syncSidebarExpandedWidth, updateSidebarMainStateIndicator, waitForSidebarComponent } from '@core/layout/sidebar/service.ts';
 import { createInitialSidebarState, type SidebarState } from '@core/layout/sidebar/state.ts';
@@ -173,6 +174,13 @@ class LayoutSidebar extends LifecycleModel {
 
         cacheSidebarDomRefs(this.#domRefs);
         flushSidebarDisposers(this.#persistentDisposers, 'persistent');
+        const paneProjection = new AnimationFrameRenderQueue<void>({ label: 'Sidebar pane visibility', merge: () => undefined, render: () => syncSidebarVisiblePanes(this.#router, getSidebarMenuElement(this.#domRefs), this.#routeComponentMap), requestAnimationFrame: (callback) => this.resources.requestAnimationFrame(callback), cancelAnimationFrame: (frame) => this.resources.cancelAnimationFrame(frame) });
+        addSidebarDisposer(this.#persistentDisposers, () => paneProjection.dispose(), 'persistent');
+        addSidebarDisposer(
+            this.#persistentDisposers,
+            this.#router.pagePanes.subscribeLayout(() => paneProjection.schedule()),
+            'persistent'
+        );
         const enqueueRouteChange = bindSidebarRouteEvents({
             addPersistentDisposer: (functionValue) => addSidebarDisposer(this.#persistentDisposers, functionValue, 'persistent'),
             routeBlocklist: this.#routeBlocklist,

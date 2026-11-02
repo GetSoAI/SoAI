@@ -11,10 +11,10 @@ export const arraysEqual = <T>(firstValue: readonly T[], secondValue: readonly T
     return true;
 };
 
-export const deepEqual = <TLeft, TRight>(firstValue: TLeft, secondValue: TRight): boolean => {
+export const deepEqual = <TLeft, TRight>(firstValue: TLeft, secondValue: TRight, { nullishEqual = true }: { nullishEqual?: boolean } = {}): boolean => {
     const visit = <TVisit>(xCoordinate: TVisit, yCoordinate: TVisit): boolean => {
         if (xCoordinate === yCoordinate) return true;
-        if ((xCoordinate === null || xCoordinate === undefined) && (yCoordinate === null || yCoordinate === undefined)) return true;
+        if (nullishEqual && (xCoordinate === null || xCoordinate === undefined) && (yCoordinate === null || yCoordinate === undefined)) return true;
         if (xCoordinate === null || xCoordinate === undefined || yCoordinate === null || yCoordinate === undefined) return false;
         if (typeof xCoordinate !== typeof yCoordinate) return false;
         if (Array.isArray(xCoordinate) && Array.isArray(yCoordinate)) {

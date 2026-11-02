@@ -21,6 +21,8 @@ interface FetchModelSnapshotHost {
 interface FetchParametersSnapshotHost {
     modelId: string | null;
     model: ModelRecord | null;
+    signal?: AbortSignal | undefined;
+    timeoutMs?: number | undefined;
 }
 
 const fetchModelSnapshotFromCollection = async (host: FetchModelSnapshotHost): Promise<ModelRecord> => {
@@ -51,7 +53,7 @@ const resolveUniversalModelId = (host: FetchParametersSnapshotHost): string => {
 
 const fetchParametersViaWebSocketSnapshot = async (host: FetchParametersSnapshotHost): Promise<ModelDetailParametersData> => {
     const universalId = resolveUniversalModelId(host);
-    const payload = await requestWebSocketSnapshotRecord('models.parameters', { 'universal_id': universalId });
+    const payload = await requestWebSocketSnapshotRecord('models.parameters', { 'universal_id': universalId }, { signal: host.signal, timeoutMs: host.timeoutMs });
     return decodeModelDetailParameterPayload(payload);
 };
 

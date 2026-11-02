@@ -14,6 +14,7 @@ interface UpdatesPageControllerHostDependencies {
 }
 
 const createUpdatesSystemControllerHost = (dependencies: UpdatesPageControllerHostDependencies): UpdatesSystemControllerHost => ({
+    owner: dependencies.systemSurface.owner,
     storage: dependencies.storage,
     api: {
         checkUpdates: dependencies.checkUpdates,

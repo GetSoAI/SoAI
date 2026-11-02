@@ -1,44 +1,44 @@
 /* SoAI - Shared frontend file explorer browser directory listing controller [frontend/assets/ts/core/fileexplorerbrowser/directoryListingController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { FileExplorerListingAcceptedResponse, FileExplorerListingLocateOptions, FileExplorerListingLocateResponse, FileExplorerListingPageOptions, FileExplorerListingPageResponse, FileExplorerListingReleasedResponse, FileExplorerListingSortColumn, FileExplorerListingSortDirection } from '@core/api/contracts/fileExplorerListingContractTypes.ts';
-import type { FileExplorerSearchResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
+import type { FileExplorerListingSortColumn, FileExplorerListingSortDirection } from '@core/api/contracts/fileExplorerListingContractTypes.ts';
+import type { DirectoryListingApi, DirectoryListingSnapshot, DirectoryListingSelection, DirectoryListingReleaseRecovery } from '@core/fileexplorerbrowser/directoryListingContracts.ts';
 import { FILE_EXPLORER_LISTING_EXPIRED_ERROR_CODE } from '@core/api/contracts/fileExplorerListingContracts.ts';
-import { ensureError, extractErrorCode, isErrorHttpStatus } from '@core/errors/coerce.ts';
-import { parseFileBrowserEntriesPayload, parseFileBrowserLoadResponse } from '@core/fileexplorerbrowser/parsing.ts';
+import { ensureError, extractErrorCode } from '@core/errors/coerce.ts';
+import { parseDirectorySearchSnapshot } from '@core/fileexplorerbrowser/parsing.ts';
 import { toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
 import type { DirectoryListingBrowserState, FileBrowserErrorResolver } from '@core/fileexplorerbrowser/types.ts';
 import { generateSecureId } from '@core/primitives/idGenerator.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
-
-interface DirectoryListingApi {
-    startListing(listingId: string, path: string, signal?: AbortSignal): Promise<FileExplorerListingAcceptedResponse>;
-    getListingPage(listingId: string, options: FileExplorerListingPageOptions): Promise<FileExplorerListingPageResponse>;
-    locateListingEntry(listingId: string, name: string, options: FileExplorerListingLocateOptions): Promise<FileExplorerListingLocateResponse>;
-    releaseListing(listingId: string, signal?: AbortSignal): Promise<FileExplorerListingReleasedResponse>;
-    search(options: { path: string; query: string; limit: number; includeTotal: boolean; signal: AbortSignal }): Promise<FileExplorerSearchResponse>;
-}
+import { DIRECTORY_LISTING_PAGE_LIMIT, DirectoryListingSession } from '@core/fileexplorerbrowser/directoryListingSession.ts';
+import { createDeferred } from '@core/runtime/deferred.ts';
+import { resolveDirectoryListingFailureFreshness } from '@core/fileexplorerbrowser/directoryListingFailure.ts';
+import { DirectoryListingReconciliation } from '@core/fileexplorerbrowser/directoryListingReconciliation.ts';
+import { createAbortError, runWithAbortSignalScope, raceWithAbortSignal } from '@core/errors/abort.ts';
+import { throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
 
 interface DirectoryListingControllerOptions {
     api: DirectoryListingApi;
+    subscribeReleaseRecovery?: DirectoryListingReleaseRecovery;
     awaitTask: (taskId: string, signal: AbortSignal) => Promise<void>;
     errorResolver: FileBrowserErrorResolver;
+    captureSelection?: () => DirectoryListingSelection;
     initialSort?: { column: FileExplorerListingSortColumn; direction: FileExplorerListingSortDirection };
     listingIdFactory?: () => string;
     onError?: (error: Error) => void;
     onStateChange: (state: DirectoryListingBrowserState) => void;
 }
 
-const PAGE_LIMIT = 400;
-
 class DirectoryListingController {
     readonly #api: DirectoryListingApi;
+    readonly #subscribeReleaseRecovery: DirectoryListingReleaseRecovery | undefined;
     readonly #awaitTask: (taskId: string, signal: AbortSignal) => Promise<void>;
     readonly #errorResolver: FileBrowserErrorResolver;
     readonly #listingIdFactory: () => string;
     readonly #onError: ((error: Error) => void) | null;
     readonly #onStateChange: (state: DirectoryListingBrowserState) => void;
     #state: DirectoryListingBrowserState = {
+        updatedAtMs: null,
         currentPath: '/',
         workspacePathResolved: null,
         query: '',
@@ -50,19 +50,23 @@ class DirectoryListingController {
         total: 0,
         hasMore: false,
         nextOffset: null,
-        isLoadingMore: false
+        isLoadingMore: false,
+        freshness: 'current'
     };
-    #listingId: string | null = null;
-    #listingServedPage = false;
+    readonly #captureSelection: (() => DirectoryListingSelection) | null;
+    readonly #reconciliation: DirectoryListingReconciliation;
+    #listing: DirectoryListingSession | null = null;
+    readonly #sessions = new Set<DirectoryListingSession>();
+    #disposal: Promise<void> | null = null;
     #sessionAbort: AbortController | null = null;
-    #pageAbort: AbortController | null = null;
     #sequence = 0;
-    #pageSequence = 0;
     #sortColumn: FileExplorerListingSortColumn = 'name';
     #sortDirection: FileExplorerListingSortDirection = 'asc';
 
     constructor(options: DirectoryListingControllerOptions) {
         this.#api = options.api;
+        this.#subscribeReleaseRecovery = options.subscribeReleaseRecovery;
+        this.#captureSelection = options.captureSelection ?? null;
         this.#awaitTask = options.awaitTask;
         this.#errorResolver = options.errorResolver;
         this.#listingIdFactory = options.listingIdFactory ?? (() => generateSecureId('listing'));
@@ -70,17 +74,61 @@ class DirectoryListingController {
         this.#onStateChange = options.onStateChange;
         this.#sortColumn = options.initialSort?.column ?? 'name';
         this.#sortDirection = options.initialSort?.direction ?? 'asc';
+        this.#reconciliation = new DirectoryListingReconciliation({
+            replace: (signal, canCommit) => this.#load(this.#state.currentPath, this.#state.query, true, signal, canCommit),
+            markStale: (recovering = false) => {
+                if (!this.#disposal && this.#state.freshness !== 'unavailable' && this.#state.freshness !== 'stale') this.#updateState({ freshness: recovering && this.#state.freshness === 'current' ? 'refreshing' : 'stale' });
+            },
+            reportFailure: (error) => {
+                if (!this.#disposal) {
+                    this.#updateState({ freshness: resolveDirectoryListingFailureFreshness(error, this.#state.freshness), errorMessage: this.#errorResolver.resolve(error) });
+                    this.#onError?.(error);
+                }
+            }
+        });
     }
 
-    destroy(): void {
+    destroy(): Promise<void> {
+        if (this.#disposal) return this.#disposal;
+        const completion = createDeferred<void>();
+        this.#disposal = completion.promise;
         this.#sequence += 1;
-        this.#sessionAbort?.abort();
-        this.#pageAbort?.abort();
+        this.#reconciliation.dispose();
+        const sessionAbort = this.#sessionAbort;
         this.#sessionAbort = null;
-        this.#pageAbort = null;
-        const listingId = this.#listingId;
-        this.#listingId = null;
-        if (listingId !== null) terminateHandledPromise(this.#api.releaseListing(listingId));
+        this.#listing = null;
+        sessionAbort?.abort();
+        const dispose = async (): Promise<void> => {
+            const outcomes = await Promise.allSettled(
+                [...this.#sessions].map((session) => {
+                    this.#retire(session);
+                    return session.releaseCompletion;
+                })
+            );
+            throwCollectedCleanupFailures(outcomes.flatMap((outcome) => (outcome.status === 'rejected' ? [ensureError(outcome.reason)] : [])));
+        };
+        void dispose().then(completion.resolve, (error) => completion.reject(ensureError(error)));
+        return completion.promise;
+    }
+
+    #retire(session: DirectoryListingSession): void {
+        if (session.releaseState === 'active') {
+            terminateHandledPromise(
+                session.releaseCompletion.then(
+                    () => this.#sessions.delete(session),
+                    () => undefined
+                )
+            );
+        }
+        terminateHandledPromise(
+            session.release().catch((error) => {
+                if (!this.#disposal) this.#onError?.(ensureError(error));
+            })
+        );
+    }
+
+    #recoverReleases(): void {
+        for (const session of this.#sessions) if (session.releaseState === 'failed') this.#retire(session);
     }
 
     getState(): DirectoryListingBrowserState {
@@ -91,191 +139,178 @@ class DirectoryListingController {
         await this.navigate(path);
     }
 
-    async refresh(): Promise<void> {
-        await this.#load(this.#state.currentPath, this.#state.query);
+    refresh(): Promise<boolean> {
+        this.#recoverReleases();
+        return this.#reconciliation.invalidate(true);
+    }
+
+    invalidate(): Promise<boolean> {
+        return this.#reconciliation.invalidate();
     }
 
     async navigate(path: string): Promise<void> {
-        await this.#load(toVirtualPath(path), '');
+        this.#recoverReleases();
+        await this.#reconciliation.read((canCommit) => this.#load(toVirtualPath(path), '', false, undefined, canCommit), true);
     }
 
     async search(query: string): Promise<void> {
         const normalizedQuery = query.trim();
         if (normalizedQuery === this.#state.query) return;
-        await this.#load(this.#state.currentPath, normalizedQuery);
+        this.#recoverReleases();
+        await this.#reconciliation.read((canCommit) => this.#load(this.#state.currentPath, normalizedQuery, false, undefined, canCommit), true);
     }
 
     async clearSearch(): Promise<void> {
         if (!this.#state.query) return;
-        await this.#load(this.#state.currentPath, '');
+        await this.#reconciliation.read((canCommit) => this.#load(this.#state.currentPath, '', false, undefined, canCommit), true);
     }
 
     async setSort(sortColumn: FileExplorerListingSortColumn, sortDirection: FileExplorerListingSortDirection): Promise<void> {
         this.#sortColumn = sortColumn;
         this.#sortDirection = sortDirection;
-        if (this.#state.query || this.#listingId === null) return;
-        await this.#loadListingPage({ offset: 0, append: false });
+        if (this.#state.query || this.#listing === null || (this.#state.isLoading && !this.#listing.hasPageRead)) return;
+        await this.#reconciliation.read((canCommit) => this.#loadListingPage({ offset: 0, append: false }, 1, canCommit));
     }
 
     async loadNextPage(): Promise<void> {
-        if (this.#state.query || this.#state.isLoading || this.#state.isLoadingMore || !this.#state.hasMore || this.#state.nextOffset === null || this.#listingId === null) return;
-        await this.#loadListingPage({ offset: this.#state.nextOffset, append: true });
+        if (this.#state.query || this.#state.isLoading || this.#state.isLoadingMore || !this.#state.hasMore || this.#state.nextOffset === null || this.#listing === null) return;
+        const offset = this.#state.nextOffset;
+        await this.#reconciliation.read((canCommit) => this.#loadListingPage({ offset, append: true }, 1, canCommit));
     }
 
     async loadPageContaining(name: string): Promise<boolean> {
         if (this.#state.entries.some((entry) => entry.name === name)) return true;
-        const listingId = this.#listingId;
-        const sessionSignal = this.#sessionAbort?.signal;
-        if (listingId === null || sessionSignal === undefined || this.#state.query) return false;
-        this.#pageAbort?.abort();
-        if (this.#state.isLoadingMore) this.#updateState({ isLoadingMore: false });
-        const pageAbort = new AbortController();
-        const pageSequence = ++this.#pageSequence;
-        this.#pageAbort = pageAbort;
-        let result: FileExplorerListingLocateResponse;
-        try {
-            result = await this.#api.locateListingEntry(listingId, name, {
-                sortColumn: this.#sortColumn,
-                sortDirection: this.#sortDirection,
-                entryType: 'all',
-                signal: pageAbort.signal
-            });
-        } catch (error) {
-            if (pageAbort.signal.aborted || sessionSignal.aborted || pageSequence !== this.#pageSequence) return false;
-            if (isErrorHttpStatus(error, 404)) return false;
-            throw error;
-        }
-        if (pageAbort.signal.aborted || sessionSignal.aborted || pageSequence !== this.#pageSequence || listingId !== this.#listingId) return false;
-        const pageOffset = Math.floor(result.offset / PAGE_LIMIT) * PAGE_LIMIT;
-        while (this.#state.nextOffset !== null && this.#state.nextOffset <= pageOffset) {
-            const nextOffset = this.#state.nextOffset;
-            await this.#loadListingPage({ offset: nextOffset, append: true });
-            if (sessionSignal.aborted || listingId !== this.#listingId) return false;
-            if (this.#state.nextOffset === nextOffset) return false;
-        }
-        return this.#state.entries.some((entry) => entry.name === name);
+        return await this.#reconciliation.read((canCommit) => this.#loadListingPage({ offset: 0, append: true, name }, 1, canCommit));
     }
 
-    async #load(currentPath: string, query: string): Promise<void> {
-        this.#sessionAbort?.abort();
-        this.#pageAbort?.abort();
+    async #load(currentPath: string, query: string, passive = false, signal?: AbortSignal, canCommit: () => boolean = () => true): Promise<boolean> {
+        if (this.#disposal) throw createAbortError('Disposed directory browser cannot navigate');
+        const previousSessionAbort = this.#sessionAbort;
         const sessionAbort = new AbortController();
         const sequence = ++this.#sequence;
         this.#sessionAbort = sessionAbort;
-        const previousListingId = this.#listingId;
-        this.#listingId = null;
-        this.#listingServedPage = false;
-        this.#updateState({
-            currentPath,
-            query,
-            entries: [],
-            isLoading: true,
-            isLoadingMore: false,
-            errorMessage: null,
-            sessionRevision: sequence,
-            total: 0,
-            hasMore: false,
-            nextOffset: null
-        });
-        try {
-            if (previousListingId !== null) await this.#api.releaseListing(previousListingId);
-            if (sessionAbort.signal.aborted || sequence !== this.#sequence) return;
-            if (query) {
-                await this.#loadSearch(currentPath, query, sessionAbort.signal, sequence);
-                return;
-            }
-            const listingId = this.#listingIdFactory();
-            this.#listingId = listingId;
-            const admission = await this.#api.startListing(listingId, currentPath, sessionAbort.signal);
-            await this.#awaitTask(admission.taskId, sessionAbort.signal);
-            if (sessionAbort.signal.aborted || sequence !== this.#sequence || this.#listingId !== listingId) {
-                terminateHandledPromise(this.#api.releaseListing(listingId));
-                return;
-            }
-            await this.#loadListingPage({ offset: 0, append: false });
-        } catch (error) {
-            if (sessionAbort.signal.aborted || sequence !== this.#sequence) return;
-            this.#applyError(ensureError(error), currentPath, query);
+        const previousListing = this.#listing;
+        const retained = passive && !this.#state.isLoading && (Boolean(query) || (previousListing !== null && previousListing.snapshot !== null));
+        if (!retained) {
+            this.#listing = null;
+            if (previousListing) this.#retire(previousListing);
         }
-    }
-
-    async #loadSearch(currentPath: string, query: string, signal: AbortSignal, sequence: number): Promise<void> {
-        const payload = await this.#api.search({ path: currentPath, query, limit: PAGE_LIMIT, includeTotal: false, signal });
-        if (signal.aborted || sequence !== this.#sequence) return;
-        const parsed = parseFileBrowserLoadResponse(payload, query);
-        this.#updateState({
-            currentPath: parsed.currentPath,
-            workspacePathResolved: parsed.workspacePathResolved,
-            query: parsed.query,
-            entries: parsed.entries,
-            truncated: parsed.truncated,
-            isLoading: false,
-            total: payload.total,
-            hasMore: false,
-            nextOffset: null
+        previousSessionAbort?.abort();
+        if (sessionAbort.signal.aborted || sequence !== this.#sequence) return false;
+        this.#updateState(
+            retained
+                ? { freshness: this.#state.freshness === 'current' ? 'refreshing' : this.#state.freshness, isLoadingMore: false }
+                : {
+                      currentPath,
+                      query,
+                      entries: [],
+                      isLoading: true,
+                      isLoadingMore: false,
+                      errorMessage: null,
+                      sessionRevision: sequence,
+                      total: 0,
+                      hasMore: false,
+                      nextOffset: null,
+                      freshness: 'current'
+                  }
+        );
+        let listing: DirectoryListingSession | null = null;
+        return await runWithAbortSignalScope([sessionAbort.signal, signal], async (readSignal) => {
+            try {
+                if (sessionAbort.signal.aborted || sequence !== this.#sequence) return false;
+                if (query) {
+                    return await this.#loadSearch(currentPath, query, readSignal, sequence, canCommit);
+                }
+                const listingId = this.#listingIdFactory();
+                if (sessionAbort.signal.aborted || sequence !== this.#sequence) return false;
+                listing = new DirectoryListingSession({ id: listingId, path: currentPath, api: this.#api, subscribeReleaseRecovery: this.#subscribeReleaseRecovery });
+                this.#sessions.add(listing);
+                if (!retained) this.#listing = listing;
+                const admission = await listing.start(readSignal);
+                await raceWithAbortSignal(this.#awaitTask(admission.taskId, readSignal), readSignal);
+                if (sessionAbort.signal.aborted || sequence !== this.#sequence || !canCommit()) {
+                    this.#retire(listing);
+                    return false;
+                }
+                if (retained) {
+                    const selection = this.#captureSelection?.();
+                    const read = listing.beginRead();
+                    const snapshot = await raceWithAbortSignal(listing.readPrefix(this.#state.entries.length, this.#sort(), read, canCommit), readSignal);
+                    const missing = await raceWithAbortSignal(listing.findMissing(selection?.paths ?? [], this.#sort(), read, canCommit), readSignal);
+                    if (sessionAbort.signal.aborted || sequence !== this.#sequence || !canCommit()) {
+                        this.#retire(listing);
+                        return false;
+                    }
+                    this.#listing = listing;
+                    if (previousListing) this.#retire(previousListing);
+                    this.#updateState({ ...snapshot, truncated: snapshot.hasMore, isLoading: false, isLoadingMore: false, errorMessage: null, sessionRevision: sequence, freshness: 'current' });
+                    if (sequence === this.#sequence && canCommit()) selection?.removeMissing(missing);
+                } else return await this.#loadListingPage({ offset: 0, append: false }, 1, canCommit);
+                return true;
+            } catch (error) {
+                if (sessionAbort.signal.aborted || sequence !== this.#sequence || !canCommit()) {
+                    if (listing) this.#retire(listing);
+                    return false;
+                }
+                if (retained) {
+                    if (listing) this.#retire(listing);
+                    const resolved = ensureError(error);
+                    this.#updateState({ freshness: resolveDirectoryListingFailureFreshness(resolved, this.#state.freshness), errorMessage: this.#errorResolver.resolve(resolved) });
+                    this.#onError?.(resolved);
+                } else this.#applyError(ensureError(error));
+                return false;
+            }
         });
     }
 
-    async #loadListingPage(request: { offset: number; append: boolean }): Promise<void> {
-        const listingId = this.#listingId;
+    async #loadSearch(currentPath: string, query: string, signal: AbortSignal, sequence: number, canCommit: () => boolean): Promise<boolean> {
+        const payload = await raceWithAbortSignal(this.#api.search({ path: currentPath, query, limit: DIRECTORY_LISTING_PAGE_LIMIT, includeTotal: false, signal }), signal);
+        if (signal.aborted || sequence !== this.#sequence || !canCommit()) return false;
+        this.#updateState(parseDirectorySearchSnapshot(payload, currentPath, query));
+        return true;
+    }
+
+    #sort(): { sortColumn: FileExplorerListingSortColumn; sortDirection: FileExplorerListingSortDirection } {
+        return { sortColumn: this.#sortColumn, sortDirection: this.#sortDirection };
+    }
+
+    async #loadListingPage(request: { offset: number; append: boolean; name?: string }, remainingRecoveryAttempts = 1, canCommit: () => boolean = () => true): Promise<boolean> {
+        const listing = this.#listing;
         const sessionSignal = this.#sessionAbort?.signal;
-        if (listingId === null || sessionSignal === undefined || sessionSignal.aborted) return;
-        this.#pageAbort?.abort();
-        const pageAbort = new AbortController();
-        const pageSequence = ++this.#pageSequence;
-        this.#pageAbort = pageAbort;
-        if (request.append) {
-            this.#updateState({ isLoadingMore: true });
-        } else if (!this.#state.isLoading) {
-            this.#updateState({ isLoading: true, entries: [], isLoadingMore: false });
-        }
+        const sequence = this.#sequence;
+        if (!listing || !sessionSignal || sessionSignal.aborted) return false;
+        const read = listing.beginRead();
+        const isCurrent = (): boolean => canCommit() && listing.isCurrentRead(read) && !sessionSignal.aborted && sequence === this.#sequence && listing === this.#listing;
+        if (request.name !== undefined) this.#updateState({ isLoadingMore: false });
+        else if (request.append) this.#updateState({ isLoadingMore: true });
+        else if (!this.#state.isLoading) this.#updateState({ isLoadingMore: false, freshness: this.#state.freshness === 'current' ? 'refreshing' : this.#state.freshness });
+        if (!isCurrent()) return false;
+        const commit = (snapshot: DirectoryListingSnapshot): void => {
+            if (isCurrent()) this.#updateState({ ...snapshot, truncated: snapshot.hasMore, isLoading: false, isLoadingMore: false, errorMessage: null, freshness: this.#state.freshness === 'refreshing' ? 'current' : this.#state.freshness });
+        };
         try {
-            const payload = await this.#api.getListingPage(listingId, {
-                offset: request.offset,
-                limit: PAGE_LIMIT,
-                sortColumn: this.#sortColumn,
-                sortDirection: this.#sortDirection,
-                entryType: 'all',
-                signal: pageAbort.signal
-            });
-            if (pageAbort.signal.aborted || sessionSignal.aborted || pageSequence !== this.#pageSequence || listingId !== this.#listingId) return;
-            const entries = parseFileBrowserEntriesPayload(payload, payload.path, false);
-            this.#listingServedPage = true;
-            this.#updateState({
-                currentPath: payload.path,
-                workspacePathResolved: payload.workspacePathResolved,
-                entries: request.append ? [...this.#state.entries, ...entries] : entries,
-                truncated: payload.hasMore,
-                isLoading: false,
-                isLoadingMore: false,
-                total: payload.total,
-                hasMore: payload.hasMore,
-                nextOffset: payload.nextOffset,
-                errorMessage: null
-            });
+            if (request.name !== undefined) return await listing.readContaining(request.name, this.#sort(), read, commit);
+            const snapshot = await listing.readPage(request.offset, request.append, this.#sort(), read);
+            if (!isCurrent()) return false;
+            commit(snapshot);
+            return true;
         } catch (error) {
-            if (pageAbort.signal.aborted || sessionSignal.aborted || pageSequence !== this.#pageSequence) return;
+            if (!isCurrent()) return false;
             const resolvedError = ensureError(error);
-            if (this.#listingServedPage && extractErrorCode(resolvedError) === FILE_EXPLORER_LISTING_EXPIRED_ERROR_CODE) {
-                await this.refresh();
-                return;
-            }
-            if (request.append) {
-                this.#updateState({
-                    isLoadingMore: false,
-                    errorMessage: this.#errorResolver.resolve(resolvedError)
-                });
+            if (remainingRecoveryAttempts > 0 && listing.snapshot && extractErrorCode(resolvedError) === FILE_EXPLORER_LISTING_EXPIRED_ERROR_CODE) {
+                const refreshed = await this.#load(this.#state.currentPath, this.#state.query, true, undefined, canCommit);
+                if (refreshed && request.name !== undefined) return await this.#loadListingPage(request, remainingRecoveryAttempts - 1, canCommit);
+            } else if (request.append || listing.snapshot) {
+                this.#updateState({ freshness: resolveDirectoryListingFailureFreshness(resolvedError, this.#state.freshness), isLoadingMore: false, errorMessage: this.#errorResolver.resolve(resolvedError) });
                 this.#onError?.(resolvedError);
-                return;
-            }
-            this.#applyError(resolvedError, this.#state.currentPath, this.#state.query);
+            } else this.#applyError(resolvedError);
+            return false;
         }
     }
 
-    #applyError(error: Error, currentPath: string, query: string): void {
+    #applyError(error: Error): void {
         this.#updateState({
-            currentPath,
-            query,
+            freshness: resolveDirectoryListingFailureFreshness(error, this.#state.freshness),
             entries: [],
             truncated: false,
             isLoading: false,
@@ -295,4 +330,4 @@ class DirectoryListingController {
 }
 
 export { DirectoryListingController };
-export type { DirectoryListingApi, DirectoryListingControllerOptions };
+export type { DirectoryListingControllerOptions };

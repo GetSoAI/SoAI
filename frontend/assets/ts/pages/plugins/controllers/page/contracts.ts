@@ -19,7 +19,7 @@ import type { PageServicesOwnerHost } from '@core/routing/pages/basepagecore/Pag
 import type { PageUiOwnerHost } from '@core/routing/pages/basepagecore/PageUi.ts';
 import type { PageLayoutOwnerHost } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { PageStreamingOwnerHost } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { StatusManager } from '@core/state/statusmanager/service.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
@@ -59,7 +59,7 @@ interface PluginsApi {
 interface PluginsInfrastructure extends PageDomOwnerHost, PageFeedbackOwnerHost, PageResourcesOwnerHost, PageServicesOwnerHost, PageUiOwnerHost, PageLayoutOwnerHost, PageStreamingOwnerHost {
     api: PluginsApi;
     auth: { isAdmin(): boolean };
-    router: Router;
+    router: PageRouting;
     dom: {
         createFragment(markup: TrustedHtml): DocumentFragment;
         getData(element: Element, key: string): string | null;

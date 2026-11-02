@@ -2,20 +2,20 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isPresenceAnimating } from '@core/animations/presence/public.ts';
+import { cancelReorderMotion, captureReorderMotion } from '@core/animations/reorderMotion.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { dom } from '@core/dom/dom.ts';
+import { syncAttributeValue } from '@core/dom/patching.ts';
 import { getRouteRegistry, getSidebarComponentTargets } from '@core/routeregistry/service.ts';
 import type { SidebarComponentTargets } from '@core/routeregistry/contracts.ts';
 import { errorHandler } from '@core/errorHandler.ts';
-import { measureViewportBox } from '@core/layout/elementGeometry.ts';
 import type { NavigationEventDetail } from '@core/navigationEvents.ts';
 import type { Router } from '@core/routing/router/Router.ts';
 import { isString } from '@core/typeGuards.ts';
 import { resolveHTMLElement, SIDEBAR_ACTIVE_LINK_SELECTOR, SIDEBAR_LINK_SELECTOR } from '@core/layout/sidebar/dom.ts';
+import type { SidebarNavigationIntent } from '@core/layout/sidebar/contracts.ts';
 
 const SIDEBAR_ACTIVE_RAIL_CLASS = 'sidebar-active-rail';
-const SIDEBAR_RAIL_MOTION_SLIDE = 'slide';
-const SIDEBAR_RAIL_MOTION_FADE = 'fade';
 const SIDEBAR_RAIL_VISIBLE = 'true';
 const SIDEBAR_RAIL_HIDDEN = 'false';
 
@@ -35,29 +35,23 @@ const updateSidebarActiveRail = (menu: HTMLElement | null, link: HTMLElement | n
     }
     const rail = resolveSidebarActiveRail(menu);
     if (!link || link.offsetParent === null) {
-        rail.dataset['motion'] = SIDEBAR_RAIL_MOTION_FADE;
+        cancelReorderMotion(menu);
         rail.dataset['visible'] = SIDEBAR_RAIL_HIDDEN;
         dom.setStyle(rail, '--sidebar-active-rail-opacity', '0');
         return;
     }
-    const slideFromPrevious = previousLink !== null && previousLink !== link && previousLink.offsetParent !== null;
-    if (slideFromPrevious) {
-        rail.dataset['motion'] = SIDEBAR_RAIL_MOTION_FADE;
-        rail.dataset['visible'] = SIDEBAR_RAIL_VISIBLE;
-        dom.setStyles(rail, {
-            '--sidebar-active-rail-y': `${previousLink.offsetTop}px`,
-            '--sidebar-active-rail-height': `${previousLink.offsetHeight}px`,
-            '--sidebar-active-rail-opacity': '1'
-        });
-        measureViewportBox(rail);
-    }
-    rail.dataset['motion'] = slideFromPrevious ? SIDEBAR_RAIL_MOTION_SLIDE : SIDEBAR_RAIL_MOTION_FADE;
+    const slideFromPrevious = previousLink !== null && previousLink !== link && previousLink.offsetParent !== null && rail.dataset['visible'] === SIDEBAR_RAIL_VISIBLE;
+    const motion = slideFromPrevious ? captureReorderMotion(menu, null, [], '.sidebar-active-rail') : null;
     rail.dataset['visible'] = SIDEBAR_RAIL_VISIBLE;
     dom.setStyles(rail, {
         '--sidebar-active-rail-y': `${link.offsetTop}px`,
         '--sidebar-active-rail-height': `${link.offsetHeight}px`,
         '--sidebar-active-rail-opacity': '1'
     });
+    if (motion) {
+        dom.flush();
+        motion.play();
+    }
 };
 
 const sidebarRailFrames = new WeakMap<HTMLElement, number>();
@@ -112,10 +106,26 @@ const setSidebarActiveByPage = (menu: HTMLElement | null, pageId: string): void 
     setSidebarActiveLink(menu, link);
 };
 
-const syncSidebarWithCurrentRoute = (router: Router | null, menu: HTMLElement | null, routeComponentMap: SidebarComponentTargets): void => {
-    if (!router) {
-        return;
+const syncSidebarVisiblePanes = (router: Router | null, menu: HTMLElement | null, routeComponentMap: SidebarComponentTargets): void => {
+    if (!router || !menu) return;
+    const visiblePages = new Set<string>();
+    for (const pane of router.pagePanes.getPanes()) {
+        if (!pane.presentation.isVisible() || !pane.currentRoute) continue;
+        const component = router.parseRoute(pane.currentRoute)?.route?.component;
+        if (component) visiblePages.add(routeComponentMap[component] || component);
     }
+    const registry = getRouteRegistry();
+    for (const link of dom.resolveAll(SIDEBAR_LINK_SELECTOR, menu)) {
+        if (!(link instanceof HTMLElement)) continue;
+        const pageId = link.dataset['page'];
+        const visible = pageId !== undefined && visiblePages.has(pageId) && registry[pageId]?.sidebar?.activateOnNavigation !== false;
+        syncAttributeValue(link, 'data-pane-visible', visible ? 'true' : null);
+    }
+};
+
+const syncSidebarWithCurrentRoute = (router: Router | null, menu: HTMLElement | null, routeComponentMap: SidebarComponentTargets): void => {
+    if (!router) return;
+    syncSidebarVisiblePanes(router, menu, routeComponentMap);
     const current = router.getCurrentRoute() || router.getRouteFromHash();
     if (!current) {
         return;
@@ -127,29 +137,14 @@ const syncSidebarWithCurrentRoute = (router: Router | null, menu: HTMLElement | 
     }
 };
 
-const isCurrentSidebarPageComponent = (router: Router, pageId: string): boolean => {
-    const current = router.getCurrentRoute() || router.getRouteFromHash();
-    if (!current) {
-        return false;
-    }
-    const parsed = router.parseRoute ? router.parseRoute(current) : null;
-    return parsed?.route?.component === pageId;
-};
-
-const navigateSidebarTo = (router: Router | null, pageId: string, menu: HTMLElement | null, mobile: boolean, closeMobile: () => Promise<void>): void => {
+const navigateSidebarTo = (router: Router | null, pageId: string, menu: HTMLElement | null, mobile: boolean, closeMobile: () => Promise<void>, intent: SidebarNavigationIntent = 'select'): void => {
     setSidebarActiveByPage(menu, pageId);
     if (!router) {
         errorHandler.error('Sidebar', 'Router not available for navigation', { hasRouter: false });
         return;
     }
-    if (isCurrentSidebarPageComponent(router, pageId)) {
-        if (mobile) {
-            terminateHandledPromise(closeMobile());
-        }
-        return;
-    }
     router
-        .navigate({ path: pageId, meta: { source: 'sidebar' } })
+        .navigate({ path: pageId, meta: { source: 'sidebar' } }, { intent })
         .finally(() => {
             const selected = menu ? resolveHTMLElement(SIDEBAR_ACTIVE_LINK_SELECTOR, menu) : null;
             if (selected?.getAttribute('data-page') === pageId) syncSidebarWithCurrentRoute(router, menu, getSidebarComponentTargets());
@@ -196,4 +191,4 @@ const resolveComponentFromNavigationDetail = (detail: NavigationEventDetail | nu
     return isString(componentValue) ? componentValue : null;
 };
 
-export { addSidebarNotificationBadge, followSidebarActiveRail, highlightSidebarItem, navigateSidebarTo, resolveComponentFromNavigationDetail, resolveRouteFromNavigationDetail, setSidebarActiveByPage, setSidebarActiveLink, syncSidebarWithCurrentRoute };
+export { addSidebarNotificationBadge, followSidebarActiveRail, highlightSidebarItem, navigateSidebarTo, resolveComponentFromNavigationDetail, resolveRouteFromNavigationDetail, setSidebarActiveByPage, setSidebarActiveLink, syncSidebarVisiblePanes, syncSidebarWithCurrentRoute };

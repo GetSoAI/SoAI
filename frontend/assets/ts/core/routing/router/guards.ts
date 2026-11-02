@@ -1,7 +1,8 @@
 /* SoAI - Shared routing router validation [frontend/assets/ts/core/routing/router/guards.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { NAVIGATION_STATUS, navigationResult, type NavigationMiddlewareController, type NavigationResultType } from '@core/navigationMiddleware.ts';
+import { NAVIGATION_STATUS, navigationResult, type NavigationMiddlewareController } from '@core/navigationMiddleware.ts';
+import type { NavigationResultType, NavigationContext, RouteDefinition, RouteParameters } from '@core/routing/router/types.ts';
 import { normalizeMiddlewareOutcome } from '@core/routing/router/navigationMiddlewareNormalization.ts';
 import { bindTerminalAccessPolicyInvalidation, canAccessTerminal, invalidateTerminalAccessPolicy } from '@core/routing/router/terminalAccessPolicy.ts';
 import { createAuthEnforcementNavigationMiddleware } from '@core/routing/router/middlewares/authMiddleware.ts';
@@ -10,7 +11,7 @@ import { createDirtyStateNavigationMiddleware } from '@core/routing/router/middl
 import { createTelemetryNavigationMiddleware } from '@core/routing/router/middlewares/telemetryMiddleware.ts';
 import { createWizardEnforcementNavigationMiddleware, shouldRedirectToWizard } from '@core/routing/router/middlewares/wizardMiddleware.ts';
 import type { ApiService, AuthService, StorageService } from '@core/routing/router/routerDependencies.ts';
-import type { NavigationContext, RouteDefinition, RouteParameters } from '@core/routing/router/types.ts';
+
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isFunction } from '@core/typeGuards.ts';
 

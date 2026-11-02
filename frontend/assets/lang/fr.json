@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "Ajoutez des fichiers et dossiers depuis votre appareil en tant que pièces jointes directes au message. Ils sont envoyés avec le prompt actuel, contrairement aux importations dans Connaissances, qui sont indexées pour la récupération.",
                 "uploadTitle": "Importer directement des fichiers et dossiers",
-                "title": "Ajouter des pièces jointes"
+                "title": "Ajouter des pièces jointes",
+                "cameraDiscardConfirm": "Abandonner cette photo prise avec la caméra ?"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "Erreur inconnue",
                 "unknownError": "Une erreur inconnue s’est produite.",
                 "storageHeadroomInsufficient": "L’espace de stockage disponible est insuffisant compte tenu de la marge de sécurité et des réservations existantes. Libérez de l’espace ou attendez la fin des autres opérations de stockage, puis réessayez.",
-                "storageHeadroomValues": "Espace requis, marge de sécurité comprise : {required}. Disponible pour cette opération : {available}."
+                "storageHeadroomValues": "Espace requis, marge de sécurité comprise : {required}. Disponible pour cette opération : {available}.",
+                "permissionsUnavailable": "Les autorisations d’accès sont indisponibles. Vérifiez la connexion et réessayez."
             },
             "export": "Exporter",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "Modifications non enregistrées",
             "view": "Afficher",
             "yes": "Oui",
-            "retry": "Réessayer"
+            "retry": "Réessayer",
+            "discard": "Abandonner"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "Le fichier a peut-être été enregistré, mais son état final n’a pas pu être vérifié. Vérifiez la destination dans Fichiers avant de le téléverser à nouveau.",
                 "cleanupIncomplete": "Le nettoyage automatique n’a pas pu être terminé. Vérifiez la destination dans Fichiers avant de réessayer.",
                 "contentChanged": "Le fichier a changé pendant l’opération. Sélectionnez-le à nouveau et réessayez.",
-                "destinationExists": "Un fichier ou dossier porte déjà ce nom. Choisissez un autre nom ou emplacement."
+                "destinationExists": "Un fichier ou dossier porte déjà ce nom. Choisissez un autre nom ou emplacement.",
+                "listingChanged": "Le dossier changeait sans cesse. Actualisez pour réessayer.",
+                "listingTimeout": "L’actualisation du dossier a dépassé le délai. Actualisez pour réessayer.",
+                "listingIncoherent": "Les pages du dossier étaient incohérentes. Actualisez pour réessayer.",
+                "listingUnavailable": "Le service des dossiers est indisponible. Vérifiez la connexion et actualisez.",
+                "listingBusy": "Les requêtes de dossiers sont limitées. Patientez, puis actualisez."
             },
             "labels": {
                 "latestTask": "Dernière tâche",
@@ -3175,7 +3183,10 @@
                 "empty": "Aucune entrée trouvée.",
                 "error": "L’opération a échoué. Consultez les notifications pour plus de détails.",
                 "loading": "Chargement des entrées du répertoire...",
-                "searching": "Recherche de fichiers et dossiers..."
+                "searching": "Recherche de fichiers et dossiers...",
+                "refreshing": "Actualisation…",
+                "stale": "Données périmées. Actualisez pour réessayer.",
+                "unavailable": "Dossier indisponible. Consultez l’erreur et actualisez."
             },
             "table": {
                 "modified": "Modifié",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "Utiliser modèles, outils et fichiers",
                     "sectionTitle": "Chat et outils d’agent",
-                    "conversations": "Chat réunit les messages, le choix du modèle, les paramètres de génération et l’accès aux outils. Vous pouvez changer de modèle entre deux tours, comparer les réponses, enregistrer la configuration comme preset ou classer les conversations dans des dossiers. Joignez un fichier si le modèle a besoin de son contenu complet pour le message actuel. Joignez une source de connaissances pour que SoAI cherche dans le contenu indexé et renvoie les passages utiles. Le champ de saisie accepte fichiers, dossiers et liens SoAI",
+                    "conversations": "Chat réunit les messages, le choix du modèle, les paramètres de génération, l’accès aux outils et les bibliothèques de Compétences et de Mémoire. Vous pouvez changer de modèle entre deux tours, comparer les réponses, enregistrer la configuration comme preset ou classer les conversations dans des dossiers. Joignez un fichier si le modèle a besoin de son contenu complet pour le message actuel. Joignez une source de connaissances pour que SoAI cherche dans le contenu indexé et renvoie les passages utiles. Le champ de saisie accepte fichiers, dossiers et liens SoAI",
                     "tools": "Le mode Chat sert à converser. Plan permet au modèle d’examiner une tâche et de préparer les étapes. Il bloque les outils signalés comme destructifs ou dépourvus de métadonnées destructives valides, mais les autres outils sélectionnés peuvent encore agir sur des systèmes externes. Execute lui permet d’agir avec les outils activés. Les appels d’outils et leurs résultats restent visibles dans la conversation; les actions protégées peuvent demander votre accord. Les outils peuvent chercher sur le web, piloter un navigateur, manipuler fichiers et terminaux, interroger les connaissances, traiter des médias et se connecter aux e-mails ou calendriers. Les administrateurs choisissent les intégrations et identifiants disponibles. Les agents peuvent poser des questions, tenir un plan et confier des sous-tâches à l’arrière-plan. Automation exécute un ou plusieurs tours selon un calendrier et conserve chaque exécution comme conversation",
                     "mcp": "SoAI peut fournir ses outils aux clients MCP authentifiés et se connecter à des serveurs MCP distants. Leurs outils apparaissent à côté des outils intégrés après la configuration du serveur par un administrateur",
                     "voice": "Les modèles de transcription convertissent les enregistrements ou le microphone en texte. Les modèles de synthèse vocale lisent les réponses; le mode appel vocal permet une conversation parlée"
@@ -3944,7 +3955,7 @@
                     "heading": "Vérifier le système et administrer l’hôte",
                     "sectionTitle": "Surveillance et administration",
                     "status": "Dashboard affiche l’état du système et les tâches actives. Hardware présente le processeur, la mémoire, le disque, le réseau et les GPU; Metrics montre l’historique des requêtes et l’usage des tokens; Logs fournit les détails de diagnostic. Les GPU compatibles proposent des réglages de puissance, fréquence et ventilation. Ces modifications touchent l’hôte: utilisez un profil testé et surveillez température et stabilité",
-                    "operations": "Terminal fournit des sessions shell interactives. Power peut redémarrer ou arrêter SoAI et commander le système d’exploitation hôte. Les droits du compte déterminent l’accès à ces deux pages",
+                    "operations": "Terminal fournit des sessions shell interactives. Power peut redémarrer ou arrêter SoAI et commander le système d’exploitation hôte. Les droits du compte déterminent l’accès à Terminal et aux commandes Power",
                     "maintenance": "Les sauvegardes se trouvent dans Settings et les mises à jour sur la page Updates. Vérifiez une sauvegarde avant de compter dessus, exportez hors de l’hôte les copies nécessaires et contrôlez la portée avant une restauration ou une réinitialisation. SoAI surveille les backends et cesse d’envoyer des requêtes à un plugin qui échoue à répétition. Plugins affiche les états de récupération et de quarantaine. Téléchargements, téléversements, sauvegardes et autres écritures volumineuses vérifient l’espace réservé avant de commencer"
                 },
                 "access": {
@@ -5229,6 +5240,9 @@
             "loading": "Préparation de SoAI...",
             "loadingDelayError": "Cette page met plus de temps que prévu à se charger. Vérifiez votre connexion ou réessayez de charger la page.",
             "loadingLabel": "Chargement...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "La page précédente est toujours en cours de fermeture. Patientez et réessayez. Si elle reste bloquée, rechargez cette fenêtre."
+            },
             "retry": "Réessayer"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "Apparence réinitialisée aux valeurs par défaut.",
                 "chatPresetsResetFailed": "Échec de la réinitialisation des préréglages de chat. Réessayez.",
                 "chatPresetsResetSuccess": "Préréglages de chat réinitialisés.",
+                "configurationResetFailed": "La réinitialisation de la configuration n’a pas pu être planifiée. Vérifiez les fichiers de configuration et réessayez.",
                 "conversationsDeleteFailed": "Échec de la suppression des conversations. Réessayez.",
                 "conversationsDeleteNone": "Aucune conversation à supprimer.",
                 "conversationsDeleteSuccess": "{count} conversations supprimées.",
-                "configurationResetFailed": "La réinitialisation de la configuration n’a pas pu être planifiée. Vérifiez les fichiers de configuration et réessayez.",
                 "factoryResetSuccess": "Réinitialisation d’usine lancée. SoAI redémarrera sous peu.",
                 "fixInvalidFields": "Corrigez les champs non valides avant d’enregistrer.",
                 "hardwareHistoryResetFailed": "Échec de la réinitialisation de l’historique matériel. Réessayez.",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "Réinitialisation des métriques lancée avec succès",
                 "pageLayoutsResetFailed": "Échec de la réinitialisation des dispositions de page. Réessayez.",
                 "pageLayoutsResetSuccess": "Les dispositions du tableau de bord, des métriques et du matériel ont été réinitialisées aux valeurs par défaut.",
+                "partialSave": "Certains paramètres ont été appliqués. {reason} Vérifiez les champs non enregistrés signalés et réessayez.",
                 "passwordManagerResetFailed": "Échec de la réinitialisation du gestionnaire de mots de passe. Réessayez.",
                 "passwordManagerResetSuccess": "Gestionnaire de mots de passe réinitialisé. {deletedCredentials} identifiant(s) enregistré(s) supprimé(s) et {clearedSecretHandles} handle(s) sécurisé(s) actif(s) invalidé(s).",
                 "preferencesResetFailed": "Échec de la réinitialisation des préférences. Réessayez.",
-                "preferencesResetSuccess": "Préférences réinitialisées aux valeurs par défaut. Rechargement...",
+                "preferencesResetSuccess": "Préférences réinitialisées aux valeurs par défaut.",
                 "recentSearchesResetFailed": "Échec de la réinitialisation des recherches récentes. Réessayez.",
                 "recentSearchesResetSuccess": "Recherches récentes réinitialisées.",
                 "restartButton": "Redémarrer SoAI",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "Utilisateur créé avec succès",
                 "userDeleteSuccess": "Utilisateur supprimé avec succès",
                 "userPasswordUpdateSuccess": "Mot de passe mis à jour avec succès",
-                "userWorkspacePathUpdateSuccessRevoked": "Dossier par défaut mis à jour. Les remplacements de dossier de conversation situés hors du nouveau dossier ont été révoqués.",
                 "userRoleUpdateSuccess": "Rôle utilisateur mis à jour avec succès",
+                "userWorkspacePathUpdateSuccessRevoked": "Dossier par défaut mis à jour. Les remplacements de dossier de conversation situés hors du nouveau dossier ont été révoqués.",
                 "wallpaperDeleteSuccess": "Fond d’écran supprimé avec succès",
                 "wallpaperDownloadSuccess": "Téléchargement du fond d’écran effectué avec succès",
                 "wallpaperReloadFailed": "Échec du chargement de l’aperçu du fond d’écran.",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "La libération du terminal n’est pas confirmée. Rétablissez la connexion et réessayez ; si le service a redémarré, vérifiez l’ancien shell sur son hôte.",
+                "recoveryUnavailable": "La récupération du terminal est indisponible. Rechargez SoAI et vérifiez l’ancien shell sur son hôte avant de réessayer."
+            },
             "ariaLabels": {
                 "clearTerminal": "Effacer le terminal",
                 "decreaseTextSize": "Réduire la taille du texte",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "Parole non transcrite. Demandez à un administrateur de configurer la transcription, puis importez de nouveau le fichier.",
             "openModels": "Ouvrir Modèles",
             "openSettings": "Paramètres de reconnaissance vocale"
+        },
+        "pagePanes": {
+            "storageUnavailable": "Le stockage du navigateur est indisponible. Les volets ouverts restent utilisables, mais leur disposition ne peut pas être enregistrée.",
+            "invalidLayout": "La disposition enregistrée des volets est invalide. La page demandée s’ouvrira normalement.",
+            "incompatibleLayout": "La disposition enregistrée des volets nécessite une application plus récente. Elle a été conservée.",
+            "foreignLayout": "La disposition enregistrée des volets appartient à un autre compte, une autre fenêtre ou une autre édition. Elle a été conservée.",
+            "layoutTooLarge": "Cette disposition des volets est trop volumineuse pour être enregistrée. Les pages ouvertes restent utilisables.",
+            "restoreFailed": "Le volet principal n’a pas pu être restauré. La disposition enregistrée a été conservée ; rechargez la page pour réessayer.",
+            "title": "Volets",
+            "active": "Actif",
+            "closePane": "Fermer le volet {page}",
+            "split": "Ouvrir dans un autre volet",
+            "choosePage": "Page à ouvrir",
+            "parked": "Mis en attente",
+            "closing": "Fermeture…",
+            "splitUnavailable": "Cette fenêtre peut afficher un seul volet. La page s’ouvrira dans le volet actuel.",
+            "placementUnavailable": "Aucun volet n’est disponible pour cette action. Terminez les opérations en cours ou fermez un volet, puis réessayez.",
+            "restoreConflict": "La route restaurée entre en conflit avec un volet ouvert. Ouvrez directement la page pour continuer.",
+            "layoutNotSaved": "Disposition non enregistrée. Les volets ouverts restent utilisables.",
+            "saveCurrentLayout": "Enregistrer la disposition actuelle",
+            "replaceSavedLayoutConfirmation": "Remplacer la disposition conservée par les volets actuellement ouverts ? Seule la disposition enregistrée sera remplacée, pas le contenu des pages.",
+            "storageQuotaExceeded": "Le stockage du navigateur est plein. Libérez de l’espace, puis enregistrez à nouveau la disposition actuelle. Les volets ouverts restent utilisables.",
+            "storageBlocked": "Le navigateur a bloqué le stockage de la disposition. Autorisez le stockage pour ce site, puis enregistrez à nouveau la disposition actuelle. Les volets ouverts restent utilisables."
         }
     }
 }

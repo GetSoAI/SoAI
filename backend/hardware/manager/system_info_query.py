@@ -201,7 +201,9 @@ def sync_query_system_info(
             )
             state.last_full_info["timestamp_ms"] = derived_checked_at_ms
             state.last_update_time_monotonic = max(state.last_update_time_monotonic, now_monotonic)
-            merged = _accepted_response(state, None, current_components=accepted)
+            merged = _accepted_response(
+                state, ("cpus", "memory", "gpu"), current_components=accepted
+            )
             merged_statuses = component_statuses(merged)
             merged_statuses["summary"] = _derived_status(
                 merged, ("memory", "gpu"), derived_checked_at_ms
@@ -213,11 +215,12 @@ def sync_query_system_info(
                 if environment is None
                 else _derived_status(merged, ("cpus", "memory", "gpu"), derived_checked_at_ms)
             )
+            summary = build_summary(base_snapshot=merged)
             derived = build_final_ordered_info(
                 base_snapshot=merged,
-                summary=build_summary(base_snapshot=merged),
+                summary=summary,
                 capabilities_payload=(
-                    build_sampled_system_capabilities(environment, merged)
+                    build_sampled_system_capabilities(environment, merged, sampled_summary=summary)
                     if environment is not None
                     else {}
                 ),

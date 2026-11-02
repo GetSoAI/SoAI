@@ -101,11 +101,13 @@ const measureLayoutRectangles = (measurable: GeometryMeasurable): GeometryBox[] 
 const GRID_LINE_NAMES_PATTERN = /\[[^\]]*\]/g;
 const RESOLVED_GRID_TRACK_PATTERN = /^\d+(?:\.\d+)?px$/;
 
-const measureGridColumnCount = (element: Element): number | null => {
+const measureGridColumnTracks = (element: Element): number[] | null => {
     if (!element.isConnected) return null;
     const tracks = getComputedStyleStrict(element).gridTemplateColumns.replace(GRID_LINE_NAMES_PATTERN, ' ').trim().split(/\s+/);
-    return tracks.length > 0 && tracks.every((track) => RESOLVED_GRID_TRACK_PATTERN.test(track)) ? tracks.length : null;
+    return tracks.length > 0 && tracks.every((track) => RESOLVED_GRID_TRACK_PATTERN.test(track)) ? tracks.map((track) => Number.parseFloat(track)) : null;
 };
+
+const measureGridColumnCount = (element: Element): number | null => measureGridColumnTracks(element)?.length ?? null;
 
 const measureViewportPoint = (event: PointerGeometryEvent): GeometryPoint => ({ x: event.clientX, y: event.clientY });
 
@@ -121,5 +123,5 @@ const measureLayoutTouchPoint = (touch: Touch, scope: Document | Element = getDo
     y: toLayoutPixels(touch.clientY, scope)
 });
 
-export { measureElementLayoutDimensions, measureGridColumnCount, measureLayoutBox, measureLayoutPoint, measureLayoutRectangles, measureLayoutTouchPoint, measureLayoutViewport, measureScrollbarInlineSize, measureViewportBox, measureViewportPoint, measureViewportTouchPoint, toLayoutPixels };
+export { measureElementLayoutDimensions, measureGridColumnCount, measureGridColumnTracks, measureLayoutBox, measureLayoutPoint, measureLayoutRectangles, measureLayoutTouchPoint, measureLayoutViewport, measureScrollbarInlineSize, measureViewportBox, measureViewportPoint, measureViewportTouchPoint, toLayoutPixels };
 export type { GeometryBox, GeometryDimensions, GeometryMeasurable, GeometryPoint, PointerGeometryEvent };

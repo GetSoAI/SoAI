@@ -11,7 +11,7 @@ import { dispatchCustomEvent, requireDocument } from '@core/environment/public.t
 import type { LanguageService } from '@core/routing/pages/pagetypes/public.ts';
 import type { LicenseServiceInterface } from '@core/licenseservice/types.ts';
 import type { PageContext } from '@core/pagecontext/public.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
 import { buildAiSetupHandoffRoute, isAiSetupResumeRequest } from '@core/routing/router/aiSetupRoutes.ts';
 import { AUTH_ROUTE_LOGIN } from '@core/routing/router/authRouteTarget.ts';
 import type { PageLifecycle } from '@core/routing/pages/basepage/PageLifecycle.ts';
@@ -24,7 +24,7 @@ import type { PageUi } from '@core/routing/pages/basepagecore/PageUi.ts';
 import { createModuleLogger } from '@core/runtime/runtimeContext.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
 import { isFunction } from '@core/typeGuards.ts';
-import { createInitialWizardState, type WizardState } from '@features/wizard/public.ts';
+import { createInitialWizardState, resolveWizardResumeIndex, type WizardState } from '@features/wizard/public.ts';
 import { isWizardActionId } from '@pages/wizard/actions.ts';
 import { deriveAiSetupStepIds, isAiSetupWizardStepId, requireWizardStepId, syncWizardSteps } from '@pages/wizard/contracts/constants.ts';
 import { ensureWizardStatusSnapshot, markWizardFirstRunModalsPending, markWizardHasUsers, persistWizardState, shouldResumeAtCompletionStep, shouldShowWizard, submitWizardAccount } from '@pages/wizard/controllers/page/effects.ts';
@@ -55,7 +55,7 @@ interface WizardPageDomainDependencies {
     pageElements: PageUi;
     pageHost: PageHost;
     pageLifecycle: PageLifecycle;
-    router: Router;
+    router: PageRouting;
     services: PageServices;
     storage: StorageService;
     streaming: PageStreamingContract;
@@ -220,6 +220,7 @@ class WizardPageDomain {
 
     #createService(): WizardPageService {
         return new WizardPageService({
+            owner: this.#dependencies.pageContext.presentationOwner,
             view: {
                 getAbortSignal: () => this.#dependencies.pageLifecycle.signal(),
                 state: this.state,
@@ -240,7 +241,10 @@ class WizardPageDomain {
                 updateHTML: (element, value) => this.#dependencies.pageDom.updateHtml(element, value)
             },
             data: {
-                submitWizardAccount: (username, password) => submitWizardAccount(this.#effects, username, password),
+                submitWizardAccount: (username, password) => {
+                    this.#aiSetup.controller.ensureSetup();
+                    return submitWizardAccount(this.#effects, username, password);
+                },
                 markWizardHasUsers: () => markWizardHasUsers(this.#effects),
                 persistWizardState: () => persistWizardState(this.#effects),
                 markWizardFirstRunModalsPending: () => markWizardFirstRunModalsPending(this.#effects),
@@ -307,15 +311,8 @@ class WizardPageDomain {
         const setup = this.#dependencies.storage.getAiSetup();
         const storedStep = setup !== null && (this.state.isAiSetupResume || setup.disposition === 'in_progress') && isAiSetupWizardStepId(setup.step) ? this.state.steps.indexOf(setup.step) : -1;
         if (this.state.isAiSetupResume) return Math.max(0, storedStep);
-        if (!shouldResumeAtCompletionStep(this.#effects)) return this.#resumeIndex();
+        if (!shouldResumeAtCompletionStep(this.#effects)) return resolveWizardResumeIndex(this.state);
         return storedStep >= 0 ? storedStep : this.state.steps.length - 1;
-    }
-
-    #resumeIndex(): number {
-        const status = this.state.status;
-        if (status === null || (status.draftRevision === 0 && status.licenseAcceptedAtMs === null)) return 0;
-        const index = this.state.steps.indexOf(status.resumeStep);
-        return index < 0 ? 0 : index;
     }
 
     async #navigateAfterCompletion(isSessionActivationRequired: boolean, destination: WizardCompletionDestination): Promise<void> {

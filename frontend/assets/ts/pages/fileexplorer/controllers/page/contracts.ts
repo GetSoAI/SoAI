@@ -1,6 +1,7 @@
 /* SoAI - File explorer page control layer boundary contracts [frontend/assets/ts/pages/fileexplorer/controllers/page/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
 import type { TaskCancellationResponse } from '@core/api/contracts/systemContracts.ts';
@@ -8,6 +9,7 @@ import type { FileExplorerDataController } from '@pages/fileexplorer/controllers
 import type { FileExplorerOperationsController } from '@pages/fileexplorer/controllers/FileExplorerOperationsController.ts';
 import type { FileExplorerPageInteractionController } from '@pages/fileexplorer/controllers/FileExplorerPageInteractionController.ts';
 import type { FileExplorerApi, FileExplorerUiRefs } from '@pages/fileexplorer/types.ts';
+import type { PageStreaming } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
 import type { PageLifecycle } from '@core/routing/pages/basepage/PageLifecycle.ts';
 import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageFeedback } from '@core/routing/pages/basepagecore/PageFeedback.ts';
@@ -17,6 +19,7 @@ import type { FileExplorerSortState } from '@pages/fileexplorer/controllers/page
 import type { JsonObject } from '@core/types/jsonValues.ts';
 
 interface FileExplorerPageRuntimeHost {
+    readonly owner: PresentationOwner;
     api: {
         fileExplorer: FileExplorerApi;
         system: {
@@ -25,6 +28,7 @@ interface FileExplorerPageRuntimeHost {
     };
     storage: StorageService;
     pageLifecycle: PageLifecycle;
+    streaming: Pick<PageStreaming, 'ensureRuntime'>;
     pageDom: PageDom;
     feedback: PageFeedback;
     services: PageServices;
@@ -52,7 +56,7 @@ interface FileExplorerPageRuntime {
     setModalOpen: (modalOpen: boolean) => void;
     resetSearchOnNavigation: () => void;
     clearDeeplinkHighlight: () => void;
-    destroy: () => void;
+    destroy: () => Promise<void>;
 }
 
 interface FileExplorerRuntimeInitializationOptions {

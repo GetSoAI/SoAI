@@ -28,6 +28,7 @@ const mapRouteSidebar = (definition: RouteSidebarDefinition): RouteSidebar => {
 
 const mapRouteLayout = (definition: RawRouteDefinition): RouteLayout => {
     return Object.freeze({
+        exclusive: definition.layout?.exclusive === true,
         hideSidebar: definition.layout?.hideSidebar === true,
         scrollToTopAction: definition.layout?.scrollToTopAction !== false,
         headerActionHandoff: Object.freeze(filterTrimmedStringArrayValue(definition.layout?.headerActionHandoff))
@@ -58,7 +59,8 @@ const createRouteEntry = (definition: RawRouteDefinition): RouteEntry => {
         data,
         sidebar,
         layout,
-        search
+        search,
+        reconstruction: definition.reconstruction ? Object.freeze({ discardQuery: Object.freeze(filterTrimmedStringArrayValue(definition.reconstruction.discardQuery)), ...(definition.reconstruction.whenQuery ? { whenQuery: definition.reconstruction.whenQuery } : {}), ...(definition.reconstruction.parking === 'clean' ? { parking: definition.reconstruction.parking } : {}) }) : null
     });
 };
 

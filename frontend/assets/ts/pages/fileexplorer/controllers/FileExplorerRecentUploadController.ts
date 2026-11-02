@@ -15,13 +15,15 @@ class FileExplorerRecentUploadController {
     #loadRevision = 0;
     #retainNextLoad = false;
 
-    handleListingLoad(path: string, listingSessionRevision: number): void {
+    handleListingLoad(path: string, listingSessionRevision: number, admission: 'navigation' | 'reconciliation' = 'navigation'): void {
         if (listingSessionRevision === this.#listingSessionRevision) {
             return;
         }
+        const currentPath = toVirtualPath(path);
+        const preserveMarkers = admission === 'reconciliation' && currentPath === this.#currentPath;
         this.#listingSessionRevision = listingSessionRevision;
-        this.#currentPath = toVirtualPath(path);
-        if (this.#retainNextLoad) {
+        this.#currentPath = currentPath;
+        if (this.#retainNextLoad || preserveMarkers) {
             this.#retainNextLoad = false;
             return;
         }

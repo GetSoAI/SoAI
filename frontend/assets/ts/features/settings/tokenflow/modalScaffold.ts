@@ -1,10 +1,11 @@
 /* SoAI - Settings token-flow modal scaffolding [frontend/assets/ts/features/settings/tokenflow/modalScaffold.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { requireModalPresenter, type ModalDefinition } from '@core/modals/modalPresenter.ts';
 import { runModalSession, type ModalSessionInitializer } from '@core/modals/modalSession.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 
 interface SettingsTokenModalDefinitionOptions<TConfig> {
@@ -23,6 +24,7 @@ interface SettingsTokenModalElementOptions {
 }
 
 interface SettingsTokenModalSessionOptions<TResult> {
+    readonly owner: PresentationOwner;
     modalId: string;
     initialResult: TResult;
     initialize: ModalSessionInitializer<TResult>;
@@ -32,7 +34,7 @@ const buildSettingsTokenModalDefinition = <TConfig>(options: SettingsTokenModalD
     id: options.modalId,
     layout: 'md',
     initialFocusSelector: options.initialFocusSelector,
-    createElement: (_modalOptions: ModalOpenOptions): HTMLElement => options.createElement(options.configFactory())
+    createElement: (_modalOptions: ModalCreationOptions): HTMLElement => options.createElement(options.configFactory())
 });
 
 const createSettingsTokenModalElement = (options: SettingsTokenModalElementOptions): HTMLElement => {
@@ -49,6 +51,7 @@ const createSettingsTokenModalElement = (options: SettingsTokenModalElementOptio
 
 const runSettingsTokenModalSession = async <TResult>(options: SettingsTokenModalSessionOptions<TResult>): Promise<TResult> => {
     return await runModalSession<TResult>({
+        owner: options.owner,
         presenter: requireModalPresenter(),
         modalId: options.modalId,
         onAlreadyOpen: 'replace',

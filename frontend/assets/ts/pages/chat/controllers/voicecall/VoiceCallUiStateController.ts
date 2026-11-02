@@ -1,11 +1,13 @@
 /* SoAI - Chat voice call UI state controller [frontend/assets/ts/pages/chat/controllers/voicecall/VoiceCallUiStateController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { VoiceCallModalUiController } from '@pages/chat/controllers/voicecall/VoiceCallModalUiController.ts';
 import { VoiceCallThinkingChimeController } from '@pages/chat/controllers/voicecall/VoiceCallThinkingChimeController.ts';
 import type { VoiceCallUiStatus } from '@pages/chat/controllers/voicecall/voiceCallTypes.ts';
 
 interface VoiceCallUiStateControllerOptions {
+    readonly owner: PresentationOwner;
     isRuntimeActive(): boolean;
     onEndRequested(): void;
     onPauseRequested(): void;
@@ -28,6 +30,7 @@ class VoiceCallUiStateController {
     constructor(options: VoiceCallUiStateControllerOptions) {
         this.#isRuntimeActive = options.isRuntimeActive;
         this.#modalUi = new VoiceCallModalUiController({
+            owner: options.owner,
             onEndRequested: () => options.onEndRequested(),
             onPauseRequested: () => options.onPauseRequested(),
             onModalClosed: () => options.onModalClosed()

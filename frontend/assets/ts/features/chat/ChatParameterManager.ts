@@ -11,7 +11,7 @@ import { isJsonValue, type JsonValue } from '@core/types/jsonValues.ts';
 import { formatTextZoomDisplay } from '@features/chat/conversationFormatting.ts';
 
 interface ChatParameterSurfaceDependencies {
-    showConfirmation: (options: import('@core/ui/modals/dialogs/types.ts').ConfirmationOptions) => Promise<boolean>;
+    showConfirmation: (options: Omit<import('@core/ui/modals/dialogs/types.ts').ConfirmationOptions, 'owner'>) => Promise<boolean>;
     showNotification: (message: string, type: import('@core/ui/notifications/notifications.ts').NotificationType, duration?: number) => void;
     optionalUI: (selector: string, context?: Element) => Element | null;
     queryUI: (selector: string) => Element[];

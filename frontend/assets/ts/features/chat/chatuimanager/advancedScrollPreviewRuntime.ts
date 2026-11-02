@@ -14,6 +14,7 @@ import { createAdvancedScrollPreviewVisibilityController } from '@features/chat/
 import type { AdvancedScrollPreviewElements, ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 import { acquireMainTimelineCoordinator } from '@features/chat/mainTimelineCoordinator.ts';
 import { hasPresenceAnimationInSubtree } from '@core/animations/presence/public.ts';
+import { readElementAnimations } from '@core/pageTransitions.ts';
 import { isMainTimelineScrollRestoring } from '@features/chat/mainTimelineScroll.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 
@@ -28,6 +29,7 @@ type PreviewFrameMeasurement = {
 const STREAMING_DRAW_DEBOUNCE_MS = 48;
 const IDLE_DRAW_DEBOUNCE_MS = 120;
 const PREVIEW_FRAME_KEY = 'advanced-scroll-preview';
+const CHROME_LAYOUT_TRANSITIONS: ReadonlySet<string> = new Set(['--chat-conversation-header-offset', '--chat-composer-fold-progress', 'bottom']);
 
 export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext, elements: AdvancedScrollPreviewElements): (() => void) | null => {
     const { messagesArea, messagesRoot, overlay, canvas, viewport, fadeTop, fadeBottom } = elements;
@@ -36,12 +38,13 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
     if (!win || typeof win.ResizeObserver !== 'function' || typeof win.MutationObserver !== 'function') {
         return null;
     }
-    const coordinator = acquireMainTimelineCoordinator(messagesArea, messagesRoot);
+    const coordinator = acquireMainTimelineCoordinator(messagesArea, messagesRoot, context.dependencies.owner);
     const shell = overlay.parentElement instanceof HTMLElement ? overlay.parentElement : null;
     const inputWrapperCandidate = context.dependencies.optionalUI('.chat-input-wrapper');
     const inputWrapper = inputWrapperCandidate instanceof HTMLElement ? inputWrapperCandidate : null;
     const inputActionsCandidate = context.dependencies.optionalUI('.chat-input-actions');
     const inputActions = inputActionsCandidate instanceof HTMLElement ? inputActionsCandidate : null;
+    const isChromeLayoutMotionActive = (): boolean => [shell, inputWrapper, overlay].some((element) => element !== null && readElementAnimations(element, false).some((animation) => animation.playState === 'running' && 'transitionProperty' in animation && typeof animation.transitionProperty === 'string' && CHROME_LAYOUT_TRANSITIONS.has(animation.transitionProperty)));
     let stopDrag: (() => void) | null = null;
     let isPreviewDragging = false;
     let isDisposed = false;
@@ -134,7 +137,7 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
         contentPending = false;
         thumbPending = false;
         const nativeGestureActive = coordinator.isNativeGestureActive();
-        if (updateContent && (nativeGestureActive || isMainTimelineScrollRestoring(messagesArea) || hasPresenceAnimationInSubtree(messagesRoot))) {
+        if (updateContent && (nativeGestureActive || isMainTimelineScrollRestoring(messagesArea) || hasPresenceAnimationInSubtree(messagesRoot) || isChromeLayoutMotionActive())) {
             updateContent = false;
             if (nativeGestureActive) contentPendingAfterGesture = true;
             else {

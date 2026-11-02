@@ -1,6 +1,7 @@
 /* SoAI - Automation page configuration modal controller [frontend/assets/ts/pages/automation/controllers/AutomationConfigurationModalController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { narrowButton } from '@core/dom/narrowElement.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
@@ -28,6 +29,7 @@ interface ModalUi {
 }
 
 interface ModalControllerDependencies {
+    readonly owner: PresentationOwner;
     requireHTMLElement: (selector: string, context?: Element | Document | null) => HTMLElement;
     modalPresenter: ModalPresenterApi;
     getIconSync: (icon: IconName, options?: IconOptions) => TrustedHtml;
@@ -74,6 +76,7 @@ class AutomationConfigurationModalController {
             footerSaveButton: narrowButton(requireElement('save-button'), 'Automation configuration modal save button')
         };
         this.#form = new AutomationConfigurationFormController({
+            owner: this.#dependencies.owner,
             requireHTMLElement: dependencies.requireHTMLElement,
             modal,
             modalPresenter: dependencies.modalPresenter,
@@ -111,7 +114,7 @@ class AutomationConfigurationModalController {
         this.#status.reset();
         this.#applyMode(mode);
         this.#status.setPrerequisitesState({ type: 'loading' });
-        this.#dependencies.modalPresenter.open(this.#modalId);
+        this.#dependencies.modalPresenter.open(this.#modalId, { owner: this.#dependencies.owner });
     }
 
     setPrerequisitesState(state: AutomationEditorPrerequisitesState): void {
@@ -126,7 +129,7 @@ class AutomationConfigurationModalController {
         this.#status.setFrozen(reason, frozen);
     }
 
-    setAvailableModels(models: readonly AutomationModelOption[]): void {
+    setAvailableModels(models: readonly AutomationModelOption[] | null): void {
         this.#form.setAvailableModels(models);
     }
 

@@ -61,7 +61,7 @@
         --chat-plan-overlay-surface: color-mix(in srgb, var(--glass-surface-medium-base) 45%, var(--glass-underlay-page));
     }
 
-    .main-content > .chat-container:where([data-section='chat'], [data-page-scope='chat']) {
+    [data-page-outlet-root='true'] > .chat-container:where([data-section='chat'], [data-page-scope='chat']) {
         display: flex;
         flex-direction: column;
         padding: 0;

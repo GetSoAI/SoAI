@@ -17,6 +17,7 @@ import { resolveWallpaperView, WALLPAPER_REMOVE_VARIANT_CLASS, WALLPAPER_UPLOAD_
 
 interface ThemePreferenceEffectsDependencies {
     host: ThemeManagerHost;
+    addPreferenceProjection: (project: () => void) => void;
     addCleanup: AddThemeManagerCleanup;
     updatePreferenceToggleLabel: (element: Element, enabled?: boolean) => void;
 }
@@ -32,12 +33,14 @@ const bindSimpleToggleControls = (dependencies: ThemePreferenceEffectsDependenci
     const { host, addCleanup, updatePreferenceToggleLabel } = dependencies;
     const bindToggle = (options: { id: string; uiPrefKey: UiPreferenceKey }): void => {
         const element = narrowInput(host.pageDom.requireHTMLElement(options.id), `Toggle "${options.id}"`);
-        const current = host.getUiPrefValue(options.uiPrefKey);
-        if (typeof current !== 'boolean') {
-            throw new TypeError(`uiPrefs.${options.uiPrefKey} must be a boolean`);
-        }
-        element.checked = current;
-        updatePreferenceToggleLabel(element, current);
+        const project = (): void => {
+            const current = host.getUiPrefValue(options.uiPrefKey);
+            if (typeof current !== 'boolean') throw new TypeError(`uiPrefs.${options.uiPrefKey} must be a boolean`);
+            element.checked = current;
+            updatePreferenceToggleLabel(element, current);
+        };
+        dependencies.addPreferenceProjection(project);
+        project();
 
         addCleanup(
             host.pageResources.on(element, 'change', () => {
@@ -54,7 +57,7 @@ const bindSimpleToggleControls = (dependencies: ThemePreferenceEffectsDependenci
     bindToggle({ id: 'dashboard-lock-toggle', uiPrefKey: 'dashboardLocked' });
 };
 
-const setupChartsEventListeners = (dependencies: { host: ThemeManagerHost; addCleanup: AddThemeManagerCleanup }): void => {
+const setupChartsEventListeners = (dependencies: Pick<ThemePreferenceEffectsDependencies, 'host' | 'addCleanup' | 'addPreferenceProjection'>): void => {
     const { host, addCleanup } = dependencies;
     const modeSelect = narrowSelect(host.pageDom.requireHTMLElement('chart-color-mode-select'), 'Chart color mode select');
     const colorItem = host.pageDom.requireHTMLElement('chart-static-color-item');
@@ -63,18 +66,22 @@ const setupChartsEventListeners = (dependencies: { host: ThemeManagerHost; addCl
         throw new TypeError('Chart static color picker must be type="color"');
     }
 
-    const modeValue = host.getUiPrefValue('chartColorMode');
-    if (typeof modeValue !== 'string' || !modeValue.trim()) {
-        throw new TypeError('uiPrefs.chartColorMode must be a non-empty string');
-    }
-    setSelectValueAndSyncDefault(modeSelect, modeValue);
-    setSettingItemApplicable(colorItem, modeSelect.value === 'static');
+    const project = (): void => {
+        const modeValue = host.getUiPrefValue('chartColorMode');
+        if (typeof modeValue !== 'string' || !modeValue.trim()) {
+            throw new TypeError('uiPrefs.chartColorMode must be a non-empty string');
+        }
+        setSelectValueAndSyncDefault(modeSelect, modeValue);
+        setSettingItemApplicable(colorItem, modeSelect.value === 'static');
 
-    const staticColorValue = host.getUiPrefValue('chartStaticColor');
-    if (typeof staticColorValue !== 'string' || !staticColorValue.trim()) {
-        throw new TypeError('uiPrefs.chartStaticColor must be a non-empty string');
-    }
-    colorPicker.value = staticColorValue;
+        const staticColorValue = host.getUiPrefValue('chartStaticColor');
+        if (typeof staticColorValue !== 'string' || !staticColorValue.trim()) {
+            throw new TypeError('uiPrefs.chartStaticColor must be a non-empty string');
+        }
+        colorPicker.value = staticColorValue;
+    };
+    dependencies.addPreferenceProjection(project);
+    project();
 
     addCleanup(
         host.pageResources.on(modeSelect, 'change', () => {

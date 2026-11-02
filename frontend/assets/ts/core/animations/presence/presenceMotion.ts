@@ -95,7 +95,7 @@ const captureLayoutFrame = (style: CSSStyleDeclaration, geometry: PresenceGeomet
     }
     return Object.fromEntries(Object.values(resolveAxisProperties(geometry.axis)).map((property) => [property, style[property]]));
 };
-const interruptPresenceAnimation = (element: HTMLElement, tokens: PresenceTokens): PresenceFrame | null => {
+const interruptPresenceAnimation = (element: HTMLElement, tokens: PresenceTokens, visualOnly: boolean): PresenceFrame | null => {
     const animation = runningPresenceAnimations.get(element)?.animation;
     const style = animation ? readComputedStyle(element) : null;
     if (!animation || !style) {
@@ -108,13 +108,13 @@ const interruptPresenceAnimation = (element: HTMLElement, tokens: PresenceTokens
     if (tokens.translateFrom) visual['translate'] = style.translate;
     const frame = {
         visual,
-        layout: captureLayoutFrame(style, measurePresenceGeometry(element))
+        layout: visualOnly ? null : captureLayoutFrame(style, measurePresenceGeometry(element))
     };
     stopPresenceAnimation(element);
     return frame;
 };
 const buildHiddenVisualKeyframe = (tokens: PresenceTokens): PresenceKeyframe => {
-    const keyframe: PresenceKeyframe = { opacity: 0 };
+    const keyframe: PresenceKeyframe = { opacity: tokens.opacityFrom };
     if (tokens.scaleFrom !== 1) keyframe['scale'] = tokens.scaleFrom;
     if (tokens.blurFrom !== '0px' && tokens.blurFrom !== '0') keyframe['filter'] = `blur(${tokens.blurFrom})`;
     if (tokens.translateFrom) keyframe['translate'] = tokens.translateFrom;
@@ -166,8 +166,8 @@ const preparePresenceEnter = (element: HTMLElement, visualOnly = false): (() => 
     const targets = resolveVisualTargets(element);
     const ownsVisual = targets.includes(element);
     const children = ownsVisual ? [] : targets.map((target) => preparePresenceEnter(target, true));
-    const frame = interruptPresenceAnimation(element, tokens);
     const useVisualOnly = visualOnly || element.hasAttribute(VISUAL_ONLY_ATTRIBUTE);
+    const frame = interruptPresenceAnimation(element, tokens, useVisualOnly);
     const layout = buildLayoutKeyframes(element, useVisualOnly ? null : measurePresenceGeometry(element), useVisualOnly);
     const from = { ...layout.collapsed, ...frame?.layout, ...(ownsVisual ? (frame?.visual ?? buildHiddenVisualKeyframe(tokens)) : {}) };
     return () => {
@@ -187,13 +187,13 @@ const validatePresenceExitOptions = (options: PresenceExitOptions): void => {
 const animatePresenceExit = (element: HTMLElement, visualOnly = false, options: PresenceExitOptions = {}): Animation | null => {
     validatePresenceExitOptions(options);
     const tokens = readPresenceTokens(element);
-    const frame = interruptPresenceAnimation(element, tokens);
+    const useVisualOnly = visualOnly || element.hasAttribute(VISUAL_ONLY_ATTRIBUTE);
+    const frame = interruptPresenceAnimation(element, tokens, useVisualOnly);
     if (tokens.exitDurationMs <= 0 || !canAnimate(element) || !canAnimatePresence(element)) {
         return null;
     }
     const targets = resolveVisualTargets(element);
     const ownsVisual = targets.includes(element);
-    const useVisualOnly = visualOnly || element.hasAttribute(VISUAL_ONLY_ATTRIBUTE);
     const layout = buildLayoutKeyframes(element, useVisualOnly ? null : measurePresenceGeometry(element), useVisualOnly);
     const from = { ...layout.expanded, ...frame?.layout, ...(ownsVisual ? frame?.visual : {}) };
     if (ownsVisual && options.fromOpacity !== undefined) from['opacity'] = options.fromOpacity;

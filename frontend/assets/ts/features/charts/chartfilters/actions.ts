@@ -3,6 +3,7 @@
 
 import { insertWithPresence, isPresenceExiting, removeWithPresence, resolveNextPresenceAnchor } from '@core/animations/presence/public.ts';
 import { dom, resolveAll } from '@core/dom/dom.ts';
+import { generateSecureId } from '@core/primitives/idGenerator.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { isString } from '@core/typeGuards.ts';
 import { FILTER_TYPES, resolveFilterId } from '@features/charts/chartfilters/constants.ts';
@@ -85,7 +86,7 @@ const createFilterButtons = (type: FilterType, options: FilterOptionsInput, sele
 };
 
 const createFilterSelect = (type: FilterType, options: FilterOptionsInput, selected: FilterValue | null, config: InternalChartFiltersConfig, formatValue: ((value: FilterValue) => string) | undefined, onChange: FilterValueChangeHandler, onSync: (type: FilterType) => void, resources: ResourceTracker): HTMLSelectElement => {
-    const id = resolveFilterId(config.filterIds, type, `chart-filter-${type}`);
+    const id = resolveFilterId(config.filterIds, type, generateSecureId(`chart-filter-${type}`));
     const select = dom.create('select', {
         className: 'chart-filter-select chart-filter-select--titlebar',
         dataset: { filter: type },

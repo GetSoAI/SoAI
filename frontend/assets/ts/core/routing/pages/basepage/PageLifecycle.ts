@@ -4,8 +4,8 @@
 import { getLocation, getRequestAnimationFrame } from '@core/environment/public.ts';
 import { ErrorBoundary } from '@core/ErrorBoundary.ts';
 import { LifecycleScope } from '@core/lifecycle/lifecycleScope.ts';
-import { err, requestFunctionValue } from '@core/routing/pages/basepagecore/actions.ts';
-import { initializeBasePageLifecycle, runBasePageStandardSetup } from '@core/routing/pages/basepage/service.ts';
+import { err } from '@core/routing/pages/basepagecore/actions.ts';
+import { initializeBasePageLifecycle, refreshBasePageLifecycle, runBasePageStandardSetup } from '@core/routing/pages/basepage/service.ts';
 import { PageTeardown } from '@core/routing/pages/basepage/PageTeardown.ts';
 import { PageRuntime } from '@core/runtime/PageRuntime.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -14,8 +14,9 @@ import { isFunction } from '@core/typeGuards.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { LifecycleCancellationError, isLifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
-import { isAbortError } from '@core/errors/abort.ts';
+import { isAbortError, throwIfAborted } from '@core/errors/abort.ts';
 import { PageActivationGate } from '@core/routing/pages/basepage/PageActivationGate.ts';
+import { createDeferred } from '@core/runtime/deferred.ts';
 
 type PageInitializationTask = Promise<boolean | void>;
 
@@ -30,13 +31,12 @@ class PageLifecycle {
     readonly #activation = new PageActivationGate();
     #initialized = false;
     #destroyed = false;
-    #destroying = false;
     #initializePromise: Promise<boolean> | null = null;
     #initializeTask: Promise<void> | null = null;
     #destroyTask: Promise<boolean> | null = null;
     #hideTask: Promise<void> | null = null;
-    #initializeSequence = 0;
     #generation = 0;
+    #transitionCallbackDepth = 0;
 
     constructor(dependencies: PageLifecycleDependencies) {
         this.#dependencies = dependencies;
@@ -77,12 +77,13 @@ class PageLifecycle {
         const scope = this.#detachedScopes.get(operation) ?? new LifecycleScope();
         this.#detachedScopes.set(operation, scope);
         const run = scope.begin(`${operation}-superseded`);
+        if (!scope.isCurrent(run)) return;
         const detachedTask = this.#boundary
             .execute(() => task(run.signal), operation)
             .finally(() => {
                 if (scope.isCurrent(run)) {
+                    if (this.#detachedScopes.get(operation) === scope) this.#detachedScopes.delete(operation);
                     scope.abort(`${operation}-complete`);
-                    this.#detachedScopes.delete(operation);
                 }
             });
         void detachedTask.catch((error) => {
@@ -93,15 +94,16 @@ class PageLifecycle {
     }
 
     async initialize(parameters: JsonObject | undefined, command: PageInitializationCommand): Promise<void> {
-        if (this.#destroying || this.#destroyTask) throw new LifecycleCancellationError(`${this.#dependencies.pageId} initialization rejected during destruction`, 'page-destroying');
+        if (this.#destroyTask) throw new LifecycleCancellationError(`${this.#dependencies.pageId} initialization rejected during destruction`, 'page-destroying');
         if (this.#hideTask) throw new LifecycleCancellationError(`${this.#dependencies.pageId} initialization rejected during hide`, 'page-hiding');
         const previousTask = this.#initializeTask;
-        const sequence = ++this.#initializeSequence;
+        const completion = createDeferred<void>();
+        const task = completion.promise;
+        this.#initializeTask = task;
         const initializeRun = this.#initializeScope.begin('reinitialize');
-        let task!: Promise<void>;
-        task = (async (): Promise<void> => {
+        const operation = (async (): Promise<void> => {
             if (previousTask) await this.#settleInitialization(previousTask);
-            if (sequence !== this.#initializeSequence || initializeRun.signal.aborted) return;
+            if (!this.#initializeScope.isCurrent(initializeRun)) return;
             await initializeBasePageLifecycle(
                 {
                     pageId: this.#dependencies.pageId,
@@ -121,7 +123,7 @@ class PageLifecycle {
                 { signal: initializeRun.signal }
             );
         })();
-        this.#initializeTask = task;
+        void operation.then(completion.resolve, (error) => completion.reject(ensureError(error)));
         try {
             await task;
         } finally {
@@ -131,7 +133,7 @@ class PageLifecycle {
     }
 
     async #initialize(parameters: JsonObject | null, command: PageInitializationCommand, context: { signal?: AbortSignal }): Promise<boolean> {
-        if (this.#destroying) throw new LifecycleCancellationError(`${this.#dependencies.pageId} initialization rejected during destruction`, 'page-destroying');
+        if (this.#destroyTask) throw new LifecycleCancellationError(`${this.#dependencies.pageId} initialization rejected during destruction`, 'page-destroying');
         if (this.#initializePromise) {
             return await this.#initializePromise;
         }
@@ -142,19 +144,22 @@ class PageLifecycle {
             throw err(`Cannot initialize destroyed page ${this.#dependencies.pageId}`);
         }
         const generation = this.#generation;
-        let initialization!: Promise<boolean>;
-        initialization = (async (): Promise<boolean> => {
+        const completion = createDeferred<boolean>();
+        const initialization = completion.promise;
+        this.#initializePromise = initialization;
+        const operation = (async (): Promise<boolean> => {
             try {
                 await command.initializeDomain(parameters, context);
                 this.#requireActiveInitialization(generation);
+                throwIfAborted(context.signal);
                 this.#initialized = true;
                 this.#teardown.reset();
                 return true;
             } finally {
-                this.#initializePromise = null;
+                if (this.#initializePromise === initialization) this.#initializePromise = null;
             }
         })();
-        this.#initializePromise = initialization;
+        void operation.then(completion.resolve, (error) => completion.reject(ensureError(error)));
         return await initialization;
     }
 
@@ -167,13 +172,17 @@ class PageLifecycle {
     }
 
     cancel(reason: string): void {
+        this.#dependencies.resources.seal();
         this.#generation += 1;
-        this.#initializeSequence += 1;
+        const listenersController = this.#listenersScope.controller;
+        const runtimeTask = this.#runtime.currentTask;
+        const detachedScopes = [...this.#detachedScopes.values()];
+        this.#detachedScopes.clear();
         this.#initializeScope.abort(reason);
         this.#activation.cancel();
-        this.abortListeners(reason);
-        this.#runtime.cancel(reason);
-        this.#abortDetached(reason);
+        if (this.#listenersScope.controller === listenersController) this.abortListeners(reason);
+        if (this.#runtime.currentTask === runtimeTask) this.#runtime.cancel(reason);
+        for (const scope of detachedScopes) scope.abort(reason);
     }
 
     deferActivation(): void {
@@ -185,20 +194,25 @@ class PageLifecycle {
     }
 
     async hide(onCancel: () => void, onHide: () => Promise<void>): Promise<void> {
-        if (this.#hideTask) return await this.#hideTask;
-        if (this.#destroying || this.#destroyTask) throw new LifecycleCancellationError(`${this.#dependencies.pageId} hide rejected during destruction`, 'page-destroying');
-        let task!: Promise<void>;
-        task = (async (): Promise<void> => {
+        if (this.#hideTask) {
+            if (this.#transitionCallbackDepth === 0) await this.#hideTask;
+            return;
+        }
+        if (this.#destroyTask) throw new LifecycleCancellationError(`${this.#dependencies.pageId} hide rejected during destruction`, 'page-destroying');
+        const completion = createDeferred<void>();
+        const task = completion.promise;
+        this.#hideTask = task;
+        const operation = this.#invokeTransitionCallback(async (): Promise<void> => {
             this.cancel('hide');
             onCancel();
             await this.settleInitialization();
-            await this.run('hide', onHide);
-        })();
-        this.#hideTask = task;
+            await this.run('hide', () => this.#invokeTransitionCallback(onHide));
+        });
+        void operation.then(completion.resolve, (error) => completion.reject(ensureError(error)));
         try {
             await task;
         } finally {
-            this.#hideTask = null;
+            if (this.#hideTask === task) this.#hideTask = null;
         }
     }
 
@@ -234,73 +248,64 @@ class PageLifecycle {
 
     async refresh(parameters: JsonObject | null, command: PageRefreshCommand, context: { signal?: AbortSignal } = {}): Promise<void> {
         this.#abortDetached('refresh');
-        command.beforeCleanup();
-        await this.#dependencies.layout.cleanup();
-        await this.#dependencies.resources.cleanupTracked();
-        const requiredResources = command.getRequiredResources();
-        if (requiredResources.length) {
-            const streamResources = this.#dependencies.streaming.runtime().resources;
-            await this.#dependencies.streaming.ensureReady(streamResources);
-            const ensureResourceStarted = requestFunctionValue(streamResources, 'ensureResourceStarted', 'SM');
-            await Promise.all(requiredResources.map((name) => Promise.resolve(ensureResourceStarted(name))));
-        }
-        command.refreshDomainState();
-        await command.onInitialize(parameters, context);
+        await refreshBasePageLifecycle(this.#dependencies, command, parameters, context);
     }
 
     async destroy(command: PageDestroyCommand): Promise<boolean> {
         if (this.#destroyed) return false;
         if (this.#destroyTask) {
+            if (this.#transitionCallbackDepth > 0) return false;
             await this.#destroyTask;
             return false;
         }
-        const task = this.#runDestroy(command);
+        const completion = createDeferred<boolean>();
+        const task = completion.promise;
         this.#destroyTask = task;
+        const operation = this.#invokeTransitionCallback(() => this.#runDestroy(command));
+        void operation.then(completion.resolve, (error) => completion.reject(ensureError(error)));
         try {
             return await task;
         } finally {
-            this.#destroyTask = null;
+            if (this.#destroyTask === task && this.#destroyed) this.#destroyTask = null;
         }
     }
 
     async #runDestroy(command: PageDestroyCommand): Promise<boolean> {
-        this.#destroying = true;
         this.#generation += 1;
-        this.#initializeSequence += 1;
         this.#initializeScope.abort('destroy');
         this.#runtime.cancel('destroy');
-        try {
-            if (this.#hideTask) await this.#settleInitialization(this.#hideTask);
-            await this.settleInitialization();
-            try {
-                await command.onDestroy();
-            } catch (error) {
-                errorHandler.error(this.#dependencies.pageId, 'Page destroy hooks failed', ensureError(error));
-            }
-            await this.#teardown.destroyOwnedState();
-            await this.cleanup(command.cleanupDomainState, command.onCollectionStateCleaned);
-            this.#destroyed = true;
-            this.#initialized = false;
-            this.#initializePromise = null;
-            return true;
-        } finally {
-            this.#destroying = false;
-        }
+        if (this.#hideTask) await this.#settleInitialization(this.#hideTask);
+        await this.settleInitialization();
+        await this.#teardown.destroyOwnedState({ ...command, onDestroy: () => this.#invokeTransitionCallback(() => command.onDestroy()) });
+        this.#destroyed = true;
+        this.#initialized = false;
+        this.#initializePromise = null;
+        return true;
     }
 
     async cleanup(cleanupDomainState: () => void, onCollectionStateCleaned: () => void): Promise<boolean> {
         return this.#teardown.cleanup(cleanupDomainState, onCollectionStateCleaned);
     }
 
+    #invokeTransitionCallback<Result>(callback: () => Result): Result {
+        this.#transitionCallbackDepth += 1;
+        try {
+            return callback();
+        } finally {
+            this.#transitionCallbackDepth -= 1;
+        }
+    }
+
     #abortDetached(reason: string): void {
-        for (const scope of this.#detachedScopes.values()) {
+        const scopes = [...this.#detachedScopes.values()];
+        this.#detachedScopes.clear();
+        for (const scope of scopes) {
             scope.abort(reason);
         }
-        this.#detachedScopes.clear();
     }
 
     #requireActiveInitialization(generation: number): void {
-        if (generation !== this.#generation || this.#destroying || this.#destroyed) {
+        if (generation !== this.#generation || this.#destroyTask || this.#destroyed) {
             throw new LifecycleCancellationError(`${this.#dependencies.pageId} initialization cancelled during lifecycle transition`, 'page-initialization');
         }
     }

@@ -99,33 +99,30 @@ class LanguageService {
         return code;
     }
 
-    async setLanguage(code: string): Promise<void> {
+    async setLanguage(code: string, canApply: () => boolean = () => true): Promise<void> {
         if (!this.languages.has(code)) {
             throw new Error(`Unsupported language: ${code}`);
         }
         this.#requestedLanguage = code;
         await this.#languageRequests.runLatest(async (request) => {
-            if (code === this.currentLanguage && this.loadedLanguages.has(code)) {
-                return;
-            }
+            const canCommit = (): boolean => canApply() && request.isCurrent();
             try {
+                if (!canCommit()) return;
+                if (code === this.currentLanguage && this.loadedLanguages.has(code)) return;
                 await this.loadLanguageFile(code);
+                if (!canCommit()) return;
+                this.currentLanguage = code;
+                this.applyDocumentLanguage();
+                if (!canCommit()) return;
+                const storage = resolveStorage();
+                if (storage?.setLanguage) storage.setLanguage(code);
+                if (!canCommit()) return;
+                if (this.initialized) this.#scheduleLanguageChangeNotification(code);
             } catch (error) {
-                if (request.isCurrent()) this.#requestedLanguage = this.currentLanguage;
+                if (!canCommit()) return;
                 throw error;
-            }
-            if (request.isStale()) {
-                return;
-            }
-            this.currentLanguage = code;
-            this.applyDocumentLanguage();
-
-            const storage = resolveStorage();
-            if (storage?.setLanguage) {
-                storage.setLanguage(code);
-            }
-            if (this.initialized) {
-                this.#scheduleLanguageChangeNotification(code);
+            } finally {
+                if (request.isCurrent()) this.#requestedLanguage = this.currentLanguage;
             }
         });
     }

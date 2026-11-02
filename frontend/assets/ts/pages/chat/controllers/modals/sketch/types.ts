@@ -1,6 +1,7 @@
 /* SoAI - Chat sketch modal contracts [frontend/assets/ts/pages/chat/controllers/modals/sketch/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { DrawingCapacityResult } from '@core/drawing/drawingRecords.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { PageFeedback } from '@core/routing/pages/basepagecore/PageFeedback.ts';
@@ -25,6 +26,7 @@ interface ChatSketchModalRefs {
 }
 
 interface ChatSketchModalHost {
+    readonly owner: PresentationOwner;
     feedback: Pick<PageFeedback, 'handle' | 'show'>;
     presenter: ModalPresenterApi;
     submit(file: File): void | Promise<void>;

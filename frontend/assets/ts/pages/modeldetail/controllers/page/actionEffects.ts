@@ -16,7 +16,7 @@ import { sanitizeParameterValue } from '@pages/modeldetail/mappers/parameterValu
 import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 import type { PageLifecycleOwnerHost } from '@core/routing/pages/basepage/PageLifecycle.ts';
-import type { ModelDetailParameterAuthority } from '@pages/modeldetail/state/ModelDetailParameterAuthorityState.ts';
+import type { ModelDetailParameterAuthority, ParameterSnapshotOutcome } from '@pages/modeldetail/state/ModelDetailParameterAuthorityState.ts';
 import type { ModelDetailSession } from '@pages/modeldetail/state/ModelDetailSession.ts';
 import type { StreamRuntimeOwners } from '@core/realtime/streammanager/public.ts';
 
@@ -42,7 +42,7 @@ interface ModelDetailModelApiPort {
 interface ModelDetailParameterSnapshotPort {
     parameterAuthority: ModelDetailParameterAuthority;
     beginParameterSave: () => void;
-    finishParameterSave: () => void;
+    finishParameterSave: () => Promise<ParameterSnapshotOutcome>;
     retryParameters: () => void;
     discardParameterChanges: () => void;
 }
@@ -109,6 +109,19 @@ const composeModelDetailActions = (host: ModelDetailActionsDependencies): ModelD
     };
 };
 
+const reconcileModelDetailParameterSave = async (host: ModelDetailActionsHost, isCurrent: () => boolean): Promise<void> => {
+    try {
+        await host.finishParameterSave();
+    } catch (error) {
+        if (!isCurrent()) return;
+        host.parameterAuthority.status = 'unavailable';
+        host.parameterAuthority.reason = 'refresh_failed';
+        host.parameterView.refreshModificationState();
+        errorHandler.warn('ModelDetailPage', 'Parameter readback failed after the mutation settled', ensureError(error));
+        host.feedback.show(i18n.t('modelDetail.parameterAvailability.unavailableNotice'), 'warning');
+    }
+};
+
 const saveModelDetailParameters = async (host: ModelDetailActionsHost): Promise<void> => {
     return host.runWithBoundary('modelDetail:saveParameters', async () => {
         const modifiedKeys = host.parameterView.getModifiedParameterKeys();
@@ -136,14 +149,14 @@ const saveModelDetailParameters = async (host: ModelDetailActionsHost): Promise<
         try {
             await host.api.models.updateParameters(modelId, toJsonCompatibleValue(payload));
         } catch (error) {
-            if (isCurrentSession()) host.finishParameterSave();
+            if (isCurrentSession()) await reconcileModelDetailParameterSave(host, isCurrentSession);
             throw ensureError(error);
         }
         if (!isCurrentSession()) return;
         host.feedback.show(i18n.t('modelDetail.notifications.paramsSaved'), 'success');
         host.parameterState.commit(submittedValues);
         host.parameterView.refreshModificationState();
-        host.finishParameterSave();
+        await reconcileModelDetailParameterSave(host, isCurrentSession);
     });
 };
 

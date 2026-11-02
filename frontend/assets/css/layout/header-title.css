@@ -98,6 +98,27 @@
         visibility: hidden;
     }
 
+    body:has(.page-workspace[data-pane-split='true']) .page-title,
+    body:has(.page-workspace[data-pane-split='true']) .page-title :is(.page-title-logo-slot, .page-title-text) {
+        animation: none;
+        transition: none;
+    }
+
+    body:not(.sidebar-expanded):has(.page-workspace[data-pane-split='true']) .page-title {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+    }
+
+    body:has(.page-workspace[data-pane-split='true']) .page-title-logo-slot {
+        opacity: 1;
+        transform: none;
+    }
+
+    body:has(.page-workspace[data-pane-split='true']) .page-title-text {
+        opacity: 0;
+    }
+
     @keyframes page-title-navigation-enter {
         from {
             opacity: 0;

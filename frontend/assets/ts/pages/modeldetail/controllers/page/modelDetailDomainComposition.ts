@@ -102,6 +102,7 @@ const composeModelDetailDomains = (owners: ModelDetailDomainOwners): ModelDetail
     });
     const viewController = new ModelDetailViewController({ session: owners.session, pageDom: owners.pageDom, view, parameterState: owners.parameterState, parameterView: owners.parameterView, saveStatus });
     const operations = composeModelDetailOperations({
+        owner: owners.pageContext.presentationOwner,
         session: owners.session,
         pageDom: owners.pageDom,
         pageResources: owners.pageResources,
@@ -116,35 +117,38 @@ const composeModelDetailDomains = (owners: ModelDetailDomainOwners): ModelDetail
         api: owners.api,
         router: owners.router
     });
-    const effects = composeModelDetailEffects({
-        session: owners.session,
-        view,
-        pageResources: owners.pageResources,
-        pageLifecycle: owners.pageLifecycle,
-        streaming: owners.streaming,
-        feedback: owners.feedback,
-        get isDestroyed() {
-            return owners.pageLifecycle.isDestroyed;
+    const effects = composeModelDetailEffects(
+        {
+            session: owners.session,
+            view,
+            pageResources: owners.pageResources,
+            pageLifecycle: owners.pageLifecycle,
+            streaming: owners.streaming,
+            feedback: owners.feedback,
+            get isDestroyed() {
+                return owners.pageLifecycle.isDestroyed;
+            },
+            streamManager: owners.streamManager,
+            parameterView: owners.parameterView,
+            reconcileOpenAICapabilityState: reconcileCapabilityState,
+            setLoadError: (error) => {
+                owners.session.loadError = error;
+            },
+            applyParametersPayload: (payload) => viewController.applyParametersPayload(payload),
+            mergeParametersPayload: (payload) => viewController.mergeParametersPayload(payload),
+            populateModelInfo: () => viewController.populateModelInfo(),
+            renderParametersInterface: () => viewController.renderParametersInterface(),
+            updateBackendDocButtonVisibility: () => viewController.updateBackendDocButtonVisibility(),
+            updateTestPluginStatusDisplay: () => owners.testModalManager.updatePluginStatusDisplay(),
+            populateDetailCards: () => viewController.populateDetailCards(),
+            setInfo: (id, value) => viewController.setInfo(id, value),
+            router: owners.router
         },
-        streamManager: owners.streamManager,
-        parameterView: owners.parameterView,
-        reconcileOpenAICapabilityState: reconcileCapabilityState,
-        setLoadError: (error) => {
-            owners.session.loadError = error;
-        },
-        applyParametersPayload: (payload) => viewController.applyParametersPayload(payload),
-        populateModelInfo: () => viewController.populateModelInfo(),
-        renderParametersInterface: () => viewController.renderParametersInterface(),
-        parameterAvailability: {
+        {
             renderParameterAvailability: () => viewController.renderParameterAvailability(),
             notifySaveChanged: () => owners.saveRequests.notify()
-        },
-        updateBackendDocButtonVisibility: () => viewController.updateBackendDocButtonVisibility(),
-        updateTestPluginStatusDisplay: () => owners.testModalManager.updatePluginStatusDisplay(),
-        populateDetailCards: () => viewController.populateDetailCards(),
-        setInfo: (id, value) => viewController.setInfo(id, value),
-        router: owners.router
-    });
+        }
+    );
     const actions = composeModelDetailActions({
         session: owners.session,
         pageResources: owners.pageResources,
@@ -165,14 +169,14 @@ const composeModelDetailDomains = (owners: ModelDetailDomainOwners): ModelDetail
         notifySaveChanged: () => owners.saveRequests.notify(),
         parameterSnapshots: {
             beginParameterSave: () => beginModelDetailParameterSave(effects),
-            finishParameterSave: () => terminateHandledPromise(finishModelDetailParameterSave(effects)),
+            finishParameterSave: () => finishModelDetailParameterSave(effects),
             retryParameters: () => terminateHandledPromise(refreshModelDetailParameters(effects)),
             discardParameterChanges: (): void => {
                 if (!applyPendingModelDetailParameters(effects, { discard: true })) terminateHandledPromise(refreshModelDetailParameters(effects, { force: true }));
             }
         }
     });
-    const save = createModelDetailSaveController({ actions, getOpenAICapabilityState: getCapabilityState });
+    const save = createModelDetailSaveController({ owner: owners.pageContext.presentationOwner, actions, getOpenAICapabilityState: getCapabilityState, getParameterProtectionRevision: () => owners.parameterView.protectionRevision });
     const unsubscribeSaveRequests = owners.saveRequests.subscribe((): void => {
         save.notifyChanged();
         if (owners.session.parameterAuthority.pending !== null) owners.pageResources.setTimeout(() => applyPendingModelDetailParameters(effects), 0);

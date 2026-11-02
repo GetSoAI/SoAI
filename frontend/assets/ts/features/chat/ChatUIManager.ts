@@ -243,7 +243,7 @@ class ChatUIManager {
     }
 
     toggleConfiguration(force: boolean | null = null): void {
-        this.resolveModals().toggle(CHAT_CONFIGURATION_MODAL_ID, force);
+        this.resolveModals().toggle(CHAT_CONFIGURATION_MODAL_ID, { owner: this.#context.dependencies.owner }, force);
     }
 
     resolveModals(): ModalPresenterApi {

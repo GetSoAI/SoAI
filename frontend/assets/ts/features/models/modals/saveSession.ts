@@ -1,6 +1,7 @@
 /* SoAI - Models feature save session [frontend/assets/ts/features/models/modals/saveSession.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { attachBeforeCloseConfirmationGuard } from '@core/modals/closeGuard.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
@@ -13,6 +14,7 @@ interface ModelModalSaveHost {
 }
 
 interface ModelModalSaveSessionArguments {
+    readonly owner: PresentationOwner;
     host: ModelModalSaveHost;
     modal: HTMLElement;
     modalId: string;
@@ -37,11 +39,12 @@ const confirmModelModalDiscard = async (host: ModelModalSaveHost, save: SaveCont
         host.showNotification(i18n.t('common.processing'), 'info');
         return false;
     }
-    return await showUnsavedChangesConfirmation();
+    return await showUnsavedChangesConfirmation({ owner: save.owner });
 };
 
 const createModelModalSaveSession = (inputArguments: ModelModalSaveSessionArguments): ModelModalSaveSession => {
     const save = createSaveController({
+        owner: inputArguments.owner,
         headerContextId: inputArguments.headerContextId,
         headerPriority: SAVE_HEADER_PRIORITY_MODAL,
         requestContextLabel: inputArguments.requestContextLabel,

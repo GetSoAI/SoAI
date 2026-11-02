@@ -106,5 +106,10 @@ interface SessionReconciliationResult {
 
 type AuthCallback = () => void | Promise<void>;
 type LoginCallback = (user: WebuiUser | null) => void | Promise<void>;
+interface AuthEpochIntent {
+    readonly type: 'authenticated' | 'terminal';
+    readonly authEpoch: number;
+}
+type AuthEpochIntentCallback = (intent: AuthEpochIntent) => void;
 
-export type { AuthCallback, InitializeOptions, LayoutShellInterface, LoginCallback, LoginResult, RouterInterface, SessionInvalidationResult, SessionReconciliationResult, SessionPayload, SharedAuthState, StateManager, StorageInterface, ApiInterface, AuthApiInterface, TabStateEvent, WebuiUser, WizardApiInterface, WizardCompletionResult, WizardStatus };
+export type { AuthCallback, AuthEpochIntent, AuthEpochIntentCallback, InitializeOptions, LayoutShellInterface, LoginCallback, LoginResult, RouterInterface, SessionInvalidationResult, SessionReconciliationResult, SessionPayload, SharedAuthState, StateManager, StorageInterface, ApiInterface, AuthApiInterface, TabStateEvent, WebuiUser, WizardApiInterface, WizardCompletionResult, WizardStatus };

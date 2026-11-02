@@ -36,6 +36,7 @@ interface ModelDetailEffectsRenderPort {
     setLoadError: (error: Error | null) => void;
     setPageState: (state: string) => void;
     applyParametersPayload: (payload: ParametersData) => void;
+    mergeParametersPayload: (payload: ParametersData) => void;
     populateModelInfo: () => void;
     renderParametersInterface: () => void;
     renderParameterAvailability: () => void;
@@ -69,9 +70,9 @@ interface ModelDetailEffectsDependencies extends PageResourcesOwnerHost, PageFee
     reconcileOpenAICapabilityState: (model: ModelRecord | null) => void;
     setLoadError: ModelDetailEffectsHost['rendering']['setLoadError'];
     applyParametersPayload: ModelDetailEffectsHost['rendering']['applyParametersPayload'];
+    mergeParametersPayload: ModelDetailEffectsHost['rendering']['mergeParametersPayload'];
     populateModelInfo: ModelDetailEffectsHost['rendering']['populateModelInfo'];
     renderParametersInterface: ModelDetailEffectsHost['rendering']['renderParametersInterface'];
-    parameterAvailability: ModelDetailParameterAvailabilityPort;
     updateBackendDocButtonVisibility: () => void;
     updateTestPluginStatusDisplay: ModelDetailEffectsHost['rendering']['updateTestPluginStatusDisplay'];
     populateDetailCards: ModelDetailEffectsHost['rendering']['populateDetailCards'];
@@ -79,4 +80,4 @@ interface ModelDetailEffectsDependencies extends PageResourcesOwnerHost, PageFee
     router: { navigate: (pageId: string) => void } | null;
 }
 
-export type { ModelDetailEffectsDependencies, ModelDetailEffectsHost, ParametersData };
+export type { ModelDetailEffectsDependencies, ModelDetailEffectsHost, ModelDetailParameterAvailabilityPort, ParametersData };

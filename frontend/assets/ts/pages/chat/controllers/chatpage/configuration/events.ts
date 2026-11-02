@@ -1,6 +1,7 @@
 /* SoAI - Chat preset library modal input bindings [frontend/assets/ts/pages/chat/controllers/chatpage/configuration/events.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
 import { CONTEXT_WINDOW_PRESET_ACTION, isContextWindowPresetAction, readContextWindowPreset } from '@core/chat/parameters/contextWindowPresets.ts';
 import { dom } from '@core/dom/dom.ts';
@@ -30,6 +31,7 @@ interface ChatConfigurationInputBindingsHost {
 }
 
 interface ChatConfigurationModalEventsHost {
+    readonly owner: PresentationOwner;
     configuration: ChatConfigurationController;
     hasPresetDraft(): boolean;
     handleModelAction(actionElement: HTMLElement): void;
@@ -49,7 +51,7 @@ const bindChatConfigurationModalEvents = (host: ChatConfigurationModalEventsHost
             setControlDisabledStateForEach(buttons, !host.configuration.isEditingConfiguration() || !host.configuration.operationGate().canAcquire());
         };
         if (modalId === CHAT_CONFIGURATION_MODAL_ID) {
-            attachChatConfigurationCloseGuards({ modal, configuration: host.configuration, hasPresetDraft: host.hasPresetDraft, signal });
+            attachChatConfigurationCloseGuards({ owner: host.owner, modal, configuration: host.configuration, hasPresetDraft: host.hasPresetDraft, signal });
             signal.addEventListener('abort', host.configuration.operationGate().subscribe(syncPresetButtons), { once: true });
             syncPresetButtons();
         }

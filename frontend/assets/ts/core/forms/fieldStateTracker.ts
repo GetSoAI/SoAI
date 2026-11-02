@@ -41,6 +41,8 @@ interface FieldSurfaceState {
 const safeBoolean = (value: boolean | undefined): boolean => value === true;
 
 class FieldStateTracker {
+    #protectionRevision = 0;
+    readonly #composingKeys = new Set<string>();
     getElement: (key: string) => Element | null;
     getElements: ((key: string) => Element[]) | null;
     getCurrentValue: ((key: string) => JsonValue | null | undefined) | null;
@@ -69,6 +71,30 @@ class FieldStateTracker {
         this.invalidMessages = new Map();
         this.keySurfaces = new Map();
         this.surfaceStates = new WeakMap();
+    }
+
+    get protectionRevision(): number {
+        return this.#protectionRevision;
+    }
+
+    markEdited(key: string): void {
+        this.trackedKeys.add(key);
+        this.emitStateChange(key, this.getElement(key), undefined, undefined, true);
+    }
+
+    setComposing(key: string, composing: boolean): void {
+        if (this.#composingKeys.has(key) === composing) return;
+        if (composing) this.#composingKeys.add(key);
+        else this.#composingKeys.delete(key);
+        this.markEdited(key);
+    }
+
+    isComposing(key: string): boolean {
+        return this.#composingKeys.has(key);
+    }
+
+    hasPendingEdit(key: string): boolean {
+        return this.isModified(key) || this.isInvalid(key) || this.isComposing(key);
     }
 
     update(key: string, { currentValue, originalValue }: FieldStateUpdateOptions = {}): boolean {
@@ -123,9 +149,10 @@ class FieldStateTracker {
             return;
         }
         this.trackedKeys.add(key);
-        const changed = this.isModified(key) || this.isInvalid(key);
+        const changed = this.hasPendingEdit(key);
         this.modifiedStates.set(key, false);
         this.invalidMessages.delete(key);
+        this.#composingKeys.delete(key);
         const targets = this.resolveTargets(key);
         this.applyKeyStateToSurfaces(key, targets.surfaces);
         const element = targets.elements[0] ?? null;
@@ -134,9 +161,10 @@ class FieldStateTracker {
 
     clearAll(): void {
         this.trackedKeys.forEach((key) => {
-            const changed = this.isModified(key) || this.isInvalid(key);
+            const changed = this.hasPendingEdit(key);
             this.modifiedStates.set(key, false);
             this.invalidMessages.delete(key);
+            this.#composingKeys.delete(key);
             const targets = this.resolveTargets(key);
             this.applyKeyStateToSurfaces(key, targets.surfaces);
             const element = targets.elements[0] ?? null;
@@ -169,7 +197,7 @@ class FieldStateTracker {
     }
 
     isValid(): boolean {
-        return this.invalidMessages.size === 0;
+        return this.invalidMessages.size === 0 && this.#composingKeys.size === 0;
     }
 
     hasPendingChanges(): boolean {
@@ -181,6 +209,7 @@ class FieldStateTracker {
     }
 
     private emitStateChange(key: string, element: Element | null, currentValue: JsonValue | null | undefined, originalValue: JsonValue | null | undefined, changed: boolean): void {
+        if (changed) this.#protectionRevision += 1;
         if (!this.onStateChange || !changed) {
             return;
         }

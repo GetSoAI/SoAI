@@ -1,6 +1,7 @@
 /* SoAI - Reusable attachment dialog session and action authority [frontend/assets/ts/features/attachmodal/AttachModalController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { i18n } from '@core/i18n/index.ts';
 import { AsyncOnceGuard } from '@core/concurrency/AsyncOnce.ts';
 import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { bindTypedResolvedDataActionListener } from '@core/dom/dataActionBinding.ts';
@@ -11,6 +12,8 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { runAsyncCleanupStepCollectingFailure, runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
 import { LifecycleScope, type LifecycleRun } from '@core/lifecycle/lifecycleScope.ts';
 import { bindManagedModalLifecycleEvents, createManagedModalCloseBinding } from '@core/modals/managedModalLifecycle.ts';
+import { attachBeforeCloseConfirmationGuard } from '@core/modals/closeGuard.ts';
+import { showUnsavedChangesConfirmation } from '@core/modals/unsavedChangesConfirmation.ts';
 import { createBusyDisabledToken, setBusyDisabledState, type BusyDisabledToken } from '@core/ui/controls/busyDisabledState.ts';
 import type { TabsComponent } from '@core/ui/controls/Tabs.ts';
 import { ATTACH_MODAL_ACTIONS, isAttachModalAction, type AttachModalAction } from '@features/attachmodal/actions.ts';
@@ -115,6 +118,19 @@ class AttachModalController {
         if (this.#consumer.policy.enabledTabs.includes('camera')) {
             session.camera = createCameraCaptureRuntime(createAttachCameraElements(session.modal), session.scope.signal);
             session.cleanups.push(() => session.camera?.dispose());
+            session.cleanups.push(
+                attachBeforeCloseConfirmationGuard({
+                    modal: session.modal,
+                    modalId: ATTACH_MODAL_ID,
+                    presenter: this.#consumer.presenter,
+                    shouldConfirmClose: () => session.camera !== null && session.camera.getCapturedFile() !== null,
+                    confirmClose: () => showUnsavedChangesConfirmation({ owner: this.#consumer.owner, message: i18n.t('chat.attachModal.cameraDiscardConfirm'), confirmText: i18n.t('common.discard') }),
+                    captureCloseValidity: () => {
+                        const captured = session.camera?.getCapturedFile();
+                        return () => this.#current(session) && session.camera?.getCapturedFile() === captured;
+                    }
+                })
+            );
         }
         const tabs = createAttachTabsComponent(session.modal, session.tab, this.#consumer.policy.enabledTabs, (tab) => this.open({ initialTab: tab }));
         session.tabs = tabs;
@@ -151,11 +167,11 @@ class AttachModalController {
         session.tabs.activeTab = attachTabComponentId(tab);
         activateAttachTab(session.modal, tab, this.#consumer.policy.enabledTabs);
         session.modal.dataset['chatAttachActiveTab'] = tab;
-        session.camera?.deactivate();
+        session.camera?.suspend();
         session.content?.deactivate();
         session.content?.activate(tab);
         if (!this.#current(session, token)) return;
-        this.#consumer.presenter.open(ATTACH_MODAL_ID);
+        this.#consumer.presenter.open(ATTACH_MODAL_ID, { owner: this.#consumer.owner });
         if (tab === 'camera') await session.camera?.activate();
         if (!this.#current(session, token)) return;
     }
@@ -191,8 +207,11 @@ class AttachModalController {
                 requireAttachTabAvailable(this.#consumer, 'camera');
                 const file = await camera.useCapturedFile();
                 if (file === null || !this.#current(session) || !intake.scope.isCurrent()) return;
-                this.#consumer.presenter.close(ATTACH_MODAL_ID);
-                await intake.submit(file);
+                const submission = intake.submit(file);
+                const failures: Error[] = [];
+                runCleanupStepCollectingFailure(() => this.#consumer.presenter.close(ATTACH_MODAL_ID, { force: true, reason: 'camera-submission' }), failures);
+                await runAsyncCleanupStepCollectingFailure(() => submission, failures);
+                throwCollectedCleanupFailures(failures);
             } else if (camera !== null && (action === ATTACH_MODAL_ACTIONS.CAMERA_SHUTTER || action === ATTACH_MODAL_ACTIONS.CAMERA_RETAKE || action === ATTACH_MODAL_ACTIONS.CAMERA_SWITCH)) {
                 requireAttachTabAvailable(this.#consumer, 'camera');
                 if (action === ATTACH_MODAL_ACTIONS.CAMERA_SHUTTER) await camera.capture();

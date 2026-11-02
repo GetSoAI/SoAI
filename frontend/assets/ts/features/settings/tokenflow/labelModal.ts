@@ -1,6 +1,7 @@
 /* SoAI - Settings feature label modal [frontend/assets/ts/features/settings/tokenflow/labelModal.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { readTrimmedInputValue } from '@core/dom/formValues.ts';
 import { bindEventGroup } from '@core/dom/eventBindingGroup.ts';
@@ -63,9 +64,10 @@ const createSettingsTokenLabelModalDefinition = (modalId: string, configFactory:
         createElement: createSettingsTokenLabelModalElement
     });
 
-const showSettingsTokenLabelModal = async (config: SettingsTokenLabelModalConfig, defaultValue: string): Promise<string | null> => {
+const showSettingsTokenLabelModal = async (config: SettingsTokenLabelModalConfig, defaultValue: string, owner: PresentationOwner): Promise<string | null> => {
     return await runSettingsTokenModalSession<string | null>({
         modalId: config.modalId,
+        owner,
         initialResult: null,
         initialize: ({ modal, signal, setResult, close }): { dispose: () => void } => {
             const resolver = createModalElementResolver(modal, config.contextLabel);

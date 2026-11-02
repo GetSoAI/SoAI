@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { BasePageDependencies } from '@core/routing/pages/pagetypes/public.ts';
+import { AUTOMATION_RUN_QUERY_KEY } from '@core/routeregistry/reconstruction.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { shouldPreventDefaultForActionElement } from '@core/dom/dataAction.ts';
 import { bindMultiRootPageActionDispatcher } from '@core/dom/dataActionBinding.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { signalAborted } from '@core/lifecycle/abortSignals.ts';
+import { runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
 import { optionalTrimmedString } from '@core/types/payloadValueReaders.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import { StaticBasePage, type RenderContext } from '@core/StaticBasePage.ts';
@@ -50,7 +52,7 @@ class AutomationPage extends StaticBasePage {
 
     override async beforeRender(parameters: JsonObject): Promise<JsonObject> {
         await super.beforeRender(parameters);
-        this.#initialRunId = optionalTrimmedString(parameters['run_id']);
+        this.#initialRunId = optionalTrimmedString(parameters[AUTOMATION_RUN_QUERY_KEY]);
         this.#initialModal = optionalTrimmedString(parameters['modal']);
         return {};
     }
@@ -86,6 +88,7 @@ class AutomationPage extends StaticBasePage {
             }
 
             this.#controller = new AutomationPageController({
+                owner: this.pageContext.presentationOwner,
                 ui: this.#ui,
                 storage: this.dependencies.storage,
                 dataService,
@@ -216,8 +219,10 @@ class AutomationPage extends StaticBasePage {
     }
 
     override async onDestroy(): Promise<void> {
-        this.pageLifecycle.abortListeners();
-        this.#controller?.destroy();
+        const failures: Error[] = [];
+        runCleanupStepCollectingFailure(() => this.pageLifecycle.abortListeners(), failures);
+        runCleanupStepCollectingFailure(() => this.#controller?.destroy(), failures);
+        throwCollectedCleanupFailures(failures);
         this.#controller = null;
         this.#initialRunId = null;
         this.#initialModal = null;

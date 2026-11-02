@@ -1,8 +1,14 @@
 /* SoAI - Settings page control layer actions [frontend/assets/ts/pages/settings/controllers/page/pageActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { JsonValue } from '@core/types/jsonValues.ts';
+import { isPresentationOwnerCurrent, isPresentationOwnerMutationAllowed, requirePresentationOwnerActive } from '@core/presentationOwner.ts';
+import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import { getBackgroundTasks } from '@core/backgroundtasks/service.ts';
+import { APIError } from '@core/apiError.ts';
+import { errorHandler } from '@core/errorHandler.ts';
+import { getErrorReference } from '@core/errors/reference.ts';
+import { resolveHandledOperationCause } from '@core/operationErrorNotifier.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import type { SaveUnitResult } from '@core/save/public.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -19,7 +25,7 @@ import { runDetachedWithBoundary } from '@pages/settings/controllers/page/detach
 import { isSettingsNormalTabVisibleById } from '@pages/settings/controllers/page/settingsAccessController.ts';
 import { updateSecurityTabNotifyBadge } from '@pages/settings/controllers/page/securityTabBadgeController.ts';
 import type { SettingsPageState } from '@pages/settings/controllers/page/state.ts';
-import { commitUiPreferences } from '@pages/settings/controllers/page/uiPreferences.ts';
+import { commitUiPreferences, prepareUiPreferences, type PreparedUiPreferences } from '@pages/settings/controllers/page/uiPreferences.ts';
 import { showSettingsRestartNotification } from '@pages/settings/controllers/settingsRestartNotification.ts';
 
 const scheduleWallpaperRefresh = (page: SettingsRuntimeContext, state: SettingsPageState): void => {
@@ -36,7 +42,7 @@ const scheduleWallpaperRefresh = (page: SettingsRuntimeContext, state: SettingsP
 };
 
 const hasUnsavedChanges = (state: SettingsPageState): boolean => {
-    return Boolean(state.configManager?.hasChanges || state.uiPrefsManager?.hasChanges);
+    return Boolean(state.configManager?.hasChanges || state.uiPrefsManager?.hasChanges || state.dirtyStateManager?.hasPendingChanges());
 };
 
 const buildMinimalConfigPatch = (previous: Record<string, JsonValue>, current: Record<string, JsonValue>): Record<string, JsonValue> => {
@@ -121,23 +127,27 @@ const updatePreferenceToggleLabel = (page: SettingsRuntimeContext, element: Elem
     updateToggleLabel(checkbox, { checked: isBoolean(enabled) ? enabled : undefined });
 };
 
-const doSettingsAction = async <Result>(page: SettingsRuntimeContext, boundaryName: string, confirmOptions: ConfirmationOptions | null, action: () => Promise<Result>, successMessage: string | null, onSuccess: ((result: Result) => Promise<void>) | null): Promise<Result | null> => {
+const doSettingsAction = async <Result>(page: SettingsRuntimeContext, boundaryName: string, confirmOptions: Omit<ConfirmationOptions, 'owner'> | null, action: () => Promise<Result>, successMessage: string | null, onSuccess: ((result: Result) => Promise<void>) | null): Promise<Result | null> => {
+    const owner = page.owners.pageContext.presentationOwner;
     return page.owners.pageLifecycle.run(boundaryName, async () => {
-        if (confirmOptions && !(await requireDialogsService().showConfirmation(confirmOptions))) {
+        requirePresentationOwnerActive(owner);
+        if (confirmOptions && !(await requireDialogsService().showConfirmation({ ...confirmOptions, owner }))) {
             return null;
         }
+        requirePresentationOwnerActive(owner);
         const result = await action();
+        if (!isPresentationOwnerCurrent(owner)) return result;
         if (onSuccess) {
             await onSuccess(result);
         }
-        if (successMessage) {
+        if (successMessage && isPresentationOwnerCurrent(owner)) {
             page.owners.feedback.show(successMessage, 'success');
         }
         return result;
     });
 };
 
-const confirmAndExecute = async <Result>(page: SettingsRuntimeContext, boundaryName: string, confirmOptions: ConfirmationOptions | null, action: () => Promise<Result>, successMessage: string | null, onSuccess: (() => Promise<void> | void) | null, onError: ((error: Error) => void) | null): Promise<void> => {
+const confirmAndExecute = async <Result>(page: SettingsRuntimeContext, boundaryName: string, confirmOptions: Omit<ConfirmationOptions, 'owner'> | null, action: () => Promise<Result>, successMessage: string | null, onSuccess: (() => Promise<void> | void) | null, onError: ((error: Error) => void) | null): Promise<void> => {
     try {
         await doSettingsAction(
             page,
@@ -153,7 +163,7 @@ const confirmAndExecute = async <Result>(page: SettingsRuntimeContext, boundaryN
         );
     } catch (error) {
         const runtimeError = ensureError(error);
-        onError?.(runtimeError);
+        if (!isAbortError(runtimeError) && isPresentationOwnerCurrent(page.owners.pageContext.presentationOwner)) onError?.(runtimeError);
         throw runtimeError;
     }
 };
@@ -173,30 +183,73 @@ const reloadSecurityAuditAfterConfigSave = async (page: SettingsRuntimeContext, 
     updateSecurityTabNotifyBadge(page, state);
 };
 
-const saveSettings = async (page: SettingsRuntimeContext, state: SettingsPageState): Promise<SaveUnitResult> => {
+interface PreparedSettingsSave {
+    configPatch: JsonObject;
+    uiPreferences: PreparedUiPreferences | null;
+    isCurrent: () => boolean;
+}
+
+const prepareSettingsSave = (page: SettingsRuntimeContext, state: SettingsPageState): PreparedSettingsSave => {
+    const epoch = page.owners.auth.authEpoch;
+    const owner = page.owners.pageContext.presentationOwner;
+    const configManager = state.configManager;
+    const uiPrefsManager = state.uiPrefsManager;
+    const isCurrent = (): boolean => page.owners.auth.authEpoch === epoch && !page.controls.isDestroyed() && isPresentationOwnerMutationAllowed(owner) && state.configManager === configManager && state.uiPrefsManager === uiPrefsManager;
+    configManager?.validateAll();
+    return {
+        configPatch: configManager?.hasChanges ? buildMinimalConfigPatch(configManager.originalData, configManager.currentData) : {},
+        uiPreferences: prepareUiPreferences(state, isCurrent),
+        isCurrent
+    };
+};
+
+const reportSettingsPartialSave = (page: SettingsRuntimeContext, error: Error): void => {
+    const reference = getErrorReference(error);
+    const reason = resolveHandledOperationCause(error) ?? `${i18n.t('common.errors.operationFailed')} ${i18n.t('app.errors.reference', { reference })}`;
+    if (error instanceof APIError) errorHandler.warn('SettingsPage', `Settings save partially applied (${reference})`, error);
+    else errorHandler.error('SettingsPage', `Settings save partially applied (${reference})`, error);
+    page.owners.feedback.show(i18n.t('settings.notifications.partialSave', { reason }), 'warning');
+};
+
+const saveSettings = async (page: SettingsRuntimeContext, state: SettingsPageState, prepared?: PreparedSettingsSave): Promise<SaveUnitResult> => {
+    if (!prepared && state.dirtyStateManager?.hasInvalidFields()) {
+        page.owners.feedback.show(i18n.t('settings.notifications.fixInvalidFields'), 'warning');
+        return { type: 'stop' };
+    }
+    const submitted = prepared ?? prepareSettingsSave(page, state);
     return await page.owners.pageLifecycle.run('settings:saveSettings', async (): Promise<SaveUnitResult> => {
-        if (!hasUnsavedChanges(state)) {
-            return;
-        }
-        if (state.dirtyStateManager?.hasInvalidFields()) {
-            page.owners.feedback.show(i18n.t('settings.notifications.fixInvalidFields'), 'warning');
-            return;
-        }
-        const hadConfigChanges = Boolean(state.configManager?.hasChanges);
-        if (state.configManager?.hasChanges) {
-            state.configManager.validateAll();
-            const patch = buildMinimalConfigPatch(state.configManager.originalData, state.configManager.currentData);
-            await page.owners.api.configs.update('core', toJsonCompatibleValue(patch));
-            state.configManager.commitChanges();
-            state.coreConfig = state.configManager.currentData;
+        const { configPatch, isCurrent } = submitted;
+        if (!isCurrent()) return { type: 'stop' };
+        const hadConfigChanges = Object.keys(configPatch).length > 0;
+        if (hadConfigChanges && state.configManager) {
+            await page.owners.api.configs.update('core', toJsonCompatibleValue(configPatch));
+            if (!isCurrent()) return { type: 'stop' };
+            state.configManager.commitBaselinePatch(configPatch);
+            state.coreConfig = state.configManager.originalData;
         }
 
-        const result = await commitUiPreferences(page, state);
+        let result: Awaited<ReturnType<typeof commitUiPreferences>>;
+        try {
+            result = await commitUiPreferences(page, state, submitted.uiPreferences);
+        } catch (error) {
+            if (!isCurrent()) return { type: 'stop' };
+            if (!hadConfigChanges) throw ensureError(error);
+            reportSettingsPartialSave(page, ensureError(error));
+            state.dirtyStateManager?.refreshRenderedFields();
+            return { type: 'stop' };
+        }
+        if (!isCurrent()) return { type: 'stop' };
+        if (result?.type === 'partial') {
+            reportSettingsPartialSave(page, result.error);
+            state.dirtyStateManager?.refreshRenderedFields();
+            return { type: 'stop' };
+        }
         if (result?.type === 'stop') return result;
         clearAllModifiedStates(state);
         if (hadConfigChanges) {
             await reloadSecurityAuditAfterConfigSave(page, state);
         }
+        if (!isCurrent()) return { type: 'stop' };
         if (hadConfigChanges) {
             await showSettingsRestartNotification();
         }
@@ -219,4 +272,5 @@ const applyWallpaperOverlay = (page: SettingsRuntimeContext, value: string): voi
     page.owners.dom.setStyle(page.owners.dom.getBody(), '--wallpaper-overlay-opacity', String(clamped));
 };
 
-export { applyWallpaperOverlay, clearAllModifiedStates, confirmAndExecute, hasUnsavedChanges, refreshWallpaperPreview, saveSettings, scheduleWallpaperRefresh, updatePreferenceToggleLabel, warnAndFocus, withButtonDisabled };
+export { applyWallpaperOverlay, clearAllModifiedStates, confirmAndExecute, hasUnsavedChanges, prepareSettingsSave, refreshWallpaperPreview, saveSettings, scheduleWallpaperRefresh, updatePreferenceToggleLabel, warnAndFocus, withButtonDisabled };
+export type { PreparedSettingsSave };

@@ -55,6 +55,16 @@ BASELINE_IDENTITY_KEYS = (
     "primary_pci_bdf_full",
 )
 
+CURRENT_SENSOR_KEYS = (
+    "utilization",
+    "temperature",
+    "power_draw_watts",
+    "core_clock_mhz",
+    "mem_clock_mhz",
+    "fan_speed",
+    "fan_rpm",
+)
+
 
 def merge_linux_gpu_inventory(
     baseline_gpus: list[JSONDict],
@@ -149,6 +159,8 @@ def _merge_gpu_entry(baseline_gpu: JSONDict, telemetry_gpu: JSONDict) -> JSONDic
         if key == "compute_capable" and baseline_gpu.get("compute_capable") is False:
             continue
         if key in BASELINE_IDENTITY_KEYS and key in baseline_gpu:
+            continue
+        if key in CURRENT_SENSOR_KEYS and value is None and baseline_gpu.get(key) is not None:
             continue
         merged[key] = copy.deepcopy(value)
     merged["pci_bdf_observations"] = observations

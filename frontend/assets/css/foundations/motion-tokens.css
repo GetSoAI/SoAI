@@ -10,6 +10,9 @@
 
     :root {
         --motion-content-replacement-duration: var(--duration-150);
+        --motion-log-duration: var(--duration-200);
+        --motion-log-ease: var(--ease-out);
+        --motion-log-entry-offset: var(--space-2);
         --motion-shell-enter-duration: var(--duration-400);
         --motion-shell-enter-ease: var(--ease-emphasized);
         --motion-shell-header-from: 0 -100%;
@@ -72,6 +75,9 @@
         --effect-page-exit-duration: var(--duration-300);
         --effect-modal-enter-duration: var(--duration-200);
         --effect-modal-exit-duration: var(--duration-150);
+        --motion-modal-scale-from: 0.98;
+        --motion-modal-inline-from: 0;
+        --motion-modal-block-from: var(--space-2);
         --effect-notification-enter-duration: var(--duration-250);
         --effect-notification-exit-duration: var(--duration-200);
         --effect-scale-duration-factor: 1.15;
@@ -95,6 +101,10 @@
         --reorder-motion-ease: var(--ease-emphasized);
         --reorder-motion-exit-duration: var(--duration-250);
         --reorder-motion-exit-scale: 0.96;
+        --motion-pane-reflow-duration: var(--duration-500);
+        --motion-pane-ready-timeout: var(--duration-600);
+        --motion-pane-settle-duration: var(--duration-100);
+        --motion-pane-ease: cubic-bezier(0.32, 0.72, 0, 1);
         --transition-interactive-border: border-color var(--transition-fast), box-shadow var(--transition-fast);
         --transition-interactive-full: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
         --transition-surface-hover: border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-normal);

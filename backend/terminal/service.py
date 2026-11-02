@@ -6,6 +6,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import StateError
+from core.mutations.identifiers import create_mutation_request_id
+from core.terminal.acquisition_errors import PTYAcquisitionError
 from core.terminal.pty_validation import (
     normalize_required_session_id,
     require_positive_pty_dimensions,
@@ -32,6 +34,22 @@ class Terminal:
         self._runtime_flags = deps.runtime_flags
         self._enabled = deps.terminal_enabled
         self._session_manager = deps.pty_session_manager
+        self._runtime_id = create_mutation_request_id()
+
+    @property
+    def runtime_id(self) -> str:
+        return self._runtime_id
+
+    async def release_pty_acquisition(
+        self, runtime_id: str, acquisition_id: str, user_id: int, *, allow_new_acquisition: bool
+    ) -> str | None:
+        if runtime_id != self._runtime_id:
+            raise PTYAcquisitionError(
+                "Terminal runtime changed. Release is unconfirmed; verify the old shell on its host before recovery."
+            )
+        return await self._session_manager.release_acquisition(
+            acquisition_id, user_id, allow_new_acquisition=allow_new_acquisition
+        )
 
     async def create_pty_session(
         self,

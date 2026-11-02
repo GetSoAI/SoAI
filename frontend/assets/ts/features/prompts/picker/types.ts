@@ -1,6 +1,7 @@
 /* SoAI - Prompts picker modal types [frontend/assets/ts/features/prompts/picker/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { PromptResponse } from '@core/api/contracts/promptContracts.ts';
 import type { ResourceListener, ResourceSnapshot } from '@core/realtime/streammanager/types.ts';
@@ -21,6 +22,7 @@ interface PromptsPickerStreamManager {
 }
 
 interface PromptsPickerModalHost extends PageFeedbackOwnerHost {
+    readonly owner: PresentationOwner;
     promptsApi: PromptPreviewHost['promptsApi'];
     getDocument(): Document;
     getCachedIcon(name: IconName, options?: IconOptions): TrustedHtml;

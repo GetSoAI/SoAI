@@ -4,7 +4,7 @@
 import { i18n } from '@core/i18n/index.ts';
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderModalLoadingState, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
@@ -58,7 +58,7 @@ const EXPORT_PREVIEW_MODAL_DEFINITIONS: readonly ModalDefinition[] = Object.free
         id: EXPORT_PREVIEW_MODAL_ID,
         layout: 'xl',
         initialFocusSelector: modalUiSelector(EXPORT_PREVIEW_MODAL_ID, 'close'),
-        createElement: (_options: ModalOpenOptions): HTMLElement => createExportPreviewModalElement()
+        createElement: (_options: ModalCreationOptions): HTMLElement => createExportPreviewModalElement()
     }
 ]);
 

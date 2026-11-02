@@ -27,7 +27,7 @@ const handleMetricsRootClick = (host: MetricsPageEventHost, action: MetricsActio
     if (action === METRICS_ACTION_MORE) {
         event.preventDefault();
         event.stopPropagation();
-        openMetricsAdvancedModal();
+        openMetricsAdvancedModal({ owner: host.owners.services.mountScope });
         return;
     }
     if (action === METRICS_ACTION_REQUEST_DISTRIBUTION_SOURCE_TOGGLE) {

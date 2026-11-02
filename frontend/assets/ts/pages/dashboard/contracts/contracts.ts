@@ -85,6 +85,7 @@ interface DashboardRuntime {
     readonly collectionsRenderers: ReturnType<typeof createDashboardCollectionsRenderers>;
     readonly renderStatusSection: () => void;
     readonly renderRequestsSection: () => void;
+    readonly statusValueSizeWatcher: ElementResizeRedrawWatcher;
     readonly requestDistributionChartSizeWatcher: ElementResizeRedrawWatcher;
     readonly hardwareSections: DashboardHardwareSectionsController;
     readonly imageCard: DashboardImageCardController;

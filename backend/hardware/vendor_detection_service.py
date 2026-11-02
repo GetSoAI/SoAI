@@ -10,23 +10,20 @@ from dataclasses import dataclass
 
 from core.di.validation import require_dependencies
 from core.errors.exception_logging import log_handled_exception
-from core.errors.exceptions import ValidationError
+from core.hardware.gpu_physical_identity import GPUInventoryReadState
 from core.logging.protocols import TraceLogger
-from core.serialization.json_parsing import parse_json_value
 from core.system.protocols import CommandExecutorProtocol
-from core.types.json_value import filter_json_dict_list
 from hardware.gpu_inventory.windows_adapters import (
-    WINDOWS_VIDEO_CONTROLLER_QUERY,
     classify_windows_display_adapter,
     coerce_windows_gpu_name,
     detect_windows_adapter_vendor,
 )
+from hardware.gpu_inventory.windows_physical_acquisition import read_windows_pnp_acquisition
 from hardware.vendors.vendor_metadata import (
     darwin_gpu_vendor_matches,
     linux_gpu_vendor_matches,
 )
 from hardware.vendors.vendor_types import UNKNOWN_VENDOR
-from hardware.windows_commands import build_windows_powershell_command
 
 __all__ = (
     "GPUVendorDetectionService",
@@ -105,22 +102,10 @@ class GPUVendorDetectionService:
 
     def _detect_windows_vendors(self) -> set[str]:
         vendors: set[str] = set()
-        command = build_windows_powershell_command(WINDOWS_VIDEO_CONTROLLER_QUERY)
-        result = self._executor.execute(command, timeout=10, shell=False, use_sudo=False)
-        if result.return_code != 0 or not result.stdout:
+        acquisition = read_windows_pnp_acquisition()
+        if acquisition.state != GPUInventoryReadState.OBSERVED:
             return vendors
-        try:
-            parsed = parse_json_value(result.stdout, field="Win32_VideoController output")
-        except ValidationError as exception:
-            log_handled_exception(
-                self._logger,
-                exception,
-                message="Could not parse preliminary Windows GPU vendor scan.",
-                operation=OPERATION_DETECT_VENDORS,
-                level="trace",
-            )
-            return vendors
-        for record in filter_json_dict_list(parsed if isinstance(parsed, list) else [parsed]):
+        for record in acquisition.records:
             name = coerce_windows_gpu_name(record.get("Name"))
             vendor = detect_windows_adapter_vendor(record, name)
             adapter_type = classify_windows_display_adapter(

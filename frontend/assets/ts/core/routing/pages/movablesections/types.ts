@@ -8,6 +8,7 @@ import type { AutoScroller } from '@core/ui/AutoScroller.ts';
 import type { GridAnimator } from '@core/ui/GridAnimator.ts';
 
 type MovableSectionId = string;
+type MovableLayoutChange = 'draft' | 'presentation';
 
 interface MovableGridBreakpoint {
     maxWidth: number;
@@ -144,4 +145,4 @@ interface MovableSectionLayoutContext<TSectionId extends MovableSectionId> {
     getActiveColumns: () => number;
 }
 
-export type { MovableDragState, MovableGridMetrics, MovableGridPresentation, MovableGridSettings, MovableGridSpace, MovableSectionBlueprint, MovableSectionId, MovableSectionLayoutConfig, MovableSectionLayoutContext, MovableSectionLayoutDependencies, MovableSectionLayoutHost, MovableSectionLayoutStorage };
+export type { MovableLayoutChange, MovableDragState, MovableGridMetrics, MovableGridPresentation, MovableGridSettings, MovableGridSpace, MovableSectionBlueprint, MovableSectionId, MovableSectionLayoutConfig, MovableSectionLayoutContext, MovableSectionLayoutDependencies, MovableSectionLayoutHost, MovableSectionLayoutStorage };

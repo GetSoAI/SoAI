@@ -130,7 +130,7 @@ class ConcurrentModalManager {
         this.populateConcurrentPluginsModal();
         this.#initializeFieldState();
         this.#initializeSaveWiring();
-        this.#host.view.modals.open(this.modalId);
+        this.#host.view.modals.open(this.modalId, { owner: this.#host.owner });
         const modalRoot = this.#host.view.modals.requireElement(this.modalId);
         this.updateConcurrentPluginsModifiedState();
         requireInputElement(this.#host.view, CONCURRENT_INPUT_SELECTOR, 'value input', modalRoot).focus({ preventScroll: true });
@@ -230,6 +230,7 @@ class ConcurrentModalManager {
         const saveButton = requireButtonElement(this.#host.view, CONCURRENT_SAVE_SELECTOR, 'save button', modalRoot);
         setAriaBusy(modalRoot, false);
         const save = createSaveController({
+            owner: this.#host.owner,
             headerContextId: CONCURRENT_HEADER_CONTEXT_ID,
             headerPriority: SAVE_HEADER_PRIORITY_MODAL,
             requestContextLabel: 'Concurrent plugins save',

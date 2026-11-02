@@ -3,12 +3,10 @@
 
 import { canAccessUiSurface, createAccessContextFromAuth, createAccessRequirement, createRouteAccessRequirement } from '@core/access/accessPolicy.ts';
 import { loadWebuiPermissionsSnapshot } from '@core/access/webuiPermissions.ts';
-import { errorHandler } from '@core/errorHandler.ts';
-import { ensureError } from '@core/errors/coerce.ts';
-import { navigationResult, type NavigationResultType } from '@core/navigationMiddleware.ts';
+import { navigationResult } from '@core/navigationMiddleware.ts';
+import type { NavigationResultType, NavigationContext } from '@core/routing/router/types.ts';
 import { canAccessTerminal } from '@core/routing/router/terminalAccessPolicy.ts';
 import type { ApiService, AuthService } from '@core/routing/router/routerDependencies.ts';
-import type { NavigationContext } from '@core/routing/router/types.ts';
 
 type RouterMiddleware = (context: NavigationContext, next: () => Promise<NavigationResultType>) => Promise<NavigationResultType>;
 
@@ -41,18 +39,14 @@ const createRouteActionAccessNavigationMiddleware = (auth: AuthService): RouterM
         if (auth.isAdmin()) {
             return next();
         }
-        try {
-            const permissions = await loadWebuiPermissionsSnapshot();
-            const requirement = createRouteAccessRequirement(context.route);
-            const accessContext = createAccessContextFromAuth(auth, {
-                terminalAllowed: true,
-                grantedActions: permissions.grantedActions
-            });
-            if (canAccessUiSurface(requirement, accessContext)) {
-                return next();
-            }
-        } catch (error) {
-            errorHandler.warn('Router', 'Failed to load route permissions snapshot', ensureError(error));
+        const permissions = await loadWebuiPermissionsSnapshot();
+        const requirement = createRouteAccessRequirement(context.route);
+        const accessContext = createAccessContextFromAuth(auth, {
+            terminalAllowed: true,
+            grantedActions: permissions.grantedActions
+        });
+        if (canAccessUiSurface(requirement, accessContext)) {
+            return next();
         }
         return navigationResult.redirect(buildForbiddenTarget(context.route.component), { pushState: true });
     };

@@ -1,6 +1,7 @@
 /* SoAI - Software update outcome and server version recovery [frontend/assets/ts/app/bootstrap/stages/applifecycle/softwareUpdateRecovery.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createGlobalPresentationOwner } from '@core/presentationOwner.ts';
 import { APPLICATION_UPDATE_HISTORY_KEY, saveCompletedUpdate, type UpdateHistoryStorage } from '@core/updates/updateHistory.ts';
 import { readBackendUpdateOutcome } from '@app/bootstrap/stages/applifecycle/backendUpdateOutcome.ts';
 import type { Router } from '@core/routing/router/Router.ts';
@@ -79,6 +80,7 @@ const describeFailure = (notice: SoftwareUpdateNotice, diagnostics: SoftwareUpda
 };
 
 const presentSoftwareUpdateOutcome = async ({ api, auth, router, storage }: Pick<SoftwareUpdateRecoveryDependencies, 'api' | 'auth' | 'router' | 'storage'>): Promise<void> => {
+    const presentationOwner = createGlobalPresentationOwner('update-outcome');
     const sequence = readOutcomeSequence(api.software);
     const presentation = sequence.next();
     const controller = new AbortController();
@@ -102,6 +104,7 @@ const presentSoftwareUpdateOutcome = async ({ api, auth, router, storage }: Pick
         if (controller.signal.aborted || !sequence.isActive(presentation)) return;
         const { waitForReview, ...noticeOptions } = backendOutcome;
         const acknowledged = await requireDialogsService().showNotice({
+            owner: presentationOwner,
             ...noticeOptions,
             signal: controller.signal,
             title: completed ? i18n.t('updates.outcome.successTitle') : i18n.t('updates.outcome.failureTitle'),
@@ -121,6 +124,7 @@ const presentSoftwareUpdateOutcome = async ({ api, auth, router, storage }: Pick
 };
 
 const createServerVersionMonitor = ({ api, restartOverlay, frontendVersion }: SoftwareUpdateRecoveryDependencies): ServerVersionMonitor => {
+    const presentationOwner = createGlobalPresentationOwner('server-version');
     let reloadPromptOpen = false;
     const probes = new SequenceToken();
     const verify = async (): Promise<void> => {
@@ -130,6 +134,7 @@ const createServerVersionMonitor = ({ api, restartOverlay, frontendVersion }: So
         reloadPromptOpen = true;
         try {
             const reload = await requireDialogsService().showConfirmation({
+                owner: presentationOwner,
                 title: i18n.t('updates.outcome.reloadTitle'),
                 message: i18n.t('updates.outcome.reloadMessage', { version }),
                 confirmText: i18n.t('common.connection.reloadPage'),

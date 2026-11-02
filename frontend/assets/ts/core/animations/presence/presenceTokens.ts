@@ -11,6 +11,7 @@ interface PresenceTokens {
     enterEasing: string;
     exitEasing: string;
     scaleFrom: number;
+    opacityFrom: number;
     blurFrom: string;
     translateFrom: string;
     morphFadeFrom: number;
@@ -33,7 +34,7 @@ const readPresenceTokens = (element: Element): PresenceTokens => {
     const style = view ? view.getComputedStyle(element) : null;
     const reduced = isReducedAnimationScope(documentRef);
     if (!style || !inheritedStyle) {
-        return { enterDurationMs: 0, exitDurationMs: 0, morphDurationMs: 0, enterEasing: FALLBACK_EASING, exitEasing: FALLBACK_EASING, scaleFrom: 1, blurFrom: '0px', translateFrom: '', morphFadeFrom: 1 };
+        return { enterDurationMs: 0, exitDurationMs: 0, morphDurationMs: 0, enterEasing: FALLBACK_EASING, exitEasing: FALLBACK_EASING, scaleFrom: 1, opacityFrom: 0, blurFrom: '0px', translateFrom: '', morphFadeFrom: 1 };
     }
     return {
         enterDurationMs: readTokenDurationMs(style, '--presence-enter-duration', reduced, inheritedStyle),
@@ -42,6 +43,7 @@ const readPresenceTokens = (element: Element): PresenceTokens => {
         enterEasing: readTokenText(style, '--presence-enter-ease', inheritedStyle) || FALLBACK_EASING,
         exitEasing: readTokenText(style, '--presence-exit-ease', inheritedStyle) || FALLBACK_EASING,
         scaleFrom: readTokenNumber(style, '--presence-scale-from', 1, inheritedStyle),
+        opacityFrom: Math.min(1, Math.max(0, readTokenNumber(style, '--presence-opacity-from', 0, inheritedStyle))),
         blurFrom: readTokenText(style, '--presence-blur-from', inheritedStyle) || '0px',
         translateFrom: readTokenText(style, '--presence-translate-from', inheritedStyle),
         morphFadeFrom: readTokenNumber(style, '--presence-morph-fade-from', 1, inheritedStyle)

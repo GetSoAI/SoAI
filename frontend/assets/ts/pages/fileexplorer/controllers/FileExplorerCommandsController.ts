@@ -50,6 +50,7 @@ class FileExplorerCommandsController {
     #sources: readonly string[] = [];
     #view: FileExplorerSelectionView = EMPTY_SELECTION_VIEW;
     #modalOpen = false;
+    #directoryAvailable = true;
     #downloadBusy = false;
     #clearDownloadLoading: (() => void) | null = null;
 
@@ -64,7 +65,8 @@ class FileExplorerCommandsController {
         this.#clearDownloadLoading = null;
         this.#downloadBusy = false;
         this.#view = EMPTY_SELECTION_VIEW;
-        this.exitTransferMode();
+        this.#mode = null;
+        this.#sources = [];
     }
 
     beginSelectionDownload(): () => void {
@@ -89,6 +91,12 @@ class FileExplorerCommandsController {
 
     applySelectionView(view: FileExplorerSelectionView): void {
         this.#view = view;
+        this.#render();
+    }
+
+    setDirectoryAvailable(available: boolean): void {
+        if (this.#directoryAvailable === available) return;
+        this.#directoryAvailable = available;
         this.#render();
     }
 
@@ -131,6 +139,8 @@ class FileExplorerCommandsController {
         const isSelectionMode = view.isModeActive && !inTransferMode;
         this.#renderSelectionCommands(view, isSelectionMode);
         this.#renderTransferCommands();
+        for (const button of [this.#ui.selectionRenameButton, this.#ui.selectionCopyButton, this.#ui.selectionMoveButton, this.#ui.selectionDeleteButton, this.#ui.copyHereButton, this.#ui.moveHereButton]) button.disabled = !this.#directoryAvailable;
+        this.#ui.newEntryShell.inert = !this.#directoryAvailable;
         setCommandVisible(this.#ui.toggleSelectionModeButton, !inTransferMode && view.canOfferMode);
         this.#ui.toggleSelectionModeButton.classList.toggle('is-active', isSelectionMode);
         this.#ui.toggleSelectionModeButton.setAttribute('aria-pressed', isSelectionMode ? 'true' : 'false');

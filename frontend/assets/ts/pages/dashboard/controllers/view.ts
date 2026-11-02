@@ -28,7 +28,7 @@ export const renderStorageSection = ({ host, state, isDestroyed }: DashboardHard
         return;
     }
 
-    const content = host.requireUI('storage-content');
+    const content = host.requireUI('dashboard-storage-content');
     const contentElement = narrowHTMLElement(content, 'storage content');
 
     if (!state.hasHardware()) {

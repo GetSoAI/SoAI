@@ -1,6 +1,7 @@
 /* SoAI - Chat page agent contracts [frontend/assets/ts/pages/chat/controllers/chatpageagent/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { AgentMode } from '@core/chat/agentMode.ts';
 import type { AgentCanonicalPlan } from '@core/chat/agentTypes.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -91,6 +92,7 @@ interface ChatAgentWorkflowPort extends PageDomOwnerHost, PageResourcesOwnerHost
 }
 
 interface ChatPageAgentHost {
+    readonly owner: PresentationOwner;
     conversation: ChatAgentConversationPort;
     rendering: ChatAgentRenderingPort;
     interaction: ChatAgentInteractionPort;

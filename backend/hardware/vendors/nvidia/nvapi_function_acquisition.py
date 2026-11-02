@@ -11,6 +11,7 @@ from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.validation.strict_integer import is_strict_int
 from hardware.vendors.nvidia.internal_protocols import (
     NvApiBusFunctionProtocol,
+    NvApiDynamicPstatesFunctionProtocol,
     NvApiEnumPhysicalGpusFunctionProtocol,
     NvApiFanControlFunctionProtocol,
     NvApiFanStatusFunctionProtocol,
@@ -21,6 +22,7 @@ from hardware.vendors.nvidia.internal_protocols import (
 from hardware.vendors.nvidia.nvapi_fan_types import NvApiFanControl, NvApiFanStatus
 from hardware.vendors.nvidia.nvapi_native_types import NvApiPstates
 from hardware.vendors.nvidia.nvapi_power_types import NvApiPowerInfo, NvApiPowerStatus
+from hardware.vendors.nvidia.nvapi_sensor_types import NvApiDynamicPstates
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -29,6 +31,7 @@ if TYPE_CHECKING:
         "NvAPI_EnumPhysicalGPUs",
         "NvAPI_GPU_GetBusId",
         "NvAPI_GPU_GetBusSlotId",
+        "NvAPI_GPU_GetDynamicPstatesInfoEx",
         "NvAPI_GPU_ClientFanCoolersGetControl",
         "NvAPI_GPU_ClientFanCoolersSetControl",
         "NvAPI_GPU_ClientFanCoolersGetStatus",
@@ -50,6 +53,14 @@ __all__ = (
 def resolve_nvapi_function(
     symbol: Literal["NvAPI_EnumPhysicalGPUs"], *, query_interface: Callable[[int], int | None]
 ) -> NvApiEnumPhysicalGpusFunctionProtocol | None: ...
+
+
+@overload
+def resolve_nvapi_function(
+    symbol: Literal["NvAPI_GPU_GetDynamicPstatesInfoEx"],
+    *,
+    query_interface: Callable[[int], int | None],
+) -> NvApiDynamicPstatesFunctionProtocol | None: ...
 
 
 @overload
@@ -114,12 +125,14 @@ def resolve_nvapi_function(
     | NvApiPstatesFunctionProtocol
     | NvApiPowerInfoFunctionProtocol
     | NvApiPowerStatusFunctionProtocol
+    | NvApiDynamicPstatesFunctionProtocol
     | None
 ):
     interface_ids = {
         "NvAPI_EnumPhysicalGPUs": 0xE5AC921F,
         "NvAPI_GPU_GetBusId": 0x1BE0B8E5,
         "NvAPI_GPU_GetBusSlotId": 0x2A0A350F,
+        "NvAPI_GPU_GetDynamicPstatesInfoEx": 0x60DED2ED,
         "NvAPI_GPU_ClientFanCoolersGetControl": 0x814B209F,
         "NvAPI_GPU_ClientFanCoolersSetControl": 0xA58971A5,
         "NvAPI_GPU_ClientFanCoolersGetStatus": 0x35AED5E8,
@@ -162,6 +175,10 @@ def resolve_nvapi_function(
         )(address)
     if symbol in ("NvAPI_GPU_GetBusId", "NvAPI_GPU_GetBusSlotId"):
         return ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32))(
+            address
+        )
+    if symbol == "NvAPI_GPU_GetDynamicPstatesInfoEx":
+        return ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(NvApiDynamicPstates))(
             address
         )
     if symbol in ("NvAPI_GPU_ClientFanCoolersGetControl", "NvAPI_GPU_ClientFanCoolersSetControl"):

@@ -1,6 +1,7 @@
 /* SoAI - Shared collection page contracts [frontend/assets/ts/core/collectionpage/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { CollectionOptionsInternal, StreamHandle } from '@core/routing/pages/pagetypes/public.ts';
 import type { ResourceIncomingValue, ResourceItem, ResourceOperation } from '@core/data/ClientDataHub.ts';
@@ -114,6 +115,7 @@ interface CollectionFilterContext {
 }
 
 interface CollectionDeletionContext extends CollectionMutationContext, CollectionTransferContext {
+    readonly owner: PresentationOwner;
     isDeleting(identifier: string): boolean;
     markDeleting(identifier: string): void;
     clearDeleting(identifier: string): void;

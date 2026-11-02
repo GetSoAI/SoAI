@@ -117,6 +117,7 @@ const createColorPickerConversationActionHandler = (host: ChatMessageActionHandl
 
 const createChatMultimediaPreviewActionHost = (host: ChatMessageActionHandlersHost): ChatMultimediaPreviewActionHost => {
     return {
+        owner: host.shared.owner,
         hasClipboardSupport: () => host.presentation.hasClipboardSupport(),
         copyToClipboard: (text, options) => host.presentation.copyToClipboard(text, options),
         showNotification: (message, type) => host.shared.feedback.show(message, type),
@@ -154,6 +155,7 @@ const openKnowledgePreview = (host: ChatMessageActionHandlersHost, actionElement
     const fallbackTitle = host.presentation.actionData(actionElement, 'knowledgeTitle') ?? i18n.t('chat.ingestion.title');
     host.execution.run('chat:openKnowledgeAttachmentPreview', () =>
         openKnowledgeAttachmentFirstPreview({
+            owner: host.shared.owner,
             knowledgeAttachmentsApi: host.shared.api.webui.chat.attachments.knowledge,
             targetConversationId: conversationId,
             sourceConversationId: conversationId,
@@ -220,6 +222,7 @@ const createChatMessageActionHandlers = (host: ChatMessageActionHandlersHost): R
     const dispatchHandlers = createDispatchMessageActionHandlers(host);
     const multimediaPreviewHost = createChatMultimediaPreviewActionHost(host);
     const soaiFilePreview = new ChatSoaiFileContentPreview({
+        owner: host.shared.owner,
         runWithBoundary: (name, functionValue) => host.execution.boundary(name, functionValue),
         fetchText: (url, signal) => fetchSoaiFilePreviewText(host, url, signal),
         hasClipboardSupport: () => host.presentation.hasClipboardSupport(),
@@ -227,6 +230,7 @@ const createChatMessageActionHandlers = (host: ChatMessageActionHandlersHost): R
         showNotification: (message, type) => host.shared.feedback.show(message, type)
     });
     const soaiPathPreview = new ChatSoaiPathContentPreview({
+        owner: host.shared.owner,
         soaiPathsApi: host.shared.api.webui.chat.soaiPaths,
         runWithBoundary: (name, functionValue) => host.execution.boundary(name, functionValue),
         hasClipboardSupport: () => host.presentation.hasClipboardSupport(),

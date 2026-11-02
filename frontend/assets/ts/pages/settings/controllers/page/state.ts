@@ -30,8 +30,10 @@ interface RestartOverlayService {
 }
 
 interface SettingsDirtyStateSurface {
+    readonly protectionRevision: number;
+    hasPendingChanges(): boolean;
     initialize(): void;
-    syncConfigField(path: string, valid: boolean): void;
+    syncConfigField(path: string, valid: boolean, composing?: boolean): void;
     syncUiPreferenceField(sourceKey: string): void;
     syncManualField(key: string, modified: boolean, valid: boolean): void;
     clearManualField(key: string): void;
@@ -53,6 +55,7 @@ interface SettingsPageState {
     currentUserId: string | null;
     configManager: ConfigurationManager | null;
     uiPrefsManager: ConfigurationManager | null;
+    uiPreferencesCleanup: (() => void) | null;
     dirtyStateManager: SettingsDirtyStateSurface | null;
     advancedTabs: TabDefinition[];
     advancedStructure: AnalyzeStructure | null;
@@ -125,6 +128,7 @@ const createInitialSettingsPageState = (restartOverlay: RestartOverlayService): 
         currentUserId: null,
         configManager: null,
         uiPrefsManager: null,
+        uiPreferencesCleanup: null,
         dirtyStateManager: null,
         advancedTabs: [],
         advancedStructure: null,

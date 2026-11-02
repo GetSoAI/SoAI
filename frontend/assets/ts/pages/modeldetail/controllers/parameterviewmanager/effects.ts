@@ -1,12 +1,15 @@
 /* SoAI - Model detail page control layer parameter view manager effects [frontend/assets/ts/pages/modeldetail/controllers/parameterviewmanager/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { errorHandler } from '@core/errorHandler.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { i18n } from '@core/i18n/index.ts';
 import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { FieldStateTracker } from '@core/forms/fieldStateTracker.ts';
 import type { ParameterValue } from '@pages/modeldetail/contracts/parameterTypes.ts';
 import type { ParameterStateManager } from '@pages/modeldetail/controllers/ParameterStateManager.ts';
 import { PARAMETER_CUSTOM_BADGE_SELECTOR } from '@pages/modeldetail/controllers/parameterviewmanager/constants.ts';
-import { normalizeParameterValue } from '@pages/modeldetail/controllers/parameterviewmanager/state.ts';
+import { normalizeParameterValue, parseJsonParameterValue } from '@pages/modeldetail/controllers/parameterviewmanager/state.ts';
 import type { ParameterViewHost } from '@pages/modeldetail/controllers/parameterviewmanager/types.ts';
 import { areValuesEqual, sanitizeParameterValue } from '@pages/modeldetail/mappers/parameterValueNormalization.ts';
 
@@ -103,4 +106,37 @@ const resetParameterValue = ({ state, parameterKey, updateParameterUI, syncParam
     handleModificationStateChange();
 };
 
-export { createParameterFieldStateTracker, refreshModificationState, resetParameterValue, syncParameterCustomizedState, updateParameterValue };
+interface ParameterJsonUpdateDependencies {
+    host: ParameterViewHost;
+    fieldStateTracker: FieldStateTracker;
+    updateParameter: (key: string, value: ParameterValue) => void;
+    setParameterValidity: (key: string, valid: boolean) => void;
+}
+
+const updateJsonParameter = (dependencies: ParameterJsonUpdateDependencies, parameterKey: string, json: string, textareaId: string): void => {
+    const validation = dependencies.host.pageDom.optional(`${textareaId}-validation`);
+    if (!validation) {
+        return;
+    }
+    const textarea = dependencies.host.pageDom.require(textareaId);
+    let parsed: ParameterValue;
+    try {
+        parsed = parseJsonParameterValue(json);
+    } catch (error) {
+        const runtimeError = ensureError(error);
+        if (!(runtimeError instanceof SyntaxError || runtimeError instanceof TypeError)) throw runtimeError;
+        if (!dependencies.fieldStateTracker.isInvalid(parameterKey)) errorHandler.debug('ParameterViewManager', 'JSON parameter draft became invalid', { parameterKey });
+        dependencies.host.pageDom.updateText(validation, i18n.t('modelDetail.parameters.invalidJson'));
+        dependencies.host.pageDom.toggleClass(validation, 'error', true);
+        dependencies.host.pageDom.updateAttribute(textarea, 'aria-invalid', 'true');
+        dependencies.setParameterValidity(parameterKey, false);
+        return;
+    }
+    dependencies.updateParameter(parameterKey, parsed);
+    dependencies.setParameterValidity(parameterKey, true);
+    dependencies.host.pageDom.updateAttribute(textarea, 'aria-invalid', 'false');
+    dependencies.host.pageDom.updateText(validation, '');
+    dependencies.host.pageDom.toggleClass(validation, 'error', false);
+};
+
+export { createParameterFieldStateTracker, refreshModificationState, resetParameterValue, syncParameterCustomizedState, updateJsonParameter, updateParameterValue };

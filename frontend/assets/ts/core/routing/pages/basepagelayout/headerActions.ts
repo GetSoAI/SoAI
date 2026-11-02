@@ -5,10 +5,10 @@ import { dom, type DOMTarget } from '@core/dom/dom.ts';
 import { queueHeaderActionsLayoutUpdate, shouldUpdateHeaderActionLayout } from '@core/routing/pages/basepagelayout/dom.ts';
 import type { HeaderActionMenuCallbacks } from '@core/routing/pages/basepagelayout/effects.ts';
 import type { BasePageLayoutState } from '@core/routing/pages/basepagelayout/state.ts';
-import { isDocumentNode, isElementNode } from '@core/typeGuards.ts';
+import { isElementNode } from '@core/typeGuards.ts';
 
 interface ResolveLayoutHeaderActionContextDependencies {
-    resolveDomContextForHeaderActions?: (context?: Element | Document | null) => Element | null;
+    resolveDomContextForHeaderActions?: (context?: Element | null) => Element | null;
     getDomContext: () => Element | null;
     container: HTMLElement | null;
 }
@@ -20,13 +20,10 @@ interface HeaderActionMenuCallbacksDependencies {
     collapseActionsMenuToFit?: boolean;
 }
 
-const resolveLayoutHeaderActionContext = (context: Element | Document | null | undefined, dependencies: ResolveLayoutHeaderActionContextDependencies): Element | null => {
+const resolveLayoutHeaderActionContext = (context: Element | null | undefined, dependencies: ResolveLayoutHeaderActionContextDependencies): Element | null => {
     const overrideContext = dependencies.resolveDomContextForHeaderActions?.(context);
     if (overrideContext) {
         return overrideContext;
-    }
-    if (isDocumentNode(context)) {
-        return context.documentElement;
     }
     if (isElementNode(context)) {
         return context;
@@ -35,10 +32,10 @@ const resolveLayoutHeaderActionContext = (context: Element | Document | null | u
     return isElementNode(resolvedContext) ? resolvedContext : null;
 };
 
-const resolveLayoutHeaderActionsRoot = (resolveContext: (context?: Element | Document | null) => Element | null): HTMLElement | null => {
+const resolveLayoutHeaderActionsRoot = (resolveContext: (context?: Element | null) => Element | null): HTMLElement | null => {
     const context = resolveContext();
-    const rootContext = context || dom.getDocumentElement();
-    const headerActions = dom.resolve('.page-actions__menu', rootContext);
+    if (!context) return null;
+    const headerActions = dom.resolve('.page-actions__menu', context);
     return headerActions instanceof HTMLElement ? headerActions : null;
 };
 
@@ -62,13 +59,13 @@ const createLayoutHeaderActionMenuCallbacks = (dependencies: HeaderActionMenuCal
     return callbacks;
 };
 
-const queueLayoutHeaderActionsLayoutUpdateForMutation = (state: BasePageLayoutState, target: DOMTarget, classes: string | string[], context: Element | Document | null | undefined, resolveContext: (context?: Element | Document | null) => Element | null, resolveRoot: () => HTMLElement | null): void => {
+const queueLayoutHeaderActionsLayoutUpdateForMutation = (state: BasePageLayoutState, target: DOMTarget, classes: string | string[], context: Element | null | undefined, resolveContext: (context?: Element | null) => Element | null, resolveRoot: () => HTMLElement | null): void => {
     if (shouldUpdateHeaderActionLayout(resolveContext, target, classes, context)) {
         queueHeaderActionsLayoutUpdate(state, resolveContext, resolveRoot);
     }
 };
 
-const queueLayoutHeaderActionsLayoutUpdate = (state: BasePageLayoutState, resolveContext: (context?: Element | Document | null) => Element | null, resolveRoot: () => HTMLElement | null): void => {
+const queueLayoutHeaderActionsLayoutUpdate = (state: BasePageLayoutState, resolveContext: (context?: Element | null) => Element | null, resolveRoot: () => HTMLElement | null): void => {
     queueHeaderActionsLayoutUpdate(state, resolveContext, resolveRoot);
 };
 

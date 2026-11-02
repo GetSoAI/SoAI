@@ -1,6 +1,7 @@
 /* SoAI - Virtual model manager host and state contracts [frontend/assets/ts/features/models/modals/virtualmodelsmodal/virtualModelsManagerTypes.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { StreamSubscriptions } from '@core/realtime/streammanager/streamSubscriptions.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -55,6 +56,7 @@ interface VirtualModelsPreferencePort {
 }
 
 export interface VirtualModelsHost {
+    readonly owner: PresentationOwner;
     view: VirtualModelsViewPort;
     data: VirtualModelsDataPort;
     preferences: VirtualModelsPreferencePort;

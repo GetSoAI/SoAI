@@ -29,7 +29,7 @@ const buildPluginsHeader = (getIconSync: GetIconSyncFunctionValue, viewMode: Col
                 type: 'filter',
                 filter: {
                     type: 'select',
-                    id: 'provider-filter',
+                    id: 'plugins-provider-filter',
                     options: [
                         { value: 'all', label: i18n.t('plugins.filters.allPlugins') },
                         { value: 'active', label: i18n.t('plugins.filters.active') },
@@ -41,7 +41,7 @@ const buildPluginsHeader = (getIconSync: GetIconSyncFunctionValue, viewMode: Col
                 type: 'filter',
                 filter: {
                     type: 'select',
-                    id: 'status-filter',
+                    id: 'plugins-status-filter',
                     options: [
                         { value: 'all', label: i18n.t('plugins.filters.allTypes') },
                         { value: 'builtin', label: i18n.t('plugins.filters.builtin') },

@@ -169,4 +169,4 @@ const createDomResolver = (dependencies: DomResolverDependencies): DomResolver =
     };
 };
 
-export { createDomResolver };
+export { createDomResolver, findDescendantById };

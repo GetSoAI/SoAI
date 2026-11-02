@@ -1,6 +1,7 @@
 /* SoAI - Shared UI external open [frontend/assets/ts/core/ui/modals/contentpreview/externalOpen.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { getLocation } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -25,7 +26,7 @@ const resolveExternal = (url: string): boolean => {
     }
 };
 
-const maybeConfirmExternalOpen = async (inputArguments: { scope: ContentPreviewScope; behavior: ContentPreviewExternalOpenBehavior; url: string }): Promise<boolean> => {
+const maybeConfirmExternalOpen = async (inputArguments: { owner: PresentationOwner; scope: ContentPreviewScope; behavior: ContentPreviewExternalOpenBehavior; url: string }): Promise<boolean> => {
     const dialogsService = requireDialogsService();
     const behavior = inputArguments.behavior;
     if (behavior === 'neverConfirm') {
@@ -33,17 +34,17 @@ const maybeConfirmExternalOpen = async (inputArguments: { scope: ContentPreviewS
     }
     if (behavior === 'alwaysConfirm') {
         if (inputArguments.scope === 'chat') {
-            return await dialogsService.showChatExternalLinkModal({ url: inputArguments.url });
+            return await dialogsService.showChatExternalLinkModal({ owner: inputArguments.owner, url: inputArguments.url });
         }
-        return await dialogsService.showExternalLinkModal({ url: inputArguments.url });
+        return await dialogsService.showExternalLinkModal({ owner: inputArguments.owner, url: inputArguments.url });
     }
     if (!resolveExternal(inputArguments.url)) {
         return true;
     }
     if (inputArguments.scope === 'chat') {
-        return await dialogsService.showChatExternalLinkModal({ url: inputArguments.url });
+        return await dialogsService.showChatExternalLinkModal({ owner: inputArguments.owner, url: inputArguments.url });
     }
-    return await dialogsService.showExternalLinkModal({ url: inputArguments.url });
+    return await dialogsService.showExternalLinkModal({ owner: inputArguments.owner, url: inputArguments.url });
 };
 
 export { maybeConfirmExternalOpen };

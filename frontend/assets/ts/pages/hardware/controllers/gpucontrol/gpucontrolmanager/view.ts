@@ -31,7 +31,7 @@ const resolveGpuControlPanel = (container: HTMLElement, index: string): HTMLElem
 
 export const captureGpuControlsState = (context: GpuControlManagerViewContext): GpuControlViewSnapshot => {
     const state: GpuControlViewSnapshot = {};
-    const container = dom.resolve('#gpu-controls-container');
+    const container = dom.resolve('#gpu-controls-container', context.dependencies.pageDom.resolveContext());
     if (!(container instanceof HTMLElement)) {
         return state;
     }
@@ -118,8 +118,8 @@ export const restoreGpuControlsState = (context: GpuControlManagerViewContext, s
 };
 
 export const renderGpuControls = (context: GpuControlManagerViewContext, { only = null }: { only?: string[] | null } = {}): void => {
-    const document = context.dependencies.dom.getDocument();
-    const container = dom.resolve('#gpu-controls-container');
+    const document = context.dependencies.pageDom.resolveContext().ownerDocument;
+    const container = dom.resolve('#gpu-controls-container', context.dependencies.pageDom.resolveContext());
     if (!(container instanceof HTMLElement)) {
         throw new Error('GPU controls container is missing');
     }

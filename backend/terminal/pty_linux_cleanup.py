@@ -6,6 +6,7 @@ from __future__ import annotations
 import errno
 import os
 import signal
+import threading
 
 from core.concurrency.deadlines import deadline_after
 from core.errors.exception_logging import log_exception
@@ -79,14 +80,25 @@ def _raise_cleanup_failure(exception: OSError | StateError | None, *, pid: int) 
     ) from exception
 
 
-def close_pty(master_fd: int, pid: int) -> None:
-    logger = get_logger(LOGGER_NAME)
-    cleanup_failure: OSError | StateError | None = None
+def _close_master_fd(master_fd: int, pid: int) -> None:
     try:
         os.close(master_fd)
     except OSError as exception:
         if exception.errno != errno.EBADF:
-            cleanup_failure = exception
+            _raise_cleanup_failure(exception, pid=pid)
+
+
+def close_pty(
+    master_fd: int, pid: int, processes_closed_event: threading.Event | None = None
+) -> None:
+    closed_event = (
+        processes_closed_event if processes_closed_event is not None else threading.Event()
+    )
+    if closed_event.is_set():
+        _close_master_fd(master_fd, pid)
+        return
+    logger = get_logger(LOGGER_NAME)
+    cleanup_failure: OSError | StateError | None = None
     session_id = pid
     session_pids = _collect_session_pids(session_id)
     session_pids.add(pid)
@@ -122,7 +134,9 @@ def close_pty(master_fd: int, pid: int) -> None:
                 leader_reaped = True
         remaining = _collect_session_pids(session_id)
         if not remaining and (leader_reaped or not pid_is_running(pid)):
+            closed_event.set()
             _raise_cleanup_failure(cleanup_failure, pid=pid)
+            _close_master_fd(master_fd, pid)
             return
         sleep_seconds(SHORT_POLL_INTERVAL_SEC)
 
@@ -169,4 +183,7 @@ def close_pty(master_fd: int, pid: int) -> None:
                 operation="terminal.pty_linux_cleanup.close_pty",
                 details={"pid": pid},
             )
+    else:
+        closed_event.set()
     _raise_cleanup_failure(cleanup_failure, pid=pid)
+    _close_master_fd(master_fd, pid)

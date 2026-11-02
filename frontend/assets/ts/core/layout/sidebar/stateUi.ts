@@ -3,6 +3,7 @@
 
 import { dom } from '@core/dom/dom.ts';
 import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
+import { isCompactLayout } from '@core/layout/compact.ts';
 import { getLayoutRuntimeManager } from '@core/runtime/LayoutManager.ts';
 import { ARIA_HIDDEN_ATTR, SIDEBAR_COLLAPSED_CLASS, STYLE_DISPLAY } from '@core/layout/sidebar/dom.ts';
 import type { SidebarState } from '@core/layout/sidebar/state.ts';
@@ -10,7 +11,7 @@ import type { SidebarVersionController } from '@core/layout/sidebar/version.ts';
 
 const handleSidebarResize = (state: SidebarState): void => {
     const dimensions = measureLayoutViewport();
-    const isMobile = dimensions.width <= 1024 || dimensions.height <= 768;
+    const isMobile = isCompactLayout(dimensions);
     if (state.mobile !== isMobile) {
         if (isMobile) {
             state.lastDesktopCollapsed = state.collapsed;

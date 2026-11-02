@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isAbortError } from '@core/errors/abort.ts';
+import { LatestRequestController } from '@core/concurrency/latestRequest.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { getCurrentLocale } from '@core/languageservice/service.ts';
@@ -57,15 +58,18 @@ class PromptEnhancerRunner {
     readonly #state: StateAccess;
     readonly #catalog: CatalogAccess;
     readonly #render: () => void;
+    readonly #isCurrent: () => boolean;
+    readonly #catalogRequest = new LatestRequestController();
     readonly #waitMessageTimer: TimeoutTimer;
 
-    constructor(options: { host: PromptEnhancerDependencies['host']; resources: PromptEnhancerDependencies['resources']; systemPrompt: string; state: StateAccess; catalog: CatalogAccess; render: () => void }) {
+    constructor(options: { host: PromptEnhancerDependencies['host']; resources: PromptEnhancerDependencies['resources']; systemPrompt: string; state: StateAccess; catalog: CatalogAccess; isCurrent: () => boolean; render: () => void }) {
         this.#host = options.host;
         this.#resources = options.resources;
         this.#systemPrompt = options.systemPrompt;
         this.#state = options.state;
         this.#catalog = options.catalog;
         this.#render = options.render;
+        this.#isCurrent = options.isCurrent;
         this.#waitMessageTimer = new TimeoutTimer(5000, () => this.#showWaitMessage());
 
         if (this.#catalog.get().status === 'idle') {
@@ -74,17 +78,22 @@ class PromptEnhancerRunner {
     }
 
     async reloadModelCatalog(): Promise<void> {
-        try {
-            const catalog = await this.#host.fetchModelCatalog();
-            this.#catalog.set(catalog === null ? { status: 'unavailable', availableModelIds: new Set<string>() } : buildPromptEnhancerModelCatalogState(catalog));
-        } catch (error) {
-            this.#host.feedback.handle(ensureError(error), 'Prompt enhancer model catalog reload failed');
-            this.#catalog.set({ status: 'error', availableModelIds: new Set<string>() });
-        }
-        if (this.#state.get().source) {
-            this.#syncModelSelectionToCatalog();
-            this.#render();
-        }
+        if (!this.#isCurrent()) return;
+        await this.#catalogRequest.runLatest(async (request) => {
+            try {
+                const catalog = await this.#host.fetchModelCatalog(request.signal);
+                if (request.isStale() || !this.#isCurrent()) return;
+                this.#catalog.set(catalog === null ? { status: 'unavailable', availableModelIds: new Set<string>() } : buildPromptEnhancerModelCatalogState(catalog));
+            } catch (error) {
+                if (request.isStale() || !this.#isCurrent() || isAbortError(error)) return;
+                this.#host.feedback.handle(ensureError(error), 'Prompt enhancer model catalog reload failed');
+                this.#catalog.set({ status: 'error', availableModelIds: new Set<string>() });
+            }
+            if (this.#state.get().source) {
+                if (this.#state.get().status !== 'streaming') this.#syncModelSelectionToCatalog();
+                this.#render();
+            }
+        });
     }
 
     syncSelectedModelToCatalog(): void {
@@ -132,36 +141,38 @@ class PromptEnhancerRunner {
     }
 
     async runEnhancement(): Promise<void> {
+        if (!this.#isCurrent()) return;
         const state = this.#state.get();
         const source = state.source;
-        if (!source) {
-            return;
-        }
-        if (state.status === 'streaming') {
-            return;
-        }
-        if (this.#catalog.get().status !== 'ready') {
-            await this.reloadModelCatalog();
-        }
-        this.#syncModelSelectionToCatalog();
-        const reason = resolvePromptEnhancerDisabledReason(source.content, state.modelId, this.#catalog.get());
-        if (reason) {
-            state.errorMessage = reason;
-            state.status = 'error';
-            state.statusMessage = i18n.t('prompts.enhancer.status.error');
+        if (!source || state.status === 'streaming' || state.abortController !== null) return;
+        const controller = new AbortController();
+        state.abortController = controller;
+        const isCurrent = (): boolean => this.#isCurrent() && this.#state.get() === state && state.abortController === controller && !controller.signal.aborted;
+        try {
+            if (this.#catalog.get().status !== 'ready') await this.reloadModelCatalog();
+            if (!isCurrent()) return;
+            this.#syncModelSelectionToCatalog();
+            if (!isCurrent()) return;
+            const reason = resolvePromptEnhancerDisabledReason(source.content, state.modelId, this.#catalog.get());
+            if (reason) {
+                state.errorMessage = reason;
+                state.status = 'error';
+                state.statusMessage = i18n.t('prompts.enhancer.status.error');
+                this.#render();
+                return;
+            }
+            state.output = '';
+            state.errorMessage = null;
+            state.detectedLanguage = null;
+            state.status = 'streaming';
+            state.statusMessage = i18n.t('prompts.enhancer.status.streaming');
+            state.showWaitMessage = false;
+            this.#startWaitMessageTimer();
             this.#render();
-            return;
+            await this.#stream(state, controller);
+        } finally {
+            if (state.abortController === controller) state.abortController = null;
         }
-        state.output = '';
-        state.errorMessage = null;
-        state.detectedLanguage = null;
-        state.status = 'streaming';
-        state.statusMessage = i18n.t('prompts.enhancer.status.streaming');
-        state.showWaitMessage = false;
-        state.abortController = new AbortController();
-        this.#startWaitMessageTimer();
-        this.#render();
-        await this.#stream();
     }
 
     async handleRunOrStop(): Promise<void> {
@@ -172,13 +183,13 @@ class PromptEnhancerRunner {
         await this.runEnhancement();
     }
 
-    async #stream(): Promise<void> {
-        const state = this.#state.get();
+    async #stream(state: PromptEnhancerRunState, controller: AbortController): Promise<void> {
         const source = state.source;
-        const controller = state.abortController;
-        if (!source || !controller || !state.modelId) {
+        const isCurrent = (): boolean => this.#isCurrent() && this.#state.get() === state && state.abortController === controller;
+        if (!isCurrent() || !source || !state.modelId) {
             return;
         }
+        let renderHandle: number | null = null;
         try {
             if (controller.signal.aborted) {
                 state.status = 'aborted';
@@ -187,7 +198,6 @@ class PromptEnhancerRunner {
                 return;
             }
             let pendingOutput = '';
-            let renderHandle: number | null = null;
             const flushPendingOutput = (): void => {
                 if (!pendingOutput) {
                     return;
@@ -203,7 +213,7 @@ class PromptEnhancerRunner {
                 }
                 renderHandle = this.#resources.requestAnimationFrame(() => {
                     renderHandle = null;
-                    if (controller.signal.aborted || state.status !== 'streaming') {
+                    if (!isCurrent() || controller.signal.aborted || state.status !== 'streaming') {
                         return;
                     }
                     flushPendingOutput();
@@ -216,10 +226,13 @@ class PromptEnhancerRunner {
                 content: source.content,
                 signal: controller.signal,
                 onChunk: (value) => {
+                    if (!isCurrent() || controller.signal.aborted) return;
                     pendingOutput += value;
                     scheduleFlush();
                 }
             });
+
+            if (!isCurrent()) return;
 
             if (renderHandle !== null) {
                 this.#resources.cancelAnimationFrame(renderHandle);
@@ -243,6 +256,7 @@ class PromptEnhancerRunner {
             state.status = 'success';
             state.statusMessage = i18n.t('prompts.enhancer.status.complete');
         } catch (error) {
+            if (!isCurrent()) return;
             const runtimeError = ensureError(error);
             if (state.status === 'aborted' || isAbortError(runtimeError) || controller.signal.aborted) {
                 state.status = 'aborted';
@@ -255,10 +269,18 @@ class PromptEnhancerRunner {
                 state.errorMessage = i18n.t('prompts.enhancer.errors.generic');
             }
         } finally {
-            this.#hideWaitMessage();
-            state.abortController = null;
-            this.#render();
+            if (renderHandle !== null) this.#resources.cancelAnimationFrame(renderHandle);
+            if (isCurrent()) {
+                this.#hideWaitMessage();
+                state.abortController = null;
+                this.#render();
+            }
         }
+    }
+
+    dispose(): void {
+        this.#catalogRequest.invalidate();
+        this.stopStreaming();
     }
 
     stopStreaming(): void {
@@ -267,8 +289,9 @@ class PromptEnhancerRunner {
         state.status = 'aborted';
         state.statusMessage = i18n.t('prompts.enhancer.status.aborted');
         state.errorMessage = null;
-        state.abortController?.abort();
+        const controller = state.abortController;
         state.abortController = null;
+        controller?.abort();
         this.#render();
     }
 }

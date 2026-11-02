@@ -125,7 +125,7 @@ class ChatPresetLibraryController {
         if (!release) return;
         const session = this.#session;
         void requireDialogsService()
-            .showConfirmation({ title: i18n.t('chat.configuration.presetLibrary.resetTitle'), message: i18n.t('chat.configuration.presetLibrary.resetMessage'), confirmText: i18n.t('chat.configuration.presetLibrary.resetAction'), cancelText: i18n.t('common.cancel') })
+            .showConfirmation({ owner: this.#host.owner, title: i18n.t('chat.configuration.presetLibrary.resetTitle'), message: i18n.t('chat.configuration.presetLibrary.resetMessage'), confirmText: i18n.t('chat.configuration.presetLibrary.resetAction'), cancelText: i18n.t('common.cancel') })
             .then(async (confirmed) => {
                 if (!confirmed || session !== this.#session) return;
                 const authority = getStreamResources().getReconciliationSnapshot(CHAT_PRESETS);
@@ -226,7 +226,7 @@ class ChatPresetLibraryController {
         const captured = cloneChatPresetRecord(record);
         const session = this.#session;
         void requireDialogsService()
-            .showConfirmation({ title: i18n.t('chat.configuration.presetLibrary.deleteTitle'), message: i18n.t('chat.configuration.presetLibrary.deleteMessage', { name: captured.name }), confirmText: i18n.t('common.delete'), cancelText: i18n.t('common.cancel') })
+            .showConfirmation({ owner: this.#host.owner, title: i18n.t('chat.configuration.presetLibrary.deleteTitle'), message: i18n.t('chat.configuration.presetLibrary.deleteMessage', { name: captured.name }), confirmText: i18n.t('common.delete'), cancelText: i18n.t('common.cancel') })
             .then((confirmed) => {
                 if (!confirmed || session !== this.#session) {
                     release();
@@ -247,7 +247,7 @@ class ChatPresetLibraryController {
         if (!release) return;
         const session = this.#session;
         const captured = cloneChatPresetRecord(record);
-        void executeChatPresetApply({ record: captured, configuration: this.#host.configuration, isSessionActive: () => session === this.#session, show: (message, type) => this.#host.show(message, type) })
+        void executeChatPresetApply({ owner: this.#host.owner, record: captured, configuration: this.#host.configuration, isSessionActive: () => session === this.#session, show: (message, type) => this.#host.show(message, type) })
             .catch((error) => reportChatPresetActionFailure(error, 'Preset application scheduling failed', 'chat.configuration.presetLibrary.applyFailed', (message) => this.#host.show(message, 'error')))
             .finally(release);
     }

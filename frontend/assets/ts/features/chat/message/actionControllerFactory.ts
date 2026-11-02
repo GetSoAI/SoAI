@@ -28,6 +28,7 @@ interface ChatMessageActionControllerHost {
 
 const createChatMessageActions = (inputArguments: { dependencies: ChatMessageManagerDependencies; domChangeTarget: EventTarget; host: ChatMessageActionControllerHost; deleteUndoController: ChatMessageDeleteUndoController; modalCoordinator: ChatMessageModalCoordinator }): ChatMessageActions =>
     new ChatMessageActions({
+        owner: inputArguments.dependencies.owner,
         runtime: inputArguments.dependencies.runtime,
         session: {
             getCurrentConversation: () => inputArguments.dependencies.session.getCurrentConversation(),

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from core.collections.ordered_uniqueness import unique_sequence
 from database.core.query_execution import sync_fetch_all_first_column
 
 __all__ = (
@@ -12,14 +13,6 @@ __all__ = (
     "sync_list_abandoned_run_owner_task_ids",
     "sync_mark_queued_runs_abandoned_for_disabled",
 )
-
-
-def _append_owner_task_id(owner_task_ids: list[str], owner_task_id_value: str | None) -> None:
-    if not isinstance(owner_task_id_value, str):
-        return
-    owner_task_id = owner_task_id_value.strip()
-    if owner_task_id and owner_task_id not in owner_task_ids:
-        owner_task_ids.append(owner_task_id)
 
 
 def sync_list_abandoned_run_owner_task_ids(
@@ -44,10 +37,8 @@ def sync_list_abandoned_run_owner_task_ids(
             (automation_id, user_id, status_message),
         ),
     )
-    owner_task_ids: list[str] = []
-    for value in values:
-        _append_owner_task_id(owner_task_ids, value if isinstance(value, str) else None)
-    return owner_task_ids
+    owner_task_ids = (value.strip() for value in values if isinstance(value, str))
+    return list(unique_sequence(owner_task_ids, omit_falsy=True))
 
 
 def sync_list_abandoned_occurrence_owner_task_ids(
@@ -74,10 +65,8 @@ def sync_list_abandoned_occurrence_owner_task_ids(
             (automation_id, user_id, scheduled_at_ms, status_message),
         ),
     )
-    owner_task_ids: list[str] = []
-    for value in values:
-        _append_owner_task_id(owner_task_ids, value if isinstance(value, str) else None)
-    return owner_task_ids
+    owner_task_ids = (value.strip() for value in values if isinstance(value, str))
+    return list(unique_sequence(owner_task_ids, omit_falsy=True))
 
 
 def sync_mark_queued_runs_abandoned_for_disabled(

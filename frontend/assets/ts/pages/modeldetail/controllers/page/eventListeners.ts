@@ -1,6 +1,7 @@
 /* SoAI - Model detail page control layer event listeners [frontend/assets/ts/pages/modeldetail/controllers/page/eventListeners.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { dom } from '@core/dom/dom.ts';
 import { getWindow } from '@core/environment/public.ts';
@@ -55,6 +56,7 @@ type TestModalManagerContract = {
 };
 
 interface ModelDetailEventDependencies extends PageDomOwnerHost, PageResourcesOwnerHost, PageFeedbackOwnerHost, PageLifecycleOwnerHost, PageUiOwnerHost {
+    readonly owner: PresentationOwner;
     session: ModelDetailSession;
     router: RouterContract | null;
     parameterView: ParameterViewContract;
@@ -119,6 +121,7 @@ const createModelDetailDelegatedActionHandlers = (dependencies: { host: ModelDet
     const renameModelModalRoot = host.modalPresenter.requireElement(MODELS_RENAME_MODEL_MODAL_ID);
     const renameModelModalManager = new RenameModelModalManager({
         host: {
+            owner: host.owner,
             modals: host.modalPresenter,
             requireHTMLElement: (selector: string | Element, context?: Element): HTMLElement => {
                 const scopeRoot = context ?? renameModelModalRoot;

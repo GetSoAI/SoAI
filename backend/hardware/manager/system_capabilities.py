@@ -206,6 +206,8 @@ def read_system_capability_environment(
 def build_sampled_system_capabilities(
     environment: SystemCapabilityEnvironment,
     sampled_snapshot: Mapping[str, JSONValue],
+    *,
+    sampled_summary: Mapping[str, JSONValue] | None = None,
 ) -> JSONDict:
     caps = dict(environment.capabilities)
     cpu_sample = sampled_snapshot.get("cpus")
@@ -213,7 +215,8 @@ def build_sampled_system_capabilities(
         cpu_info_list = [item for item in cpu_sample if isinstance(item, dict)]
         caps["cpu_physical_cores"] = total_cpu_count(cpu_info_list, "physical_cores")
         caps["cpu_logical_cores"] = total_cpu_count(cpu_info_list, "logical_cores")
-    sampled_summary = build_summary(base_snapshot=sampled_snapshot)
+    if sampled_summary is None:
+        sampled_summary = build_summary(base_snapshot=sampled_snapshot)
     if "total_system_ram_gb" in sampled_summary:
         caps["system_ram_gb"] = coerce_float_from_json(
             sampled_summary["total_system_ram_gb"], default=0.0, allow_bool=True

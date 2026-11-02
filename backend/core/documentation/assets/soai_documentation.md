@@ -1788,7 +1788,7 @@ The summary above the catalog shows model counts, loaded models, external provid
 | **Availability** | Turn availability off to block requests and remove the model from model pickers. This control does not unload the backend. |
 | **Delete model** | Deletes a local model through its plugin. You cannot undo this action. SoAI shows it only when the plugin supports model deletion. Remove external-provider models through **Providers** instead. |
 | **Edit model** | Opens shortcuts for **Model information**, **Rename**, **Test model**, **Edit parameters**, **Copy**, and **Delete**. The same dialog has the model's availability and capability controls. Virtual models use an **Edit virtual model** control instead. |
-| **Edit parameters** | Opens the model detail page. On **Parameters**, search the settings or use the category list. **Customized** shows saved custom values, and **Unsaved changes** shows your current edits. An empty number field shows **Backend default** and uses that value. Change the settings you need and select **Save**. A **REQUIRES RELOAD** badge marks settings that need the plugin to reload before they apply. **Revert change** undoes one unsaved edit; **Reset** discards all unsaved edits and restores the values loaded when you opened the page. If parameters fail to load, follow the reported cause and select **Retry**. After a disconnect, check the last-update time and refresh before relying on the displayed values. If the plugin's parameter definitions change while you have unsaved edits, select **Discard changes** to load the current definitions. |
+| **Edit parameters** | Opens the model detail page. On **Parameters**, search the settings or use the category list. **Customized** shows saved custom values, and **Unsaved changes** shows your current edits. An empty number field shows **Backend default** and uses that value. Change the settings you need and select **Save**. A **REQUIRES RELOAD** badge marks settings that need the plugin to reload before they apply. **Revert change** undoes one unsaved edit; **Reset** discards all unsaved edits and restores the latest saved values loaded from the server. If parameters fail to load, follow the reported cause and select **Retry**. After a disconnect, check the last-update time and refresh before relying on the displayed values. If the plugin's parameter definitions change while you have unsaved edits, select **Discard changes** to load the current definitions. |
 | **Rename** | Sets a display alias while keeping the source model ID unchanged. Leave the alias empty to return to the source name. |
 | **Stop model** | Appears only for a non-virtual model with **READY** or **PROCESSING** status whose plugin is not persistent. It stops the whole plugin, including access to any other models it serves. SoAI starts the plugin again when a later request needs one of those models. If model discovery prevents stopping or disabling the plugin, wait for discovery to finish and retry. |
 | **Test model** | Opens a short or long inference test and shows the model state, plugin state, elapsed time, response, and plugin activity. Use this after a download or configuration change to confirm that the model runs. |
@@ -2106,11 +2106,11 @@ The feature also requires [`SERVER.WEBUI.TERMINAL.ENABLED`](#config-SERVER.WEBUI
 
 Open **Terminal** from the sidebar. The WebUI creates an interactive PTY session over the main SoAI WebSocket and starts the host's configured default shell. Input, output, and window resizing stay in that session. A WebSocket connection can have one active PTY session at a time.
 
-The terminal toolbar provides **Increase text size**, **Decrease text size**, and **Clear terminal**. Use the page header's **Open in new window** action when a detached terminal is more convenient. **If a foreground command is still running, navigating away shows a confirmation because leaving terminates that terminal session.**
+The terminal toolbar provides **Increase text size**, **Decrease text size**, and **Clear terminal**. Use the page header's **Open in new window** action when a detached terminal is more convenient. You can keep Terminal open while using another pane; see [Split view and panes](#split-view-and-panes). **Closing or replacing the Terminal page ends the session.** If a foreground command is running, SoAI asks for confirmation before leaving.
 
 #### Session behavior and limits
 
-SoAI sends PTY input and output through `/api/v1/system/ws`; it does not expose a separate one-shot command endpoint for the WebUI. New sessions use an 80 by 24 terminal size when no dimensions are supplied. The server limits received dimensions to 500 columns and 200 rows. Closing the session or leaving the page closes the PTY.
+SoAI sends PTY input and output through `/api/v1/system/ws`; it does not expose a separate one-shot command endpoint for the WebUI. New sessions use an 80 by 24 terminal size when no dimensions are supplied. The server limits received dimensions to 500 columns and 200 rows. Closing the session or replacing the Terminal page closes the PTY. If SoAI cannot confirm that the shell has closed, follow [Recover an unconfirmed terminal release](#recover-a-terminal-release) before starting a replacement session.
 
 #### Audit and security
 
@@ -2291,11 +2291,55 @@ Conversations, prompts, uploaded avatars, layouts, and personal preferences belo
 - [Passwords and credential tools](#passwords-and-credential-tools) for password selection and vault boundaries.
 - [Reset and account recovery](#reset-and-account-recovery) for destructive recovery operations.
 
+### Split view and panes [page: split-view-and-panes]
+
+Split view keeps different pages open in one window. Each pane has its own scroll position. The page title and page-header actions follow the active pane.
+
+#### Open another pane
+
+- Hold `Ctrl` or `Cmd` and click the page you want in the main sidebar.
+- Middle-click the page in the main sidebar.
+- Select **Panes** in the WebUI header, then choose a page under **Page to open**.
+
+A window can hold up to 3 panes, with 2 or 3 pages shown side by side when there is enough space.
+
+If all available slots are occupied, opening another page can replace a different pane, starting with the one you used least recently. Unsaved changes can require confirmation, and an active operation can block replacement. Finish the operation or close an unused pane if no pane is available.
+
+#### Select, navigate, and close panes
+
+Click inside a pane or move keyboard focus into it to make it active. Sidebar navigation changes that pane unless the destination page is already open, in which case SoAI uses its existing pane. You can also select an open page from **Panes**; the active one is marked **Active**.
+
+Each page type has one pane per window. Opening another conversation uses the existing Chat pane, and opening another model's details uses the existing model detail pane. Chat, Logs, Terminal, and Hardware also offer the page-header **Open in new window** action for a separate window.
+
+Close a pane with its close button or the close button beside its name in **Panes**. The last remaining pane stays open. **Closing or replacing Terminal ends its shell session; selecting another pane does not.** See [Terminal](#terminal) for session behavior.
+
+Some pages occupy the whole window. Opening **About** replaces the pane arrangement and hides **Panes** while that page is open.
+
+#### Use panes in a smaller window
+
+When the window becomes too small for its open pages, SoAI can show only the active pane. Use **Panes** to switch between the pages that remain open. **Page to open** is hidden while the window has room for only one pane. A sidebar split shortcut then opens the page in the current pane. Enlarge the window to open pages side by side.
+
+A pane marked **Parked** is reopened when room returns. Other hidden panes remain open, so hiding a pane does not mean its work has stopped.
+
+#### Restore a layout
+
+SoAI remembers the open pages and active pane within the current browser tab's session. Reloading can restore that arrangement. It does not synchronize between browsers, and signing out clears it. An explicit link to a different page takes precedence over restoring the remembered arrangement.
+
+**The layout remembers page locations, not unsaved edits or running terminal sessions.** Save your work before reloading. Dashboard, Metrics, and Hardware section arrangements are separate account preferences; see [Arrange page layouts](#arrange-page-layouts).
+
+If browser storage is unavailable or full, open panes remain usable but their arrangement may not be saved. Review the notice in **Panes**. When **Save current layout** is offered, use it to replace the retained layout with your current arrangement.
+
+#### Related documentation
+
+- [Personal preferences](#personal-preferences)
+- [Terminal](#terminal)
+- [Make the WebUI faster on low-end clients](#make-the-webui-faster-on-low-end-clients)
+
 ### Personal preferences [page: personal-preferences]
 
-Each signed-in account has its own language, theme, navigation, Dashboard layout, chat presentation, and saved page layouts. Most changes take effect after you select **Save** and do not require a SoAI restart. Built-in wallpaper and solid background choices apply as soon as you select them.
+Each signed-in account has its own language, theme, navigation, Dashboard layout, chat presentation, and saved section layouts. Most changes take effect after you select **Save** and do not require a SoAI restart. Built-in wallpaper and solid background choices apply as soon as you select them.
 
-Account-scoped preferences are restored when that user signs in from another browser. Conversation display names belong to their conversation, and one user's theme or layout does not change another user's interface.
+Account-scoped preferences are restored when that user signs in from another browser. The browser tab's split-view arrangement is separate and does not synchronize between browsers. Conversation display names belong to their conversation, and one user's theme or layout does not change another user's interface.
 
 #### Open and personalize settings
 
@@ -2319,7 +2363,7 @@ Keep only the Dashboard elements you read, use list view for large Models, Plugi
 
 #### Arrange navigation and pages
 
-Under **Settings > Theme > Sidebar**, choose a **Default page**, then select the page-header **Save**. SoAI opens that page after you connect. If it is unavailable or the account can no longer access it, SoAI opens Dashboard. With the main sidebar collapsed, rest the pointer on the menu button to open it over the page. It closes shortly after the pointer leaves.
+Under **Settings > Theme > Sidebar**, choose a **Default page**, then select the page-header **Save**. SoAI opens that page when no saved pane arrangement or explicit page link takes precedence. If the default page is unavailable or the account can no longer access it, SoAI opens Dashboard. With the main sidebar collapsed, rest the pointer on the menu button to open it over the page. It closes shortly after the pointer leaves.
 
 1. Open **Settings > Theme > Sidebar**.
 2. Under **Visible pages**, select **Edit**.
@@ -2340,6 +2384,8 @@ The Dashboard Image card stores a personal image and saves uploads, removal, Fit
 Dashboard, Metrics, and Hardware have movable sections on screens wide enough for the full layout. Select **Edit layout**, drag sections by their headers, and select **Save changes**. The editor is unavailable in compact layouts and in a detached Hardware window.
 
 **Settings > Theme > Dashboard > Lock layouts** removes the layout editor from all three pages. Turn it off and save Settings before rearranging a layout. It does not change Dashboard element visibility.
+
+To open a page beside the current one, hold `Ctrl` or `Cmd` and click it in the main sidebar, or use **Panes** in the WebUI header. See [Split view and panes](#split-view-and-panes) for opening pages, switching panes, and restoring the arrangement within a browser tab. These pane arrangements are separate from the movable sections above.
 
 #### Customize chat presentation
 
@@ -2365,7 +2411,7 @@ Administrators can select a **Solid background color** for their own account. It
 
 ##### Know when a change is saved
 
-General, Theme, Chat Appearance, avatars, navigation, Dashboard cards, and page layouts belong to the signed-in account and return in another browser. Conversation display names belong to their conversation. Most General, Theme, and Chat configuration changes wait for that page's **Save** action.
+General, Theme, Chat Appearance, avatars, navigation, Dashboard cards, and movable section layouts belong to the signed-in account and return in another browser. Conversation display names belong to their conversation. Most General, Theme, and Chat configuration changes wait for that page's **Save** action.
 
 Avatar upload or removal, the Dashboard image, and the shared wallpaper save when their operation succeeds. Built-in wallpapers and solid background colors save when selected. Sidebar pages, Dashboard elements, the Memo card, and movable page layouts each have their own Edit and Save controls. **A visible preview is not evidence that a pending preference has been stored.**
 
@@ -5597,6 +5643,16 @@ Shutdown stops new work and allows API requests to drain for the budget set by [
 
 Scripts can use the power control endpoints in the System API. Restart follows the same teardown sequence and then relaunches the application.
 
+#### Recover an unconfirmed terminal release
+
+An unconfirmed release means SoAI could not verify that a closing Terminal session has ended. Until its state is resolved, SoAI can block opening a replacement page or shell.
+
+1. Restore the WebUI connection and retry the action that was blocked.
+2. If SoAI reports that terminal recovery is unavailable, save work in other pages and reload the window.
+3. If the service restarted or the old shell's state remains uncertain, ask someone with host access to check that shell and its command before starting a replacement. Reloading the WebUI does not prove the shell has stopped.
+
+See [Terminal](#terminal) for session permissions and normal closing behavior. If recovery remains blocked, keep the error reference and follow [Getting help and reporting an issue](#getting-help-and-reporting-an-issue).
+
 #### Recover file uploads and attachment reads
 
 ##### Check an uncertain or cancelled upload
@@ -6437,7 +6493,7 @@ The page requires **Hardware read access** ([`HARDWARE_READ`](#acl-HARDWARE_READ
 
 If backend capability discovery times out, wait for the hardware query to finish before retrying. Read the reported cause: a missing tool, failed driver query, invalid response, or denied access needs the corresponding driver, system tool, or service-account permission check. Failed discovery does not establish that no compatible GPUs exist.
 
-SoAI identifies GPUs before any vendor tool answers, so a card can appear on the page with very little attached to it. On [Linux](https://www.kernel.org/) that first pass is a PCI scan, and on [Windows](https://www.microsoft.com/windows/) it is a WMI query of the display adapters, with vendor telemetry merged onto that list afterwards. A GPU without telemetry reports why: usually the vendor tool is missing, while an [NVIDIA](https://www.nvidia.com/) card bound to a kernel driver other than the [NVIDIA](https://www.nvidia.com/) one reports instead that the driver is inactive. A tool that is installed but denied permission, and a tool that times out, both look the same as a missing tool, so run the tool yourself as the account SoAI runs under before concluding it is absent.
+SoAI identifies GPUs before any vendor tool answers, so a card can appear on the page with very little attached to it. On [Linux](https://www.kernel.org/) that first pass is a PCI scan, and on [Windows](https://www.microsoft.com/windows/) it uses the operating system's display-device inventory, with vendor telemetry merged onto that list afterwards. A GPU without telemetry reports why: usually the vendor tool is missing, while an [NVIDIA](https://www.nvidia.com/) card bound to a kernel driver other than the [NVIDIA](https://www.nvidia.com/) one reports instead that the driver is inactive. Check the reported cause and run the vendor tool as the account SoAI runs under to distinguish a missing tool from denied access or a failed query.
 
 | Vendor | Current collection path | What an unavailable result means |
 | --- | --- | --- |
@@ -7135,11 +7191,11 @@ To reduce repeated chat updates during long streamed responses or agent tasks, o
 
 Both **Show seconds** and **Live status overlay** are off by default, so these are worth confirming before you go looking elsewhere. The overlay subscribes to connection, latency, queue, and event telemetry and refreshes its diagnostics every 15 seconds, and turning it off removes the overlay, its listeners, and that timer without disabling server monitoring.
 
-Dashboard, Hardware, Metrics, and Logs keep processing their updates the whole time you are viewing them, so navigate away when you finish monitoring and the router releases that page's renderers, timers, and subscriptions. If Logs has to stay open, choose **100 lines** rather than the default of 250, or 500, 1000, 2000, or 5000, to keep its rendered log DOM small. Dashboard needs **System status access** ([`SYSTEM_STATUS_READ`](#acl-SYSTEM_STATUS_READ)), Hardware needs **Hardware read access** ([`HARDWARE_READ`](#acl-HARDWARE_READ)), and Logs needs **Log access** ([`LOG_ACCESS`](#acl-LOG_ACCESS)), while Metrics appears for every signed-in account.
+Dashboard, Hardware, Metrics, and Logs keep processing their updates the whole time you are viewing them, so close monitoring panes you no longer need. When only one pane remains, navigate to another page instead. Selecting another pane leaves the previous page open. See [Split view and panes](#split-view-and-panes). If Logs has to stay open, choose **100 lines** rather than the default of 250, or 500, 1000, 2000, or 5000, to keep its rendered log DOM small. Dashboard needs **System status access** ([`SYSTEM_STATUS_READ`](#acl-SYSTEM_STATUS_READ)), Hardware needs **Hardware read access** ([`HARDWARE_READ`](#acl-HARDWARE_READ)), and Logs needs **Log access** ([`LOG_ACCESS`](#acl-LOG_ACCESS)), while Metrics appears for every signed-in account.
 
 #### Avoid duplicate runtimes
 
-Keep one SoAI browser tab open when you can, and close a detached Chat window once you are done with it. Every tab and every detached window starts its own frontend runtime, holds its own WebSocket connection, and runs whatever its active page needs, so closing an unused copy reclaims that client's timers, DOM, and live subscriptions without touching the signed-in session in the window you keep.
+Keep one SoAI browser tab open when you can, and close a detached Chat window once you are done with it. Every tab and every detached window starts its own frontend runtime, holds its own WebSocket connection, and runs whatever its open pages need. Panes within one window share that runtime and connection, but each open page still has its own rendering and subscriptions. Closing an unused window reclaims its client resources without touching the signed-in session in the window you keep.
 
 #### Check the result
 
@@ -11439,7 +11495,7 @@ browser document
      services, persistent shell, router
                   |
                   v
-             active page
+       routed pages in owned panes
 ```
 
 The critical startup stage performs work required before the application entry. The primary and detached entries select a composition before bootstrap. Each edition selects its own composition, and the dependency direction between editions is one-way. Core pages, translations, and build configuration do not import another edition's implementation.
@@ -11456,12 +11512,16 @@ LayoutShell
   +-- task and notification surfaces
   +-- connection and global status
   +-- modal host
-  `-- page outlet
+  `-- pane workspace
           |
-          `-- one active routed page
+          +-- pane: page outlet and routed page
+          +-- pane: page outlet and routed page
+          `-- pane: page outlet and routed page
 ```
 
-The shell survives route changes, so connection state, navigation, tasks, notifications, and global modal ownership do not restart with every page. The router resolves access and resource requirements before loading a page. The page outlet prepares the next page, releases the previous page's owned resources immediately before commit, commits the new route and page, then waits for page readiness before revealing it.
+The shell survives route changes, so connection state, navigation, tasks, notifications, and global modal ownership do not restart with every page. The workspace holds up to 3 panes, with one routed page per pane and one pane per page component. The focused pane supplies the shell's page title, actions, and current route. Each pane owns its page state and resource lifetime, so selecting another pane does not release the previous page.
+
+The router resolves access and resource requirements before loading a page. The affected outlet prepares the next page, releases the previous page's owned resources immediately before commit, commits the new route and page, then waits for page readiness before revealing it. Closing or parking a pane releases its page resources; parking keeps a route from which the page can be reconstructed. A hidden page can remain mounted. See [Split view and panes](#split-view-and-panes) for user controls and layout restoration.
 
 ##### Route, access, and resource declarations
 
@@ -11482,7 +11542,7 @@ Access declarations control presentation and early routing rather than trust, wh
 | `/api/v1/*` REST | Finite management reads and mutations. | A successful response commits the command or snapshot owned by that endpoint. A failed mutation does not become optimistic success. |
 | `/api/v1/system/ws` | Realtime events, resource snapshots, task and chat progress, and interactive sessions. | After interruption, resources retain the last valid snapshot only as stale and request bounded authoritative recovery. |
 | `/v1/*` | Compatible inference requests where a WebUI feature uses that public contract. | Its streaming format remains the compatible protocol and is not converted into the WebUI realtime envelope. |
-| Page state | Filters, selection, draft view state, pending controls, and render models owned by one page. | Terminated on navigation unless an explicit account, conversation, or browser persistence service owns it. |
+| Page state | Filters, selection, draft view state, pending controls, and render models owned by one page. | Released when its page is replaced, closed, or parked unless an explicit account, conversation, or browser persistence service owns it. |
 | Shared client state | Session, route, shell, connection, and reusable resource stores. | Owned by Core services and updated transactionally from validated responses or events. |
 
 **The WebSocket is the only WebUI realtime transport.** It reconnects after recoverable interruption, restores subscriptions, and requests fresh snapshots for registered resources. An unrecognized broadcast can be ignored with bounded diagnostics; a malformed event for a registered resource preserves the last valid state and triggers resynchronization or an explicit degraded state.

@@ -1,12 +1,14 @@
 /* SoAI - Settings page control layer system manager controller [frontend/assets/ts/pages/settings/controllers/systemmanager/controller.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ConfirmationOptions } from '@core/ui/modals/dialogs/types.ts';
+import type { SettingsPreferenceResetType, FactoryResetExecutionContext, ManagedTimerState, ResetActionExecutionContext } from '@pages/settings/controllers/systemmanager/contracts.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { executeConfirmedButtonAction } from '@pages/settings/controllers/page/confirmedactionexecution/service.ts';
 import { executeConfirmedReset, showResetOperationFailure } from '@pages/settings/controllers/systemmanager/confirmedresetexecution/service.ts';
 import { FACTORY_RESET_RELOAD_DELAY_MS } from '@pages/settings/controllers/systemmanager/constants.ts';
-import type { FactoryResetExecutionContext, ManagedTimerState, ResetActionExecutionContext } from '@pages/settings/controllers/systemmanager/contracts.ts';
+
 import { refreshWallpaperFromState } from '@pages/settings/controllers/systemmanager/wallpaperStateRefreshController.ts';
 
 const runWithOneShotTimer = (host: ResetActionExecutionContext['host'], state: ManagedTimerState, delayMs: number, onTimeout: () => void): void => {
@@ -20,37 +22,58 @@ const runWithOneShotTimer = (host: ResetActionExecutionContext['host'], state: M
     }, delayMs);
 };
 
-const refreshAfterAppearanceStateReset = async (host: ResetActionExecutionContext['host']): Promise<void> => {
-    await host.workflow.refreshSettingsAfterPreferencesReset();
-    host.workflow.refreshWallpaperPreview();
-};
+interface PreferenceResetExecution extends ResetActionExecutionContext {
+    type: SettingsPreferenceResetType;
+    boundaryName: string;
+    confirmation: Omit<ConfirmationOptions, 'owner'>;
+    action: () => Promise<void>;
+    successMessage: string;
+    failureMessage: () => string;
+}
 
-const executeResetPreferences = async ({ host, button }: ResetActionExecutionContext): Promise<void> => {
+const executePreferenceReset = async (options: PreferenceResetExecution): Promise<void> => {
+    const { host, button } = options;
     const release = host.workflow.acquirePreferencesMutation();
     if (!release) return;
     try {
         await executeConfirmedReset(
             { host, button },
-            'settings:resetPreferences',
-            {
-                title: i18n.t('settings.system.preferencesReset.confirmTitle'),
-                message: i18n.t('settings.system.preferencesReset.confirmMessage'),
-                confirmText: i18n.t('settings.system.resetButtonLabel'),
-                cancelText: i18n.t('common.cancel'),
-                variant: 'danger'
-            },
+            options.boundaryName,
+            options.confirmation,
             async () => {
-                await host.api.resetUiPreferencesRemote();
-                host.api.resetUiPreferencesLocal({ preserveWizardState: true });
+                const refresh = host.workflow.preparePreferencesResetRefresh(options.type);
+                await options.action();
+                await refresh();
                 refreshWallpaperFromState(host);
             },
-            i18n.t('settings.notifications.preferencesResetSuccess'),
-            () => i18n.t('settings.notifications.preferencesResetFailed'),
-            async () => await refreshAfterAppearanceStateReset(host)
+            options.successMessage,
+            options.failureMessage
         );
     } finally {
         release();
     }
+};
+
+const executeResetPreferences = async ({ host, button }: ResetActionExecutionContext): Promise<void> => {
+    await executePreferenceReset({
+        host,
+        button,
+        type: 'preferences',
+        boundaryName: 'settings:resetPreferences',
+        confirmation: {
+            title: i18n.t('settings.system.preferencesReset.confirmTitle'),
+            message: i18n.t('settings.system.preferencesReset.confirmMessage'),
+            confirmText: i18n.t('settings.system.resetButtonLabel'),
+            cancelText: i18n.t('common.cancel'),
+            variant: 'danger'
+        },
+        action: async () => {
+            await host.api.resetUiPreferencesRemote();
+            host.api.resetUiPreferencesLocal({ preserveWizardState: true });
+        },
+        successMessage: i18n.t('settings.notifications.preferencesResetSuccess'),
+        failureMessage: () => i18n.t('settings.notifications.preferencesResetFailed')
+    });
 };
 
 const executeResetAclPolicy = async ({ host, button }: ResetActionExecutionContext): Promise<void> => {
@@ -74,24 +97,22 @@ const executeResetAclPolicy = async ({ host, button }: ResetActionExecutionConte
 };
 
 const executeResetAppearance = async ({ host, button }: ResetActionExecutionContext): Promise<void> => {
-    return executeConfirmedReset(
-        { host, button },
-        'settings:resetAppearance',
-        {
+    await executePreferenceReset({
+        host,
+        button,
+        type: 'appearance',
+        boundaryName: 'settings:resetAppearance',
+        confirmation: {
             title: i18n.t('settings.system.appearanceReset.confirmTitle'),
             message: i18n.t('settings.system.appearanceReset.confirmMessage'),
             confirmText: i18n.t('settings.system.resetButtonLabel'),
             cancelText: i18n.t('common.cancel'),
             variant: 'danger'
         },
-        async () => {
-            await host.api.resetAppearancePreferences();
-            refreshWallpaperFromState(host);
-        },
-        i18n.t('settings.notifications.appearanceResetSuccess'),
-        () => i18n.t('settings.notifications.appearanceResetFailed'),
-        async () => await refreshAfterAppearanceStateReset(host)
-    );
+        action: () => host.api.resetAppearancePreferences(),
+        successMessage: i18n.t('settings.notifications.appearanceResetSuccess'),
+        failureMessage: () => i18n.t('settings.notifications.appearanceResetFailed')
+    });
 };
 
 const executeResetMetrics = async ({ host, button }: ResetActionExecutionContext): Promise<void> => {

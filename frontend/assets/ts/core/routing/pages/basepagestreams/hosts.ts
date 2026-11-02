@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { BasePageStreamsTaskHost } from '@core/routing/pages/basepagestreams/internalContracts.ts';
-import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 
-const createBasePageStreamsTaskHost = (dependencies: { pageId: string; setLoadingState: (element: Element | string, loading: boolean, text?: string) => void; showNotification: (message: string, type: NotificationType) => void; pageContext: BasePageStreamsTaskHost['pageContext'] }): BasePageStreamsTaskHost => {
+const createBasePageStreamsTaskHost = (dependencies: BasePageStreamsTaskHost): BasePageStreamsTaskHost => {
     return {
         pageId: dependencies.pageId,
+        requireActive: dependencies.requireActive,
         setLoadingState: dependencies.setLoadingState,
         showNotification: dependencies.showNotification,
         pageContext: dependencies.pageContext

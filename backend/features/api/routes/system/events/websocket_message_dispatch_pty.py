@@ -13,6 +13,7 @@ from features.api.routes.system.events.websocket_pty_connect import handle_pty_c
 from features.api.routes.system.events.websocket_pty_disconnect import (
     handle_pty_disconnect,
 )
+from features.api.routes.system.events.websocket_pty_release import handle_pty_release
 from features.api.routes.system.events.websocket_pty_session_io import (
     handle_pty_input,
     handle_pty_resize,
@@ -34,6 +35,9 @@ async def try_handle_pty_message(
     runtime_context: WebsocketEventRuntimeContext,
 ) -> bool:
     match message_type:
+        case WebSocketMessageTypes.PTY_RELEASE:
+            await handle_pty_release(data, runtime_context)
+            return True
         case WebSocketMessageTypes.PTY_CONNECT:
             cols, rows = resolve_pty_cols_rows(data, default_cols=80, default_rows=24)
             shell_value = data.get("shell")
@@ -42,6 +46,9 @@ async def try_handle_pty_message(
                 cols,
                 rows,
                 shell,
+                recovery_identity=(
+                    data if "acquisition_id" in data or "runtime_id" in data else None
+                ),
                 connection=runtime_context.connection,
                 api_context=runtime_context.api_context,
                 request_adapter=runtime_context.request_adapter,

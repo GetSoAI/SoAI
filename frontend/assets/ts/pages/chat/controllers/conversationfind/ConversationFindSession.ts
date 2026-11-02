@@ -3,6 +3,8 @@
 
 import { isPresenceExiting, prepareEnterWithPresence } from '@core/animations/presence/public.ts';
 import { dom } from '@core/dom/dom.ts';
+import { isAvailableFocusTarget } from '@core/dom/focusTarget.ts';
+import { isPresentationOwnerFocused } from '@core/presentationOwner.ts';
 import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
 import { requireConnectionStatus } from '@core/connectionstatus/public.ts';
 import { getComputedStyleStrict } from '@core/environment/public.ts';
@@ -20,7 +22,7 @@ import type { ConversationFindSearchContext } from '@pages/chat/controllers/conv
 
 interface ConversationFindSessionDependencies {
     domain: Pick<ChatSessionDomainOwners, 'settings' | 'conversationRuntime' | 'composerSurface' | 'viewState' | 'conversationState' | 'taskScope'>;
-    page: Pick<ChatSessionPageOwners, 'pageResources'>;
+    page: Pick<ChatSessionPageOwners, 'pageResources' | 'services'>;
     platform: Pick<ChatSessionPlatformOwners, 'dom'>;
     conversationView: ChatConversationViewController;
     comparison: ChatComparisonTurnNavigationController;
@@ -91,6 +93,7 @@ class ConversationFindSession {
         if (!view) throw new Error('Conversation find view is not initialized');
         bindConversationFindInteractions(
             {
+                owner: this.#dependencies.page.services.mountScope,
                 root,
                 wrapper: view.wrapper,
                 input: view.input,
@@ -118,6 +121,7 @@ class ConversationFindSession {
     #initializeRuntime(root: HTMLElement): void {
         const { domain, page, conversationView, comparison } = this.#dependencies;
         const timeline = new ConversationFindTimelineController({
+            owner: page.services.mountScope,
             root,
             search: this.search,
             resources: page.pageResources.tracker,
@@ -226,14 +230,16 @@ class ConversationFindSession {
     }
 
     open(prefill: string | null, focus: HTMLElement | null): void {
-        if (this.search.snapshot.open || !this.#view || !this.search.open(prefill)) return;
+        if (!isPresentationOwnerFocused(this.#dependencies.page.services.mountScope) || requireModalPresenter().hasOpenModals() || this.search.snapshot.open || !this.#view || !this.search.open(prefill)) return;
         this.#activationSignal = this.#dependencies.domain.taskScope.captureConversationActivation().signal;
         this.#activationSignal.addEventListener('abort', this.#activationInvalidated, { once: true });
         this.#returnFocus = focus;
         if (isPresenceExiting(this.#view.wrapper)) prepareEnterWithPresence(this.#view.wrapper, true, true)();
         this.#view.searchBar.setValue(this.search.snapshot.query, false);
-        this.#view.input.focus({ preventScroll: true });
-        this.#view.input.select();
+        if (isPresentationOwnerFocused(this.#dependencies.page.services.mountScope) && isAvailableFocusTarget(this.#view.input)) {
+            this.#view.input.focus({ preventScroll: true });
+            this.#view.input.select();
+        }
         if (this.search.snapshot.query) this.#runSearch();
     }
 
@@ -243,11 +249,11 @@ class ConversationFindSession {
         const wasOpen = this.search.snapshot.open;
         this.#view?.searchBar.cancelPendingSearch();
         this.search.close();
-        if (restoreFocus && wasOpen) {
+        if (restoreFocus && wasOpen && isPresentationOwnerFocused(this.#dependencies.page.services.mountScope) && !requireModalPresenter().hasOpenModals()) {
             const focus = this.#returnFocus;
             const style = focus?.ownerDocument.defaultView?.getComputedStyle(focus);
             if (focus?.matches('.chat-input')) this.#dependencies.domain.composerSurface.requireUi().focusComposerFromUserAction();
-            else if (focus?.isConnected && !focus.closest('[inert],[hidden],.u-hidden') && !focus.matches(':disabled') && style?.display !== 'none' && style?.visibility !== 'hidden') focus.focus({ preventScroll: true });
+            else if (focus?.isConnected && this.#root?.contains(focus) && isAvailableFocusTarget(focus) && style?.display !== 'none' && style?.visibility !== 'hidden') focus.focus({ preventScroll: true });
             else this.#dependencies.domain.composerSurface.requireUi().focusComposerFromUserAction();
         }
         this.#returnFocus = null;

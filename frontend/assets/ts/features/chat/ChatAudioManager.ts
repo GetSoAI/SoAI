@@ -7,6 +7,7 @@ import { resolveGetUserMediaError } from '@core/media/audioCaptureSupport.ts';
 import { stopMediaStreamTracks } from '@core/media/mediaCleanup.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { createDeferred } from '@core/runtime/deferred.ts';
+import { ChangeNotificationSource } from '@core/primitives/changeNotificationSource.ts';
 import { isFunction, isString } from '@core/typeGuards.ts';
 import { resolveSupportedRecordingMimeType, resolveTranscriptionFailureText, transcribeAudioBlob, type WebuiMediaApiClient } from '@features/chat/api/webuiMediaAudio.ts';
 import { AudioRecordingSnapshotController } from '@features/chat/audio/AudioRecordingSnapshotController.ts';
@@ -36,6 +37,7 @@ interface ActiveRecordingSession {
 }
 
 class ChatAudioManager {
+    readonly #stateChanges = new ChangeNotificationSource();
     readonly #apiClient: WebuiMediaApiClient | null;
     readonly #snapshotController: AudioRecordingSnapshotController;
     readonly #resolveSttModel: () => string;
@@ -65,6 +67,10 @@ class ChatAudioManager {
 
     get state(): AudioState {
         return this.#state;
+    }
+
+    subscribeStateChanges(listener: () => void): () => boolean {
+        return this.#stateChanges.subscribe(listener);
     }
 
     isSessionActive(sessionId: number): boolean {
@@ -238,12 +244,14 @@ class ChatAudioManager {
         this.#snapshotController.fail(title);
         this.#emitTerminal(session, { status: 'failed', sessionId: session.id, intent: session.intent, error });
         this.#onError(error, title, { notify: false });
+        this.#stateChanges.notify();
     }
 
     #beginState(state: ActiveAudioState, session: ActiveRecordingSession): void {
         this.#state = state;
         this.#onStateChange(state, session.intent);
         this.#snapshotController.begin(state, session.id, session.intent);
+        this.#stateChanges.notify();
     }
 
     #setState(state: AudioState, intent: AudioRecordingIntent | null): void {
@@ -251,6 +259,7 @@ class ChatAudioManager {
         this.#state = state;
         this.#onStateChange(state, intent);
         this.#snapshotController.setState(state);
+        this.#stateChanges.notify();
     }
 
     #isActive(session: ActiveRecordingSession): boolean {
@@ -312,6 +321,7 @@ class ChatAudioManager {
         this.#cleanup();
         this.#state = 'idle';
         this.#snapshotController.dispose();
+        this.#stateChanges.clear();
     }
 }
 

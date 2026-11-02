@@ -20,6 +20,7 @@ type VirtualModelsSaveWiringDependencies = {
 
 const createVirtualModelsSaveController = (dependencies: VirtualModelsSaveWiringDependencies): SaveController => {
     const saveController = createSaveController({
+        owner: dependencies.host.owner,
         headerContextId: 'virtual-models',
         headerPriority: SAVE_HEADER_PRIORITY_MODAL,
         requestContextLabel: 'Virtual models save',

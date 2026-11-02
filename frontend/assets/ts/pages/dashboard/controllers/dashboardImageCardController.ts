@@ -62,7 +62,7 @@ class DashboardImageCardController {
     }
 
     renderSection(): void {
-        const content = this.#host.requireUI('imagecard-content');
+        const content = this.#host.requireUI('dashboard-imagecard-content');
         const contentElement = narrowHTMLElement(content, 'Dashboard image card content');
 
         const imageData = this.#storage.getDashboardImageCard();

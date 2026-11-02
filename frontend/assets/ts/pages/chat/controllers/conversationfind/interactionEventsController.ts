@@ -2,9 +2,13 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { isKeyboardCompositionEvent } from '@core/dom/keyboardComposition.ts';
+import { isPresentationOwnerFocused } from '@core/presentationOwner.ts';
+import type { PageMountScope } from '@core/routing/router/types.ts';
 import { captureConversationFindPrefill } from '@features/chat/public.ts';
 
 interface ConversationFindInteractionHost {
+    owner: PageMountScope;
     root: HTMLElement;
     wrapper: HTMLElement;
     input: HTMLInputElement;
@@ -27,7 +31,8 @@ const bindConversationFindInteractions = (host: ConversationFindInteractionHost,
     documentRef.addEventListener(
         'keydown',
         (event) => {
-            if (!host.isActive() || event.isComposing || event.keyCode === 229 || host.hasModal()) return;
+            if (!host.isActive() || !isPresentationOwnerFocused(host.owner) || event.defaultPrevented || isKeyboardCompositionEvent(event) || host.hasModal()) return;
+            if (!(event.target instanceof Node) || (event.target !== documentRef.body && !host.root.contains(event.target))) return;
             const command = event.ctrlKey !== event.metaKey && !event.altKey;
             if (command && !event.shiftKey && event.key.toLowerCase() === 'f') {
                 if (host.isRenaming()) {

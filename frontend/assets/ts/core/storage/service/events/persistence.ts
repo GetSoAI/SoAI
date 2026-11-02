@@ -41,6 +41,7 @@ interface StoragePersistenceHandlers {
     prepareChatPreferenceInvalidation: () => () => CrossTabPublishOutcome | null;
     pendingConversationDefaults: () => JsonObject;
 }
+const readCurrentRequestChecksum = (state: StorageRuntimeState, request: StorageRuntimeState['queuedChecksums'][string] | undefined): string | undefined => (request && preferenceRequestIdentityIsCurrent(state, request.identity) ? request.checksum : undefined);
 const createGroupPayloadFactories = (state: StorageRuntimeState, adapters: StorageAdapters): Record<string, () => JsonObject> => {
     const payloadForGroup = (group: SyncGroup | 'misc'): JsonObject => {
         if (group === 'misc') return { misc: adapters.clone(state.cache.misc) };
@@ -136,31 +137,32 @@ const createStoragePersistenceHandlers = ({ state, dependencies, adapters, broad
             return Promise.resolve(null);
         }
         const checksum = adapters.serialize(groupValue);
-        const latestScheduledChecksum = state.queuedChecksums[group] ?? state.inflightChecksums[group] ?? state.persistedChecksums[group];
+        const latestScheduledChecksum = readCurrentRequestChecksum(state, state.queuedChecksums[group]) ?? readCurrentRequestChecksum(state, state.inflightChecksums[group]) ?? state.persistedChecksums[group];
         if (latestScheduledChecksum === checksum) {
             state.pendingGroups.delete(group);
             return Promise.resolve(null);
         }
         state.pendingGroups.delete(group);
-        state.queuedChecksums[group] = checksum;
+        const request = { checksum, identity };
+        state.queuedChecksums[group] = request;
         const task = enqueuePreferenceOperation(state, async () => {
             if (!preferenceRequestIdentityIsCurrent(state, identity)) {
-                if (state.queuedChecksums[group] === checksum) delete state.queuedChecksums[group];
+                if (state.queuedChecksums[group] === request) delete state.queuedChecksums[group];
                 return null;
             }
             if (state.maintenanceHold) {
                 state.pendingGroups.add(group);
-                if (state.queuedChecksums[group] === checksum) delete state.queuedChecksums[group];
+                if (state.queuedChecksums[group] === request) delete state.queuedChecksums[group];
                 return null;
             }
-            state.inflightChecksums[group] = checksum;
+            state.inflightChecksums[group] = request;
             const updateFunction = dependencies.apiClient?.webui?.preferences?.update;
             if (!updateFunction) {
                 state.pendingGroups.add(group);
-                if (state.inflightChecksums[group] === checksum) {
+                if (state.inflightChecksums[group] === request) {
                     delete state.inflightChecksums[group];
                 }
-                if (state.queuedChecksums[group] === checksum) {
+                if (state.queuedChecksums[group] === request) {
                     delete state.queuedChecksums[group];
                 }
                 return null;
@@ -187,14 +189,15 @@ const createStoragePersistenceHandlers = ({ state, dependencies, adapters, broad
                     }
                 }
             } catch (error) {
-                if (preferenceRequestIdentityIsCurrent(state, identity)) state.pendingGroups.add(group);
+                if (!preferenceRequestIdentityIsCurrent(state, identity)) return null;
+                state.pendingGroups.add(group);
                 const runtimeError = ensureError(error);
                 errorHandler.warn('StorageManager', `Persist failed for group ${group}`, runtimeError);
             } finally {
-                if (state.inflightChecksums[group] === checksum) {
+                if (state.inflightChecksums[group] === request) {
                     delete state.inflightChecksums[group];
                 }
-                if (state.queuedChecksums[group] === checksum) {
+                if (state.queuedChecksums[group] === request) {
                     delete state.queuedChecksums[group];
                 }
             }
@@ -213,7 +216,7 @@ const createStoragePersistenceHandlers = ({ state, dependencies, adapters, broad
         await enqueuePreferenceOperation(state, async (): Promise<void> => {
             if (!preferenceRequestIdentityIsCurrent(state, identity) || state.maintenanceHold) return;
             const payload: JsonObject = {};
-            const checksums = new Map<string, string>();
+            const requests = new Map<string, { checksum: string; identity: typeof identity }>();
             const queued: string[] = [];
             for (const group of state.pendingGroups) {
                 if (group === 'chat') continue;
@@ -224,23 +227,23 @@ const createStoragePersistenceHandlers = ({ state, dependencies, adapters, broad
                 const groupValue = groupPayload[group];
                 if (groupValue === undefined) continue;
                 const checksum = adapters.serialize(groupValue);
-                if ([state.persistedChecksums[group], state.inflightChecksums[group], state.queuedChecksums[group]].includes(checksum)) continue;
+                if ([state.persistedChecksums[group], readCurrentRequestChecksum(state, state.inflightChecksums[group]), readCurrentRequestChecksum(state, state.queuedChecksums[group])].includes(checksum)) continue;
                 Object.assign(payload, groupPayload);
-                checksums.set(group, checksum);
+                requests.set(group, { checksum, identity });
                 queued.push(group);
             }
             if (!queued.length) return;
             for (const group of queued) {
-                const checksum = checksums.get(group);
-                if (!checksum) throw new Error(`Missing checksum for group ${group}`);
-                state.queuedChecksums[group] = checksum;
-                state.inflightChecksums[group] = checksum;
+                const request = requests.get(group);
+                if (!request) throw new Error(`Missing request for group ${group}`);
+                state.queuedChecksums[group] = request;
+                state.inflightChecksums[group] = request;
             }
             const updateFunction = dependencies.apiClient?.webui?.preferences?.update;
             if (!updateFunction) {
                 for (const group of queued) {
-                    delete state.inflightChecksums[group];
-                    delete state.queuedChecksums[group];
+                    if (state.inflightChecksums[group] === requests.get(group)) delete state.inflightChecksums[group];
+                    if (state.queuedChecksums[group] === requests.get(group)) delete state.queuedChecksums[group];
                     state.pendingGroups.add(group);
                 }
                 throw new Error('Authenticated preference persistence is unavailable.');
@@ -252,20 +255,20 @@ const createStoragePersistenceHandlers = ({ state, dependencies, adapters, broad
                     if (!isJsonObject(result)) throw new Error('Authoritative preference response must be an object.');
                     chatPreferences.applyExternalResponse(result, captured);
                     for (const group of queued) {
-                        const checksum = checksums.get(group);
-                        if (!checksum) throw new Error(`Missing checksum for group ${group}`);
-                        state.persistedChecksums[group] = checksum;
+                        const request = requests.get(group);
+                        if (!request) throw new Error(`Missing request for group ${group}`);
+                        state.persistedChecksums[group] = request.checksum;
                     }
                 }
                 for (const group of queued) {
-                    delete state.inflightChecksums[group];
-                    delete state.queuedChecksums[group];
+                    if (state.inflightChecksums[group] === requests.get(group)) delete state.inflightChecksums[group];
+                    if (state.queuedChecksums[group] === requests.get(group)) delete state.queuedChecksums[group];
                 }
             } catch (error) {
                 const runtimeError = ensureError(error);
                 for (const group of queued) {
-                    delete state.inflightChecksums[group];
-                    delete state.queuedChecksums[group];
+                    if (state.inflightChecksums[group] === requests.get(group)) delete state.inflightChecksums[group];
+                    if (state.queuedChecksums[group] === requests.get(group)) delete state.queuedChecksums[group];
                     if (preferenceRequestIdentityIsCurrent(state, identity)) state.pendingGroups.add(group);
                 }
                 throw runtimeError;

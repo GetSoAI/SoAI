@@ -1,6 +1,7 @@
 /* SoAI - Settings feature definitions [frontend/assets/ts/features/settings/tokenflow/definitions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { API_KEYS_CREATE_EXPIRY_MODAL_ID, API_KEYS_CREATE_LABEL_MODAL_ID, API_KEYS_SECRET_MODAL_ID } from '@features/settings/apikeys/constants.ts';
 import { SETTINGS_MCP_ACCESS_TOKEN_CREATE_EXPIRY_MODAL_ID, SETTINGS_MCP_ACCESS_TOKEN_CREATE_LABEL_MODAL_ID, SETTINGS_MCP_ACCESS_TOKEN_SECRET_MODAL_ID } from '@features/settings/mcp/constants.ts';
@@ -79,16 +80,16 @@ const mcpAccessTokenCreateLabelModalDefinition = createSettingsTokenLabelModalDe
 const mcpAccessTokenCreateExpiryModalDefinition = createSettingsTokenExpiryModalDefinition(SETTINGS_MCP_ACCESS_TOKEN_CREATE_EXPIRY_MODAL_ID, mcpAccessTokenExpiryConfig);
 const mcpAccessTokenSecretModalDefinition = createSettingsTokenSecretModalDefinition(SETTINGS_MCP_ACCESS_TOKEN_SECRET_MODAL_ID, mcpAccessTokenSecretConfig);
 
-const showApiKeyCreateLabelModal = async (defaultValue: string): Promise<string | null> => await showSettingsTokenLabelModal(apiKeyLabelConfig(), defaultValue);
-const showApiKeyCreateExpiryModal = async (): Promise<SettingsTokenExpiryChoice | null> => await showSettingsTokenExpiryModal(apiKeyExpiryConfig());
-const showApiKeySecretModal = async (secret: string): Promise<void> => {
-    await showSettingsTokenSecretModal(apiKeySecretConfig(), secret);
+const showApiKeyCreateLabelModal = async (defaultValue: string, owner: PresentationOwner): Promise<string | null> => await showSettingsTokenLabelModal(apiKeyLabelConfig(), defaultValue, owner);
+const showApiKeyCreateExpiryModal = async (owner: PresentationOwner): Promise<SettingsTokenExpiryChoice | null> => await showSettingsTokenExpiryModal(apiKeyExpiryConfig(), owner);
+const showApiKeySecretModal = async (secret: string, owner: PresentationOwner): Promise<void> => {
+    await showSettingsTokenSecretModal(apiKeySecretConfig(), secret, owner);
 };
 
-const showMcpAccessTokenCreateLabelModal = async (defaultValue: string): Promise<string | null> => await showSettingsTokenLabelModal(mcpAccessTokenLabelConfig(), defaultValue);
-const showMcpAccessTokenCreateExpiryModal = async (): Promise<SettingsTokenExpiryChoice | null> => await showSettingsTokenExpiryModal(mcpAccessTokenExpiryConfig());
-const showMcpAccessTokenSecretModal = async (secret: string): Promise<void> => {
-    await showSettingsTokenSecretModal(mcpAccessTokenSecretConfig(), secret);
+const showMcpAccessTokenCreateLabelModal = async (defaultValue: string, owner: PresentationOwner): Promise<string | null> => await showSettingsTokenLabelModal(mcpAccessTokenLabelConfig(), defaultValue, owner);
+const showMcpAccessTokenCreateExpiryModal = async (owner: PresentationOwner): Promise<SettingsTokenExpiryChoice | null> => await showSettingsTokenExpiryModal(mcpAccessTokenExpiryConfig(), owner);
+const showMcpAccessTokenSecretModal = async (secret: string, owner: PresentationOwner): Promise<void> => {
+    await showSettingsTokenSecretModal(mcpAccessTokenSecretConfig(), secret, owner);
 };
 
 export { apiKeyCreateExpiryModalDefinition, apiKeyCreateLabelModalDefinition, apiKeySecretModalDefinition, mcpAccessTokenCreateExpiryModalDefinition, mcpAccessTokenCreateLabelModalDefinition, mcpAccessTokenSecretModalDefinition, showApiKeyCreateExpiryModal, showApiKeyCreateLabelModal, showApiKeySecretModal, showMcpAccessTokenCreateExpiryModal, showMcpAccessTokenCreateLabelModal, showMcpAccessTokenSecretModal };

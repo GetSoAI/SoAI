@@ -3,7 +3,7 @@
 
 import type { AuthManager } from '@core/auth/service.ts';
 import { navigationResult } from '@core/navigationMiddleware.ts';
-import { onNavigationComplete, onNavigationStart, onNavigationError } from '@core/navigationEvents.ts';
+import { onFocusedNavigation } from '@core/navigationEvents.ts';
 import { getStreamRuntime } from '@core/realtime/streammanager/public.ts';
 import type { Router } from '@core/routing/router/Router.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
@@ -46,18 +46,24 @@ const wirePowerMode = (dependencies: Omit<PowerModeDependencies, 'subscribe' | '
         )
     );
     resources.track(
-        onNavigationStart((detail) => {
-            mode.closePresentation();
-            if (detail?.route !== directRequest?.landing) directRequest = null;
-        })
+        onFocusedNavigation(
+            (detail) => {
+                mode.closePresentation();
+                if (detail?.route !== directRequest?.landing) directRequest = null;
+            },
+            { phase: 'start' }
+        )
     );
     resources.track(
-        onNavigationError(() => {
-            directRequest = null;
-        })
+        onFocusedNavigation(
+            () => {
+                directRequest = null;
+            },
+            { phase: 'error' }
+        )
     );
     resources.track(
-        onNavigationComplete((detail) => {
+        onFocusedNavigation((detail) => {
             const requested = directRequest;
             if (!requested || requested.landing !== detail?.route) return;
             directRequest = null;

@@ -2,19 +2,17 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { errorHandler } from '@core/errorHandler.ts';
-import { HEADER_ACTION_EVENTS } from '@core/headerActionBus.ts';
+import { HeaderActionEvent, HEADER_ACTION_EVENTS } from '@core/headerActionBus.ts';
 import { HEADER_ACTION_IDS } from '@core/headeractions/constants.ts';
 import { getHeaderActions } from '@core/headeractions/public.ts';
 import { i18n } from '@core/i18n/index.ts';
-import type { JsonValue } from '@core/types/jsonValues.ts';
-import { isBoolean, isFiniteNumber, isFunction, isObject, isString } from '@core/typeGuards.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import type { DefinitionInput, PayloadInput } from '@core/headeractions/types.ts';
+import type { GlobalPresentationOwner } from '@core/routing/router/types.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 
-const defineHeaderActions = (): void => {
+const defineHeaderActions = (owner: GlobalPresentationOwner): void => {
     const define = (id: string, icon: IconName, order: number, label: string, cls: string, tooltip: string = label, ariaLabel: string = label): void => {
-        getHeaderActions().defineAction(id, {
+        getHeaderActions().defineAction(id, owner, {
             id,
             icon,
             order,
@@ -37,62 +35,7 @@ interface HeaderActionBridgeHost {
     getEventHubTarget: () => EventTarget;
 }
 
-interface HeaderActionEventDetail {
-    actionId?: JsonValue | null | undefined | undefined;
-    contextId?: JsonValue | null | undefined | undefined;
-    definition?: JsonValue | null | undefined | undefined;
-    state?: JsonValue | null | undefined | undefined;
-}
-
-const readDefinitionInput = (value: JsonValue | null | undefined): DefinitionInput => {
-    if (!isObject(value)) return {};
-    return {
-        id: isString(value['id']) ? value['id'] : undefined,
-        order: isFiniteNumber(value['order']) ? value['order'] : undefined,
-        priority: isFiniteNumber(value['priority']) ? value['priority'] : undefined,
-        icon: isString(value['icon']) ? value['icon'] : undefined,
-        label: isString(value['label']) ? value['label'] : undefined,
-        tooltip: isString(value['tooltip']) ? value['tooltip'] : undefined,
-        ariaLabel: isString(value['ariaLabel']) ? value['ariaLabel'] : undefined,
-        className: isString(value['className']) ? value['className'] : undefined,
-        persistent: isBoolean(value['persistent']) ? value['persistent'] : undefined,
-        disabled: isBoolean(value['disabled']) ? value['disabled'] : undefined,
-        badge: isString(value['badge']) ? value['badge'] : undefined,
-        analyticsId: isString(value['analyticsId']) ? value['analyticsId'] : undefined,
-        pressed: isBoolean(value['pressed']) ? value['pressed'] : undefined,
-        onClick: isFunction(value['onClick']) ? value['onClick'] : undefined
-    };
-};
-
-const readPayloadInput = (value: JsonValue | null | undefined): PayloadInput | null => {
-    if (!isObject(value)) return null;
-    return {
-        visible: isBoolean(value['visible']) ? value['visible'] : undefined,
-        order: isFiniteNumber(value['order']) ? value['order'] : undefined,
-        priority: isFiniteNumber(value['priority']) ? value['priority'] : undefined,
-        icon: isString(value['icon']) ? value['icon'] : undefined,
-        label: isString(value['label']) ? value['label'] : undefined,
-        tooltip: isString(value['tooltip']) ? value['tooltip'] : undefined,
-        ariaLabel: isString(value['ariaLabel']) ? value['ariaLabel'] : undefined,
-        className: isString(value['className']) ? value['className'] : undefined,
-        disabled: isBoolean(value['disabled']) ? value['disabled'] : undefined,
-        badge: isString(value['badge']) ? value['badge'] : undefined,
-        analyticsId: isString(value['analyticsId']) ? value['analyticsId'] : undefined,
-        pressed: isBoolean(value['pressed']) ? value['pressed'] : undefined,
-        onClick: isFunction(value['onClick']) ? value['onClick'] : undefined
-    };
-};
-
 const bindHeaderActionEventBridge = (host: HeaderActionBridgeHost): (() => void)[] => {
-    const normalizeId = (value: JsonValue | null | undefined): string => (isString(value) ? value.trim() : '');
-    const getDetail = (value: Event): HeaderActionEventDetail | undefined => {
-        if (!(value instanceof CustomEvent)) return undefined;
-        const detailValue = value.detail;
-        return isObject(detailValue) ? detailValue : undefined;
-    };
-    const getActionId = (detail: HeaderActionEventDetail | undefined): string => normalizeId(detail?.actionId);
-    const getContextId = (detail: HeaderActionEventDetail | undefined): string => normalizeId(detail?.contextId);
-
     const eventHub = host.getEventHubTarget();
     const disposers: (() => void)[] = [];
     const add = (eventName: string, functionValue: (event: Event) => void): void => {
@@ -100,29 +43,20 @@ const bindHeaderActionEventBridge = (host: HeaderActionBridgeHost): (() => void)
         if (typeof disposer === 'function') disposers.push(disposer);
     };
 
-    add(HEADER_ACTION_EVENTS.define, (event: Event) => {
-        const detail = getDetail(event);
-        const id = getActionId(detail);
-        if (!id) return;
-        const definition = readDefinitionInput(detail?.definition);
-        getHeaderActions().defineAction(id, definition);
+    add(HEADER_ACTION_EVENTS.define, (event) => {
+        if (!(event instanceof HeaderActionEvent) || event.detail.type !== 'define') return;
+        const { actionId, owner, definition } = event.detail;
+        getHeaderActions().defineAction(actionId, owner, definition);
     });
-
-    add(HEADER_ACTION_EVENTS.update, (event: Event) => {
-        const detail = getDetail(event);
-        const id = getActionId(detail);
-        if (!id) return;
-        const context = getContextId(detail) || id;
-        const state = readPayloadInput(detail?.state);
-        if (!state) return;
-        getHeaderActions().setActionState(id, context, state);
+    add(HEADER_ACTION_EVENTS.update, (event) => {
+        if (!(event instanceof HeaderActionEvent) || event.detail.type !== 'update') return;
+        const { actionId, contextId, registration, state } = event.detail;
+        getHeaderActions().setActionState(actionId, contextId, registration, state);
     });
-
-    add(HEADER_ACTION_EVENTS.remove, (event: Event) => {
-        const detail = getDetail(event);
-        const id = getActionId(detail);
-        if (!id) return;
-        getHeaderActions().removeActionContext(id, getContextId(detail) || id);
+    add(HEADER_ACTION_EVENTS.remove, (event) => {
+        if (!(event instanceof HeaderActionEvent) || event.detail.type !== 'remove') return;
+        const { actionId, contextId, registration } = event.detail;
+        getHeaderActions().removeActionContext(actionId, contextId, registration);
     });
 
     return disposers;

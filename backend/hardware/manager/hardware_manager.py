@@ -140,6 +140,7 @@ class HardwareManager(Shutdownable):
         cache: bool,
         include_gpu_capabilities: bool = True,
         components: Sequence[str] | None = None,
+        refresh_static_inventory: bool = False,
     ) -> JSONDict:
         return sync_query_system_info(
             state=self.state,
@@ -164,7 +165,7 @@ class HardwareManager(Shutdownable):
             adl_runtime=self._adl_runtime,
             windows_static_inventory=(
                 read_windows_static_inventory(self.state.windows_static_inventory)
-                if get_runtime_platform().is_windows
+                if get_runtime_platform().is_windows and not refresh_static_inventory
                 else None
             ),
         )
@@ -176,27 +177,11 @@ class HardwareManager(Shutdownable):
         include_gpu_capabilities: bool = True,
     ) -> JSONDict:
         return await asyncio.to_thread(
-            sync_query_system_info,
-            state=self.state,
-            manager=self,
-            executor=self._executor,
-            logger=self.logger,
-            hw_gpu_tuning=self.hw_gpu_tuning,
-            cache_ttl_seconds=self.cache_ttl,
-            monitoring_interval_ms=self.monitoring_interval_ms,
-            history_config=self.history_config,
-            history_enabled=self._computed.history_enabled,
-            detailed_gpu_info=self.detailed_gpu_info,
-            gpu_info_cache_service=self._gpu_info_cache_service,
-            gpu_vendor_detection_service=self._gpu_vendor_detection_service,
-            nvidia_nvml_gate=self._nvidia_nvml_gate,
-            nvidia_capabilities_cache_service=self._nvidia_capabilities_cache_service,
-            rapl_energy_cache=self._rapl_energy_cache,
+            self.sync_get_system_info,
             components=components,
             cache=cache,
             include_gpu_capabilities=include_gpu_capabilities,
-            nvidia_settings_controller=self._nvidia_settings_controller,
-            adl_runtime=self._adl_runtime,
+            refresh_static_inventory=not cache,
         )
 
     async def get_system_capabilities(self) -> JSONDict:
@@ -303,6 +288,12 @@ class HardwareManager(Shutdownable):
                 task_name="hardware-gpu-observation-shutdown",
                 retain_resources_until_complete=True,
             )
+            if self._adl_runtime is not None:
+                await run_joined_thread_call(
+                    self._adl_runtime.shutdown,
+                    task_name="hardware-adl-monitoring-shutdown",
+                    retain_resources_until_complete=True,
+                )
             if self._nvidia_settings_controller is not None:
                 await run_joined_thread_call(
                     self._nvidia_settings_controller.close,

@@ -6,7 +6,7 @@ import { getDocument, getWindow } from '@core/environment/public.ts';
 import { AnimationFrameRenderQueue } from '@core/animations/renderQueue.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { onNavigationComplete, onNavigationError, onNavigationStart } from '@core/navigationEvents.ts';
+import { onFocusedNavigation } from '@core/navigationEvents.ts';
 import { isFunction, isObject } from '@core/typeGuards.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { bindPageHeaderElements, isHeaderlessComponent, resolveSidebarNavigationDirection, scheduleHeaderBinding, shouldForcePageTitle, teardownPageHeaderObservers } from '@core/layout/header/titlemanager/actions.ts';
@@ -68,12 +68,12 @@ export class TitleManager {
             });
             this.mainObserver.observe(this.mainContentElement, { childList: true });
         }
-        this.navigationStartUnsubscribe = onNavigationStart((detail = null) => this.handleNavigationStart(detailIsObject(detail) ? detail : null));
+        this.navigationStartUnsubscribe = onFocusedNavigation((detail = null) => this.handleNavigationStart(detailIsObject(detail) ? detail : null), { phase: 'start' });
         if (!this.navigationUnsubscribe) {
-            this.navigationUnsubscribe = onNavigationComplete((detail = null) => this.handleNavigationEvent(detailIsObject(detail) ? detail : null));
+            this.navigationUnsubscribe = onFocusedNavigation((detail = null) => this.handleNavigationEvent(detailIsObject(detail) ? detail : null));
         }
         if (!this.navigationErrorUnsubscribe) {
-            this.navigationErrorUnsubscribe = onNavigationError(() => this.handleNavigationError());
+            this.navigationErrorUnsubscribe = onFocusedNavigation(() => this.handleNavigationError(), { phase: 'error' });
         }
         this.header.on(getWindow(), PAGE_HEADER_STATE_CHANGED_EVENT, (event: Event) => this.handlePageHeaderStateChanged(event));
         const titleNode = this.header.getDom('pageTitle');

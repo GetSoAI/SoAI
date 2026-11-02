@@ -21,6 +21,7 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
     }
     const callbacks = foundation.callbacks;
     const downloadManagerHost: DownloadManagerHost = {
+        owner: foundation.owner,
         view: {
             modals: callbacks.modals,
             requireHTMLElement: callbacks.requireHTMLElement,
@@ -49,7 +50,7 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
             showNotification: callbacks.showNotification,
             sanitizeHtml: (value: string): string => foundation.security.escapeHtml(value),
             isAdmin: operations.isAdmin,
-            setLocationHash: operations.setLocationHash
+            router: operations.router
         },
         timing: {
             setTimer: callbacks.setTimeout,
@@ -58,6 +59,7 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
     };
 
     const configManagerHost: ConfigManagerHost = {
+        owner: foundation.owner,
         modals: callbacks.modals,
         requireHTMLElement: callbacks.requireHTMLElement,
         optionalHTMLElement: callbacks.optionalHTMLElement,
@@ -83,6 +85,7 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
     };
 
     const infoManagerHost: InfoManagerHost = {
+        owner: foundation.owner,
         modals: callbacks.modals,
         requireHTMLElement: callbacks.requireHTMLElement,
         optionalHTMLElement: callbacks.optionalHTMLElement,
@@ -95,6 +98,7 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
     };
 
     const concurrentManagerHost: ConcurrentManagerHost = {
+        owner: foundation.owner,
         view: {
             modals: callbacks.modals,
             requireHTMLElement: callbacks.requireHTMLElement,
@@ -135,6 +139,7 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
     const backendClassNames = { hidden: C_HIDDEN, disabled: C_DISABLED };
     const manageBackendModalManager = new ManageBackendModalManager({
         host: {
+            owner: foundation.owner,
             catalog: state.catalog,
             view: {
                 modals: callbacks.modals,
@@ -189,6 +194,7 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
 
     const cloneManager = new CloneModalManager({
         host: {
+            owner: foundation.owner,
             view: {
                 modals: callbacks.modals,
                 requireHTMLElement: callbacks.requireHTMLElement,

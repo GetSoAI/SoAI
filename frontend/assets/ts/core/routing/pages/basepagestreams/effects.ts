@@ -10,6 +10,7 @@ import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import { hasOwn, isFunction, isString } from '@core/typeGuards.ts';
 import type { BasePageStreamsTaskHost, BasePageStreamsTaskTelemetryContext, RunPageTaskOptions } from '@core/routing/pages/basepagestreams/internalContracts.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 
 const normalizeTelemetryContext = (source: Record<string, JsonValue | null | undefined>): JsonObject => {
     const normalized: JsonObject = {};
@@ -35,6 +36,7 @@ const runPageTask = async <T>(host: BasePageStreamsTaskHost, name: string, opera
     if (!isFunction(operation)) {
         throw err('Operation required');
     }
+    host.requireActive();
 
     const loadingElement = options.loadingElement;
     const loadingText = options.loadingText;
@@ -62,18 +64,26 @@ const runPageTask = async <T>(host: BasePageStreamsTaskHost, name: string, opera
     emitTelemetry('info', `${telemetryContext.label} started`, { context: telemetryContext.context });
 
     try {
+        host.requireActive();
         const result = await operation();
+        host.requireActive();
+        if (options.successMessage) {
+            host.showNotification(options.successMessage, 'success');
+            host.requireActive();
+        }
+        await options.onSuccess?.(result);
+        host.requireActive();
         emitTelemetry('info', `${telemetryContext.label} completed`, {
             duration: getPerformance().now() - startTime,
             context: telemetryContext.context
         });
-        if (options.successMessage) {
-            host.showNotification(options.successMessage, 'success');
-        }
-        await options.onSuccess?.(result);
         return result;
     } catch (error) {
         const runtimeError = ensureError(error);
+        if (isAbortError(runtimeError)) {
+            if (options.rethrow !== false) throw runtimeError;
+            return null;
+        }
         const messageValue = runtimeError.message;
         const codeValue = hasOwn(runtimeError, 'code') && 'code' in runtimeError ? runtimeError.code : null;
         const errorMessage = isString(messageValue) ? messageValue : runtimeError.message;

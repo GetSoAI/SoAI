@@ -1,6 +1,7 @@
 /* SoAI - Shared routing panel layout controller [frontend/assets/ts/core/routing/pages/movablesections/panelLayoutController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { MovableLayoutEditController } from '@core/routing/pages/movablesections/layoutEditController.ts';
 import { MovableSectionLayout } from '@core/routing/pages/movablesections/service.ts';
 import type { MovableSectionBlueprint, MovableSectionId, MovableSectionLayoutConfig, MovableSectionLayoutHost, MovableSectionLayoutStorage } from '@core/routing/pages/movablesections/types.ts';
@@ -18,6 +19,7 @@ interface MovablePanelLayoutHost extends MovableSectionLayoutHost {
 }
 
 interface MovablePanelLayoutControllerDependencies<TPanelId extends MovableSectionId> {
+    readonly owner: PresentationOwner;
     host: MovablePanelLayoutHost;
     storage: MovableSectionLayoutStorage;
     config: MovableSectionLayoutConfig<TPanelId>;
@@ -41,6 +43,7 @@ class MovablePanelLayoutController<TPanelId extends MovableSectionId, TBlueprint
             config: dependencies.config
         });
         this.#editController = new MovableLayoutEditController({
+            owner: dependencies.owner,
             layout: this.#layout,
             contextId: dependencies.contextId,
             saveUnitId: dependencies.saveUnitId,
@@ -94,7 +97,7 @@ class MovablePanelLayoutController<TPanelId extends MovableSectionId, TBlueprint
         }
         section.id = blueprint.rootId;
         this.#addClassNames(section, blueprint.className);
-        const content = this.#host.requireHTMLElement(`#${sectionId}-content`, section);
+        const content = this.#host.requireHTMLElement('.section-content', section);
         this.#host.replaceElementContent(content, blueprint.content, { escape: false });
     }
 

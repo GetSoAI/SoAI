@@ -155,7 +155,7 @@ class CloneModalManager {
         this.#listenerDisposers.push(dispose);
 
         this.resetCloneModalState();
-        this.#host.view.modals.open(this.modalId);
+        this.#host.view.modals.open(this.modalId, { owner: this.#host.owner });
     };
 
     resetCloneModalState(): void {

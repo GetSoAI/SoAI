@@ -13,6 +13,10 @@ import { resolveObservedSpeechReason } from '@core/speechsetup/service.ts';
 
 const resolveOperationCauseMessage = <T>(code: string | null, failure?: T): string | null => {
     switch (code) {
+        case 'webui_permissions_unavailable':
+            return i18n.t('common.errors.permissionsUnavailable');
+        case 'page_resource_release_unconfirmed':
+            return i18n.t('pageOutlet.errors.resourceReleaseUnconfirmed');
         case 'logs_export_response':
             return i18n.t('logs.errors.response');
         case 'logs_export_missing':

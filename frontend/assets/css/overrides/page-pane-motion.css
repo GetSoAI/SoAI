@@ -1,0 +1,66 @@
+/* SoAI - Pane motion layout holds and layout replicas [frontend/assets/css/overrides/page-pane-motion.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer overrides {
+    .page-workspace > .page-pane[data-pane-held='roomy'] > .page-pane-outlet {
+        padding-inline-end: var(--page-pane-held-room);
+    }
+
+    .page-workspace > .page-pane[data-pane-held='roomy'] > .page-pane-outlet > [data-section] {
+        inline-size: calc(100% + var(--page-pane-held-room));
+        max-inline-size: none;
+        padding-inline-end: var(--page-pane-held-section-padding);
+    }
+
+    .page-pane-ghost-layer {
+        --page-pane-ghost-shift-x: 0;
+        --page-pane-ghost-shift-y: 0;
+        --page-pane-ghost-left: 0;
+        --page-pane-ghost-top: 0;
+        --page-pane-ghost-width: 0;
+        --page-pane-ghost-height: 0;
+
+        position: absolute;
+
+        /* direction: physical — the replica layer is aligned by measured physical offsets */
+        left: var(--page-pane-ghost-shift-x);
+        inset-block-start: var(--page-pane-ghost-shift-y);
+        inline-size: var(--page-pane-ghost-width);
+        block-size: var(--page-pane-ghost-height);
+        container: ui-viewport / inline-size;
+        pointer-events: none;
+        z-index: var(--z-above-sibling);
+    }
+
+    .page-pane-ghost-layer .page-pane-ghost-node {
+        position: absolute;
+
+        /* direction: physical — replicas are placed at measured physical viewport boxes */
+        left: var(--page-pane-ghost-left);
+        inset-block-start: var(--page-pane-ghost-top);
+        inline-size: var(--page-pane-ghost-width);
+        block-size: var(--page-pane-ghost-height);
+        min-inline-size: 0;
+        max-inline-size: none;
+        min-block-size: 0;
+        max-block-size: none;
+        margin: 0;
+        overflow: visible;
+        transform: none;
+        translate: none;
+        scale: none;
+    }
+
+    .page-pane-ghost-layer > .page-pane-ghost-node {
+        background: none;
+        box-shadow: none;
+    }
+
+    .page-pane-ghost-layer .page-pane-ghost-frame {
+        display: block;
+    }
+
+    :is(.page-pane-ghost-layer, .page-pane-ghost-layer *) {
+        transition: none;
+    }
+}

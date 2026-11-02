@@ -109,6 +109,7 @@ const openMemoryTextEditor = (host: MemoryMutationHost, entry: ManagedMemoryEntr
     };
     editor.open(
         createTextContentPreviewRequest({
+            owner: host.owner,
             scope: 'chat',
             type: 'text',
             headerDescription: entry ? `${i18n.t('chat.memory.viewer.observations')}: ${entry.observations.length} · ${i18n.t('chat.memory.viewer.relations')}: ${entry.relations.length}` : null,
@@ -143,12 +144,7 @@ const openMemoryTextEditor = (host: MemoryMutationHost, entry: ManagedMemoryEntr
 };
 
 const deleteMemoryRecord = async (host: MemoryMutationHost, entry: ManagedMemoryEntry, child: { type: 'observation' | 'relation'; id: string } | null): Promise<boolean> => {
-    const confirmed = await requireDialogsService().showConfirmation({
-        title: i18n.t('common.delete'),
-        message: child ? i18n.t('chat.memory.library.deleteFact') : i18n.t('chat.memory.library.deleteEntry', { title: entry.entity.name, facts: entry.observations.length, relations: entry.relations.length }),
-        confirmText: i18n.t('common.delete'),
-        cancelText: i18n.t('common.cancel')
-    });
+    const confirmed = await requireDialogsService().showConfirmation({ owner: host.owner, title: i18n.t('common.delete'), message: child ? i18n.t('chat.memory.library.deleteFact') : i18n.t('chat.memory.library.deleteEntry', { title: entry.entity.name, facts: entry.observations.length, relations: entry.relations.length }), confirmText: i18n.t('common.delete'), cancelText: i18n.t('common.cancel') });
     if (!confirmed || !host.isCurrent()) return false;
     const present = host.captureCommitPresentation();
     try {

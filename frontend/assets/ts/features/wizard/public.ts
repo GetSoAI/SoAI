@@ -2,5 +2,5 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 export { AiSetupAttentionService } from '@features/wizard/aiSetupAttention.ts';
-export { createInitialWizardState } from '@features/wizard/state.ts';
+export { createInitialWizardState, resolveWizardResumeIndex } from '@features/wizard/state.ts';
 export type { AiSetupWizardStepId, WizardState, WizardStepId } from '@features/wizard/state.ts';

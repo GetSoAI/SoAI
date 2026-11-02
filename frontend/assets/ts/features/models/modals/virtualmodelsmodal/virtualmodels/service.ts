@@ -38,7 +38,7 @@ const openVirtualModelsModal = (dependencies: OpenVirtualModelsModalDependencies
     strategyControl.value = lastStrategy;
     dependencies.state.originalCreateStrategy = strategyControl.value;
     dependencies.state.originalCreateModels = [];
-    dependencies.host.view.modals.open(dependencies.modalId);
+    dependencies.host.view.modals.open(dependencies.modalId, { owner: dependencies.host.owner });
     dependencies.notifyChanged();
 };
 

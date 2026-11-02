@@ -5,10 +5,11 @@ import { getCancelAnimationFrame, getRequestAnimationFrame } from '@core/environ
 import { getGlobalScope } from '@core/environment/globalScope.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { isFunction, isThenable } from '@core/typeGuards.ts';
-import { cleanupTrackedDisposable, clearTrackedTimers, invokeDisposable, safeDispose } from '@core/resourcetracker/actions.ts';
+import { cleanupTrackedDisposable, clearTrackedEventListeners, clearTrackedTimers, invokeDisposable, safeDispose, settleTrackedDisposables } from '@core/resourcetracker/actions.ts';
 import { toCaptureFlag, toTargetArray } from '@core/resourcetracker/guards.ts';
 import type { DisposableMetadata, DisposableResource, EventHandler, EventListenerMetadata, EventListenerOptions, EventTargetContract, EventTargetInput, ResourceSnapshot } from '@core/resourcetracker/types.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { createAbortError } from '@core/errors/abort.ts';
 
 type NativeTimerHandle = number | ReturnType<typeof setTimeout>;
 
@@ -21,6 +22,8 @@ class ResourceTracker {
     #nativeTimeoutsById: Map<number, NativeTimerHandle>;
     #nativeIntervalsById: Map<number, NativeTimerHandle>;
     #nextOpaqueTimerId: number;
+    #sealed = false;
+    #releaseInvocationDepth = 0;
 
     constructor() {
         this.eventListeners = new Set();
@@ -34,6 +37,7 @@ class ResourceTracker {
     }
 
     addEventListener(element: EventTargetInput, event: string, handler: EventHandler, options: EventListenerOptions | boolean = {}): () => void {
+        this.requireActive();
         if (!event) {
             throw new Error('Event name is required');
         }
@@ -60,6 +64,7 @@ class ResourceTracker {
         if (uniqueTargets.length === 0) throw new Error('No valid event targets available');
         const records: EventListenerMetadata[] = [];
         const wrappedHandler: EventListener = (eventObject: Event) => {
+            if (this.#sealed) return;
             try {
                 const result = handler(eventObject);
                 if (isThenable(result)) {
@@ -131,13 +136,14 @@ class ResourceTracker {
     }
 
     setTimeout(callback: (() => void) | undefined, delay: number): number {
+        this.requireActive();
         const scope = getGlobalScope();
         const safeDelay = Number.isFinite(delay) ? delay : 0;
         let id = 0;
         const nativeHandle: NativeTimerHandle = scope.setTimeout(() => {
             this.timeouts.delete(id);
             this.#nativeTimeoutsById.delete(id);
-            callback?.();
+            if (!this.#sealed) callback?.();
         }, safeDelay);
         id = typeof nativeHandle === 'number' ? nativeHandle : this.#nextOpaqueTimerId++;
         this.#nativeTimeoutsById.set(id, nativeHandle);
@@ -171,10 +177,11 @@ class ResourceTracker {
     }
 
     setInterval(callback: (() => void) | undefined, delay: number): number {
+        this.requireActive();
         const scope = getGlobalScope();
         const safeDelay = Number.isFinite(delay) ? delay : 0;
         const nativeHandle: NativeTimerHandle = scope.setInterval(() => {
-            callback?.();
+            if (!this.#sealed) callback?.();
         }, safeDelay);
         const id = typeof nativeHandle === 'number' ? nativeHandle : this.#nextOpaqueTimerId++;
         this.#nativeIntervalsById.set(id, nativeHandle);
@@ -201,7 +208,7 @@ class ResourceTracker {
 
     clearAllTimers(): void {
         const scope = getGlobalScope();
-        clearTrackedTimers({
+        const failures = clearTrackedTimers({
             timeouts: this.timeouts,
             intervals: this.intervals,
             animationFrames: this.animationFrames,
@@ -211,13 +218,14 @@ class ResourceTracker {
             clearInterval: (handle) => scope.clearInterval(handle),
             cancelAnimationFrame: (frameId) => getCancelAnimationFrame()(frameId)
         });
+        if (failures.length) throw new AggregateError(failures, 'Timer release incomplete');
     }
 
     requestAnimationFrame(callback: ((timestamp: DOMHighResTimeStamp) => void) | undefined): number {
+        this.requireActive();
         const requestAnimationFrame = getRequestAnimationFrame();
         const id = requestAnimationFrame((timestamp: DOMHighResTimeStamp) => {
-            this.animationFrames.delete(id);
-            callback?.(timestamp);
+            if (this.animationFrames.delete(id) && !this.#sealed) callback?.(timestamp);
         });
         this.animationFrames.add(id);
         return id;
@@ -236,13 +244,19 @@ class ResourceTracker {
             cleanup: cleanup ? () => cleanup(disposable) : undefined
         };
         this.disposables.add(metadata);
+        if (this.#sealed) {
+            void this.#release(metadata).catch((error) => {
+                errorHandler.warn('ResourceTracker', 'Late resource release failed', ensureError(error));
+            });
+            this.requireActive();
+        }
         return disposable;
     }
 
     untrack(disposable: DisposableResource): void {
         for (const metadata of this.disposables) {
             if (metadata.disposable === disposable) {
-                this.disposables.delete(metadata);
+                if (!metadata.completion) this.disposables.delete(metadata);
                 break;
             }
         }
@@ -262,37 +276,44 @@ class ResourceTracker {
         await invokeDisposable(disposable);
     }
 
-    async cleanup(): Promise<void> {
-        this.eventListeners.forEach(({ element, event, handler, options }) => {
-            try {
-                element.removeEventListener?.(event, handler, options);
-            } catch (error) {
-                errorHandler.warn('ResourceTracker', 'Event listener cleanup failed', ensureError(error));
-            }
-        });
-        this.eventListeners.clear();
+    seal(): void {
+        this.#sealed = true;
+    }
 
-        const scope = getGlobalScope();
-        clearTrackedTimers({
-            timeouts: this.timeouts,
-            intervals: this.intervals,
-            animationFrames: this.animationFrames,
-            nativeTimeoutsById: this.#nativeTimeoutsById,
-            nativeIntervalsById: this.#nativeIntervalsById,
-            clearTimeout: (handle) => scope.clearTimeout(handle),
-            clearInterval: (handle) => scope.clearInterval(handle),
-            cancelAnimationFrame: (frameId) => getCancelAnimationFrame()(frameId)
-        });
+    requireActive(): void {
+        if (this.#sealed) throw createAbortError('Resource owner is sealed');
+    }
 
-        const disposables = [...this.disposables];
-        this.disposables.clear();
-        await Promise.all(
-            disposables.map((metadata) =>
-                cleanupTrackedDisposable(metadata, (runtimeError) => {
-                    errorHandler.warn('ResourceTracker', 'Disposable cleanup failed', runtimeError);
-                })
-            )
-        );
+    async dispose(): Promise<void> {
+        this.seal();
+        await this.cleanup({ requireComplete: true });
+    }
+
+    async #release(metadata: DisposableMetadata): Promise<Error | null> {
+        let completion: Promise<Error | null>;
+        this.#releaseInvocationDepth += 1;
+        try {
+            completion = cleanupTrackedDisposable(metadata, (error) => errorHandler.warn('ResourceTracker', 'Disposable cleanup failed', error));
+        } finally {
+            this.#releaseInvocationDepth -= 1;
+        }
+        const failure = await completion;
+        if (!failure) this.disposables.delete(metadata);
+        return failure;
+    }
+
+    async cleanup({ requireComplete = false }: { requireComplete?: boolean } = {}): Promise<void> {
+        if (this.#releaseInvocationDepth > 0) return;
+        const failures = clearTrackedEventListeners(this.eventListeners, (error) => errorHandler.warn('ResourceTracker', 'Event listener cleanup failed', error));
+        try {
+            this.clearAllTimers();
+        } catch (error) {
+            const failure = ensureError(error);
+            failures.push(failure);
+            errorHandler.warn('ResourceTracker', 'Timer cleanup failed', failure);
+        }
+        failures.push(...(await settleTrackedDisposables(this.disposables, (metadata) => this.#release(metadata), requireComplete && this.#sealed)));
+        if (requireComplete && failures.length) throw new AggregateError(failures, 'Resource release incomplete');
     }
 }
 

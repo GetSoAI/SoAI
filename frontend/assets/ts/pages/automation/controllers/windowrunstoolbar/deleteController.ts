@@ -1,6 +1,7 @@
 /* SoAI - Automation page delete controller [frontend/assets/ts/pages/automation/controllers/windowrunstoolbar/deleteController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { isAbortError, raceWithAbortSignal } from '@core/errors/abort.ts';
@@ -20,6 +21,7 @@ import type { AutomationPageState } from '@pages/automation/types.ts';
 const AUTOMATION_OCCURRENCES_DELETE_MAX_ITEMS = 5000;
 
 type WindowRunsDeleteDependencies = {
+    readonly owner: PresentationOwner;
     dataService: AutomationDataService;
     getState: () => AutomationPageState;
     refreshData: () => Promise<void>;
@@ -126,7 +128,7 @@ class AutomationWindowRunsDeleteController {
             }
             const confirmation = resolveDeleteConfirmation(targets);
             const meaning = this.#confirmationIdentity(targets);
-            const confirmed = await raceWithAbortSignal(requireDialogsService().showConfirmation({ ...confirmation, cancelText: i18n.t('common.cancel'), variant: 'danger', signal }), signal);
+            const confirmed = await raceWithAbortSignal(requireDialogsService().showConfirmation({ owner: this.#dependencies.owner, ...confirmation, cancelText: i18n.t('common.cancel'), variant: 'danger', signal }), signal);
             if (!confirmed || !isCurrent()) {
                 return false;
             }

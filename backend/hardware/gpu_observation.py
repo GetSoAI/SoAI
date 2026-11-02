@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import copy
 import threading
+from collections.abc import Callable
 from concurrent.futures import Future
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
@@ -34,6 +35,7 @@ from hardware.internal_protocols import GPUInfoObservation, GPUProbeExecutorFact
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
+    from hardware.vendors.amd.adl_session import AdlRuntime
 
 __all__ = ("GPUInfoObservation", "GPUInfoCacheServiceDependencies")
 
@@ -57,6 +59,8 @@ class GPUInfoCacheServiceDependencies:
     probe_executor_factory: GPUProbeExecutorFactoryProtocol
     cache_ttl_seconds: float = 1.0
     probe_timeout_seconds: float = 15.0
+    windows_gpu_enricher: Callable[[list[JSONDict]], None] | None = None
+    adl_monitoring_runtime: AdlRuntime | None = None
 
     def __post_init__(self) -> None:
         require_dependencies(

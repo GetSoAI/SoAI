@@ -27,48 +27,54 @@
         animation: effect-lateral-enter var(--effect-notification-enter-duration) var(--ease-smooth) forwards;
     }
 
-    html[data-modal-animation='fade'] :where(.ui-modal:is([data-modal-open='true'], [data-presence-state='exiting']):not([data-modal-presentation='viewport'])) > .modal-content {
-        animation: modal-fade-enter var(--effect-modal-enter-duration) var(--ease-smooth);
+    html[data-modal-animation='fade'] .ui-modal {
+        --motion-modal-scale-from: 1;
+        --motion-modal-block-from: 0;
     }
 
-    html[data-modal-animation='slide'] :where(.ui-modal:is([data-modal-open='true'], [data-presence-state='exiting']):not([data-modal-presentation='viewport'])) > .modal-content {
-        animation: modal-slide-enter var(--effect-modal-enter-duration) var(--ease-smooth);
+    html[data-modal-animation='slide'] .ui-modal {
+        --motion-modal-scale-from: 1;
+        --motion-modal-block-from: var(--space-6);
     }
 
-    html[data-modal-animation='scale'] :where(.ui-modal:is([data-modal-open='true'], [data-presence-state='exiting']):not([data-modal-presentation='viewport'])) > .modal-content {
-        animation: modal-scale-enter calc(var(--effect-modal-enter-duration) * var(--effect-scale-duration-factor)) var(--ease-smooth);
+    html[data-modal-animation='scale'] .ui-modal {
+        --motion-modal-scale-from: 0.96;
+        --motion-modal-block-from: 0;
     }
 
-    html[data-modal-animation='zoom'] :where(.ui-modal:is([data-modal-open='true'], [data-presence-state='exiting']):not([data-modal-presentation='viewport'])) > .modal-content {
-        animation: modal-zoom-enter var(--effect-modal-enter-duration) var(--ease-spring);
+    html[data-modal-animation='zoom'] .ui-modal {
+        --motion-modal-scale-from: 0.94;
+        --motion-modal-block-from: 0;
     }
 
-    html[data-modal-animation='lateral'] :where(.ui-modal:is([data-modal-open='true'], [data-presence-state='exiting']):not([data-modal-presentation='viewport'])) > .modal-content {
-        animation: modal-lateral-enter var(--effect-modal-enter-duration) var(--ease-smooth);
+    html[data-modal-animation='lateral'] .ui-modal {
+        --motion-modal-scale-from: 1;
+        --motion-modal-inline-from: calc(var(--space-10) * var(--dir-sign));
+        --motion-modal-block-from: 0;
     }
 
-    html[data-page-animation='fade'] .main-content > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
-    html[data-page-animation='fade'] .main-content > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
+    html[data-page-animation='fade'] [data-page-outlet-root='true'] > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
+    html[data-page-animation='fade'] [data-page-outlet-root='true'] > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
         animation: effect-fade-enter var(--effect-page-enter-duration) var(--ease-smooth) forwards;
     }
 
-    html[data-page-animation='slide'] .main-content > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
-    html[data-page-animation='slide'] .main-content > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
+    html[data-page-animation='slide'] [data-page-outlet-root='true'] > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
+    html[data-page-animation='slide'] [data-page-outlet-root='true'] > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
         animation: effect-slide-enter var(--effect-page-enter-duration) var(--ease-smooth) forwards;
     }
 
-    html[data-page-animation='scale'] .main-content > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
-    html[data-page-animation='scale'] .main-content > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
+    html[data-page-animation='scale'] [data-page-outlet-root='true'] > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
+    html[data-page-animation='scale'] [data-page-outlet-root='true'] > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
         animation: effect-scale-enter calc(var(--effect-page-enter-duration) * var(--effect-scale-duration-factor)) var(--ease-smooth) forwards;
     }
 
-    html[data-page-animation='zoom'] .main-content > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
-    html[data-page-animation='zoom'] .main-content > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
+    html[data-page-animation='zoom'] [data-page-outlet-root='true'] > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
+    html[data-page-animation='zoom'] [data-page-outlet-root='true'] > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
         animation: effect-zoom-enter var(--effect-page-enter-duration) var(--ease-spring) forwards;
     }
 
-    html[data-page-animation='lateral'] .main-content > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
-    html[data-page-animation='lateral'] .main-content > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
+    html[data-page-animation='lateral'] [data-page-outlet-root='true'] > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
+    html[data-page-animation='lateral'] [data-page-outlet-root='true'] > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
         animation: effect-lateral-enter var(--effect-page-enter-duration) var(--ease-smooth) forwards;
     }
 }

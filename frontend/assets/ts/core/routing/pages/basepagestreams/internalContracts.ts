@@ -13,12 +13,11 @@ interface BasePageStreamsState {
     streamTrackers: Map<string, StreamHandleTracker> | null;
     coreStreamRuntime: StreamRuntimeOwners | null;
     subscriptionManager: SubscriptionManager | null;
-    autoResourceCleanup: (() => void) | null;
-    autoResourceOfflineVisible: boolean;
 }
 
 interface BasePageStreamsTaskHost {
     pageId: string;
+    requireActive(): void;
     setLoadingState: (element: Element | string, loading: boolean, text?: string) => void;
     showNotification: (message: string, type: NotificationType) => void;
     pageContext: {

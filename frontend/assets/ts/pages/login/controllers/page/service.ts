@@ -3,7 +3,7 @@
 
 import { getBranding } from '@core/branding/public.ts';
 import { readTrimmedInputValue } from '@core/dom/formValues.ts';
-import { getLocation, getRequestAnimationFrame } from '@core/environment/public.ts';
+import { getRequestAnimationFrame } from '@core/environment/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { AUTH_ROUTE_WIZARD } from '@core/routing/router/authRouteTarget.ts';
 import { scrollElementIntoView } from '@core/scroll.ts';
@@ -109,8 +109,7 @@ const redirectLoginToWizardIfNeeded = async (page: LoginPageHost): Promise<boole
     if (auth?.checkWizardStatus && isFunction(auth.checkWizardStatus)) {
         const needsWizard = await auth.checkWizardStatus();
         if (needsWizard) {
-            const locationRef = getLocation();
-            locationRef.replace(`${locationRef.origin}${locationRef.pathname}#${AUTH_ROUTE_WIZARD}`);
+            await page.router.navigate(AUTH_ROUTE_WIZARD, { replace: true });
             return true;
         }
     }

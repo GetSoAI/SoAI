@@ -1,6 +1,7 @@
 /* SoAI - Settings page workspace path picker modal [frontend/assets/ts/pages/settings/controllers/usersmanager/workspacePathPickerModal.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { showFolderPickerModal } from '@core/fileexplorerbrowser/folderPickerModal.ts';
 import { buildFolderPickerLabels } from '@core/fileexplorerbrowser/folderPickerLabels.ts';
 import { isAbsoluteFilesystemPath } from '@core/filePathResolution.ts';
@@ -11,7 +12,7 @@ import type { UsersManagerApiHost } from '@pages/settings/controllers/usersmanag
 
 type WorkspacePathPickerHost = Pick<UsersManagerApiHost, 'listWorkspaceBrowserRoots' | 'locateWorkspaceBrowserPath' | 'listWorkspaceBrowser' | 'searchWorkspaceBrowser'>;
 
-const openUserWorkspacePathPicker = async (host: WorkspacePathPickerHost, user: WebuiUser): Promise<string | null | undefined> => {
+const openUserWorkspacePathPicker = async (host: WorkspacePathPickerHost, user: WebuiUser, owner: PresentationOwner): Promise<string | null | undefined> => {
     const defaultFolder = user.defaultWorkspacePath;
     const fileBrowserApi: HostFilesystemBrowserApi = {
         roots: (options) => host.listWorkspaceBrowserRoots(options),
@@ -22,6 +23,7 @@ const openUserWorkspacePathPicker = async (host: WorkspacePathPickerHost, user: 
     const initialPath = user.workspacePathResolved.trim();
     const initialPathIsAbsolute = isAbsoluteFilesystemPath(initialPath);
     const baseOptions = {
+        owner,
         source: { type: 'host', api: fileBrowserApi },
         title: i18n.t('settings.users.changeWorkspacePathModal.title'),
         message: i18n.t('settings.users.changeWorkspacePathModal.message', { username: user.username, defaultFolder }),

@@ -2,12 +2,13 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ComponentMeta } from '@core/componentsupport/types.ts';
-import type { PageInstance, PageRegistry } from '@core/pagehost/types.ts';
+import type { PageRegistry } from '@core/pagehost/types.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
-import type { PageHostInstance } from '@core/pageoutlet/types.ts';
-import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
+import type { PageOutletService } from '@core/pageoutlet/types.ts';
+import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { DisposableResource, EventTargetInput } from '@core/resourcetracker/types.ts';
 import type { ElementOptions, ReplaceContentOptions } from '@core/dom/types.ts';
+import type { PagePaneService } from '@core/pagepanes/service.ts';
 
 interface SidebarServiceContract {
     setActiveByPage: (page: string) => void;
@@ -36,6 +37,7 @@ interface StorageService {
 }
 
 interface AuthService {
+    readonly authEpoch: number;
     isAuthenticated: boolean;
     isAdmin: () => boolean;
     checkWizardStatus: () => Promise<boolean>;
@@ -79,20 +81,7 @@ interface ErrorHandlerService {
     info: (module: string, message: string, data?: Error | JsonValue | null | undefined | null) => void;
 }
 
-interface PageOutletService {
-    setContainer: (container: HTMLElement | string) => PageOutletService;
-    getContainer: () => HTMLElement;
-    getPageHost: () => PageHostInstance;
-    destroyCurrent: (options?: { force?: boolean }) => Promise<void>;
-    destroy?: () => Promise<void>;
-    render: (options: { component: string; parameters: JsonObject; beforePrepare?: (() => void | Promise<void>) | Promise<void> | null | undefined; beforeCommit?: (() => void | Promise<void>) | Promise<void> | null | undefined; commitNavigation?: (() => void) | undefined; signal?: AbortSignal | undefined }) => Promise<{ name: string; instance: PageInstance } | null>;
-    cancelActive: (reason?: string) => void;
-    waitForCommit: () => Promise<void>;
-    setSkeleton: (route: string) => void;
-    getState?: (() => string) | undefined;
-}
-
-type PageOutletConstructor = new (options: { emitEvent: RouterEventEmitter; onPreservedPageFailure: () => void; onRetry: () => void; pageRegistry: PageRegistry; spinnerWorkerUrl?: string | undefined }) => PageOutletService;
+type PageOutletConstructor = new (options: { emitEvent: RouterEventEmitter; onPreservedPageFailure: (error: Error) => void; onRetry: () => void; pageRegistry: PageRegistry; spinnerWorkerUrl?: string | undefined; onStateChanged?: (() => void) | undefined }) => PageOutletService;
 
 interface ResourceTrackerClass {
     new (): ResourceTrackerInstance;
@@ -100,8 +89,8 @@ interface ResourceTrackerClass {
 
 interface ResourceTrackerInstance {
     addEventListener: (target: EventTargetInput, event: string, handler: (event: Event) => void, options?: AddEventListenerOptions | boolean) => () => void;
-    track?: <T extends DisposableResource>(disposable: T, cleanup?: ((disposable: T) => void) | undefined) => T;
-    cleanup: () => void;
+    track: <T extends DisposableResource>(disposable: T, cleanup?: ((disposable: T) => void) | undefined) => T;
+    cleanup: (options?: { requireComplete?: boolean }) => void | Promise<void>;
 }
 
 interface ErrorBoundaryClass {
@@ -115,6 +104,7 @@ interface ErrorBoundaryInstance {
 type RouterEventEmitter = (stage: string, data?: Record<string, JsonValue | null | undefined>, severity?: string) => void;
 
 interface RouterDependencies {
+    pagePanes: PagePaneService;
     spinnerWorkerUrl?: string | undefined;
     dom: DomService;
     storage: StorageService;

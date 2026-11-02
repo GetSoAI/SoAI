@@ -16,7 +16,8 @@ const canAnimatePresence = (element: Element, options: { allowAtomicMorph?: bool
     const atomicChildRequestsMotion = (isPresenceAtomic(element) && element.hasAttribute('data-presence')) || element.hasAttribute(PRESENCE_VISUAL_ONLY_ATTRIBUTE) || (options.allowAtomicMorph === true && element.hasAttribute(PRESENCE_MORPH_ATTRIBUTE));
     if (element.closest('[data-presence-suspended]') || element.closest(PRESENCE_EXCLUDED_SURFACES) || (atomicParent && !atomicChildRequestsMotion)) return false;
     const modal = element.closest(`.${MODAL_ROOT_CLASS}`);
-    return !modal || element === modal || (modal.getAttribute('data-modal-open') === 'true' && interactiveModals.has(modal));
+    const modalSurface = element.parentElement === modal && element.classList.contains('modal-content');
+    return !modal || element === modal || modalSurface || (modal.getAttribute('data-modal-open') === 'true' && interactiveModals.has(modal));
 };
 
 const resetModalPresence = (modal: Element): void => {

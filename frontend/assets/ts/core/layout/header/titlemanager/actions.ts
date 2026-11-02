@@ -7,6 +7,7 @@ import { refreshPageHeaderTitleTightStateForElement } from '@core/routing/pages/
 import { applyPageHeaderTitleDisplay, readPageHeaderTitleText } from '@core/routing/pages/basepagelayout/pageHeaderTitle.ts';
 import type { SetHeaderCollapsedOptions, TitleManagerHost, TitleNavigationDirection } from '@core/layout/header/titlemanager/types.ts';
 import { normalizeTitle } from '@core/layout/header/titlemanager/view.ts';
+import { getFocusedPageContent } from '@core/pagepanes/dom.ts';
 
 interface TitleManagerBindingState {
     dynamicComponents: Set<string>;
@@ -70,7 +71,8 @@ const resolveActiveSection = (state: TitleManagerBindingState, header: TitleMana
         return null;
     }
     state.mainContentElement = host;
-    return header.optionalHTMLElement(':scope > [data-section]', host);
+    const content = getFocusedPageContent(host);
+    return content ? header.optionalHTMLElement(':scope > [data-section]', content) : null;
 };
 
 const bindPageHeaderElements = (state: TitleManagerBindingState, dependencies: PageHeaderBinderDependencies): void => {

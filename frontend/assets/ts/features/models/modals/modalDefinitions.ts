@@ -6,7 +6,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { MODELS_ACTION_ADD_PROVIDER } from '@core/models/pageActions.ts';
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
@@ -226,37 +226,37 @@ const MODELS_MODAL_DEFINITIONS: readonly ModalDefinition[] = Object.freeze([
         id: MODELS_DOWNLOAD_MODAL_ID,
         layout: 'xl',
         initialFocusSelector: modalUiSelector(MODELS_DOWNLOAD_MODAL_ID, 'download-plugin-select'),
-        createElement: (_options: ModalOpenOptions): HTMLElement => createDownloadModelModalElement()
+        createElement: (_options: ModalCreationOptions): HTMLElement => createDownloadModelModalElement()
     },
     {
         id: MODELS_EDIT_MODEL_MODAL_ID,
         layout: 'xl',
         initialFocusSelector: modalUiSelector(MODELS_EDIT_MODEL_MODAL_ID, 'view-model-info'),
-        createElement: (_options: ModalOpenOptions): HTMLElement => createEditModelModalElement()
+        createElement: (_options: ModalCreationOptions): HTMLElement => createEditModelModalElement()
     },
     {
         id: MODELS_RENAME_MODEL_MODAL_ID,
         layout: 'md',
         initialFocusSelector: modalUiSelector(MODELS_RENAME_MODEL_MODAL_ID, 'alias-input'),
-        createElement: (_options: ModalOpenOptions): HTMLElement => createRenameModelModalElement()
+        createElement: (_options: ModalCreationOptions): HTMLElement => createRenameModelModalElement()
     },
     {
         id: MODELS_PROVIDERS_MODAL_ID,
         layout: 'xl',
         initialFocusSelector: modalUiSelector(MODELS_PROVIDERS_MODAL_ID, 'provider-add'),
-        createElement: (_options: ModalOpenOptions): HTMLElement => createProvidersModalElement()
+        createElement: (_options: ModalCreationOptions): HTMLElement => createProvidersModalElement()
     },
     {
         id: MODELS_VIRTUAL_MODELS_MODAL_ID,
         layout: 'xl',
         initialFocusSelector: modalUiSelector(MODELS_VIRTUAL_MODELS_MODAL_ID, 'vm-name'),
-        createElement: (_options: ModalOpenOptions): HTMLElement => createVirtualModelsModalElement()
+        createElement: (_options: ModalCreationOptions): HTMLElement => createVirtualModelsModalElement()
     },
     {
         id: MODELS_VIRTUAL_MODEL_EDIT_MODAL_ID,
         layout: 'md',
         initialFocusSelector: modalUiSelector(MODELS_VIRTUAL_MODEL_EDIT_MODAL_ID, 'vm-edit-strategy'),
-        createElement: (_options: ModalOpenOptions): HTMLElement => createVirtualModelEditModalElement()
+        createElement: (_options: ModalCreationOptions): HTMLElement => createVirtualModelEditModalElement()
     }
 ]);
 

@@ -1,6 +1,7 @@
 /* SoAI - Memory library state and operation contracts [frontend/assets/ts/pages/chat/widgets/memorytab/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ManagedMemoryEntry, MemoryLibrary } from '@core/api/contracts/webuiMemoryContracts.ts';
 import type { WebuiUserEndpoints } from '@core/api/endpoints/webuiUserEndpoints.ts';
 
@@ -15,6 +16,7 @@ interface MemoryLibraryState {
     pending: boolean;
 }
 interface MemoryMutationHost {
+    readonly owner: PresentationOwner;
     api: MemoryApi;
     isCurrent(): boolean;
     captureCommitPresentation(): (entry?: ManagedMemoryEntry) => void;

@@ -1,6 +1,9 @@
 /* SoAI - Models page initial actions [frontend/assets/ts/pages/models/controllers/modelsPageInitialActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PageRouting } from '@core/routing/router/types.ts';
+import { consumeRouteQuery, MODELS_INITIAL_ACTION_QUERY_KEYS } from '@core/routeregistry/reconstruction.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { MODELS_ACTION_ADD_PROVIDER, MODELS_ACTION_DOWNLOAD_MODEL, MODELS_ACTION_MANAGE_PROVIDERS, MODELS_ACTION_MANAGE_VIRTUAL_MODELS } from '@core/models/pageActions.ts';
 import { toTrimmedString } from '@core/normalize.ts';
@@ -13,8 +16,7 @@ type InitialActionExecutor = (host: ModelsInitialActionHost, parameters?: Initia
 interface ModelsInitialActionHost {
     getInitialActionContext: () => InitialActionContext | null;
     setInitialActionContext: (context: InitialActionContext | null) => void;
-    router: { getCurrentRoute: () => string | null; getRouteParameters: () => Record<string, string> };
-    replaceHashRoute: (route: string) => void;
+    router: Pick<PageRouting, 'getCurrentRoute' | 'getQueryParameters' | 'replaceCurrentRoute'>;
     log: (level: 'debug' | 'info' | 'warn' | 'error', message: string, error?: Error) => void;
     openDownloadModelModal: () => void;
     openProvidersModal: () => void | Promise<void>;
@@ -59,30 +61,8 @@ const setModelsInitialActionContext = (host: ModelsInitialActionHost, context: I
     host.setInitialActionContext({ action, ...(plugin ? { plugin } : {}), ...(vm ? { vm } : {}), ...(search ? { search } : {}) });
 };
 
-const clearInitialActionQuery = (host: ModelsInitialActionHost, keys: string[] = ['action', 'plugin', 'vm', 'search']): void => {
-    const currentRoute = host.router.getCurrentRoute();
-    if (!currentRoute) {
-        throw new Error('Models initial action cleanup requires a current route');
-    }
-
-    const parameters = host.router.getRouteParameters();
-    const exclude = new Set(keys);
-    const filtered = new URLSearchParams();
-    let modified = false;
-
-    for (const [key, value] of Object.entries(parameters)) {
-        if (exclude.has(key)) {
-            modified = true;
-            continue;
-        }
-        filtered.append(key, value);
-    }
-
-    if (modified) {
-        const nextQuery = filtered.toString();
-        const nextRoute = currentRoute.split('?')[0] + (nextQuery ? `?${nextQuery}` : '');
-        host.replaceHashRoute(nextRoute);
-    }
+const clearInitialActionQuery = (host: ModelsInitialActionHost, keys: readonly string[] = MODELS_INITIAL_ACTION_QUERY_KEYS): void => {
+    consumeRouteQuery(host.router, keys);
 };
 
 const handleModelsInitialAction = async (host: ModelsInitialActionHost, parameters: JsonObject | null): Promise<void> => {
@@ -115,6 +95,7 @@ const handleModelsInitialAction = async (host: ModelsInitialActionHost, paramete
         clearInitialActionQuery(host);
     } catch (error) {
         const runtimeError = ensureError(error);
+        if (isAbortError(runtimeError)) return;
         host.log('warn', 'Models initial action failed', runtimeError);
     }
 };

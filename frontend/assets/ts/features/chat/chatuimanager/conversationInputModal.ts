@@ -99,6 +99,7 @@ const openConversationInputModal = async (context: ChatUIManagerContext, resolve
     const cards = buildConversationInputCards(context, entry, conversationId);
     const presenter = resolvePresenter();
     await runModalSession({
+        owner: context.dependencies.owner,
         presenter,
         modalId: CHAT_CONVERSATION_INPUT_MODAL_ID,
         initialResult: undefined,

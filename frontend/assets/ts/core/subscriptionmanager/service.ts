@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { getWebSocketClient } from '@core/websocketclient/service.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { createSubscriptionManagerState, type SubscriptionManagerState } from '@core/subscriptionmanager/state.ts';
@@ -23,32 +26,44 @@ class SubscriptionManager {
     ownerId: string;
     #state: SubscriptionManagerState;
     #subscriptionVersion: number;
+    readonly #requireActive: () => void;
 
     constructor(ownerId: string, dependencies: SubscriptionManagerDependencies = {}) {
         this.ownerId = ownerId;
         this.#state = createSubscriptionManagerState();
         this.#subscriptionVersion = 0;
+        this.#requireActive = dependencies.requireActive ?? (() => {});
         this.#state.streamManager = dependencies.streamManager ? validateStreamManager(dependencies.streamManager) : null;
     }
 
     subscribeResourceState(key: string, handler: ResourceSubscriptionHandler): UnsubscribeFunction {
         return this.#subscribe(key, (manager, health, capturedVersion): UnsubscribeEntry => {
-            return manager.subscriptions.subscribeResourceState(key, createWrappedStateHandler(health, capturedVersion, handler), { immediate: true });
+            return manager.subscriptions.subscribeResourceState(
+                key,
+                createWrappedStateHandler(health, capturedVersion, handler, () => this.#state.health.get(key) === health && this.#canDeliver()),
+                { immediate: true }
+            );
         });
     }
 
     subscribeResourceValue(key: string, handler: SubscriptionHandler): UnsubscribeFunction {
         return this.#subscribe(key, (manager, health, capturedVersion): UnsubscribeEntry => {
-            return manager.subscriptions.subscribeResourceValue(key, createWrappedValueHandler(health, capturedVersion, handler), { immediate: true });
+            return manager.subscriptions.subscribeResourceValue(
+                key,
+                createWrappedValueHandler(health, capturedVersion, handler, () => this.#state.health.get(key) === health && this.#canDeliver()),
+                { immediate: true }
+            );
         });
     }
 
     #subscribe(key: string, subscribe: ResourceSubscriptionFactory): UnsubscribeFunction {
+        this.#requireActive();
         return subscribeToResource(
             {
                 clearExisting: (subscriptionKey: string): void => {
                     this.unsubscribeResource(subscriptionKey);
                 },
+                isCurrent: (subscriptionKey, health) => this.#state.health.get(subscriptionKey) === health,
                 incrementVersion: (): number => {
                     this.#subscriptionVersion += 1;
                     return this.#subscriptionVersion;
@@ -61,8 +76,19 @@ class SubscriptionManager {
                     this.#state.streamManager = streamManager;
                 },
                 ensureTimers: (): void => ensureTimers(this.#state),
-                putSubscription: (subscriptionKey: string, unsubscribe: UnsubscribeEntry): void => {
+                putSubscription: (subscriptionKey: string, unsubscribe: UnsubscribeEntry, health: SubscriptionHealth): boolean => {
+                    if (this.#state.health.get(subscriptionKey) !== health) {
+                        this.#finalizeSubscription(unsubscribe);
+                        return false;
+                    }
+                    try {
+                        this.#requireActive();
+                    } catch (error) {
+                        this.#finalizeSubscription(unsubscribe);
+                        throw error;
+                    }
                     this.#state.subscriptions.set(subscriptionKey, unsubscribe);
+                    return true;
                 },
                 beginResourceStart: (subscriptionKey: string, health: SubscriptionHealth): Promise<void> => {
                     return this.#ensureResourceStarted(subscriptionKey, health);
@@ -78,36 +104,61 @@ class SubscriptionManager {
 
     unsubscribeResource(key: string): void {
         const unsubscribe = this.#state.subscriptions.get(key);
-        this.#finalizeSubscription(unsubscribe);
+        const pendingStart = this.#state.pendingStarts.get(key);
         this.#state.subscriptions.delete(key);
         this.#state.health.delete(key);
-        const pendingStart = this.#state.pendingStarts.get(key);
-        if (pendingStart) {
-            pendingStart.controller.abort();
-            this.#state.pendingStarts.delete(key);
-        }
+        this.#state.pendingStarts.delete(key);
+        const failures: Error[] = [];
+        if (pendingStart) runCleanupStepCollectingFailure(() => pendingStart.controller.abort(), failures);
+        if (unsubscribe) runCleanupStepCollectingFailure(() => this.#finalizeSubscription(unsubscribe), failures);
+        throwCollectedCleanupFailures(failures);
     }
 
     subscribeWebSocket(eventType: string, handler: (data: JsonValue) => void): UnsubscribeFunction {
+        this.#requireActive();
         if (!eventType || typeof handler !== 'function') {
             throw new Error(`Invalid WebSocket subscription: ${eventType}`);
         }
         this.unsubscribeWebSocket(eventType);
         const wsClient = getWebSocketClient();
-        const unsubscribe = wsClient.subscribe(eventType, handler);
-        this.#state.wsSubscriptions.set(eventType, unsubscribe);
-        return () => this.unsubscribeWebSocket(eventType);
+        let acquired: UnsubscribeFunction | null = null;
+        let disposed = false;
+        const release = (): void => {
+            if (disposed) return;
+            disposed = true;
+            if (this.#state.wsSubscriptions.get(eventType) === release) this.#state.wsSubscriptions.delete(eventType);
+            const unsubscribe = acquired;
+            acquired = null;
+            unsubscribe?.();
+        };
+        this.#state.wsSubscriptions.set(eventType, release);
+        try {
+            const unsubscribe = wsClient.subscribe(eventType, (payload) => {
+                if (!disposed && this.#state.wsSubscriptions.get(eventType) === release && this.#canDeliver()) handler(payload);
+            });
+            if (disposed || this.#state.wsSubscriptions.get(eventType) !== release) {
+                unsubscribe();
+                return release;
+            }
+            acquired = unsubscribe;
+            this.#requireActive();
+        } catch (error) {
+            release();
+            throw error;
+        }
+        return release;
     }
 
     unsubscribeWebSocket(eventType: string): void {
         const unsubscribe = this.#state.wsSubscriptions.get(eventType);
+        this.#state.wsSubscriptions.delete(eventType);
         if (isFunction(unsubscribe)) {
             unsubscribe();
         }
-        this.#state.wsSubscriptions.delete(eventType);
     }
 
     async ensureReady(options: EnsureReadyOptions = {}): Promise<void> {
+        this.#requireActive();
         await ensureManagerReady(
             {
                 getHealth: (): Map<string, SubscriptionHealth> => {
@@ -183,11 +234,22 @@ class SubscriptionManager {
         log(level, this.ownerId, message, error);
     }
 
+    #canDeliver(): boolean {
+        try {
+            this.#requireActive();
+            return true;
+        } catch (error) {
+            if (isAbortError(error)) return false;
+            throw ensureError(error);
+        }
+    }
+
     #finalizeSubscription(entry: UnsubscribeEntry | undefined): void {
         normalizeUnsubscribe(resolveUnsubscribeManager(this.#state), entry)();
     }
 
     #ensureResourceStarted(key: string, health: SubscriptionHealth, options: { signal?: AbortSignal | undefined } = {}): Promise<void> {
+        this.#requireActive();
         return ensureResourceStarted(
             this.#state,
             key,

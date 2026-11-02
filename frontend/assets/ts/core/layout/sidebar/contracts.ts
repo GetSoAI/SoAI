@@ -9,6 +9,7 @@ import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isFunction, isObject } from '@core/typeGuards.ts';
 type UserInfo = Pick<WebuiUser, 'isAdmin'>;
 type AuthManagerContract = Pick<AuthManager, 'user' | 'onLogin' | 'onLogout'>;
+type SidebarNavigationIntent = 'select' | 'split';
 
 interface ComponentRegistryContract {
     get: (name: string) => ComponentInstance | undefined;
@@ -32,4 +33,4 @@ const isSidebarStorageConfigContract = (value: SidebarStorageConfigContract | nu
 };
 
 export { isSidebarStorageConfigContract, resolveAuthManager, resolveComponentRegistry };
-export type { AuthManagerContract, ComponentRegistryContract, SidebarStorageConfigContract, UserInfo };
+export type { AuthManagerContract, ComponentRegistryContract, SidebarNavigationIntent, SidebarStorageConfigContract, UserInfo };

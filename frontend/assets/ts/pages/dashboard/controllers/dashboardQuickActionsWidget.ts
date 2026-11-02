@@ -75,7 +75,7 @@ const buildQuickActionButton = (definition: DashboardQuickActionContribution): T
 
 const createDashboardQuickActionsSectionRenderer = (dependencies: DashboardQuickActionsRendererDependencies): (() => void) => {
     return (): void => {
-        const content = dependencies.host.requireUI('quickActions-content');
+        const content = dependencies.host.requireUI('dashboard-quickActions-content');
         const definitions = resolveQuickActionDefinitions(dependencies.productActions);
         assertQuickActionDefinitions(definitions);
         const buttons = toTrustedUiHtml(definitions.map((definition): string => buildQuickActionButton(definition).html).join(''));

@@ -23,6 +23,7 @@ interface ChangeData {
     value: JsonValue | undefined;
     hasChanges: boolean;
     valid: boolean;
+    composing?: boolean;
 }
 
 type ChangeHandler = (data: ChangeData) => void;
@@ -71,9 +72,14 @@ class FormManager {
                 return;
             }
             const htmlElement = element;
+            let composing = false;
             const handleChange = (): void => {
                 const path = dom.getData(htmlElement, 'path');
                 if (!path) return;
+                if (composing) {
+                    this.notifyChange({ element: htmlElement, path, value: undefined, hasChanges: configManager.hasChanges, valid: false, composing: true });
+                    return;
+                }
 
                 if (isInstanceOf(htmlElement, HTMLInputElement) && htmlElement.type === 'checkbox') {
                     updateToggleLabel(htmlElement);
@@ -102,6 +108,15 @@ class FormManager {
                 setControlValidity(htmlElement, true, SETTINGS_VALIDITY_OWNER_SELECTOR);
                 this.notifyChange({ element: htmlElement, path, value, hasChanges: configManager.hasChanges, valid: true });
             };
+
+            this.resources.addEventListener(htmlElement, 'compositionstart', () => {
+                composing = true;
+                handleChange();
+            });
+            this.resources.addEventListener(htmlElement, 'compositionend', () => {
+                composing = false;
+                handleChange();
+            });
 
             const isCheckboxOrRadio = isInstanceOf(htmlElement, HTMLInputElement) && (htmlElement.type === 'checkbox' || htmlElement.type === 'radio');
             if (isCheckboxOrRadio) {

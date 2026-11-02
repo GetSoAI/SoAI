@@ -31,7 +31,7 @@ export const renderNetworkInterfacesSection = ({ host, state, isDestroyed }: Das
         return;
     }
 
-    const content = host.requireUI('network-content');
+    const content = host.requireUI('dashboard-network-content');
     const contentElement = narrowHTMLElement(content, 'network content');
 
     if (!state.hasHardware()) {

@@ -1,6 +1,7 @@
 /* SoAI - Chat page batch operations [frontend/assets/ts/pages/chat/widgets/conversationtoolbar/batchOperations.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { APIError } from '@core/apiError.ts';
@@ -9,6 +10,7 @@ import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import type { Conversation } from '@features/chat/public.ts';
 
 interface BatchDeleteDependencies {
+    readonly owner: PresentationOwner;
     conversations: ReadonlyMap<string, Conversation>;
     deleteConversations(conversationIds: readonly string[]): Promise<readonly string[]>;
     showNotification(message: string, type: NotificationType): void;
@@ -61,6 +63,7 @@ const executeBatchDelete = async (dependencies: BatchDeleteDependencies, selecte
     const confirmMessage = i18n.t('chat.toolbar.batchDeleteConfirm', { count: selectedIds.length });
     const confirmTitle = i18n.t('chat.toolbar.batchDeleteTitle');
     const confirmed = await requireDialogsService().showConfirmation({
+        owner: dependencies.owner,
         title: confirmTitle,
         message: confirmMessage,
         confirmText: i18n.t('common.delete'),

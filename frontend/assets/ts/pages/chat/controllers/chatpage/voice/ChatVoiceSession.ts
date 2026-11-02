@@ -3,6 +3,7 @@
 
 import type { AudioRecordingSnapshot, AudioRecordingTerminalOutcome, AudioRecordingTimerHost, ChatAudioManager, ChatStreamTerminalUpdate, ChatTtsManager, ComposerDraftSurfaceSnapshot } from '@features/chat/public.ts';
 import type { GeometryPoint } from '@core/layout/elementGeometry.ts';
+import { ChangeNotificationSource } from '@core/primitives/changeNotificationSource.ts';
 import type { QueueConversationInputOptions, ConversationInputComposerOutcome } from '@pages/chat/controllers/chatmessagesendingcontroller/types.ts';
 import { PushToTalkSession } from '@pages/chat/controllers/chatpage/voice/PushToTalkSession.ts';
 import type { VoiceCallController } from '@pages/chat/controllers/voicecall/VoiceCallController.ts';
@@ -25,6 +26,9 @@ interface PushToTalkActivation {
 }
 
 class ChatVoiceSession {
+    readonly #stateChanges = new ChangeNotificationSource();
+    #audioStateExit: (() => void) | null = null;
+    #callStateExit: (() => void) | null = null;
     #audio: ChatAudioManager | null = null;
     #speech: ChatTtsManager | null = null;
     #call: VoiceCallController | null = null;
@@ -36,6 +40,7 @@ class ChatVoiceSession {
             return;
         }
         this.#audio = manager;
+        this.#audioStateExit = manager.subscribeStateChanges(() => this.#stateChanges.notify());
     }
 
     initializeSpeech(manager: ChatTtsManager): void {
@@ -52,6 +57,15 @@ class ChatVoiceSession {
             return;
         }
         this.#call = controller;
+        this.#callStateExit = controller.subscribeStateChanges(() => this.#stateChanges.notify());
+    }
+
+    hasActiveWork(): boolean {
+        return this.#pushToTalk !== null || (this.#audio !== null && this.#audio.state !== 'idle') || this.#call?.isRuntimeActive() === true;
+    }
+
+    subscribeStateChanges(listener: () => void): () => boolean {
+        return this.#stateChanges.subscribe(listener);
     }
 
     hasAudio(): boolean {
@@ -89,10 +103,14 @@ class ChatVoiceSession {
             ...activation,
             audio: this.#requireAudio(),
             onFinished: (finished) => {
-                if (this.#pushToTalk === finished) this.#pushToTalk = null;
+                if (this.#pushToTalk === finished) {
+                    this.#pushToTalk = null;
+                    this.#stateChanges.notify();
+                }
             }
         });
         this.#pushToTalk = session;
+        this.#stateChanges.notify();
         return session;
     }
 
@@ -150,17 +168,20 @@ class ChatVoiceSession {
         this.#pushToTalk = null;
         this.#audio?.dispose();
         this.#audio = null;
+        this.#audioStateExit?.();
+        this.#audioStateExit = null;
+        this.#stateChanges.notify();
     }
 
     async dispose(): Promise<void> {
         await this.#call?.dispose();
         this.#call = null;
-        this.#pushToTalk?.cancel(false);
-        this.#pushToTalk = null;
-        this.#audio?.dispose();
-        this.#audio = null;
+        this.#callStateExit?.();
+        this.#callStateExit = null;
+        this.disposeAudio();
         this.#speech?.dispose();
         this.#speech = null;
+        this.#stateChanges.clear();
     }
 
     #requireAudio(): ChatAudioManager {

@@ -11,9 +11,10 @@ import { createStorageEvents } from '@core/storage/service/events/public.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import type { StorageRuntime, StorageRuntimeDependencies, StorageRuntimeState } from '@core/storage/service/types.ts';
 
-const createStorageState = (): StorageRuntimeState => {
+const createStorageState = (readAuthEpoch: () => number): StorageRuntimeState => {
     const currentWindowIdentity = windowIdentity.current();
     return {
+        readAuthEpoch,
         defaults: createStorageDefaults(),
         cache: createStorageDefaults(),
         pendingGroups: new Set(),
@@ -36,14 +37,15 @@ const createStorageState = (): StorageRuntimeState => {
     };
 };
 
-const createStorageRuntime = ({ apiClient, stateManager }: StorageRuntimeDependencies): StorageRuntime => {
-    const state = createStorageState();
+const createStorageRuntime = ({ apiClient, stateManager, readAuthEpoch }: StorageRuntimeDependencies): StorageRuntime => {
+    const state = createStorageState(readAuthEpoch);
     const adapters = createStorageAdapters(state);
     const effects = createStorageEffects();
     const createDefaults = (): ReturnType<typeof createStorageDefaults> => adapters.clone(state.defaults);
     const events = createStorageEvents({
         state,
         dependencies: {
+            readAuthEpoch,
             apiClient,
             stateManager
         },
@@ -54,10 +56,14 @@ const createStorageRuntime = ({ apiClient, stateManager }: StorageRuntimeDepende
 
     return {
         state,
+        subscribeUiPreferenceChanges: events.subscribeUiPreferenceChanges,
         ready: events.ready,
         clone: adapters.clone,
         createDefaults,
         writeStorage: adapters.writeStorage,
+        readOptionalRecord: adapters.readOptionalRecord,
+        writeOptionalRecord: adapters.writeOptionalRecord,
+        removeOptionalRecord: adapters.removeOptionalRecord,
         queuePersist: events.queuePersist,
         flushPending: events.flushPending,
         mergeRemote: events.mergeRemote,

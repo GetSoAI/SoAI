@@ -1,6 +1,7 @@
 /* SoAI - Chat page toolbar wiring [frontend/assets/ts/pages/chat/controllers/chatpage/construction/toolbarWiring.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { generateSecureId } from '@core/primitives/idGenerator.ts';
 import { parseBackendConversationRecord, type Conversation, type ChatPageApi } from '@features/chat/public.ts';
 import type { WebuiConversationResponse } from '@core/api/contracts/webuiConversationContracts.ts';
@@ -18,6 +19,7 @@ import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/Pag
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 
 interface ToolbarWiringHost extends ChatConversationRuntimeOwner, ChatConversationViewHost, ChatConversationStateHost, ChatPagePresentationHost, PageDomOwnerHost, PageFeedbackOwnerHost {
+    readonly owner: PresentationOwner;
     api: ChatPageApi;
 }
 
@@ -88,6 +90,7 @@ const initializeConversationToolbarForPage = (host: ToolbarWiringHost, selection
 const createBatchOperationSharedDependencies = (host: ToolbarWiringHost, controller: ConversationToolbarController) => {
     const storageManager = host.conversationRuntime.requireStorage();
     return {
+        owner: host.owner,
         conversations: host.conversationState.conversations,
         showNotification: (message: string, type: NotificationType) => host.feedback.show(message, type),
         refreshConversationsUI: () => host.conversationView.refresh(),

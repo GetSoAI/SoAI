@@ -4,11 +4,11 @@
 from __future__ import annotations
 
 import math
-import time
 from dataclasses import dataclass
 from enum import Enum
 
 from core.errors.exceptions import ValidationError
+from core.timing.epoch import epoch_seconds_float
 from core.types.json import JSONDict
 
 __all__ = (
@@ -105,7 +105,7 @@ def assign_request_priority(
 def build_default_priority_assignment() -> RequestPriorityAssignment:
     return assign_request_priority(
         {},
-        queued_at=time.time(),
+        queued_at=epoch_seconds_float(),
         standard_aging_seconds=DEFAULT_STANDARD_PRIORITY_AGING_SECONDS,
         flex_aging_seconds=DEFAULT_FLEX_PRIORITY_AGING_SECONDS,
     )

@@ -40,6 +40,7 @@ const unarchiveConversation = async (host: ArchivedConversationsModalHost, state
 const deleteArchivedConversation = async (host: ArchivedConversationsModalHost, state: ArchivedConversationsModalState, conversationId: string): Promise<void> => {
     const conversation = requireArchivedConversation(state, conversationId);
     const confirmed = await requireDialogsService().showConfirmation({
+        owner: host.pageContext.presentationOwner,
         ...resolveArchivedConversationDeleteConfirmation('archive:delete', 1),
         description: conversation.title,
         confirmText: i18n.t('common.delete'),
@@ -112,6 +113,7 @@ const batchDeleteArchivedConversations = async (host: ArchivedConversationsModal
         requireArchivedConversation(state, conversationId);
     }
     const confirmed = await requireDialogsService().showConfirmation({
+        owner: host.pageContext.presentationOwner,
         ...resolveArchivedConversationDeleteConfirmation('archive:batch-delete', state.selectedIds.size),
         confirmText: i18n.t('common.delete'),
         variant: 'danger'

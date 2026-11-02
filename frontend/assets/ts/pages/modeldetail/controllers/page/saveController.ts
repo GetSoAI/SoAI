@@ -1,23 +1,28 @@
 /* SoAI - Model detail page control layer save controller [frontend/assets/ts/pages/modeldetail/controllers/page/saveController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { createSaveController, SAVE_HEADER_PRIORITY_PAGE, type SaveController } from '@core/save/public.ts';
 import { hasOpenAICapabilityOverrideChanges, type OpenAICapabilityOverrideState } from '@features/models/public.ts';
 import { saveModelDetailOpenAICapabilities, saveModelDetailParameters, type ModelDetailActionsHost } from '@pages/modeldetail/controllers/page/actionEffects.ts';
 
 interface ModelDetailSaveControllerDependencies {
+    readonly owner: PresentationOwner;
     actions: ModelDetailActionsHost;
     getOpenAICapabilityState(): OpenAICapabilityOverrideState | null;
+    getParameterProtectionRevision(): number | string;
 }
 
 const createModelDetailSaveController = (dependencies: ModelDetailSaveControllerDependencies): SaveController =>
     createSaveController({
+        owner: dependencies.owner,
         headerContextId: 'model-detail',
         headerPriority: SAVE_HEADER_PRIORITY_PAGE,
         requestContextLabel: 'Model detail save',
         units: [
             {
                 id: 'model-detail',
+                getProtectionRevision: dependencies.getParameterProtectionRevision,
                 hasChanges: () => dependencies.actions.parameterView.hasParameterChanges(),
                 isValid: () => dependencies.actions.parameterView.areParametersValid() && dependencies.actions.parameterAuthority.canSubmit,
                 save: async () => {

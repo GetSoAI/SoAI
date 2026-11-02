@@ -1,6 +1,9 @@
 /* SoAI - Settings page theme manager events [frontend/assets/ts/pages/settings/controllers/thememanager/events.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { getAuthManager } from '@core/auth/public.ts';
+import { resolveDefaultAuthenticatedRoute } from '@core/routing/router/authRouteTarget.ts';
+import { setSelectValueAndSyncDefault } from '@core/dom/selectSelection.ts';
 import { narrowInput, narrowSelect } from '@core/dom/narrowElement.ts';
 import { getComputedStyleStrict, getDocumentElement, getEventHub } from '@core/environment/public.ts';
 import { normalizeAccentColorPreference } from '@core/theme/accentColor.ts';
@@ -20,6 +23,7 @@ interface ThemeEventsControllerDependencies {
 
 class ThemeEventsController {
     readonly #host: ThemeManagerHost;
+    readonly #projections: Array<() => void> = [];
     readonly #addCleanup: AddThemeManagerCleanup;
     readonly #updatePreferenceToggleLabel: (element: Element, enabled?: boolean) => void;
 
@@ -30,20 +34,38 @@ class ThemeEventsController {
     }
 
     setupEventListeners(): void {
+        this.dispose();
         this.#setupThemeEventListeners();
         this.#setupEffectsEventListeners();
         bindSimpleToggleControls({
             host: this.#host,
+            addPreferenceProjection: (project) => this.#projections.push(project),
             addCleanup: this.#addCleanup,
             updatePreferenceToggleLabel: this.#updatePreferenceToggleLabel
         });
         setupChartsEventListeners({
             host: this.#host,
+            addPreferenceProjection: (project) => this.#projections.push(project),
             addCleanup: this.#addCleanup
         });
     }
 
+    syncUiPreferences(): void {
+        for (const project of this.#projections) project();
+    }
+
+    dispose(): void {
+        this.#projections.length = 0;
+    }
+
     #bindPreferenceValueChange(element: HTMLInputElement | HTMLSelectElement, key: UiPreferenceKey): void {
+        this.#projections.push(() => {
+            const value = this.#host.getUiPrefValue(key);
+            if (value !== null && typeof value !== 'string') throw new TypeError(`uiPrefs.${key} must be a string or null`);
+            const selection = key === 'defaultPage' ? resolveDefaultAuthenticatedRoute(value, getAuthManager()) : (value ?? '');
+            if (element instanceof HTMLSelectElement && element.value !== selection) setSelectValueAndSyncDefault(element, selection);
+            else if (element.value !== selection) element.value = selection;
+        });
         this.#addCleanup(
             this.#host.pageResources.on(element, 'change', () => {
                 this.#host.setUiPrefValue(key, element.value);
@@ -80,26 +102,22 @@ class ThemeEventsController {
             return normalized;
         };
 
-        const storedAccent = this.#host.getUiPrefValue('accentColor');
-        const normalizedAccent = normalizeAccentColorPreference(storedAccent);
-        const initialDefaultAccent = readThemeDefaultAccent();
-        const activeAccent = normalizedAccent === initialDefaultAccent ? null : normalizedAccent;
-        let accentUsesThemeDefault = activeAccent === null;
-        colorController.setNullableColor(accentControl, activeAccent, initialDefaultAccent);
-        const storedSurface = this.#host.getUiPrefValue('surfaceColor');
-        const normalizedSurface = normalizeSurfaceColorPreference(storedSurface);
-        const defaultSurface = readSurfaceDefault();
-        colorController.setNullableColor(surfaceControl, normalizedSurface, defaultSurface);
-
+        const syncColors = (): void => {
+            const defaultAccent = readThemeDefaultAccent();
+            const accent = normalizeAccentColorPreference(this.#host.getUiPrefValue('accentColor'));
+            colorController.setNullableColor(accentControl, accent === defaultAccent ? null : accent, defaultAccent);
+            colorController.setNullableColor(surfaceControl, normalizeSurfaceColorPreference(this.#host.getUiPrefValue('surfaceColor')), readSurfaceDefault());
+        };
+        this.#projections.push(syncColors);
+        syncColors();
+        this.#bindPreferenceValueChange(themeSelect, 'theme');
         const syncAccentPickerToThemeDefault = (): void => {
-            if (accentUsesThemeDefault) {
-                accentControl.picker.value = readThemeDefaultAccent();
-            }
+            const accent = normalizeAccentColorPreference(this.#host.getUiPrefValue('accentColor'));
+            if (accent === null || accent === readThemeDefaultAccent()) colorController.setNullableColor(accentControl, null, readThemeDefaultAccent());
         };
 
         this.#addCleanup(
             this.#host.pageResources.on(themeSelect, 'change', () => {
-                this.#host.setUiPrefValue('theme', themeSelect.value);
                 syncAccentPickerToThemeDefault();
             })
         );
@@ -109,7 +127,6 @@ class ThemeEventsController {
             this.#host.pageResources.on(accentControl.picker, 'input', () => {
                 const normalized = colorController.readRequiredColor(accentControl, normalizeAccentColorPreference, 'Accent color picker value must be a valid hex color');
                 const nextValue = normalized === readThemeDefaultAccent() ? null : normalized;
-                accentUsesThemeDefault = nextValue === null;
                 this.#host.setUiPrefValue('accentColor', nextValue);
                 colorController.setNullableColor(accentControl, nextValue, readThemeDefaultAccent());
             })
@@ -117,7 +134,6 @@ class ThemeEventsController {
 
         this.#addCleanup(
             this.#host.pageResources.on(accentControl.clearButton, 'click', () => {
-                accentUsesThemeDefault = true;
                 this.#host.setUiPrefValue('accentColor', null);
                 colorController.clearNullableColor(accentControl, readThemeDefaultAccent());
             })
@@ -127,14 +143,14 @@ class ThemeEventsController {
             this.#host.pageResources.on(surfaceControl.picker, 'input', () => {
                 const normalized = colorController.readRequiredColor(surfaceControl, normalizeSurfaceColorPreference, 'Surface color picker value must be a valid hex color');
                 this.#host.setUiPrefValue('surfaceColor', normalized);
-                colorController.setNullableColor(surfaceControl, normalized, defaultSurface);
+                colorController.setNullableColor(surfaceControl, normalized, readSurfaceDefault());
             })
         );
 
         this.#addCleanup(
             this.#host.pageResources.on(surfaceControl.clearButton, 'click', () => {
                 this.#host.setUiPrefValue('surfaceColor', null);
-                colorController.clearNullableColor(surfaceControl, defaultSurface);
+                colorController.clearNullableColor(surfaceControl, readSurfaceDefault());
             })
         );
     }
@@ -143,6 +159,16 @@ class ThemeEventsController {
         const disableAnimationsToggle = narrowInput(this.#host.pageDom.requireHTMLElement('disable-animations-toggle'), 'Disable animations toggle');
         const glassEffectsToggle = narrowInput(this.#host.pageDom.requireHTMLElement('glass-effects-toggle'), 'Glass effects toggle');
         const animationOptionsPanel = this.#host.pageDom.requireHTMLElement('animation-options-panel');
+        this.#projections.push(() => {
+            const reduced = this.#host.getUiPrefValue('reduceMotions');
+            const glass = this.#host.getUiPrefValue('glassEnabled');
+            if (typeof reduced !== 'boolean' || typeof glass !== 'boolean') throw new TypeError('Theme effect preferences must be boolean');
+            disableAnimationsToggle.checked = reduced;
+            glassEffectsToggle.checked = glass;
+            this.#updatePreferenceToggleLabel(disableAnimationsToggle, reduced);
+            this.#updatePreferenceToggleLabel(glassEffectsToggle, glass);
+            animationOptionsPanel.classList.toggle('u-hidden', reduced);
+        });
 
         this.#addCleanup(
             this.#host.pageResources.on(disableAnimationsToggle, 'change', () => {

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from core.hardware.protocols import DatabaseHardwareProtocol
     from core.types.json import JSONDict
     from hardware.manager.manager_state import HardwareManagerState
+    from hardware.vendors.amd.adl_session import AdlRuntime
 
 __all__ = (
     "DiskSpeedManagerProtocol",
@@ -53,6 +54,9 @@ class GPUProbeExecutorFactoryProtocol(Protocol):
 
 
 class GPUInfoCacheServiceProtocol(Protocol):
+    windows_gpu_enricher: Callable[[list[JSONDict]], None] | None
+    adl_monitoring_runtime: AdlRuntime | None
+
     def acquire_observation(
         self,
         cache_key: bool,

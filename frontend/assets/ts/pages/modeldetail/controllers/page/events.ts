@@ -8,8 +8,13 @@ import { WEBSOCKET_LIFECYCLE_EVENT_TYPES } from '@core/websocketEvents.ts';
 import type { PageStreamingOwnerHost } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
 import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { ModelDetailSession } from '@pages/modeldetail/state/ModelDetailSession.ts';
+import { WEBSOCKET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/registry.ts';
+import { subscribeManagedWebSocketContract } from '@core/realtime/websocketBatchSubscription.ts';
 
 interface ModelDetailRealtimeDependencies extends PageStreamingOwnerHost, PageResourcesOwnerHost {
+    signal: AbortSignal | null;
+    handleParametersChanged: (universalId: string) => void;
+    handleInvalidParametersEvent: () => void;
     handleModelUpdate: (value: JsonValue | null) => void;
     handleMetricsUpdate: (value: JsonValue | null) => void;
     handlePluginCollectionUpdate: (value: JsonValue | null) => void;
@@ -21,8 +26,8 @@ interface ModelDetailRealtimeDependencies extends PageStreamingOwnerHost, PageRe
 
 const ensureModelDetailRealtimeCollectionsReady = async (session: ModelDetailSession, host: ModelDetailRealtimeDependencies): Promise<JsonValue | null> => {
     if (!session.realtimeCollectionsInitialized) {
-        session.realtimeCollectionsInitialized = true;
         setupModelDetailRealtimeCollectionSubscriptions(host);
+        session.realtimeCollectionsInitialized = true;
     }
     if (!session.realtimeCollectionsReadyPromise) {
         session.realtimeCollectionsReadyPromise = (async () => {
@@ -41,6 +46,15 @@ const ensureModelDetailRealtimeCollectionsReady = async (session: ModelDetailSes
 };
 
 const setupModelDetailRealtimeCollectionSubscriptions = (host: ModelDetailRealtimeDependencies): void => {
+    host.pageResources.track(
+        subscribeManagedWebSocketContract({
+            label: 'ModelDetailPage',
+            contract: WEBSOCKET_EVENT_CONTRACTS.model.parametersChanged,
+            signal: host.signal,
+            handler: (event) => host.handleParametersChanged(event.universalId),
+            onInvalidPayload: host.handleInvalidParametersEvent
+        })
+    );
     const subscriptions: Array<[string, (value: JsonValue | null) => void]> = [
         [MODELS, (value: JsonValue | null) => host.handleModelUpdate(value)],
         [METRICS, (value: JsonValue | null) => host.handleMetricsUpdate(value)],

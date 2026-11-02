@@ -1,6 +1,7 @@
 /* SoAI - Plugins feature info contracts [frontend/assets/ts/features/plugins/modals/info/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
@@ -21,6 +22,7 @@ interface PluginCapabilityDescriptor {
 }
 
 interface InfoManagerHost {
+    readonly owner: PresentationOwner;
     modals: ModalPresenterApi;
     requireHTMLElement(selector: string | Element, context?: Element): HTMLElement;
     optionalHTMLElement(selector: string | Element, context?: Element): HTMLElement | null;

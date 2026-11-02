@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import math
 import os
-import time
 
 from core.bootstrap.dependency_verification import (
     record_verified_environment,
@@ -39,6 +38,7 @@ from core.system.native_runtime_probes import (
     run_native_probe,
 )
 from core.timing.constants import LONG_REQUEST_TIMEOUT_SEC
+from core.timing.epoch import epoch_seconds_float
 
 __all__ = (
     "LOCKS_PATH_ENV",
@@ -323,10 +323,6 @@ def _write_dependency_markers(*, venv_path: str, requirements_hash: str) -> None
     write_text_file_atomic(os.path.join(venv_path, REQUIREMENTS_HASH_FILENAME), requirements_hash)
     write_text_file_atomic(
         os.path.join(venv_path, DEPENDENCY_CHECK_MARKER_FILENAME),
-        str(_epoch_seconds_float()),
+        str(epoch_seconds_float()),
     )
     record_verified_environment(venv_path, requirements_hash)
-
-
-def _epoch_seconds_float() -> float:
-    return time.time()

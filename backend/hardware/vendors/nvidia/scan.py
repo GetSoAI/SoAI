@@ -36,6 +36,7 @@ from hardware.vendors.nvidia.scan_metrics.memory import read_memory_metrics
 from hardware.vendors.nvidia.scan_metrics.processes import read_processes
 from hardware.vendors.nvidia.scan_metrics.sensors import (
     read_core_clock_mhz,
+    read_fan_speed,
     read_mem_clock_mhz,
     read_power_draw_watts,
     read_power_limit_watts,
@@ -151,6 +152,7 @@ def query_nvidia_gpus(
                 )
                 gpu_data.update(
                     {
+                        "fan_speed": read_fan_speed(device_index, handle, logger=logger),
                         "memory_used_mb": memory.used_mb,
                         "memory_total_mb": memory.total_mb,
                         "memory_total_bytes": memory.total_bytes,

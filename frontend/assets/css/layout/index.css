@@ -2,6 +2,7 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @import url('./page.css') layer(layout);
+@import url('./page-panes.css') layer(layout);
 @import url('./page-outlet-overlay.css') layer(layout);
 @import url('./page-content.css') layer(layout);
 @import url('./header-shell.css') layer(layout);
@@ -18,3 +19,4 @@
 @import url('./sidebar.css') layer(layout);
 @import url('./sidebar-navigation.css') layer(layout);
 @import url('./modals.css') layer(layout);
+@import url('../overrides/page-pane-motion.css');

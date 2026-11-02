@@ -1,6 +1,38 @@
 
 # SoAI Release Notes
 
+## 1.4.2
+
+SoAI 1.4.2 adds split view for working with several pages in one window. It also reduces WebUI and backend overhead, improves GPU monitoring on Windows and Linux, and fixes settings saves, file browsing, terminal cleanup and slow update downloads.
+
+### Highlights
+
+- Open different pages side by side from the Panes button in the toolbar. Wide windows can show two panes, and very wide windows can show three. Each pane has its own navigation and scrolling. Selecting a page that is already open brings its existing pane into focus.
+- Split view adapts as you resize the window. Eligible pages are parked when space becomes limited and reopened when room returns, while unsaved work and active operations are protected from automatic replacement. Layouts can be restored after reloading, and the Panes menu lets you manage open and parked pages even in smaller windows.
+
+### Improvements
+
+- Collection updates avoid unnecessary rendering. Streamed replies, conversation history, Knowledge searches and hardware snapshots do less repeated parsing, copying and calculation.
+- Dashboard values fit the available width, and counts follow your configured regional number format. File browser breadcrumbs have more consistent typography and hover transitions.
+- Camera capture asks before discarding a captured photo and retains it when you cancel.
+
+### Fixes
+
+- Settings saves preserve edits made while a save is pending. If only part of a save succeeds, SoAI identifies the remaining unsaved fields so you can retry them. Resetting preferences refreshes the page in place and preserves newer edits.
+- Background model-parameter updates preserve unsaved values, keyboard focus and text being entered. Previously loaded parameter data is marked out of date when the connection is lost, and saving waits for valid, current parameter definitions.
+- Files refreshes directory contents without mixing pages from different listings. The existing listing stays visible during refresh, stale or unavailable data is identified, and uploads and selection are reconciled after directory changes.
+- Delayed dialogs and operation results remain tied to the page that opened them, preventing an old operation from changing a page opened later.
+- Closing Terminal tracks whether its shell has been released, including after connection loss or delayed session creation. If release cannot be confirmed, SoAI explains how to recover and blocks replacement that could leave an extra shell running.
+- Windows GPU discovery and monitoring recover missing utilization and memory readings on supported hardware, including NVIDIA utilization readings when unavailable through the primary monitoring interface. Linux AMD monitoring adds available core clock, memory clock and fan speed readings. Missing vendor readings no longer overwrite readings obtained from another current source.
+- Slow software-update downloads continue while bytes are arriving, with progress updates even between percentage changes. Update preparation no longer times out solely because an active download takes longer than the preparation timeout.
+
+Updating SoAI installs [pyasn1](https://github.com/pyasn1/pyasn1) 0.6.5, correcting ASN.1 decoding flaws that can exhaust CPU when processing crafted input: CVE-2026-119194 through CVE-2026-119197 (GHSA-fm9c-5rcf-2q5p, GHSA-9m75-vc3g-4x39, GHSA-2qm8-x737-gmw5 and GHSA-mm57-4v3p-rchx). The fixes cover constructed strings, binary real numbers and containers decoded without a schema. Exposure through SoAI has not been established.
+
+### Plugin updates
+
+- vLLM plugin 1.1.4 reduces repeated processing of streamed replies and saved inference parameters.
+- External plugin 1.0.4 reduces repeated work when refreshing provider model lists.
+
 ## 1.4.1
 
 SoAI 1.4.1 adds search within conversations and downloadable log archives. It also keeps Chat libraries current automatically, reduces startup and WebUI overhead, and fixes attachment handling, camera capture, model settings, and scrolling.

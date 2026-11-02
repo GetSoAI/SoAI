@@ -11,6 +11,7 @@ import { resolveKernelService, resolveOptionalKernelService } from '@core/runtim
 import { isArray, isFunction, isString, isThenable } from '@core/typeGuards.ts';
 import { createLayoutFrameManager } from '@core/primitives/layoutFrameManager.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { createGlobalPresentationOwner } from '@core/presentationOwner.ts';
 import { defineHeaderActions } from '@core/layout/header/actions.ts';
 import { createHeaderControllerBundle } from '@core/layout/header/adapters.ts';
 import { isSidebarService, isStorageService } from '@core/layout/header/contracts.ts';
@@ -23,6 +24,7 @@ import type { HeaderControllers, HeaderEscapableValue, HeaderServiceGuard, Heade
 import { LOG_ID, SHORT_LOG_ID } from '@core/layout/header/HeaderSupport.ts';
 import type { TelemetryValue } from '@core/telemetry/contracts.ts';
 class LayoutHeader extends LifecycleModel {
+    readonly #presentationOwner = createGlobalPresentationOwner('header');
     readonly icons: IconsService;
     readonly controllers: HeaderControllers;
     readonly hiddenClass: string;
@@ -110,7 +112,7 @@ class LayoutHeader extends LifecycleModel {
     override async onInitialize(): Promise<void> {
         await this.lifecycleResources.cleanup();
         this.resetCaches();
-        defineHeaderActions();
+        defineHeaderActions(this.#presentationOwner);
         this.#actionEventDisposers = bindHeaderActionBridge({ on: (target, eventName, handler) => this.lifecycleResources.addEventListener(target, eventName, handler), getEventHubTarget: () => this.getEventHubTarget() });
         this.#layoutFrameManager = createLayoutFrameManager();
         this.#storageService = this.resolveService('core.storage', isStorageService, 'Header storage');
@@ -234,7 +236,7 @@ class LayoutHeader extends LifecycleModel {
         getBranding().updateAllLogos();
     }
     applyLocalization(): void {
-        defineHeaderActions();
+        defineHeaderActions(this.#presentationOwner);
         applyHeaderLocalization({ controllers: this.controllers, controllerOrder: this.#controllerOrder, getDom: (key) => this.getDom(key) });
     }
     private async handleLogout(): Promise<void> {
@@ -244,7 +246,7 @@ class LayoutHeader extends LifecycleModel {
             }
             return this.#resolveService(serviceId, guard, label);
         };
-        await handleHeaderLogout({ resolveService: resolveHeaderService });
+        await handleHeaderLogout({ owner: this.#presentationOwner, resolveService: resolveHeaderService });
     }
     setClockFormat(format: ClockFormat): void {
         const normalized: ClockFormat = format === '12h' ? '12h' : '24h';

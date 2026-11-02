@@ -84,11 +84,11 @@ class BoundedCollectionRenderer<TItem> {
         if (this.#disposed || signal?.aborted === true) return false;
         const targetIndex = this.#ids.indexOf(identifier);
         if (targetIndex < 0) return false;
-        const dirtyIds = this.#activeBuild?.dirtyIds ?? new Set<string>();
+        const activeBuild = this.#activeBuild;
+        const dirtyIds = activeBuild?.dirtyIds ?? new Set<string>();
         this.#supersede();
-        const total = this.#ids.length;
         const result = this.#reveals.begin(this.#generation, signal, () => this.#supersede());
-        if (!this.#scheduleBuild((policy) => createTargetRange(targetIndex, total, policy), dirtyIds, null, false, identifier, null, { ids: this.#ids, lookup: this.#lookup }, false, false, options.focusOwner ?? 'renderer')) this.#reveals.settle(false);
+        if (!this.#scheduleBuild((policy) => createTargetRange(targetIndex, this.#ids.length, policy), dirtyIds, null, false, identifier, null, { ids: activeBuild?.previousIds ?? this.#ids, lookup: activeBuild?.previousLookup ?? this.#lookup }, false, activeBuild?.animateLayout === true, options.focusOwner ?? 'renderer')) this.#reveals.settle(false);
         return await result;
     }
 
@@ -230,7 +230,7 @@ class BoundedCollectionRenderer<TItem> {
         const motion = build.animateLayout ? captureReorderMotion(build.container, (element) => element.dataset['collectionId'] ?? this.#options.resolveItemIdentifier(element), build.previousIds) : null;
         let commitFailure: Error | null = null;
         try {
-            commitPlannedNodes(build);
+            commitPlannedNodes(build, this.#options.mountedItemState);
         } catch (error) {
             commitFailure = ensureError(error);
         }

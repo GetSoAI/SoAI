@@ -1,6 +1,7 @@
 /* SoAI - Wizard service contracts [frontend/assets/ts/pages/wizard/services/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { WizardCompletionResult } from '@core/auth/public.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { WizardState, WizardStepId } from '@features/wizard/public.ts';
@@ -66,6 +67,7 @@ interface WizardCompletionPort {
 }
 
 interface WizardPageServiceHost {
+    readonly owner: PresentationOwner;
     view: WizardViewPort;
     data: WizardDataPort;
     completion: WizardCompletionPort;

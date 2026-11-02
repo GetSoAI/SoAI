@@ -5,7 +5,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { MODAL_HEADER_CLOSE_SELECTOR } from '@core/modals/headerButtons.ts';
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
@@ -65,7 +65,7 @@ const manageBackendModalDefinition: ModalDefinition = Object.freeze({
     id: MANAGE_BACKEND_MODAL_ID,
     layout: 'md',
     initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-    createElement: (_options: ModalOpenOptions): HTMLElement => createBackendModalElement()
+    createElement: (_options: ModalCreationOptions): HTMLElement => createBackendModalElement()
 });
 
 export { MANAGE_BACKEND_MODAL_ID, manageBackendModalDefinition };

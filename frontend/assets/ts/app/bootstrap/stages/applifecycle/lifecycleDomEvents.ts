@@ -7,7 +7,7 @@ import { dom } from '@core/dom/dom.ts';
 import { getElementByIdStrict, getEventHub, requireDocument } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import { getHeaderActions } from '@core/headeractions/public.ts';
+import { hasNavigationLossProtection, registerBeforeUnloadPrompt } from '@core/navigationGuards.ts';
 import { isPageTerminating } from '@core/lifecycle/pageTermination.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
@@ -22,15 +22,7 @@ interface SetupLifecycleEventListenersOptions {
 }
 
 const setupLifecycleEventListeners = ({ tracker, taskManager, state, recoverFreshInstallSession }: SetupLifecycleEventListenersOptions): void => {
-    tracker.addEventListener(window, 'beforeunload', (event) => {
-        if (!(event instanceof BeforeUnloadEvent)) return;
-        const actions = getHeaderActions().snapshot.actions;
-        const hasUnsaved = actions.find((action) => action.id === 'save')?.visible === true;
-        if (!hasUnsaved) return;
-        const warning = i18n.t('settings.unsavedChanges');
-        event.preventDefault();
-        event.returnValue = warning;
-    });
+    tracker.track(registerBeforeUnloadPrompt({ hasUnsavedChanges: hasNavigationLossProtection, getMessage: () => i18n.t('settings.unsavedChanges') }));
 
     const documentRef = requireDocument();
     tracker.addEventListener(documentRef, 'visibilitychange', () => {
@@ -43,7 +35,9 @@ const setupLifecycleEventListeners = ({ tracker, taskManager, state, recoverFres
         if (!toggle) return;
         const id = dom.getData(toggle, 'toggle');
         if (!isString(id) || !id) return;
-        const section = getElementByIdStrict(id);
+        const ownerRoot = toggle.closest('[data-page-outlet-root="true"], .modal');
+        const section = ownerRoot ? dom.resolve(`#${id}`, ownerRoot) : getElementByIdStrict(id);
+        if (!(section instanceof HTMLElement)) throw new Error(`Toggle target is missing from its owner: ${id}`);
         const isVisible = !dom.hasClass(section, 'u-hidden') && section.offsetParent !== null;
         state.toggleHidden(section, isVisible);
         dom.toggleClass(toggle, 'is-active', !isVisible);

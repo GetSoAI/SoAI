@@ -1,6 +1,7 @@
 /* SoAI - Frontend terminal WebSocket event contracts [frontend/assets/ts/core/realtime/eventcontracts/terminalContracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { requireMutationRequestId } from '@core/mutations/mutationIdentity.ts';
 import { defineWebSocketEventContract } from '@core/realtime/eventcontracts/contracts.ts';
 import type { OpaqueJsonObject } from '@core/api/contracts/opaquePayload.ts';
 import { readRequiredBooleanValue, readRequiredStringValue, readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
@@ -9,7 +10,13 @@ import { requireRecord } from '@core/types/payloadRecordReaders.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { WEBSOCKET_EVENT_TYPES } from '@core/websocketEvents.ts';
 
+interface PtyAcquisitionIdentity {
+    runtimeId: string;
+    acquisitionId: string;
+}
+
 interface PtyConnectedEvent {
+    identity: PtyAcquisitionIdentity | null;
     sessionId: string;
     shell: string;
     columns: number;
@@ -43,11 +50,24 @@ interface PtyErrorEvent {
     details: OpaqueJsonObject | null;
 }
 
+const decodeIdentity = (record: Record<string, JsonValue>): PtyAcquisitionIdentity => ({
+    runtimeId: requireMutationRequestId(readRequiredTrimmedStringValue(record['runtime_id'], 'PTY runtime identity')),
+    acquisitionId: requireMutationRequestId(readRequiredTrimmedStringValue(record['acquisition_id'], 'PTY acquisition identity'))
+});
+
+const decodeOptionalIdentity = (record: Record<string, JsonValue>): PtyAcquisitionIdentity | null => (record['runtime_id'] === undefined && record['acquisition_id'] === undefined ? null : decodeIdentity(record));
+
+const decodeRuntime = (payload: JsonValue): string | null => {
+    const record = requireRecord(payload, 'Terminal runtime');
+    return record['runtime_id'] === null || record['runtime_id'] === '' ? null : requireMutationRequestId(readRequiredTrimmedStringValue(record['runtime_id'], 'Terminal runtime identity'));
+};
+
 const requireSessionId = (record: Record<string, JsonValue>, label: string): string => readRequiredTrimmedStringValue(record['session_id'], `${label}.session_id`);
 
 const decodeConnected = (payload: JsonValue): PtyConnectedEvent => {
     const record = requireRecord(payload, 'PTY connected event');
     return {
+        identity: decodeOptionalIdentity(record),
         sessionId: requireSessionId(record, 'PTY connected event'),
         shell: readRequiredTrimmedStringValue(record['shell'], 'PTY connected event.shell'),
         columns: readRequiredPositiveIntegerValue(record['cols'], 'PTY connected event.cols'),
@@ -89,6 +109,8 @@ const decodeError = (payload: JsonValue): PtyErrorEvent => {
 };
 
 const TERMINAL_EVENT_CONTRACTS = Object.freeze({
+    runtime: defineWebSocketEventContract(WEBSOCKET_EVENT_TYPES.TERMINAL_RUNTIME, decodeRuntime),
+    released: defineWebSocketEventContract(WEBSOCKET_EVENT_TYPES.PTY_RELEASED, (payload) => decodeIdentity(requireRecord(payload, 'PTY release'))),
     connected: defineWebSocketEventContract(WEBSOCKET_EVENT_TYPES.PTY_CONNECTED, decodeConnected),
     output: defineWebSocketEventContract(WEBSOCKET_EVENT_TYPES.PTY_OUTPUT, decodeOutput),
     exited: defineWebSocketEventContract(WEBSOCKET_EVENT_TYPES.PTY_EXITED, decodeExited),
@@ -98,4 +120,4 @@ const TERMINAL_EVENT_CONTRACTS = Object.freeze({
 });
 
 export { TERMINAL_EVENT_CONTRACTS };
-export type { PtyBusyEvent, PtyConnectedEvent, PtyDisconnectedEvent, PtyErrorEvent, PtyExitedEvent, PtyOutputEvent };
+export type { PtyAcquisitionIdentity, PtyBusyEvent, PtyConnectedEvent, PtyDisconnectedEvent, PtyErrorEvent, PtyExitedEvent, PtyOutputEvent };

@@ -4,6 +4,8 @@
 import { dom } from '@core/dom/dom.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
+import { scheduleRequiredRender } from '@core/runtime/animationFrames.ts';
+import { PANE_RELAYOUT_EVENT } from '@core/layout/paneRelayout.ts';
 import type { MovableSectionId, MovableSectionLayoutContext } from '@core/routing/pages/movablesections/types.ts';
 import { AutoScroller } from '@core/ui/AutoScroller.ts';
 import { GridAnimator } from '@core/ui/GridAnimator.ts';
@@ -52,6 +54,25 @@ const initializeMovableSectionRuntimeBindings = <TSectionId extends MovableSecti
     const responsiveHandler = (): void => target.updateResponsiveLayout();
     target.responsiveDisposers.push(target.host.on(windowRef, 'resize', responsiveHandler));
     target.responsiveDisposers.push(target.host.on(windowRef, INTERFACE_SCALE_CHANGED_EVENT, responsiveHandler));
+    target.responsiveDisposers.push(target.host.on(windowRef, PANE_RELAYOUT_EVENT, responsiveHandler));
+    let observedWidth = target.gridElement.clientWidth;
+    let cancelWidthFrame: (() => void) | null = null;
+    const widthObserver = new windowRef.ResizeObserver((): void => {
+        const width = target.gridElement?.clientWidth ?? observedWidth;
+        if (width === observedWidth) return;
+        observedWidth = width;
+        if (cancelWidthFrame !== null) return;
+        cancelWidthFrame = scheduleRequiredRender(() => {
+            cancelWidthFrame = null;
+            responsiveHandler();
+        });
+    });
+    widthObserver.observe(target.gridElement);
+    target.responsiveDisposers.push(() => {
+        widthObserver.disconnect();
+        cancelWidthFrame?.();
+        cancelWidthFrame = null;
+    });
     target.gridAnimator = new GridAnimator({
         gridElement: target.gridElement,
         getSections: (container: HTMLElement): HTMLElement[] => {

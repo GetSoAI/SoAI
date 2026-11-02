@@ -42,7 +42,8 @@ abstract class BasePage {
         const name = normalizePageIdentifier(pageId, constructorName);
         this.#pageId = name;
         this.pageHost = new PageHost(name);
-        this.pageContext = pageContext ?? new PageContext({ pageId: name });
+        this.pageContext = pageContext ?? new PageContext({ pageId: name, presentationOwner: dependencies.mountScope });
+        if (this.pageContext.presentationOwner !== dependencies.mountScope) throw new Error('Page context must capture its mount owner');
         this.dependencies = dependencies;
         this.feedback = new PageFeedback(name, this.pageContext);
         this.pageResources = new PageResources();
@@ -57,6 +58,7 @@ abstract class BasePage {
             pageHost: this.pageHost,
             resources: this.pageResources,
             router: dependencies.router,
+            mountScope: dependencies.mountScope,
             storage: dependencies.storage
         });
         this.services = foundation.services;

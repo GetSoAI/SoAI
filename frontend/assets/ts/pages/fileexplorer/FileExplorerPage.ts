@@ -72,9 +72,11 @@ class FileExplorerPage extends StaticBasePage {
         const modalPresenter = requireModalPresenter();
         this.#runtime = createFileExplorerPageRuntime(
             {
+                owner: this.pageContext.presentationOwner,
                 api: this.dependencies.api,
                 storage: this.dependencies.storage,
                 pageLifecycle: this.pageLifecycle,
+                streaming: this.streaming,
                 pageDom: this.pageDom,
                 feedback: this.feedback,
                 services: this.services,
@@ -309,7 +311,7 @@ class FileExplorerPage extends StaticBasePage {
         this.pageLifecycle.abortListeners('file-explorer-destroy');
         this.#pathEditController?.dispose();
         this.#pathEditController = null;
-        this.#runtime?.destroy();
+        await this.#runtime?.destroy();
         this.#runtime = null;
         this.#initialSortState = null;
     }

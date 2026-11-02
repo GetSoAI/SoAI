@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import re
 
 from core.errors.exceptions import StateError, ValidationError
 from core.filesystem.open_files import open_text
@@ -12,7 +13,11 @@ from core.hardware.gpu_settings_contract import GPU_DIRECT_SETTING_FIELDS
 from core.system.protocols import CommandExecutorProtocol
 from core.types.json import JSONDict
 from hardware.gpu_inventory.drm_physical_observations import parse_drm_uevent
-from hardware.gpu_inventory.sysfs_metrics import read_hwmon_scaled, read_sysfs_metric
+from hardware.gpu_inventory.sysfs_metrics import (
+    read_hwmon_scaled,
+    read_sysfs_metric,
+    read_sysfs_text,
+)
 from hardware.vendors.amd.radeon_memory import read_radeon_memory_capacity
 from hardware.vendors.amd.radeontop_telemetry import read_radeontop_telemetry
 
@@ -115,6 +120,25 @@ def _read_device_telemetry(device_path: str) -> JSONDict:
     capacity = read_sysfs_metric(os.path.join(device_path, "mem_info_vram_total"))
     if capacity is not None and capacity > 0 and capacity.is_integer():
         telemetry["memory_total_bytes"] = int(capacity)
+    for sensor, state_file, field in (
+        ("freq1_input", "pp_dpm_sclk", "core_clock_mhz"),
+        ("freq2_input", "pp_dpm_mclk", "mem_clock_mhz"),
+    ):
+        frequency = read_hwmon_scaled(device_path, sensor, divisor=1_000_000.0)
+        if frequency is None:
+            states = read_sysfs_text(os.path.join(device_path, state_file))
+            active = (
+                re.findall(r"^\s*[0-9]+:\s*([0-9]+)Mhz\s*\*\s*$", states, re.MULTILINE)
+                if states is not None
+                else []
+            )
+            if len(active) == 1:
+                frequency = float(active[0])
+        if frequency is not None and frequency >= 0:
+            telemetry[field] = frequency
+    fan_rpm = read_hwmon_scaled(device_path, "fan1_input", divisor=1.0)
+    if fan_rpm is not None and fan_rpm >= 0:
+        telemetry["fan_rpm"] = fan_rpm
     return telemetry
 
 

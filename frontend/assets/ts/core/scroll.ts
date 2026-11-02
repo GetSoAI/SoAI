@@ -8,9 +8,10 @@ import { cancelScrollRestore } from '@core/dom/state.ts';
 import { getMatchMedia, getScrollTo, getWindow } from '@core/environment/public.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { createGlobalPresentationOwner } from '@core/presentationOwner.ts';
 import { createHeaderActionController, type HeaderActionController } from '@core/headerActionBus.ts';
 import { HEADER_ACTION_IDS } from '@core/headeractions/constants.ts';
-import { onNavigationComplete, onNavigationStart } from '@core/navigationEvents.ts';
+import { onFocusedNavigation } from '@core/navigationEvents.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import { throttle } from '@core/primitives/timing.ts';
@@ -71,6 +72,8 @@ const scrollElementToScrollerCenter = (scroller: HTMLElement, target: HTMLElemen
 };
 
 class ScrollToTop {
+    readonly #presentationOwner = createGlobalPresentationOwner('ScrollToTop');
+    readonly #readContentRoot: () => Element | null;
     threshold: number;
     isVisible: boolean;
     isMobile: boolean;
@@ -84,7 +87,8 @@ class ScrollToTop {
     mediaQueryListenerAttached: boolean;
     modalListenersAttached: boolean;
 
-    constructor() {
+    constructor(readContentRoot: () => Element | null) {
+        this.#readContentRoot = readContentRoot;
         this.threshold = 300;
         this.isVisible = false;
         this.isMobile = false;
@@ -96,6 +100,7 @@ class ScrollToTop {
             this.scrollToTop();
         };
         this.actionController = createHeaderActionController({
+            owner: this.#presentationOwner,
             actionId: HEADER_ACTION_IDS.scrollToTop,
             contextId: this.actionContextId
         });
@@ -125,10 +130,13 @@ class ScrollToTop {
         if (this.navigationUnsubscribe) {
             return;
         }
-        const startUnsubscribe = onNavigationStart(() => {
-            this.hideButton();
-        });
-        const completeUnsubscribe = onNavigationComplete(() => {
+        const startUnsubscribe = onFocusedNavigation(
+            () => {
+                this.hideButton();
+            },
+            { phase: 'start' }
+        );
+        const completeUnsubscribe = onFocusedNavigation(() => {
             this.hideButton();
             if (!this.isMobile) {
                 this.resources.requestAnimationFrame(() => {
@@ -191,8 +199,9 @@ class ScrollToTop {
 
         this.cleanupDetachedElements();
 
-        const documentRef = dom.getDocument();
-        resolveAll('.page-scrollable', documentRef).forEach((element: Element) => {
+        const content = this.#readContentRoot();
+        if (!content) return;
+        resolveAll('.page-scrollable', content).forEach((element: Element) => {
             if (!(element instanceof HTMLElement)) {
                 errorHandler.warn('Scroll', 'Expected .page-scrollable to resolve to an HTMLElement', element);
                 return;
@@ -207,7 +216,8 @@ class ScrollToTop {
 
     getTrackedScrollableElements(): HTMLElement[] {
         this.cleanupDetachedElements();
-        return Array.from(this.scrollableElements);
+        const content = this.#readContentRoot();
+        return Array.from(this.scrollableElements).filter((element) => content?.contains(element));
     }
 
     checkMobileState(): void {
@@ -308,9 +318,9 @@ class ScrollToTop {
 
 let scrollModuleInstance: ScrollToTop | null = null;
 
-const getScrollModule = (): ScrollToTop => {
+const getScrollModule = (readContentRoot: () => Element | null): ScrollToTop => {
     if (!scrollModuleInstance) {
-        scrollModuleInstance = new ScrollToTop();
+        scrollModuleInstance = new ScrollToTop(readContentRoot);
     }
     return scrollModuleInstance;
 };

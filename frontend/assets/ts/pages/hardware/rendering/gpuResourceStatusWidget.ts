@@ -59,8 +59,8 @@ const renderMessages = (messages: readonly string[]): TrustedHtml => {
     return joinUiHtml(messages.map((message) => uiHtml`<p class="hardware-gpu-resource-status__message">${message}</p>`));
 };
 
-const renderGpuResourceStatus = (documentRef: Document, state: HardwareGpuResourceState, permitted: boolean, getIconSync: GpuResourceStatusIconFactory): void => {
-    const element = dom.resolve('#hardware-gpu-resource-status', documentRef);
+const renderGpuResourceStatus = (root: Element, state: HardwareGpuResourceState, permitted: boolean, getIconSync: GpuResourceStatusIconFactory): void => {
+    const element = dom.resolve('#hardware-gpu-resource-status', root);
     if (!element) return;
     const messages = permitted ? collectMessages(state, Date.now()) : [];
     element.classList.toggle('u-hidden', messages.length === 0);

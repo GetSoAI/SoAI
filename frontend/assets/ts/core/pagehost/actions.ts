@@ -6,8 +6,10 @@ import type { ErrorHandler } from '@core/errorHandler.ts';
 import { isPageOutletSlot, removeNonPageOutletSlotNodes } from '@core/pageoutlet/slots.ts';
 import { EMPTY_UI_HTML } from '@core/security/uiHtml.ts';
 import { isFunction, isHTMLElement, isObject, isString } from '@core/typeGuards.ts';
-import type { CleanupMethodName, PageHostDomApi, PageInstance } from '@core/pagehost/types.ts';
+import type { JsonObject } from '@core/types/jsonValues.ts';
+import type { CleanupMethodName, PageHostDomApi, PageInstance, PreparedPageState } from '@core/pagehost/types.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { blockPageContentInput } from '@core/layout/pageContentInteractivity.ts';
 
 const resolveDom = (): PageHostDomApi | null => dom;
 
@@ -100,18 +102,64 @@ const createPreparedPageContainer = (container: HTMLElement): HTMLElement => {
     return preparedContainer;
 };
 
-const commitPreparedPageContainer = (container: HTMLElement, preparedContainer: HTMLElement): HTMLElement => {
+interface PageContainerBindings {
+    previous: PageInstance | null;
+    incoming: PageInstance;
+    commit?: () => void;
+    rollback?: () => void;
+}
+
+class PageContainerRollbackError extends AggregateError {
+    readonly inputAdmissions: readonly (() => void)[];
+    constructor(errors: readonly Error[], message: string, inputAdmissions: readonly (() => void)[] = []) {
+        super(errors, message);
+        this.inputAdmissions = inputAdmissions;
+    }
+}
+
+const commitPreparedPageContainer = (container: HTMLElement, preparedContainer: HTMLElement, bindings?: PageContainerBindings): HTMLElement => {
     const previousContainer = createPreparedPageContainer(container);
     const previousNodes = Array.from(container.childNodes).filter((node) => !isPageOutletSlot(node));
     const preparedNodes = Array.from(preparedContainer.childNodes).filter((node) => !isPageOutletSlot(node));
     const firstSlot = Array.from(container.childNodes).find(isPageOutletSlot) ?? null;
+    const previousActivePage = container.dataset['activePage'];
+    let publicationAttempted = false;
+    const inputAdmissions: (() => void)[] = [];
+    let retainInputAdmission = false;
     try {
+        for (const node of previousNodes) if (node instanceof Element) inputAdmissions.push(blockPageContentInput(node));
         previousNodes.forEach((node) => previousContainer.append(node));
         preparedNodes.forEach((node) => container.insertBefore(node, firstSlot));
+        if (bindings?.previous) prepareInstance(bindings.previous, previousContainer);
+        if (bindings) prepareInstance(bindings.incoming, container);
+        publicationAttempted = true;
+        bindings?.commit?.();
     } catch (error) {
-        preparedNodes.forEach((node) => preparedContainer.append(node));
-        previousNodes.forEach((node) => container.insertBefore(node, firstSlot));
+        const failures: Error[] = [];
+        const restore = (operation: () => void): void => {
+            try {
+                operation();
+            } catch (failure) {
+                failures.push(ensureError(failure));
+            }
+        };
+        for (const node of preparedNodes) restore(() => preparedContainer.append(node));
+        for (const node of previousNodes) restore(() => container.insertBefore(node, firstSlot));
+        if (bindings?.previous)
+            restore(() => {
+                if (bindings.previous) prepareInstance(bindings.previous, container);
+            });
+        if (bindings) restore(() => prepareInstance(bindings.incoming, preparedContainer));
+        if (publicationAttempted && bindings?.rollback) restore(bindings.rollback);
+        if (previousActivePage === undefined) delete container.dataset['activePage'];
+        else container.dataset['activePage'] = previousActivePage;
+        if (failures.length) {
+            retainInputAdmission = true;
+            throw new PageContainerRollbackError([ensureError(error), ...failures], 'Page container restoration incomplete', inputAdmissions);
+        }
         throw ensureError(error);
+    } finally {
+        if (!retainInputAdmission) for (const release of inputAdmissions) release();
     }
     const activePage = preparedContainer.dataset['activePage'];
     if (activePage) {
@@ -122,4 +170,27 @@ const commitPreparedPageContainer = (container: HTMLElement, preparedContainer: 
     return previousContainer;
 };
 
-export { commitPreparedPageContainer, createPreparedPageContainer, prepareContainer, prepareInstance, resolveContainer, resolveDom, runCleanupMethods };
+const initializePreparedPage = async (prepared: PreparedPageState, parameters: JsonObject, isCurrent: () => boolean): Promise<void> => {
+    const { instance } = prepared;
+    if (!isFunction(instance.initialize)) {
+        throw new Error('Page instance missing initialize method');
+    }
+    await Promise.resolve(instance.initialize(parameters));
+    if (!isCurrent()) {
+        return;
+    }
+    let preparedTask: Promise<void> = Promise.resolve();
+    let viewReadyTask: Promise<void> = Promise.resolve();
+    let dataReadyTask: Promise<void> = Promise.resolve();
+    if (instance.pageLifecycle) {
+        preparedTask = Promise.resolve(instance.pageLifecycle.whenReady({ waitForReveal: false }));
+        viewReadyTask = Promise.resolve(instance.pageLifecycle.whenReady({ waitForData: false }));
+        dataReadyTask = Promise.resolve(instance.pageLifecycle.whenReady({ waitForData: true }));
+    }
+    prepared.preparedPromise = preparedTask;
+    prepared.viewReadyPromise = viewReadyTask;
+    prepared.dataReadyPromise = dataReadyTask;
+    prepared.isPreparationComplete = true;
+};
+
+export { initializePreparedPage, commitPreparedPageContainer, createPreparedPageContainer, PageContainerRollbackError, prepareContainer, prepareInstance, resolveContainer, resolveDom, runCleanupMethods };

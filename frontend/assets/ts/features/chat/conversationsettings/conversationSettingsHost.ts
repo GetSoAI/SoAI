@@ -1,6 +1,7 @@
 /* SoAI - Chat feature conversation settings host [frontend/assets/ts/features/chat/conversationsettings/conversationSettingsHost.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { ElementOptions } from '@core/dom/dom.ts';
 import type { SetUIValueOptions } from '@core/routing/pages/pagetypes/public.ts';
@@ -111,6 +112,7 @@ interface ConversationSettingsWorkflowPort {
 }
 
 interface ConversationSettingsHost {
+    readonly owner: PresentationOwner;
     view: ConversationSettingsDomPort;
     data: ConversationSettingsDataPort;
     rag: ConversationSettingsRagPort;

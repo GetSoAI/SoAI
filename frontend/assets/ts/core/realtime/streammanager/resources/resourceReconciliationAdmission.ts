@@ -1,6 +1,7 @@
 /* SoAI - Reentrant-safe resource reconciliation admission [frontend/assets/ts/core/realtime/streammanager/resources/resourceReconciliationAdmission.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { LifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
 import { createAbortError } from '@core/errors/abort.ts';
 import type { ResourceAttemptQueue } from '@core/realtime/streammanager/resources/resourceReconciliationQueue.ts';
 import type { QueuedResourceAttempt, ResourceAttempt, ResourceAttemptExecutor, ResourceReconcileOptions, ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
@@ -53,7 +54,7 @@ const admitResourceReconciliation = (admission: ResourceReconciliationAdmission)
     if (admission.isInMaintenance()) return Promise.reject(new Error(`Resource ${admission.name} is in maintenance`));
     if (admission.options.signal?.aborted) return Promise.reject(createAbortError());
     const acceptedSnapshot = admission.getSnapshot();
-    if (acceptedSnapshot.status === 'disconnected') return Promise.reject(new Error(`Resource ${admission.name} disconnected`));
+    if (acceptedSnapshot.status === 'disconnected') return Promise.reject(new LifecycleCancellationError(`Resource ${admission.name} disconnected`, 'resource-disconnected'));
     const source = admission.options.source ?? 'fetch';
     admission.setRecoveryTemplate({ source, executor: admission.executor });
     if (!admission.options.force && acceptedSnapshot.status === 'ready') return Promise.resolve(acceptedSnapshot.value);
@@ -86,7 +87,7 @@ const admitResourceReconciliation = (admission: ResourceReconciliationAdmission)
         return waiter;
     }
     if (snapshot.status === 'disconnected') {
-        admission.waiters.reject(new Error(`Resource ${admission.name} disconnected`), targetRevision);
+        admission.waiters.reject(new LifecycleCancellationError(`Resource ${admission.name} disconnected`, 'resource-disconnected'), targetRevision);
         return waiter;
     }
     if (selection.startsImmediately) {

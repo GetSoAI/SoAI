@@ -107,7 +107,7 @@ class InfoManager {
             capabilityDescriptors
         );
         this.#host.updateHTML(container, content);
-        this.#host.modals.open(this.modalId);
+        this.#host.modals.open(this.modalId, { owner: this.#host.owner });
     };
 }
 

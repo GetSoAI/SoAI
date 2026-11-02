@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ensureError } from '@core/errors/coerce.ts';
-import type { Router } from '@core/routing/router/Router.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
 import { FILTER_TYPES, isOhlcChartType } from '@features/charts/public.ts';
 import { METRIC_CONFIG, type SoAIBenchHistoryPagePanel, type SoAIBenchRunModal, type SystemInfoModal } from '@features/hardware/public.ts';
@@ -132,7 +132,7 @@ class HardwareInteractionController {
         this.ui = null;
     }
 
-    applySelectionFromQuery(router: Pick<Router, 'getQueryParameters'>): boolean {
+    applySelectionFromQuery(router: Pick<PageRouting, 'getQueryParameters'>): boolean {
         const selection = getSelectionFromQuery(router, METRIC_CONFIG);
         if (!selection) return false;
         const preferredMetric = selection.metric ?? getDefaultMetricForDevice(selection.component, METRIC_CONFIG);

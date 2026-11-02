@@ -59,5 +59,12 @@ const createInitialWizardState = (): WizardState => {
     };
 };
 
-export { createInitialWizardState };
+const resolveWizardResumeIndex = (state: Pick<WizardState, 'status' | 'steps'>): number => {
+    const status = state.status;
+    if (status === null || (status.draftRevision === 0 && status.licenseAcceptedAtMs === null)) return 0;
+    const index = state.steps.indexOf(status.resumeStep);
+    return index < 0 ? 0 : index;
+};
+
+export { createInitialWizardState, resolveWizardResumeIndex };
 export type { AiSetupWizardStepId, WizardState, WizardStepId };

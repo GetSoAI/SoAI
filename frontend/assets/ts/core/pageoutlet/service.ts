@@ -2,24 +2,23 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { errorHandler } from '@core/errorHandler.ts';
-import { i18n } from '@core/i18n/index.ts';
 import { isPageRegistry } from '@core/pagehost/guards.ts';
 import type { PageInstance, PageRegistry } from '@core/pagehost/types.ts';
 import { PageHost } from '@core/pagehost/service.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { isFunction, isString } from '@core/typeGuards.ts';
-import { awaitCommitWindow, awaitStageWithTimeout, runPageOutletRenderHook, runPreNavigationCleanup } from '@core/pageoutlet/actions.ts';
+import { awaitStageWithTimeout, runPageOutletRenderHook } from '@core/pageoutlet/actions.ts';
 import { PAGE_OUTLET_RENDER_STAGES, READY_TIMEOUT_MS } from '@core/pageoutlet/constants.ts';
 import { requirePageOutletContainer, resolveContainer } from '@core/pageoutlet/dom.ts';
 import { completePageOutletRender } from '@core/pageoutlet/renderCompletion.ts';
-import { reportPageOutletRenderFailure } from '@core/pageoutlet/renderFailure.ts';
+import { PageOutletCleanupError, reportPageOutletRenderFailure } from '@core/pageoutlet/renderFailure.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { type PageHostInstance, type PageOutletConstructorOptions, type PageOutletDestroyOptions, type PageOutletEventEmitter, type PageOutletRenderOptions } from '@core/pageoutlet/types.ts';
 import { PageOutletOverlayController } from '@core/pageoutlet/overlayController.ts';
 import { PageOutletVisualTransaction } from '@core/pageoutlet/visualTransaction.ts';
-import { isAbortError } from '@core/errors/abort.ts';
-import { createDeferred } from '@core/runtime/deferred.ts';
+import { isAbortError, raceWithAbortSignal } from '@core/errors/abort.ts';
 import { PageOutletRenderOwnership } from '@core/pageoutlet/renderOwnership.ts';
+import { removeNonPageOutletSlotNodes } from '@core/pageoutlet/slots.ts';
 
 class PageOutlet {
     #resources = new ResourceTracker();
@@ -28,15 +27,10 @@ class PageOutlet {
     #renderOwnership = new PageOutletRenderOwnership();
     #emitEvent: PageOutletEventEmitter | null;
     #pageRegistry: PageRegistry | null;
-    #onPreservedPageFailure: (() => void) | null;
+    #onPreservedPageFailure: ((error: Error) => void) | null;
     #overlayController: PageOutletOverlayController;
     #visualTransaction: PageOutletVisualTransaction;
-    #readyTimeout: number;
-    #commitToken: symbol | null = null;
-    #commitCompletion: Promise<void> | null = null;
-    #supersededPage: PageInstance | null = null;
-    #settleSupersededNavigation: (() => void) | null = null;
-    constructor({ emitEvent = null, onPreservedPageFailure = null, onRetry = null, pageRegistry = null, spinnerWorkerUrl }: PageOutletConstructorOptions = {}) {
+    constructor({ emitEvent = null, onPreservedPageFailure = null, onRetry = null, pageRegistry = null, spinnerWorkerUrl, onStateChanged }: PageOutletConstructorOptions = {}) {
         this.#container = null;
         this.#pageHost = null;
         this.#emitEvent = isFunction(emitEvent) ? emitEvent : null;
@@ -48,17 +42,17 @@ class PageOutlet {
         this.#overlayController = new PageOutletOverlayController({
             resources: this.#resources,
             spinnerWorkerUrl,
-            clearSkeleton: () => this.clearSkeleton()
+            onStateChanged
         });
         this.#visualTransaction = new PageOutletVisualTransaction({
             resources: this.#resources,
             setReady: () => this.#overlayController.setState('ready'),
+            restoreState: () => this.#overlayController.restoreSettledState(),
             showLoading: (label, detail, delayed) => {
                 this.#overlayController.setState('loading', { label, detail, delayed });
             }
         });
         this.#overlayController.setRetryHandler(isFunction(onRetry) ? onRetry : null);
-        this.#readyTimeout = READY_TIMEOUT_MS;
     }
     #isActiveRender = (token: symbol): boolean => this.#renderOwnership.isActive(token);
     setContainer(target: HTMLElement | string): this {
@@ -96,50 +90,41 @@ class PageOutlet {
         }
         return this.#pageHost;
     }
-    setSkeleton(route: string): void {
-        if (!isString(route) || !route.trim()) {
-            throw new Error('PageOutlet skeleton requires a route identifier');
-        }
-        const container = requirePageOutletContainer(this.#container);
-        container.dataset['routeSkeleton'] = route.trim();
-        this.#overlayController.setState('loading', {
-            label: i18n.t('pageOutlet.loading')
-        });
+    peekPageHost(): PageHostInstance | null {
+        return this.#pageHost;
     }
-    private clearSkeleton(): void {
-        delete requirePageOutletContainer(this.#container).dataset['routeSkeleton'];
+    setSkeleton(route: string): void {
+        this.#overlayController.setSkeleton(route);
     }
     getState(): string {
         return this.#overlayController.getState();
     }
-    waitForCommit(): Promise<void> {
-        return this.#commitCompletion ?? Promise.resolve();
+    async waitForCommit(): Promise<void> {
+        await this.#renderOwnership.waitForCommit();
     }
-    async render({ component, parameters = {}, refresh = false, beforePrepare = null, beforeCommit = null, commitNavigation, readyTimeoutMs = this.#readyTimeout, signal }: PageOutletRenderOptions = {}): Promise<{ name: string; instance: PageInstance } | null> {
+    async render({ component, parameters = {}, refresh = false, beforePrepare = null, beforeCommit = null, finalAdmission, commitNavigation, mountPublication, afterCommit, readyTimeoutMs = READY_TIMEOUT_MS, signal, createMountScope }: PageOutletRenderOptions): Promise<{ name: string; instance: PageInstance } | null> {
         if (!isString(component) || !component.trim()) {
             throw new Error('PageOutlet render requires a non-empty component name');
         }
         if (signal?.aborted) return null;
-        const pendingCommit = this.#commitCompletion;
-        if (pendingCommit) {
-            const commitAvailable = await awaitCommitWindow(pendingCommit, signal);
-            if (!commitAvailable) return null;
-        }
+        if (!(await this.#renderOwnership.waitForCommit(readyTimeoutMs, signal))) return null;
         if (signal?.aborted) return null;
-        runPreNavigationCleanup();
         const host = this.getPageHost();
         const token = Symbol(component);
-        const renderScope = this.#renderOwnership.begin(token, signal);
+        const renderScope = this.#renderOwnership.begin(token, signal, mountPublication);
         const renderSignal = renderScope.signal;
+        if (renderSignal.aborted || !this.#isActiveRender(token)) {
+            renderScope.finish();
+            return null;
+        }
         host.cancelPrepared('superseded');
         const visualToken = this.#visualTransaction.begin();
         const trimmedComponent = component.trim();
         const startedAt = performance.now();
-        let pageCommitted = false;
         let preparedPage: PageInstance | null = null;
         const cancelRender = (): void => {
             if (!this.#isActiveRender(token)) return;
-            if (this.#commitToken === token) return;
+            if (this.#renderOwnership.isCommitting(token)) return;
             this.#renderOwnership.cancel(token, 'navigation-superseded');
             this.#visualTransaction.supersede(visualToken);
             host.cancelPrepared('navigation-superseded');
@@ -148,14 +133,23 @@ class PageOutlet {
         this.#emitEvent?.('component:load:start', { component: trimmedComponent, refresh }, 'info');
         errorHandler.info('PageOutlet', 'Component load start', { component: trimmedComponent, refresh });
         try {
-            await runPageOutletRenderHook(beforePrepare, renderSignal);
+            await awaitStageWithTimeout(
+                () => runPageOutletRenderHook(beforePrepare, renderSignal),
+                readyTimeoutMs,
+                token,
+                trimmedComponent,
+                PAGE_OUTLET_RENDER_STAGES.PREPARED,
+                this.#isActiveRender,
+                () => host.cancelPrepared('before-prepare-timeout'),
+                renderSignal
+            );
             if (!this.#isActiveRender(token)) return null;
             await this.#visualTransaction.preparePageExit(visualToken);
             if (!this.#isActiveRender(token)) return null;
             this.#visualTransaction.showPreparationLoading(visualToken);
             const preparation = awaitStageWithTimeout(
                 async () => {
-                    preparedPage = await host.prepare(trimmedComponent, parameters);
+                    preparedPage = await host.prepare(trimmedComponent, parameters, { signal: renderSignal, createMountScope });
                 },
                 readyTimeoutMs,
                 token,
@@ -167,36 +161,44 @@ class PageOutlet {
             );
             await preparation;
             if (!this.#isActiveRender(token)) return null;
-            const commit = createDeferred<void>();
-            this.#commitToken = token;
-            this.#commitCompletion = commit.promise;
-            try {
-                await runPageOutletRenderHook(beforeCommit);
-                if (this.#supersededPage && host.getCurrent()?.instance === this.#supersededPage) {
-                    host.cancelCurrent(this.#supersededPage, 'navigation-superseded');
-                }
-                this.#supersededPage = null;
-                this.#settleSupersededNavigation = null;
-                const committedPage = await host.commitPrepared();
-                if (!committedPage || committedPage !== preparedPage) throw new Error(`Prepared page ${trimmedComponent} lost commit ownership`);
-                pageCommitted = true;
-                if (renderSignal.aborted || !this.#isActiveRender(token)) {
-                    this.#supersededPage = committedPage;
-                    this.#settleSupersededNavigation = commitNavigation ?? null;
-                    this.#visualTransaction.supersede(visualToken);
-                } else {
-                    commitNavigation?.();
-                    if (renderSignal.aborted || !this.#isActiveRender(token)) {
-                        this.#supersededPage = committedPage;
-                        this.#visualTransaction.supersede(visualToken);
+            await this.#renderOwnership.commit(
+                token,
+                async () => {
+                    try {
+                        await runPageOutletRenderHook(beforeCommit, renderSignal);
+                        const committedPage = await host.commitPrepared({ signal: renderSignal, finalAdmission, mountPublication: renderScope.mountPublication, afterCommit });
+                        if (!committedPage || committedPage !== preparedPage) throw new Error(`Prepared page ${trimmedComponent} lost commit ownership`);
+                        if (renderScope.expired) return;
+                        this.#renderOwnership.clearSuperseded();
+                        renderScope.committed = true;
+                        if (renderSignal.aborted || !this.#isActiveRender(token)) {
+                            this.#renderOwnership.retainSuperseded(committedPage, commitNavigation ?? null);
+                            this.#visualTransaction.supersede(visualToken);
+                        } else {
+                            commitNavigation?.();
+                            if (renderSignal.aborted || !this.#isActiveRender(token)) {
+                                this.#renderOwnership.retainSuperseded(committedPage);
+                                this.#visualTransaction.supersede(visualToken);
+                            }
+                        }
+                    } finally {
+                        if (renderScope.expired && preparedPage) await host.destroyCurrent({ expectedInstance: preparedPage, reason: 'resource-release-unconfirmed' });
+                    }
+                },
+                {
+                    component: trimmedComponent,
+                    timeoutMs: readyTimeoutMs,
+                    expire: () => {
+                        renderScope.expire();
+                        if (preparedPage) host.cancelCurrent(preparedPage, 'resource-release-unconfirmed');
                     }
                 }
-            } finally {
-                this.#commitToken = null;
-                this.#commitCompletion = null;
-                commit.resolve(undefined);
+            );
+            if (renderSignal.aborted || !this.#isActiveRender(token)) {
+                if (preparedPage && host.getCurrent()?.instance === preparedPage) this.#renderOwnership.retainSuperseded(preparedPage);
+                this.#visualTransaction.supersede(visualToken);
+                return null;
             }
-            if (renderSignal.aborted || !this.#isActiveRender(token)) return null;
             const readiness = awaitStageWithTimeout(
                 async () => host.whenReady({ waitForReveal: false }),
                 readyTimeoutMs,
@@ -205,14 +207,15 @@ class PageOutlet {
                 PAGE_OUTLET_RENDER_STAGES.PREPARED,
                 (activeToken: symbol): boolean => this.#isActiveRender(activeToken),
                 () => {
-                    if (preparedPage) {
-                        return host.destroyCurrent({
-                            expectedInstance: preparedPage,
-                            force: true,
-                            reason: `page-timeout:${trimmedComponent}`
-                        });
-                    }
-                    return undefined;
+                    const page = preparedPage;
+                    if (!page) return;
+                    return this.#renderOwnership.dispose(
+                        () => host.destroyCurrent({ expectedInstance: page, force: true, reason: `page-timeout:${trimmedComponent}` }),
+                        () => {},
+                        false,
+                        readyTimeoutMs,
+                        token
+                    );
                 },
                 renderSignal
             );
@@ -242,40 +245,46 @@ class PageOutlet {
             );
             return host.getCurrent();
         } catch (error) {
-            if (!pageCommitted && preparedPage !== null && host.getCurrent()?.instance === preparedPage) {
-                pageCommitted = true;
+            if (!renderScope.committed && preparedPage !== null && host.getCurrent()?.instance === preparedPage) {
+                renderScope.committed = true;
             }
-            const ownsCommittedPage = pageCommitted && preparedPage !== null && host.getCurrent()?.instance === preparedPage;
-            if ((isAbortError(error) || renderSignal.aborted) && ownsCommittedPage) {
-                this.#supersededPage = preparedPage;
+            const ownsCommittedPage = renderScope.committed && preparedPage !== null && host.getCurrent()?.instance === preparedPage;
+            if (!renderScope.expired && (isAbortError(error) || renderSignal.aborted) && ownsCommittedPage && preparedPage !== null) {
+                this.#renderOwnership.retainSuperseded(preparedPage);
                 this.#visualTransaction.supersede(visualToken);
                 return null;
             }
             if (!this.#isActiveRender(token)) return null;
-            const settledSupersededPage = !pageCommitted && this.#settleSupersededPage(host);
+            const settledSupersededPage = !renderScope.committed && this.#renderOwnership.settleSuperseded(host.getCurrent()?.instance ?? null);
             this.#visualTransaction.fail(visualToken);
             if (settledSupersededPage) host.allowReveal();
             host.cancelPrepared('render-failed');
-            if (isAbortError(error) || renderSignal.aborted || !this.#isActiveRender(token)) return null;
-            if (pageCommitted && preparedPage !== null && host.getCurrent()?.instance === preparedPage) {
+            if (!renderScope.expired && (isAbortError(error) || renderSignal.aborted || !this.#isActiveRender(token))) return null;
+            let runtimeError = ensureError(error);
+            if (!renderScope.expired && renderScope.committed && preparedPage !== null && host.getCurrent()?.instance === preparedPage) {
+                const page = preparedPage;
                 try {
-                    await host.destroyCurrent({ force: true, reason: 'render-failed' });
+                    await raceWithAbortSignal(
+                        this.#renderOwnership.dispose(
+                            () => host.destroyCurrent({ expectedInstance: page, force: true, reason: 'render-failed' }),
+                            () => {},
+                            false,
+                            readyTimeoutMs,
+                            token
+                        ),
+                        renderSignal
+                    );
                 } catch (teardownError) {
-                    errorHandler.warn('PageOutlet', `Failed to teardown page ${trimmedComponent} after render failure`, ensureError(teardownError));
+                    runtimeError = new PageOutletCleanupError(runtimeError, ensureError(teardownError));
                 }
             }
-            const runtimeError = ensureError(error);
+            if (!this.#isActiveRender(token) || (!renderScope.expired && renderSignal.aborted)) return null;
             reportPageOutletRenderFailure(
                 { component: trimmedComponent, refresh, startedAt, error: runtimeError },
                 {
-                    applyErrorState: (runtimeError: Error): void => {
-                        if (host.getCurrent() && !pageCommitted) {
-                            this.#overlayController.setState('ready');
-                            this.#onPreservedPageFailure?.();
-                            return;
-                        }
-                        this.#overlayController.applyErrorState(runtimeError);
-                    },
+                    overlay: this.#overlayController,
+                    preserveCurrentPage: host.getCurrent() !== null && !renderScope.committed,
+                    onPreservedPageFailure: this.#onPreservedPageFailure,
                     emitEvent: this.#emitEvent ?? undefined
                 }
             );
@@ -285,43 +294,39 @@ class PageOutlet {
             renderScope.finish();
         }
     }
-    async destroyCurrent({ force = true }: PageOutletDestroyOptions = {}): Promise<void> {
-        if (this.#commitCompletion) await this.#commitCompletion;
-        const host = this.#pageHost;
-        this.#renderOwnership.cancelActive('destroy-current');
-        if (this.#container) this.#visualTransaction.cancel();
-        if (host) {
-            await host.destroyCurrent({ force });
-        }
-        if (this.#container) this.#overlayController.setState('idle');
+    destroyCurrent({ force = true }: PageOutletDestroyOptions = {}): Promise<void> {
+        return this.#dispose(force, false);
     }
+    whenReleased(): Promise<void> {
+        return this.#renderOwnership.whenReleased();
+    }
+    #dispose(force: boolean, final: boolean): Promise<void> {
+        return this.#renderOwnership.dispose(
+            async () => {
+                const host = this.#pageHost;
+                const container = this.#container;
+                if (container) this.#visualTransaction.cancel();
+                if (host) await host.destroyCurrent({ force });
+                if (container && this.#container === container && this.#pageHost === host) {
+                    removeNonPageOutletSlotNodes(container);
+                    this.#overlayController.setState('idle');
+                }
+            },
+            async () => {
+                await this.#resources.cleanup({ requireComplete: true });
+                this.#pageHost = null;
+                this.#renderOwnership.clearSuperseded();
+            },
+            final,
+            READY_TIMEOUT_MS
+        );
+    }
+
     cancelActive(reason: string = 'cancelled'): void {
-        if (this.#commitToken !== null) return;
-        this.#renderOwnership.cancelActive(reason);
-        const host = this.#pageHost;
-        const settledSupersededPage = host ? this.#settleSupersededPage(host) : false;
-        this.#supersededPage = null;
-        this.#settleSupersededNavigation = null;
-        if (this.#container) this.#visualTransaction.cancel();
-        if (settledSupersededPage) host?.allowReveal();
-        host?.cancelPrepared(reason);
+        this.#renderOwnership.cancelRender(reason, this.#pageHost, this.#container ? this.#visualTransaction : null);
     }
-    async destroy(): Promise<void> {
-        await this.destroyCurrent({ force: true });
-        this.#resources.cleanup();
-        this.#pageHost = null;
-        this.#renderOwnership.cancelActive('destroy');
-        this.#supersededPage = null;
-        this.#settleSupersededNavigation = null;
-    }
-    #settleSupersededPage(host: PageHostInstance): boolean {
-        const page = this.#supersededPage;
-        if (!page || host.getCurrent()?.instance !== page) return false;
-        const settleNavigation = this.#settleSupersededNavigation;
-        this.#supersededPage = null;
-        this.#settleSupersededNavigation = null;
-        settleNavigation?.();
-        return true;
+    destroy(): Promise<void> {
+        return this.#dispose(true, true);
     }
 }
 export { PageOutlet };

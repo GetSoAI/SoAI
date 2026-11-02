@@ -39,6 +39,9 @@ __all__ = (
     "query_chroma_similarity_results",
 )
 
+_MMR_CANDIDATE_REQUEST_LIMIT = 200
+_MMR_SIMILARITY_CACHE_LIMIT = _MMR_CANDIDATE_REQUEST_LIMIT * (_MMR_CANDIDATE_REQUEST_LIMIT - 1) // 2
+
 
 @dataclass(slots=True)
 class SearchCandidate:
@@ -107,7 +110,7 @@ async def mmr_search(
     document_id: str | None = None,
     lambda_mult: float = 0.5,
 ) -> JSONDict:
-    candidates_k = min(top_k * 6, 200)
+    candidates_k = min(top_k * 6, _MMR_CANDIDATE_REQUEST_LIMIT)
 
     rw_lock = await self.get_chroma_rw_lock(conv_id)
     async with rw_lock.read_lock():
@@ -162,30 +165,57 @@ async def mmr_search(
                 metadata=chunk_metadata_fields(metadata),
             ),
         )
-    selected: list[SearchCandidate] = []
-    remaining = list(candidates)
+    selected: list[tuple[int, SearchCandidate]] = []
+    remaining = list(enumerate(candidates))
+    similarity_by_pair: dict[tuple[int, int], float] | None = (
+        {} if len(candidates) > _MMR_CANDIDATE_REQUEST_LIMIT else None
+    )
+    memoized_prefixes: list[tuple[int, float]] = []
+    if top_k > 1 and len(candidates) <= _MMR_CANDIDATE_REQUEST_LIMIT:
+        memoized_prefixes = [(0, 0.0)] * len(candidates)
     while len(selected) < top_k and remaining:
         best_score, best_index = (-float("inf"), 0)
-        for remaining_index, candidate in enumerate(remaining):
+        for remaining_index, (candidate_index, candidate) in enumerate(remaining):
             relevance = candidate.similarity
-            max_sim_to_selected = 0.0
+            prefix_length, max_sim_to_selected = (
+                memoized_prefixes[candidate_index] if memoized_prefixes else (0, 0.0)
+            )
             if selected and candidate.embedding is not None:
-                for selection in selected:
+                for selection_position in range(prefix_length, len(selected)):
+                    selection_index, selection = selected[selection_position]
                     if selection.embedding is not None:
+                        if similarity_by_pair is None:
+                            similarity = cosine_similarity(candidate.embedding, selection.embedding)
+                        else:
+                            pair = (candidate_index, selection_index)
+                            cached_similarity = similarity_by_pair.get(pair)
+                            if cached_similarity is None:
+                                similarity = cosine_similarity(
+                                    candidate.embedding, selection.embedding
+                                )
+                                if len(similarity_by_pair) < _MMR_SIMILARITY_CACHE_LIMIT:
+                                    similarity_by_pair[pair] = similarity
+                            else:
+                                similarity = cached_similarity
                         max_sim_to_selected = max(
                             max_sim_to_selected,
-                            cosine_similarity(candidate.embedding, selection.embedding),
+                            similarity,
+                        )
+                    if memoized_prefixes:
+                        memoized_prefixes[candidate_index] = (
+                            selection_position + 1,
+                            max_sim_to_selected,
                         )
             mmr_score = lambda_mult * relevance - (1 - lambda_mult) * max_sim_to_selected
             if mmr_score > best_score:
                 best_score, best_index = (mmr_score, remaining_index)
-        best_candidate = remaining.pop(best_index)
+        best_candidate_index, best_candidate = remaining.pop(best_index)
         if best_candidate.similarity >= similarity_threshold:
-            selected.append(best_candidate)
+            selected.append((best_candidate_index, best_candidate))
         elif not selected:
             break
     filtered_results: list[JSONDict] = []
-    for result_entry in selected:
+    for _, result_entry in selected:
         filtered_results.append(
             {
                 "content": result_entry.content,

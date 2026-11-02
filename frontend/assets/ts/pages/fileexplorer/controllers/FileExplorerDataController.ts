@@ -1,6 +1,7 @@
 /* SoAI - File explorer page control layer data controller [frontend/assets/ts/pages/fileexplorer/controllers/FileExplorerDataController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { subscribeFileExplorerReleaseRecovery } from '@pages/fileexplorer/realtime/events.ts';
 import { buildSignalRequestOptions } from '@core/api/requestOptions.ts';
 import { FILE_EXPLORER_SORT_COLUMN_DEFAULT_DIRECTIONS, FILE_EXPLORER_SORT_COLUMNS, sortFileExplorerEntries, type FileExplorerSortColumn } from '@core/fileexplorerbrowser/entrySorting.ts';
 import { DirectoryListingController } from '@core/fileexplorerbrowser/directoryListingController.ts';
@@ -11,8 +12,8 @@ import type { DirectoryListingBrowserState, FileBrowserEntry, FileBrowserMetadat
 import { i18n } from '@core/i18n/index.ts';
 import { requireSortableColumn, requireSortableHeaders, resolveNextSortState, updateSortableTableIndicators, type SortDirection } from '@core/ui/tables/sortableTable.ts';
 import { syncSortControl } from '@core/uiprimitives/sortableList.ts';
-import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
-import { notifyFileExplorerHttpError, resolveFileExplorerBrowserErrorMessage } from '@pages/fileexplorer/controllers/fileExplorerHttpErrorController.ts';
+import { renderFileExplorerListingStatus } from '@pages/fileexplorer/rendering/FileExplorerStatusBarWidget.ts';
+import { notifyFileExplorerListingFailure, resolveFileExplorerBrowserErrorMessage } from '@pages/fileexplorer/controllers/fileExplorerHttpErrorController.ts';
 import type { FileExplorerRecentUploadController } from '@pages/fileexplorer/controllers/FileExplorerRecentUploadController.ts';
 import { FileExplorerUploadRevealController } from '@pages/fileexplorer/controllers/FileExplorerUploadRevealController.ts';
 import type { FileExplorerRowsRevealController } from '@pages/fileexplorer/controllers/fileExplorerRowsRevealController.ts';
@@ -22,11 +23,12 @@ import { FileExplorerBreadcrumbWidget } from '@pages/fileexplorer/rendering/File
 import { FileExplorerRowsWidget } from '@pages/fileexplorer/rendering/FileExplorerRowsWidget.ts';
 import { syncRowSelectionControls } from '@pages/fileexplorer/rendering/FileExplorerTableRowsWidget.ts';
 import type { FileExplorerControllerHost, FileExplorerUiRefs } from '@pages/fileexplorer/types.ts';
+import { runAsyncCleanupStepCollectingFailure, runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
 
 class FileExplorerDataController {
-    readonly #host: FileExplorerControllerHost;
+    readonly #host: Omit<FileExplorerControllerHost, 'isDirectoryAvailable'>;
     readonly #ui: FileExplorerUiRefs;
-    readonly #onStateChanged: (currentPath: string, isLoading: boolean) => void;
+    readonly #onStateChanged: (currentPath: string, isLoading: boolean, directoryAvailable: boolean) => void;
     readonly #browser: DirectoryListingController;
     readonly #recentUploads: FileExplorerRecentUploadController;
     readonly #selection: FileExplorerSelectionModel;
@@ -47,9 +49,8 @@ class FileExplorerDataController {
     #preservedScrollTop: number | null = null;
     #resetRowsScroll = false;
     #retainRowsDuringReload = false;
-    #sortReloadSequence = 0;
 
-    constructor(dependencies: { host: FileExplorerControllerHost; ui: FileExplorerUiRefs; initialSort: FileExplorerSortState; persistSort: (state: FileExplorerSortState) => void; recentUploads: FileExplorerRecentUploadController; selection: FileExplorerSelectionModel; rowsReveal: FileExplorerRowsRevealController; onStateChanged: (currentPath: string, isLoading: boolean) => void; onRowsCommitted?: (() => void) | undefined }) {
+    constructor(dependencies: { host: Omit<FileExplorerControllerHost, 'isDirectoryAvailable'>; ui: FileExplorerUiRefs; initialSort: FileExplorerSortState; persistSort: (state: FileExplorerSortState) => void; recentUploads: FileExplorerRecentUploadController; selection: FileExplorerSelectionModel; rowsReveal: FileExplorerRowsRevealController; onStateChanged: (currentPath: string, isLoading: boolean, directoryAvailable: boolean) => void; onRowsCommitted?: (() => void) | undefined }) {
         this.#host = dependencies.host;
         this.#ui = dependencies.ui;
         this.#sortColumn = dependencies.initialSort.column;
@@ -63,10 +64,15 @@ class FileExplorerDataController {
             recentUploads: dependencies.recentUploads
         });
         this.#browser = new DirectoryListingController({
+            subscribeReleaseRecovery: subscribeFileExplorerReleaseRecovery,
             api: dependencies.host.api,
             awaitTask: dependencies.host.awaitTask,
             errorResolver: { resolve: (error) => resolveFileExplorerBrowserErrorMessage(error) },
             initialSort: { column: this.#sortColumn, direction: this.#sortDirection },
+            captureSelection: () => {
+                const captured = this.#selection.captureSelection(this.#selection.getSelectedPaths());
+                return { paths: [...captured.selectedPaths.keys()], removeMissing: (paths) => this.#selection.removeDeletedPaths(captured, paths) };
+            },
             onError: (error) => this.#handleError(error, 'File Explorer data operation failed'),
             onStateChange: (state) => this.#applyBrowserState(state)
         });
@@ -83,14 +89,21 @@ class FileExplorerDataController {
         this.#syncSortSelect();
     }
 
-    destroy(): void {
-        this.releaseListing();
-        this.#rowsRenderer.dispose();
-        this.#breadcrumb.dispose();
+    async destroy(): Promise<void> {
+        const failures: Error[] = [];
+        const release = this.releaseListing();
+        runCleanupStepCollectingFailure(() => this.#rowsRenderer.dispose(), failures);
+        runCleanupStepCollectingFailure(() => this.#breadcrumb.dispose(), failures);
+        await runAsyncCleanupStepCollectingFailure(() => release, failures);
+        throwCollectedCleanupFailures(failures);
     }
 
-    releaseListing(): void {
-        this.#browser.destroy();
+    releaseListing(): Promise<void> {
+        return this.#browser.destroy();
+    }
+
+    isDirectoryAvailable(): boolean {
+        return this.#browser.getState().freshness !== 'unavailable';
     }
 
     getCurrentPath(): string {
@@ -117,8 +130,12 @@ class FileExplorerDataController {
         await this.#browser.initialize(path);
     }
 
-    async refreshList(): Promise<void> {
-        await this.#browser.refresh();
+    refreshList(): Promise<boolean> {
+        return this.#browser.refresh();
+    }
+
+    invalidateListing(): Promise<boolean> {
+        return this.#browser.invalidate();
     }
 
     async navigate(path: string): Promise<void> {
@@ -188,13 +205,7 @@ class FileExplorerDataController {
 
     async #renderAfterSortChange(): Promise<void> {
         if (!this.#query) {
-            const sequence = ++this.#sortReloadSequence;
-            this.#retainRowsDuringReload = true;
-            try {
-                await this.#browser.setSort(this.#sortColumn, this.#sortDirection);
-            } finally {
-                if (sequence === this.#sortReloadSequence) this.#retainRowsDuringReload = false;
-            }
+            await this.#browser.setSort(this.#sortColumn, this.#sortDirection);
             return;
         }
         if (this.#isLoading) {
@@ -206,6 +217,7 @@ class FileExplorerDataController {
     }
 
     #applyBrowserState(state: DirectoryListingBrowserState): void {
+        renderFileExplorerListingStatus(this.#ui, state);
         if (state.isLoading) {
             const samePath = toVirtualPath(state.currentPath) === toVirtualPath(this.#currentPath);
             this.#preservedScrollTop = samePath ? this.#ui.rowsBody.scrollTop : null;
@@ -213,7 +225,7 @@ class FileExplorerDataController {
             else if (!this.#isLoading && this.#entries.length > 0) this.#retainRowsDuringReload = true;
             this.#resetRowsScroll = !samePath;
             this.#recentUploads.handleListingLoad(state.currentPath, state.sessionRevision);
-        }
+        } else this.#recentUploads.handleListingLoad(state.currentPath, state.sessionRevision, 'reconciliation');
         this.#currentPath = state.currentPath;
         this.#workspacePathResolved = state.workspacePathResolved;
         this.#query = state.query;
@@ -224,8 +236,6 @@ class FileExplorerDataController {
         if (state.isLoading) {
             if (!this.#retainRowsDuringReload) this.#renderRows(false);
             this.#renderBreadcrumb(state.currentPath);
-            this.#ui.resultCount.textContent = i18n.t('common.loading');
-            setTooltipText(this.#ui.resultCount, this.#loadingLabel());
             this.#updateSortIndicators();
             this.#selection.beginLoading(state.currentPath);
             this.#emitStateChanged();
@@ -235,9 +245,6 @@ class FileExplorerDataController {
         this.#retainRowsDuringReload = false;
         this.#renderRows(animateLayout);
         this.#renderBreadcrumb(state.currentPath);
-        const truncatedSearch = Boolean(state.query) && state.truncated;
-        this.#ui.resultCount.textContent = truncatedSearch ? `${this.#entries.length}+` : String(state.total);
-        setTooltipText(this.#ui.resultCount, truncatedSearch ? i18n.t('fileExplorer.labels.resultsTruncated') : '');
         this.#selection.syncEntries(
             state.currentPath,
             this.#entries.map((entry) => entry.path)
@@ -309,11 +316,11 @@ class FileExplorerDataController {
     }
 
     #emitStateChanged(): void {
-        this.#onStateChanged(this.#currentPath, this.#isLoading);
+        this.#onStateChanged(this.#currentPath, this.#isLoading, this.isDirectoryAvailable());
     }
 
     #handleError(error: Error, context: string): void {
-        if (notifyFileExplorerHttpError(this.#host, error)) {
+        if (notifyFileExplorerListingFailure(this.#host, error)) {
             return;
         }
         this.#host.handleError(error, context, { notify: true });

@@ -1,6 +1,7 @@
 /* SoAI - Hardware feature system info modal contracts [frontend/assets/ts/features/hardware/modals/systeminfomodal/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { HardwareSnapshotResponse } from '@core/api/contracts/hardwareContractTypes.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
@@ -9,6 +10,7 @@ import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 
 interface SystemInfoModalHost {
+    readonly owner: PresentationOwner;
     modals: ModalPresenterApi;
     domHasClass(element: Element, className: string): boolean;
     requireHTMLElement(selector: string | Element, context?: Element): HTMLElement;

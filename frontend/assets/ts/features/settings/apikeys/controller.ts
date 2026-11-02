@@ -11,19 +11,19 @@ const requireSecretValue = (response: ApiKeySecretResponse): string => response.
 const createApiKeyFlow = async (host: ApiKeysManagerHost, onReload: () => Promise<void>): Promise<void> => {
     return host.execution.runWithBoundary('settings:showCreateApiKeyModal', async (): Promise<void> => {
         let normalizedLabel = '';
-        const initialLabel = await showApiKeyCreateLabelModal(normalizedLabel);
+        const initialLabel = await showApiKeyCreateLabelModal(normalizedLabel, host.owner);
         if (initialLabel === null) {
             return;
         }
         normalizedLabel = initialLabel;
-        let expiryChoice = await showApiKeyCreateExpiryModal();
+        let expiryChoice = await showApiKeyCreateExpiryModal(host.owner);
         while (expiryChoice === 'back') {
-            const nextLabel = await showApiKeyCreateLabelModal(normalizedLabel);
+            const nextLabel = await showApiKeyCreateLabelModal(normalizedLabel, host.owner);
             if (nextLabel === null) {
                 return;
             }
             normalizedLabel = nextLabel;
-            expiryChoice = await showApiKeyCreateExpiryModal();
+            expiryChoice = await showApiKeyCreateExpiryModal(host.owner);
         }
         if (expiryChoice === null) {
             return;
@@ -38,7 +38,7 @@ const createApiKeyFlow = async (host: ApiKeysManagerHost, onReload: () => Promis
                     ...(expiryChoice === '90days' ? { expiresInDays: 90 } : {})
                 });
                 const keyValue = requireSecretValue(response);
-                await showApiKeySecretModal(keyValue);
+                await showApiKeySecretModal(keyValue, host.owner);
                 await onReload();
                 return null;
             },
@@ -80,7 +80,7 @@ const runApiKeyAction = async (host: ApiKeysManagerHost, action: ApiKeyOperation
                     apiCall: async () => {
                         const result = await host.api.rotateApiKey(keyId);
                         const keyValue = requireSecretValue(result);
-                        await showApiKeySecretModal(keyValue);
+                        await showApiKeySecretModal(keyValue, host.owner);
                         return;
                     },
                     successMessage: i18n.t('settings.apiKeys.notifications.rotateSuccess')

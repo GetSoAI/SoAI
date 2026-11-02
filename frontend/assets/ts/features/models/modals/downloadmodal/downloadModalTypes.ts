@@ -1,6 +1,7 @@
 /* SoAI - Models feature download modal types [frontend/assets/ts/features/models/modals/downloadmodal/downloadModalTypes.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PageRouting, PresentationOwner } from '@core/routing/router/types.ts';
 import type { ExternalProviderCreateResponse } from '@core/api/contracts/pluginProviderContracts.ts';
 import type { RemoteModelSearchResult } from '@core/api/contracts/pluginSearchContracts.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
@@ -106,7 +107,7 @@ interface DownloadModalSessionPort {
     consumeInitialActionContext(): { action?: string; plugin?: string; vm?: string; search?: string } | null;
     getClipboardService(): ClipboardApi;
     copyToClipboard(text: string, options?: CopyToClipboardOptions): Promise<void>;
-    setLocationHash(hash: string): void;
+    router: Pick<PageRouting, 'navigate'>;
 }
 
 interface DownloadModalExecutionPort {
@@ -157,6 +158,7 @@ interface DownloadModalViewPort {
 }
 
 interface DownloadModalHost {
+    readonly owner: PresentationOwner;
     session: DownloadModalSessionPort;
     execution: DownloadModalExecutionPort;
     catalog: DownloadModalCatalogPort;

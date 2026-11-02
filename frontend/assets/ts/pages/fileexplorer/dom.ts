@@ -18,6 +18,7 @@ const requireFileExplorerUi = (host: FileExplorerDomHost): FileExplorerUiRefs =>
         currentPathInput: requireInputElement(host, '#file-explorer-current-path-input', 'File Explorer #file-explorer-current-path-input'),
         currentPathSaveButton: requireButtonElement(host, '.ui-inline-text-edit__save', 'File Explorer current path save button'),
         resultCount: host.requireHTMLElement('#file-explorer-result-count'),
+        listingStatus: host.requireHTMLElement('#file-explorer-listing-status'),
         selectionCount: host.requireHTMLElement('#file-explorer-selection-count'),
         selectionStatusBadge: host.requireHTMLElement('#file-explorer-selection-status'),
         navigateHomeButton: requireButtonElement(host, '#file-explorer-navigate-home', 'File Explorer #file-explorer-navigate-home'),

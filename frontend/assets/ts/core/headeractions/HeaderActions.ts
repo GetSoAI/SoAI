@@ -1,215 +1,210 @@
 /* SoAI - Frontend header action ownership [frontend/assets/ts/core/headeractions/HeaderActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { HEADER_ACTION_IDS } from '@core/headeractions/constants.ts';
 import { cloneRenderable, createActionSnapshot, createBaseDefinition, deriveRenderable, normalizeActionId, normalizeContextPayload, renderableChanged } from '@core/headeractions/state.ts';
-
-import type { ActionDefinition, ActionSnapshot, ContextPayload, DefinitionInput, PayloadInput, RegistryEntry, Renderable, SubscriberCallback } from '@core/headeractions/types.ts';
+import { isPresentationOwnerActive, isPresentationOwnerFocused } from '@core/presentationOwner.ts';
+import type { PageMountPresentation } from '@core/routing/router/types.ts';
+import type { ActionDefinition, ActionSnapshot, ContextPayload, DefinitionInput, GlobalPresentationOwner, HeaderActionHandoff, HeaderActionRegistration, PayloadInput, PresentationOwner, RegistryEntry, Renderable, SubscriberCallback } from '@core/headeractions/types.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 
-const normalizeContextId = (value: string): string | null => {
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
-};
-
-const shouldRetainContextRemoval = (previous: Renderable | null, next: Renderable): boolean => previous?.visible === true && next.visible === false;
-
-const retainRenderableForHandoff = (renderable: Renderable): Renderable => ({
-    ...renderable,
-    onClick: null
-});
-
-const suppressDetachForLayoutEdit = (snapshot: ActionSnapshot, layoutEditActive: boolean): ActionSnapshot => {
-    if (!layoutEditActive) {
-        return snapshot;
-    }
-    return {
-        actions: snapshot.actions.map((action) => (action.id === HEADER_ACTION_IDS.detach ? { ...action, visible: false, onClick: null } : action))
-    };
-};
-
 class HeaderActions {
-    #registry: Map<string, RegistryEntry> = new Map();
-    #subscribers: Set<SubscriberCallback> = new Set();
-    #actionHandoffs: Set<string> = new Set();
-    #layoutEditContexts: Set<string> = new Set();
+    #snapshotRevision = 0;
+    #registrationSequence = new SequenceToken();
+    #registrationOrdinals = new WeakMap<HeaderActionRegistration, number>();
+    #registry = new Map<string, RegistryEntry>();
+    #subscribers = new Set<SubscriberCallback>();
+    #retiredRegistrations = new WeakSet<HeaderActionRegistration>();
+    #actionHandoffs = new Map<string, Map<PresentationOwner, HeaderActionHandoff>>();
+    #layoutEditContexts = new Map<PresentationOwner, Map<string, HeaderActionRegistration>>();
 
     #ensureEntry(id: string): RegistryEntry {
         const normalized = normalizeActionId(id);
-        if (!this.#registry.has(normalized)) {
-            this.#registry.set(normalized, {
-                id: normalized,
-                definition: createBaseDefinition({ id: normalized }),
-                contexts: new Map<string, ContextPayload>(),
-                renderable: null
-            });
-        }
-        const entry = this.#registry.get(normalized);
+        let entry = this.#registry.get(normalized);
         if (!entry) {
-            throw new Error('Failed to create header action registry entry');
+            entry = { id: normalized, definition: createBaseDefinition({ id: normalized }), contexts: new Map(), renderable: null };
+            this.#registry.set(normalized, entry);
         }
         return entry;
     }
 
     #emitSnapshot(): void {
-        if (this.#subscribers.size === 0) {
-            return;
-        }
+        const revision = ++this.#snapshotRevision;
+        if (!this.#subscribers.size) return;
         const snapshot = this.#createSnapshot();
-        this.#subscribers.forEach((listener) => {
+        for (const listener of [...this.#subscribers]) {
+            if (revision !== this.#snapshotRevision) break;
+            if (!this.#subscribers.has(listener)) continue;
             try {
                 listener(snapshot);
             } catch (error) {
-                const runtimeError = ensureError(error);
-                errorHandler.warn('HeaderActions', 'Header action subscriber failed', runtimeError);
+                errorHandler.warn('HeaderActions', 'Header action subscriber failed', ensureError(error));
             }
-        });
+        }
     }
 
     #refreshEntry(entry: RegistryEntry): boolean {
-        const nextRenderable = deriveRenderable(entry);
-        if (!renderableChanged(entry.renderable, nextRenderable)) {
-            return false;
-        }
+        const nextRenderable = deriveRenderable(entry, this.#actionHandoffs.get(entry.id)?.values());
+        if (!renderableChanged(entry.renderable, nextRenderable)) return false;
         entry.renderable = nextRenderable;
         return true;
     }
 
-    #retainContextRemoval(entry: RegistryEntry, previousRenderable: Renderable | null, nextRenderable: Renderable): boolean {
-        if (!previousRenderable || !this.#actionHandoffs.has(entry.id) || !shouldRetainContextRemoval(previousRenderable, nextRenderable)) {
-            return false;
-        }
-        const retainedRenderable = retainRenderableForHandoff(previousRenderable);
-        const changed = renderableChanged(entry.renderable, retainedRenderable);
-        entry.renderable = retainedRenderable;
-        if (changed) {
-            this.#emitSnapshot();
-        }
-        return true;
-    }
-
-    defineAction(id: string, definition: DefinitionInput = {}): Renderable | null {
+    defineAction(id: string, owner: GlobalPresentationOwner, definition: DefinitionInput = {}): Renderable | null {
+        if (owner.type !== 'global') throw new Error('Header action definitions require document ownership');
         const entry = this.#ensureEntry(id);
-        entry.definition = {
-            ...entry.definition,
-            ...createBaseDefinition({ ...definition, id: entry.id })
-        };
-        if (typeof definition.onClick === 'function') {
-            entry.definition.onClick = definition.onClick;
-        }
-        const changed = this.#refreshEntry(entry);
-        if (changed) {
-            this.#emitSnapshot();
-        }
+        entry.definition = { ...entry.definition, ...createBaseDefinition({ ...definition, id: entry.id }) };
+        if (typeof definition.onClick === 'function') entry.definition.onClick = definition.onClick;
+        if (this.#refreshEntry(entry)) this.#emitSnapshot();
         return cloneRenderable(entry.renderable);
     }
 
-    setActionState(id: string, contextId: string, payload: PayloadInput = {}): Renderable | null {
+    createRegistration<Owner extends PresentationOwner>(owner: Owner): HeaderActionRegistration<Owner> {
+        const registration = Object.freeze({ owner, token: Symbol(owner.ownerId) });
+        this.#registrationOrdinals.set(registration, this.#registrationSequence.next());
+        return registration;
+    }
+
+    setActionState(id: string, contextId: string, registration: HeaderActionRegistration, payload: PayloadInput = {}): Renderable | null {
+        const owner = registration.owner;
+        const ordinal = this.#registrationOrdinals.get(registration);
+        if (ordinal === undefined || this.#retiredRegistrations.has(registration) || !isPresentationOwnerActive(owner)) return null;
         const entry = this.#ensureEntry(id);
-        const contextKey = normalizeContextId(contextId) ?? entry.id;
-        const contextPayload = normalizeContextPayload(payload);
-        entry.contexts.set(contextKey, contextPayload);
-        const changed = this.#refreshEntry(entry);
-        if (changed) {
-            this.#emitSnapshot();
+        const contextKey = contextId.trim() || entry.id;
+        const contexts = entry.contexts.get(owner) ?? new Map<string, ContextPayload>();
+        const previous = contexts.get(contextKey);
+        if (previous && (this.#registrationOrdinals.get(previous.registration) ?? 0) > ordinal) return null;
+        if (previous && previous.registration !== registration) this.#retiredRegistrations.add(previous.registration);
+        const contextPayload = normalizeContextPayload(registration, payload);
+        const onClick = contextPayload.onClick;
+        if (onClick) {
+            contextPayload.onClick = (event) => {
+                if (entry.contexts.get(owner)?.get(contextKey) !== contextPayload || !isPresentationOwnerActive(owner) || !isPresentationOwnerFocused(owner)) return;
+                onClick(event);
+            };
         }
+        contexts.set(contextKey, contextPayload);
+        entry.contexts.set(owner, contexts);
+        if (this.#refreshEntry(entry)) this.#emitSnapshot();
         return cloneRenderable(entry.renderable);
     }
 
-    removeActionContext(id: string, contextId: string): boolean {
-        const entry = this.#ensureEntry(id);
-        const contextKey = normalizeContextId(contextId) ?? entry.id;
-        const contextPayload = entry.contexts.get(contextKey);
-        if (!contextPayload) {
-            return false;
-        }
-        const previousRenderable = entry.renderable;
-        entry.contexts.delete(contextKey);
-        const nextRenderable = deriveRenderable(entry);
-        if (this.#retainContextRemoval(entry, previousRenderable, nextRenderable)) {
-            return true;
-        }
-        const changed = this.#refreshEntry(entry);
-        if (changed) {
-            this.#emitSnapshot();
-        }
+    removeActionContext(id: string, contextId: string, registration: HeaderActionRegistration): boolean {
+        this.#retiredRegistrations.add(registration);
+        const entry = this.#registry.get(normalizeActionId(id));
+        const contexts = entry?.contexts.get(registration.owner);
+        const contextKey = contextId.trim() || id;
+        if (!entry || contexts?.get(contextKey)?.registration !== registration) return false;
+        contexts.delete(contextKey);
+        if (!contexts.size) entry.contexts.delete(registration.owner);
+        if (this.#refreshEntry(entry)) this.#emitSnapshot();
         return true;
+    }
+
+    refreshOwner(owner: PresentationOwner): void {
+        let changed = false;
+        for (const entry of this.#registry.values()) {
+            if (entry.contexts.has(owner) || this.#actionHandoffs.get(entry.id)?.has(owner)) changed = this.#refreshEntry(entry) || changed;
+        }
+        if (changed || this.#layoutEditContexts.has(owner)) this.#emitSnapshot();
     }
 
     #createSnapshot(): ActionSnapshot {
-        return suppressDetachForLayoutEdit(createActionSnapshot(this.#registry), this.#layoutEditContexts.size > 0);
+        const snapshot = createActionSnapshot(this.#registry);
+        const editing = [...this.#layoutEditContexts.keys()].some((owner) => isPresentationOwnerActive(owner) && isPresentationOwnerFocused(owner));
+        if (!editing) return snapshot;
+        return { actions: snapshot.actions.map((action) => (action.id === HEADER_ACTION_IDS.detach ? { ...action, visible: false, onClick: null } : action)) };
     }
 
-    clearAction(id: string): boolean {
-        const normalized = normalizeContextId(id);
-        if (!normalized || !this.#registry.has(normalized)) {
-            return false;
-        }
+    clearAction(id: string, owner: GlobalPresentationOwner): boolean {
+        if (owner.type !== 'global') throw new Error('Clearing header definitions requires document ownership');
+        const normalized = normalizeActionId(id);
+        const entry = this.#registry.get(normalized);
+        if (!entry) return false;
+        for (const contexts of entry.contexts.values()) for (const context of contexts.values()) this.#retiredRegistrations.add(context.registration);
         this.#actionHandoffs.delete(normalized);
         this.#registry.delete(normalized);
         this.#emitSnapshot();
         return true;
     }
 
-    resetActionState(id: string): boolean {
-        const normalized = normalizeContextId(id);
-        if (!normalized || !this.#registry.has(normalized)) {
-            return false;
-        }
-        const entry = this.#registry.get(normalized);
-        if (!entry) {
-            return false;
-        }
-        entry.contexts.clear();
-        const changed = this.#refreshEntry(entry);
-        if (changed) {
-            this.#emitSnapshot();
-        }
+    resetActionState(id: string, owner: PresentationOwner): boolean {
+        const entry = this.#registry.get(normalizeActionId(id));
+        const contexts = entry?.contexts.get(owner);
+        if (!entry || !contexts) return false;
+        for (const context of contexts.values()) this.#retiredRegistrations.add(context.registration);
+        entry.contexts.delete(owner);
+        if (this.#refreshEntry(entry)) this.#emitSnapshot();
         return true;
     }
 
-    startActionHandoff(id: string): void {
-        const normalized = normalizeContextId(id);
-        if (normalized) {
-            this.#actionHandoffs.add(normalized);
-        }
-    }
-
-    endActionHandoff(id: string): void {
-        const normalized = normalizeContextId(id);
-        if (!normalized || !this.#actionHandoffs.delete(normalized)) {
-            return;
-        }
+    startActionHandoff(id: string, owner: PresentationOwner, presentation: PageMountPresentation): () => void {
+        const normalized = normalizeActionId(id);
         const entry = this.#registry.get(normalized);
-        if (!entry) {
-            return;
+        const contexts = entry?.contexts.get(owner);
+        const renderable = entry && contexts ? deriveRenderable({ ...entry, contexts: new Map([[owner, contexts]]) }) : null;
+        const handoff: HeaderActionHandoff = { owner, presentation, renderable };
+        const handoffs = this.#actionHandoffs.get(normalized) ?? new Map<PresentationOwner, HeaderActionHandoff>();
+        const previousHandoff = handoffs.get(owner);
+        handoffs.set(owner, handoff);
+        this.#actionHandoffs.set(normalized, handoffs);
+        const refresh = (): void => {
+            if (handoffs.get(owner) === handoff && entry && this.#refreshEntry(entry)) this.#emitSnapshot();
+        };
+        let unsubscribe: () => void;
+        try {
+            unsubscribe = presentation.subscribe(refresh);
+        } catch (error) {
+            if (handoffs.get(owner) === handoff) {
+                if (previousHandoff) handoffs.set(owner, previousHandoff);
+                else handoffs.delete(owner);
+            }
+            if (!handoffs.size && this.#actionHandoffs.get(normalized) === handoffs) this.#actionHandoffs.delete(normalized);
+            throw error;
         }
-        const changed = this.#refreshEntry(entry);
-        if (changed) {
-            this.#emitSnapshot();
-        }
+        let released = false;
+        return () => {
+            if (released) return;
+            released = true;
+            if (handoffs.get(owner) === handoff) handoffs.delete(owner);
+            if (!handoffs.size && this.#actionHandoffs.get(normalized) === handoffs) this.#actionHandoffs.delete(normalized);
+            try {
+                unsubscribe();
+            } finally {
+                if (entry && this.#refreshEntry(entry)) this.#emitSnapshot();
+            }
+        };
     }
 
-    setLayoutEditActive(contextId: string, active: boolean): void {
-        const normalized = normalizeContextId(contextId);
-        if (!normalized) {
-            return;
-        }
-        const hadContext = this.#layoutEditContexts.has(normalized);
+    setLayoutEditActive(contextId: string, registration: HeaderActionRegistration, active: boolean): void {
+        const owner = registration.owner;
+        const contexts = this.#layoutEditContexts.get(owner) ?? new Map<string, HeaderActionRegistration>();
         if (active) {
-            this.#layoutEditContexts.add(normalized);
+            const ordinal = this.#registrationOrdinals.get(registration);
+            if (ordinal === undefined || this.#retiredRegistrations.has(registration) || !isPresentationOwnerActive(owner)) return;
+            const previous = contexts.get(contextId);
+            if (previous && (this.#registrationOrdinals.get(previous) ?? 0) > ordinal) return;
+            if (previous && previous !== registration) this.#retiredRegistrations.add(previous);
+            contexts.set(contextId, registration);
+            this.#layoutEditContexts.set(owner, contexts);
         } else {
-            this.#layoutEditContexts.delete(normalized);
+            if (contexts.get(contextId) !== registration) return;
+            contexts.delete(contextId);
+            if (!contexts.size) this.#layoutEditContexts.delete(owner);
         }
-        if (hadContext !== active) {
-            this.#emitSnapshot();
-        }
+        this.#emitSnapshot();
     }
 
     subscribe(listener: SubscriberCallback): () => void {
         this.#subscribers.add(listener);
-        listener(this.#createSnapshot());
+        try {
+            listener(this.#createSnapshot());
+        } catch (error) {
+            this.#subscribers.delete(listener);
+            throw error;
+        }
         return () => {
             this.#subscribers.delete(listener);
         };
@@ -221,11 +216,8 @@ class HeaderActions {
 }
 
 let headerActionsInstance: HeaderActions | null = null;
-
 const getHeaderActions = (): HeaderActions => {
-    if (!headerActionsInstance) {
-        headerActionsInstance = new HeaderActions();
-    }
+    if (!headerActionsInstance) headerActionsInstance = new HeaderActions();
     return headerActionsInstance;
 };
 

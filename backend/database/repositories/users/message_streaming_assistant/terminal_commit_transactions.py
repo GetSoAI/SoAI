@@ -148,8 +148,10 @@ def _normalize_requested_events(
         )
         validated_payload_json = build_validated_assistant_event_payload_json(
             event_type=event_type,
-            payload_json=chronology.payload_json,
+            payload=chronology.payload,
         )
+        visible_length = chronology.running_visible_length
+        del chronology
         terminal_payload_json = build_terminal_assistant_event_payload_json(
             event_type=event_type,
             payload_json=validated_payload_json,
@@ -160,7 +162,6 @@ def _normalize_requested_events(
         normalized.append(
             (sequence, revision, event_type, terminal_payload_json, created_at_ms),
         )
-        visible_length = chronology.running_visible_length
     return tuple(validated_events), tuple(normalized)
 
 

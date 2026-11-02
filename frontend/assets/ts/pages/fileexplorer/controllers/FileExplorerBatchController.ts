@@ -1,12 +1,13 @@
 /* SoAI - File Explorer batch task controller [frontend/assets/ts/pages/fileexplorer/controllers/FileExplorerBatchController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isFileExplorerOperationActive, requireFileExplorerOperation } from '@pages/fileexplorer/guards/fileExplorerOperationAdmissionDomain.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { isAbortError } from '@core/errors/abort.ts';
 import { toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
-import { notifyFileExplorerHttpError } from '@pages/fileexplorer/controllers/fileExplorerHttpErrorController.ts';
+import { notifyFileExplorerBrowserError } from '@pages/fileexplorer/controllers/fileExplorerHttpErrorController.ts';
 import type { FileExplorerControllerHost, FileExplorerSelectionProvider } from '@pages/fileexplorer/types.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
@@ -43,6 +44,7 @@ class FileExplorerBatchController {
                 return null;
             }
             const confirmed = await requireDialogsService().showConfirmation({
+                owner: this.#host.owner,
                 title: i18n.t('fileExplorer.confirmations.batchDeleteTitle'),
                 message: i18n.t('fileExplorer.confirmations.batchDeleteMessage', { count: normalized.length }),
                 confirmText: i18n.t('fileExplorer.confirmations.confirmDelete'),
@@ -52,13 +54,13 @@ class FileExplorerBatchController {
             if (!confirmed) return null;
             this.#requireActive();
             const payload = await this.#host.api.batchDeleteTask(normalized);
-            if (this.#disposed) return null;
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return null;
             const taskId = payload.taskId;
             this.#host.showNotification(i18n.t('fileExplorer.notifications.taskStarted', { taskId: taskId }), 'info');
             terminateHandledPromise(this.#watchDeletion(taskId, deletion));
             return taskId;
         } catch (error) {
-            if (this.#disposed) return null;
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return null;
             const runtimeError = ensureError(error);
             this.#handleError(runtimeError, 'File Explorer batch delete failed');
             throw runtimeError;
@@ -75,13 +77,13 @@ class FileExplorerBatchController {
             }
             const destination = toVirtualPath(destinationDir);
             const payload = await this.#host.api.batchCopyTask(normalized, destination);
-            if (this.#disposed) return null;
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return null;
             const taskId = payload.taskId;
             this.#host.showNotification(i18n.t('fileExplorer.notifications.taskStarted', { taskId: taskId }), 'copy');
             this.#refreshSelection();
             return taskId;
         } catch (error) {
-            if (this.#disposed) return null;
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return null;
             const runtimeError = ensureError(error);
             this.#handleError(runtimeError, 'File Explorer batch copy failed');
             throw runtimeError;
@@ -98,6 +100,7 @@ class FileExplorerBatchController {
             }
             const destination = toVirtualPath(destinationDir);
             const confirmed = await requireDialogsService().showConfirmation({
+                owner: this.#host.owner,
                 title: i18n.t('fileExplorer.confirmations.batchMoveTitle'),
                 message: i18n.t('fileExplorer.confirmations.batchMoveMessage', {
                     count: normalized.length,
@@ -110,13 +113,13 @@ class FileExplorerBatchController {
             if (!confirmed) return null;
             this.#requireActive();
             const payload = await this.#host.api.batchMoveTask(normalized, destination);
-            if (this.#disposed) return null;
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return null;
             const taskId = payload.taskId;
             this.#host.showNotification(i18n.t('fileExplorer.notifications.taskStarted', { taskId: taskId }), 'info');
             this.#refreshSelection();
             return taskId;
         } catch (error) {
-            if (this.#disposed) return null;
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return null;
             const runtimeError = ensureError(error);
             this.#handleError(runtimeError, 'File Explorer batch move failed');
             throw runtimeError;
@@ -124,9 +127,9 @@ class FileExplorerBatchController {
     }
 
     #refreshSelection(): void {
-        if (this.#disposed) return;
+        if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return;
         void this.#selection.refresh().catch((error) => {
-            if (this.#disposed) return;
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed)) return;
             this.#host.handleError(ensureError(error), 'File Explorer refresh after task start failed', { notify: false });
         });
     }
@@ -135,7 +138,7 @@ class FileExplorerBatchController {
         const controller = this.#resources.track(new AbortController(), (resource) => resource.abort());
         try {
             const result = await this.#waitForDeletionTask(taskId, controller.signal);
-            if (this.#disposed || controller.signal.aborted) return;
+            if (!isFileExplorerOperationActive(this.#host, this.#disposed) || controller.signal.aborted) return;
             const items = result?.['items'];
             if (!Array.isArray(items)) throw new Error('File deletion task omitted its per-item results');
             const deletedPaths: string[] = [];
@@ -148,13 +151,13 @@ class FileExplorerBatchController {
             try {
                 await this.#selection.refresh();
             } catch (error) {
-                if (!this.#disposed && !isAbortError(error)) {
+                if (isFileExplorerOperationActive(this.#host, this.#disposed) && !isAbortError(error)) {
                     this.#host.handleError(ensureError(error), 'File Explorer refresh after committed deletion failed', { notify: false });
                     this.#host.showNotification(i18n.t('fileExplorer.errors.changeRefreshFailed'), 'warning');
                 }
             }
         } catch (error) {
-            if (!this.#disposed && !isAbortError(error)) {
+            if (isFileExplorerOperationActive(this.#host, this.#disposed) && !isAbortError(error)) {
                 this.#handleError(ensureError(error), 'File Explorer deletion result reconciliation failed');
             }
         } finally {
@@ -163,16 +166,15 @@ class FileExplorerBatchController {
     }
 
     #handleError(error: Error, context: string): void {
-        if (notifyFileExplorerHttpError(this.#host, error)) {
+        if (isAbortError(error)) return;
+        if (notifyFileExplorerBrowserError(this.#host, error)) {
             return;
         }
         this.#host.handleError(error, context, { notify: true });
     }
 
     #requireActive(): void {
-        if (this.#disposed) {
-            throw new Error('File Explorer batch controller is disposed');
-        }
+        requireFileExplorerOperation(this.#host, this.#disposed);
     }
 }
 

@@ -94,6 +94,7 @@ class ChatAttachBrowseWorkspacePathController {
         const initialPath = typeof config.effectiveWorkspacePath === 'string' && config.effectiveWorkspacePath.trim() ? config.effectiveWorkspacePath.trim() : undefined;
         const initialPathIsAbsolute = initialPath ? isAbsoluteFilesystemPath(initialPath) : false;
         const result = await showFolderPickerModal({
+            owner: this.#host.shared.owner,
             source: { type: 'workspace', api: access.browserApi },
             title: i18n.t('chat.configuration.filesFolder.pickerTitle'),
             message: i18n.t('chat.configuration.filesFolder.pickerMessage'),

@@ -5,19 +5,15 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { buildChatBaseRoute, buildChatConversationRoute } from '@features/chat/public.ts';
 import type { PageServicesOwnerHost } from '@core/routing/pages/basepagecore/PageServices.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
+import { buildQueryRoute } from '@core/routing/router/queryParameters.ts';
 
 interface RouteReplacementHost extends PageServicesOwnerHost {
-    router: {
-        replaceCurrentRoute(target: string): void;
-        navigate(target: string, options?: { replace?: boolean }): Promise<void> | void;
-        getCurrentRoute(): string | null;
-        getRouteFromHash(): string | null;
-    };
+    router: Pick<PageRouting, 'replaceCurrentRoute' | 'navigate' | 'getCurrentRoute' | 'getQueryParameters' | 'parseRoute'>;
 }
 
-const isChatOwnedRoute = (route: string | null): boolean => route === buildChatBaseRoute() || (typeof route === 'string' && route.startsWith(`${buildChatBaseRoute()}/conversation/`));
 const hasActiveRoute = (route: string | null): route is string => typeof route === 'string' && route.length > 0;
-const isRouteOwnedByAnotherPage = (route: string | null): boolean => hasActiveRoute(route) && !isChatOwnedRoute(route);
+const isRouteOwnedByAnotherPage = (router: RouteReplacementHost['router'], route: string | null): boolean => hasActiveRoute(route) && router.parseRoute(route)?.route.component !== 'chat';
 
 const replaceChatConversationRoute = async (host: RouteReplacementHost, conversationId: string | null, options: { signal?: AbortSignal | null } = {}): Promise<void> => {
     const signal = options.signal ?? null;
@@ -27,23 +23,22 @@ const replaceChatConversationRoute = async (host: RouteReplacementHost, conversa
     const targetRoute = conversationId ? buildChatConversationRoute(conversationId) : buildChatBaseRoute();
     const router = host.router;
     const currentRoute = router.getCurrentRoute();
-    const locationRoute = router.getRouteFromHash();
-    if (isRouteOwnedByAnotherPage(currentRoute) || isRouteOwnedByAnotherPage(locationRoute)) {
+    if (isRouteOwnedByAnotherPage(router, currentRoute)) {
         return;
     }
     if (!hasActiveRoute(currentRoute)) {
-        if (signal?.aborted || isRouteOwnedByAnotherPage(router.getRouteFromHash())) {
+        if (signal?.aborted || isRouteOwnedByAnotherPage(router, router.getCurrentRoute())) {
             return;
         }
         await router.navigate(targetRoute, { replace: true });
         return;
     }
-    if (signal?.aborted || isRouteOwnedByAnotherPage(router.getRouteFromHash())) {
+    if (signal?.aborted || isRouteOwnedByAnotherPage(router, router.getCurrentRoute())) {
         return;
     }
 
     try {
-        router.replaceCurrentRoute(targetRoute);
+        router.replaceCurrentRoute(buildQueryRoute(targetRoute, router.getQueryParameters()));
         return;
     } catch (error) {
         const runtimeError = ensureError(error);

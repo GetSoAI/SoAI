@@ -14,6 +14,7 @@ import { normalizeSurfaceColorPreference } from '@core/theme/surfaceColor.ts';
 import { APIError } from '@core/apiError.ts';
 import { isJsonObject, type JsonObject } from '@core/types/jsonValues.ts';
 import { isBoolean, isObject, isString } from '@core/typeGuards.ts';
+import { preferenceRequestIdentityIsCurrent, readPreferenceRequestIdentity } from '@core/storage/chatpreferences/preferenceRequestIdentity.ts';
 
 const CLOCK_PREFERENCE_KEYS = new Set(['header_clock_enabled', 'clock_seconds_enabled']);
 
@@ -21,6 +22,9 @@ const createStoragePreferenceMethods = (core: StorageRuntime, apiClient: Storage
     const state = core.state;
 
     const refresh = async (options: { authTransitionOwned?: boolean } = {}): Promise<void> => {
+        const authEpoch = state.readAuthEpoch();
+        const identity = readPreferenceRequestIdentity(state);
+        const isCurrent = (): boolean => state.readAuthEpoch() === authEpoch && (!identity || preferenceRequestIdentityIsCurrent(state, identity));
         const getterFunction = apiClient?.webui?.preferences?.get;
         if (!getterFunction) {
             state.isAuthenticated = false;
@@ -30,6 +34,7 @@ const createStoragePreferenceMethods = (core: StorageRuntime, apiClient: Storage
         try {
             result = await core.refreshChatPreferences(options);
         } catch (error) {
+            if (!isCurrent()) return;
             const status = error instanceof APIError ? error.status : 0;
             if ([401, 403, 404].includes(status)) {
                 state.isAuthenticated = false;
@@ -37,12 +42,14 @@ const createStoragePreferenceMethods = (core: StorageRuntime, apiClient: Storage
             }
             throw error;
         }
+        if (!isCurrent()) return;
         state.isAuthenticated = true;
         core.mergeRemote(result);
         core.scheduleBroadcast();
     };
 
     const setAuthenticated = async (authenticated: boolean, options: { authTransitionOwned?: boolean } = {}): Promise<void> => {
+        const authEpoch = state.readAuthEpoch();
         if (!authenticated) {
             state.isAuthenticated = false;
             state.pendingGroups.clear();
@@ -68,15 +75,18 @@ const createStoragePreferenceMethods = (core: StorageRuntime, apiClient: Storage
         }
         const previouslyAuthenticated = state.isAuthenticated;
         state.isAuthenticated = true;
+        const identity = readPreferenceRequestIdentity(state);
+        const isCurrent = (): boolean => state.readAuthEpoch() === authEpoch && (!identity || preferenceRequestIdentityIsCurrent(state, identity));
         try {
             await refresh(options);
         } catch (error) {
+            if (!isCurrent()) return;
             state.isAuthenticated = previouslyAuthenticated;
             throw error;
         }
-        if (!state.isAuthenticated) return;
+        if (!state.isAuthenticated || !isCurrent()) return;
         await core.flushPending();
-        if (!state.isAuthenticated) return;
+        if (!state.isAuthenticated || !isCurrent()) return;
         core.scheduleBroadcast();
     };
 

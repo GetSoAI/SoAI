@@ -1,6 +1,7 @@
 /* SoAI - Providers modal manager contracts [frontend/assets/ts/features/models/modals/providersmodal/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { SanitizerApi } from '@core/pagecontext/contracts.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -38,6 +39,7 @@ interface LoadProvidersOptions {
 }
 
 type ProvidersManagerDependencies = {
+    readonly owner: PresentationOwner;
     modals: ModalPresenterApi;
     optionalUI: (selector: string, context?: Element) => Element | null;
     queryUI: (selector: string | Element | string[], context?: Element) => Element[];

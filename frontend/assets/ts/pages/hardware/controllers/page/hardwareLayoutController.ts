@@ -1,6 +1,7 @@
 /* SoAI - Hardware page layout controller [frontend/assets/ts/pages/hardware/controllers/page/hardwareLayoutController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { MovablePanelLayoutController, type MovablePanelLayoutHost } from '@core/routing/pages/movablesections/panelLayoutController.ts';
 import { createHardwareMovableLayoutConfig, createHardwarePanelBlueprints } from '@pages/hardware/rendering/layout/service.ts';
@@ -10,6 +11,7 @@ import type { HardwarePageState } from '@pages/hardware/state/state.ts';
 import type { ModuleLoggerFunctionValue } from '@pages/hardware/types.ts';
 
 interface HardwareLayoutPageHost extends MovablePanelLayoutHost {
+    readonly owner: PresentationOwner;
     state: HardwarePageState;
     storage: HardwareLayoutStorage;
     logger: ModuleLoggerFunctionValue;
@@ -29,6 +31,7 @@ class HardwareLayoutController {
     constructor(host: HardwareLayoutPageHost) {
         this.#host = host;
         this.#panels = new MovablePanelLayoutController({
+            owner: host.owner,
             host: this.#host,
             storage: {
                 getLayout: (): JsonValue => this.#host.storage.get('hardware_layout', null),

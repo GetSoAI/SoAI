@@ -1,6 +1,7 @@
 /* SoAI - About page easter egg controller [frontend/assets/ts/pages/about/controllers/EasterEggController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { scaleAnimationDurationMs } from '@core/animations/speed.ts';
 import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -19,11 +20,16 @@ const MODAL_OPEN_DELAY_MS = 450;
 
 export class EasterEggController {
     readonly #resources = new ResourceTracker();
+    readonly #owner: PresentationOwner;
     #clickCount = 0;
     #resetTimer: number | null = null;
     #animation: EasterEggAnimation | null = null;
     #logoSection: HTMLElement | null = null;
     #resolveVersion: (() => string | null) | null = null;
+
+    constructor(owner: PresentationOwner) {
+        this.#owner = owner;
+    }
 
     attach(logoSection: HTMLElement, resolveVersion: () => string | null): void {
         this.#logoSection = logoSection;
@@ -89,12 +95,14 @@ export class EasterEggController {
 
     #openEasterEggModal(): void {
         const presenter = requireModalPresenter();
+        presenter.open(EASTER_EGG_MODAL_ID, { owner: this.#owner });
+        const ownership = presenter.getOwnership(EASTER_EGG_MODAL_ID);
         const modal = presenter.requireElement(EASTER_EGG_MODAL_ID);
         this.#applyVersionDescription(modal);
-        presenter.open(EASTER_EGG_MODAL_ID);
         this.#resources.setTimeout(
             () => {
                 this.#resources.requestAnimationFrame(() => {
+                    if (presenter.getOwnership(EASTER_EGG_MODAL_ID) !== ownership || !presenter.isOpen(EASTER_EGG_MODAL_ID)) return;
                     this.#initializeAnimation();
                 });
             },
@@ -116,10 +124,7 @@ export class EasterEggController {
     }
 
     #initializeAnimation(): void {
-        const modal = dom.resolve(`#${EASTER_EGG_MODAL_ID}`);
-        if (!(modal instanceof HTMLElement)) {
-            return;
-        }
+        const modal = requireModalPresenter().requireElement(EASTER_EGG_MODAL_ID);
         if (this.#animation) {
             this.#animation.cleanup();
         }

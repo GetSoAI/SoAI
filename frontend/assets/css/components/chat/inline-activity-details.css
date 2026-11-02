@@ -46,7 +46,7 @@
         overflow-wrap: anywhere;
         transition:
             max-height var(--duration-220) var(--ease-default),
-            opacity var(--duration-220) var(--ease-default);
+            opacity var(--duration-220) var(--ease-linear);
     }
 
     :where(.chat-container) .inline-activity-type-thinking.inline-activity .inline-activity-details {
@@ -74,7 +74,7 @@
     }
 
     :where(.chat-container) .chat-messages-area[data-auto-scroll-lock='true'] .inline-activity .inline-activity-details {
-        transition: opacity var(--duration-220) var(--ease-default);
+        transition: opacity var(--duration-220) var(--ease-linear);
     }
 
     :where(.chat-container) .inline-activity-preview {

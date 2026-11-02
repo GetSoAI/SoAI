@@ -8,31 +8,13 @@ import { telemetry } from '@core/telemetry/service.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isBoolean, isFunction, isObject, isString } from '@core/typeGuards.ts';
 import { coerceErrorMessage, ensureError } from '@core/errors/coerce.ts';
-import type { NavigationContext, NavigationOptions } from '@core/routing/router/types.ts';
+import type { NavigationContext, NavigationOptions, NavigationResultContinue, NavigationResultBlocked, NavigationResultRedirect, NavigationResultType } from '@core/routing/router/types.ts';
 
 interface NavigationStatus {
     CONTINUE: 'continue';
     BLOCKED: 'blocked';
     REDIRECT: 'redirect';
 }
-
-interface NavigationResultContinue {
-    status: 'continue';
-    detail: JsonValue;
-}
-
-interface NavigationResultBlocked {
-    status: 'blocked';
-    reason: string | null;
-}
-
-interface NavigationResultRedirect {
-    status: 'redirect';
-    target: string;
-    options: NavigationOptions;
-}
-
-type NavigationResultType = NavigationResultContinue | NavigationResultBlocked | NavigationResultRedirect;
 
 type MiddlewareHandler = (context: NavigationContext, next: () => Promise<NavigationResultType>) => Promise<NavigationResultType | boolean | void | null> | NavigationResultType | boolean | void | null;
 
@@ -66,7 +48,7 @@ const navigationResult = Object.freeze({
         status: NAVIGATION_STATUS.CONTINUE,
         detail
     }),
-    block: (reason: string | null = null): NavigationResultBlocked => ({ status: NAVIGATION_STATUS.BLOCKED, reason }),
+    block: (reason: string | null = null, failure?: Error): NavigationResultBlocked => ({ status: NAVIGATION_STATUS.BLOCKED, reason, ...(failure ? { failure } : {}) }),
     redirect: (target: string, options: NavigationOptions = {}): NavigationResultRedirect => ({
         status: NAVIGATION_STATUS.REDIRECT,
         target,
@@ -90,7 +72,7 @@ const normalizeResult = (value: NavigationResultType | boolean | void | null): N
     }
     if (status === NAVIGATION_STATUS.BLOCKED) {
         const reason = isString(value['reason']) ? value['reason'] : null;
-        return navigationResult.block(reason);
+        return navigationResult.block(reason, value['failure'] instanceof Error ? value['failure'] : undefined);
     }
     if (status === NAVIGATION_STATUS.REDIRECT) {
         const target = isString(value['target']) ? value['target'].trim() : '';

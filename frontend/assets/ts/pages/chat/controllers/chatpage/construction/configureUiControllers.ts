@@ -54,7 +54,8 @@ const createUiBehaviorsHost = (page: ChatUiRuntimeDependencies) => {
             getCachedIcon: (name, iconOptions) => page.presentation.cachedIcon(name, iconOptions),
             updatePageActionsMenuState: () => page.updatePageActionsMenuState(),
             getViewportWidth: () => measureLayoutViewport(page.dom.getDocument()).width,
-            isMobileSidebarViewport: () => measureLayoutViewport(page.dom.getDocument()).width <= CHAT_SIDEBAR_OVERLAY_BREAKPOINT_PX
+            isMobileSidebarViewport: () => measureLayoutViewport(page.dom.getDocument()).width <= CHAT_SIDEBAR_OVERLAY_BREAKPOINT_PX,
+            hasOpenModals: () => requireModalPresenter().hasOpenModals()
         },
         persistence: {
             pageResources: page.pageResources,
@@ -100,6 +101,7 @@ const createConfigurationController = (page: ChatUiRuntimeDependencies, uiBehavi
     const configurationModalRoot = requireModalPresenter().requireElement(CHAT_CONFIGURATION_MODAL_ID);
     return new ChatConfigurationController({
         host: {
+            owner: page.pageContext.presentationOwner,
             pageDom: page.pageDom,
             feedback: page.feedback,
             root: configurationModalRoot,

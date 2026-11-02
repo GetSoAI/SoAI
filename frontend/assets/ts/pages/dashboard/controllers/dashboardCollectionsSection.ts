@@ -143,7 +143,7 @@ const createDashboardCollectionsRenderers = (dependencies: DashboardCollectionsR
     return {
         renderPluginsSection: (items: readonly JsonValue[], dataReady: () => boolean): void => {
             renderCollectionSection({
-                contentId: 'plugins-content',
+                contentId: 'dashboard-plugins-content',
                 dataReady,
                 items: () => toCollection(items),
                 itemType: 'plugin',
@@ -164,7 +164,7 @@ const createDashboardCollectionsRenderers = (dependencies: DashboardCollectionsR
         },
         renderModelsSection: (items: readonly JsonValue[], dataReady: () => boolean): void => {
             renderCollectionSection({
-                contentId: 'models-content',
+                contentId: 'dashboard-models-content',
                 dataReady,
                 items: () => toCollection(items),
                 itemType: 'model',

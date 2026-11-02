@@ -1,14 +1,12 @@
 /* SoAI - Kernel service accessors for chat stream/presence services [frontend/assets/ts/core/chat/streamServiceAccess.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { CHAT_CONVERSATION_ATTENTION_SERVICE_ID, CHAT_PAGE_PRESENCE_SERVICE_ID, CHAT_STREAM_SERVICE_ID, type ChatConversationTerminalIndicator, type ChatStreamServiceLifecycleContract } from '@core/chat/protocols.ts';
+import { CHAT_CONVERSATION_ATTENTION_SERVICE_ID, CHAT_PAGE_PRESENCE_SERVICE_ID, CHAT_STREAM_SERVICE_ID, type ChatPagePresenceServiceContract, type ChatConversationTerminalIndicator, type ChatStreamServiceLifecycleContract } from '@core/chat/protocols.ts';
 import { isChatStreamServiceLifecycleContract } from '@core/chat/streamGuards.ts';
 import { isFunction, isObject } from '@core/typeGuards.ts';
 import { resolveKernelService } from '@core/runtime/runtimeContext.ts';
 
-type ChatPagePresenceContract = {
-    isActivelyViewingConversation: (conversationId: string | null) => boolean;
-};
+type ChatPagePresenceContract = Pick<ChatPagePresenceServiceContract, 'isActivelyViewingConversation'>;
 
 type ChatConversationAttentionContract = {
     initialize: () => Promise<void>;

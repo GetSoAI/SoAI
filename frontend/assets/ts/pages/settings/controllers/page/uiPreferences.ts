@@ -1,12 +1,16 @@
 /* SoAI - Settings page UI preferences [frontend/assets/ts/pages/settings/controllers/page/uiPreferences.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { ensureError } from '@core/errors/coerce.ts';
+import type { UiPreferenceKey } from '@core/settings/settingsFieldKeys.ts';
+import { createUiPrefsSnapshot } from '@pages/settings/controllers/page/loadDataMappers.ts';
 import { isHexColorString } from '@core/theme/hexColor.ts';
 import type { SettingsUiPreferenceHost } from '@pages/settings/controllers/page/contracts.ts';
 import type { SettingsPageState } from '@pages/settings/controllers/page/state.ts';
 import { requireUiPrefsAnimation, requireUiPrefsAnimationSpeed, requireUiPrefsBoolean, requireUiPrefsChartColorMode, requireUiPrefsClockFormat, requireUiPrefsDateFormat, requireUiPrefsInterfaceScale, requireUiPrefsLanguage, requireUiPrefsMeasurementUnits, requireUiPrefsNonEmptyString, requireUiPrefsNotificationDuration, requireUiPrefsNullableString, requireUiPrefsRegionalLocale, requireUiPrefsTheme, requireUiPrefsWallpaperOverlay } from '@pages/settings/controllers/uiprefs/guards.ts';
-import type { JsonValue } from '@core/types/jsonValues.ts';
+import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { SaveUnitResult } from '@core/save/public.ts';
+import { normalizeClockPreferenceState } from '@core/storage/clockPreferences.ts';
 
 function requireHexColor(value: JsonValue | null | undefined, label: string, nullable: true): string | null;
 function requireHexColor(value: JsonValue | null | undefined, label: string, nullable: false): string;
@@ -49,110 +53,135 @@ const readUiPreferencesForCommit = (current: Record<string, JsonValue | null | u
     chartStaticColor: requireHexColor(current['chartStaticColor'], 'uiPrefs.chartStaticColor', false)
 });
 
-const commitUiPreferences = async (page: SettingsUiPreferenceHost, state: Pick<SettingsPageState, 'uiPrefsManager'>): Promise<SaveUnitResult> => {
+type UiPreferenceSnapshot = ReturnType<typeof readUiPreferencesForCommit>;
+interface PartialUiPreferencesCommit {
+    type: 'partial';
+    appliedFields: readonly UiPreferenceKey[];
+    pendingFields: readonly UiPreferenceKey[];
+    error: Error;
+}
+
+interface PreparedUiPreferences {
+    preferences: UiPreferenceSnapshot;
+    edited: ReadonlySet<UiPreferenceKey>;
+    isCurrent: () => boolean;
+}
+
+const prepareUiPreferences = (state: Pick<SettingsPageState, 'uiPrefsManager'>, isCurrent: () => boolean = () => true): PreparedUiPreferences | null => {
     const manager = state.uiPrefsManager;
-    if (!manager || !manager.hasChanges) {
-        return;
-    }
-
-    const current = manager.currentData;
-    const preferences = readUiPreferencesForCommit(current);
-    const storage = page.owners.storage;
-
-    const language = preferences.language;
-    if (language !== manager.originalData['language']) {
-        await page.owners.languageService.setLanguage(language);
-        if (!page.owners.languageService.isLanguageRequestSettled(language)) return { type: 'stop' };
-    } else {
-        manager.applyCommittedPatch({ language: page.owners.languageService.getLanguage() });
-    }
-
-    const promptEnhancerModel = preferences.promptEnhancerModel;
-    storage.setPromptEnhancerModel(promptEnhancerModel ?? null);
-
-    const clockFormat = preferences.clockFormat;
-    storage.setClockFormat(clockFormat);
-
-    const regionalLocale = preferences.regionalLocale;
-    storage.setRegionalLocale(regionalLocale);
-
-    const dateFormat = preferences.dateFormat;
-    storage.setDateFormat(dateFormat);
-
-    const measurementUnits = preferences.measurementUnits;
-    storage.setMeasurementUnits(measurementUnits);
-
-    const notificationDuration = preferences.notificationDuration;
-    storage.setNotificationDuration(notificationDuration);
-
-    const codeRecognitionEnabled = preferences.codeRecognitionEnabled;
-    storage.setCodeRecognitionEnabled(codeRecognitionEnabled);
-
-    const headerClockEnabled = preferences.headerClockEnabled;
-    const clockSecondsEnabled = preferences.clockSecondsEnabled;
-    storage.setClockPreferences(headerClockEnabled, clockSecondsEnabled);
-
-    const soundEffects = preferences.soundEffects;
-    storage.setSoundEffects(soundEffects);
-
-    const liveStatusOverlayEnabled = preferences.liveStatusOverlayEnabled;
-    storage.setLiveStatusOverlayEnabled(liveStatusOverlayEnabled);
-
-    const theme = preferences.theme;
-    storage.setTheme(theme);
-
-    const accentColor = preferences.accentColor;
-    storage.setAccentColor(accentColor);
-
-    const surfaceColor = preferences.surfaceColor;
-    storage.setSurfaceColor(surfaceColor);
-
-    const reduceMotions = preferences.reduceMotions;
-    storage.setReduceMotions(reduceMotions);
-
-    const glassEnabled = preferences.glassEnabled;
-    storage.setGlassEnabled(glassEnabled);
-
-    const pageAnimation = preferences.pageAnimation;
-    storage.setPageAnimation(pageAnimation);
-
-    const modalAnimation = preferences.modalAnimation;
-    storage.setModalAnimation(modalAnimation);
-
-    const notificationAnimation = preferences.notificationAnimation;
-    storage.setNotificationAnimation(notificationAnimation);
-
-    const animationSpeed = preferences.animationSpeed;
-    storage.setAnimationSpeed(animationSpeed);
-
-    const interfaceScale = preferences.interfaceScale;
-    storage.setInterfaceScale(interfaceScale);
-
-    const wallpaperOverlay = preferences.wallpaperOverlay;
-    storage.setWallpaperOverlay(wallpaperOverlay);
-
-    const headerAutoHide = preferences.headerAutoHide;
-    storage.setHeaderAutoHide(headerAutoHide);
-
-    const showScrollToTopButton = preferences.showScrollToTopButton;
-    storage.setShowScrollToTopButton(showScrollToTopButton);
-
-    const showMainStatusIndicator = preferences.showMainStatusIndicator;
-    storage.setShowMainStatusIndicator(showMainStatusIndicator);
-
-    const dashboardLocked = preferences.dashboardLocked;
-    storage.setDashboardLocked(dashboardLocked);
-
-    const defaultPage = preferences.defaultPage;
-    storage.setDefaultPage(defaultPage);
-
-    const chartColorMode = preferences.chartColorMode;
-    storage.setChartColorMode(chartColorMode);
-
-    const chartStaticColor = preferences.chartStaticColor;
-    storage.setChartStaticColor(chartStaticColor);
-
-    manager.commitChanges({ ...preferences, language: page.owners.languageService.getLanguage() });
+    if (!manager || !manager.hasChanges) return null;
+    const preferences = readUiPreferencesForCommit(manager.currentData);
+    const baseline = manager.originalData;
+    const edited = new Set<UiPreferenceKey>();
+    const capture = (key: UiPreferenceKey): void => {
+        if (!manager.areValuesEqual(preferences[key], baseline[key])) edited.add(key);
+    };
+    capture('language');
+    capture('promptEnhancerModel');
+    capture('clockFormat');
+    capture('regionalLocale');
+    capture('dateFormat');
+    capture('measurementUnits');
+    capture('notificationDuration');
+    capture('codeRecognitionEnabled');
+    capture('headerClockEnabled');
+    capture('clockSecondsEnabled');
+    capture('soundEffects');
+    capture('liveStatusOverlayEnabled');
+    capture('theme');
+    capture('accentColor');
+    capture('surfaceColor');
+    capture('reduceMotions');
+    capture('glassEnabled');
+    capture('pageAnimation');
+    capture('modalAnimation');
+    capture('notificationAnimation');
+    capture('animationSpeed');
+    capture('interfaceScale');
+    capture('wallpaperOverlay');
+    capture('headerAutoHide');
+    capture('showScrollToTopButton');
+    capture('showMainStatusIndicator');
+    capture('dashboardLocked');
+    capture('defaultPage');
+    capture('chartColorMode');
+    capture('chartStaticColor');
+    return { preferences, edited, isCurrent };
 };
 
-export { commitUiPreferences };
+const commitUiPreferences = async (page: SettingsUiPreferenceHost, state: Pick<SettingsPageState, 'uiPrefsManager'>, prepared: PreparedUiPreferences | null = prepareUiPreferences(state)): Promise<SaveUnitResult | PartialUiPreferencesCommit> => {
+    const manager = state.uiPrefsManager;
+    if (!manager || !prepared) return;
+    const { preferences, edited, isCurrent } = prepared;
+    if (!isCurrent()) return { type: 'stop' };
+    const storage = page.owners.storage;
+    const appliedFields: UiPreferenceKey[] = [];
+    try {
+        if (edited.has('language')) {
+            await page.owners.languageService.setLanguage(preferences.language, isCurrent);
+            if (!isCurrent() || !page.owners.languageService.isLanguageRequestSettled(preferences.language)) return { type: 'stop' };
+            manager.commitBaselinePatch({ language: page.owners.languageService.getLanguage() }, preferences);
+            appliedFields.push('language');
+        } else {
+            manager.mergeRemotePatch({ language: page.owners.languageService.getLanguage() });
+        }
+        const operations: readonly [UiPreferenceKey, () => void][] = [
+            ['promptEnhancerModel', () => storage.setPromptEnhancerModel(preferences.promptEnhancerModel)],
+            ['clockFormat', () => storage.setClockFormat(preferences.clockFormat)],
+            ['regionalLocale', () => storage.setRegionalLocale(preferences.regionalLocale)],
+            ['dateFormat', () => storage.setDateFormat(preferences.dateFormat)],
+            ['measurementUnits', () => storage.setMeasurementUnits(preferences.measurementUnits)],
+            ['notificationDuration', () => storage.setNotificationDuration(preferences.notificationDuration)],
+            ['codeRecognitionEnabled', () => storage.setCodeRecognitionEnabled(preferences.codeRecognitionEnabled)],
+            ['soundEffects', () => storage.setSoundEffects(preferences.soundEffects)],
+            ['liveStatusOverlayEnabled', () => storage.setLiveStatusOverlayEnabled(preferences.liveStatusOverlayEnabled)],
+            ['theme', () => storage.setTheme(preferences.theme)],
+            ['accentColor', () => storage.setAccentColor(preferences.accentColor)],
+            ['surfaceColor', () => storage.setSurfaceColor(preferences.surfaceColor)],
+            ['reduceMotions', () => storage.setReduceMotions(preferences.reduceMotions)],
+            ['glassEnabled', () => storage.setGlassEnabled(preferences.glassEnabled)],
+            ['pageAnimation', () => storage.setPageAnimation(preferences.pageAnimation)],
+            ['modalAnimation', () => storage.setModalAnimation(preferences.modalAnimation)],
+            ['notificationAnimation', () => storage.setNotificationAnimation(preferences.notificationAnimation)],
+            ['animationSpeed', () => storage.setAnimationSpeed(preferences.animationSpeed)],
+            ['interfaceScale', () => storage.setInterfaceScale(preferences.interfaceScale)],
+            ['wallpaperOverlay', () => storage.setWallpaperOverlay(preferences.wallpaperOverlay)],
+            ['headerAutoHide', () => storage.setHeaderAutoHide(preferences.headerAutoHide)],
+            ['showScrollToTopButton', () => storage.setShowScrollToTopButton(preferences.showScrollToTopButton)],
+            ['showMainStatusIndicator', () => storage.setShowMainStatusIndicator(preferences.showMainStatusIndicator)],
+            ['dashboardLocked', () => storage.setDashboardLocked(preferences.dashboardLocked)],
+            ['defaultPage', () => storage.setDefaultPage(preferences.defaultPage)],
+            ['chartColorMode', () => storage.setChartColorMode(preferences.chartColorMode)],
+            ['chartStaticColor', () => storage.setChartStaticColor(preferences.chartStaticColor)]
+        ];
+        for (const [field, persist] of operations) {
+            if (!edited.has(field)) continue;
+            if (!isCurrent()) return { type: 'stop' };
+            persist();
+            if (!isCurrent()) return { type: 'stop' };
+            manager.commitBaselinePatch({ [field]: createUiPrefsSnapshot(page)[field] }, preferences);
+            appliedFields.push(field);
+        }
+        if (edited.has('headerClockEnabled') || edited.has('clockSecondsEnabled')) {
+            if (!isCurrent()) return { type: 'stop' };
+            const clock = normalizeClockPreferenceState({
+                headerClockEnabled: edited.has('headerClockEnabled') ? preferences.headerClockEnabled : storage.getHeaderClockEnabled(),
+                clockSecondsEnabled: edited.has('clockSecondsEnabled') ? preferences.clockSecondsEnabled : storage.getClockSecondsEnabled()
+            });
+            storage.setClockPreferences(clock.headerClockEnabled, clock.clockSecondsEnabled);
+            if (!isCurrent()) return { type: 'stop' };
+            const patch: JsonObject = { headerClockEnabled: storage.getHeaderClockEnabled(), clockSecondsEnabled: storage.getClockSecondsEnabled() };
+            manager.commitBaselinePatch(patch, preferences);
+            if (edited.has('headerClockEnabled')) appliedFields.push('headerClockEnabled');
+            if (edited.has('clockSecondsEnabled')) appliedFields.push('clockSecondsEnabled');
+        }
+    } catch (error) {
+        const failure = ensureError(error);
+        if (!isCurrent()) return { type: 'stop' };
+        if (appliedFields.length === 0) throw failure;
+        return { type: 'partial', appliedFields, pendingFields: Array.from(edited).filter((field) => !appliedFields.includes(field)), error: failure };
+    }
+};
+
+export { commitUiPreferences, prepareUiPreferences };
+export type { PreparedUiPreferences };

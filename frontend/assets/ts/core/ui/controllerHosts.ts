@@ -22,7 +22,7 @@ type DomQueryHost = PageDomOwnerHost;
 interface ExecutionHost extends PageFeedbackOwnerHost {
     runWithBoundary: <T>(name: string, task: () => Promise<T> | T) => Promise<T>;
     withButtonDisabled?: <T>(btn: Element, functionValue: () => Promise<T>, options?: { keepDisabled?: boolean }) => Promise<T>;
-    confirmAndExecute?: <Result>(boundaryName: string, confirmOptions: ConfirmationOptions | null, action: () => Promise<Result>, successMessage: string | null, onSuccess: (() => Promise<void> | void) | null, onError: ((error: Error) => void) | null) => Promise<void>;
+    confirmAndExecute?: <Result>(boundaryName: string, confirmOptions: Omit<ConfirmationOptions, 'owner'> | null, action: () => Promise<Result>, successMessage: string | null, onSuccess: (() => Promise<void> | void) | null, onError: ((error: Error) => void) | null) => Promise<void>;
 }
 
 type NotificationHost = PageFeedbackOwnerHost;

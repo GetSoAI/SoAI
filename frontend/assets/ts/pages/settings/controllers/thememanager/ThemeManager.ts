@@ -88,6 +88,12 @@ class ThemeManager {
         this.#customizationController.setupCustomizationSection('dashboard');
     }
 
+    syncUiPreferences(): void {
+        if (!this.#lifecycle.isMounted) return;
+        this.#eventsController.syncUiPreferences();
+        if (this.#host.canManageWallpaper()) this.#wallpaperController.syncOverlay();
+    }
+
     async reload(): Promise<void> {
         if (this.#host.canManageWallpaper()) {
             await this.#wallpaperController.reload();
@@ -95,6 +101,7 @@ class ThemeManager {
     }
 
     dispose(): void {
+        this.#eventsController.dispose();
         try {
             this.#lifecycle.dispose('theme-manager-dispose');
         } finally {

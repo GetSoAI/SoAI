@@ -8,7 +8,7 @@ from copy import deepcopy
 from typing import TYPE_CHECKING, Literal
 
 from core.errors.exceptions import ModelOutputContractError
-from core.openai.openai_error_objects import parse_openai_sse_error_frame
+from core.openai.openai_error_objects import extract_openai_sse_error_from_payloads
 from core.openai.openai_sse_error_escalation import raise_openai_streaming_error
 from core.openai.response_metrics import parse_response_metrics
 from core.openai.sse_frame_accumulator import OpenAISSEFrameAccumulator
@@ -88,7 +88,8 @@ class OpenAIStreamTranscript:
         return self.build_result_payload()
 
     def _consume_frame(self, frame: str) -> None:
-        parsed_error = parse_openai_sse_error_frame(frame)
+        payloads = parse_openai_sse_frame_payloads(frame)
+        parsed_error = extract_openai_sse_error_from_payloads(payloads)
         if parsed_error is not None:
             raise_openai_streaming_error(
                 parsed_error,
@@ -98,7 +99,7 @@ class OpenAIStreamTranscript:
                 trace_id=self._trace_id,
                 origin=self._error_origin,
             )
-        for payload in parse_openai_sse_frame_payloads(frame):
+        for payload in payloads:
             self._consume_payload(payload)
 
     def _consume_payload(self, payload: JSONValue) -> None:

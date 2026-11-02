@@ -7,7 +7,7 @@ import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@co
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
-import type { ModalOpenOptions } from '@core/modals/types.ts';
+import type { ModalCreationOptions } from '@core/modals/types.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { uiHtml } from '@core/security/uiHtml.ts';
 import { FILE_EXPLORER_ACTION_METADATA_COPY } from '@features/fileexplorer/actions.ts';
@@ -17,7 +17,7 @@ const fileExplorerMetadataModalDefinition: ModalDefinition = Object.freeze({
     id: FILE_EXPLORER_METADATA_MODAL_ID,
     layout: 'md',
     initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
-    createElement: (_options: ModalOpenOptions): HTMLElement => {
+    createElement: (_options: ModalCreationOptions): HTMLElement => {
         const closeLabel = i18n.t('common.close');
         const copyLabel = i18n.t('fileExplorer.modal.copy');
         return createModalElement({

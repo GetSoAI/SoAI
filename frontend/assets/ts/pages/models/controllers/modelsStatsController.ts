@@ -138,7 +138,7 @@ const createModelsStatsController = (dependencies: ModelsStatsControllerDependen
     };
 
     const populateProviderFilter = (): void => {
-        const filter = dependencies.optionalUI('provider-filter');
+        const filter = dependencies.optionalUI('models-provider-filter');
         if (!filter) return;
         if (!(filter instanceof HTMLSelectElement)) {
             throw new TypeError('Models provider filter must be an HTMLSelectElement');

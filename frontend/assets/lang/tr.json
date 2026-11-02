@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "Cihazınızdaki dosya ve klasörleri doğrudan ileti eki olarak ekleyin. Erişim için dizine eklenen Bilgi yüklemelerinin aksine, bunlar mevcut istemle birlikte gönderilir.",
                 "uploadTitle": "Dosya ve klasörleri doğrudan yükle",
-                "title": "Ek ekle"
+                "title": "Ek ekle",
+                "cameraDiscardConfirm": "Çekilen bu fotoğraftan vazgeçilsin mi?"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "Bilinmeyen hata",
                 "unknownError": "Bilinmeyen bir hata oluştu.",
                 "storageHeadroomInsufficient": "Güvenlik payı ve mevcut rezervasyonlar hesaba katıldığında yeterli depolama alanı yok. Yer açın veya diğer depolama işlemlerinin bitmesini bekleyip yeniden deneyin.",
-                "storageHeadroomValues": "Güvenlik payı dahil gereken: {required}. Bu işlem için kullanılabilir: {available}."
+                "storageHeadroomValues": "Güvenlik payı dahil gereken: {required}. Bu işlem için kullanılabilir: {available}.",
+                "permissionsUnavailable": "Erişim izinleri kullanılamıyor. Bağlantıyı kontrol edip yeniden deneyin."
             },
             "export": "Dışa aktar",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "Kaydedilmemiş değişiklikler",
             "view": "Görüntüle",
             "yes": "Evet",
-            "retry": "Yeniden dene"
+            "retry": "Yeniden dene",
+            "discard": "Vazgeç"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "Dosya kaydedilmiş olabilir, ancak son durumu doğrulanamadı. Yeniden yüklemeden önce Dosyalar bölümünde hedefi kontrol edin.",
                 "cleanupIncomplete": "Otomatik temizleme tamamlanamadı. Yeniden denemeden önce Dosyalar bölümündeki hedefi kontrol edin.",
                 "contentChanged": "İşlem sırasında dosya değişti. Dosyayı yeniden seçip tekrar deneyin.",
-                "destinationExists": "Bu adda bir dosya veya klasör zaten var. Başka bir ad veya hedef seçin."
+                "destinationExists": "Bu adda bir dosya veya klasör zaten var. Başka bir ad veya hedef seçin.",
+                "listingChanged": "Klasör sürekli değişti. Tekrar denemek için yenileyin.",
+                "listingTimeout": "Klasörü yenileme süresi doldu. Tekrar denemek için yenileyin.",
+                "listingIncoherent": "Klasör sayfaları tutarsızdı. Tekrar denemek için yenileyin.",
+                "listingUnavailable": "Klasör hizmeti kullanılamıyor. Bağlantıyı kontrol edip yenileyin.",
+                "listingBusy": "Klasör istekleri sınırlandırılıyor. Biraz bekleyip yenileyin."
             },
             "labels": {
                 "latestTask": "Son görev",
@@ -3175,7 +3183,10 @@
                 "empty": "Öğe bulunamadı.",
                 "error": "İşlem başarısız oldu. Ayrıntılar için bildirimleri gözden geçirin.",
                 "loading": "Dizin öğeleri yükleniyor...",
-                "searching": "Dosya ve klasörler aranıyor..."
+                "searching": "Dosya ve klasörler aranıyor...",
+                "refreshing": "Yenileniyor…",
+                "stale": "Veriler güncel değil. Tekrar denemek için yenileyin.",
+                "unavailable": "Klasör kullanılamıyor. Hatayı inceleyip yenileyin."
             },
             "table": {
                 "modified": "Değiştirilme",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "Modelleri, araçları ve dosyaları kullanın",
                     "sectionTitle": "Chat ve ajan araçları",
-                    "conversations": "Chat mesajları, model seçimini, üretim parametrelerini ve araç erişimini bir arada tutar. Turlar arasında model değiştirebilir, yanıtları karşılaştırabilir, ayarları preset olarak kaydedebilir ve konuşmaları klasörleyebilirsiniz. Modelin geçerli mesaj için tüm içeriğe ihtiyacı varsa dosya ekleyin. SoAI’nin dizinlenmiş malzemede arama yapmasını istiyorsanız bilgi kaynağı ekleyin. Mesaj alanı dosya, klasör ve SoAI bağlantılarını kabul eder",
+                    "conversations": "Chat mesajları, model seçimini, üretim parametrelerini, araç erişimini ve Beceri ile Bellek kitaplıklarını bir arada tutar. Turlar arasında model değiştirebilir, yanıtları karşılaştırabilir, ayarları preset olarak kaydedebilir ve konuşmaları klasörleyebilirsiniz. Modelin geçerli mesaj için tüm içeriğe ihtiyacı varsa dosya ekleyin. SoAI’nin dizinlenmiş malzemede arama yapmasını istiyorsanız bilgi kaynağı ekleyin. Mesaj alanı dosya, klasör ve SoAI bağlantılarını kabul eder",
                     "tools": "Chat modu konuşma içindir. Plan, modelin görevi inceleyip adımları hazırlamasına izin verir. Yıkıcı olarak işaretlenen veya geçerli yıkıcılık meta verileri bulunmayan araçları engeller, ancak seçilen diğer araçlar yine de harici sistemleri etkileyebilir. Execute etkin araçlarla işlem yapmasına izin verir. Araç çağrıları ve sonuçları konuşmada görünür; korumalı işlemler onay isteyebilir. Araçlar web araması yapabilir, tarayıcıyı yönetebilir, dosya ve terminalle çalışabilir, bilgiyi sorgulayabilir, medya işleyebilir, posta ve takvime bağlanabilir. Yöneticiler kullanılabilir entegrasyonları ve kimlik bilgilerini belirler. Ajanlar soru sorabilir, plan tutabilir ve işi arka plan alt görevlerine bölebilir. Automation turları zamanlamaya göre çalıştırır ve her çalışmayı konuşma olarak saklar",
                     "mcp": "SoAI araçlarını kimliği doğrulanmış MCP istemcilerine sunabilir ve uzak MCP sunucularına bağlanabilir. Yönetici sunucuyu yapılandırınca uzak araçlar yerleşik araçların yanında görünür",
                     "voice": "Speech-to-text modelleri kayıtları veya mikrofonu yazıya çevirir. Text-to-speech modelleri yanıtları okur; sesli arama modu konuşmalı görüşmeyi destekler"
@@ -5229,6 +5240,9 @@
             "loading": "SoAI hazırlanıyor...",
             "loadingDelayError": "Bu sayfanın yüklenmesi beklenenden uzun sürüyor. Bağlantınızı kontrol edin veya sayfayı yeniden deneyin.",
             "loadingLabel": "Yükleniyor...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "Önceki sayfa hâlâ kapanıyor. Bekleyip yeniden deneyin. İşlem takılı kalırsa bu pencereyi yeniden yükleyin."
+            },
             "retry": "Tekrar dene"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "Görünüm varsayılanlara sıfırlandı.",
                 "chatPresetsResetFailed": "Sohbet ön ayarları sıfırlanamadı. Yeniden deneyin.",
                 "chatPresetsResetSuccess": "Sohbet ön ayarları sıfırlandı.",
+                "configurationResetFailed": "Yapılandırma sıfırlaması zamanlanamadı. Yapılandırma dosyalarını inceleyip yeniden deneyin.",
                 "conversationsDeleteFailed": "Sohbetler silinemedi. Yeniden deneyin.",
                 "conversationsDeleteNone": "Silinecek sohbet yok.",
                 "conversationsDeleteSuccess": "{count} sohbet silindi.",
-                "configurationResetFailed": "Yapılandırma sıfırlaması zamanlanamadı. Yapılandırma dosyalarını inceleyip yeniden deneyin.",
                 "factoryResetSuccess": "Fabrika ayarlarına sıfırlama başlatıldı. SoAI kısa süre içinde yeniden başlayacak.",
                 "fixInvalidFields": "Kaydetmeden önce geçersiz alanları düzeltin.",
                 "hardwareHistoryResetFailed": "Donanım geçmişi sıfırlanamadı. Yeniden deneyin.",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "Metrik sıfırlama başarıyla başlatıldı",
                 "pageLayoutsResetFailed": "Sayfa düzenleri sıfırlanamadı. Yeniden deneyin.",
                 "pageLayoutsResetSuccess": "Gösterge paneli, metrikler ve donanım düzenleri varsayılanlara sıfırlandı.",
+                "partialSave": "Bazı ayarlar uygulandı. {reason} İşaretli kaydedilmemiş alanları gözden geçirip tekrar deneyin.",
                 "passwordManagerResetFailed": "Parola yöneticisi sıfırlanamadı. Yeniden deneyin.",
                 "passwordManagerResetSuccess": "Parola yöneticisi sıfırlandı. {deletedCredentials} kayıtlı kimlik bilgisi kaldırıldı ve {clearedSecretHandles} etkin güvenli tanıtıcı geçersiz kılındı.",
                 "preferencesResetFailed": "Tercihler sıfırlanamadı. Yeniden deneyin.",
-                "preferencesResetSuccess": "Tercihler varsayılanlara sıfırlandı. Yeniden yükleniyor...",
+                "preferencesResetSuccess": "Tercihler varsayılanlara sıfırlandı.",
                 "recentSearchesResetFailed": "Son aramalar sıfırlanamadı. Yeniden deneyin.",
                 "recentSearchesResetSuccess": "Son aramalar sıfırlandı.",
                 "restartButton": "SoAI'yi yeniden başlat",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "Kullanıcı başarıyla oluşturuldu",
                 "userDeleteSuccess": "Kullanıcı başarıyla silindi",
                 "userPasswordUpdateSuccess": "Parola başarıyla güncellendi",
-                "userWorkspacePathUpdateSuccessRevoked": "Varsayılan klasör güncellendi. Yeni klasörün dışındaki önceki sohbet klasörü geçersiz kılmaları iptal edildi.",
                 "userRoleUpdateSuccess": "Kullanıcı rolü başarıyla güncellendi",
+                "userWorkspacePathUpdateSuccessRevoked": "Varsayılan klasör güncellendi. Yeni klasörün dışındaki önceki sohbet klasörü geçersiz kılmaları iptal edildi.",
                 "wallpaperDeleteSuccess": "Duvar kâğıdı başarıyla silindi",
                 "wallpaperDownloadSuccess": "Duvar kâğıdı başarıyla indirildi",
                 "wallpaperReloadFailed": "Duvar kâğıdı önizlemesi yüklenemedi.",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "Terminalin serbest bırakıldığı doğrulanmadı. Bağlantıyı yeniden kurup tekrar deneyin; hizmet yeniden başlatıldıysa sunucudaki eski kabuğu kontrol edin.",
+                "recoveryUnavailable": "Terminal kurtarma kullanılamıyor. SoAI'yi yeniden yükleyin ve tekrar denemeden önce sunucudaki eski kabuğu kontrol edin."
+            },
             "ariaLabels": {
                 "clearTerminal": "Terminali temizle",
                 "decreaseTextSize": "Metin boyutunu küçült",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "Konuşma yazıya dökülmedi. Konuşmayı metne dönüştürmeyi kurması için bir yöneticiye başvurun, ardından dosyayı yeniden yükleyin.",
             "openModels": "Modelleri aç",
             "openSettings": "Konuşmadan metne ayarları"
+        },
+        "pagePanes": {
+            "storageUnavailable": "Tarayıcı depolaması kullanılamıyor. Açık paneller kullanılabilir, ancak düzenleri kaydedilemez.",
+            "invalidLayout": "Kaydedilen panel düzeni geçersiz. İstenen sayfa normal şekilde açılacak.",
+            "incompatibleLayout": "Kaydedilen panel düzeni daha yeni bir uygulama gerektiriyor. Düzen korundu.",
+            "foreignLayout": "Kaydedilen panel düzeni başka bir hesaba, pencereye veya sürüme ait. Düzen korundu.",
+            "layoutTooLarge": "Bu panel düzeni kaydedilemeyecek kadar büyük. Açık sayfalar kullanılabilir.",
+            "restoreFailed": "Ana panel geri yüklenemedi. Kaydedilen düzen korundu; yeniden denemek için sayfayı yenileyin.",
+            "title": "Paneller",
+            "active": "Etkin",
+            "closePane": "{page} panelini kapat",
+            "split": "Başka bir panelde aç",
+            "choosePage": "Açılacak sayfa",
+            "parked": "Park edildi",
+            "closing": "Kapatılıyor…",
+            "splitUnavailable": "Bu pencerede bir panel için yer var. Sayfa mevcut panelde açılacak.",
+            "placementUnavailable": "Bu işlem için kullanılabilir panel yok. Bekleyen işleri tamamlayın veya bir paneli kapatıp yeniden deneyin.",
+            "restoreConflict": "Geri yüklenen rota açık bir panelle çakışıyor. Devam etmek için sayfayı doğrudan açın.",
+            "layoutNotSaved": "Düzen kaydedilmedi. Açık paneller kullanılabilir durumda.",
+            "saveCurrentLayout": "Geçerli düzeni kaydet",
+            "replaceSavedLayoutConfirmation": "Korunan düzen, şu anda açık panellerle değiştirilsin mi? Yalnızca kayıtlı düzen değiştirilir; sayfa içerikleri değişmez.",
+            "storageQuotaExceeded": "Tarayıcı depolama alanı dolu. Yer açıp geçerli düzeni yeniden kaydedin. Açık paneller kullanılabilir durumda.",
+            "storageBlocked": "Tarayıcı düzenin kaydedilmesini engelledi. Bu site için depolamaya izin verip geçerli düzeni yeniden kaydedin. Açık paneller kullanılabilir durumda."
         }
     }
 }

@@ -26,6 +26,7 @@ import type { ModelsTranslationKey } from '@core/i18n/translationkeys/models.gen
 import type { NavTranslationKey } from '@core/i18n/translationkeys/nav.generated.ts';
 import type { NotificationsTranslationKey } from '@core/i18n/translationkeys/notifications.generated.ts';
 import type { PageOutletTranslationKey } from '@core/i18n/translationkeys/pageOutlet.generated.ts';
+import type { PagePanesTranslationKey } from '@core/i18n/translationkeys/pagePanes.generated.ts';
 import type { PagesTranslationKey } from '@core/i18n/translationkeys/pages.generated.ts';
 import type { PluginsTranslationKey } from '@core/i18n/translationkeys/plugins.generated.ts';
 import type { PowerTranslationKey } from '@core/i18n/translationkeys/power.generated.ts';
@@ -71,6 +72,7 @@ export type TranslationKey =
     | NavTranslationKey
     | NotificationsTranslationKey
     | PageOutletTranslationKey
+    | PagePanesTranslationKey
     | PagesTranslationKey
     | PluginsTranslationKey
     | PowerTranslationKey

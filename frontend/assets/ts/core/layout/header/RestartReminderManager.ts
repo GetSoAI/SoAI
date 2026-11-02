@@ -1,6 +1,7 @@
 /* SoAI - Shared layout restart reminder manager [frontend/assets/ts/core/layout/header/RestartReminderManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createGlobalPresentationOwner } from '@core/presentationOwner.ts';
 import { createHeaderActionController, type HeaderActionController } from '@core/headerActionBus.ts';
 import { HEADER_ACTION_IDS } from '@core/headeractions/constants.ts';
 import type { HeaderServiceResolver } from '@core/layout/HeaderInterface.ts';
@@ -31,6 +32,7 @@ interface RestartReminderManagerOptions {
 const isRouterInterface = <T>(value: T): value is T & RestartTargetRouter => isObject(value) && 'navigate' in value && isFunction(value.navigate) && 'navigateWithQuery' in value && isFunction(value.navigateWithQuery);
 
 export class RestartReminderManager {
+    readonly #presentationOwner = createGlobalPresentationOwner('RestartReminderManager');
     header: RestartReminderHost;
     unsubscribeRestart: (() => void) | null = null;
     lastStateJson: string | null = null;
@@ -120,6 +122,7 @@ export class RestartReminderManager {
     ensureActionController(): HeaderActionController {
         if (!this.actionController) {
             this.actionController = createHeaderActionController({
+                owner: this.#presentationOwner,
                 actionId: HEADER_ACTION_IDS.restartReminder,
                 contextId: this.actionContextId
             });

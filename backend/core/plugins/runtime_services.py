@@ -20,11 +20,11 @@ from core.plugins.protocols_runtime import (
     PluginRuntimeFlagsProtocol,
     PluginStorageRuntimeProtocol,
 )
-from core.types.protocols import HttpClientProtocol
 
 if TYPE_CHECKING:
     from core.filesystem.path_coercion import PathInput
     from core.types.json import JSONDict
+    from core.types.protocols import HttpClientProtocol
 
 __all__ = (
     "PLUGIN_MODULE_PREFIX",

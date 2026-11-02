@@ -2,20 +2,26 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { LifecycleBackgroundOptions, LifecycleRoute } from '@app/bootstrap/stages/applifecycle/types.ts';
+import type { AuthEpochIntent } from '@core/auth/public.ts';
 
 interface LifecycleAuthHandlerHost {
     isBootstrapInProgress: () => boolean;
     handleLogin: () => Promise<void>;
     handleLogout: () => Promise<void>;
+    invalidateSession: (intent: AuthEpochIntent) => void;
+    refreshAccess: () => Promise<void>;
+    retireSession: () => Promise<void>;
 }
 
 interface LifecycleAuthSubscriptions {
     unsubscribeLogin: () => void;
     unsubscribeLogout: () => void;
+    unsubscribeEpochIntent: () => void;
     resumeDeferredLogin: (sessionNeedsHandoff: boolean) => void;
 }
 
 interface LifecycleLoginHost {
+    isCurrent: () => boolean;
     setStateUninitialized: () => void;
     resetBranding: () => void;
     cleanupUiTracker: () => void;

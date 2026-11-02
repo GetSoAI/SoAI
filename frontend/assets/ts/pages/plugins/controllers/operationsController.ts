@@ -1,6 +1,7 @@
 /* SoAI - Plugins page operations controller [frontend/assets/ts/pages/plugins/controllers/operationsController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import type { ApiRequestBody } from '@core/api/types/request.ts';
@@ -19,7 +20,9 @@ import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 import type { OptimisticOperation } from '@core/data/clientdatahub/types.ts';
 
-interface PluginsOperationsPagePort extends PageDomOwnerHost, PageFeedbackOwnerHost {}
+interface PluginsOperationsPagePort extends PageDomOwnerHost, PageFeedbackOwnerHost {
+    readonly owner: PresentationOwner;
+}
 
 interface PluginsCollectionOperationsPort {
     deletingItems: Set<string>;
@@ -111,6 +114,7 @@ class PluginsOperationsController {
     async executeItemDeletion(options: ExecuteItemDeletionOptions): Promise<void> {
         await executeStreamItemDeletion(
             {
+                owner: this.#dependencies.page.owner,
                 deletingItems: this.#dependencies.collection.deletingItems,
                 streams: this.#dependencies.collection.streams,
                 optionalUI: (selector, context) => this.#dependencies.page.pageDom.optional(selector, context),
@@ -140,6 +144,7 @@ class PluginsOperationsController {
 
     async handleStopAllPlugins(): Promise<void> {
         await handleStopAllPluginsAction({
+            owner: this.#dependencies.page.owner,
             getCollectionPlugins: (): PluginRecord[] => {
                 const collection = this.#dependencies.collection.getCollectionRuntime();
                 if (!collection) return [];

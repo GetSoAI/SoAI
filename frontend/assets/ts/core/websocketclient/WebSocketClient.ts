@@ -1,6 +1,7 @@
 /* SoAI - Shared frontend WebSocket client implementation [frontend/assets/ts/core/websocketclient/WebSocketClient.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { TERMINAL_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/terminalContracts.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { LifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
 import { monotonicMs } from '@core/time/clock.ts';
@@ -40,6 +41,7 @@ class WebSocketClient {
     #controller: WebSocketConnectionController;
     #latencyProbe: WebSocketLatencyProbe;
     #connectionEpoch = 0;
+    #terminalRuntimeId: string | null = null;
     #receiveSequence = 0;
     #subscriberRecoveryEpoch = -1;
 
@@ -99,6 +101,7 @@ class WebSocketClient {
 
     #dispatchEvent(eventType: string, data: JsonValue, epoch: number): void {
         if (epoch !== this.#connectionEpoch) return;
+        if (eventType === TERMINAL_EVENT_CONTRACTS.runtime.eventType) this.#terminalRuntimeId = TERMINAL_EVENT_CONTRACTS.runtime.decode(data);
         this.#receiveSequence += 1;
         const context: WebSocketDispatchContext = Object.freeze({
             connectionEpoch: epoch,
@@ -108,6 +111,7 @@ class WebSocketClient {
     }
 
     #advanceConnectionEpoch(): void {
+        this.#terminalRuntimeId = null;
         this.#connectionEpoch += 1;
         this.#receiveSequence = 0;
     }
@@ -163,6 +167,10 @@ class WebSocketClient {
 
     isDestroyed(): boolean {
         return this.#controller.isDestroyed();
+    }
+
+    get terminalRuntimeId(): string | null {
+        return this.#terminalRuntimeId;
     }
 
     get connectionEpoch(): number {

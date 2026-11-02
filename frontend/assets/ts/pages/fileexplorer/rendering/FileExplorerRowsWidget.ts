@@ -73,6 +73,8 @@ class FileExplorerRowsWidget {
             renderItem: (row) => this.#renderRow(row),
             resolveItemIdentifier: (element) => element.dataset['fileExplorerRowId'] ?? null,
             loadingLabel: () => this.#loadingLabel,
+            patchMountedItems: true,
+            mountedItemState: { preservedClassNames: new Set(['entering', 'file-explorer-row--deeplink-highlight']), preservedAttributeNames: new Set(['data-file-preview-loading', 'aria-busy', 'style']) },
             onCommit: (context) => {
                 if (!this.#isLoadingMore) {
                     this.#loadedEndRendered = !this.#isLoading && context.rangeEnd === context.totalCount;

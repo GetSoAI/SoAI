@@ -1,6 +1,7 @@
 /* SoAI - Plugins feature clone contracts [frontend/assets/ts/features/plugins/modals/clone/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { StreamActionHandle } from '@core/routing/pages/pagetypes/public.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -101,6 +102,7 @@ interface CloneExecutionPort {
 }
 
 interface CloneManagerHost {
+    readonly owner: PresentationOwner;
     view: CloneModalViewPort;
     policy: ClonePluginPolicyPort;
     execution: CloneExecutionPort;

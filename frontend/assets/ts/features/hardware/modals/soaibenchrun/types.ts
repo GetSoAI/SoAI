@@ -1,6 +1,7 @@
 /* SoAI - SoAI Bench run modal public contracts [frontend/assets/ts/features/hardware/modals/soaibenchrun/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { SoAIBenchDeadline } from '@features/hardware/soaibenchLabels.ts';
 
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
@@ -103,6 +104,7 @@ interface SoAIBenchRunsFreshness {
 type SoAIBenchComposer = { type: 'closed' } | { type: 'picker' } | { type: 'intro'; request: SoAIBenchRunOpenRequest; fromPicker: boolean };
 
 interface SoAIBenchRunModalHost {
+    readonly owner: PresentationOwner;
     modals: ModalPresenterApi;
     requireHTMLElement(selector: string | Element, context?: Element): HTMLElement;
     setHTML(target: Element, html: TrustedHtml): void;

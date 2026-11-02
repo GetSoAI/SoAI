@@ -103,13 +103,13 @@ def gpu_inventory_sources_incomplete(
         return False
     if not isinstance(sources, dict):
         raise ValidationError("GPU inventory source outcomes must be an object.")
-    cim_source = sources.get("cim")
+    windows_source = sources.get("setupapi") if "setupapi" in sources else sources.get("cim")
     rosters = [payload.get("gpus")]
     if retained_payload is not None:
         rosters.append(retained_payload.get("gpus"))
     nvidia_optional = (
-        isinstance(cim_source, dict)
-        and cim_source.get("state") == GPUInventoryReadState.OBSERVED
+        isinstance(windows_source, dict)
+        and windows_source.get("state") == GPUInventoryReadState.OBSERVED
         and all(
             isinstance(roster, list)
             and all(

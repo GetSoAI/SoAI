@@ -17,13 +17,14 @@ import type { SoaiOsCapabilitiesService } from '@core/soaiOsAccess.ts';
 import { configureRouteContributions } from '@core/routeregistry/state.ts';
 import { configureEditionTaskCatalog, type EditionTaskCatalog } from '@core/tasks/editionTaskCatalog.ts';
 import { configureExpectedBackendEdition } from '@core/edition/backendEditionIntegrity.ts';
+import type { PageMountScope } from '@core/routing/router/types.ts';
 
 type RegisteredPageClass = Parameters<PageRegistry['register']>[1];
 
 interface FrontendPageContribution {
     readonly id: string;
     readonly pageClass: RegisteredPageClass;
-    readonly options: (basePageDependencies: BasePageDependencies) => Partial<PageOptions>;
+    readonly options: (dependenciesForMount: (mountScope: PageMountScope) => BasePageDependencies) => Partial<PageOptions>;
 }
 
 interface FrontendEditionComposition {

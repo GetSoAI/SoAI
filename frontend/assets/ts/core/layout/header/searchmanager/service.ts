@@ -1,6 +1,7 @@
 /* SoAI - Shared layout search manager service [frontend/assets/ts/core/layout/header/searchmanager/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createGlobalPresentationOwner } from '@core/presentationOwner.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { getStatusManager } from '@core/state/public.ts';
 import type { SearchItem } from '@core/search/searchTypes.ts';
@@ -12,6 +13,7 @@ import type { SearchManagerCollapseOptions, SearchManagerHost, SearchPanelInterf
 import type { TrustedHtml } from '@core/security/public.ts';
 
 export class HeaderSearchManager {
+    readonly presentationOwner = createGlobalPresentationOwner('header-search');
     header: SearchManagerHost;
     expanded: boolean;
     selectedIndex: number;

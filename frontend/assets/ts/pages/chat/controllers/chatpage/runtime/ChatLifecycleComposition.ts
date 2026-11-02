@@ -138,7 +138,7 @@ const composeChatLifecycle = (composition: ChatLifecycleComposition, logger: Mod
                         false
                     ),
                 bindLocalizationEvents: (signal) => bindChatPageRenderingPreferenceEvents({ conversationView: sessions.conversationView, taskScope: domain.taskScope, dom: platform.dom }, signal),
-                handleInitialModal: () => handleChatInitialModal({ router: platform.router, configurationSession: sessions.configuration }),
+                handleInitialModal: () => handleChatInitialModal({ owner: page.services.mountScope, router: platform.router, configurationSession: sessions.configuration }),
                 disposePage: () =>
                     disposeChatPageLifecycle({
                         composerSurface: domain.composerSurface,
@@ -178,7 +178,8 @@ const composeChatLifecycle = (composition: ChatLifecycleComposition, logger: Mod
             voiceSession: sessions.voiceSession
         },
         controls,
-        logger
+        logger,
+        page.pageResources
     );
 };
 

@@ -58,9 +58,9 @@ const buildGpuControlManagerViewContext = (dependencies: BuildGpuControlManagerV
     };
 };
 
-const buildGpuControlDomContext = (dependencies: BuildGpuControlDomContextDependencies): { document: Document; capabilitiesByIndex: GpuCapabilitiesByIndex | null; ensureUiState: (index: string | number) => GpuUiState; refreshApplyState: (index: string | number) => void } => {
+const buildGpuControlDomContext = (dependencies: BuildGpuControlDomContextDependencies): { root: Element; capabilitiesByIndex: GpuCapabilitiesByIndex | null; ensureUiState: (index: string | number) => GpuUiState; refreshApplyState: (index: string | number) => void } => {
     return {
-        document: dependencies.dependencies.dom.getDocument(),
+        root: dependencies.dependencies.pageDom.resolveContext(),
         capabilitiesByIndex: dependencies.capabilitiesByIndex,
         ensureUiState: dependencies.ensureUiState,
         refreshApplyState: dependencies.refreshApplyState

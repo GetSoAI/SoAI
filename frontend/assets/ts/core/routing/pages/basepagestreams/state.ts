@@ -7,9 +7,7 @@ const createBasePageStreamsState = (): BasePageStreamsState => {
     return {
         streamTrackers: null,
         coreStreamRuntime: null,
-        subscriptionManager: null,
-        autoResourceCleanup: null,
-        autoResourceOfflineVisible: false
+        subscriptionManager: null
     };
 };
 

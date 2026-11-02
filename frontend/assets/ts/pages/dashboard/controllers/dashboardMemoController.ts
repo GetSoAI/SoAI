@@ -1,6 +1,7 @@
 /* SoAI - Dashboard page memo controller [frontend/assets/ts/pages/dashboard/controllers/dashboardMemoController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { normalizeNonBlankStringOrNull } from '@core/storage/normalization.ts';
 import { createSaveController, SAVE_HEADER_PRIORITY_PAGE, type SaveController } from '@core/save/public.ts';
@@ -16,12 +17,14 @@ interface DashboardMemoStorage {
 }
 
 interface DashboardMemoControllerDependencies {
+    readonly owner: PresentationOwner;
     host: DashboardHost;
     storage: DashboardMemoStorage;
     isDestroyed: () => boolean;
 }
 
 class DashboardMemoController {
+    readonly #owner: PresentationOwner;
     readonly #host: DashboardHost;
     readonly #storage: DashboardMemoStorage;
     readonly #isDestroyed: () => boolean;
@@ -30,6 +33,7 @@ class DashboardMemoController {
     #baselineText = '';
 
     constructor(dependencies: DashboardMemoControllerDependencies) {
+        this.#owner = dependencies.owner;
         this.#host = dependencies.host;
         this.#storage = dependencies.storage;
         this.#isDestroyed = dependencies.isDestroyed;
@@ -48,7 +52,7 @@ class DashboardMemoController {
         if (this.#isDestroyed()) {
             return;
         }
-        const content = this.#host.requireUI('memo-content');
+        const content = this.#host.requireUI('dashboard-memo-content');
         const wrapper = this.#host.createElement('div', { className: 'dashboard-memo-wrapper' });
         if (!(wrapper instanceof HTMLElement)) {
             throw new TypeError('Dashboard memo wrapper must be an HTMLElement');
@@ -148,6 +152,7 @@ class DashboardMemoController {
             return this.#save;
         }
         this.#save = createSaveController({
+            owner: this.#owner,
             headerContextId: 'dashboard.memo',
             headerPriority: SAVE_HEADER_PRIORITY_PAGE,
             requestContextLabel: 'Dashboard memo save',
@@ -166,7 +171,7 @@ class DashboardMemoController {
         if (!this.#editing) {
             return;
         }
-        const content = this.#host.requireUI('memo-content');
+        const content = this.#host.requireUI('dashboard-memo-content');
         this.#ensureSaveController().attach({
             resolveSaveButtons: (): readonly HTMLButtonElement[] => {
                 const button = this.#host.requireUI('#dashboard-memo-save');

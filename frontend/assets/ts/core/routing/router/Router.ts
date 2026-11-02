@@ -2,31 +2,37 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { getHistory, getLocation, getWindow } from '@core/environment/public.ts';
-import type { NavigationMiddlewareController, NavigationResultType } from '@core/navigationMiddleware.ts';
+import type { NavigationMiddlewareController } from '@core/navigationMiddleware.ts';
+import type { NavigationResultType, NavigationContext, NavigationOptions, NavigationTarget, RouteDefinition, RouteEntry, RouteParameters } from '@core/routing/router/types.ts';
 import type { NotificationApi, PageContext } from '@core/pagecontext/public.ts';
 import { getRouteDefinitions, getSidebarComponentTargets } from '@core/routeregistry/service.ts';
 import type { SidebarComponentTargets } from '@core/routeregistry/contracts.ts';
 import { RouterComponentLoader } from '@core/routing/router/componentLoader.ts';
 import { resolveDefaultAuthenticatedRoute } from '@core/routing/router/authRouteTarget.ts';
-import { resolveRouteTitle } from '@core/routing/router/navigation.ts';
 import { normalizeNavigationRequest } from '@core/routing/router/navigationRequest.ts';
 import { assertRouterDependencies } from '@core/routing/router/contracts.ts';
-import { buildQueryRoute, getQueryParametersFromHash, registerRouterInitializationEvents } from '@core/routing/router/events.ts';
+import { registerRouterInitializationEvents, reportNavigationEventFailure, type BrowserNavigationTarget, type RouterBrowserNavigation } from '@core/routing/router/events.ts';
+import { buildQueryRoute } from '@core/routing/router/queryParameters.ts';
 import { ensurePageHost, getRouteFromHash, parseRoutePath, registerRouteDefinitions, resolveRouteDetails } from '@core/routing/router/actions.ts';
-import { acquireNavigationConnectionHold, releaseNavigationConnectionHold } from '@core/routing/router/routerConnectionHold.ts';
-import type { PageOutletService, ResourceTrackerInstance, RouterDependencies } from '@core/routing/router/routerDependencies.ts';
+import type { ResourceTrackerInstance, RouterDependencies } from '@core/routing/router/routerDependencies.ts';
+import type { PageOutletService, PageHostInstance } from '@core/pageoutlet/types.ts';
 import { createBeforeNavigateMiddleware, useRouterNavigationMiddleware, type RouterMiddleware } from '@core/routing/router/guards.ts';
-import { isSidebarServiceContract, renderRouterError, resolveContainerTarget, resolveSidebarService } from '@core/routing/router/routerInternals.ts';
-import { createRouterLifecycleDependencies, executeNavigationRequest } from '@core/routing/router/service.ts';
+import { renderRouterError, resolveContainerTarget, isSidebarServiceContract, resolveSidebarService } from '@core/routing/router/routerInternals.ts';
+import { createRouterLifecycleDependencies } from '@core/routing/router/service.ts';
 import { createRouterComposition, reloadHandler } from '@core/routing/router/routerComposition.ts';
-import type { NavigationContext, NavigationOptions, NavigationRequest, NavigationTarget, RouteDefinition, RouteEntry, RouteParameters } from '@core/routing/router/types.ts';
+
 import { isFunction, isHTMLElement } from '@core/typeGuards.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { claimErrorReporting } from '@core/errors/reportingOwnership.ts';
 import { notifyHandledOperationError } from '@core/operationErrorNotifier.ts';
-import type { PageHostInstance } from '@core/pageoutlet/types.ts';
-import { isAbortError, raceWithAbortSignal } from '@core/errors/abort.ts';
-import type { RouterLocalizationRefreshController } from '@core/routing/router/localizationRefresh.ts';
+
+import { executeRoutePaneNavigation } from '@core/routing/router/routeExecution.ts';
+import { RoutePane } from '@core/routing/router/RoutePane.ts';
+import { generateSecureId } from '@core/primitives/idGenerator.ts';
+import { getLanguageService } from '@core/languageservice/service.ts';
+import { resolveRouteTitle } from '@core/routing/router/navigation.ts';
+import { runCleanupStepCollectingFailure } from '@core/lifecycle/cleanup.ts';
+import { projectFocusedPane, updateSidebarActiveState } from '@core/routing/router/pageOutlet.ts';
 
 class Router {
     #componentLoader: RouterComponentLoader;
@@ -46,20 +52,20 @@ class Router {
     notifications: NotificationApi;
     routes: Map<string, RouteEntry> = new Map();
     dynamicRoutes: RouteEntry[] = [];
-    currentRoute: string | null = null;
     contentContainer: HTMLElement | null = null;
-    pageHost: { getCurrent: PageHostInstance['getCurrent'] } | null = null;
-    pageOutlet: PageOutletService;
+    readonly #createPaneResources: ReturnType<typeof createRouterComposition>['createPaneResources'];
     initialized = false;
     resources: ResourceTrackerInstance;
     routerBoundary: InstanceType<RouterDependencies['ErrorBoundary']>;
-    #activeNavigation: AbortController | null = null;
-    #latestNavigationCompletion: Promise<void> | null = null;
+    readonly #primaryPane: RoutePane;
+    readonly pagePanes: RouterDependencies['pagePanes'];
     #browserNavigationSuspended = false;
-    #localization: RouterLocalizationRefreshController;
+    readonly #browserNavigation: RouterBrowserNavigation;
+    #focusedProjection: { paneId: string; route: string; generation: symbol | null } | null = null;
     navigationMiddleware: NavigationMiddlewareController;
     constructor(dependencies: RouterDependencies) {
         assertRouterDependencies(dependencies);
+        this.pagePanes = dependencies.pagePanes;
         const composition = createRouterComposition(this, dependencies);
         this.errorHandler = composition.errorHandler;
         this.dom = composition.dom;
@@ -72,15 +78,91 @@ class Router {
         this.stateManager = composition.stateManager;
         this.cleanupManager = composition.cleanupManager;
         this.sectionTracker = composition.sectionTracker;
-        this.pageOutlet = composition.pageOutlet;
+        this.#createPaneResources = composition.createPaneResources;
         this.resources = composition.resources;
         this.routerBoundary = composition.routerBoundary;
         this.navigationMiddleware = composition.navigationMiddleware;
+        this.#browserNavigation = composition.browserNavigation;
         this.#getSidebarService = composition.getSidebarService;
         this.#componentLoader = composition.componentLoader;
         this.#lifecycleDependencies = composition.lifecycleDependencies;
         this.#sidebarTargets = getSidebarComponentTargets();
-        this.#localization = composition.localization;
+        this.#primaryPane = this.#createPane();
+        this.pagePanes.configureAdmission({ createPane: (id) => this.#createPane(id), parseRoute: (path) => this.parseRoute(path), readAuthEpoch: () => this.auth.authEpoch, modalPresenter: dependencies.modalPresenter });
+    }
+    #createPane(id = generateSecureId('pane')): RoutePane {
+        return new RoutePane({
+            id,
+            createResources: (pane) =>
+                this.#createPaneResources({
+                    getLanguage: () => getLanguageService().getLanguage(),
+                    getCurrentRoute: () => pane.currentRoute,
+                    getHashRoute: () => null,
+                    getNavigationCompletion: () => pane.getLatestNavigationCompletion(),
+                    canRefresh: () => this.initialized && !this.isBrowserNavigationSuspended() && this.contentContainer?.inert !== true && this.pagePanes.getPanes().includes(pane) && this.pagePanes.getPaneSlot(pane).state === 'mounted',
+                    navigate: (route) => pane.routing.navigate(route, { pushState: false, force: true, presentation: 'background' }),
+                    reportFailure: (error) => reportNavigationEventFailure({ errorHandler: this.errorHandler }, 'Navigation failed on language change', error)
+                }),
+
+            captureFocusIntent: (_request, pane) => {
+                if (this.pagePanes.getFocusedPane() !== pane) return null;
+                const intent = this.pagePanes.claimFocusIntent();
+                this.#browserNavigation.markNavigation(intent);
+                return intent;
+            },
+            executeNavigation: (request, signal, pane) => {
+                this.pagePanes.navigation.restoration.noteRequest(request);
+                this.pagePanes.navigation.reflow.noteRequest(request);
+                return executeRoutePaneNavigation(
+                    {
+                        pane,
+                        pagePanes: this.pagePanes,
+                        browserNavigation: this.#browserNavigation,
+                        router: this,
+                        auth: this.auth,
+                        navigationMiddleware: this.navigationMiddleware,
+                        componentLoader: this.#componentLoader,
+                        lifecycle: this.#lifecycleDependencies,
+                        sectionTracker: this.sectionTracker,
+                        sidebarTargets: this.#sidebarTargets,
+                        getSidebarService: this.#getSidebarService
+                    },
+                    request,
+                    signal
+                );
+            },
+            parseRoute: (path) => this.parseRoute(path),
+            getDefaultRoute: () => this.getDefaultRoute(),
+            back: () => this.back(),
+            resolveTarget: (target) => {
+                const request = normalizeNavigationRequest(target);
+                return resolveRouteDetails({ ensureInitialized: () => this.ensureInitialized(), path: request.path, route: request.route, parameters: request.parameters, parseRoute: (path) => this.parseRoute(path) });
+            },
+            replaceProjection: (path, title, previousRoute, pane) => {
+                if (this.pagePanes.getFocusedPane() === pane) this.#browserNavigation.project(path, pane.id, 'replace', this.#browserNavigation.focusIntent, { previousRoute, title });
+                this.pagePanes.persistence.changed();
+            },
+            reportFailure: (error) => {
+                if (!claimErrorReporting(error)) return;
+                notifyHandledOperationError(error);
+                this.errorHandler.error('Router', 'Pane navigation failed', error);
+            }
+        });
+    }
+    get #focusedPane(): RoutePane {
+        return this.pagePanes.getFocusedPane() ?? this.pagePanes.getPanes()[0] ?? this.#primaryPane;
+    }
+    get pageOutlet(): PageOutletService {
+        return this.#focusedPane.outlet;
+    }
+    get pageHost(): { getCurrent: PageHostInstance['getCurrent'] } | null {
+        return this.contentContainer ? ensurePageHost(this.pageOutlet) : null;
+    }
+    get currentRoute(): string | null {
+        return this.#focusedPane.currentRoute;
+    }
+    set currentRoute(route: string | null) {
+        this.#focusedPane.currentRoute = route;
     }
     getUI(selector: string, context: Element | Document | null = null): Element | null {
         return this.dom.resolve(selector, context);
@@ -98,20 +180,36 @@ class Router {
             this.setContentContainer(targetContainer);
             this.registerRoutes(routeDefinitions);
             this.#componentLoader.initializeNavigationPrefetch();
+            this.resources.track(this.pagePanes.subscribeFocusIntent((intent) => this.#browserNavigation.claim(intent)));
+            this.resources.track(
+                this.pagePanes.subscribeFocus((userIntent) => {
+                    const pane = this.#focusedPane;
+                    if (!pane.presentation.isFocused()) return;
+                    const route = pane.currentRoute;
+                    const parsed = route ? this.parseRoute(route) : null;
+                    const generation = pane.outlet.getPageHost().getCurrentMountScope()?.generation ?? null;
+                    if (parsed && route && (this.#focusedProjection?.paneId !== pane.id || this.#focusedProjection.route !== route || this.#focusedProjection.generation !== generation)) {
+                        this.#focusedProjection = { paneId: pane.id, route, generation };
+                        projectFocusedPane(this.#lifecycleDependencies, parsed.route, parsed.parameters, { paneId: pane.id, mountGeneration: generation, focused: true }, () => pane.presentation.isFocused() && this.pagePanes.getFocusedPane() === pane && pane.currentRoute === route && pane.outlet.getPageHost().getCurrentMountScope()?.generation === generation);
+                        if (this.#focusedProjection.paneId !== pane.id || this.#focusedProjection.route !== route || this.#focusedProjection.generation !== generation) return;
+                        updateSidebarActiveState(parsed.route.component, this.#sidebarTargets, resolveSidebarService(this.#getSidebarService, isSidebarServiceContract));
+                        this.sectionTracker.initialize();
+                    }
+                    if (route && userIntent) this.#browserNavigation.select(pane.id, route, parsed ? resolveRouteTitle(parsed.route) : '');
+                })
+            );
             registerRouterInitializationEvents({
+                browserNavigation: this.#browserNavigation,
                 resources: this.resources,
                 getWindow,
-                getRouteFromHash: () => this.getRouteFromHash(),
-                parseRoute: (target: string) => this.parseRoute(target),
-                getDefaultRoute: () => this.getDefaultRoute(),
-                navigate: async (target: string, options: NavigationOptions) => this.navigate(target, options),
                 errorHandler: this.errorHandler,
                 renderCriticalError: (message: string) => renderRouterError(this.dom, this.contentContainer, 'critical', message, reloadHandler),
-                isInitialized: () => this.initialized,
-                isBrowserNavigationSuspended: () => this.#browserNavigationSuspended,
-                getCurrentRoute: () => this.currentRoute,
-                refreshLanguage: () => this.#localization.request(),
-                resumeLanguageRefresh: () => this.#localization.resume()
+                refreshLanguage: () => {
+                    for (const pane of this.pagePanes.getPanes()) pane.localization.request();
+                },
+                resumeLanguageRefresh: () => {
+                    for (const pane of this.pagePanes.getPanes()) pane.localization.resume();
+                }
             });
             return;
         }
@@ -122,10 +220,9 @@ class Router {
         if (!isHTMLElement(resolved)) {
             throw new Error('Router requires an HTMLElement container');
         }
-        this.pageOutlet.setContainer(resolved);
-        this.contentContainer = this.pageOutlet.getContainer();
+        this.pagePanes.attach(resolved, this.pagePanes.getPanes()[0] ?? this.#primaryPane);
+        this.contentContainer = resolved;
         this.dom.setStyle(this.contentContainer, 'opacity', null);
-        this.pageHost = ensurePageHost(this.pageOutlet);
     }
     ensureInitialized(): void {
         if (!this.initialized || !this.contentContainer) {
@@ -141,96 +238,38 @@ class Router {
     getRouteFromHash(): string | null {
         return getRouteFromHash(getLocation().hash);
     }
-    parseRoute(routePath: string): { route: RouteEntry; parameters: RouteParameters } | null {
+    readonly parseRoute = (routePath: string): { route: RouteEntry; parameters: RouteParameters } | null => {
         return parseRoutePath(routePath, this.routes, this.dynamicRoutes);
-    }
+    };
     getDefaultRoute(): string {
         return resolveDefaultAuthenticatedRoute(this.storage.getDefaultPage(), this.auth);
     }
+    back(): void {
+        this.ensureInitialized();
+        getHistory().back();
+    }
     async navigate(target: string | NavigationTarget, options: NavigationOptions = {}): Promise<void> {
-        return this.routerBoundary.execute(async () => {
-            const request = normalizeNavigationRequest(target, options);
-            this.#activeNavigation?.abort('navigation-superseded');
-            const navigation = new AbortController();
-            this.#activeNavigation = navigation;
-            const completion = (async (): Promise<void> => {
-                try {
-                    await raceWithAbortSignal(this.pageOutlet.waitForCommit(), navigation.signal);
-                    await this.#navigateInternal(request, navigation.signal);
-                } catch (error) {
-                    if (!isAbortError(error) || !navigation.signal.aborted) throw error;
-                } finally {
-                    if (this.#activeNavigation === navigation) {
-                        this.#activeNavigation = null;
-                        this.pageOutlet.cancelActive('navigation-settled');
-                        this.#localization.resume();
-                    }
-                }
-            })();
-            this.#latestNavigationCompletion = completion;
-            return completion;
-        }, 'navigate');
+        return this.routerBoundary.execute(() => this.#focusedPane.navigate(normalizeNavigationRequest(target, options)), 'navigate');
+    }
+    async navigateBrowser(target: string, options: NavigationOptions, intent: BrowserNavigationTarget): Promise<void> {
+        const pane = this.pagePanes.getPanes().find((candidate) => candidate.id === intent.paneId && !candidate.isDisposed) ?? this.#focusedPane;
+        return this.routerBoundary.execute(() => pane.navigate(normalizeNavigationRequest(target, options), intent.focusIntent), 'navigate');
+    }
+    invalidateSession(): void {
+        this.pagePanes.invalidateSession();
     }
     setBrowserNavigationSuspended(suspended: boolean): void {
         this.#browserNavigationSuspended = suspended;
-        if (!suspended) this.#localization.resume();
+        if (!suspended) for (const pane of this.pagePanes.getPanes()) pane.localization.resume();
     }
     getLatestNavigationCompletion(): Promise<void> | null {
-        return this.#latestNavigationCompletion;
+        return this.#focusedPane.getLatestNavigationCompletion();
     }
     isBrowserNavigationSuspended(): boolean {
         return this.#browserNavigationSuspended;
     }
     useNavigationMiddleware(middleware: RouterMiddleware, options: { priority: number }): () => void {
         return useRouterNavigationMiddleware(this.navigationMiddleware, middleware, options);
-    }
-    async #navigateInternal(request: NavigationRequest, signal: AbortSignal): Promise<void> {
-        await executeNavigationRequest({
-            router: { parseRoute: (path: string) => this.parseRoute(path), getDefaultRoute: () => this.getDefaultRoute() },
-            state: {
-                currentRoute: this.currentRoute,
-                setCurrentRoute: (route: string) => {
-                    this.currentRoute = route;
-                },
-                setLastNavigationDetail: () => {}
-            },
-            request,
-            parseRoute: (path: string) => this.parseRoute(path),
-            resolveRouteDetails: (path: string, route: RouteDefinition | null, parameters: RouteParameters | null) =>
-                resolveRouteDetails({
-                    ensureInitialized: () => this.ensureInitialized(),
-                    path,
-                    route,
-                    parameters,
-                    parseRoute: (targetPath: string) => this.parseRoute(targetPath)
-                }),
-            validateNavigation: (route: RouteDefinition) => {
-                if (!route.component) {
-                    throw new Error('Route missing component');
-                }
-            },
-            runNavigationMiddleware: async (context: NavigationContext) => this.navigationMiddleware.run(context),
-            preloadDependencies: async (route: RouteDefinition) => this.#componentLoader.preloadDependencies(route, signal),
-            pageOutlet: this.pageOutlet,
-            redirect: async (target: string, options: NavigationOptions) => {
-                await this.#navigateInternal(normalizeNavigationRequest(target, { ...options, force: true }), signal);
-            },
-            lifecycle: this.#lifecycleDependencies,
-            sectionTracker: this.sectionTracker,
-            loadPageComponent: async (componentName: string, parameters: RouteParameters, renderOptions: { beforePrepare: () => Promise<void>; beforeCommit: () => Promise<void>; commitNavigation: () => void; signal: AbortSignal }): Promise<boolean> => {
-                const rendered = await this.pageOutlet.render({ component: componentName, parameters, ...renderOptions, commitNavigation: this.#localization.commitRendered(renderOptions.commitNavigation) });
-                return rendered !== null;
-            },
-            sidebarTargets: this.#sidebarTargets,
-            resolveSidebarService: () => resolveSidebarService(this.#getSidebarService, isSidebarServiceContract),
-            historyApi: getHistory(),
-            resolveRouteTitle,
-            connectionHold: {
-                acquire: acquireNavigationConnectionHold,
-                release: releaseNavigationConnectionHold
-            },
-            signal
-        });
     }
     beforeNavigate(callback: (route: RouteDefinition, parameters: RouteParameters, context: NavigationContext) => Promise<NavigationResultType | boolean | void | null>): () => void {
         const middleware = createBeforeNavigateMiddleware(callback);
@@ -240,39 +279,10 @@ class Router {
         return this.currentRoute;
     }
     replaceCurrentRoute(target: string | NavigationTarget): void {
-        this.ensureInitialized();
-        const currentRoute = this.currentRoute;
-        if (!currentRoute) {
-            throw new Error('Router cannot replace the current route before a route is active');
-        }
-        const currentRouteInfo = this.parseRoute(currentRoute);
-        if (!currentRouteInfo) {
-            throw new Error(`Router cannot parse current route: ${currentRoute}`);
-        }
-        const request = normalizeNavigationRequest(target);
-        const resolvedTarget = resolveRouteDetails({
-            ensureInitialized: () => this.ensureInitialized(),
-            path: request.path,
-            route: request.route,
-            parameters: request.parameters,
-            parseRoute: (routePath: string) => this.parseRoute(routePath)
-        });
-        if (currentRouteInfo.route.component !== resolvedTarget.route.component) {
-            throw new Error(`Router cannot replace current route across components: ${currentRouteInfo.route.component} -> ${resolvedTarget.route.component}`);
-        }
-        const title = resolveRouteTitle(resolvedTarget.route);
-        getHistory().replaceState({ route: resolvedTarget.path }, title, `#${resolvedTarget.path}`);
-        this.currentRoute = resolvedTarget.path;
+        this.#focusedPane.routing.replaceCurrentRoute(target);
     }
     getRouteParameters(): RouteParameters {
-        if (!this.currentRoute) {
-            throw new Error('Router does not have an active route');
-        }
-        const parsed = this.parseRoute(this.currentRoute);
-        if (!parsed) {
-            throw new Error(`Router cannot parse current route: ${this.currentRoute}`);
-        }
-        return parsed.parameters;
+        return this.#focusedPane.routing.getRouteParameters();
     }
     async reload(): Promise<void> {
         if (this.currentRoute) {
@@ -280,26 +290,25 @@ class Router {
         }
     }
     async destroyCurrentPage(): Promise<void> {
-        await this.pageOutlet.destroyCurrent({ force: true });
+        const outcomes = await Promise.allSettled(this.pagePanes.getPanes().map((pane) => pane.outlet.destroyCurrent({ force: true })));
+        const failures = outcomes.flatMap((outcome) => (outcome.status === 'rejected' ? [ensureError(outcome.reason)] : []));
+        if (failures.length) throw new AggregateError(failures, 'Workspace page destruction incomplete');
         await this.cleanupManager.cleanupAll();
     }
 
     async destroy(): Promise<void> {
-        this.#localization.dispose();
-        this.#activeNavigation?.abort('router-destroyed');
-        this.#activeNavigation = null;
-        this.#latestNavigationCompletion = null;
-        this.resources.cleanup();
-        const pageOutlet = this.pageOutlet;
-        if (isFunction(pageOutlet.destroy)) {
-            await pageOutlet.destroy();
-        } else {
-            await pageOutlet.destroyCurrent({ force: true });
-        }
+        const panes = this.pagePanes.getPanes();
+        const failures: Error[] = [];
+        for (const pane of panes) runCleanupStepCollectingFailure(() => pane.disposeNavigation(), failures);
+        const tasks = panes.map(async (pane) => (isFunction(pane.outlet.destroy) ? pane.outlet.destroy() : pane.outlet.destroyCurrent({ force: true })));
+        tasks.push(Promise.resolve().then(() => this.resources.cleanup({ requireComplete: true })));
+        const outcomes = await Promise.allSettled(tasks);
+        failures.push(...outcomes.flatMap((outcome) => (outcome.status === 'rejected' ? [ensureError(outcome.reason)] : [])));
+        if (failures.length) throw new AggregateError(failures, 'Workspace destruction incomplete');
+        await this.pagePanes.detach();
         await this.cleanupManager.cleanupAll();
         this.sectionTracker.cleanup();
         this.currentRoute = null;
-        this.pageHost = null;
         this.contentContainer = null;
         this.initialized = false;
     }
@@ -317,7 +326,7 @@ class Router {
         });
     }
     getQueryParameters(): RouteParameters {
-        return getQueryParametersFromHash(getLocation().hash);
+        return this.#focusedPane.routing.getQueryParameters();
     }
 }
 

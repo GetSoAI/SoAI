@@ -3,7 +3,8 @@
 
 import { isFunction } from '@core/typeGuards.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import type { Disposable, DisposableMetadata, DisposableResource } from '@core/resourcetracker/types.ts';
+import type { Disposable, DisposableMetadata, DisposableResource, EventListenerMetadata } from '@core/resourcetracker/types.ts';
+import { createDeferred } from '@core/runtime/deferred.ts';
 
 type NativeTimerHandle = number | ReturnType<typeof setTimeout>;
 
@@ -18,23 +19,58 @@ interface TrackedTimerCollections {
     cancelAnimationFrame: (frameId: number) => void;
 }
 
-const clearTrackedTimers = (collections: TrackedTimerCollections): void => {
-    collections.timeouts.forEach((timeoutId) => {
-        const nativeHandle = collections.nativeTimeoutsById.get(timeoutId) ?? timeoutId;
-        collections.clearTimeout(nativeHandle);
-    });
-    collections.timeouts.clear();
-    collections.nativeTimeoutsById.clear();
+const clearTrackedTimers = (collections: TrackedTimerCollections): Error[] => {
+    const failures: Error[] = [];
+    const clearTimers = (timers: Set<number>, nativeHandles: Map<number, NativeTimerHandle>, release: (handle: NativeTimerHandle) => void): void => {
+        for (const timerId of [...timers]) {
+            try {
+                release(nativeHandles.get(timerId) ?? timerId);
+                timers.delete(timerId);
+                nativeHandles.delete(timerId);
+            } catch (error) {
+                failures.push(ensureError(error));
+            }
+        }
+    };
+    clearTimers(collections.timeouts, collections.nativeTimeoutsById, collections.clearTimeout);
+    clearTimers(collections.intervals, collections.nativeIntervalsById, collections.clearInterval);
+    for (const frameId of [...collections.animationFrames]) {
+        try {
+            collections.cancelAnimationFrame(frameId);
+            collections.animationFrames.delete(frameId);
+        } catch (error) {
+            failures.push(ensureError(error));
+        }
+    }
+    return failures;
+};
 
-    collections.intervals.forEach((intervalId) => {
-        const nativeHandle = collections.nativeIntervalsById.get(intervalId) ?? intervalId;
-        collections.clearInterval(nativeHandle);
-    });
-    collections.intervals.clear();
-    collections.nativeIntervalsById.clear();
+const clearTrackedEventListeners = (listeners: Set<EventListenerMetadata>, onError: (error: Error) => void): Error[] => {
+    const failures: Error[] = [];
+    for (const metadata of [...listeners]) {
+        try {
+            metadata.element.removeEventListener?.(metadata.event, metadata.handler, metadata.options);
+            listeners.delete(metadata);
+        } catch (error) {
+            const failure = ensureError(error);
+            failures.push(failure);
+            onError(failure);
+        }
+    }
+    return failures;
+};
 
-    collections.animationFrames.forEach((frameId) => collections.cancelAnimationFrame(frameId));
-    collections.animationFrames.clear();
+const settleTrackedDisposables = async (disposables: Set<DisposableMetadata>, release: (metadata: DisposableMetadata) => Promise<Error | null>, drain: boolean): Promise<Error[]> => {
+    const attempted = new Set<DisposableMetadata>();
+    const failures: Error[] = [];
+    do {
+        const pending = [...disposables].filter((metadata) => !attempted.has(metadata));
+        if (pending.length === 0) break;
+        for (const metadata of pending) attempted.add(metadata);
+        const outcomes = await Promise.all(pending.map(release));
+        for (const outcome of outcomes) if (outcome) failures.push(outcome);
+    } while (drain);
+    return failures;
 };
 
 const safeDispose = async (resource: DisposableResource): Promise<void> => {
@@ -101,16 +137,26 @@ const invokeDisposable = async (disposable: DisposableResource): Promise<void> =
     await safeDispose(disposable);
 };
 
-const cleanupTrackedDisposable = async (metadata: DisposableMetadata, onError: (error: Error) => void): Promise<void> => {
-    try {
-        if (isFunction(metadata.cleanup)) {
-            await metadata.cleanup(metadata.disposable);
-            return;
+const cleanupTrackedDisposable = (metadata: DisposableMetadata, onError: (error: Error) => void): Promise<Error | null> => {
+    if (metadata.completion) return metadata.completion;
+    const completion = createDeferred<Error | null>();
+    metadata.completion = completion.promise;
+    const release = async (): Promise<Error | null> => {
+        try {
+            if (isFunction(metadata.cleanup)) {
+                await metadata.cleanup(metadata.disposable);
+            } else {
+                await invokeDisposable(metadata.disposable);
+            }
+            return null;
+        } catch (error) {
+            const failure = ensureError(error);
+            onError(failure);
+            return failure;
         }
-        await invokeDisposable(metadata.disposable);
-    } catch (error) {
-        onError(ensureError(error));
-    }
+    };
+    void release().then(completion.resolve, (error) => completion.resolve(ensureError(error)));
+    return completion.promise;
 };
 
-export { cleanupTrackedDisposable, clearTrackedTimers, invokeDisposable, safeDispose };
+export { cleanupTrackedDisposable, clearTrackedEventListeners, clearTrackedTimers, invokeDisposable, safeDispose, settleTrackedDisposables };

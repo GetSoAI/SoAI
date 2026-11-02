@@ -2,13 +2,20 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { TIMEOUTS } from '@core/constants.ts';
+import { runAsyncCleanupStepCollectingFailure, runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { withTimeout } from '@core/primitives/withTimeout.ts';
+import type { ModalHandle } from '@core/modals/types.ts';
 import { handleDragEnd, handleDragMove, handleDragStart } from '@core/modals/modalhost/eventsDrag.ts';
 import { handleDoubleClick } from '@core/modals/modalhost/eventsDoubleClick.ts';
 import { handleDocumentClick, handleKeyDown } from '@core/modals/modalhost/eventsPointer.ts';
 import { handleResizeEnd, handleResizeMove, handleResizeStart } from '@core/modals/modalhost/eventsResize.ts';
 import { initializeModalLayoutObservers, setupMobileViewportListener } from '@core/modals/modalhost/layout.ts';
 import type { ModalHostState } from '@core/modals/modalhost/contracts.ts';
-import { closeModal } from '@core/modals/modalhost/modalActions.ts';
+import { closeModal, closeOpenModals } from '@core/modals/modalhost/modalActions.ts';
+import { releaseModalOwnership } from '@core/modals/modalhost/ownership.ts';
+import { releaseModalBinding, type ModalBinding } from '@core/modals/modalhost/bindings.ts';
 
 const initializeModalHost = (state: ModalHostState): void => {
     if (state.initialized) {
@@ -53,4 +60,40 @@ const initializeModalHost = (state: ModalHostState): void => {
     initializeModalLayoutObservers(state);
 };
 
-export { initializeModalHost };
+const disposeModalHost = async (state: ModalHostState, binders: Map<string, ModalBinding>, elements: Set<HTMLElement>, handles: Map<string, ModalHandle>, discardElement: (element: HTMLElement) => void): Promise<void> => {
+    state.resources.seal();
+    const failures: Error[] = [];
+    runCleanupStepCollectingFailure(() => {
+        closeOpenModals(state, { force: true, restoreFocus: false, reason: 'dispose' });
+    }, failures);
+    for (const ownership of [...state.ownership.values()])
+        runCleanupStepCollectingFailure(() => {
+            releaseModalOwnership(state, ownership);
+        }, failures);
+    const bindingReleases = [...binders].map(async ([modalId, binding]) => {
+        const outcome = await releaseModalBinding(binding);
+        if (outcome.type === 'failed') throw outcome.error;
+        if (binders.get(modalId) === binding) binders.delete(modalId);
+    });
+    const discardReleasedRoots = (): void => {
+        if (state.ownership.size || binders.size || failures.length) return;
+        for (const element of [...elements]) {
+            try {
+                discardElement(element);
+                elements.delete(element);
+            } catch (error) {
+                failures.push(ensureError(error));
+            }
+        }
+    };
+    discardReleasedRoots();
+    await runAsyncCleanupStepCollectingFailure(async () => {
+        const outcomes = await withTimeout(Promise.allSettled([...bindingReleases, state.resources.dispose()]), { timeoutMs: TIMEOUTS.API_REQUEST, timeoutMessage: 'Modal host release is unconfirmed' });
+        for (const outcome of outcomes) if (outcome.status === 'rejected') failures.push(ensureError(outcome.reason));
+    }, failures);
+    discardReleasedRoots();
+    if (!failures.length) handles.clear();
+    throwCollectedCleanupFailures(failures);
+};
+
+export { initializeModalHost, disposeModalHost };

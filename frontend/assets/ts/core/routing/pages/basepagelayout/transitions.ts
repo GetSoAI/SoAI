@@ -5,6 +5,7 @@ import { request } from '@core/routing/pages/basepagecore/actions.ts';
 import { PAGE_CONTENT_READY, PAGE_TRANSITIONING_IN, PAGE_TRANSITION_MODE_ATTRIBUTE } from '@core/pageTransitions.ts';
 import { getPageHeaderAnimator } from '@core/animations/service.ts';
 import { getRequestAnimationFrame } from '@core/environment/public.ts';
+import type { PageMountScope } from '@core/routing/router/types.ts';
 
 interface PageTransitionClassHost {
     removeClassName(target: Element, className: string): void;
@@ -21,9 +22,10 @@ const onHide = async (host: PageTransitionClassHost, section: Element | null): P
     }
 };
 
-const attachHeaderAnimator = (host: PageTransitionClassHost): void => {
+const attachHeaderAnimator = (host: Pick<PageTransitionClassHost, 'getUI'> & { readonly mountScope: PageMountScope }): void => {
     const animator = request(getPageHeaderAnimator(), 'Anim');
     getRequestAnimationFrame()(() => {
+        if (!host.mountScope.admission.isCurrent()) return;
         const container = host.getUI('.page-scrollable');
         if (container instanceof HTMLElement) {
             animator.attach(container);

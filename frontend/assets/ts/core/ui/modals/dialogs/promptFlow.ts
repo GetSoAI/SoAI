@@ -1,6 +1,7 @@
 /* SoAI - Prompt modal flow management for core.dialogs [frontend/assets/ts/core/ui/modals/dialogs/promptFlow.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { dom } from '@core/dom/dom.ts';
 import { setModalFooterButtonLabel } from '@core/modals/footerButtons.ts';
 import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
@@ -9,6 +10,7 @@ import { resolvePromptDom } from '@core/ui/modals/dialogs/promptDom.ts';
 import { showNotification } from '@core/ui/notifications/notifications.ts';
 
 type PromptDomConfig = {
+    readonly owner: PresentationOwner;
     title: string;
     message: string;
     placeholder: string;
@@ -27,6 +29,7 @@ const createPromptFlow = (dependencies: { modalId: string }): PromptFlowApi => {
     const show = async (request: PromptDomConfig & { validate?: ((value: string) => string | null) | undefined }): Promise<string | null> => {
         const presenter = requireModalPresenter();
         return await runModalSession<string | null>({
+            owner: request.owner,
             presenter,
             modalId: dependencies.modalId,
             onAlreadyOpen: 'replace',

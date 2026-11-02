@@ -33,6 +33,7 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
     const modalId = FOLDER_PICKER_MODAL_ID;
 
     return await runModalSession<FolderPickerResult | null>({
+        owner: options.owner,
         presenter,
         modalId,
         signal: options.signal,

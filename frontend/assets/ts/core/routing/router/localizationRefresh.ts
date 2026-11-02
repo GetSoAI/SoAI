@@ -89,3 +89,4 @@ class RouterLocalizationRefreshController {
 }
 
 export { RouterLocalizationRefreshController };
+export type { RouterLocalizationHost };

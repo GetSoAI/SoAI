@@ -1,6 +1,7 @@
 /* SoAI - Cross-tab authentication state synchronization [frontend/assets/ts/core/auth/sharedState.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { beginAuthenticatedEpoch, beginTerminalAuthIntent } from '@core/auth/epochIntent.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { requireStateManager } from '@core/state/runtime.ts';
@@ -64,8 +65,8 @@ const commitSharedState = async (state: AuthManagerStateHandle, snapshot: Shared
     }
     const committedOwnership = { ...ownership, authEpoch: state.authEpoch + 1 };
     if (!snapshot.isAuthenticated) {
-        state.authEpoch = committedOwnership.authEpoch;
-        state.terminalEpoch = state.authEpoch;
+        beginTerminalAuthIntent(state);
+        if (!isCurrentSharedRevision(state, committedOwnership)) return false;
     }
     state.isApplyingSharedState = true;
     try {
@@ -79,19 +80,15 @@ const commitSharedState = async (state: AuthManagerStateHandle, snapshot: Shared
                 if (verified === null || verified.id !== serialized.id || !isCurrentSharedRevision(state, ownership) || state.terminalEpoch !== probedTerminalEpoch) return false;
                 candidate = verified;
             }
-            const wasAuthenticated = state.isAuthenticated;
-            const userChanged = !previousUser || previousUser.id !== candidate.id || previousUser.identityRevision !== candidate.identityRevision || previousUser.workspacePathResolved !== candidate.workspacePathResolved;
             await hooks.persistLogin(candidate);
             if (!isCurrentSharedRevision(state, ownership) || state.isLoggingOut) {
                 return false;
             }
-            state.authEpoch = committedOwnership.authEpoch;
-            state.terminalEpoch = null;
+            beginAuthenticatedEpoch(state);
+            if (!isCurrentSharedRevision(state, committedOwnership)) return false;
             state.user = candidate;
             state.isAuthenticated = true;
-            if (!wasAuthenticated || userChanged) {
-                await hooks.notifyLogin(state);
-            }
+            await hooks.notifyLogin(state);
             return isCurrentSharedRevision(state, committedOwnership);
         }
         if (!snapshot.isAuthenticated && state.isAuthenticated) {
@@ -101,6 +98,7 @@ const commitSharedState = async (state: AuthManagerStateHandle, snapshot: Shared
             }
             state.user = null;
             state.isAuthenticated = false;
+            state.isLoggingOut = false;
             await hooks.notifyLogout(state);
             return isCurrentSharedRevision(state, committedOwnership);
         }

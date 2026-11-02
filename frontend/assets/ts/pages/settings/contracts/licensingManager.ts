@@ -1,6 +1,7 @@
 /* SoAI - Licensing settings manager capability contract [frontend/assets/ts/pages/settings/contracts/licensingManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { LicensingSettingsStatus } from '@core/api/contracts/licensingSettingsContracts.ts';
 import type { LicensingLegalDocumentSet, LicensingLegalFlow } from '@core/api/contracts/licensingLegalDocumentContracts.ts';
 import type { LicensingCredentialActivationInput, LicensingLegalAcceptanceInput, LicensingOrganizationInput } from '@core/api/contracts/licensingRequestSerialization.ts';
@@ -43,6 +44,7 @@ interface LicensingManagerViewPort {
 }
 
 interface LicensingManagerHost {
+    readonly owner: PresentationOwner;
     licensing: LicensingManagerLicensingPort;
     system: LicensingManagerSystemPort;
     page: LicensingManagerPagePort;

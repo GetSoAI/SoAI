@@ -1,9 +1,10 @@
-/* SoAI - Metrics page reveal presentation hold [frontend/assets/ts/pages/metrics/controllers/page/metricsRevealController.ts] */
+/* SoAI - Metrics page reveal and pane visibility presentation hold [frontend/assets/ts/pages/metrics/controllers/page/metricsRevealController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 class MetricsRevealController {
     #held = true;
     #dirty = false;
+    #visible = true;
 
     prepare(): void {
         this.#held = false;
@@ -16,7 +17,7 @@ class MetricsRevealController {
     }
 
     requestRefresh(): boolean {
-        if (!this.#held) {
+        if (!this.#held && this.#visible) {
             return true;
         }
         this.#dirty = true;
@@ -27,8 +28,19 @@ class MetricsRevealController {
         if (!this.#held) {
             return false;
         }
-        const dirty = this.#dirty;
         this.#held = false;
+        return this.#takePendingRefresh();
+    }
+
+    setVisible(visible: boolean): boolean {
+        if (this.#visible === visible) return false;
+        this.#visible = visible;
+        return this.#takePendingRefresh();
+    }
+
+    #takePendingRefresh(): boolean {
+        if (this.#held || !this.#visible) return false;
+        const dirty = this.#dirty;
         this.#dirty = false;
         return dirty;
     }

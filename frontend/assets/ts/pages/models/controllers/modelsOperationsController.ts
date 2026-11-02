@@ -1,6 +1,7 @@
 /* SoAI - Models page operations controller [frontend/assets/ts/pages/models/controllers/modelsOperationsController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { stopPluginActionPath } from '@core/api/endpoints/uiPaths.ts';
 import { formatLocalizedNumber } from '@core/localization/public.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -26,6 +27,7 @@ interface StopModelDependencies {
 }
 
 interface DeleteModelDependencies {
+    readonly owner: PresentationOwner;
     getModelPlugin: (model: ResourceItem | null | undefined) => string;
     isExternalProviderModel: (model: ResourceItem | null | undefined) => boolean;
     getCollectionItem: (identifier: string) => ResourceItem | null;
@@ -75,6 +77,7 @@ const createModelsDeleteController = (dependencies: DeleteModelDependencies): ((
         }
         if (model && dependencies.isExternalProviderModel(model)) {
             await requireDialogsService().showConfirmation({
+                owner: dependencies.owner,
                 title: i18n.t('models.notifications.cannotDeleteExternal'),
                 message: i18n.t('models.notifications.cannotDeleteExternalMessage', { model: modelName }),
                 description: i18n.t('models.notifications.cannotDeleteExternalDescription', {

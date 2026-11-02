@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "Adicione arquivos e pastas do seu dispositivo como anexos diretos da mensagem. Eles são enviados com o prompt atual, ao contrário dos uploads para Conhecimento, que são indexados para recuperação.",
                 "uploadTitle": "Fazer upload direto de arquivos e pastas",
-                "title": "Adicionar anexos"
+                "title": "Adicionar anexos",
+                "cameraDiscardConfirm": "Descartar esta foto capturada?"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "Erro desconhecido",
                 "unknownError": "Ocorreu um erro desconhecido.",
                 "storageHeadroomInsufficient": "Não há espaço de armazenamento suficiente, considerando a margem de segurança e as reservas existentes. Libere espaço ou aguarde a conclusão de outras operações de armazenamento e tente novamente.",
-                "storageHeadroomValues": "Necessário incluindo a margem de segurança: {required}. Disponível para esta operação: {available}."
+                "storageHeadroomValues": "Necessário incluindo a margem de segurança: {required}. Disponível para esta operação: {available}.",
+                "permissionsUnavailable": "As permissões de acesso estão indisponíveis. Verifique a conexão e tente novamente."
             },
             "export": "Exportar",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "Alterações não salvas",
             "view": "Visualizar",
             "yes": "Sim",
-            "retry": "Tentar novamente"
+            "retry": "Tentar novamente",
+            "discard": "Descartar"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "O arquivo pode ter sido salvo, mas não foi possível verificar seu estado final. Confira o destino em Arquivos antes de enviá-lo novamente.",
                 "cleanupIncomplete": "Não foi possível concluir a limpeza automática. Verifique o destino em Arquivos antes de tentar novamente.",
                 "contentChanged": "O arquivo mudou durante a operação. Selecione-o novamente e tente outra vez.",
-                "destinationExists": "Já existe um arquivo ou pasta com esse nome. Escolha outro nome ou destino."
+                "destinationExists": "Já existe um arquivo ou pasta com esse nome. Escolha outro nome ou destino.",
+                "listingChanged": "A pasta continuou a mudar. Atualize para tentar novamente.",
+                "listingTimeout": "O tempo para atualizar a pasta esgotou-se. Atualize para tentar novamente.",
+                "listingIncoherent": "As páginas da pasta eram inconsistentes. Atualize para tentar novamente.",
+                "listingUnavailable": "O serviço de pastas está indisponível. Verifique a ligação e atualize.",
+                "listingBusy": "Os pedidos de pastas estão a ser limitados. Aguarde e depois atualize."
             },
             "labels": {
                 "latestTask": "Tarefa mais recente",
@@ -3175,7 +3183,10 @@
                 "empty": "Nenhuma entrada encontrada.",
                 "error": "A operação falhou. Consulte as notificações para obter detalhes.",
                 "loading": "Carregando entradas do diretório...",
-                "searching": "Pesquisando arquivos e pastas..."
+                "searching": "Pesquisando arquivos e pastas...",
+                "refreshing": "A atualizar…",
+                "stale": "Dados desatualizados. Atualize para tentar novamente.",
+                "unavailable": "Pasta indisponível. Verifique o erro e atualize."
             },
             "table": {
                 "modified": "Modificado",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "Use modelos, ferramentas e arquivos",
                     "sectionTitle": "Chat e ferramentas de agente",
-                    "conversations": "Chat reúne mensagens, escolha do modelo, parâmetros de geração e acesso às ferramentas. Você pode trocar de modelo entre turnos, comparar respostas, salvar a configuração como preset ou organizar conversas em pastas. Anexe um arquivo quando o modelo precisar do item completo na mensagem atual. Anexe uma fonte de conhecimento quando quiser que o SoAI pesquise material indexado e retorne os trechos pertinentes. O compositor aceita arquivos, pastas e links do SoAI",
+                    "conversations": "Chat reúne mensagens, escolha do modelo, parâmetros de geração, acesso às ferramentas e as bibliotecas de Habilidades e Memória. Você pode trocar de modelo entre turnos, comparar respostas, salvar a configuração como preset ou organizar conversas em pastas. Anexe um arquivo quando o modelo precisar do item completo na mensagem atual. Anexe uma fonte de conhecimento quando quiser que o SoAI pesquise material indexado e retorne os trechos pertinentes. O compositor aceita arquivos, pastas e links do SoAI",
                     "tools": "O modo Chat serve para conversar. Plan permite que o modelo examine uma tarefa e prepare as etapas. Ele bloqueia ferramentas marcadas como destrutivas ou sem metadados destrutivos válidos, mas outras ferramentas selecionadas ainda podem afetar sistemas externos. Execute permite agir com as ferramentas ativadas. As chamadas e seus resultados ficam visíveis na conversa; ações protegidas podem pedir sua aprovação. As ferramentas podem pesquisar na web, controlar um navegador, trabalhar com arquivos e terminais, consultar conhecimento, processar mídia e conectar-se a e-mail ou calendários. Administradores escolhem as integrações e credenciais disponíveis. Os agentes também podem fazer perguntas, manter um plano e dividir o trabalho em subtarefas em segundo plano. Automation executa um ou mais turnos em uma programação e mantém cada execução como conversa",
                     "mcp": "O SoAI pode expor suas ferramentas a clientes MCP autenticados e se conectar a servidores MCP remotos. As ferramentas remotas aparecem ao lado das integradas depois que um administrador configura o servidor",
                     "voice": "Modelos de fala para texto transcrevem gravações ou o microfone. Modelos de texto para fala leem respostas; o modo de chamada de voz permite uma conversa falada"
@@ -3944,7 +3955,7 @@
                     "heading": "Verifique o sistema e administre o host",
                     "sectionTitle": "Monitoramento e administração",
                     "status": "Dashboard mostra o estado do sistema e o trabalho ativo. Hardware exibe CPU, memória, disco, rede e GPU; Metrics mostra o histórico de solicitações e o uso de tokens; Logs traz detalhes de diagnóstico. GPUs compatíveis oferecem controles de potência, clocks e ventoinhas. Essas alterações afetam o host: use um perfil testado e acompanhe temperatura e estabilidade",
-                    "operations": "Terminal oferece sessões interativas de shell. Power pode reiniciar ou parar o SoAI e controlar o sistema operacional do host. O acesso às duas páginas depende das permissões da conta",
+                    "operations": "Terminal oferece sessões interativas de shell. Power pode reiniciar ou parar o SoAI e controlar o sistema operacional do host. O acesso ao Terminal e aos controles de Power depende das permissões da conta",
                     "maintenance": "Os backups ficam em Settings e as atualizações do aplicativo na página Updates. Verifique um backup antes de depender dele, exporte para fora do host as cópias necessárias e confira o escopo antes de restaurar ou redefinir. O SoAI monitora os backends e para de enviar solicitações a um plugin que falha repetidamente. Plugins mostra os estados de recuperação e quarentena. Downloads, uploads, backups e outras gravações grandes verificam o espaço reservado antes de começar"
                 },
                 "access": {
@@ -5229,6 +5240,9 @@
             "loading": "Preparando o SoAI...",
             "loadingDelayError": "Esta página está demorando mais do que o esperado. Verifique sua conexão ou tente carregar a página novamente.",
             "loadingLabel": "Carregando...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "A página anterior ainda está sendo fechada. Aguarde e tente novamente. Se continuar travada, recarregue esta janela."
+            },
             "retry": "Tentar novamente"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "Aparência redefinida para os padrões.",
                 "chatPresetsResetFailed": "Falha ao redefinir as predefinições de chat. Tente novamente.",
                 "chatPresetsResetSuccess": "Predefinições de chat redefinidas.",
+                "configurationResetFailed": "Não foi possível agendar a redefinição da configuração. Revise os arquivos de configuração e tente novamente.",
                 "conversationsDeleteFailed": "Falha ao excluir conversas. Tente novamente.",
                 "conversationsDeleteNone": "Não há conversas para excluir.",
                 "conversationsDeleteSuccess": "{count} conversas excluídas.",
-                "configurationResetFailed": "Não foi possível agendar a redefinição da configuração. Revise os arquivos de configuração e tente novamente.",
                 "factoryResetSuccess": "Restauração de fábrica iniciada. O SoAI será reiniciado em breve.",
                 "fixInvalidFields": "Corrija os campos inválidos antes de salvar.",
                 "hardwareHistoryResetFailed": "Falha ao redefinir o histórico de hardware. Tente novamente.",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "Redefinição de métricas iniciada com sucesso",
                 "pageLayoutsResetFailed": "Falha ao redefinir os layouts de página. Tente novamente.",
                 "pageLayoutsResetSuccess": "Layouts do painel, métricas e hardware redefinidos para os padrões.",
+                "partialSave": "Algumas configurações foram aplicadas. {reason} Verifique os campos não salvos destacados e tente novamente.",
                 "passwordManagerResetFailed": "Falha ao redefinir o gerenciador de senhas. Tente novamente.",
                 "passwordManagerResetSuccess": "Gerenciador de senhas redefinido. {deletedCredentials} credencial(is) salva(s) removida(s) e {clearedSecretHandles} identificador(es) seguro(s) ativo(s) invalidado(s).",
                 "preferencesResetFailed": "Falha ao redefinir as preferências. Tente novamente.",
-                "preferencesResetSuccess": "Preferências redefinidas para os padrões. Recarregando...",
+                "preferencesResetSuccess": "Preferências redefinidas para os padrões.",
                 "recentSearchesResetFailed": "Falha ao redefinir as pesquisas recentes. Tente novamente.",
                 "recentSearchesResetSuccess": "Pesquisas recentes redefinidas.",
                 "restartButton": "Reiniciar o SoAI",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "Usuário criado com sucesso",
                 "userDeleteSuccess": "Usuário excluído com sucesso",
                 "userPasswordUpdateSuccess": "Senha atualizada com sucesso",
-                "userWorkspacePathUpdateSuccessRevoked": "Pasta padrão atualizada. Substituições anteriores de pasta de conversa fora da nova pasta foram revogadas.",
                 "userRoleUpdateSuccess": "Função do usuário atualizada com sucesso",
+                "userWorkspacePathUpdateSuccessRevoked": "Pasta padrão atualizada. Substituições anteriores de pasta de conversa fora da nova pasta foram revogadas.",
                 "wallpaperDeleteSuccess": "Papel de parede excluído com sucesso",
                 "wallpaperDownloadSuccess": "Papel de parede baixado com sucesso",
                 "wallpaperReloadFailed": "Falha ao carregar a pré-visualização do papel de parede.",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "A libertação do terminal não está confirmada. Restabeleça a ligação e tente novamente; se o serviço reiniciou, verifique a shell anterior no anfitrião.",
+                "recoveryUnavailable": "A recuperação do terminal está indisponível. Recarregue o SoAI e verifique a shell anterior no anfitrião antes de tentar novamente."
+            },
             "ariaLabels": {
                 "clearTerminal": "Limpar terminal",
                 "decreaseTextSize": "Diminuir tamanho do texto",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "Fala não transcrita. Peça a um administrador para configurar a transcrição e envie o arquivo novamente.",
             "openModels": "Abrir Modelos",
             "openSettings": "Configurações de fala em texto"
+        },
+        "pagePanes": {
+            "storageUnavailable": "O armazenamento do navegador não está disponível. Os painéis abertos continuam utilizáveis, mas não é possível salvar a disposição.",
+            "invalidLayout": "A disposição de painéis salva é inválida. A página solicitada abrirá normalmente.",
+            "incompatibleLayout": "A disposição de painéis salva exige um aplicativo mais recente. Ela foi preservada.",
+            "foreignLayout": "A disposição de painéis salva pertence a outra conta, janela ou edição. Ela foi preservada.",
+            "layoutTooLarge": "Esta disposição de painéis é grande demais para salvar. As páginas abertas continuam utilizáveis.",
+            "restoreFailed": "Não foi possível restaurar o painel principal. A disposição salva foi preservada; recarregue para tentar novamente.",
+            "title": "Painéis",
+            "active": "Ativo",
+            "closePane": "Fechar painel {page}",
+            "split": "Abrir em outro painel",
+            "choosePage": "Página a abrir",
+            "parked": "Estacionado",
+            "closing": "Fechando…",
+            "splitUnavailable": "Esta janela tem espaço para um painel. A página abrirá no painel atual.",
+            "placementUnavailable": "Nenhum painel está disponível para esta ação. Conclua o trabalho pendente ou feche um painel e tente novamente.",
+            "restoreConflict": "A rota restaurada entra em conflito com um painel aberto. Abra a página diretamente para continuar.",
+            "layoutNotSaved": "Layout não salvo. Os painéis abertos continuam disponíveis.",
+            "saveCurrentLayout": "Salvar layout atual",
+            "replaceSavedLayoutConfirmation": "Substituir o layout preservado pelos painéis abertos atualmente? Apenas o layout salvo será substituído, não o conteúdo das páginas.",
+            "storageQuotaExceeded": "O armazenamento do navegador está cheio. Libere espaço e salve o layout atual novamente. Os painéis abertos continuam disponíveis.",
+            "storageBlocked": "O navegador bloqueou o armazenamento do layout. Permita o armazenamento para este site e salve o layout atual novamente. Os painéis abertos continuam disponíveis."
         }
     }
 }

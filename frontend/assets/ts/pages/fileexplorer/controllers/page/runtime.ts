@@ -1,11 +1,15 @@
 /* SoAI - File explorer page control layer runtime [frontend/assets/ts/pages/fileexplorer/controllers/page/runtime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { subscribeFileExplorerListingEvents } from '@pages/fileexplorer/realtime/events.ts';
 import { buildSignalRequestOptions } from '@core/api/requestOptions.ts';
 import { getEventHub } from '@core/environment/public.ts';
 import { isPersistedPageHideEvent } from '@core/lifecycle/pageTermination.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { runAsyncCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
+import { claimErrorReporting } from '@core/errors/reportingOwnership.ts';
 import { toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
 import { consumeRepeatableDropdownSelection } from '@core/ui/dropdown/selectControl.ts';
 import { normalizeSearchDisplayQuery } from '@core/search/searchQuery.ts';
@@ -40,6 +44,7 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
         optionalHTMLElement: (selector, context) => host.pageDom.optionalHTMLElement(selector, context)
     });
     let disposed = false;
+    let listingEventsCleanup: (() => void) | null = null;
     const uiTaskScheduler = createFileExplorerUiTaskScheduler({
         runWithBoundary: (operationId, task) => host.pageLifecycle.run(operationId, task),
         logWarning: (message, error) => {
@@ -51,7 +56,8 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
     if (!isFileExplorerApi(fileExplorerApi)) {
         throw new Error('File Explorer page requires file explorer API methods');
     }
-    const controllerHost = createFileExplorerControllerHost(fileExplorerApi, {
+    const dataHost = createFileExplorerControllerHost(fileExplorerApi, {
+        owner: host.owner,
         awaitTask: host.waitForTask,
         showNotification: (message, type) => host.feedback.show(message, type),
         handleError: (error, context, options = {}) => host.feedback.handle(error, context, { notify: options.notify === true }),
@@ -83,23 +89,29 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
     let invalidatePreparedImages: (() => void) | null = null;
     let navigationHistoryController: FileExplorerNavigationHistoryController | null = null;
     const dataController = new FileExplorerDataController({
-        host: controllerHost,
+        host: dataHost,
         ui,
         initialSort: initialization.sortState,
         persistSort: (state) => persistFileExplorerSortState(host.storage, state),
         recentUploads: recentUploadController,
         selection: selectionModel,
         rowsReveal: rowsRevealController,
-        onStateChanged: (currentPath, isLoading) => {
+        onStateChanged: (currentPath, isLoading, directoryAvailable) => {
+            commandsController.setDirectoryAvailable(directoryAvailable);
             invalidatePreparedImages?.();
             navigationHistoryController?.handleBrowserState(currentPath, isLoading);
             deeplinkHighlight.apply();
         },
         onRowsCommitted: () => deeplinkHighlight.apply()
     });
+    const controllerHost = { ...dataHost, isDirectoryAvailable: () => dataController.isDirectoryAvailable() };
     const eventHub = getEventHub();
     const releaseListingOnPageHide = (event: Event): void => {
-        if (!isPersistedPageHideEvent(event)) dataController.releaseListing();
+        if (!isPersistedPageHideEvent(event))
+            void dataController.releaseListing().catch((error) => {
+                const failure = ensureError(error);
+                if (claimErrorReporting(failure)) errorHandler.warn('FileExplorer', 'Listing release remains unconfirmed after page termination', failure);
+            });
     };
     eventHub.addEventListener('pagehide', releaseListingOnPageHide, { passive: true });
     const viewModeController = new FileExplorerViewModeController({
@@ -165,6 +177,7 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
         waitForDeletionTask: host.waitForDeletionTask
     });
     const contentPreviewModalController = new FileExplorerContentPreviewModalController({
+        owner: host.owner,
         requireHTMLElement: (selector, context) => host.pageDom.requireHTMLElement(selector, context),
         modalPresenter: host.modalPresenter,
         showNotification: (message, type) => host.feedback.show(message, type),
@@ -181,6 +194,7 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
     invalidatePreparedImages = () => contentPreviewModalController.invalidatePreparedImages();
     const interactionController = new FileExplorerPageInteractionController({
         host: {
+            owner: host.owner,
             showNotification: (message, type) => host.feedback.show(message, type),
             requireHTMLElement: (selector, context) => host.pageDom.requireHTMLElement(selector, context),
             modalPresenter: host.modalPresenter,
@@ -205,7 +219,12 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
         initialSearch,
         isDisposed: () => disposed,
         runTask: (task) => host.pageLifecycle.run('fileExplorer:initialLoad', task),
-        initialize: (path) => dataController.initialize(path),
+        initialize: async (path) => {
+            const runtime = await host.streaming.ensureRuntime();
+            if (disposed) return;
+            if (!listingEventsCleanup) listingEventsCleanup = subscribeFileExplorerListingEvents({ connection: runtime.connection, signal: host.pageLifecycle.signal(), isCurrent: () => !disposed && host.services.mountScope.admission.isCurrent(), invalidate: () => dataController.invalidateListing(), recover: () => dataController.refreshList() });
+            await dataController.initialize(path);
+        },
         revealPath: (path) => dataController.revealPath(path),
         applyInitialSearch: (query) => searchController.applyInitialSearch(query),
         openPreview: () => deeplinkPreview.open()
@@ -290,22 +309,14 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
         setModalOpen: (modalOpen: boolean) => commandsController.setModalOpen(modalOpen),
         resetSearchOnNavigation,
         clearDeeplinkHighlight: deeplinkHighlight.clear,
-        destroy: () => {
+        destroy: async () => {
             disposed = true;
-            eventHub.removeEventListener('pagehide', releaseListingOnPageHide);
-            uiTaskScheduler.dispose();
-            interactionController.destroy();
-            navigationHistory.destroy();
-            batchController.destroy();
-            operationsController.destroy();
-            recentUploadController.clear();
-            deeplinkHighlight.clear();
-            deeplinkPreview.clear();
-            contentPreviewModalController.dispose();
-            taskProgressController.destroy();
-            commandsController.destroy();
-            rowsRevealController.dispose();
-            dataController.destroy();
+            const failures: Error[] = [];
+            for (const dispose of [() => listingEventsCleanup?.(), () => eventHub.removeEventListener('pagehide', releaseListingOnPageHide), () => uiTaskScheduler.dispose(), () => interactionController.destroy(), () => navigationHistory.destroy(), () => batchController.destroy(), () => operationsController.destroy(), () => recentUploadController.clear(), () => deeplinkHighlight.clear(), () => deeplinkPreview.clear(), () => contentPreviewModalController.dispose(), () => taskProgressController.destroy(), () => commandsController.destroy(), () => rowsRevealController.dispose(), () => dataController.destroy()])
+                await runAsyncCleanupStepCollectingFailure(async () => {
+                    await dispose();
+                }, failures);
+            throwCollectedCleanupFailures(failures);
         }
     };
 };

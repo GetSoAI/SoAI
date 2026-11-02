@@ -236,7 +236,7 @@ class SoAIBenchRunModal implements SoAIBenchActivityProjection {
             afterOpen?.();
             return;
         }
-        this.host.modals.open(this.modalId);
+        this.host.modals.open(this.modalId, { owner: this.host.owner });
         this.#renderer.restoreScroll();
         if (afterOpen !== null) {
             terminateHandledPromise(this.#afterInitialFocus(this.#state.visit, afterOpen));

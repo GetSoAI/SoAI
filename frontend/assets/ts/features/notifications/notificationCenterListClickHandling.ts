@@ -1,6 +1,7 @@
 /* SoAI - Notifications feature notification center list click handling [frontend/assets/ts/features/notifications/notificationCenterListClickHandling.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { GlobalPresentationOwner } from '@core/routing/router/types.ts';
 import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -21,7 +22,7 @@ const isInternalNotificationRoute = (value: string): boolean => {
     return !securityApi.isAbsoluteHttpUrl(sanitized);
 };
 
-const handleNotificationLink = (link: { linkType: string; value: string }, onHide: () => void): void => {
+const handleNotificationLink = (link: { linkType: string; value: string }, onHide: () => void, owner: GlobalPresentationOwner): void => {
     onHide();
     if (link.linkType === 'conversation') {
         const targetRoute = `chat/conversation/${encodeSegment(link.value)}`;
@@ -59,7 +60,7 @@ const handleNotificationLink = (link: { linkType: string; value: string }, onHid
             return;
         }
         void requireDialogsService()
-            .showExternalLinkModal({ url: link.value })
+            .showExternalLinkModal({ owner, url: link.value })
             .catch((error) => {
                 errorHandler.warn('NotificationCenter', 'Failed to open external link for notification', ensureError(error));
             });
@@ -86,7 +87,7 @@ const openConversationAttentionNotificationLink = async (inputArguments: { conve
     }
 };
 
-const handleNotificationEntryClick = (entryElement: HTMLElement, snapshot: NotificationsListResponse | null, event: Event, onHide: () => void, onOpenAttention: (record: NotificationRecord) => void, onToggleExpanded: (notificationId: string) => void): void => {
+const handleNotificationEntryClick = (owner: GlobalPresentationOwner, entryElement: HTMLElement, snapshot: NotificationsListResponse | null, event: Event, onHide: () => void, onOpenAttention: (record: NotificationRecord) => void, onToggleExpanded: (notificationId: string) => void): void => {
     const notificationId = entryElement.dataset['notificationId']?.trim() ?? '';
     if (!notificationId) {
         throw new Error('Notification item click missing notification id');
@@ -99,7 +100,7 @@ const handleNotificationEntryClick = (entryElement: HTMLElement, snapshot: Notif
         if (record.link) {
             event.preventDefault();
             event.stopPropagation();
-            handleNotificationLink(record.link, onHide);
+            handleNotificationLink(record.link, onHide, owner);
             return;
         }
         event.preventDefault();
@@ -140,7 +141,7 @@ const handleNotificationExpandClick = (button: HTMLElement, event: Event, onTogg
     onToggleExpanded(notificationId);
 };
 
-const handleNotificationCenterListClick = (inputArguments: { listElement: HTMLElement; event: Event; snapshot: NotificationsListResponse | null; onHide: () => void; onDelete: (notificationId: string) => void; onOpenAttention: (record: NotificationRecord) => void; onToggleExpanded: (notificationId: string) => void }): void => {
+const handleNotificationCenterListClick = (inputArguments: { owner: GlobalPresentationOwner; listElement: HTMLElement; event: Event; snapshot: NotificationsListResponse | null; onHide: () => void; onDelete: (notificationId: string) => void; onOpenAttention: (record: NotificationRecord) => void; onToggleExpanded: (notificationId: string) => void }): void => {
     const target = inputArguments.event.target;
     if (!isNode(target)) {
         throw new Error('NotificationCenter received click event with non-node target');
@@ -168,7 +169,7 @@ const handleNotificationCenterListClick = (inputArguments: { listElement: HTMLEl
     if (!(entryElement instanceof HTMLElement)) {
         return;
     }
-    handleNotificationEntryClick(entryElement, inputArguments.snapshot, inputArguments.event, inputArguments.onHide, inputArguments.onOpenAttention, inputArguments.onToggleExpanded);
+    handleNotificationEntryClick(inputArguments.owner, entryElement, inputArguments.snapshot, inputArguments.event, inputArguments.onHide, inputArguments.onOpenAttention, inputArguments.onToggleExpanded);
 };
 
 export { handleNotificationCenterListClick, handleNotificationLink, openConversationAttentionNotificationLink };

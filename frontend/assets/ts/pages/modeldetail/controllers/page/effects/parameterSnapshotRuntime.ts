@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { waitForTimerDelay } from '@core/concurrency/timerDelay.ts';
+import { TIMEOUTS } from '@core/constants.ts';
 import { getWindow } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { isAbortError } from '@core/errors/abort.ts';
+import { createDeferred } from '@core/runtime/deferred.ts';
+import { monotonicMs } from '@core/time/clock.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
@@ -14,7 +17,7 @@ import { PARAMETER_SNAPSHOT_CACHE, PARAMETER_STORAGE_PREFIX, readSnapshotEntry }
 import type { ModelDetailEffectsHost, ParametersData } from '@pages/modeldetail/controllers/page/effects/types.ts';
 import { decodeModelDetailParameterPayload } from '@pages/modeldetail/mappers/ModelDetailParameterPayloadDomain.ts';
 import { fetchParametersViaWebSocketSnapshot } from '@pages/modeldetail/services/modelDetailSnapshotFetch.ts';
-import type { ParameterUnavailableReason } from '@pages/modeldetail/state/ModelDetailParameterAuthorityState.ts';
+import type { ParameterSnapshotOutcome, ParameterUnavailableReason } from '@pages/modeldetail/state/ModelDetailParameterAuthorityState.ts';
 
 interface CachedModelDetailParameters {
     payload: ParametersData;
@@ -74,6 +77,13 @@ const acceptModelDetailParameters = (host: ModelDetailEffectsHost, token: number
     authority.status = 'current';
     authority.reason = null;
     authority.exhaustionNotified = false;
+    if (!authority.saving && host.state.parametersData !== null && authority.matchesAppliedSchema(payload)) {
+        host.rendering.mergeParametersPayload(payload);
+        authority.recordApplied(payload, receivedAtMs, true);
+        host.rendering.renderParameterAvailability();
+        host.rendering.notifySaveChanged();
+        return;
+    }
     if (authority.saving || (host.state.parametersData !== null && host.state.isParameterEditorDirty())) {
         authority.validated = true;
         authority.holdPending(token, payload, receivedAtMs);
@@ -97,69 +107,109 @@ const markModelDetailParametersUnavailable = (host: ModelDetailEffectsHost, mode
     }
 };
 
-const runModelDetailParameterRecovery = async (host: ModelDetailEffectsHost, modelId: string): Promise<void> => {
+const runModelDetailParameterRecovery = async (host: ModelDetailEffectsHost, modelId: string, isCurrent: () => boolean): Promise<ParameterSnapshotOutcome> => {
     const authority = host.state.parameterAuthority;
-    for (let attempt = 0; ; attempt += 1) {
+    const deadline = monotonicMs() + TIMEOUTS.API_REQUEST;
+    for (let attempt = 0; attempt <= PARAMETER_RECOVERY_DELAYS_MS.length; attempt += 1) {
+        if (!isCurrent()) return 'cancelled';
+        if (authority.saving) return 'stale';
         const token = authority.reads.next();
+        const generation = authority.invalidationGeneration;
         if (authority.status !== 'unavailable') authority.status = 'refreshing';
         host.rendering.renderParameterAvailability();
         try {
-            const payload = await fetchParametersViaWebSocketSnapshot({ modelId, model: host.state.model });
-            if (isParameterSessionCurrent(host, token, modelId)) acceptModelDetailParameters(host, token, modelId, payload);
-            return;
+            if (!isCurrent()) return 'cancelled';
+            const timeoutMs = deadline - monotonicMs();
+            if (timeoutMs <= 0) break;
+            const payload = await fetchParametersViaWebSocketSnapshot({ modelId, model: host.state.model, signal: host.state.signal ?? undefined, timeoutMs });
+            if (!isCurrent()) return 'cancelled';
+            if (authority.saving) return 'stale';
+            if (monotonicMs() >= deadline) break;
+            if (isParameterSessionCurrent(host, token, modelId) && generation === authority.invalidationGeneration) {
+                acceptModelDetailParameters(host, token, modelId, payload);
+                if (isCurrent() && isParameterSessionCurrent(host, token, modelId) && generation === authority.invalidationGeneration) return 'reconciled';
+            }
         } catch (error) {
             const runtimeError = ensureError(error);
-            if (!isParameterSessionCurrent(host, token, modelId) || isAbortError(runtimeError)) return;
-            errorHandler.debug('ModelDetailPage', 'Parameter snapshot request failed', { id: modelId, attempt, error: runtimeError });
-            const delayMs = PARAMETER_RECOVERY_DELAYS_MS[attempt];
-            if (delayMs === undefined || !isRetryableParameterFailure(runtimeError)) {
-                markModelDetailParametersUnavailable(host, modelId, runtimeError);
-                return;
+            if (!isCurrent() || isAbortError(runtimeError)) return 'cancelled';
+            if (authority.saving) return 'stale';
+            if (generation === authority.invalidationGeneration) {
+                errorHandler.debug('ModelDetailPage', 'Parameter snapshot request failed', { id: modelId, attempt, error: runtimeError });
+                if (PARAMETER_RECOVERY_DELAYS_MS[attempt] === undefined || !isRetryableParameterFailure(runtimeError)) {
+                    authority.reconciliationExhausted = true;
+                    markModelDetailParametersUnavailable(host, modelId, runtimeError);
+                    return 'unavailable';
+                }
+                const failureReason = readParameterFailureReason(runtimeError);
+                if (failureReason !== 'refresh_failed') {
+                    authority.status = 'unavailable';
+                    authority.reason = failureReason;
+                    host.rendering.renderParameterAvailability();
+                    host.rendering.notifySaveChanged();
+                }
             }
-            const failureReason = readParameterFailureReason(runtimeError);
-            if (failureReason !== 'refresh_failed') {
-                authority.status = 'unavailable';
-                authority.reason = failureReason;
-                host.rendering.renderParameterAvailability();
-                host.rendering.notifySaveChanged();
-            }
-            await waitForTimerDelay(getWindow(), delayMs, host.state.signal);
-            if (!isParameterSessionCurrent(host, token, modelId)) return;
         }
+        const delayMs = PARAMETER_RECOVERY_DELAYS_MS[attempt];
+        const remainingMs = deadline - monotonicMs();
+        if (delayMs === undefined || remainingMs <= 0) break;
+        await waitForTimerDelay(getWindow(), Math.min(delayMs, remainingMs), host.state.signal);
     }
+    if (!isCurrent()) return 'cancelled';
+    authority.reconciliationExhausted = true;
+    markModelDetailParametersUnavailable(host, modelId, new Error('Parameter reconciliation remained stale within its recovery deadline.'));
+    return 'stale';
 };
 
-const refreshModelDetailParameters = async (host: ModelDetailEffectsHost, options: { force?: boolean } = {}): Promise<void> => {
+const refreshModelDetailParameters = async (host: ModelDetailEffectsHost, options: { force?: boolean } = {}): Promise<ParameterSnapshotOutcome> => {
     const authority = host.state.parameterAuthority;
     const modelId = host.state.modelId;
-    if (!modelId || host.state.model?.type === 'virtual') return;
-    if (authority.recovery && !options.force) {
-        await authority.recovery;
-        return;
+    if (!modelId || host.state.model?.type === 'virtual') return 'cancelled';
+    if (!host.state.model) return 'stale';
+    if (options.force) {
+        markModelDetailParametersStale(host);
     }
-    if (options.force) authority.reads.invalidate();
-    const recovery = runModelDetailParameterRecovery(host, modelId).finally(() => {
-        if (authority.recovery === recovery) authority.recovery = null;
-    });
-    authority.recovery = recovery;
-    await recovery;
+    if (authority.recovery) return await authority.recovery;
+    if (authority.saving) return 'stale';
+    authority.reconciliationExhausted = false;
+    const completion = createDeferred<ParameterSnapshotOutcome>();
+    authority.recovery = completion.promise;
+    const isCurrent = (): boolean => authority.recovery === completion.promise && host.state.signal?.aborted !== true && !host.state.isDestroyed && host.state.modelId === modelId;
+    void runModelDetailParameterRecovery(host, modelId, isCurrent).then(
+        (outcome) => {
+            if (authority.recovery === completion.promise) authority.recovery = null;
+            completion.resolve(outcome);
+        },
+        (error) => {
+            if (authority.recovery === completion.promise) authority.recovery = null;
+            completion.reject(ensureError(error));
+        }
+    );
+    return await completion.promise;
 };
 
 const markModelDetailParametersStale = (host: ModelDetailEffectsHost): void => {
     const authority = host.state.parameterAuthority;
-    if (authority.status === 'unavailable' || host.state.parametersData === null) return;
+    authority.invalidate();
+    if (authority.status === 'unavailable' || authority.status === 'stale' || host.state.parametersData === null) return;
     authority.status = 'stale';
     host.rendering.renderParameterAvailability();
 };
 
+const invalidateModelDetailParameters = async (host: ModelDetailEffectsHost): Promise<ParameterSnapshotOutcome> => {
+    const authority = host.state.parameterAuthority;
+    markModelDetailParametersStale(host);
+    if (authority.saving || authority.reconciliationExhausted) return 'stale';
+    return await refreshModelDetailParameters(host);
+};
+
 const beginModelDetailParameterSave = (host: ModelDetailEffectsHost): void => {
     const authority = host.state.parameterAuthority;
-    authority.reads.invalidate();
+    authority.invalidate();
     authority.pending = null;
     authority.saving = true;
 };
 
-const finishModelDetailParameterSave = (host: ModelDetailEffectsHost): Promise<void> => {
+const finishModelDetailParameterSave = (host: ModelDetailEffectsHost): Promise<ParameterSnapshotOutcome> => {
     const authority = host.state.parameterAuthority;
     authority.saving = false;
     authority.pending = null;
@@ -175,5 +225,5 @@ const applyPendingModelDetailParameters = (host: ModelDetailEffectsHost, options
     return true;
 };
 
-export { applyPendingModelDetailParameters, beginModelDetailParameterSave, finishModelDetailParameterSave, markModelDetailParametersStale, readCachedModelDetailParameters, refreshModelDetailParameters, showCachedModelDetailParameters };
+export { applyPendingModelDetailParameters, beginModelDetailParameterSave, finishModelDetailParameterSave, invalidateModelDetailParameters, markModelDetailParametersStale, readCachedModelDetailParameters, refreshModelDetailParameters, showCachedModelDetailParameters };
 export type { CachedModelDetailParameters };

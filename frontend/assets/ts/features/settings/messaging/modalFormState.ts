@@ -3,6 +3,7 @@
 
 import type { MessagingAuthorizedSender, MessagingPlatform } from '@core/api/contracts/messagingAccountContracts.ts';
 import { readTrimmedInputValue, readTrimmedSelectValue } from '@core/dom/formValues.ts';
+import { i18n } from '@core/i18n/index.ts';
 import { dom } from '@core/dom/dom.ts';
 import { replaceSelectOptions, type SelectOptionDefinition } from '@core/dom/selectOptions.ts';
 import { setSelectValueAndSyncDefault } from '@core/dom/selectSelection.ts';
@@ -17,7 +18,7 @@ import type { WorkspacePathDraft } from '@core/fileexplorerbrowser/workspacePath
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { MESSAGING_PROVIDER_DESCRIPTORS, getMessagingProviderDescriptor } from '@features/settings/messaging/descriptors.ts';
 import { applyMessagingModelSelection, type MessagingCredentialDrafts, type MessagingDraft } from '@features/settings/messaging/modalDraft.ts';
-import type { MessagingAccountModalOptions } from '@features/settings/messaging/types.ts';
+import type { MessagingAccountModalOptions, MessagingModelOption } from '@features/settings/messaging/types.ts';
 
 interface MessagingEditorState {
     parameters: ChatParameters;
@@ -43,9 +44,9 @@ const requireTextarea = (modal: Element, token: string): HTMLTextAreaElement => 
     return element;
 };
 
-const populateModels = (select: HTMLSelectElement, options: MessagingAccountModalOptions, current: string | null): void => {
-    const modelOptions: SelectOptionDefinition[] = options.models.map((model) => ({ value: model.executionId, label: model.displayName }));
-    if (current && !options.models.some((model) => model.executionId === current)) modelOptions.unshift({ value: current, label: current });
+const populateMessagingModels = (select: HTMLSelectElement, models: readonly MessagingModelOption[], current: string | null, available = true): void => {
+    const modelOptions: SelectOptionDefinition[] = models.map((model) => ({ value: model.executionId, label: model.displayName, disabled: !available }));
+    if (current && !models.some((model) => model.executionId === current)) modelOptions.unshift({ value: current, label: `${current} ${i18n.t('chat.models.unavailable')}`, disabled: true });
     replaceSelectOptions(select, modelOptions);
     setSelectValueAndSyncDefault(select, current ?? modelOptions[0]?.value ?? '');
 };
@@ -109,7 +110,7 @@ const initializeMessagingEditor = (modal: HTMLElement, options: MessagingAccount
     }
     const settings = account?.modelSettings ?? { model: options.models[0]?.executionId ?? null };
     const modelSelect = requireSelect(modal, 'model');
-    populateModels(modelSelect, options, settings.model);
+    populateMessagingModels(modelSelect, options.models, settings.model);
     const agentMode = settings.agent?.mode ?? 'chat';
     requireSelect(modal, 'agent-mode').value = agentMode;
     requireInput(modal, 'user-name').value = settings.identity?.userDisplayName ?? '';
@@ -229,5 +230,5 @@ const readMessagingDraft = (modal: HTMLElement, options: MessagingAccountModalOp
     };
 };
 
-export { applyMessagingModelChange, applyMessagingParameterEditorState, initializeMessagingEditor, readMessagingDraft, syncCredentialSections, syncSenderAccessState };
+export { applyMessagingModelChange, applyMessagingParameterEditorState, initializeMessagingEditor, populateMessagingModels, readMessagingDraft, syncCredentialSections, syncSenderAccessState };
 export type { MessagingEditorState };

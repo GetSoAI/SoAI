@@ -10,6 +10,7 @@ import { bindSidebarHoverPeek } from '@core/layout/sidebar/hoverPeek.ts';
 import type { SidebarDisposerCandidate } from '@core/layout/sidebar/disposers.ts';
 import { resetSidebarBodyState } from '@core/layout/sidebar/stateUi.ts';
 import type { SidebarConfigEntry } from '@core/layout/sidebar/view.ts';
+import type { SidebarNavigationIntent } from '@core/layout/sidebar/contracts.ts';
 
 interface SidebarLifecycleDomPort {
     cacheDom: () => void;
@@ -36,7 +37,7 @@ interface SidebarLifecyclePresentationPort {
     canHoverPeek: () => boolean;
     isHoverPeeking: () => boolean;
     setHoverPeek: (peeking: boolean) => void;
-    navigateTo: (pageId: string) => void;
+    navigateTo: (pageId: string, intent?: SidebarNavigationIntent) => void;
     refreshSidebar: (options?: { syncRoute?: boolean }) => Promise<void>;
     updatePluginIndicator: () => void;
     updateAutomationRunningIndicator: () => void;
@@ -136,7 +137,7 @@ const bootstrapSidebarLifecycle = async (dependencies: SidebarLifecycleDependenc
         canHoverPeek: () => dependencies.presentation.canHoverPeek(),
         isHoverPeeking: () => dependencies.presentation.isHoverPeeking(),
         setHoverPeek: (peeking: boolean) => dependencies.presentation.setHoverPeek(peeking),
-        navigateTo: (pageId: string) => dependencies.presentation.navigateTo(pageId)
+        navigateTo: (pageId, intent) => dependencies.presentation.navigateTo(pageId, intent)
     };
 
     bindSidebarToggleHandlers(interactionsHost);

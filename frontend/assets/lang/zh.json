@@ -549,7 +549,8 @@
                 },
                 "uploadSubtitle": "从设备添加文件和文件夹作为直接消息附件。它们会随当前提示词一起发送；与此不同，上传到知识库的内容会被索引以供检索。",
                 "uploadTitle": "直接上传文件和文件夹",
-                "title": "添加附件"
+                "title": "添加附件",
+                "cameraDiscardConfirm": "要丢弃这张拍摄的照片吗？"
             },
             "attachments": {
                 "badge": {
@@ -2661,7 +2662,8 @@
                 "unknown": "未知错误",
                 "unknownError": "发生未知错误。",
                 "storageHeadroomInsufficient": "计入安全余量和现有预留空间后，存储空间不足。请释放空间或等待其他存储操作完成后重试。",
-                "storageHeadroomValues": "包含安全余量的所需空间：{required}。此操作可用空间：{available}。"
+                "storageHeadroomValues": "包含安全余量的所需空间：{required}。此操作可用空间：{available}。",
+                "permissionsUnavailable": "访问权限暂不可用。请检查连接后重试。"
             },
             "export": "导出",
             "exportPreview": {
@@ -2769,7 +2771,8 @@
             "unsavedChangesTitle": "未保存的更改",
             "view": "查看",
             "yes": "是",
-            "retry": "重试"
+            "retry": "重试",
+            "discard": "丢弃"
         },
         "contentPreview": {
             "fields": {
@@ -3067,7 +3070,12 @@
                 "publicationUncertain": "文件可能已保存，但无法验证其最终状态。再次上传前，请在“文件”中检查目标位置。",
                 "cleanupIncomplete": "自动清理未能完成。重试前，请在“文件”中检查目标位置。",
                 "contentChanged": "文件在操作期间发生了变化。请重新选择文件并重试。",
-                "destinationExists": "已存在同名文件或文件夹。请选择其他名称或目标位置。"
+                "destinationExists": "已存在同名文件或文件夹。请选择其他名称或目标位置。",
+                "listingChanged": "文件夹持续发生变化。请刷新以重试。",
+                "listingTimeout": "刷新文件夹超时。请刷新以重试。",
+                "listingIncoherent": "文件夹各页数据不一致。请刷新以重试。",
+                "listingUnavailable": "文件夹服务不可用。请检查连接后刷新。",
+                "listingBusy": "文件夹请求受到频率限制。请稍候再刷新。"
             },
             "labels": {
                 "latestTask": "最新任务",
@@ -3175,7 +3183,10 @@
                 "empty": "未找到条目。",
                 "error": "操作失败。请查看通知了解详情。",
                 "loading": "正在加载目录条目...",
-                "searching": "正在搜索文件和文件夹..."
+                "searching": "正在搜索文件和文件夹...",
+                "refreshing": "正在刷新…",
+                "stale": "数据已过期。请刷新以重试。",
+                "unavailable": "文件夹不可用。请查看错误后刷新。"
             },
             "table": {
                 "modified": "修改时间",
@@ -3928,7 +3939,7 @@
                 "chatTools": {
                     "heading": "使用模型、工具和文件",
                     "sectionTitle": "Chat 与智能体工具",
-                    "conversations": "Chat 集中管理消息、模型选择、生成参数和工具权限。你可以在轮次之间更换模型、比较回答、把配置保存为 preset，或用文件夹整理会话。当前消息需要完整内容时附加文件；需要反复搜索索引资料时附加知识源。输入框可添加文件、文件夹和 SoAI 链接。",
+                    "conversations": "Chat 集中管理消息、模型选择、生成参数、工具权限、技能库和记忆库。你可以在轮次之间更换模型、比较回答、把配置保存为 preset，或用文件夹整理会话。当前消息需要完整内容时附加文件；需要反复搜索索引资料时附加知识源。输入框可添加文件、文件夹和 SoAI 链接。",
                     "tools": "Chat 模式用于对话。 Plan 允许模型检查任务并拟定步骤。它会阻止标记为破坏性或缺少有效破坏性元数据的工具，但其他已选工具仍可能影响外部系统。 Execute 允许模型使用已启用的工具。 工具调用及结果会保留在会话中，受保护操作可要求确认。 工具可搜索网络、控制浏览器、处理文件和终端、查询知识、处理媒体并连接邮件或日历。 管理员决定可用的集成和凭据。 智能体还能提问、维护计划并把工作拆成后台子任务。 Automation 按计划执行一个或多个轮次，并把每次运行保留为会话。",
                     "mcp": "SoAI 可向已认证的 MCP 客户端开放工具，也能连接远程 MCP 服务器。管理员配置后，远程工具会与内置工具一同显示。",
                     "voice": "语音转文字模型可转录录音或麦克风输入；文字转语音模型可朗读回答；语音通话模式支持口头对话。"
@@ -3944,7 +3955,7 @@
                     "heading": "检查系统并维护主机",
                     "sectionTitle": "监控与管理",
                     "status": "Dashboard 显示系统状态和当前任务。Hardware 显示 CPU、内存、磁盘、网络和 GPU；Metrics 显示请求历史及 token 用量；Logs 提供诊断详情。受支持 GPU 可调节功率、频率和风扇。这些设置会影响主机，请使用经过测试的配置并留意温度和稳定性。",
-                    "operations": "Terminal 提供交互式 shell 会话。Power 可重启或停止 SoAI，也可控制主机操作系统。能否访问这两个页面取决于账户权限。",
+                    "operations": "Terminal 提供交互式 shell 会话。Power 可重启或停止 SoAI，也可控制主机操作系统。能否访问 Terminal 和 Power 控件取决于账户权限。",
                     "maintenance": "备份位于 Settings，应用更新位于 Updates。依赖备份前先验证，所需副本应导出到主机外；恢复或重置前请确认范围。SoAI 会监控 backend 健康状态，并停止向持续失败的插件发送请求。Plugins 显示恢复和隔离状态。下载、上传、备份等大型写入开始前会检查预留磁盘空间。"
                 },
                 "access": {
@@ -5229,6 +5240,9 @@
             "loading": "正在准备 SoAI...",
             "loadingDelayError": "此页面的加载时间超出预期。请检查连接或重试此页面。",
             "loadingLabel": "加载中...",
+            "errors": {
+                "resourceReleaseUnconfirmed": "上一页面仍在关闭。请稍候再试。如果一直没有响应，请重新加载此窗口。"
+            },
             "retry": "重试"
         },
         "pages": {
@@ -7636,10 +7650,10 @@
                 "appearanceResetSuccess": "外观已重置为默认值。",
                 "chatPresetsResetFailed": "重置聊天预设失败。请重试。",
                 "chatPresetsResetSuccess": "聊天预设已重置。",
+                "configurationResetFailed": "无法安排配置重置。请检查配置文件后重试。",
                 "conversationsDeleteFailed": "删除对话失败。请重试。",
                 "conversationsDeleteNone": "没有可删除的对话。",
                 "conversationsDeleteSuccess": "已删除 {count} 个对话。",
-                "configurationResetFailed": "无法安排配置重置。请检查配置文件后重试。",
                 "factoryResetSuccess": "已开始恢复出厂设置。SoAI 即将重启。",
                 "fixInvalidFields": "请先修复无效字段再保存。",
                 "hardwareHistoryResetFailed": "重置硬件历史记录失败。请重试。",
@@ -7648,10 +7662,11 @@
                 "metricsResetSuccess": "指标重置已成功启动",
                 "pageLayoutsResetFailed": "重置页面布局失败。请重试。",
                 "pageLayoutsResetSuccess": "仪表板、指标和硬件页面布局已重置为默认值。",
+                "partialSave": "部分设置已应用。{reason} 请检查标记的未保存字段，然后重试。",
                 "passwordManagerResetFailed": "重置密码管理器失败。请重试。",
                 "passwordManagerResetSuccess": "密码管理器已重置。已移除 {deletedCredentials} 个已保存凭据，并使 {clearedSecretHandles} 个活动安全句柄失效。",
                 "preferencesResetFailed": "重置偏好设置失败。请重试。",
-                "preferencesResetSuccess": "偏好设置已重置为默认值。正在重新加载...",
+                "preferencesResetSuccess": "偏好设置已重置为默认值。",
                 "recentSearchesResetFailed": "重置最近搜索失败。请重试。",
                 "recentSearchesResetSuccess": "最近搜索已重置。",
                 "restartButton": "重启 SoAI",
@@ -7660,8 +7675,8 @@
                 "userCreateSuccess": "用户已成功创建",
                 "userDeleteSuccess": "用户已成功删除",
                 "userPasswordUpdateSuccess": "密码已成功更新",
-                "userWorkspacePathUpdateSuccessRevoked": "默认文件夹已更新。位于新文件夹之外的先前对话文件夹覆盖设置已被撤销。",
                 "userRoleUpdateSuccess": "用户角色已成功更新",
+                "userWorkspacePathUpdateSuccessRevoked": "默认文件夹已更新。位于新文件夹之外的先前对话文件夹覆盖设置已被撤销。",
                 "wallpaperDeleteSuccess": "壁纸已成功删除",
                 "wallpaperDownloadSuccess": "壁纸已成功下载",
                 "wallpaperReloadFailed": "加载壁纸预览失败。",
@@ -8255,6 +8270,10 @@
             }
         },
         "terminal": {
+            "errors": {
+                "releaseUnconfirmed": "尚未确认终端已释放。请恢复连接后重试；如果服务已重启，请在主机上检查原有 shell。",
+                "recoveryUnavailable": "终端恢复功能不可用。请重新加载 SoAI，并在重试前在主机上检查原有 shell。"
+            },
             "ariaLabels": {
                 "clearTerminal": "清空终端",
                 "decreaseTextSize": "减小文字大小",
@@ -8781,6 +8800,29 @@
             "notTranscribedAskAdministrator": "语音未转写。请联系管理员配置语音转文字，然后重新上传文件。",
             "openModels": "打开模型",
             "openSettings": "语音转文字设置"
+        },
+        "pagePanes": {
+            "storageUnavailable": "浏览器存储不可用。已打开的窗格仍可使用，但无法保存布局。",
+            "invalidLayout": "已保存的窗格布局无效。将正常打开请求的页面。",
+            "incompatibleLayout": "已保存的窗格布局需要更新版本的应用。该布局已保留。",
+            "foreignLayout": "已保存的窗格布局属于其他账户、窗口或版本。该布局已保留。",
+            "layoutTooLarge": "此窗格布局过大，无法保存。已打开的页面仍可使用。",
+            "restoreFailed": "无法恢复主窗格。已保留保存的布局，请重新加载后重试。",
+            "title": "窗格",
+            "active": "当前",
+            "closePane": "关闭 {page} 窗格",
+            "split": "在另一窗格中打开",
+            "choosePage": "要打开的页面",
+            "parked": "已停放",
+            "closing": "正在关闭…",
+            "splitUnavailable": "此窗口只能容纳一个窗格。页面将在当前窗格中打开。",
+            "placementUnavailable": "没有可用于此操作的窗格。请完成待处理的工作或关闭一个窗格，然后重试。",
+            "restoreConflict": "恢复的路由与已打开的窗格冲突。请直接打开该页面以继续。",
+            "layoutNotSaved": "布局尚未保存。已打开的窗格仍可使用。",
+            "saveCurrentLayout": "保存当前布局",
+            "replaceSavedLayoutConfirmation": "要用当前打开的窗格替换保留的布局吗？这只会替换已保存的布局，不会更改页面内容。",
+            "storageQuotaExceeded": "浏览器存储空间已满。请释放空间，然后重新保存当前布局。已打开的窗格仍可使用。",
+            "storageBlocked": "浏览器阻止了布局存储。请允许此网站存储数据，然后重新保存当前布局。已打开的窗格仍可使用。"
         }
     }
 }

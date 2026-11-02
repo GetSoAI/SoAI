@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ModuleLogger } from '@core/moduleContext.ts';
+import { registerDirtyStateGuard } from '@core/navigationGuards.ts';
+import { navigationResult } from '@core/navigationMiddleware.ts';
+import type { PageResources } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageServices } from '@core/routing/pages/basepagecore/PageServices.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -85,13 +88,16 @@ interface LifecycleControls {
 }
 
 class ChatPageLifecycleController {
+    readonly #pageResources: PageResources;
     readonly #page: ChatLifecycleDependencies;
     readonly #controls: LifecycleControls;
     readonly #logger: ModuleLogger;
     #rootEventsHost: ChatRootEventsHost | null = null;
+    #workProtectionBound = false;
     readonly #conversationRenderedExit: () => void;
 
-    constructor(page: ChatLifecycleDependencies, controls: LifecycleControls, logger: ModuleLogger) {
+    constructor(page: ChatLifecycleDependencies, controls: LifecycleControls, logger: ModuleLogger, pageResources: PageResources) {
+        this.#pageResources = pageResources;
         this.#page = page;
         this.#controls = controls;
         this.#logger = logger;
@@ -117,18 +123,24 @@ class ChatPageLifecycleController {
         this.#page.conversationView.acknowledgeTerminalAttentionIfViewed(this.#page.conversationState.currentConversationId);
     }
 
+    #bindPresenceHandlers(): void {
+        if (!this.#page.services.mountScope.admission.isActive()) return;
+        if (this.#page.lifecycleResources.activePresenceExit !== null && this.#page.lifecycleResources.presentationPresenceExit !== null) return;
+        this.#page.lifecycleResources.activePresenceExit?.();
+        this.#page.lifecycleResources.activePresenceExit = this.#page.runtimeServices.presence.setActiveConversationChangeHandler((conversationId): void => {
+            if (conversationId !== null && !this.#page.lifecycleResources.isDestroyed) this.#afterConversationRendered();
+        });
+        this.#page.lifecycleResources.presentationPresenceExit?.();
+        this.#page.lifecycleResources.presentationPresenceExit = this.#page.runtimeServices.presence.setPresentationStateChangeHandler((state): void => {
+            if (!this.#page.lifecycleResources.isDestroyed) this.#page.runtimeServices.chatStream.setPresentationState(state);
+        });
+    }
+
     async afterInitialize(result: boolean): Promise<boolean> {
         if (result) {
             this.#page.lifecycleResources.presenceExit?.();
-            this.#page.lifecycleResources.presenceExit = this.#page.runtimeServices.presence.enter();
-            this.#page.lifecycleResources.activePresenceExit?.();
-            this.#page.lifecycleResources.activePresenceExit = this.#page.runtimeServices.presence.setActiveConversationChangeHandler((conversationId): void => {
-                if (conversationId !== null && !this.#page.lifecycleResources.isDestroyed) this.#afterConversationRendered();
-            });
-            this.#page.lifecycleResources.presentationPresenceExit?.();
-            this.#page.lifecycleResources.presentationPresenceExit = this.#page.runtimeServices.presence.setPresentationStateChangeHandler((state): void => {
-                if (!this.#page.lifecycleResources.isDestroyed) this.#page.runtimeServices.chatStream.setPresentationState(state);
-            });
+            this.#page.lifecycleResources.presenceExit = this.#page.runtimeServices.presence.enter(this.#page.services.mountScope);
+            this.#bindPresenceHandlers();
             this.#page.runtimeServices.presence.setPageVisible(true);
         }
         await this.#page.settings.storage.ready;
@@ -175,13 +187,43 @@ class ChatPageLifecycleController {
         }
     }
 
+    #bindWorkProtection(): void {
+        if (this.#workProtectionBound) return;
+        const attachments = this.#page.composerSurface.optionalAttachments();
+        const voice = this.#page.voiceSession;
+        const hasWork = (): boolean => attachments?.hasPendingAttachmentProcessing() === true || voice.hasActiveWork();
+        const release = registerDirtyStateGuard(() => (hasWork() ? navigationResult.block('chat-work-active') : true), {
+            owner: this.#page.services.mountScope,
+            hasUnsavedChanges: hasWork,
+            isDestructionBlocked: hasWork,
+            getProtectionRevision: () => Number(hasWork()),
+            subscribeProtection: (listener) => {
+                const releaseAttachments = attachments?.subscribeDraftChanges(listener);
+                const releaseVoice = voice.subscribeStateChanges(listener);
+                return () => {
+                    releaseAttachments?.();
+                    releaseVoice();
+                };
+            }
+        });
+        this.#workProtectionBound = true;
+        this.#pageResources.track(() => {
+            this.#workProtectionBound = false;
+            release();
+        });
+    }
+
     async startLiveUpdates(context: { signal?: AbortSignal; setStage?(stage: string): void }): Promise<void> {
         const signal = context.signal ?? this.#page.lifecycleResources.getAfterInitializeAbortController()?.signal;
         if (!signal) throw new Error('ChatPageLifecycleController requires a live update abort signal');
         if (signal.aborted) return;
+        this.#page.services.mountScope.admission.requireActive();
+        this.#bindWorkProtection();
         context.setStage?.('chatFirstRun');
-        await this.#page.runtimeServices.firstRunModals.handlePageShow('chat');
+        await this.#page.runtimeServices.firstRunModals.handlePageShow('chat', { owner: this.#page.services.mountScope });
         if (signal.aborted || this.#page.lifecycleResources.isDestroyed) return;
+        this.#page.services.mountScope.admission.requireActive();
+        this.#bindPresenceHandlers();
         this.#page.lifecycleResources.streamPresentationExit?.();
         const streamPresentationExit = this.#page.operations.acquireStreamPresentation();
         this.#page.lifecycleResources.streamPresentationExit = streamPresentationExit;

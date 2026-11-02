@@ -1,6 +1,7 @@
 /* SoAI - File explorer content preview modal launcher [frontend/assets/ts/core/fileexplorerbrowser/contentPreview.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { downloadAuthenticatedResponse } from '@core/api/authenticatedDownload.ts';
 import type { BufferedApiResponse } from '@core/api/bufferedResponse.ts';
 import type { FileExplorerMetadataResponse, FileExplorerMoveMutationResponse, FileExplorerPathMutationResponse, FileExplorerReadResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
@@ -121,7 +122,7 @@ const saveFileExplorerPreviewText = async (api: FileExplorerContentPreviewApi, p
     };
 };
 
-const openFileExplorerContentPreview = async (api: FileExplorerContentPreviewApi, path: string): Promise<boolean> => {
+const openFileExplorerContentPreview = async (api: FileExplorerContentPreviewApi, path: string, owner: PresentationOwner): Promise<boolean> => {
     const sequence = fileExplorerPreviewSequence + 1;
     fileExplorerPreviewSequence = sequence;
     try {
@@ -144,6 +145,7 @@ const openFileExplorerContentPreview = async (api: FileExplorerContentPreviewApi
             let currentPath = readPayload.path;
             requireContentPreviewModalService().open(
                 createTextContentPreviewRequest({
+                    owner,
                     scope: 'fileExplorer',
                     type: 'text',
                     headerDescription,
@@ -174,6 +176,7 @@ const openFileExplorerContentPreview = async (api: FileExplorerContentPreviewApi
         if (mediaType === 'image' || mediaType === 'audio' || mediaType === 'video') {
             requireContentPreviewModalService().open(
                 createMediaContentPreviewRequest({
+                    owner,
                     scope: 'fileExplorer',
                     type: mediaType,
                     headerDescription,
@@ -190,6 +193,7 @@ const openFileExplorerContentPreview = async (api: FileExplorerContentPreviewApi
         }
         requireContentPreviewModalService().open(
             createDocumentContentPreviewRequest({
+                owner,
                 scope: 'fileExplorer',
                 type: mediaType === 'document' ? 'document' : 'file',
                 headerDescription,

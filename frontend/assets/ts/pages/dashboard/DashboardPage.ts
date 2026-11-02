@@ -114,7 +114,7 @@ class DashboardPage extends StaticBasePage {
             throw new Error(`Unsupported dashboard section "${id}" requested`);
         }
         if (id === 'logs') {
-            this.#runtime.logs.mount(this.pageDom.requireHTMLElement('#logs-content', section));
+            this.#runtime.logs.mount(this.pageDom.requireHTMLElement('.section-content', section));
         }
         await blueprint.render();
     }
@@ -131,7 +131,7 @@ class DashboardPage extends StaticBasePage {
         if (this.isDestroyed) {
             return;
         }
-        await this.#firstRunModals.handlePageShow('dashboard', signal ? { signal } : {});
+        await this.#firstRunModals.handlePageShow('dashboard', { owner: this.pageContext.presentationOwner, ...(signal ? { signal } : {}) });
     }
     setupDashboardSubscriptions(): void {
         const productSection = this.#runtime.productSection;

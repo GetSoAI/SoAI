@@ -1,6 +1,7 @@
 /* SoAI - Model detail page control layer operations public contracts [frontend/assets/ts/pages/modeldetail/controllers/page/operations/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { PageStreamingOwnerHost } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
 import type { ElementOptions } from '@core/dom/types.ts';
@@ -16,6 +17,7 @@ import type { ModelDetailSession } from '@pages/modeldetail/state/ModelDetailSes
 import type { SuccessfulMutationResponse } from '@core/api/contracts/successfulMutationContract.ts';
 
 interface ModelDetailOperationsHost extends PageDomOwnerHost, PageResourcesOwnerHost, PageFeedbackOwnerHost {
+    readonly owner: PresentationOwner;
     activeDeletionStream: StreamHandle | null;
     model: ModelRecord | null;
     modelId: string | null;
@@ -57,6 +59,7 @@ interface ModelDetailOperationsHost extends PageDomOwnerHost, PageResourcesOwner
 }
 
 interface ModelDetailOperationsDependencies extends PageStreamingOwnerHost, PageUiOwnerHost, PageDomOwnerHost, PageResourcesOwnerHost, PageFeedbackOwnerHost, PageLifecycleOwnerHost {
+    readonly owner: PresentationOwner;
     session: ModelDetailSession;
     ensureUi: () => { deleteModelButton: HTMLElement };
     dom: ModelDetailOperationsHost['dom'];

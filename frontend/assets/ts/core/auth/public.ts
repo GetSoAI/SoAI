@@ -2,4 +2,4 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 export { AuthManager, getAuthManager } from '@core/auth/service.ts';
-export type { AuthCallback, InitializeOptions, LayoutShellInterface, LoginCallback, LoginResult, RouterInterface, SessionInvalidationResult, SessionPayload, SharedAuthState, StateManager, StorageInterface, TabStateEvent, WebuiUser, WizardApiInterface, WizardCompletionResult, WizardStatus } from '@core/auth/types.ts';
+export type { AuthCallback, AuthEpochIntent, AuthEpochIntentCallback, InitializeOptions, LayoutShellInterface, LoginCallback, LoginResult, RouterInterface, SessionInvalidationResult, SessionPayload, SharedAuthState, StateManager, StorageInterface, TabStateEvent, WebuiUser, WizardApiInterface, WizardCompletionResult, WizardStatus } from '@core/auth/types.ts';

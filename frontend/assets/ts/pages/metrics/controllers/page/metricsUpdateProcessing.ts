@@ -172,6 +172,7 @@ const applyRealtimeMetricsChartValue = (host: MetricsPageActionsHost, timestamp:
 };
 
 const refreshMetricsPresentation = (host: MetricsPageActionsHost): void => {
+    host.metricsServices.telemetryPresenter?.updateCard();
     if (canApplyRealtimeMetricsHistory(host)) {
         updateMetricsMainChart(host);
     }

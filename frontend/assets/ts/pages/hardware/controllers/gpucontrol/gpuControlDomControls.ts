@@ -19,7 +19,7 @@ import type { GpuSnapshot, GpuSnapshotControl, GpuUiState, SliderElements } from
 const str = String;
 
 type DomContext = {
-    document: Document;
+    root: Element;
     capabilitiesByIndex: GpuCapabilitiesByIndex | null;
     ensureUiState: (index: string | number) => GpuUiState;
     refreshApplyState: (index: string | number) => void;
@@ -78,14 +78,14 @@ export const getSupportedSliderKeyboardValue = (capabilitiesByIndex: GpuCapabili
     return supportedValues.find((value) => (value - current) * direction > 0) ?? current;
 };
 
-export const getSliderElements = (_document: Document, index: string | number, type: string): SliderElements => {
-    const slider = dom.resolve(`#gpu-${index}-${type}-slider`);
+export const getSliderElements = (root: Element, index: string | number, type: string): SliderElements => {
+    const slider = dom.resolve(`#gpu-${index}-${type}-slider`, root);
     if (!(slider instanceof HTMLInputElement)) return {};
-    const toggle = dom.resolve(`#gpu-${index}-${type}-auto`);
+    const toggle = dom.resolve(`#gpu-${index}-${type}-auto`, root);
     const toggleInput = toggle instanceof HTMLInputElement ? toggle : null;
     const toggleContainer = toggleInput?.closest('.gpu-slider-auto-toggle');
     const toggleLabel = toggleContainer ? dom.resolve('.toggle-label', toggleContainer) : null;
-    const valueLabel = dom.resolve(`#gpu-${index}-${type}-value`);
+    const valueLabel = dom.resolve(`#gpu-${index}-${type}-value`, root);
     const container = slider.closest('.gpu-slider-container');
     const result: SliderElements = { slider: slider };
     if (valueLabel instanceof HTMLElement) result.valueLabel = valueLabel;
@@ -99,12 +99,12 @@ export const getSliderElements = (_document: Document, index: string | number, t
     return result;
 };
 
-export const getSliderSnapshot = (document: Document, capabilitiesByIndex: GpuCapabilitiesByIndex | null, index: string | number): GpuSnapshot => {
+export const getSliderSnapshot = (root: Element, capabilitiesByIndex: GpuCapabilitiesByIndex | null, index: string | number): GpuSnapshot => {
     const resolve = (currentTime: string): GpuSnapshotControl => {
         if (!isControlSupported(capabilitiesByIndex, index, currentTime)) {
             return { mode: 'auto', value: null };
         }
-        const { slider, toggle } = getSliderElements(document, index, currentTime);
+        const { slider, toggle } = getSliderElements(root, index, currentTime);
         if (!slider || !toggle) {
             throw new Error(`GPU control UI is missing for ${currentTime} (index ${String(index)})`);
         }
@@ -131,7 +131,7 @@ const updateSliderUi = (context: DomContext, index: string | number, type: strin
     if (!isControlSupported(context.capabilitiesByIndex, index, type)) {
         return;
     }
-    const { slider, toggle, valueTrigger, container } = getSliderElements(context.document, index, type);
+    const { slider, toggle, valueTrigger, container } = getSliderElements(context.root, index, type);
     if (!slider || !valueTrigger) {
         throw new Error(`GPU control UI is missing for ${type} (index ${String(index)})`);
     }
@@ -163,7 +163,7 @@ export const setSliderToAuto = (context: DomContext, index: string | number, typ
     if (!isControlSupported(context.capabilitiesByIndex, index, type, 'auto')) {
         return;
     }
-    const { slider, toggle } = getSliderElements(context.document, index, type);
+    const { slider, toggle } = getSliderElements(context.root, index, type);
     if (!slider || !toggle) {
         throw new Error(`GPU control UI is missing for ${type} (index ${String(index)})`);
     }
@@ -180,7 +180,7 @@ export const setSliderToManual = (context: DomContext, index: string | number, t
     if (!isControlSupported(context.capabilitiesByIndex, index, type, 'manual')) {
         return;
     }
-    const { slider, toggle } = getSliderElements(context.document, index, type);
+    const { slider, toggle } = getSliderElements(context.root, index, type);
     if (!slider || !toggle) {
         throw new Error(`GPU control UI is missing for ${type} (index ${String(index)})`);
     }
@@ -218,7 +218,7 @@ export const updateSliderAutoState = (context: DomContext, index: string | numbe
     if (!isControlSupported(context.capabilitiesByIndex, index, type)) {
         return;
     }
-    const { slider, toggle, container } = getSliderElements(context.document, index, type);
+    const { slider, toggle, container } = getSliderElements(context.root, index, type);
     if (!slider || !toggle || !container) {
         throw new Error(`GPU control UI is missing for ${type} (index ${String(index)})`);
     }
@@ -242,7 +242,7 @@ export const resetGpuUiControls = (context: DomContext, index: string | number):
         if (!isControlSupported(context.capabilitiesByIndex, index, currentTime, 'auto')) {
             return;
         }
-        const { slider } = getSliderElements(context.document, index, currentTime);
+        const { slider } = getSliderElements(context.root, index, currentTime);
         if (!slider) {
             throw new Error(`GPU control UI is missing for ${currentTime} (index ${String(index)})`);
         }

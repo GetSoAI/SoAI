@@ -1,10 +1,9 @@
 /* SoAI - Settings page load data mappers [frontend/assets/ts/pages/settings/controllers/page/loadDataMappers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { SettingsUiPreferenceHost } from '@pages/settings/controllers/page/contracts.ts';
 
-const createUiPrefsSnapshot = (page: SettingsUiPreferenceHost): JsonObject => {
+const createUiPrefsSnapshot = (page: SettingsUiPreferenceHost) => {
     const storage = page.owners.storage;
     const languageService = page.owners.languageService;
     return {

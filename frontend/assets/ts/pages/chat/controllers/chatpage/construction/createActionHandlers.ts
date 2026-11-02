@@ -87,6 +87,7 @@ const createAgentPlanExecutionHost = (page: ChatActionHandlerDependencies): Agen
 
 const createOpenInlineMediaLocalFolderHost = (page: ChatActionHandlerDependencies): OpenInlineMediaLocalFolderHost => {
     return {
+        owner: page.page.services.mountScope,
         navigateWithQuery: (targetPage, query) => page.platform.router.navigateWithQuery(targetPage, query)
     };
 };
@@ -109,6 +110,7 @@ const resolveChatAttachDraftCounts = (page: ChatActionHandlerDependencies): Chat
 const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): ChatActionHandlersHost => {
     return {
         shared: {
+            owner: page.page.services.mountScope,
             signal: () => page.page.pageLifecycle.signal(),
             pageResources: page.page.pageResources,
             feedback: page.page.feedback,

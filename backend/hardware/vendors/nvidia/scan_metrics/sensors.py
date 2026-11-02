@@ -17,6 +17,7 @@ __all__ = (
     "read_power_draw_watts",
     "read_power_limit_watts",
     "read_temperature",
+    "read_fan_speed",
     "read_utilization",
 )
 
@@ -58,6 +59,31 @@ def read_temperature(
         device_index=device_index,
         logger=logger,
     )
+
+
+def read_fan_speed(
+    device_index: int,
+    handle: ctypes.c_void_p,
+    *,
+    logger: TraceLogger,
+) -> int | None:
+    try:
+        device_get_fan_speed = pynvml.nvmlDeviceGetFanSpeed
+    except AttributeError:
+        return None
+    if not callable(device_get_fan_speed):
+        return None
+
+    def read_fan_metric() -> int:
+        return device_get_fan_speed(handle)
+
+    value = _read_int_metric(
+        reader=read_fan_metric,
+        metric_name="fan_speed",
+        device_index=device_index,
+        logger=logger,
+    )
+    return value if value is not None and 0 <= value <= 100 else None
 
 
 def read_utilization(

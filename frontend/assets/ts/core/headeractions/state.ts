@@ -1,11 +1,12 @@
 /* SoAI - Shared header actions state [frontend/assets/ts/core/headeractions/state.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isPresentationOwnerActive, isPresentationOwnerFocused } from '@core/presentationOwner.ts';
 import { getLanguageService } from '@core/languageservice/service.ts';
 import { DEFAULT_ORDER, DEFAULT_PRIORITY } from '@core/headeractions/constants.ts';
 import { isFiniteNumber, isFunction, isString } from '@core/typeGuards.ts';
 
-import type { ActionDefinition, ActionSnapshot, ContextPayload, DefinitionInput, PayloadInput, RegistryEntry, Renderable } from '@core/headeractions/types.ts';
+import type { ActionDefinition, ActionSnapshot, ContextPayload, DefinitionInput, PayloadInput, HeaderActionRegistration, HeaderActionHandoff, RegistryEntry, Renderable } from '@core/headeractions/types.ts';
 
 const now = (): number => Date.now();
 
@@ -46,11 +47,12 @@ const createBaseDefinition = (definition: DefinitionInput = {}): ActionDefinitio
 
 const selectActiveContext = (entry: RegistryEntry): ContextPayload | null => {
     const candidates: ContextPayload[] = [];
-    entry.contexts.forEach((context) => {
-        if (context.visible) {
-            candidates.push(context);
+    for (const [owner, contexts] of entry.contexts) {
+        if (!isPresentationOwnerActive(owner) || !isPresentationOwnerFocused(owner)) continue;
+        for (const context of contexts.values()) {
+            if (context.visible) candidates.push(context);
         }
-    });
+    }
     if (!candidates.length) {
         return null;
     }
@@ -63,9 +65,14 @@ const selectActiveContext = (entry: RegistryEntry): ContextPayload | null => {
     return candidates[0] ?? null;
 };
 
-const deriveRenderable = (entry: RegistryEntry): Renderable => {
+const deriveRenderable = (entry: RegistryEntry, handoffs: Iterable<HeaderActionHandoff> = []): Renderable => {
     const base = entry.definition;
     const active = selectActiveContext(entry);
+    if (!active && !base.persistent) {
+        for (const handoff of handoffs) {
+            if (handoff.presentation.isVisible() && handoff.presentation.isFocused() && handoff.renderable?.visible) return { ...handoff.renderable, onClick: null };
+        }
+    }
     const onClick = active?.onClick ?? base.onClick ?? null;
     return {
         id: entry.id,
@@ -99,7 +106,8 @@ const cloneRenderable = (renderable: Renderable | null): Renderable | null => {
     return { ...renderable };
 };
 
-const normalizeContextPayload = (payload: PayloadInput = {}): ContextPayload => ({
+const normalizeContextPayload = (registration: HeaderActionRegistration, payload: PayloadInput = {}): ContextPayload => ({
+    registration,
     visible: payload.visible === true,
     priority: isFiniteNumber(payload.priority) ? payload.priority : DEFAULT_PRIORITY,
     order: isFiniteNumber(payload.order) ? payload.order : null,

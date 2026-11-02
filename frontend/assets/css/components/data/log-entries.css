@@ -2,6 +2,11 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    .log-stream-viewport {
+        overflow-y: clip;
+        overflow-anchor: none;
+    }
+
     :where(.log-timestamp, .log-component, .log-level, .log-message) {
         border: var(--border-width-1) solid var(--glass-border-strong);
         border-radius: var(--border-radius);

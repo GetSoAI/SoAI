@@ -9,6 +9,7 @@ import type { NavigationContext } from '@core/routing/router/types.ts';
 import { isString } from '@core/typeGuards.ts';
 import { buildChatConversationRoute, normalizeConversationId } from '@features/chat/public.ts';
 import type { AutomationDataService } from '@features/automation/public.ts';
+import { AUTOMATION_RUN_QUERY_KEY } from '@core/routeregistry/reconstruction.ts';
 
 const AUTOMATION_PAGE_COMPONENT = 'automation';
 
@@ -16,7 +17,7 @@ const readAutomationRunId = (context: NavigationContext): string | null => {
     if (context.route.component !== AUTOMATION_PAGE_COMPONENT) {
         return null;
     }
-    const runId = context.parameters['run_id'];
+    const runId = context.parameters[AUTOMATION_RUN_QUERY_KEY];
     return isString(runId) && runId.trim() ? runId.trim() : null;
 };
 

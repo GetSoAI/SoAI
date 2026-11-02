@@ -5,6 +5,8 @@ import { dispatchCustomEvent } from '@core/environment/public.ts';
 import { decodeWallpaperInfoResponse } from '@core/api/contracts/wallpaperContracts.ts';
 import type { WebuiUser } from '@core/api/contracts/webuiUserContracts.ts';
 import { runIdentityMutationWithStatusRecovery } from '@core/mutations/identityMutationPolling.ts';
+import { createAbortError } from '@core/errors/abort.ts';
+import { isPresentationOwnerCurrent, isPresentationOwnerMutationAllowed } from '@core/presentationOwner.ts';
 import { createStorageDefaults } from '@core/storage/defaults.ts';
 import { isJsonValue, type JsonValue } from '@core/types/jsonValues.ts';
 import { requestWebSocketSnapshotRecord } from '@core/websocketclient/snapshotPayload.ts';
@@ -16,6 +18,7 @@ import type { UiPreferenceKey } from '@core/settings/settingsFieldKeys.ts';
 import type { SystemManagerActionId, SystemManagerHost } from '@pages/settings/controllers/systemmanager/contracts.ts';
 import type { CurrentWallpaper, ThemeManagerHost } from '@pages/settings/controllers/thememanager/contracts.ts';
 import type { WallpaperPresence } from '@pages/settings/controllers/thememanager/wallpaperPresenceState.ts';
+import { selectAppearanceUiPreferences } from '@pages/settings/controllers/uiprefs/appearancePreferencesDomain.ts';
 import type { PreferencesManagerHost } from '@pages/settings/controllers/preferences/types.ts';
 import type { UsersManagerHost } from '@pages/settings/controllers/usersmanager/types.ts';
 
@@ -45,20 +48,25 @@ const createUiPreferenceBindings = (
     };
 };
 
-const createPreferencesManagerHost = (page: SettingsRuntimeContext, state: SettingsPageState, callbacks: SettingsManagerCallbacks): PreferencesManagerHost => ({
-    ...buildBaseHostBindings(page, callbacks),
-    createConfigurationManager: () => page.owners.services.createConfigurationManager(),
-    getCurrentUserId: () => page.owners.auth.getCurrentUser()?.id ?? null,
-    isDestroyed: () => page.controls.isDestroyed(),
-    loadOcrLanguages: (signal) => page.owners.api.webui.preferences.ocrLanguages({ signal }),
-    loadPreferences: (signal) => page.owners.api.webui.preferences.get({ signal }),
-    saveOcrPreference: (code, intendedUserId, signal) => page.owners.api.webui.preferences.update({ 'settings': { 'ocr_language': code } }, { signal, intendedUserId }),
-    syncManualDirtyField: callbacks.syncManualDirtyField,
-    notifySaveChanged: callbacks.notifySaveChanged,
-    languageService: page.owners.languageService,
-    storage: page.owners.storage,
-    ...createUiPreferenceBindings(state)
-});
+const createPreferencesManagerHost = (page: SettingsRuntimeContext, state: SettingsPageState, callbacks: SettingsManagerCallbacks): PreferencesManagerHost => {
+    const epoch = page.owners.auth.authEpoch;
+    const uiPrefsManager = state.uiPrefsManager;
+    const owner = page.owners.pageContext.presentationOwner;
+    return {
+        ...buildBaseHostBindings(page, callbacks),
+        createConfigurationManager: () => page.owners.services.createConfigurationManager(),
+        getCurrentUserId: () => page.owners.auth.getCurrentUser()?.id ?? null,
+        isDestroyed: () => page.controls.isDestroyed() || page.owners.auth.authEpoch !== epoch || state.uiPrefsManager !== uiPrefsManager || !isPresentationOwnerCurrent(owner),
+        loadOcrLanguages: (signal) => page.owners.api.webui.preferences.ocrLanguages({ signal }),
+        loadPreferences: (signal) => page.owners.api.webui.preferences.get({ signal }),
+        saveOcrPreference: (code, intendedUserId, signal) => page.owners.api.webui.preferences.update({ 'settings': { 'ocr_language': code } }, { signal, intendedUserId }),
+        syncManualDirtyField: callbacks.syncManualDirtyField,
+        notifySaveChanged: callbacks.notifySaveChanged,
+        languageService: page.owners.languageService,
+        storage: page.owners.storage,
+        ...createUiPreferenceBindings(state)
+    };
+};
 
 const applyCurrentWallpaper = (state: SettingsPageState, wallpaper: CurrentWallpaper | null): void => {
     state.currentWallpaperUrl = wallpaper?.url ?? null;
@@ -89,6 +97,7 @@ const createThemeManagerHost = (page: SettingsRuntimeContext, state: SettingsPag
 });
 
 const createUsersManagerHost = (page: SettingsRuntimeContext, state: SettingsPageState, callbacks: SettingsManagerCallbacks): UsersManagerHost => ({
+    owner: page.owners.pageContext.presentationOwner,
     api: {
         listUsers: async (): Promise<WebuiUser[]> => (page.owners.auth.isAdmin() && hasSettingsAction(state, 'USER_ADMIN') ? await page.owners.api.webui.users.list() : [await page.owners.api.webui.users.current()]),
         createUser: (username: string, password: string, isAdmin: boolean) => page.owners.api.webui.users.create(username, password, isAdmin),
@@ -191,104 +200,126 @@ const createUsersManagerHost = (page: SettingsRuntimeContext, state: SettingsPag
     filterSettings: buildBaseHostBindings(page, callbacks).filterSettings
 });
 
-const createSystemManagerHost = (page: SettingsRuntimeContext, state: SettingsPageState, callbacks: SettingsManagerCallbacks): SystemManagerHost => ({
-    api: {
-        resetUiPreferencesRemote: () => page.owners.api.webui.preferences.resetUiPreferences(),
-        resetUiPreferencesLocal: (options: { preserveWizardState: boolean }): void => {
-            page.owners.storage.resetUiPreferences(options);
-        },
-        resetAppearancePreferences: async (): Promise<void> => {
-            const defaults = createStorageDefaults().ui;
-            if (canManageWallpaper(page, state)) {
-                await page.owners.api.webui.wallpaper.delete();
-                applyCurrentWallpaper(state, null);
-            }
-            page.owners.storage.setAccentColor(defaults.accentColor);
-            page.owners.storage.setSurfaceColor(defaults.surfaceColor);
-            page.owners.storage.setReduceMotions(defaults.reduceMotions);
-            page.owners.storage.setGlassEnabled(defaults.glassEnabled);
-            page.owners.storage.setPageAnimation(defaults.pageAnimation);
-            page.owners.storage.setModalAnimation(defaults.modalAnimation);
-            page.owners.storage.setNotificationAnimation(defaults.notificationAnimation);
-            page.owners.storage.setAnimationSpeed(defaults.animationSpeed);
-            page.owners.storage.setWallpaperOverlay(defaults.wallpaperOverlay);
-            page.owners.storage.setSolidBackground(defaults.solidBackground);
-            page.owners.storage.setDefaultWallpaper(defaults.defaultWallpaper);
-            state.currentSolidBackground = defaults.solidBackground;
-        },
-        resetAclPolicy: () => page.owners.api.webui.acl.resetPolicy(),
-        refreshAclPolicyAfterReset: async (): Promise<void> => {
-            await state.aclManager?.reload();
-            callbacks.notifySaveChanged();
-            dispatchCustomEvent('soai:search:request-refresh', {});
-        },
-        resetMetrics: () => page.owners.api.system.resetMetrics(),
-        resetHardwareHistory: () => page.owners.api.system.resetHardwareHistory(),
-        resetMovablePageLayouts: (): void => {
-            page.owners.storage.saveDashboardLayout(null);
-            page.owners.storage.remove('metrics_layout');
-            page.owners.storage.remove('hardware_layout');
-        },
-        resetChatPresets: () => page.owners.api.webui.chat.presets.reset(),
-        resetRecentSearches: (): void => page.owners.storage.clearRecentSearches(),
-        clearPromptHistory: () => page.owners.api.webui.chat.promptHistory.clear(),
-        deleteAllConversations: () => page.owners.api.webui.chat.deleteAll(),
-        resetToolApprovalPermissions: () => page.owners.api.webui.preferences.resetToolApprovalPermissions(),
-        resetPasswordVault: () => page.owners.api.webui.passwordVault.reset(),
-        resetConfiguration: () => page.owners.api.webui.admin.resetConfiguration(),
-        factoryReset: () => page.owners.api.webui.admin.factoryReset(),
-        getWallpaperOverlay: (): number => page.owners.storage.getWallpaperOverlay(),
-        getSolidBackground: (): string | null => page.owners.storage.getSolidBackground()
-    },
-    view: {
-        pageDom: page.owners.pageDom,
-        pageResources: page.owners.pageResources,
-        setUIValue: (target: string | Element, value: string | null | undefined, options?: { attribute?: string }): void => page.owners.pageElements.setValue(target, value, options)
-    },
-    execution: {
-        feedback: page.owners.feedback,
-        runWithBoundary: <T>(name: string, task: () => Promise<T> | T): Promise<T> => page.owners.pageLifecycle.run(name, task),
-        withButtonDisabled: callbacks.withButtonDisabled,
-        confirmAndExecute: callbacks.confirmAndExecute
-    },
-    notifications: { feedback: page.owners.feedback },
-    workflow: {
-        acquirePreferencesMutation: () => {
-            const release = state.preferencesAdmission.acquire();
-            if (!release) return null;
-            return () => {
-                release();
+const createSystemManagerHost = (page: SettingsRuntimeContext, state: SettingsPageState, callbacks: SettingsManagerCallbacks): SystemManagerHost => {
+    const epoch = page.owners.auth.authEpoch;
+    const uiPrefsManager = state.uiPrefsManager;
+    const owner = page.owners.pageContext.presentationOwner;
+    const isCurrent = (): boolean => !page.controls.isDestroyed() && page.owners.auth.authEpoch === epoch && state.uiPrefsManager === uiPrefsManager && isPresentationOwnerMutationAllowed(owner);
+    const requireCurrent = (): void => {
+        if (!isCurrent()) throw createAbortError('Preference reset is no longer current');
+    };
+    return {
+        api: {
+            resetUiPreferencesRemote: () => {
+                requireCurrent();
+                return page.owners.api.webui.preferences.resetUiPreferences();
+            },
+            resetUiPreferencesLocal: (options: { preserveWizardState: boolean }): void => {
+                requireCurrent();
+                page.owners.storage.resetUiPreferences({ ...options, canApply: isCurrent });
+            },
+            resetAppearancePreferences: async (): Promise<void> => {
+                requireCurrent();
+                const defaults = createStorageDefaults().ui;
+                const appearance = selectAppearanceUiPreferences(defaults);
+                if (canManageWallpaper(page, state)) {
+                    await page.owners.api.webui.wallpaper.delete();
+                    requireCurrent();
+                    applyCurrentWallpaper(state, null);
+                }
+                const operations: readonly (() => void)[] = [() => page.owners.storage.setAccentColor(appearance.accentColor), () => page.owners.storage.setSurfaceColor(appearance.surfaceColor), () => page.owners.storage.setReduceMotions(appearance.reduceMotions), () => page.owners.storage.setGlassEnabled(appearance.glassEnabled), () => page.owners.storage.setPageAnimation(appearance.pageAnimation), () => page.owners.storage.setModalAnimation(appearance.modalAnimation), () => page.owners.storage.setNotificationAnimation(appearance.notificationAnimation), () => page.owners.storage.setAnimationSpeed(appearance.animationSpeed), () => page.owners.storage.setWallpaperOverlay(appearance.wallpaperOverlay), () => page.owners.storage.setSolidBackground(defaults.solidBackground), () => page.owners.storage.setDefaultWallpaper(defaults.defaultWallpaper)];
+                for (const operation of operations) {
+                    requireCurrent();
+                    operation();
+                }
+                requireCurrent();
+                state.currentSolidBackground = defaults.solidBackground;
+            },
+            resetAclPolicy: () => page.owners.api.webui.acl.resetPolicy(),
+            refreshAclPolicyAfterReset: async (): Promise<void> => {
+                await state.aclManager?.reload();
                 callbacks.notifySaveChanged();
-            };
+                dispatchCustomEvent('soai:search:request-refresh', {});
+            },
+            resetMetrics: () => page.owners.api.system.resetMetrics(),
+            resetHardwareHistory: () => page.owners.api.system.resetHardwareHistory(),
+            resetMovablePageLayouts: (): void => {
+                page.owners.storage.saveDashboardLayout(null);
+                page.owners.storage.remove('metrics_layout');
+                page.owners.storage.remove('hardware_layout');
+            },
+            resetChatPresets: () => page.owners.api.webui.chat.presets.reset(),
+            resetRecentSearches: (): void => page.owners.storage.clearRecentSearches(),
+            clearPromptHistory: () => page.owners.api.webui.chat.promptHistory.clear(),
+            deleteAllConversations: () => page.owners.api.webui.chat.deleteAll(),
+            resetToolApprovalPermissions: () => page.owners.api.webui.preferences.resetToolApprovalPermissions(),
+            resetPasswordVault: () => page.owners.api.webui.passwordVault.reset(),
+            resetConfiguration: () => page.owners.api.webui.admin.resetConfiguration(),
+            factoryReset: () => page.owners.api.webui.admin.factoryReset(),
+            getWallpaperOverlay: (): number => page.owners.storage.getWallpaperOverlay(),
+            getSolidBackground: (): string | null => page.owners.storage.getSolidBackground()
         },
-        canRunSystemAction: (action: SystemManagerActionId): boolean => {
-            if (action === SETTINGS_SYSTEM_RESET_CONFIGURATION_ACTION) return hasSettingsAction(state, 'CONFIG_PATCH');
-            if (action === SETTINGS_SYSTEM_FACTORY_RESET_ACTION) {
-                return hasSettingsAction(state, 'FACTORY_RESET');
-            }
-            if (action === SETTINGS_SYSTEM_RESET_METRICS_ACTION || action === SETTINGS_SYSTEM_RESET_HARDWARE_HISTORY_ACTION) {
-                return hasSettingsAction(state, 'METRICS_RESET');
-            }
-            return true;
+        view: {
+            pageDom: page.owners.pageDom,
+            pageResources: page.owners.pageResources,
+            setUIValue: (target: string | Element, value: string | null | undefined, options?: { attribute?: string }): void => page.owners.pageElements.setValue(target, value, options)
         },
-        setTimer: (functionValue: () => void, delay: number): number => {
-            const timerId = page.owners.pageResources.setTimer(functionValue, delay);
-            if (timerId === null) {
-                throw new Error('Failed to allocate timer');
-            }
-            return timerId;
+        execution: {
+            feedback: page.owners.feedback,
+            runWithBoundary: <T>(name: string, task: () => Promise<T> | T): Promise<T> => page.owners.pageLifecycle.run(name, task),
+            withButtonDisabled: callbacks.withButtonDisabled,
+            confirmAndExecute: callbacks.confirmAndExecute
         },
-        clearTimer: (timerId: number | null | undefined): void => page.owners.pageResources.clearTimer(timerId),
-        applyWallpaperOverlay: callbacks.applyWallpaperOverlay,
-        refreshWallpaperPreview: callbacks.refreshWallpaperPreview,
-        scheduleWallpaperRefresh: callbacks.scheduleWallpaperRefresh,
-        refreshSettingsAfterPreferencesReset: async (): Promise<void> => await callbacks.refreshSettingsAfterPreferencesReset(),
-        navigate: (route: string, options?: Record<string, JsonValue | null | undefined>): void => {
-            page.owners.router.navigate(route, options);
-        },
-        filterSettings: buildBaseHostBindings(page, callbacks).filterSettings,
-        showRestartOverlay: (value: string): void => state.restartOverlay.show(value)
-    }
-});
+        notifications: { feedback: page.owners.feedback },
+        workflow: {
+            acquirePreferencesMutation: () => {
+                requireCurrent();
+                const release = state.preferencesAdmission.acquire();
+                if (!release) return null;
+                try {
+                    callbacks.notifySaveChanged();
+                    requireCurrent();
+                } catch (error) {
+                    release();
+                    throw error;
+                }
+                return () => {
+                    release();
+                    if (isCurrent()) callbacks.notifySaveChanged();
+                };
+            },
+            canRunSystemAction: (action: SystemManagerActionId): boolean => {
+                if (action === SETTINGS_SYSTEM_RESET_CONFIGURATION_ACTION) return hasSettingsAction(state, 'CONFIG_PATCH');
+                if (action === SETTINGS_SYSTEM_FACTORY_RESET_ACTION) {
+                    return hasSettingsAction(state, 'FACTORY_RESET');
+                }
+                if (action === SETTINGS_SYSTEM_RESET_METRICS_ACTION || action === SETTINGS_SYSTEM_RESET_HARDWARE_HISTORY_ACTION) {
+                    return hasSettingsAction(state, 'METRICS_RESET');
+                }
+                return true;
+            },
+            setTimer: (functionValue: () => void, delay: number): number => {
+                const timerId = page.owners.pageResources.setTimer(functionValue, delay);
+                if (timerId === null) {
+                    throw new Error('Failed to allocate timer');
+                }
+                return timerId;
+            },
+            clearTimer: (timerId: number | null | undefined): void => page.owners.pageResources.clearTimer(timerId),
+            applyWallpaperOverlay: callbacks.applyWallpaperOverlay,
+            refreshWallpaperPreview: callbacks.refreshWallpaperPreview,
+            scheduleWallpaperRefresh: callbacks.scheduleWallpaperRefresh,
+            preparePreferencesResetRefresh: (type) => {
+                requireCurrent();
+                return callbacks.preparePreferencesResetRefresh(type);
+            },
+            navigate: (route: string, options?: Record<string, JsonValue | null | undefined>): void => {
+                page.owners.router.navigate(route, options);
+            },
+            filterSettings: buildBaseHostBindings(page, callbacks).filterSettings,
+            showRestartOverlay: (value: string): void => state.restartOverlay.show(value)
+        }
+    };
+};
 
 export { createPreferencesManagerHost, createSystemManagerHost, createThemeManagerHost, createUsersManagerHost };

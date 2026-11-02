@@ -38,7 +38,7 @@ _DUPLICATE_TERMINAL_TOOL_EVENT_MESSAGE = (
 @dataclass(frozen=True, slots=True)
 class AssistantEventChronologyResult:
     running_visible_length: int
-    payload_json: str
+    payload: JSONDict
 
 
 def _resolve_terminal_tool_event_key(
@@ -136,12 +136,6 @@ def _resolve_present_anchor(
     )
 
 
-def _serialize_changed_payload(payload: JSONDict, original_payload_json: str, changed: bool) -> str:
-    if not changed:
-        return original_payload_json
-    return serialize_json_compact_stable_strict(payload)
-
-
 def resolve_assistant_event_chronology(
     *,
     event_type: str,
@@ -152,18 +146,12 @@ def resolve_assistant_event_chronology(
         payload_json,
         error_message="Assistant event payload_json must decode to an object.",
     )
+    payload_changed = False
     if event_type == "assistant_text_delta":
         delta_value = payload.get("delta")
         if isinstance(delta_value, str):
-            return AssistantEventChronologyResult(
-                running_visible_length=running_visible_length + len(delta_value),
-                payload_json=payload_json,
-            )
-        return AssistantEventChronologyResult(
-            running_visible_length=running_visible_length,
-            payload_json=payload_json,
-        )
-    if event_type in _TOOL_EVENT_TYPES:
+            running_visible_length += len(delta_value)
+    elif event_type in _TOOL_EVENT_TYPES:
         tool_payload = payload.get("tool")
         if is_json_dict(tool_payload):
             resolved_anchor = _resolve_present_anchor(
@@ -177,23 +165,11 @@ def resolve_assistant_event_chronology(
                 "content_index_before",
             ):
                 tool_payload["content_index_before"] = resolved_anchor
-                return AssistantEventChronologyResult(
-                    running_visible_length=running_visible_length,
-                    payload_json=_serialize_changed_payload(payload, payload_json, True),
-                )
-        return AssistantEventChronologyResult(
-            running_visible_length=running_visible_length,
-            payload_json=payload_json,
-        )
-    if event_type == "thinking_phase":
+                payload_changed = True
+        del tool_payload
+    elif event_type == "thinking_phase":
         thinking_payload = payload.get("thinking_phase")
-        if not is_json_dict(thinking_payload):
-            return AssistantEventChronologyResult(
-                running_visible_length=running_visible_length,
-                payload_json=payload_json,
-            )
-        anchor_type_value = thinking_payload.get("anchor_type")
-        if anchor_type_value == "position":
+        if is_json_dict(thinking_payload) and thinking_payload.get("anchor_type") == "position":
             resolved_anchor = _resolve_present_anchor(
                 payload=thinking_payload,
                 key="anchor_position",
@@ -205,11 +181,16 @@ def resolve_assistant_event_chronology(
                 "anchor_position",
             ):
                 thinking_payload["anchor_position"] = resolved_anchor
-                return AssistantEventChronologyResult(
-                    running_visible_length=running_visible_length,
-                    payload_json=_serialize_changed_payload(payload, payload_json, True),
-                )
+                payload_changed = True
+        del thinking_payload
+    if payload_changed:
+        normalized_payload_json = serialize_json_compact_stable_strict(payload)
+        del payload
+        payload = safe_json_deserialize_required_object(
+            normalized_payload_json,
+            error_message="Assistant event payload_json must decode to an object.",
+        )
     return AssistantEventChronologyResult(
         running_visible_length=running_visible_length,
-        payload_json=payload_json,
+        payload=payload,
     )

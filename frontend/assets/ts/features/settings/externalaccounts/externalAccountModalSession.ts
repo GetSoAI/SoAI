@@ -78,6 +78,7 @@ const initializeExternalAccountModalSession = (context: ModalSessionContext<void
     };
 
     const save = createSaveController({
+        owner: options.host.owner,
         headerContextId: modalId,
         headerPriority: SAVE_HEADER_PRIORITY_MODAL,
         requestContextLabel: 'ExternalAccountModal save',
@@ -129,7 +130,7 @@ const initializeExternalAccountModalSession = (context: ModalSessionContext<void
                     if (!canReturnToLauncher || state.mode !== 'create' || state.currentAccount !== null) {
                         return;
                     }
-                    if (!(await discardExternalAccountModalIfDirty({ state, dialogs, hasChanges: () => save.hasChanges() }))) {
+                    if (!(await discardExternalAccountModalIfDirty({ options, state, dialogs, hasChanges: () => save.hasChanges() }))) {
                         return;
                     }
                     state.accountType = null;
@@ -248,7 +249,7 @@ const initializeExternalAccountModalSession = (context: ModalSessionContext<void
         presenter,
         modalId,
         shouldConfirmClose: () => state.mode !== 'launcher' && save.hasChanges(),
-        confirmClose: async () => await discardExternalAccountModalIfDirty({ state, dialogs, hasChanges: () => save.hasChanges() })
+        confirmClose: async () => await discardExternalAccountModalIfDirty({ options, state, dialogs, hasChanges: () => save.hasChanges() })
     });
     syncView();
     return {

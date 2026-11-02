@@ -1,6 +1,8 @@
 /* SoAI - Unified content preview modal request types [frontend/assets/ts/core/ui/modals/contentpreview/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
+
 export type ContentPreviewScope = 'prompts' | 'fileExplorer' | 'chat';
 export type ContentPreviewType = 'text' | 'image' | 'audio' | 'video' | 'embed' | 'document' | 'file';
 
@@ -84,6 +86,7 @@ export type ContentPreviewTextSaveResult = Readonly<{
 }>;
 
 export type ContentPreviewTextRequest = Readonly<{
+    readonly owner: PresentationOwner;
     scope: ContentPreviewScope;
     type: 'text';
     headerDescription: string | null;
@@ -110,6 +113,7 @@ export type ContentPreviewTextRequest = Readonly<{
 }>;
 
 export type ContentPreviewMediaRequest = Readonly<{
+    readonly owner: PresentationOwner;
     scope: ContentPreviewScope;
     type: Exclude<ContentPreviewType, 'text' | 'document' | 'file'>;
     headerDescription: string | null;
@@ -127,6 +131,7 @@ export type ContentPreviewMediaRequest = Readonly<{
 }>;
 
 export type ContentPreviewDocumentRequest = Readonly<{
+    readonly owner: PresentationOwner;
     scope: ContentPreviewScope;
     type: 'document' | 'file';
     headerDescription: string | null;

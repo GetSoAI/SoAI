@@ -1,6 +1,7 @@
 /* SoAI - Automation page pane controller [frontend/assets/ts/pages/automation/controllers/windowrunstoolbar/paneController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { NotificationType } from '@core/ui/notifications/types.ts';
 import { AutomationWindowRunsDeleteController } from '@pages/automation/controllers/windowrunstoolbar/deleteController.ts';
 import { resolveAutomationWindowRunsToolbarUi } from '@pages/automation/controllers/windowrunstoolbar/dom.ts';
@@ -11,6 +12,7 @@ import { buildAutomationZoneKeyForZone } from '@pages/automation/contracts/zoneK
 import type { AutomationPageState } from '@pages/automation/types.ts';
 
 type AutomationWindowRunsPaneControllerDependencies = {
+    readonly owner: PresentationOwner;
     dataService: AutomationDataService;
     getState: () => AutomationPageState;
     setState: (next: AutomationPageState) => void;
@@ -35,6 +37,7 @@ class AutomationWindowRunsPaneController {
         });
         this.#toolbar = new AutomationWindowRunsToolbarController(this.#selection);
         this.#delete = new AutomationWindowRunsDeleteController({
+            owner: dependencies.owner,
             dataService: dependencies.dataService,
             getState: dependencies.getState,
             refreshData: dependencies.refreshData,

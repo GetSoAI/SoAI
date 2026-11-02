@@ -61,6 +61,7 @@ const createAdminSettingsManagers = (page: SettingsRuntimeContext, state: Settin
     });
     state.apiKeysManager = new ApiKeysManager({
         host: {
+            owner: page.owners.pageContext.presentationOwner,
             api: {
                 isAdmin: adminBindings.isAdmin,
                 listApiKeys: (includeRevoked: boolean, options) => page.owners.api.webui.apiKeys.list(includeRevoked, options),
@@ -139,6 +140,7 @@ const createAdminSettingsManagers = (page: SettingsRuntimeContext, state: Settin
         }
     });
     state.licensingManager = new LicensingManager({
+        owner: page.owners.pageContext.presentationOwner,
         licensing: {
             load: (options) => page.owners.api.webui.licensing.status(options),
             governingDocuments: (flow, options) => page.owners.api.webui.licensing.governingDocuments(flow, options),
@@ -169,6 +171,7 @@ const createAdminSettingsManagers = (page: SettingsRuntimeContext, state: Settin
         page: {
             confirmDeactivation: () =>
                 requireDialogsService().showConfirmation({
+                    owner: page.owners.pageContext.presentationOwner,
                     title: i18n.t('settings.licensing.deactivateConfirmTitle'),
                     message: i18n.t('settings.licensing.deactivateConfirmMessage'),
                     confirmText: i18n.t('settings.licensing.deactivate'),
@@ -235,6 +238,7 @@ const createAdminSettingsManagers = (page: SettingsRuntimeContext, state: Settin
         const managers = settingsContribution.createManagers(
             {
                 ...buildBaseHostBindings(page, callbacks),
+                owner: page.owners.pageContext.presentationOwner,
                 withButtonDisabled: callbacks.withButtonDisabled,
                 confirmAndExecute: callbacks.confirmAndExecute
             },

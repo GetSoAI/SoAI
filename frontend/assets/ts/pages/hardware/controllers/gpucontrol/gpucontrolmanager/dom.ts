@@ -19,25 +19,25 @@ export const createElementFromMarkup = (document: Document, markup: string): Ele
     return element;
 };
 
-const resolveGpuControlsSection = (documentRef: Document): HTMLElement | null => {
-    const section = dom.resolve('#gpu-control-section', documentRef);
+const resolveGpuControlsSection = (root: Element): HTMLElement | null => {
+    const section = dom.resolve('#gpu-control-section', root);
     return section instanceof HTMLElement ? section : null;
 };
 
-const resolveGpuControlsContainer = (documentRef: Document): HTMLElement | null => {
-    const container = dom.resolve('#gpu-controls-container', documentRef);
+const resolveGpuControlsContainer = (root: Element): HTMLElement | null => {
+    const container = dom.resolve('#gpu-controls-container', root);
     return container instanceof HTMLElement ? container : null;
 };
 
-export const syncGpuControlsPanelVisibility = (documentRef: Document, visible: boolean): void => {
-    const section = resolveGpuControlsSection(documentRef);
+export const syncGpuControlsPanelVisibility = (root: Element, visible: boolean): void => {
+    const section = resolveGpuControlsSection(root);
     if (section) {
         section.classList.toggle('u-hidden', !visible);
     }
 };
 
-export const clearGpuControlsPanel = (documentRef: Document): void => {
-    const container = resolveGpuControlsContainer(documentRef);
+export const clearGpuControlsPanel = (root: Element): void => {
+    const container = resolveGpuControlsContainer(root);
     if (container) {
         container.replaceChildren();
     }

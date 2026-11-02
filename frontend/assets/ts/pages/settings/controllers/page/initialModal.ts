@@ -1,13 +1,11 @@
 /* SoAI - Settings initial modal query handling [frontend/assets/ts/pages/settings/controllers/page/initialModal.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { buildRouteWithoutQueryParameters } from '@core/routing/router/events.ts';
+import { consumeRouteQuery, INITIAL_MODAL_QUERY_KEYS } from '@core/routeregistry/reconstruction.ts';
+import type { PageRouting } from '@core/routing/router/types.ts';
 
 interface SettingsInitialModalHost {
-    router: {
-        getRouteParameters(): Record<string, string>;
-        replaceCurrentRoute(target: string): void;
-    } | null;
+    router: Pick<PageRouting, 'getRouteParameters' | 'getCurrentRoute' | 'getQueryParameters' | 'replaceCurrentRoute'> | null;
 }
 
 interface SettingsInitialMcpManager {
@@ -19,7 +17,7 @@ const clearSettingsInitialModalQuery = (host: SettingsInitialModalHost): void =>
     if (!router) {
         throw new Error('Settings initial modal cleanup requires a router');
     }
-    router.replaceCurrentRoute(buildRouteWithoutQueryParameters('settings', router.getRouteParameters(), ['modal']));
+    consumeRouteQuery(router, INITIAL_MODAL_QUERY_KEYS);
 };
 
 const handleSettingsInitialModal = async (host: SettingsInitialModalHost, mcpManager: SettingsInitialMcpManager | null): Promise<void> => {

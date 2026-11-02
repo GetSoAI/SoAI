@@ -10,6 +10,7 @@ const createExternalAccountsManager = (page: SettingsRuntimeContext, state: Sett
     const baseBindings = buildBaseHostBindings(page, callbacks);
     state.externalAccountsManager = new ExternalAccountsManager({
         host: {
+            owner: page.owners.pageContext.presentationOwner,
             ...baseBindings,
             api: page.owners.api,
             withButtonDisabled: callbacks.withButtonDisabled,

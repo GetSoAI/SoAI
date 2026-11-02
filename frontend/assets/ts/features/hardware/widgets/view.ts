@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { generateSecureId } from '@core/primitives/idGenerator.ts';
 import { formatShortDurationUnit } from '@core/primitives/duration.ts';
 import { detectHardwareBrand, HARDWARE_BRANDS } from '@core/hardwareBrands.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -133,8 +134,9 @@ const createWidgetStructure = (parameters: WidgetStructureInput): WidgetElements
     });
 
     const defs = dom.createSvgElement('defs');
+    const gradientId = generateSecureId(`gradient-${parameters.widgetId}`);
     const gradient = dom.createSvgElement('linearGradient', {
-        id: `gradient-${parameters.widgetId}`,
+        id: gradientId,
         x1: '0%',
         y1: '0%',
         x2: '0%',
@@ -147,7 +149,7 @@ const createWidgetStructure = (parameters: WidgetStructureInput): WidgetElements
 
     const chartPath = dom.createSvgElement('path', {
         className: 'hardware-widget__chart-path',
-        fill: `url(#gradient-${parameters.widgetId})`
+        fill: `url(#${gradientId})`
     });
     const chartLine = dom.createSvgElement('path', {
         className: 'hardware-widget__chart-line',

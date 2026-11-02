@@ -1,6 +1,9 @@
 /* SoAI - Shared modals modal actions [frontend/assets/ts/core/modals/modalhost/modalActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
+import { acquireModalOwnership, releaseModalOwnership, requireModalOwnership } from '@core/modals/modalhost/ownership.ts';
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { finishPresenceAnimations, isPresenceExiting } from '@core/animations/presence/public.ts';
 import { dom } from '@core/dom/dom.ts';
@@ -15,9 +18,9 @@ import { ensureResizeHandles } from '@core/modals/modalhost/layout.ts';
 import { notifyModalClosed, notifyModalOpened } from '@core/modals/modalhost/pageLock.ts';
 import type { ModalHostState } from '@core/modals/modalhost/contracts.ts';
 import { normalizeModalId } from '@core/modals/guards.ts';
-import type { ModalBeforeCloseDetail, ModalCloseOptions, ModalOpenOptions, ModalRegisterOptions, ModalUserCloseReason } from '@core/modals/types.ts';
-import { isFunction, isString } from '@core/typeGuards.ts';
-import { isAvailableFocusTarget, synchronizeModalStackAccessibility } from '@core/modals/modalhost/focusIsolation.ts';
+import type { ModalBeforeCloseDetail, ModalOwnership, ModalHandle, ModalCloseOptions, ModalOpenOptions, ModalRegisterOptions, ModalUserCloseReason } from '@core/modals/types.ts';
+import { isFunction } from '@core/typeGuards.ts';
+import { focusModalElement, rememberFocus, restoreModalFocus, synchronizeModalStackAccessibility } from '@core/modals/modalhost/focusIsolation.ts';
 
 const getModalElement = (id: string): Element | null => {
     const modalId = id ? id.trim() : '';
@@ -26,41 +29,6 @@ const getModalElement = (id: string): Element | null => {
 
 const isOpen = (state: ModalHostState, id: string): boolean => {
     return state.activeStack.includes(id);
-};
-
-const rememberFocus = (state: ModalHostState, id: string): void => {
-    const active = dom.getActiveElement();
-    if (active instanceof HTMLElement && isFunction(active.focus)) {
-        state.focusMemory.set(id, active);
-    } else {
-        state.focusMemory.delete(id);
-    }
-};
-
-const focusNode = (element: Element | null | undefined): void => {
-    if (!(element instanceof HTMLElement)) {
-        return;
-    }
-    if (!isFunction(element.focus)) {
-        return;
-    }
-    element.focus({ preventScroll: true });
-};
-
-const restoreModalFocus = (state: ModalHostState, id: string): void => {
-    const target = state.focusMemory.get(id);
-    if (target instanceof HTMLElement && target.isConnected && isAvailableFocusTarget(target)) focusNode(target);
-    state.focusMemory.delete(id);
-};
-
-const focusModalElement = (state: ModalHostState, modalId: string, layoutGeneration: number, target: string | Element, modal: Element): void => {
-    const element = isString(target) ? dom.resolve(target, modal) : target;
-    if (element) {
-        getRequestAnimationFrame()(() => {
-            if (!isModalLayoutCurrent(state, modalId, layoutGeneration) || modal.contains(dom.getActiveElement())) return;
-            focusNode(element);
-        });
-    }
 };
 
 const raiseModalRoot = (modal: Element): void => {
@@ -85,7 +53,7 @@ const isUserInitiatedCloseReason = (reason: string | undefined): reason is Modal
     return reason === 'escape' || reason === 'overlay' || reason === 'trigger';
 };
 
-const registerModal = (state: ModalHostState, id: string, options: ModalRegisterOptions): { open: (openOptions?: ModalOpenOptions) => boolean; close: (closeOptions?: ModalCloseOptions) => boolean; toggle: (force?: boolean | null) => boolean; isOpen: () => boolean } => {
+const registerModal = (state: ModalHostState, id: string, options: ModalRegisterOptions): ModalHandle => {
     const modalId = normalizeModalId(id);
     const config = state.registry.register(modalId, options);
 
@@ -93,16 +61,28 @@ const registerModal = (state: ModalHostState, id: string, options: ModalRegister
     if (modal) applyBehaviorAttributes(modal, config);
 
     return {
-        open: (openOptions?: ModalOpenOptions) => openModal(state, modalId, openOptions),
+        open: (openOptions: ModalOpenOptions) => openModal(state, modalId, openOptions),
         close: (closeOptions?: ModalCloseOptions) => closeModal(state, modalId, closeOptions),
-        toggle: (force?: boolean | null) => toggleModal(state, modalId, force),
+        toggle: (openOptions: ModalOpenOptions, force?: boolean | null) => toggleModal(state, modalId, openOptions, force),
         isOpen: () => isOpen(state, modalId)
     };
 };
 
-const openModal = (state: ModalHostState, id: string, options: ModalOpenOptions = {}): boolean => {
+const openModal = (state: ModalHostState, id: string, options: ModalOpenOptions, reserved?: ModalOwnership): boolean => {
     const modalId = normalizeModalId(id);
-    const modal = state.ensureModalElement(modalId);
+    const wasOpen = isOpen(state, modalId);
+    const previousOwnership = state.ownership.get(modalId);
+    if (previousOwnership && (previousOwnership.owner !== options.owner || (!wasOpen && reserved !== previousOwnership))) throw new Error('Modal is already owned by another presentation');
+    const ownership = reserved ?? previousOwnership ?? acquireModalOwnership(state, modalId, options.owner);
+    requireModalOwnership(state, ownership);
+    let modal: HTMLElement;
+    try {
+        modal = state.ensureModalElement(modalId);
+        requireModalOwnership(state, ownership);
+    } catch (error) {
+        releaseModalOwnership(state, ownership);
+        throw error;
+    }
     if (isPresenceExiting(modal)) finishPresenceAnimations(modal);
 
     const config = state.registry.getConfig(modalId);
@@ -117,7 +97,6 @@ const openModal = (state: ModalHostState, id: string, options: ModalOpenOptions 
         syncFullscreenButton(state, modalId, modal);
     }
 
-    const wasOpen = isOpen(state, modalId);
     if (wasOpen) {
         state.activeStack = state.activeStack.filter((value) => value !== modalId);
         state.activeStack.push(modalId);
@@ -187,6 +166,7 @@ const openModal = (state: ModalHostState, id: string, options: ModalOpenOptions 
             state.desktopOpenHeights.delete(modalId);
             resetSizeStyles(content);
             setModalOpenState(modal, false);
+            releaseModalOwnership(state, ownership);
         }
         throw error;
     }
@@ -197,9 +177,10 @@ const openModal = (state: ModalHostState, id: string, options: ModalOpenOptions 
         notifyModalOpened(state);
     }
     synchronizeModalStackAccessibility(state);
-    modal.dispatchEvent(new Event('core.modal.open', { bubbles: true }));
+    modal.dispatchEvent(new CustomEvent('core.modal.open', { bubbles: true, detail: ownership }));
     getRequestAnimationFrame()(() => {
-        if (!isModalLayoutCurrent(state, modalId, layoutGeneration)) return;
+        if (!isModalLayoutCurrent(state, modalId, layoutGeneration) || state.ownership.get(modalId) !== ownership) return;
+        if (ownership.owner.type !== 'global' && !ownership.owner.admission.isActive()) return;
         focusModalElement(state, modalId, layoutGeneration, config.initialFocusSelector, modal);
         if (isFunction(config.onOpen)) {
             config.onOpen(modal, options);
@@ -212,6 +193,8 @@ const openModal = (state: ModalHostState, id: string, options: ModalOpenOptions 
 const closeModal = (state: ModalHostState, id: string, options: ModalCloseOptions = {}): boolean => {
     const modalId = normalizeModalId(id);
     const wasOpen = isOpen(state, modalId);
+    const ownership = state.ownership.get(modalId);
+    if (ownership && state.ownershipLifetimes.get(ownership)?.type === 'releasing') return false;
     if (!wasOpen && options.force !== true) {
         return false;
     }
@@ -229,9 +212,7 @@ const closeModal = (state: ModalHostState, id: string, options: ModalCloseOption
                 detail
             })
         );
-        if (!allowed) {
-            return false;
-        }
+        if (!allowed || state.ownership.get(modalId) !== ownership) return false;
     }
     const config = state.registry.getConfig(modalId);
     advanceModalLayoutGeneration(state);
@@ -252,38 +233,45 @@ const closeModal = (state: ModalHostState, id: string, options: ModalCloseOption
         }
     });
     state.activeStack = state.activeStack.filter((value) => value !== modalId);
-    synchronizeModalStackAccessibility(state);
+    const failures: Error[] = [];
+    runCleanupStepCollectingFailure(() => synchronizeModalStackAccessibility(state), failures);
     const replacement = options.replacementFocusTarget;
     if (replacement?.isConnected) {
         for (const [savedModalId, target] of state.focusMemory) {
             if (modal.contains(target)) state.focusMemory.set(savedModalId, replacement);
         }
     }
-    modal.dispatchEvent(new Event('core.modal.close', { bubbles: true }));
+    runCleanupStepCollectingFailure(() => modal.dispatchEvent(new Event('core.modal.close', { bubbles: true })), failures);
 
-    notifyModalClosed(state);
+    if (wasOpen) runCleanupStepCollectingFailure(() => notifyModalClosed(state), failures);
 
-    if (isFunction(config.onClose)) {
-        config.onClose(modal, options);
-    }
+    const hasReplacementOwnership = (): boolean => {
+        const current = state.ownership.get(modalId);
+        return current !== undefined && current !== ownership;
+    };
+    if (hasReplacementOwnership()) return true;
+    if (isFunction(config.onClose)) runCleanupStepCollectingFailure(() => config.onClose?.(modal, options), failures);
+    if (hasReplacementOwnership()) return true;
     const shouldRestore = options.restoreFocus ?? config.restoreFocus;
     if (shouldRestore) {
-        restoreModalFocus(state, modalId);
+        runCleanupStepCollectingFailure(() => restoreModalFocus(state, modalId), failures);
     } else {
         state.focusMemory.delete(modalId);
     }
+    if (ownership) releaseModalOwnership(state, ownership, failures);
+    throwCollectedCleanupFailures(failures);
     return true;
 };
 
-const toggleModal = (state: ModalHostState, id: string, force: boolean | null = null): boolean => {
+const toggleModal = (state: ModalHostState, id: string, options: ModalOpenOptions, force: boolean | null = null): boolean => {
     const modalId = normalizeModalId(id);
     if (force === true) {
-        return openModal(state, modalId);
+        return openModal(state, modalId, options);
     }
     if (force === false) {
         return closeModal(state, modalId);
     }
-    return isOpen(state, modalId) ? closeModal(state, modalId) : openModal(state, modalId);
+    return isOpen(state, modalId) ? closeModal(state, modalId) : openModal(state, modalId, options);
 };
 
 const closeTopModal = (state: ModalHostState, options: ModalCloseOptions = {}): boolean => {
@@ -294,10 +282,14 @@ const closeTopModal = (state: ModalHostState, options: ModalCloseOptions = {}): 
     return closeModal(state, top, options);
 };
 
-const closeOpenModals = (state: ModalHostState, options: ModalCloseOptions = {}): number => {
-    const modalIds = state.activeStack.slice().reverse();
+const closeOpenModals = (state: ModalHostState, options: ModalCloseOptions = {}, owner?: PresentationOwner): number => {
+    const ownedModals = state.activeStack
+        .slice()
+        .reverse()
+        .map((modalId) => ({ modalId, ownership: state.ownership.get(modalId) }));
     let closed = 0;
-    for (const modalId of modalIds) {
+    for (const { modalId, ownership } of ownedModals) {
+        if ((owner && ownership?.owner !== owner) || state.ownership.get(modalId) !== ownership) continue;
         if (closeModal(state, modalId, options)) {
             closed += 1;
         }
@@ -305,4 +297,4 @@ const closeOpenModals = (state: ModalHostState, options: ModalCloseOptions = {})
     return closed;
 };
 
-export { closeModal, closeOpenModals, closeTopModal, getModalElement, isOpen, openModal, registerModal, rememberFocus, restoreModalFocus, toggleModal };
+export { closeModal, closeOpenModals, closeTopModal, getModalElement, isOpen, openModal, registerModal, toggleModal };

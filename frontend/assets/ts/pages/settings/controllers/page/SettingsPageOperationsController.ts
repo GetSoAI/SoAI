@@ -3,9 +3,9 @@
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import type { SaveController } from '@core/save/public.ts';
-import type { SettingsManagerCallbacks, SettingsRuntimeContext } from '@pages/settings/controllers/page/contracts.ts';
+import type { SettingsManagerCallbacks, SettingsRuntimeContext, SettingsPreferenceResetType } from '@pages/settings/controllers/page/contracts.ts';
 import { applyWallpaperOverlay, confirmAndExecute, refreshWallpaperPreview, scheduleWallpaperRefresh, updatePreferenceToggleLabel, warnAndFocus, withButtonDisabled } from '@pages/settings/controllers/page/pageActions.ts';
-import { PreferencesResetRefreshController } from '@pages/settings/controllers/page/PreferencesResetRefreshController.ts';
+import { preparePreferencesResetRefresh } from '@pages/settings/controllers/page/preferencesResetRefreshController.ts';
 import type { SettingsPageState } from '@pages/settings/controllers/page/state.ts';
 import { createAllTabs, renderAllContent } from '@pages/settings/controllers/page/settingsTabsController.ts';
 import { filterSettings, setupFormIntegration } from '@pages/settings/controllers/page/view.ts';
@@ -61,15 +61,12 @@ class SettingsPageOperationsController implements SettingsManagerCallbacks {
         scheduleWallpaperRefresh(this.#runtime, this.#state);
     };
 
-    readonly refreshSettingsAfterPreferencesReset = async (): Promise<void> => {
-        await PreferencesResetRefreshController(this.#runtime, this.#state, {
-            rebindConfigForm: () => this.rebindConfigForm(),
-            notifySaveChanged: () => this.#save.notifyChanged()
-        });
+    readonly preparePreferencesResetRefresh = (type: SettingsPreferenceResetType): (() => Promise<void>) => {
+        return preparePreferencesResetRefresh(this.#runtime, this.#state, { notifySaveChanged: this.notifySaveChanged }, type);
     };
 
     readonly rebindConfigForm = (): void => {
-        setupFormIntegration(this.#runtime, this.#state, (path, valid) => this.#updateSettingModifiedState(path, valid));
+        setupFormIntegration(this.#runtime, this.#state, (path, valid, composing) => this.#updateSettingModifiedState(path, valid, composing));
         this.#state.dirtyStateManager?.refreshRenderedFields();
     };
 
@@ -89,10 +86,10 @@ class SettingsPageOperationsController implements SettingsManagerCallbacks {
         this.#state.dirtyStateManager?.clearManualField(key);
     };
 
-    #updateSettingModifiedState(path: string, valid: boolean): void {
+    #updateSettingModifiedState(path: string, valid: boolean, composing = false): void {
         if (!path || !this.#state.dirtyStateManager) return;
-        if (valid && this.#state.configManager) this.#state.coreConfig = this.#state.configManager.currentData;
-        this.#state.dirtyStateManager.syncConfigField(path, valid);
+        if (valid && this.#state.configManager) this.#state.coreConfig = this.#state.configManager.originalData;
+        this.#state.dirtyStateManager.syncConfigField(path, valid, composing);
         this.#save.notifyChanged();
     }
 }

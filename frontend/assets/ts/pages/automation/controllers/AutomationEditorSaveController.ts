@@ -1,6 +1,7 @@
 /* SoAI - Automation editor modal save and dirty tracking controller [frontend/assets/ts/pages/automation/controllers/AutomationEditorSaveController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { isAbortError, raceWithAbortSignal } from '@core/errors/abort.ts';
@@ -25,6 +26,7 @@ import { requireActionButton } from '@pages/automation/dom.ts';
 import { saveAutomationCreateDefaults } from '@pages/automation/state/AutomationCreateDefaultsManager.ts';
 
 interface AutomationEditorSaveControllerDependencies {
+    readonly owner: PresentationOwner;
     modalPresenter: ModalPresenterApi;
     modal: AutomationConfigurationModalController;
     dataService: AutomationDataService;
@@ -161,6 +163,7 @@ class AutomationEditorSaveController {
     #attachSaveController(modal: HTMLElement, saveButton: HTMLButtonElement): void {
         const sessionToken = this.#modalSessionToken.value;
         const save = createSaveController({
+            owner: this.#dependencies.owner,
             headerContextId: 'automation:configuration-modal',
             headerPriority: SAVE_HEADER_PRIORITY_MODAL,
             requestContextLabel: 'Automation editor save',
@@ -200,7 +203,7 @@ class AutomationEditorSaveController {
             this.#dependencies.showNotification(i18n.t('common.processing'), 'info');
             return false;
         }
-        return await showUnsavedChangesConfirmation();
+        return await showUnsavedChangesConfirmation({ owner: this.#dependencies.owner });
     }
 
     async #performSave(): Promise<SaveUnitResult> {

@@ -48,7 +48,7 @@ class ProvidersManager {
         this.#isModalOpen = true;
         this.#modalGeneration += 1;
         this.#closeAfterAuthoritativeEmpty = false;
-        this.#dependencies.modals.open(this.modalId);
+        this.#dependencies.modals.open(this.modalId, { owner: this.#dependencies.owner });
         this.#refreshController.open(this.#activePluginNames());
         this.#renderLoading();
         await this.#refreshController.refresh('initial');
@@ -102,6 +102,7 @@ class ProvidersManager {
 
     async #runProviderDelete(pluginName: string, providerId: string, providerName: string, revision: number): Promise<void> {
         const confirmed = await requireDialogsService().showConfirmation({
+            owner: this.#dependencies.owner,
             title: i18n.t('models.confirmations.deleteProvider'),
             message: i18n.t('models.confirmations.deleteProviderMessage', { provider: providerName }),
             confirmText: i18n.t('models.confirmations.deleteProviderConfirm'),

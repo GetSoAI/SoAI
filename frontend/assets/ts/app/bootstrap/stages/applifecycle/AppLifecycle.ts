@@ -8,7 +8,8 @@ import { LAYOUT_REGISTRY_SKIP } from '@app/bootstrap/stages/applifecycle/constan
 import { runExclusiveLifecycleLogin } from '@app/bootstrap/stages/applifecycle/loginHandoff.ts';
 import { resolveInitialRoute } from '@app/bootstrap/stages/applifecycle/routing.ts';
 import { initializeLifecycleDataHubRuntime, monitorLifecycleConnectionRuntime, setupAuthenticatedLifecycleSession, setupLifecycleUiEventRuntime } from '@app/bootstrap/stages/applifecycle/runtime.ts';
-import { LifecycleAuthSession, runAppLifecycleLogin, runAppLifecycleLogout } from '@app/bootstrap/stages/applifecycle/session.ts';
+import { runAppLifecycleLogin, runAppLifecycleLogout } from '@app/bootstrap/stages/applifecycle/session.ts';
+import { LifecycleAuthSession } from '@app/bootstrap/stages/applifecycle/authSession.ts';
 import type { AppLifecycleDependencies, LifecycleBackgroundOptions, LifecycleRoute } from '@app/bootstrap/stages/applifecycle/types.ts';
 import { AUTH_ROUTE_WIZARD, resolveAuthenticatedRouteTarget } from '@core/routing/router/authRouteTarget.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
@@ -101,6 +102,12 @@ class AppLifecycle {
             auth: this.#dependencies.auth,
             host: {
                 isBootstrapInProgress: () => this.#bootstrapInProgress,
+                invalidateSession: () => {
+                    this.#dependencies.router.invalidateSession();
+                    this.toggleMainUI(false);
+                },
+                refreshAccess: () => refreshLifecycleSoaiOsAccess(this.#dependencies.soaiOsCapabilities),
+                retireSession: () => this.handleLogout('defer'),
                 handleLogin: () => this.handleLogin(),
                 handleLogout: () => this.handleLogout()
             }
@@ -186,8 +193,9 @@ class AppLifecycle {
         );
     }
 
-    async handleLogout(): Promise<void> {
+    async handleLogout(routeDisposition: 'navigate' | 'defer' = 'navigate'): Promise<void> {
         await runAppLifecycleLogout({
+            routeDisposition,
             dependencies: this.#dependencies,
             uiTracker: this.#uiTracker,
             setUiTracker: (value) => {

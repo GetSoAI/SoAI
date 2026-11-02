@@ -101,7 +101,7 @@ class ManageBackendModalManager {
             this.#loadVariants(modalRoot, plugin);
         }
         this.#operationPanel = attachManageBackendOperationPanel(this.#operationPanel, this.modalId, String(plugin.name));
-        this.#host.view.modals.open(this.modalId);
+        this.#host.view.modals.open(this.modalId, { owner: this.#host.owner });
         this.#host.status.subscribeModalLedUpdates();
         this.#comparison.bind();
     }
@@ -177,7 +177,7 @@ class ManageBackendModalManager {
         }
 
         const modalSessionToken = this.#operationToken.value;
-        const confirmed = await confirmManageBackendUninstall(this.#host.operations, plugin);
+        const confirmed = await confirmManageBackendUninstall(this.#host.operations, plugin, this.#host.owner);
         if (!confirmed) {
             return;
         }

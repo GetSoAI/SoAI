@@ -48,7 +48,7 @@ class PromptsPickerModalController implements EventListenerObject {
         this.#session += 1;
         const session = this.#session;
         const presenter = requireModalPresenter();
-        presenter.open(PROMPTS_PICKER_MODAL_ID);
+        presenter.open(PROMPTS_PICKER_MODAL_ID, { owner: this.#host.owner });
         const root = presenter.requireElement(PROMPTS_PICKER_MODAL_ID);
         const refs = resolvePromptsPickerRefs(root);
         refs.manageButton.hidden = this.#host.openLibrary === null;
@@ -241,6 +241,7 @@ class PromptsPickerModalController implements EventListenerObject {
         const signal = this.#requireSignal();
         await openPromptContentPreview(
             createPromptsPickerPreviewHost({
+                owner: this.#host.owner,
                 promptsApi: this.#host.promptsApi,
                 findPromptById: (id) => (this.#isActiveSession(session) ? this.#findPrompt(id) : null),
                 upsertPromptRecord: (record) => (this.#isActiveSession(session) ? this.#upsertPromptRecord(record) : normalizePromptRecord(record)),

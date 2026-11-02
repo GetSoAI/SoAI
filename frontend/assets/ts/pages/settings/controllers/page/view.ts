@@ -7,7 +7,7 @@ import { createFormManager, getFormManager } from '@core/formService.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { resolveSettingsConfigPathFromQuery } from '@core/settings/configPathDeepLink.ts';
 import type { GenerateStandardHeaderOptions } from '@core/routing/pages/pagetypes/public.ts';
-import { buildQueryRoute } from '@core/routing/router/events.ts';
+import { buildQueryRoute } from '@core/routing/router/queryParameters.ts';
 import { IN_PLACE_SEARCH_DEBOUNCE_MS } from '@core/search/searchDebounce.ts';
 import { normalizeSearchMatchQuery } from '@core/search/searchQuery.ts';
 import type { RenderContext } from '@core/StaticBasePage.ts';
@@ -163,7 +163,7 @@ const applyConfigPathDeepLink = (page: SettingsRuntimeContext, state: SettingsPa
     page.controls.setSearchQuery(normalizeSearchMatchQuery(configPath));
     filterSettings(page, state);
 };
-const setupFormIntegration = (page: SettingsRuntimeContext, state: SettingsPageState, onChanged: (path: string, valid: boolean) => void): void => {
+const setupFormIntegration = (page: SettingsRuntimeContext, state: SettingsPageState, onChanged: (path: string, valid: boolean, composing?: boolean) => void): void => {
     if (!state.configManager) {
         return;
     }
@@ -176,6 +176,6 @@ const setupFormIntegration = (page: SettingsRuntimeContext, state: SettingsPageS
     const manager = existing ?? createFormManager(container);
     manager.cleanup();
     manager.bindToConfiguration(state.configManager);
-    manager.onChange((data) => onChanged(data.path, data.valid));
+    manager.onChange((data) => onChanged(data.path, data.valid, data.composing));
 };
 export { applyAdvancedModeChange, applyConfigPathDeepLink, createAllTabs, createEmptyStateElement, filterSettings, onTabChange, renderAllContent, renderView, setupFormIntegration, setupNavigationGuard, setupSearch, updateTabsVisibility };

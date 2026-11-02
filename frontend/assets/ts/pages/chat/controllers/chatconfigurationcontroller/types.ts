@@ -1,6 +1,7 @@
 /* SoAI - Chat configuration controller contracts [frontend/assets/ts/pages/chat/controllers/chatconfigurationcontroller/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ChatParameters, ConversationSettingsActionResult, Conversation } from '@features/chat/public.ts';
 import type { ModelData } from '@core/types/modelTypes.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
@@ -35,6 +36,7 @@ export interface ConfigurationModelControlHost extends PageDomOwnerHost {
 }
 
 export interface ConfigurationControllerHost extends PageDomOwnerHost, PageFeedbackOwnerHost {
+    readonly owner: PresentationOwner;
     root: Element;
     modelControl: ConfigurationModelControlHost;
 

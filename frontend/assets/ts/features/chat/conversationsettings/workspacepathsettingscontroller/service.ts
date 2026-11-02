@@ -242,6 +242,7 @@ class ConversationWorkspacePathSettingsController {
         if (!this.#isCurrentConversation()) return;
         const initialPath = this.#workingOverride ?? config.effectiveWorkspacePath;
         const pickerOptions = {
+            owner: this.#host.owner,
             source: { type: 'workspace', api: access.browserApi },
             title: i18n.t('chat.configuration.filesFolder.pickerTitle'),
             message: i18n.t('chat.configuration.filesFolder.pickerMessage'),

@@ -9,16 +9,18 @@ import type { FileExplorerControllerHost } from '@pages/fileexplorer/types.ts';
 const createFileExplorerControllerHost = (
     apiCandidate: FileExplorerControllerHost['api'] | JsonValue | null | undefined,
     dependencies: {
+        owner: FileExplorerControllerHost['owner'];
         showNotification: (message: string, type: NotificationType) => void;
         handleError: (error: Error, context: string, options?: { notify?: boolean }) => void;
         getIconSync: FileExplorerControllerHost['getIconSync'];
         awaitTask: FileExplorerControllerHost['awaitTask'];
     }
-): FileExplorerControllerHost => {
+): Omit<FileExplorerControllerHost, 'isDirectoryAvailable'> => {
     if (!isFileExplorerApi(apiCandidate)) {
         throw new Error('File Explorer API client is not available');
     }
     return {
+        owner: dependencies.owner,
         api: apiCandidate,
         awaitTask: dependencies.awaitTask,
         showNotification: dependencies.showNotification,

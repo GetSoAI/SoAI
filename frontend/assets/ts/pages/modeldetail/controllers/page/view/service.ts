@@ -72,6 +72,7 @@ const handleModelDetailBackendDocumentationClick = async (host: ModelDetailViewH
         return;
     }
     const confirmed = await requireDialogsService().showExternalLinkModal({
+        owner: host.owner,
         title: i18n.t('modelDetail.confirmations.externalLink'),
         message: i18n.t('modelDetail.confirmations.externalLinkMessage'),
         url: host.state.backendDocumentationUrl,

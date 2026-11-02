@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { errorHandler } from '@core/errorHandler.ts';
-import { onNavigationComplete, onNavigationStart, type NavigationEventDetail } from '@core/navigationEvents.ts';
+import { onFocusedNavigation, type NavigationEventDetail } from '@core/navigationEvents.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { normalizeRoute } from '@core/layout/sidebar/foundation.ts';
 import { resolveComponentFromNavigationDetail, resolveRouteFromNavigationDetail } from '@core/layout/sidebar/navigation.ts';
@@ -30,21 +30,24 @@ interface SidebarRouteProcessingDependencies {
 
 const createSidebarRouteStartListener = (dependencies: SidebarRouteStartListenerDependencies): (() => void) => {
     return dependencies.addPersistentDisposer(
-        onNavigationStart(async (detail: NavigationEventDetail | null = null) => {
-            try {
-                const routeValue = resolveRouteFromNavigationDetail(detail);
-                await dependencies.enqueueRouteChange(routeValue, { allowActiveSync: false });
-            } catch (error) {
-                const runtimeError = ensureError(error);
-                errorHandler.warn('Sidebar', 'Route transition failed', runtimeError);
-            }
-        })
+        onFocusedNavigation(
+            async (detail: NavigationEventDetail | null = null) => {
+                try {
+                    const routeValue = resolveRouteFromNavigationDetail(detail);
+                    await dependencies.enqueueRouteChange(routeValue, { allowActiveSync: false });
+                } catch (error) {
+                    const runtimeError = ensureError(error);
+                    errorHandler.warn('Sidebar', 'Route transition failed', runtimeError);
+                }
+            },
+            { phase: 'start' }
+        )
     );
 };
 
 const createSidebarNavigationCompleteListener = (dependencies: SidebarNavigationCompleteListenerDependencies): (() => void) => {
     return dependencies.addPersistentDisposer(
-        onNavigationComplete(async (detail: NavigationEventDetail | null = null) => {
+        onFocusedNavigation(async (detail: NavigationEventDetail | null = null) => {
             const componentValue = resolveComponentFromNavigationDetail(detail);
             try {
                 const routeValue = resolveRouteFromNavigationDetail(detail);

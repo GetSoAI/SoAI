@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { buildFolderPickerLabels } from '@core/fileexplorerbrowser/folderPickerLabels.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { showFolderPickerModal, type FolderPickerResult } from '@core/fileexplorerbrowser/folderPickerModal.ts';
 import { resolveFolderPickerPathOverride } from '@core/fileexplorerbrowser/folderPickerPathOverride.ts';
 import { resolveAbsolutePath } from '@core/fileexplorerbrowser/paths.ts';
@@ -57,11 +58,12 @@ class WorkspacePathDraft {
         return this.#currentWorkspacePath;
     }
 
-    async open(options: { access: WorkspaceBrowserAccess; readOnly: boolean; canApply: () => boolean; signal?: AbortSignal | undefined; strings: WorkspacePathPickerStrings }): Promise<boolean> {
+    async open(options: { owner: PresentationOwner; access: WorkspaceBrowserAccess; readOnly: boolean; canApply: () => boolean; signal?: AbortSignal | undefined; strings: WorkspacePathPickerStrings }): Promise<boolean> {
         if (options.signal?.aborted) return false;
         const currentPath = this.#displayPath;
         const pathIsAbsolute = currentPath ? isAbsoluteFilesystemPath(currentPath) : false;
         const result = await showFolderPickerModal({
+            owner: options.owner,
             source: { type: 'workspace', api: options.access.browserApi },
             title: options.strings.title,
             message: options.strings.message,

@@ -1,6 +1,7 @@
 /* SoAI - Chat page create voice call controller [frontend/assets/ts/pages/chat/controllers/chatpage/construction/createVoiceCallController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ApiClient } from '@core/api/service.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { extractSpeechTextFromMarkdown, stripPreviewReferenceTokensForPlainText, type MessageSegment } from '@features/chat/public.ts';
@@ -22,6 +23,7 @@ interface ChatVoiceCallConversationPort extends ChatConversationStateHost, ChatS
 interface ChatVoiceCallRuntimePort extends ChatConversationRuntimeOwner, ChatTurnRuntimeOwner, ChatPageElementsHost, ChatRuntimeServicesHost, ChatVoiceSessionHost, PageFeedbackOwnerHost {}
 
 interface ChatVoiceCallDependencies extends ChatVoiceCallConversationPort, ChatVoiceCallRuntimePort {
+    readonly owner: PresentationOwner;
     api: ApiClient;
 }
 
@@ -52,6 +54,7 @@ const resolveVoiceCallSpeechText = (segments: MessageSegment[]): string => {
 
 const createChatVoiceCallController = (page: ChatVoiceCallDependencies): VoiceCallController => {
     return new VoiceCallController({
+        owner: page.owner,
         feedback: page.feedback,
         apiClient: page.api,
         runtimeAssets: page.runtimeServices.voiceCallAssets,

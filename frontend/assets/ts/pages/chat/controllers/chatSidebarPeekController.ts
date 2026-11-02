@@ -5,7 +5,6 @@ import { finishPresenceAnimations } from '@core/animations/presence/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import { MODAL_ROOT_CLASS } from '@core/modals/guards.ts';
 import { SIDEBAR_PEEK_CLOSE_DELAY_MS, SIDEBAR_PEEK_OPEN_DELAY_MS } from '@core/layout/sidebar/hoverPeek.ts';
 import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
 import { isElementNode } from '@core/typeGuards.ts';
@@ -17,15 +16,14 @@ const CHAT_SIDEBAR_PEEK_CLASS = 'is-peeking';
 const CHAT_SIDEBAR_HEADER_TOGGLE_SELECTOR = '.chat-sidebar-header-toggle-btn';
 const CHAT_SIDEBAR_PEEK_TRIGGER_SELECTOR = '.chat-header-left .chat-sidebar-toggle-btn';
 const CHAT_SIDEBAR_PEEK_HOLD_SELECTOR = 'input:focus, textarea:focus, .conversation-item.color-picker-open, .chat-model-control-primary.is-open, .chat-model-slot.is-open, .chat-toolbar-batch-actions:not(.u-hidden)';
-const CHAT_OPEN_MODAL_SELECTOR = `.${MODAL_ROOT_CLASS}[aria-hidden='false']`;
 const CARRIED_HOVER_ATTRIBUTE = 'data-hover-carried';
 
 interface ChatSidebarPeekHost {
     pageDom: PageDom;
     timers: TimerHost;
-    getDocument(): Document;
     isSidebarOpen(): boolean;
     isMobileSidebarViewport(): boolean;
+    hasOpenModals(): boolean;
     syncSidebarListVisibility(visible: boolean): Promise<SidebarListReadiness>;
 }
 
@@ -179,7 +177,7 @@ class ChatSidebarPeekController {
     }
 
     #isHeld(sidebar: Element): boolean {
-        return dom.resolve(CHAT_SIDEBAR_PEEK_HOLD_SELECTOR, sidebar) !== null || dom.resolve(CHAT_OPEN_MODAL_SELECTOR, this.#host.getDocument()) !== null;
+        return dom.resolve(CHAT_SIDEBAR_PEEK_HOLD_SELECTOR, sidebar) !== null || this.#host.hasOpenModals();
     }
 
     #sidebar(): Element | null {

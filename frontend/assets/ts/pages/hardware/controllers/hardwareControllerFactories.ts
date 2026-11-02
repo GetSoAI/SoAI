@@ -1,6 +1,7 @@
 /* SoAI - Hardware page controller factories [frontend/assets/ts/pages/hardware/controllers/hardwareControllerFactories.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { GpuOperationResponse } from '@core/api/contracts/hardwareContracts.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
@@ -20,6 +21,7 @@ interface HardwareGpuApiFactoryDependencies {
 }
 
 interface HardwareProcessTableDependenciesFactoryDependencies {
+    readonly owner: PresentationOwner;
     optionalHTMLElement: (selector: string, parent?: Element | null) => HTMLElement | null;
     updateText: (element: Element, text: string) => void;
     getIconSync: (iconName: IconName, options?: IconOptions) => TrustedHtml;
@@ -51,6 +53,7 @@ function createHardwareGpuApi(dependencies: HardwareGpuApiFactoryDependencies): 
 
 function createHardwareProcessTableDependencies(dependencies: HardwareProcessTableDependenciesFactoryDependencies): ProcessTableManagerDependencies {
     return {
+        owner: dependencies.owner,
         optionalHTMLElement: (selector: string, parent?: Element | null) => dependencies.optionalHTMLElement(selector, parent),
         updateText: (element: Element, text: string) => dependencies.updateText(element, text),
         getIconSync: (iconName: IconName, options?: IconOptions) => dependencies.getIconSync(iconName, options),

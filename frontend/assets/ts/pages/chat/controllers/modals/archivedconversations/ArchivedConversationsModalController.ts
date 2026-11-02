@@ -47,7 +47,7 @@ class ArchivedConversationsModalController implements EventListenerObject {
     async open(): Promise<void> {
         this.dispose();
         const presenter = requireModalPresenter();
-        presenter.open(ARCHIVED_CONVERSATIONS_MODAL_ID);
+        presenter.open(ARCHIVED_CONVERSATIONS_MODAL_ID, { owner: this.#host.pageContext.presentationOwner });
         const root = presenter.requireElement(ARCHIVED_CONVERSATIONS_MODAL_ID);
         const refs = resolveArchivedConversationsModalRefs(root);
         this.#abortController = new AbortController();

@@ -42,6 +42,10 @@ class WindowsPTYProtocol(Protocol):
 
 
 class PTYSessionManagerProtocol(Protocol):
+    async def release_acquisition(
+        self, acquisition_id: str, user_id: int, *, allow_new_acquisition: bool
+    ) -> str | None: ...
+
     async def create_session(
         self,
         request: CreatePTYSessionRequest,

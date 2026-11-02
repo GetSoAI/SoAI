@@ -51,7 +51,7 @@ class SystemInfoModal {
             this.updateAnonymizeToggleState();
             renderLoadingState(this.host, modalRoot);
             setButtonsDisabled(true);
-            this.host.modals.open(this.modalId);
+            this.host.modals.open(this.modalId, { owner: this.host.owner });
 
             const [hardwareSnapshot, systemInfoSnapshot, healthSnapshot, pluginsSnapshot] = await Promise.all([requestWebSocketSnapshotRecord(HARDWARE), requestWebSocketSnapshotRecord('system.info'), requestWebSocketSnapshotRecord('system.health'), requestWebSocketSnapshotArray(PLUGINS)]);
 

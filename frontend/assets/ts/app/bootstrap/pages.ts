@@ -8,7 +8,7 @@ import { getLicenseService } from '@core/licenseservice/service.ts';
 import type { createStorageService } from '@core/storage/StorageService.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import { isJsonObject, type JsonObject } from '@core/types/jsonValues.ts';
-import type { ChatPagePresenceService } from '@features/chat/background/ChatPagePresenceService.ts';
+import type { ChatPagePresenceServiceContract } from '@core/chat/protocols.ts';
 import type { ChatConversationAttentionService } from '@features/chat/background/ChatConversationAttentionService.ts';
 import type { ChatStreamService } from '@features/chat/chatstreamservice/service.ts';
 import type { ChatToolIconService } from '@features/chat/ChatToolIconService.ts';
@@ -39,10 +39,12 @@ import { PluginsPage } from '@pages/plugins/PluginsPage.ts';
 import type { PluginsFiltersStorage } from '@features/plugins/public.ts';
 import { PromptsPage } from '@pages/prompts/PromptsPage.ts';
 import { SearchPage } from '@pages/search/SearchPage.ts';
+import type { ModelCatalogSubscriber } from '@core/models/modelCatalogObservation.ts';
 import { SettingsPage } from '@pages/settings/SettingsPage.ts';
 import { TerminalPage } from '@pages/terminal/TerminalPage.ts';
 import { UpdatesPage } from '@pages/updates/UpdatesPage.ts';
 import { WizardPage } from '@pages/wizard/WizardPage.ts';
+import type { PageMountScope } from '@core/routing/router/types.ts';
 
 type SharedStorage = ReturnType<typeof createStorageService>;
 type RegisteredPageClass = Parameters<PageRegistry['register']>[1];
@@ -80,9 +82,9 @@ const createHardwareStorageAdapter = (storage: SharedStorage): HardwarePageStora
 });
 
 interface PageRegistrationDependencies {
-    basePageDependencies: BasePageDependencies;
+    basePageDependencies: Omit<BasePageDependencies, 'router' | 'mountScope'>;
     chatStreamService: ChatStreamService;
-    chatPagePresence: ChatPagePresenceService;
+    chatPagePresence: ChatPagePresenceServiceContract;
     chatConversationAttention: ChatConversationAttentionService;
     chatToolIconService: ChatToolIconService;
     firstRunModals: FirstRunModalService;
@@ -92,87 +94,90 @@ interface PageRegistrationDependencies {
     searchComponent: SearchComponent;
     catalogStore: CatalogStore;
     storage: SharedStorage;
+    modelCatalogSubscriber: ModelCatalogSubscriber;
     automationDataService: AutomationDataService;
 }
 
-const registerPages = ({ basePageDependencies, chatStreamService, chatPagePresence, chatConversationAttention, chatToolIconService, firstRunModals, automationRunActivity, logStream, restartOverlay, searchComponent, catalogStore, storage, automationDataService }: PageRegistrationDependencies): void => {
+const registerPages = ({ basePageDependencies, chatStreamService, chatPagePresence, chatConversationAttention, chatToolIconService, firstRunModals, automationRunActivity, logStream, restartOverlay, searchComponent, catalogStore, storage, modelCatalogSubscriber, automationDataService }: PageRegistrationDependencies): void => {
     const sharedStorage = ensureSharedStorage(storage);
+    const dependenciesForMount = (mountScope: PageMountScope): BasePageDependencies => Object.freeze({ ...basePageDependencies, router: mountScope.routing, mountScope });
 
-    registerPage('about', AboutPage, { factory: () => new AboutPage(basePageDependencies) });
+    registerPage('about', AboutPage, { factory: (mountScope) => new AboutPage(dependenciesForMount(mountScope)) });
     registerPage('automation', AutomationPage, {
-        factory: () =>
+        factory: (mountScope) =>
             new AutomationPage(
                 {
                     dataService: automationDataService,
                     runActivity: automationRunActivity
                 },
-                basePageDependencies
+                dependenciesForMount(mountScope)
             )
     });
     registerPage('chat', ChatPage, {
-        factory: () => new ChatPage({ chatStreamService, chatPagePresence, chatConversationAttention, chatToolIconService, firstRunModals, voiceCallRuntimeAssets }, basePageDependencies)
+        factory: (mountScope) => new ChatPage({ chatStreamService, chatPagePresence, chatConversationAttention, chatToolIconService, firstRunModals, voiceCallRuntimeAssets }, dependenciesForMount(mountScope))
     });
     registerPage('dashboard', DashboardPage, {
-        factory: () => new DashboardPage({ firstRunModals, logStream, edition: requireFrontendEditionComposition().dashboard }, basePageDependencies)
+        factory: (mountScope) => new DashboardPage({ firstRunModals, logStream, edition: requireFrontendEditionComposition().dashboard }, dependenciesForMount(mountScope))
     });
-    registerPage('forbidden', ForbiddenPage, { factory: () => new ForbiddenPage(basePageDependencies) });
-    registerPage('fileExplorer', FileExplorerPage, { factory: () => new FileExplorerPage(basePageDependencies) });
+    registerPage('forbidden', ForbiddenPage, { factory: (mountScope) => new ForbiddenPage(dependenciesForMount(mountScope)) });
+    registerPage('fileExplorer', FileExplorerPage, { factory: (mountScope) => new FileExplorerPage(dependenciesForMount(mountScope)) });
     registerPage('hardware', HardwarePage, {
-        factory: () => {
+        factory: (mountScope) => {
             const hardwarePageDependencies = {
                 storage: createHardwareStorageAdapter(sharedStorage),
                 security: securityApi
             };
-            return new HardwarePage(hardwarePageDependencies, basePageDependencies);
+            return new HardwarePage(hardwarePageDependencies, dependenciesForMount(mountScope));
         }
     });
-    registerPage('help', HelpPage, { factory: () => new HelpPage(basePageDependencies) });
-    registerPage('login', LoginPage, { factory: () => new LoginPage(basePageDependencies) });
-    registerPage('logs', LogsPage, { factory: () => new LogsPage(logStream, basePageDependencies) });
-    registerPage('metrics', MetricsPage, { factory: () => new MetricsPage(basePageDependencies) });
-    registerPage('modelDetail', ModelDetailPage, { factory: () => new ModelDetailPage(basePageDependencies) });
+    registerPage('help', HelpPage, { factory: (mountScope) => new HelpPage(dependenciesForMount(mountScope)) });
+    registerPage('login', LoginPage, { factory: (mountScope) => new LoginPage(dependenciesForMount(mountScope)) });
+    registerPage('logs', LogsPage, { factory: (mountScope) => new LogsPage(logStream, dependenciesForMount(mountScope)) });
+    registerPage('metrics', MetricsPage, { factory: (mountScope) => new MetricsPage(dependenciesForMount(mountScope)) });
+    registerPage('modelDetail', ModelDetailPage, { factory: (mountScope) => new ModelDetailPage(dependenciesForMount(mountScope)) });
     registerPage('models', ModelsPage, {
-        factory: () => new ModelsPage({ catalogStore }, basePageDependencies)
+        factory: (mountScope) => new ModelsPage({ catalogStore }, dependenciesForMount(mountScope))
     });
     registerPage('plugins', PluginsPage, {
-        factory: () =>
+        factory: (mountScope) =>
             new PluginsPage(
                 {
                     storage: sharedStorage,
                     catalogStore,
                     firstRunModals
                 },
-                basePageDependencies
+                dependenciesForMount(mountScope)
             )
     });
-    registerPage('prompts', PromptsPage, { factory: () => new PromptsPage(basePageDependencies) });
-    registerPage('search', SearchPage, { factory: () => new SearchPage({ searchComponent }, basePageDependencies) });
+    registerPage('prompts', PromptsPage, { factory: (mountScope) => new PromptsPage(dependenciesForMount(mountScope)) });
+    registerPage('search', SearchPage, { factory: (mountScope) => new SearchPage({ searchComponent }, dependenciesForMount(mountScope)) });
     registerPage('settings', SettingsPage, {
-        factory: () =>
+        factory: (mountScope) =>
             new SettingsPage(
                 {
                     restartOverlay,
+                    subscribeModelCatalog: modelCatalogSubscriber,
                     product: requireFrontendEditionComposition().settings,
                     dashboardTitle: requireFrontendEditionComposition().dashboard?.getTitle ?? null
                 },
-                basePageDependencies
+                dependenciesForMount(mountScope)
             )
     });
-    registerPage('terminal', TerminalPage, { factory: () => new TerminalPage(basePageDependencies) });
+    registerPage('terminal', TerminalPage, { factory: (mountScope) => new TerminalPage(dependenciesForMount(mountScope)) });
     registerPage('updates', UpdatesPage, {
-        factory: () => new UpdatesPage({ catalogStore, restartOverlay, product: requireFrontendEditionComposition().updates }, basePageDependencies)
+        factory: (mountScope) => new UpdatesPage({ catalogStore, restartOverlay, product: requireFrontendEditionComposition().updates }, dependenciesForMount(mountScope))
     });
     registerPage('wizard', WizardPage, {
-        factory: () =>
+        factory: (mountScope) =>
             new WizardPage(
                 {
                     licenseService: getLicenseService()
                 },
-                basePageDependencies
+                dependenciesForMount(mountScope)
             )
     });
     for (const contribution of requireFrontendEditionComposition().pages) {
-        registerPage(contribution.id, contribution.pageClass, contribution.options(basePageDependencies));
+        registerPage(contribution.id, contribution.pageClass, contribution.options(dependenciesForMount));
     }
 };
 

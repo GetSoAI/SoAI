@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isAllowedStringValue } from '@core/types/payloadValueReaders.ts';
-import type { ChatMemoryProfile, ChatMemoryProfileUpdateRequest } from '@core/api/contracts/webuiMemoryContracts.ts';
+import { serializeChatMemoryProfileUpdate, type ChatMemoryProfile, type ChatMemoryProfileUpdateRequest } from '@core/api/contracts/webuiMemoryContracts.ts';
 
 type ChatMemoryProfileFieldName = 'preferred_name' | 'assistant_name' | 'role_background' | 'current_goals' | 'preferences' | 'dislikes_to_avoid' | 'communication_style' | 'recurring_tools_projects' | 'extra_notes';
 type ChatMemoryProfileFieldInputType = 'text' | 'textarea';
@@ -108,5 +108,14 @@ const createChatMemoryProfileUpdate = (profile: ChatMemoryProfile): ChatMemoryPr
     return update;
 };
 
-export { CHAT_MEMORY_PROFILE_FIELD_NAMES, CHAT_MEMORY_PROFILE_VISIBLE_FIELD_NAMES, createChatMemoryProfileUpdate, isChatMemoryProfileFieldName, readChatMemoryProfileFieldValue, resolveChatMemoryProfileFieldDefinition, writeChatMemoryProfileFieldValue };
+const chatMemoryProfileMatchesUpdate = (profile: ChatMemoryProfile, update: ChatMemoryProfileUpdateRequest): boolean => {
+    const submitted = serializeChatMemoryProfileUpdate(update);
+    return CHAT_MEMORY_PROFILE_FIELD_NAMES.every((name) => {
+        if (!(name in submitted)) return true;
+        const value = submitted[name];
+        return readChatMemoryProfileFieldValue(profile, name) === (typeof value === 'string' ? value.trim() : '');
+    });
+};
+
+export { CHAT_MEMORY_PROFILE_FIELD_NAMES, CHAT_MEMORY_PROFILE_VISIBLE_FIELD_NAMES, chatMemoryProfileMatchesUpdate, createChatMemoryProfileUpdate, isChatMemoryProfileFieldName, readChatMemoryProfileFieldValue, resolveChatMemoryProfileFieldDefinition, writeChatMemoryProfileFieldValue };
 export type { ChatMemoryProfileFieldDefinition, ChatMemoryProfileFieldName };

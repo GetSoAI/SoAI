@@ -1,7 +1,7 @@
 /* SoAI - Models page modal integration service [frontend/assets/ts/pages/models/controllers/page/modalintegration/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { getRequestAnimationFrame, getWindow } from '@core/environment/public.ts';
+import { getRequestAnimationFrame } from '@core/environment/public.ts';
 import { MODELS, PROVIDERS } from '@core/realtime/streammanager/resources/ids.ts';
 import { serializeProviderSnapshotRequest } from '@core/plugins/pluginMutationContracts.ts';
 import { WEBSOCKET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/registry.ts';
@@ -50,6 +50,7 @@ const createModelsModalManagers = (
     };
 
     const providersManager = new ProvidersManager({
+        owner: infrastructure.services.mountScope,
         modals: infrastructure.services.modals,
         optionalUI: (selector, context) => infrastructure.pageDom.optional(selector, context),
         queryUI: (selector, context) => infrastructure.pageDom.query(selector, context),
@@ -78,6 +79,7 @@ const createModelsModalManagers = (
     });
 
     const downloadModalHost: DownloadModalHost = {
+        owner: infrastructure.services.mountScope,
         session: {
             modals: infrastructure.services.modals,
             requireHTMLElement: (selector, context) => infrastructure.pageDom.requireHTMLElement(selector, context ?? downloadModalRoot),
@@ -95,9 +97,7 @@ const createModelsModalManagers = (
             },
             getClipboardService: () => infrastructure.services.clipboard(),
             copyToClipboard: (text, options) => infrastructure.services.copyToClipboard(text, options),
-            setLocationHash: (hash) => {
-                getWindow().location.hash = hash;
-            }
+            router: infrastructure.router
         },
         execution: {
             streams: infrastructure.streaming.pageTracker,
@@ -173,6 +173,7 @@ const createModelsModalManagers = (
     const editModelActionBridge = createEditModelActionBridge(runtime, modelProperties, virtualModelsManager);
     const editModelModalManager = new EditModelModalManager({
         host: {
+            owner: infrastructure.services.mountScope,
             view: {
                 modals: infrastructure.services.modals,
                 requireHTMLElement: (selector, context) => infrastructure.pageDom.requireHTMLElement(selector, context ?? editModelModalRoot),

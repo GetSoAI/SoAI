@@ -71,6 +71,7 @@ const dispatchPromptsClickAction = (host: PromptsClickDispatchHost, save: SaveCo
                     }
 
                     const confirmed = await requireDialogsService().showConfirmation({
+                        owner: host.owners.services.mountScope,
                         title: i18n.t('prompts.modal.deleteMultiple.title'),
                         message: i18n.t('prompts.modal.deleteMultiple.message', {
                             count,
@@ -154,6 +155,7 @@ const dispatchPromptsClickAction = (host: PromptsClickDispatchHost, save: SaveCo
                                 const nameRaw = isPlainObject(prompt) ? prompt['name'] : null;
                                 const name = typeof nameRaw === 'string' && nameRaw.trim().length > 0 ? nameRaw.trim() : i18n.t('prompts.untitled');
                                 const confirmed = await requireDialogsService().showConfirmation({
+                                    owner: host.owners.services.mountScope,
                                     title: i18n.t('prompts.modal.deletePrompt.title'),
                                     message: i18n.t('prompts.modal.deletePrompt.message'),
                                     description: name,

@@ -6,9 +6,9 @@ import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { narrowHTMLElement } from '@core/dom/narrowElement.ts';
 import { applyTextContent } from '@core/dom/textContent.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { countUnisolatedTextCharacters } from '@core/localization/public.ts';
+import { formatLocalizedNumber, getListFormat, getResolvedLocalizationLocale } from '@core/localization/public.ts';
+import type { ElementResizeRedrawWatcher } from '@core/layout/elementResizeRedraw.ts';
 import { getMainStatusMonitor } from '@core/mainstatusmonitor/public.ts';
-import { formatCompactNumber } from '@core/primitives/compactNumber.ts';
 import { formatDuration } from '@core/primitives/duration.ts';
 import { createMainStateIndicatorUI, updateMainStateIndicatorUI } from '@features/indicators/public.ts';
 import type { DashboardHost } from '@core/edition/dashboardContribution.ts';
@@ -17,6 +17,7 @@ import { resolveDashboardStatusMetrics } from '@pages/dashboard/mappers/statusMe
 
 interface DashboardStatusRendererDependencies {
     host: DashboardHost;
+    sizeWatcher: ElementResizeRedrawWatcher;
     getMetrics: () => JsonValue;
     getPlugins: () => readonly JsonValue[];
     getModels: () => readonly JsonValue[];
@@ -26,6 +27,7 @@ interface DashboardStatusRendererDependencies {
 interface DashboardStatusItem {
     label: string;
     value: string;
+    compactValue: string;
     uptime?: boolean;
 }
 
@@ -40,25 +42,31 @@ interface DashboardStatusViewElements {
     mainState: HTMLElement;
 }
 
-const STATUS_VALUE_COMPACT_THRESHOLD = 9;
-const STATUS_VALUE_DENSE_THRESHOLD = 14;
-const STATUS_VALUE_TIGHT_THRESHOLD = 20;
+const resolveStatusValueClass = (item: DashboardStatusItem): string => ['status-value', 'ui-mini-stat-strip__value', item.uptime ? 'status-value--uptime' : ''].filter(Boolean).join(' ');
 
-const resolveStatusValueSizeClass = (value: string): string => {
-    const length = countUnisolatedTextCharacters(value);
-    if (length >= STATUS_VALUE_TIGHT_THRESHOLD) {
-        return 'status-value--tight';
-    }
-    if (length >= STATUS_VALUE_DENSE_THRESHOLD) {
-        return 'status-value--dense';
-    }
-    if (length >= STATUS_VALUE_COMPACT_THRESHOLD) {
-        return 'status-value--compact';
-    }
-    return '';
+const formatFullUptime = (seconds: number): string => {
+    const totalMinutes = Math.floor(Math.max(0, seconds) / 60);
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+    const parts: string[] = [];
+    if (days > 0) parts.push(i18n.plural('common.time.units.day.long', days, { count: formatLocalizedNumber(days) }));
+    if (days > 0 || hours > 0) parts.push(i18n.plural('common.time.units.hour.long', hours, { count: formatLocalizedNumber(hours) }));
+    parts.push(i18n.plural('common.time.units.minute.long', minutes, { count: formatLocalizedNumber(minutes) }));
+    return getListFormat(getResolvedLocalizationLocale(), { style: 'long', type: 'unit' }).format(parts);
 };
 
-const resolveStatusValueClass = (item: DashboardStatusItem): string => ['status-value', 'ui-mini-stat-strip__value', resolveStatusValueSizeClass(item.value), item.uptime ? 'status-value--uptime' : ''].filter(Boolean).join(' ');
+const fitStatusValue = (element: HTMLElement, item: DashboardStatusItem): void => {
+    element.className = resolveStatusValueClass(item);
+    applyTextContent(element, item.value);
+    element.title = item.value;
+    if (element.clientWidth <= 0 || element.scrollWidth <= element.clientWidth) return;
+    applyTextContent(element, item.compactValue);
+    for (const sizeClass of ['status-value--compact', 'status-value--dense', 'status-value--tight']) {
+        if (element.scrollWidth <= element.clientWidth) break;
+        element.className = `${resolveStatusValueClass(item)} ${sizeClass}`;
+    }
+};
 
 const createDashboardStatusSectionRenderer = (dependencies: DashboardStatusRendererDependencies): (() => void) => {
     const host = dependencies.host;
@@ -67,12 +75,12 @@ const createDashboardStatusSectionRenderer = (dependencies: DashboardStatusRende
     const buildItems = (): DashboardStatusItem[] => {
         const statusMetrics = resolveDashboardStatusMetrics(dependencies.getMetrics(), dependencies.getPlugins().length, dependencies.getModels().length);
         return [
-            { label: i18n.t('dashboard.sections.status.installedPlugins'), value: formatCompactNumber(statusMetrics.installedPlugins) },
-            { label: i18n.t('dashboard.sections.status.installedModels'), value: formatCompactNumber(statusMetrics.installedModels) },
-            { label: i18n.t('dashboard.sections.status.completedRequests'), value: formatCompactNumber(statusMetrics.completedRequests) },
-            { label: i18n.t('dashboard.sections.status.failedRequests'), value: formatCompactNumber(statusMetrics.failedRequests) },
-            { label: i18n.t('dashboard.sections.status.totalTokens'), value: formatCompactNumber(statusMetrics.totalTokens) },
-            { label: i18n.t('dashboard.sections.status.uptime'), value: formatDuration(statusMetrics.uptimeSeconds, 'uptime'), uptime: true }
+            { label: i18n.t('dashboard.sections.status.installedPlugins'), value: formatLocalizedNumber(Math.round(statusMetrics.installedPlugins)), compactValue: formatLocalizedNumber(statusMetrics.installedPlugins, { notation: 'compact', maximumFractionDigits: 1 }) },
+            { label: i18n.t('dashboard.sections.status.installedModels'), value: formatLocalizedNumber(Math.round(statusMetrics.installedModels)), compactValue: formatLocalizedNumber(statusMetrics.installedModels, { notation: 'compact', maximumFractionDigits: 1 }) },
+            { label: i18n.t('dashboard.sections.status.completedRequests'), value: formatLocalizedNumber(Math.round(statusMetrics.completedRequests)), compactValue: formatLocalizedNumber(statusMetrics.completedRequests, { notation: 'compact', maximumFractionDigits: 1 }) },
+            { label: i18n.t('dashboard.sections.status.failedRequests'), value: formatLocalizedNumber(Math.round(statusMetrics.failedRequests)), compactValue: formatLocalizedNumber(statusMetrics.failedRequests, { notation: 'compact', maximumFractionDigits: 1 }) },
+            { label: i18n.t('dashboard.sections.status.totalTokens'), value: formatLocalizedNumber(Math.round(statusMetrics.totalTokens)), compactValue: formatLocalizedNumber(statusMetrics.totalTokens, { notation: 'compact', maximumFractionDigits: 1 }) },
+            { label: i18n.t('dashboard.sections.status.uptime'), value: formatFullUptime(statusMetrics.uptimeSeconds), compactValue: formatDuration(statusMetrics.uptimeSeconds, 'uptime'), uptime: true }
         ];
     };
 
@@ -114,24 +122,19 @@ const createDashboardStatusSectionRenderer = (dependencies: DashboardStatusRende
                 throw new Error('Dashboard status item reference missing during update');
             }
             applyTextContent(itemElements.label, item.label);
-            applyTextContent(itemElements.value, item.value);
-            const valueClass = resolveStatusValueClass(item);
-            if (itemElements.value.className !== valueClass) {
-                itemElements.value.className = valueClass;
-            }
         });
         updateMainStateIndicatorUI(elements.mainState, currentMainState);
     };
 
     const syncStatusLineColor = (mainState: HTMLElement): void => {
-        const statusLine = host.optionalHTMLElement('#status-status');
+        const statusLine = host.optionalHTMLElement('#dashboard-status-status');
         if (statusLine) {
             statusLine.dataset['color'] = mainState.dataset['color'] ?? 'grey';
         }
     };
 
     return (): void => {
-        const content = host.requireUI('status-content');
+        const content = host.requireUI('dashboard-status-content');
         const contentElement = narrowHTMLElement(content, 'Dashboard status content');
         const currentMainState = getMainStatusMonitor().getCurrentState();
         const items = buildItems();
@@ -142,7 +145,16 @@ const createDashboardStatusSectionRenderer = (dependencies: DashboardStatusRende
         } else {
             patchView(viewElements, items, currentMainState);
         }
-        syncStatusLineColor(viewElements.mainState);
+        const elements = viewElements;
+        const fitValues = (): void => {
+            elements.items.forEach((itemElements, index): void => {
+                const item = items[index];
+                if (item) fitStatusValue(itemElements.value, item);
+            });
+        };
+        fitValues();
+        dependencies.sizeWatcher.observe(elements.overview, fitValues);
+        syncStatusLineColor(elements.mainState);
     };
 };
 

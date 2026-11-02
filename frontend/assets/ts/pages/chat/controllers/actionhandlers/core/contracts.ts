@@ -1,6 +1,7 @@
 /* SoAI - Chat action routing domain contracts [frontend/assets/ts/pages/chat/controllers/actionhandlers/core/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { SecretPromptInteractionResolutionRequest } from '@core/api/contracts/webuiChatOperationContracts.ts';
 import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
@@ -31,6 +32,7 @@ interface ChatConversationActionsControllerContract {
 }
 
 interface ChatSharedActionPort {
+    readonly owner: PresentationOwner;
     signal(): AbortSignal | null;
     pageResources: PageResources;
     feedback: PageFeedback;

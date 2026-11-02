@@ -1,6 +1,11 @@
 /* SoAI - Save controller (canonical page surface) [frontend/assets/ts/core/save/controller.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isPresentationOwnerActive, isPresentationOwnerCurrent, isPresentationOwnerMutationAllowed } from '@core/presentationOwner.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { navigationResult } from '@core/navigationMiddleware.ts';
+import { registerDirtyStateGuard } from '@core/navigationGuards.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { bindSaveScope, requestSaveSafely } from '@core/save/binding.ts';
 import type { SaveBinding, SaveUnit } from '@core/save/contracts.ts';
 import { createSaveScope } from '@core/save/scope.ts';
@@ -18,6 +23,7 @@ type SaveControllerAttachOptions = {
 };
 
 type CreateSaveControllerOptions = {
+    readonly owner: PresentationOwner;
     headerContextId: string;
     headerPriority?: number | undefined;
     requestContextLabel: string;
@@ -25,6 +31,8 @@ type CreateSaveControllerOptions = {
     onSaveComplete?: (() => void | Promise<void>) | undefined;
     onSaveSettled?: ((outcome: 'saved' | 'degraded' | 'stopped') => void | Promise<void>) | undefined;
     admission?: SaveAdmission | undefined;
+    isCurrent?: (() => boolean) | undefined;
+    isDestructionBlocked?: (() => boolean) | undefined;
 };
 
 type SaveAdmission = {
@@ -33,6 +41,7 @@ type SaveAdmission = {
 };
 
 type SaveController = {
+    readonly owner: PresentationOwner;
     attach: (options: SaveControllerAttachOptions) => void;
     hasChanges: () => boolean;
     canSave: () => boolean;
@@ -55,7 +64,8 @@ const createSaveController = (options: CreateSaveControllerOptions): SaveControl
     if (!Array.isArray(options.units)) {
         throw new Error('createSaveController requires units[]');
     }
-    const scope = createSaveScope();
+    const owner = options.owner;
+    const scope = createSaveScope({ isCurrent: () => !disposed && isPresentationOwnerCurrent(owner) && (options.isCurrent?.() ?? true), canRequestSave: () => isPresentationOwnerMutationAllowed(owner) });
     const units = options.units;
     const unitIds = new Set<string>();
     const unitDisposers: Array<() => void> = [];
@@ -78,29 +88,76 @@ const createSaveController = (options: CreateSaveControllerOptions): SaveControl
     }
 
     let binding: SaveBinding | null = null;
+    let bindingToken: symbol | null = null;
     let disposed = false;
     const headerContextId = options.headerContextId;
     const headerPriority = options.headerPriority;
     const requestContextLabel = options.requestContextLabel;
     let requestInFlight: Promise<void> | null = null;
+    let admitting = false;
+    let unregisterProtection: (() => void) | null = null;
+    let protectionSubscription: (() => void) | null = null;
+    const isRequestBusy = (): boolean => admitting || requestInFlight !== null || scope.isSaving();
+    const isDestructionBlocked = (): boolean => isRequestBusy() || options.isDestructionBlocked?.() === true;
+    const synchronizeProtection = (): void => {
+        if (disposed || !isPresentationOwnerCurrent(owner)) {
+            unregisterProtection?.();
+            unregisterProtection = null;
+            const release = protectionSubscription;
+            protectionSubscription = null;
+            release?.();
+            return;
+        }
+        if (isPresentationOwnerActive(owner)) unregisterProtection ??= registerDirtyStateGuard(() => (isDestructionBlocked() ? navigationResult.block('save-in-progress') : true), { owner, hasUnsavedChanges: () => isDestructionBlocked() || scope.hasChanges(), getProtectionRevision: scope.getProtectionRevision, isDestructionBlocked, subscribeProtection: scope.subscribe });
+    };
+    const ensureProtectionRegistered = (): void => {
+        if (owner.type !== 'global' && !protectionSubscription) {
+            const release = owner.presentation.subscribe(synchronizeProtection);
+            if (disposed || !isPresentationOwnerCurrent(owner)) release();
+            else protectionSubscription = release;
+        }
+        synchronizeProtection();
+    };
+    const invokeCallback = (callback: () => void | Promise<void>): void | Promise<void> => {
+        admitting = true;
+        try {
+            return callback();
+        } finally {
+            admitting = false;
+        }
+    };
+    const ownsLifetime = (): boolean => !disposed && isPresentationOwnerCurrent(owner) && (options.isCurrent?.() ?? true);
     const executeSave = async (context: string): Promise<void> => {
         const outcome = await requestSaveSafely(scope, context);
+        if (!ownsLifetime()) return;
         if (outcome === 'saved') {
-            await options.onSaveComplete?.();
+            await invokeCallback(() => options.onSaveComplete?.());
         }
+        if (!ownsLifetime()) return;
         if (outcome === 'saved' || outcome === 'degraded' || outcome === 'stopped') {
-            await options.onSaveSettled?.(outcome);
+            await invokeCallback(() => options.onSaveSettled?.(outcome));
         }
     };
     const requestSaveWithContext = (context: string): Promise<void> => {
+        if (disposed || admitting || scope.isInvokingCallback()) return Promise.resolve();
         if (requestInFlight !== null) {
             return requestInFlight;
         }
-        const release = options.admission?.acquire() ?? null;
-        if (options.admission && !release) {
-            return Promise.resolve();
+        admitting = true;
+        let operation: Promise<void>;
+        try {
+            if (!ownsLifetime() || !isPresentationOwnerMutationAllowed(owner)) return Promise.resolve();
+            ensureProtectionRegistered();
+            const release = options.admission?.acquire() ?? null;
+            if (options.admission && !release) return Promise.resolve();
+            if (!ownsLifetime() || !isPresentationOwnerMutationAllowed(owner)) {
+                release?.();
+                return Promise.resolve();
+            }
+            operation = executeSave(context).finally(() => release?.());
+        } finally {
+            admitting = false;
         }
-        const operation = executeSave(context).finally(() => release?.());
         const trackedOperation = operation.then(
             (): void => {
                 if (requestInFlight === trackedOperation) {
@@ -113,7 +170,7 @@ const createSaveController = (options: CreateSaveControllerOptions): SaveControl
                     requestInFlight = null;
                     scope.notifyChanged();
                 }
-                throw error;
+                throw ensureError(error);
             }
         );
         requestInFlight = trackedOperation;
@@ -122,6 +179,7 @@ const createSaveController = (options: CreateSaveControllerOptions): SaveControl
     const requestSave = (): Promise<void> => requestSaveWithContext(requestContextLabel);
 
     return {
+        owner,
         attach(attachOptions: SaveControllerAttachOptions): void {
             if (disposed) {
                 throw new Error('Save controller has been disposed');
@@ -129,12 +187,24 @@ const createSaveController = (options: CreateSaveControllerOptions): SaveControl
             if (!attachOptions) {
                 throw new Error('Save controller attach() requires options');
             }
-            binding?.dispose();
-            binding = bindSaveScope({
+            ensureProtectionRegistered();
+            const token = Symbol('save-binding');
+            bindingToken = token;
+            const previous = binding;
+            binding = null;
+            try {
+                previous?.dispose();
+            } catch (error) {
+                if (binding === null) binding = previous;
+                throw ensureError(error);
+            }
+            if (disposed || bindingToken !== token) return;
+            const incoming = bindSaveScope({
                 scope,
+                owner,
                 requestSave: requestSaveWithContext,
                 isRequestInFlight: () => requestInFlight !== null,
-                canRequestSave: () => options.admission?.canAcquire() ?? true,
+                canRequestSave: () => isPresentationOwnerMutationAllowed(owner) && (options.admission?.canAcquire() ?? true),
                 headerContextId,
                 headerPriority,
                 resolveSaveButtons: attachOptions.resolveSaveButtons,
@@ -147,12 +217,28 @@ const createSaveController = (options: CreateSaveControllerOptions): SaveControl
                 buttonDisabledClassName: attachOptions.buttonDisabledClassName,
                 buttonDirtyClassName: attachOptions.buttonDirtyClassName
             });
+            if (disposed || bindingToken !== token) {
+                incoming.dispose();
+                return;
+            }
+            binding = incoming;
+            try {
+                incoming.sync();
+            } catch (error) {
+                if (binding === incoming) binding = null;
+                try {
+                    incoming.dispose();
+                } catch (cleanupError) {
+                    throw new AggregateError([ensureError(error), ensureError(cleanupError)], 'Save binding initialization and cleanup failed');
+                }
+                throw ensureError(error);
+            }
         },
         hasChanges(): boolean {
             return scope.hasChanges();
         },
         canSave(): boolean {
-            return (options.admission?.canAcquire() ?? true) && scope.canSave();
+            return isPresentationOwnerMutationAllowed(owner) && (options.admission?.canAcquire() ?? true) && scope.canSave();
         },
         isSaving(): boolean {
             return scope.isSaving();
@@ -166,6 +252,12 @@ const createSaveController = (options: CreateSaveControllerOptions): SaveControl
                 return;
             }
             disposed = true;
+            bindingToken = null;
+            unregisterProtection?.();
+            unregisterProtection = null;
+            const releaseProtection = protectionSubscription;
+            protectionSubscription = null;
+            releaseProtection?.();
             binding?.dispose();
             binding = null;
             for (const disposeUnit of unitDisposers) {

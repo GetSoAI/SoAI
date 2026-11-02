@@ -2,16 +2,16 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { NavigationRequest, RouteDefinition, RouteParameters } from '@core/routing/router/types.ts';
-import { isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
-import { isBoolean, isNullOrUndefined, isObject, isString } from '@core/typeGuards.ts';
+import { isJsonObject } from '@core/types/jsonValues.ts';
+import { hasFunctionProperty, isBoolean, isNullOrUndefined, isObject, isString } from '@core/typeGuards.ts';
 
-const isRouteDefinition = (value: RouteDefinition | JsonValue | null | undefined): value is RouteDefinition => {
+const isRouteDefinition = <T>(value: T): value is T & RouteDefinition => {
     if (!isObject(value)) return false;
     const layout = 'layout' in value ? value.layout : null;
-    return 'path' in value && isString(value.path) && Boolean(value.path) && 'component' in value && isString(value.component) && Boolean(value.component) && isObject(layout) && 'hideSidebar' in layout && isBoolean(layout.hideSidebar) && 'scrollToTopAction' in layout && isBoolean(layout.scrollToTopAction);
+    return 'path' in value && isString(value.path) && Boolean(value.path) && 'component' in value && isString(value.component) && Boolean(value.component) && hasFunctionProperty(value, 'getTitle') && isObject(layout) && 'exclusive' in layout && isBoolean(layout.exclusive) && 'hideSidebar' in layout && isBoolean(layout.hideSidebar) && 'scrollToTopAction' in layout && isBoolean(layout.scrollToTopAction);
 };
 
-const isRouteParameters = (value: RouteParameters | JsonValue | null | undefined): value is RouteParameters => {
+const isRouteParameters = <T>(value: T): value is T & RouteParameters => {
     if (!isObject(value)) return false;
     for (const entry of Object.values(value)) {
         if (!isString(entry)) return false;
@@ -19,8 +19,10 @@ const isRouteParameters = (value: RouteParameters | JsonValue | null | undefined
     return true;
 };
 
-const isNavigationRequest = (value: NavigationRequest | JsonValue | null | undefined): value is NavigationRequest => {
+const isNavigationRequest = <T>(value: T): value is T & NavigationRequest => {
     if (!isObject(value)) return false;
+    if ('intent' in value && value.intent !== undefined && value.intent !== 'navigate' && value.intent !== 'select' && value.intent !== 'split' && value.intent !== 'restore' && value.intent !== 'close') return false;
+    if ('presentation' in value && value.presentation !== undefined && value.presentation !== 'user' && value.presentation !== 'background') return false;
     const pathValue = 'path' in value ? value.path : null;
     const pushStateValue = 'pushState' in value ? value.pushState : null;
     const replaceStateValue = 'replaceState' in value ? value.replaceState : null;

@@ -37,6 +37,7 @@ class ProcessKillController {
             }
             const name = this.getProcessDisplayName(pidValue);
             const confirmed = await requireDialogsService().showConfirmation({
+                owner: this.#dependencies.owner,
                 title: i18n.t('hardware.processes.confirmKill.title'),
                 message: i18n.t('hardware.processes.confirmKill.message', { name, pid: pidValue }),
                 confirmText: i18n.t('hardware.processes.confirmKill.confirmButton'),
@@ -109,6 +110,7 @@ class ProcessKillController {
                     this.#pendingKills.delete(normalizedPid);
                     this.#setProcessKillButtonState(button, false);
                     const confirmed = await requireDialogsService().showConfirmation({
+                        owner: this.#dependencies.owner,
                         title: i18n.t('hardware.processes.confirmKillElevated.title'),
                         message: i18n.t('hardware.processes.confirmKillElevated.message', { name: processName, pid: displayPid }),
                         confirmText: i18n.t('hardware.processes.confirmKillElevated.confirmButton'),

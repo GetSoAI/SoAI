@@ -38,7 +38,7 @@ from hardware.gpu_inventory.windows_adapters import (
 )
 from hardware.gpu_inventory.windows_physical_acquisition import (
     WindowsPhysicalAcquisition,
-    read_windows_physical_acquisition,
+    read_windows_pnp_acquisition,
 )
 from hardware.vendors.amd.adl_memory import acquire_adl_memory
 from hardware.vendors.amd.adl_session import AdlRuntime
@@ -93,10 +93,13 @@ def collect_windows_gpu_inventory(
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
     adl_runtime: AdlRuntime | None = None,
 ) -> WindowsGpuInventory:
-    acquisition = read_windows_physical_acquisition(executor)
+    acquisition = read_windows_pnp_acquisition()
     records = acquisition.records
     source_states: JSONDict = {
-        "cim": {"state": acquisition.state.value, "reason_code": acquisition.reason_code},
+        acquisition.source: {
+            "state": acquisition.state.value,
+            "reason_code": acquisition.reason_code,
+        },
         "nvidia": {"state": "unknown", "reason_code": "native_observation_missing"},
     }
 
@@ -198,7 +201,7 @@ def collect_windows_gpu_inventory(
             entry["control_binding_reason"] = binding.reason_code
         gpus.append(entry)
     if any(gpu.get("type") == AMD_VENDOR for gpu in gpus):
-        memory = acquire_adl_memory(adl_runtime, executor)
+        memory = acquire_adl_memory(adl_runtime, executor, physical_acquisition=acquisition)
         candidates = [gpu_physical_device_observations(row.device) for row in memory.observations]
         for gpu in gpus:
             if gpu.get("type") != AMD_VENDOR:
@@ -316,6 +319,11 @@ def _merge_vendor_details(
         ):
             continue
         gpu_data[detail_key] = copy.deepcopy(detail_value)
+    if (
+        native_capacity_available
+        and gpu_data.get("memory_total_unavailable_reason") == "full_width_native_capacity_required"
+    ):
+        gpu_data.pop("memory_total_unavailable_reason", None)
     gpu_data["pci_bdf_observations"] = observations
     gpu_data["gpu_uuid_observations"] = uuid_observations
     gpu_data["name"] = select_gpu_display_name(gpu_data.get("name"), detail.get("name"))

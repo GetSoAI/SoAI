@@ -10,6 +10,7 @@ import type { UsersManagerActionContext } from '@pages/settings/controllers/user
 const performAddUserAction = async ({ host, reloadUsers }: UsersManagerActionContext): Promise<void> => {
     await host.execution.runWithBoundary('settings:showAddUserModal', async () => {
         const rawUsername = await requireDialogsService().showPrompt({
+            owner: host.owner,
             title: i18n.t('settings.users.addUserModal.title'),
             message: i18n.t('settings.users.addUserModal.usernamePrompt'),
             defaultValue: '',
@@ -23,6 +24,7 @@ const performAddUserAction = async ({ host, reloadUsers }: UsersManagerActionCon
         }
         const username = requireCanonicalUsername(rawUsername);
         const password = await requireDialogsService().showPrompt({
+            owner: host.owner,
             title: i18n.t('settings.users.addUserModal.title'),
             message: i18n.t('settings.users.addUserModal.passwordPrompt'),
             defaultValue: '',
@@ -31,6 +33,7 @@ const performAddUserAction = async ({ host, reloadUsers }: UsersManagerActionCon
         });
         if (!password) return;
         const isAdmin = await requireDialogsService().showConfirmation({
+            owner: host.owner,
             title: i18n.t('settings.users.addUserModal.roleTitle'),
             message: i18n.t('settings.users.addUserModal.roleMessage', { username }),
             confirmText: i18n.t('settings.users.addUserModal.yesAdmin'),

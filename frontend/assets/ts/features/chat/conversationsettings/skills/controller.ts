@@ -276,7 +276,13 @@ class SkillsConversationSettingsController {
             return;
         }
         if (action === 'skills-remove') {
-            const confirmed = await requireDialogsService().showConfirmation({ title: i18n.t('common.delete'), message: i18n.t('chat.configuration.skills.removeConfirm'), confirmText: i18n.t('common.delete'), confirmVariant: 'danger' });
+            const confirmed = await requireDialogsService().showConfirmation({
+                owner: this.#host.owner,
+                title: i18n.t('common.delete'),
+                message: i18n.t('chat.configuration.skills.removeConfirm'),
+                confirmText: i18n.t('common.delete'),
+                confirmVariant: 'danger'
+            });
             if (!confirmed || !this.#session.isActive(session)) return;
             await this.#host.data.api.webui.chat.skills.remove(identity);
             if (!this.#session.isActive(session)) return;

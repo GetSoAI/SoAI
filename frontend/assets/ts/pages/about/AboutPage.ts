@@ -163,7 +163,7 @@ class AboutPage extends StaticBasePage {
         };
         const logoSection = optionalAboutLogoSection(domHost);
         if (!logoSection) return;
-        this.#easterEggController = new EasterEggController();
+        this.#easterEggController = new EasterEggController(this.pageContext.presentationOwner);
         this.#easterEggController.attach(logoSection, () => this.#systemInfo?.version ?? null);
     }
 
@@ -176,11 +176,11 @@ class AboutPage extends StaticBasePage {
     }
 
     async #handleLicenseClick(): Promise<void> {
-        await showLicenseModal();
+        await showLicenseModal(this.pageContext.presentationOwner);
     }
 
     async #handleCreditsClick(): Promise<void> {
-        await showCreditsModal();
+        await showCreditsModal(this.pageContext.presentationOwner);
     }
 }
 

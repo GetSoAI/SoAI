@@ -1,13 +1,13 @@
 /* SoAI - Chat initial modal query handling [frontend/assets/ts/pages/chat/controllers/initialModal.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { buildRouteWithoutQueryParameters } from '@core/routing/router/events.ts';
+import { consumeRouteQuery, INITIAL_MODAL_QUERY_KEYS } from '@core/routeregistry/reconstruction.ts';
+import type { PageMountScope, PageRouting } from '@core/routing/router/types.ts';
+import { isPresentationOwnerFocused } from '@core/presentationOwner.ts';
 
 interface ChatInitialModalHost {
-    router: {
-        getRouteParameters(): Record<string, string>;
-        replaceCurrentRoute(target: string): void;
-    } | null;
+    owner: PageMountScope;
+    router: Pick<PageRouting, 'getRouteParameters' | 'getCurrentRoute' | 'getQueryParameters' | 'replaceCurrentRoute'> | null;
     configurationSession: { openTab(tabId: string): void };
 }
 
@@ -16,7 +16,7 @@ const clearChatInitialModalQuery = (host: ChatInitialModalHost): void => {
     if (!router) {
         throw new Error('Chat initial modal cleanup requires a router');
     }
-    router.replaceCurrentRoute(buildRouteWithoutQueryParameters('chat', router.getRouteParameters(), ['modal']));
+    consumeRouteQuery(router, INITIAL_MODAL_QUERY_KEYS);
 };
 
 const handleChatInitialModal = (host: ChatInitialModalHost): void => {
@@ -27,6 +27,7 @@ const handleChatInitialModal = (host: ChatInitialModalHost): void => {
     if (router.getRouteParameters()['modal'] !== 'chat-settings') {
         return;
     }
+    if (!isPresentationOwnerFocused(host.owner)) return;
     host.configurationSession.openTab('general');
     clearChatInitialModalQuery(host);
 };

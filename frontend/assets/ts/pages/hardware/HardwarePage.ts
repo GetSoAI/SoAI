@@ -84,7 +84,7 @@ class HardwarePage extends StaticBasePage {
         }
         this.#runtime.memorySwapController.initialize();
         if (!this.services.isDetached()) {
-            this.#detachActionController ??= createHeaderActionController({ actionId: 'detach', contextId: 'hardware' });
+            this.#detachActionController ??= createHeaderActionController({ owner: this.pageContext.presentationOwner, actionId: 'detach', contextId: 'hardware' });
             this.#detachActionController.show({ onClick: () => this.#openDetachedWindow() });
         }
     }

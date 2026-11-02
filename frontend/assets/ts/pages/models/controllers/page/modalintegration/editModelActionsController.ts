@@ -43,6 +43,7 @@ const createEditModelActionBridge = (runtime: ModelsModalRuntimeDependencies, mo
     const renameModelModalRoot = infrastructure.services.modals.requireElement(MODELS_RENAME_MODEL_MODAL_ID);
     const renameModelModalManager = new RenameModelModalManager({
         host: {
+            owner: infrastructure.services.mountScope,
             modals: infrastructure.services.modals,
             requireHTMLElement: (selector, context) => infrastructure.pageDom.requireHTMLElement(selector, context ?? renameModelModalRoot),
             optionalHTMLElement: (selector, context) => infrastructure.pageDom.optionalHTMLElement(selector, context ?? renameModelModalRoot),
@@ -59,6 +60,7 @@ const createEditModelActionBridge = (runtime: ModelsModalRuntimeDependencies, mo
     const deleteModelById = createModelsDeleteController(
         createModelsDeleteDependencies(
             {
+                owner: infrastructure.services.mountScope,
                 collections: collection.collections,
                 pageDom: infrastructure.pageDom,
                 modelActions: runtime.modelActions,
@@ -66,6 +68,7 @@ const createEditModelActionBridge = (runtime: ModelsModalRuntimeDependencies, mo
                 executeItemDeletion: async (config) => {
                     await executeModelsItemDeletion(
                         createModelsItemDeletionHost({
+                            owner: infrastructure.services.mountScope,
                             deletingItems: session.deletingItems,
                             streams: infrastructure.streaming.pageTracker,
                             pageDom: infrastructure.pageDom,

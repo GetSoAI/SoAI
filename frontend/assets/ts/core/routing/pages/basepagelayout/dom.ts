@@ -16,7 +16,7 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { isArray, isElementNode, isNodeList, isString } from '@core/typeGuards.ts';
 import type { BasePageLayoutState } from '@core/routing/pages/basepagelayout/state.ts';
 
-type HeaderActionContextResolver = (context?: Element | Document | null) => Element | null;
+type HeaderActionContextResolver = (context?: Element | null) => Element | null;
 type HeaderActionsRootResolver = () => Element | null;
 const PAGE_HEADER_TIGHT_CLASS = 'page-header--tight-actions';
 const PAGE_HEADER_TIGHT_STRONG_CLASS = 'page-header--tight-actions-strong';
@@ -81,7 +81,7 @@ const refreshPageHeaderTitleTightStateAfterActionMotion = (headerActions: HTMLEl
 
 type HeaderActionTarget = DOMTarget | readonly HeaderActionTarget[];
 
-const getHeaderActionElements = (resolveContext: HeaderActionContextResolver, target: HeaderActionTarget, context?: Element | Document | null): Element[] => {
+const getHeaderActionElements = (resolveContext: HeaderActionContextResolver, target: HeaderActionTarget, context?: Element | null): Element[] => {
     const elements: Element[] = [];
     const resolutionContext = resolveContext(context);
     const collect = (candidate: HeaderActionTarget): void => {
@@ -105,8 +105,8 @@ const getHeaderActionElements = (resolveContext: HeaderActionContextResolver, ta
         }
         if (isString(candidate)) {
             const normalized = normalizeSelectorInput(candidate);
-            if (isString(normalized)) {
-                elements.push(...dom.resolveAll(normalized, resolutionContext ?? undefined));
+            if (isString(normalized) && resolutionContext) {
+                elements.push(...dom.resolveAll(normalized, resolutionContext));
             }
         }
     };
@@ -116,9 +116,9 @@ const getHeaderActionElements = (resolveContext: HeaderActionContextResolver, ta
 
 const affectsHeaderActionVisibility = (classes: string | string[]): boolean => splitClassNames(classes).some((className) => HEADER_ACTION_VISIBILITY_CLASSES.has(className));
 
-const targetsHeaderActions = (resolveContext: HeaderActionContextResolver, target: HeaderActionTarget, context?: Element | Document | null): boolean => getHeaderActionElements(resolveContext, target, context).some((element) => Boolean(element.closest('.page-actions__menu')));
+const targetsHeaderActions = (resolveContext: HeaderActionContextResolver, target: HeaderActionTarget, context?: Element | null): boolean => getHeaderActionElements(resolveContext, target, context).some((element) => Boolean(element.closest('.page-actions__menu')));
 
-const shouldUpdateHeaderActionLayout = (resolveContext: HeaderActionContextResolver, target: HeaderActionTarget, classes: string | string[], context: Element | Document | null | undefined): boolean => targetsHeaderActions(resolveContext, target, context) && affectsHeaderActionVisibility(classes);
+const shouldUpdateHeaderActionLayout = (resolveContext: HeaderActionContextResolver, target: HeaderActionTarget, classes: string | string[], context: Element | null | undefined): boolean => targetsHeaderActions(resolveContext, target, context) && affectsHeaderActionVisibility(classes);
 
 const refreshHeaderActionsLayout = (getHeaderActionsRoot: HeaderActionsRootResolver): void => {
     const headerActions = getHeaderActionsRoot();

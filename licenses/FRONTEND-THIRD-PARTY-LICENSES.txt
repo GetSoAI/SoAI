@@ -1,5 +1,5 @@
 SoAI Frontend Third-Party Licenses
-Generated: 2026-10-21T23:00:24.037Z
+Generated: 2026-11-01T12:21:51.401Z
 
 This file contains third-party license texts for npm packages used by the shipped frontend bundle.
 

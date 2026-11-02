@@ -170,7 +170,7 @@ class CollectionLayoutRuntime {
         }
         const bindingContext = {
             resolveHostContainer: () => this.#dependencies.resolveHostContainer(),
-            query: (selector: string, context?: Element | Document | null) => this.#dependencies.pageDom.query(selector, context),
+            query: (selector: string, context?: Element | null) => this.#dependencies.pageDom.query(selector, context),
             on: (target: EventTarget, event: string, handler: EventListener, options?: AddEventListenerOptions) => this.#dependencies.pageResources.on(target, event, handler, options)
         };
         bindActionHandlers(bindingContext, this.getActionHandlers());

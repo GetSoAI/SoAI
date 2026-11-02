@@ -2,28 +2,28 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ErrorBoundary } from '@core/ErrorBoundary.ts';
+import { createDeferred } from '@core/runtime/deferred.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { normalizeModalId, validateModalRootContract } from '@core/modals/guards.ts';
 import { createModalHostState, type ModalHostState } from '@core/modals/modalhost/contracts.ts';
 import type { ModalStorageApi } from '@core/modals/modalhost/types.ts';
-import { initializeModalHost } from '@core/modals/modalhost/hostLifecycle.ts';
+import { disposeModalHost, initializeModalHost } from '@core/modals/modalhost/hostLifecycle.ts';
 import { closeModal, closeOpenModals, getModalElement, isOpen, openModal, registerModal, toggleModal } from '@core/modals/modalhost/modalActions.ts';
 import { applyBehaviorAttributes } from '@core/modals/render.ts';
 import { getServiceContainer } from '@core/serviceContainer.ts';
-import type { ModalCloseOptions, ModalHandle, ModalLayoutPreset, ModalOpenOptions, ModalRegisterOptions } from '@core/modals/types.ts';
+import type { ModalCloseOptions, ModalCreationOptions, ModalOwnership, ModalHandle, ModalLayoutPreset, ModalOpenOptions, ModalRegisterOptions } from '@core/modals/types.ts';
 import { isBoolean, isFunction, isObject } from '@core/typeGuards.ts';
 import { getWindow } from '@core/environment/public.ts';
 import { getLanguageService } from '@core/languageservice/service.ts';
 import { EVENT_CHANGE } from '@core/languageservice/constants.ts';
+import { acquireModalOwnership, releaseModalOwnership, hasOpenModalsOutsideOwners } from '@core/modals/modalhost/ownership.ts';
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { prepareModalLocalization } from '@core/modals/localization.ts';
-import { runAsyncCleanupStepCollectingFailure, runCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
+import type { Cleanup } from '@core/lifecycle/cleanup.ts';
 import { removeWithPresence, finishPresenceAnimations } from '@core/animations/presence/public.ts';
+import { bindModalElement, releaseModalBinding, requireModalBindingSettled, type ModalBinder, type ModalBinding } from '@core/modals/modalhost/bindings.ts';
 
 const MODAL_PRESENTER_SERVICE_ID = 'core.modalPresenter';
-
-type ModalBinder = {
-    dispose: () => void;
-};
 
 interface ModalDefinition {
     id: string;
@@ -32,28 +32,31 @@ interface ModalDefinition {
     initialFocusSelector: string;
     resizable?: boolean | undefined;
     allowFullscreen?: boolean | undefined;
-    createElement: (options: ModalOpenOptions) => HTMLElement;
+    createElement: (options: ModalCreationOptions) => HTMLElement;
     bind?: ((modal: HTMLElement) => ModalBinder) | undefined;
     onOpen?: ((modal: HTMLElement, options: ModalOpenOptions) => void) | undefined;
     onClose?: ((modal: HTMLElement, options: ModalCloseOptions) => void) | undefined;
 }
 
 interface ModalPresenterApi {
-    open: <TOptions extends ModalOpenOptions>(id: string, options?: TOptions | undefined) => void;
+    open: <TOptions extends ModalOpenOptions>(id: string, options: TOptions, ownership?: ModalOwnership) => void;
     close: (id: string, options?: ModalCloseOptions | undefined) => void;
-    closeAll: (options?: ModalCloseOptions | undefined) => number;
-    hasOpenModals: () => boolean;
+    closeAll: (owner: PresentationOwner, options?: ModalCloseOptions | undefined) => number;
+    hasOpenModals: (excludedOwners?: readonly PresentationOwner[]) => boolean;
     dispose: () => Promise<void>;
-    toggle: (id: string, force?: boolean | null | undefined) => void;
+    acquireOwnership: (id: string, owner: PresentationOwner, disposeSession?: Cleanup) => ModalOwnership;
+    releaseOwnership: (ownership: ModalOwnership) => boolean;
+    getOwnership: (id: string) => ModalOwnership | null;
+    toggle: (id: string, options: ModalOpenOptions, force?: boolean | null | undefined) => void;
     isOpen: (id: string) => boolean;
-    requireElement: <TOptions extends ModalOpenOptions>(id: string, options?: TOptions | undefined) => HTMLElement;
+    requireElement: <TOptions extends ModalCreationOptions>(id: string, options?: TOptions | undefined) => HTMLElement;
 }
 
 const isModalPresenterApi = <T>(value: T): value is T & ModalPresenterApi => {
     if (!isObject(value)) {
         return false;
     }
-    return 'open' in value && isFunction(value.open) && 'close' in value && isFunction(value.close) && 'closeAll' in value && isFunction(value.closeAll) && 'hasOpenModals' in value && isFunction(value.hasOpenModals) && 'dispose' in value && isFunction(value.dispose) && 'toggle' in value && isFunction(value.toggle) && 'isOpen' in value && isFunction(value.isOpen) && 'requireElement' in value && isFunction(value.requireElement);
+    return 'acquireOwnership' in value && isFunction(value.acquireOwnership) && 'releaseOwnership' in value && isFunction(value.releaseOwnership) && 'getOwnership' in value && isFunction(value.getOwnership) && 'open' in value && isFunction(value.open) && 'close' in value && isFunction(value.close) && 'closeAll' in value && isFunction(value.closeAll) && 'hasOpenModals' in value && isFunction(value.hasOpenModals) && 'dispose' in value && isFunction(value.dispose) && 'toggle' in value && isFunction(value.toggle) && 'isOpen' in value && isFunction(value.isOpen) && 'requireElement' in value && isFunction(value.requireElement);
 };
 
 const requireModalPresenter = (): ModalPresenterApi => {
@@ -68,11 +71,12 @@ const createModalPresenterService = ({ storage, definitions: definitionList }: {
     const boundary = new ErrorBoundary('ModalPresenter');
     let hostState: ModalHostState;
     const definitions: Map<string, ModalDefinition> = new Map();
-    const binders: Map<string, ModalBinder> = new Map();
+    const binders: Map<string, ModalBinding> = new Map();
     const handles: Map<string, ModalHandle> = new Map();
     const elements = new Set<HTMLElement>();
-    const localization = new WeakMap<HTMLElement, { language: string; options: ModalOpenOptions; apply: (source: HTMLElement) => void }>();
+    const localization = new WeakMap<HTMLElement, { language: string; options: ModalCreationOptions; apply: (source: HTMLElement) => void }>();
     let disposed = false;
+    let disposal: Promise<void> | null = null;
 
     const localizeElement = (modal: HTMLElement): void => {
         const state = localization.get(modal);
@@ -80,6 +84,7 @@ const createModalPresenterService = ({ storage, definitions: definitionList }: {
         if (!state || state.language === language) return;
         const definition = requireDefinition(modal.id);
         const source = definition.createElement(state.options);
+        ensureInitialized();
         if (source.isConnected || source.id !== modal.id) throw new Error('Modal localization must render a detached root with the same id');
         validateModalRootContract(source, modal.id);
         state.apply(source);
@@ -184,8 +189,10 @@ const createModalPresenterService = ({ storage, definitions: definitionList }: {
         finishPresenceAnimations(modal);
     };
 
-    const ensureElement = (id: string, options: ModalOpenOptions): HTMLElement => {
+    const ensureElement = (id: string, options: ModalCreationOptions): HTMLElement => {
         const modalId = normalizeModalId(id);
+        const previousBinder = binders.get(modalId) ?? null;
+        if (previousBinder) requireModalBindingSettled(previousBinder);
         const existing = getModalElement(modalId);
         if (existing) {
             if (!(existing instanceof HTMLElement)) {
@@ -197,12 +204,14 @@ const createModalPresenterService = ({ storage, definitions: definitionList }: {
         }
 
         const def = requireDefinition(modalId);
-        const previousBinder = binders.get(modalId) ?? null;
         if (previousBinder) {
-            previousBinder.dispose();
+            releaseModalBinding(previousBinder);
+            requireModalBindingSettled(previousBinder);
             binders.delete(modalId);
+            ensureInitialized();
         }
         const created = def.createElement(options);
+        ensureInitialized();
         if (!(created instanceof HTMLElement)) {
             throw new Error(`Modal "${modalId}" createElement() must return an HTMLElement`);
         }
@@ -212,18 +221,16 @@ const createModalPresenterService = ({ storage, definitions: definitionList }: {
         validateModalRootContract(created, modalId);
         if (created.isConnected) throw new Error(`Modal "${modalId}" createElement() must return a detached root`);
         localization.set(created, { language: getLanguageService().getLanguage(), options: { ...options }, apply: prepareModalLocalization(created) });
-        document.body.appendChild(created);
         elements.add(created);
+        document.body.appendChild(created);
         applyBehaviorAttributes(created, hostState.registry.getConfig(modalId));
         try {
+            ensureInitialized();
             const bindModal = def.bind;
-            if (isFunction(bindModal)) {
-                const binder = bindModal(created);
-                if (!isObject(binder) || !isFunction(binder.dispose)) throw new Error(`Modal "${modalId}" bind() must return a disposer`);
-                binders.set(modalId, binder);
-            }
+            if (isFunction(bindModal)) bindModalElement(binders, created, bindModal, () => !disposed);
         } catch (error) {
-            discardElement(created);
+            const binding = binders.get(modalId);
+            if (!binding || binding.state.type === 'released') discardElement(created);
             throw error;
         }
         return created;
@@ -232,15 +239,26 @@ const createModalPresenterService = ({ storage, definitions: definitionList }: {
     hostState = createModalHostState({
         storage,
         resolveModalElement,
+        onOwnershipRevoked: (ownership) => {
+            if (hostState.ownership.get(ownership.modalId) !== ownership) return;
+            if (!isOpen(hostState, ownership.modalId)) {
+                releaseModalOwnership(hostState, ownership);
+                return;
+            }
+            const modal = hostState.resolveModalElement(ownership.modalId);
+            closeModal(hostState, ownership.modalId, { force: true, restoreFocus: false, reason: 'owner-revoked' });
+            if (modal) finishPresenceAnimations(modal);
+            releaseModalOwnership(hostState, ownership);
+        },
         ensureModalElement: (id: string) => ensureElement(id, {})
     });
 
-    const open = <TOptions extends ModalOpenOptions>(id: string, options?: TOptions | undefined): void => {
-        const resolvedOptions: ModalOpenOptions = options ?? {};
+    const open = <TOptions extends ModalOpenOptions>(id: string, options: TOptions, ownership?: ModalOwnership): void => {
+        const resolvedOptions = options;
         const modalId = normalizeModalId(id);
         ensureRegistered(modalId);
         ensureElement(modalId, resolvedOptions);
-        const opened = openModal(hostState, modalId, resolvedOptions);
+        const opened = openModal(hostState, modalId, resolvedOptions, ownership);
         if (opened !== true) {
             throw new Error(`Failed to open modal "${modalId}"`);
         }
@@ -252,15 +270,15 @@ const createModalPresenterService = ({ storage, definitions: definitionList }: {
         closeModal(hostState, modalId, options);
     };
 
-    const closeAll = (options: ModalCloseOptions = {}): number => {
+    const closeAll = (owner: PresentationOwner, options: ModalCloseOptions = {}): number => {
         ensureInitialized();
-        return closeOpenModals(hostState, options);
+        return closeOpenModals(hostState, options, owner);
     };
 
-    const toggle = (id: string, force: boolean | null = null): void => {
+    const toggle = (id: string, options: ModalOpenOptions, force: boolean | null = null): void => {
         const modalId = normalizeModalId(id);
         ensureRegistered(modalId);
-        const toggled = toggleModal(hostState, modalId, force);
+        const toggled = toggleModal(hostState, modalId, options, force);
         if (toggled !== true) {
             throw new Error(`Failed to toggle modal "${modalId}"`);
         }
@@ -276,28 +294,28 @@ const createModalPresenterService = ({ storage, definitions: definitionList }: {
         open,
         close,
         closeAll,
-        hasOpenModals: () => hostState.activeStack.length > 0,
-        dispose: async (): Promise<void> => {
-            if (disposed) return;
+        hasOpenModals: (excludedOwners = []) => hasOpenModalsOutsideOwners(hostState, excludedOwners),
+        dispose: (): Promise<void> => {
+            if (disposal) return disposal;
             disposed = true;
-            const failures: Error[] = [];
-            runCleanupStepCollectingFailure(() => {
-                closeOpenModals(hostState, { force: true, restoreFocus: false, reason: 'dispose' });
-            }, failures);
-            for (const binder of binders.values()) runCleanupStepCollectingFailure(binder.dispose, failures);
-            binders.clear();
-            for (const element of elements) {
-                runCleanupStepCollectingFailure(() => discardElement(element), failures);
-            }
-            elements.clear();
-            handles.clear();
-            await runAsyncCleanupStepCollectingFailure(() => hostState.resources.cleanup(), failures);
-            throwCollectedCleanupFailures(failures);
+            const completion = createDeferred<void>();
+            disposal = completion.promise;
+            void disposeModalHost(hostState, binders, elements, handles, discardElement).then(
+                () => completion.resolve(),
+                (error) => completion.reject(ensureError(error))
+            );
+            return completion.promise;
         },
+        acquireOwnership: (id, owner, disposeSession) => {
+            ensureRegistered(id);
+            return acquireModalOwnership(hostState, id, owner, disposeSession);
+        },
+        releaseOwnership: (ownership) => releaseModalOwnership(hostState, ownership),
+        getOwnership: (id) => hostState.ownership.get(normalizeModalId(id)) ?? null,
         toggle,
         isOpen: isModalOpen,
-        requireElement: <TOptions extends ModalOpenOptions>(id: string, options?: TOptions | undefined) => {
-            const resolvedOptions: ModalOpenOptions = options ?? {};
+        requireElement: <TOptions extends ModalCreationOptions>(id: string, options?: TOptions | undefined) => {
+            const resolvedOptions: ModalCreationOptions = options ?? {};
             const modalId = normalizeModalId(id);
             ensureRegistered(modalId);
             return ensureElement(modalId, resolvedOptions);

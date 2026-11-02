@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
-import { createAbortSignalScope, raceWithAbortSignal } from '@core/errors/abort.ts';
+import { createAbortSignalScope, raceWithAbortSignal, throwIfAborted } from '@core/errors/abort.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { createDeferred } from '@core/runtime/deferred.ts';
 import { getStreamRuntime } from '@core/realtime/streammanager/public.ts';
 import { isStreamManagerInterface, validateStreamManager } from '@core/subscriptionmanager/internalContracts.ts';
 import { type PendingSubscriptionStart, type SubscriptionHealth, type StreamManagerInterface } from '@core/subscriptionmanager/contracts.ts';
@@ -53,12 +55,15 @@ const delay = (state: SubscriptionManagerState, ms: number): Promise<void> => {
 };
 
 const startWithManager = async (key: string, health: SubscriptionHealth, manager: StreamManagerInterface, signal: AbortSignal, onError: StartResourceCallbacks['onError']): Promise<void> => {
+    throwIfAborted(signal);
     await manager.resources.ensureReady({ allowDiscovery: true, throwOnError: false, signal });
+    throwIfAborted(signal);
     const result = await manager.resources.ensureResourceStarted(key, {
         allowDiscovery: true,
         throwOnError: false,
         signal
     });
+    throwIfAborted(signal);
     if (result === null) {
         onError(key, health, new Error('Resource start returned null'));
         return;
@@ -69,27 +74,24 @@ const startWithManager = async (key: string, health: SubscriptionHealth, manager
 };
 
 const ensureResourceStarted = (state: SubscriptionManagerState, key: string, health: SubscriptionHealth, onError: StartResourceCallbacks['onError'], options: { signal?: AbortSignal | undefined } = {}): Promise<void> => {
-    if (!state.pendingStarts.has(key)) {
+    let pendingStart = state.pendingStarts.get(key);
+    if (!pendingStart) {
         const manager = resolveStreamManager(state);
         const controller = new AbortController();
         const signalScope = createAbortSignalScope([controller.signal, options.signal]);
-        let pendingStart: PendingSubscriptionStart | null = null;
+        const completion = createDeferred<void>();
+        const incoming: PendingSubscriptionStart = { controller, promise: completion.promise };
+        pendingStart = incoming;
+        state.pendingStarts.set(key, incoming);
         const startTask = startWithManager(key, health, manager, signalScope.signal, onError).finally(() => {
             signalScope.cleanup();
-            if (pendingStart && state.pendingStarts.get(key) === pendingStart) {
+            if (state.pendingStarts.get(key) === incoming) {
                 state.pendingStarts.delete(key);
             }
         });
-        pendingStart = { controller, promise: startTask };
-        state.pendingStarts.set(key, pendingStart);
+        void startTask.then(completion.resolve, (error) => completion.reject(ensureError(error)));
     }
-
-    const startTask = state.pendingStarts.get(key);
-    if (!startTask) {
-        throw new Error('Subscription start task could not be initialized');
-    }
-
-    return options.signal ? raceWithAbortSignal(startTask.promise, options.signal) : startTask.promise;
+    return options.signal ? raceWithAbortSignal(pendingStart.promise, options.signal) : pendingStart.promise;
 };
 
 export { delay, ensureResourceStarted, getStreamManagerForSubscription, resolveStreamManager, resolveUnsubscribeManager, ensureTimers };

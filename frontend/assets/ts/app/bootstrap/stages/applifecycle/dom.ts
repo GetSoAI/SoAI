@@ -8,6 +8,7 @@ import { describeInitializationFailure, type InitializationStage } from '@app/bo
 import { clearActiveWallpaperReadiness } from '@core/backgroundtasks/wallpaperReadiness.ts';
 import { getDiscoveryService } from '@core/discoveryservice/public.ts';
 import { dom } from '@core/dom/dom.ts';
+import { setPageContentAvailable } from '@core/layout/pageContentInteractivity.ts';
 import { getElementByIdStrict, requireDocument } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -168,4 +169,5 @@ export const renderLifecycleInitializationError = (error: Error, finalizePreload
     const root = dom.resolve('.initialization-error', container);
     if (!(root instanceof HTMLElement)) throw new Error('Initialization error surface is missing');
     bindReloadFailure(root);
+    if (detached) setPageContentAvailable(container, true);
 };

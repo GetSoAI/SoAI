@@ -1,6 +1,7 @@
 /* SoAI - Settings feature apikeys contracts [frontend/assets/ts/features/settings/apikeys/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ApiKeyAssignmentResponse, ApiKeyCreateRequest, ApiKeyDeleteAllResponse, ApiKeyRevokeResponse, ApiKeySecretResponse } from '@core/api/contracts/apiKeyContracts.ts';
 import type { ApiKeyQuotaUpdateRequest } from '@core/api/contracts/apiKeyQuotaContracts.ts';
 import type { ToggleLabelState } from '@core/toggleSwitch.ts';
@@ -53,6 +54,7 @@ interface ApiKeysManagerStateHost {
 }
 
 interface ApiKeysManagerHost {
+    readonly owner: PresentationOwner;
     api: ApiKeysManagerApiHost;
     view: ApiKeysManagerDomHost;
     execution: ApiKeysManagerExecutionHost;

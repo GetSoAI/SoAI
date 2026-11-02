@@ -1,6 +1,7 @@
 /* SoAI - Chat conversation actions controller contracts [frontend/assets/ts/pages/chat/controllers/chatconversationactionscontroller/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import type { ChatParameters, ComposerDraftTransferMode, Conversation, LoadConversationMessagesOptions, MessageCursor } from '@features/chat/public.ts';
 import type { ChatConcurrencyController } from '@pages/chat/controllers/page/concurrency/ChatConcurrencyController.ts';
 import type { ChatConversationSettingsManagerContract, ConversationDeleteFallbackSnapshot } from '@pages/chat/controllers/chatconversationactionscontroller/contracts.ts';
@@ -112,6 +113,7 @@ interface ConversationActionsNavigationPort {
 }
 
 interface ConversationActionsHost {
+    readonly owner: PresentationOwner;
     workflow: ConversationActionsWorkflowPort;
     view: ConversationActionsRenderPort;
     navigation: ConversationActionsNavigationPort;

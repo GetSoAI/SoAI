@@ -61,7 +61,7 @@ const reloadAfterExternalAccountDeletion = async (options: ExternalAccountModalO
     }
 };
 
-const discardExternalAccountModalIfDirty = async (inputArguments: Pick<ExternalAccountModalActionsArguments, 'state' | 'dialogs' | 'hasChanges'>): Promise<boolean> => {
+const discardExternalAccountModalIfDirty = async (inputArguments: Pick<ExternalAccountModalActionsArguments, 'options' | 'state' | 'dialogs' | 'hasChanges'>): Promise<boolean> => {
     if (inputArguments.state.mode === 'launcher') {
         return true;
     }
@@ -69,6 +69,7 @@ const discardExternalAccountModalIfDirty = async (inputArguments: Pick<ExternalA
         return true;
     }
     return await showUnsavedChangesConfirmation({
+        owner: inputArguments.options.host.owner,
         dialogs: inputArguments.dialogs,
         message: i18n.t('settings.externalAccounts.modal.discardChangesMessage'),
         confirmText: i18n.t('settings.externalAccounts.modal.discardAction')

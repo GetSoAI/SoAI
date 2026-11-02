@@ -127,7 +127,7 @@ const createDashboardRequestsSectionRenderer = (dependencies: DashboardRequestsR
     const host = dependencies.host;
 
     const renderRequestsSection = (options: DashboardRequestsRenderOptions = {}): void => {
-        const content = host.requireUI('requests-content');
+        const content = host.requireUI('dashboard-requests-content');
         const contentElement = narrowHTMLElement(content, 'Dashboard requests content');
         syncDashboardRequestDistributionSourceToggle(host, dependencies.viewState);
 

@@ -7,6 +7,7 @@ import asyncio
 import os
 import sys
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
@@ -83,10 +84,22 @@ class PTYIOHandler:
             raise StateError(f"Failed to resize PTY: {exception}") from exception
 
     async def close_resources(self, session: PTYSession) -> None:
-        loop = asyncio.get_running_loop()
-        if sys.platform == "win32":
-            master_fd = require_windows_master_fd(session.master_fd)
-            await loop.run_in_executor(None, close_pty, master_fd)
+        if session.resources_closed:
             return
-        master_fd = require_linux_master_fd(session.master_fd)
-        await loop.run_in_executor(None, close_pty, master_fd, session.pid)
+        await run_joined_thread_call(
+            self._close_native_resources,
+            session,
+            task_name=f"pty-cleanup-{session.session_id}",
+            retain_resources_until_complete=True,
+        )
+
+    def _close_native_resources(self, session: PTYSession) -> None:
+        if sys.platform == "win32":
+            close_pty(require_windows_master_fd(session.master_fd))
+        else:
+            close_pty(
+                require_linux_master_fd(session.master_fd),
+                session.pid,
+                session.processes_closed_event,
+            )
+        session.resources_closed = True

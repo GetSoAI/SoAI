@@ -110,7 +110,7 @@ const composeCollectionRuntime = (dependencies: CollectionCompositionDependencie
             updateFilters: behavior.updateFilters
         }
     );
-    const data = new CollectionDataRuntime({ pageId, storage: owners.storage, collections, streaming: owners.streaming, pageDom: owners.pageDom, feedback: owners.feedback, behavior });
+    const data = new CollectionDataRuntime({ owner: owners.services.mountScope, pageId, storage: owners.storage, collections, streaming: owners.streaming, pageDom: owners.pageDom, feedback: owners.feedback, behavior });
     const pageHost = {
         get container() {
             return owners.pageHost.container;

@@ -26,6 +26,7 @@ const initializeUIManager = (page: ChatControllerInitializationContext): void =>
     const pendingMessageWindowRequests = new Map<string, MessageWindowIntent>();
     page.runtime.composerSurface.initializeUi(
         new ChatUIManager({
+            owner: page.page.services.mountScope,
             sanitizer: page.platform.pageContext.sanitizer,
             optionalUI: (selector, context) => page.page.pageDom.optional(selector, context),
             queryUI: (selector, context) => page.page.pageDom.query(selector, context),
@@ -141,6 +142,7 @@ const initializeConversationSettingsManager = (page: ChatControllerInitializatio
         return;
     }
     const conversationSettingsHost: ConversationSettingsHost = {
+        owner: page.page.services.mountScope,
         view: {
             on: (target, eventName, handler) => page.page.pageResources.on(target, eventName, handler),
             createElement: (tag, options, content) => page.page.pageElements.createElement(tag, options, content),

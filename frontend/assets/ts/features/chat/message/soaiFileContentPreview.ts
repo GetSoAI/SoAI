@@ -1,6 +1,7 @@
 /* SoAI - Chat SoAI file content preview [frontend/assets/ts/features/chat/message/soaiFileContentPreview.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -14,6 +15,7 @@ import type { SoaiFilePreviewType } from '@features/chat/attachments/attachmentP
 import { copyChatMessageTextWithFeedback, type ChatMessageCopyFeedbackDependencies, type CopyActionDependencies } from '@features/chat/message/messageCopyNotifications.ts';
 
 type ChatSoaiFileContentPreviewDependencies = CopyActionDependencies & {
+    readonly owner: PresentationOwner;
     fetchText: (url: string, signal: AbortSignal) => Promise<string>;
 };
 
@@ -28,6 +30,7 @@ type ChatSoaiFileContentPreviewOpenArguments = {
 };
 
 class ChatSoaiFileContentPreview {
+    readonly #owner: PresentationOwner;
     readonly #runWithBoundary: CopyActionDependencies['runWithBoundary'];
     readonly #fetchText: (url: string, signal: AbortSignal) => Promise<string>;
     readonly #copyFeedback: ChatMessageCopyFeedbackDependencies;
@@ -35,6 +38,7 @@ class ChatSoaiFileContentPreview {
     #generation = 0;
 
     constructor(dependencies: ChatSoaiFileContentPreviewDependencies) {
+        this.#owner = dependencies.owner;
         this.#runWithBoundary = dependencies.runWithBoundary;
         this.#fetchText = dependencies.fetchText;
         this.#copyFeedback = {
@@ -70,6 +74,7 @@ class ChatSoaiFileContentPreview {
             if (inputArguments.previewType === 'image' || inputArguments.previewType === 'audio' || inputArguments.previewType === 'video') {
                 requireContentPreviewModalService().open(
                     createMediaContentPreviewRequest({
+                        owner: this.#owner,
                         scope: 'chat',
                         type: inputArguments.previewType,
                         headerDescription: resolveChatPreviewHeaderDescription(inputArguments.previewType, inputArguments.contentType),
@@ -86,6 +91,7 @@ class ChatSoaiFileContentPreview {
             }
             requireContentPreviewModalService().open(
                 createDocumentContentPreviewRequest({
+                    owner: this.#owner,
                     scope: 'chat',
                     type: inputArguments.previewType === 'document' ? 'document' : 'file',
                     headerDescription: resolveChatPreviewHeaderDescription(inputArguments.previewType, inputArguments.contentType),
@@ -116,6 +122,7 @@ class ChatSoaiFileContentPreview {
         }
         requireContentPreviewModalService().open(
             createTextContentPreviewRequest({
+                owner: this.#owner,
                 scope: 'chat',
                 type: 'text',
                 headerDescription: resolveChatPreviewHeaderDescription('text', inputArguments.contentType),

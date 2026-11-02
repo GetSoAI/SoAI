@@ -1,6 +1,7 @@
 /* SoAI - Tasks feature task manager actions [frontend/assets/ts/features/tasks/taskmanager/TaskManagerActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createGlobalPresentationOwner } from '@core/presentationOwner.ts';
 import { stopPluginActionPath } from '@core/api/endpoints/uiPaths.ts';
 import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
@@ -24,6 +25,7 @@ interface TaskManagerActionsDependencies {
 }
 
 class TaskManagerActions {
+    readonly #presentationOwner = createGlobalPresentationOwner('task-manager-actions');
     #dependencies: TaskManagerActionsDependencies;
 
     constructor(dependencies: TaskManagerActionsDependencies) {
@@ -63,6 +65,7 @@ class TaskManagerActions {
         }
 
         const confirmed = await requireDialogsService().showConfirmation({
+            owner: this.#presentationOwner,
             title: i18n.t('taskManager.actions.stopAll'),
             message: messageParts.join('<br><br>'),
             messageAllowHTML: true,

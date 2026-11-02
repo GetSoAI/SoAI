@@ -13,6 +13,7 @@ from core.system.commands import CommandResult
 from hardware.vendors.nvidia.nvapi_fan_types import NvApiFanControl, NvApiFanStatus
 from hardware.vendors.nvidia.nvapi_native_types import NvApiPstates
 from hardware.vendors.nvidia.nvapi_power_types import NvApiPowerInfo, NvApiPowerStatus
+from hardware.vendors.nvidia.nvapi_sensor_types import NvApiDynamicPstates
 
 __all__ = (
     "NvApiFactoryProtocol",
@@ -262,6 +263,16 @@ class NvApiNativeModuleProtocol(Protocol):
     NvAPI: NvApiFactoryProtocol
     nvapi: NvApiNativeLibraryProtocol
     NvError: type[Exception]
+
+
+class NvApiDynamicPstatesPointerProtocol(Protocol):
+    contents: NvApiDynamicPstates
+
+
+class NvApiDynamicPstatesFunctionProtocol(Protocol):
+    def __call__(
+        self, handle: ctypes.c_void_p, output: NvApiDynamicPstatesPointerProtocol, /
+    ) -> int: ...
 
 
 class NvApiFanControlPointerProtocol(Protocol):

@@ -1,6 +1,7 @@
 /* SoAI - Chat message attachment overflow modal service [frontend/assets/ts/features/chat/message/attachmentoverflowmodal/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { PresentationOwner } from '@core/routing/router/types.ts';
 import { dom } from '@core/dom/dom.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
@@ -25,6 +26,7 @@ import { ChatSoaiPathContentPreview } from '@features/chat/message/soaiPathConte
 const CONTENT_ID = `${CHAT_ATTACHMENT_OVERFLOW_MODAL_ID}-content`;
 
 interface AttachmentOverflowModalDependencies extends CopyActionDependencies {
+    readonly owner: PresentationOwner;
     knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'items' | 'previewItem' | 'useItems'>;
     soaiPathsApi: Pick<ChatSoaiPathsApi, 'preview' | 'read' | 'download' | 'open' | 'token'>;
     getAttachmentDraftRevision: () => number;
@@ -32,6 +34,7 @@ interface AttachmentOverflowModalDependencies extends CopyActionDependencies {
 }
 
 class ChatAttachmentOverflowModal {
+    readonly #owner: PresentationOwner;
     readonly #runWithBoundary: CopyActionDependencies['runWithBoundary'];
     readonly #getAttachmentDraftRevision: () => number;
     readonly #listRenderer = new AttachmentOverflowListRenderer();
@@ -48,6 +51,7 @@ class ChatAttachmentOverflowModal {
     #sessionToken = 0;
 
     constructor(dependencies: AttachmentOverflowModalDependencies) {
+        this.#owner = dependencies.owner;
         this.#runWithBoundary = dependencies.runWithBoundary;
         this.#getAttachmentDraftRevision = dependencies.getAttachmentDraftRevision;
         this.#knowledgeSession = new AttachmentOverflowKnowledgeSession({
@@ -57,6 +61,7 @@ class ChatAttachmentOverflowModal {
             isSessionActive: (sessionToken) => this.#isSessionActive(sessionToken)
         });
         this.#knowledgeFirstPreview = new AttachmentOverflowKnowledgeFirstPreview({
+            owner: dependencies.owner,
             knowledgeAttachmentsApi: dependencies.knowledgeAttachmentsApi,
             runWithBoundary: (name, functionValue) => this.#runWithBoundary(name, functionValue),
             isSessionActive: (sessionToken) => this.#isSessionActive(sessionToken),
@@ -66,6 +71,7 @@ class ChatAttachmentOverflowModal {
             onKnowledgeAttachmentChanged: (summary) => dependencies.onKnowledgeAttachmentChanged(summary)
         });
         this.#knowledgePreview = new AttachmentOverflowKnowledgePreview({
+            owner: dependencies.owner,
             knowledgeAttachmentsApi: dependencies.knowledgeAttachmentsApi,
             runWithBoundary: (name, functionValue) => this.#runWithBoundary(name, functionValue),
             isSessionActive: (sessionToken) => this.#isSessionActive(sessionToken),
@@ -76,6 +82,7 @@ class ChatAttachmentOverflowModal {
             onKnowledgeAttachmentChanged: (summary) => dependencies.onKnowledgeAttachmentChanged(summary)
         });
         this.#soaiPathPreview = new ChatSoaiPathContentPreview({
+            owner: dependencies.owner,
             soaiPathsApi: dependencies.soaiPathsApi,
             runWithBoundary: (name, functionValue) => this.#runWithBoundary(name, functionValue),
             hasClipboardSupport: () => dependencies.hasClipboardSupport(),
@@ -122,7 +129,7 @@ class ChatAttachmentOverflowModal {
         this.#soaiPathPreview.reset();
         this.#autoPager.dispose();
         this.#render();
-        presenter.open(CHAT_ATTACHMENT_OVERFLOW_MODAL_ID);
+        presenter.open(CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, { owner: this.#owner });
         const knowledgeAttachmentId = inputArguments.knowledgeAttachmentId;
         if (isString(knowledgeAttachmentId) && knowledgeAttachmentId.trim()) {
             this.#showKnowledgeAttachment(knowledgeAttachmentId.trim());
@@ -130,8 +137,9 @@ class ChatAttachmentOverflowModal {
     }
 
     #render(): void {
-        const content = dom.resolve(`#${CONTENT_ID}`);
-        const tabsHost = dom.resolve(modalUiSelector(CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, 'tabs'));
+        const modal = requireModalPresenter().requireElement(CHAT_ATTACHMENT_OVERFLOW_MODAL_ID);
+        const content = dom.resolve(`#${CONTENT_ID}`, modal);
+        const tabsHost = dom.resolve(modalUiSelector(CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, 'tabs'), modal);
         if (!(content instanceof HTMLElement) || !(tabsHost instanceof HTMLElement)) {
             throw new Error('Attachment overflow modal content is missing');
         }

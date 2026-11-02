@@ -1,8 +1,9 @@
 /* SoAI - Shared routing navigation middleware normalization [frontend/assets/ts/core/routing/router/navigationMiddlewareNormalization.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { NAVIGATION_STATUS, navigationResult, type NavigationResultType } from '@core/navigationMiddleware.ts';
-import type { NavigationOptions } from '@core/routing/router/types.ts';
+import { NAVIGATION_STATUS, navigationResult } from '@core/navigationMiddleware.ts';
+import type { NavigationResultType, NavigationOptions } from '@core/routing/router/types.ts';
+
 import { isObject, isString } from '@core/typeGuards.ts';
 import { isJsonValue } from '@core/types/jsonValues.ts';
 
@@ -37,7 +38,7 @@ export const normalizeMiddlewareOutcome = (value: NavigationResultType | boolean
     if (status === NAVIGATION_STATUS.BLOCKED) {
         const reasonValue = value['reason'];
         const reason = isString(reasonValue) ? reasonValue : null;
-        return navigationResult.block(reason);
+        return navigationResult.block(reason, value['failure'] instanceof Error ? value['failure'] : undefined);
     }
     if (status === NAVIGATION_STATUS.CONTINUE) {
         const detail = isObject(value) ? (value['detail'] ?? null) : null;

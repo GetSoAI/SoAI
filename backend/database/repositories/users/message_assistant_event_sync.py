@@ -79,8 +79,9 @@ def sync_append_streaming_assistant_event_row(
     )
     validated_payload_json = build_validated_assistant_event_payload_json(
         event_type=validated_event_type,
-        payload_json=chronology_result.payload_json,
+        payload=chronology_result.payload,
     )
+    del chronology_result
     try:
         conn.execute(
             """

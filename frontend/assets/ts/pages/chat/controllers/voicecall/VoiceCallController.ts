@@ -42,6 +42,7 @@ class VoiceCallController {
     constructor(host: VoiceCallControllerHost) {
         this.#host = host;
         this.#uiState = new VoiceCallUiStateController({
+            owner: host.owner,
             isRuntimeActive: () => this.#runtimeState.isRuntimeActive(),
             onEndRequested: () => {
                 this.stop('user').catch((error) => {
@@ -128,6 +129,14 @@ class VoiceCallController {
 
     isActive(): boolean {
         return this.#runtimeState.isActive();
+    }
+
+    isRuntimeActive(): boolean {
+        return this.#runtimeState.isRuntimeActive();
+    }
+
+    subscribeStateChanges(listener: () => void): () => boolean {
+        return this.#runtimeState.subscribeStateChanges(listener);
     }
 
     async toggle(): Promise<void> {
